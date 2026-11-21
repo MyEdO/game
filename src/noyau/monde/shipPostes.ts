@@ -5,6 +5,7 @@
  * « facing » vs la Contenance (`ship.capacity`). Le Sabord (Gun Port) est une Amélioration optionnelle qui
  * donne un couvert TOTAL au servant qui tire à travers (sinon tir depuis le pont, aucun couvert).
  */
+import { findTrappingById } from '../../data';
 import { inFireArc } from './fireArc';
 import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../../engine/items';
 import { hasWeaponGroupSkill } from '../../engine/combat';
@@ -50,30 +51,39 @@ export function placementPenalty(mounts: MountWeight[], capacity: number): Place
   return { m: 0, man: 0, navDR: 0 };
 }
 
-/** Translate une FORMATION RIGIDE du MÊME `delta` : la coque, puis chaque membre positionné de `crewIds` (ADE II 8
- *  l.258 ; MDG 13), posé par `placeCombatant` à son étage. Les postes, sans position, suivent la coque. La
- *  translation est ENTIÈRE ou refusée : `null`, sans rien déplacer, si l'empreinte d'arrivée d'un membre sort de
- *  la zone jouable (`dansLaZoneJouable`) ou tombe sur une case absente ou couvre une case tenue par un combattant hors formation
- *  (`casesTenues`). La poussée d'un engin (`targetingModes`), l'avance d'un navire
- *  (`shipManeuver`) et l'outillage de recette l'appellent. Rend chaque déplacé avec sa case de départ. */
-export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
+type TranslationDeFormation = { mobile: Combatant; depart: NonNullable<Combatant['pos']>; arrivee: ReturnType<typeof pointDeCase> };
+
+/** ADE II 08 l.258 ; MDG 13. */
+export function planifierTranslationFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>): (delta: Pt) => TranslationDeFormation[] | null {
   const equipage = [...new Set(crewIds)].filter((id) => id !== coque.id);
   const mobiles = [coque, ...equipage.map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c)]
     .filter((c): c is Combatant & { pos: NonNullable<Combatant['pos']> } => !!c.pos);
   const ids = new Set(mobiles.map((m) => m.id));
   const prises = casesTenues(combatants, (c) => !ids.has(c.id));
-  const arrivee = (m: (typeof mobiles)[number]) => pointDeCase(m.pos.x + delta.x, m.pos.y + delta.y, m.pos.z ?? 0);
   const caseValide = (x: number, y: number, z: number) => {
     if (prises.has(tileKey(x, y, z))) return false;
     if (!scene) return true;
     return dansLaZoneJouable(scene, x, y) && !estAbsent(tileAt(scene, x, y, z));
   };
-  if (!mobiles.every((m) => { const a = arrivee(m); return footprintTiles(a, footprintN(m)).every((t) => caseValide(t.x, t.y, a.z ?? 0)); })) return null;
-  return mobiles.map((mobile) => {
-    const depart = { ...mobile.pos };
-    placeCombatant(mobile, scene, arrivee(mobile));
+  return (delta) => {
+    const translation = mobiles.map((mobile) => ({
+      mobile,
+      depart: { ...mobile.pos },
+      arrivee: pointDeCase(mobile.pos.x + delta.x, mobile.pos.y + delta.y, mobile.pos.z ?? 0),
+    }));
+    return translation.every(({ mobile, arrivee }) =>
+      footprintTiles(arrivee, footprintN(mobile)).every(({ x, y }) => caseValide(x, y, arrivee.z ?? 0)),
+    ) ? translation : null;
+  };
+}
+
+/** Applique une translation de toute la formation ou rend null si une arrivée est interdite. */
+export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
+  const translation = planifierTranslationFormation(combatants, scene, coque, crewIds)(delta);
+  return translation?.map(({ mobile, depart, arrivee }) => {
+    placeCombatant(mobile, scene, arrivee);
     return { mobile, depart };
-  });
+  }) ?? null;
 }
 
 /** Le Combattant-coque dont l'équipage (`crewIds`) inclut `crewId`, parmi `combatants` — le SUPPORT naval du
@@ -300,7 +310,7 @@ export function serveChef(chef: Combatant, poste: ShipPoste): void {
   // TIRÉ (`loaded === false`, Test étendu en cours) garde son état — la reprendre ne remplace pas le Test
   // étendu de rechargement (LDB 62 l.335), sinon changer de servant rechargerait gratis. Couture UNIQUE, sur
   // le registre de la PIÈCE — c'est LUI que lisent le gate de tir (`weaponLoaded`) et la munition tirée.
-  if (poste.loaded === undefined) loadWeapon(chef, w, poste);
+  if (poste.loaded === undefined) loadWeapon(findTrappingById, chef, w, poste);
 }
 
 /** Un servant QUITTE la pièce (release, runtime « Quitter la pièce ») : retire le lien `mannedPoste`, se retire

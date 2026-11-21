@@ -19,11 +19,11 @@ import { idDuCorps } from '../../src/noyau/monde/scene.ts';
 import {
   findCreatureById,
   byId,
+  findSiegeEngineById,
   findSpellById,
   findTraitById,
   findTrappingById,
   findVehicleById,
-  siegeEngines,
   species as SPECIES_CATALOG,
 } from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
@@ -39,7 +39,8 @@ import { estObjet } from '../../src/lib/objet.mjs';
  *  posés en `enemies[]` terse comme en `entities`. Valide → passe ; inconnu → throw (chercher au Compendium). */
 const CORPS = {
   creature: { trouve: (id) => findCreatureById(id), catalogue: 'Bestiaire' },
-  vehicule: { trouve: (id) => findVehicleById(id), catalogue: 'Véhicules' },
+  vehicule: { trouve: findVehicleById, catalogue: 'Véhicules' },
+  engin: { trouve: findSiegeEngineById, catalogue: 'Engins de siège' },
 };
 function corpsValide(e) {
   for (const [cle, { trouve, catalogue }] of Object.entries(CORPS))
@@ -232,11 +233,11 @@ export function hero(x, y) {
 /** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }`, l'uid
  *  d'instance dérivé de sa place au spawn (#2907)
  *  — la base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée, elle est HYDRATÉE au spawn depuis
- *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). VALIDE `trappingId` : doit être une pièce POSABLE
- *  du sous-type `armes-de-siege`, sélectionné par `siegeEngines` — sinon throw. `crewIds`
+ *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). Cette référence désigne le catalogue des engins.
+ *  `crewIds`
  *  vide par défaut : aucun id de héros n'est connu à l'authoring, le poste est servable en jeu (`serveAtPoste`). */
 export function poste(trappingId, side, crewIds = []) {
-  if (!siegeEngines().some((t) => t.id === trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId du sous-type armes-de-siege (Compendium → Objets, armes de siège).`);
+  if (!findSiegeEngineById(trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un engin du catalogue (Compendium → Engins de siège).`);
   return { trappingId, side, crewIds };
 }
 

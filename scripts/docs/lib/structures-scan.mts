@@ -25,6 +25,7 @@ import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 //   5. MESURE — occurrences de référence, formes de valeur, ops, enveloppe, orphelines, ambiguës.
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
+import { z } from 'zod';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
@@ -39,7 +40,7 @@ import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
 import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
-import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
+import { declarationProseNommee, sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { TYPES, declarationDeRefTypee, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
@@ -112,11 +113,11 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-const regimeEntrees = (racineJson: string, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';
-  return racineJson === 'array' ? 'elements' : 'racine';
+  return Array.isArray(brut) ? 'elements' : 'racine';
 };
 
 /** Liste les documents des deux `RACINES`, chemins POSIX relatifs à la racine du dépôt. */
@@ -134,6 +135,15 @@ export function listerDocuments(root: string): Document[] {
     }
   }
   return out.filter((d, i, xs) => xs.findIndex((x) => x.chemin === d.chemin) === i);
+}
+
+export function lireDocuments(root: string) {
+  const docs = listerDocuments(root);
+  const brutParDocument = new Map<string, unknown>(
+    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
+  );
+  const brutParNom: ReadonlyMap<string, unknown> = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)]));
+  return { docs, brutParDocument, brutParNom };
 }
 
 const inc = <K,>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
@@ -212,6 +222,7 @@ export type Classement = {
  * qui dérive de la STRATE parce qu'elle sert un autre usage (la charge utile de `tellsDeDocument`).
  */
 const CONCEPTS_CLASSABLES = CONCEPTS.filter((c) => !c.resolvables && !c.listeIdsNus);
+const CONCEPT_PROSE_NOMMEE = CONCEPTS_CLASSABLES.find((c) => c.reconnaitProseNommee);
 
 /** Concepts que seul le SITE peut proposer (`exigeCandidatureStructurelle`) — la liste se DÉDUIT du
  *  lexique, elle ne se nomme pas au call-site : ajouter un concept structurel au lexique suffit. */
@@ -603,15 +614,32 @@ export function scannerDonnees(
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
   choixDesOps: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
-  const docs = listerDocuments(root);
-  const brutParDocument = new Map<string, unknown>(
-    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
-  );
-  const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const { docs, brutParDocument, brutParNom } = lireDocuments(root);
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
   const poses = posesDesObjets(defs, brutParNom);
+  // La co-descente rapproche la déclaration PROSES_NOMMEES du même objet que parcourirDocument.
+  const prosesNommees = new WeakSet<object>();
+  if (CONCEPT_PROSE_NOMMEE) {
+    const schemasDeProjet = new Map(defs.filter((d) => d.root === PROJETS_LIVRES.dossier).map((d) => [d.file, d.schema]));
+    for (const d of docs) {
+      if (d.racine !== PROJETS_LIVRES.dossier) continue;
+      const schema = schemasDeProjet.get(d.nom);
+      if (!schema) continue;
+      coDescendre(schema, brutParDocument.get(d.chemin), ({ noeuds, valeur }) => {
+        if (!estObjet(valeur)) return;
+        for (const noeud of noeuds) {
+          const declaration = declarationProseNommee(noeud);
+          if (!declaration || !(noeud instanceof z.ZodType)) continue;
+          if (declaration.presence === 'optionnel' && !Object.prototype.hasOwnProperty.call(valeur, declaration.champ)) continue;
+          if (!noeud.safeParse(valeur).success) continue;
+          prosesNommees.add(valeur);
+          break;
+        }
+      });
+    }
+  }
   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
    *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
   const cartesDeRecord = new Set<object>(
@@ -649,7 +677,7 @@ export function scannerDonnees(
     const brut = brutParDocument.get(doc.chemin);
     const racineJson = Array.isArray(brut) ? 'array' : estObjet(brut) ? 'object' : classeDeType(brut);
     const familleDeclaree = famillesDeclarees.get(doc.nom) ?? '';
-    const regime = regimeEntrees(racineJson, familleDeclaree || undefined);
+    const regime = regimeEntrees(brut, familleDeclaree || undefined);
     /** En régime `valeurs`, la carte clé→valeur vit sous `entries` dès que le record est enveloppé. */
     const charge = regime === 'valeurs' ? chargeRecord(brut) : brut;
     const brutes: unknown[] =
@@ -928,6 +956,7 @@ export function scannerDonnees(
   let totalOps = 0;
   let objetsVus = 0;
   let objetsClasses = 0;
+  let documentsEmbarquesAvecForme = 0;
   /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée, ni
    *  collection à clé déclarée. */
   let objetsInvisibles = 0;
@@ -1153,7 +1182,17 @@ export function scannerDonnees(
         classe = true;
       }
 
-      if (classe) objetsClasses += 1;
+      // La prose déclarée prend les porteurs sans forme après les concepts et les références.
+      if (!classe && CONCEPT_PROSE_NOMMEE && prosesNommees.has(o)) {
+        const forme = statutDe(CONCEPT_PROSE_NOMMEE, cles.length === 1 ? 'texte' : 'texte+…');
+        ligneForme(CONCEPT_PROSE_NOMMEE, p, champ, forme, o).occurrences += 1;
+        classe = true;
+      }
+
+      if (classe) {
+        objetsClasses += 1;
+        if (estEmbarque) documentsEmbarquesAvecForme += 1;
+      }
 
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
@@ -1338,6 +1377,7 @@ export function scannerDonnees(
       racinesSansValeur,
       racinesDisqualifiees: [...racinesDisqualifiees].map(([dataset, entrees]) => ({ dataset, entrees })).sort((a, b) => b.entrees - a.entrees || parUnitesDeCode(a.dataset, b.dataset)),
       documentsEmbarques: documentsEmbarques.size,
+      documentsEmbarquesAvecForme,
       entreesDeRacine: prepares.reduce((a, p) => a + p.entrees.length, 0),
     },
     graphiesBrutes: Object.fromEntries(graphiesBrutes),
@@ -1474,24 +1514,29 @@ function kindsDeCondition(root: string): Set<string> {
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
  * (un schéma écrit en racine plutôt que le même littéral niché dans un autre) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
- * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
+ * Les littéraux s'apparient par leur FORME (`formeDuLitteral`) et par compatibilité du `kind` littéral.
  */
-function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur): Map<string, string> {
-  const racines = new Map<string, string>();
-  const niches = new Map<string, string>();
+function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur) {
+  type Candidat = { nom: string; kind: string | undefined };
+  const parForme = new Map<string, { racines: Candidat[]; niches: Candidat[] }>();
   const visite = (node: ts.Node, sf: ts.SourceFile) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       for (const lit of litterauxZod(node.initializer, sf, resoudre)) {
         if (!lit.resolu.forme || lit.resolu.partiel) continue;
-        const cible = lit.champ === '' ? racines : niches;
-        if (!cible.has(lit.resolu.forme)) cible.set(lit.resolu.forme, node.name.text);
+        const candidats = parForme.get(lit.resolu.forme) ?? { racines: [], niches: [] };
+        (lit.champ === '' ? candidats.racines : candidats.niches).push({ nom: node.name.text, kind: lit.kindLitteral });
+        parForme.set(lit.resolu.forme, candidats);
       }
     }
     node.forEachChild((n) => visite(n, sf));
   };
   for (const sf of grammaire) visite(sf, sf);
-  for (const [sig, nom] of niches) if (!racines.has(sig)) racines.set(sig, nom);
-  return racines;
+  return (lit: LitteralZod): string | undefined => {
+    const candidats = parForme.get(lit.forme);
+    if (!candidats) return undefined;
+    const compatible = ({ kind }: Candidat) => kind === undefined || lit.kindLitteral === undefined || kind === lit.kindLitteral;
+    return (candidats.racines.find(compatible) ?? candidats.niches.find(compatible))?.nom;
+  };
 }
 
 /** Nom de la propriété qui PORTE ce littéral (le champ, quand il y en a un). */
@@ -1504,16 +1549,27 @@ const champDuLitteral = (lit: ts.Node): string => {
 };
 
 /** Les ÉTIQUETTES d'un littéral : ses clés `clé: z.literal(v)`, avec leur valeur. Une étiquette NOMME une variante. */
-const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile): ReadonlyMap<string, string> => {
+const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile) => {
   const etiquettes = new Map<string, string>();
+  let kindLitteral: string | undefined;
   for (const p of lit.properties) {
-    if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
+    const nom = 'name' in p ? p.name : undefined;
+    if (ts.isSpreadAssignment(p) || (nom && ts.isComputedPropertyName(nom))) {
+      kindLitteral = undefined;
+      continue;
+    }
+    if (!nom || !(ts.isIdentifier(nom) || ts.isStringLiteral(nom))) continue;
+    if (nom.text === 'kind') kindLitteral = undefined;
+    if (!ts.isPropertyAssignment(p)) continue;
     const v = p.initializer;
     if (!ts.isCallExpression(v) || !ts.isPropertyAccessExpression(v.expression) || v.expression.name.text !== 'literal') continue;
     const arg = v.arguments[0];
-    if (arg) etiquettes.set(p.name.text, ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : arg.getText(sf));
+    if (!arg) continue;
+    const texte = ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : undefined;
+    etiquettes.set(nom.text, texte ?? arg.getText(sf));
+    if (nom.text === 'kind') kindLitteral = texte;
   }
-  return etiquettes;
+  return { etiquettes, kindLitteral };
 };
 
 /**
@@ -1609,6 +1665,7 @@ type LitteralZod = {
   aSpread: boolean;
   forme: string;
   etiquettes: ReadonlyMap<string, string>;
+  kindLitteral: string | undefined;
   resolu: { cles: string[]; partiel: boolean; forme: string };
 };
 
@@ -1633,7 +1690,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     const cles = lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : []));
     const resolu = clesDuLitteral(lit, sf, resoudre);
-    const etiquettes = etiquettesDuLitteral(lit, sf);
+    const { etiquettes, kindLitteral } = etiquettesDuLitteral(lit, sf);
     out.push({
       ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
       champ,
@@ -1641,6 +1698,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
       aSpread: lit.properties.some(ts.isSpreadAssignment),
       forme: formeDuLitteral(cles, etiquettes),
       etiquettes,
+      kindLitteral,
       resolu: { ...resolu, forme: formeDuLitteral(resolu.cles, etiquettes) },
     });
   };
@@ -1781,7 +1839,7 @@ export function scannerRedeclarations(root: string): {
 } {
   const grammaire = sourcesGrammaire(root);
   const resoudre = resolveurDe(grammaire);
-  const communs = schemasCommuns(grammaire, resoudre);
+  const communPour = schemasCommuns(grammaire, resoudre);
   const lits = litterauxDefs(root, resoudre);
   const litsGrammaire = grammaire.flatMap((sf) => litterauxZod(sf, sf, resoudre));
   const admises = etiquettesDesPoses();
@@ -1800,7 +1858,7 @@ export function scannerRedeclarations(root: string): {
     if (!sig) return;
     const classe = classements[i];
     const cl = classe && admisAuConcept(classe, lit.etiquettes, admises, declarations) ? classe : null;
-    const commun = communs.get(lit.forme);
+    const commun = communPour(lit);
     if (!cl && !commun) return;
     out.push({
       def: lit.def,

@@ -31,6 +31,7 @@ import { actorStatus, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
 import { ACTIVITIES, careers } from '../data';
+import { versDisque } from '../data/schemas/grammaire/prose';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { interludeCatalog } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -440,7 +441,7 @@ describe('Vue d’acteur — `visiblePassive` ne balaie qu’à la LECTURE, et u
  * la donnée réelle mutée, au chemin de l'Activité.
  */
 describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => {
-  const REELLES = ACTIVITIES;
+  const REELLES = versDisque(ACTIVITIES);
   const CIBLE = REELLES.findIndex((a) => (a.testMods?.length ?? 0) > 0);
   const dope = (mod: unknown) => {
     const m = structuredClone(REELLES);

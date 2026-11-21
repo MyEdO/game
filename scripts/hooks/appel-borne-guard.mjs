@@ -16,8 +16,8 @@ import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ECHEANCE_PAR_DEFAUT_MS, commandeDe, entreeDOutil, sousAgent, timeoutDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { appelleServeurVite } from '../guards/lib/appelsRunners.mjs'
-import { REFUS_SATURE, borneDeVie, nouveauBudget, pipelinesDeJetons } from '../guards/lib/commandeShell.mjs'
+import { appelleServeurVite, DRAPEAUX_NODE, DRAPEAUX_D_INFORMATION } from '../guards/lib/appelsRunners.mjs'
+import { REFUS_SATURE, basenameExecutable, sansRedirections, borneDeVie, nouveauBudget, pipelinesDeJetons } from '../guards/lib/commandeShell.mjs'
 import { BORNE_DE_SONDE_S, CODE_EN_COURS, commandeDeSonde } from '../ops/sonde.mjs'
 
 /** La borne d'un appel d'outil d'un sous-agent : sous le TTL de 5 min de son cache de prompt (#2596). */
@@ -73,25 +73,58 @@ function refusServeur(outil, graphie) {
     decision: 'deny',
     raison: `⛔ Serveur vite SANS BORNE DE VIE REFUSÉ (${graphie}, ${outil}, #2603) : vite ne s'arrête pas sur inactivité, et `
       + 'un serveur lancé sans `timeout` survit à l\'appel, au shell et à l\'agent. Lance-le par l\'outil Bash, borné et en fond : '
-      + '`timeout <N> npm run dev` (N en secondes, la durée de la recette), puis `node scripts/recette/arreter-dev.mjs` en fin de '
-      + 'recette. Sous PowerShell, `timeout` est le `timeout.exe` de Windows, qui ne borne rien : passe par Bash. '
-      + 'Variable d\'environnement : `VITE_RELAY_URL=… timeout <N> npm run dev`.',
+      + '`timeout <N> npx vite …` (N en secondes, la durée de la recette). '
+      + 'Sous PowerShell, `timeout` désigne `timeout.exe`. Bash permet d’utiliser le délai de coreutils. '
+      + 'Pour une variable d’environnement, utilise `VARIABLE=valeur timeout <N> npx vite …`.',
   }
 }
 
-/** Le refus d'un serveur vite que la commande lance sans borne de vie (`borneDeVie`), `null` sans. PURE. */
-function serveurSansBorne(outil, commande) {
+const prefixeNode = new RegExp(`^${DRAPEAUX_NODE}$`)
+
+function lancementSynchrone({ jetons }) {
+  const commentaire = jetons.findIndex((j) => j.raw?.startsWith('#'))
+  const [tete, ...args] = sansRedirections(commentaire < 0 ? jetons : jetons.slice(0, commentaire)).map((j) => j.text)
+  const exe = basenameExecutable(tete)
+  if (exe === 'npm') {
+    const fin = args.indexOf('--')
+    const npm = fin < 0 ? args : args.slice(0, fin)
+    const transmis = fin < 0 ? [] : args.slice(fin + 1)
+    const positionnels = []
+    for (let i = 0; i < npm.length; i++) {
+      const arg = npm[i]
+      if (['--prefix', '--workspace', '-w', '--userconfig', '--loglevel'].includes(arg)) i++
+      else if (!arg.startsWith('-')) positionnels.push(arg)
+    }
+    if (!['run', 'run-script'].includes(positionnels[0]) || positionnels[1] !== 'ops:session') return false
+    return (positionnels[2] ?? transmis[0]) === 'lancer' && !transmis.includes('--detache')
+  }
+  if (exe !== 'node') return false
+  let i = 0
+  while (args[i]?.startsWith('-')) {
+    const option = args[i++]
+    if (option === '--') break
+    if (DRAPEAUX_D_INFORMATION.includes(option) || /^(?:-[epc]|--(?:eval|print|check|run)(?:=|$))/.test(option)) return false
+    if (option === '--env-file-if-exists' || prefixeNode.test(`${option} valeur `)) i++
+  }
+  return /(?:^|[\\/])scripts[\\/]ops[\\/]session\.mjs$/i.test(args[i]) && args[i + 1] === 'lancer' && !args.slice(i + 2).includes('--detache')
+}
+
+function verifierCommandes(outil, commande) {
   const budget = nouveauBudget()
   const segments = pipelinesDeJetons(commande, 0, { budget }).flat()
   if (budget.sature) return verdictDe(REFUS_SATURE)
+  if (segments.some(lancementSynchrone)) return {
+    decision: 'deny',
+    raison: `⛔ ops:session lancer : utilise npm run ops:session -- lancer <consigne> --detache avec tes options, puis la sonde du reçu : ${commandeDeSonde('<base>.code')} (au plus ${BORNE_DE_SONDE_S} s par appel).`,
+  }
   const texte = (s) => s.jetons.map((j) => j.text).join(' ')
   const vu = segments.find((s) => appelleServeurVite(texte(s)) && (outil === 'PowerShell' || borneDeVie(s) === null))
   return vu ? refusServeur(outil, texte(vu)) : null
 }
 
 function evaluer(entree, contexte) {
-  const serveur = serveurSansBorne(entree.tool_name, commandeDe(entree))
-  if (serveur) return serveur
+  const refusCommande = verifierCommandes(entree.tool_name, commandeDe(entree))
+  if (refusCommande) return refusCommande
   if (!sousAgent(entree)) return null
   const borne = borneDe(entreeDOutil(entree))
   if (borne === null || borne <= BORNE_D_APPEL_MS) return null

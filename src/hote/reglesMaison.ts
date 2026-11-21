@@ -40,13 +40,13 @@ export function prendreLeTemoinDesReglesMaison(stockage: Stockage | null): Retra
 }
 
 /** Surcharge la règle `id` sous le verrou de `etat` (`surchargerUneRegleMaison`) et persiste ; rien sinon. */
-export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue): void {
-  if (surchargerUneRegleMaison(etat, id, valeur)) enregistrer(stockage);
+export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue, reprojeter?: () => void): void {
+  if (surchargerUneRegleMaison(etat, id, valeur, reprojeter)) enregistrer(stockage);
 }
 
 /** Remet la règle `id` à son défaut sous le verrou de `etat` (`retablirUneRegleMaison`) et persiste ; rien sinon. */
-export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId): void {
-  if (retablirUneRegleMaison(etat, id)) enregistrer(stockage);
+export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, reprojeter?: () => void): void {
+  if (retablirUneRegleMaison(etat, id, reprojeter)) enregistrer(stockage);
 }
 
 function enregistrer(stockage: Stockage | null): void {

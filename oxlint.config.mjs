@@ -689,7 +689,7 @@ export const BLOCS_LINT = [
   },
   {
     // #328
-    files: ['src/noyau/cascade.ts', 'src/noyau/pendings.ts', 'src/ui/CascadeModal.tsx'],
+    files: ['src/noyau/cascade.ts', 'src/noyau/pendings.ts'],
     rules: {
       'murs/quarantaine': ['error', {
         cibles: ['**/*{shipCrew,shipManeuver,crewMorale,crew-roles}*', '**/*{shipCrew,shipManeuver,crewMorale,crew-roles}*/**'],

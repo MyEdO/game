@@ -7,8 +7,8 @@ import type { AttackResult } from '../engine/combat';
 import { stacks, COND } from '../engine/conditions';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
-import { armeDeTest } from '../engine/objetsDeTest.testkit';
-import type { Combatant } from '../engine/types';
+import { armeDePosteDeTest, armeDeTest } from '../engine/objetsDeTest.testkit';
+import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -24,8 +24,8 @@ const combattant = (id: string, kind: 'heros' | 'ennemi', x: number, traits: { i
 
 const RATE: AttackResult = { hit: false, attackerRoll: 72, netSL: -3, critical: false, advantageTo: null, defenderDefeated: false, log: 'manque sa cible.' };
 
-/** Un tir raté de `trappingId` sur la cible, une créature Nerveuse présente au combat : ses États Brisé. */
-function brisesApresLeTir(trappingId: string): number {
+/** Un tir raté de l’arme sur la cible, une créature Nerveuse présente au combat : ses États Brisé. */
+function brisesApresLeTir(arme: Weapon): number {
   const cs = [combattant('h1', 'heros', 2), combattant('e1', 'ennemi', 20), combattant('n1', 'ennemi', 12, [{ id: 'nerveux' }])];
   const battle = {
     combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, action: null, selectedSpellId: null,
@@ -33,17 +33,25 @@ function brisesApresLeTir(trappingId: string): number {
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: { ...emptyScene('scene-test'), metresPerTile: 1 }, gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
   const [a, e] = banc.getState().battle!.combatants;
-  applyAttackResult(banc.getState, banc.setState, a, e, armeDeTest(trappingId), RATE);
+  applyAttackResult(banc.getState, banc.setState, a, e, arme, RATE);
   draineCascade(banc.getState, 20, () => 4);
   return stacks(banc.getState().battle!.combatants.find((c) => c.id === 'n1')!, COND.brise);
 }
 
 /** Nerveux, bruits forts (LDB 85 l.249) : le tir d'une arme à poudre (`armeAPoudre`, LDB 14 l.34 ; #4345). */
 describe('Nerveux effrayé par le tir d’une arme à poudre (LDB 85 l.249 ; #4345)', () => {
-  it.each(['canon-petit', 'pistolet', 'batterie-tonnerre-de-feu-ade2'])('%s : +3 Brisé', (id) => {
-    expect(brisesApresLeTir(id)).toBe(3);
+  it.each([
+    ['canon-petit', armeDePosteDeTest],
+    ['pistolet', armeDeTest],
+    ['batterie-tonnerre-de-feu-ade2', armeDePosteDeTest],
+  ] as const)('%s : +3 Brisé', (id, arme) => {
+    expect(brisesApresLeTir(arme(id))).toBe(3);
   });
-  it.each(['mangonneau-ade2', 'arc-long', 'canon-a-flammes-nain-ade2'])('%s : aucun Brisé', (id) => {
-    expect(brisesApresLeTir(id)).toBe(0);
+  it.each([
+    ['mangonneau-ade2', armeDePosteDeTest],
+    ['arc-long', armeDeTest],
+    ['canon-a-flammes-nain-ade2', armeDePosteDeTest],
+  ] as const)('%s : aucun Brisé', (id, arme) => {
+    expect(brisesApresLeTir(arme(id))).toBe(0);
   });
 });

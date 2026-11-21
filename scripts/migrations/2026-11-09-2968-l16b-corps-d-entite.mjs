@@ -8,7 +8,7 @@
  * les autres clés le leur.
  *
  * ENTRÉES : écrites — les quatre projets de campagne ; lues — `src/data/props.json`, `creatures.json`,
- * `vehicles.json`, `trappings.json` et `weaponGroups.json` (engins de siège : le marqueur `siege` du Groupe).
+ * `vehicles.json`, `siege-engines.json` ou le catalogue et les Groupes d’avant #4381.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur et destination.
  * IDEMPOTENT, FAIL-FAST et FORMATAGE : `lib/idNuEnRef.mjs` ; rejouée sur l'état final, rien ne s'écrit et la
  * sortie est 0.
@@ -30,7 +30,9 @@ const PROJETS = [
 
 const lire = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 const groupesDeSiege = new Set(lire('src/data/weaponGroups.json').filter((g) => g.siege).map((g) => g.id));
-const engins = new Set(lire('src/data/trappings.json').filter((t) => groupesDeSiege.has(t.subType?.id)).map((t) => t.id));
+const engins = fs.existsSync(path.join(ROOT, 'src/data/siege-engines.json'))
+  ? idsDe(ROOT, 'src/data/siege-engines.json')
+  : new Set(lire('src/data/trappings.json').filter((t) => groupesDeSiege.has(t.subType?.id)).map((t) => t.id));
 
 const PERSONNAGE = { kind: 'personnage' };
 const CORPS = {

@@ -1836,7 +1836,9 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
     opaques: { k: 'elementItere', de: { k: 'projection', de: lit, v: [] } }, descendre: { k: 'aplatir', de: lit, profondeur: un },
     niveau: { k: 'aplatir', de: { k: 'liste', v: [lit] }, profondeur: un } }
   for (const [nom, e] of Object.entries(paresseuses)) assert.doesNotThrow(() => evaluer(e), nom)
+  const cleChaude = () => ferme.cleDe({ objet: { a: 'texte réutilisé' } })
   for (const prototype of [Object.prototype, Array.prototype]) {
+    cleChaude()
     const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
     Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => undefined })
     try {
@@ -1846,6 +1848,12 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
         assert.throws(() => c.cleDesArgs([[{ texte: 'src/a' }]]), /CLE_DOMAINE_JSON/)
       }
       for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle({ a: [1] }, mode), null)
+      const panne = new TypeError('projection du scalaire')
+      Object.defineProperty(prototype, 'toJSON', { configurable: true, value() {
+        if (Array.isArray(this) && this[0] === 'string' && this[1] === 'texte réutilisé') throw panne
+        return this
+      } })
+      assert.throws(cleChaude, (e) => nomme(e) && e.cause === panne)
     } finally {
       if (avant) Object.defineProperty(prototype, 'toJSON', avant)
       else delete prototype.toJSON
@@ -2542,6 +2550,24 @@ for (const { nom, toucher, touches } of touchesDeLaPlage()) test(`plage réelle 
     const selection = await selectionDeLaPlage(racine, sha, bancs)
     for (const touche of touches) assert.ok(selection.touches.includes(touche), touche)
   })
+})
+
+test('banc fs win32 : son contrat de namespace conserve les lectures dérivées', () => {
+  const rel = 'scripts/docs/lib/plateforme-win32-fs.test.mjs'
+  const texte = readFileSync(new URL('../../docs/lib/plateforme-win32-fs.test.mjs', import.meta.url), 'utf8')
+  const modules = { [rel]: texte }
+  const lecture = depotDe(modules).lecture(rel)
+  assert.deepEqual(lecture.fonctions.racineDuBanc.contrat, { namespace: '/depot' })
+  const sites = sitesDesDeuxRegimes(modules, rel).filter(([appel]) => appel === 'readFile')
+  const couvert = (raison) => ({ chemin: '', sous: `couverture corpus entier : ${rel}#racineDuBanc:/depot — ${raison}` })
+  const valeurs = sites.at(-1)?.[1]
+  const attendues = [
+    couvert('namespace externe recomposé'),
+    couvert('descente dans namespace susceptible de lien'),
+    { chemin: 'src/é.ts' },
+  ]
+  assert.equal(valeurs.length, attendues.length)
+  assert.deepEqual(new Set(valeurs.map((v) => JSON.stringify(v))), new Set(attendues.map((v) => JSON.stringify(v))))
 })
 
 test('namespace borné : fragments recomposés, parent et sortie couvrent le corpus, cible readlink opaque', () => {

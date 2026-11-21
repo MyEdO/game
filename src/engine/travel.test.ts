@@ -4,8 +4,12 @@ import { makeRNG } from './dice';
 import { stacks } from './conditions';
 import {
   partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, billetImplicite, classeLaMoinsChere, prixParPassager, forcedMarchTest, applyTravelFatigue,
-  vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
+  vehicleTravel, travelModeLabels, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
+import { findVehicleById, vehicles } from '../data';
+import { setDataset } from '../data/overrides';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
+import { modesDeVoyageReservesSchema } from '../data/schemas/grammaire/route';
 import { toBrass } from './money';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
@@ -25,6 +29,23 @@ function hero(opts: { id?: string; movement?: number; enc?: number; endurance?: 
   });
 }
 
+describe('libellés des modes de voyage', () => {
+  it('place les modes réservés en tête et lit les libellés du catalogue vivant', () => {
+    const catalogue = [...vehicles];
+    const modele = findVehicleById('barque-fluviale')!;
+    const barque = { ...modele, id: '__proto__', label: 'Barque de passage' };
+    const collision = { ...modele, id: 'pied', label: 'Autre libellé' };
+    setDataset('vehicles', [...catalogue, barque, collision]);
+    try {
+      const entrees = Object.entries(travelModeLabels());
+      expect(entrees.slice(0, 3)).toEqual(optionsDuNoeud(modesDeVoyageReservesSchema));
+      expect(entrees).toContainEqual([barque.id, barque.label]);
+    } finally {
+      setDataset('vehicles', catalogue);
+    }
+  });
+});
+
 describe('vitesse de voyage (LDB 51 l.193 : Déplacement = km/h, le plus lent du groupe)', () => {
   it('à pied : Mouvement effectif le plus lent du groupe', () => {
     expect(partyWalkSpeed([hero({ id: 'a', movement: 4 }), hero({ id: 'b', movement: 3 })])).toBe(3);
@@ -37,7 +58,7 @@ describe('vitesse de voyage (LDB 51 l.193 : Déplacement = km/h, le plus lent du
   });
   it('diligence M6 / barge M8 (l.210-215), override modèle rapide (M+1, l.208)', () => {
     expect(travelSpeed([hero()], [], 'diligence')).toBe(6);
-    expect(travelSpeed([hero()], [], 'barge')).toBe(8);
+    expect(travelSpeed([hero()], [], 'barge-fluviale')).toBe(8);
     expect(travelSpeed([hero()], [], 'diligence', 7)).toBe(7);
   });
 });
@@ -72,8 +93,8 @@ describe('transportCost — billet implicite (LDB 51 l.178 : prix par km par pas
   });
   it('diligence Extérieur 1 sou/km ; barge Cabine 5 / Pont 2', () => {
     expect(toBrass(transportCost(implicite(10, 'diligence'), 'exterieur', 1))).toBe(10);
-    expect(toBrass(transportCost(implicite(10, 'barge'), 'cabine', 1))).toBe(50);
-    expect(toBrass(transportCost(implicite(10, 'barge'), 'pont', 1))).toBe(20);
+    expect(toBrass(transportCost(implicite(10, 'barge-fluviale'), 'cabine', 1))).toBe(50);
+    expect(toBrass(transportCost(implicite(10, 'barge-fluviale'), 'pont', 1))).toBe(20);
   });
   it('km fractionnaires arrondis au sou supérieur', () => {
     expect(toBrass(transportCost(implicite(2.5, 'diligence'), 'exterieur', 1))).toBe(3);
@@ -134,7 +155,7 @@ describe('défauts RAW', () => {
     expect(TRAVEL_DEFAULTS.hoursPerDay).toBe(6);
     expect(TRAVEL_DEFAULTS.perilDie).toBe(8);
     expect(vehicleTravel('diligence')!.movement).toBe(6);
-    expect(vehicleTravel('barge')!.movement).toBe(8);
+    expect(vehicleTravel('barge-fluviale')!.movement).toBe(8);
   });
 });
 

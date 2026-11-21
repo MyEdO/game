@@ -47,6 +47,25 @@ describe('relations — graphe inverse id-based', () => {
     expect(groupHas(groups, 'trappings', t.label)).toBe(true);
   });
 
+  it('munition → armes qui la tirent (inversion de trapping.munitions) #4360', () => {
+    const groups = reverseGroups('trappings', 'grappin-munition');
+    const armes = groups.find((g) => g.category === 'trappings');
+    expect(armes?.title).toBe('Armes qui la tirent');
+    expect(armes?.referrers.map((r) => r.id)).toEqual(['mortier-a-main']);
+  });
+
+  it('un carreau de baliste lie les deux engins et chaque livre garde son profil', () => {
+    const armes = reverseGroups('trappings', 'carreau-de-baliste').find((g) => g.category === 'siegeEngines');
+    expect(armes?.referrers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'baliste', label: 'Baliste (AA)' }),
+      expect.objectContaining({ id: 'baliste-ade2', label: 'Baliste (ADE II)' }),
+    ]));
+    const aa = bookContents('aux-armes').find((g) => g.category === 'siegeEngines');
+    const ade = bookContents('archives-de-l-empire-2').find((g) => g.category === 'siegeEngines');
+    expect(aa?.entries.map((r) => r.id)).toContain('baliste');
+    expect(ade?.entries.map((r) => r.id)).toContain('baliste-ade2');
+  });
+
   it('caractéristique → compétences liées (inversion de skill.characteristic)', () => {
     const s = skills[0];
     const groups = reverseGroups('characteristics', s.characteristic);

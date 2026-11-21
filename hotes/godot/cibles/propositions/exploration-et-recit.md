@@ -24,7 +24,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - À valider : verbes du survol dans l'infobulle ; chef du groupe seul déplacé ; aucune barre d'actions hors combat.
 
 ## dialogue
-- La fenêtre du bas de 266 : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
+- La fenêtre du bas : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
   de Charme en étiquette sur la réponse qui le demande, un prix sur celle qui coûte ; à droite le PNJ, son titre et
   sa réplique. Le testeur se change au bandeau du jet (`jetRegler('test','testeur', id)`).
 - À valider : le coût d'une réponse (« 4 sc ») dit sans payeur, le noyau le prend au total des bourses
@@ -34,7 +34,10 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - Le même bandeau que le jet d'attaque : le héros, son seuil, les dés, le sceau de réussite et ses DR ; le PNJ en
   face ; les réserves du héros, « Appliquer », « Relancer » et « Résilience » fermées sur une réussite (LDB 17 l.23,
   l.68), « Chance : +1 DR » (LDB 17 l.24), « Pacte ».
-- À valider : l'interlocuteur montré en face.
+- À valider : l'interlocuteur montré en face, sur les places du camp de droite (`fiche`, `sources/combat/jet.js`) : le
+  portrait au rect de celui de l'adversaire, le nom et son rôle à l'identité, la réplique à la rangée des dés.
+- À valider : la grande ligne dit « Réussite », aucune conséquence, le DR en petit (`combat.md`, « Bandeau du
+  jet »).
 
 ## butin
 - Le corps fouillé en titre, l'argent « réparti entre les bourses » (`src/noyau/bourseFlow.ts`), chaque objet sur

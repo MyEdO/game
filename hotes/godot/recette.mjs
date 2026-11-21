@@ -49,9 +49,11 @@
 // - `cadrages` (`--vues <fichier>`, #3686) : la page rechargée à deviceScaleFactor 2 ; l'entrée de la scène poursuivie à
 //   l'Entrée, le monde posé (`attendreLeMonde`) ; puis chaque vue nommée du fichier, un tableau de
 //   `{ nom, regard, case: { x, y }, etage?, lacet, tangage }` en immersion ou `{ nom, regard, case, etage?, lacet, zoom }`
-//   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
-//   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
-//   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
+//   en tactique et au plateau (`Plateau.cadrer` : lacet et tangage en degrés, lacet 90 à l'est, tangage dans
+//   ±`MiseEnPage.TANGAGE_DE_L_OEIL` radians ; zoom en mètres, de `Monde.DISTANCE_MIN` à `DISTANCE_MAX`) : son regard
+//   pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`, section « Écran publié ») regarde depuis
+//   la case et la couche demandées, à l'azimut demandé, le plan de sa couche (`plan` du pont, l'œil marqué) s'écrit au
+//   journal, et la vue se capture sous son nom.
 // - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, le regard
 //   `plateau` pris à la touche V, chaque case de la route atteinte au clic (`cliquerCase`) et chaque échelle franchie
 //   par son geste (« Escalader », « Descendre en escalade »), une capture par couche atteinte ; un clic raté écrit au
@@ -66,7 +68,8 @@
 //   conversation à la liasse.
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche, la liste des sorts de la Haute
 //   Sorcière : le sort de l'emplacement rapide du rang 0, lu dans `combat.rapides`, armé à la touche 1 puis désarmé par elle ;
-//   la liste des sorts ouverte par sa pastille, Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   la liste des sorts ouverte par sa pastille, Sang de la Terre sur soi-même : son NI et sa Zone d'Effet, puis l'annulation ;
+//   Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre dit son NI avant et après le jet à l'Entrée ;
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche à l'écran, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
@@ -130,9 +133,10 @@
 //   l'efface. L'outil Décor, un clic sur une case libre y pose le premier décor du catalogue, sélectionné, son nom au-dessus d'elle ;
 //   son nom effacé au champ de l'inspecteur, un autre tapé, « Renommer » le pose au-dessus de la case ; « Copier »,
 //   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; à l'inspecteur de la
-//   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
-//   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
-//   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
+//   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège propose
+//   les deux balistes avec leur livre. Un clic pose la baliste ADE II ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
+//   un clic sur une case libre vide la sélection et désigne la case, une case qu'une plus haute devant elle couvre écartée.
+//   L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
 //   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
 //   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
 //   Personnage, sa première fiche (un profil standard), un clic au même endroit la pose (#3606 M1a) : à l'onglet Combat de son
@@ -248,6 +252,8 @@
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
 //     --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --natif --rendu gl_compatibility --parcours cadrages --scenario <id> --vues <fichier>
+//     --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -290,6 +296,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { chronometrer } from './construire.mjs'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
 import { VUE_DE_BASE, encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
@@ -303,8 +310,10 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
 })
+const preparation = o['preparation-native']
+if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
@@ -342,7 +351,8 @@ const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pi
  *  (`VUE_DE_BASE`) : l'interface y est à l'échelle 1, et les points que l'écran publie sont ceux où le parcours clique. */
 const FENETRE = [0, 0, VUE_DE_BASE.largeur, VUE_DE_BASE.hauteur]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
-const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] } })
+const sansRendu = o.natif && !o.rendu
+const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] }, preparation: preparation && resolve(preparation) })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
@@ -574,12 +584,15 @@ async function ecranPose() {
   assert.ok(cases, e?.glisse ? 'la caméra ne glisse plus avant la lecture des points des cases' : 'le plateau publie ses cases')
   return e
 }
-/** L'écran publié une fois la caméra posée et le fondu de la vision fini (`fondu`) : l'image est celle que le jeu garde. */
-async function ecranFige() {
-  const [e, fige] = await attendreALEcran((e) => casesPosees(e) && !e.fondu)
-  assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
+/** Les mouvements du plateau qui doivent finir avant de capturer l'écran publié. */
+const imagePosee = (e) => !e.glisse && !e.fondu && !e.marche
+async function attendreLImage(posee) {
+  const [e, fige] = await attendreALEcran(posee)
+  assert.ok(fige, `image stable attendue avant la capture : ${e ? JSON.stringify({ plateau: !!e.cases, glisse: e.glisse, fondu: e.fondu, marche: e.marche }) : 'aucun écran publié'}`)
   return e
 }
+/** L'écran du plateau dont on peut lire les pixels aux points publiés de ses cases. */
+const ecranFige = () => attendreLImage((e) => e.cases && imagePosee(e))
 /** Si le point `[px, py]` de l'écran est dans le rectangle `[x, y, largeur, hauteur]`. */
 const dans = ([x, y, l, h], [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
 /** Le panneau de l'écran publié `e` (`panneaux`) sous lequel est le point `point`, `undefined` sans lui. */
@@ -615,10 +628,13 @@ function caseDeLaCible(v, id) {
   const [x, y, z] = v.casesDesCibles[id]
   return { x, y, z }
 }
-async function capturer(nom) {
-  await sleep(400)
-  const image = await shot(session, nom, o.captures)
+async function prendreLaCapture(nom) {
+  const image = sansRendu ? null : await shot(session, nom, o.captures)
   noter(image ? `capture ${image}` : `capture ${nom} sautée : sans rendu`)
+}
+async function capturer(nom) {
+  if (!sansRendu) await attendreLImage(imagePosee)
+  await prendreLaCapture(nom)
 }
 /** Chaque fenêtre qui tient la main fermée à l'Entrée, jusqu'à ce qu'aucune ne la tienne ; la vue d'alors. */
 async function fermerLesFenetres() {
@@ -980,7 +996,6 @@ async function parcoursRegards() {
   const regarder = async (regard) => {
     await realKey(session, V)
     await attendreLaVue(`v.plateau.regard === '${regard}'`)
-    await sleep(600)
     noter(`V : le regard ${regard}`)
     await capturer(`3476-v2-${regard}`)
   }
@@ -1003,12 +1018,10 @@ async function parcoursRegards() {
     }
   }
   assert.ok(arrivee, 'une touche de marche tenue mène le groupe à une case voisine')
-  await sleep(300)
   await capturer('3476-v3-immersion-marche')
   await realKey(session, V)
   await attendreLaVue("v.plateau.regard === 'tactique'")
   noter('V : la tactique, à la suite du groupe')
-  await sleep(600)
   await capturer('3476-v4-tactique-suivie')
 }
 
@@ -1071,20 +1084,21 @@ function pointsDesCasesLibres(e, v) {
   return Object.fromEntries(Object.entries(e.cases).filter(([cle]) => !(cle in v.occupants) && !peintes.has(cle)))
 }
 
-/** La luminance lue à l'écran, sur une capture nommée `nom`, à chaque point qui montre le monde (`auMonde`) que `points` tire de
- *  l'écran publié et de la vue (par défaut, celui de chaque case libre, `pointsDesCasesLibres`) : `luminanceDuCarre`.
- *  Le point publié est le même avant et après la capture. */
-async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
-  const v = await vue()
-  for (;;) {
+/** Les luminances aux points qui montrent le monde et les cases publiées de la même capture `nom`.
+ *  Si le cadrage change pendant la prise, on reprend une fois. */
+async function luminancesALEcran(nom, points) {
+  for (let tentative = 0; tentative < 2; tentative++) {
     const avant = await ecranFige()
-    const image = decodePng(readFileSync(await shot(session, nom, o.captures)))
+    const v = await vue()
+    const capture = await shot(session, nom, o.captures)
     const apres = await ecranFige()
     if (JSON.stringify(apres.cases) !== JSON.stringify(avant.cases)) continue
-    const lum = {}
-    for (const [cle, point] of Object.entries(points(avant, v))) if (auMonde(avant, point)) lum[cle] = luminanceDuCarre(image, point)
-    return lum
+    const image = decodePng(readFileSync(capture))
+    const lues = {}
+    for (const [cle, point] of Object.entries(points(avant, v))) if (auMonde(avant, point)) lues[cle] = luminanceDuCarre(image, point)
+    return { lues, cases: avant.cases }
   }
+  throw new Error(`${nom} : le cadrage a changé pendant les deux captures`)
 }
 
 /** Le cadrage (`wfrpCadrer`) de chaque regard du combat de `grimpant` aux captures du parcours `vision` : la même
@@ -1233,22 +1247,17 @@ async function menerLeGroupe(c) {
 
 /** La caméra posée au cadrage `cadrage` par `wfrpCadrer`, nommé `nom` à son refus : la caméra posée. */
 async function cadrer(cadrage, nom) {
+  await marquer()
   const reponse = JSON.parse(await lieu.rappeler(session, 'wfrpCadrer', JSON.stringify(cadrage)))
   assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
+  await nouvelEcran(PUBLICATION_MS)
   return reponse.camera
 }
 
-/** La caméra posée au cadrage `cadrage` (`cadrer`), puis la luminance lue sur la capture `nom` à chaque point que
- *  `points` tire de l'écran (`luminancesALEcran`) quand elle ne change plus d'une capture à la suivante, une
- *  demi-seconde après (la marche du groupe et le fondu de la vision finis), et les points publiés des cases sous ce
- *  cadrage. */
+/** La caméra posée au cadrage `cadrage` (`cadrer`), puis les luminances et les cases de sa capture (`luminancesALEcran`). */
 async function luminancesCadrees(nom, cadrage, points) {
   await cadrer(cadrage, JSON.stringify(cadrage))
-  for (let avant = null; ; await sleep(500)) {
-    const lues = await luminancesALEcran(nom, points)
-    if (JSON.stringify(lues) === JSON.stringify(avant)) return { lues, cases: (await ecran()).cases }
-    avant = lues
-  }
+  return luminancesALEcran(nom, points)
 }
 
 /** `zones-pieces` : le voile des murs rendu par l'export (WebGL2), le groupe passé d'une pièce à l'autre. */
@@ -1315,14 +1324,17 @@ async function parcoursVehicule() {
     && JSON.stringify(c[a.id].ameliorations) === JSON.stringify(a.ameliorations)) })()`, { timeoutMs: 180000 })
   for (const a of attendus) noter(`${a.id} : « ${a.vehicule} », emblème « ${a.embleme} », ${a.postes.length} pièces de poste, ${a.ameliorations.length} pièces d’Amélioration`)
   await fermerLesFenetres()
-  await sleep(1500)
   await capturer('2987-caraque-tactique')
+  if (!sansRendu) await marquer()
   await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
   for (let i = 0; i < CRANS_DU_GROS_PLAN; i++) await molette(session, { surface: 'canvas', x: 640, y: 400 }, -100)
-  for (let cran = 0; cran < CRANS_DE_PIVOT; cran++) {
-    await sleep(1500)
-    await capturer(`2987-caraque-gros-plan-${cran}`)
+  if (!sansRendu) await nouvelEcran(PUBLICATION_MS)
+  await capturer('2987-caraque-gros-plan-0')
+  for (let cran = 1; cran < CRANS_DE_PIVOT; cran++) {
+    if (!sansRendu) await marquer()
     await realKey(session, PIVOT)
+    if (!sansRendu) await nouvelEcran(PUBLICATION_MS)
+    await capturer(`2987-caraque-gros-plan-${cran}`)
   }
 }
 
@@ -1403,19 +1415,19 @@ async function parcoursBord() {
       restants = ratees
     }
     for (const c of restants) { fautes.push(`case ${cleDe(c)} jamais atteinte au clic`); }
-    if (restants.length) { await capturer(`bord-faute-${fautes.length}`) }
+    if (restants.length) { await prendreLaCapture(`bord-faute-${fautes.length}`) }
     if (!pied) continue
     if (await aller(pied)) atteintes++
-    else { fautes.push(`pied d’échelle ${cleDe(pied)} jamais atteint (groupe en ${cleDe(await ou())})`); await capturer(`bord-faute-${fautes.length}`) }
+    else { fautes.push(`pied d’échelle ${cleDe(pied)} jamais atteint (groupe en ${cleDe(await ou())})`); await prendreLaCapture(`bord-faute-${fautes.length}`) }
     const e = etapes[i++]
     total++
     const libelle = e.escalade === 'monter' ? 'Escalader' : 'Descendre en escalade'
     const { boutons } = await ecran()
     const candidats = boutons.filter((b) => b.texte === libelle)
-    if (candidats.length !== 1) { fautes.push(`« ${libelle} » ×${candidats.length} en ${cleDe(await ou())} ; boutons : ${boutons.map((b) => b.texte).join(' | ')}`); await capturer(`bord-faute-${fautes.length}`); continue }
+    if (candidats.length !== 1) { fautes.push(`« ${libelle} » ×${candidats.length} en ${cleDe(await ou())} ; boutons : ${boutons.map((b) => b.texte).join(' | ')}`); await prendreLaCapture(`bord-faute-${fautes.length}`); continue }
     await cliquerPoint(candidats[0].x, candidats[0].y)
     if (await arriver(e.vers)) { atteintes++; await noterLaCouche(e.vers.z) }
-    else { fautes.push(`${libelle} vers ${cleDe(e.vers)} : le groupe reste en ${cleDe(await ou())}`); await capturer(`bord-faute-${fautes.length}`) }
+    else { fautes.push(`${libelle} vers ${cleDe(e.vers)} : le groupe reste en ${cleDe(await ou())}`); await prendreLaCapture(`bord-faute-${fautes.length}`) }
     noter(`étape ${i}/${etapes.length} : ${atteintes}/${total} atteintes, groupe en ${cleDe(await ou())}`)
   }
   noter(`bord : ${atteintes}/${total} étapes atteintes ; fautes : ${fautes.length ? '\n' + fautes.join('\n') : 'aucune'}`)
@@ -1450,7 +1462,6 @@ async function parcoursMeteo() {
   let m = await meteo()
   assert.ok(particules(m) > 0, `en tactique, la pluie tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
   noter(`tactique : ${m.pluie.averses.length} averses, ${particules(m)} particules`)
-  await sleep(1500)
   await capturer('3625-m1-tactique-pluie')
   const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
   await realKey(session, V)
@@ -1461,7 +1472,6 @@ async function parcoursMeteo() {
   await realKey(session, V)
   await attendreLaVue("v.plateau.regard === 'immersion'")
   assert.ok(particules(await meteo()) > 0, 'en immersion, la pluie tombe')
-  await sleep(1500)
   await capturer('3625-m2-immersion-pluie')
   noter('immersion : la pluie tombe autour de l’œil')
 }
@@ -1486,7 +1496,6 @@ async function parcoursBrume() {
   assert.equal(m.nappes.length, 0, 'en immersion, aucune nappe')
   assert.ok(v.lumiere.brume.depuisLOeil && v.lumiere.brume.finCases < loin, `en immersion, la brume part de l’œil, plus serrée : ${JSON.stringify(v.lumiere.brume)}`)
   noter(`immersion : brume depuis l’œil, de ${v.lumiere.brume.debutCases} à ${v.lumiere.brume.finCases} cases`)
-  await sleep(600)
   await capturer('3625-b2-immersion-brume')
 }
 
@@ -1588,25 +1597,49 @@ async function parcoursIncantation() {
   await realKey(session, DIGIT1)
   await attendreLaVue("v.zones['combat.rapides'][0]?.presse === false")
   noter(`touche 1 de nouveau : ${premiere.libelle} désarmé`)
-  const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')
-  assert.ok(flechette, `Fléchette est offerte : ${sorts.valeurs.map((b) => b.libelle).join(', ')}`)
   const valeurs = new Set(sorts.valeurs.map((b) => bouton(b).element))
-  await ouvrirLaPastilleDe(sorts, bouton(flechette))
+  const amenerLeSort = async (nom) => {
+    const sort = sorts.valeurs.find((b) => b.libelle === nom)
+    assert.ok(sort, `${nom} est offert : ${sorts.valeurs.map((b) => b.libelle).join(', ')}`)
+    const geste = bouton(sort)
+    await ouvrirLaPastilleDe(sorts, geste)
+    await amenerDansLaListe(geste, (b) => valeurs.has(b.element), 'la liste des sorts')
+    return geste
+  }
+  const corpsDeLIncantation = (v, id) => element(v, 'fenetre.corps', id)
+  await cliquerBouton(await amenerLeSort('Sang de la Terre'))
+  await attendreLaVue('!!v.projection.fenetre')
+  v = await vue()
+  assert.equal(corpsDeLIncantation(v, 'sort')?.texte, 'Sang de la Terre sur soi-même')
+  const zoneDEffet = corpsDeLIncantation(v, 'zone')
+  assert.equal(zoneDEffet?.libelle, 'Zone')
+  assert.equal(zoneDEffet?.valeur, '3 × 3 cases')
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 6')
+  noter(`${corps(v)} · ${zoneDEffet.libelle} ${zoneDEffet.valeur}`)
+  await capturer('4519-sang-de-la-terre')
+  const annuler = zone(v, 'fenetre.gestes').find((b) => b.type === 'bouton' && b.libelle === 'Annuler')
+  assert.ok(annuler, 'Sang de la Terre peut être annulé avant le jet')
+  await cliquerBouton(bouton(annuler))
+  await attendreLaVue('!v.projection.fenetre')
+
+  const flechette = await amenerLeSort('Fléchette')
   await capturer('3328-j1-2-liste-ouverte')
-  await amenerDansLaListe(bouton(flechette), (b) => valeurs.has(b.element), 'la liste des sorts')
-  await cliquerBouton(bouton(flechette))
+  await cliquerBouton(flechette)
   v = await vue()
   noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
   const [cible] = v.projection.combat.cibles.liste
   await cliquerCase(caseDeLaCible(v, cible))
   await attendreLaVue('!!v.projection.fenetre')
   v = await vue()
-  noter(`clic sur la case de ${cible} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
+  assert.equal(corpsDeLIncantation(v, 'sort')?.texte, 'Fléchette sur Loup')
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 0')
+  noter(`clic sur la case de ${cible} : ${corps(v)}`)
   await capturer('3328-j1-3-incantation')
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
   v = await vue()
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 0')
   const portee = zone(v, 'fenetre.reglages').find((c) => c.libelle === 'Surincantation : Portée')
   assert.ok(portee, `le jet tombé ouvre la Surincantation : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
   noter(`jet à l'Entrée : ${corps(v)}`)
@@ -2302,15 +2335,17 @@ async function parcoursEditeur() {
     const cadres = [['visé', ed.plan], ['avant l’appui', (await editeur()).plan]]
     await geste(session, { surface: 'canvas', x: x0, y: y0 }, { qui }, async ({ x, y }, emettre) => {
       await emettre('souris', { type: 'mouseMoved', x, y })
+      await marquer()
       await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-      await sleep(200)
+      await nouvelEcran(PUBLICATION_MS)
       cadres.push(['après l’appui', (await editeur()).plan])
       for (const t of [1 / 3, 2 / 3, 1]) {
         await emettre('souris', { type: 'mouseMoved', x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0), button: 'left', buttons: 1 })
-        await sleep(300)
       }
+      await marquer()
       await emettre('souris', { type: 'mouseReleased', x: x1, y: y1, button: 'left', clickCount: 1 })
     })
+    await nouvelEcran(PUBLICATION_MS)
     cadres.push(['après le relâché', (await editeur()).plan])
     const textes = cadres.map(([quand, plan]) => `${quand} ${cadreEnTexte(plan)}`)
     const [vise, ...pendant] = cadres.map(([, plan]) => cadreEnTexte(plan))
@@ -2863,29 +2898,46 @@ async function parcoursEditeur() {
   await capturer('3508-l3b-1-lumiere')
   const [ex, ey] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2))
   await cliquerAuPanneau({ element: 'bouton/outil/emplacement' })
+  await choisirALaListe('engins', 'engin/baliste-ade2')
   await cliquerPoint(...cases[`${ex},${ey}`])
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((c) => c.id === 'poste/arc')`)
   await cliquerAuPanneau({ element: 'bouton/poste/arc/tribord' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((c) => c.id === 'poste/arc')?.valeurs.find((b) => b.id === 'poste/arc/tribord')?.presse === true`)
   e = await editeur()
-  const engin = inspecte(e, 'poste/engin').valeurs.find((b) => b.presse).libelle
-  assert.equal(e.surcouche.reperes.find((r) => r.choisi)?.nom, engin, 'l’emplacement porte le nom de son engin')
-  noter(`outil Emplacement de siège, un clic sur la case ${ex}, ${ey}, puis « Droite (tribord) » : ${engin}, créneau tribord`)
+  const engins = inspecte(e, 'poste/engin').valeurs
+  assert.equal(engins.find((b) => b.id === 'poste/engin/baliste')?.libelle, 'Baliste (AA)', 'le choix de l’engin nomme le livre Aux Armes')
+  assert.equal(engins.find((b) => b.id === 'poste/engin/baliste-ade2')?.libelle, 'Baliste (ADE II)', 'le choix de l’engin nomme le livre Archives de l’Empire II')
+  const engin = engins.find((b) => b.presse)
+  assert.equal(engin?.id, 'poste/engin/baliste-ade2', 'le poste porte l’identifiant de la baliste choisie')
+  assert.equal(e.surcouche.reperes.find((r) => r.choisi)?.nom, 'Baliste', 'l’emplacement porte le nom joueur de son engin')
+  noter(`outil Emplacement de siège, un clic sur la case ${ex}, ${ey}, puis « Droite (tribord) » : ${engin.libelle}, créneau tribord`)
   await capturer('3508-l3b-2-emplacement')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  const loin = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
+  /** Si un clic de l'outil Sélection au point publié de la case `x`, `y` la désigne : aucune case plus haute devant
+   *  elle n'en couvre le point. */
+  const designee = async (x, y) => {
+    await cliquerPoint(...cases[`${x},${y}`])
+    return (await editeur()).zones['editeur.pointee'][0]?.texte.startsWith(`Case ${x}, ${y} ·`) === true
+  }
+  let zx, zy
+  for (const [x, y] of Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
+    .sort((a, b) => auCentre(a) - auCentre(b))) {
+    if (await designee(x, y) && await designee(x + 1, y + 1) && await designee(x + 3, y + 1)) {
+      [zx, zy] = [x, y]
+      break
+    }
+  }
+  assert.ok(zx !== undefined, 'deux rangées de quatre cases libres, chacune que son clic désigne')
   await cliquerAuPanneau({ element: 'bouton/outil/zone' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'zone/room')?.presse, true, 'l’outil Zone trace d’abord une pièce')
-  const loin = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
-  const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
-  const [zx, zy] = Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
-    .sort((a, b) => auCentre(a) - auCentre(b))[0]
   /** Glisse le pointeur de la case `de` à la case `a`, bouton tenu. */
   const glisserDe = async (de, a, qui) => geste(session, { surface: 'canvas', x: cases[de][0], y: cases[de][1] }, { qui }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y })
     await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-    await sleep(200)
     await emettre('souris', { type: 'mouseMoved', x: cases[a][0], y: cases[a][1], button: 'left', buttons: 1 })
-    await sleep(300)
     await emettre('souris', { type: 'mouseReleased', x: cases[a][0], y: cases[a][1], button: 'left', clickCount: 1 })
   })
   await glisserDe(`${zx},${zy}`, `${zx + 1},${zy + 1}`, `la pièce tirée de ${zx},${zy}`)
@@ -3330,19 +3382,20 @@ async function parcoursEditeur() {
   /** Le pointeur tenu de la première case du bâti de `chemin` à la dernière, par chacune. */
   const tirerPar = async (chemin, qui) => {
     const points = await Promise.all(chemin.map(([dx, dy]) => aLaCase(dx, dy)))
-    await marquer()
     await geste(session, { surface: 'canvas', x: points[0][0], y: points[0][1] }, { qui }, async ({ x, y }, emettre) => {
+      const emettreEtAttendre = async (evenement) => {
+        await marquer()
+        await emettre('souris', evenement)
+        await nouvelEcran(PUBLICATION_MS)
+      }
       await emettre('souris', { type: 'mouseMoved', x, y })
-      await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-      await sleep(200)
+      await emettreEtAttendre({ type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
       for (const [px, py] of points.slice(1)) {
-        await emettre('souris', { type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
-        await sleep(300)
+        await emettreEtAttendre({ type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
       }
       const [fx, fy] = points[points.length - 1]
-      await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+      await emettreEtAttendre({ type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
     })
-    await nouvelEcran()
   }
   const presserTour = async (...ids) => {
     for (const id of ids) await cliquerAuPanneau({ element: `bouton/${id}` })
@@ -3850,9 +3903,7 @@ async function parcoursAtelier() {
   a = await atelier()
   assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, precedente], 'la vitesse se règle, la pause tient l’instant')
   await cliquerBouton('Lecture')
-  await attendreLAtelier('a.lecture === true')
-  assert.equal((await atelier()).lecture, true, 'la lecture reprend')
-  await sleep(500)
+  await attendreLAtelier(`a.lecture && a.instant !== ${precedente}`)
   await cliquerBouton('Pause')
   await attendreLAtelier('a.lecture === false')
   const avant = await atelier()
@@ -4020,6 +4071,7 @@ async function observerLesImages(nombre, dureeMs) {
 }
 
 async function parcoursComposition() {
+  mkdirSync(o.captures, { recursive: true })
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
@@ -4245,7 +4297,6 @@ async function parcoursPreset() {
   await cliquerAmene(preset.label, -1)
   await attendreLAtelier(`a.composition.preset === ${JSON.stringify(preset.id)}`, 120000)
   await attendreLAtelier(TOUT_EST_MONTE, 120000)
-  await sleep(3000)
   const a = await atelier()
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
@@ -4358,14 +4409,24 @@ assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_D
 let echec = null
 try {
   if (!o.planche) await attendreLeMenu()
-  await PARCOURS[o.parcours]()
+  if (o.natif) await chronometrer('parcours', PARCOURS[o.parcours])
+  else await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
   assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')
   noter('erreursGlobales : aucune')
 } catch (e) {
   echec = e
   console.error('ÉCHEC', e.message)
-  try { noter(`état à l’échec : ${JSON.stringify((await ecran())?.atelier?.composition)}`); await capturer('echec') } catch (diagnostic) { console.error('ÉCHEC DU DIAGNOSTIC', diagnostic.message) }
+  try {
+    noter(`état à l’échec : ${await lire(`JSON.stringify(globalThis.wfrpEcran?.[${JSON.stringify(o.parcours)}] ?? globalThis.wfrpEcran?.atelier?.composition ?? null)`)}`)
+  } catch (diagnostic) {
+    console.error('ÉCHEC DE LA LECTURE DE DIAGNOSTIC', diagnostic.message)
+  }
+  try {
+    await prendreLaCapture('echec')
+  } catch (diagnostic) {
+    console.error('ÉCHEC DE LA CAPTURE DE DIAGNOSTIC', diagnostic.message)
+  }
 } finally {
   await session.close()
   const erreurs = garde.errors()

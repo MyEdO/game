@@ -55,7 +55,7 @@ Le Bonus de Force est abrégé en BF dans les Tableaux des armes.
 | Brise-épée                   | 1CO 2/6 | 1        | Limitée       | Courte       | +BF +3  | Défensive, Piège-lame                                         |
 | Main gauche                  | 1CO     | 0        | Rare          | Très courte  | +BF +2  | Défensive                                                     |
 
-<sup>\*</sup> Les Lances de cavalerie sont considérées comme des Armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.
+\* Les Lances de cavalerie sont considérées comme des Armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.
 
 
 # ARMES À DISTANCE

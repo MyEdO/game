@@ -5,16 +5,31 @@ kit, un nœud racine par pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`).
 Repère. Dans Blender, x le long de l'arête, centrée ; z depuis le pied ; y l'épaisseur, centrée, la face du dehors vers
 -y (`DEHORS`), comme le front d'un décor (`maille.py`). L'export glTF le place en (X, Y, Z) = (x, z, -y) : X le long de
 l'arête, Y depuis le pied, Z l'épaisseur, le dehors vers +Z. Chaque pièce garde l'origine de l'arête."""
+import json
 import random
+from pathlib import Path
 
 from mathutils import Vector
 
 import habillage
 from maille import Maille, boite, objet, poutre
+from script_node import lancer
 
 X, HAUT = Vector((1, 0, 0)), Vector((0, 0, 1))
 DEHORS = Vector((0, -1, 0))
 """Le sens de la face du dehors d'une arête, dans le repère de Blender."""
+SEPARATEUR = "--"
+GRAVATS = "gravats"
+POSITIONS = {p.upper(): p for p in json.loads(lancer(Path(__file__).parent / "positions.mjs", [], ""))}
+SEULE, GAUCHE, MILIEU, DROITE = (POSITIONS[nom] for nom in ("SEULE", "GAUCHE", "MILIEU", "DROITE"))
+"""Les places d'une pièce dans sa suite (`POSITIONS_DANS_L_OUVERTURE`, `src/noyau/monde/piecesDArete.ts`, que lance
+`positions.mjs`), par leur nom comme `Noyau.Position` : son nœud est `<pièce>--<position>`, `gauche` au bout -X de la
+suite, `droite` à son bout +X ; l'arête d'une ouverture d'une seule arête prend le nœud `<pièce>`."""
+
+
+def noeud(piece, position=None):
+    """Le nom du nœud de `piece` à la `position` d'une ouverture, `piece` seule sans position."""
+    return f"{piece}{SEPARATEUR}{position}" if position else piece
 
 
 class Repere:
@@ -47,32 +62,34 @@ def biais(m, a, h_gauche, h_droite, c, mat):
     m.v[-8:] = [(x, y, hauteurs[k // 4][k % 2]) for k, (x, y, _) in enumerate(m.v[-8:])]
 
 
-def eboulis(m, R, alea, G, demi, matiere):
+def eboulis(m, R, alea, G, demi):
     """Les gravats au pied d'une brèche, d'après `G` : leur `nombre`, leur `etendue` (fraction de la demi-longueur
     `demi`, puis mètres de part et d'autre du mur), leur `cote` (m, tiré), ce dont chaque coin s'écarte (`ecart`,
-    fraction du côté, tirée jusqu'à cette borne) ; `matiere(alea)` rend le matériau de chacun."""
+    fraction du côté, tirée jusqu'à cette borne), du matériau `GRAVATS`, que le kit déclare."""
     for _ in range(G["nombre"]):
         cote = alea.uniform(*G["cote"])
         ca = demi * alea.uniform(-G["etendue"][0], G["etendue"][0])
         cc = alea.uniform(-G["etendue"][1], G["etendue"][1])
-        R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), matiere(alea))
+        R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), GRAVATS)
         ecart = cote * G["ecart"]
         m.v[-8:] = [(px + alea.uniform(-ecart, ecart), py + alea.uniform(-ecart, ecart),
                      pz + (k % 2) * alea.uniform(-ecart, ecart)) for k, (px, py, pz) in enumerate(m.v[-8:])]
 
 
-def elements(D, kit, batir):
-    """L'élément du kit `kit` (`construire.py`) : sa clé `arete`, ses matériaux `D["MATERIAUX"]`, un nœud par pièce de
+def elements(D, kit, batir, categorie="arete"):
+    """L'élément du kit `kit` (`construire.py`) : sa clé `categorie`, ses matériaux `D["MATERIAUX"]`, un nœud par pièce de
     `batir` {pièce : `batir(D, maille, aléa)`}, à l'origine de l'arête, lissé sous `D["ANGLE_LISSE"]`, ses triangles
-    dans `D["BUDGET_TRIANGLES"][pièce]`. L'aléa d'une pièce est semé de `<kit>/<pièce>`."""
+    dans `D["BUDGET_TRIANGLES"][pièce]`, celui de `<pièce>` pour un nœud `<pièce>--<position>`. L'aléa d'un nœud est
+    semé de `<kit>/<nœud>`."""
     def construire():
         mats = list(habillage.materiaux(D["MATERIAUX"]).values())
         for piece, bati in batir.items():
             m = Maille(mats)
             bati(D, m, random.Random(f"{kit}/{piece}"))
             triangles = len(objet(piece, m, (0.0, 0.0, 0.0), D["ANGLE_LISSE"]).data.polygons)
-            if triangles > D["BUDGET_TRIANGLES"][piece]:
-                raise ValueError(f"{kit}/{piece} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][piece]}")
+            budget = D["BUDGET_TRIANGLES"][piece.split(SEPARATEUR)[0]]
+            if triangles > budget:
+                raise ValueError(f"{kit}/{piece} : {triangles} triangles, budget {budget}")
         return {}
-    yield {"glb": kit, "cles": [("arete", {"kit": kit})], "materiaux": D["MATERIAUX"], "blasons": (),
+    yield {"glb": kit, "cles": [(categorie, {"kit": kit})], "materiaux": D["MATERIAUX"], "blasons": (),
            "construire": construire}

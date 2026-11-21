@@ -8,12 +8,13 @@
  * de nuit / l'arrivée. La marche forcée reste une étape de la cascade de NUIT (inchangée).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { refLabel, resolveStake, testSkillLabel, voyageStakeRef, weather } from '../data';
+import { combatStakeRef, refLabel, resolveStake, testSkillLabel, voyageStakeRef, weather } from '../data';
 import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
+import { contractDisease } from '../engine/disease';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
 import { voyageEnVue } from './voyageEnVue';
@@ -21,10 +22,14 @@ import { encounterTable } from '../engine/travelTables';
 import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
-import type { MapRouteTrace, RoutePeril, WorldMap } from './worldMap';
-import { campaignStart } from '../engine/clock';
-import { setRule } from '../engine/policy';
+import { documentDeProjet, parseProject, type MapRouteTrace, type RoutePeril, type WorldMap } from './worldMap';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { campaignStart, dayIndex } from '../engine/clock';
+import { setRule, resetRule } from '../engine/policy';
+import { applierQuiOuvre } from './noyau.testkit';
+import { runFlow } from './combatEffects';
 import { setCadence } from '../engine/cadence';
+import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { t } from '../i18n';
 import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
@@ -34,7 +39,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engi
 import type { Possession } from '../engine/possession';
 import { applierDe, jouerLaJournee, rollTableStep } from './cascade';
 import { bandStep, monoStep, rollStep } from './rollSeam';
-import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
+import { inexplique, soutienDe, draineCascade, draineEtapes, avanceEtapeCascade, cascadeDeTest, type ChoisitCle, type PoseDe } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -56,9 +61,9 @@ const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   items: [], movement: 4, ...p,
 }) as Combatant);
-function sceneA(): Scene {
+function sceneA(surprise?: 'groupe' | 'ennemis'): Scene {
   const s = emptyScene('scene-test', 10, 10); s.id = 'lieu-a-scene'; s.label = 'A';
-  const enc = buildEncounter({ id: 'enc-test', enemies: [{ statblock: { type: 'statblock', label: 'Brigand', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
+  const enc = buildEncounter({ id: 'enc-test', surprise, enemies: [{ statblock: { type: 'statblock', label: 'Brigand', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
   s.entities.push(...enc.entities); s.encounters = [enc.encounter];
   return s;
 }
@@ -69,9 +74,9 @@ function map(rp: Partial<MapRouteTrace> = {}): WorldMap {
     { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'lieu-b-scene' } },
   ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 12, modes: ['pied'], perilDie: 0, ...rp }] };
 }
-function setup(wm: WorldMap, party: Combatant[]) {
+function setup(wm: WorldMap, party: Combatant[], scenes = [sceneA(), sceneB()]) {
   banc.setState({ party, gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-  get().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: wm, projet: null });
+  get().chargerLeProjet({ scenes, entryId: 'lieu-a-scene', worldMap: wm, projet: null });
   banc.setState({ gameTime: campaignStart() });
 }
 
@@ -380,6 +385,27 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     runToEnd();
     expect(get().travelPlan).toBeNull();
     expect(get().lieu).toBe('pb');
+  });
+
+  it.each([true, false])('pendant la halte, l’incubation acquise en route attend l’arrivée seulement par Étapes (%s)', (etapes) => {
+    setRule('voyage-etapes', etapes);
+    seedBattleRng(1);
+    const rhume = () => contractDisease('rhume-commun', makeRNG(2), { incubation: 1, duration: 5 })!;
+    const auDepart = hero({ id: 'ancien', diseases: [rhume()], items: [ration('ancien')] });
+    const enRoute = hero({ id: 'nouveau', items: [ration('nouveau')] });
+    setup(map({ km: 30 }), [auDepart, enRoute]);
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+    drainCascade();
+    expect(get().pendingRest).toBeTruthy();
+
+    set({ party: get().party.map((h) => h.id === enRoute.id ? { ...h, diseases: [rhume()] } : h) });
+    const phase = (id: string) => get().party.find((h) => h.id === id)?.diseases?.[0]?.phase;
+    get().fenetreValider('repos');
+    expect(phase(auDepart.id)).toBe('active');
+    expect(phase(enRoute.id)).toBe(etapes ? 'incubation' : 'active');
+    runToEnd();
+    expect(get().lieu).toBe('pb');
+    expect(phase(enRoute.id)).toBe('active');
   });
 
   it('péripétie de transition pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
@@ -780,6 +806,234 @@ describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la jour
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4075 — la journée tenue au SLOT (cadence manuelle) suit la règle de son pilote : ce que l'applier de sa
+// DERNIÈRE étape ouvre passe avant son dénouement (`cascade.ts › sequenceDuPiloteAContexteHorsCombat`).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('péril d’auteur, dernière étape du jour tenu au slot, dont l’effet ouvre un nœud (#4075)', () => {
+  beforeEach(() => setRule('priere-petites', true));
+  afterEach(() => setRule('priere-petites', false));
+  const drapeau = (flag: string): FlowDeScene => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const priere = (reward: FlowDeScene) => [{ type: 'petitePriere', heroId: 'h', reward }];
+  const PERILS: { noeud: string; effects: unknown[] }[] = [
+    { noeud: 'Test d’exposition', effects: [{ type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' }] },
+    { noeud: 'choix', effects: priere({ kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') }) },
+    { noeud: 'Test de scène', effects: priere({ kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') }) },
+    { noeud: 'poursuite', effects: [{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'loup' }] }] },
+  ];
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+  const etat = () => { const s = get(); const p = s.pendingCascade; return `slot=${p ? `${p.purpose}@${p.cursor}/${p.participants.length}` : '-'} test=${!!s.pendingTest} pile=[${s.suspendedCascades.map((c) => `${c.purpose}@${c.cursor}/${c.participants.length}`)}] jours=${jours()} halte=${!!s.pendingRest} combat=${!!s.battle}`; };
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) for (const { noeud, effects } of PERILS) {
+    it(`${noeud}, par « ${geste} » : la journée se compte et la halte s’ouvre à la clôture du nœud, une fois`, () => {
+      seedBattleRng(1);
+      const h = hero({ items: [ration('r1')], skills: [{ id: 'priere', characteristic: 'sociabilite', advances: 200 } as any] });
+      setup(map({ km: 30, perils: [{ label: 'Péril', chancePct: 100, effects: effects as any }] }), [h]);
+      get().partirEnVoyage('r1', 'pied');
+      const jour = get().pendingCascade!;
+      expect([jour.purpose, jour.cursor, jour.participants.length], `prémisse : le péril est la seule étape du jour, au slot (${etat()})`).toEqual(['travelDay', 0, 1]);
+      if (geste === 'Suivant') avanceEtapeCascade(get); else get().jetLancer('cascade');
+      banc.reprendreTout();
+      expect(get().pendingCascade?.purpose ?? (get().pendingTest ? 'test' : null), `prémisse : le nœud ouvert tient le slot (${etat()})`).not.toBeNull();
+      let tours = 0;
+      for (; tours < 80 && (get().pendingTest || get().pendingCascade); tours++) {
+        expect(jours(), `aucune journée comptée sous le nœud (${etat()})`).toBe(0);
+        expect(get().pendingRest, `aucune halte sous le nœud (${etat()})`).toBeNull();
+        expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1]]);
+        if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get);
+        banc.reprendreTout();
+      }
+      expect(tours, `le nœud s’est clos (${etat()})`).toBeLessThan(80);
+      expect(get().suspendedCascades, `la pile est vide (${etat()})`).toEqual([]);
+      expect(jours(), `une journée comptée (${etat()})`).toBe(1);
+      expect(get().pendingRest, `la halte s’ouvre après la clôture (${etat()})`).toBeTruthy();
+    });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4075 — la révélation émise sous la journée tenue au SLOT (cadence manuelle) ouvre sa fenêtre, comme quand
+// le pilote joue l'étape lui-même (`combatEffects.ts › pushReveal`).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('péril d’auteur qui émet une révélation, seule étape du jour tenu au slot : sa carte se montre (#4075)', () => {
+  const MALADIE = 'blessure-purulente';
+  const titreDeMaladie = t('eff.titreDeMaladie', { disease: MALADIE });
+  const maladie = { type: 'inflictDisease', disease: MALADIE } as const;
+  const exposition = { type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' };
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+  const etat = () => { const s = get(); const p = s.pendingCascade; return `slot=${p ? `${p.purpose}@${p.cursor}/${p.participants.length}` : '-'} pile=[${s.suspendedCascades.map((c) => `${c.purpose}@${c.cursor}/${c.participants.length}`)}] jours=${jours()} halte=${!!s.pendingRest}`; };
+  /** Le jour au slot, son péril seule étape, joué par « Suivant » ; puis la cascade jusqu'au slot libre : rend la suite des
+   *  séquences tenues au slot (`purpose`, ou le titre pour une carte), sans répétition. Sous elles, aucune journée comptée. */
+  const jouerLeJour = (effects: unknown[], auPremierSlot?: () => void) => {
+    seedBattleRng(1);
+    setup(map({ km: 30, perils: [{ label: 'Péril', chancePct: 100, effects: effects as any }] }), [hero({ items: [ration('r1')] })]);
+    get().partirEnVoyage('r1', 'pied');
+    const jour = get().pendingCascade!;
+    expect([jour.purpose, jour.cursor, jour.participants.length], `prémisse : le péril est la seule étape du jour, au slot (${etat()})`).toEqual(['travelDay', 0, 1]);
+    avanceEtapeCascade(get);
+    banc.reprendreTout();
+    auPremierSlot?.();
+    const vues: string[] = [];
+    for (let i = 0; i < 80 && (get().pendingTest || get().pendingCascade); i++) {
+      const p = get().pendingCascade;
+      const vue = p ? (p.purpose === 'affichage' ? p.title : p.purpose) : 'pendingTest';
+      if (vues[vues.length - 1] !== vue) vues.push(vue);
+      expect(jours(), `aucune journée comptée tant que le slot est tenu (${etat()})`).toBe(0);
+      expect(get().pendingRest, `aucune halte tant que le slot est tenu (${etat()})`).toBeNull();
+      if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get);
+      banc.reprendreTout();
+    }
+    expect(get().suspendedCascades, `la pile est vide (${etat()})`).toEqual([]);
+    expect(jours(), `une journée comptée (${etat()})`).toBe(1);
+    expect(get().pendingRest, `la halte s’ouvre après la clôture (${etat()})`).toBeTruthy();
+    return vues;
+  };
+
+  it('A.1 : sous le Test de scène, le départ commandé attend la carte de maladie avant son dénouement', () => {
+    setRule('voyage-etapes', false);
+    seedBattleRng(1);
+    setup(map({ km: 30, perils: [{ label: 'Péril', chancePct: 100, effects: [maladie] }] }), [hero({ items: [ration('r1')] })]);
+
+    const branche: FlowDeScene = { kind: 'effet', effet: { type: 'setFlag', flag: 'test-joue' } };
+    runFlow(banc.getState, banc.setState, { kind: 'test', test: { characteristic: 'force' }, reussite: branche, echec: branche });
+    expect(get().pendingCascade?.participants.map((s) => s.kind)).toEqual(['jetDeTestDeScene']);
+
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
+    expect(get().pendingTest).not.toBeNull();
+    expect(get().party[0].diseases?.map((d) => d.id)).toContain(MALADIE);
+    expect(get().pendingCascade?.participants.map((s) => s.kind)).toEqual(['jetDeTestDeScene', 'effet']);
+    expect(get().suspendedCascades.map((s) => [s.purpose, s.cursor, s.participants.length])).toEqual([['travelDay', 1, 1]]);
+    expect([jours(), get().pendingRest]).toEqual([0, null]);
+
+    get().jetLancer('test');
+    get().jetValider('test');
+    banc.reprendreTout();
+    expect(get().flags['test-joue']).toBe(true);
+    expect(get().pendingTest).toBeNull();
+    const slot = get().pendingCascade;
+    expect(slot?.participants[slot.cursor]?.label).toBe(titreDeMaladie);
+    expect([jours(), get().pendingRest]).toEqual([0, null]);
+
+    avanceEtapeCascade(get);
+    banc.reprendreTout();
+    expect(get().pendingCascade).toBeNull();
+    expect(get().suspendedCascades).toEqual([]);
+    expect(jours()).toBe(1);
+    expect(get().pendingRest).toBeTruthy();
+  });
+
+  it('[inflictDisease] : la carte de maladie tient le slot, une fois, le jour attend en pile ; fermée, le jour se dénoue une fois', () => {
+    const carteAuSlot = () => {
+      const carte = get().pendingCascade;
+      expect([carte?.purpose, carte?.title, carte?.cursor], `la carte de maladie est au curseur du slot (${etat()})`).toEqual(['affichage', titreDeMaladie, 0]);
+      expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1]]);
+    };
+    expect(jouerLeJour([maladie], carteAuSlot), 'la carte, seule, une fois').toEqual([titreDeMaladie]);
+  });
+
+  it('[inflictDisease, exposureNight] : le Test d’exposition passe avant la carte de maladie, puis le jour se dénoue une fois', () => {
+    expect(jouerLeJour([maladie, exposition]), 'le Test, puis la carte').toEqual(['test', titreDeMaladie]);
+  });
+
+  it('[exposureNight, inflictDisease] : la carte rejoint le Test, qui n’a pas de pilote, puis le jour se dénoue une fois', () => {
+    const carteDansLeTest = () => expect(get().pendingCascade?.participants.map((x) => x.label), `la carte est une étape du Test (${etat()})`).toContain(titreDeMaladie);
+    expect(jouerLeJour([exposition, maladie], carteDansLeTest), 'le Test seul, la carte en son sein').toEqual(['test']);
+  });
+
+  it('[setTime] qui franchit minuit : la carte d’entretien quotidien tient le slot, une fois, le jour attend en pile ; fermée, le jour se dénoue une fois', () => {
+    const carteAuSlot = () => {
+      expect([get().pendingCascade?.purpose, get().pendingCascade?.cursor], `la carte d’entretien est au curseur du slot (${etat()})`).toEqual(['upkeep', 0]);
+      expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor, c.participants.length]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1, 1]]);
+    };
+    expect(jouerLeJour([{ type: 'setTime', hour: 6 }], carteAuSlot), 'la carte, seule, une fois').toEqual(['upkeep']);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4006 — l'applier de la Rencontre d'Étape (`travelPostes.ts › etapeRencontre`), joué d'office par le pilote du
+// jour (`jouerLaJournee`), ouvre un nœud de scène : il passe avant le dénouement du jour, halte ou arrivée.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('Rencontre d’Étape dont l’applier ouvre un nœud sous la journée pilotée (#4006)', () => {
+  beforeEach(() => { setCadence('rapide'); setRule('voyage-etapes', true); });
+  afterEach(() => { setCadence('manuel'); resetRule('voyage-etapes'); });
+  const drapeau = (flag: string): FlowDeScene => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const OUVREURS: { ouvreur: string; etape: string; flow: FlowDeScene }[] = [
+    { ouvreur: 'test', etape: 'jetDeTestDeScene', flow: { kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') } },
+    { ouvreur: 'choix', etape: 'choixDeFlux', flow: { kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') } },
+    { ouvreur: 'volontaires', etape: 'volontaireDeFlux', flow: { kind: 'effet', effet: { type: 'ops', on: { volontaires: 'Qui monte la garde ?' }, ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }] } } },
+    { ouvreur: 'contagion', etape: 'maladieDeFinDeCombat', flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: 'blessure-purulente' }] } } },
+  ];
+  const volontaire: ChoisitCle = (etape) => (etape.kind === 'volontaireDeFlux' ? 'oui' : undefined);
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+  const etat = () => { const s = get(); const p = s.pendingCascade; return `slot=${p ? `${p.purpose}@${p.cursor}/${p.participants.length}:${p.participants[p.cursor]?.kind}` : '-'} test=${!!s.pendingTest} pile=[${s.suspendedCascades.map((c) => `${c.purpose}@${c.cursor}/${c.participants.length}`)}] jours=${jours()} halte=${!!s.pendingRest} lieu=${s.lieu}`; };
+  const rencontreQuiOuvre = (flow: FlowDeScene | null) => applierQuiOuvre('etapeRencontre', flow);
+  /** Le jour : l'Approvisionnement de Hilda au slot, puis le pilote joue le bilan d'Étape et sa Rencontre tirée. */
+  const partir = (km: number, graine: number) => {
+    seedBattleRng(graine);
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1')], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any] });
+    setup(map({ km, perilDie: 0 }), [h]);
+    get().partirEnVoyage('r1', 'pied');
+    expect([get().pendingCascade?.purpose, get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind], `prémisse : le poste du jour tient le slot (${etat()})`).toEqual(['travelDay', 'etapePosteEnBande']);
+    avanceEtapeCascade(get);
+  };
+  /** Le nœud au slot, le jour fini en pile derrière sa Rencontre ; joué jusqu'à sa clôture, le jour se dénoue. */
+  const jouerLeNoeud = (cas: string, etape: string) => {
+    expect(get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind, `le nœud tient le slot (${cas}, ${etat()})`).toBe(etape);
+    const jour = get().suspendedCascades.map((c) => [c.purpose, c.cursor === c.participants.length]);
+    expect(jour, `le jour attend en pile, fini (${cas}, ${etat()})`).toEqual([['travelDay', true]]);
+    let tours = 0;
+    for (; tours < 20 && (get().pendingTest || get().pendingCascade); tours++) {
+      expect(jours(), `aucune journée comptée sous le nœud (${cas}, ${etat()})`).toBe(0);
+      expect(get().pendingRest, `aucune halte sous le nœud (${cas}, ${etat()})`).toBeNull();
+      expect(get().travelPlan, `aucune arrivée sous le nœud (${cas}, ${etat()})`).not.toBeNull();
+      expect(get().suspendedCascades.map((c) => c.purpose), `le jour attend en pile (${cas}, ${etat()})`).toEqual(['travelDay']);
+      if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get, undefined, volontaire);
+    }
+    banc.reprendreTout();
+    expect(tours, `le nœud s’est clos (${cas}, ${etat()})`).toBeLessThan(20);
+    expect([get().pendingCascade, get().suspendedCascades], `le slot est libre, la pile vide (${cas}, ${etat()})`).toEqual([null, []]);
+  };
+  /** L'effet du nœud est joué : la branche du Test ou du choix, l'État du volontaire, le verdict de contagion. */
+  const brancheJouee = (ouvreur: string) => {
+    if (ouvreur === 'volontaires') return get().party[0]!.conditions.some((c) => c.id === 'extenue');
+    if (ouvreur === 'contagion') return get().journal.includes(t('cf.resisteALInfection', { name: 'Hilda' })) || (get().party[0]!.diseases ?? []).length > 0;
+    return !!get().flags.branche;
+  };
+
+  for (const graine of [7, 2]) for (const { ouvreur, etape, flow } of OUVREURS) it(`${ouvreur}, graine ${graine}, 30 km : le nœud passe avant le dénouement du jour, une journée comptée, la halte après`, () => {
+    const cas = `${ouvreur}, graine ${graine}`;
+    const passages = rencontreQuiOuvre(flow);
+    partir(30, graine);
+    expect(passages.n, `prémisse (${cas}) : le pilote a joué l’applier de la Rencontre`).toBe(1);
+    jouerLeNoeud(cas, etape);
+    expect(brancheJouee(ouvreur), `l’effet du nœud est joué (${cas})`).toBe(true);
+    expect(passages.n, `la Rencontre n’est pas rejouée (${cas})`).toBe(1);
+    expect(jours(), `une journée comptée (${cas})`).toBe(1);
+    expect(get().pendingRest, `la halte s’ouvre après la clôture (${cas})`).toBeTruthy();
+  });
+
+  /** Le dénouement « arrivée », que le témoin sans nœud fixe : plan clos au lieu d'arrivée, sans halte. */
+  const arrivee = () => [get().travelPlan, get().lieu, get().pendingRest, get().scene?.id, get().journal[get().journal.length - 1]];
+  const ARRIVEE = [null, 'pb', null, 'lieu-a-scene', t('tf.arrivee', { to: 'B' })];
+  it('témoin sans nœud, 12 km : le jour de la Rencontre finit sur l’arrivée', () => {
+    const passages = rencontreQuiOuvre(null);
+    partir(12, 7);
+    banc.reprendreTout();
+    expect(passages.n, 'prémisse : le pilote a joué l’applier de la Rencontre').toBe(1);
+    expect([get().pendingCascade, get().suspendedCascades], 'le jour s’est dénoué').toEqual([null, []]);
+    expect(arrivee()).toEqual(ARRIVEE);
+  });
+  for (const { ouvreur, etape, flow } of OUVREURS) it(`${ouvreur}, 12 km : le nœud passe avant l’arrivée, puis le voyage arrive comme le témoin`, () => {
+    const passages = rencontreQuiOuvre(flow);
+    partir(12, 7);
+    expect(passages.n, `prémisse (${ouvreur}) : le pilote a joué l’applier de la Rencontre`).toBe(1);
+    jouerLeNoeud(ouvreur, etape);
+    expect(brancheJouee(ouvreur), `l’effet du nœud est joué (${ouvreur})`).toBe(true);
+    expect(passages.n, `la Rencontre n’est pas rejouée (${ouvreur})`).toBe(1);
+    expect(arrivee(), `le même dénouement que le témoin (${ouvreur})`).toEqual(ARRIVEE);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
 // #3935 — la route de terre se joue sous les ordres du trajet (`TravelPlan.orders`, `traverseeCommandee`).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 describe('#3935 — la route de terre se joue sous les ordres du trajet', () => {
@@ -946,5 +1200,131 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
       for (const label of ['Anna', 'Bert']) expect(traceDe(label).length, `la rangée de ${label} laisse sa ligne`).toBeGreaterThanOrEqual(1);
       expect(traceDe('Anna').length, 'la péripétie laisse aussi la sienne').toBe(2);
     }
+  });
+});
+
+describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
+  const combat = { type: 'startCombat', encounter: { id: 'enc-test' } } as const;
+  const transition = { type: 'transition', scene: { id: 'lieu-b-scene' } } as const;
+  const embuscade = { perilDie: 8, ambush: { scene: transition.scene, encounter: combat.encounter.id } };
+  const miseEnPlace = (route: Partial<MapRouteTrace>, surpris: 'groupe' | 'ennemis' = 'groupe') => {
+    seedBattleRng(1);
+    const scenes = [sceneA(surpris), { ...sceneA(surpris), id: 'lieu-b-scene', label: 'B' }];
+    const worldMap = map({ provenances: { perilDie: { maison: 'Seuil du banc de voyage.' } }, ...route });
+    const identite = { type: 'projet', id: 'voyage-aux-aguets', label: 'Voyage aux aguets', versionContenu: 1, maison: 'Banc de voyage.' } as const;
+    const projet = parseProject(documentDeProjet(identite, scenes, { worldMap, narratif: emptyNarratif() }));
+    setup(projet.worldMap!, [hero({
+      travelRole: { activityId: 'rester-aux-aguets' },
+      items: [ration('r1'), ration('r2')],
+      skills: [{ id: 'perception', characteristic: 'initiative', advances: 20 }, { id: 'discretion', characteristic: 'agilite', advances: 60 }],
+    })], projet.scenes);
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+  };
+  const poser = (aguets: number, peripetie = 92, seuil = 8): PoseDe => (etape) => {
+    switch (etape.kind) {
+      case 'etape-meteo': return 31;
+      case 'etapePosteEnBande': return aguets;
+      case 'perilATerre': return seuil;
+      case 'perilATerreTable': return PERIPETIES.find((p) => p.kind === 'attaque')!.roll;
+      case 'perilATerrePerception': return peripetie;
+      case 'perilDeScene': return 1;
+      default: return undefined;
+    }
+  };
+  const enjeuSurprise = combatStakeRef('embuscade-reperer');
+  const surpriseEnCours = () => get().pendingCascade?.participants.map((s) => s.stake) ?? [];
+
+  beforeEach(() => {
+    setRule('voyage-etapes', true);
+    setCadence('manuel');
+    setDesFixes(true);
+  });
+  afterEach(() => {
+    resetRule('voyage-etapes');
+    resetDesFixes();
+  });
+
+  it.each([
+    { aguets: 21, peripetie: 92, surprise: false },
+    { aguets: 92, peripetie: 92, surprise: true },
+    { aguets: 92, peripetie: 21, surprise: false },
+  ])('« Attaqués ! » : aguets $aguets, Perception $peripetie, Surprise $surprise', ({ aguets, peripetie, surprise }) => {
+    miseEnPlace(embuscade);
+    const etapes = draineCascade(get, 40, poser(aguets, peripetie));
+    expect(etapes).toContain('etapePosteEnBande');
+    expect(etapes).toContain('perilATerrePerception');
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    expect(get().battle).toBeNull();
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    if (surprise) expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+    else expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
+  });
+
+  it('l’embuscade configurée après minuit reste couverte si l’Étape n’a pas changé', () => {
+    miseEnPlace({ ...embuscade, perils: [{ label: 'Retard jusqu’à l’aube', chancePct: 100, effects: [{ type: 'setTime', hour: 6 }] }] });
+    const jour = dayIndex(get().gameTime);
+    let perception: { roll: number; success: boolean } | undefined;
+    const desabonner = banc.subscribe((etat) => {
+      const test = etat.pendingCascade?.participants.find((etape) => etape.kind === 'perilATerrePerception');
+      const resultat = test?.result;
+      if (resultat?.roll !== undefined) perception = { roll: resultat.roll, success: resultat.success };
+    });
+    const etapes = draineCascade(get, 40, poser(21));
+    desabonner();
+    expect(perception).toMatchObject({ roll: 92, success: false });
+    expect(etapes.filter((kind) => kind === 'etapePosteEnBande')).toHaveLength(1);
+    expect(etapes).toContain('perilATerrePerception');
+    expect(dayIndex(get().gameTime)).toBe(jour + 1);
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    expect(get().battle).toBeNull();
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().scene?.id).toBe('lieu-b-scene');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
+  });
+
+  it('la garde du groupe laisse jouer l’embuscade tendue aux ennemis', () => {
+    miseEnPlace(embuscade, 'ennemis');
+    draineCascade(get, 40, poser(21));
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    expect(get().battle!.log.map((e) => e.text)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception\)/));
+  });
+
+  it('après la halte, la réussite de l’Étape précédente ne couvre plus le groupe', () => {
+    miseEnPlace({ ...embuscade, km: 30 });
+    expect(draineCascade(get, 40, poser(21, 92, 1))).toContain('etapePosteEnBande');
+    expect(get().battle).toBeNull();
+    expect(get().pendingRest?.travelHalt).toBe(true);
+    get().fenetreValider('repos');
+    const etapes = draineCascade(get, 80, poser(92));
+    expect(etapes.filter((kind) => kind === 'etapePosteEnBande')).toHaveLength(1);
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+  });
+
+  it('une transition sans combat ne transmet pas la protection au combat libre dans la scène atteinte', () => {
+    miseEnPlace({ perils: [{ label: 'Arrivée au pont', chancePct: 100, effects: [transition] }] });
+    draineCascade(get, 40, poser(21));
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().travelPlan?.interrupted).toBe(true);
+    expect(get().scene?.id).toBe('lieu-b-scene');
+    expect(get().battle).toBeNull();
+    get().lancerLeCombat('enc-test');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+  });
+
+  it('l’entrée de combat d’une Rencontre jouée dans l’Étape lit aussi la porte', () => {
+    const rencontre = applierQuiOuvre('etapeRencontre', { kind: 'effet', effet: combat });
+    miseEnPlace({});
+    const etapes = draineEtapes(get, 40, poser(1));
+    expect(rencontre.n).toBe(1);
+    expect(get().battle).not.toBeNull();
+    expect(etapes.map((e) => e.stake)).not.toContainEqual(enjeuSurprise);
+    expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
   });
 });

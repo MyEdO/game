@@ -36,15 +36,12 @@ const doc = document(
      *  uniquement. Champ parallèle à `ship.capacity` (même concept, facette `ship` inadaptée : ses autres
      *  champs — crew/manoeuvre/lengthM naval — n'ont pas d'équivalent EDOC pour un attelage terrestre). */
     chargement: z.number().optional(),
-    /** Facette ACHAT — `availability` absent pour les navires (MDG ne donne pas de Disponibilité). */
+    /** Disponibilité : LDB 70 l.7-14 ; MSRC 07 l.172-178. */
     purchase: nommerChamps(z.strictObject({
       price: moneySchema,
       availability: availabilitySchema.optional(),
     }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
-    /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `medium` : milieu du TRAJET PAYÉ (un véhicule
-     *  peut être bi-milieu — ex. la Barge navigue le fleuve LDB 70 l.10 tout en figurant à la table
-     *  navale MDG 12 avec `hull.propulsion:'maritime'` — les deux facettes sont INDÉPENDANTES,
-     *  jamais l'une dérivée de l'autre) ; absent = terrestre implicite (défaut historique). */
+    /** Passage payant (LDB 51 l.178-189). */
     travel: nommerChamps(z.strictObject({
       movement: z.number(),
       medium: z.enum(['terrestre', 'fluvial', 'maritime']).optional(),
@@ -75,12 +72,16 @@ const doc = document(
        *  Taille, et le refus se pose ICI plutôt qu'au tirage. Mesuré 2026-09-02 : les 20 navires de
        *  `vehicles.json` sont entiers, de 3 à 130 m. */
       lengthM: z.number().int().min(1),
+      /** MSRC 07 l.172-182. */
+      fluvialLengthM: z.number().int().positive().optional(),
+      fluvialMovement: z.number().positive().optional(),
+      fluvialEnc: z.number().positive().optional(),
       footprint: z.number().optional(),
       capacity: z.number(),
       sail: profilDeVoileSchema.optional(),
       oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
-    }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
+    }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur maritime en mètres" }, fluvialLengthM: { label: "Longueur fluviale en mètres" }, fluvialMovement: { label: "Mouvement fluvial" }, fluvialEnc: { label: "Encombrement fluvial de la coque" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
     /** PONTS d'un navire qu'on visite (#3686), une paire : une carte box-drawing par pont, du plus bas au plus haut, en cases du
      *  plan des scènes (`sceneMetresPerTile`), la proue à gauche, tribord en haut (`MOTS_DES_PONTS`,
      *  `grammaire/carte-ascii.ts`). La seule source de la forme des ponts : le plan de jeu
@@ -118,9 +119,22 @@ const doc = document(
     /** MDG 12 l.131, l.195-199, l.311 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const navire = (v as { ship?: { sail?: unknown; oars?: unknown } }).ship;
-        if (navire && !navire.sail && !navire.oars) {
-          ctx.addIssue({ code: 'custom', path: ['ship', 'sail'], message: `${(v as { id: string }).id} : navire sans propulsion — Voiles ou Avirons requis` });
+        const { id, ship: navire } = v as { id: string; ship?: {
+          sail?: unknown; oars?: unknown;
+          fluvialLengthM?: number; fluvialMovement?: number; fluvialEnc?: number;
+        } };
+        if (!navire) return;
+        if (!navire.sail && !navire.oars) {
+          ctx.addIssue({ code: 'custom', path: ['ship', 'sail'], message: `${id} : navire sans propulsion — Voiles ou Avirons requis` });
+        }
+        const champsFluviaux = ['fluvialLengthM', 'fluvialMovement', 'fluvialEnc'] as const;
+        const renseigne = champsFluviaux.some((champ) => navire[champ] !== undefined);
+        const manquant = champsFluviaux.find((champ) => navire[champ] === undefined);
+        if (renseigne && manquant) {
+          ctx.addIssue({
+            code: 'custom', path: ['ship', manquant],
+            message: 'Le gabarit fluvial requiert une longueur, un Mouvement et un Encombrement.',
+          });
         }
       }),
   },

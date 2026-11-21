@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { materials, matieresDe, matieresCouvrantes, matierePlan, findPropMaterialById } from './index';
+import { materials, matieresDe, matieresCouvrantes, findPropMaterialById } from './index';
 import { setDataset, resetData } from './overrides';
 import type { MaterialEntry } from './materials.types';
 import type { EntreeVivante } from './datasets';
@@ -84,11 +84,5 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
     setDataset('materials', editees((e) => (e.id === plan.id && e.domain === 'roof' ? { ...e, couverture: true, vueDeDessus: undefined } : e)));
     expect(matieresCouvrantes().map((m) => m.id)).toContain(plan.id);
     expect(erreursDeCouverture(plan.id)).toEqual([]);
-  });
-
-  it('le PLAN vu du dessus se lit à la donnée, et son absence est une anomalie NOMMÉE', () => {
-    expect(matierePlan().vueDeDessus).toBe(true);
-    setDataset('materials', editees((e) => (e.domain === 'roof' ? { ...e, vueDeDessus: undefined } : e)));
-    expect(() => matierePlan()).toThrow(/vueDeDessus.*materials\.json/);
   });
 });

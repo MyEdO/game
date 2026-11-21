@@ -81,10 +81,6 @@ export function intentReach(get: Get<Jeu>): Map<string, number> {
   return reach ? reach(get) : new Map();
 }
 
-/** Portée d'ARME : l'intention qui délègue son affichage aux BANDES DE TIR existantes (`rangeBand`),
- *  au lieu d'ouvrir une 2ᵉ écriture de la même vérité. */
-export const PORTEE_ARME = 'portee-arme' satisfies PorteeDIntention;
-
 /** Portée de COURSE : même délégation, vers la ZONE DE COURSE du champ (`HighlightsView.runReach`,
  *  nature `run`). Depuis l'arbitrage du 2026-08-19 cette zone ne se peint plus d'office : elle est
  *  l'affordance de l'intention armée, et se peint EXACTEMENT quand cette intention l'est. */

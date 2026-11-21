@@ -19,7 +19,7 @@ function partie(inconnu: { appraiseTriedDay?: number; detectTriedBy?: string[] }
   const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
   Object.assign(pilon, { identified: false, ...inconnu });
-  const s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene'> = { battle: null, party, possessions: [], gameTime: 3 * MINUTES_PER_DAY + 10, scene: null };
+  const s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif'> = { battle: null, party, possessions: [], gameTime: 3 * MINUTES_PER_DAY + 10, scene: null, campaignNarratif: null };
   return { s, rosa, uid: (label: string) => rosa.items!.find((i) => i.label === label)!.uid };
 }
 

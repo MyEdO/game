@@ -164,6 +164,9 @@ var _hors_du_repos := false
 var _familles_d_echantillons: Array = []
 ## L'échantillon demandé, `{ famille, id, saison? }` (l'entrée de `echantillon`), `null` : aucun.
 var _echantillon_demande: Variant = null
+## La dernière demande de textures et les paramètres de l'échantillon effectivement posé.
+var _echantillon_en_vol: RefCounted
+var _echantillon_pose: Variant = null
 
 
 func _ready() -> void:
@@ -211,6 +214,11 @@ func _ready() -> void:
 		await _charger({}, {})
 
 
+func _exit_tree() -> void:
+	_chargement = null
+	_echantillon_en_vol = null
+
+
 func _process(_delta: float) -> void:
 	if _hors_du_repos and _etats.lecture().get_current_node() == EtatsDuCorps.REPOS and _etats.lecture().get_fading_from_node() == &"":
 		_rendre_la_main()
@@ -224,6 +232,7 @@ func _process(_delta: float) -> void:
 ## reste listée, la première sinon), qui remonte les éléments `montes` que ses emplacements offrent encore, sous leurs
 ## `emblemes`.
 func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
+	_echantillon_en_vol = null
 	var chargement := RefCounted.new()
 	_chargement = chargement
 	_erreurs.clear()
@@ -269,6 +278,7 @@ func _choisir_la_base(id: String) -> void:
 			_base_demandee = id
 			_definition_du_vehicule = null
 			_echantillon_demande = null
+			_echantillon_en_vol = null
 			_surcharges_des_emblemes.clear()
 			_reprise = {}
 			_montage.composee = {}
@@ -333,6 +343,8 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 ## `MontageDesModeles.vider`),
 ## ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes, ni arbre branché (`_debrancher`).
 func _remettre_a_zero() -> void:
+	_echantillon_en_vol = null
+	_echantillon_pose = null
 	_debrancher()
 	if _montage.squelette != null and _montage.squelette.skeleton_updated.is_connected(_memoriser_la_pose):
 		_montage.squelette.skeleton_updated.disconnect(_memoriser_la_pose)
@@ -512,16 +524,26 @@ func _poser_sans_base(racine: Node3D) -> void:
 ## (`MontageDesModeles.poser`, `decors`), en mètres (`MiseEnPage.echelle_en_metres`), au sol et cadré à sa taille
 ## (`_poser_l_echantillon_au_sol`), et la section « Saison » posée sur ses `saisons` (`_poser_les_saisons`).
 func _poser_l_echantillon() -> void:
-	var reponse := _pont.appeler("echantillon", _echantillon_demande)
+	var charge := RefCounted.new()
+	_echantillon_en_vol = charge
+	var demande: Dictionary = _echantillon_demande
+	var reponse := _pont.appeler("echantillon", demande)
 	if reponse.get("ok") != true:
+		_echantillon_en_vol = null
 		return
+	var recus := {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes}
+	var _textures_gardees := await TexturesDeMatiere.preparer(self, VolumeDeScene.matieres_des_morceaux(recus))
+	if charge != _echantillon_en_vol:
+		return
+	_echantillon_en_vol = null
 	var scene := _scene_de_l_echantillon
-	scene.poser(reponse, {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes})
-	scene.poser_les_aretes(reponse.aretes)
+	scene.poser(reponse, recus)
+	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
 	_poser_l_echantillon_au_sol()
+	_echantillon_pose = demande
 	_poser_les_saisons(reponse.saisons)
 	_montrer_le_modele_pose()
 	_montrer_l_etat()
@@ -1803,12 +1825,12 @@ func _ecran_publie() -> Variant:
 	}
 
 
-## Ce que l'écran montre de l'échantillon demandé, `null` sans lui : sa famille, son id, et ce que sa scène a posé
+## Ce que l'écran montre de l'échantillon posé, `null` sans lui : sa famille, son id et ce que sa scène a posé
 ## (`VolumeDeScene.ce_qui_est_pose`).
 func _echantillon_publie() -> Variant:
-	if _echantillon_demande == null:
+	if _echantillon_demande == null or _echantillon_pose == null:
 		return null
-	return _scene_de_l_echantillon.ce_qui_est_pose().merged(_echantillon_demande)
+	return _scene_de_l_echantillon.ce_qui_est_pose().merged(_echantillon_pose)
 
 
 ## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.

@@ -31,9 +31,6 @@ export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
  *  vue la résout génériquement sur le store (`HouseRulesModal`). */
 export type OptionalRule = EntreeDe<typeof reglesOptionnellesDef>;
 
-/** Le genre du contrôle d'une règle optionnelle (`FormeDeControle`). */
-export type RuleKind = OptionalRule['kind'];
-
 /** Valeur d'une règle optionnelle SANS sa règle — surcharges stockées, persistées ou saisies, que `valeurConforme`
  *  juge contre leur règle. La valeur d'UNE règle est `ValeurDeRegle[id]`. */
 export type RuleValue = OptionalRule['default'];
@@ -141,6 +138,9 @@ export function refusDesSurcharges(o: Readonly<Record<string, unknown>>): RefusD
 export function loadRuleOverrides(o: Readonly<Record<string, unknown>>): void {
   const refus = refusDesSurcharges(o);
   if (refus.length) throw new Error(refus.map((r) => r.raison).join(' ; '));
+  const chargees = Object.entries(o);
+  if (chargees.length === overrides.size && chargees.every(([id, valeur]) => overrides.get(id) === valeur)) return;
   overrides.clear();
-  for (const [k, v] of Object.entries(o)) overrides.set(k, v as RuleValue);
+  for (const [id, valeur] of chargees) overrides.set(id, valeur as RuleValue);
+  bumperDataset('reglesOptionnelles');
 }

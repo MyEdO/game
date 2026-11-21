@@ -29,12 +29,6 @@ export interface ClearedSpace {
   seenSections: ReadonlySet<string> | null;
 }
 
-/** Aucun allié posé (scène absente) : rien n'est dégagé, et personne ne regarde. */
-export const NO_CLEARED_SPACE: ClearedSpace = {
-  zoneIds: new Set(), zoneCells: new Map(), roomlessCells: new Set(), overheadCells: new Set(),
-  seenSections: null,
-};
-
 export const spaceCellKey = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
 /** L'espace qu'enferme un élément d'architecture : ses pièces (`roomZoneIds` — masse de toit,
@@ -72,10 +66,6 @@ export function cutawayForSection(section: EnclosedSpace, cleared: ClearedSpace)
  *  entier ou reste entier. */
 export function cutawayOverhead(cell: { x: number; y: number; z?: number }, cleared: ClearedSpace): boolean {
   return cleared.overheadCells.has(spaceCellKey(cell.x, cell.y, cell.z ?? 0));
-}
-
-export function exteriorWallViewZ(activeZ: number, interiorFocused: boolean, layerZs: readonly number[]): number {
-  return interiorFocused ? activeZ : Math.max(activeZ, ...layerZs);
 }
 
 export interface FacadePanel {

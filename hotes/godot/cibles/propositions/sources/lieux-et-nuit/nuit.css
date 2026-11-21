@@ -1,16 +1,18 @@
 /* La nuit (`../rendu.js`, écran `nuit`) : l'offre de l'hôte, qui dort où, la partie d'un jeu de taverne. Leur place est
    dans `../rendu.css`. */
 
-/* l'hôte et ses offres */
-#hote-du-lieu .fond{padding:12px 15px 13px}
+/* l'hôte, ses offres et ses avis */
+#hote-du-lieu .fond{padding:20px 15px 13px}
 #hote-du-lieu .dit{margin:7px 0 9px;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
 .grille{display:grid;grid-template-columns:1fr auto 84px;gap:5px 12px;align-items:center}
 .grille .q{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .grille .l{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#eadfc4;white-space:nowrap}
 .grille .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 4px}
+#hote-du-lieu .avis{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:#d98a6a}
+#hote-du-lieu .avis+.avis{margin-top:4px}
 
 /* qui dort où : l'abri, ses places, ceux qui restent dehors ; le temps ; ce que la nuit jouera */
-#dortoir .fond{padding:24px 16px 14px}
+#dortoir .fond{display:flex;flex-direction:column;padding:24px 16px 14px}
 .rang-c{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .rang-c .lab{flex:none;width:60px;font-size:12.5px;color:var(--creme-2)}
 .rang-c .v{font-size:13.5px;color:#eadfc4;line-height:17px}
@@ -20,18 +22,18 @@
 #dortoir .abri .segments b{flex:1;text-align:center;padding:3px 4px 4px}
 #dortoir .aide{margin:-3px 0 8px;font-style:italic;font-size:12px;line-height:15px;color:var(--creme-2)}
 .couche{display:flex;align-items:center;gap:6px;margin-bottom:7px}
-.couche .lab{flex:none;width:100px;font-size:12px;color:var(--creme-2)}
+.couche .lab{flex:none;width:90px;font-size:12px;line-height:15px;color:var(--creme-2)}
 .couche .places{display:flex;gap:5px}
 .couche i{margin-left:auto;font-size:12.5px;color:var(--creme-2);white-space:nowrap}
 #dortoir .filet{margin:9px 0 7px}
 #dortoir .t{font-size:12.5px;color:var(--or);margin-bottom:7px}
 #dortoir .qui-paie{color:#eadfc4}
 #dortoir .qui-paie .rubrique{font-size:12px;color:var(--creme-2)}
-#dortoir .plaque.nuit{margin-top:12px}
+#dortoir .plaque.nuit{flex:none;margin-top:12px}
 #dortoir .plaque.nuit>div{font-size:16.5px}
 
 /* la partie d'un jeu de taverne */
-#partie h3{font-size:30px;line-height:44px;margin:-8px 0 -8px}
+#partie h3{font-size:30px;line-height:44px;margin:-8px 0 -6px}
 #partie p{margin-top:7px}
 #partie .t{font-size:12.5px;color:#6b1c10;margin-bottom:8px}
 .sieges{display:flex;gap:10px}

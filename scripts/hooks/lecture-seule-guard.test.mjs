@@ -215,7 +215,7 @@ fs.writeFileSync(join(tmpdir(), '${dossierClaude(platform)}', '${SLUG}', '${SESS
     ['Bash', `perl -i -pe 's/x/y/' "${P}/a.txt"`, 'juge', null],
     ['Bash', 'tsc', 'juge', null],
     ['Bash', 'tsc -b', 'juge', 'deny', /tsc -b : écrivain .* — canal : un outil de la table de lecture de `npx`/],
-    ['Bash', 'npm run build', 'juge', 'deny', /vite build : écrivain/],
+    ['Bash', 'npx vite build', 'juge', 'deny', /vite build : écrivain/],
     ['Bash', 'node scripts/lancer-local.mjs vite -- vite build', 'juge', 'deny', /vite build : écrivain/],
     ['Bash', 'split --help', 'juge', null],
     ['Bash', 'exec rm -f ../x', 'lecteur', 'deny', /rm hors du scratchpad/],

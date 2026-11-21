@@ -6,9 +6,9 @@ change que de repère. L'aléa de la brèche est semé du nom de la pièce : deu
 import math
 
 import geometrie
-from geometrie import DEHORS, X, Repere
+from geometrie import DEHORS, DROITE, GAUCHE, MILIEU, X, Repere, noeud
 from maille import lineaire
-from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, volets
+from menuiserie import PORTE_DE_PLANCHES, croisee, echelle, vantail, vitre, volets
 
 BOIS, TORCHIS = "ossature", "torchis"
 
@@ -100,34 +100,54 @@ def mur(D, m, _):
     P.croix_des_registres()
 
 
-def porte(ouverte):
-    """La porte, son vantail fermé dans la baie ou `ouverte` d'un quart de tour vers le dedans."""
+def porte(ouverte, position=None):
+    """La porte, son vantail fermé dans la baie ou `ouverte` d'un quart de tour vers le dedans. À la `position` d'une
+    ouverture de plusieurs arêtes, la baie file jusqu'au bout de l'arête que l'ouverture continue, sans poteau, sous
+    un linteau filant ; le vantail se gonde au bout extérieur de l'ouverture. Celui d'une arête du milieu, brisé sur
+    son voisin de gauche, clôt sa baie fermé et la laisse libre `ouverte`."""
     def batir(D, m, _):
         P, B = Pan(D, m), D["PORTE_DE_PAN"]
-        baie = D["BAIE_DE_PORTE"] * D["LONGUEUR"] / 2
-        huisserie, tete = baie + P.poteau / 2, B["hauteur"] + P.linteau
-        P.cadre()
-        for s in (-1, 1):
-            cote = tuple(sorted((s * P.bout, s * huisserie)))
-            P.sole(tuple(sorted((s * P.demi, s * baie))))
-            P.montant(s * huisserie, (P.pied, P.tete))
+        baie, tete = D["BAIE_DE_PORTE"] * D["LONGUEUR"] / 2, B["hauteur"] + P.linteau
+        gauche = -P.demi if position in (MILIEU, DROITE) else -baie
+        droite = P.demi if position in (GAUCHE, MILIEU) else baie
+        P.sabliere()
+        linteau = []
+        for s, bord in ((-1, gauche), (1, droite)):
+            demi_poteau = tuple(sorted((s * P.demi, s * (P.demi - P.poteau / 2))))
+            if abs(bord) >= P.demi:
+                P.bois(demi_poteau, (tete, P.tete))
+                linteau.append(bord)
+                continue
+            huisserie = bord + s * P.poteau / 2
+            cote = tuple(sorted((s * P.bout, huisserie)))
+            P.bois(demi_poteau, (P.pied, P.tete))
+            P.sole(tuple(sorted((s * P.demi, bord))))
+            P.montant(huisserie, (P.pied, P.tete))
             P.torchis(cote, (P.pied / 2, (P.tete + P.haut) / 2))
             for axe in P.axes:
                 if axe - P.traverse / 2 < tete:
                     P.entretoise(axe, cote)
-        P.bois((-baie, baie), (0, B["seuil"]), D["RETRAITS"]["traverse"])
-        P.bois((-huisserie, huisserie), (B["hauteur"], tete), D["RETRAITS"]["traverse"])
+            linteau.append(huisserie)
+        P.bois((gauche, droite), (0, B["seuil"]), D["RETRAITS"]["traverse"])
+        P.bois(tuple(linteau), (B["hauteur"], tete), D["RETRAITS"]["traverse"])
         for axe in P.axes:
             if axe - P.traverse / 2 >= tete:
                 P.entretoise(axe, (-P.bout, P.bout))
         for a in P.poteaux[1:-1]:
-            if abs(a) < baie:
+            if gauche < a < droite:
                 P.montant(a, (tete, P.tete))
-        P.torchis((-huisserie, huisserie), (B["hauteur"] + P.linteau / 2, (P.tete + P.haut) / 2))
+        P.torchis((max(linteau[0], -P.bout), min(linteau[1], P.bout)),
+                  (B["hauteur"] + P.linteau / 2, (P.tete + P.haut) / 2))
+        if ouverte and position == MILIEU:
+            return
         V, jeu = PORTE_DE_PLANCHES, B["jeu"]
-        gond = P.R.point(-baie + jeu, 0, -V["epaisseur"] / 2)
-        vantail(m, Repere(gond, -DEHORS, X) if ouverte else Repere(gond, X, DEHORS), 2 * (baie - jeu),
-                (B["seuil"] + jeu, B["hauteur"] - jeu), V)
+        sens = -1 if position == DROITE else 1
+        large = droite - gauche - (2 * jeu if position is None else 1.5 * jeu)
+        gond = P.R.point((droite - jeu) if sens < 0 else (gauche + jeu), 0, -V["epaisseur"] / 2)
+        planches = round(V["planches"] * large / (2 * baie))
+        pentures = V["pentures"] if abs(gond.x) < P.demi - P.poteau / 2 else (*V["pentures"][:3], 0.0)
+        vantail(m, Repere(gond, -DEHORS, sens * X) if ouverte else Repere(gond, sens * X, DEHORS), large,
+                (B["seuil"] + jeu, B["hauteur"] - jeu), {**V, "planches": planches, "pentures": pentures})
     return batir
 
 
@@ -157,6 +177,7 @@ def fenetre(close):
         P.croix_des_registres(sauf=(1,))
 
         croisee(m, P.R, baie, appui, linteau)
+        vitre(m, P.R, baie, appui, linteau)
         volets(m, P.R, baie, (appui - F["recouvrement"], linteau + F["recouvrement"]), P.nu, close)
     return batir
 
@@ -204,8 +225,7 @@ def breche(D, m, a):
         P.R.boite(m, (x(part) - E["section"] / 2, x(part) + E["section"] / 2), h,
                   (c - E["section"] / 2, c + E["section"] / 2), BOIS)
 
-    G = B["gravats"]
-    geometrie.eboulis(m, P.R, a, G, P.demi, lambda alea: BOIS if alea.random() < G["bois"] else TORCHIS)
+    geometrie.eboulis(m, P.R, a, B["gravats"], P.demi)
     for depart, arrivee in B["debris"]:
         P.R.poutre(m, (x(depart[0]), P.echarpe / 2), (x(arrivee[0]), P.echarpe / 2), P.echarpe,
                    (-P.echarpe / 2, P.echarpe / 2), BOIS)
@@ -213,7 +233,11 @@ def breche(D, m, a):
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": fenetre(False),
-         "fenetre-close": fenetre(True), "breche": breche}
+         "fenetre-close": fenetre(True), "breche": breche,
+         **{noeud(piece, position): porte(ouverte, position)
+            for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
+            for position in (GAUCHE, MILIEU, DROITE)},
+         "echelle": echelle}
 
 
 def elements(D):

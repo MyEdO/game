@@ -38,12 +38,23 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }, { label: 'Vous' }),
   nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }, { label: 'Cibles' }),
-  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: maisonSchema.optional() }), {
+  nommerChamps(z.strictObject({
+    kind: z.literal('area'),
+    span: z.enum(['radius', 'diameter']),
+    meters: formuleSansTirageSchema,
+    anchor: z.literal('target').optional(),
+    excludesCaster: z.boolean().optional(),
+    affects: conditionSchema.optional(),
+    choixDeCibles: z.literal(true).optional(),
+    maison: maisonSchema.optional(),
+  }), {
     kind: { label: 'Type' },
     span: { label: 'Envergure' },
     meters: { label: 'Mètres' },
+    anchor: { label: 'Ancre sur la cible' },
     excludesCaster: { label: 'Lanceur exclu' },
     affects: { label: 'Cibles affectées' },
+    choixDeCibles: { label: 'Choix du camp' },
     maison: { label: 'Arbitrage maison' },
   }, { label: 'Zone' }),
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),
@@ -131,7 +142,7 @@ const champs = {
   titreVO: z.string().optional(),
   livreVO: ref('book').optional(),
   /** Famille des sorts : le Trait psy d'un sort vise une personne choisie, à durée d'horloge (VDM 10 l.327-330). */
-  effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis' }).flow.optional(),
+  effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis', 'grantPsychTrait.durationWeeks': 'admis' }).flow.optional(),
 };
 
 /**
@@ -163,7 +174,7 @@ const doc = document(
       hint: 'Libellé d’école hérité, non normalisé (18 valeurs, casse double) — la famille de logique vit sur Famille de sort et Domaine',
     },
     subType: { label: 'Sous-type' },
-    domainId: { label: 'Domaine', hint: 'Domaine arcanique ou de culte auquel le sort appartient' },
+    domainId: { label: 'Domaine', inverseCodex: true, hint: 'Domaine arcanique ou de culte auquel le sort appartient' },
     isRitual: { label: 'Est un Rituel' },
     ritual: {
       label: 'Rubriques de Rituel',
@@ -195,7 +206,10 @@ const doc = document(
     /** LDB 48 l.495 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { duration?: { kind?: string } | null; effects?: unknown };
+        const e = v as { target?: z.output<typeof spellTargetSchema> | null; duration?: { kind?: string } | null; effects?: unknown };
+        if (e.target?.kind === 'area' && e.target.anchor === 'target' && e.target.choixDeCibles) {
+          ctx.addIssue({ code: 'custom', path: ['target', 'choixDeCibles'], message: 'Le choix des cibles exige une Zone d’Effet centrée sur le lanceur ou sur un point.' });
+        }
         // LDB 47 l.15 ; #4202.
         if (!opsRetenues(e.effects, (n) => n.op === 'zone' && n.durationRounds !== undefined).next().done) {
           ctx.addIssue({ code: 'custom', path: ['effects'], message: 'op « zone » d’un sort : « durationRounds » interdit, la zone dure le temps du sort.' });

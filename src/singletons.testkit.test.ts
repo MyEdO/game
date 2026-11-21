@@ -7,7 +7,7 @@ import { remettreLesSingletons } from './singletons.testkit';
 
 /**
  * CONTRAT de la remise à zéro des singletons de module (`singletons.testkit.ts`) : elle rend chaque singleton à son
- * départ, et les DEUX setups l'appellent en fin de fichier (le web aussi avant chaque test). Sans l'appel de fin de fichier, une
+ * départ, et le setup l'appelle en fin de fichier. Sans l'appel de fin de fichier, une
  * règle posée par le dernier test d'un fichier se lit au corps de module du suivant (`tavern-lancers`, sous
  * `--sequence.shuffle.files --sequence.seed=3` derrière `tavern-regime-rapide`).
  */
@@ -25,11 +25,6 @@ describe('remise à zéro des singletons de module', () => {
     texte.split(`${crochet}(`).slice(1)
       .map((suite) => suite.slice(0, suite.indexOf('\n});')).replace(/\/\/.*$/gm, ''))
       .some((corps) => corps.includes('remettreLesSingletons()'));
-
-  it('src/test-setup.ts l’appelle avant chaque test et en fin de fichier', () => {
-    const texte = readFileSync('src/test-setup.ts', 'utf8');
-    for (const crochet of ['beforeEach', 'afterAll']) expect(appelleDans(texte, crochet), crochet).toBe(true);
-  });
 
   // Le noyau ne l'appelle pas avant chaque test : l'ouverture du propriétaire pose ces singletons pour tout son fichier.
   it('src/test-setup-noyau.ts l’appelle en fin de fichier', () => {

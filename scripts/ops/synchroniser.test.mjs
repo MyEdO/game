@@ -37,9 +37,8 @@ import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { attendreLibre, naissanceDuTenant, sousEcheanceAsync } from '../test/verrou.mjs'
 import { NAISSANCE_ABSENTE, estPidDeProcessus, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
-import { CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { cheminsDeLaReconstruction, demanderLaReconstruction, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
+import { cheminsDeLaReconstruction, demanderLaReconstruction, REJEUX_SUR_SOURCE_MODIFIEE, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -779,17 +778,17 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
   })
 
-  for (const codeDiffere of [CODE_DIFFERE, CODE_SOURCE_MODIFIEE]) test(`15 ter reconstruction DIFFÉRÉE (code ${codeDiffere}, #2603) : le post-merge rend 0 et sa demande, \`du.json\` gardé SANS échec, la plage due soldée au passage suivant`, async () => {
+  test(`15 ter reconstruction DIFFÉRÉE (code ${CODE_DIFFERE}, #2603) : le post-merge rend 0 et sa demande, \`du.json\` gardé SANS échec, la plage due soldée au passage suivant`, async () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
-    hookReconstruisant(m.principal, codeDiffere)
+    hookReconstruisant(m.principal, CODE_DIFFERE)
     try {
       const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
       assert.equal(vu.etat, 'avance', JSON.stringify(vu))
       const du = await consommationFinie(m.principal, [neMesure(vu.consommateurs.pid)], { solde: false })
       assert.deepEqual([du?.de, du?.vers, du?.echec ?? null], [m.B, U, null], readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8'))
       const lignes = readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8')
-      assert.match(lignes, new RegExp(`reconstruction seq=1 — soldee, code ${codeDiffere}, journal `))
+      assert.match(lignes, new RegExp(`reconstruction seq=1 — soldee, code ${CODE_DIFFERE}, journal `))
       assert.match(lignes, /reconstruction différée : plage due laissée au prochain passage/)
       writeFileSync(join(m.principal, 'hooks-fixture', 'post-merge'), '#!/bin/sh\nexit 0\n')
       const reprise = spawnSync(process.execPath, [SYNCHRONISEUR, '--consommer'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 60_000 })
@@ -797,6 +796,61 @@ describe('synchroniserPrincipal — matrice', () => {
       assert.equal(duDe(m.principal), null)
     } finally {
       assert.deepEqual(await reconstructionsFinies(m.principal), [])
+    }
+  })
+
+  test('#2629 : la CLI solde la plage quand la source se stabilise au rejeu', async () => {
+    const { principal, B, U, cible, passer, etatDeLaReconstruction } = bancSourceModifiee('une fois')
+    try {
+      const { vu, du } = await passer()
+      assert.deepEqual([vu.etat, vu.de, vu.vers, du], ['avance', B, U, null])
+      const { demandes, soldees, dernier, conflitsDeSource } = etatDeLaReconstruction()
+      assert.deepEqual([demandes, soldees, dernier.code, conflitsDeSource], [1, 1, 0, null])
+      assert.equal(readFileSync(join(principal, cible), 'utf8'), 'initiale\nchangement\n')
+      assert.match(readFileSync(dernier.log, 'utf8'), /source modifiée pendant la passe, rejeu 1\//)
+    } finally {
+      assert.deepEqual(await reconstructionsFinies(principal), [])
+    }
+  })
+
+  test('#2629 : la CLI borne la récidive 79, rend le diagnostic et conserve le travail pour une reprise', async () => {
+    const { principal, B, U, cible, cli, passer, etatDeLaReconstruction } = bancSourceModifiee('toujours')
+    try {
+      const premier = await passer({ solde: false })
+      assert.deepEqual([premier.vu.etat, premier.du?.de, premier.du?.vers, premier.du?.echec], ['avance', B, U, null])
+      const premierEtat = etatDeLaReconstruction()
+      assert.deepEqual([premierEtat.demandes, premierEtat.dernier.code, premierEtat.dernier.sourceModifieePersistante], [1, CODE_SOURCE_MODIFIEE, undefined])
+
+      const second = await passer({ solde: false })
+      const cause = 'source modifiée à répétition : g/reconstruire.mjs — source de parent modifiée : source.txt'
+      const dernier = etatDeLaReconstruction().dernier
+      assert.deepEqual([second.vu.etat, second.du?.de, second.du?.vers, second.du?.du], ['a-jour', B, U, premier.du.du])
+      assert.deepEqual([dernier.seq, second.du?.echec?.code, second.du?.echec?.raison, second.du?.echec?.log], [2, CODE_SOURCE_MODIFIEE, cause, dernier.log])
+      for (const log of [premierEtat.dernier.log, dernier.log]) {
+        assert.equal((readFileSync(log, 'utf8').match(/passe seq=\d+ — début/g) ?? []).length, REJEUX_SUR_SOURCE_MODIFIEE + 1)
+      }
+
+      const troisieme = cli('--json')
+      assert.equal(troisieme.status, 1, troisieme.stderr)
+      const echec = JSON.parse(troisieme.stdout)
+      assert.deepEqual([echec.etat, echec.de, echec.vers, echec.code, echec.log], ['avance-non-prete', B, U, CODE_SOURCE_MODIFIEE, dernier.log])
+      assert.ok(echec.texte.includes(cause), echec.texte)
+      assert.ok(echec.texte.endsWith(' — reprise : `npm run ops:synchroniser -- --consommer`'), echec.texte)
+      const mesure = JSON.parse(cli('--mesurer', '--json').stdout)
+      assert.equal(mesure.consommateurs.raison, cause)
+      assert.ok(mesure.ligne.includes(cause), mesure.ligne)
+      assert.equal(etatDeLaReconstruction().demandes, 2, 'le passage suivant ne crée pas de demande')
+      assert.deepEqual(duDe(principal), second.du, 'la plage et son diagnostic restent dus')
+
+      ecrireTravail(principal, 'mode.txt', 'stable')
+      const reprise = cli('--consommer')
+      assert.equal(reprise.status, 0, reprise.stderr)
+      assert.equal(duDe(principal), null)
+      const apresReprise = etatDeLaReconstruction()
+      assert.deepEqual([apresReprise.demandes, apresReprise.soldees, apresReprise.dernier.code, apresReprise.conflitsDeSource], [3, 3, 0, null])
+      assert.equal(readFileSync(join(principal, cible), 'utf8'), 'initiale\n' + 'changement\n'.repeat(2 * (REJEUX_SUR_SOURCE_MODIFIEE + 1)))
+    } finally {
+      assert.deepEqual(await reconstructionsFinies(principal), [])
     }
   })
 
@@ -1091,6 +1145,60 @@ function hookReconstruisant(racine, codePasse) {
   ].join('\n'))
   const posix = (chemin) => chemin.replaceAll(sep, '/')
   hookDeFixture(racine, `"${posix(process.execPath)}" "${posix(demande)}"\n`)
+}
+
+/** Un vrai post-merge demande la passe en fond ; le banc ne remplace que le registre des générateurs. */
+function bancSourceModifiee(mode) {
+  const url = (rel) => JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', rel)).href)
+  const cible = ['docs', 'a.md'].join('/')
+  const cheminDuBuild = 'scripts/docs/build-all.mjs'
+  const cheminDeDemande = 'demande.mjs'
+  const registre = JSON.stringify([{ runner: 'node', script: 'g/reconstruire.mjs', targets: [cible] }])
+  const generateur = String.raw`import { appendFileSync, readFileSync } from 'node:fs'
+import { ecrireOuVerifier } from ${url('docs/lib/ecriture-derives.mjs')}
+const source = readFileSync('source.txt', 'utf8')
+const mode = readFileSync('mode.txt', 'utf8')
+if (mode === 'toujours' || (mode === 'une fois' && source === 'initiale\n')) {
+  appendFileSync('source.txt', 'changement\n')
+}
+ecrireOuVerifier({
+  out: source, path: ${JSON.stringify(cible)}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer',
+})
+`
+  const build = `import { executer } from ${url('docs/build-all.mjs')}
+process.exitCode = await executer({ cwd: process.cwd(), generateurs: ${registre}, verificateurs: [] })
+`
+  const demande = `import { reconstruireApresGit } from ${url('git-hooks/docs-rebuild.mjs')}
+import { ligneDeDemande } from ${url('git-hooks/reconstruction.mjs')}
+const { code, seq } = reconstruireApresGit({ cwd: process.cwd(), hook: 'post-merge', avant: '0', generateurs: ${registre} })
+if (seq !== null) process.stdout.write(ligneDeDemande(seq))
+process.exitCode = code
+`
+  const { principal, amont, B } = monde({
+    '.gitignore': '/docs/\n',
+    'version.txt': 'avant\n',
+    'source.txt': 'initiale\n',
+    'mode.txt': mode,
+    'g/reconstruire.mjs': generateur,
+    [cheminDuBuild]: build,
+    [cheminDeDemande]: demande,
+  })
+  const U = committer(amont, { 'version.txt': 'après\n' })
+  hookDeFixture(principal, `"${process.execPath.replaceAll(sep, '/')}" ${cheminDeDemande}\n`)
+  mkdirSync(join(principal, 'docs'))
+  symlinkSync(import.meta.dirname, join(principal, 'scripts/ops'), 'junction')
+  appendFileSync(join(principal, '.git', 'info', 'exclude'), '/scripts/ops\n')
+  const cli = (...args) => spawnSync(process.execPath, [SYNCHRONISEUR, ...args], { cwd: principal, env: ENV, encoding: 'utf8', timeout: 30_000 })
+  const passer = async ({ solde = true } = {}) => {
+    const passage = cli('--json')
+    assert.equal(passage.status, 0, `${passage.stdout}\n${passage.stderr}`)
+    const vu = JSON.parse(passage.stdout)
+    assert.equal(vu.consommateurs.etat, 'en-cours', passage.stdout)
+    const du = await consommationFinie(principal, [neMesure(vu.consommateurs.pid)], { solde })
+    return { vu, du }
+  }
+  const etatDeLaReconstruction = () => JSON.parse(readFileSync(cheminsDeLaReconstruction(principal).etat, 'utf8'))
+  return { principal, B, U, cible, cli, passer, etatDeLaReconstruction }
 }
 
 /** Les détachés de reconstruction de `racine` (leurs journaux `<pid>.log`, chacun NÉ à sa première vue, `neMesure`)

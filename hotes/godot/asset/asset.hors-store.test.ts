@@ -33,6 +33,7 @@ import {
   empreinteDesSources, verdictsDuDossier,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
+import { avecModelesCommites } from './modelesCommites.testkit.ts';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
 
 /** Les constructions d'essai des éléments sur base qu'importent ces tests : un `modele.py` par clé (`constructionManquante`,
@@ -723,30 +724,30 @@ describe('modelesAPublier', () => {
 
 describe('recupererEpingles', () => {
   const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
-  const KIT = new Uint8Array(Buffer.from('le kit des arêtes'));
-  const urlDe = (octets: Uint8Array, extension: 'jpg' | 'glb') => urlDAsset(nomDAsset(sha256(octets), extension));
+  const SON = new Uint8Array(Buffer.from('le son de l’arbalète'));
+  const urlDe = (octets: Uint8Array, extension: 'jpg' | 'ogg') => urlDAsset(nomDAsset(sha256(octets), extension));
   /** Un dossier épinglé dont la provenance porte `provenance`. */
   const dossierEpingle = (provenance: unknown) => {
     const d = temporaire();
     writeFileSync(join(d, 'provenance.json'), JSON.stringify(provenance));
     return d;
   };
-  /** Le dossier des textures, qui épingle l'herbe, et celui du kit. */
+  /** Le dossier des textures, qui épingle l'herbe, et celui des sons, qui épingle l'arbalète. */
   const dossiers = () => [
     dossierEpingle({ 'terrain--herbe.jpg': { sha256: sha256(COULEUR), licence: 'CC0-1.0' } }),
-    dossierEpingle({ 'kit.glb': { sha256: sha256(KIT), licence: 'CC0-1.0' } }),
+    dossierEpingle({ 'arbalete.ogg': { sha256: sha256(SON), licence: 'CC0-1.0' } }),
   ];
-  const release = () => serveur({ [urlDe(COULEUR, 'jpg')]: COULEUR, [urlDe(KIT, 'glb')]: KIT });
+  const release = () => serveur({ [urlDe(COULEUR, 'jpg')]: COULEUR, [urlDe(SON, 'ogg')]: SON });
   it('tire de la Release chaque fichier absent de chaque dossier, le dépose sous son nom ; le cache sert l’appel suivant', async () => {
-    const [textures, kit] = dossiers();
+    const [textures, sons] = dossiers();
     const cache = temporaire();
     const { demandes, telecharger } = release();
-    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
+    await recupererEpingles({ dossiers: [textures, sons], cache, telecharger, journal: muet });
     expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
-    expect(readFileSync(join(kit, 'kit.glb'))).toEqual(Buffer.from(KIT));
-    rmSync(join(kit, 'kit.glb'));
-    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
-    expect(demandes).toEqual([urlDe(COULEUR, 'jpg'), urlDe(KIT, 'glb')]);
+    expect(readFileSync(join(sons, 'arbalete.ogg'))).toEqual(Buffer.from(SON));
+    rmSync(join(sons, 'arbalete.ogg'));
+    await recupererEpingles({ dossiers: [textures, sons], cache, telecharger, journal: muet });
+    expect(demandes).toEqual([urlDe(COULEUR, 'jpg'), urlDe(SON, 'ogg')]);
   });
   it('garde hors ligne un fichier du projet à la somme épinglée', async () => {
     const [textures] = dossiers();
@@ -756,11 +757,11 @@ describe('recupererEpingles', () => {
     expect(demandes).toEqual([]);
   });
   it('remplace un fichier périmé du projet, et lève sur un fichier absent de la Release', async () => {
-    const [textures, kit] = dossiers();
+    const [textures, sons] = dossiers();
     writeFileSync(join(textures, 'terrain--herbe.jpg'), 'ancienne herbe');
     await recupererEpingles({ dossiers: [textures], cache: temporaire(), telecharger: release().telecharger, journal: muet });
     expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
-    await expect(recupererEpingles({ dossiers: [kit], cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
+    await expect(recupererEpingles({ dossiers: [sons], cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
   describe('le marqueur des fichiers vérifiés (`verifiesDu`)', () => {
     /** Le dossier des textures vérifié une fois, l'herbe tirée de la Release, et le cache de cette vérification. */
@@ -805,16 +806,16 @@ describe('recupererEpingles', () => {
     });
   });
   it.each<[string, unknown, string]>([
-    ['un fichier sans SHA-256', { 'kit.glb': { licence: 'CC0-1.0' } }, 'kit.glb.sha256 « undefined » n\'est pas un SHA-256'],
-    ['une extension que la Release ne porte pas', { 'kit.png': { sha256: sha256(KIT) } }, 'kit.png n\'a pas une extension de la Release'],
+    ['un fichier sans SHA-256', { 'arbalete.ogg': { licence: 'CC0-1.0' } }, 'arbalete.ogg.sha256 « undefined » n\'est pas un SHA-256'],
+    ['une extension que la Release ne porte pas', { 'arbalete.wav': { sha256: sha256(SON) } }, 'arbalete.wav n\'a pas une extension de la Release'],
   ])('refuse %s', (_, provenance, motif) => {
     expect(() => epinglesAPublier([dossierEpingle(provenance)])).toThrow(motif);
   });
   it('nomme chaque fichier à verser par son empreinte', () => {
-    const [textures, kit] = dossiers();
-    expect(epinglesAPublier([textures, kit])).toEqual([
+    const [textures, sons] = dossiers();
+    expect(epinglesAPublier([textures, sons])).toEqual([
       { chemin: join(textures, 'terrain--herbe.jpg'), nom: nomDAsset(sha256(COULEUR), 'jpg') },
-      { chemin: join(kit, 'kit.glb'), nom: nomDAsset(sha256(KIT), 'glb') },
+      { chemin: join(sons, 'arbalete.ogg'), nom: nomDAsset(sha256(SON), 'ogg') },
     ]);
   });
 });
@@ -1044,13 +1045,38 @@ describe('publierAssets', () => {
 });
 
 describe('les modèles commités', () => {
-  // Le cache des modèles de la machine (`CACHE_DES_MODELES`, restauré par la CI avant cette suite) : un cache neuf
-  // tirerait de la Release les GLB épinglés, ~45 Mo, à chaque passage. Le délai couvre ce tirage quand l'empreinte
-  // épinglée change et que le cache ne l'a pas encore.
-  it('valident chacun leur manifeste contre le GLB épinglé', async () => {
-    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: muet });
-    expect(modeles.length).toBeGreaterThan(0);
+  const photoDesGlb = (dossier: string) => listerDossier(dossier)
+    .filter((nom) => nom.endsWith(fichiersDuModele('').glb))
+    .map((nom) => [nom, sha256(readFileSync(join(dossier, nom)))]);
+
+  // La CI restaure le cache partagé. Le délai couvre le tirage des GLB absents du cache.
+  it('valident chaque manifeste contre son GLB épinglé sans écrire dans le projet', async () => {
+    const avant = photoDesGlb(DOSSIER_DES_MODELES);
+    const { modeles: epingles } = modelesEpingles(DOSSIER_DES_MODELES);
+    expect(epingles.length).toBeGreaterThan(0);
+    const temporaire = await avecModelesCommites((dossier, modeles) => {
+      expect(modeles).toEqual(epingles);
+      expect(photoDesGlb(dossier)).toEqual(epingles.map(({ model, empreinte }) => [model, empreinte]));
+      return dossier;
+    });
+    expect(existsSync(temporaire)).toBe(false);
+    expect(photoDesGlb(DOSSIER_DES_MODELES)).toEqual(avant);
   }, 180_000);
+  it.each([
+    ['publié', {}],
+    ['hors Release', { hors_release: 'essai sur le poste' }],
+  ] as const)('valident le GLB %s déjà présent et le gardent dans le cache', async (_, provenance) => {
+    const source = dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, ...provenance });
+    const cache = temporaire();
+    writeFileSync(join(source, 'Essai.glb'), GLB_DE_BASE);
+    writeFileSync(join(source, 'orphelin.glb'), GLB_DE_BASE);
+    const avant = photo(source);
+    await avecModelesCommites((dossier) => {
+      expect(photoDesGlb(dossier)).toEqual([['Essai.glb', EMPREINTE]]);
+    }, { source, cache });
+    expect(readFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')))).toEqual(Buffer.from(GLB_DE_BASE));
+    expect(photo(source)).toEqual(avant);
+  });
   it('sont épinglés chacun par sa provenance', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);

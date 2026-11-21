@@ -26,6 +26,8 @@ signal case_cliquee(case: Vector3i)
 signal case_inspectee(case: Vector3i)
 ## Le corps d'un combattant dessiné a changé (`Combattant.habille`), ou le modèle d'un navire ou d'un décor s'est posé.
 signal habille
+## L'un des combattants dessinés a rejoint la fin de son déplacement.
+signal deplacement_fini
 
 ## Les clés que lit le cadrage sous chaque regard (`cadrer`), `etage` seule facultative.
 const CLES_DU_CADRAGE := {
@@ -96,6 +98,7 @@ func montrer(vue: Dictionary) -> void:
 			modele.position = lieu
 			_combattants.add_child(modele)
 			modele.habille.connect(habille.emit)
+			modele.deplacement_fini.connect(deplacement_fini.emit)
 			_modeles[c.id] = modele
 		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
 		_marquer(c.id, lieu, vue.marques.get(c.id, []), vue.plateau.metresParCase)
@@ -104,6 +107,11 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
+
+
+## Si un combattant dessiné se déplace encore, dont le meneur du groupe en exploration.
+func marche() -> bool:
+	return _modeles.values().any(func(modele: Combattant) -> bool: return modele.se_deplace())
 
 
 ## Les combattants que dessine la projection `projection` : en combat ceux que la vue nomme (`voisins`), en exploration

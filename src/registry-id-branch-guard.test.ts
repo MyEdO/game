@@ -46,7 +46,6 @@ const KNOWN: Record<string, number> = {
   'scripts/qc/opera-furniture-check.mts': 2, // `FLOATING.has(e.ref)` (lustre SUSPENDU) + `e.ref !== 'siege'`
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
-  'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
 };
 
 /** Plafond GLOBAL du jour (= somme de `KNOWN`), destiné à tomber à 0. */
@@ -99,12 +98,9 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/trauma.ts': 7,
   'src/engine/weaponDamage.ts': 1,
   'src/engine/windsOfMagic.ts': 1,
-  'src/gameIso/stage/Ambiance.tsx': 1,
-  'src/gameIso/stage/CrewTooltip.tsx': 1,
   'src/noyau/monde/aiSpellValue.ts': 2,
-  'src/noyau/colonnesDuMarchand.ts': 1,
   'src/noyau/combatEffects.ts': 3,
-  'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
+  'src/noyau/combatFlow.ts': 2, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
   'src/noyau/combatManeuvers.ts': 1,
   'src/noyau/combatSlice.ts': 1,
@@ -112,7 +108,6 @@ const RAW_KNOWN: Record<string, number> = {
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
   'src/noyau/monde/commandTeam.ts': 1,
-  'src/state/devtools.ts': 1,
   'src/noyau/interludeFlow.ts': 1,
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 2,
@@ -128,11 +123,6 @@ const RAW_KNOWN: Record<string, number> = {
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `PINNED_SEL`
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
-  'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/PartyScreen.tsx': 2,
-  'src/ui/creator/CharacterCreator.tsx': 5,
-  'src/ui/editor/StatblockEditor.tsx': 1,
-  'src/ui/gallery/registry.tsx': 4,
 };
 
 /** Plafond BRUT global du jour (= somme de `RAW_KNOWN`). */

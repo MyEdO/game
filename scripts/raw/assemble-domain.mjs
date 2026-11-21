@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { ancresDePage } from './lib/ancres.mjs'
 import { parseFiche, referenceImplementation } from './build-implemente.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 
@@ -191,4 +192,7 @@ function main() {
     console.log(`wrote ${r.path.replace(/\\/g, '/')} — ${r.topics} topics (cœur ${r.coeur})`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

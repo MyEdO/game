@@ -3,12 +3,8 @@
  */
 import { onTestFinished } from 'vitest';
 import { datasetArray, setDataset } from '../../data/overrides';
-import { ficheDuPretire } from '../../data/pregens';
 import type { PregenDef } from '../../data';
 import type { EntreeVivante } from '../../data/datasets';
-import { heroDeFiche } from '../../engine/heroDeFiche';
-import { idsDeTest } from '../../engine/idsDeTest.testkit';
-import type { Combatant } from '../../engine/types';
 
 const ADRESSE_DE_TEST = { book: 'livre-de-test', ch: '01', parts: [{ kind: 'blocs', sec: 'test', secOcc: 1, b0: 0, b1: 1, sum: '0000000000000000' }] } as PregenDef['descRef'];
 
@@ -42,7 +38,3 @@ export function poserLesPretires(defs: readonly EntreeVivante<PregenDef>[] = [PR
   setDataset('pregens', defs);
   onTestFinished(() => setDataset('pregens', avant));
 }
-
-/** `n` héros distincts bâtis de la fiche de `PRETIRE_DE_TEST` (`heroDeFiche`), d'ids `heros-de-test-<i>`. */
-export const herosDeTest = (n: number): Combatant[] =>
-  Array.from({ length: n }, (_, i) => heroDeFiche({ ...ficheDuPretire(PRETIRE_DE_TEST), id: `heros-de-test-${i + 1}`, label: `Héros de test ${i + 1}` }, idsDeTest));

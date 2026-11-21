@@ -7,6 +7,7 @@ import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { battleRng } from './battleRng';
 import { releaseSeatsOfDowned } from './combatFlow';
 import { type DeferredUpkeepTest, runDailyUpkeep } from './upkeep';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { nightBands } from './nightBands';
 import * as restFlow from './restFlow';
 import { openSequence } from './rollSeam';
@@ -27,25 +28,32 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
   } satisfies FabriqueDuNoyau;
 }
 
+/** Prépare les bandes d'entretien du pas d'horloge déjà écoulé. */
+export function preparerLEntretienApresAvance(get: Get, set: Set, minutes: number) {
+  // HORS COMBAT : faire progresser les États qui tickent (Hémorragique/Poison/Flammes) et l'agonie au
+  // prorata du temps écoulé (1 Round ≈ TIME_COST.combatRound min). En combat, la frontière de Round le fait.
+  if (!get().battle) {
+    const rounds = Math.floor(minutes / TIME_COST.combatRound);
+    if (rounds > 0) {
+      const { party, forgerUnId, campaignNarratif } = get();
+      const log = outOfCombatUpkeep(party, rounds, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif));
+      if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
+      // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
+      // la couture unique de libération y est appelée (no-op si personne n'est assis).
+      releaseSeatsOfDowned(get, set);
+    }
+  }
+  const deferred: DeferredUpkeepTest[] = [];
+  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
+  return { steps: nightBands(restFlow.deferredUpkeepSteps(get().party, deferred)), log };
+}
+
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
     avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
       get().avancerLHorloge(minutes);
-
-      // HORS COMBAT : faire progresser les États qui tickent (Hémorragique/Poison/Flammes) et l'agonie au
-      // prorata du temps écoulé (1 Round ≈ TIME_COST.combatRound min). En combat, la frontière de Round le fait.
-      if (!get().battle) {
-        const rounds = Math.floor(minutes / TIME_COST.combatRound);
-        if (rounds > 0) {
-          const party = get().party;
-          const log = outOfCombatUpkeep(party, rounds, battleRng(), get().forgerUnId);
-          if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
-          // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
-          // la couture unique de libération y est appelée (no-op si personne n'est assis).
-          releaseSeatsOfDowned(get, set);
-        }
-      }
+      const { steps, log } = preparerLEntretienApresAvance(get, set, minutes);
       // Entretien quotidien (#T2/#T3 — rations/faim, maladies, convalescence) + purge des effets à
       // durée d'horloge (contrecoups LDB 46/40) : traite les éventuels franchissements de jour.
       // VISIBLE (le journal seul ne suffit pas). HORS COMBAT, tout Test de Résistance d'entretien est
@@ -57,22 +65,15 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         // s'ouvrent pas ici. On les DIFFÈRE dans `pendingUpkeepSteps` (consommé par `openCombatEndCascade` à la
         // fin du combat) au lieu de les rouler en SILENCE ; les lignes SANS jet (rations, dissipations) restent
         // le témoin. `lastUpkeepDay` (posé par `runDailyUpkeep`) garde l'anti-double-résolution.
-        const deferred: DeferredUpkeepTest[] = [];
-        const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines });
+        if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log });
         // La file porte des BANDES comme tout le reste de la nuit (#1117 L3) : la fenêtre est formée
         // ICI, à l'émission — `openCombatEndCascade` a seulement à trier ses rangées par pilote.
-        const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
         if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
       } else {
-        const deferred: DeferredUpkeepTest[] = [];
-        const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        // 2ᵉ des TROIS bâtisseurs à passer par la fabrique de bandes (#1117 L3).
-        const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
-        if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps, log: upkeepLines });
+        if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps, log });
         // Même `purpose:'upkeep'` que la branche à jets ci-dessus : les deux issues du MÊME entretien
         // quotidien ouvrent la MÊME séquence (le témoin groupé est le cas « zéro jet à influencer »).
-        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines }, { purpose: 'upkeep' });
+        else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log }, { purpose: 'upkeep' });
       }
       checkPartyWiped(get, set); // faim/agonie/maladie a-t-elle anéanti tout le groupe hors combat ? → défaite (recheck à la clôture de cascade)
     },

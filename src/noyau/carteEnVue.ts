@@ -41,20 +41,21 @@ export interface CarteEnVue { plan: PlanDeLaCarte; reprendre: GesteDuNoyau | nul
 
 /** Les modes qu'un trajet offre : les siens, et en selle quand il se fait à pied et que tout le groupe est monté
  *  (EDOC 07 l.140). */
-function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
-  const enSelle = !!rule('voyage-allures') && modes.includes('pied') && partyFullyMounted(s.party, s.possessions);
-  return [...modes, ...(enSelle ? ['monture'] : [])];
+export function modesDuTrajet(modes: readonly TravelMode[], groupeMonte: boolean): readonly TravelMode[] {
+  const montureImplicite = groupeMonte && modes.includes('pied') && !modes.includes('monture');
+  return montureImplicite ? [...modes, 'monture'] : modes;
 }
 
 /** Chaque trajet que la carte trace depuis le lieu `ici` (`routesCliquables`) et ses modes. PUR. */
 export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue[] {
   const libelles = travelModeLabels();
+  const groupeMonte = !!rule('voyage-allures') && partyFullyMounted(s.party, s.possessions);
   return routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({
     route: route.id,
     destination: otherEnd(route, ici.id),
     vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
     distance: routeDistanceLabel(route.km, route.sea),
-    modes: modesDuTrajet(s, route.modes).map((mode) => ({
+    modes: modesDuTrajet(route.modes, groupeMonte).map((mode) => ({
       mode,
       libelle: garanti(libelles[mode], mode, 'mode de voyage'),
       geste: { verbe: 'partirEnVoyage', args: [route.id, mode] },

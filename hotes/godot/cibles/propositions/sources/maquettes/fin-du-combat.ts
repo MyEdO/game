@@ -16,7 +16,7 @@ export default {
         objets: ['Hache', 'Arc', 'Bouclier'].map((nom) => ({ nom, pour: ['ilyanwe', 'berta'] })),
       },
     },
-    issue('fin-defaite', 'Défaite', null, 'Reprendre'),
+    issue('fin-defaite', 'Défaite', 'Le combat est perdu, la compagnie reprend pied sur les lieux.', 'Reprendre'),
     issue('fin-repli', 'Repoussés', 'Les héros sont soignés, la bataille continue.', 'Poursuivre la bataille'),
     issue('fin-aneantissement', 'Le groupe a péri', 'Aucun héros ne tient debout.', 'Retour au menu'),
   ],

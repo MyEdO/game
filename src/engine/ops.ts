@@ -32,7 +32,7 @@ import {
   pionsRetirables,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
-import { MINUTES_PER_DAY } from './clock';
+import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
 import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
@@ -51,7 +51,7 @@ import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedT
 import { caracDuCombattant, evaluer, slBonus, valeurSansTirage, type Referent } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
-import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
+import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
 // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
@@ -94,6 +94,7 @@ import {
   objetDeSlot,
   isWeaponActive,
   uidDArme,
+  type TrappingResolver,
 } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
@@ -669,7 +670,7 @@ export type GameOp =
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
    *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
    *  `skill` absent = TOUTE magie (même idiome d'absence que `grantReverseToken` ci-dessous). */
-  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula }
+  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula; weeks?: Formula }
   /** Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès
    *  Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »),
    *  composé par `actorStatus` (engine/social.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). */
@@ -704,7 +705,7 @@ export type GameOp =
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
    *  `durationHours`, la durée d'HORLOGE du Trait, porté alors par un `ActiveEffect` (`grantedPsychTrait`). */
-  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula }
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula; durationWeeks?: Formula }
   /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
    *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
    *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
@@ -735,6 +736,8 @@ export type GameOp =
   /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
    *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
   | { op: 'prayerForAction'; durationRounds: Formula }
+  /** VDM 09 l.354 */
+  | { op: 'forbidFlee' }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -1440,6 +1443,8 @@ export interface OpsCtx {
   rng: RNG;
   /** Forge les uids des objets donnés, des armes invoquées et des enchantements (#2907). */
   idNeuf: FabriqueDId;
+  /** Résout les références d'objet à la création d'un don ou d'une arme invoquée. #4257 */
+  resolveTrapping?: TrappingResolver;
   /** Référent des formules « (Bonus de X) » (le lanceur d'un sort) ; défaut : la cible. */
   caster?: Combatant;
   /** Équipage d'une COQUE (`crewIds` résolus en Combattants) — pour les ops de navire : `removeShipPoste`
@@ -1624,19 +1629,20 @@ function libelleDHorloge(duree: Duration, ctx: OpsCtx): string {
 }
 
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
-interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }
+interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula; durationWeeks?: Formula }
 
-/** L'op porte-t-elle une durée d'HORLOGE intrinsèque (minutes, heures ou jours) ? */
+/** L'op porte-t-elle une durée d'HORLOGE intrinsèque ? */
 function aUneHorloge(o: OpDuree): boolean {
-  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null;
+  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null || o.durationWeeks != null;
 }
 
 /** Minutes d'HORLOGE intrinsèques de l'op, résolues UNE fois dans `ctx` ; `undefined` sans champ
- *  d'horloge. Résolution UNIQUE des trois unités (LDB 47). */
+ *  d'horloge. */
 function minutesDHorloge(o: OpDuree, ref: Combatant, ctx: OpsCtx): number | undefined {
   if (!aUneHorloge(o)) return undefined;
   return formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
-    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY;
+    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY
+    + formuleDuCtx(o.durationWeeks ?? 0, ref, ctx) * minutesParSemaine();
 }
 
 /** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
@@ -1897,10 +1903,10 @@ export const OPS_CTX_GELES = [
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
 /** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng et la fabrique d'ids de la partie,
- *  les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage et du sol, qui reçoivent leur
- *  cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
+ *  le résolveur d'objets et les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage
+ *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -2350,7 +2356,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.envers) throw new Error(`grantPsychTrait « ${o.psychType.id} » : \`envers\` non résolu — le noyau le résout en Cible d'individu avant applyOps (noyau/personneChoisie.ts).`);
         const { type, cible } = traitOctroye(o);
         const pose = grantPsychTrait(target, type, cible, source);
-        if (o.durationHours != null) {
+        if (aUneHorloge(o)) {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromOp(o, ctx, ref), grantedPsychTrait: pose });
         }
@@ -2417,7 +2423,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.corruptionRetiree', { name: target.label, delta: target.corruption - before, total: target.corruption }));
         } else if (ctx.onCorruption) {
           lines.push(...ctx.onCorruption(target, amount, o.align));
-        } else {
+        } else if (recoitLaCorruption(target)) {
           // Sans contexte store (moteur pur, tests unitaires) : simple incrément — align ignoré.
           target.corruption = (target.corruption ?? 0) + amount;
           lines.push(t('op.corruptionAjoutee', { name: target.label, amount, s: amount > 1 ? 's' : '', total: target.corruption }));
@@ -2495,9 +2501,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           const h = formuleDuCtx(o.hours, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + h * 60;
           dureeTxt = t('op.frag.heures', { n: h, s: h > 1 ? 's' : '' });
-        } else if (o.days != null) {
-          const d = formuleDuCtx(o.days, ref, ctx);
-          cp.untilTime = (ctx.now ?? 0) + d * 24 * 60;
+        } else if (o.days != null || o.weeks != null) {
+          const d = formuleDuCtx(o.days ?? 0, ref, ctx) + formuleDuCtx(o.weeks ?? 0, ref, ctx) * joursParSemaine();
+          cp.untilTime = (ctx.now ?? 0) + d * MINUTES_PER_DAY;
           dureeTxt = t('op.frag.jours', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];
@@ -2706,6 +2712,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
         const n = duree.scale === 'rounds' ? duree.left : 0;
         lines.push(t('op.prierePourAgir', { name: target.label, duree: t('op.frag.plafondDeRounds', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'forbidFlee': {
+        const duration = durationFromCtx(ctx);
+        if (duration.scale === 'rounds' && duration.left <= 0) break;
+        const label = nomDeSource(ctx);
+        target.activeEffects ??= [];
+        target.activeEffects.push({ label, bonus: 0, duration, fleeForbidden: true });
+        lines.push(t('op.fuiteInterdite', { name: target.label, src: label }));
         break;
       }
       case 'reduceToZero': {
@@ -2920,11 +2935,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.idNeuf, source, undefined, contexteDeNaissanceDObjet(target));
+          const it = itemFromGive(o, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
-        lines.push(t('op.objetDonne', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o), src: nomDeSource(ctx) }));
+        lines.push(t('op.objetDonne', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o, ctx.resolveTrapping), src: nomDeSource(ctx) }));
         break;
       }
       case 'money': {
@@ -3005,7 +3020,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const flat = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form, `conjure-${ctx.idNeuf('it')}`));
+        const item = weaponItem(specDArmeInvoquee(ctx.resolveTrapping ?? findTrappingById, o, flat, source, form, `conjure-${ctx.idNeuf('it')}`));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;

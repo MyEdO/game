@@ -8,7 +8,7 @@
 ## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
 ## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
 ## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le
+## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce de modèle d'arête qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le
 ## plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -177,10 +177,11 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
-## L'échelle d'une pièce du kit des arêtes (longue de 1, haute de 1, épaisse en mètres : `hotes/godot/asset/kit.ts`)
-## posée sur une arête qui court selon `sens`, haute de `hauteur` mètres, sur un plateau de `metres_par_case`.
-static func echelle_de_piece(sens: Vector2, hauteur: float, metres_par_case: float) -> Vector3:
-	return Vector3(longueur_d_arete(sens), hauteur_au_plateau(hauteur, metres_par_case), echelle_metrique(metres_par_case))
+## La pente, dans le plan du plateau, d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
+## (mètres) à son premier bout à la cote `sortie` à son second, sur un plateau de `par_case` mètres par case (#4471) :
+## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
+static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
+	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
 
 
 ## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
@@ -290,6 +291,16 @@ static func triangles(sommets: int) -> float:
 ## Le compte de `triangles` triangles, plus ceux que portent `sommets` sommets (`triangles`).
 static func triangles_de_plus(triangles: int, sommets: int) -> float:
 	return triangles + sommets / 3.0
+
+
+## La plage de rangs `plage`, de même longueur, reportée à partir de `debut`.
+static func plage_reportee(plage: Vector2i, debut: int) -> Vector2i:
+	return Vector2i(debut, debut + plage.y - plage.x)
+
+
+## Les bornes de `plage` dans un tableau qui range `composantes` valeurs par rang.
+static func plage_des_composantes(plage: Vector2i, composantes: int) -> Vector2i:
+	return plage * composantes
 
 
 ## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
@@ -947,6 +958,13 @@ static func hauteur_de_liste(contenu: float) -> float:
 ## `METRES_PAR_MOTIF`.
 static func echelle_de_motif() -> Vector3:
 	return Vector3.ONE / METRES_PAR_MOTIF
+
+
+## L'échelle de projection d'une texture de matière dans le repère de la pièce d'un modèle d'arête mesuré en mètres,
+## étirée de `etirement` sur un plateau de `metres_par_case` (`echelle_d_arete_servie`, #4471) : un motif tous les
+## `METRES_PAR_MOTIF` de la pièce posée, sur chaque axe, quel que soit son étirement.
+static func echelle_de_motif_etire(etirement: Vector3, metres_par_case: float) -> Vector3:
+	return echelle_de_motif() * etirement * metres_par_case
 
 
 ## Le point d'un plan de `taille` pixels où se pose un point placé en (`x`, `y`) de son cadre (0..1 sur chaque axe),

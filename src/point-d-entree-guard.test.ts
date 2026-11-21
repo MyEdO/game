@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
 import { detectionsDePointDEntree } from '../scripts/guards/lib/pointDEntree.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import type { CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * Garde de classe #1801 — un module sait s'il est le point d'entrée du processus par
@@ -333,7 +334,7 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
     const suivies: string[] = sourcesSuivies();
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
-    const fichiers: { rel: string; text: string }[] = [];
+    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = [];
     for (const rel of suivies) {
       let texte: string;
       try {

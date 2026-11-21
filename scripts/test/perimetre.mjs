@@ -3,7 +3,7 @@
 // Les tests retenus se DÉRIVENT des fichiers touchés : le test touché, le test dont la clôture d'imports
 // (`clotureDImports`, `typesEffaces`, `import.meta.glob` compris) atteint un fichier touché, le test dont
 // une RACINE BALAYÉE (`racinesBalayees.mjs`) est un ancêtre d'un fichier touché (`ancetresDe`,
-// `scripts/git-hooks/docs-rebuild.mjs`), M, A, D et R. Les `setupFiles` de `vite.config.ts` sont une
+// `scripts/git-hooks/docs-rebuild.mjs`), M, A, D et R. Les `setupFiles` de `vitest.config.ts` sont une
 // racine de chaque test Vitest, au rang `setup` ; la toolchain touchée (`TOOLCHAIN`) retient la suite entière.
 // Exécution : le lint des fichiers touchés (`lancerLint`), puis les tests sous `BUDGET_LOCAL_S` de MUR estimé,
 // ordonnés par rang, spécificité de racine et signal (`planDExecution`, `signalDe`), estimés (`estimationsDe`,
@@ -13,8 +13,6 @@
 // lanceur les démarre, sur ses workers, plus le surcoût de lancement appris (`murSimule`, `ordreDuLanceur`,
 // `SURCOUTS`) ; le reste à la CI. Le mur nomme sa part estimée depuis la CI (`texteDuMur`).
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
-// Suite du noyau (#2817) : la dérivation ne la voit pas (la suite principale l'exclut) ; dès qu'un fichier de `src/` est
-// touché, elle se joue ENTIÈRE par `npm run test:noyau` (`suiteDuNoyauALancer`, `MOTIF_HORS_STORE`).
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
 // Les spécificateurs non résolus, les lectures de module, leurs liaisons et leurs déclarations exportées se
 // mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
@@ -31,6 +29,7 @@ import { selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection
 import {
   DRAPEAU_REGIME,
   EMPREINTES_WORKER_MO,
+  PLAFOND_PAQUET_NODE_MS,
   PORTEE_LOT_S,
   capaciteDuLanceur,
   environnementDe,
@@ -53,8 +52,6 @@ import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from '.
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
-import { estDeLaSuiteDuNoyau, SUITES_VITEST_DE_CI } from '../guards/lib/racinesDeLaSuite.mjs'
-import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -139,7 +136,7 @@ const FAMILLES = Object.freeze(['vitest', 'node'])
  *   `createTestFileList` → `ArrayPrototypeSort` des chemins du glob).
  * - vitest : durée décroissante (`BaseSequencer.sort`, node_modules/vitest/dist/chunks/index.DpLw24bj.js:13385-13414),
  *   puis groupée par environnement (`environnementDe(test)`, `null` s'il ne se lit pas) comme le séquenceur de
- *   `vite.config.ts` (`grouperParEnvironnement`, #3412) ; les autres clés de `BaseSequencer.sort` — échec au run
+ *   `vitest.config.ts` (`grouperParEnvironnement`, #3412) ; les autres clés de `BaseSequencer.sort` — échec au run
  *   précédent d'abord, fichier sans résultat en cache d'abord, puis par taille — lisent le cache de Vitest, absent des
  *   mesures : non reproduites.
  */
@@ -228,7 +225,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const specificite = (t) => retenus.get(t).specificite ?? 0
   const deLaCi = (t) => estimations.get(t)?.source === 'ci'
   const paquets = (famille, tests) => paquetsDeLancement(tests, famille === 'node'
-    ? { estimations, budgetMs: Math.min(30 * 60_000, Math.max(0, budget * 1000)) } : {})
+    ? { estimations, budgetMs: Math.min(PLAFOND_PAQUET_NODE_MS, Math.max(0, budget * 1000)) } : {})
   const optionsDuMur = { workers, surcouts, paquets, workersNode, environnementDe }
   const mur = (fichiers) => murDesFichiers(fichiers, optionsDuMur)
   const partCi = (fichiers, tests) => Math.round(mur(fichiers) - mur(tableTotale(FAMILLES, (f) => fichiers[f].map(([t, ms]) => [t, tests.has(t) ? 0 : ms]))))
@@ -415,16 +412,6 @@ export function workersDuLancement(env, regime) {
   return { vitest: maxWorkersMono(capaciteDuLanceur(env, regime).servis), node: Math.max(1, availableParallelism() - 1) }
 }
 
-/** Les arguments `node` du lancement de la suite du noyau (`npm run test:noyau`, `vitest.noyau.config.ts`) sur ses
- *  `fichiers`. PURE. */
-export const argumentsDuNoyau = (fichiers) =>
-  ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', SUITES_VITEST_DE_CI['test:noyau'].config, ...fichiers]
-
-/** La suite du noyau à lancer (#2817) : ENTIÈRE, les tests du noyau et de ses hôtes de la post-image `post`, dès qu'un
- *  des fichiers `touches` est sous une racine des zones (`RACINES_DES_ZONES` : leur fermeture y vit) ; rien sinon. La
- *  dérivation ne la voit pas. PURE. */
-export const suiteDuNoyauALancer = (touches, post) => (touches.some((t) => RACINES_DES_ZONES.some((r) => t.startsWith(`${r}/`))) ? post.filter((t) => estDeLaSuiteDuNoyau(t)) : [])
-
 /** Les arguments `node` du lancement Vitest d'un paquet de tests : `run.mjs` sous le régime `regime` (`DRAPEAU_REGIME`),
  *  les reporters écrivant le rapport `sortie` (`reportersVitest`). PURE. */
 export const argumentsVitest = (paquet, sortie, regime) =>
@@ -461,8 +448,8 @@ export function bilanDuLancement(famille, murMs, { appris, workers: servis }, pl
 const fichierDuSite = (site) => /^(.+):\d+:\d+$/.exec(site)?.[1] ?? null
 
 /** La ligne de fin d'un run ROUGE (`code` non nul), `null` sur un run vert. Elle nomme la commande qui ne relance QUE
- *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'noyau' | 'docs', code, echecs, args, refus? }`, chemins
- *  POSIX relatifs rapportés par `apprendre`) — `npm test -- <vitest>`, `node --test <node>`, `npm run test:noyau -- <noyau>` —, et l'appel du lint (`appelLint()`,
+ *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'docs', code, echecs, args, refus? }`, chemins
+ *  POSIX relatifs rapportés par `apprendre`) — `npm test -- <vitest>` et `node --test <node>` —, et l'appel du lint (`appelLint()`,
  *  `appelDuLint`) sur les seuls fichiers que nomment les défauts du lint `lint` (`lintDesTouches`) ; et elle NOMME chaque
  *  refus d'admission (`refus`, posé sur `CODE_DIFFERE`) avec sa raison, puis chaque rouge sans fichier : lancement
  *  rouge muet, défaut de lint sans site (panne d'outillage), lint rouge sans défaut, docs dérivés rouges (leur
@@ -476,19 +463,23 @@ export function ligneDeRelance({ code, lancements, lint, appelLint }) {
     const deLaFamille = lancements.filter((l) => l.famille === famille)
     const fichiers = deLaFamille.flatMap((l) => l.echecs)
     if (fichiers.length) commandes.push(`${lanceur} ${liste(fichiers)}`)
-    const sansFichier = deLaFamille.filter((l) => l.code !== 0 && !l.echecs.length && !l.refus).length
+    const sansFichier = deLaFamille.filter((l) => l.code !== 0 && !l.echecs.length && !l.refus && !l.rejeu).length
     if (sansFichier) muets.push(`${famille} : ${sansFichier} lancement(s) rouge(s) sans fichier en échec rapporté`)
   }
   const lintes = lint.defauts.map(({ site }) => fichierDuSite(site)).filter((f) => f !== null)
   if (lintes.length) commandes.push(`${appelLint().join(' ')} ${liste(lintes)}`)
   for (const { site, message } of lint.defauts) if (fichierDuSite(site) === null) muets.push(`lint ${site} : ${message}`)
   if (lint.code !== 0 && !lint.defauts.length) muets.push('lint rouge, son rapport ne nomme aucun défaut')
-  for (const { args } of lancements.filter((l) => l.famille === 'noyau' && l.code !== 0 && !l.refus)) commandes.push(`npm run test:noyau -- ${liste(args.filter((a) => estDeLaSuiteDuNoyau(a)))}`)
   for (const { args } of lancements.filter((l) => l.famille === 'docs' && l.code !== 0 && !l.refus)) muets.push(`docs dérivés rouges : node ${args.map(citeArgument).join(' ')}`)
   const relancer = commandes.length ? [`relancer les SEULS fichiers en échec, puis un dernier test:perimetre : ${commandes.join(' ; ')}`] : []
   const nommer = muets.length ? [`rouge sans fichier nommé : ${muets.join(' ; ')}`] : []
   const refuses = lancements.filter((l) => l.refus).map((l) => `${l.famille} : ${l.refus}`)
   const refuser = refuses.length ? [`refus d'admission, aucun test joué : ${refuses.join(' ; ')}`] : []
+  const rejeux = lancements.flatMap((l) => l.rejeu ? [l.rejeu] : [])
+  if (rejeux.length) {
+    const verdict = code === 1 ? 'rouge' : 'erreur d’outillage'
+    return `${verdict} — ${[...rejeux, ...refuser, ...relancer, ...nommer].join(' — ')}`
+  }
   return `rouge — ${[...refuser, ...relancer, ...nommer].join(' — ') || 'aucun rapport ne nomme de fichier en échec'}`
 }
 
@@ -560,18 +551,29 @@ const argumentsNode = (sortie) => ['--test', '--test-reporter=spec', '--test-rep
 /** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
  *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. `platform` va à `lancerNodeMesure`. */
 export async function principal(args, racine, { env = process.env, verrou, signal, platform } = {}) {
+  const options = lireArguments(args)
   const configuration = verrou ?? verrouGestesLourds(racine)
+  const attente = configuration.attente && {
+    ...configuration.attente,
+    annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)),
+  }
+  if (options.liste && attente) attente.plafondMs = Math.min(attente.echeanceMs, attente.plafondMs ?? Infinity)
   const prise = await prendreVerrouAsync({
-    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre',
-    attente: { ...configuration.attente, annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)) },
+    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre', attente,
+  }).catch((erreur) => {
+    if (!options.liste || !['EROFS', 'EACCES', 'EPERM'].includes(erreur?.code)) throw erreur
+    return {
+      etat: 'refus',
+      message: `[verrou] --liste différé — accès à ${configuration.chemin} indisponible (${erreur.code}) — ${texteDeLEchec(erreur)}\n`
+        + '[verrou] Relancer avec un dossier Git inscriptible ou avec le jeton transmis par le détenteur qui garde la prise pendant la consultation.',
+    }
   })
   if (prise.etat !== 'pris') { console.error(prise.message); return CODE_DIFFERE }
   let retraitPermis = true
-  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
+  try { return await executerPerimetre(options, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
   finally { if (retraitPermis) prise.liberer() }
 }
-async function executerPerimetre(args, racine, { env, signal, retenir, platform }) {
-  const options = lireArguments(args)
+async function executerPerimetre(options, racine, { env, signal, retenir, platform }) {
   const debut = performance.now()
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, signal, retenir })
   const duree = Math.round(performance.now() - debut)
@@ -604,7 +606,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   const sources = [...estimations.values()].reduce((n, { source }) => ({ ...n, [source]: (n[source] ?? 0) + 1 }), {})
   journal(`estimations : ${Object.entries(sources).map(([s, n]) => `${s} ${n}`).join(' | ') || 'aucune'} ; durées CI : ${ci.run ? `course ${ci.run} du ${ci.date} (${ci.sha.slice(0, 9)})` : 'aucune mémorisée'}`)
   journal(`facteurs CI : ${Object.entries(facteurs).map(([p, f]) => `${p} ${f.valeur.toFixed(2)} (${f.origine === 'paires' ? `${f.paires} paires` : `repli de banc, ${f.paires} paire(s)`})`).join(' | ')}`)
-  journal(rapatriement === null ? 'CI non rapatriée — --liste n’écrit rien'
+  journal(rapatriement === null ? 'CI non rapatriée — durées inchangées sous --liste'
     : !rapatriement.disponible ? `CI non rapatriée — ${rapatriement.raison}`
       : rapatriement.valeur.etat === 'refus' ? `CI non rapatriée — ${rapatriement.valeur.raison}`
         : `CI ${rapatriement.valeur.etat === 'deja' ? 'déjà mémorisée' : 'rapatriée'} : course ${rapatriement.valeur.memo.run}`)
@@ -616,8 +618,6 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
   for (const ligne of lignesDeDelegation(touches)) journal(ligne)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
-  const noyau = suiteDuNoyauALancer(touches, post)
-  journal(`suite du noyau : ${noyau.length ? `entière (un fichier de src/ touché), ${noyau.length} fichier(s)` : 'aucun fichier de src/ touché'}${noyau.length ? ` : ${noyau.join(', ')}` : ''}${options.liste && noyau.length ? ' (non joué sous --liste)' : ''}`)
   const bilan = (joues, liste) => journal(ligneDeBilan({ joues, retenus, vitest, node, causes: plan.causes, liste }))
   if (options.liste) {
     bilan(new Set(plan.lances), true)
@@ -636,7 +636,6 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
       return { famille, sortie, args: famille === 'vitest' ? argumentsVitest(p, sortie, regime)
         : [...argumentsNode(sortie), ...p] }
     }),
-    ...(noyau.length ? [{ famille: null, nom: 'noyau', sortie: null, args: argumentsDuNoyau(noyau) }] : []),
     ...(jouerDocs ? [{ famille: null, nom: 'docs', sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
   const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform, environnementDe: environnementDuTest })
@@ -652,9 +651,39 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
 /** La raison d'un refus d'admission `r` : son `message`, sinon la dernière ligne non vide de sa `sortie`. PURE. */
 export const raisonDuRefus = (r) => r.message ?? (r.sortie ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1) ?? 'raison non rapportée'
 
+/** #3163 */
+function verdictSansMemoire(lancement, fichiers, racine, rapport) {
+  const termine = lancement.arret?.etat === 'mort' && !lancement.error && !lancement.annulee &&
+    !lancement.expiree && lancement.signal === null
+  let lu
+  let defautRapport
+  if (lancement.arret?.etat === 'mort') {
+    try { lu = lireRapport(rapport) }
+    catch (cause) { defautRapport = texteDeLEchec(cause) }
+  }
+  const resumeValide = (r) => Number.isSafeInteger(r?.echecs) && r.echecs >= 0 && typeof r.succes === 'boolean' ? r : null
+  const global = resumeValide(lu?.resume)
+  const absolus = fichiers.map((f) => resolve(racine, f))
+  const resumes = absolus.map((f) => resumeValide(lu?.fichiersTermines?.[f]))
+  const echecsPartiels = new Set(echecsDuRapport(lu?.echecsDesTests))
+  const echecs = fichiers.filter((_, i) => resumes[i]
+    ? !resumes[i].succes && resumes[i].echecs > 0
+    : echecsPartiels.has(absolus[i]))
+  const complet = fichiers.length > 0 && resumes.every((r) => r?.succes ? r.echecs === 0 : r?.echecs > 0)
+  if (termine && complet) {
+    if (lancement.status === 0 && global?.succes === true && global.echecs === 0 && echecs.length === 0)
+      return { code: 0, echecs, lu }
+    if (lancement.status === 1 && global?.succes === false && global.echecs > 0 && echecs.length)
+      return { code: 1, echecs, lu }
+  }
+  const raison = !termine ? 'lancement interrompu ou arrêt non confirmé' : defautRapport ?? 'résultat Node non attesté'
+  const detail = !termine && lancement.error?.message ? `: ${lancement.error.message}` : ''
+  return { code: echecs.length ? 1 : 2, echecs, rejeu: `${raison}${detail} ; relancer npm run test:perimetre` }
+}
+
 /** Joue les `lancements` dans l'ordre (#2586) : node par `lancerNode`, vitest et docs par `lancer`. Une clôture non
  *  confirmée (`retenir`) ou un lancement interrompu arrête la suite sans apprendre ; sinon chaque famille apprend ses
- *  durées (`apprendre`) et son surcoût (`bilanDuLancement`, sous les environnements `environnementDe`). Rend le premier code non nul, le mur réel par famille,
+ *  durées (`apprendre`) et son surcoût (`bilanDuLancement`, sous les environnements `environnementDe`). Rend le premier code non nul, avec priorité à une assertion attestée sur un défaut de mesure, le mur réel par famille,
  *  les lancements joués et les fichiers joués (`fichiersJoues`, ceux que leur rapport mesure). */
 export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer, platform, environnementDe }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
   const reels = {}
@@ -669,6 +698,21 @@ export async function executerLancements({ lancements, racine, node, env, signal
       : await lancer({ argv: args, cwd: racine, env, signal, fichier: join(cache, 'lancement-' + process.pid + '.log'),
         limiteMs: 30 * 60_000, maxBuffer: 16 * 2 ** 20 })
     if (famille !== 'node' && r.sortie) process.stdout.write(r.sortie)
+    const mesureIncomplete = famille === 'node' && r.defautCollecte?.code === 'MESURE_MEMOIRE_INCOMPLETE'
+    const verdict = mesureIncomplete ? verdictSansMemoire(r, fichiers, racine, sortie) : null
+    if (verdict?.rejeu) {
+      if (r.arret?.etat !== 'mort') retenir()
+      if (verdict.code === 1 || joues.some((l) => l.code === 1 && l.echecs.length)) code = 1
+      else if (code === 0 || code === CODE_DIFFERE) code = verdict.code
+      const rejeu = `node : MESURE_MEMOIRE_INCOMPLETE — ${r.defautCollecte.message} ; ${verdict.rejeu}`
+      joues.push({ famille, code: verdict.code, echecs: verdict.echecs, args, rejeu })
+      journal(`${rejeu} ; rapports conservés, aucun apprentissage${r.arret?.etat !== 'mort' ? ', verrou conservé' : ''}`)
+      break
+    }
+    if (verdict) {
+      journal(`node : ${verdict.code === 0 ? 'vert' : 'rouge'} attesté, mesure mémoire indisponible — MESURE_MEMOIRE_INCOMPLETE : ${r.defautCollecte.message}`)
+      if (verdict.code === 1) code = 1
+    }
     if (r.arret?.etat !== 'mort') {
       retenir()
       const codeDuLancement = r.code || 1
@@ -687,14 +731,14 @@ export async function executerLancements({ lancements, racine, node, env, signal
       diagnosticArret(r, journal, '')
       break
     }
-    const codeDuLancement = r.code
+    const codeDuLancement = verdict?.code ?? r.code
     if (code === 0) code = codeDuLancement
     const refus = codeDuLancement === CODE_DIFFERE ? { refus: raisonDuRefus(r) } : {}
     if (!famille) { joues.push({ famille: nom, code: codeDuLancement, echecs: [], args, ...refus }); continue }
     reels[famille] = (reels[famille] ?? 0) + murMs
-    const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille])
+    const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille], verdict?.lu)
     for (const f of Object.keys(lecture.appris)) fichiersJoues.add(f)
-    joues.push({ famille, code: codeDuLancement, echecs: lecture.echecs, args, ...refus })
+    joues.push({ famille, code: codeDuLancement, echecs: verdict?.echecs ?? lecture.echecs, args, ...refus })
     if (!Object.keys(lecture.appris).length) continue
     const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille], environnementDe)
     journal(texte)
@@ -715,20 +759,25 @@ const LECTURES_DE_RAPPORT = Object.freeze({
   node: (lu, planifies) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: planifies }),
 })
 
+function lireRapport(rapport) {
+  try { return JSON.parse(readFileSync(rapport, 'utf8')) }
+  catch (cause) {
+    if (cause?.code === 'ENOENT') return null
+    throw new Error(`perimetre : rapport ${rapport} illisible`, { cause })
+  }
+}
+
 /** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les durées du rapport `rapport` d'UN lancement de la famille
  *  `famille` (`rapportDuLancement`, `LECTURES_DE_RAPPORT` ; chemins rendus relatifs), puis l'efface, que l'écriture
  *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises, les workers servis et les fichiers en échec, chemins
  *  relatifs ; `{ appris: {}, workers: null, echecs: [] }` sans rapport ; un rapport illisible lève avec sa `cause` (#2586). */
-export function apprendre(racine, rapport, mesures, famille, planifies) {
+export function apprendre(racine, rapport, mesures, famille, planifies, rapportValide) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   let lu
-  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) }
-  catch (cause) {
-    if (cause?.code === 'ENOENT') return { appris: {}, workers: null, echecs: [] }
-    throw new Error(`perimetre : rapport ${rapport} illisible`, { cause })
-  }
+  try { lu = rapportValide ?? lireRapport(rapport) }
   finally { rmSync(rapport, { force: true }) }
+  if (lu === null) return { appris: {}, workers: null, echecs: [] }
   const { durees, echecs, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
   const appris = Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relDe(f), Math.round(ms)]))
   if (Object.keys(appris).length) ecrireLesMesures(mesures, DUREES, appris)

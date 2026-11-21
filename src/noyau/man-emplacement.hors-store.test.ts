@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import {
@@ -14,7 +15,7 @@ import {
 import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
-import { itemFromTrappingById, recomputeLoadout, unarmedWeapon } from '../engine/items';
+import { hydratePoste, recomputeLoadout, unarmedWeapon } from '../engine/items';
 import { addCondition } from '../engine/conditions';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from './battleRng';
@@ -68,7 +69,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
+  hydratePoste({ trappingId: engineId, crewIds, side }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,
@@ -133,7 +134,7 @@ describe('(B) Service — `serveAtPoste` rend chef tout combattant (mannedPoste,
     const cible = mkEnemyTarget('cible', 8, 5, 30, 60);
     const all = [mkEmplacement(poste), gunner, s1, cible];
     serveAtPoste(gunner, poste, all);
-    const w = firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, gunner, cible, poste.item.uid, all);
     expect(w.uid).toBe(poste.item.uid); // c'est bien la baliste servie qui tire
     const get = mkGet(groundScene(), all, { gunner: 'N' });
     const r = resolveAttack(get, gunner, cible, w, undefined, false, false, false);
@@ -327,14 +328,14 @@ describe('(F) Équipe — REJOINDRE une pièce servie en renfort (chef = seul ti
     serveAtPoste(chef, poste, all); // chef
     serveAtPoste(renfort, poste, all); // support → présents 2 = Indice 2
     expect(servingCrewPresent(chef, all)).toBe(2);
-    const wFull = firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all);
+    const wFull = firedWeapon(findTrappingById, banc.getState().scene, chef, cible, poste.item.uid, all);
     expect(wFull.reload).toBe(3); // effectif complet → recharge normale (pas de ×2)
     expect(wFull.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
     // le support s'en va → présents 1 < Indice 2 : sous-effectif
     leaveChef(renfort, poste, all);
     expect(servingCrewPresent(chef, all)).toBe(1);
     expect(crewedPenalty(1, 2).reloadFactor).toBe(2);
-    expect(firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
+    expect(firedWeapon(findTrappingById, banc.getState().scene, chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
   });
 
   it('(c) SEUL le chef (crewIds[0]) se voit offrir l’option de tir « Servir … » ; le support, non', () => {

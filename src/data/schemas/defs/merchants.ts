@@ -38,7 +38,6 @@ const doc = document(
     /** Sélection d'objets proposés d'office — ids de la sous-liste `INSTANCIABLE_PAR_ID`
      *  (`grammaire/sousListes.ts`) ; `curated` ignore la Disponibilité. */
     curated: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
-    boniment: z.string().optional(),
     unitKinds: z.array(z.enum(['bete', 'vehicule-terrestre'])).optional(), // 'navire' non géré à l'achat (marchand.payer) -> #748
   },
   {
@@ -48,7 +47,6 @@ const doc = document(
     bargainSkill: { label: 'Valeur de Marchandage', hint: 'Valeur opposée au Test de Marchandage du client' },
     restockDays: { label: 'Délai de réassort', hint: 'Jours écoulés avant que le stock ne soit re-tiré' },
     curated: { label: 'Objets garantis', hint: 'Possessions toujours en stock chez ce marchand, Disponibilité ignorée' },
-    boniment: { label: 'Réplique de boniment', hint: 'Phrase d’ambiance affichée au-dessus de l’étal' },
     unitKinds: {
       label: 'Catégories d’unités vendues',
       hint: 'Types d’unités (bêtes, véhicules terrestres) proposées à l’achat',

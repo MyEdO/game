@@ -38,7 +38,7 @@ function drainCascade(): void {
   draineCascade(get, 200, undefined, () => 'forcer');
 }
 function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
-  get().partirEnVoyage(routeId, 'barge');
+  get().partirEnVoyage(routeId, 'barge-fluviale');
   for (let i = 0; i < maxSteps; i++) {
     if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
@@ -60,7 +60,7 @@ describe('Scénario Commerce fluvial — carte fidèle à l’Index géographiqu
     expect(place('ubersreik')).toMatchObject({ taille: 3, market: { richesse: 4 } });
     // Chaque Lieu de la carte a un marché (LandMarketProfile) et est relié par barge.
     expect(places.every((p) => p.market)).toBe(true);
-    expect(scenConstruit.worldMap!.routes.every((r) => r.modes.includes('barge'))).toBe(true);
+    expect(scenConstruit.worldMap!.routes.every((r) => r.modes.includes('barge-fluviale'))).toBe(true);
     // Les Hameaux (Taille 1) restent hors carte mais dans les données (l.139).
     expect(REIK_INDEX.some((e) => e.taille === 1)).toBe(true);
     expect(places.some((p) => p.id === 'p-furtild')).toBe(false);
@@ -74,7 +74,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
     banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge-fluviale', { cadence: 'jourParJour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.actorId).toBe('com-gunnar');
   });
@@ -83,7 +83,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     drainCascade();
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge-fluviale', { cadence: 'jourParJour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
   });
@@ -155,7 +155,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   function descendre(cadence: VoyageCadence, decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge-fluviale', { cadence });
     for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
       const cur = p?.participants[p.cursor];

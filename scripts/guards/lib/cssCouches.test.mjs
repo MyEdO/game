@@ -4,7 +4,7 @@
 // une fixture de texte, sauf les trois commits cibles, lus dans l'HISTOIRE du dépôt par le vrai chemin
 // (`ventilationDeGit`, scripts/corpus/guards/cssCouches.test.mjs) : la CI les porte (`fetch-depth: 0` du checkout de chaque job de
 // .github/workflows/ci.yml). La MESURE sur le corpus réel se prouve ailleurs
-// (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
+// dans les images d’arbre des commits historiques.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -173,7 +173,6 @@ test('moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/
 // ── Partition et ventilation (#1806) ─────────────────────────────────────────────────────────────
 
 const ECRAN = 'src/ui/styles/ecran.css'
-
 const PRIMITIVE = 'src/ui/styles/prim.css'
 
 /** Image fixture : `feuilles` = `{ chemin: texte }` (`null` = absent), `exemptes` = les modules d'une
@@ -228,23 +227,14 @@ test('L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou 
 })
 
 const Q = 'src/ui/styles/ecran-q.css'
-
 const X = 'src/ui/styles/ecran-x.css'
-
 const P = 'src/ui/styles/prim-p.css'
-
 const E = 'src/ui/styles/prim-e.css'
-
 const Y = 'src/ui/styles/ecran-y.css'
-
 const S = 'src/ui/styles/stub.css'
-
 const CSS = '.e { color: red; border: 0; font-size: 3px; gap: 3px }'
-
 const CSS2 = `${CSS}\n.f { color: blue; border: 1px; font-size: 4px; gap: 4px }`
-
 const REINDENTE = CSS2.split('\n').map((l) => `\t${l}`).join('\n')
-
 const STUB = '.s { color: blue }'
 
 /** S1-S12 (sonde `j6-final.mjs` du juge, 2026-09-23) : `[nom, parent, commit, franchis, identité, espacement]`,

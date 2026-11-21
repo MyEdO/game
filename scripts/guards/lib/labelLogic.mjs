@@ -19,6 +19,8 @@ import { estRetenu, readCorpus } from './sourceCorpus.mjs';
 // Vue CODE des volets lexicaux (lignes et colonnes préservées) — `codeSeul.mjs`, #1790.
 import { codeSeul } from './codeSeul.mjs';
 
+/** @typedef {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} FichierLu */
+
 /** Carte par label : constante hurlante `XXX_BY_LABEL`/`XXXBYLABEL`, ou fonction/variable `byLabel`. */
 export const BY_LABEL_RX = /(BY_?LABEL|byLabel)/;
 
@@ -77,7 +79,7 @@ export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
  *  `slugId(a?.b.label)`, un gabarit. Re-dériver un `id` du `.label` (affichage multilangue) au runtime
  *  couple l'identité à la langue — une traduction change l'id, cassant lookups/références/sauvegardes.
  *  Vise `.label` SEULEMENT (pas `.name` : la conversion d'un fragment TEXTE saisi en éditeur —
- *  `slugId(p.name)` d'un `splitLabel` — est la couture label→id d'authoring tolérée). Lecture par l'AST
+ *  `slugId(p.name)` après parsing — est la couture label→id d'authoring tolérée). Lecture par l'AST
  *  (`litLeLabel`, le critère du volet (c) de la garde de face), jamais par une regex de ligne.
  *  @param {string} relPath @param {string} contenu @returns {Set<number>} lignes des appels fautifs */
 function lignesDeSlugDepuisLabel(relPath, contenu, sourceFile) {
@@ -927,7 +929,7 @@ export function effectiveIdParamFns(contenu, globalIdParamFns) {
  *  déclare avec un paramètre `id`). Un fichier dont le texte ne porte aucune TÊTE possible du nom —
  *  les trois formes de `findDeclarationHeads`, `function nom`, `const|let nom =`, `nom(` non précédé
  *  de `.`/mot — ne peut pas le déclarer : il n'est pas analysé (`x.includes(` n'en est pas une).
- *  @param {{ rel: string, text: string }[]} corpus @returns {RangsDuParametreId} */
+ *  @param {FichierLu[]} corpus @returns {RangsDuParametreId} */
 function rangsDuCorpus(corpus) {
   const parFichier = new Map();
   const memo = new Map();
@@ -1233,7 +1235,7 @@ const arbre = (rel, contenu) => ast({ rel: rel, text: contenu });
 const ligneDe = (sf, node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
 
 /** Les FACES D'AFFICHAGE d'un corpus : nom → fichier déclarant (le premier rencontré).
- *  @param {{ rel: string, text: string }[]} fichiers @returns {Map<string, string>} */
+ *  @param {FichierLu[]} fichiers @returns {Map<string, string>} */
 export function collectFacesDAffichage(fichiers) {
   const faces = new Map();
   for (const { fichier: { rel }, sourceFile } of analyserCorpus(fichiers.filter(({ text }) => text.includes('PlayerText')))) {
@@ -1457,7 +1459,7 @@ export function scanLiantsLitterauxDesFaces(relPath, contenu, sourceFile) {
 
 /** Le corpus de la garde, lu sur le disque : `readCorpus` de `src/` (sans instruments Vitest ni `.d.ts`,
  *  soit `estDansLeCorpus`) — la lecture du test et du hook au stylo.
- *  @returns {readonly { rel: string, text: string }[]} */
+ *  @returns {readonly FichierLu[]} */
 export function corpusDeLaGarde() {
   return readCorpus([CORPUS_RACINE]);
 }
@@ -1465,7 +1467,7 @@ export function corpusDeLaGarde() {
 /** Contexte INTER-FICHIERS de la garde, sur le corpus : rang du paramètre `id` par nom de fonction
  *  (`rangsDuCorpus`, à la demande), faces d'affichage (`collectFacesDAffichage`), résolveurs par
  *  libellé de `src/data/index.ts` (`collectLabelEntityResolvers`).
- *  @param {readonly { rel: string, text: string }[]} fichiers @returns {GardeContexte} */
+ *  @param {readonly FichierLu[]} fichiers @returns {GardeContexte} */
 export function contexteDeLaGarde(fichiers) {
   const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
   const index = corpus.find(({ rel }) => rel === 'src/data/index.ts');
@@ -1506,7 +1508,7 @@ export function scanLabelLogicFichier(rel, text, ctx, sourceFile) {
 }
 
 /** La garde sur un corpus : les fichiers balayés (ceux du corpus) et tous leurs sites.
- *  @param {{ rel: string, text: string }[]} fichiers */
+ *  @param {FichierLu[]} fichiers */
 export function scanLabelLogicCorpus(fichiers) {
   const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
   const ctx = contexteDeLaGarde(corpus);

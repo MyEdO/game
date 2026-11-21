@@ -12,7 +12,7 @@ import { chebyshev, type GridPt } from '../engine/grid';
 import { isOutOfAction } from '../engine/conditions';
 import { ciblePsy, refDeCible } from '../engine/psych/ciblage';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { sceneNpc } from './monde/sceneNpc';
 import { inBattleId } from './monde/combatants';
 import type { Jeu } from './etat';
@@ -37,9 +37,10 @@ export type EtatDesPersonnes = Pick<Jeu, 'battle' | 'party' | 'scene' | 'campaig
 export function personnesCandidates(s: EtatDesPersonnes, cible: Combatant): Personne[] {
   if (inBattleId(s.battle, cible.id)) return s.battle!.combatants.filter((c) => c.id !== cible.id && !isOutOfAction(c)).map(personneDe);
   const presetDe = presetDuNarratif(s.campaignNarratif);
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
   const pnj = (s.scene?.entities ?? [])
     .filter((e) => e.kind === 'personnage')
-    .map((e) => sceneNpc(s.scene, e.id, presetDe))
+    .map((e) => sceneNpc(s.scene, e.id, presetDe, resolveTrapping))
     .filter((c): c is Combatant => !!c);
   return [...s.party.filter((c) => c.id !== cible.id && !c.dead), ...pnj].map(personneDe);
 }

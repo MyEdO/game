@@ -1718,6 +1718,44 @@
     }
   },
   {
+    "id": "lieu-de-l-entretien-du-navire",
+    "type": "regles",
+    "label": "Lieu de l’Entretien du navire",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "15",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "entretien-du-navire",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "a1e9283d9b9d1fa8"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 134,
+      "note": "MDG 15 l.302-306"
+    },
+    "rangees": [
+      {
+        "id": "en-mer",
+        "label": "Travail en mer",
+        "valeur": -20,
+        "famille": "circonstance"
+      },
+      {
+        "id": "chantier-specialise",
+        "label": "Grand chantier naval",
+        "valeur": 20,
+        "famille": "circonstance"
+      }
+    ]
+  },
+  {
     "id": "reparation-temporaire-navire",
     "type": "regles",
     "label": "Réparations temporaires d’un navire",
@@ -2313,7 +2351,14 @@
           "difficulty": "intermediaire"
         }
       }
-    ]
+    ],
+    "exclusDeCorruption": [
+      "guerrier-du-chaos",
+      "guerrier-du-chaos-hcvm",
+      "guerrier-du-chaos-chef-de-bande",
+      "guerrier-du-chaos-chef-de-guerre"
+    ],
+    "motifExclusionDeCorruption": "Arbitrage #4096 du 2026-11-19 : exclure ces quatre profils du gain de Corruption personnelle et du jet de seuil."
   },
   {
     "id": "dissipation",

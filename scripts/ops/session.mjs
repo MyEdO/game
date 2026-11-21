@@ -1,10 +1,15 @@
 import fs from 'node:fs'
+import { tmpdir } from 'node:os'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { publierJsonSiAbsent, ecrireTexteAtomique, ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { commandeDeSonde } from './sonde.mjs'
 import { join, resolve, isAbsolute, basename, extname, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { setTimeout as pause } from 'node:timers/promises'
 import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe } from './session-runtime.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS } from './session-rejeu.mjs'
+import { dossierSessions } from './session-carte.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { choisirCodex, codexDuPaquet, planifierMiseAJourCodex, TRIPLES_CODEX } from './session-version.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
@@ -22,9 +27,9 @@ export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
   const cible = argumentsAction[0] && !argumentsAction[0].startsWith('--') ? argumentsAction.shift() : undefined
   const options = { action, cible }
-  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--nom <nom>] [--agent claude|codex] [--worktree <chemin>] (ticket partageable ; nom unique, défaut s<n>, préciser --nom si occupé ; worktree courant par défaut) | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json ; cible : UUID exact prioritaire, nom non numérique hors forme UUID, cible ambiguë refusée avec les candidats')
+  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--detache] [--ticket <n>] [--nom <nom>] [--agent claude|codex] [--worktree <chemin>] (ticket partageable ; nom unique, défaut s<n>, préciser --nom si occupé ; worktree courant par défaut) | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json ; cible : UUID exact prioritaire, nom non numérique hors forme UUID, cible ambiguë refusée avec les candidats')
   const permises = {
-    lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json']),
+    lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json', '--detache']),
     lister: new Set(['--json']), archiver: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
     envoyer: new Set(['--json', '--message', '--request-id', '--timeout-ms']), etat: new Set(['--json']), outils: new Set(['--json']),
   }[action]
@@ -33,6 +38,7 @@ export function optionsSession(argv) {
     const arg = args[i]
     if (!permises.has(arg)) refuser(`OPTION REFUSÉE : ${arg}`)
     if (arg === '--json') { options.json = true; continue }
+    if (arg === '--detache') { options.detache = true; continue }
     if (arg === '--suivre') { options.suivre = true; continue }
     const cle = ({ '--ticket': 'ticket', '--nom': 'nom', '--agent': 'agent', '--consigne': 'consigne', '--worktree': 'worktree', '--executable': 'executable', '--timeout-ms': 'timeoutMs', '--profil-wt': 'profilWT', '--message': 'message', '--request-id': 'requestId', '--depuis': 'depuis' })[arg]
     if (!cle || !args[i + 1] || args[i + 1].startsWith('--')) refuser(`OPTION REFUSÉE : ${arg}`)
@@ -112,7 +118,7 @@ export function argsTerminal({ profil, nom, worktree, script, node, commande, se
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, choisir = (globale, executer) => choisirCodex({ globale, executer }), miseAJour = (meilleure, environnement) => planifierMiseAJourCodex({ meilleure, env: environnement }), executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, horloge = Date.now, dormir = pause } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, choisir = (globale, executer) => choisirCodex({ globale, executer }), miseAJour = (meilleure, environnement) => planifierMiseAJourCodex({ meilleure, env: environnement }), executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, enregistrerReprise, horloge = Date.now, dormir = pause } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
   const c = contexte(options.worktree ?? cwd)
@@ -133,8 +139,9 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const hooks = await preflight(c.worktree, options.agent)
   planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique: lirePolitique() })
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
-  const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
+  const dossier = dossierSessions(c.gitCommun), sessions = sessionsDe(dossier)
   const r = sessions.reserver({ ...c, hooks, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
+  const reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin' }
   const abandonner = async (e) => {
     try {
       const carte = await sessions.echecDemarrage(r.carte.sessionId, r.jeton, e.message)
@@ -142,11 +149,12 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
     }
     catch (nettoyage) {
       const bloque = new Error(`${prefixeDeRefus('métier')} ${refusSession(e).raison}`, { cause: e })
-      bloque.reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin', raison: refusSession(nettoyage).raison }
+      bloque.reprise = { ...reprise, raison: refusSession(nettoyage).raison }
       throw bloque
     }
     throw e
   }
+  try { enregistrerReprise?.(reprise) } catch (e) { return abandonner(e) }
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
   const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, terminal: annexeDe(dossier, r.carte.sessionId, 'terminal'), journalHote: annexeDe(dossier, r.carte.sessionId, 'journalHote') })
   let vu
@@ -259,13 +267,71 @@ export async function attendreSuivi(sessions, cible, options, { parentVivant, li
   } while (true)
 }
 
-export async function commandeSession(argv, { stdout = process.stdout, stdin = process.stdin, env = process.env, cwd = process.cwd(), contexte = contexteSessions, sessionsDe = (dossier) => creerSessions({ dossier }) } = {}) {
+const prefixeLancement = 'wfrp-session-'
+const enfantLancement = '--enfant-lancement'
+
+function fichiersLancement(dossier) {
+  return { arbitrage: join(dossier, 'naissance.json'), code: join(dossier, 'lancement.code'), log: join(dossier, 'lancement.log'), reprise: join(dossier, 'reprise.json') }
+}
+
+function detacherLancement(argv, cwd, detacher) {
+  const dossier = fs.mkdtempSync(join(tmpdir(), prefixeLancement))
+  const { arbitrage, code, log, reprise } = fichiersLancement(dossier)
+  const scriptSonde = join(ops, 'sonde.mjs')
+  const sonde = commandeDeSonde(code, { script: scriptSonde })
+  const sondePowerShell = commandeDeSonde(code, { script: scriptSonde, powershell: true })
+  const suivi = { etat: 'detache', code, log, reprise, sonde, ...(sondePowerShell !== sonde && { sondePowerShell }) }
+  try {
+    const args = [enfantLancement, dossier, ...argv.filter((arg) => arg !== '--detache')]
+    const pid = detacher({ script, args, cwd, fdLog: 'ignore' })
+    if (!pid) throw new Error('DÉTACHEMENT SANS PID')
+    return { ...suivi, pid }
+  } catch (e) {
+    try {
+      if (!publierJsonSiAbsent(arbitrage, 'annule')) return { ...suivi, diagnostic: e.message }
+    } catch (arbitrageErreur) {
+      return { ...suivi, diagnostic: `${e.message} ; ${arbitrageErreur.message}` }
+    }
+    throw e
+  }
+}
+
+function ecrireRefus(e, json, stdout, stderr) {
+  const refus = refusSession(e)
+  if (json) stdout.write(`${JSON.stringify({ refus })}\n`)
+  else { stderr.write(`${refus.prefixe} ${refus.raison}\n`); if (refus.reprise) stdout.write(`${JSON.stringify({ reprise: refus.reprise })}\n`) }
+  return 1
+}
+
+async function executerEnfant(dossier, options, lancer) {
+  if (options.action !== 'lancer' || options.detache || dirname(dossier) !== resolve(tmpdir()) || !/^wfrp-session-[a-zA-Z0-9]{6}$/.test(basename(dossier))) refuser('LANCEMENT INTERNE INVALIDE')
+  const stat = fs.lstatSync(dossier)
+  if (!stat.isDirectory() || (process.platform !== 'win32' && (stat.uid !== process.getuid() || (stat.mode & 0o077)))) refuser('DOSSIER DE LANCEMENT NON PRIVÉ')
+  const { arbitrage, code, log, reprise } = fichiersLancement(dossier)
+  if (!publierJsonSiAbsent(arbitrage, 'enfant')) return 1
+  const prive = { mode: 0o600 }
+  const stdout = { write: (texte) => ecrireTexteAtomique(log, texte, prive) }
+  let resultat
+  let statut = 0
+  try {
+    resultat = await lancer(options, { enregistrerReprise: (capacite) => ecrireJsonAtomique(reprise, capacite, prive) })
+  } catch (e) { statut = ecrireRefus(e, true, stdout) }
+  if (statut === 0) ecrireJsonAtomique(log, resultat, prive)
+  ecrireTexteAtomique(code, String(statut), prive)
+  return statut
+}
+
+export async function commandeSession(argv, { stdout = process.stdout, stdin = process.stdin, env = process.env, cwd = process.cwd(), detacher = lancerDetache, lancer = lancerSession, contexte = contexteSessions, sessionsDe = (dossier) => creerSessions({ dossier }) } = {}) {
+  if (argv[0] === enfantLancement) {
+    const options = optionsSession(argv.slice(2))
+    return executerEnfant(argv[1], options, (o, gestes) => lancer(o, { cwd, env, ...gestes }))
+  }
   const options = optionsSession(argv)
   let resultat
   if (options.action === 'outils') resultat = outilsSession()
-  else if (options.action === 'lancer') resultat = await lancerSession(options, { cwd, env })
+  else if (options.action === 'lancer') resultat = options.detache ? detacherLancement(argv, cwd, detacher) : await lancer(options, { cwd, env })
   else {
-    const c = contexte(cwd), sessions = sessionsDe(join(c.gitCommun, 'sessions'))
+    const c = contexte(cwd), sessions = sessionsDe(dossierSessions(c.gitCommun))
     if (options.action === 'lister') resultat = sessions.lister()
     else if (options.action === 'archiver') resultat = sessions.archiver()
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
@@ -289,10 +355,5 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
 
 if (import.meta.main) {
   try { process.exitCode = await commandeSession(process.argv.slice(2)) }
-  catch (e) {
-    const refus = refusSession(e)
-    if (process.argv.includes('--json')) process.stdout.write(`${JSON.stringify({ refus })}\n`)
-    else { process.stderr.write(`${refus.prefixe} ${refus.raison}\n`); if (refus.reprise) process.stdout.write(`${JSON.stringify({ reprise: refus.reprise })}\n`) }
-    process.exitCode = 1
-  }
+  catch (e) { process.exitCode = ecrireRefus(e, process.argv.includes('--json'), process.stdout, process.stderr) }
 }

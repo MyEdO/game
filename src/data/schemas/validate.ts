@@ -15,8 +15,12 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
+import { exigeProvenanceExclusive, type Provenance } from './grammaire/document';
 import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
-import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
+import { cleDesLibelles, cleDesSpecs, lireCleDEspace } from './grammaire/cle-d-espace';
+import { dependancesDuRaffinement, lireLEspace } from './grammaire/ref';
+import { SOURCES_DE_SPECS } from './grammaire/sourcesDeSpecs';
+import { atteindre, champDeCharge, cleDesLibellesDeLaSource, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
@@ -108,6 +112,97 @@ export function rapportDeFautes(sujet: string, fautes: readonly Faute[]): string
  *  ou undefined s'il n'est pas registré. */
 export function schemaForFile(file: string): z.ZodType | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.schema;
+}
+
+/** Le champ de provenance absent qui serait refusé s’il était ajouté à ce brouillon. */
+export function champDeProvenanceEcarte(file: string, { source, maison }: Provenance): 'source' | 'maison' | undefined {
+  if (!exigeProvenanceExclusive(schemaForFile(file))) return undefined;
+  if (source === undefined && maison !== undefined) return 'source';
+  if (source !== undefined && maison === undefined) return 'maison';
+  return undefined;
+}
+
+/** Le texte vidé d’une raison maison retire cette provenance dans le brouillon exclusif. */
+export function valeurDeProvenanceAuBrouillon(file: string, champ: string, valeur: unknown): unknown {
+  return champ === 'maison' && valeur === '' && exigeProvenanceExclusive(schemaForFile(file)) ? undefined : valeur;
+}
+
+type LecteursDesCatalogues = {
+  readonly directs: ReadonlyMap<string, ReadonlySet<string>>;
+  readonly specialisations: ReadonlyMap<string, ReadonlyMap<string | undefined, ReadonlySet<string>>>;
+};
+
+let lecteursDesCatalogues: LecteursDesCatalogues | undefined;
+
+function ajouterLecteur<K>(index: Map<K, Set<string>>, cle: K, fichier: string): void {
+  const lecteurs = index.get(cle) ?? new Set<string>();
+  lecteurs.add(fichier);
+  index.set(cle, lecteurs);
+}
+
+function indexerLecteursDesCatalogues(): LecteursDesCatalogues {
+  const racinesVivantes = new Set(Object.values(DATASET_FICHIER_DERIVE));
+  const directs = new Map<string, Set<string>>();
+  const specialisations = new Map<string, Map<string | undefined, Set<string>>>();
+  for (const { file, schema } of SCHEMA_DEFS) {
+    if (!racinesVivantes.has(file)) continue;
+    descendre([schema], ({ def }) => {
+      for (const controle of def.checks ?? []) {
+        const dependances = dependancesDuRaffinement(controle);
+        if (!dependances) continue;
+        for (const espace of dependances.espaces) {
+          const catalogue = lireCleDEspace(espace).fichier;
+          if (catalogue !== file) ajouterLecteur(directs, catalogue, file);
+        }
+        for (const { espace, id } of dependances.specialisations) {
+          const lecteurs = specialisations.get(espace) ?? new Map<string | undefined, Set<string>>();
+          ajouterLecteur(lecteurs, id, file);
+          specialisations.set(espace, lecteurs);
+        }
+      }
+    });
+  }
+  return { directs, specialisations };
+}
+
+const FICHIERS_DES_UNIVERS_DE_SPECS = new Set(Object.values(SOURCES_DE_SPECS).flatMap((source) =>
+  [source.univers, cleDesLibellesDeLaSource(source)].map((espace) => lireCleDEspace(espace).fichier),
+));
+
+type LireRenvoi = (espace: string) => string | undefined;
+
+/** Les autres fichiers vivants dont un contrôle lit le catalogue ou un univers fourni par ce fichier. */
+export function fichiersLisantLeCatalogue(fichier: string, lireRenvoi: LireRenvoi): ReadonlySet<string> | undefined {
+  lecteursDesCatalogues ??= indexerLecteursDesCatalogues();
+  const { directs, specialisations } = lecteursDesCatalogues;
+  if (!FICHIERS_DES_UNIVERS_DE_SPECS.has(fichier)) return directs.get(fichier);
+
+  const lecteurs = new Set(directs.get(fichier));
+  for (const [espace, lecteursParId] of specialisations) {
+    const fournis = new Map<string, boolean>();
+    const estFourniParLeFichier = (id: string): boolean => {
+      const dejaLu = fournis.get(id);
+      if (dejaLu !== undefined) return dejaLu;
+      const specs = cleDesSpecs(espace, id);
+      const fourni = [specs, cleDesLibelles(specs)].some((cle) => {
+        const renvoi = lireRenvoi(cle);
+        return renvoi !== undefined && lireCleDEspace(renvoi).fichier === fichier;
+      });
+      fournis.set(id, fourni);
+      return fourni;
+    };
+    for (const [id, candidats] of lecteursParId) {
+      const correspond = id === undefined
+        ? [...(lireLEspace(espace) ?? [])].some(estFourniParLeFichier)
+        : estFourniParLeFichier(id);
+      if (correspond) {
+        for (const candidat of candidats) {
+          if (candidat !== fichier) lecteurs.add(candidat);
+        }
+      }
+    }
+  }
+  return lecteurs;
 }
 
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin

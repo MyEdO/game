@@ -22,19 +22,8 @@ describe('apparence de toit (JSON pur iso/plan)', () => {
     expect(roofMaterial('plan').couverture).toBeUndefined();
   });
 
-  it('les matériaux de couverture portent liseré + recette de rangs (consommés par builder + backend)', () => {
-    for (const id of ['tuile', 'chaume', 'toit-ardoise']) {
-      const m = roofMaterial(id);
-      expect(m.line, id).toBeTruthy();
-      expect(m.detail?.courses?.hM ?? 0, id).toBeGreaterThan(0); // pas métrique des rangs (source unique)
-      expect(m.detail?.courses?.joint, id).toBeTruthy(); // couleur des rangs
-    }
-    // Bardeaux (blocs décalés nuancés) sur les couvertures rigides ; rangs ORGANIQUES sur le chaume.
-    expect(roofMaterial('tuile').detail?.courses?.blockWM).toBeDefined();
-    expect(roofMaterial('toit-ardoise').detail?.courses?.blockWM).toBeDefined();
-    expect(roofMaterial('chaume').detail?.courses?.blockWM).toBeUndefined();
-    expect(roofMaterial('chaume').detail?.courses?.edgeWobble ?? 0).toBeGreaterThan(0);
-    expect(roofMaterial('chaume').detail?.tufts).toBeDefined(); // balayage de paille
+  it('les matériaux de couverture portent leur liseré (repli de la planche de rive)', () => {
+    for (const id of ['tuile', 'chaume', 'toit-ardoise']) expect(roofMaterial(id).line, id).toBeTruthy();
   });
 
   it('avant-toit (VOLUME) : débord + soffite sur les 3 couvertures ; fascia dure sauf chaume ; couronnement tuile/ardoise', () => {
@@ -53,11 +42,6 @@ describe('apparence de toit (JSON pur iso/plan)', () => {
       expect(roofMaterial(id).fascia, id).toBeTruthy();
       expect(roofMaterial(id).ridgeCap, id).toBeTruthy();
     }
-  });
-
-  it('plan vu du dessus (vue carrée)', () => {
-    expect(roofMaterial('plan').planBody).toBe('#6e4f3a');
-    expect(roofMaterial('plan').planEdge).toBe('#241a12');
   });
 
   it('id absent du registre → entrée de REPLI VISIBLE au ton d’alarme (#877)', () => {

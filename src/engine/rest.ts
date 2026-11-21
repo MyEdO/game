@@ -31,7 +31,7 @@ import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
 import { removeCondition, reprendreConnaissance, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
-import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type Disease } from './disease';
+import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type CycleDeFiche, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
 import { applyHealWounds } from './healing';
@@ -66,9 +66,11 @@ export function refusDeRecuperation(c: Combatant): string | null {
  * l.170) — SOCLE `syncDerivedConditions`, jamais un delta de compte par symptôme.
  * Mute `c`, renvoie le journal.
  */
-export function dailyDiseaseUpkeep(c: Combatant, rng: RNG, defer: UpkeepDeferTest, caredFor = false): string[] {
+export function dailyDiseaseUpkeep(
+  c: Combatant, rng: RNG, defer: UpkeepDeferTest, caredFor = false, peutDeclarer?: CycleDeFiche['peutDeclarer'],
+): string[] {
   if (c.dead || !c.diseases?.length) return [];
-  const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')));
+  const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')), undefined, peutDeclarer);
   if (caredFor) {
     for (const dz of c.diseases ?? []) {
       // −1 JOUR supplémentaire par maladie active, minimum 1 jour restant (LDB 09-Compétences).

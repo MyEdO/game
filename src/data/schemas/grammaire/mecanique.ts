@@ -10,6 +10,8 @@ import { estObjet } from '../../../lib/objet.mjs';
 import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants, defDe } from './descente';
+import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
+import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -59,15 +61,15 @@ import {
   tirageSchema,
   type FormuleAuPeche,
 } from './valeurs';
-import { traitInstanceSchema } from './reference';
+import { lireLesCiblesPsy, traitInstanceSchema } from './reference';
 import {
+  affinerAvecCatalogues,
   idDe,
   marquerOpAtteinte,
+  raffinementDeCatalogue,
   ref,
   refs,
   refOuSpec,
-  specAuCatalogue,
-  specDe,
   specFermeeDe,
   tirageSurTable,
   type RegimeDePorteur,
@@ -76,7 +78,6 @@ import {
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
-import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
@@ -195,7 +196,7 @@ export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
  *  EDOC 12 l.170. */
 export const tablesDeCiblesSchema = enumNomme({ obsessions: 'le Tableau des Obsessions' });
 export type TableDeCibles = z.infer<typeof tablesDeCiblesSchema>;
-const tableDeCiblesSchema = nommerChamps(z.strictObject({ id: tablesDeCiblesSchema }), { id: { label: 'table' } });
+const tableDeCiblesSchema = nommerChamps(ref(tablesDeCiblesSchema), { id: { label: 'table' } });
 /** Tirage d'une Cible (`grantTrait.cible`) : `pick` tirages sur une table de Cibles. */
 const tirageDeCibleSchema = tirageSurTable(tableDeCiblesSchema);
 export type TirageDeCible = z.infer<typeof tirageDeCibleSchema>;
@@ -238,7 +239,7 @@ export function reserve(noeud: z.ZodType): ChampReserveDeclare {
 type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare | ChampReserveDeclare>>;
 
 /** Contrainte ENTRE champs d'un payload déclaré, posée sur l'objet que la famille ferme. */
-type AffinageDePayload = (o: Record<string, unknown>, ctx: z.RefinementCtx) => void;
+type AffinageDePayload = z.core.$ZodCheck<Record<string, unknown>>;
 
 class PayloadDeclare<C extends FormeDePayload = FormeDePayload> {
   constructor(readonly champs: C, readonly meta: MetaDesChamps<FormeDePayload>, readonly affinage?: AffinageDePayload) {}
@@ -254,7 +255,9 @@ export const banishNarrationSchema = enumNomme({ chaos: 'banni aux Royaumes du C
 
 /** Une Cible n'est portée que par un type CIBLÉ, et celle d'une op est un Groupe que ce type admet
  *  (`psychology.json`, `cibles`). LDB 21 l.17-19, l.75 ; #3045 */
-function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.RefinementCtx): void {
+function refuserLaCibleHorsCiblage(
+  type: string, cible: unknown, ctx: z.RefinementCtx, { estCibleType, varianteAdmise }: ReturnType<typeof lireLesCiblesPsy>,
+): void {
   if (cible === undefined) return;
   if (!estCibleType(type)) {
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise aucune Cible : « cible » est refusée.` });
@@ -546,7 +549,7 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('combatEnMer'),
     adversaire: ref('creature', {
       nombre: nommerNoeud(z.number().int().min(1), { nom: 'effectif' }),
-      optionals: nommerNoeud(z.array(traitInstanceSchema).min(1).optional(), { nom: 'Traits facultatifs' }),
+      optionals: nommerNoeud(listeSansCle(z.array(traitInstanceSchema).min(1)).optional(), { nom: 'Traits facultatifs' }),
     }),
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
@@ -627,7 +630,7 @@ const DECLARATIONS_D_OPS = {
    *  (LDB 47 l.441). Sa Cible est
    *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
    *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
-  grantTrait: nommerChamps(z.strictObject({
+  grantTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('grantTrait'),
     trait: traitInstanceSchema,
     cible: tirageDeCibleSchema.optional(),
@@ -636,35 +639,41 @@ const DECLARATIONS_D_OPS = {
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }).superRefine((o, ctx) => {
-    if (!o.cible) return;
-    const { id, arg } = o.trait;
-    if (arg !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
-    }
-    const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue('trait', id, g));
-    if (absents.length) {
-      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
-    }
+  }), (lire) => {
+    const { specAuCatalogue } = lire.specialisations('trait');
+    return (o, ctx) => {
+      if (!o.cible) return;
+      const { id, arg } = o.trait;
+      if (arg !== undefined) {
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
+      }
+      const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      if (absents.length) {
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
+      }
+    };
   }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   /** Pose d'AUTEUR d'un état psychologique : jamais une entrée qui en devient une autre (`becomes`). LDB 21 l.56 */
-  beginPsych: nommerChamps(z.strictObject({
+  beginPsych: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('beginPsych'),
     type: ref('psychology', undefined, { horsMarqueurs: ['becomes'] }),
     cible: ref('groupe').optional(),
     indice: formulaSchema.optional(),
     active: z.boolean().optional(),
-  }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx)), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
+  }), (lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx, ciblage);
+  }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
   /** Fin des états d'un TYPE, ou de l'INSTANCE dont l'effet porte l'op (`instance`, réservé à la famille de
    *  `defs/psychology.ts` : ailleurs aucune instance ne voyage dans le contexte). */
   endPsych: declarerPayload({
     op: z.literal('endPsych'),
     type: ref('psychology').optional(),
     instance: reserve(z.literal('courante').optional()),
-  }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, (o, ctx) => {
+  }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, z.superRefine((o, ctx) => {
     if ((o.type === undefined) === (o.instance === undefined)) ctx.addIssue({ code: 'custom', message: 'fin d’état psychologique : « type » (un état du catalogue) OU « instance » (celle de l’effet qui porte l’op), exactement l’un des deux.' });
-  }),
-  /** `envers`, `resistanceSiAmis` et `durationHours` sont réservés à la famille des sorts (`defs/spells.ts`) :
+  })),
+  /** `envers`, `resistanceSiAmis` et les durées sont réservés à la famille des sorts (`defs/spells.ts`) :
    *  une mutation ou une maladie, qui pose son Trait sans `applyOps`, les refuse au parse. VDM 10 l.327-330 */
   grantPsychTrait: declarerPayload({
     op: z.literal('grantPsychTrait'),
@@ -673,16 +682,24 @@ const DECLARATIONS_D_OPS = {
     envers: reserve(z.literal('personneChoisie').optional()),
     resistanceSiAmis: reserve(z.lazy(() => flowTestSchema).optional()),
     durationHours: reserve(formulaSchema.optional()),
-  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, (o, ctx) => {
-    const type = (o.psychType as { id: string }).id;
-    refuserLaCibleHorsCiblage(type, o.cible, ctx);
-    if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
-    if (o.envers !== undefined && !varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
-    if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
-  }),
-  removePsychTrait: nommerChamps(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional(), cible: ref('groupe').optional() }).superRefine((o, ctx) => {
-    if (o.cible !== undefined && !o.psychType) ctx.addIssue({ code: 'custom', path: ['cible'], message: '« cible » vise une instance d’un Trait : « psychType » est requis.' });
-    else if (o.psychType) refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx);
+    durationWeeks: reserve(formulaSchema.optional()),
+  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, durationWeeks: { label: "durée en semaines", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, raffinementDeCatalogue((lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => {
+      const type = (o.psychType as { id: string }).id;
+      refuserLaCibleHorsCiblage(type, o.cible, ctx, ciblage);
+      if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
+      if (o.envers !== undefined && !ciblage.varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
+      if (o.durationHours !== undefined && o.durationWeeks !== undefined) ctx.addIssue({ code: 'custom', path: ['durationWeeks'], message: 'Une durée de Trait psychologique s’exprime en heures ou en semaines.' });
+      if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
+    };
+  })),
+  removePsychTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional(), cible: ref('groupe').optional() }), (lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => {
+      if (o.cible !== undefined && !o.psychType) ctx.addIssue({ code: 'custom', path: ['cible'], message: '« cible » vise une instance d’un Trait : « psychType » est requis.' });
+      else if (o.psychType) refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx, ciblage);
+    };
   }), { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
   removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), trait: ref('trait') }), { op: { label: "opération"  }, trait: { label: "Trait" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
   /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait octroyé
@@ -735,13 +752,15 @@ const DECLARATIONS_D_OPS = {
     minutes: formulaSchema.optional(),
     hours: formulaSchema.optional(),
     days: formulaSchema.optional(),
-  }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, minutes: { label: "minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hours: { label: "heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, days: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    weeks: formulaSchema.optional(),
+  }).refine((o) => o.days === undefined || o.weeks === undefined, { path: ['weeks'], message: 'Une durée de contrecoup s’exprime en jours ou en semaines.' }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, minutes: { label: "minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hours: { label: "heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, days: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, weeks: { label: "semaines", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   grantCareerSkill: declarerPayload({ op: z.literal('grantCareerSkill'), skill: aChoix('skill') }, { op: { label: "opération" }, skill: { label: "Compétence" } }),
   grantCareerTalent: declarerPayload({ op: z.literal('grantCareerTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   grantTalent: declarerPayload({ op: z.literal('grantTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
-  suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: z.array(ref('talent')).min(1), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: listeSansCle(z.array(ref('talent')).min(1)), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   deityBan: nommerChamps(z.strictObject({ op: z.literal('deityBan'), durationDays: formulaSchema }), { op: { label: "opération" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   prayerForAction: nommerChamps(z.strictObject({ op: z.literal('prayerForAction'), durationRounds: formulaSchema }), { op: { label: "opération" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  forbidFlee: nommerChamps(z.strictObject({ op: z.literal('forbidFlee') }), { op: { label: "opération" } }),
   grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), ...sujetDuJetSchema.shape, contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, characteristic: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
   exposeDisease: nommerChamps(z.strictObject({
     op: z.literal('exposeDisease'),
@@ -776,7 +795,7 @@ const DECLARATIONS_D_OPS = {
     ref: idDe('creature'),
     count: formulaSchema,
     countPerSL: perSLSchema.optional(),
-    addTraits: z.array(traitInstanceSchema).optional(),
+    addTraits: listeSansCle(z.array(traitInstanceSchema)).optional(),
     size: sizeCategorySchema.optional(),
     allyOfCaster: z.boolean().optional(),
     despawnIfCasterDown: z.boolean().optional(),
@@ -832,7 +851,7 @@ const DECLARATIONS_D_OPS = {
     movementOnly: z.boolean().optional(),
     sense: senseSchema.optional(),
     diseases: refs('maladie').optional(),
-    exceptSkills: z.array(ref('skill')).optional(),
+    exceptSkills: listeSansCle(z.array(ref('skill'))).optional(),
     weaponHand: mainSchema.optional(),
   }), { op: { label: "opération"  }, amount: { label: "quantité" }, characteristic: { label: "caractéristique" }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
   incomingAttackMod: nommerChamps(z.strictObject({
@@ -889,10 +908,10 @@ const DECLARATIONS_D_OPS = {
     removeQualities: refs('quality').optional(),
     removeType: z.enum(['atout', 'defaut']).optional(),
     suppressEnchants: z.boolean().optional(),
-    passive: passifsDe(z.lazy(() => gameOpSchema)).optional(),
-    onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
+    passive: passifsDe(z.lazy(() => gameOpSchema), OBJETS_DU_PROJET).optional(),
+    onHitEffects: effetsDArmeDe(z.lazy(() => triggeredEffectSchema)).optional(),
   }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
-  grantWeapon: nommerChamps(z.strictObject({
+  grantWeapon: nommerChamps(controlerSousPortee(z.strictObject({
     op: z.literal('grantWeapon'),
     label: z.string(),
     damage: formulaSchema,
@@ -902,10 +921,16 @@ const DECLARATIONS_D_OPS = {
     subType: ref('weaponGroup').optional(),
     reach: reachSchema.optional(),
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
-    onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
+    onHitEffects: effetsDArmeDe(z.lazy(() => triggeredEffectSchema), () => ({ genre: 'melee' })).optional(),
     teinte: ref('material', undefined, 'objet').optional(),
-    form: ref('trapping', undefined, INSTANCIABLE_PAR_ID).optional(),
+    form: ref(idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET })).optional(),
     chooseForm: z.boolean().optional(),
+  }), OBJETS_DU_PROJET, (valeur, entree) => {
+    if (!estObjet(valeur) || !estObjet(valeur.form) || typeof valeur.form.id !== 'string') return [];
+    const modele = entree(valeur.form.id);
+    if (!estObjet(modele)) return [];
+    if (valeur.chooseForm === true) return [{ path: ['form', 'id'], message: 'Une forme fixe de campagne est incompatible avec le choix de la forme.' }];
+    return estObjet(modele.shape) ? [] : [{ path: ['form', 'id'], message: 'L’objet de campagne choisi doit déclarer une forme.' }];
   }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, teinte: { label: "teinte" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
   rollThreshold: nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
@@ -1041,19 +1066,17 @@ export const hasWhatSchema = enumNomme({ group: 'le Groupe', talent: 'le Talent'
 /** Le `what` d'une branche de la Condition `has`, NOMMÉ par `hasWhatSchema`. */
 const whatDeHas = (what: z.infer<typeof hasWhatSchema>) => z.literal(what).pipe(hasWhatSchema);
 
-/** La `spec` d'une Condition `has` : une spécialisation de l'entrée de `type` que nomme sa `value` (`specDe`). */
-function refusDeSpecDeLaValeur(type: TypeEntite) {
-  return (c: { value?: string; spec?: string }, ctx: z.RefinementCtx): void => {
-    if (c.spec === undefined) return;
-    const lu = specDe(type, c.value ?? '').safeParse(c.spec);
-    for (const iss of lu.success ? [] : lu.error.issues) ctx.addIssue({ code: 'custom', path: ['spec'], message: iss.message });
-  };
-}
-
 /** Condition `has`, DISCRIMINÉE par `what` : `value` résout dans le registre de `what`, la `spec` n'appartient qu'au Talent. */
 export const hasConditionSchema = z.discriminatedUnion('what', [
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe', CIBLE_D_APPARTENANCE) }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
-  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }).superRefine(refusDeSpecDeLaValeur('talent')), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
+  nommerChamps(affinerAvecCatalogues(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }), (lire) => {
+    const { specDe } = lire.specialisations('talent');
+    return (c, ctx) => {
+      if (c.spec === undefined) return;
+      const lu = specDe(c.value ?? '').safeParse(c.spec);
+      for (const iss of lu.success ? [] : lu.error.issues) ctx.addIssue({ code: 'custom', path: ['spec'], message: iss.message });
+    };
+  }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('trait'), value: idDe('trait') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('psych'), value: idDe('psychology') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('immunity'), value: idDe('damageType') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
@@ -1171,8 +1194,8 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('Atteinte VISIBLE (apparence)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive')),
       variante('Est un NAVIRE', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('navire'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.navire')),
       variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue'))),
-      variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
-      variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
+      variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: listeSansCle(z.array(conditionSchema)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
+      variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: listeSansCle(z.array(conditionSchema)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
       variante('NON', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.not')),
     ]),
   );
@@ -1182,7 +1205,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 
 /** L'algèbre `Condition` de la famille FERMÉE : aucune Condition réservée. */
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
-
 
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
@@ -1280,6 +1302,8 @@ const champsDuTestAvantLaDecision = {
   vsGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
   /** LDB 08 */
   vsStatus: statutSchema.optional(),
+  /** LDB 08 l.46,50. */
+  avisSurLeStatut: enumNomme({ favorable: 'Favorable', hostile: 'Hostile' }).optional(),
   /** LDB 08 l.63 */
   begging: z.boolean().optional(),
   /** MSRC 15 l.149-159 */
@@ -1297,7 +1321,7 @@ const champsDuTestApresLaDecision = {
   opposed: opposeSchema.optional(),
 };
 
-const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
+const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, avisSurLeStatut: { label: "avis de l’interlocuteur sur le Statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
 const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
 
 /** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
@@ -1698,6 +1722,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   deitySkillMod: 'Modifier les Compétences du dieu',
   deityBan: 'Bannir des Prières du dieu (jours)',
   prayerForAction: 'Imposer la Prière pour l’Action (Rounds)',
+  forbidFlee: 'Interdire la Fuite',
   grantCareerSkill: 'Compétence ajoutée aux carrières',
   grantCareerTalent: 'Talent ajouté aux carrières',
   augmentWeapon: 'Enchanter l’arme',
@@ -1816,7 +1841,7 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
       // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
       const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])));
       const affinage = (d as PayloadDeclare).affinage;
-      return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [z.superRefine(affinage)] : [])), meta), 'payloadsDe', op, reservesAdmises))];
+      return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [affinage] : [])), meta), 'payloadsDe', op, reservesAdmises))];
     }),
   );
 }
@@ -2071,15 +2096,6 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
   return famille;
 }
 
-/** La famille d'un champ d'effets déclenchés (`z.array(famille.triggeredEffect)`, facultatif ou non) : l'Atelier y
- *  lit l'algèbre de Condition et les ops que le porteur admet. Absent = champ hors famille. */
-export function familleDesEffets(noeud: unknown): FamilleMecanique | undefined {
-  let n = noeud;
-  while (n instanceof z.ZodOptional) n = n.unwrap();
-  const element = n instanceof z.ZodArray ? n.element : undefined;
-  return element === undefined ? undefined : famillesConstruites().find((f) => f.triggeredEffect === element);
-}
-
 /** Les familles construites, en lecture seule — racines de la garde du masquage (`parse-de-mesure.test.ts`). */
 export function famillesConstruites(): readonly FamilleMecanique[] {
   return [...FAMILLES.values()];
@@ -2089,10 +2105,27 @@ const FERMEE = mecaniqueDe({});
 export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = FERMEE.opDefs;
 export const gameOpSchema: z.ZodType<GameOp> = FERMEE.gameOp;
 
+type ContexteDEffetDArme = { genre?: z.output<typeof genreDArmeSchema>; refus?: string };
+
+/** Les références locales d'un effet d'arme exigent un événement qui reçoit l'arme du coup. */
+export function effetsDArmeDe<E extends z.ZodType>(effet: E, contexte: (porteur: unknown) => ContexteDEffetDArme = () => ({})): z.ZodArray<E> {
+  return restreindreSousPortee(z.array(effet), OBJETS_DU_PROJET, (branche, site) => {
+    const { genre, refus } = contexte(branche.parent?.valeur);
+    if (refus) return refus;
+    const rang = site.chemin[branche.chemin.length];
+    const effet = Array.isArray(branche.valeur) && typeof rang === 'number' ? branche.valeur[rang] : undefined;
+    if (!estObjet(effet)) return;
+    if (effet.trigger !== 'onHit' && effet.trigger !== 'onCrit' && effet.trigger !== 'onAttackResolved')
+      return 'Ce déclencheur ne reçoit pas l’arme du coup et ne peut pas résoudre une référence de campagne à la touche.';
+    if (genre && typeof effet.attackType === 'string' && effet.attackType !== genre)
+      return 'Le type d’attaque demandé par cet effet est incompatible avec son arme.';
+  });
+}
+
 /** Liste passive d'un porteur, lue par un collecteur de passifs (`passiveMods`, `weaponPassiveOps`, `navalPassiveOps`,
  *  passifs de maladie) : le marquage `auTotal` d'un `attrMod` de Blessures ne vit que sur le canal exécuté (`applyOps`,
  *  #3060), il est donc refusé ici. */
-export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodType<OpPassive[]> {
+export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<OpPassive[]> {
   const liste = z.array(op).superRefine((ops, ctx) => {
     ops.forEach((o, i) => {
       if (o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) {
@@ -2105,14 +2138,15 @@ export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodType<OpPas
       }
     });
   });
-  REGIMES_DES_LISTES.set(liste, 'passive');
-  return liste as z.ZodType<OpPassive[]>;
+  const passive = catalogueSeul ? ouvrirPortees(liste, [catalogueSeul], 'vide') : liste;
+  REGIMES_DES_LISTES.set(passive, 'passive');
+  return listeSansCle(passive) as z.ZodType<OpPassive[]>;
 }
 
 /** Liste d'ops EXÉCUTÉE (`applyOps`, ou un interprète restreint : `applyStarOps`, `applyOnFailInline`) : `auTotal` y
  *  marque, sous `applyOps`, les modificateurs de Caractéristique qu'elle porte (#3060). */
 export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.ZodType<GameOp>> {
-  const liste = z.array(op);
+  const liste = listeSansCle(z.array(op));
   REGIMES_DES_LISTES.set(liste, 'executee');
   return liste;
 }

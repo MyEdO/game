@@ -3,12 +3,36 @@
  * dé ne parle avant le geste qui le jette.
  */
 import { describe, it, expect } from 'vitest';
-import { carrieresOffertes, draftSpecies, newDraft, rollDraftCareer, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
+import {
+  buildHero,
+  draftFromHero,
+  rollDraftDetails,
+  carrieresOffertes,
+  draftSpecies,
+  newDraft,
+  rollDraftCareer,
+  withCareer,
+  withCoastalSwap,
+  withSpecies,
+  type CreatorDraft,
+} from './brouillon';
 import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type RubriqueDeCreation } from './vueDeLaCreation';
-import { carrieresAleatoires, especesAleatoires, fabricationAtouts, findQualityById, offreDuJet, species, talentsAleatoires, varianteDe } from '../../data';
+import {
+  carrieresAleatoires,
+  especesAleatoires,
+  eyes,
+  fabricationAtouts,
+  findQualityById,
+  offreDuJet,
+  species,
+  talentsAleatoires,
+  varianteDe,
+} from '../../data';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { setDataset, type DatasetKey } from '../../data/overrides';
+import { enregistrerEntree } from '../../data/atelierDuCodex';
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { rollCareer } from '../../engine/creation';
 import { deFixe, deMin } from '../../engine/dice.testkit';
 
@@ -45,6 +69,29 @@ describe('la création en pages', () => {
     c = apresLeGeste(c, options(premiere).find((o) => o.libelle === '5')!.geste);
     expect(options(rubrique(rubriquesDeLaPage(c, 'chars'), seconde.id)).map((o) => [o.libelle, o.refus !== null])).toEqual([['0', false], ['1', true], ['2', true], ['3', true], ['4', true], ['5', true]]);
   });
+});
+
+it('une couleur renommée au Codex suit le même héros rouvert dans la création', () => {
+  const initial = withCareer(withSpecies(newDraft(7), 'humains-reiklander'), 'soldat');
+  const d = rollDraftDetails(initial);
+  const heros = buildHero(d, idsDeTest, 'heros-couleurs');
+  const rouvert = draftFromHero(heros, 7);
+  const yeux = () => rubrique(rubriquesDeLaPage(rouvert, 'details'), 'yeux');
+  expect(heros.details?.eyes).toEqual({ id: 'gris', colonne: 'humain' });
+  expect(rouvert.eyes).toEqual(heros.details?.eyes);
+  expect(yeux()).toMatchObject({ genre: 'valeur', valeur: 'Gris' });
+
+  const index = eyes.findIndex((r) => r.id === 'gris');
+  const rangee = eyes[index];
+  const transaction = enregistrerEntree('eyes', { ...rangee, color: { ...rangee.color, humain: 'Gris perle' } }, index);
+  if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
+  try {
+    expect(transaction.texte).toContain('Gris perle');
+    expect(yeux()).toMatchObject({ genre: 'valeur', valeur: 'Gris perle' });
+    expect(heros.details?.eyes).toEqual({ id: 'gris', colonne: 'humain' });
+  } finally {
+    transaction.reprendre();
+  }
 });
 
 describe('la race puis la lignée : les espèces se groupent par race (`refChar`), jamais par leur libellé `family`', () => {

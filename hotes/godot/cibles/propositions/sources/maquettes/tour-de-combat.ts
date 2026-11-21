@@ -6,6 +6,7 @@
  * l.169, l.171.
  */
 import { COMBATTANTS, DIT, RESERVES, TOUR_DE_BERTA, TOUR_DE_L_ORC, TOUR_D_ILYANWE } from './dome.ts';
+import { PROFIL_D_ILYANWE } from './fiche-du-heros.ts';
 import type { ActionDuTour, BarreDeLActif, Combat, Combattant, Ecran, FamilleDActions, FicheDeSort } from './maquette.ts';
 
 /** Les actions qui coûtent l'Action ; `attaque`, armée par la cible survolée ; `course`, fermée de sa raison. */
@@ -27,7 +28,7 @@ const COMMUNS = [geste('avantage', 'Compétence'), geste('usage-objet', 'Objet')
 
 /** Les Sorts d'Ilyanwe, en emplacements rapides. */
 const SORTS = ['Fléchette', 'Dôme', 'Bouclier', 'Lumière', null, null];
-const FLECHETTE: FicheDeSort = { nom: 'Fléchette', ni: 0, portee: 'Force Mentale mètres', cibles: 1, duree: 'Instantanée', cout: 'l’Action', note: 'Un clic arme le sort, un second sur la cible le lance.' };
+const FLECHETTE: FicheDeSort = { nom: 'Fléchette', ni: 0, portee: { metres: PROFIL_D_ILYANWE.find((c) => c.carac === 'FM')!.valeur, selon: 'Force Mentale' }, cibles: 1, duree: 'Instantanée', cout: 'l’Action', note: 'Un clic arme le sort, un second sur la cible le lance.' };
 
 /** La barre d'Ilyanwe, la famille `ouverte` ; `sort`, la liste des Sorts ouverte ; `arme`, l'emplacement armé. */
 const barreDIlyanwe = (ouverte: FamilleDActions['id'], { armee = false, sort = false, arme = null as number | null } = {}): BarreDeLActif => ({
@@ -88,7 +89,7 @@ export default {
       pose: {
         role: 'fiche', fiche: {
           qui: 'berta', peuple: 'Humains (Reiklander)', carriere: 'Soldate',
-          reserves: [{ nom: 'Destin', valeur: 2 }, { nom: 'Chance', valeur: RESERVES.berta.chance }, { nom: 'Résilience', valeur: RESERVES.berta.resilience }, { nom: 'Détermination', valeur: RESERVES.berta.determination }],
+          reserves: [{ id: 'destin', nom: 'Destin', valeur: 2 }, { id: 'chance', nom: 'Chance', valeur: RESERVES.berta.chance }, { id: 'resilience', nom: 'Résilience', valeur: RESERVES.berta.resilience }, { id: 'determination', nom: 'Détermination', valeur: RESERVES.berta.determination }],
           caracteristiques: [['M', 4], ['CC', 41], ['CT', 33], ['F', 38], ['E', 35], ['I', 31], ['Ag', 34], ['Dex', 28], ['Int', 27], ['FM', 35], ['Soc', 30], ['B', 12]].map(([nom, valeur]) => ({ nom: String(nom), valeur: Number(valeur) })),
           sections: ['Attaques', 'Compétences', 'Talents', 'Possessions'], ouverte: 'Attaques',
           armes: [

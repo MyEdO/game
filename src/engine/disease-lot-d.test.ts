@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  diseaseDefs, contractDisease, rollContraction, tickDisease, diseasePassiveOps,
+  diseaseDefs, contractDisease, applyContraction, tickDisease, diseasePassiveOps,
   diseaseBlesseCount, hasActiveCapability, contagiousDiseases, Disease,
 } from './disease';
 import { makeRNG } from './dice';
@@ -100,7 +100,7 @@ describe('Vérole Urticante — immunité après guérison (l.97)', () => {
     for (const s of specs) applique(c, s, { success: true }, desDuTest);
     expect(c.diseases).toEqual([]);
     expect(c.diseaseImmunities).toContain('verole-urticante');
-    const log = rollContraction(c, 'verole-urticante', 0, 'tresDifficile', makeRNG(4)); // Test impossible à réussir
+    const log = applyContraction(c, 'verole-urticante', false, makeRNG(4));
     expect(log).toEqual([]);
     expect(c.diseases).toEqual([]);
   });

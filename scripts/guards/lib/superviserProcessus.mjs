@@ -8,6 +8,7 @@ import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { ancetresValidesDe, gardienDisparu, mesurerArbreProcessus } from './arbreProcessus.mjs'
 import { arretIndetermine, texteDeCause } from './arretNatif.mjs'
+import { codeEnfant } from './codesDeSortie.mjs'
 import { ecrireJsonAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { LANCEMENTS_SUPERVISES, relancerApresNettoyage } from './controleEcritures.mjs'
 import { citerArgv } from './lancerDetache.mjs'
@@ -405,7 +406,7 @@ export async function superviserProcessus({ commande, args = [], heriter = false
 
 export function sortieDeSupervision(resultat, journal = process.stderr) {
   if (resultat.error) { journal.write(`[supervision] ${resultat.error.code ? `${resultat.error.code} : ` : ''}${resultat.error.message}\n`); return 1 }
-  return resultat.status ?? 1
+  return codeEnfant(resultat.status, resultat.signal)
 }
 
 if (import.meta.main) {

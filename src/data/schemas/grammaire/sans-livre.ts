@@ -15,7 +15,6 @@
  */
 export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   ambiance: 'configuration de rendu — ambiances lumineuses/sonores de scène, aucun folio ne les imprime',
-  decorPalette: 'configuration de rendu — palette de teintes du décor, valeurs d’art',
   lightLevels: 'configuration de rendu — paliers d’éclairage du monde volumique',
   lightTones: 'configuration de rendu — teintes de lumière du monde volumique',
   rendus: 'configuration de rendu — visuels et sons des coups et des incantations, aucun folio ne les imprime',
@@ -34,7 +33,6 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
     'catalogue des TYPES DE BÂTIMENT — le DOCUMENT est de l’art (empreinte offerte à la pose, matière de couverture, ornements d’identité posés en billboard) ; aucun folio n’imprime de catalogue de bâtiments. Chaque entrée EXIGE `maison` (`exiges` de `schemas/defs/buildings.ts`) : ce qu’un bâtiment vaut en cases et sous quelle couverture est un arbitrage, et il se dit à l’entrée',
   terrains:
     'catalogue des SOLS de la grille — le DOCUMENT est de l’art (teinte, rampe de dégradé, recette de surface, décor posé) ; aucun folio n’imprime de catalogue de sols. Quatre de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `walkable`, `priority`, `opaque` et `built` — chaque entrée les porte et EXIGE `maison` (`exiges` de `schemas/defs/terrains.ts`)',
-  teintesJeu: 'configuration de rendu — palette de teintes de l’interface de jeu',
   'semences-de-scene':
     'configuration d’AUTHORING (#1716) — les DÉFAUTS d’une scène NEUVE (`emptyScene`, `noyau/monde/scene.ts`) : échelle de case, ambiance, éclairage, sol de départ, matières de relief, toiture, façade de départ, et les libellés d’un lieu neuf (`noyau/worldMapEdit.ts`) d’une carte du monde neuve (`noyau/worldMap.ts`) et d’un statbloc personnalisé d’une fiche sans nom (`data/valeursNeuves.ts`). Aucun folio n’imprime le défaut d’un éditeur de scène. Le document EST son entrée (famille `config`) et EXIGE `maison` à sa racine (`exiges` de `schemas/defs/semences-de-scene.ts`) : ce qu’une scène neuve reçoit est un arbitrage, et il se dit là',
   'defauts-de-compilation':

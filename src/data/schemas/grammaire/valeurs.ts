@@ -38,6 +38,7 @@ import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLo
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { controlerSousPortee, listeCle } from './collection-cle';
+import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -60,8 +61,8 @@ export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string
  * partagé entre defs (`actorRefSchema`) se nomme UNE fois, ici, comme un champ de racine.
  *
  * Une valeur peut porter, EN PLUS de son libellé, un HINT mécanique (`hints`, même porteur : le nœud) :
- * ce que la règle FAIT quand cette valeur est choisie, lu par `hintDeValeur` (`grammaire/meta.ts`) et
- * rendu en infobulle d'option. Une réf nue, jamais une prose de source (règle stricte 5).
+ * ce que la règle FAIT quand cette valeur est choisie. Une réf nue, jamais une prose de source
+ * (règle stricte 5).
  *
  * `.extract`/`.exclude` sont REFUSÉS sur un enum nommé : zod 4.4.3 rend un NOUVEAU nœud dont la
  * `.meta()` est vide (mesuré) — le sous-univers perdrait ses libellés EN SILENCE. Un sous-univers se
@@ -844,6 +845,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
   metal2: 'Métal secondaire', corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
+  planche: 'Planche', joint: 'Joint', gravats: 'Gravats', barreau: 'Barreau', traverse: 'Traverse', vitre: 'Vitre',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -1177,7 +1179,11 @@ export const mainSchema = enumNomme({ main: 'Main directrice', secondaire: 'Main
 /** Les objets de la campagne (`narratif.objets`), que désignent hors du catalogue l'objet donné (Effet et GameOp
  *  `giveTrapping`) et la clé d'une apparence par objet (`apparencesDObjetsSchema`) ; le projet l'ouvre (`projetSchema`).
  *  Déclarée ici et non dans `defs-scenes/communs.ts`, qui importe ce module. */
-export const OBJETS_DU_PROJET = { collection: 'narratif.objets', catalogue: 'objets de la campagne' } as const satisfies PorteeLocale;
+export const OBJETS_DU_PROJET = {
+  collection: 'narratif.objets',
+  catalogue: 'objets de la campagne',
+  retient: [INSTANCIABLE_PAR_ID],
+} as const satisfies PorteeLocale;
 
 type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
 
@@ -1364,6 +1370,13 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
 
+/** MDG 12 l.230, l.293 ; MSRC 16 l.88, l.142 */
+export const dureeEnJoursSchema = z.union([
+  nommerNoeud(z.number(), { label: 'Jours' }),
+  nommerChamps(z.strictObject({ semaines: z.number() }), { semaines: { label: 'Semaines' } }),
+]);
+export type DureeEnJours = z.infer<typeof dureeEnJoursSchema>;
+
 /** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
 export const consumableDurationSchema = nommerChamps(z.strictObject({
   minutes: formulaSchema.optional(),
@@ -1540,10 +1553,6 @@ export function ecartDeCoPresenceDesBornes(v: {
  * `findTableEntry` (`src/engine/tables.ts`) lit : le domaine est couvert EXACTEMENT une fois, sans
  * trou ni chevauchement. Rend la liste des écarts (vide = conforme), à verser dans le refus NOMINATIF
  * de la def appelante.
- *
- * Pourquoi un verrou : `findTableEntry` REPLIE sur la dernière entrée quand rien ne couvre le jet —
- * un trou ouvert au Codex ne lève donc rien, il fait tomber le tirage sur la dernière rangée en
- * silence. Un chevauchement, lui, rend la seconde rangée inatteignable (le `find` prend la première).
  *
  * ORDRE INERTE : les fourchettes sont triées par `min` avant mesure — les deux bornes étant
  * authorées, réordonner les rangées au Codex ne change RIEN au tirage, et ne doit donc rien refuser.

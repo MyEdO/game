@@ -23,10 +23,6 @@ export function entreesDeStades(narratif: NarratifBlock, indiceId: string | unde
   return (narratif.indices.find((i) => i.id === indiceId)?.stades ?? []).map((s, i) => ({ id: s.id, label: `stade ${i + 1}` }));
 }
 
-/** Libellé du stade `id` de l'indice `indiceId` — `undefined` s'il ne résout pas. */
-export const libelleDeStade = (narratif: NarratifBlock, indiceId: string | undefined, id: string): string | undefined =>
-  entreesDeStades(narratif, indiceId).find((e) => e.id === id)?.label;
-
 /** Libellé d'AFFICHAGE de l'état `id` de `etats` — ou, `valeur` posée, de cette valeur déclarée ; l'id
  *  quand il ne résout pas. */
 export const libelleDEtat = (etats: readonly EtatDeclare[] | undefined, id: string, valeur?: string): string =>

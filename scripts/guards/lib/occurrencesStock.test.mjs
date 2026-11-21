@@ -1,36 +1,14 @@
-// COLLECTIONS À COMPTE (#2705) : leur déclaration couvre tout stock qui porte un compte, et aucun stock n'écrit
-// l'histoire de ses comptes en commentaire.
+// Les commentaires de compte des stocks nominatifs (#2705).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { listerDossier } from './lister.mjs'
-import { COLLECTIONS_A_COMPTE, collectionsACompteDe, histoiresDeCompte } from './occurrencesStock.mjs'
+import { histoiresDeCompte } from './occurrencesStock.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const DOSSIER = 'scripts/guards/lib'
-
-test('COUVERTURE : tout tableau exporté d’un `*Stock.mjs` dont les entrées portent un compte est une collection à compte déclarée', async () => {
-  const modules = await Promise.all(listerDossier(join(RACINE, DOSSIER)).filter((f) => f.endsWith('Stock.mjs')).map(async (f) => ({
-    fichier: `${DOSSIER}/${f}`,
-    module: await import(pathToFileURL(join(RACINE, DOSSIER, f)).href),
-  })))
-  assert.deepEqual(
-    collectionsACompteDe(modules).sort(),
-    COLLECTIONS_A_COMPTE.map((c) => `${c.porteur} : ${c.nom}`).sort(),
-    'une collection qui porte un compte hors de `COLLECTIONS_A_COMPTE` échappe à la porte `comptes:plage` et au refus de `--write`.',
-  )
-})
-
-test('COUVERTURE : l’ordinal `occurrence` n’est pas un compte, tout autre champ numérique l’est', () => {
-  assert.deepEqual(collectionsACompteDe([{ fichier: 'x.mjs', module: {
-    ORDINAL: [{ fichier: 'a', ref: 'r', occurrence: 2 }],
-    COMPTE: [{ dataset: 'a.json', champ: 'b', occurrences: 3 }],
-    TEXTE: [{ dataset: 'a.json' }],
-    OBJET: { occurrences: 1 },
-  } }]), ['x.mjs : COMPTE'])
-})
 
 test('HISTOIRE DE COMPTE : aucun tableau exporté d’un `*Stock.mjs` ne raconte un compte en commentaire', async () => {
   const histoires = []

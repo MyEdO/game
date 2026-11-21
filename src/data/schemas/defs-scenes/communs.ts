@@ -10,6 +10,7 @@ import { talentRefSchema, traitPoseDeSceneSchema } from '../grammaire/reference'
 import { refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import type { SkillRefDesignee } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
@@ -26,7 +27,7 @@ const PERSONNAGE = { champ: 'kind', vaut: 'personnage' } as const;
 export const PERSONNAGES_DE_LA_SCENE = { collection: 'entities', catalogue: 'personnages de la scène', retient: [PERSONNAGE] } as const satisfies PorteeLocale;
 /** Les marchands de la scène, les personnages qui portent `merchant`, que désigne l'effet `openMerchant`. */
 export const MARCHANDS_DE_LA_SCENE = { collection: 'entities', catalogue: 'marchands de la scène', retient: [PERSONNAGE, { champ: 'merchant' }] } as const satisfies PorteeLocale;
-/** Les rencontres de la scène, que désignent les effets `startCombat` et `startPursuit`. */
+/** Les rencontres de la scène, que désignent les effets `startCombat`, `startPursuit` et `startMassBattle`. */
 export const RENCONTRES_DE_LA_SCENE = { collection: 'encounters', catalogue: 'rencontres de la scène' } as const satisfies PorteeLocale;
 /** Les portées locales qu'ouvre la scène (`sceneSchema`). */
 export const PORTEES_DE_LA_SCENE: readonly PorteeLocale[] = [DIALOGUES_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, RENCONTRES_DE_LA_SCENE];
@@ -72,18 +73,16 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   type: z.literal('statblock'),
   label: z.string(),
   char: charStatsSchema,
-  traits: z.array(traitPoseDeSceneSchema).optional(),
+  traits: listeSansCle(z.array(traitPoseDeSceneSchema)).optional(),
   /** LDB 85 ; absente, dérivée du Trait « Taille (X) ». */
   size: sizeCategorySchema.optional(),
   /** LDB 21. */
   groups: groupesDuStatblocSchema.optional(),
   spells: sortsConnusSchema.optional(),
-  skills: z.array(competenceChiffreeSchema).optional(),
-  talents: z.array(talentRefSchema).optional(),
-  /** LDB 77 l.108 (`randomizeChars`). */
-  randomChars: z.boolean().optional(),
+  skills: listeSansCle(z.array(competenceChiffreeSchema)).optional(),
+  talents: listeSansCle(z.array(talentRefSchema)).optional(),
   /** AA/MDG 12 : un affût servi, sans réaction de combat ni tour propre (`isInanimate`). */
   inert: z.boolean().optional(),
   /** #143 : propagé au spawn (`Combatant.followsCharacterRules`, `engine/relations.ts`). */
   followsCharacterRules: z.boolean().optional(),
-}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });
+}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });

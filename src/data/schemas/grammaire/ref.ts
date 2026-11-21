@@ -36,6 +36,7 @@ import { marquerProduit, produitDe } from './interne/produits';
 import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
 import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSpec } from './interne/feuillesDeSpec';
 import { enfantsDe } from './descente';
+import { listeSansCle } from './liste-sans-cle';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
  *  une sous-liste que le type ne connaît pas (une chaîne non littérale, une `SousListeMarquee`). */
@@ -63,6 +64,7 @@ export const TYPES = {
   talent: { espace: 'talents.json', catalogue: 'talents' },
   trait: { espace: 'traits.json', catalogue: 'traits' },
   trapping: { espace: 'trappings.json', catalogue: 'objets' },
+  engin: { espace: 'siege-engines.json', catalogue: 'engins de siège' },
   spell: { espace: 'spells.json', catalogue: 'sorts' },
   creature: { espace: 'creatures.json', catalogue: 'créatures' },
   vehicle: { espace: 'vehicles.json', catalogue: 'véhicules' },
@@ -71,6 +73,7 @@ export const TYPES = {
   species: { espace: 'species.json', catalogue: 'espèces' },
   // LDB 05 l.214 : `species.json › refCareer` nomme sa colonne du Tableau des Classes et Carrières aléatoires.
   carrieresAleatoires: { espace: 'carrieres-aleatoires.json', catalogue: 'colonnes du Tableau des Classes et Carrières aléatoires' },
+  talentsAleatoires: { espace: 'talents-aleatoires.json', catalogue: 'tables de Talents aléatoires' },
   navalTrait: { espace: 'naval-traits.json', catalogue: 'traits navals' },
   // PORT du catalogue naval : `MapPlace.port.ref` résout AU PARSE, toutes les réfs mortes nommées.
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
@@ -78,6 +81,7 @@ export const TYPES = {
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
   crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
+  mutation: { espace: 'mutations.json', catalogue: 'mutations' },
   mutationTable: { espace: 'mutationTables.json', catalogue: 'tables de mutation' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
@@ -143,7 +147,6 @@ export const TYPES = {
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
-  colonneDuMarchand: { espace: 'vocabulaire:colonnesDuMarchand', catalogue: 'colonnes de stats du marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
   activity: { espace: 'activities.json', catalogue: 'activités' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
@@ -296,12 +299,6 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
-/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un id que nulle feuille ne
- *  porte (`defs/cargaisons-aleatoires.ts`). */
-export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
-  return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
-}
-
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
 function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
   if (typeof sousListe === 'string') return refusDeLaDiscriminee(type, sousListe, site, id);
@@ -345,6 +342,106 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   const site = `porteLeMarqueur('${type}', '${marqueur}')`;
   DESIGNATIONS.add(cle);
   return (id) => idsDesignes(cle, site).has(id);
+}
+
+type LecturesDeCatalogue = {
+  readonly ids: () => ReadonlySet<string>;
+  readonly idsDeLaSousListe: (sousListe: SousListe) => readonly string[];
+  readonly refus: (id: string, sousListe?: SousListe) => string | null;
+  readonly refusDeLEntree: (sousListe: SousListe, entree: { readonly id: string }) => string | null;
+  readonly porteLeMarqueur: (marqueur: string) => (id: string) => boolean;
+};
+
+type LecturesDeSpecialisations = {
+  readonly refus: (id: string, spec: string) => RefusDeSpec | null;
+  readonly message: (id: string, spec: string, refus: RefusDeSpec, admetChoix: boolean) => string;
+  readonly estSpecialisable: (id: string) => boolean;
+  readonly specAuCatalogue: (id: string, spec: string) => boolean;
+  readonly marqueurDeLaForme: (id: string, spec: string) => FormeDeMarqueur | undefined;
+  readonly specDe: (id: string) => z.ZodType<string>;
+};
+
+type LecturesDeLaSpecialisation = {
+  readonly refus: (spec: string) => RefusDeSpec | null;
+  readonly message: (spec: string, refus: RefusDeSpec, admetChoix: boolean) => string;
+  readonly entreeOuverte: () => boolean;
+};
+
+export type LecturesDuRaffinement = {
+  readonly catalogue: (type: TypeEntite, site?: string) => LecturesDeCatalogue;
+  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+  readonly specialisations: (type: TypeEntite) => LecturesDeSpecialisations;
+  readonly specialisation: (type: TypeEntite, id: string) => LecturesDeLaSpecialisation;
+};
+
+type SpecialisationsLues = { readonly espace: string; readonly id?: string };
+type DependancesDuRaffinement = {
+  readonly espaces: readonly string[];
+  readonly specialisations: readonly SpecialisationsLues[];
+};
+
+const DEPENDANCES_PAR_RAFFINEMENT = new WeakMap<object, DependancesDuRaffinement>();
+
+/** Un contrôle de schéma et les lectures des catalogues qu'il construit. */
+export function raffinementDeCatalogue<V = unknown>(
+  construire: (lire: LecturesDuRaffinement) => (valeur: V, ctx: z.RefinementCtx) => void,
+): z.core.$ZodCheck<V> {
+  const espaces = new Set<string>();
+  const specialisations: SpecialisationsLues[] = [];
+  const controle = z.superRefine<V>(construire({
+    catalogue: (type, site = `raffinementDeCatalogue('${type}')`) => {
+      espaces.add(espaceDe(type));
+      return {
+        ids: () => idsDe(type),
+        idsDeLaSousListe: (sousListe) => idsDeLaSousListe(type, sousListe),
+        refus: (id, sousListe) => refusDe(type, sousListe, site, id),
+        refusDeLEntree: (sousListe, entree) => refusDeLEntree(type, sousListe, entree),
+        porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
+      };
+    },
+    racine: (type, racineVivante) => {
+      espaces.add(espaceDe(type));
+      return racineVivante;
+    },
+    specialisations: (type) => {
+      const espace = espaceDe(type);
+      espaces.add(espace);
+      specialisations.push({ espace });
+      return {
+        refus: (id, spec) => refusDeSpec(type, id, spec),
+        message: (id, spec, refus, admetChoix) => messageDeRefusDeSpec(type, id, spec, refus, admetChoix),
+        estSpecialisable: (id) => estSpecialisable(type, id),
+        specAuCatalogue: (id, spec) => specAuCatalogue(type, id, spec),
+        marqueurDeLaForme: (id, spec) => marqueurDeLaForme(type, id, spec),
+        specDe: (id) => specDe(type, id),
+      };
+    },
+    specialisation: (type, id) => {
+      const espace = espaceDe(type);
+      espaces.add(espace);
+      specialisations.push({ espace, id });
+      return {
+        refus: (spec) => refusDeSpec(type, id, spec),
+        message: (spec, refus, admetChoix) => messageDeRefusDeSpec(type, id, spec, refus, admetChoix),
+        entreeOuverte: () => entreeOuverte(type, id),
+      };
+    },
+  }));
+  DEPENDANCES_PAR_RAFFINEMENT.set(controle, { espaces: [...espaces], specialisations });
+  return controle;
+}
+
+/** Pose un raffinement de catalogue sur un nœud en conservant le type de ce dernier. */
+export function affinerAvecCatalogues<S extends z.ZodType>(
+  schema: S,
+  construire: (lire: LecturesDuRaffinement) => (valeur: z.output<S>, ctx: z.RefinementCtx) => void,
+): S {
+  return schema.check(raffinementDeCatalogue(construire));
+}
+
+/** Les catalogues directs et les univers de spécialisations lus par ce contrôle. */
+export function dependancesDuRaffinement(controle: unknown): DependancesDuRaffinement | undefined {
+  return typeof controle === 'object' && controle !== null ? DEPENDANCES_PAR_RAFFINEMENT.get(controle) : undefined;
 }
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de
@@ -516,18 +613,23 @@ function siteDeFeuille(type: TypeEntite, sousListe: SousListe | undefined, porte
  *  la valeur). */
 function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, portee: PorteeLocale | undefined, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
   const site = siteDeFeuille(type, sousListe, portee);
-  const feuille = z
-    .string()
-    .superRefine((v, ctx) => {
-      if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
-      const refus = refusDe(type, sousListe, site, v);
-      if (refus === null) {
-        if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
-        return;
-      }
-      ctx.addIssue({ code: 'custom', message: refus });
-    })
-    .transform((v) => v as Id<T, S>);
+  const verifier = (refuser: (id: string) => string | null) => (v: string, ctx: z.RefinementCtx) => {
+    if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
+    const refus = refuser(v);
+    if (refus === null) {
+      if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
+      return;
+    }
+    ctx.addIssue({ code: 'custom', message: refus });
+  };
+  const chaine = z.string();
+  const controlee = sousListe === undefined
+    ? chaine.superRefine(verifier((id) => refusDe(type, sousListe, site, id)))
+    : affinerAvecCatalogues(chaine, (lire) => {
+      const catalogue = lire.catalogue(type, site);
+      return verifier((id) => catalogue.refus(id, sousListe));
+    });
+  const feuille = controlee.transform((v) => v as Id<T, S>);
   const declaration: FeuilleDId = { type, ...(sousListe === undefined ? {} : { sousListe }), ...(portee === undefined ? {} : { portee }) };
   declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
@@ -744,7 +846,7 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
  *  `{ id }` d'une entrée du catalogue ou de la collection de sa portée. */
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
-export function ref(feuille: z.ZodType<string, string>): ReturnType<typeof objetDeRef<z.ZodType<string, string>, Record<never, never>>>;
+export function ref<F extends z.ZodType<string, string>>(feuille: F): ReturnType<typeof objetDeRef<F, Record<never, never>>>;
 export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
 export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite> | z.ZodType<string, string>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
@@ -886,8 +988,8 @@ export type RefusDeSpec = 'nonSpecialisable' | 'sentinelle' | 'marqueur' | 'hors
  * au LIBELLÉ d'une spécialisation de son catalogue, qui se désigne par son id), ou `null` (admise).
  */
 export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDeSpec | null {
-  if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (SENTINELLE_DE_SPEC.test(spec)) return 'sentinelle';
+  if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (marqueurDeLaForme(type, id, spec)) return 'marqueur';
   if (specAuCatalogue(type, id, spec)) return null;
   if (!entreeOuverte(type, id)) return 'horsCatalogue';
@@ -929,11 +1031,15 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
  *  `fermee`, le refus d'une entrée OUVERTE. Une seule feuille porte les deux raffinements, puisque `.superRefine` clone
  *  le nœud que le registre déclare. */
 function feuilleDeSpec(type: TypeEntite, id: string, fermee: boolean): z.ZodType<string> {
-  return declarerFeuilleDeSpec(z.string().min(1).superRefine((spec, ctx) => {
-    const refus = refusDeSpec(type, id, spec);
-    if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
-    if (fermee && entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
-  }), { type, id });
+  const feuille = affinerAvecCatalogues(z.string().min(1), (lire) => {
+    const specialisation = lire.specialisation(type, id);
+    return (spec, ctx) => {
+      const refus = specialisation.refus(spec);
+      if (refus) ctx.addIssue({ code: 'custom', message: specialisation.message(spec, refus, false) });
+      if (fermee && specialisation.entreeOuverte()) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
+    };
+  });
+  return declarerFeuilleDeSpec(feuille, { type, id });
 }
 
 /** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
@@ -1007,11 +1113,9 @@ function noeudASpecialisation<T extends TypeEntite>(
   const { choix: _choix, ...designe } = champs;
   const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
   const { choix: _metaChoix, ...metasDesignees } = metas;
-  return marquerProduit(nommerChamps(z
-    .strictObject(admetChoix ? champs : (designe as typeof champs), {
-      error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
-    })
-    .superRefine((v, ctx) => {
+  const controle = raffinementDeCatalogue<z.output<z.ZodObject<typeof champs>>>((lire) => {
+    const specs = lire.specialisations(type);
+    return (v, ctx) => {
       const aSpec = v.spec != null;
       const aChoix = v.choix != null;
       if (!aSpec && !aChoix) {
@@ -1019,8 +1123,8 @@ function noeudASpecialisation<T extends TypeEntite>(
         ctx.addIssue({ code: 'custom', message: unRegime(v.id) });
         return;
       }
-      if (!estSpecialisable(type, String(v.id))) {
-        ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, String(v.id), '', 'nonSpecialisable', admetChoix) });
+      if (!specs.estSpecialisable(String(v.id))) {
+        ctx.addIssue({ code: 'custom', message: specs.message(String(v.id), '', 'nonSpecialisable', admetChoix) });
         return;
       }
       if (aSpec && aChoix) {
@@ -1028,14 +1132,18 @@ function noeudASpecialisation<T extends TypeEntite>(
         return;
       }
       const candidats = aSpec ? [v.spec as string] : Array.isArray(v.choix) ? (v.choix as string[]) : [];
-      const refus = candidats.map((c) => [c, refusDeSpec(type, String(v.id), c)] as const);
+      const refus = candidats.map((c) => [c, specs.refus(String(v.id), c)] as const);
       // Une sentinelle masque le reste : l'auteur a écrit un emplacement là où il désignait.
       const sentinelle = refus.some(([, r]) => r === 'sentinelle');
       for (const [c, r] of refus) {
         if (r === null || (sentinelle && r !== 'sentinelle')) continue;
-        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
+        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: specs.message(String(v.id), c, r, admetChoix) });
       }
-    }), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
+    };
+  });
+  return marquerProduit(nommerChamps(z.strictObject(admetChoix ? champs : (designe as typeof champs), {
+    error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
+  }).check(controle), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
 }
 
 /**
@@ -1123,7 +1231,7 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
- * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
+ * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `tirageSurTable`).
  */
 export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
   return parmi<O | RefASpecialisation, number>([nommerNoeud(ref(type), { label: 'référence' }), specRef(type), ...optionsDuPorteur], nombreDeTirages());
@@ -1136,7 +1244,7 @@ export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur:
  */
 export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
   const option: z.ZodType<O | Parmi<N, O>> = z.lazy(() => unionDeFormes([noeud, ...options]));
-  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
+  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: listeSansCle(z.array(option).min(1)) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 

@@ -9,6 +9,7 @@ import type { Money } from '../../engine/money';
 import type { CreatorDraft } from '../creation/brouillon';
 import { t } from '../../i18n';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
+import { formatAvantLesReferences, migrerLEntreeAvantLesReferences } from './referencesDeCreation';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { pregens } from '../../data';
 import { idDuPretire } from '../../data/pregens';
@@ -56,7 +57,9 @@ export function lireLeRoster(brut: string): RosterLu | null {
   } catch {
     return null;
   }
-  if (doc?.version !== FORMAT_ROSTER || !Array.isArray(doc.heros)) return null;
+  const ancien = formatAvantLesReferences('roster', doc?.version, FORMAT_ROSTER);
+  if ((!ancien && doc?.version !== FORMAT_ROSTER) || !Array.isArray(doc?.heros)) return null;
+  if (ancien) for (const entree of doc.heros) migrerLEntreeAvantLesReferences(entree);
   const { porteurs, retraits } = elaguerLePersiste({ porteurs: doc.heros.map((e) => e.hero) });
   return { heros: doc.heros.map((e, i) => ({ ...e, hero: { ...porteurs[i], id: e.hero.id } })), retraits: rienDElague(retraits) ? null : retraits };
 }
@@ -112,8 +115,10 @@ export function rosterImport(str: string): RosterImportResult {
   }
   const doc = parsed as Partial<ExportDeHeros> | null;
   if (!doc || typeof doc !== 'object' || doc.kind !== EXPORT_KIND) return { error: t('picker.import.error') };
-  if (doc.version !== FORMAT_EXPORT_HEROS) return { error: t('picker.import.error.autreFormat') };
+  const ancien = formatAvantLesReferences('exportHeros', doc.version, FORMAT_EXPORT_HEROS);
+  if (!ancien && doc.version !== FORMAT_EXPORT_HEROS) return { error: t('picker.import.error.autreFormat') };
   if (!doc.hero || typeof doc.hero.id !== 'string' || !doc.wealth || !doc.draft) return { error: t('picker.import.error') };
+  if (ancien) migrerLEntreeAvantLesReferences(doc);
   const { porteurs: [hero], retraits } = elaguerLePersiste({ porteurs: [doc.hero] });
   return { entry: { hero: { ...hero, id: doc.hero.id }, wealth: doc.wealth, draft: doc.draft }, ...(rienDElague(retraits) ? {} : { retraits }) };
 }

@@ -9,6 +9,8 @@
  * Fidélité : chaque `resolve`/`derive` reprend À L'IDENTIQUE le code historique du store
  * (références RAW en place). Ne rien y « simplifier » sans citer la source.
  */
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import type { TrappingResolver } from '../engine/items';
 import type { Jeu } from './etat';
 import { bouclierDuBinome, bouclierDuBinomeEnJeu } from './combat/surnombre';
 import type { IdDeRangee } from './designations';
@@ -133,10 +135,13 @@ import {
   rollDisengageAttack,
   rollGrappleForce,
   frozenDifficulty,
+  hydrateAttackTR,
+  sommeDesModificateursDR,
   type AttackResult,
   type DefenseSub,
 } from '../engine/combat';
 import {
+  clampTarget,
   rollTest,
   resolveOpposed,
   opposedBranchSuccess,
@@ -221,10 +226,10 @@ import { findSpellById, byId } from '../data/index';
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
  *  La Difficulté VOYAGE avec le résultat d'origine (`frozenDifficulty`) : ce re-jet n'a plus le
  *  contexte (distance, env, flanc/dos) qui l'a composée, et dépenser un point ne la change pas. */
-export function rederiveAttack(scene: Scene | null, attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
+export function rederiveAttack(resolveTrapping: TrappingResolver, scene: Scene | null, attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
   // L'arme FIGÉE au jet prime : `Combatant.weapons` ne porte que le loadout ACTIF, donc un uid seul
   // peut être introuvable et rendre la main à l'auto-choix (un tir au contact redeviendrait une frappe).
-  const weapon = p.weapon ?? firedWeapon(scene, attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
+  const weapon = p.weapon ?? firedWeapon(resolveTrapping, scene, attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
   const r = p.result!;
   const compo = frozenDifficulty(r.attackerDetail);
   const dmgProxy = chargeDmgProxy(combatants, attacker, p.fromCharge);
@@ -250,7 +255,7 @@ export function rederiveAttack(scene: Scene | null, attacker: Combatant, target:
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     const binome = combatants ? bouclierDuBinome(scene, combatants, target) : undefined;
     return weapon.type === 'distance'
-      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, sceneMetresPerTile(scene), compo, p.withhold, binome)
+      ? finishRanged(resolveTrapping, attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, sceneMetresPerTile(scene), compo, p.withhold, binome)
       : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo, binome);
   }
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'distance' ? 'distance' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
@@ -264,7 +269,7 @@ export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | 
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
  *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est `parryWeaponOf`. */
-function finishDefenseResult(s: Pick<Jeu, 'scene' | 'battle'>, attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] | undefined): AttackResult {
+function finishDefenseResult(s: Pick<Jeu, 'scene' | 'battle' | 'campaignNarratif'>, attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] | undefined): AttackResult {
   const metresPerTile = sceneMetresPerTile(s.scene);
   const binome = bouclierDuBinomeEnJeu(s, defender);
   const sub = defenseSubOf(defender, p);
@@ -275,7 +280,7 @@ function finishDefenseResult(s: Pick<Jeu, 'scene' | 'battle'>, attacker: Combata
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
   return p.weapon.type === 'distance'
-    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold, binome)
+    ? finishRanged(objetDuNarratif(s.campaignNarratif), attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold, binome)
     : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo, binome);
 }
 
@@ -298,9 +303,6 @@ export function opposedForcingCancelled(p: PendingDefense, defenderForcing = fal
 function attaquantForce(p: PendingDefense): boolean {
   return p.suite.mode === 'pilotee' && !!p.suite.pa.forcee;
 }
-/** Ligne factuelle rendue au joueur qui dépense le SECOND Point (#1000) — l'annulation n'est jamais
- *  silencieuse. Consommateur : la fenêtre de défense (`useDefenseJetProps`). */
-export const OPPOSED_FORCING_CANCELLED_NOTE = 'Les deux Résiliences s’annulent — le Test se résout aux dés.';
 
 /** Plancher de DR du dé forcé en Test OPPOSÉ. Garantie ACTIVE (LDB 17 l.68 : « S'il s'agit d'un Test
  *  opposé, vous l'emportez avec au moins DR +1 ») → DR de l'opposant + 1, au minimum 1 : c'est la
@@ -327,7 +329,8 @@ function bargainPlayerTR(p: PendingBargain, tr: TestResult): TestResult {
  *  défenseur + 1). Attaque non forcée, ou garanties annulées (#1000) → jet rendu TEL QUEL. */
 function forcedOpposedAtk(p: PendingDefense, def: TestResult): TestResult {
   if (!attaquantForce(p) || opposedForcingCancelled(p)) return p.atk;
-  return { ...p.atk, sl: Math.max(p.atk.sl, def.sl + 1, 1) };
+  const minimum = plancherOpposeForce(def.sl, false) - sommeDesModificateursDR(p.atkCompo?.modsDR);
+  return { ...p.atk, sl: Math.max(p.atk.sl, minimum) };
 }
 
 /** Descripteur de la défense par SUBSTITUTION sociale (Intimidation/Dressage, LDB 09 l.207/287), ou
@@ -551,10 +554,22 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
 /** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
  *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
  *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
-function lireDeDActivite(p: PendingActivity, tr: { roll: number; target: number; sl: number; success: boolean }): Partial<PendingActivityFields> {
+function lireDeDActivite(
+  p: PendingActivity,
+  tr: { roll: number; target: number; sl: number; success: boolean },
+  resilience = false,
+): Partial<PendingActivityFields> {
   if (p.target2 != null) {
     const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
-    return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
+    const plancherActif = resilience && c.level === 'full';
+    return {
+      roll: c.roll,
+      sl: plancherActif ? Math.max(c.a.sl, 1) : c.a.sl,
+      success: c.a.success,
+      sl2: plancherActif ? Math.max(c.b.sl, 1) : c.b.sl,
+      success2: c.b.success,
+      combinedLevel: c.level,
+    };
   }
   if (p.battle === 'round' && p.enemyValue != null) {
     const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
@@ -885,10 +900,11 @@ export const FLOWS = paresseux({
       read: (p) => (p.result?.attackerDetail ? { ...deDuJet(p.result.attackerDetail), roll: p.result.attackerRoll } : null),
       write: (s, p, actor, _g, tr) => {
         const t = actorIn(s, p.targetId);
-        return actor && t ? { result: rederiveAttack(s.scene, actor, t, p, tr, s.battle?.combatants) } : null;
+        return actor && t ? { result: rederiveAttack(objetDuNarratif(s.campaignNarratif), s.scene, actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
-      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false)
+        - sommeDesModificateursDR(p.result?.attackerDetail?.modsDR),
     },
     resolve: (s, p, actor, get, forced) => {
       const target = actorIn(s, p.targetId);
@@ -904,12 +920,13 @@ export const FLOWS = paresseux({
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
-        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
-        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
+        const minimum = plancherOpposeForce(defSL, false) - sommeDesModificateursDR(ad.modsDR);
+        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, minimum), ad.base);
+        return { result: rederiveAttack(objetDuNarratif(s.campaignNarratif), s.scene, actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, attackWeaponOf(s.scene, battle, actor, target, p), p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, p.withhold);
+      const r = resolveAttack(get, actor, target, attackWeaponOf(objetDuNarratif(s.campaignNarratif), s.scene, battle, actor, target, p), p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, p.withhold, p.siege);
       // MÊME gel que `jetLancer('attaque')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -927,8 +944,8 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId);
         if (!target) return null;
         const ad = p.result!.attackerDetail!;
-        const atk2 = bumpSL(hydrateTR(ad));
-        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
+        const atk2 = bumpSL(hydrateAttackTR(ad));
+        return { result: rederiveAttack(objetDuNarratif(s.campaignNarratif), s.scene, actor, target, p, atk2, s.battle?.combatants) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -938,7 +955,7 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId); if (!target) return null;
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
-        const weapon = p.weapon ?? firedWeapon(s.scene, actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
+        const weapon = p.weapon ?? firedWeapon(objetDuNarratif(s.campaignNarratif), s.scene, actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
         return attackTestOf(actor, weapon, weapon.type === 'distance' ? 'distance' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
@@ -949,7 +966,8 @@ export const FLOWS = paresseux({
         // — ni forcer un succès, `forcedTR`) ; seule la voie Talent (gate stricte échec→succès dans
         // `applyReverse`) garantit `tr.success:true` par construction.
         const atk2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(ad), base: ad.base, success: tr.success, sl: tr.sl });
-        return { patch: { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
+        const result = rederiveAttack(objetDuNarratif(s.campaignNarratif), s.scene, actor, target, p, atk2, s.battle?.combatants);
+        return { patch: { result }, issue: { ...tr, sl: result.attackerDetail?.sl ?? tr.sl } };
       },
     },
     refusDAnnuler: (_s, pa) => refusDAnnulerLAttaque(pa),
@@ -1013,7 +1031,7 @@ export const FLOWS = paresseux({
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
-      floorSL: (p) => plancherOpposeForce(p.atk.sl, opposedForcingCancelled(p)),
+      floorSL: (p) => plancherOpposeForce(p.atk.sl + sommeDesModificateursDR(p.atkCompo?.modsDR), opposedForcingCancelled(p)),
     },
     resolve: (s, p, actor, _get, forced) => {
       const attacker = porteurParId(s, p.attackerId);
@@ -1030,7 +1048,8 @@ export const FLOWS = paresseux({
         // policy-aware), jamais le dé raté courant. Le plancher est celui de `opposedForcedFloor` : la
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
-        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, plancherOpposeForce(p.atk.sl, cancelled)), p.def.base);
+        const minimum = plancherOpposeForce(p.atk.sl + sommeDesModificateursDR(p.atkCompo?.modsDR), cancelled);
+        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, minimum), p.def.base);
         return { def: def2, result: finishDefenseResult(s, attacker, actor, pForced, def2, defenseDodgeMods(s, actor)) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
@@ -2142,8 +2161,13 @@ export const FLOWS = paresseux({
     // (LDB 12 l.206 : UN dé confronté à DEUX valeurs → les deux issues se re-dérivent) ou OPPOSÉ de
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
     die: {
-      read: (p) => (p.roll != null && p.target != null ? { roll: p.roll, target: p.target, critable: false } : null),
+      read: (p) => p.roll == null || p.target == null ? null : {
+        roll: p.roll,
+        target: p.forcee && p.target2 != null ? Math.min(p.target, p.target2) : p.target,
+        critable: false,
+      },
       write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
+      resilience: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr, true),
     },
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,
@@ -2625,8 +2649,15 @@ export function bandeCourante(s: Jeu) {
 export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<Jeu, 'pendingTest' | 'pendingCascade'>>; ligne: string | null } | null {
   const test = s.pendingTest;
   if (test?.actorId === porteur.id && test.psychMod && test.roll == null) {
+    const { target, clamped } = clampTarget(cibleBrute(test) - test.psychMod);
+    const mods = test.mods?.filter((mod) => mod.ref?.category !== 'psychologies');
+    const value = test.skillValue - test.psychMod;
+    const immunite = { target, clamped, mods: mods?.length ? mods : undefined, psychMod: 0, psychDetail: undefined };
+    const candidates = test.candidates?.map((candidat) => candidat.id === porteur.id
+      ? { ...candidat, value, ...immunite }
+      : candidat);
     return {
-      patch: { pendingTest: { ...test, skillValue: test.skillValue - test.psychMod, target: test.target - test.psychMod, psychMod: 0, psychDetail: undefined } },
+      patch: { pendingTest: { ...test, skillValue: value, ...immunite, candidates } },
       ligne: t('psy.determinationSocial', { name: porteur.label }),
     };
   }

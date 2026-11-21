@@ -29,7 +29,7 @@ function litteral(objet, cles, sf) {
 /**
  * Sites `{ rel, ligne, id, spec, specId }` des fichiers `{ rel, text }` dont un littéral objet porte une
  * spécialisation en LIBELLÉ.
- * @param {{ rel: string, text: string }[]} fichiers
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @param {Map<string, { id: string, label: string }[]>} catalogue
  */
 export function sitesSpecLibelle(fichiers, catalogue) {

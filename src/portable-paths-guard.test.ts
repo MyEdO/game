@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
 
 /**
@@ -60,7 +60,7 @@ export function absoluteMachinePathIn(line: string): string | null {
   return null;
 }
 
-function scanFiles(): { rel: string; text: string }[] {
+function scanFiles(): Pick<CorpusFile, 'rel' | 'text'>[] {
   return SCAN_ROOTS.flatMap(({ dir, exts }) =>
     readCorpus([dir], { exts, tests: true }).map(({ rel, text }) => ({ rel, text })),
   );

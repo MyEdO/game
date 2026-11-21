@@ -20,6 +20,7 @@ import { REGISTRE_LIVRES, allAbbrAlternation, bookOf, chapterBoundaryRiskFor, fo
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { EXTS_CITANTES, RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'graphy-stock.json')
@@ -480,4 +481,7 @@ function main() {
   if (src.length || docs.length || implProse.length || stockFail || unknownAbbr.length || multiFolioSplit.length) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

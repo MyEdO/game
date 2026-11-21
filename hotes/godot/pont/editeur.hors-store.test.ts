@@ -14,18 +14,24 @@
 import { describe, expect, it } from 'vitest';
 import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
-import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import {
+  UNITES_DU_PLAN_DE_CARTE,
+  cotesDeMarchesDeLaCouche,
+  type AreteDessinee,
+  type CoteDeMarches,
+  type RetraitDuMonde,
+  type Scene,
+} from '../../../src/noyau/index';
+import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits, vehicles } from '../../../src/data';
 import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
 import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
-import { travelVehicles } from '../../../src/engine/travel';
 import { statblockDeLaCreature } from '../../../src/data/valeursNeuves';
 import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
@@ -42,6 +48,7 @@ interface Edition {
   monde?: NonNullable<MondeDuPont['monde']>;
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
+  cotesDeMarches?: CoteDeMarches[];
   navires?: Record<string, NavireServi>;
   decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
@@ -161,8 +168,8 @@ describe('l’éditeur de carte par le pont', () => {
     expect(erreurDe(appel('editer', { edition: { geste: 'pinceau', taille: 3 } })).categorie, 'pas de pinceau en sélection').toBe('validation');
     expect(erreurDe(appel('editer', { edition: { geste: 'appui', point: { case: { x: 1.5, y: 1 }, f: { x: 1.5, y: 1 } } } })).categorie).toBe('validation');
     expect(erreurDe(appel('editer', { edition: { geste: 'couche', z: 4 } })).categorie, 'une couche absente').toBe('validation');
-    expect(erreurDe(appel('editer', { edition: { geste: 'annuler' } }))).toEqual({ categorie: 'regle', message: 'editer : Rien à annuler' });
-    expect(erreurDe(appel('editer', { edition: { geste: 'retirerCouche' } }))).toEqual({ categorie: 'regle', message: 'editer : Le rez ne se retire pas' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'annuler' } }))).toEqual({ categorie: 'regle', message: 'Rien à annuler' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'retirerCouche' } }))).toEqual({ categorie: 'regle', message: 'Le rez ne se retire pas' });
   });
 
   it('les couches : en ajouter une l’édite, en changer rend le monde de la couche éditée, retirer l’éditée rend le rez', () => {
@@ -183,6 +190,15 @@ describe('l’éditeur de carte par le pont', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, les côtés de marches (#4471)', () => {
+  it('l’ouverture rend avec le monde les côtés des cases de marches de la couche éditée', () => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: 'la-diligence' }));
+    expect(ouverte.cotesDeMarches!.length, 'les volées de la cour du relais').toBeGreaterThan(0);
+    expect(ouverte.cotesDeMarches).toEqual(cotesDeMarchesDeLaCouche(paquetDuJeu(diligenceCampaign).scenes[0], ouverte.vue.couche));
+  });
+});
+
 describe('l’éditeur de carte par le pont, les murs', () => {
   it('l’outil murs pose une porte du matériau choisi sur l’arête la plus proche ; la sélection la décrit ; annuler la retire', () => {
     const { appel } = table();
@@ -199,7 +215,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
     expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{
       cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 },
-      sens: { x: -1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage',
+      sens: { x: -1, y: 0 }, pied: 0, piece: 'porte-ouverte', position: 'seule', famille: 'colombage',
       palette: expect.any(Object), hauteurM: 4, bloc: '0/0/0',
     }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
@@ -461,7 +477,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(inspecte(pleines, 'identifier/choix/n2/choix-0')).toMatchObject({ type: 'formulaire', libelle: 'Identifier la réponse « choix-0 »' });
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-0', 'accepter'] }));
     expect(['identifier/choix/n1/accepter', 'identifier/choix/n1/choix-1', 'identifier/choix/n2/choix-0'].map((id) => inspecte(renommee, id)?.type)).toEqual(['formulaire', 'formulaire', 'formulaire']);
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « accepter » déjà porté par la réponse 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « accepter » déjà porté par la réponse 1' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-1', 'x'] })).categorie, 'la réponse d’un autre nœud ne s’adresse pas par celui-ci').toBe('validation');
     const ailleurs = editionDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-0', 'accepter'] }));
     expect(inspecte(ailleurs, 'identifier/choix/n2/accepter')?.type).toBe('formulaire');
@@ -479,7 +495,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     const dialogue = presser(boutonDe(designe, `logique/dialogue/${id}`));
     const refus = boutonDe(dialogue, 'dialogue/supprimer').refus;
     expect(refus, 'la raison du retrait refusé').toMatch(/\S/);
-    expect(erreurDe(appel('editer', boutonDe(dialogue, 'dialogue/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(dialogue, 'dialogue/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     const libre = presser(boutonDe(dialogue, 'annuler'));
     const retenu = presser(boutonDe(libre, `logique/dialogue/${id}`));
     expect(boutonDe(retenu, 'dialogue/supprimer').refus, 'plus désigné, il se retire').toBeNull();
@@ -539,7 +555,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     expect(boutonDe(renommee, 'logique/rencontre/enc-bois').presse).toBe(true);
     const supprimer = boutonDe(renommee, 'rencontre/supprimer');
     expect([supprimer.refus?.includes('« enc-bois »'), supprimer.refus?.includes('« route-futaie »')]).toEqual([true, true]);
-    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${supprimer.refus}` }));
+    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: supprimer.refus }));
   });
 
   it('la cible d’un objectif « seuil de dommage » se choisit parmi les membres ; la monture chevauchée, parmi les seules montures', () => {
@@ -695,7 +711,9 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const diligence = (x: Edition) => presser(valeursDeLInspecteur(x, 'valeur/modes/ajouter').find((b) => b.libelle === 'Diligence')!);
     const route = presser(boutonDe(carte, 'logique/route/route-futaie'));
     expect(ids(route).filter((id) => id.startsWith('valeur/billets')), 'à pied seulement, aucun billet ne s’offre').toEqual([]);
-    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => b.libelle), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas').toEqual(travelVehicles().map((v) => v.label));
+    const modes = [{ id: 'monture', label: 'En selle' }, { id: 'mer', label: 'En mer' }, ...vehicles];
+    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => [b.id, b.libelle]), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas')
+      .toEqual(modes.map(({ id, label }) => [`valeur/modes/ajouter/${JSON.stringify(id)}`, label]));
     const deuxModes = diligence(route);
     const billets = presser(boutonDe(deuxModes, 'valeur/billets/ajouter'));
     expect(ids(billets).filter((id) => /^valeur\/billets\/[^/]+\/ajouter$/.test(id)), 'seul le mode payant s’offre').toEqual(['valeur/billets/diligence/ajouter']);
@@ -956,7 +974,12 @@ describe('l’éditeur de carte par le pont, les scènes du projet', () => {
 
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
     expect(derniere(renommee)).toMatchObject({ id: 'scenes/cour', presse: true });
-    expect(derniere(editionDe(appel('editer', { type: 'identifier', args: [premiere.id.slice('scenes/'.length)] }))).id, 'un identifiant déjà pris se refuse').toBe('scenes/cour');
+    const pris = premiere.id.slice('scenes/'.length);
+    expect(erreurDe(appel('editer', { type: 'identifier', args: [pris] }))).toMatchObject({
+      categorie: 'regle', message: expect.stringContaining(`« ${pris} »`),
+    });
+    const apresRefus = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(scenes(apresRefus)).toEqual(scenes(renommee));
   });
 });
 
@@ -1364,7 +1387,7 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     const poser = boutonDe(tracee, 'volee/poser');
     expect(poser.refus).toBeTruthy();
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
-    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
+    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: poser.refus });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
   });
 });
@@ -1679,8 +1702,16 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(valeursDe(outil, 'navires').map((b) => [b.id, b.libelle, b.refus])).toEqual([['navire/caraque', 'Caraque', null], ['navire/barge-fluviale', 'Barge fluviale', null]]);
     expect(valeursDe(outil, 'navire/cap').map((b) => b.id)).toEqual(['navire/cap/N', 'navire/cap/E', 'navire/cap/S', 'navire/cap/O']);
     presser(boutonDe(outil, 'navire/cap/E'));
-    const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
+    const essayer = (x: number) => editionDe(appel('editer', { edition: { geste: 'appui', point: point(x, 6) } }));
+    const refusee = essayer(6);
+    expect(refusee.monde).toBeUndefined();
+    expect(boutonDe(refusee, 'annuler').refus).toBe('Rien à annuler');
+    const posee = essayer(7);
     expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
+    expect(posee.navires!['navire-0'].centre).toEqual({ x: 8.5, y: 8 });
+    const capNord = boutonDe(posee, 'entite/cap/N');
+    expect(capNord.refus).toMatch(/ponts du navire hors de la carte/);
+    expect(erreurDe(appel('editer', capNord.jeu)).categorie).toBe('regle');
     expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
     const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
     expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
@@ -1689,7 +1720,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
-    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 0 && x <= 17 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
   it('la réponse sert les décors de la scène dont un élément `decor` est servi, comme la vue (#4335)', () => {
@@ -1707,11 +1738,37 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
   });
 
+  it('une réindexation pendant le trait renouvelle le manifeste et ses décors au relâché', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const initial = morceauxDe(appel, 'edition', ouverte.monde!);
+    const prop = initial.flatMap((m) => m.surfaces).find((s) => s.decor)!.decor!;
+    editionDe(appel('editer', boutonDe(ouverte, 'outil/tile').jeu));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    servirLesModeles(appel, COMMITES, avecLesSeulsDecors(COMMITES, prop));
+
+    expect(jouer({ geste: 'glisse', point: point(2, 1) }).monde).toBeUndefined();
+    expect(morceauxDe(appel, 'edition', ouverte.monde!)).toEqual(initial);
+    const relachee = jouer({ geste: 'relache', point: point(2, 1) });
+    expect(Object.keys(relachee.decors!)).toEqual([prop]);
+    const manifeste = relachee.monde!;
+    expect(manifeste.secoursDecors).toMatchObject({ source: 'edition', revision: expect.any(Number) });
+    const volume = morceauxDe(appel, 'edition', manifeste);
+    expect(volume.map(({ cle, empreinte }) => ({ cle, empreinte }))).toEqual(manifeste.morceaux);
+    expect(volume.flatMap((m) => m.surfaces).some((s) => s.decor === prop && s.priseSeulement)).toBe(true);
+    const secours = appel('retablirDecors', { ...manifeste.secoursDecors, prop }) as unknown as MorceauxDuPont & { ok: boolean };
+    expect(secours.ok).toBe(true);
+    expect(secours.toits).toEqual([]);
+    expect(secours.volume.some((m) => m.surfaces.some((s) => s.decor === prop && !s.priseSeulement))).toBe(true);
+  });
+
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
     servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
-    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    presser(boutonDe(outil, 'navire/barge-fluviale'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
     expect(valeursDeLInspecteur(posee, 'entite/cap').map((b) => [b.id, b.presse])).toEqual([['entite/cap/N', true], ['entite/cap/E', false], ['entite/cap/S', false], ['entite/cap/O', false]]);
     expect(posee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'equipage'), 'son équipage exposé').toBe(true);
@@ -2074,12 +2131,12 @@ describe('le retrait d’un champ que son objet exige, par le pont (#3606)', () 
     presser('logique/dialogue/dlg-flux');
     const expr = 'valeur/nodes/0/choices/0/flow/condition/expr';
     expect(formulaire(expr).champs[2], 'le drapeau, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
-    expect(erreurDe(vider(expr))).toEqual({ categorie: 'regle', message: 'editer : le champ « nodes/0/choices/0/flow/condition/expr » est requis' });
+    expect(erreurDe(vider(expr))).toEqual({ categorie: 'regle', message: 'le champ « nodes/0/choices/0/flow/condition/expr » est requis' });
 
     cliquer(1, 1);
     const nom = 'valeur/statblock/label';
     expect(formulaire(nom).champs[2], 'le nom du profil, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
-    expect(erreurDe(vider(nom))).toEqual({ categorie: 'regle', message: 'editer : le champ « statblock/label » est requis' });
+    expect(erreurDe(vider(nom))).toEqual({ categorie: 'regle', message: 'le champ « statblock/label » est requis' });
 
     cliquer(3, 1);
     const porte = 'valeur/crossTest/gate/expr';
@@ -2154,10 +2211,10 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
   it('un indice que désigne une scène se renomme, la scène suit, une annulation défait les deux ; un identifiant pris se refuse, dit ; le supprimer se refuse, dit', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
-    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
+    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
     const refus = boutonDe(indice, 'indices/supprimer').refus;
     expect(refus).toMatch(/^Encore désigné par : scène/);
-    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     const renomme = editionDe(appel('editer', { type: 'nommer', args: ['ind-missive'] }));
     expect([boutonDe(renomme, 'logique/indices/ind-missive').presse, revele(presser, renomme)]).toEqual([true, { type: 'revealClue', indiceId: 'ind-missive', stade: 'lu' }]);
     editionDe(appel('editer', { edition: { geste: 'enregistrement', reussi: false } }));
@@ -2171,7 +2228,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const ajoute = presser(boutonDe(indice, 'valeur/stades/ajouter'));
     expect(inspecte(ajoute, 'identifier/stade/stade-3')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['stade-3', 'releve'] }));
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « vu » déjà porté par le stade 2' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « vu » déjà porté par le stade 2' });
     expect(boutonDe(renomme, 'stade/lu/supprimer').refus).toMatch(/^Encore désigné par : scène/);
     const retire = presser(boutonDe(renomme, 'stade/releve/supprimer'));
     expect(retire.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/stade/releve')).toBe(false);
@@ -2221,7 +2278,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const identite = presser(ajout.valeurs[0]);
     const refus = boutonDe(identite, 'etat/forme/enum').refus;
     expect(refus).toBe('Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.');
-    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: refus });
   });
 
   it('l’identité d’un état héros : ses repères s’ajoutent, s’identifient et se retirent par leurs gestes, le dernier refusé, dit', () => {
@@ -2232,7 +2289,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const ajoute = presser(boutonDe(identite, 'valeur/forme/identite/reperes/ajouter'));
     expect(inspecte(ajoute, 'identifier/repere/repere-2')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['repere-2', 'titre'] }));
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « repere-1 » déjà porté par le repère 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « repere-1 » déjà porté par le repère 1' });
     const retire = presser(boutonDe(renomme, 'repere/titre/supprimer'));
     expect([inspecte(renomme, 'identifier/repere/titre')?.type, inspecte(retire, 'identifier/repere/titre')]).toEqual(['formulaire', undefined]);
   });
@@ -2284,7 +2341,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     e = nommer('falot');
     const refus = boutonDe(e, 'objets/supprimer').refus;
     expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
-    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     expect(choisi(e), 'le don suit le renommage').toEqual(['Lanterne', 'falot']);
     e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');

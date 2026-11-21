@@ -48,9 +48,9 @@ export const RESERVES: Record<'ilyanwe' | 'berta', Reserves> = { ilyanwe: { chan
 
 /** Les trois réserves d'un héros, à gauche des gestes qui les dépensent. */
 export const reserves = ({ chance, resilience, determination }: Reserves): Reserve[] => [
-  { nom: 'Chance', valeur: chance },
-  { nom: 'Résilience', valeur: resilience },
-  { nom: 'Détermination', valeur: determination },
+  { id: 'chance', nom: 'Chance', valeur: chance },
+  { id: 'resilience', nom: 'Résilience', valeur: resilience },
+  { id: 'determination', nom: 'Détermination', valeur: determination },
 ];
 
 /** Un geste fermé de la raison `refus`, ouvert sans elle ; `survol`, la raison se lit. */

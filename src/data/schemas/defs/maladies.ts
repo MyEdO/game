@@ -2,16 +2,16 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 20. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { flowSchema, noeudTestFixe, passifsDe } from '../grammaire/mecanique';
+import { flowSchema, noeudTestFixe, passifsDe, sujetDuJetSchema, type SujetDuJet } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
-import { diceSpecSchema, difficultySchema, symptomSeveritySchema } from '../grammaire/valeurs';
+import { diceSpecSchema, difficultySchema, enumNomme, symptomSeveritySchema } from '../grammaire/valeurs';
 
 export const file = 'maladies.json';
 export const famille = 'entite';
 
 const diseaseTimeSchema = nommerChamps(z.strictObject({
   dice: diceSpecSchema,
-  unit: z.enum(['days', 'hours', 'minutes']),
+  unit: enumNomme({ weeks: 'Semaines', days: 'Jours', hours: 'Heures', minutes: 'Minutes' }),
 }), { dice: { label: 'dés' }, unit: { label: 'unité' } });
 
 const diseaseSymptomSchema = nommerChamps(z.strictObject({
@@ -28,6 +28,7 @@ const diseaseSymptomSchema = nommerChamps(z.strictObject({
 
 const champs = {
   contractDifficulty: difficultySchema,
+  testDeContraction: sujetDuJetSchema.optional(),
   incubation: diseaseTimeSchema,
   duration: diseaseTimeSchema,
   symptoms: z.array(diseaseSymptomSchema),
@@ -53,6 +54,7 @@ const doc = document(
   champs,
   {
     contractDifficulty: { label: 'Difficulté de contraction' },
+    testDeContraction: { label: 'Sujet du Test de Contraction', hint: 'Résistance quand aucun autre Test n’est déclaré' },
     incubation: { label: 'Incubation', hint: 'Délai avant apparition des symptômes' },
     duration: { label: 'Durée', hint: 'Durée de la maladie' },
     symptoms: { label: 'Symptômes' },
@@ -68,7 +70,14 @@ const doc = document(
     codex: { keys: ['maladies'] },
     edit: { dataset: 'maladies' },
   },
-  { exiges: ['desc'] },
+  {
+    exiges: ['desc'],
+    affinerEntree: (entree) => entree.refine(
+      ({ testDeContraction }: { testDeContraction?: SujetDuJet }) =>
+        !testDeContraction || testDeContraction.skill != null || testDeContraction.characteristic != null,
+      { path: ['testDeContraction'], message: 'Nommer la Compétence ou la Caractéristique du Test de Contraction.' },
+    ),
+  },
 );
 
 export const schema = doc.schema;

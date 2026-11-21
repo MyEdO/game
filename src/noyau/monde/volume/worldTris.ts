@@ -3,24 +3,21 @@
  * MÈTRES) deviennent des triangles en repère three (Y = haut) : `(x, y, h) → (x·mpt, h, y·mpt)`.
  * Module PUR : ni DOM, ni renderer, ni `three`, ni catalogue (des points nus suffisent au maillage).
  *
- * Six politiques y vivent, chacune une fonction :
+ * Cinq politiques y vivent :
  *  - ORIENTATION (`orienterPoly`) : le DEHORS d'une face, selon le régime qu'elle DÉCLARE — la
  *    cuisson en tire son sens de parcours, l'instrument de QC son cull ; une seule définition ;
- *  - FAMILLE D'OMBRAGE (`shadeFamily`) : l'axe dominant de la normale ORIENTÉE. Le facteur
- *    d'irradiance de la famille est une lecture de catalogue et vit avec elle (`faceColors.ts`) ;
  *  - TRIANGULATION en ÉVENTAIL (les faces du pivot sont planes, convexes, ≤ 4 points) ;
  *  - VOLUME d'une face VERTICALE : une face du pivot est un plan d'épaisseur NULLE (l'affine peint des
  *    quads d'écran) — sans surface à 90° de plongée, sans chant à éclairer. Toute face verticale à qui
- *    l'appelant résout une profondeur (`FaceDepth`, catalogues d'apparence : `./profondeur`) devient
+ *    l'appelant résout une profondeur (`faceDepthM`, dans `./profondeur`) devient
  *    une BOÎTE MINCE centrée sur son plan (`wallBoxPolys`) ;
  *  - MONTANTS à 2 points (`walls.ts:119`, `floors.ts:163`) : deux quads verticaux CROISÉS, dont la
- *    largeur arrive PAR LE MÊME CANAL que les épaisseurs (`FaceDepth` → `uprightCrossM`, authorée en
+ *    largeur arrive par le même paramètre que les épaisseurs (`depthM`, authorée en
  *    mètres au catalogue) ; ces quads entrent dans le calcul coplanaire au même titre que les faces
  *    pleines (un bras de la croix est DANS le plan du panneau qu'il décore) ;
  *  - BIAIS COPLANAIRE : l'affine départage les faces empilées d'un même plan par l'ORDRE d'émission ;
  *    au GPU il faut une séparation métrique — rang d'émission × `COPLANAR_BIAS_M` le long de la normale.
  */
-import { TW } from '../../../geometry/iso';
 import type { Face, GP } from './types';
 
 /** Point MÉTRIQUE en repère three : X = est, Y = haut, Z = sud. */
@@ -34,15 +31,9 @@ export interface Vec3 {
 export type WorldPoly = Vec3[];
 export type Tri = [Vec3, Vec3, Vec3];
 
-/** Pixels ÉCRAN par mètre de la projection affine : une tuile (TW px de large en losange) mesure
- *  `mpt` mètres, sa demi-diagonale projetée vaut `TW·√½` px (`geometry/iso.ts:14`). */
-export function pxPerM(mpt: number): number {
-  return (TW * Math.SQRT1_2) / mpt;
-}
-
 /** Épaisseur (m) d'un volume dont l'appelant n'a rien résolu : AUCUNE. Ce module ne connaît pas les
- *  matériaux — les épaisseurs sont authorées en mètres au catalogue et arrivent par `FaceDepth`
- *  (`./profondeur`). Un appelant sans résolveur obtient donc des PLANS, jamais une épaisseur devinée. */
+ *  matériaux. L’appelant transmet les épaisseurs calculées par `faceDepthM` (`./profondeur`). Sans épaisseur
+ *  résolue, la face reste un plan. */
 const SANS_VOLUME = 0;
 
 /** Séparation métrique d'un cran de rang coplanaire. */
@@ -136,64 +127,6 @@ export function trianglesOrientes(g: FaceGeom, centre: CentreCarte): TriangleOri
   });
 }
 
-/** FAMILLES D'ORIENTATION du modelé de forme (#1300) : les deux horizontales (`haut` = sol, toit,
- *  chant supérieur ; `bas` = soffite), et les quatre verticales NOMMÉES PAR LA DIRECTION QU'ELLES
- *  REGARDENT, dans l'ordre CYCLIQUE de la grille. */
-export type ShadeFamily = 'haut' | 'bas' | '-z' | '+x' | '+z' | '-x';
-
-/** L'ordre CYCLIQUE de la grille — l'index d'une verticale ici EST l'index de son facteur dans la
- *  donnée (`AMBIANCE.faceShade.verticales`), dont le schéma tient la décroissance stricte. Deux
- *  familles voisines dans ce cycle forment un ANGLE de la scène : c'est la paire qui doit se séparer.
- *  Le facteur d'irradiance de chaque famille est une lecture de CATALOGUE : il vit avec les autres
- *  (`faceColors.ts:shadeFactorOf`), ce module ne connaissant aucune donnée d'ambiance. */
-export const SHADE_CYCLE: readonly ShadeFamily[] = ['-z', '+x', '+z', '-x'];
-
-/** Famille d'une normale — l'axe DOMINANT décide, son signe nomme la famille. `null` pour une normale
- *  indéterminée (triangle dégénéré). Une pente à 45° compte pour horizontale : elle se marche.
- *  La normale attendue est celle que présente `orienterPoly` : lue avant elle, 100 % des triangles de
- *  sol (normale géométrique vers le bas) tomberaient en famille de soffite. */
-export function shadeFamily(n: { x: number; y: number; z: number } | null): ShadeFamily | null {
-  if (!n) return null;
-  if (Math.abs(n.y) >= Math.max(Math.abs(n.x), Math.abs(n.z))) return n.y > 0 ? 'haut' : 'bas';
-  return Math.abs(n.x) >= Math.abs(n.z) ? (n.x > 0 ? '+x' : '-x') : n.z > 0 ? '+z' : '-z';
-}
-
-/** Écart maximal (m) des sommets au plan moyen — 0 pour un polygone plan. INSTRUMENT DE GARDE, au même
- *  titre que `coplanarOverlapPairs` : avec `isConvex`, il mesure la PRÉCONDITION de `fanTriangles` sur
- *  les scènes-témoins (`worldTris.test.ts` : 0 face non-plane, 0 non-convexe). Aucun chemin de rendu ne
- *  l'appelle — c'est ce que mesure la garde, pas ce qu'elle décore. */
-export function planarity(poly: WorldPoly): number {
-  const n = polyNormal(poly);
-  if (!n) return 0;
-  const d = n.x * poly[0].x + n.y * poly[0].y + n.z * poly[0].z;
-  let worst = 0;
-  for (const p of poly) worst = Math.max(worst, Math.abs(n.x * p.x + n.y * p.y + n.z * p.z - d));
-  return worst;
-}
-
-/** Convexe : tous les produits vectoriels d'arêtes consécutives pointent du même côté de la normale.
- *  INSTRUMENT DE GARDE, au même titre que `planarity` : avec lui, il mesure la PRÉCONDITION de
- *  `fanTriangles` sur les scènes-témoins (`worldTris.test.ts:79-99` : 0 face non-plane, 0 non-convexe).
- *  Aucun chemin de rendu ne l'appelle. */
-export function isConvex(poly: WorldPoly): boolean {
-  const n = polyNormal(poly);
-  if (!n) return true;
-  let sign = 0;
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % poly.length];
-    const c = poly[(i + 2) % poly.length];
-    const u = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
-    const v = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
-    const cr = { x: u.y * v.z - u.z * v.y, y: u.z * v.x - u.x * v.z, z: u.x * v.y - u.y * v.x };
-    const s = cr.x * n.x + cr.y * n.y + cr.z * n.z;
-    if (Math.abs(s) < 1e-9) continue;
-    if (sign === 0) sign = Math.sign(s);
-    else if (Math.sign(s) !== sign) return false;
-  }
-  return true;
-}
-
 /** Triangulation en ÉVENTAIL depuis le premier sommet. */
 export function fanTriangles(poly: WorldPoly): Tri[] {
   const out: Tri[] = [];
@@ -213,12 +146,6 @@ export function crossQuadPolys(a: Vec3, b: Vec3, wM: number): WorldPoly[] {
     { x: b.x - e.x, y: b.y - e.y, z: b.z - e.z },
   ]);
 }
-
-/** PROFONDEUR MONDE (m) du volume d'une face, résolue par l'appelant depuis les catalogues d'apparence
- *  (`./profondeur`) — ce module ne connaît aucun matériau. Pour un MONTANT (face à 2 points), c'est la
- *  LARGEUR de sa croix. `undefined` = rien de résolu : la face reste un PLAN (et un montant, un trait
- *  sans épaisseur). Une profondeur NULLE laisse elle aussi un plan unique, au plan médian. */
-export type FaceDepth = (face: Face) => number | undefined;
 
 /** Polygone DÉPLACÉ de `d` le long de `n`. */
 function offsetPoly(poly: WorldPoly, n: Vec3, d: number): WorldPoly {
@@ -443,27 +370,6 @@ export function boxesOverlap(a: Bounds, b: Bounds): boolean {
   return axes >= 2;
 }
 
-/** Paires de polygones COPLANAIRES (même plan au mm) dont les boîtes se recouvrent sur ≥ 2 axes :
- *  la mesure du z-fighting. Instrument de la garde autant que du diagnostic. */
-export function coplanarOverlapPairs(polys: readonly WorldPoly[]): [number, number][] {
-  const groups = new Map<string, number[]>();
-  polys.forEach((poly, i) => {
-    const key = planeKey(poly);
-    if (!key) return;
-    const g = groups.get(key);
-    if (g) g.push(i);
-    else groups.set(key, [i]);
-  });
-  const pairs: [number, number][] = [];
-  for (const idx of groups.values()) {
-    const boxes = idx.map((i) => polyBounds(polys[i]));
-    for (let a = 0; a < idx.length; a++)
-      for (let b = a + 1; b < idx.length; b++)
-        if (boxesOverlap(boxes[a], boxes[b])) pairs.push([idx[a], idx[b]]);
-  }
-  return pairs;
-}
-
 /** Géométrie GPU d'une face : ses triangles et leurs DEUX jeux d'UV, sa normale, son rang coplanaire. */
 export interface FaceGeom {
   /** UV PLANAIRES MONDE (mètres) des 3 sommets de chaque triangle, dans le plan de SON quad — de quoi
@@ -477,16 +383,6 @@ export interface FaceGeom {
   rank: number;
   /** Le sens de parcours des triangles porte déjà le DEHORS (cf. `faceQuadsOriented`). */
   oriented: boolean;
-}
-
-/** Quads d'une face soumis au biais coplanaire : le polygone lui-même, ou les DEUX quads croisés d'un
- *  montant (2 points), ou la BOÎTE MINCE de toute face VERTICALE à qui l'appelant a résolu une
- *  profondeur. Un bras de la croix d'un montant est EXACTEMENT dans le plan du
- *  panneau qu'il décore : il entre donc dans le rang coplanaire comme une face pleine (mesuré sur
- *  `arene` : 388 paires montant↔montant + 2 607 paires montant↔face pleine, invisibles tant que les
- *  montants étaient exclus). */
-export function faceQuads(face: Face, mpt: number, depthM?: number): WorldPoly[] {
-  return faceQuadsOriented(face, mpt, depthM).quads;
 }
 
 /** Quads d'une face + le drapeau `oriented` : `true` quand le sens de parcours des quads PORTE déjà une
@@ -590,17 +486,6 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 export function faceUv1(p: Vec3, f: FaceUvFrame): UV {
   const uv = planarUV(p, f);
   return { u: clamp01((uv.u - f.u0) / f.du), v: clamp01((uv.v - f.v0) / f.dv) };
-}
-
-/** Faces → triangles monde, biais coplanaire appliqué, montants développés en croix et faces verticales
- *  développées en boîtes minces à la profondeur que `depthOf` leur résout. Le RANG se calcule
- *  sur la liste FOURNIE (cf. `coplanarRanks` : la porter à l'échelle de la scène), quads de montants
- *  compris. Composé de `faceQuadsOriented`, `coplanarRanks` et `faceGeometry`. */
-export function facesGeometry(faces: readonly Face[], mpt: number, depthOf?: FaceDepth): FaceGeom[] {
-  const parts = faces.map((f) => faceQuadsOriented(f, mpt, depthOf?.(f)));
-  const ranks = coplanarRanks(parts.flatMap((p) => p.quads));
-  let k = 0;
-  return faces.map((face, i) => faceGeometry(face, mpt, parts[i], ranks.slice(k, (k += parts[i].quads.length))));
 }
 
 /** La géométrie d'UNE face depuis ses quads orientés (`faceQuadsOriented`) et le rang de chacun de ses

@@ -6,7 +6,9 @@
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type TestIds } from '../engine/types';
-import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
+import {
+  recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, type TrappingResolver,
+} from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
 import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
@@ -23,7 +25,6 @@ import {
   fullStock,
   availabilitySearchBonus,
   barterRatio,
-  availabilityAfterHalvings,
   priceAfterHalvings,
   isTradable,
   outOfTradeReason,
@@ -61,7 +62,7 @@ import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { cleDeBillet, colonneDeDisponibiliteDuMarchand, lieuDeLaScene, lieuDuGroupe, placeServiceMerchantId, type MapPlace } from './worldMap';
 import { echoppesDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { ajouterLaPossession } from './possessionsFlow';
@@ -236,11 +237,6 @@ export function contexteDAchat(s: Jeu, m: MerchantState): ContexteDAchat {
 export function remiseMaximaleDeMarchandage(party: Combatant[]): number {
   const best = partyAssisted(party, { skill: { id: 'marchandage' } });
   return best ? bargainPct(true, SL_ASTOUNDING, hasBargainBonus(best.actor)) : 0;
-}
-
-/** Remise d'achat obtenue au Marchandage de la visite, en % (LDB 59 l.43) : 0 sans Marchandage. */
-export function remiseDAchatPct(m: MerchantState): number {
-  return m.bargainBuy ? bargainPct(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 0;
 }
 
 /** Prix d'achat UNITAIRE d'une ligne de stock (LDB 59 l.9-11 ; LDB 59 l.43). SOURCE UNIQUE lue par
@@ -596,7 +592,7 @@ function repartirLesAchats(get: Get, set: Set): void {
 /** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage). SOURCE UNIQUE
  *  du prix de vente — partagée par `vendreLeLot` ET l'aperçu UI (pas de formule dupliquée).
  *  Facteur : `bargainSellFactor` (LDB 59 l.54) ; sans Marchandage de vente, 0,5. */
-export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeof fromBrass> {
+export function sellGain(item: ItemInstance, m: MerchantState, resolveTrapping: TrappingResolver): ReturnType<typeof fromBrass> {
   const sellFactor = m.bargainSell ? bargainSellFactor(m.bargainSell.won, m.bargainSell.drNet, m.bargainSell.negotiator) : 0.5;
   // « Baisse des prix » (LDB 59 l.60) : chaque division du prix par deux monte la Disponibilité d'un
   // acheteur d'un cran — appliquée au gain FINAL (le vendeur accepte moins pour écouler un objet rare).
@@ -605,7 +601,7 @@ export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeo
   // déjà nette (rareté × dangerosité × Taille × Conservation) → revendu en DIRECT, sans le taux de revente
   // catalogue. Le Marchandage de vente joue quand même (sellFactor/0.5 : ×1 par défaut, ×plus si gagné).
   if (item.price) return fromBrass(halve(Math.round(toBrass(item.price) * (sellFactor / 0.5))));
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = ficheDObjetPorte(item, resolveTrapping);
   const base = t ? toBrass(priceToMoney(t.price)) * craftPriceFactor(item) : 0;
   return fromBrass(halve(Math.round(base * m.resaleRate * sellFactor)));
 }
@@ -616,22 +612,11 @@ export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeo
  *  (`isTradable`). Deux cas restent vendables : l'objet CUSTOM (hors catalogue, il n'a pas de ligne à
  *  consulter) et l'instance PRÉ-VALUÉE (`item.price` : pièces de monstre récoltées ZI, Carte marine
  *  MDG 15 l.290 « une carte qui peut être reproduite et vendue ») — elle porte sa propre valeur. */
-export function sellRefusal(item: ItemInstance): string | null {
+export function sellRefusal(item: ItemInstance, resolveTrapping: TrappingResolver): string | null {
   if (item.price) return null;
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = ficheDObjetPorte(item, resolveTrapping);
   if (!t || isTradable(t.availability)) return null;
   return outOfTradeReason(t.label);
-}
-
-/** Disponibilité d'un ACHETEUR pour un objet vendu (LDB 59 l.52-62) : sa Disponibilité catalogue montée
- *  d'un cran par baisse de prix consentie (`halvings`). Sert d'affichage au vendeur (plus le cran est
- *  bon, plus un acheteur se trouve vite). `null` = objet sans Disponibilité : aucun cran à afficher,
- *  aucune classe inventée — le refus se lit par `sellRefusal`. */
-export function sellBuyerAvailability(item: ItemInstance, halvings: number): Availability | null {
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
-  const av = t?.availability;
-  if (!isTradable(av)) return null;
-  return availabilityAfterHalvings(av, halvings);
 }
 
 /** Le plus de divisions par deux du prix de vente d'une instance (LDB 59 l.60). */
@@ -641,8 +626,7 @@ export const BAISSES_DE_PRIX_MAX = 4;
 /** Refus de TROC d'un trapping, avec sa RAISON (null = trocable). LDB 59 l.66 : « comparez la
  *  Disponibilité des objets échangés avec celle des objets en cours d'acquisition » — sans Disponibilité,
  *  la comparaison n'a pas de terme et le RATIO n'existe pas. */
-export function barterRefusal(id: string): string | null {
-  const t = findTrappingById(id);
+export function barterRefusal(t: TrappingData | undefined): string | null {
   if (!t) return null;
   return isTradable(t.availability) ? null : outOfTradeReason(t.label);
 }
@@ -656,12 +640,11 @@ export interface BarterQuote {
   giveCount: number;
 }
 
-/** Devis de Troc (LDB 59 l.64-76) : combien d'unités du bien DONNÉ (`giveId`) contre `getCount` unités
- *  du bien ACQUIS (`getId`). Constitue « deux lots de valeur approximativement équivalente » (prix
+/** Devis de Troc (LDB 59 l.64-76) : combien d'unités du bien DONNÉ contre `getCount` unités
+ *  du bien ACQUIS. Constitue « deux lots de valeur approximativement équivalente » (prix
  *  listés, l.66) puis applique le RATIO de rareté (`barterRatio`). null si un prix manque OU si l'un des
  *  deux biens est hors du commerce ordinaire (`barterRefusal`). */
-export function barterQuote(giveId: string, getId: string, getCount = 1): BarterQuote | null {
-  const giveT = findTrappingById(giveId), getT = findTrappingById(getId);
+export function barterQuote(giveT: TrappingData | undefined, getT: TrappingData | undefined, getCount: number): BarterQuote | null {
   if (!giveT || !getT) return null;
   const givePrice = listedBrassOf(giveT), getPrice = listedBrassOf(getT);
   if (givePrice <= 0 || getPrice <= 0) return null;
@@ -686,20 +669,20 @@ export function exemplaireCede(hero: Combatant, trappingId: string): IdDObjet {
 
 /** Un bien cédable au Troc : un trapping chez un héros, avec ses exemplaires, et ce qui refuse de le céder (hors du
  *  commerce ordinaire, ou sans prix listé chiffré). */
-export interface OptionDeTroc { heroId: string; trappingId: string; count: number; refus: string | null }
+export interface OptionDeTroc { heroId: string; trappingId: string; label: string; count: number; refus: string | null }
 
 /** Biens cédables au Troc (LDB 59 l.64-76) par (héros, trapping) — SOURCE UNIQUE de l'écran de Troc et du choix
  *  `marchand.trocCeder`. */
-export function optionsDeTroc(party: readonly Combatant[]): OptionDeTroc[] {
+export function optionsDeTroc(party: readonly Combatant[], resolveTrapping: TrappingResolver): OptionDeTroc[] {
   const out: OptionDeTroc[] = [];
   for (const h of party) {
     const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !it.equipped ? [it.trappingId] : [])));
     for (const trappingId of ids) {
-      const trapping = findTrappingById(trappingId);
+      const trapping = resolveTrapping(trappingId);
       if (!trapping) continue;
-      const horsCommerce = barterRefusal(trappingId);
+      const horsCommerce = barterRefusal(trapping);
       const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.trocSansPrix');
-      out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length, refus });
+      out.push({ heroId: h.id, trappingId, label: trapping.label, count: exemplairesCedables(h, trappingId).length, refus });
     }
   }
   return out;
@@ -710,14 +693,16 @@ export type DemandeDeTroc = { giveHeroId: string; giveTrappingId: string; getSto
 export type DevisDeTroc = ({ refus: null; quote: BarterQuote } | { refus: string; quote: BarterQuote | null }) & { getCount: number; max: number };
 
 /** Devis d'un Troc (LDB 59 l.64-76) — son refus tombe dans `troquerLesObjets`, lu par l'écran. */
-export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeDeTroc): DevisDeTroc {
+export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeDeTroc, resolveTrapping: TrappingResolver): DevisDeTroc {
   const getCount = Math.max(1, Math.floor(opts.getCount ?? 1));
-  const refused = barterRefusal(opts.giveTrappingId) ?? barterRefusal(opts.getStockId);
-  const quote = refused ? null : barterQuote(opts.giveTrappingId, opts.getStockId, getCount);
+  const donne = resolveTrapping(opts.giveTrappingId);
+  const recu = findTrappingById(opts.getStockId);
+  const refused = barterRefusal(donne) ?? barterRefusal(recu);
+  const quote = refused ? null : barterQuote(donne, recu, getCount);
   const hero = party.find((h) => h.id === opts.giveHeroId);
   const stockQty = m.stock.find((l) => l.id === opts.getStockId)?.qty ?? 0;
   const dispo = hero ? exemplairesCedables(hero, opts.giveTrappingId).length : 0;
-  const label = findTrappingById(opts.giveTrappingId)?.label ?? opts.giveTrappingId;
+  const label = donne?.label ?? opts.giveTrappingId;
   const refus = refused ? t('trade.barterRefused', { reason: refused })
     : !quote ? t('mf.trocSansPrix')
     : dispo < quote.giveCount ? t('mf.trocExige', { n: quote.giveCount, label, dispo })
@@ -739,10 +724,11 @@ export function demandeDuTroc(m: MerchantState): DemandeDeTroc | null {
 function troquerLesObjets(get: Get, set: Set): void {
   const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   const opts = garanti(demandeDuTroc(m), m.entityId, 'troc composé');
-  const v = devisDeTroc(m, get().party, opts);
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
+  const v = devisDeTroc(m, get().party, opts, resolveTrapping);
   const quote = garanti(v.quote, opts.getStockId, 'devis du troc');
   const { getCount } = v;
-  const donne = garanti(findTrappingById(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
+  const donne = garanti(resolveTrapping(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
   const recu = garanti(findTrappingById(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
   const hero = garanti(get().party.find((h) => h.id === opts.giveHeroId), opts.giveHeroId, 'troc — héros cédant');
   const givable = exemplairesCedables(hero, opts.giveTrappingId);
@@ -785,11 +771,11 @@ export interface LigneDeVente { hero: Combatant; it: ItemInstance; gain: Money; 
 
 /** Devis du panier de VENTE — SOURCE UNIQUE du total crédité par `vendreLeLot` et affiché par l'écran ;
  *  `total` ne compte que les lignes sans refus, `refus` dit qu'aucune ne se vend. */
-export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: LigneDeVente[]; total: Money; refus: string | null } {
+export function devisDeVente(m: MerchantState, party: Combatant[], resolveTrapping: TrappingResolver): { lignes: LigneDeVente[]; total: Money; refus: string | null } {
   const lignes = (m.sellCart ?? []).flatMap((c): LigneDeVente[] => {
     const hero = party.find((h) => h.id === c.heroId);
     const it = hero?.items?.find((i) => i.uid === c.uid);
-    return hero && it ? [{ hero, it, gain: sellGain(it, m), refus: sellRefusal(it) }] : [];
+    return hero && it ? [{ hero, it, gain: sellGain(it, m, resolveTrapping), refus: sellRefusal(it, resolveTrapping) }] : [];
   });
   return {
     lignes,
@@ -802,7 +788,7 @@ export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: Li
  *  objets de leurs porteurs, honore la négociation de vente. */
 function vendreLeLot(get: Get, set: Set): void {
   const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
-  const devis = devisDeVente(m, get().party);
+  const devis = devisDeVente(m, get().party, objetDuNarratif(get().campaignNarratif));
   for (const l of devis.lignes) if (l.refus) get().ecrireAuJournal(t('trade.sellRefused', { reason: l.refus }));
   const vendues = devis.lignes.filter((l) => !l.refus);
   const gainByHero: Record<string, Money> = {}; // crédit PERSONNEL : chaque gain revient au PORTEUR de l'objet vendu (#531 §8)
@@ -820,22 +806,22 @@ function vendreLeLot(get: Get, set: Set): void {
 
 /** Coût de réparation d'un objet endommagé (LDB 63 l.64 ; LDB 62 l.135) — SOURCE UNIQUE lue par
  *  `reparerLObjet` et l'écran du marchand. */
-export function coutDeReparation(item: ItemInstance): Money {
-  const trapping = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+export function coutDeReparation(item: ItemInstance, resolveTrapping: TrappingResolver): Money {
+  const trapping = ficheDObjetPorte(item, resolveTrapping);
   return fromBrass(itemRepairCostBrass(item, trapping ? toBrass(priceToMoney(trapping.price)) : 0));
 }
 
 /** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
  *  `reparerLObjet`, lu par l'écran. */
-export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
-  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.bourseInsuffisantePourLaReparation', { label: item.label });
+export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null, resolveTrapping: TrappingResolver): string | null {
+  return refusHote ?? refusDeBourse(hero, coutDeReparation(item, resolveTrapping), 'mf.bourseInsuffisantePourLaReparation', { label: item.label });
 }
 
 /** Chaque objet abîmé d'un héros du groupe, avec ce qui refuse de le réparer : une arme réduite à l'état improvisé
  *  (`isRepairable`), puis la bourse de son porteur (`refusDeReparation`). */
-export function objetsAReparer(party: readonly Combatant[]): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
+export function objetsAReparer(party: readonly Combatant[], resolveTrapping: TrappingResolver): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
   return party.flatMap((hero) => (hero.items ?? []).filter((item) => (item.damageTaken ?? 0) > 0).map((item) => ({
-    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.irreparable', { label: item.label }),
+    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null, resolveTrapping) : t('mf.irreparable', { label: item.label }),
   })));
 }
 
@@ -845,7 +831,7 @@ export function objetsAReparer(party: readonly Combatant[]): { hero: Combatant; 
 function reparerLObjet(get: Get, set: Set, uid: string): void {
   const heroId = garanti(porteurDeLObjet(get(), uid), uid, 'porteur de l’objet réparé');
   const item = garanti(get().party.find((h) => h.id === heroId)?.items?.find((i) => i.uid === uid), uid, 'objet réparé');
-  const cost = coutDeReparation(item);
+  const cost = coutDeReparation(item, objetDuNarratif(get().campaignNarratif));
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -890,7 +876,8 @@ function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
-  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
+  const { scene, campaignNarratif } = get();
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(scene, m.entityId, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif)) });
 }
 
 /** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
@@ -976,17 +963,16 @@ export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & {
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
-  itemName: string, mode: ModeDEvaluation, trappingId?: string, cible: CibleDeDetection = {},
+  itemName: string, mode: ModeDEvaluation, fiche: TrappingData | undefined, cible: CibleDeDetection,
 ): void {
   const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
-  const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
     actorId: best.actor.id, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
-    truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
-    availability: t?.availability ?? null,
+    truePriceBrass: fiche ? toBrass(priceToMoney(fiche.price)) : 0,
+    availability: fiche?.availability ?? null,
     ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0,
   } });
 }
@@ -999,12 +985,16 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
  *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
-function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
+function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; fiche?: TrappingData } | null {
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
   const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
-  if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
+  if (item) return { target: { itemUid: uid }, cible: item, fiche: ficheDObjetPorte(item, resolveTrapping) };
   for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
-    if (ligne) return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, trappingId: ligne.effect.trappingId };
+    if (ligne) {
+      const id = ligne.effect.trappingId;
+      return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, fiche: id ? resolveTrapping(id) : undefined };
+    }
   }
   return null;
 }
@@ -1034,7 +1024,7 @@ export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigne
   const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
   if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
-  openAppraise(get, set, cible.target, cible.cible.label, mode, cible.trappingId, cible.cible);
+  openAppraise(get, set, cible.target, cible.cible.label, mode, cible.fiche, cible.cible);
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */

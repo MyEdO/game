@@ -45,16 +45,17 @@ func _recetter() -> void:
 	var derniere := ""
 	for cle: String in decor.echantillon:
 		var entree: Dictionary = JSON.parse_string(cle)
+		var avant := {ecran = pont.ecran, appels = pont.entrees.size()}
 		if _d_un_modele_servi(decor.echantillon[cle], decor.modeles.aretes):
 			await _choisir_au_repos(atelier, pont, entree)
 		else:
 			_choisir(atelier, "modele/%s" % entree.famille, entree.id)
-		await _images(2)
-		await _modeles_poses(atelier, decor.echantillon[cle])
+		await _attendre_l_echantillon(atelier, pont, avant, entree, decor.echantillon[cle])
 		_conforme(atelier, pont, cle, decor.echantillon[cle], "%s %s" % [entree.famille, entree.id])
 		derniere = cle
+	var avant := {ecran = pont.ecran, appels = pont.entrees.size()}
 	atelier._recharger()
-	await _images(4)
+	await _attendre_l_echantillon(atelier, pont, avant, JSON.parse_string(derniere), decor.echantillon[derniere])
 	_conforme(atelier, pont, derniere, decor.echantillon[derniere], "après « Recharger »")
 	for faute in _fautes:
 		push_error("[atelier-du-decor] " + faute)
@@ -62,17 +63,18 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## Les arêtes de l'échantillon posées, leurs modèles lus (`VolumeDeScene.attendre_les_aretes`) et l'écran republié
-## (publication différée d'une image), et les poses de chaque décor servi par `reponse` (`decors`), dont l'atelier
-## attend les modèles (`IMAGES_DE_L_OUVERTURE` images au plus).
-func _modeles_poses(atelier: Node, reponse: Dictionary) -> void:
-	await (atelier.get_node("Echantillon/Scene") as VolumeDeScene).attendre_les_aretes()
-	await _images(2)
-	var modeles: MontageDesModeles = atelier.get_node("Echantillon/Scene/Modeles")
+## L'échantillon demandé publié, ses modèles d'arête et ses décors posés, au plus le temps d'ouverture.
+func _attendre_l_echantillon(atelier: Node, pont: PontFige, avant: Dictionary, entree: Dictionary, reponse: Dictionary) -> void:
+	var volume := atelier.get_node("Echantillon/Scene") as VolumeDeScene
+	var modeles := atelier.get_node("Echantillon/Scene/Modeles") as MontageDesModeles
+	var poses := _poses_servies(reponse)
 	for image in IMAGES_DE_L_OUVERTURE:
-		if modeles.poses().size() == _poses_servies(reponse):
-			return
+		var publie: Variant = pont.ecran.get("atelier", {}).get("echantillon")
+		if pont.entrees.size() > avant.appels and not is_same(pont.ecran, avant.ecran) and publie is Dictionary and publie.famille == entree.famille and publie.id == entree.id:
+			if not volume.aretes_en_lecture() and publie.aretes == reponse.aretes.size() and modeles.poses().size() == poses:
+				return
 		await process_frame
+	_fautes.append("%s %s : échantillon et modèles non republiés" % [entree.famille, entree.id])
 
 
 ## L'échantillon `entree` choisi l'atelier au repos (`_au_repos` : son clip en pause, ses peaux mesurées, l'écran
@@ -141,11 +143,6 @@ func _conforme(ouvert: Node, pont: PontFige, cle: String, reponse: Dictionary, g
 	_verifier(atelier.get("onglets") == ["effets", "outils"], "%s : onglets offerts %s, attendu Effets et Outils" % [geste, atelier.get("onglets")])
 	_verifier(atelier.get("erreurs", []).is_empty(), "%s : erreurs %s" % [geste, atelier.get("erreurs")])
 	print("[atelier-du-decor] %s : %s" % [geste, JSON.stringify(publie)])
-
-
-func _images(n: int) -> void:
-	for i in n:
-		await process_frame
 
 
 ## La liste de tête de clé `cle` sous `atelier`.

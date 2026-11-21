@@ -1,19 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { vehicles } from './index';
+import { findVehicleById, vehicles } from './index';
+import { schema as schemaDesVehicules } from './schemas/defs/vehicles';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { shipCritSet, shipCritSetIds } from './shipCriticals';
 
-// MDG 12 = navires MARITIMES (18). Les bateaux FLUVIAUX MSRC (propulsion:'fluvial') ont aussi une
-// facette `ship` mais relèvent de leur propre table (MSRC 7) — couverts par `16-embuscade-fluviale`.
-const ships = vehicles.filter((v) => v.ship && v.hull?.propulsion === 'maritime');
 /** MDG 12 l.86-103 */
 const EXEMPLES_DE_BATEAUX = [
-  'coracle', 'chaloupe', 'esquif', 'barge', 'grande-barge', 'bateau-de-patrouille', 'knarr', 'langskip', 'cogue',
+  'coracle', 'barque-fluviale', 'esquif', 'barge-fluviale', 'grande-barge', 'bateau-de-patrouille', 'knarr', 'langskip', 'cogue',
   'caraque', 'galere-de-guerre', 'loup-imperial', 'croiseur', 'galion-bretonnien', 'caravelle-tileenne',
   'chebec-arabien', 'boutre-d-inja', 'bateau-tresor-cathayen',
 ];
+const ships = vehicles.filter((v) => v.ship && EXEMPLES_DE_BATEAUX.includes(v.id));
 
 describe('Navires MDG (ch.12) — profils en donnée', () => {
   it('table EXEMPLES DE BATEAUX complète (MDG 12 l.86-103), chaque navire avec coque (E/B) + facette ship complète', () => {
@@ -21,10 +20,43 @@ describe('Navires MDG (ch.12) — profils en donnée', () => {
     for (const s of ships) {
       expect(s.hull?.char.endurance).toBeGreaterThan(0);
       expect(s.hull?.char.B).toBeGreaterThan(0);
-      expect(s.hull?.propulsion).toBe('maritime');
+      expect(['fluvial', 'maritime']).toContain(s.hull?.propulsion);
       expect(s.ship!.crew).toBeGreaterThan(0);
       expect(s.ship!.sail || s.ship!.oars).toBeTruthy(); // au moins un mode de propulsion
     }
+  });
+
+  // MDG 12 l.87, l.89
+  it.each([
+    ['barque-fluviale', { crew: 2, manoeuvre: 2 }],
+    ['barge-fluviale', { crew: 4, manoeuvre: 0 }],
+  ] as const)('profil naval de %s', (id, profil) => {
+    expect(findVehicleById(id)?.ship).toMatchObject(profil);
+  });
+
+  // MSRC 07 l.174-178 ; MDG 12 l.87-91
+  it.each([
+    ['barque-fluviale', 10, 5, 4, 25],
+    ['esquif', 15, 10, 6, 35],
+    ['barge-fluviale', 20, 15, 8, 100],
+    ['grande-barge', 30, 25, 6, 180],
+    ['bateau-de-patrouille', 25, 20, 9, 420],
+  ] as const)('gabarits sourcés de %s', (id, lengthM, fluvialLengthM, fluvialMovement, fluvialEnc) => {
+    expect(findVehicleById(id)?.ship).toMatchObject({ lengthM, fluvialLengthM, fluvialMovement, fluvialEnc });
+  });
+
+  it.each([undefined, null, 0])('le schéma refuse un Mouvement fluvial de %s dans un gabarit déclaré', (fluvialMovement) => {
+    const barque = findVehicleById('barque-fluviale')!;
+    expect(schemaDesVehicules.safeParse([{ ...barque, ship: { ...barque.ship!, fluvialMovement } }]).success).toBe(false);
+  });
+
+  it('le schéma accepte une coque maritime sans gabarit fluvial', () => {
+    expect(schemaDesVehicules.safeParse([findVehicleById('cogue')]).success).toBe(true);
+  });
+
+  it('les bateaux de la table n’occupent qu’une fiche par type', () => {
+    expect(findVehicleById('barge')).toBeUndefined();
+    expect(findVehicleById('chaloupe')).toBeUndefined();
   });
 
   it('gréement dérivé de la propulsion (avirons/voile/mixte)', () => {

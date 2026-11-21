@@ -7,7 +7,6 @@
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
-import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
 import { collectionDe } from '../../data/schemas/grammaire/collection-cle';
 import {
@@ -495,19 +494,6 @@ export function exigeParSonPorteur(noeudsDuPrefixe: (j: number) => readonly unkn
 /** Le nœud admet-il une LISTE ? `undefined` sans nœud. */
 export function admetUneListe(noeud: unknown): boolean | undefined {
   return noeud === undefined ? undefined : ouverts([noeud]).some((n) => defDe(n)?.type === 'array');
-}
-
-/** Un champ `json` s'édite en RANGÉES quand sa valeur est une liste d'objets, ou quand elle est absente
- *  et que son nœud admet une liste ; sinon en JSON. */
-export function offreDesRangees(field: FieldDesc, value: unknown): boolean {
-  if (value == null) return admetUneListe(field.noeud) !== false;
-  return Array.isArray(value) && value.every(estObjet);
-}
-
-/** Le champ `cle` de l'entrée est-il DÉRIVÉ d'un autre de ses champs, hors de l'édition : la `desc` d'une entrée
- *  dont `descRef` adresse un passage (`adresseUnPassage`, `grammaire/valeurs.ts`). #1389 */
-export function estDerive(entree: Record<string, unknown>, cle: string): boolean {
-  return cle === 'desc' && adresseUnPassage(entree.descRef);
 }
 
 /**

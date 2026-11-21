@@ -54,6 +54,7 @@ import { estSeparateur, numeroDuFichier, plageDeLigne1, stripSpans } from '../..
 import { offsetToLine, headAnchor } from './reanchor.mjs'
 import { cle } from './sonde-titres.mjs'
 import { lignes } from './lib/colonnes.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PDF_LIGNES_SCRIPT = join(HERE, 'lib', 'pdf-lignes.py')
@@ -539,4 +540,7 @@ function main() {
   if (!apply) console.log('(--dry : relancer avec --apply pour écrire)')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

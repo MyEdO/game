@@ -4,7 +4,7 @@
  * subite (LDB 18 l.17, l.46), arme de la défense, plafond du Round, déclaration, Coup Critique (LDB 13 l.183),
  * Avantage (LDB 14 l.208-209), suspension puis reprise de la suite.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyAttackResult } from './combatFlow';
@@ -14,7 +14,9 @@ import { isOutOfAction } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, poseSurDeNonTombe } from './cascade.testkit';
-import { unarmedWeapon } from '../engine/items';
+import { itemFromTrappingById, unarmedWeapon, weaponFromItem } from '../engine/items';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { resetRule, setRule } from '../engine/policy';
 import { weaponsFromTraits } from '../engine/creatureEquip';
 import { findCritEntrySuffered } from '../engine/critical';
 import { makeRNG } from '../engine/dice';
@@ -178,6 +180,22 @@ const blessures = (w: Weapon, dr = 4, roll = 12): number =>
   resolveMeleePassive(cur('d'), cur('a'), w, { roll, target: 60, success: true, sl: dr, isDouble: false }, { rng: makeRNG(1595) }).woundsLost!;
 
 describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () => {
+  it('Hache d’armes : la frappe passive prend Taille par défaut et ne déclenche pas Assommante (AA 08 l.69-77, l.301)', () => {
+    setRule('combat-aa-armement', true);
+    onTestFinished(() => resetRule('combat-aa-armement'));
+    const hache = weaponFromItem(itemFromTrappingById('hache-d-armes', idsDeTest)!, 'main');
+    monte({ pbAttaquant: 80, champion: true, armes: [hache] });
+    cur('d').characteristics.force = 80;
+    const victime = cur('a');
+    victime.characteristics.endurance = 10;
+    victime.wounds = blessuresDeBase(80, 80, victime);
+
+    coup(defenseGagnee(hache, 30)); draine();
+
+    expect(cur('a').wounds.current).toBe(65);
+    expect(cur('a').conditions).not.toContainEqual(expect.objectContaining({ id: 'sonne' }));
+  });
+
   it('C1 — Esquive gagnée sur un double : frappe à l’arme de main principale, sans Critique (LDB 13 l.183 ; LDB 10 l.500)', () => {
     const secondaire = { ...HACHE, hand: 'secondaire' } as Weapon;
     monte({ pbAttaquant: 30, champion: true, armes: [secondaire, EPEE] });

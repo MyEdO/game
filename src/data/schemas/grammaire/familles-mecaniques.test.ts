@@ -51,7 +51,7 @@ const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'soi', flow:
 
 describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (EDO 11 l.190 ; #1853)', () => {
   it('les champs réservés sont DÉRIVÉS des déclarations d’op ; `charMod` est typé', () => {
-    expect([...CHAMPS_RESERVES].sort()).toEqual(['charMod.min', 'endPsych.instance', 'grantPsychTrait.durationHours', 'grantPsychTrait.envers', 'grantPsychTrait.resistanceSiAmis']);
+    expect([...CHAMPS_RESERVES].sort()).toEqual(['charMod.min', 'endPsych.instance', 'grantPsychTrait.durationHours', 'grantPsychTrait.durationWeeks', 'grantPsychTrait.envers', 'grantPsychTrait.resistanceSiAmis']);
     expect(OPS_NON_TYPEES).not.toContain('charMod');
     expect(gameOpSchema.safeParse({ ...sansPlancher, champInvente: 1 }).success).toBe(false);
   });

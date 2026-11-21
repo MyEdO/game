@@ -9,104 +9,104 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 5,
-        "mutation": "pattes-d-animaux"
+        "max": 5
       },
       {
+        "id": "corpulent",
         "min": 6,
-        "max": 10,
-        "mutation": "corpulent"
+        "max": 10
       },
       {
+        "id": "doigts-distendus",
         "min": 11,
-        "max": 15,
-        "mutation": "doigts-distendus"
+        "max": 15
       },
       {
+        "id": "emacie",
         "min": 16,
-        "max": 20,
-        "mutation": "emacie"
+        "max": 20
       },
       {
+        "id": "oeil-enorme",
         "min": 21,
-        "max": 25,
-        "mutation": "oeil-enorme"
+        "max": 25
       },
       {
+        "id": "articulation-supplementaire-aux-jambes",
         "min": 26,
-        "max": 30,
-        "mutation": "articulation-supplementaire-aux-jambes"
+        "max": 30
       },
       {
+        "id": "bouche-supplementaire",
         "min": 31,
-        "max": 35,
-        "mutation": "bouche-supplementaire"
+        "max": 35
       },
       {
+        "id": "tentacule-epais",
         "min": 36,
-        "max": 40,
-        "mutation": "tentacule-epais"
+        "max": 40
       },
       {
+        "id": "peau-brillante",
         "min": 41,
-        "max": 45,
-        "mutation": "peau-brillante"
+        "max": 45
       },
       {
+        "id": "beaute-surnaturelle",
         "min": 46,
-        "max": 50,
-        "mutation": "beaute-surnaturelle"
+        "max": 50
       },
       {
+        "id": "visage-inverse",
         "min": 51,
-        "max": 55,
-        "mutation": "visage-inverse"
+        "max": 55
       },
       {
+        "id": "peau-d-acier",
         "min": 56,
-        "max": 60,
-        "mutation": "peau-d-acier"
+        "max": 60
       },
       {
+        "id": "langue-pendante",
         "min": 61,
-        "max": 65,
-        "mutation": "langue-pendante"
+        "max": 65
       },
       {
+        "id": "plumes-eparses",
         "min": 66,
-        "max": 70,
-        "mutation": "plumes-eparses"
+        "max": 70
       },
       {
+        "id": "court-sur-pattes",
         "min": 71,
-        "max": 75,
-        "mutation": "court-sur-pattes"
+        "max": 75
       },
       {
+        "id": "ecailles-epineuses",
         "min": 76,
-        "max": 80,
-        "mutation": "ecailles-epineuses"
+        "max": 80
       },
       {
+        "id": "cornes-asymetriques",
         "min": 81,
-        "max": 85,
-        "mutation": "cornes-asymetriques"
+        "max": 85
       },
       {
+        "id": "suintement-de-pus",
         "min": 86,
-        "max": 90,
-        "mutation": "suintement-de-pus"
+        "max": 90
       },
       {
+        "id": "groin-poilu",
         "min": 91,
-        "max": 95,
-        "mutation": "groin-poilu"
+        "max": 95
       },
       {
+        "id": "choix-du-mj",
         "min": 96,
-        "max": 100,
-        "mutation": "choix-du-mj"
+        "max": 100
       }
     ],
     "source": {
@@ -125,104 +125,104 @@
     },
     "entries": [
       {
+        "id": "atroces-desirs",
         "min": 1,
-        "max": 5,
-        "mutation": "atroces-desirs"
+        "max": 5
       },
       {
+        "id": "bete-interieure",
         "min": 6,
-        "max": 10,
-        "mutation": "bete-interieure"
+        "max": 10
       },
       {
+        "id": "reves-chaotiques",
         "min": 11,
-        "max": 15,
-        "mutation": "reves-chaotiques"
+        "max": 15
       },
       {
+        "id": "formication",
         "min": 16,
-        "max": 20,
-        "mutation": "formication"
+        "max": 20
       },
       {
+        "id": "imprevisible-fantaisiste",
         "min": 21,
-        "max": 25,
-        "mutation": "imprevisible-fantaisiste"
+        "max": 25
       },
       {
+        "id": "terrible-inquietude",
         "min": 26,
-        "max": 30,
-        "mutation": "terrible-inquietude"
+        "max": 30
       },
       {
+        "id": "pulsions-de-haine",
         "min": 31,
-        "max": 35,
-        "mutation": "pulsions-de-haine"
+        "max": 35
       },
       {
+        "id": "coeur-desseche",
         "min": 36,
-        "max": 40,
-        "mutation": "coeur-desseche"
+        "max": 40
       },
       {
+        "id": "pensees-envieuses",
         "min": 41,
-        "max": 45,
-        "mutation": "pensees-envieuses"
+        "max": 45
       },
       {
+        "id": "esprit-solitaire",
         "min": 46,
-        "max": 50,
-        "mutation": "esprit-solitaire"
+        "max": 50
       },
       {
+        "id": "blocage-mental",
         "min": 51,
-        "max": 55,
-        "mutation": "blocage-mental"
+        "max": 55
       },
       {
+        "id": "urgence-profanatoire",
         "min": 56,
-        "max": 60,
-        "mutation": "urgence-profanatoire"
+        "max": 60
       },
       {
+        "id": "morale-douteuse",
         "min": 61,
-        "max": 65,
-        "mutation": "morale-douteuse"
+        "max": 65
       },
       {
+        "id": "esprit-suspicieux",
         "min": 66,
-        "max": 70,
-        "mutation": "esprit-suspicieux"
+        "max": 70
       },
       {
+        "id": "accro-a-l-adrenaline",
         "min": 71,
-        "max": 75,
-        "mutation": "accro-a-l-adrenaline"
+        "max": 75
       },
       {
+        "id": "visions-torturees",
         "min": 76,
-        "max": 80,
-        "mutation": "visions-torturees"
+        "max": 80
       },
       {
+        "id": "totalement-desequilibre",
         "min": 81,
-        "max": 85,
-        "mutation": "totalement-desequilibre"
+        "max": 85
       },
       {
+        "id": "infinie-malveillance",
         "min": 86,
-        "max": 90,
-        "mutation": "infinie-malveillance"
+        "max": 90
       },
       {
+        "id": "colere-impie",
         "min": 91,
-        "max": 95,
-        "mutation": "colere-impie"
+        "max": 95
       },
       {
+        "id": "affreusement-nerveux",
         "min": 96,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -241,174 +241,174 @@
     },
     "entries": [
       {
+        "id": "fuite-aethyrique",
         "min": 1,
-        "max": 1,
-        "mutation": "fuite-aethyrique"
+        "max": 1
       },
       {
+        "id": "esprit-animal",
         "min": 2,
-        "max": 4,
-        "mutation": "esprit-animal"
+        "max": 4
       },
       {
+        "id": "atroces-desirs",
         "min": 5,
-        "max": 8,
-        "mutation": "atroces-desirs"
+        "max": 8
       },
       {
+        "id": "modele-de-corruption",
         "min": 9,
-        "max": 9,
-        "mutation": "modele-de-corruption"
+        "max": 9
       },
       {
+        "id": "bete-interieure",
         "min": 10,
-        "max": 13,
-        "mutation": "bete-interieure"
+        "max": 13
       },
       {
+        "id": "douleur-transcendee",
         "min": 14,
-        "max": 15,
-        "mutation": "douleur-transcendee"
+        "max": 15
       },
       {
+        "id": "ame-blasphematoire",
         "min": 16,
-        "max": 19,
-        "mutation": "ame-blasphematoire"
+        "max": 19
       },
       {
+        "id": "esprit-aneanti",
         "min": 20,
-        "max": 22,
-        "mutation": "esprit-aneanti"
+        "max": 22
       },
       {
+        "id": "reves-chaotiques",
         "min": 23,
-        "max": 24,
-        "mutation": "reves-chaotiques"
+        "max": 24
       },
       {
+        "id": "formication",
         "min": 25,
-        "max": 27,
-        "mutation": "formication"
+        "max": 27
       },
       {
+        "id": "imprevisible-fantaisiste",
         "min": 28,
-        "max": 30,
-        "mutation": "imprevisible-fantaisiste"
+        "max": 30
       },
       {
+        "id": "haine-sporadique",
         "min": 31,
-        "max": 33,
-        "mutation": "haine-sporadique"
+        "max": 33
       },
       {
+        "id": "corruption-sublime",
         "min": 34,
-        "max": 35,
-        "mutation": "corruption-sublime"
+        "max": 35
       },
       {
+        "id": "pulsions-de-haine",
         "min": 36,
-        "max": 38,
-        "mutation": "pulsions-de-haine"
+        "max": 38
       },
       {
+        "id": "coeur-desseche",
         "min": 39,
-        "max": 42,
-        "mutation": "coeur-desseche"
+        "max": 42
       },
       {
+        "id": "desespoir-obsedant",
         "min": 43,
-        "max": 47,
-        "mutation": "desespoir-obsedant"
+        "max": 47
       },
       {
+        "id": "masochisme-pressant",
         "min": 48,
-        "max": 49,
-        "mutation": "masochisme-pressant"
+        "max": 49
       },
       {
+        "id": "pensees-envieuses",
         "min": 50,
-        "max": 52,
-        "mutation": "pensees-envieuses"
+        "max": 52
       },
       {
+        "id": "repugnance-persistante",
         "min": 53,
-        "max": 55,
-        "mutation": "repugnance-persistante"
+        "max": 55
       },
       {
+        "id": "esprit-solitaire",
         "min": 56,
-        "max": 58,
-        "mutation": "esprit-solitaire"
+        "max": 58
       },
       {
+        "id": "blocage-mental",
         "min": 59,
-        "max": 61,
-        "mutation": "blocage-mental"
+        "max": 61
       },
       {
+        "id": "errance-mentale",
         "min": 62,
-        "max": 63,
-        "mutation": "errance-mentale"
+        "max": 63
       },
       {
+        "id": "paranoia-galopante",
         "min": 64,
-        "max": 66,
-        "mutation": "paranoia-galopante"
+        "max": 66
       },
       {
+        "id": "panique-extreme",
         "min": 67,
-        "max": 69,
-        "mutation": "panique-extreme"
+        "max": 69
       },
       {
+        "id": "faim-intense",
         "min": 70,
-        "max": 72,
-        "mutation": "faim-intense"
+        "max": 72
       },
       {
+        "id": "morale-douteuse",
         "min": 73,
-        "max": 76,
-        "mutation": "morale-douteuse"
+        "max": 76
       },
       {
+        "id": "maladie-de-l-ame",
         "min": 77,
-        "max": 79,
-        "mutation": "maladie-de-l-ame"
+        "max": 79
       },
       {
+        "id": "esprit-suspicieux",
         "min": 80,
-        "max": 82,
-        "mutation": "esprit-suspicieux"
+        "max": 82
       },
       {
+        "id": "terribles-phobies",
         "min": 83,
-        "max": 86,
-        "mutation": "terribles-phobies"
+        "max": 86
       },
       {
+        "id": "accro-a-l-adrenaline",
         "min": 87,
-        "max": 89,
-        "mutation": "accro-a-l-adrenaline"
+        "max": 89
       },
       {
+        "id": "visions-torturees",
         "min": 90,
-        "max": 92,
-        "mutation": "visions-torturees"
+        "max": 92
       },
       {
+        "id": "totalement-desequilibre",
         "min": 93,
-        "max": 94,
-        "mutation": "totalement-desequilibre"
+        "max": 94
       },
       {
+        "id": "infinie-malveillance",
         "min": 95,
-        "max": 97,
-        "mutation": "infinie-malveillance"
+        "max": 97
       },
       {
+        "id": "affreusement-nerveux",
         "min": 98,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -427,139 +427,139 @@
     },
     "entries": [
       {
+        "id": "esprit-animal",
         "min": 1,
-        "max": 5,
-        "mutation": "esprit-animal"
+        "max": 5
       },
       {
+        "id": "atroces-desirs",
         "min": 6,
-        "max": 9,
-        "mutation": "atroces-desirs"
+        "max": 9
       },
       {
+        "id": "modele-de-corruption",
         "min": 10,
-        "max": 11,
-        "mutation": "modele-de-corruption"
+        "max": 11
       },
       {
+        "id": "bete-interieure",
         "min": 12,
-        "max": 17,
-        "mutation": "bete-interieure"
+        "max": 17
       },
       {
+        "id": "douleur-transcendee",
         "min": 18,
-        "max": 21,
-        "mutation": "douleur-transcendee"
+        "max": 21
       },
       {
+        "id": "ame-blasphematoire",
         "min": 22,
-        "max": 24,
-        "mutation": "ame-blasphematoire"
+        "max": 24
       },
       {
+        "id": "esprit-aneanti",
         "min": 25,
-        "max": 29,
-        "mutation": "esprit-aneanti"
+        "max": 29
       },
       {
+        "id": "reves-chaotiques",
         "min": 30,
-        "max": 33,
-        "mutation": "reves-chaotiques"
+        "max": 33
       },
       {
+        "id": "formication",
         "min": 34,
-        "max": 35,
-        "mutation": "formication"
+        "max": 35
       },
       {
+        "id": "imprevisible-fantaisiste",
         "min": 36,
-        "max": 38,
-        "mutation": "imprevisible-fantaisiste"
+        "max": 38
       },
       {
+        "id": "haine-sporadique",
         "min": 39,
-        "max": 43,
-        "mutation": "haine-sporadique"
+        "max": 43
       },
       {
+        "id": "pulsions-de-haine",
         "min": 44,
-        "max": 48,
-        "mutation": "pulsions-de-haine"
+        "max": 48
       },
       {
+        "id": "coeur-desseche",
         "min": 49,
-        "max": 50,
-        "mutation": "coeur-desseche"
+        "max": 50
       },
       {
+        "id": "masochisme-pressant",
         "min": 51,
-        "max": 54,
-        "mutation": "masochisme-pressant"
+        "max": 54
       },
       {
+        "id": "blocage-mental",
         "min": 55,
-        "max": 57,
-        "mutation": "blocage-mental"
+        "max": 57
       },
       {
+        "id": "errance-mentale",
         "min": 58,
-        "max": 60,
-        "mutation": "errance-mentale"
+        "max": 60
       },
       {
+        "id": "panique-extreme",
         "min": 61,
-        "max": 63,
-        "mutation": "panique-extreme"
+        "max": 63
       },
       {
+        "id": "faim-intense",
         "min": 64,
-        "max": 66,
-        "mutation": "faim-intense"
+        "max": 66
       },
       {
+        "id": "morale-douteuse",
         "min": 67,
-        "max": 68,
-        "mutation": "morale-douteuse"
+        "max": 68
       },
       {
+        "id": "maladie-de-l-ame",
         "min": 69,
-        "max": 71,
-        "mutation": "maladie-de-l-ame"
+        "max": 71
       },
       {
+        "id": "esprit-suspicieux",
         "min": 72,
-        "max": 75,
-        "mutation": "esprit-suspicieux"
+        "max": 75
       },
       {
+        "id": "terribles-phobies",
         "min": 76,
-        "max": 77,
-        "mutation": "terribles-phobies"
+        "max": 77
       },
       {
+        "id": "accro-a-l-adrenaline",
         "min": 78,
-        "max": 82,
-        "mutation": "accro-a-l-adrenaline"
+        "max": 82
       },
       {
+        "id": "visions-torturees",
         "min": 83,
-        "max": 87,
-        "mutation": "visions-torturees"
+        "max": 87
       },
       {
+        "id": "totalement-desequilibre",
         "min": 88,
-        "max": 92,
-        "mutation": "totalement-desequilibre"
+        "max": 92
       },
       {
+        "id": "infinie-malveillance",
         "min": 93,
-        "max": 97,
-        "mutation": "infinie-malveillance"
+        "max": 97
       },
       {
+        "id": "affreusement-nerveux",
         "min": 98,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -578,144 +578,144 @@
     },
     "entries": [
       {
+        "id": "fuite-aethyrique",
         "min": 1,
-        "max": 2,
-        "mutation": "fuite-aethyrique"
+        "max": 2
       },
       {
+        "id": "esprit-animal",
         "min": 3,
-        "max": 4,
-        "mutation": "esprit-animal"
+        "max": 4
       },
       {
+        "id": "atroces-desirs",
         "min": 5,
-        "max": 7,
-        "mutation": "atroces-desirs"
+        "max": 7
       },
       {
+        "id": "modele-de-corruption",
         "min": 8,
-        "max": 10,
-        "mutation": "modele-de-corruption"
+        "max": 10
       },
       {
+        "id": "bete-interieure",
         "min": 11,
-        "max": 14,
-        "mutation": "bete-interieure"
+        "max": 14
       },
       {
+        "id": "douleur-transcendee",
         "min": 15,
-        "max": 17,
-        "mutation": "douleur-transcendee"
+        "max": 17
       },
       {
+        "id": "ame-blasphematoire",
         "min": 18,
-        "max": 21,
-        "mutation": "ame-blasphematoire"
+        "max": 21
       },
       {
+        "id": "esprit-aneanti",
         "min": 22,
-        "max": 25,
-        "mutation": "esprit-aneanti"
+        "max": 25
       },
       {
+        "id": "reves-chaotiques",
         "min": 26,
-        "max": 27,
-        "mutation": "reves-chaotiques"
+        "max": 27
       },
       {
+        "id": "formication",
         "min": 28,
-        "max": 32,
-        "mutation": "formication"
+        "max": 32
       },
       {
+        "id": "pulsions-de-haine",
         "min": 33,
-        "max": 35,
-        "mutation": "pulsions-de-haine"
+        "max": 35
       },
       {
+        "id": "coeur-desseche",
         "min": 36,
-        "max": 38,
-        "mutation": "coeur-desseche"
+        "max": 38
       },
       {
+        "id": "desespoir-obsedant",
         "min": 39,
-        "max": 43,
-        "mutation": "desespoir-obsedant"
+        "max": 43
       },
       {
+        "id": "masochisme-pressant",
         "min": 44,
-        "max": 46,
-        "mutation": "masochisme-pressant"
+        "max": 46
       },
       {
+        "id": "repugnance-persistante",
         "min": 47,
-        "max": 51,
-        "mutation": "repugnance-persistante"
+        "max": 51
       },
       {
+        "id": "esprit-solitaire",
         "min": 52,
-        "max": 56,
-        "mutation": "esprit-solitaire"
+        "max": 56
       },
       {
+        "id": "blocage-mental",
         "min": 57,
-        "max": 59,
-        "mutation": "blocage-mental"
+        "max": 59
       },
       {
+        "id": "errance-mentale",
         "min": 60,
-        "max": 62,
-        "mutation": "errance-mentale"
+        "max": 62
       },
       {
+        "id": "paranoia-galopante",
         "min": 63,
-        "max": 66,
-        "mutation": "paranoia-galopante"
+        "max": 66
       },
       {
+        "id": "panique-extreme",
         "min": 67,
-        "max": 70,
-        "mutation": "panique-extreme"
+        "max": 70
       },
       {
+        "id": "faim-intense",
         "min": 71,
-        "max": 74,
-        "mutation": "faim-intense"
+        "max": 74
       },
       {
+        "id": "morale-douteuse",
         "min": 75,
-        "max": 78,
-        "mutation": "morale-douteuse"
+        "max": 78
       },
       {
+        "id": "maladie-de-l-ame",
         "min": 79,
-        "max": 83,
-        "mutation": "maladie-de-l-ame"
+        "max": 83
       },
       {
+        "id": "esprit-suspicieux",
         "min": 84,
-        "max": 85,
-        "mutation": "esprit-suspicieux"
+        "max": 85
       },
       {
+        "id": "terribles-phobies",
         "min": 86,
-        "max": 87,
-        "mutation": "terribles-phobies"
+        "max": 87
       },
       {
+        "id": "visions-torturees",
         "min": 88,
-        "max": 92,
-        "mutation": "visions-torturees"
+        "max": 92
       },
       {
+        "id": "totalement-desequilibre",
         "min": 93,
-        "max": 97,
-        "mutation": "totalement-desequilibre"
+        "max": 97
       },
       {
+        "id": "affreusement-nerveux",
         "min": 98,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -734,154 +734,154 @@
     },
     "entries": [
       {
+        "id": "fuite-aethyrique",
         "min": 1,
-        "max": 3,
-        "mutation": "fuite-aethyrique"
+        "max": 3
       },
       {
+        "id": "esprit-animal",
         "min": 4,
-        "max": 6,
-        "mutation": "esprit-animal"
+        "max": 6
       },
       {
+        "id": "atroces-desirs",
         "min": 7,
-        "max": 10,
-        "mutation": "atroces-desirs"
+        "max": 10
       },
       {
+        "id": "modele-de-corruption",
         "min": 11,
-        "max": 13,
-        "mutation": "modele-de-corruption"
+        "max": 13
       },
       {
+        "id": "bete-interieure",
         "min": 14,
-        "max": 15,
-        "mutation": "bete-interieure"
+        "max": 15
       },
       {
+        "id": "douleur-transcendee",
         "min": 16,
-        "max": 19,
-        "mutation": "douleur-transcendee"
+        "max": 19
       },
       {
+        "id": "ame-blasphematoire",
         "min": 20,
-        "max": 23,
-        "mutation": "ame-blasphematoire"
+        "max": 23
       },
       {
+        "id": "esprit-aneanti",
         "min": 24,
-        "max": 25,
-        "mutation": "esprit-aneanti"
+        "max": 25
       },
       {
+        "id": "reves-chaotiques",
         "min": 26,
-        "max": 28,
-        "mutation": "reves-chaotiques"
+        "max": 28
       },
       {
+        "id": "formication",
         "min": 29,
-        "max": 31,
-        "mutation": "formication"
+        "max": 31
       },
       {
+        "id": "imprevisible-fantaisiste",
         "min": 32,
-        "max": 34,
-        "mutation": "imprevisible-fantaisiste"
+        "max": 34
       },
       {
+        "id": "haine-sporadique",
         "min": 35,
-        "max": 37,
-        "mutation": "haine-sporadique"
+        "max": 37
       },
       {
+        "id": "corruption-sublime",
         "min": 38,
-        "max": 41,
-        "mutation": "corruption-sublime"
+        "max": 41
       },
       {
+        "id": "coeur-desseche",
         "min": 42,
-        "max": 45,
-        "mutation": "coeur-desseche"
+        "max": 45
       },
       {
+        "id": "desespoir-obsedant",
         "min": 46,
-        "max": 48,
-        "mutation": "desespoir-obsedant"
+        "max": 48
       },
       {
+        "id": "masochisme-pressant",
         "min": 49,
-        "max": 53,
-        "mutation": "masochisme-pressant"
+        "max": 53
       },
       {
+        "id": "pensees-envieuses",
         "min": 54,
-        "max": 58,
-        "mutation": "pensees-envieuses"
+        "max": 58
       },
       {
+        "id": "esprit-solitaire",
         "min": 59,
-        "max": 62,
-        "mutation": "esprit-solitaire"
+        "max": 62
       },
       {
+        "id": "blocage-mental",
         "min": 63,
-        "max": 64,
-        "mutation": "blocage-mental"
+        "max": 64
       },
       {
+        "id": "paranoia-galopante",
         "min": 65,
-        "max": 67,
-        "mutation": "paranoia-galopante"
+        "max": 67
       },
       {
+        "id": "panique-extreme",
         "min": 68,
-        "max": 72,
-        "mutation": "panique-extreme"
+        "max": 72
       },
       {
+        "id": "faim-intense",
         "min": 73,
-        "max": 76,
-        "mutation": "faim-intense"
+        "max": 76
       },
       {
+        "id": "morale-douteuse",
         "min": 77,
-        "max": 78,
-        "mutation": "morale-douteuse"
+        "max": 78
       },
       {
+        "id": "maladie-de-l-ame",
         "min": 79,
-        "max": 81,
-        "mutation": "maladie-de-l-ame"
+        "max": 81
       },
       {
+        "id": "esprit-suspicieux",
         "min": 82,
-        "max": 83,
-        "mutation": "esprit-suspicieux"
+        "max": 83
       },
       {
+        "id": "accro-a-l-adrenaline",
         "min": 84,
-        "max": 87,
-        "mutation": "accro-a-l-adrenaline"
+        "max": 87
       },
       {
+        "id": "visions-torturees",
         "min": 88,
-        "max": 90,
-        "mutation": "visions-torturees"
+        "max": 90
       },
       {
+        "id": "totalement-desequilibre",
         "min": 91,
-        "max": 94,
-        "mutation": "totalement-desequilibre"
+        "max": 94
       },
       {
+        "id": "infinie-malveillance",
         "min": 95,
-        "max": 98,
-        "mutation": "infinie-malveillance"
+        "max": 98
       },
       {
+        "id": "affreusement-nerveux",
         "min": 99,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -900,144 +900,144 @@
     },
     "entries": [
       {
+        "id": "fuite-aethyrique",
         "min": 1,
-        "max": 5,
-        "mutation": "fuite-aethyrique"
+        "max": 5
       },
       {
+        "id": "esprit-animal",
         "min": 6,
-        "max": 9,
-        "mutation": "esprit-animal"
+        "max": 9
       },
       {
+        "id": "atroces-desirs",
         "min": 10,
-        "max": 11,
-        "mutation": "atroces-desirs"
+        "max": 11
       },
       {
+        "id": "modele-de-corruption",
         "min": 12,
-        "max": 16,
-        "mutation": "modele-de-corruption"
+        "max": 16
       },
       {
+        "id": "bete-interieure",
         "min": 17,
-        "max": 19,
-        "mutation": "bete-interieure"
+        "max": 19
       },
       {
+        "id": "douleur-transcendee",
         "min": 20,
-        "max": 21,
-        "mutation": "douleur-transcendee"
+        "max": 21
       },
       {
+        "id": "ame-blasphematoire",
         "min": 22,
-        "max": 24,
-        "mutation": "ame-blasphematoire"
+        "max": 24
       },
       {
+        "id": "reves-chaotiques",
         "min": 25,
-        "max": 29,
-        "mutation": "reves-chaotiques"
+        "max": 29
       },
       {
+        "id": "imprevisible-fantaisiste",
         "min": 30,
-        "max": 34,
-        "mutation": "imprevisible-fantaisiste"
+        "max": 34
       },
       {
+        "id": "corruption-sublime",
         "min": 35,
-        "max": 39,
-        "mutation": "corruption-sublime"
+        "max": 39
       },
       {
+        "id": "pulsions-de-haine",
         "min": 40,
-        "max": 41,
-        "mutation": "pulsions-de-haine"
+        "max": 41
       },
       {
+        "id": "coeur-desseche",
         "min": 42,
-        "max": 44,
-        "mutation": "coeur-desseche"
+        "max": 44
       },
       {
+        "id": "desespoir-obsedant",
         "min": 45,
-        "max": 47,
-        "mutation": "desespoir-obsedant"
+        "max": 47
       },
       {
+        "id": "pensees-envieuses",
         "min": 48,
-        "max": 52,
-        "mutation": "pensees-envieuses"
+        "max": 52
       },
       {
+        "id": "repugnance-persistante",
         "min": 53,
-        "max": 54,
-        "mutation": "repugnance-persistante"
+        "max": 54
       },
       {
+        "id": "errance-mentale",
         "min": 55,
-        "max": 58,
-        "mutation": "errance-mentale"
+        "max": 58
       },
       {
+        "id": "paranoia-galopante",
         "min": 59,
-        "max": 61,
-        "mutation": "paranoia-galopante"
+        "max": 61
       },
       {
+        "id": "panique-extreme",
         "min": 62,
-        "max": 64,
-        "mutation": "panique-extreme"
+        "max": 64
       },
       {
+        "id": "faim-intense",
         "min": 65,
-        "max": 66,
-        "mutation": "faim-intense"
+        "max": 66
       },
       {
+        "id": "morale-douteuse",
         "min": 67,
-        "max": 71,
-        "mutation": "morale-douteuse"
+        "max": 71
       },
       {
+        "id": "maladie-de-l-ame",
         "min": 72,
-        "max": 75,
-        "mutation": "maladie-de-l-ame"
+        "max": 75
       },
       {
+        "id": "esprit-suspicieux",
         "min": 76,
-        "max": 80,
-        "mutation": "esprit-suspicieux"
+        "max": 80
       },
       {
+        "id": "terribles-phobies",
         "min": 81,
-        "max": 83,
-        "mutation": "terribles-phobies"
+        "max": 83
       },
       {
+        "id": "accro-a-l-adrenaline",
         "min": 84,
-        "max": 86,
-        "mutation": "accro-a-l-adrenaline"
+        "max": 86
       },
       {
+        "id": "visions-torturees",
         "min": 87,
-        "max": 88,
-        "mutation": "visions-torturees"
+        "max": 88
       },
       {
+        "id": "totalement-desequilibre",
         "min": 89,
-        "max": 93,
-        "mutation": "totalement-desequilibre"
+        "max": 93
       },
       {
+        "id": "infinie-malveillance",
         "min": 94,
-        "max": 97,
-        "mutation": "infinie-malveillance"
+        "max": 97
       },
       {
+        "id": "affreusement-nerveux",
         "min": 98,
-        "max": 100,
-        "mutation": "affreusement-nerveux"
+        "max": 100
       }
     ],
     "source": {
@@ -1056,314 +1056,314 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 3,
-        "mutation": "pattes-d-animaux"
+        "max": 3
       },
       {
+        "id": "sang-acide",
         "min": 4,
-        "max": 4,
-        "mutation": "sang-acide"
+        "max": 4
       },
       {
+        "id": "bec",
         "min": 5,
-        "max": 6,
-        "mutation": "bec"
+        "max": 6
       },
       {
+        "id": "tete-bestiale",
         "min": 7,
-        "max": 10,
-        "mutation": "tete-bestiale"
+        "max": 10
       },
       {
+        "id": "extremites-armees",
         "min": 11,
-        "max": 11,
-        "mutation": "extremites-armees"
+        "max": 11
       },
       {
+        "id": "grandes-oreilles",
         "min": 12,
-        "max": 13,
-        "mutation": "grandes-oreilles"
+        "max": 13
       },
       {
+        "id": "pattes-d-oiseau",
         "min": 14,
-        "max": 15,
-        "mutation": "pattes-d-oiseau"
+        "max": 15
       },
       {
+        "id": "visage-sans-traits",
         "min": 16,
-        "max": 16,
-        "mutation": "visage-sans-traits"
+        "max": 16
       },
       {
+        "id": "souffle-du-feu",
         "min": 17,
-        "max": 17,
-        "mutation": "souffle-du-feu"
+        "max": 17
       },
       {
+        "id": "exophtalmie",
         "min": 18,
-        "max": 19,
-        "mutation": "exophtalmie"
+        "max": 19
       },
       {
+        "id": "peau-ardente",
         "min": 20,
-        "max": 20,
-        "mutation": "peau-ardente"
+        "max": 20
       },
       {
+        "id": "carapace",
         "min": 21,
-        "max": 22,
-        "mutation": "carapace"
+        "max": 22
       },
       {
+        "id": "griffes",
         "min": 23,
-        "max": 24,
-        "mutation": "griffes"
+        "max": 24
       },
       {
+        "id": "nuage-de-mouches",
         "min": 25,
-        "max": 25,
-        "mutation": "nuage-de-mouches"
+        "max": 25
       },
       {
+        "id": "corpulent",
         "min": 26,
-        "max": 26,
-        "mutation": "corpulent"
+        "max": 26
       },
       {
+        "id": "crete-sur-la-tete",
         "min": 27,
-        "max": 28,
-        "mutation": "crete-sur-la-tete"
+        "max": 28
       },
       {
+        "id": "cri-assourdissant",
         "min": 29,
-        "max": 30,
-        "mutation": "cri-assourdissant"
+        "max": 30
       },
       {
+        "id": "doigts-distendus",
         "min": 31,
-        "max": 31,
-        "mutation": "doigts-distendus"
+        "max": 31
       },
       {
+        "id": "bras-elastiques",
         "min": 32,
-        "max": 33,
-        "mutation": "bras-elastiques"
+        "max": 33
       },
       {
+        "id": "emacie",
         "min": 34,
-        "max": 34,
-        "mutation": "emacie"
+        "max": 34
       },
       {
+        "id": "mauvais-oeil",
         "min": 35,
-        "max": 35,
-        "mutation": "mauvais-oeil"
+        "max": 35
       },
       {
+        "id": "articulation-supplementaire-aux-jambes",
         "min": 36,
-        "max": 36,
-        "mutation": "articulation-supplementaire-aux-jambes"
+        "max": 36
       },
       {
+        "id": "bouche-supplementaire",
         "min": 37,
-        "max": 37,
-        "mutation": "bouche-supplementaire"
+        "max": 37
       },
       {
+        "id": "oeil-pedoncule",
         "min": 38,
-        "max": 39,
-        "mutation": "oeil-pedoncule"
+        "max": 39
       },
       {
+        "id": "tentacule-epais",
         "min": 40,
-        "max": 40,
-        "mutation": "tentacule-epais"
+        "max": 40
       },
       {
+        "id": "odeur-pestilentielle",
         "min": 41,
-        "max": 43,
-        "mutation": "odeur-pestilentielle"
+        "max": 43
       },
       {
+        "id": "fourrure",
         "min": 44,
-        "max": 44,
-        "mutation": "fourrure"
+        "max": 44
       },
       {
+        "id": "branchies",
         "min": 45,
-        "max": 47,
-        "mutation": "branchies"
+        "max": 47
       },
       {
+        "id": "peau-brillante",
         "min": 48,
-        "max": 48,
-        "mutation": "peau-brillante"
+        "max": 48
       },
       {
+        "id": "sans-tete",
         "min": 49,
-        "max": 49,
-        "mutation": "sans-tete"
+        "max": 49
       },
       {
+        "id": "sauteur",
         "min": 50,
-        "max": 51,
-        "mutation": "sauteur"
+        "max": 51
       },
       {
+        "id": "beaute-surnaturelle",
         "min": 52,
-        "max": 52,
-        "mutation": "beaute-surnaturelle"
+        "max": 52
       },
       {
+        "id": "peau-d-acier",
         "min": 53,
-        "max": 54,
-        "mutation": "peau-d-acier"
+        "max": 54
       },
       {
+        "id": "langue-pendante",
         "min": 55,
-        "max": 55,
-        "mutation": "langue-pendante"
+        "max": 55
       },
       {
+        "id": "longs-bras",
         "min": 56,
-        "max": 57,
-        "mutation": "longs-bras"
+        "max": 57
       },
       {
+        "id": "longues-jambes",
         "min": 58,
-        "max": 59,
-        "mutation": "longues-jambes"
+        "max": 59
       },
       {
+        "id": "long-cou",
         "min": 60,
-        "max": 61,
-        "mutation": "long-cou"
+        "max": 61
       },
       {
+        "id": "bras-multiples",
         "min": 62,
-        "max": 62,
-        "mutation": "bras-multiples"
+        "max": 62
       },
       {
+        "id": "jambes-multiples",
         "min": 63,
-        "max": 64,
-        "mutation": "jambes-multiples"
+        "max": 64
       },
       {
+        "id": "oeil-unique",
         "min": 65,
-        "max": 66,
-        "mutation": "oeil-unique"
+        "max": 66
       },
       {
+        "id": "plumes-eparses",
         "min": 67,
-        "max": 67,
-        "mutation": "plumes-eparses"
+        "max": 67
       },
       {
+        "id": "cretin",
         "min": 68,
-        "max": 69,
-        "mutation": "cretin"
+        "max": 69
       },
       {
+        "id": "tete-pointue",
         "min": 70,
-        "max": 71,
-        "mutation": "tete-pointue"
+        "max": 71
       },
       {
+        "id": "visage-difforme",
         "min": 72,
-        "max": 72,
-        "mutation": "visage-difforme"
+        "max": 72
       },
       {
+        "id": "chair-necrosee",
         "min": 73,
-        "max": 73,
-        "mutation": "chair-necrosee"
+        "max": 73
       },
       {
+        "id": "couleurs-changeantes",
         "min": 74,
-        "max": 75,
-        "mutation": "couleurs-changeantes"
+        "max": 75
       },
       {
+        "id": "court-sur-pattes",
         "min": 76,
-        "max": 77,
-        "mutation": "court-sur-pattes"
+        "max": 77
       },
       {
+        "id": "tete-de-mort",
         "min": 78,
-        "max": 79,
-        "mutation": "tete-de-mort"
+        "max": 79
       },
       {
+        "id": "peau-herissee-de-pointes",
         "min": 80,
-        "max": 80,
-        "mutation": "peau-herissee-de-pointes"
+        "max": 80
       },
       {
+        "id": "mains-et-pieds-a-ventouses",
         "min": 81,
-        "max": 82,
-        "mutation": "mains-et-pieds-a-ventouses"
+        "max": 82
       },
       {
+        "id": "queue",
         "min": 83,
-        "max": 84,
-        "mutation": "queue"
+        "max": 84
       },
       {
+        "id": "ecailles-epineuses-edoc",
         "min": 85,
-        "max": 85,
-        "mutation": "ecailles-epineuses-edoc"
+        "max": 85
       },
       {
+        "id": "trois-yeux",
         "min": 86,
-        "max": 87,
-        "mutation": "trois-yeux"
+        "max": 87
       },
       {
+        "id": "peau-transparente",
         "min": 88,
-        "max": 88,
-        "mutation": "peau-transparente"
+        "max": 88
       },
       {
+        "id": "bicephale",
         "min": 89,
-        "max": 90,
-        "mutation": "bicephale"
+        "max": 90
       },
       {
+        "id": "cornes-asymetriques",
         "min": 91,
-        "max": 91,
-        "mutation": "cornes-asymetriques"
+        "max": 91
       },
       {
+        "id": "peau-etrange",
         "min": 92,
-        "max": 94,
-        "mutation": "peau-etrange"
+        "max": 94
       },
       {
+        "id": "malefrenesie",
         "min": 95,
-        "max": 95,
-        "mutation": "malefrenesie"
+        "max": 95
       },
       {
+        "id": "pieds-palmes",
         "min": 96,
-        "max": 97,
-        "mutation": "pieds-palmes"
+        "max": 97
       },
       {
+        "id": "suintement-de-pus",
         "min": 98,
-        "max": 98,
-        "mutation": "suintement-de-pus"
+        "max": 98
       },
       {
+        "id": "groin-poilu",
         "min": 99,
-        "max": 99,
-        "mutation": "groin-poilu"
+        "max": 99
       },
       {
+        "id": "ailes",
         "min": 100,
-        "max": 100,
-        "mutation": "ailes"
+        "max": 100
       }
     ],
     "source": {
@@ -1382,244 +1382,244 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 4,
-        "mutation": "pattes-d-animaux"
+        "max": 4
       },
       {
+        "id": "sang-acide",
         "min": 5,
-        "max": 8,
-        "mutation": "sang-acide"
+        "max": 8
       },
       {
+        "id": "bec",
         "min": 9,
-        "max": 9,
-        "mutation": "bec"
+        "max": 9
       },
       {
+        "id": "tete-bestiale",
         "min": 10,
-        "max": 15,
-        "mutation": "tete-bestiale"
+        "max": 15
       },
       {
+        "id": "extremites-armees",
         "min": 16,
-        "max": 19,
-        "mutation": "extremites-armees"
+        "max": 19
       },
       {
+        "id": "grandes-oreilles",
         "min": 20,
-        "max": 20,
-        "mutation": "grandes-oreilles"
+        "max": 20
       },
       {
+        "id": "souffle-du-feu",
         "min": 21,
-        "max": 22,
-        "mutation": "souffle-du-feu"
+        "max": 22
       },
       {
+        "id": "exophtalmie",
         "min": 23,
-        "max": 23,
-        "mutation": "exophtalmie"
+        "max": 23
       },
       {
+        "id": "peau-ardente",
         "min": 24,
-        "max": 25,
-        "mutation": "peau-ardente"
+        "max": 25
       },
       {
+        "id": "carapace",
         "min": 26,
-        "max": 27,
-        "mutation": "carapace"
+        "max": 27
       },
       {
+        "id": "griffes",
         "min": 28,
-        "max": 31,
-        "mutation": "griffes"
+        "max": 31
       },
       {
+        "id": "crete-sur-la-tete",
         "min": 32,
-        "max": 32,
-        "mutation": "crete-sur-la-tete"
+        "max": 32
       },
       {
+        "id": "cri-assourdissant",
         "min": 33,
-        "max": 35,
-        "mutation": "cri-assourdissant"
+        "max": 35
       },
       {
+        "id": "doigts-distendus",
         "min": 36,
-        "max": 36,
-        "mutation": "doigts-distendus"
+        "max": 36
       },
       {
+        "id": "emacie",
         "min": 37,
-        "max": 39,
-        "mutation": "emacie"
+        "max": 39
       },
       {
+        "id": "articulation-supplementaire-aux-jambes",
         "min": 40,
-        "max": 41,
-        "mutation": "articulation-supplementaire-aux-jambes"
+        "max": 41
       },
       {
+        "id": "bouche-supplementaire",
         "min": 42,
-        "max": 43,
-        "mutation": "bouche-supplementaire"
+        "max": 43
       },
       {
+        "id": "fourrure",
         "min": 44,
-        "max": 44,
-        "mutation": "fourrure"
+        "max": 44
       },
       {
+        "id": "peau-brillante",
         "min": 45,
-        "max": 47,
-        "mutation": "peau-brillante"
+        "max": 47
       },
       {
+        "id": "sans-tete",
         "min": 48,
-        "max": 50,
-        "mutation": "sans-tete"
+        "max": 50
       },
       {
+        "id": "sauteur",
         "min": 51,
-        "max": 51,
-        "mutation": "sauteur"
+        "max": 51
       },
       {
+        "id": "peau-d-acier",
         "min": 52,
-        "max": 55,
-        "mutation": "peau-d-acier"
+        "max": 55
       },
       {
+        "id": "langue-pendante",
         "min": 56,
-        "max": 58,
-        "mutation": "langue-pendante"
+        "max": 58
       },
       {
+        "id": "longs-bras",
         "min": 59,
-        "max": 59,
-        "mutation": "longs-bras"
+        "max": 59
       },
       {
+        "id": "longues-jambes",
         "min": 60,
-        "max": 60,
-        "mutation": "longues-jambes"
+        "max": 60
       },
       {
+        "id": "bras-multiples",
         "min": 61,
-        "max": 63,
-        "mutation": "bras-multiples"
+        "max": 63
       },
       {
+        "id": "jambes-multiples",
         "min": 64,
-        "max": 65,
-        "mutation": "jambes-multiples"
+        "max": 65
       },
       {
+        "id": "oeil-unique",
         "min": 66,
-        "max": 66,
-        "mutation": "oeil-unique"
+        "max": 66
       },
       {
+        "id": "cretin",
         "min": 67,
-        "max": 67,
-        "mutation": "cretin"
+        "max": 67
       },
       {
+        "id": "tete-pointue",
         "min": 68,
-        "max": 68,
-        "mutation": "tete-pointue"
+        "max": 68
       },
       {
+        "id": "visage-difforme",
         "min": 69,
-        "max": 69,
-        "mutation": "visage-difforme"
+        "max": 69
       },
       {
+        "id": "couleurs-changeantes",
         "min": 70,
-        "max": 70,
-        "mutation": "couleurs-changeantes"
+        "max": 70
       },
       {
+        "id": "court-sur-pattes",
         "min": 71,
-        "max": 71,
-        "mutation": "court-sur-pattes"
+        "max": 71
       },
       {
+        "id": "tete-de-mort",
         "min": 72,
-        "max": 75,
-        "mutation": "tete-de-mort"
+        "max": 75
       },
       {
+        "id": "peau-herissee-de-pointes",
         "min": 76,
-        "max": 78,
-        "mutation": "peau-herissee-de-pointes"
+        "max": 78
       },
       {
+        "id": "mains-et-pieds-a-ventouses",
         "min": 79,
-        "max": 79,
-        "mutation": "mains-et-pieds-a-ventouses"
+        "max": 79
       },
       {
+        "id": "queue",
         "min": 80,
-        "max": 81,
-        "mutation": "queue"
+        "max": 81
       },
       {
+        "id": "ecailles-epineuses-edoc",
         "min": 82,
-        "max": 84,
-        "mutation": "ecailles-epineuses-edoc"
+        "max": 84
       },
       {
+        "id": "trois-yeux",
         "min": 85,
-        "max": 85,
-        "mutation": "trois-yeux"
+        "max": 85
       },
       {
+        "id": "peau-transparente",
         "min": 86,
-        "max": 86,
-        "mutation": "peau-transparente"
+        "max": 86
       },
       {
+        "id": "bicephale",
         "min": 87,
-        "max": 88,
-        "mutation": "bicephale"
+        "max": 88
       },
       {
+        "id": "cornes-asymetriques",
         "min": 89,
-        "max": 92,
-        "mutation": "cornes-asymetriques"
+        "max": 92
       },
       {
+        "id": "peau-etrange",
         "min": 93,
-        "max": 94,
-        "mutation": "peau-etrange"
+        "max": 94
       },
       {
+        "id": "malefrenesie",
         "min": 95,
-        "max": 96,
-        "mutation": "malefrenesie"
+        "max": 96
       },
       {
+        "id": "pieds-palmes",
         "min": 97,
-        "max": 97,
-        "mutation": "pieds-palmes"
+        "max": 97
       },
       {
+        "id": "suintement-de-pus",
         "min": 98,
-        "max": 98,
-        "mutation": "suintement-de-pus"
+        "max": 98
       },
       {
+        "id": "groin-poilu",
         "min": 99,
-        "max": 99,
-        "mutation": "groin-poilu"
+        "max": 99
       },
       {
+        "id": "ailes",
         "min": 100,
-        "max": 100,
-        "mutation": "ailes"
+        "max": 100
       }
     ],
     "source": {
@@ -1638,224 +1638,224 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 3,
-        "mutation": "pattes-d-animaux"
+        "max": 3
       },
       {
+        "id": "sang-acide",
         "min": 4,
-        "max": 4,
-        "mutation": "sang-acide"
+        "max": 4
       },
       {
+        "id": "tete-bestiale",
         "min": 5,
-        "max": 7,
-        "mutation": "tete-bestiale"
+        "max": 7
       },
       {
+        "id": "extremites-armees",
         "min": 8,
-        "max": 8,
-        "mutation": "extremites-armees"
+        "max": 8
       },
       {
+        "id": "grandes-oreilles",
         "min": 9,
-        "max": 10,
-        "mutation": "grandes-oreilles"
+        "max": 10
       },
       {
+        "id": "pattes-d-oiseau",
         "min": 11,
-        "max": 11,
-        "mutation": "pattes-d-oiseau"
+        "max": 11
       },
       {
+        "id": "visage-sans-traits",
         "min": 12,
-        "max": 12,
-        "mutation": "visage-sans-traits"
+        "max": 12
       },
       {
+        "id": "souffle-du-feu",
         "min": 13,
-        "max": 13,
-        "mutation": "souffle-du-feu"
+        "max": 13
       },
       {
+        "id": "exophtalmie",
         "min": 14,
-        "max": 16,
-        "mutation": "exophtalmie"
+        "max": 16
       },
       {
+        "id": "carapace",
         "min": 17,
-        "max": 19,
-        "mutation": "carapace"
+        "max": 19
       },
       {
+        "id": "griffes",
         "min": 20,
-        "max": 21,
-        "mutation": "griffes"
+        "max": 21
       },
       {
+        "id": "nuage-de-mouches",
         "min": 22,
-        "max": 25,
-        "mutation": "nuage-de-mouches"
+        "max": 25
       },
       {
+        "id": "corpulent",
         "min": 26,
-        "max": 29,
-        "mutation": "corpulent"
+        "max": 29
       },
       {
+        "id": "crete-sur-la-tete",
         "min": 30,
-        "max": 31,
-        "mutation": "crete-sur-la-tete"
+        "max": 31
       },
       {
+        "id": "cri-assourdissant",
         "min": 32,
-        "max": 32,
-        "mutation": "cri-assourdissant"
+        "max": 32
       },
       {
+        "id": "bras-elastiques",
         "min": 33,
-        "max": 34,
-        "mutation": "bras-elastiques"
+        "max": 34
       },
       {
+        "id": "emacie",
         "min": 35,
-        "max": 37,
-        "mutation": "emacie"
+        "max": 37
       },
       {
+        "id": "mauvais-oeil",
         "min": 38,
-        "max": 39,
-        "mutation": "mauvais-oeil"
+        "max": 39
       },
       {
+        "id": "bouche-supplementaire",
         "min": 40,
-        "max": 40,
-        "mutation": "bouche-supplementaire"
+        "max": 40
       },
       {
+        "id": "oeil-pedoncule",
         "min": 41,
-        "max": 43,
-        "mutation": "oeil-pedoncule"
+        "max": 43
       },
       {
+        "id": "tentacule-epais",
         "min": 44,
-        "max": 46,
-        "mutation": "tentacule-epais"
+        "max": 46
       },
       {
+        "id": "odeur-pestilentielle",
         "min": 47,
-        "max": 51,
-        "mutation": "odeur-pestilentielle"
+        "max": 51
       },
       {
+        "id": "fourrure",
         "min": 52,
-        "max": 52,
-        "mutation": "fourrure"
+        "max": 52
       },
       {
+        "id": "branchies",
         "min": 53,
-        "max": 54,
-        "mutation": "branchies"
+        "max": 54
       },
       {
+        "id": "sans-tete",
         "min": 55,
-        "max": 56,
-        "mutation": "sans-tete"
+        "max": 56
       },
       {
+        "id": "sauteur",
         "min": 57,
-        "max": 58,
-        "mutation": "sauteur"
+        "max": 58
       },
       {
+        "id": "langue-pendante",
         "min": 59,
-        "max": 59,
-        "mutation": "langue-pendante"
+        "max": 59
       },
       {
+        "id": "bras-multiples",
         "min": 60,
-        "max": 61,
-        "mutation": "bras-multiples"
+        "max": 61
       },
       {
+        "id": "jambes-multiples",
         "min": 62,
-        "max": 63,
-        "mutation": "jambes-multiples"
+        "max": 63
       },
       {
+        "id": "oeil-unique",
         "min": 64,
-        "max": 66,
-        "mutation": "oeil-unique"
+        "max": 66
       },
       {
+        "id": "cretin",
         "min": 67,
-        "max": 68,
-        "mutation": "cretin"
+        "max": 68
       },
       {
+        "id": "tete-pointue",
         "min": 69,
-        "max": 69,
-        "mutation": "tete-pointue"
+        "max": 69
       },
       {
+        "id": "visage-difforme",
         "min": 70,
-        "max": 72,
-        "mutation": "visage-difforme"
+        "max": 72
       },
       {
+        "id": "chair-necrosee",
         "min": 73,
-        "max": 78,
-        "mutation": "chair-necrosee"
+        "max": 78
       },
       {
+        "id": "court-sur-pattes",
         "min": 79,
-        "max": 79,
-        "mutation": "court-sur-pattes"
+        "max": 79
       },
       {
+        "id": "mains-et-pieds-a-ventouses",
         "min": 80,
-        "max": 81,
-        "mutation": "mains-et-pieds-a-ventouses"
+        "max": 81
       },
       {
+        "id": "queue",
         "min": 82,
-        "max": 84,
-        "mutation": "queue"
+        "max": 84
       },
       {
+        "id": "trois-yeux",
         "min": 85,
-        "max": 87,
-        "mutation": "trois-yeux"
+        "max": 87
       },
       {
+        "id": "peau-transparente",
         "min": 88,
-        "max": 89,
-        "mutation": "peau-transparente"
+        "max": 89
       },
       {
+        "id": "bicephale",
         "min": 90,
-        "max": 90,
-        "mutation": "bicephale"
+        "max": 90
       },
       {
+        "id": "cornes-asymetriques",
         "min": 91,
-        "max": 92,
-        "mutation": "cornes-asymetriques"
+        "max": 92
       },
       {
+        "id": "peau-etrange",
         "min": 93,
-        "max": 94,
-        "mutation": "peau-etrange"
+        "max": 94
       },
       {
+        "id": "pieds-palmes",
         "min": 95,
-        "max": 96,
-        "mutation": "pieds-palmes"
+        "max": 96
       },
       {
+        "id": "suintement-de-pus",
         "min": 97,
-        "max": 100,
-        "mutation": "suintement-de-pus"
+        "max": 100
       }
     ],
     "source": {
@@ -1874,244 +1874,244 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 5,
-        "mutation": "pattes-d-animaux"
+        "max": 5
       },
       {
+        "id": "sang-acide",
         "min": 6,
-        "max": 6,
-        "mutation": "sang-acide"
+        "max": 6
       },
       {
+        "id": "bec",
         "min": 7,
-        "max": 7,
-        "mutation": "bec"
+        "max": 7
       },
       {
+        "id": "tete-bestiale",
         "min": 8,
-        "max": 10,
-        "mutation": "tete-bestiale"
+        "max": 10
       },
       {
+        "id": "extremites-armees",
         "min": 11,
-        "max": 12,
-        "mutation": "extremites-armees"
+        "max": 12
       },
       {
+        "id": "grandes-oreilles",
         "min": 13,
-        "max": 13,
-        "mutation": "grandes-oreilles"
+        "max": 13
       },
       {
+        "id": "souffle-du-feu",
         "min": 14,
-        "max": 15,
-        "mutation": "souffle-du-feu"
+        "max": 15
       },
       {
+        "id": "carapace",
         "min": 16,
-        "max": 17,
-        "mutation": "carapace"
+        "max": 17
       },
       {
+        "id": "griffes",
         "min": 18,
-        "max": 20,
-        "mutation": "griffes"
+        "max": 20
       },
       {
+        "id": "corpulent",
         "min": 21,
-        "max": 22,
-        "mutation": "corpulent"
+        "max": 22
       },
       {
+        "id": "crete-sur-la-tete",
         "min": 23,
-        "max": 24,
-        "mutation": "crete-sur-la-tete"
+        "max": 24
       },
       {
+        "id": "cri-assourdissant",
         "min": 25,
-        "max": 27,
-        "mutation": "cri-assourdissant"
+        "max": 27
       },
       {
+        "id": "doigts-distendus",
         "min": 28,
-        "max": 29,
-        "mutation": "doigts-distendus"
+        "max": 29
       },
       {
+        "id": "bras-elastiques",
         "min": 30,
-        "max": 32,
-        "mutation": "bras-elastiques"
+        "max": 32
       },
       {
+        "id": "emacie",
         "min": 33,
-        "max": 33,
-        "mutation": "emacie"
+        "max": 33
       },
       {
+        "id": "mauvais-oeil",
         "min": 34,
-        "max": 36,
-        "mutation": "mauvais-oeil"
+        "max": 36
       },
       {
+        "id": "articulation-supplementaire-aux-jambes",
         "min": 37,
-        "max": 37,
-        "mutation": "articulation-supplementaire-aux-jambes"
+        "max": 37
       },
       {
+        "id": "bouche-supplementaire",
         "min": 38,
-        "max": 40,
-        "mutation": "bouche-supplementaire"
+        "max": 40
       },
       {
+        "id": "oeil-pedoncule",
         "min": 41,
-        "max": 41,
-        "mutation": "oeil-pedoncule"
+        "max": 41
       },
       {
+        "id": "tentacule-epais",
         "min": 42,
-        "max": 44,
-        "mutation": "tentacule-epais"
+        "max": 44
       },
       {
+        "id": "fourrure",
         "min": 45,
-        "max": 46,
-        "mutation": "fourrure"
+        "max": 46
       },
       {
+        "id": "branchies",
         "min": 47,
-        "max": 48,
-        "mutation": "branchies"
+        "max": 48
       },
       {
+        "id": "peau-brillante",
         "min": 49,
-        "max": 50,
-        "mutation": "peau-brillante"
+        "max": 50
       },
       {
+        "id": "sauteur",
         "min": 51,
-        "max": 51,
-        "mutation": "sauteur"
+        "max": 51
       },
       {
+        "id": "beaute-surnaturelle",
         "min": 52,
-        "max": 57,
-        "mutation": "beaute-surnaturelle"
+        "max": 57
       },
       {
+        "id": "peau-d-acier",
         "min": 58,
-        "max": 59,
-        "mutation": "peau-d-acier"
+        "max": 59
       },
       {
+        "id": "langue-pendante",
         "min": 60,
-        "max": 61,
-        "mutation": "langue-pendante"
+        "max": 61
       },
       {
+        "id": "longs-bras",
         "min": 62,
-        "max": 63,
-        "mutation": "longs-bras"
+        "max": 63
       },
       {
+        "id": "longues-jambes",
         "min": 64,
-        "max": 64,
-        "mutation": "longues-jambes"
+        "max": 64
       },
       {
+        "id": "long-cou",
         "min": 65,
-        "max": 65,
-        "mutation": "long-cou"
+        "max": 65
       },
       {
+        "id": "bras-multiples",
         "min": 66,
-        "max": 67,
-        "mutation": "bras-multiples"
+        "max": 67
       },
       {
+        "id": "jambes-multiples",
         "min": 68,
-        "max": 69,
-        "mutation": "jambes-multiples"
+        "max": 69
       },
       {
+        "id": "oeil-unique",
         "min": 70,
-        "max": 70,
-        "mutation": "oeil-unique"
+        "max": 70
       },
       {
+        "id": "plumes-eparses",
         "min": 71,
-        "max": 72,
-        "mutation": "plumes-eparses"
+        "max": 72
       },
       {
+        "id": "cretin",
         "min": 73,
-        "max": 73,
-        "mutation": "cretin"
+        "max": 73
       },
       {
+        "id": "tete-pointue",
         "min": 74,
-        "max": 74,
-        "mutation": "tete-pointue"
+        "max": 74
       },
       {
+        "id": "couleurs-changeantes",
         "min": 75,
-        "max": 77,
-        "mutation": "couleurs-changeantes"
+        "max": 77
       },
       {
+        "id": "court-sur-pattes",
         "min": 78,
-        "max": 78,
-        "mutation": "court-sur-pattes"
+        "max": 78
       },
       {
+        "id": "peau-herissee-de-pointes",
         "min": 79,
-        "max": 81,
-        "mutation": "peau-herissee-de-pointes"
+        "max": 81
       },
       {
+        "id": "mains-et-pieds-a-ventouses",
         "min": 82,
-        "max": 83,
-        "mutation": "mains-et-pieds-a-ventouses"
+        "max": 83
       },
       {
+        "id": "queue",
         "min": 84,
-        "max": 85,
-        "mutation": "queue"
+        "max": 85
       },
       {
+        "id": "ecailles-epineuses-edoc",
         "min": 86,
-        "max": 87,
-        "mutation": "ecailles-epineuses-edoc"
+        "max": 87
       },
       {
+        "id": "trois-yeux",
         "min": 88,
-        "max": 90,
-        "mutation": "trois-yeux"
+        "max": 90
       },
       {
+        "id": "bicephale",
         "min": 91,
-        "max": 92,
-        "mutation": "bicephale"
+        "max": 92
       },
       {
+        "id": "peau-etrange",
         "min": 93,
-        "max": 95,
-        "mutation": "peau-etrange"
+        "max": 95
       },
       {
+        "id": "malefrenesie",
         "min": 96,
-        "max": 97,
-        "mutation": "malefrenesie"
+        "max": 97
       },
       {
+        "id": "pieds-palmes",
         "min": 98,
-        "max": 98,
-        "mutation": "pieds-palmes"
+        "max": 98
       },
       {
+        "id": "ailes",
         "min": 99,
-        "max": 100,
-        "mutation": "ailes"
+        "max": 100
       }
     ],
     "source": {
@@ -2130,269 +2130,269 @@
     },
     "entries": [
       {
+        "id": "pattes-d-animaux",
         "min": 1,
-        "max": 7,
-        "mutation": "pattes-d-animaux"
+        "max": 7
       },
       {
+        "id": "sang-acide",
         "min": 8,
-        "max": 9,
-        "mutation": "sang-acide"
+        "max": 9
       },
       {
+        "id": "bec",
         "min": 10,
-        "max": 12,
-        "mutation": "bec"
+        "max": 12
       },
       {
+        "id": "tete-bestiale",
         "min": 13,
-        "max": 13,
-        "mutation": "tete-bestiale"
+        "max": 13
       },
       {
+        "id": "extremites-armees",
         "min": 14,
-        "max": 15,
-        "mutation": "extremites-armees"
+        "max": 15
       },
       {
+        "id": "grandes-oreilles",
         "min": 16,
-        "max": 16,
-        "mutation": "grandes-oreilles"
+        "max": 16
       },
       {
+        "id": "pattes-d-oiseau",
         "min": 17,
-        "max": 19,
-        "mutation": "pattes-d-oiseau"
+        "max": 19
       },
       {
+        "id": "visage-sans-traits",
         "min": 20,
-        "max": 21,
-        "mutation": "visage-sans-traits"
+        "max": 21
       },
       {
+        "id": "souffle-du-feu",
         "min": 22,
-        "max": 22,
-        "mutation": "souffle-du-feu"
+        "max": 22
       },
       {
+        "id": "exophtalmie",
         "min": 23,
-        "max": 23,
-        "mutation": "exophtalmie"
+        "max": 23
       },
       {
+        "id": "peau-ardente",
         "min": 24,
-        "max": 24,
-        "mutation": "peau-ardente"
+        "max": 24
       },
       {
+        "id": "carapace",
         "min": 25,
-        "max": 26,
-        "mutation": "carapace"
+        "max": 26
       },
       {
+        "id": "griffes",
         "min": 27,
-        "max": 28,
-        "mutation": "griffes"
+        "max": 28
       },
       {
+        "id": "crete-sur-la-tete",
         "min": 29,
-        "max": 30,
-        "mutation": "crete-sur-la-tete"
+        "max": 30
       },
       {
+        "id": "cri-assourdissant",
         "min": 31,
-        "max": 32,
-        "mutation": "cri-assourdissant"
+        "max": 32
       },
       {
+        "id": "doigts-distendus",
         "min": 33,
-        "max": 34,
-        "mutation": "doigts-distendus"
+        "max": 34
       },
       {
+        "id": "bras-elastiques",
         "min": 35,
-        "max": 36,
-        "mutation": "bras-elastiques"
+        "max": 36
       },
       {
+        "id": "emacie",
         "min": 37,
-        "max": 37,
-        "mutation": "emacie"
+        "max": 37
       },
       {
+        "id": "mauvais-oeil",
         "min": 38,
-        "max": 39,
-        "mutation": "mauvais-oeil"
+        "max": 39
       },
       {
+        "id": "articulation-supplementaire-aux-jambes",
         "min": 40,
-        "max": 41,
-        "mutation": "articulation-supplementaire-aux-jambes"
+        "max": 41
       },
       {
+        "id": "bouche-supplementaire",
         "min": 42,
-        "max": 44,
-        "mutation": "bouche-supplementaire"
+        "max": 44
       },
       {
+        "id": "oeil-pedoncule",
         "min": 45,
-        "max": 45,
-        "mutation": "oeil-pedoncule"
+        "max": 45
       },
       {
+        "id": "tentacule-epais",
         "min": 46,
-        "max": 47,
-        "mutation": "tentacule-epais"
+        "max": 47
       },
       {
+        "id": "odeur-pestilentielle",
         "min": 48,
-        "max": 48,
-        "mutation": "odeur-pestilentielle"
+        "max": 48
       },
       {
+        "id": "fourrure",
         "min": 49,
-        "max": 49,
-        "mutation": "fourrure"
+        "max": 49
       },
       {
+        "id": "branchies",
         "min": 50,
-        "max": 50,
-        "mutation": "branchies"
+        "max": 50
       },
       {
+        "id": "peau-brillante",
         "min": 51,
-        "max": 52,
-        "mutation": "peau-brillante"
+        "max": 52
       },
       {
+        "id": "sans-tete",
         "min": 53,
-        "max": 53,
-        "mutation": "sans-tete"
+        "max": 53
       },
       {
+        "id": "sauteur",
         "min": 54,
-        "max": 54,
-        "mutation": "sauteur"
+        "max": 54
       },
       {
+        "id": "beaute-surnaturelle",
         "min": 55,
-        "max": 55,
-        "mutation": "beaute-surnaturelle"
+        "max": 55
       },
       {
+        "id": "peau-d-acier",
         "min": 56,
-        "max": 56,
-        "mutation": "peau-d-acier"
+        "max": 56
       },
       {
+        "id": "longs-bras",
         "min": 57,
-        "max": 58,
-        "mutation": "longs-bras"
+        "max": 58
       },
       {
+        "id": "longues-jambes",
         "min": 59,
-        "max": 60,
-        "mutation": "longues-jambes"
+        "max": 60
       },
       {
+        "id": "long-cou",
         "min": 61,
-        "max": 62,
-        "mutation": "long-cou"
+        "max": 62
       },
       {
+        "id": "bras-multiples",
         "min": 63,
-        "max": 64,
-        "mutation": "bras-multiples"
+        "max": 64
       },
       {
+        "id": "jambes-multiples",
         "min": 65,
-        "max": 66,
-        "mutation": "jambes-multiples"
+        "max": 66
       },
       {
+        "id": "oeil-unique",
         "min": 67,
-        "max": 67,
-        "mutation": "oeil-unique"
+        "max": 67
       },
       {
+        "id": "plumes-eparses",
         "min": 68,
-        "max": 70,
-        "mutation": "plumes-eparses"
+        "max": 70
       },
       {
+        "id": "visage-difforme",
         "min": 71,
-        "max": 73,
-        "mutation": "visage-difforme"
+        "max": 73
       },
       {
+        "id": "couleurs-changeantes",
         "min": 74,
-        "max": 76,
-        "mutation": "couleurs-changeantes"
+        "max": 76
       },
       {
+        "id": "court-sur-pattes",
         "min": 77,
-        "max": 77,
-        "mutation": "court-sur-pattes"
+        "max": 77
       },
       {
+        "id": "mains-et-pieds-a-ventouses",
         "min": 78,
-        "max": 79,
-        "mutation": "mains-et-pieds-a-ventouses"
+        "max": 79
       },
       {
+        "id": "queue",
         "min": 80,
-        "max": 82,
-        "mutation": "queue"
+        "max": 82
       },
       {
+        "id": "ecailles-epineuses-edoc",
         "min": 83,
-        "max": 83,
-        "mutation": "ecailles-epineuses-edoc"
+        "max": 83
       },
       {
+        "id": "trois-yeux",
         "min": 84,
-        "max": 84,
-        "mutation": "trois-yeux"
+        "max": 84
       },
       {
+        "id": "peau-transparente",
         "min": 85,
-        "max": 85,
-        "mutation": "peau-transparente"
+        "max": 85
       },
       {
+        "id": "bicephale",
         "min": 86,
-        "max": 87,
-        "mutation": "bicephale"
+        "max": 87
       },
       {
+        "id": "cornes-asymetriques",
         "min": 88,
-        "max": 88,
-        "mutation": "cornes-asymetriques"
+        "max": 88
       },
       {
+        "id": "peau-etrange",
         "min": 89,
-        "max": 91,
-        "mutation": "peau-etrange"
+        "max": 91
       },
       {
+        "id": "malefrenesie",
         "min": 92,
-        "max": 95,
-        "mutation": "malefrenesie"
+        "max": 95
       },
       {
+        "id": "pieds-palmes",
         "min": 96,
-        "max": 96,
-        "mutation": "pieds-palmes"
+        "max": 96
       },
       {
+        "id": "groin-poilu",
         "min": 97,
-        "max": 97,
-        "mutation": "groin-poilu"
+        "max": 97
       },
       {
+        "id": "ailes",
         "min": 98,
-        "max": 100,
-        "mutation": "ailes"
+        "max": 100
       }
     ],
     "source": {
@@ -2411,54 +2411,54 @@
     },
     "entries": [
       {
+        "id": "tete-bestiale-ours",
         "min": 1,
-        "max": 5,
-        "mutation": "tete-bestiale-ours"
+        "max": 5
       },
       {
+        "id": "tete-bestiale-sanglier",
         "min": 6,
-        "max": 15,
-        "mutation": "tete-bestiale-sanglier"
+        "max": 15
       },
       {
+        "id": "tete-bestiale-taureau",
         "min": 16,
-        "max": 25,
-        "mutation": "tete-bestiale-taureau"
+        "max": 25
       },
       {
+        "id": "tete-bestiale-chien",
         "min": 26,
-        "max": 30,
-        "mutation": "tete-bestiale-chien"
+        "max": 30
       },
       {
+        "id": "tete-bestiale-aigle",
         "min": 31,
-        "max": 35,
-        "mutation": "tete-bestiale-aigle"
+        "max": 35
       },
       {
+        "id": "tete-bestiale-rat",
         "min": 36,
-        "max": 50,
-        "mutation": "tete-bestiale-rat"
+        "max": 50
       },
       {
+        "id": "tete-bestiale-araignee-geante",
         "min": 51,
-        "max": 55,
-        "mutation": "tete-bestiale-araignee-geante"
+        "max": 55
       },
       {
+        "id": "tete-bestiale-chevre",
         "min": 56,
-        "max": 80,
-        "mutation": "tete-bestiale-chevre"
+        "max": 80
       },
       {
+        "id": "tete-bestiale-loup",
         "min": 81,
-        "max": 95,
-        "mutation": "tete-bestiale-loup"
+        "max": 95
       },
       {
+        "id": "tete-bestiale-serpent",
         "min": 96,
-        "max": 100,
-        "mutation": "tete-bestiale-serpent"
+        "max": 100
       }
     ],
     "source": {
@@ -2477,44 +2477,44 @@
     },
     "entries": [
       {
+        "id": "tete-bestiale-ours",
         "min": 1,
-        "max": 10,
-        "mutation": "tete-bestiale-ours"
+        "max": 10
       },
       {
+        "id": "tete-bestiale-sanglier",
         "min": 11,
-        "max": 25,
-        "mutation": "tete-bestiale-sanglier"
+        "max": 25
       },
       {
+        "id": "tete-bestiale-taureau",
         "min": 26,
-        "max": 45,
-        "mutation": "tete-bestiale-taureau"
+        "max": 45
       },
       {
+        "id": "tete-bestiale-chien",
         "min": 46,
-        "max": 60,
-        "mutation": "tete-bestiale-chien"
+        "max": 60
       },
       {
+        "id": "tete-bestiale-aigle",
         "min": 61,
-        "max": 65,
-        "mutation": "tete-bestiale-aigle"
+        "max": 65
       },
       {
+        "id": "tete-bestiale-chevre",
         "min": 66,
-        "max": 80,
-        "mutation": "tete-bestiale-chevre"
+        "max": 80
       },
       {
+        "id": "tete-bestiale-loup",
         "min": 81,
-        "max": 99,
-        "mutation": "tete-bestiale-loup"
+        "max": 99
       },
       {
+        "id": "tete-bestiale-serpent",
         "min": 100,
-        "max": 100,
-        "mutation": "tete-bestiale-serpent"
+        "max": 100
       }
     ],
     "source": {
@@ -2533,44 +2533,44 @@
     },
     "entries": [
       {
+        "id": "tete-bestiale-ours",
         "min": 1,
-        "max": 5,
-        "mutation": "tete-bestiale-ours"
+        "max": 5
       },
       {
+        "id": "tete-bestiale-sanglier",
         "min": 6,
-        "max": 20,
-        "mutation": "tete-bestiale-sanglier"
+        "max": 20
       },
       {
+        "id": "tete-bestiale-chien",
         "min": 21,
-        "max": 35,
-        "mutation": "tete-bestiale-chien"
+        "max": 35
       },
       {
+        "id": "tete-bestiale-aigle",
         "min": 36,
-        "max": 40,
-        "mutation": "tete-bestiale-aigle"
+        "max": 40
       },
       {
+        "id": "tete-bestiale-rat",
         "min": 41,
-        "max": 60,
-        "mutation": "tete-bestiale-rat"
+        "max": 60
       },
       {
+        "id": "tete-bestiale-araignee-geante",
         "min": 61,
-        "max": 80,
-        "mutation": "tete-bestiale-araignee-geante"
+        "max": 80
       },
       {
+        "id": "tete-bestiale-chevre",
         "min": 81,
-        "max": 95,
-        "mutation": "tete-bestiale-chevre"
+        "max": 95
       },
       {
+        "id": "tete-bestiale-serpent",
         "min": 96,
-        "max": 100,
-        "mutation": "tete-bestiale-serpent"
+        "max": 100
       }
     ],
     "source": {
@@ -2589,44 +2589,44 @@
     },
     "entries": [
       {
+        "id": "tete-bestiale-ours",
         "min": 1,
-        "max": 5,
-        "mutation": "tete-bestiale-ours"
+        "max": 5
       },
       {
+        "id": "tete-bestiale-sanglier",
         "min": 6,
-        "max": 10,
-        "mutation": "tete-bestiale-sanglier"
+        "max": 10
       },
       {
+        "id": "tete-bestiale-taureau",
         "min": 11,
-        "max": 15,
-        "mutation": "tete-bestiale-taureau"
+        "max": 15
       },
       {
+        "id": "tete-bestiale-chien",
         "min": 16,
-        "max": 25,
-        "mutation": "tete-bestiale-chien"
+        "max": 25
       },
       {
+        "id": "tete-bestiale-aigle",
         "min": 26,
-        "max": 35,
-        "mutation": "tete-bestiale-aigle"
+        "max": 35
       },
       {
+        "id": "tete-bestiale-chevre",
         "min": 36,
-        "max": 75,
-        "mutation": "tete-bestiale-chevre"
+        "max": 75
       },
       {
+        "id": "tete-bestiale-loup",
         "min": 76,
-        "max": 80,
-        "mutation": "tete-bestiale-loup"
+        "max": 80
       },
       {
+        "id": "tete-bestiale-serpent",
         "min": 81,
-        "max": 100,
-        "mutation": "tete-bestiale-serpent"
+        "max": 100
       }
     ],
     "source": {
@@ -2645,54 +2645,54 @@
     },
     "entries": [
       {
+        "id": "tete-bestiale-ours",
         "min": 1,
-        "max": 10,
-        "mutation": "tete-bestiale-ours"
+        "max": 10
       },
       {
+        "id": "tete-bestiale-sanglier",
         "min": 11,
-        "max": 20,
-        "mutation": "tete-bestiale-sanglier"
+        "max": 20
       },
       {
+        "id": "tete-bestiale-taureau",
         "min": 21,
-        "max": 30,
-        "mutation": "tete-bestiale-taureau"
+        "max": 30
       },
       {
+        "id": "tete-bestiale-chien",
         "min": 31,
-        "max": 40,
-        "mutation": "tete-bestiale-chien"
+        "max": 40
       },
       {
+        "id": "tete-bestiale-aigle",
         "min": 41,
-        "max": 50,
-        "mutation": "tete-bestiale-aigle"
+        "max": 50
       },
       {
+        "id": "tete-bestiale-rat",
         "min": 51,
-        "max": 60,
-        "mutation": "tete-bestiale-rat"
+        "max": 60
       },
       {
+        "id": "tete-bestiale-araignee-geante",
         "min": 61,
-        "max": 70,
-        "mutation": "tete-bestiale-araignee-geante"
+        "max": 70
       },
       {
+        "id": "tete-bestiale-chevre",
         "min": 71,
-        "max": 80,
-        "mutation": "tete-bestiale-chevre"
+        "max": 80
       },
       {
+        "id": "tete-bestiale-loup",
         "min": 81,
-        "max": 90,
-        "mutation": "tete-bestiale-loup"
+        "max": 90
       },
       {
+        "id": "tete-bestiale-serpent",
         "min": 91,
-        "max": 100,
-        "mutation": "tete-bestiale-serpent"
+        "max": 100
       }
     ],
     "source": {

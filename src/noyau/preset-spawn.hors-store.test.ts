@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { mergeCreatureProfile, presetDuNarratif, resolvePresetCreature } from './monde/resolveursDuNarratif';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
+import { mergeCreatureProfile, objetDuNarratif, presetDuNarratif, resolvePresetCreature } from './monde/resolveursDuNarratif';
 import { FicheAbsente, sceneNpc } from './monde/sceneNpc';
 import { creatureToCombatant } from './monde/spawn';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
@@ -97,6 +98,54 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
     const e = spawnedEnemy();
     expect(e.characteristics[CC]).toBe(99); // base brigand (40) surchargée par le profil (99)
     expect(e.label).toBe('Nommé Test');
+  });
+
+  it('l’inventaire de scène donne au PNJ le profil et l’apparence de l’objet de campagne', () => {
+    const objet = objetDeCampagne({ id: 'arme-d-inventaire', label: 'Arme de la salle' });
+    const narratif = { ...narratifFixture(), objets: [objet] };
+    const scene = presetScene();
+    const pnj = scene.entities[1];
+    pnj.inventaire = { [objet.id]: false };
+    pnj.appearance = { apparencesObjets: { [objet.id]: { id: 'hache_naine' } } };
+    const projet = parseProject({ ...enveloppe, scenes: [scene], narratif });
+    banc.setState({ party: [hero()] });
+    banc.getState().chargerLeProjet({ scenes: projet.scenes, entryId: scene.id, narratif: projet.narratif, projet });
+
+    const horsCombat = sceneNpc(banc.getState().scene, pnj.id, presetPnjById, objetDuNarratif(banc.getState().campaignNarratif));
+    const attendu = { trappingId: objet.id, label: objet.label, kind: 'melee', apparence: 'hache_naine', equipped: false };
+    expect(horsCombat?.items).toContainEqual(expect.objectContaining(attendu));
+    expect(spawnedEnemy().items).toContainEqual(expect.objectContaining(attendu));
+  });
+
+  it('la dotation directe matérialise le nombre et les dégâts de l’arme de campagne du preset', () => {
+    const damage = { plusBF: false, flat: 12 };
+    const objet = objetDeCampagne({ id: 'arme-de-dotation', label: 'Arme du preset', damage });
+    const narratif = {
+      ...emptyNarratif(),
+      objets: [objet],
+      presetsPnj: [{ id: 'pnj-test', base: { id: BASE_ID }, profil: { trappings: [{ id: objet.id, count: { fixed: 2 } }] } }],
+    };
+    const projet = parseProject({ ...enveloppe, scenes: [presetScene()], narratif });
+    banc.setState({ party: [hero()] });
+    banc.getState().chargerLeProjet({ scenes: projet.scenes, entryId: 'sc-preset', narratif: projet.narratif, projet });
+
+    const ennemi = spawnedEnemy();
+    const objets = ennemi.items?.filter((it) => it.trappingId === objet.id) ?? [];
+    expect(objets).toHaveLength(2);
+    expect(objets[0]).toMatchObject({ label: objet.label, kind: 'melee', damage });
+    expect(ennemi.weapons).toContainEqual(expect.objectContaining({ trappingId: objet.id, damage }));
+  });
+
+  it('un profil de surcharge issu du bestiaire conserve l’identité de la créature de base au spawn', () => {
+    const profil = findCreatureById('mutant')!;
+    const narratif = {
+      ...emptyNarratif(),
+      presetsPnj: [{ id: 'pnj-test', base: { id: BASE_ID }, profil }],
+    };
+    banc.setState({ party: [hero()] });
+    banc.getState().chargerLeProjet({ scenes: [presetScene()], entryId: 'sc-preset', narratif, projet: null });
+
+    expect(spawnedEnemy()).toMatchObject({ label: profil.label, creatureId: BASE_ID });
   });
 
   it('couche NON chargée : le presetId ne résout pas, et le PNJ sans autre porteur est un BOGUE nommé, jamais un PNJ générique (#1882)', () => {

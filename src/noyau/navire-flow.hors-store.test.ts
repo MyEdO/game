@@ -56,6 +56,8 @@ import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
 import type { QuantitesDeVivres } from '../engine/provisions';
 import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
+import { chargerLaSave, snapshotSave } from './persistance/save';
+import { capEnCombat, provenanceDesNavires } from './planDeNavire';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -78,7 +80,7 @@ function etatFrais(): void {
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: carte, lieu: 'A', travelPlan: null, pendingCascade: null, suspendedCascades: [],
     flags: {}, journal: [],
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   });
 }
 
@@ -591,14 +593,30 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
   });
 
   it('un recueilli ne dépasse pas l’effectif nominal, et le journal le dit', () => {
-    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1 }])]);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
     expect(get().vessel!.crewLost ?? 0).toBe(0);
+    expect(get().vessel!.recueillisSansSolde).toBeUndefined();
     expect(get().journal).toContain(t('eff.equipageComplet'));
+  });
+
+  it('recueil multiple : le registre reçoit seulement les marins qui ont pu embarquer', () => {
+    perdus(1);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 3, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
+    expect(get().vessel).toMatchObject({ crewLost: 0, recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }] });
   });
 
   it('une perte d’équipage retire des marins à l’effectif', () => {
     applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: -2 }])]);
     expect(get().vessel!.crewLost).toBe(2);
+  });
+
+  it('la perte des derniers marins vide les deux registres et annule la solde', () => {
+    set({ vessel: { ...get().vessel!, crewLost: 12,
+      crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    } });
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: -3 }])]);
+    expect(get().vessel).toMatchObject({ crewLost: 15, crew: [], recueillisSansSolde: [] });
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBe(0);
   });
 
   it('Canot de sauvetage : la donnée porte les rescapés du livre et leur rôle maison (l.213-218)', () => {
@@ -847,8 +865,8 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   const finance = (co: number) => creditBourse(get, set, get().party[0].id, { gold: co, silver: 0, brass: 0 });
   const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'groupe', ops } as never);
   const escale = (id: string) => {
-    const c = PORT_EVENTS.find((e) => e.id === id)!.consequence;
-    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence: c })) as never);
+    const { consequence, liaisonEquipage } = PORT_EVENTS.find((e) => e.id === id)!;
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence, liaisonEquipage })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
   };
   const choixOuvert = () => get().pendingCascade?.participants.find((s) => s.kind === 'choixDeFlux' && s.chosen == null);
@@ -930,17 +948,49 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   it('Embrigadement : la rançon payée ramène les MÊMES marins enlevés', () => {
     finance(30);
+    const crew = [{ roleId: 'mousse', count: 14 }, { roleId: 'timonier', count: 1 }];
+    set({ vessel: { ...get().vessel!, crew } });
     escale('embrigadement');
     const enleves = get().vessel!.crewLost!;
     expect(enleves).toBeGreaterThanOrEqual(2);
+    expect(get().vessel!.crew!.reduce((n, h) => n + h.count, 0)).toBe(15 - enleves);
+    set({ pendingCascade: JSON.parse(JSON.stringify(get().pendingCascade)) });
     tranche('Tenter de récupérer l’équipage enlevé', true);
     joueLeTest(true);
     tranche('Payer la rançon', true);
     expect(get().vessel!.crewLost).toBe(0);
+    expect([...get().vessel!.crew!].sort((a, b) => a.roleId.localeCompare(b.roleId))).toEqual(crew);
     const rancon = 30 * 240 - enSous();
     expect(rancon % 240).toBe(0);
     expect(rancon / 240).toBeGreaterThanOrEqual(2);
     expect(rancon / 240).toBeLessThanOrEqual(20);
+  });
+
+  it('Embrigadement : une liaison inconnue est refusée avant de retirer l’équipage', () => {
+    const { consequence } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
+    setDataset('seaPortEvents', PORT_EVENTS.map((e) => ({ ...e, consequence, liaisonEquipage: 'enlevés-introuvables' })) as never);
+    set({ vessel: { ...get().vessel!, crew: [{ roleId: 'mousse', count: 10 }], crewLost: 2 } });
+    const avant = get().vessel!;
+    expect(() => finalizePortArrivalTo(get, set, carte.places[1], true)).toThrow(/enlevés-introuvables/);
+    expect(get().vessel).toMatchObject({ crewLost: avant.crewLost, crew: avant.crew });
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('Embrigadement : une ancienne sauvegarde récupère aussi les rôles visibles dans l’ancien registre', () => {
+    finance(30);
+    const crew = [{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 3 }];
+    set({ vessel: { ...get().vessel!, crew } });
+    const { consequence, label } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
+    jouerFlowEntier(runFlow(get, set, consequence!, label));
+    const pertes = get().vessel!.crewLost!;
+    set({ vessel: { ...get().vessel!, crew } });
+    set(chargerLaSave(snapshotSave(get(), 'x')).etat);
+    expect(get().vessel!.crewLost).toBe(pertes);
+    expect(get().vessel!.crew!.reduce((n, h) => n + h.count, 0)).toBe(15 - pertes);
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(true);
+    tranche('Payer la rançon', true);
+    expect(get().vessel).toMatchObject({ crewLost: 0, crew });
   });
 
   /** 1d10 de plus, plafonnés à l'effectif nominal de la cogue (15). */
@@ -952,12 +1002,17 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   };
 
   it('Embrigadement : sans payer, la Discrétion réussie les libère tous', () => {
+    const crew = [{ roleId: 'mousse', count: 1 }, { roleId: 'timonier', count: 1 }];
+    set({ vessel: { ...get().vessel!, crew, crewLost: 13 } });
     escale('embrigadement');
+    expect(get().vessel!.crewLost).toBe(15);
+    expect(get().vessel!.crew).toEqual([]);
     tranche('Tenter de récupérer l’équipage enlevé', true);
     joueLeTest(true);
     tranche('Les libérer en douce', true);
     joueLeTest(true);
-    expect(get().vessel!.crewLost).toBe(0);
+    expect(get().vessel!.crewLost).toBe(13);
+    expect([...get().vessel!.crew!].sort((a, b) => a.roleId.localeCompare(b.roleId))).toEqual(crew);
   });
 
   it('Embrigadement : la Discrétion échouée coûte 1d10 marins de plus', () => {
@@ -979,10 +1034,12 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   });
 
   it('Embrigadement : renoncer ne coûte que les enlevés', () => {
+    set({ vessel: { ...get().vessel!, crew: [{ roleId: 'mousse', count: 15 }] } });
     escale('embrigadement');
     const perte = get().vessel!.crewLost!;
     tranche('Tenter de récupérer l’équipage enlevé', false);
     expect(get().vessel!.crewLost).toBe(perte);
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBe((15 - perte) * weeklyCrewWageBrass([{ roleId: 'mousse', count: 1 }]));
     expect(get().pendingCascade).toBeNull();
   });
 
@@ -1291,6 +1348,24 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     expect(ennemis().map((c) => c.creatureId)).toEqual(['triton']);
     expect(get().battle!.victoryCondition).toBeUndefined();
     expect(get().travelPlan!.interrupted).toBe(true);
+  });
+
+  it('la scène de combat générée contient le pont entier de la caraque sans changer l’écart aux adversaires (#3994, #3835)', () => {
+    set((etat) => ({ vessel: { ...etat.vessel!, vehicleId: 'caraque' } }));
+    enMer();
+    jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
+    const etat = get();
+    const scene = etat.scene!;
+    const coque = etat.battle!.combatants.find((c) => c.creatureId === 'caraque')!;
+    const triton = ennemis()[0];
+    expect(scene.dimensions).toEqual({ w: 18, h: 18 });
+    expect(coque.pos).toMatchObject({ x: 3, y: 7 });
+    expect({ x: triton.pos!.x - coque.pos!.x, y: triton.pos!.y - coque.pos!.y }).toEqual({ x: 9, y: -4 });
+    expect(capEnCombat(etat, coque.id)).toBe('N');
+    const { flottaison } = provenanceDesNavires(scene);
+    expect(flottaison.size).toBe(90);
+    const rangs = [...flottaison.keys()].map((c) => Number(c.split(',')[1]));
+    expect([Math.min(...rangs), Math.max(...rangs)]).toEqual([0, 17]);
   });
 
   it('Triton vaincu : 1d10, l’Humeur de Manann gagne ou perd 2d10 (l.137-139)', () => {

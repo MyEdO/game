@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { EventEmitter, once } from 'node:events'
 import { Readable } from 'node:stream'
 import { spawnSync, spawn } from 'node:child_process'
@@ -41,7 +41,13 @@ import {
   outilsSession,
   attendreSuivi,
 } from './session.mjs'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { BORNE_D_APPEL_MS } from '../hooks/appel-borne-guard.mjs'
+import { BORNE_DE_SONDE_S } from './sonde.mjs'
 import { preflightSessionStart } from './session-start.mjs'
+import { dossierSessions } from './session-carte.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { finDeTour } from '../hooks/fin-de-tour.mjs'
 import { ajouterTransition, lireTransitions } from './session-transitions.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
@@ -817,6 +823,154 @@ test('lanceur injecté : Codex sans fichier de profil, capacité une fois, boots
   assert.equal(r.etat, 'vivante')
   assert.throws(() => readFileSync(join(b.dossier, `${r.sessionId}.bootstrap`)), /ENOENT/)
   assert.throws(() => optionsSession(['fermer', '2461', '--jeton', 'secret']), /OPTION REFUSÉE/)
+})
+
+async function handleLancement(t, argv, broker, cwd) {
+  let suivi, enfant
+  const statut = await commandeSession(['lancer', ...argv, '--detache'], {
+    cwd, stdout: { write: (s) => { suivi = JSON.parse(s) } },
+    lancer: () => assert.fail('travail de lancement dans le parent'),
+    detacher: (appel) => {
+      enfant = appel
+      t.after(() => rmSync(appel.args[1], { recursive: true, force: true }))
+      return broker ? broker(appel) : 123
+    },
+  })
+  assert.equal(statut, 0)
+  assert.equal(enfant.fdLog, 'ignore')
+  assert.equal(suivi.etat, 'detache')
+  return { suivi, enfant }
+}
+
+for (const [agent, fenetre, journalBloque] of [['codex', 340_000, false], ['claude', 355_000, false], ['codex', 340_000, true]]) {
+  test(`#3176 — ${agent} : reçu après 270 s, fermeture par la capacité publiée avant WT (journal ${journalBloque ? 'bloqué' : 'lisible'})`, async (t) => {
+    let reprise, recu, cheminRecu
+    const b = banc(t, { auSommeil: (sessions, vivants) => {
+      if (recu) {
+        b.avance(280_000)
+        writeFileSync(cheminRecu, JSON.stringify({ ...recu, date: new Date(Date.parse(recu.date) + 280_000).toISOString() }))
+        recu = undefined
+      } else {
+        sessions.sortie(reprise.sessionId, { codeAgent: 0, arret: true })
+        vivants.delete(10); vivants.delete(30)
+      }
+    } })
+    const argv = ['--nom', 'lot', '--agent', agent, '--consigne', '42.md', '--json', '--executable', b.fichiers[agent], '--profil-wt', 'PS', '--worktree', '.']
+    const { suivi, enfant } = await handleLancement(t, argv, undefined, b.dossier)
+    assert.deepEqual(enfant.args.slice(2), ['lancer', ...argv])
+    assert.equal(enfant.cwd, b.dossier)
+    assert.equal(existsSync(suivi.code), false)
+    writeFileSync(join(b.dossier, '42.md'), 'consigne')
+    if (journalBloque) mkdirSync(suivi.log)
+    const lancement = commandeSession(enfant.args, { cwd: enfant.cwd, lancer: (options, gestes) => lancerSession(options, {
+      ...gestes, contexte: (worktree) => ({ worktree, gitCommun: b.dossier, branche: 'b', racine: b.dossier, head: 'a'.repeat(40) }),
+      natif: (_, executable) => executable, contrat: () => {}, terminal: ({ nom }) => ({ nom }), sessionsDe: () => b.sessions,
+      lancerWT: (_exe, args, parametres) => {
+        reprise = JSON.parse(readFileSync(suivi.reprise, 'utf8'))
+        assert.match(reprise.sessionId, /^[0-9a-f-]{36}$/)
+        assert.match(reprise.jeton, /^[0-9a-f]{64}$/)
+        assert.equal(reprise.transport, 'stdin'); assert.equal(reprise.action, 'fermer')
+        assert.ok(!JSON.stringify([args, parametres.env]).includes(reprise.jeton))
+        const carte = b.sessions.revendiquer(reprise.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) })
+        assert.equal(carte.demarrageJusqua - Date.parse(carte.date), fenetre)
+        cheminRecu = join(b.dossier, `${reprise.sessionId}.sessionstart`)
+        recu = JSON.parse(readFileSync(cheminRecu, 'utf8')); rmSync(cheminRecu)
+        return { status: 0 }
+      },
+    }) })
+    if (journalBloque) {
+      await assert.rejects(lancement)
+      assert.equal(existsSync(suivi.code), false)
+      assert.equal(b.sessions.etat(reprise.sessionId).etat, 'vivante')
+    } else {
+      assert.equal(await lancement, 0, readFileSync(suivi.log, 'utf8'))
+      const verdict = JSON.parse(readFileSync(suivi.log, 'utf8'))
+      assert.equal(verdict.sessionId, reprise.sessionId); assert.equal(verdict.jeton, reprise.jeton)
+      assert.equal(verdict.etat, 'vivante'); assert.equal(readFileSync(suivi.code, 'utf8'), '0')
+      if (process.platform !== 'win32') assert.equal(fs.statSync(suivi.log).mode & 0o777, 0o600)
+    }
+    if (process.platform !== 'win32') {
+      assert.equal(fs.statSync(dirname(suivi.code)).mode & 0o777, 0o700)
+      assert.equal(fs.statSync(suivi.reprise).mode & 0o777, 0o600)
+    }
+    assert.equal(await commandeSession(['fermer', reprise.sessionId, '--json'], {
+      stdin: Readable.from([readFileSync(suivi.reprise)]), env: {}, contexte: () => ({ gitCommun: b.dossier }),
+      sessionsDe: () => b.sessions, stdout: { write: (s) => assert.equal(JSON.parse(s).etat, 'sortie') },
+    }), 0)
+    assert.equal(b.sessions.etat(reprise.sessionId).etat, 'fermee')
+  })
+}
+
+test('#3176 — erreur du broker avant ou après la revendication du lancement', async (t) => {
+  let argsTardifs, enCours
+  const erreur = new Error('broker indéterminé')
+  await assert.rejects(handleLancement(t, ['42.md'], (appel) => { argsTardifs = appel.args; throw erreur }), (e) => e === erreur)
+  assert.equal(await commandeSession(argsTardifs, { lancer: () => assert.fail('lancement annulé') }), 1)
+  const { suivi } = await handleLancement(t, ['42.md'], (appel) => {
+    enCours = commandeSession(appel.args, { lancer: () => { throw new Error('refus du contrôleur') } })
+    throw erreur
+  })
+  assert.equal(suivi.diagnostic, erreur.message)
+  assert.equal(await enCours, 1)
+  assert.equal(JSON.parse(readFileSync(suivi.log, 'utf8')).refus.raison, 'refus du contrôleur')
+  assert.equal(readFileSync(suivi.code, 'utf8'), '1')
+})
+
+test('#3176 — écriture de reprise refusée avant WT, écriture finale refusée après WT', async (t) => {
+  for (const fichier of ['reprise', 'log']) {
+    const b = banc(t)
+    const { suivi, enfant } = await handleLancement(t, ['42.md'], undefined, b.dossier)
+    writeFileSync(join(b.dossier, '42.md'), 'consigne')
+    mkdirSync(suivi[fichier])
+    let ouvert = 0
+    const fin = commandeSession(enfant.args, { cwd: b.dossier, lancer: (o, gestes) => lancerSession(o, {
+      ...gestes, contexte: (worktree) => ({ worktree, gitCommun: b.dossier, branche: 'b', racine: b.dossier, head: 'a'.repeat(40) }),
+      natif: () => b.fichiers.claude, contrat: () => {}, terminal: () => ({ nom: 'PS' }), sessionsDe: () => b.sessions,
+      lancerWT: () => { ouvert++; return { status: 1 } },
+    }) })
+    if (fichier === 'reprise') {
+      assert.equal(await fin, 1)
+      assert.equal(ouvert, 0)
+      assert.equal(readFileSync(suivi.code, 'utf8'), '1')
+    } else {
+      await assert.rejects(fin)
+      assert.equal(ouvert, 1)
+      assert.equal(existsSync(suivi.code), false)
+      const r = JSON.parse(readFileSync(suivi.reprise, 'utf8'))
+      assert.equal(b.sessions.etat(r.sessionId).etat, 'echec-reservation')
+    }
+    const [carte] = b.sessions.lister().cartes
+    assert.equal(carte.etat, 'echec-reservation')
+    assert.equal(existsSync(join(b.dossier, `${carte.sessionId}.bootstrap`)), false)
+  }
+})
+
+test('#3176 — le budget du parent Windows se limite au broker CIM, chaque sonde tient dans un appel', async (t) => {
+  let timeoutMs
+  await handleLancement(t, ['42.md'], (appel) => lancerDetache({
+    ...appel, plateforme: 'win32', executerSync: (_exe, _args, options) => {
+      timeoutMs = options.timeout
+      return { status: 0, stdout: '{"ReturnValue":0,"ProcessId":42}' }
+    },
+  }))
+  assert.equal(timeoutMs, 10_000)
+  assert.ok(timeoutMs < BORNE_D_APPEL_MS && BORNE_DE_SONDE_S * 1000 < BORNE_D_APPEL_MS)
+})
+
+test('#3176 — CLI détachée réelle : sonde du handle depuis un cwd extérieur au dépôt', (t) => {
+  const cwd = mkdtempSync(join(tmpdir(), "hors dépôt d'ops $variable-"))
+  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  const env = { ...process.env, TMPDIR: cwd, TMP: cwd, TEMP: cwd }
+  const cli = spawnSync(process.execPath, [join(racineScripts, 'scripts/ops/session.mjs'), 'lancer', '42.md', '--worktree', join(cwd, 'absent'), '--detache', '--json'], { cwd, env, encoding: 'utf8', timeout: 20_000 })
+  assert.equal(cli.status, 0, cli.stderr)
+  const suivi = JSON.parse(cli.stdout)
+  const windows = process.platform === 'win32'
+  const sonde = spawnSync(windows ? 'powershell.exe' : 'sh', [
+    ...(windows ? ['-NoProfile', '-Command'] : ['-c']), (windows ? suivi.sondePowerShell : suivi.sonde) + ' --borne 15' + (windows ? '; exit $LASTEXITCODE' : ''),
+  ], { cwd, env, encoding: 'utf8', timeout: 20_000 })
+  assert.equal(sonde.status, 1, sonde.stderr)
+  assert.match(sonde.stdout, /WORKTREE ABSENT/)
+  assert.equal(existsSync(suivi.reprise), false)
 })
 
 test('fermer attend cleanup du host ; crash contrôleur avec agent vivant donne orpheline et refuse arrêt', async (t) => {
@@ -1867,7 +2021,7 @@ test('#3150 superviser, inscription de l’agent : une carte tenue se relit sans
   assert.equal(kills, 0); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined)
 })
 
-test('#3150 superviser, pointeur de diagnostic : posé avant la mesure de l’agent ; une carte tenue se relit, une panne de mesure le conserve', async (t) => {
+test('#3150 superviser, pointeur de diagnostic : une carte tenue se relit, une panne de mesure le conserve', async (t) => {
   for (const cas of ['tenue', 'panne']) {
     let restantes
     const b = banc(t, { processus: (mesure, pid) => { if (pid === 20 && cas === 'panne') throw new Error(`${prefixeDeRefus('panne')} MESURE WINDOWS INCOHÉRENTE`); return mesure(pid) } })
@@ -2010,10 +2164,25 @@ test('#3150 lireRapportDe : une lecture tenue est transitoire, une lecture en pa
   assert.throws(() => lireRapportDe(join(b.dossier, 'absent.json')), (e) => refusSession(e).categorie === 'panne' && /RAPPORT ABSENT/.test(e.message))
 })
 
-/** Le contexte de session que le banc a posé pour la session `id`, et l'environnement qui la porte (#3261). */
-const inscription = (b, id) => {
-  const contexte = JSON.parse(readFileSync(join(b.dossier, `${id}.hook-context`), 'utf8'))
-  return { contexte, env: { WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') }, journal: join(b.dossier, `${id}.claude.jsonl`) }
+function bancFinDeTour(t, pid = process.ppid) {
+  const { racine: worktree } = instanceDeDepot({ commit: false })
+  t.after(() => rmSync(worktree, { recursive: true, force: true }))
+  const dossier = dossierSessions(join(worktree, '.git'))
+  const inventaire = () => mesurerProcessusWorktrees({ identites: true, timeout: 5000 }).processus
+  const sessions = creerSessions({ dossier, inventaire })
+  const consigne = join(worktree, 'brief.md')
+  const reservation = sessions.reserver({
+    worktree, racine: worktree, agent: 'claude', ticket: 3261, nom: 'stop',
+    consigne, branche: 'test', head: 'a'.repeat(40), hooks: hooksBanc.claude,
+  })
+  const id = reservation.carte.sessionId
+  sessions.revendiquer(id, reservation.nonce, { controleurPid: process.pid, jobHostPid: process.ppid })
+  sessions.agentDemarre(id, inventaire().find((p) => p.pid === pid))
+  const contexte = JSON.parse(readFileSync(join(dossier, `${id}.hook-context`), 'utf8'))
+  const { chemin, ...identiteRecu } = contexte
+  writeFileSync(chemin, JSON.stringify({ ...identiteRecu, version: 1, date: reservation.carte.date, nativeSessionId: 'native-banc' }))
+  const env = { WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64'), CLAUDE_PROJECT_DIR: worktree }
+  return { id, sessions, worktree, env, journal: join(dossier, `${id}.claude.jsonl`) }
 }
 const STOP_DU_BANC = { hook_event_name: 'Stop', session_id: 'native-banc', transcript_path: 'transcripts/native-banc.jsonl' }
 const INACTIF_DU_BANC = { type: 'inactif', etat: 'inactif', transcript: STOP_DU_BANC.transcript_path }
@@ -2021,8 +2190,7 @@ const stdinDe = (entree) => Readable.from([JSON.stringify(entree)])
 const HOOK_FIN_DE_TOUR = fileURLToPath(new URL('../hooks/fin-de-tour.mjs', import.meta.url))
 
 test('#3261 hook Stop : la fin de tour de la session inscrite s’ajoute à son journal ; autre session, SubagentStop, hors inscription : rien', async (t) => {
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const id = r.carte.sessionId, { env, journal } = inscription(b, id)
+  const { id, env, journal } = bancFinDeTour(t)
   for (const entree of [{ ...STOP_DU_BANC, session_id: 'native-autre' }, { ...STOP_DU_BANC, hook_event_name: 'SubagentStop' }]) assert.equal(await finDeTour({ env, stdin: stdinDe(entree) }), null, JSON.stringify(entree))
   assert.equal(existsSync(journal), false)
   const premiere = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) }), seconde = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
@@ -2054,16 +2222,14 @@ test('#3261 hook Stop, processus réel : hors session inscrite il sort seul, std
   const fin = await Promise.race([once(enfant, 'close'), delai(2_000).then(() => ['encore vivant'])])
   assert.deepEqual([fin[0], sortie], [0, ''])
   assert.ok(Date.now() - debut < 2_000, `${Date.now() - debut} ms`)
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const inscrit = inscription(b, r.carte.sessionId)
-  const vu = spawnSync(process.execPath, [HOOK_FIN_DE_TOUR], { env: { ...env, ...inscrit.env }, input: JSON.stringify(STOP_DU_BANC), encoding: 'utf8', timeout: 20_000 })
+  const inscrit = bancFinDeTour(t, process.pid)
+  const vu = spawnSync(process.execPath, [HOOK_FIN_DE_TOUR], { env: { ...env, ...inscrit.env }, cwd: inscrit.worktree, input: JSON.stringify(STOP_DU_BANC), encoding: 'utf8', timeout: 20_000 })
   assert.deepEqual([vu.status, vu.stdout, vu.stderr], [0, '', ''])
-  assert.deepEqual(readFileSync(inscrit.journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition), [{ sessionId: r.carte.sessionId, seq: 1, curseur: 1, ...INACTIF_DU_BANC }])
+  assert.deepEqual(readFileSync(inscrit.journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition), [{ sessionId: inscrit.id, seq: 1, curseur: 1, ...INACTIF_DU_BANC }])
 })
 
 test('#3261 attendre Claude : la fin de tour est rendue comme celle de Codex, curseur compris ; carte fermée : sortie', async (t) => {
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const id = r.carte.sessionId, { env } = inscription(b, id)
+  const b = bancFinDeTour(t), { id, env } = b
   assert.equal((await b.sessions.attendre(id, { timeoutMs: 100 })).etat, 'indeterminee')
   const fin = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
   assert.deepEqual(await b.sessions.attendre(id, { timeoutMs: 100 }), fin)

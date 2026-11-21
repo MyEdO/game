@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "escalier",
+  "cle": {
+    "kit": "bois"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "limon",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "balustre",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "main-courante",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "e9bcc2ce945fbd8aeedc489b65e41189cca335cbbf76bff831d68a54a7c2d56f",
+    "octets": 157616
+  }
+}

@@ -9,15 +9,58 @@ import type { FermetureDuJet } from './rollFlowFactory';
 import type { ReglageDu } from './reglagesDuJet';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
-import { findSpellById } from '../data/index';
+import { findSpellById, type SpellData } from '../data/index';
 import { castInfoIsPrayer } from '../engine/magic';
-import { spellEffectOps } from '../engine/flowCore';
+import { spellEffectOps, type Condition } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { spellHasOvercastTableRoll } from '../engine/overcast';
 import { rule } from '../engine/policy';
+import { t } from '../i18n';
+
+/** VDM 09 l.346–354 */
+const CAMPS_AU_CHOIX = [
+  { id: 'allies', affects: { kind: 'relation', who: 'target', is: 'allie' } },
+  {
+    id: 'ennemis',
+    affects: {
+      kind: 'all',
+      of: [
+        { kind: 'relation', who: 'target', is: 'adversaire' },
+        { kind: 'not', of: { kind: 'relation', who: 'target', is: 'neutre' } },
+      ],
+    },
+  },
+] satisfies readonly { id: 'allies' | 'ennemis'; affects: Condition }[];
+
+/** Camps proposés pour une Zone d'Effet. */
+export function choixDeCiblesDuSort(cible: SpellData['target']) {
+  if (cible?.kind !== 'area' || !cible.choixDeCibles) return [];
+  return CAMPS_AU_CHOIX.map(({ id, affects }) => ({ id, label: t(`incantation.choixDeCibles.${id}`), affects }));
+}
+
+/** Options désignables de l'incantation en combat. */
+export function choixDeCiblesEnAttente(s: Jeu) {
+  const pc = s.pendingCast;
+  return s.battle && pc?.zone ? choixDeCiblesDuSort(findSpellById(pc.spellId)?.target ?? null) : [];
+}
+
+/** L'option retenue pour le lancement, la première par défaut. */
+export function choixDeCiblesRetenu(options: ReturnType<typeof choixDeCiblesDuSort>, id?: string) {
+  return options.find((option) => option.id === id) ?? options[0];
+}
+
+/** Le filtre de la Zone d'Effet et celui de l'option retenue. */
+export function filtreDeCiblesDuSort(cible: SpellData['target'], choix?: string): Condition | undefined {
+  if (cible?.kind !== 'area') return undefined;
+  const filtreDuChoix = choixDeCiblesRetenu(choixDeCiblesDuSort(cible), choix)?.affects;
+  if (cible.affects && filtreDuChoix) return { kind: 'all', of: [cible.affects, filtreDuChoix] };
+  return filtreDuChoix ?? cible.affects;
+}
 
 /** Les réglages de l'incantation qu'une offre ferme. */
-export type ReglageOffertDeLIncantation = Extract<ReglageDu<'incantation'>, 'effetCritique' | 'formeConjuree' | 'discret' | 'jetsDeTable'>;
+export type ReglageOffertDeLIncantation = Extract<
+  ReglageDu<'incantation'>, 'effetCritique' | 'formeConjuree' | 'choixDeCibles' | 'discret' | 'jetsDeTable'
+>;
 
 /** Ce qui ferme le réglage `reglage` de l'incantation en attente là où il ne change rien au Sort ou que le moteur règle
  *  seul (`nonOffert`), et au siège qui ne pilote pas le lanceur (`rangeeTemoin`) ; `null` : il s'offre. Sans
@@ -37,6 +80,7 @@ export function offreDeLIncantation(s: Jeu, reglage: ReglageOffertDeLIncantation
     effetCritique: () => !!jet?.isCritical && !castInfoIsPrayer(sort),
     // LDB 47
     formeConjuree: () => ops.some((o) => o.op === 'grantWeapon' && o.chooseForm) && conjureFormOptions(lanceur).length > 0,
+    choixDeCibles: () => choixDeCiblesEnAttente(s).length > 0,
     // LDB 40 l.42
     discret: () => castInfoIsPrayer(sort) && !!rule('priere-conviction'),
     // EDOC 13 l.276

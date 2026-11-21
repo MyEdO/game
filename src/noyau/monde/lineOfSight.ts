@@ -7,9 +7,10 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte, type WallSeg } from './scene';
+import { Scene, tileAt, wallOnSight, hauteurDe, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte, type WallSeg } from './scene';
 import { aretesA } from './wallIndex';
-import { terrainOpaque } from './terrain';
+import { terrainHorsGrille, terrainOpaque } from './terrain';
+import { caseDansGrille, grilleDesMasses, masseOcculte, rayonTraverse } from './opacite';
 import { findPropById, findStructureById } from '../../data';
 import { decorsEnCase } from './decorIndex';
 import { pairesEnRegard, type Corps } from './footprint';
@@ -22,9 +23,11 @@ const worst = couvertLePlusProtecteur;
 
 /** Couvert d'un terrain partiel. */
 const TERRAIN_COVER: Record<string, CoverClass> = { bois: 'imparfaite' };
-/** Couvert/opacité d'un décor : lus sur le dataset `props.json` (`cover`/`opaque`), exemplaires canon
- *  LDB 14 l.72/81/86 + extrapolation l.75. Édité au Codex. */
-const decorCover = (ref: string | undefined): CoverClass | undefined => (ref ? findPropById(ref)?.cover : undefined);
+/** LDB 14 l.72,81,86. */
+function decorCover(ref: string | undefined): CoverClass | undefined {
+  const prop = findPropById(ref);
+  return prop?.opaque ? undefined : prop?.cover;
+}
 
 /** Cases STRICTEMENT entre `a` et `b` (supercover simple sur grille carrée). */
 export function tilesBetween(a: Pt, b: Pt): Pt[] {
@@ -37,8 +40,6 @@ export function tilesBetween(a: Pt, b: Pt): Pt[] {
   }
   return out;
 }
-
-const adjacent = (p: Pt, q: Pt): boolean => chebyshev(p, q) <= 1;
 
 /**
  * Cases d'un nuage de fumée (Souffle (Fumée)) : disque de Chebyshev `radius` autour de `center`
@@ -60,13 +61,12 @@ export function smokeZone(from: Pt, center: Pt, radius: number): Pt[] {
   return [...seen.values()];
 }
 
-/** Une CASE bloque-t-elle la vue ? (terrain opaque `mur/porte`, décor opaque `statue`). Prédicat UNIQUE
- *  d'opacité de tuile — utilisé par le couvert (`lineOfSightCover`) ET la vision (échantillonnage
- *  anti-fuite). N'inclut PAS les murs d'arête (cf. `wallBetween`) : une cloison fine de bâtiment est un
- *  `WallSeg`, pas une tuile opaque. */
+/** La colonne contient-elle une masse opaque ? */
 export function tileBlocksSight(scene: Scene, x: number, y: number): boolean {
-  if (terrainOpaque(tileAt(scene, x, y))) return true;
-  return decorsEnCase(scene, x, y).some((dc) => !!findPropById(dc.decor?.id)?.opaque);
+  if (!caseDansGrille(scene.dimensions, x, y)) {
+    return terrainOpaque(terrainHorsGrille()) || decorsEnCase(scene, x, y).some((d) => !!findPropById(d.decor?.id)?.opaque);
+  }
+  return !!grilleDesMasses(scene).g[y * scene.dimensions.w + x];
 }
 
 /**
@@ -153,7 +153,7 @@ export function lineOfSightCover(
   smoke: Pt[] = [],
 ): { blocked: boolean; cover: CoverClass } {
   // Fumée : bloque la vue sur tout le segment, extrémités INCLUSES (être DANS la fumée aveugle aussi).
-  // Z-AWARE (#805) : les murs/dead-ground sont déjà filtrés par étage (sameFloor/heightAt) — la fumée
+  // Z-AWARE (#805) : les murs/dead-ground sont déjà filtrés par étage (sameFloor/hauteurDe) — la fumée
   // suit le même patron. Les tiles de zone portent leur étage depuis `smokeZone` (`s.z`) ; une tile
   // héritée sans `z` (appelant tiers) retombe sur le SOL (`0`) — une fumée au sol n'aveugle QUE le sol.
   if (smoke.length) {
@@ -164,29 +164,36 @@ export function lineOfSightCover(
   // Murs d'arête (Scene.walls) : barrière pleine entre deux cases → vue entièrement bloquée.
   // MÊME étage seulement. Cross-niveau (`from.z` ≠ `to.z`) : un défenseur sur le rempart (z=1) voit/tire
   // l'assaillant au sol (z=0) PAR-DESSUS les arêtes fines (créneaux/parapet) → on ignore les murs
-  // d'arête ; seules les TUILES opaques (bâtiment/terrain, boucle ci-dessous) coupent la LdV.
+  // d'arête ; les masses opaques sont jugées à la hauteur de départ.
   const sameFloor = (from.z ?? 0) === (to.z ?? 0);
   if (sameFloor && wallOnSight(scene, from, to, from.z ?? 0)) return { blocked: true, cover: 'totale' };
   // Angle mort VERTICAL (dead ground) : le parapet masque la vue trop plongeante sur ce qui est COLLÉ
   // au pied du perchoir — symétrique (la cible en contrebas ne voit pas non plus le tireur en hauteur).
   // Seuil de géométrie de la grille, comme `STEP_MAX_M` (`relief.ts`, #151) : bloqué
-  // quand l'écart de hauteur (m, `heightAt`) dépasse la distance horizontale parcourue (m) — angle de
+  // quand l'écart de hauteur (m, `hauteurDe`) dépasse la distance horizontale parcourue (m) — angle de
   // dépression > 45°. Au-delà de ce seuil, la vue par-dessus le parapet redevient dégagée (tests cross-z).
+  const shooterH = hauteurDe(scene, from);
   if (!sameFloor) {
-    const dzM = Math.abs(heightAt(scene, from.x, from.y, from.z ?? 0) - heightAt(scene, to.x, to.y, to.z ?? 0));
+    const dzM = Math.abs(shooterH - hauteurDe(scene, to));
     const horizM = chebyshev(from, to) * sceneMetresPerTile(scene);
     if (dzM > horizM) return { blocked: true, cover: 'totale' };
   }
+  const grille = grilleDesMasses(scene);
+  const obstacleDistant = (p: Pt): boolean => chebyshev(p, to) > 1;
+  if (rayonTraverse(grille, from, to, (x, y, index) => masseOcculte(grille, index, shooterH) && obstacleDistant({ x, y }))) {
+    return { blocked: true, cover: 'totale' };
+  }
+  const trajet = tilesBetween(from, to);
+  const passeLeBord = !caseDansGrille(grille, from.x, from.y) || !caseDansGrille(grille, to.x, to.y);
+  if (passeLeBord && trajet.some((t) => obstacleDistant(t) &&
+      !caseDansGrille(grille, t.x, t.y) && tileBlocksSight(scene, t.x, t.y))) {
+    return { blocked: true, cover: 'totale' };
+  }
+
   let cover: CoverClass = 'none';
-  for (const t of tilesBetween(from, to)) {
+  for (const t of trajet) {
+    if (!obstacleDistant(t) && tileBlocksSight(scene, t.x, t.y)) return { blocked: false, cover: 'totale' };
     const terr = tileAt(scene, t.x, t.y);
-    if (tileBlocksSight(scene, t.x, t.y)) {
-      if (adjacent(t, to)) {
-        cover = worst(cover, 'totale'); // cible collée au couvert → −30, tir possible
-        continue;
-      }
-      return { blocked: true, cover: 'totale' }; // bloqueur à distance → pas de Ligne de Vue
-    }
     if (TERRAIN_COVER[terr]) cover = worst(cover, TERRAIN_COVER[terr]);
     for (const decor of decorsEnCase(scene, t.x, t.y)) {
       const dcov = decorCover(decor.decor?.id);

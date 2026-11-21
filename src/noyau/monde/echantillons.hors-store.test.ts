@@ -6,6 +6,8 @@ import { PARTS_RELIEF } from '../../data/materials.types';
 import { buildFloors } from './volume/floors';
 import { cretesDePerimetre } from './volume/creneaux';
 import { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type FamilleDEchantillon } from './echantillons';
+import { terrainKitDEscalier } from './terrain';
+import { METRES_PER_LEVEL } from './relief';
 
 const matieres = (dessine: { surfaces: { matiere: string }[] }): string[] => dessine.surfaces.map((s) => s.matiere);
 const matieresDuVolume = (volume: { morceaux: { surfaces: { matiere: string }[] }[] }): string[] => volume.morceaux.flatMap(matieres);
@@ -31,6 +33,19 @@ describe('les échantillons du monde (#3802)', () => {
     expect(matieresDuVolume(echantillonDessine('sol', id).monde)).toContain(`terrain--${id}`);
   });
 
+  it.each(entrees('sol'))('le sol %s à marches porte une volée de trois cases, dont les côtés bordent le sol', (id) => {
+    const cotes = echantillonDessine('sol', id).cotesDeMarches;
+    if (!terrainKitDEscalier(id)) return expect(cotes).toEqual([]);
+    expect(new Set(cotes.map((c) => c.classe))).toEqual(new Set(['rejointe', 'vide']));
+    expect(new Set(cotes.map((c) => `${c.case.x},${c.case.y}`)).size, 'les marches de la volée, et son pied').toBe(4);
+    expect(cotes.every((c) => c.famille === terrainKitDEscalier(id))).toBe(true);
+  });
+
+  it('l’échelle de l’enclos, haute du dénivelé de la case haussée', () => {
+    const { aretes } = echantillonDessine('mur', structureAppearances[0].id);
+    expect(aretes.filter((a) => a.piece === 'echelle').map((a) => [a.hauteurM, a.pied])).toEqual([[METRES_PER_LEVEL, 0]]);
+  });
+
   it.each(entrees('relief'))('la matière de relief %s habille chaque partie de la terrasse', (id) => {
     const scene = sceneDEchantillon('relief', id);
     const parties = buildFloors(scene, undefined, { activeZ: Math.max(...scene.layers.map((l) => l.z)) })
@@ -47,7 +62,10 @@ describe('les échantillons du monde (#3802)', () => {
 
   it.each(structureAppearances)('l’apparence de mur $id pose chaque pièce de son kit, et sa couronne', (apparence) => {
     const { aretes, couronnes, couronnesAbattues } = echantillonDessine('mur', apparence.id);
-    expect(aretes.map((a) => a.piece).sort()).toEqual(['breche', 'fenetre', 'fenetre-close', 'mur', 'porte-fermee', 'porte-ouverte']);
+    expect(aretes.map((a) => `${a.piece}--${a.position}`).sort()).toEqual([
+      'breche--seule', 'echelle--seule', 'fenetre--seule', 'fenetre-close--seule', 'mur--seule', 'mur--seule', 'mur--seule',
+      'porte-fermee--droite', 'porte-fermee--gauche', 'porte-fermee--seule', 'porte-ouverte--seule',
+    ]);
     expect(aretes.every((a) => a.famille === apparence.kit)).toBe(true);
     expect(couronnes.map((c) => c.cle).sort()).toEqual(apparence.parapet ? aretes.map((a) => a.cle).sort() : []);
     expect(couronnesAbattues).toEqual(apparence.parapet && !apparence.door ? aretes.filter((a) => a.piece === 'breche').map((a) => a.cle) : []);

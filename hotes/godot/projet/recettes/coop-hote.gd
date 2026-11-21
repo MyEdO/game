@@ -76,8 +76,11 @@ func _heberger(nom: String) -> bool:
 	return true
 
 
-## P2 : la valeur du siège de l'invité pressée sur le héros au tour, relue pressée.
+## P2 : l'invité constate sa barre spectatrice avant que l'hôte lui attribue le héros au tour.
 func _p2() -> bool:
+	var temoin := _echange.path_join("spectatrice")
+	if not await _attendre(func() -> bool: return FileAccess.file_exists(temoin), "la barre spectatrice constatée par l'invité"):
+		return false
 	_heros = "heros/" + _heros_au_tour()
 	if not await _attribuer():
 		return false
@@ -126,10 +129,8 @@ func _quitter(etape: String) -> bool:
 	return true
 
 
-## P4 : le pont retiré de l'arbre, la scène d'abord, sa publication finie, son processus sort de lui-même en 0.
+## P4 : la scène puis le pont retirés de l'arbre, le processus du pont sort de lui-même en 0.
 func _sortie_du_processus() -> void:
-	if not await _attendre(func() -> bool: return not current_scene.get("_publication").get("_attendue"), "l'écran publié"):
-		return
 	unload_current_scene()
 	await process_frame
 	var pid: int = _pont.get("_transport").get("_pid")

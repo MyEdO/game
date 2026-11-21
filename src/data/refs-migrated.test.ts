@@ -13,7 +13,8 @@ import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES
 import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
-  byId, findTalentById, findTrappingById, findSeaShantyById,
+  byId, findTalentById, findSeaShantyById,
+  findSiegeEngineById,
   findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -25,6 +26,8 @@ import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { pretires } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
+import bargeProject from '../scenes/barge-du-sel/barge-du-sel-projet.json';
+import diligenceProject from '../scenes/diligence/diligence-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
@@ -85,9 +88,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
    * 2026-08-31-avancement-vers-grammaire.mjs`). Deux faits distincts, mesurés ici sur la donnée
    * COMMITTÉE — sans jamais rouvrir l'ancien fichier :
    *  1. L'ENVELOPPE est en bijection avec la graphie d'origine : `{ref}`/`{wildcard}`/
-   *     `{wildcard,specOptions}`/`{choice}`/`{random}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
-   *     `{pick:1,of}`/`{random}`. Aller-retour = identité sur CHAQUE nœud réel : aucune branche
-   *     fusionnée, aucun champ perdu, aucune forme hors vocabulaire.
+   *     `{wildcard,specOptions}`/`{choice}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
+   *     `{pick:1,of}`. Les tirages `{pick, table}` (#3916) traversent ce témoin sans recodage.
+   *     Aller-retour = identité sur chaque nœud réel.
    *  2. Les seules VALEURS qui changent sont les 14 paires NOMMÉES ci-dessous (spéc imprimée au
    *     livre → id de catalogue) : chacune résout dans le catalogue de sa def, chacune est VIVANTE
    *     dans la donnée, et aucune des 14 graphies d'origine n'y subsiste.
@@ -95,8 +98,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   type Graphie = Record<string, unknown>;
   /** Graphie CIBLE → graphie d'ORIGINE. */
   const versOrigine = (n: Graphie): Graphie => {
-    if ('random' in n && Object.keys(n).length === 1) return { random: n.random };
-    if ('pick' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
+    if ('table' in n) return n;
+    if ('of' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
     if ('id' in n) {
       if (n.choix === undefined) return n.spec === undefined ? { ref: { id: n.id } } : { ref: { id: n.id, spec: n.spec } };
       return n.choix === true ? { wildcard: { id: n.id } } : { wildcard: { id: n.id }, specOptions: n.choix };
@@ -105,7 +108,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   };
   /** Graphie d'ORIGINE → graphie CIBLE, ENVELOPPE SEULE (la valeur de spéc n'est pas touchée). */
   const versCible = (n: Graphie): Graphie => {
-    if ('random' in n) return { random: n.random };
+    if ('table' in n) return n;
     if ('choice' in n) return { pick: 1, of: (n.choice as Graphie[]).map(versCible) };
     if ('ref' in n) {
       const r = n.ref as Graphie;
@@ -506,9 +509,9 @@ describe('Compétences de statbloc, de Carrière et d’espèce — observations
   });
 });
 
-// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce : la spéc est
-// admise au parse (`talentRefSchema`, `refOuSpec('talent')`) ; les deux passes de `talentRefSchema`
-// (texte d'instance, sentinelle) restent des stocks nommés ici.
+// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce.
+// `talentRefSchema` admet le texte d'instance d'un Talent sans catalogue. Le parse refuse la
+// sentinelle de spécialisation (#1456) et l'inventaire en mesure le stock vide.
 describe('Talents de statbloc, de Carrière et d’espèce — observations nommées (#1457 B1)', () => {
   const { textes, sentinelles } = collecteSpecs('talents');
 
@@ -583,10 +586,12 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
     const bad: string[] = [];
     const hard = (p: Record<string, unknown>, where: string): void => {
       if (typeof p.trappingId !== 'string') return; // forme ancienne (item) → report ci-dessous
-      if (!findTrappingById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
+      if (!findSiegeEngineById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
       for (const f of BASE_FIELDS) if (f in p) bad.push(`${where} : « ${f} » copié alors qu'hydratable de « ${p.trappingId} » (base interdite en donnée, #222)`);
     };
     walkPostes(areneProject, 'arene-projet.json', hard);
+    walkPostes(bargeProject, 'barge-du-sel-projet.json', hard);
+    walkPostes(diligenceProject, 'diligence-projet.json', hard);
     walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
     for (const s of SCENARIOS) {
       const c = s.construire(idsDeTest);

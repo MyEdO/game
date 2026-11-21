@@ -4,13 +4,33 @@ import { charKeySchema, statutSchema } from '../grammaire/valeurs';
 import { trappingRefSchema } from '../grammaire/reference';
 import { avancement } from '../grammaire/avancement';
 import { document } from '../grammaire/document';
-import { ref } from '../grammaire/ref';
+import { raffinementDeCatalogue, ref } from '../grammaire/ref';
 
 export const file = 'careerLevels.json';
 export const famille = 'entite';
 
 /** LDB 07 l.41-43. */
 const MARQUES_PAR_NIVEAU: Readonly<Record<number, number>> = { 1: 3, 2: 1, 3: 1, 4: 1 };
+
+const verifierLesNiveaux = raffinementDeCatalogue((lire) => {
+  const { ids } = lire.catalogue('career');
+  return (v, ctx) => {
+    const parCarriere = new Map<string, { id: string; level: number; characteristics: readonly string[] }[]>();
+    for (const n of v as { id: string; career: { id: string }; level: number; characteristics: readonly string[] }[])
+      parCarriere.set(n.career.id, [...(parCarriere.get(n.career.id) ?? []), n]);
+    for (const carriere of ids())
+      if (!parCarriere.has(carriere)) parCarriere.set(carriere, []);
+    for (const [carriere, niveaux] of parCarriere) {
+      const presents = niveaux.map((n) => n.level).sort((a, b) => a - b);
+      if (presents.join(',') !== '1,2,3,4')
+        ctx.addIssue({ code: 'custom', path: [], message: `careerLevels.json : la carrière « ${carriere} » doit porter les niveaux 1, 2, 3 et 4 une fois chacun — niveaux présents [${presents.join(', ')}] (${niveaux.map((n) => n.id).join(', ')}).` });
+      const marques = niveaux.flatMap((n) => n.characteristics);
+      const doublons = [...new Set(marques.filter((c, i) => marques.indexOf(c) !== i))];
+      if (doublons.length)
+        ctx.addIssue({ code: 'custom', path: [], message: `careerLevels.json : la carrière « ${carriere} » ouvre deux fois [${doublons.join(', ')}] — chaque caractéristique du Schéma de Progression porte une seule marque.` });
+    }
+  };
+});
 
 const doc = document(
   'careerLevels',
@@ -31,18 +51,22 @@ const doc = document(
     level: { label: 'Niveau', hint: 'Rang du Niveau au sein de la Carrière' },
     skills: {
       label: 'Compétences du Niveau',
+      inverseCodex: true,
       hint: 'Compétences ouvertes à l’Augmentation par ce Niveau (cumul des Niveaux ≤ courant ; l’italique du N1 sert à Gagner de l’argent)',
     },
     talents: {
       label: 'Talents du Niveau',
+      inverseCodex: true,
       hint: 'Talents disponibles à l’achat au Niveau COURANT seul (100 PX + 100 par prise) — pas ceux des Niveaux précédents',
     },
     trappings: {
       label: 'Possessions du Niveau',
+      inverseCodex: { type: 'trapping', portee: 'directe' },
       hint: 'Possessions listées à ce Niveau (celles du Niveau 1 dotent le personnage à la création)',
     },
     characteristics: {
       label: 'Caractéristiques du Niveau',
+      inverseCodex: { cle: 'characteristic' },
       hint: 'Caractéristiques de Carrière ouvertes par ce Niveau (Augmentations au coût standard, ×2 hors carrière) ; les Niveaux ≤ courant se cumulent',
     },
     status: { label: 'Statut social', hint: 'Échelon Bronze/Argent/Or de ce Niveau' },
@@ -63,21 +87,7 @@ const doc = document(
         if (marques !== undefined && n.characteristics.length !== marques)
           ctx.addIssue({ code: 'custom', path: ['characteristics'], message: `careerLevels.json : « ${n.id} » ouvre ${n.characteristics.length} caractéristique(s) — le Schéma de Progression en ouvre ${marques} au niveau ${n.level}.` });
       }),
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        const parCarriere = new Map<string, { id: string; level: number; characteristics: readonly string[] }[]>();
-        for (const n of v as { id: string; career: { id: string }; level: number; characteristics: readonly string[] }[])
-          parCarriere.set(n.career.id, [...(parCarriere.get(n.career.id) ?? []), n]);
-        for (const [carriere, niveaux] of parCarriere) {
-          const presents = niveaux.map((n) => n.level).sort((a, b) => a - b);
-          if (presents.join(',') !== '1,2,3,4')
-            ctx.addIssue({ code: 'custom', path: [], message: `careerLevels.json : la carrière « ${carriere} » doit porter les niveaux 1, 2, 3 et 4 une fois chacun — niveaux présents [${presents.join(', ')}] (${niveaux.map((n) => n.id).join(', ')}).` });
-          const marques = niveaux.flatMap((n) => n.characteristics);
-          const doublons = [...new Set(marques.filter((c, i) => marques.indexOf(c) !== i))];
-          if (doublons.length)
-            ctx.addIssue({ code: 'custom', path: [], message: `careerLevels.json : la carrière « ${carriere} » ouvre deux fois [${doublons.join(', ')}] — chaque caractéristique du Schéma de Progression porte une seule marque.` });
-        }
-      }),
+    affinerDataset: (dataset) => dataset.check(verifierLesNiveaux),
   },
 );
 

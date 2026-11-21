@@ -508,8 +508,7 @@ ${tableChamps(ENC_FIELDS)}
   PRATICABLE. Le prédicat est unique (\`seatIsOccupiable\`, \`src/noyau/monde/seating.ts\`) : ce que le geste
   refuse, \`validateScene\` et \`buildScene\` le refusent aussi.
 - À la souris, ce champ s'authore dans l'inspecteur de l'éditeur
-  (\`src/ui/editor/SeatAssignmentsField.tsx\`). Toute mutation d'entité traverse le SEAM UNIQUE
-  \`normaliseAssises\` (\`src/noyau/sceneEdit.ts\`). Garde : \`src/ui/editor/seam-assise-guard.test.ts\`.
+  dans l’éditeur Godot. Toute mutation d’entité passe par \`normaliseAssises\` (\`src/noyau/sceneEdit.ts\`).
 
 ## Ordre de compilation (${ETAPES} étapes, cité au JSDoc de tête de \`${MAPSPEC}\`)
 
@@ -586,9 +585,8 @@ Fonctions de \`${MAPQC}\` (démontrées par \`src/noyau/mapQC.test.ts\`) :
 
 ${table(QC, ['Fonction', 'Site', 'Rôle (JSDoc)'], (e) => `| \`${e.name}\` | \`${MAPQC}:${e.line}\` | ${e.role ?? '—'} |`)}
 
-**Jugement visuel** : capture de jeu (patron \`scripts/qc/capture-jeu.mjs\`) → planche par étage,
-4 rotations, plan source en regard ; juges VISION en RÉFUTATION (pièces manquantes ou déformées,
-ouvertures déplacées, proportions) — jamais une auto-certification du codeur.
+**Jugement visuel**. Joue la carte avec \`hotes/godot/recette.mjs\`. Regarde les étages et les
+rotations, le plan source en regard. La réfutation vérifie les pièces, les ouvertures et les proportions.
 
 ## Où voir quoi — repères d'authoring
 

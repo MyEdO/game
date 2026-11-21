@@ -1,5 +1,5 @@
 /**
- * PRIMITIVE DE CLIQUET (`scripts/guards/lib/stock.mjs`) — les quatre calculs partagés par les gardes
+ * PRIMITIVE DE CLIQUET (`src/lib/stock.mjs`) — les quatre calculs partagés par les gardes
  * à stock. Ce fichier mesure la primitive elle-même sur des collections FORGÉES : les gardes qui la
  * composent mesurent, elles, le dépôt réel.
  */
@@ -209,12 +209,12 @@ const GARDE = {
     'B — rend-il un VERDICT (`expect`, `throw`, `process.exit`) au lieu de listes et d’un compte ? ' +
     'C — retient-il un ÉTAT entre deux appels (mémoïsation au niveau module) ?',
   primitive:
-    '`scripts/guards/lib/stock.mjs` elle-même (`ecartsDeStock` / `champsAveugles` / `lignesMalQualifiees`), ' +
+    '`src/lib/stock.mjs` elle-même (`ecartsDeStock` / `champsAveugles` / `lignesMalQualifiees`), ' +
     'lue en TEXTE par un scan de ce fichier — commentaires et contenus de chaînes neutralisés.',
   mandat:
     'Une lib de CALCUL PUR : elle rend des listes et un compte ; le rouge, le message et le plafond appartiennent ' +
     'à la garde appelante (interdits gravés en tête de `stock.mjs`).',
-  perimetre: 'Le SEUL fichier `scripts/guards/lib/stock.mjs` — les gardes qui le composent se mesurent chez elles.',
+  perimetre: 'Le SEUL fichier `src/lib/stock.mjs` — les gardes qui le composent se mesurent chez elles.',
   /** Ce que le scan STRUCTUREL ferme, là où le grep précédent laissait passer (#1475, sondes du juge). */
   couvert: [
     'un `import()` DYNAMIQUE, préfixé `node:` ou non',
@@ -242,7 +242,7 @@ const GARDE = {
 /** Liste blanche des dépendances tolérées : VIDE — une lib de calcul pur n’importe rien. */
 const IMPORTS_AUTORISES: readonly string[] = [];
 
-const SOURCE = readFileSync(`${ROOT}scripts/guards/lib/stock.mjs`, 'utf8');
+const SOURCE = readFileSync(`${ROOT}src/lib/stock.mjs`, 'utf8');
 
 /**
  * Neutralise commentaires et CONTENUS de chaînes en préservant longueur et sauts de ligne : les index
@@ -325,7 +325,7 @@ describe('la primitive tient sa FRONTIÈRE : elle calcule, elle ne juge pas', ()
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, couvert, angles morts, baseline, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('stock.mjs');
-    expect(GARDE.perimetre, 'le périmètre doit NOMMER le fichier mesuré.').toContain('scripts/guards/lib/stock.mjs');
+    expect(GARDE.perimetre, 'le périmètre doit NOMMER le fichier mesuré.').toContain('src/lib/stock.mjs');
     expect(GARDE.mandat).toContain('CALCUL PUR');
     expect(GARDE.couvert.length, 'ce que le scan structurel ferme doit être nommé, sinon la garde se relit comme un grep.').toBeGreaterThanOrEqual(5);
     expect(GARDE.angleMort.length, 'une garde sans angle mort déclaré est une garde qui se croit exhaustive.').toBeGreaterThanOrEqual(4);

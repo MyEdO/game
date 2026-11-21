@@ -50,14 +50,17 @@ func _s_asseoir(code: String, etape: String) -> bool:
 ## P2, puis P3 : la barre de l'actif, d'abord spectatrice, s'ouvre quand l'hôte lui attribue le héros au tour ; la fin
 ## du tour jouée, armée d'abord si l'Action reste, passe ce tour.
 func _p3() -> bool:
-	if not await _attendre(func() -> bool: return _barre() != "", "la barre de l'actif dans la vue"):
+	if not await _attendre(func() -> bool: return _barre() == "spectatrice", "la barre spectatrice avant l'attribution"):
 		return false
-	var avant := _barre()
-	_verifier(avant == "spectatrice", "P2 : assis, la barre de l'actif n'est pas spectatrice : %s" % avant)
+	var temoin := FileAccess.open(_echange.path_join("spectatrice"), FileAccess.WRITE)
+	if temoin == null:
+		_fautes.append("P2 : impossible de signaler la barre spectatrice à l'hôte")
+		return false
+	temoin.close()
 	if not await _attendre(func() -> bool: return _barre() == "ouverte" and _publie("bouton/fin-de-tour") != null, "la barre ouverte sur le héros attribué"):
 		return false
 	var heros: String = current_scene.get("_vue").projection.combat.actif.id
-	print("[coop-invite] P2 : barre %s, puis ouverte sur %s" % [avant, heros])
+	print("[coop-invite] P2 : barre spectatrice, puis ouverte sur %s" % heros)
 	_cliquer(_publie("bouton/fin-de-tour"))
 	if not await _attendre(func() -> bool: return _actif() != heros or current_scene.get("_vue").projection.combat.finDeTourArmee, "la fin du tour armée ou jouée"):
 		return false

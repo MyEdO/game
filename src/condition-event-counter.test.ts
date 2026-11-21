@@ -25,8 +25,6 @@ const REMAINING: Record<string, number> = {
   'src/noyau/combat/aa-bleed-unconscious.hors-store.test.ts': 1,
   'src/noyau/combat/bleed-death-aa.hors-store.test.ts': 1,
   'src/noyau/combat/bleed-death.hors-store.test.ts': 1,
-  'src/ui/RecapLine.test.tsx': 1,
-  'src/gameIso/combatNarration.test.ts': 1,
 };
 
 /** Le recensement s'EXCLUT lui-même : sa prose cite la forme qu'il traque (elle se compterait). */

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as mapSpec from './mapSpec';
 import { buildScene } from './mapSpec';
 import { bumperDataset } from '../data/versionDataset';
-import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires, stationsDuNavire } from './planDeNavire';
+import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, poserUnNavire, provenanceDesNavires, stationsDuNavire } from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 import { heightAt, isWalkable, sceneMetresPerTile, tileAt, wallBetween, type Scene } from './monde/scene';
@@ -27,6 +27,7 @@ import { walkNeighbors } from './monde/path';
 import { garanti } from '../lib/garanti';
 import { datasetArray, setDataset } from '../data/overrides';
 import { validateScene } from './validateScene';
+import type { Dir4 } from '../geometry/dir8';
 import { capsOfferts } from './sceneEditLecture';
 
 const plan = buildScene(PLAN_DE_LA_CARAQUE);
@@ -94,6 +95,27 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
     expect(lue.entities.map((e) => e.id)).toEqual(['c1']);
     expect(lue.walls ?? []).toEqual([]);
     expect([0, 1, 2, 3].flatMap((z) => aretesDeLaCouche(lue, z))).toEqual([]);
+  });
+
+  it.each([
+    ['O', { x: 7, y: 2 }, { x: 6, y: 2 }, [0, 2, 17, 6]],
+    ['E', { x: 13, y: 2 }, { x: 14, y: 2 }, [6, 2, 23, 6]],
+    ['N', { x: 2, y: 7 }, { x: 2, y: 6 }, [2, 0, 6, 17]],
+    ['S', { x: 2, y: 13 }, { x: 2, y: 14 }, [2, 6, 6, 23]],
+  ] as const)('au cap %s, chargement et pose admettent le bord exact et refusent la case de trop (#3994)', (cap: Dir4, exact, dehors, limites) => {
+    const nue = { ...authored('O'), entities: [] };
+    const posee = poserUnNavire(nue, 'caraque', exact, 0, cap)!.scene;
+    expect(parseSceneDeProjet(posee).entities[0]).toMatchObject({ pos: exact, facing: cap });
+    const flottaison = [...provenanceDesNavires(posee).flottaison.keys()].map((k) => k.split(',').map(Number));
+    const xs = flottaison.map(([x]) => x);
+    const ys = flottaison.map(([, y]) => y);
+    expect([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]).toEqual(limites);
+    const fautive = { ...posee, entities: [{ ...posee.entities[0], pos: dehors }] };
+    expect(poserUnNavire(nue, 'caraque', dehors, 0, cap)).toBeNull();
+    expect(() => parseSceneDeProjet(fautive)).toThrow(/navire-0.*position.*ponts du navire hors de la carte/);
+    expect(validateScene([fautive])).toContainEqual(expect.objectContaining({
+      level: 'error', scope: 'entity', refId: 'navire-0', message: expect.stringContaining('ponts du navire hors de la carte'),
+    }));
   });
 
   it('une scène entre en jeu ses ponts posés (`registerScene`)', () => {
@@ -248,6 +270,19 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
     expect(aretesDeLaScene(s).filter((a) => aretes.has(a.cle))).toEqual([]);
     expect((s.walls ?? []).filter((w) => aretes.has(edgeKey(w)))).toHaveLength(aretes.size);
     expect(wallBetween(s, 9, 2, 9, 1, 2)).toBe(true);
+  });
+
+  it('la projection d’une coque se calcule aussi quand son inventaire désigne un objet de campagne', () => {
+    const id = 'arme-de-campagne';
+    const avecInventaire = {
+      ...s,
+      entities: s.entities.map((e) => e.id !== 'c1' ? e : {
+        ...e,
+        inventaire: { [id]: false },
+        appearance: { ...e.appearance, apparencesObjets: { [id]: { id: 'hache_naine' } } },
+      }),
+    };
+    expect(naviresDeLaScene(avecInventaire)).toEqual(naviresDeLaScene(s));
   });
 
   it('le navire se montre par son modèle : le véhicule de sa fiche à sa taille réelle, au centre de ses ponts', () => {

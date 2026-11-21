@@ -37,6 +37,8 @@ func _recetter() -> void:
 	var coque := _scene([BOIS, CUIR, TOILE, PAVILLON])
 	var canon := _scene([BOIS, CUIR])
 	root.add_child(coque)
+	await MontageDeComposition.preparer_les_textures(root, coque, MontageDeComposition.modeles.surfaces.coque)
+	await MontageDeComposition.preparer_les_textures(root, canon, MontageDeComposition.modeles.surfaces.canon)
 	var embleme := ImageTexture.create_from_image(Image.create(2, 2, false, Image.FORMAT_RGBA8))
 	if not MontageDeVehicule.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme, _locaux):
 		_fautes.append("l'emblème du véhicule n'est posé sur aucune surface")

@@ -5,7 +5,7 @@
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
  * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
- * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
+ * (`suivisHorsRelease`). Les textures du sol et les sons y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -14,7 +14,7 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
-import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
+import { CLE_HORS_RELEASE, DOSSIER_DES_MODELES, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { lireGlb } from './glb.ts';
@@ -215,8 +215,7 @@ export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/r
 /** Le point d'API de la Release `TAG` : ses fichiers, chacun avec l'URL d'API de ses octets (#3680). */
 export const URL_API_DE_LA_RELEASE = `https://api.github.com/repos/${DEPOT}/releases/tags/${TAG}`;
 
-/** Le dossier des modèles du projet Godot : l'import y dépose, `recupererModeles` y tire les GLB. */
-export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
+export { DOSSIER_DES_MODELES };
 
 /** La licence d'un composant, telle que la production la déclare dans `components.<id>.asset`. */
 export interface LicenceDeComposant {

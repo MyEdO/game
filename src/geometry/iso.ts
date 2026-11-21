@@ -311,21 +311,6 @@ export function diamondCorners(x: number, y: number, dims: Dims, z = 0) {
   };
 }
 
-export type EdgeSide = 'N' | 'E' | 'S' | 'O';
-
-/** Les 2 extrémités-ÉCRAN de l'ARÊTE cardinale `side` de la case (x,y) au LIFT donné (z + élévation).
- *  Calculé sur les COINS DE GRILLE projetés AVEC la rotation (un coin (gx,gy) = `tileCenter(gx-0.5,gy-0.5)`).
- *  SOURCE UNIQUE de la géométrie d'arête : MURS, JUPES d'élévation et ESCALIERS s'en servent → ils tournent
- *  TOUS de la même façon avec la caméra (zéro duplication ; corriger ici corrige partout). */
-export function tileEdge(x: number, y: number, side: EdgeSide, dims: Dims, lift = 0): [{ cx: number; cy: number }, { cx: number; cy: number }] {
-  const gc = (gx: number, gy: number) => tileCenter(gx - 0.5, gy - 0.5, dims, lift);
-  switch (side) {
-    case 'N': return [gc(x, y), gc(x + 1, y)];
-    case 'E': return [gc(x + 1, y), gc(x + 1, y + 1)];
-    case 'S': return [gc(x + 1, y + 1), gc(x, y + 1)];
-    default: return [gc(x, y + 1), gc(x, y)]; // O
-  }
-}
 
 /** Chemin SVG d'un losange de sol centré sur la tuile. */
 export function diamondPath(x: number, y: number, dims: Dims, z = 0): string {

@@ -19,6 +19,7 @@ import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
 import { gameDay } from '../noyau/merchantFlow';
+import { joursParSemaine } from '../engine/clock';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
 
@@ -162,7 +163,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Conseil de bord : la paie se choisit parmi les choix ouverts, chacun nommé par son facteur', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 7 } as never });
+      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: joursParSemaine() } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
         const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');

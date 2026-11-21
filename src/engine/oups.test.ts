@@ -15,7 +15,7 @@ import {
 import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
 import { t } from '../i18n';
-import { armeDeTest } from './objetsDeTest.testkit';
+import { armeDePosteDeTest, armeDeTest } from './objetsDeTest.testkit';
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'poudre-noire', range: 20 };
@@ -98,19 +98,23 @@ describe('incidentDeTir (LDB 14 l.19, l.34)', () => {
   });
 
   it('mangonneau (À Explosion, sans poudre) : jamais d’Incident, même sur un jet pair (#4345)', () => {
-    for (const jet of [100, 22, 44, 66, 88]) expect(incidentDeTir(armeDeTest('mangonneau-ade2'), jet)).toBeNull();
+    for (const jet of [100, 22, 44, 66, 88]) expect(incidentDeTir(armeDePosteDeTest('mangonneau-ade2'), jet)).toBeNull();
   });
 });
 
 /** LDB 14 l.34 ; LDB 62 l.178 ; AA 10 l.150, l.154, l.165 ; ADE II 08 l.270 ; #4345 */
 describe('armeAPoudre (LDB 14 l.34 ; #4345)', () => {
-  const A_POUDRE = ['pistolet', 'arquebuse', 'arquebus-a-repetition', 'bombe', 'canon-petit', 'canon-moyen', 'canon-grand', 'mortier', 'pierrier', 'canon-a-repetition', 'canon-a-repetition-feu-d-enfer', 'canon-ade2', 'mortier-ade2', 'batterie-tonnerre-de-feu-ade2'];
-  const HORS = ['arc-long', 'arbalete', 'baliste', 'fronde', 'javelot', 'mangonneau-ade2', 'onagre-ade2', 'trebuchet-ade2', 'canon-a-flammes-nain-ade2'];
-  it.each(A_POUDRE)('%s : arme à poudre', (id) => {
+  it.each(['pistolet', 'arquebuse', 'arquebus-a-repetition', 'bombe'])('%s : arme à poudre', (id) => {
     expect(armeAPoudre(armeDeTest(id))).toBe(true);
   });
-  it.each(HORS)('%s : hors', (id) => {
+  it.each(['canon-petit', 'canon-moyen', 'canon-grand', 'mortier', 'pierrier', 'canon-a-repetition', 'canon-a-repetition-feu-d-enfer', 'canon-ade2', 'mortier-ade2', 'batterie-tonnerre-de-feu-ade2'])('%s : engin à poudre', (id) => {
+    expect(armeAPoudre(armeDePosteDeTest(id))).toBe(true);
+  });
+  it.each(['arc-long', 'arbalete', 'fronde', 'javelot'])('%s : arme sans poudre', (id) => {
     expect(armeAPoudre(armeDeTest(id))).toBe(false);
+  });
+  it.each(['baliste', 'mangonneau-ade2', 'onagre-ade2', 'trebuchet-ade2', 'canon-a-flammes-nain-ade2'])('%s : engin sans poudre', (id) => {
+    expect(armeAPoudre(armeDePosteDeTest(id))).toBe(false);
   });
 });
 

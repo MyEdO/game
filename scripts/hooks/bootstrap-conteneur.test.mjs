@@ -302,14 +302,14 @@ test('mémoire committée : imprimée en conteneur distant seulement, et rien sa
   }
 })
 
-test('CÂBLAGE — en conteneur distant conforme, la sortie du SessionStart porte l’index de la mémoire', () => {
+test('CÂBLAGE — en conteneur distant conforme, la sortie du SessionStart porte l’index de la mémoire', async () => {
   const racine = mkdtempSync(join(tmpdir(), 'memoire-cablage-'))
   const ecrit = []
   try {
     mkdirSync(dirname(join(racine, INDEX_MEMOIRE)), { recursive: true })
     writeFileSync(join(racine, INDEX_MEMOIRE), '# Index\n')
     const conforme = { ...GESTES_DU_CONTENEUR, estSuperficiel: () => false, dossierDesHooks: () => 'scripts/git-hooks', docsMesures: () => true }
-    const lignes = bootstrapSessionStart({
+    const lignes = await bootstrapSessionStart({
       env: { CLAUDE_CODE_REMOTE: 'true' }, racine, depot: racine, gestes: conforme, run: () => ({ ok: true, valeur: '', rapport: '' }),
       output: { write: (texte) => ecrit.push(texte) },
     })

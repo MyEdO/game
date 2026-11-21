@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // LE VERSEMENT DES FICHIERS ÉPINGLÉS (#3476, #2987) : verse dans la Release des modèles (`asset/release.ts`, par `gh`)
 // chaque fichier que la provenance commitée épingle et que la Release ne porte pas encore, puis dit les noms versés :
-// ceux des dossiers épinglés du projet Godot (textures, kit des arêtes : `asset/epingles.ts`) et le GLB de chaque modèle
+// ceux des dossiers épinglés du projet Godot (textures, sons : `asset/epingles.ts`) et le GLB de chaque modèle
 // épinglé (`modelesAPublier`). Le workflow `transfert.yml` le joue au push d'une branche `transfert/<x>`.
 //
 //   node hotes/godot/epingles.mjs

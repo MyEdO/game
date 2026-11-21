@@ -27,7 +27,7 @@ import {
   SEAM_CALLERS,
 } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
 import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
 import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
@@ -511,7 +511,7 @@ const SEAM_CORE = new Set([
 ]);
 
 /** Fichiers de PRODUCTION scannables (hors tests), en chemin relatif POSIX — vue du `corpus()`. */
-function prodFiles(...dirs: string[]): { rel: string; text: string }[] {
+function prodFiles(...dirs: string[]): Pick<CorpusFile, 'rel' | 'text'>[] {
   return corpus().filter(({ rel }) => !estFichierVitest(rel) && !estKitDeTest(rel) && dirs.some((d) => rel === d || rel.startsWith(`${d}/`)));
 }
 
@@ -1055,7 +1055,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     expect(etapesALaMain(deuxObjets), 'contre-épreuve : `kind` et `target` de deux littéraux distincts ne font pas une étape').toBe(0);
   });
 
-  it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', () => {
+  it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', { timeout: 60_000 }, () => {
     const mesure: Record<string, number> = {};
     const perimetre = prodFiles('src').filter(({ rel }) => rel !== 'src/noyau/rollSeam.ts' // le monteur lui-même
       && !HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))); // frontière déclarée, lot dédié

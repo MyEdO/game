@@ -8,7 +8,7 @@ import { combattants, RESERVES } from './compagnie.ts';
 import { chargement, laine, RAIL, TITRE } from './halle.ts';
 import type { Commerce, Ecran, Fenetre, LotMarchande } from './maquette.ts';
 
-const LOT: LotMarchande = { nom: 'Laine', enc: 25, sens: 'achat' };
+const LOT: LotMarchande = { nom: 'Laine', enc: 25 };
 /** La halle sous la fenêtre `fenetre`, le compte du chargement marchandé ou non. */
 const marche = (nom: string, fenetre: Fenetre, marchande: boolean): Commerce => ({
   nom, gabarit: 'lieu-et-voyage', decor: 'halle', titre: TITRE, rail: RAIL,
@@ -33,7 +33,7 @@ export default {
       titre: 'Marchander l’achat',
       heros: { role: 'testeur', qui: 'aldric', test: 'Marchandage', seuil: 45, jet: { des: [20, 7], dr: 2, reussite: true } },
       autre: { role: 'testeur', qui: 'negociant', test: 'Marchandage', seuil: null, jet: { des: [60, 1], dr: -2, reussite: false } },
-      centre: { role: 'marche', lot: LOT, drNet: 4, issue: { issue: 'Gagné', pourcent: -10 }, avant: 660, apres: 594 },
+      centre: { role: 'issue', sorte: 'oppose', sur: `${LOT.nom} · ${LOT.enc} Enc`, verdict: 'reussite', dr: 2, drNet: 4, consequences: [{ genre: 'prix', valeur: -10, ton: 'gain', detail: 'Prix conclu : 594 sous au lieu de 660', prix: { de: 660, vers: 594 } }], phrase: 'Marchandage gagné', survol: 0 },
       gestes: [...apresLeDe(RESERVES.aldric, { valider: 'Conclure' }), { libelle: 'Refuser le marché' }], reserves: reserves(RESERVES.aldric),
     }, true),
   ],

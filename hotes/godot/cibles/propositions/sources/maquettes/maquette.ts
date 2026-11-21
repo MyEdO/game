@@ -86,7 +86,8 @@ export interface JetTombe {
 
 /** Celui qui teste : le combattant, le poste qu'il tient, son Test et son seuil (`null`, masqué au joueur), ses
  *  modificateurs ; tombé, son jet ; les dés déjà posés d'un jet que l'on reprend ; `parmi`, les héros qui peuvent porter le
- *  Test, à désigner. */
+ *  Test, à désigner ; `survol`, ce qui est sous le curseur : le seuil, qui montre ses modificateurs dans la bulle, ou le
+ *  sceau, qui montre le verdict. */
 export interface Testeur {
   role: 'testeur';
   qui: string;
@@ -97,6 +98,7 @@ export interface Testeur {
   jet?: JetTombe;
   des?: Des;
   parmi?: string[];
+  survol?: 'seuil';
 }
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il
@@ -232,10 +234,53 @@ export interface Enjeu {
 /** Un axe de Surincantation : son nom ; ses pas alloués sur ses pas et ce qu'ils donnent, ou sans objet. */
 export type AxeDeSurincantation = { nom: string; alloues: number; sur: number; effet: { cibles: number } | { facteur: number } } | { nom: string; sansObjet: true };
 
+/** Le verdict d'un Test, du point de vue de celui qui agit (LDB 12 l.105-117, l.124-127). */
+export type Verdict = 'reussite' | 'echec' | 'critique';
+
+/** La sorte d'un Test : simple (LDB 12 l.5-7), opposé (LDB 12 l.152-169), étendu (LDB 12 l.171-180). */
+export type SorteDeTest = 'simple' | 'oppose' | 'etendu';
+
+/** Ce qu'une conséquence change : la Localisation touchée, des Blessures, de l'Avantage, un prix en pourcent, des Points
+ *  de Corruption, un État, un Sort lancé ou dissipé, un retard en jours. */
+export type GenreDeConsequence = 'localisation' | 'blessures' | 'avantage' | 'prix' | 'corruption' | 'etat' | 'sort' | 'dissipation' | 'retard';
+
+/** Une conséquence d'un jet tombé, la forme que le noyau projette (#4574) : son genre, sa valeur (un nombre signé, ou
+ *  l'id de ce qu'elle désigne), le combattant qu'elle vise, l'icône que la donnée lui donne, son ton pour celui qui
+ *  agit, son détail lu au survol. */
+export interface Consequence {
+  genre: GenreDeConsequence;
+  valeur?: number | string;
+  cible?: string;
+  icone?: string;
+  ton?: 'gain' | 'perte';
+  detail?: string;
+  /** Le prix qu'un prix en pourcent change, l'ancien barré, le nouveau visible : le chiffre qui décide de conclure. */
+  prix?: { de: Sous; vers: Sous };
+}
+
+/** Un jet tombé au centre : la sorte du Test, sur quoi il porte, sa cible, le jet relancé ; le verdict de celui qui
+ *  agit, son DR, le DR net d'un Test opposé de son point de vue, le cumul d'un Test étendu sur le DR visé ; ses
+ *  conséquences, la phrase d'issue ; ce que le Test décide ; `survol`, le rang de la conséquence sous le curseur. */
+export interface IssueDuJet {
+  role: 'issue';
+  sorte: SorteDeTest;
+  sur: string;
+  cible?: string;
+  relance?: number;
+  verdict: Verdict;
+  dr: number;
+  drNet?: number;
+  cumul?: { dr: number; vise: number };
+  consequences: Consequence[];
+  phrase: string;
+  enjeu?: Enjeu;
+  survol?: number;
+}
+
 /** Le centre d'une fenêtre, selon ce qu'elle résout. */
 export type Centre =
-  /** Le verdict des jets opposés tombés : sur quoi ils portent, le jet relancé, le DR net, la phrase d'issue. */
-  | { role: 'verdict'; porte: Porte; relance?: number; drNet: number; issue: string }
+  /** Un jet tombé, quelle que soit la situation qui l'ouvre. */
+  | IssueDuJet
   /** Les réglages d'une attaque : la localisation (la zone choisie et son malus, « Au hasard » offert), les réglages,
    *  les bascules, la note de ce qu'ils font. */
   | { role: 'attaque'; porte: Porte; localisation: { libelle: string; zone: { id: Zone; nom: string } | null; malus: number | null; hasard: boolean }; reglages: Reglage[]; bascules: Bascule[]; note?: string }
@@ -249,31 +294,24 @@ export type Centre =
   | { role: 'critique'; nom: string; effet: string }
   /** Une table qu'un jet impose : son nom, la table, sa règle ou l'effet tiré ; son d100, `null` à tirer. */
   | { role: 'table'; nom: string; table: string; texte: string; tire?: number | null }
-  /** Un Sort lancé : son Niveau d'incantation, son nom, la phrase d'issue. */
-  | { role: 'sort'; ni: number; sort: string; issue: string }
   /** La Surincantation d'un Sort tombé : les cibles supplémentaires choisies, les pas alloués, chaque axe, les cibles. */
   | { role: 'surincantation'; ni: number; sort: string; supplementaires: { choisies: number; sur: number }; pas: { alloues: number; sur: number }; axes: AxeDeSurincantation[]; cibles: { qui: string; comme: string }[] }
-  /** Un Test étendu : le Niveau d'incantation à atteindre, le Sort, le cumul de ses DR, la phrase ; ce qu'il décide. */
+  /** Un Test étendu avant le dé : le Niveau d'incantation à atteindre, le Sort, le cumul de ses DR, la phrase ; ce qu'il
+   *  décide. */
   | { role: 'etendu'; ni: number; sort: string; cumul: number; phrase: string; enjeu?: Enjeu }
   /** La nature d'une Influence corruptrice, à choisir avant le dé, et ce que le Test décide. */
   | { role: 'nature'; libelle: string; cartes: Carte[]; enjeu: Enjeu }
-  /** Le Test de Corruption tombé : l'Influence, les Points de Corruption, les Points gagnés, la phrase, ce que le Test
-   *  décide. */
-  | { role: 'corruption'; influence: string; corruption: { points: number; seuil: number }; gain: number; issue: string; enjeu: Enjeu }
-  /** Ce qu'un coup inflige au lieu d'un DR : l'arme, le coup, les États qu'il pose, la phrase d'issue. */
-  | { role: 'consequence'; arme: string; coup: string; etats: { nombre: number; etat: string }; issue: string }
   /** Les Tests de plusieurs testeurs, ligne à ligne : leur nom, leur Test commun, chaque ligne, la règle qui les départage ;
    *  `somme`, le cumul de leurs DR. */
   | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true }
   /** Le Marchandage avant le dé : le lot, son estimation, ce que chaque issue du Test opposé fait au prix. */
   | { role: 'marchandage'; lot: LotMarchande; estimation: Sous; enjeux: EnjeuDuMarchandage[] }
-  /** Le Marchandage tombé : le lot, le DR net, l'issue et ce qu'elle fait au prix, le prix avant et après. */
-  | { role: 'marche'; lot: LotMarchande; drNet: number; issue: EnjeuDuMarchandage; avant: Sous; apres: Sous }
   /** Un Test d'équipage avant le dé : ce que le navire fait, sa cible, le réglage qui vaut pour tout le bord, ce qui le
    *  modifie. */
   | { role: 'equipage'; fait: string; cible?: string; reglage: Reglage; notes: NoteDEquipage[] }
-  /** Un Test simple : ce qui le pose, sa difficulté ; tombé, son DR ; la phrase de ce qu'il décide. */
-  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; dr?: number; phrase: string }
+  /** Un Test simple avant le dé : ce qui le pose, sa difficulté, les cartes du choix qu'il porte, la phrase de ce qu'il
+   *  décide. */
+  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; cartes?: Carte[]; phrase: string }
   /** Les réponses d'un dialogue, la première en tête. */
   | { role: 'dialogue'; reponses: Reponse[] };
 
@@ -286,22 +324,14 @@ export interface Rangees {
   rangees: { qui: string; poste: string; competence: string; seuil: number }[];
 }
 
-/** Un choix à droite de la fenêtre : son libellé, ses cartes. */
-export interface ChoixADroite {
-  role: 'choix';
-  libelle: string;
-  cartes: Carte[];
-}
-
-/** Le lot marchandé : sa denrée, son Encombrement, le sens du marché. */
+/** Le lot marchandé : sa denrée, son Encombrement. */
 export interface LotMarchande {
   nom: string;
   enc: number;
-  sens: 'achat' | 'vente';
 }
 
-/** Une issue du Marchandage : son nom, le pourcentage qu'elle fait au prix ; `enPlus`, un pourcentage qui s'ajoute aux
- *  autres. */
+/** Une issue du Marchandage avant le dé : son nom, le pourcentage qu'elle fait au prix ; `enPlus`, un pourcentage qui
+ *  s'ajoute aux autres. */
 export interface EnjeuDuMarchandage {
   issue: string;
   pourcent: number;
@@ -331,12 +361,14 @@ export interface Geste {
   survol?: true;
 }
 
-/** Une réserve que les gestes dépensent : son nom, sa valeur ; `porteur`, le combattant qui la porte quand elle est
- *  seule. */
+/** Une réserve que les gestes dépensent : son id, son nom, sa valeur ; `porteur`, le combattant qui la porte quand elle
+ *  est seule ; `survol`, son jeton sous le curseur, qui montre son nom et sa valeur dans la bulle. */
 export interface Reserve {
+  id: 'destin' | 'chance' | 'resilience' | 'determination';
   nom: string;
   valeur: number;
   porteur?: string;
+  survol?: true;
 }
 
 /** Une fenêtre du bas : son titre, le héros à gauche, l'autre à droite, son centre, ses gestes et les réserves qu'ils
@@ -344,7 +376,7 @@ export interface Reserve {
 export interface Fenetre {
   titre: string;
   heros?: Testeur | HerosSansDe | Subit | Expose;
-  autre?: Testeur | Vise | Touche | Rangees | ChoixADroite | Interlocuteur;
+  autre?: Testeur | Vise | Touche | Rangees | Interlocuteur;
   centre: Centre;
   gestes: Geste[];
   reserves: Reserve[];
@@ -395,12 +427,12 @@ export interface BarreDeLActif {
   outils: ActionDuTour[];
 }
 
-/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée, ses cibles, sa durée, ce qu'il
- *  coûte, ce que le clic fait. */
+/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée calculée pour le lanceur (ses
+ *  mètres et la Caractéristique qui les donne), ses cibles, sa durée, ce qu'il coûte, ce que le clic fait. */
 export interface FicheDeSort {
   nom: string;
   ni: number;
-  portee: string;
+  portee: { metres: number; selon: string };
   cibles: number;
   duree: string;
   cout: string;
@@ -892,13 +924,14 @@ export interface Voie {
 
 /* ───────── la nuit ───────── */
 
-/** Une offre de l'hôte d'une auberge : son id (son pictogramme), son nom, ses lits ou son prix par tête, son prix ;
- *  `prise`. */
+/** Une offre de l'hôte d'une auberge : son id (son pictogramme), son nom, ses lits, son prix par tête ou par bête, son
+ *  prix ; `prise`. */
 export interface OffreDeLAuberge {
-  id: 'commune' | 'privee' | 'grande' | 'repas';
+  id: 'commune' | 'privee' | 'grande' | 'repas' | 'ecurie';
   nom: string;
   lits?: number;
   parTete?: true;
+  parBete?: true;
   prix: Sous;
   prise?: true;
 }
@@ -956,16 +989,17 @@ export interface HerosDeLaNuit extends HerosDuGroupe {
   nourriture?: { valeurs: string[]; tenue: number };
 }
 
-/** La nuit, écran unique de l'auberge et de la halte : le décor, le titre, le récit de la halte ; à gauche l'hôte et ses
- *  offres, ou le rail des services de la maison ; les postes de la scène ; à droite qui dort où, ou la partie d'un jeu ;
- *  le retour, le groupe. */
+/** La nuit, écran unique de l'auberge et de la halte : le décor et la qualité de l'établissement (sa salle), le titre, le
+ *  récit de la halte ; à gauche l'hôte, ses offres et ses avis, ou le rail des services de la maison ; les postes de la
+ *  scène ; à droite qui dort où, ou la partie d'un jeu ; le retour, le groupe. */
 export interface Nuit {
   nom: string;
   gabarit: 'lieu-et-voyage';
   decor: 'auberge' | 'taverne' | 'bivouac';
+  qualite?: 'pietre' | 'normale' | 'grande';
   titre: TitreDuLieu;
   recit?: { lieu: string; texte: string };
-  hote?: HoteDuLieu & { offres: OffreDeLAuberge[] };
+  hote?: HoteDuLieu & { offres: OffreDeLAuberge[]; avis?: string[] };
   rail?: Rail;
   postes?: PosteDuLieu[];
   dortoir?: Dortoir;
@@ -1114,7 +1148,7 @@ export interface Depart {
   place?: { prix: Sous; classe: string };
 }
 
-/** Un lieu à services, la halle, le port ou le relais où l'on arrive : le décor, le titre, l'arrivée (le lieu, les heures
+/** Un lieu à services, la halle, le port ou le relais où l'on arrive : le décor et l'enceinte du relais, le titre, l'arrivée (le lieu, les heures
  *  de route), le récit ; le rail des services ; la rumeur du marché ; ce qui se pose dans la scène ; la page du service
  *  ouvert ; la carte (celle du port, ou le trajet qui part d'ici) et ses départs ; le retour ; le groupe, ou la fenêtre du
  *  Marchandage qui prend sa place, et les combattants qu'elle nomme. */
@@ -1122,6 +1156,7 @@ export interface Commerce {
   nom: string;
   gabarit: 'lieu-et-voyage';
   decor: 'halle' | 'quai' | 'relais';
+  enceinte?: 'aucune' | 'palissade' | 'rempart';
   titre: TitreDuLieu;
   arrivee?: { lieu: string; heures: number };
   recit?: string;
@@ -1184,7 +1219,7 @@ export type BlocDuDossier =
 
 /** Le dossier d'une possession, au gabarit de la fiche : son buste, son nom (en saisie quand on le renomme), son modèle, sa
  *  nature et son maître, sa longueur, son prix ; ses mesures (sur leur maximum, ou sur cent), ses compteurs, son profil,
- *  ses sections et celle qui est ouverte, ses blocs ; les combattants qui le possèdent. */
+ *  ses sections et celle qui est ouverte, ses blocs ; les combattants qui le possèdent ; le groupe. */
 export interface Dossier {
   nom: string;
   gabarit: 'fiche';
@@ -1196,6 +1231,7 @@ export interface Dossier {
   ouverte: string;
   blocs: BlocDuDossier[];
   combattants: Record<string, Combattant>;
+  groupe: HerosDuGroupe[];
 }
 
 /* ───────── l'exploration et le récit ───────── */
@@ -1612,6 +1648,9 @@ export interface IdentiteDuHeros {
   reserves: { nom: string; valeur: number }[];
 }
 
+/** Une section de la fiche du héros ; ses onglets suivent cet ordre, un héros sans Sorts laisse leur place vide. */
+export type SectionDeLaFiche = 'attaques' | 'competences' | 'talents' | 'sorts' | 'possessions';
+
 /** La fiche du héros, ouverte sur ses possessions : l'identité, le profil, les sections ; les sets d'armes, ce qu'il porte,
  *  ce qui est en vrac ou rangé, les Faveurs dues (le créancier, le niveau, le solde), la ligne ouverte ; le groupe. */
 export interface FicheDuHeros {
@@ -1619,8 +1658,8 @@ export interface FicheDuHeros {
   gabarit: 'fiche';
   identite: IdentiteDuHeros;
   profil: { carac: Carac; valeur: number }[];
-  sections: string[];
-  ouverte: string;
+  sections: SectionDeLaFiche[];
+  ouverte: SectionDeLaFiche;
   sets: SetDArmes[];
   porte: ObjetDuHeros[];
   vrac: ObjetDuHeros[];
@@ -1866,18 +1905,32 @@ export interface NouvellePartie {
   modifier?: true;
 }
 
-/** Une entrée du Compendium : son nom, sa source (le sigle du livre, la page) ; `pointee`. */
+/** Une entrée d'une liste du Compendium : son nom, le sigle de son livre ; `pointee`, celle dont la fiche est lue. */
 export interface EntreeDuCompendium {
   nom: string;
-  source: { livre: string; page: number };
+  livre: string;
   pointee?: true;
 }
 
-/** Un renvoi de la fiche : sa rubrique, son compte, les entrées nommées (le reste se compte). */
-export interface Renvoi {
+/** Une catégorie du Codex : son nom, son nombre d'entrées. */
+export interface CategorieDuCompendium {
+  nom: string;
+  entrees: number;
+}
+
+/** Une famille du Codex ouverte à l'Index : ses catégories, puis ses sous-groupes et les leurs. */
+export interface FamilleDeLIndex {
+  nom: string;
+  categories: CategorieDuCompendium[];
+  groupes: { nom: string; categories: CategorieDuCompendium[] }[];
+}
+
+/** Un groupe de renvois de la fiche : sa rubrique (l'onglet), ce qui précise son ordre, toutes les entrées qui
+ *  désignent celle-ci (leur nombre fait le compte de l'onglet), chacune et sa note (rang, livre). */
+export interface GroupeDeRenvois {
   rubrique: string;
-  compte: number;
-  noms: string[];
+  note?: string;
+  noms: { nom: string; note?: string }[];
 }
 
 /** Un champ du formulaire de l'atelier : son libellé, sa valeur ; `long`, sur plusieurs lignes ; `saisi`, le curseur y
@@ -1890,25 +1943,29 @@ export interface ChampDeFormulaire {
   aide?: { texte: string; lien?: string };
 }
 
-/** Le Compendium, sur la table : le titre, les familles et l'ouverte, ses catégories (leur compte) et l'ouverte, la
- *  recherche, les livres (leur compte) ; la catégorie au feuillet ouvert ; l'entrée pointée, en fiche (ses puces, sa
- *  description, ses liens, ses renvois) ou à l'atelier (ses champs par paires, les champs qu'elle ne porte pas, la
- *  raison qui ferme « Supprimer ») ; « Nouvelle entrée » fermée tant que l'atelier est ouvert. */
+/** Le Compendium, plein écran de consultation : le titre, le fil (famille, catégorie ; l'entrée lue le clôt) ; la
+ *  catégorie ouverte et son compte, les livres de ses entrées (leur compte), sa liste (les lettres du rail, les
+ *  entrées) ; l'entrée lue et ses renvois (l'onglet ouvert, les groupes) ; sa fiche (ses puces, `lien` : la valeur
+ *  renvoie à une entrée ; sa description, les mots qui y renvoient à une entrée) et le renvoi survolé avec son aperçu ; ou l'atelier (ses champs par paires,
+ *  les champs qu'elle ne porte pas, la raison qui ferme « Supprimer ») ; l'Index posé par-dessus (les familles et leur
+ *  nombre de catégories, l'ouverte, le total des entrées) ; la recherche dans tout le Compendium et ses résultats,
+ *  groupés par catégorie, à la place de la liste. */
 export interface Compendium {
   nom: string;
-  gabarit: 'gestion';
+  gabarit: 'consultation';
   decor: 'table';
-  titre: { nom: string; sous: string };
-  familles: string[];
-  famille: string;
-  categories: { nom: string; entrees: number }[];
-  categorie: string;
-  recherche: string;
+  titre: string;
+  fil: [string, string];
+  categorie: CategorieDuCompendium;
   livres: { sigle: string; entrees: number }[];
-  feuillet: { n: number; sur: number; entrees: EntreeDuCompendium[] };
-  genre: string;
-  fiche?: { puces: { rubrique: string; valeur: string }[]; description: string[]; liens: string[]; renvois: Renvoi[] };
+  liste: { lettres: string; entrees: EntreeDuCompendium[] };
+  entree: { nom: string; genre: string; source: { livre: string; page: number } };
+  renvois: { onglet: string; groupes: GroupeDeRenvois[] };
+  fiche?: { puces: { rubrique: string; valeur: string; lien?: true }[]; description: string[]; liens: string[] };
+  survol?: { renvoi: string; nom: string; sous: string; texte: string; source: { livre: string; page: number } };
   atelier?: { paires: ChampDeFormulaire[][]; absents: string[]; refus: string };
+  index?: { familles: { nom: string; categories: number }[]; ouverte: FamilleDeLIndex; entrees: number };
+  recherche?: { texte: string; groupes: { categorie: string; entrees: EntreeDuCompendium[] }[] };
 }
 
 /** La coop, sur la table : le titre, les quatre sièges de la tablée (leur joueur et les héros qu'il tient, ou à

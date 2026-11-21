@@ -49,7 +49,7 @@ func _recetter() -> void:
 		_arete("p", Noyau.Piece.PORTE_FERMEE, Vector2(4.0, 1.5), [Vector3i(4, 2, 0), Vector3i(4, 1, 0)]),
 	]
 	var etats := {Vector3i(1, 1, 0): VUE, Vector3i(2, 2, 1): EXPLOREE, Vector3i(2, 1, 1): INCONNUE, Vector3i(4, 1, 0): EXPLOREE, Vector3i(4, 2, 0): INCONNUE}
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats))
 	RenderingServer.frame_pre_draw.emit()
 	_nappes(monde)
@@ -72,7 +72,7 @@ func _recetter() -> void:
 	var etats_neufs := {Vector3i(0, 1, 0): EXPLOREE}
 	volume.voir(null)
 	volume.voir(_vision(PETITE, PETITE, 1, etats_neufs))
-	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])])
+	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])], [])
 	RenderingServer.frame_pre_draw.emit()
 	_teintes(monde, "autre scène", [], etats_neufs)
 	for faute in _fautes:
@@ -136,7 +136,8 @@ func _teinte_attendue(a: Dictionary, etats: Dictionary) -> Color:
 
 
 func _arete(cle: String, piece: String, milieu: Vector2, cases: Array) -> Dictionary:
-	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0,
+	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece,
+		position = Noyau.Position.SEULE, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0,
 		palette = {}, pied = 0.0, milieu = {x = milieu.x, y = milieu.y},
 		cases = cases.map(func(c: Vector3i) -> Dictionary: return {x = c.x, y = c.y, z = c.z})}
 

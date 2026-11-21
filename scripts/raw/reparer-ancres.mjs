@@ -13,6 +13,7 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pagesAvecAncres, renvoisMorts, RAWDIR, rendusDeLAtlas } from './check-ancres.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 /** Les DEUX étages de pliage, dans l'ordre où on les essaie — le plus fidèle d'abord. */
 export const ETAGES = [
@@ -98,6 +99,7 @@ export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR, sources) 
 }
 
 if (import.meta.main) {
+  exigerRacineAtlas()
   const { cataloguesRendus } = await import('./build-catalogs.mjs')
   reparer(process.argv.slice(2), RAWDIR, { catalogues: cataloguesRendus, rendus: await rendusDeLAtlas() })
 }

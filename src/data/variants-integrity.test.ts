@@ -19,6 +19,8 @@ import { citedEntriesOf, auditFolio } from '../../scripts/guards/lib/folioIntegr
 import * as talentsDef from './schemas/defs/talents';
 import * as traitsDef from './schemas/defs/traits';
 import * as spellsDef from './schemas/defs/spells';
+import * as trappingsDef from './schemas/defs/trappings';
+import * as weaponGroupsDef from './schemas/defs/weaponGroups';
 import { characteristics, skills, traits } from './index';
 
 const DIR = __dirname;
@@ -26,12 +28,13 @@ const DIR = __dirname;
 const DATASETS = listerDossier(DIR).filter((f) => f.endsWith('.json'));
 /** Clés du schéma d'ENTRÉE de chaque dataset à variantes — lues du def, jamais recopiées. Un def
  *  ADOPTÉ par `document()` rend un nœud SCELLÉ, sans `.element.shape` : il publie ses clés relevées
- *  AVANT le sceau (`DocumentHandle.cles`, réexportées `cles`). Les TROIS defs à variantes sont
- *  désormais adoptés : aucun ne se lit plus au nœud zod. */
+ *  AVANT le sceau (`DocumentHandle.cles`, réexportées `cles`). */
 const SHAPE_BY_FILE = new Map<string, string[]>([
   [talentsDef.file, [...talentsDef.cles]],
   [traitsDef.file, [...traitsDef.cles]],
   [spellsDef.file, [...spellsDef.cles]],
+  [trappingsDef.file, [...trappingsDef.cles]],
+  [weaponGroupsDef.file, [...weaponGroupsDef.cles]],
 ]);
 
 /** id de la Caractéristique nommée par une ligne « Maxi : Bonus d'Agilité » — DÉRIVÉ de
@@ -196,6 +199,8 @@ const RESOLVED_BY_FILE = new Map<string, readonly string[]>([
   [talentsDef.file, talentsDef.VARIANT_RESOLVED_FIELDS],
   [traitsDef.file, traitsDef.VARIANT_RESOLVED_FIELDS],
   [spellsDef.file, spellsDef.VARIANT_RESOLVED_FIELDS],
+  [trappingsDef.file, trappingsDef.VARIANT_RESOLVED_FIELDS],
+  [weaponGroupsDef.file, weaponGroupsDef.VARIANT_RESOLVED_FIELDS],
 ]);
 
 /** Chaque nœud `variants[]` rencontré à toute profondeur, avec les champs qu'il DÉCLARE (hors `when`). */

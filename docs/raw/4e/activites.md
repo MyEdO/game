@@ -644,7 +644,7 @@ Les Activités de voyage durent toute une Étape de voyage et restent **fatigant
 | **Établir des Cartes** | Test étendu : Métier (Cartographe) **ou** Art (Dessin) — DR requis = 2 × nombre d'Étapes | Carte terminée → Savoir/Orientation lors d'un voyage futur Accessible (+20) au lieu de (+0) |
 | **Pratiquer Une Compétence** | Compétence praticable en voyage — Intermédiaire (+0) | Succès → peut inverser 1 Test de cette Compétence pendant l'aventure suivante ou une étape ultérieure |
 | **Récupérer** | — (automatique si aucun État *Exténué* pendant l'Étape) | Cette Étape compte comme « repos » pour la guérison des Blessures |
-| **Monter Un Camp** | Survie en extérieur **ou** Guérison Intermédiaire (+0) | Chaque DR retire 1 État *Exténué* d'un Personnage ou le guérit |
+| **Monter Un Camp** | Survie en extérieur **ou** Guérison Intermédiaire (+0) | Le joueur répartit les DR entre le retrait d'un *Exténué* et les soins. Voir [Activités de Voyage](deplacement.md#activités-de-voyage-1-par-étape) pour le calcul du soin (LDB 09 l.260). |
 
 Note sur les Revenus en voyage : l'Activité *Revenus* (LDB 23) n'est **pas adaptée** pour la plupart des Carrières en voyage — sauf juges/huissiers itinérants, chasseurs, éclaireurs, cochers (EDOC 8 l.167).
 
@@ -783,6 +783,8 @@ Former l'équipage (PNJ) dans une **Compétence utile à la gestion du bateau**.
 ## Entretien du navire
 
 **Source :** MDG 15 l.302-306.
+
+**Preuve d’implémentation :** MDG 15 l.304
 
 Réparer l'usure du vaisseau (planches pourries, voiles, coque incrustée). **De préférence au port** ; en mer, **pénalité supplémentaire de −20** ; un port doté de vastes installations de construction navale donne **+20**.
 

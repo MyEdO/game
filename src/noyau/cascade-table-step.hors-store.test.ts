@@ -130,9 +130,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
       .toThrow(/« table-inexistante ».*jamais déclarée.*retirée de la donnée/);
   });
 
-  it('dé effectif HORS PLAGE : fail-fast, jamais le repli silencieux sur la ligne extrême', () => {
-    // `findTableEntry` replie sur la DERNIÈRE ligne : sans borne, un mod trop HAUT et un mod trop BAS
-    // rendraient tous deux 'haute' — le pire résultat, en silence, dans les deux sens.
+  it('un dé effectif hors plage signale le jet, la table et le modificateur', () => {
     expect(() => rollTableStep({ tableId: SYNTH, forcedRoll: 100, mod: 20 }, makeRNG(1)))
       .toThrow(/dé effectif 120 hors de la plage \[1, 100\].*test-table-synthetique.*naturel 100, mod 20/s);
     expect(() => rollTableStep({ tableId: SYNTH, forcedRoll: 1, mod: -20 }, makeRNG(1)))
@@ -154,7 +152,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
 
   it('charte UI : AUCUN libellé de table d’étape ne porte de référence de LIVRE (c’est une surface JOUEUR)', () => {
     // Le `label` d'une table enregistrée est rendu par `CascadeModal` (rangée de tirage) : il tombe donc
-    // sous `docs/charte-ui.md` — « JAMAIS de référence au livre dans un texte joueur ». Les libellés
+    // sous `src/book-ref-guard.test.ts` — « JAMAIS de référence au livre dans un texte joueur ». Les libellés
     // d'AUTHORING qui portent leur provenance (`mutationTables.json` : « Physique — Khorne (EDOC) ») se
     // PROJETTENT avant d'entrer au registre. L'invariant est écrit avec CETTE projection (`stripBookMarker`,
     // `src/data/bookMarker.ts`) — un critère maison (tokenisation, liste de sigles) divergerait d'elle.

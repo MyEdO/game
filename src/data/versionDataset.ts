@@ -49,12 +49,31 @@ export function versionDesDatasets(): number {
 export function bumperDataset(cle: CleDeDataset): void {
   cellule(cle).v += 1;
   ecritures += 1;
-  for (const abonne of ABONNES) abonne();
+  if (!notificationsRetenues) notifierLesAbonnes();
 }
 
 const ABONNES = new Set<() => void>();
+let notificationsRetenues = false;
 
-/** ABONNEMENT aux écritures du seam : `abonne` est appelé après chaque `bumperDataset`. Forme de
+function notifierLesAbonnes(): void {
+  for (const abonne of ABONNES) abonne();
+}
+
+/** Publie une transaction acceptée après sa validation, avec les versions d'index à jour dès chaque pose. */
+export function publierSiAcceptee<T extends { readonly ok: boolean }>(edition: () => T): T {
+  const retenuesAvant = notificationsRetenues;
+  notificationsRetenues = true;
+  let issue: T;
+  try {
+    issue = edition();
+  } finally {
+    notificationsRetenues = retenuesAvant;
+  }
+  if (issue.ok && !notificationsRetenues) notifierLesAbonnes();
+  return issue;
+}
+
+/** ABONNEMENT aux écritures du seam : `abonne` est appelé après un `bumperDataset` direct ou une transaction acceptée. Forme de
  *  `useSyncExternalStore(abonnerAuxDatasets, versionDesDatasets)` — un écran dont le dessin dérive des
  *  catalogues se re-rend à une édition (`CodexEdit`). Rend le désabonnement. */
 export function abonnerAuxDatasets(abonne: () => void): () => void {

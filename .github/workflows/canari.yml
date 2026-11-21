@@ -89,14 +89,12 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run lint
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
       - id: test
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
-      - id: build
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run build
       # Le seul volet des plans datés qui exige le réseau : un `Ticket:` vaut si au moins une issue ancrée
       # est OUVERTE et cite le chemin du plan (corps ou commentaire) ; sinon le plan est exécuté ou
       # l'ancre n'est pas revendiquée (#3028). La garde liste elle-même les issues ancrées (`--ancres`,
@@ -138,10 +136,8 @@ jobs:
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
       # L'export Web de l'hôte Godot et le lot de ses recettes dans la page (#4007), puis le même lot en natif (#3945),
-      # dont les jeux rendus sur un écran virtuel et les rechargements : `ci.yml` n'en joue que `combat` et `editeur` en
-      # natif (`godot:recette`), jamais l'export. Chrome est celui du runner.
-      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        uses: ./.github/actions/caches-3d
+      # dont les jeux rendus sur un écran virtuel et les rechargements. `ci.yml` joue `combat`, `editeur` et `compendium`
+      # en natif (`godot:recette`). Chrome est celui du runner.
       - id: godot-export
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -207,7 +203,7 @@ jobs:
         run: |
           npm run godot:sonde
           npm run personnage-3d:tests
-      # Filet des écrivains par nature (`docs:build`, `genererCode` de `build` et de la suite), comme `ci.yml`.
+      # Filet des écrivains par nature (`docs:build` et génération contrôlée par la suite), comme `ci.yml`.
       - name: Arbre inchangé
         id: arbre-inchange
         continue-on-error: true
@@ -255,7 +251,6 @@ jobs:
             typecheck=${{ steps.typecheck.outcome }}
             lint=${{ steps.lint.outcome }}
             test=${{ steps.test.outcome }}
-            build=${{ steps.build.outcome }}
             plans-dates=${{ steps.plans-dates.outcome }}
             test-raw=${{ steps.test-raw.outcome }}
             raw-check-refs=${{ steps.raw-check-refs.outcome }}

@@ -129,39 +129,78 @@ test('#2596 — forme PowerShell jouée EN VRAI : `.code` porte toujours un enti
 
 test('#2603 — un serveur vite sans borne de vie est REFUSÉ à tout appelant, en fond comme au premier plan', async () => {
   const cas = [
-    ['Bash', { command: 'npm run dev', run_in_background: true }],
-    ['Bash', { command: 'npm run dev' }],
-    ['Bash', { command: 'npm run dev -- --port 5180', run_in_background: true }],
-    ['Bash', { command: 'npm run preview', run_in_background: true }],
+    ['Bash', { command: 'npx vite', run_in_background: true }],
+    ['Bash', { command: 'npx vite' }],
+    ['Bash', { command: 'npx vite --port 5180', run_in_background: true }],
+    ['Bash', { command: 'npx vite serve', run_in_background: true }],
     ['Bash', { command: 'npx vite preview', run_in_background: true }],
-    ['Bash', { command: 'timeout 0 npm run dev', run_in_background: true }],
-    ['Bash', { command: '(npm run dev &)', run_in_background: true }],
-    ['Bash', { command: 'nohup npm run dev &', run_in_background: true }],
-    ['Bash', { command: 'timeout 60 bash -c "(npm run dev &)"', run_in_background: true }],
-    ['PowerShell', { command: 'timeout 3000 npm run dev', run_in_background: true }],
+    ['Bash', { command: 'timeout 0 npx vite', run_in_background: true }],
+    ['Bash', { command: '(npx vite &)', run_in_background: true }],
+    ['Bash', { command: 'nohup npx vite &', run_in_background: true }],
+    ['Bash', { command: 'timeout 60 bash -c "(npx vite &)"', run_in_background: true }],
+    ['PowerShell', { command: 'timeout 3000 npx vite', run_in_background: true }],
   ]
   for (const appelant of [PRINCIPAL, SOUS_AGENT]) {
     for (const [outil, input] of cas) {
       const vu = await decision(appelant, outil, input)
       assert.equal(vu?.permissionDecision, 'deny', `${outil} ${JSON.stringify(input)} ${JSON.stringify(appelant)}`)
-      assert.match(vu.permissionDecisionReason, /SANS BORNE DE VIE .*#2603.*timeout <N> npm run dev.*VITE_RELAY_URL=… timeout <N> npm run dev/s)
+      assert.match(vu.permissionDecisionReason, /SANS BORNE DE VIE .*#2603.*timeout <N> npx vite.*VARIABLE=valeur timeout <N> npx vite/s)
     }
   }
 })
 
 test('#2603 — acceptés : serveur vite borné par un `timeout` de coreutils, vite qui ne sert rien, texte qui le CITE', async () => {
   const cas = [
-    { command: 'timeout 3000 npm run dev', run_in_background: true },
-    { command: 'timeout -k 5 2h npm run dev', run_in_background: true },
-    { command: 'VITE_RELAY_URL=http://localhost:8787 timeout 3000 npm run dev', run_in_background: true },
-    { command: 'timeout 60 bash -c "npm run dev"', run_in_background: true },
-    { command: 'timeout 3000 npm run dev &', run_in_background: true },
-    { command: 'npm run build' },
+    { command: 'timeout 3000 npx vite', run_in_background: true },
+    { command: 'timeout -k 5 2h npx vite', run_in_background: true },
+    { command: 'VITE_RELAY_URL=http://localhost:8787 timeout 3000 npx vite', run_in_background: true },
+    { command: 'timeout 60 bash -c "npx vite"', run_in_background: true },
+    { command: 'timeout 3000 npx vite &', run_in_background: true },
+    { command: 'npx vite build' },
     { command: 'npx vite --version' },
     { command: 'grep vite package.json' },
-    { command: 'git commit -m "npm run dev"' },
+    { command: 'git commit -m "npx vite"' },
   ]
   for (const appelant of [PRINCIPAL, SOUS_AGENT]) {
     for (const input of cas) assert.equal(await decision(appelant, 'Bash', input), null, `${JSON.stringify(input)} ${JSON.stringify(appelant)}`)
+  }
+})
+
+test('#3176 — chaque appel outillé de lancer exige son propre détachement', async () => {
+  for (const outil of ['Bash', 'PowerShell']) {
+    for (const appelant of [PRINCIPAL, SOUS_AGENT]) {
+      for (const input of [
+        { command: 'npm run ops:session -- lancer 42.md' },
+        { command: '"node" "/repo avec espaces/scripts/ops/session.mjs" lancer 42.md', timeout: 1000 },
+        { command: 'cmd.exe /c npm.cmd run ops:session -- lancer 42.md', run_in_background: true },
+        { command: 'node scripts/ops/session.mjs lancer 42.md > --detache' },
+        { command: 'node scripts/ops/session.mjs lancer 42.md && echo --detache' },
+        { command: 'node --no-warnings scripts/ops/session.mjs lancer 42.md' },
+        { command: 'node --conditions production scripts/ops/session.mjs lancer 42.md' },
+        { command: 'node --env-file .env scripts/ops/session.mjs lancer 42.md' },
+        { command: 'node --env-file-if-exists absent.env scripts/ops/session.mjs lancer 42.md' },
+        { command: 'npm run ops:session lancer 42.md --detache' },
+        { command: 'npm run ops:session -- lancer 42.md # --detache' },
+        { command: 'npm --prefix "./depot local" run ops:session -- lancer 42.md' },
+        { command: 'npm run --prefix . ops:session -- lancer 42.md' },
+      ]) {
+        const decisionHook = await decision(appelant, outil, input)
+        assert.equal(decisionHook?.permissionDecision, 'deny', input.command)
+        assert.match(decisionHook.permissionDecisionReason, /--detache.*sonde\.mjs/)
+      }
+      for (const command of [
+        'npm run ops:session -- lancer 42.md "--detache"',
+        'node scripts/ops/session.mjs attendre 42',
+        'echo "npm run ops:session -- lancer 42.md"',
+        'node autre/session.mjs lancer 42.md',
+        'node --conditions production autre.mjs scripts/ops/session.mjs lancer 42.md',
+        'node --help scripts/ops/session.mjs lancer 42.md',
+        'node --env-file .env scripts/ops/session.mjs lancer 42.md --detache',
+        'node -e "console.log(42)" scripts/ops/session.mjs lancer 42.md',
+        'npm --prefix . run ops:session -- lancer 42.md --detache',
+        'npm run ops:session lancer 42.md -- --detache',
+        'node --no-warnings scripts/ops/session.mjs lancer 42.md --detache',
+      ]) assert.equal(await decision(appelant, outil, { command }), null, command)
+    }
   }
 })

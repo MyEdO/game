@@ -12,12 +12,13 @@
  * étroite qu'une aile voisine obtient sa propre portée). La distance se mesure sur le DOMAINE du
  * GROUPE DE NAPPE (`resolveNappes` : masses d'un même corps, même `z`, même égout mesuré, cellules
  * 4-adjacentes), qui vaut l'emprise de la masse dès qu'elle est seule — au joint de deux masses d'un
- * groupe, le versant continue au lieu de retomber deux fois à l'égout.
+ * groupe, le versant continue au lieu de retomber deux fois à l'égout. Une masse dont le profil
+ * diffère de celui du groupe garde aussi le SIEN : sa hauteur est le plus haut des deux champs
+ * (`RoofField.propre`), et la noue suit leur intersection.
  *
  * Les cellules coplanaires ADJACENTES fusionnent en UN polygone de pan, et les cellules-SELLES (non
  * planes, aux arêtiers/noues diagonaux) sont SCINDÉES en 2 triangles le long de la diagonale de crête,
  * chaque triangle rejoignant le pan de son côté → arêtiers nets, UNE teinte par pan. Expose aussi les
- * LIGNES sémantiques (faîte, arêtiers, égout, rangs de tuiles espacés le long de la pente) et les
  * VÉRITÉS DE SCÈNE (visible, roofOccupied — cutaway). PUR et projection-agnostique : géométrie en
  * unités de GRILLE + MÈTRES (`GP`).
  *
@@ -26,7 +27,7 @@
  * pièces de la NAPPE — même `rule` de dégagement que ses pans, donc jamais un pignon qui reste quand
  * son toit part — dont la MATIÈRE est celle du MUR qu'elles prolongent (`closureAppearance`, face
  * `domain:'structure'`), lue à l'apparence d'arête du noyau (`apparenceDArete`, `../facades`). Ce module tient
- * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
+ * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `./ornements.ts`.
  */
 import {
   heightAt,
@@ -43,40 +44,22 @@ import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { aretesA } from '../wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
 import { roofMaterial } from './matieres';
-import { buildingsMeta, massFootprintCells } from '../buildings';
+import { massFootprintCells } from '../buildings';
 import { apparenceDArete, edgeKey, facadeEdges, facadeWallFeatureAppearance } from '../facades';
-import { WALL_H_M, isoPxToM } from '../iso';
+import { WALL_H_M } from '../iso';
 import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../rooms';
 import { cutawayForSection, type ClearedSpace } from './architectureVisibility';
-import type { Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
+import type { Face, GP, RoofEl } from './types';
 import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
 import { parUnitesDeCode } from '../../../lib/ordre.mjs';
 
-/** Le nom PEINT sur le plan pour une pièce de nappe (`authoring/roofsSvg`) : le libellé authoré du
- *  corps, sinon celui de son TYPE de bâtiment (`buildings.json`), sinon son id technique. */
-function bodyLabel(body: ArchitectureBody): string {
-  return body.label ?? (body.style === undefined ? undefined : buildingsMeta()[body.style.id]?.label) ?? body.id;
-}
-
-/** Montée de la nappe par CRAN de profondeur d'avant-toit (17 px-iso), en mètres — une seule
- *  vérité px⇔m (`isoPxToM`). Les rangs de tuiles se comptent PAR cran, et le débord de soffite y lit
- *  sa chute (`RoofMaterialDef.eaveOverhangM`). */
-export const ROOF_SLOPE_M = isoPxToM(17);
-
-/** Rangs de tuiles PAR CRAN de montée, dérivés du PAS MÉTRIQUE de la recette du matériau
- *  (`detail.courses.hM` — SOURCE UNIQUE de l'espacement, partagée builder ↔ backend toits) ; un
- *  matériau sans recette d'assises ne porte aucun rang. */
-export function roofCoursesPerStep(det?: { courses?: { hM: number } }): number | undefined {
-  const hM = det?.courses?.hM;
-  return hM ? Math.max(1, Math.round(ROOF_SLOPE_M / hM)) : undefined;
-}
-
 const EPS = 1e-9;
 
-/** VOLUME de l'avant-toit (Lot 3) piloté par la DONNÉE matériau (`RoofMaterialDef`) : `overhang` = run du
- *  soffite au-delà de l'égout, en CASES (drop = `overhang × ROOF_SLOPE_M`, coplanaire au pan) ; `fasciaDrop`
- *  = hauteur (m) de la planche de rive verticale (0 ⇒ pas de fascia). Les TONS (soffite/fascia) restent au
- *  backend — le builder ne produit que la GÉOMÉTRIE (faces `part:'soffite'`/`'fascia'`). */
+/** VOLUME de l'avant-toit piloté par la DONNÉE matériau (`RoofMaterialDef`) : `overhang` = run du
+ *  soffite au-delà de l'égout, en CASES (`buildRoofs` y convertit `eaveOverhangM` par `metresPerTile`) ;
+ *  sa chute suit la pente du pan qu'il prolonge, coplanaire. `fasciaDrop` = hauteur (m) de la planche de
+ *  rive verticale (0 ⇒ pas de fascia). Les TONS (soffite/fascia) se résolvent par `part` à la matière —
+ *  le builder ne produit que la GÉOMÉTRIE (faces `part:'soffite'`/`'fascia'`). */
 export interface EaveSpec {
   overhang: number;
   fasciaDrop: number;
@@ -127,19 +110,12 @@ function vertsOfCells(cells: ReadonlySet<string>) {
 /** `hip` — profondeur BFS 4-connexe depuis le BORD de `cells` : distance de Manhattan au bord dans
  *  TOUTES les directions. Sur un corps en L, les vertex du coin RENTRANT sont à profondeur 0 comme
  *  ceux du bord — la triangulation par SELLE (plus bas) y ouvre la NOUE toute seule ; les coins
- *  SORTANTS convergent en croupe. Générale, ne suppose AUCUNE forme rectangulaire.
- *
- *  `eaveSegs` RESTREINT les amorces à un sous-ensemble du bord : les sommets qui ne touchent aucun
- *  de ces segments montent avec l'intérieur au lieu de retomber à l'égout. C'est ainsi qu'un champ
- *  de nappe porte une extrémité FERMÉE (pignon) — le versant y arrive à pleine hauteur et
- *  `gableEnds` le referme. Absent ⇒ tout le bord amorce (croupe pure). */
-function bfsDepth(cells: ReadonlySet<string>, eaveSegs?: readonly BoundarySeg[]): Map<string, number> {
+ *  SORTANTS convergent en croupe. Générale, ne suppose AUCUNE forme rectangulaire. */
+function bfsDepth(cells: ReadonlySet<string>): Map<string, number> {
   const { verts, inner } = vertsOfCells(cells);
   const dep = new Map<string, number>();
   const queue: VXY[] = [];
-  const seeds = eaveSegs && new Set(eaveSegs.flatMap((s) => [vk(s.x0, s.y0), vk(s.x1, s.y1)]));
-  const isSeed = (v: VXY) => (seeds ? seeds.has(vk(v.x, v.y)) : !inner(v));
-  for (const v of verts.values()) if (isSeed(v)) { dep.set(vk(v.x, v.y), 0); queue.push(v); }
+  for (const v of verts.values()) if (!inner(v)) { dep.set(vk(v.x, v.y), 0); queue.push(v); }
   for (let i = 0; i < queue.length; i++) {
     const v = queue[i];
     const d = dep.get(vk(v.x, v.y))!;
@@ -156,7 +132,7 @@ function bfsDepth(cells: ReadonlySet<string>, eaveSegs?: readonly BoundarySeg[])
 interface BoundarySeg { x0: number; y0: number; x1: number; y1: number }
 
 /** Arêtes de BORD d'une emprise quelconque (L, U, anneau — chacune de leurs lignes d'égout). */
-export function boundarySegs(cells: ReadonlySet<string>): BoundarySeg[] {
+function boundarySegs(cells: ReadonlySet<string>): BoundarySeg[] {
   const segs: BoundarySeg[] = [];
   for (const key of cells) {
     const [x, y] = key.split(',').map(Number);
@@ -173,7 +149,7 @@ export function boundarySegs(cells: ReadonlySet<string>): BoundarySeg[] {
  *  `toits.test.ts`) ; elle ÉTEND la même lecture aux points intermédiaires — ceux que le pavage
  *  insère quand le faîtage tombe entre deux sommets de grille. Elle remplace la lecture par boîte
  *  englobante, qui ne valait que pour une emprise rectangulaire. */
-export function depthToEave(v: VXY, segs: readonly BoundarySeg[]): number {
+function depthToEave(v: VXY, segs: readonly BoundarySeg[]): number {
   let best = Infinity;
   for (const s of segs) {
     const dx = s.x0 === s.x1 ? Math.abs(v.x - s.x0) : Math.max(0, s.x0 - v.x, v.x - s.x1);
@@ -197,8 +173,7 @@ function crossSpanAt(v: VXY, rows: Map<number, { lo: number; hi: number }>, axis
 /** Montée (m) d'un sommet de grille `v` pour l'emprise `cells` — LA formule (doc de tête), lue selon le
  *  profil : `hip` = BFS toutes directions ; `gable` = portée locale ⊥ `ridge`, DEUX côtés ; `shed` =
  *  portée locale ⊥ à l'axe d'égout déclaré, UN SEUL côté (0 à l'égout, montée vers l'intérieur) ; `flat`
- *  = 0 partout. SOURCE UNIQUE — `roofPans` (pavage), `gableEnds` (pignons) et `walls.ts` (jointures de
- *  toit, #819) y passent tous. */
+ *  = 0 partout. SOURCE UNIQUE — toute hauteur de toit y passe, par le champ d'une nappe (`fieldHeightAt`). */
 export function riseAt(v: VXY, cells: ReadonlySet<string>, shape: RoofShapeSpec, cache?: { dep?: Map<string, number>; rows?: Map<number, { lo: number; hi: number }>; segs?: readonly BoundarySeg[] }): number {
   if (shape.profile === 'flat') return 0;
   if (shape.profile === 'hip') {
@@ -228,37 +203,82 @@ export function riseAt(v: VXY, cells: ReadonlySet<string>, shape: RoofShapeSpec,
  *  cache de la lecture. Le domaine est DISTINCT des cellules qu'une masse PAVE : plusieurs masses
  *  d'un même groupe de nappe (`resolveNappes`) émettent chacune leurs pans sur LEURS cellules en
  *  lisant le MÊME champ — au joint, le versant continue et le BFS ouvre la noue. Domaine = cellules
- *  de la masse ⇒ le champ est exactement `riseAt(v, cells, shape)`. */
+ *  de la masse ⇒ le champ est exactement `riseAt(v, cells, shape)`.
+ *
+ *  `propre` = le champ SOLO d'une masse dont le profil diffère de celui de son groupe (un `gable` ou un
+ *  `shed` dans un champ `hip`) : sur l'emprise de cette masse, la hauteur est le plus haut des deux
+ *  champs — ses pignons montent à SA pente, et la noue suit l'intersection des deux nappes. */
 export interface RoofField {
   domain: ReadonlySet<string>;
   shape: RoofShapeSpec;
   cache: { dep?: Map<string, number>; rows?: Map<number, { lo: number; hi: number }>; segs?: readonly BoundarySeg[] };
+  propre?: RoofField;
+  /** Le pavage RAFFINE-t-il au demi-pas (cf. `roofPans`) ? Décidé UNE fois pour tout le domaine : toutes les
+   *  masses d'un groupe coupent leurs cases aux mêmes demi-sommets, sans quoi une arête commune ne serait
+   *  vue que d'un côté (fente). */
+  demiPas: boolean;
 }
 
-/** Champ d'un domaine + d'une forme. `eaveSegs` (profil `hip`) restreint les amorces d'égout — les
- *  bords qui n'y sont pas portent une extrémité fermée (cf. `bfsDepth`). */
-function roofField(domain: ReadonlySet<string>, shape: RoofShapeSpec, eaveSegs?: readonly BoundarySeg[]): RoofField {
-  if (shape.profile === 'hip') {
-    const segs = eaveSegs ?? boundarySegs(domain);
-    return { domain, shape, cache: { dep: bfsDepth(domain, eaveSegs), segs } };
+/** Une case de pavage est-elle PLATE sous la hauteur `h` (ses quatre coins à la même cote) ? */
+const caseAPlat = (h: (v: VXY) => number, x: number, y: number): boolean => {
+  const h0 = h({ x, y });
+  return [[1, 0], [0, 1], [1, 1]].every(([dx, dy]) => Math.abs(h({ x: x + dx, y: y + dy }) - h0) < EPS);
+};
+
+/** Le demi-pas d'un domaine : une forme pentue dont une case au moins est plate sous la hauteur de la masse
+ *  qui la pave (`hauteurDe`) — le faîtage d'une portée IMPAIRE tombe alors entre deux sommets entiers. */
+function demiPasDu(profile: RoofShapeSpec['profile'], cells: Iterable<string>, hauteurDe: (key: string) => (v: VXY) => number): boolean {
+  if (profile === 'flat') return false;
+  for (const key of cells) {
+    const [x, y] = key.split(',').map(Number);
+    if (caseAPlat(hauteurDe(key), x, y)) return true;
   }
-  if (shape.profile === 'gable') return { domain, shape, cache: { rows: localCrossSpans(domain, shape.ridge) } };
-  if (shape.profile === 'shed')
-    return { domain, shape, cache: { rows: localCrossSpans(domain, shape.eaveSide === 'N' || shape.eaveSide === 'S' ? 'x' : 'y') } };
-  return { domain, shape, cache: {} };
+  return false;
 }
+
+/** Champ d'un domaine + d'une forme. */
+function roofField(domain: ReadonlySet<string>, shape: RoofShapeSpec): RoofField {
+  const cache: RoofField['cache'] = shape.profile === 'hip' ? { dep: bfsDepth(domain), segs: boundarySegs(domain) }
+    : shape.profile === 'gable' ? { rows: localCrossSpans(domain, shape.ridge) }
+    : shape.profile === 'shed' ? { rows: localCrossSpans(domain, shape.eaveSide === 'N' || shape.eaveSide === 'S' ? 'x' : 'y') }
+    : {};
+  const field: RoofField = { domain, shape, cache, demiPas: false };
+  const h = (v: VXY) => fieldHeightAt(field, v);
+  return { ...field, demiPas: demiPasDu(shape.profile, domain, () => h) };
+}
+
+/** La forme que SUIT la nappe d'une masse : la sienne quand elle garde son profil en enveloppe, celle du
+ *  champ commun sinon — c'est elle que portent les éléments de toit et le cap d'un ornement de faîte. */
+export const formeDeLaNappe = (field: RoofField): RoofShapeSpec => (field.propre ?? field).shape;
+
+/** Le point `v` (repère des coins de case) touche-t-il une case de `cells` ? */
+const toucheLesCases = (cells: ReadonlySet<string>, v: VXY): boolean => {
+  for (const x of new Set([Math.ceil(v.x) - 1, Math.floor(v.x)]))
+    for (const y of new Set([Math.ceil(v.y) - 1, Math.floor(v.y)])) if (cells.has(vk(x, y))) return true;
+  return false;
+};
+
+/** Hauteur (m) du champ commun, sans le champ `propre` — l'une des deux nappes d'une enveloppe. */
+const heightOfBase = (field: RoofField, v: VXY): number =>
+  field.shape.eaveHeightM + riseAt(v, field.domain, field.shape, field.cache);
 
 /** Hauteur (m) d'un point de grille DANS un champ — LA lecture unique des consommateurs de hauteur
- *  de toit (pavage, pignons, joints de nappes `walls.ts`, ornements de faîte `props.ts`). */
+ *  de toit (pavage, pignons, ornements de faîte `./ornements.ts`, décors posés sur le toit `../facades`). */
 export function fieldHeightAt(field: RoofField, v: VXY): number {
-  return field.shape.eaveHeightM + riseAt(v, field.domain, field.shape, field.cache);
+  const base = heightOfBase(field, v);
+  return field.propre && toucheLesCases(field.propre.domain, v) ? Math.max(base, fieldHeightAt(field.propre, v)) : base;
+}
+
+/** Écart (m) entre les deux nappes d'une enveloppe au point `v` — positif là où le champ commun domine.
+ *  `undefined` hors enveloppe : le champ n'a qu'une nappe. */
+function ecartDEnveloppe(field: RoofField, v: VXY): number | undefined {
+  return field.propre ? heightOfBase(field, v) - fieldHeightAt(field.propre, v) : undefined;
 }
 
 export interface RoofPanGeometry {
   id: string;
   face: Face;
   faces: Face[];
-  lines: RoofLine[];
 }
 
 /** Pièce PLANE du pavage (quad de cellule coplanaire, ou triangle issu d'une selle), sommets en ordre
@@ -283,39 +303,64 @@ function grad3(p0: VXY & { h: number }, p1: VXY & { h: number }, p2: VXY & { h: 
 }
 
 /** Retire les sommets intermédiaires COLINÉAIRES d'une boucle (une arête d'égout de 4 crans devient un
- *  seul côté ; `h` suit automatiquement, linéaire sur le plan du pan). */
+ *  seul côté ; `h` suit automatiquement, linéaire sur le plan du pan). La colinéarité se juge à `EPS`
+ *  près, en sinus : un sommet de noue est CALCULÉ (`pointDeNoue`), colinéaire à l'arrondi près. */
 function simplifyLoop(loop: VXY[]): VXY[] {
   const n = loop.length;
   const out: VXY[] = [];
   for (let i = 0; i < n; i++) {
     const p = loop[(i + n - 1) % n], c = loop[i], q = loop[(i + 1) % n];
     const ax = c.x - p.x, ay = c.y - p.y, bx = q.x - c.x, by = q.y - c.y;
-    if (ax * by - ay * bx !== 0 || ax * bx + ay * by <= 0) out.push(c);
+    if (Math.abs(ax * by - ay * bx) > EPS * Math.hypot(ax, ay) * Math.hypot(bx, by) || ax * bx + ay * by <= 0) out.push(c);
   }
   return out;
 }
 
 type VXYH = VXY & { h: number };
 
-/** Fusionne les segments COLINÉAIRES 3D CONTIGUS de même nature (sommets de grille entiers) : un faîte
- *  de 3 cellules ou un égout de façade = UNE ligne. La colinéarité se vérifie AUSSI en HAUTEUR (même
- *  pente h le long de la droite porteuse) : deux arêtiers opposés qui se rejoignent à l'apex d'une
- *  pyramide — ou à la noue d'un coin rentrant — partagent la même droite xy mais leur h est en CHEVRON
- *  → ils restent DEUX lignes (coin→apex chacun). */
-function mergeSegs(segs: { a: VXYH; b: VXYH; kind: RoofLineKind }[]): { a: VXYH; b: VXYH; kind: RoofLineKind }[] {
-  const buckets = new Map<string, { t0: number; t1: number; a: VXYH; b: VXYH; kind: RoofLineKind }[]>();
+/** Le point de NOUE d'une arête `p`→`q` dont l'écart d'enveloppe (`ecartDEnveloppe`) change de signe :
+ *  là où les deux nappes se croisent, par interpolation linéaire de l'écart. Les deux bouts se prennent
+ *  dans un ordre CANONIQUE : les deux pièces qui partagent l'arête la parcourent en sens opposés, et
+ *  doivent rendre le MÊME sommet au bit près — le pavage les recoud par la clé de ce sommet. */
+function pointDeNoue(p: VXY, dp: number, q: VXY, dq: number): VXY {
+  if (q.x < p.x || (q.x === p.x && q.y < p.y)) [p, dp, q, dq] = [q, dq, p, dp];
+  const t = dp / (dp - dq);
+  return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
+}
+
+/** Coupe une pièce dont l'écart d'enveloppe `d` change de signe le long de la NOUE : la part où le
+ *  champ commun domine, puis celle où domine le champ propre. Ordre horaire conservé ; un sommet sur
+ *  la noue (écart nul) appartient aux deux parts. */
+function coupeALaNoue(pts: readonly VXY[], d: readonly number[]): VXY[][] {
+  const commun: VXY[] = [];
+  const propre: VXY[] = [];
+  pts.forEach((p, i) => {
+    const j = (i + 1) % pts.length;
+    if (d[i] >= -EPS) commun.push(p);
+    if (d[i] <= EPS) propre.push(p);
+    if ((d[i] > EPS && d[j] < -EPS) || (d[i] < -EPS && d[j] > EPS)) {
+      const c = pointDeNoue(p, d[i], pts[j], d[j]);
+      commun.push(c);
+      propre.push(c);
+    }
+  });
+  return [commun, propre];
+}
+
+/** Fusionne les tronçons d'ÉGOUT CONTIGUS d'une même droite (bords de case : axe x ou y) — un égout de
+ *  façade = UN segment. La pente le long de la droite doit aussi être la même : les deux rampants d'un
+ *  pignon partagent sa droite mais montent en CHEVRON, ils restent deux segments. */
+function mergeEaves(segs: { a: VXYH; b: VXYH }[]): { a: VXYH; b: VXYH }[] {
+  const buckets = new Map<string, { t0: number; t1: number; a: VXYH; b: VXYH }[]>();
   for (const s of segs) {
-    let { a, b } = s;
-    let dx = b.x - a.x, dy = b.y - a.y;
-    if (dx < 0 || (dx === 0 && dy < 0)) { [a, b] = [b, a]; dx = -dx; dy = -dy; }
-    const g = Math.abs(gcd(dx, dy)) || 1;
-    const ux = dx / g, uy = dy / g;
-    const key = `${s.kind}|${ux},${uy}|${a.x * uy - a.y * ux}`; // nature + direction + droite porteuse
-    const t = (p: VXY) => p.x * ux + p.y * uy;
-    (buckets.get(key) ?? buckets.set(key, []).get(key)!).push({ t0: t(a), t1: t(b), a, b, kind: s.kind });
+    const selonX = s.a.y === s.b.y;
+    const [a, b] = (selonX ? s.a.x <= s.b.x : s.a.y <= s.b.y) ? [s.a, s.b] : [s.b, s.a];
+    const key = selonX ? `y${a.y}` : `x${a.x}`; // droite porteuse
+    const t = (p: VXY) => (selonX ? p.x : p.y);
+    (buckets.get(key) ?? buckets.set(key, []).get(key)!).push({ t0: t(a), t1: t(b), a, b });
   }
   const slope = (s: { t0: number; t1: number; a: VXYH; b: VXYH }) => (s.b.h - s.a.h) / (s.t1 - s.t0);
-  const out: { a: VXYH; b: VXYH; kind: RoofLineKind }[] = [];
+  const out: { a: VXYH; b: VXYH }[] = [];
   for (const list of buckets.values()) {
     list.sort((p, q) => p.t0 - q.t0);
     let cur = list[0];
@@ -328,15 +373,13 @@ function mergeSegs(segs: { a: VXYH; b: VXYH; kind: RoofLineKind }[]): { a: VXYH;
   }
   return out;
 }
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
-/** PANS CONTINUS + LIGNES d'un toit couvrant `cells` (clés « x,y », forme quelconque), pour `shape`
- *  (profil/faîtage RÉSOLUS, pente en m/case, hauteur d'égout). CŒUR PUR (testable sur un L) consommé
- *  par `buildAuthoredRoofs`/`buildRoofs` : hauteurs de sommet par `riseAt` (LA formule, doc de tête),
- *  pavage en pièces PLANES (quads coplanaires / selles scindées), fusion des pièces adjacentes de même
- *  plan (annulation d'arêtes internes → polygone de bord), classification des arêtes restantes (égout
- *  au bord, faîte/arêtier entre deux pans), rangs de tuiles en courbes de niveau du plan (`courses`
- *  rangs par cran de montée).
+/** PANS CONTINUS d'un toit couvrant `cells` (clés « x,y », forme quelconque), pour `shape` (profil/faîtage
+ *  RÉSOLUS, pente en m/case, hauteur d'égout). CŒUR PUR (testable sur un L) consommé par `buildRoofs` :
+ *  hauteurs de sommet par le champ (`fieldHeightAt`, LA formule, doc de tête), pavage en pièces PLANES
+ *  (quads coplanaires / selles scindées / pièces coupées à la noue d'une enveloppe), fusion des pièces
+ *  adjacentes de même plan (annulation d'arêtes internes → polygone de bord), puis l'avant-toit de chaque
+ *  égout (arête de bord du domaine).
  *
  *  `field` dissocie le DOMAINE de hauteur des cellules PAVÉES (`resolveNappes`) : les cellules restent
  *  celles de la masse (identité des pans, exclusions, cutaway), la hauteur se lit sur le domaine du
@@ -345,12 +388,11 @@ const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 export function roofPans(
   cells: ReadonlySet<string>,
   matId: string,
-  courses: number | undefined,
   eave: EaveSpec | undefined,
   shape: RoofShapeSpec,
   field?: RoofField,
-): { faces: Face[]; lines: RoofLine[]; pans?: RoofPanGeometry[] } {
-  if (!cells.size) return { faces: [], lines: [] };
+): { faces: Face[]; pans: RoofPanGeometry[] } {
+  if (!cells.size) return { faces: [], pans: [] };
   const cellCoords = [...cells].map((key) => key.split(',').map(Number) as [number, number]);
   const minCellX = Math.min(...cellCoords.map(([x]) => x));
   const maxCellX = Math.max(...cellCoords.map(([x]) => x)) + 1;
@@ -405,6 +447,21 @@ export function roofPans(
       return;
     }
   };
+  // Polygone CONVEXE à hauteurs posées : une pièce s'il est plan, sinon un éventail de triangles (une part
+  // de noue dont la nappe n'est pas plane sur la case, une selle d'arêtier y passant).
+  const addPlanes = (lifted: VXYH[]) => {
+    const tris: { pts: VXYH[]; gx: number; gy: number }[] = [];
+    for (let i = 1; i + 1 < lifted.length; i++) {
+      const tri = [lifted[0], lifted[i], lifted[i + 1]];
+      const det = (tri[1].x - tri[0].x) * (tri[2].y - tri[0].y) - (tri[1].y - tri[0].y) * (tri[2].x - tri[0].x);
+      if (Math.abs(det) > EPS * EPS) tris.push({ pts: tri, ...grad3(tri[0], tri[1], tri[2]) });
+    }
+    if (!tris.length) return;
+    const { gx, gy } = tris[0];
+    const p0 = lifted[0];
+    if (lifted.every((p) => Math.abs(p0.h + gx * (p.x - p0.x) + gy * (p.y - p0.y) - p.h) < EPS)) pieces.push({ pts: lifted, gx, gy });
+    else pieces.push(...tris);
+  };
   if (rectangular) {
     const TL = { x: minCellX, y: minCellY }, TR = { x: maxCellX, y: minCellY };
     const BR = { x: maxCellX, y: maxCellY }, BL = { x: minCellX, y: maxCellY };
@@ -435,16 +492,10 @@ export function roofPans(
     // ENTRE deux sommets : la nappe s'y aplatit en une bande de cellules toutes plates, peinte comme
     // une face à part (mesuré #947 : 18 cases de bande claire au sommet de la croupe du rez de La
     // Diligence). Le cas rectangulaire coupe déjà au vrai milieu (`splitX`/`splitY`) ; sur une emprise
-    // irrégulière, on raffine au DEMI-PAS — sur TOUTE l'emprise, pour qu'aucune arête de cellule ne
-    // reste face à deux demi-arêtes (T-jonction, donc fente).
-    const flatCell = (x: number, y: number): boolean => {
-      const h0 = hV({ x, y });
-      return [[1, 0], [0, 1], [1, 1]].every(([dx, dy]) => Math.abs(hV({ x: x + dx, y: y + dy }) - h0) < EPS);
-    };
-    const halfStep = shape.profile !== 'flat' && [...cells].some((k) => {
-      const [x, y] = k.split(',').map(Number);
-      return flatCell(x, y);
-    });
+    // irrégulière, on raffine au DEMI-PAS — sur TOUT le domaine du champ, décidé une fois pour toutes ses
+    // masses (`RoofField.demiPas`), pour qu'aucune arête de cellule ne reste face à deux demi-arêtes
+    // (T-jonction, donc fente).
+    const halfStep = fld.demiPas;
     for (const k of cells) {
       const [x, y] = k.split(',').map(Number);
       const xs = cuts(x, x + 1, halfStep ? [x + 0.5] : splitX);
@@ -455,7 +506,13 @@ export function roofPans(
           const TR = withH({ x: xs[xi + 1], y: ys[yi] });
           const BR = withH({ x: xs[xi + 1], y: ys[yi + 1] });
           const BL = withH({ x: xs[xi], y: ys[yi + 1] });
-          if (Math.abs(TL.h + BR.h - TR.h - BL.h) < EPS) {
+          const quad = [TL, TR, BR, BL];
+          // Sous une ENVELOPPE, la pièce que traverse la noue se coupe le long de l'intersection des deux
+          // nappes : chaque part suit SA nappe, et la noue reste droite d'une case à l'autre.
+          const ecarts = quad.map((p) => ecartDEnveloppe(fld, p));
+          if (ecarts.some((d) => d !== undefined && d > EPS) && ecarts.some((d) => d !== undefined && d < -EPS)) {
+            for (const part of coupeALaNoue(quad, ecarts as number[])) addPlanes(part.map(withH));
+          } else if (Math.abs(TL.h + BR.h - TR.h - BL.h) < EPS) {
             pieces.push({ pts: [TL, TR, BR, BL], gx: (TR.h - TL.h) / (TR.x - TL.x), gy: (BL.h - TL.h) / (BL.y - TL.y) });
           } else {
             const tris = Math.abs(TL.h - BR.h) >= Math.abs(TR.h - BL.h)
@@ -468,7 +525,7 @@ export function roofPans(
   }
 
   // ── Fusion en PANS : deux pièces partageant une arête ET de même gradient sont coplanaires (l'arête
-  //    commune ancre le plan) → union-find. Les arêtes recensent aussi leurs propriétaires (lignes).
+  //    commune ancre le plan) → union-find. Les arêtes recensent aussi leurs propriétaires (égouts).
   const parent = pieces.map((_, i) => i);
   const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
   const ek = (a: VXY, b: VXY) => [vk(a.x, a.y), vk(b.x, b.y)].sort().join('|');
@@ -494,7 +551,6 @@ export function roofPans(
   //    partagée dans le groupe apparaît dans les deux sens), chaînage en boucle(s), simplification.
   const toGP = (v: VXY) => ({ x: v.x - 0.5, y: v.y - 0.5, h: hV(v) });
   const faces: Face[] = [];
-  const rangs: { a: VXY; b: VXY; kind: RoofLineKind; h0: number; h1: number }[] = [];
   for (const members of groups.values()) {
     const dirSet = new Map<string, [VXY, VXY]>();
     for (const i of members)
@@ -528,35 +584,11 @@ export function roofPans(
     }
     for (const loop of loops)
       faces.push({ poly: loop.map(toGP), material: { domain: 'roof', id: matId, part }, oriented: false }); // nappe OUVERTE
-
-    // RANGS de tuiles : courbes de niveau du plan du pan, `courses` rangs par cran de montée, décalées
-    // d'un demi-pas (jamais sur un sommet → intersections franches), clippées au(x) bord(s) du pan.
-    if (courses && courses > 0 && (Math.abs(gx) > EPS || Math.abs(gy) > EPS)) {
-      let hMin = Infinity, hMax = -Infinity;
-      for (const loop of loops) for (const v of loop) { const h = hV(v); hMin = Math.min(hMin, h); hMax = Math.max(hMax, h); }
-      const step = shape.pitch / courses;
-      for (let lvl = hMin + step / 2; lvl < hMax - EPS; lvl += step) {
-        const cross: { x: number; y: number; s: number }[] = [];
-        for (const loop of loops)
-          for (let i = 0; i < loop.length; i++) {
-            const a = withH(loop[i]), b = withH(loop[(i + 1) % loop.length]);
-            if (a.h < lvl !== b.h < lvl) {
-              const t = (lvl - a.h) / (b.h - a.h);
-              const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
-              cross.push({ x, y, s: x * -gy + y * gx }); // trié LE LONG de la courbe de niveau (⊥ gradient)
-            }
-          }
-        cross.sort((p, q) => p.s - q.s);
-        for (let i = 0; i + 1 < cross.length; i += 2)
-          rangs.push({ a: cross[i], b: cross[i + 1], kind: 'rang', h0: lvl, h1: lvl });
-      }
-    }
   }
 
-  // ── Lignes de STRUCTURE : bord du toit (1 pièce) = égout ; entre deux PANS = faîte (horizontale) ou
-  //    arêtier/noue (dénivelée). Fusion des tronçons colinéaires 3D, puis conversion en GP. Une arête de
-  //    bord qui reste INTÉRIEURE au domaine du champ n'est ni l'un ni l'autre : la nappe s'y poursuit
-  //    chez la masse voisine du groupe — ni ligne, ni avant-toit (les deux se posent sur les `lines`).
+  // ── ÉGOUTS : arêtes de bord du toit (une seule pièce), fusionnées par droite. Une arête de bord qui
+  //    reste INTÉRIEURE au domaine du champ n'en est pas un : la nappe s'y poursuit chez la masse voisine
+  //    du groupe, sans avant-toit.
   const onDomainEdge = (a: VXY, b: VXY): boolean => {
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const [c0, c1] = a.x === b.x
@@ -564,23 +596,21 @@ export function roofPans(
       : [{ x: Math.floor(mx), y: a.y - 1 }, { x: Math.floor(mx), y: a.y }];
     return !fld.domain.has(vk(c0.x, c0.y)) || !fld.domain.has(vk(c1.x, c1.y));
   };
-  const structSegs: { a: VXYH; b: VXYH; kind: RoofLineKind }[] = [];
+  const bords: { a: VXYH; b: VXYH }[] = [];
   for (const [key, owners] of edgeOwners) {
+    if (owners.length !== 1) continue;
     const [a, b] = key.split('|').map((k) => { const [x, y] = k.split(',').map(Number); return withH({ x, y }); });
-    if (owners.length === 1) { if (wholeDomain || onDomainEdge(a, b)) structSegs.push({ a, b, kind: 'egout' }); }
-    else if (find(owners[0]) !== find(owners[1]))
-      structSegs.push({ a, b, kind: Math.abs(a.h - b.h) < EPS ? 'faite' : 'aretier' });
+    if (wholeDomain || onDomainEdge(a, b)) bords.push({ a, b });
   }
-  const lines: RoofLine[] = mergeSegs(structSegs).map((s) => ({
+  const egouts = mergeEaves(bords).map((s) => ({
     a: { x: s.a.x - 0.5, y: s.a.y - 0.5, h: s.a.h },
     b: { x: s.b.x - 0.5, y: s.b.y - 0.5, h: s.b.h },
-    kind: s.kind,
   }));
 
   // ── AVANT-TOIT (VOLUME) : chaque ÉGOUT (jamais un arêtier/faîte) projette un SOFFITE coplanaire au pan
-  //    (le débord PROLONGE la nappe vers l'extérieur, en CONTINUANT la pente → son bord extérieur descend
-  //    de `overhang × ROOF_SLOPE_M` sous l'égout) + une FASCIA verticale pendant sous ce bord. ADDITIF :
-  //    posé APRÈS le pavage/fusion/classification, il ne perturbe NI les pans NI les lignes. Un égout est
+  //    (le débord PROLONGE la nappe vers l'extérieur, en CONTINUANT sa pente → son bord extérieur descend
+  //    de `overhang` × la pente du pan sous l'égout) + une FASCIA verticale pendant sous ce bord. ADDITIF :
+  //    posé APRÈS le pavage et la fusion, il ne perturbe pas les pans. Un égout est
   //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, opposée au
   //    centroïde de l'empreinte) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
   //    Les bouts sont prolongés d'`overhang` LE LONG de l'égout : aux angles convexes, deux soffites/
@@ -590,9 +620,7 @@ export function roofPans(
     let cX = 0, cY = 0;
     for (const k of cells) { const [x, y] = k.split(',').map(Number); cX += x; cY += y; }
     cX /= cells.size; cY /= cells.size; // centroïde d'empreinte (repère GP : centre de cellule = (cx,cy))
-    for (const ln of lines) {
-      if (ln.kind !== 'egout') continue;
-      const { a, b } = ln;
+    for (const { a, b } of egouts) {
       const dx = b.x - a.x, dy = b.y - a.y;
       const len = Math.hypot(dx, dy);
       if (len < EPS) continue;
@@ -620,8 +648,6 @@ export function roofPans(
     }
   }
 
-  for (const r of rangs)
-    lines.push({ a: { x: r.a.x - 0.5, y: r.a.y - 0.5, h: r.h0 }, b: { x: r.b.x - 0.5, y: r.b.y - 0.5, h: r.h1 }, kind: r.kind });
   const slopeFaces = faces.filter((face) => ['N', 'E', 'S', 'O'].includes(face.material.part!));
   const planeOf = (face: Face) => {
     const [p0, p1] = face.poly;
@@ -650,10 +676,9 @@ export function roofPans(
           && (candidate.material.part === 'soffite' || candidate.material.part === 'fascia')
           && candidate.poly.slice(0, 2).every(onPlane)),
       ],
-      lines: lines.filter((line) => onPlane(line.a) && onPlane(line.b)),
     };
   });
-  return { faces, lines, pans };
+  return { faces, pans };
 }
 
 /** FERMETURE DE COMBLE (pignon) à une extrémité du faîtage — le volume que ni les rampants (qui
@@ -666,7 +691,11 @@ export function roofPans(
  *  L'étendue suit les cellules RÉELLES qui touchent cette extrémité (jamais la bbox) — un corps en L
  *  ferme à SA largeur. Et la JOINTURE se tranche CASE PAR CASE (`covered`), jamais sur un échantillon :
  *  une extrémité dont quelques cases sont déjà couvertes par une autre nappe ferme TOUT le reste, en
- *  autant de fermetures qu'elle compte de tronçons ouverts contigus. */
+ *  autant de fermetures qu'elle compte de tronçons ouverts contigus.
+ *
+ *  Une case couverte par une masse du MÊME groupe (`voisine` rend son champ) n'est pas un joint muet : quand la
+ *  nappe y monte plus haut que sa voisine (une masse qui garde son profil en enveloppe, `RoofField.propre`), la
+ *  MARCHE entre les deux se ferme par un pignon ÉMERGENT, limité à l'écart — de la nappe voisine à la sienne. */
 export interface GableEnd {
   /** Polygone de fermeture (ordre monde : profil haut de gauche à droite, puis retour par la base). */
   poly: GP[];
@@ -694,6 +723,7 @@ export function gableEnds(
   shape: RoofShapeSpec,
   covered?: (x: number, y: number) => boolean,
   field?: RoofField,
+  voisine?: (x: number, y: number) => RoofField | undefined,
 ): GableEnd[] {
   if (shape.profile !== 'gable' && shape.profile !== 'shed') return [];
   const coords = [...cells].map((key) => key.split(',').map(Number) as [number, number]);
@@ -728,41 +758,68 @@ export function gableEnds(
     const edgeOf = (c: number): { x: number; y: number; side: WallSide } =>
       (shape.ridge === 'x' ? { x: along - 1, y: c, side: 'E' } : { x: c, y: along, side: 'N' });
 
-    // Tronçons OUVERTS contigus : une case déjà couverte au-delà est une JOINTURE (le toit continue,
-    // aucun mur entre deux volumes — un éventuel saut de hauteur est la charge de `roofSeamGeometry`).
-    const runs: number[][] = [];
+    // Tronçons contigus : OUVERTS (rien au-delà), ou JOINTIFS d'une même masse du groupe (`voisine`). Une
+    // case couverte par toute autre nappe est une JOINTURE muette (le toit continue, aucun mur entre deux
+    // volumes).
+    const runs: { cols: number[]; bas?: RoofField }[] = [];
     for (const c of cols) {
       const o = outsideOf(c);
-      if (covered?.(o.x, o.y)) continue;
+      const bas = covered?.(o.x, o.y) ? voisine?.(o.x, o.y) : undefined;
+      if (covered?.(o.x, o.y) && !bas) continue;
       const last = runs[runs.length - 1];
-      if (last && last[last.length - 1] === c - 1) last.push(c);
-      else runs.push([c]);
+      if (last && last.cols[last.cols.length - 1] === c - 1 && last.bas === bas) last.cols.push(c);
+      else runs.push({ cols: [c], bas });
     }
-    const at = (t: number, h?: number): GP => {
-      const v = shape.ridge === 'x' ? { x: along, y: t } : { x: t, y: along };
-      return { x: v.x - 0.5, y: v.y - 0.5, h: h ?? fieldHeightAt(fld, v) };
-    };
+    const pointAt = (t: number) => (shape.ridge === 'x' ? { x: along, y: t } : { x: t, y: along });
+    const gp = (t: number, h: number): GP => { const v = pointAt(t); return { x: v.x - 0.5, y: v.y - 0.5, h }; };
     const ridgeT = (cols[0] + cols[cols.length - 1] + 1) / 2; // faîte : milieu de la portée LOCALE
-    for (const run of runs) {
-      const a = run[0];
-      const b = run[run.length - 1] + 1;
-      const ts = new Set<number>();
-      for (let t = a; t <= b; t++) ts.add(t);
-      if (shape.profile === 'gable' && ridgeT > a + EPS && ridgeT < b - EPS) ts.add(ridgeT);
-      // Profil de l'arête haute, échantillonné à chaque sommet de grille (+ le faîte) puis DÉBARRASSÉ
-      // de ses points COLINÉAIRES : un versant est droit, il ne doit pas coûter un sommet par case —
-      // un pignon de 6 cases reste le triangle à 3 points que sa nappe dessine.
-      const sampled = [...ts].sort((p, q) => p - q).map((t) => ({ t, gp: at(t) }));
-      const kept = sampled.filter((p, k) => {
+    /** Profil d'une hauteur le long de l'extrémité, DÉBARRASSÉ de ses points COLINÉAIRES : un versant est
+     *  droit, il ne doit pas coûter un sommet par case — un pignon de 6 cases reste le triangle à 3 points
+     *  que sa nappe dessine. */
+    const profil = (ts: readonly number[], h: (t: number) => number): GP[] => {
+      const sampled = ts.map((t) => ({ t, gp: gp(t, h(t)) }));
+      return sampled.filter((p, k) => {
         if (k === 0 || k === sampled.length - 1) return true;
         const prev = sampled[k - 1], next = sampled[k + 1];
         const lerp = prev.gp.h + ((next.gp.h - prev.gp.h) * (p.t - prev.t)) / (next.t - prev.t);
         return Math.abs(p.gp.h - lerp) > EPS;
-      });
-      const profile = kept.map((p) => p.gp);
-      if (profile.every((p) => Math.abs(p.h - shape.eaveHeightM) < EPS)) continue; // plan de la nappe = sommet des murs : rien à fermer
+      }).map((p) => p.gp);
+    };
+    for (const { cols: run, bas } of runs) {
+      const a = run[0];
+      const b = run[run.length - 1] + 1;
+      // Échantillons : chaque sommet du pavage sur cette arête — sommets de grille, faîte, demi-pas, et
+      // points de NOUE des nappes en enveloppe (les mêmes que `roofPans`, `pointDeNoue`).
+      const ts = new Set<number>();
+      for (let t = a; t <= b; t++) ts.add(t);
+      if (fld.demiPas) for (let t = a; t < b; t++) ts.add(t + 0.5);
+      if (shape.profile === 'gable' && ridgeT > a + EPS && ridgeT < b - EPS) ts.add(ridgeT);
+      const grille = [...ts].sort((p, q) => p - q);
+      for (const f of bas ? [fld, bas] : [fld])
+        for (let k = 0; k + 1 < grille.length; k++) {
+          const p = pointAt(grille[k]), q = pointAt(grille[k + 1]);
+          const dp = ecartDEnveloppe(f, p), dq = ecartDEnveloppe(f, q);
+          if (dp === undefined || dq === undefined || !((dp > EPS && dq < -EPS) || (dp < -EPS && dq > EPS))) continue;
+          const c = pointDeNoue(p, dp, q, dq);
+          ts.add(shape.ridge === 'x' ? c.y : c.x);
+        }
+      const echantillons = [...ts].sort((p, q) => p - q);
+      const haut = (t: number) => fieldHeightAt(fld, pointAt(t));
+      const dessus = profil(echantillons, haut);
+      if (!bas) {
+        if (dessus.every((p) => Math.abs(p.h - shape.eaveHeightM) < EPS)) continue; // plan de la nappe = sommet des murs : rien à fermer
+        out.push({
+          poly: dedupeLoop([...dessus, gp(b, shape.eaveHeightM), gp(a, shape.eaveHeightM)]),
+          edges: run.map(edgeOf),
+          inside: run.map(insideOf),
+          outside: run.map(outsideOf),
+        });
+        continue;
+      }
+      const sous = (t: number) => Math.min(haut(t), fieldHeightAt(bas, pointAt(t)));
+      if (echantillons.every((t) => haut(t) - sous(t) < EPS)) continue; // les deux nappes se rejoignent : aucune marche
       out.push({
-        poly: dedupeLoop([...profile, at(b, shape.eaveHeightM), at(a, shape.eaveHeightM)]),
+        poly: dedupeLoop([...dessus, ...profil(echantillons, sous).reverse()]),
         edges: run.map(edgeOf),
         inside: run.map(insideOf),
         outside: run.map(outsideOf),
@@ -774,7 +831,7 @@ export function gableEnds(
 
 // ── MATIÈRE d'une fermeture : le MUR qu'elle prolonge ────────────────────────────────────────────────
 /** Case VOISINE de l'autre côté d'une arête de mur (diagonales : la case elle-même). SOURCE UNIQUE
- *  partagée avec `walls.ts` — deux tables qui divergent, c'est un mur qui change de camp. */
+ *  partagée avec `./ornements.ts` (`outwardSide`) — deux tables qui divergent, c'est un mur qui change de camp. */
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
@@ -873,13 +930,6 @@ function panCells(face: Face, all: { x: number; y: number }[]): { x: number; y: 
   return [[...all].sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy))[0]];
 }
 
-/** Une masse de toit est l'ENVELOPPE du bâtiment PAR NATURE (jamais une cloison intérieure, cf.
- *  `envelopeEdges` walls.ts) : elle ne porte pas de voile de brouillard — elle est peinte quand le
- *  groupe la VOIT (`seenSections`), retirée quand il est DESSOUS (`roofOccupied` — allié dans
- *  l'ESPACE couvert), les deux par la loi UNIQUE `cutawayForSection`. #818, #950. */
-
-const GROUPED_DETAIL_CELL_THRESHOLD = 64;
-
 /** `roomZoneIds` DÉRIVÉS (#823, plus de redistribution manuelle) : les zones INTÉRIEURES de
  *  `scene.effectZones` dont au moins une case tombe dans l'emprise de la masse, à l'un des étages
  *  qu'elle couvre (`z` = plancher sommet, `levels` niveaux DEPUIS `z` en descendant — une masse de 2
@@ -971,9 +1021,8 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
 const espaceRetenu = memoByRefDeps<SceneDesToits, ClearedSpace>();
 
 /** ESPACE DÉGAGÉ par les alliés (#818), résolution UNIQUE de la scène — consommée par la loi
- *  `cutawayForSection` (`stage/architectureVisibility.ts`) pour les toits ICI et pour les murs et
- *  façades dans l'hôte du monde (`stage/MondeDeCampagne`) : une seule vérité, jamais deux qui
- *  pourraient diverger.
+ *  `cutawayForSection` (`./architectureVisibility.ts`) pour les toits ICI et pour les arêtes de mur
+ *  (`../aretes.ts`) : une seule vérité, jamais deux qui pourraient diverger.
  *
  *  Un allié dégage l'ESPACE HABITÉ où il se tient, à l'échelle entière de cet espace : la PIÈCE quand
  *  il en occupe une (toutes ses cases, quel que soit le nombre de travées de charpente qui la
@@ -995,7 +1044,7 @@ const espaceRetenu = memoByRefDeps<SceneDesToits, ClearedSpace>();
  *  Il dit ENFIN quelles nappes le groupe VOIT (`seenSections`, #950), depuis les cases que le moteur
  *  de vision lui donne (`sight`, `noyau/monde/vision.ts`) : la nappe d'un corps se peint quand le groupe
  *  voit le PIED de ce corps — une case de son emprise élargie d'1, à l'un des niveaux qu'il porte
- *  (MÊME critère que les ornements de toiture, `builders/props.ts`). Un allié DEDANS — sa pièce, ou
+ *  Un allié DEDANS — sa pièce, ou
  *  le volume d'une masse dont il occupe un niveau — n'en voit AUCUNE : on ne regarde pas au travers
  *  d'un plafond (`computeVisible` ne marque jamais une case au-dessus du viewer). Le porche et le
  *  passage couvert ne sont PAS dedans : la masse les coiffe sans les enfermer, la vue y reste ouverte
@@ -1067,16 +1116,15 @@ function footInSight(z: number, cells: ReadonlySet<string>, sight: ReadonlySet<s
   return false;
 }
 
-/** Forme résolue + emprise + `roomZoneIds` dérivés d'une masse — calcul PARTAGÉ par `buildAuthoredRoofs`
- *  et `walls.ts` (pignons/jointures/enveloppe) : une seule dérivation, jamais deux formules qui
- *  pourraient diverger. */
+/** Forme résolue + emprise + `roomZoneIds` dérivés d'une masse — calcul PARTAGÉ par les nappes
+ *  (`resolveNappes`), l'éditeur (`noyau/sceneEdit.ts`) et la validation de scène (`noyau/validateScene.ts`) :
+ *  une seule dérivation, jamais deux formules qui pourraient diverger. */
 export function resolveMass(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers' | 'metresPerTile'>, mass: BuildingMass): { cells: Set<string>; shape: RoofShapeSpec; roomZoneIds: string[] } {
   const cells = massFootprintCells(mass.footprint);
   const ridge = resolveMassRidge(mass, cells);
   const pitch = sceneMetresPerTile(scene) * Math.tan((mass.pitchDeg * Math.PI) / 180);
-  // Hauteur d'égout ABSOLUE (`GP.h`, cf. `backends/project.projGP`) : le toit repose sur le SOMMET des
-  // murs de l'étage `mass.z`, et un mur s'assoit sur le RELIEF de SA case (`buildWalls` : `heightAt`
-  // + `WALL_H_M`). L'égout se lit donc sur la MÊME source — la cote métrique du plancher sous
+  // Hauteur d'égout ABSOLUE (`GP.h`) : le toit repose sur le SOMMET des murs de l'étage `mass.z`, et un
+  // mur se dresse du RELIEF de SA case (`piedDeLArete`, `../scene` : `heightAt`) sur `WALL_H_M`. L'égout se lit donc sur la MÊME source — la cote métrique du plancher sous
   // l'emprise, jamais une cote déduite de l'index d'étage : un bâtiment sur une butte, une terrasse ou
   // un quai surélevé garde son toit sur ses murs. `levels` ne compte que les niveaux COUVERTS vers le
   // bas (`massRoomZoneIds`) et ne dit RIEN de l'altitude.
@@ -1102,8 +1150,9 @@ export function resolveMass(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'l
  *  `mayShareNappe` autorise à partager une pente : leur champ court sur l'union de leurs emprises, si
  *  bien qu'au joint le versant CONTINUE (le BFS y ouvre la noue) au lieu de retomber deux fois à
  *  l'égout. Un groupe impose UNE pente, refittée sur la portée de l'union (`groupField`) : y entrer
- *  coûte sa pente propre, ce qu'une masse DÉRIVÉE peut payer et une masse AUTHORÉE non. Un groupe
- *  d'UNE masse : domaine = ses cellules, forme = la sienne — le champ est alors exactement
+ *  coûte sa pente propre, ce qu'une masse DÉRIVÉE peut payer et une masse AUTHORÉE non. Une masse dont
+ *  le profil n'est pas celui du champ commun garde le sien en ENVELOPPE (`RoofField.propre`). Un
+ *  groupe d'UNE masse : domaine = ses cellules, forme = la sienne — le champ est alors exactement
  *  `riseAt(v, cells, shape)`. */
 export interface MassNappe {
   bodyId: string;
@@ -1117,63 +1166,37 @@ export interface MassNappe {
 
 type ResolvedMass = { mass: BuildingMass; cells: Set<string>; shape: RoofShapeSpec; roomZoneIds: string[] };
 
-const segKey = (x0: number, y0: number, x1: number, y1: number) => `${x0},${y0}|${x1},${y1}`;
-
-/** Bords du domaine qui AMORCENT l'égout : tout le bord, MOINS les extrémités de faîtage des masses à
- *  versants droits (`gable`) — un pignon les ferme (`gableEnds`), le versant y arrive donc à pleine
- *  hauteur au lieu de s'abattre en croupe. */
-function groupEaveSegs(domain: ReadonlySet<string>, group: readonly ResolvedMass[]): BoundarySeg[] {
-  const closed = new Set<string>();
-  for (const r of group) {
-    if (r.mass.profile !== 'gable') continue;
-    const coords = [...r.cells].map((key) => key.split(',').map(Number) as [number, number]);
-    const along = (c: [number, number]) => (r.shape.ridge === 'x' ? c[0] : c[1]);
-    const lo = Math.min(...coords.map(along));
-    const hi = Math.max(...coords.map(along));
-    for (const [cx, cy] of coords) {
-      if (r.shape.ridge === 'x') {
-        if (cx === lo) closed.add(segKey(cx, cy, cx, cy + 1));
-        if (cx === hi) closed.add(segKey(cx + 1, cy, cx + 1, cy + 1));
-      } else {
-        if (cy === lo) closed.add(segKey(cx, cy, cx + 1, cy));
-        if (cy === hi) closed.add(segKey(cx, cy + 1, cx + 1, cy + 1));
-      }
-    }
-  }
-  const all = boundarySegs(domain);
-  const kept = all.filter((s) => !closed.has(segKey(s.x0, s.y0, s.x1, s.y1)));
-  return kept.length ? kept : all; // aucun bord amorçant : le champ n'aurait plus d'origine
-}
-
-/** Champ COMMUN d'un groupe de plusieurs masses : domaine = union des emprises, profondeur BFS depuis
- *  les seuls bords amorçants, et UNE pente refittée sur la portée du domaine (`fittedPitchDeg`,
- *  `noyau/sceneEdit.ts` — la borne de comble #947 est celle du corps, jamais une seconde copie).
- *  `2 × profondeur` est la portée que cette borne lit : elle rapporte la montée à `portée/2`. */
+/** Champ COMMUN d'un groupe de plusieurs masses : domaine = union des emprises, sous le profil COMMUN —
+ *  `gable` de leur faîtage quand toutes sont des `gable` de même faîtage, `hip` (profondeur BFS depuis tout
+ *  le bord) sinon — et UNE pente refittée sur la portée du domaine (`fittedPitchDeg`, `noyau/sceneEdit.ts` —
+ *  la borne de comble #947 est celle du corps, jamais une seconde copie). La portée que cette borne lit
+ *  est celle que la montée franchit à `portée/2` : la plus large tranche ⊥ au faîtage (`localCrossSpans`)
+ *  pour un `gable`, `2 × profondeur` pour une croupe. */
 function groupField(scene: Pick<Scene, 'metresPerTile' | 'roofDefaults'>, body: ArchitectureBody, group: readonly ResolvedMass[]): RoofField {
   const domain = new Set<string>();
   for (const r of group) for (const key of r.cells) domain.add(key);
-  const segs = groupEaveSegs(domain, group);
-  const dep = bfsDepth(domain, segs);
-  let deepest = 0;
-  for (const d of dep.values()) deepest = Math.max(deepest, d);
+  const ridge = group[0].shape.ridge;
+  const gable = group.every((r) => r.mass.profile === 'gable' && r.shape.ridge === ridge);
+  let portee = 0;
+  if (gable) for (const { lo, hi } of localCrossSpans(domain, ridge).values()) portee = Math.max(portee, hi - lo);
+  else for (const d of bfsDepth(domain).values()) portee = Math.max(portee, 2 * d);
   const metresPerTile = sceneMetresPerTile(scene);
   const pitchDeg = fittedPitchDeg(
-    2 * deepest,
+    portee,
     metresPerTile,
     Math.max(...group.map((r) => r.mass.pitchDeg)),
     toitureEffective(scene, body).riseMaxStoreys,
   );
-  const shape: RoofShapeSpec = {
-    profile: 'hip',
-    ridge: resolveMassRidge({}, domain),
+  return roofField(domain, {
+    profile: gable ? 'gable' : 'hip',
+    ridge: gable ? ridge : resolveMassRidge({}, domain),
     pitch: metresPerTile * Math.tan((pitchDeg * Math.PI) / 180),
     eaveHeightM: group[0].shape.eaveHeightM,
-  };
-  return { domain, shape, cache: { dep, segs } };
+  });
 }
 
 /** Deux masses voisines peuvent-elles lire UN champ commun ? Entrer dans un groupe, c'est céder sa
- *  pente au refit du domaine union (`groupField`, toujours `hip`). Une masse DÉRIVÉE (`derived`) ne
+ *  pente au refit du domaine union (`groupField`). Une masse DÉRIVÉE (`derived`) ne
  *  porte aucun geste d'auteur — sa pente est déjà calculée, la recalculer ne jette rien. Une masse
  *  AUTHORÉE porte une intention : elle ne rejoint que ce qui a EXACTEMENT son profil et sa pente, et
  *  jamais si ce profil est `flat` (terrasse) ou `shed` (mono-pente), qu'un champ `hip` détruirait. */
@@ -1211,8 +1234,21 @@ function nappesOfBody(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers'
   for (const members of comps.values()) {
     const group = members.map((i) => resolved[i]);
     const groupId = `${body.id}:${group.map((r) => r.mass.id).join('+')}`;
-    const field = group.length === 1 ? roofField(group[0].cells, group[0].shape) : groupField(scene, body, group);
-    for (const r of group) out.push({ bodyId: body.id, ...r, field, groupId });
+    if (group.length === 1) {
+      out.push({ bodyId: body.id, ...group[0], field: roofField(group[0].cells, group[0].shape), groupId });
+      continue;
+    }
+    const commun = groupField(scene, body, group);
+    const champs = group.map((r) => (r.shape.profile === commun.shape.profile ? commun : { ...commun, propre: roofField(r.cells, r.shape) }));
+    // Le demi-pas se décide sur TOUT le domaine, chaque case sous la hauteur de la masse qui la pave.
+    const champDe = new Map<string, RoofField>();
+    group.forEach((r, i) => { for (const key of r.cells) if (!champDe.has(key)) champDe.set(key, champs[i]); });
+    const demiPas = demiPasDu(commun.shape.profile, commun.domain, (key) => (v) => fieldHeightAt(champDe.get(key)!, v));
+    const communRaffine = { ...commun, demiPas };
+    group.forEach((r, i) => {
+      const field = champs[i] === commun ? communRaffine : { ...communRaffine, propre: champs[i].propre };
+      out.push({ bodyId: body.id, ...r, field, groupId });
+    });
   }
   return out;
 }
@@ -1221,7 +1257,7 @@ function nappesOfBody(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers'
 export const nappeKey = (bodyId: string, massId: string): string => `${bodyId}|${massId}`;
 
 /** Nappes de la scène, par `nappeKey` — SOURCE UNIQUE de la hauteur de toit : `buildRoofs` (pans et
- *  pignons), `walls.ts` (joints de nappes) et `props.ts` (ornements de faîte) lisent LE MÊME champ,
+ *  pignons), `./ornements.ts` (ornements de faîte) et `../facades` (décors posés sur le toit) lisent LE MÊME champ,
  *  jamais deux formules qui pourraient diverger. Mémoïsée par scène et version des datasets (`memoByRef`). */
 export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, MassNappe> => {
   const out = new Map<string, MassNappe>();
@@ -1234,8 +1270,7 @@ export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<strin
  *  `effectiveArchitecture` (`noyau/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
  *  chaque construction — toute mutation de plan (pièce, case, étage, exclusion) fait suivre la
  *  toiture, sans qu'aucune mutation n'ait à la re-matérialiser ; les masses authorées passent
- *  intactes. Une nappe de toit ne prend pas le voile case par case (#818, enveloppe par nature — cf.
- *  doc de `buildWalls`) : pas de paramètre `visible` ici, `roofOccupied` porte SEUL son sort — à
+ *  intactes. Une nappe de toit ne prend pas le voile case par case (#818, enveloppe par nature) : pas de paramètre `visible` ici, `roofOccupied` porte SEUL son sort — à
  *  l'échelle de l'ESPACE HABITÉ couvert et de la MASSE vue, jamais de la travée de charpente (loi
  *  `cutawayForSection`, espace et vue résolus par `clearedSpace`), et c'est la SEULE vérité de vue
  *  portée par la règle de chaque pan (#808 : la géométrie, elle, ne bouge pas au pas). */
@@ -1251,6 +1286,12 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       const set = roofedAtZ.get(mass.z) ?? roofedAtZ.set(mass.z, new Set<string>()).get(mass.z)!;
       for (const key of massFootprintCells(mass.footprint)) set.add(key);
     }
+  // Nappe qui PAVE chaque case, par niveau — la voisine d'un bout de faîtage jointif (`gableEnds(…, voisine)`).
+  const nappeAtZ = new Map<number, Map<string, MassNappe>>();
+  for (const nappe of nappes.values()) {
+    const parCase = nappeAtZ.get(nappe.mass.z) ?? nappeAtZ.set(nappe.mass.z, new Map()).get(nappe.mass.z)!;
+    for (const key of nappe.cells) if (!parCase.has(key)) parCase.set(key, nappe);
+  }
   for (const body of bodies) {
     // ESPACE du CORPS entier : dernière lecture de matière d'une fermeture (`closureAppearance`).
     const bodySpace = new Set<string>();
@@ -1258,28 +1299,23 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       for (const key of massSpaceCells(mass, massFootprintCells(mass.footprint))) bodySpace.add(key);
     for (const mass of body.masses) {
       // La masse PAVE ses cellules ; la HAUTEUR vient du champ de son groupe de nappe (`resolveNappes`).
-      const { cells, shape, roomZoneIds, field } = nappes.get(nappeKey(body.id, mass.id))!;
+      const { cells, shape, roomZoneIds, field, groupId } = nappes.get(nappeKey(body.id, mass.id))!;
+      const forme = formeDeLaNappe(field);
       // Le dégagement se décide au CONTEXTE (espace dégagé, résolu une fois par appel) et non par
       // case de brouillard : une nappe ne porte pas de voile, elle est peinte ou elle ne l'est pas.
       const space = { sectionId: mass.id, roomZoneIds, cells: massSpaceCells(mass, cells) };
       const rule: ViewRule<ClearedSpace> = { kind: 'contexte', truth: (cleared) => cutawayForSection(space, cleared) === 'hidden' };
-      const simplifiedCourses = cells.size > GROUPED_DETAIL_CELL_THRESHOLD;
       const def = roofMaterial(mass.material.id);
-      const courses = def.detail?.courses?.hM
-        ? Math.max(1, Math.round(field.shape.pitch / def.detail.courses.hM))
-        : undefined;
-      const eave = { overhang: def.eaveOverhangM ?? 0, fasciaDrop: def.fasciaDropM ?? 0 };
+      const eave = { overhang: (def.eaveOverhangM ?? 0) / sceneMetresPerTile(scene), fasciaDrop: def.fasciaDropM ?? 0 };
       const sectionCells = [...cells].map((key) => {
         const [x, y] = key.split(',').map(Number);
         return { x, y };
       });
-      const geometry = roofPans(cells, mass.material.id, simplifiedCourses ? 1 : courses, eave, field.shape, field);
-      for (const pan of geometry.pans ?? []) {
+      const geometry = roofPans(cells, mass.material.id, eave, field.shape, field);
+      for (const pan of geometry.pans) {
         const panCellsList = panCells(pan.face, sectionCells);
         const minX = Math.min(...panCellsList.map((cell) => cell.x));
         const minY = Math.min(...panCellsList.map((cell) => cell.y));
-        const maxX = Math.max(...panCellsList.map((cell) => cell.x));
-        const maxY = Math.max(...panCellsList.map((cell) => cell.y));
         out.push({
           off: {
             kind: 'roof',
@@ -1288,18 +1324,14 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
             sectionId: mass.id,
             panId: pan.id,
             roomZoneIds: [...roomZoneIds],
-            profile: field.shape.profile,
-            ridge: field.shape.ridge,
-            pitch: field.shape.pitch,
-            eaveHeightM: field.shape.eaveHeightM,
-            ...(simplifiedCourses ? { simplifiedCourses: true } : {}),
+            profile: forme.profile,
+            ridge: forme.ridge,
+            pitch: forme.pitch,
+            eaveHeightM: forme.eaveHeightM,
             cell: { x: minX, y: minY, z: mass.z },
-            span: { w: maxX - minX + 1, h: maxY - minY + 1 },
             cells: panCellsList,
             material: mass.material.id,
-            label: bodyLabel(body),
             faces: pan.faces,
-            lines: pan.lines,
             states: {
               visible: true,
               roofOccupied: false,
@@ -1312,11 +1344,15 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       // ── FERMETURES DE COMBLE (pignons) — pièces de la NAPPE, pas des cloisons de la scène : elles
       //    portent la MÊME `rule` que ses pans, donc le MÊME sort au dégagement — un pignon ne survit
       //    jamais seul à la levée de son toit. Leur MATIÈRE est celle du mur qu'elles prolongent —
-      //    d'où une face `domain:'structure'`, peinte par le backend avec l'appareillage et le
-      //    colombage de ce mur. Le traitement d'extrémité reste celui de LA MASSE (`shape`) — le champ
+      //    d'où une face `domain:'structure'`, peinte avec l'appareillage et le colombage de
+      //    ce mur. Le traitement d'extrémité reste celui de LA MASSE (`shape`) — le champ
       //    du groupe donne les hauteurs, il ne décide pas si une extrémité se ferme.
       const closureSide: CellSide = shape.ridge === 'x' ? 'E' : 'N';
-      gableEnds(cells, shape, (x, y) => roofedAtZ.get(mass.z)?.has(vk(x, y)) ?? false, field).forEach((end, i) => {
+      const voisine = (x: number, y: number): RoofField | undefined => {
+        const n = nappeAtZ.get(mass.z)?.get(vk(x, y));
+        return n && n.groupId === groupId && n.mass.id !== mass.id ? n.field : undefined;
+      };
+      gableEnds(cells, shape, (x, y) => roofedAtZ.get(mass.z)?.has(vk(x, y)) ?? false, field, voisine).forEach((end, i) => {
         const edges = [];
         for (let z = mass.z; z >= mass.z - mass.levels + 1; z--)
           for (const edge of end.edges) edges.push({ ...edge, z });
@@ -1324,8 +1360,6 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
         if (!appearance) return; // corps sans AUCUN mur : pas de bâti, donc pas de pignon à prolonger
         const minX = Math.min(...end.inside.map((cell) => cell.x));
         const minY = Math.min(...end.inside.map((cell) => cell.y));
-        const maxX = Math.max(...end.inside.map((cell) => cell.x));
-        const maxY = Math.max(...end.inside.map((cell) => cell.y));
         out.push({
           off: {
             kind: 'roof',
@@ -1334,17 +1368,14 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
             sectionId: mass.id,
             panId: `pignon-${i}`,
             roomZoneIds: [...roomZoneIds],
-            profile: mass.profile,
-            ridge: shape.ridge,
-            pitch: field.shape.pitch,
-            eaveHeightM: field.shape.eaveHeightM,
+            profile: forme.profile,
+            ridge: forme.ridge,
+            pitch: forme.pitch,
+            eaveHeightM: forme.eaveHeightM,
             cell: { x: minX, y: minY, z: mass.z },
-            span: { w: maxX - minX + 1, h: maxY - minY + 1 },
             cells: end.inside,
             material: mass.material.id,
-            label: bodyLabel(body),
             faces: [{ poly: end.poly, material: { domain: 'structure', id: appearance, part: 'face' }, side: closureSide, oriented: false }],
-            lines: [],
             states: { visible: true, roofOccupied: false },
           },
           rule,

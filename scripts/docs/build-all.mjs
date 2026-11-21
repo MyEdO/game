@@ -25,14 +25,14 @@
 import { execFileSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { etapeHeritee } from '../git-hooks/journal.mjs'
-import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync, writeSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
 import { estGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
@@ -316,6 +316,10 @@ export async function rendreCible(cible) {
   return texte
 }
 
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: rendreCible, acquisition: { argument: 0, registre: GENERATORS } },
+]
+
 /**
  * Racine (vidée puis recréée) des lectures d'un run mesuré, et l'ensemble `ignoresGit` de `cwd`,
  * calculé par rang, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
@@ -452,6 +456,16 @@ function executerLesGenerateurs({
   generateurs = GENERATORS,
   verificateurs = NON_GENERATOR_CHECKS,
 }) {
+  const conflitDeSource = (generateur, raison) => {
+    if (argv.includes(DIAGNOSTIC_RECONSTRUCTION)) {
+      try {
+        writeSync(3, JSON.stringify({ generateur, raison }))
+      } catch {
+        // Le journal porte déjà la cause ; une panne du canal ne change pas le verdict.
+      }
+    }
+    return CODE_SOURCE_MODIFIEE
+  }
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
   const perimes = argv.includes('--perimes') && !check
@@ -537,7 +551,7 @@ function executerLesGenerateurs({
         let avant
         try { avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation) } catch (e) {
           console.error(`docs:build — ARRÊT : ${g.script} non certifiable : ${e.message}`)
-          return e instanceof SourceModifiee ? CODE_SOURCE_MODIFIEE : 1
+          return e instanceof SourceModifiee ? conflitDeSource(g.script, e.message) : 1
         }
         writeFileSync(ignoresLectures, JSON.stringify([...(avant ? avant.baseline.ignores : perimetreDeMesure(cwd).ignores)]))
         writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
@@ -605,7 +619,7 @@ function executerLesGenerateurs({
           records.set(g.script, certification.ok ? certification.record : null)
           if (!certification.ok) {
             console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
-            return certification.sourceModifiee ? CODE_SOURCE_MODIFIEE : 1
+            return certification.sourceModifiee ? conflitDeSource(g.script, certification.raison) : 1
           }
           preparation.mesure[g.script] = entree
           if (perimes) {
@@ -682,21 +696,21 @@ function executerLesGenerateurs({
   }
 }
 
-/** Code de sortie « SOURCE MODIFIÉE » : une source du générateur a changé pendant sa passe (`SourceModifiee`),
- *  préemption transitoire que l'appelant rejoue (#2603). Valeur maison, hors de la plage sysexits.h. */
-export const CODE_SOURCE_MODIFIEE = 79
+/** Drapeau privé du détaché : le diagnostic de `CODE_SOURCE_MODIFIEE` s'écrit sur son descripteur 3. */
+export const DIAGNOSTIC_RECONSTRUCTION = '--diagnostic-reconstruction'
 
 /**
- * `geste()` joué sous le verrou des gestes lourds de `cwd` (`verrouGestesLourds`), pris sous `attente` : REND son
- * code, ou `CODE_DIFFERE` si le verrou est resté tenu à l'échéance, rien n'ayant tourné.
- * @param {{ cwd: string, argv: string[], geste: () => number | Promise<number>, attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean } }} p
+ * Joue `geste` avec l’environnement porteur du verrou des gestes lourds de `cwd`, pris sous `attente`.
+ * Rend son code, ou `CODE_DIFFERE` si le verrou est resté tenu à l’échéance.
+ * @param {{ cwd: string, argv: string[], geste: (contexte: { env: NodeJS.ProcessEnv }) => number | Promise<number>,
+ *   attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean }, env?: NodeJS.ProcessEnv }} p
  */
-export async function sousGestesLourds({ cwd, argv, geste, attente, env = process.env, signal }) {
+export async function sousGestesLourds({ cwd, argv, geste, attente, env = process.env }) {
   const verrou = verrouGestesLourds(cwd)
   const delai = attente ?? verrou.attente
   const annoncer = (tenant) => console.error(`docs:build — en attente : ${verrou.libelle} : ${tenantEnUneLigne(tenant)} (échéance ${delai.echeanceMs / 60_000} min par tenant)`)
   const prise = prendreVerrou({
-    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd, env, signal,
+    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd, env,
     commande: ['node', 'scripts/docs/build-all.mjs', ...argv].join(' '),
     attente: { ...delai, annoncer },
   })

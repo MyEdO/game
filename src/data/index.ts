@@ -5,6 +5,7 @@
  */
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
+import type { ConsumableDuration } from '../engine/consumables';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
@@ -44,12 +45,13 @@ import {
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
-import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   charKeySchema,
   natureDeMentionSchema,
+  raceKeySchema,
   symptomSeveritySchema,
   type NatureDeMention,
   type harvestRaritySchema,
@@ -73,7 +75,7 @@ import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { garanti } from '../lib/garanti';
 import { effectiveEntry } from '../engine/variants';
-import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
+import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type CouleurDePersonnage, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
 import speciesRaceJson from './speciesRace.json';
@@ -94,12 +96,12 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
-import { rule, ruleDef } from '../engine/policy';
+import { rule } from '../engine/policy';
 import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as careerLevelsDef from './schemas/defs/careerLevels';
 import type * as speciesDef from './schemas/defs/species';
-import type { Avancement } from './schemas/grammaire/avancement';
+import type { Avancement, TirageDeTalents } from './schemas/grammaire/avancement';
 import type * as disponibiliteDef from './schemas/defs/disponibilite';
 import type * as navalPortsDef from './schemas/defs/naval-ports';
 import type * as navalTraitsDef from './schemas/defs/naval-traits';
@@ -159,6 +161,7 @@ import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
 import type * as pregensDef from './schemas/defs/pregens';
+import type * as trappingsDef from './schemas/defs/trappings';
 import type { MerchantArchetypeDef } from './merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
 import type * as miscastDef from './schemas/defs/miscast';
@@ -177,8 +180,9 @@ import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-natur
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
-import { trappings, findTrappingById } from './apparencesObjets';
-export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
+import { catalogueDesEngins, trappings, findTrappingById as trappingBrutParId, findSiegeEngineById } from './apparencesObjets';
+export { catalogueDesEngins, trappings, apparences, findSiegeEngineById, findApparenceById, type SiegeEngineData } from './apparencesObjets';
+export { trappingBrutParId };
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
@@ -194,7 +198,6 @@ import ambianceJson from './ambiance.json';
 import localisationJson from './localisation.json';
 import type * as localisationDef from './schemas/defs/localisation';
 import type * as ambianceDef from './schemas/defs/ambiance';
-import teintesJeuJson from './teintesJeu.json';
 import navalTraitsJson from './naval-traits.json';
 import navalPortsJson from './naval-ports.json';
 import lieuxServicesJson from './lieux-services.json';
@@ -217,6 +220,7 @@ import lightLevelsJson from './lightLevels.json';
 import lightTonesJson from './lightTones.json';
 import rendusJson from './rendus.json';
 import propsJson from './props.json';
+import { COLONNES_AVANT_REFERENCES_DE_CREATION, COULEURS_AVANT_REFERENCES_DE_CREATION } from './couleursAvantReferencesDeCreation';
 import eyesJson from './eyes.json';
 import hairsJson from './hairs.json';
 import calendarMonthsJson from './calendarMonths.json';
@@ -856,7 +860,7 @@ export interface ItemCapabilities {
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
 }
-export interface TrappingData {
+export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix'> {
   /** id STABLE (slug du libellé) — cible des `TrappingRef`, robuste au renommage. */
   id: string;
   label: string;
@@ -896,7 +900,7 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
-  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), lus au catalogue par `effectSourcesOf`, jamais
+  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), résolus par `effectSourcesOf`, jamais
    *  copiés sur l'instance. #4202 */
   effects?: TriggeredEffect[];
   /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
@@ -907,15 +911,9 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Les munitions (`categorie:'ammunition'`) d'une arme de siège, la représentative en tête : les seules qu'elle
-   *  charge (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 */
+  /** Les munitions (`categorie:'ammunition'`) de l'arme, la représentative en tête : les seules qu'elle charge
+   *  (`chargeLArme`). LDB 62 l.131 ; AA 08 l.517 ; AA 10 l.150 ; MDG 12 l.410-424 */
   munitions?: string[];
-  /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
-   *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
-   *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée
-   *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
-   *  = empreinte 1 (affûts compacts type baliste/canon). */
-  siegeFootprint?: number;
   /** #2967 */
   shape?: { id: string };
   /** LDB 62 l.28 */
@@ -985,11 +983,11 @@ export interface TrappingData {
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
    *  nœuds `test` pour les Tests « au boire » (Brise-cœur/Belladone/Nécessaire antipoison), résolus
    *  cadence-aware par le runner state (`runConsumable`). Édité au Codex via `FlowEditor` (comme les
-   *  effets d'un sort). Lu au catalogue par `consommableDe` (`engine/consumables.ts`). */
+   *  effets d'un sort). Résolu par `consommableDe` (`engine/consumables.ts`). */
   consumable?: import('../engine/flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */
-  consumableDuration?: import('../engine/consumables').ConsumableDuration;
+  consumableDuration?: ConsumableDuration;
   /** Contenant (LDB 64) : capacité de rangement (« Contenu », en Enc). Sacs/sacoches/sac à dos. */
   container?: { capacity: number };
   /** NI d'énergie magique qu'UN GRAMME de cet objet apporte à un Test d'Incantation/Focalisation en
@@ -1060,9 +1058,8 @@ export type GroupeDArmure = Extract<WeaponGroupData, { kind: 'armour' }>;
  *  `id` STABLE (jamais traduit) ; `label` = rendu FR localisable. Registre SSOT (`groups.json`),
  *  référencé par les cibles de Traits psy et les filtres `onlyGroups`/`exceptGroups`/zones. */
 export type GroupData = EntreeDe<typeof groupsDef>;
-/** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
- *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
- *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher (vocabulaire `colonnesDuMarchand`). */
+/** Famille du stock marchand dans l'ordre d'affichage. La règle `match` classe les articles par unité,
+ *  bouclier ou catégorie, puis les range dans la famille dont le `match` est vide. */
 export type MerchantFamilyData = EntreeDe<typeof merchantFamiliesDef>;
 export const merchantFamilies = datasetDe<typeof merchantFamiliesDef>(merchantFamiliesJson);
 /** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
@@ -1250,16 +1247,25 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
 const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 /** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
 export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
-/** Engins de siège posables : la sous-liste `ENGINS_DE_SIEGE` des trappings, dans l'ordre de la donnée.
- *  Foyer du filtre partagé par les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion('trappings', () => {
-  const ids = new Set(idsDeLaSousListe('trapping', ENGINS_DE_SIEGE));
-  return trappings.filter((t) => ids.has(t.id));
+/** AA 10 l.175-193 ; ADE II 08 l.235-247. */
+export const siegeEngines = () => catalogueDesEngins;
+
+const profilsDePossession = memoParVersion(['trappings', 'reglesOptionnelles'], () => {
+  const fiches = trappings.map((t) => effectiveEntry(t));
+  return { fiches, parId: new Map(fiches.map((t) => [t.id, t])) };
 });
+
+/** AA 02 l.17, l.21 */
+export const trappingsEffectifs = () => profilsDePossession().fiches;
+
+export function findTrappingById(id: string | null | undefined): TrappingData | undefined {
+  return id == null ? undefined : profilsDePossession().parId.get(id);
+}
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
-export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
+export const trappingsInstanciables = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
+  trappingsEffectifs().filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
 /** Pièce d'armure nommée, lue au catalogue des armures, sa matière au Groupe : la parenthèse d'une Armure
  *  qui nomme des pièces (`classerParenthese`, `lireMatiere`). LDB 63 l.13 ; #1463. */
 export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings, matiereDuGroupe));
@@ -1285,16 +1291,10 @@ export const findStructureById: (id: string) => StructureData | undefined = stru
 export const structureAppearances = datasetDe<typeof structureAppearanceDef>(structureAppearanceJson);
 /** Apparence PARTAGÉE d'une structure d'arête (mur/porte), au type de son schéma (`schemas/defs/structureAppearance.ts`). */
 export type StructureAppearanceDef = EntreeDe<typeof structureAppearanceDef>;
-/** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`). */
+/** Les familles de kit 3D des arêtes, une par modèle `arete--<famille>` (`kitSchema`). */
 export type FamilleDuKit = StructureAppearanceDef['kit'];
 
-/** Combat de masse / Puissance de Bataille (ADE II 8, l.13-321) — 5 tables verbatim NICHÉES dans
- *  UN seul fichier (`mass-battle.json`, pas un tableau plat par table) : exposées ICI (facade) pour que
- *  le Codex/l'éditeur DEV les édite comme n'importe quel autre dataset (seam `overrides.ts`) ; le moteur
- *  pur (`engine/massBattle.ts`) les relit d'ICI (types définis là-bas, réimportés en `import type` —
- *  même patron que `maladies`/`DiseaseDef`). Noms préfixés `massBattle*` : `structures` est déjà pris par
- *  le catalogue de structures de siège JOUABLES ci-dessus (schéma différent : BE/B structuré + traits
- *  `{id}[]`, quand mass-battle.json reste `be`/`wounds`/`traits` en chaîne verbatim imprimée). */
+/** ADE II 08 l.13-321. */
 const massBattle = datasetDe<typeof massBattleDef>(massBattleJson);
 export const massBattlePowerEstimate = massBattle.powerEstimate;
 export const massBattleMightModifiers = massBattle.mightModifiers;
@@ -1313,6 +1313,8 @@ export const materials = datasetDe<typeof materialsDef>(materialsJson);
 export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
 /** Un terrain, au type de son schéma (`schemas/defs/terrains.ts`). */
 export type TerrainDef = EntreeDe<typeof terrainsDef>;
+/** Les familles de kit 3D d'escalier, une par modèle `escalier--<famille>` (`kitDEscalierSchema`). */
+export type KitDEscalier = NonNullable<TerrainDef['kitDEscalier']>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
@@ -1340,23 +1342,12 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
  *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);
 
-/** L'entrée du PLAN vu du dessus — celle que la DONNÉE marque `vueDeDessus` (#1691), jamais un id
- *  littéral au call-site. Le schéma en garantit l'unicité (`schemas/defs/materials.ts`,
- *  `affinerDataset`) ; le premier marqué est donc LE plan. Lecture VIVANTE, comme `matieresCouvrantes`. */
-export const matierePlan = (): RoofMaterialDef => {
-  const plan = matieresDe('roof').find((m) => m.vueDeDessus);
-  if (!plan) throw new Error('matierePlan() : aucune entrée `roof` ne porte `vueDeDessus` — materials.json');
-  return plan;
-};
-
-/** AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/filtre d'étage) — donnée pure. */
 /** Les tables de Localisation des coups (`localisation.json`) : personnage par forme de corps, navire, navire fluvial. */
 export const tablesDeLocalisation = datasetDe<typeof localisationDef>(localisationJson);
+/** Lumière, visibilité et météo des regards Godot. */
 export const ambiance = datasetDe<typeof ambianceDef>(ambianceJson);
-/** L'ambiance de rendu partagée iso ⇄ POV, au type de son schéma (`schemas/defs/ambiance.ts`). */
+/** Données d’ambiance dont le noyau dérive les regards Godot. */
 export type AmbianceDef = DatasetDe<typeof ambianceDef>;
-/** Halo radial (voile chaud / vignette). */
-export type RadialVeilDef = AmbianceDef['iso']['warm'];
 /** Les types de météo authorée de scène que l'ambiance habille (`scene.weather`, #239). */
 export type WeatherFxId = keyof AmbianceDef['iso']['weather'];
 /** L'habillage d'un type de météo (#239). */
@@ -1366,9 +1357,6 @@ export type WeatherPrecipDef = NonNullable<WeatherFxDef['precip']>;
 /** La brume monde d'un type de météo (#1247). */
 export type WeatherBrumeDef = NonNullable<WeatherFxDef['brume']>;
 
-/** TEINTES DE JEU du terrain (surbrillances tactiques + identité d'unité), `id → #rrggbb` — donnée
- *  pure, servie aux peintres (schéma et invariants : `schemas/defs/teintesJeu.ts`). */
-export const teintesJeu: Record<import('./schemas/defs/teintesJeu').TeinteId, string> = teintesJeuJson.entries;
 
 /** Traits & Améliorations de navire (MDG 12) — catalogue app-owned éditable au Codex. La DONNÉE (`desc`
  *  verbatim + effet) vit ici ; `engine/navalTraits.ts` ne fait que la LIRE (aucune valeur codée en dur).
@@ -1573,8 +1561,6 @@ export type AxisData = EntreeDe<typeof axesDef>;
 export const allAxes = datasetDe<typeof axesDef>(axesJson);
 const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
-/** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
-export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
 /** Le Tableau de couleur des yeux (`eyes.json`, LDB 05 l.742-754), document à rangées tiré à son dé. */
 export const tableDesYeux = datasetDe<typeof couleurDesYeux>(eyesJson);
 /** Le Tableau de couleur des cheveux (`hairs.json`, LDB 05 l.756-768), document à rangées tiré à son dé. */
@@ -1584,6 +1570,61 @@ export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux);
 /** Les rangées du Tableau de couleur des cheveux. */
 type CouleurDeCheveux = RangeeDe<typeof couleurDesCheveux>;
 export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
+
+type TableDeCouleur = 'eyes' | 'hairs';
+const rangeeDeCouleur = { eyes: indexParId('eyes', eyes), hairs: indexParId('hairs', hairs) };
+const tablesDeCouleur = { eyes, hairs };
+
+const celluleDeCouleur = (color: Readonly<Partial<Record<RaceKey, string>>>, colonne: RaceKey): string =>
+  color[colonne] ?? color.humain ?? '';
+
+/** Libellé de la cellule de couleur au Codex. L'ancien libellé non résolu est déjà du texte d'affichage. */
+export function libelleDeCouleur(table: TableDeCouleur, choix: CouleurDePersonnage | undefined): PlayerText | null {
+  if (!choix) return null;
+  if ('label' in choix) return dataLabel(choix.label);
+  const rangee = rangeeDeCouleur[table](choix.id);
+  return rangee ? dataLabel(celluleDeCouleur(rangee.color, choix.colonne)) : null;
+}
+
+function couleurHistorique(table: TableDeCouleur, label: string | undefined, colonne: RaceKey | undefined): CouleurDePersonnage | undefined {
+  if (label === undefined) return undefined;
+  if (colonne === undefined) return { label };
+  const candidates = COULEURS_AVANT_REFERENCES_DE_CREATION[table].filter((r) => celluleDeCouleur(r.color, colonne) === label);
+  if (candidates.length !== 1) return { label };
+  const [{ id }] = candidates;
+  if (!rangeeDeCouleur[table](id)) return { label };
+  const contradictoire = tablesDeCouleur[table].some((r) => r.id !== id && celluleDeCouleur(r.color, colonne) === label);
+  return contradictoire ? { label } : { id, colonne };
+}
+
+function couleurPossible(table: TableDeCouleur, label: string | undefined, colonne: RaceKey): boolean {
+  return label === undefined
+    || COULEURS_AVANT_REFERENCES_DE_CREATION[table].some((r) => celluleDeCouleur(r.color, colonne) === label)
+    || tablesDeCouleur[table].some((r) => celluleDeCouleur(r.color, colonne) === label);
+}
+
+/** Un héros peut garder son physique en changeant d'espèce. Sa colonne doit aussi être établie par les anciennes couleurs. */
+export function couleursHistoriques(
+  libelles: { eyes: string | undefined; hair: string | undefined },
+  espece: unknown,
+  colonneAttestee: boolean,
+): { eyes: CouleurDePersonnage | undefined; hair: CouleurDePersonnage | undefined } {
+  let colonne: RaceKey | undefined;
+  if (typeof espece === 'string') {
+    const avant = COLONNES_AVANT_REFERENCES_DE_CREATION.get(espece) ?? raceKeySchema.safeParse(espece).data;
+    const courante = findSpeciesById(espece)?.refChar;
+    if (avant && (!courante || courante === avant)) colonne = avant;
+  }
+  if (!colonneAttestee && colonne !== undefined) {
+    const possibles = raceKeySchema.options.filter((c) => couleurPossible('eyes', libelles.eyes, c) && couleurPossible('hairs', libelles.hair, c));
+    if (possibles.length !== 1 || possibles[0] !== colonne) colonne = undefined;
+  }
+  return {
+    eyes: couleurHistorique('eyes', libelles.eyes, colonne),
+    hair: couleurHistorique('hairs', libelles.hair, colonne),
+  };
+}
+
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */
 export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
 /** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
@@ -1731,11 +1772,12 @@ export const oups = rangeesDe<typeof tableauDesOups>(oupsJson);
 /** Les documents du Tableau des Talents aléatoires (LDB 05 l.514-531), patron `mutationTables` : le dé est
  *  un champ de l'entrée-document — app-owned éditable au Codex (`setDataset`), même référence. */
 export const talentsAleatoires = datasetDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson);
-/** Les rangées du Tableau des Talents aléatoires, lues à l'appel : tirées par `rollRandomTalent` (`engine/character.ts`). */
-export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAleatoires>[] =>
-  rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
-/** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
-export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
+const tableDeTalentsParId = indexParId('talentsAleatoires', talentsAleatoires);
+/** Le document vivant que désigne le tirage d'une espèce. */
+export const tableDeTalents = ({ id }: TirageDeTalents['table']) => {
+  const table = garanti(tableDeTalentsParId(id), id, 'table de Talents aléatoires');
+  return { entries: table.entries, die: deDeLaTableTiree(table) };
+};
 /** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), par `kind` : une colonne
  *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
  *  Codex (`setDataset`), même référence. */
@@ -1754,7 +1796,7 @@ export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: 
   return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
 }
 /** Carrière OUVERTE : sans `gatedByRule`, ou sa règle optionnelle active. ADE I 07 l.9 */
-export const carriereOuverte = (c: CareerData) => !c.gatedByRule || !!rule(garanti(ruleDef(c.gatedByRule.id), c.gatedByRule.id, 'règle optionnelle').id);
+export const carriereOuverte = (c: CareerData) => !c.gatedByRule || !!rule(c.gatedByRule.id);
 /** Carrière admise au tirage de `sp` : ouverte, et sa race dans `races`. */
 const admiseAuTirage = (c: CareerData | undefined, sp: SpeciesData) => c !== undefined && carriereOuverte(c) && c.races?.includes(sp.refChar) === true;
 /** Les carrières que l'espèce `sp` peut choisir à la place de `tiree` (`aLaPlaceDe`, bornée à `especesALaPlaceDe`), admises
@@ -1795,12 +1837,10 @@ export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof es
  *  NADJ 15 l.173) — app-owned éditable au Codex (`setDataset`), même référence ; chaque rangée tire l'une des deux
  *  natures (`affinerDataset` de `schemas/defs/mutation-nature.ts`). */
 export const mutationNature = datasetDe<typeof tableauDeLaNatureDeMutation>(mutationNatureJson);
-/** Le document de la race d'une espèce (`id` STABLE, ou clé de race d'apparence que porte un PNJ), lu à
- *  l'appel ; sans race couverte, celui de la race `humain`. LDB 19 l.76-81 */
+/** Le document de la race d'une espèce (`id` stable ou clé de race d'un PNJ). LDB 19 l.76-81 */
 export function natureDeMutationDe(speciesId: string | undefined): (typeof mutationNature)[number] {
   const race = findSpeciesById(speciesId)?.refChar ?? speciesId;
-  const doc = mutationNature.find((d) => d.race === race) ?? mutationNature.find((d) => d.race === 'humain');
-  return garanti(doc, race ?? 'humain', 'document de la nature de la mutation pour la race');
+  return garanti(mutationNature.find((d) => d.race === race), race, 'document de la nature de la mutation pour la race');
 }
 /** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
  *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */
@@ -1869,11 +1909,11 @@ export function profilsStandard(): string[] {
  *  offre pas (`capsOfferts`). */
 export const estUnNavireAPonts = (id: string | undefined): boolean => id !== undefined && findVehicleById(id)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
- *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
+ *  catalogue des engins de siège (AA 10, ADE II 08), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */
 export function findFicheDeVehicule(id: string): { readonly label: string; readonly source: { readonly book: string } | undefined } | undefined {
   const coque = findVehicleById(id);
-  const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
+  const fiche = (coque?.hull ? coque : undefined) ?? findSiegeEngineById(id);
   return fiche && { label: fiche.label, source: fiche.source };
 }
 /**
@@ -1903,8 +1943,7 @@ export function tailleDuProfil(p: {
   return p.size ?? sizeFromProfile(p.traits, p.talents, tailleDuTalent) ?? 'moyenne';
 }
 
-/** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
- *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572) :
+/** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, sans sélection, tirage ni choix résiduels — chip décoratif du créateur avant résolution complète, #572) :
  *  `sizeFromTalents` (engine/size.ts), sinon Moyenne. */
 export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCategory {
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
@@ -2084,10 +2123,10 @@ export function findQualityTypeById(id: string | null | undefined): QualityTypeD
 export function qualityTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeQualiteParId(id)?.label : '', id ?? '');
 }
-const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
+export const weaponGroupBrutParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (`subType` d'un Weapon/ItemInstance, `subType.id` d'un trapping). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
-  return groupeObjetParId(id);
+  return effectiveEntry(weaponGroupBrutParId(id));
 }
 /** Matière du Groupe d'armure `id` (`material`), `undefined` hors d'un Groupe d'armure. LDB 63 l.41-58 */
 export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure | undefined {
@@ -2100,7 +2139,7 @@ export function findGroupeDArmureById(id: string | null | undefined): GroupeDArm
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
-  return dataLabel(id ? groupeObjetParId(id)?.label : '', id ?? '');
+  return dataLabel(id ? weaponGroupBrutParId(id)?.label : '', id ?? '');
 }
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
@@ -2178,15 +2217,13 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
 export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
   return arme.weaponGroup ?? arme.subType ?? undefined;
 }
-/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156). */
-const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege']);
-/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
- *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
+/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` avec profil de Dégâts,
+ *  hors « Mains nues » (`TrappingData.unarmed`) et hors des armes magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3),
+ *  triée au libellé. `id` = `trappingId`
  *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
  *  de peuple à qui elle s'offre. */
-export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+export const armesChoisissables = memoParVersion(['trappings', 'qualities', 'reglesOptionnelles'], () => trappingsInstanciables()
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && t.damage != null && !t.unarmed)
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
@@ -2375,7 +2412,9 @@ function entreesDuType(type: TypeEntite): readonly { id: string; label: string }
 /** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
  *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source. */
 export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
-  const entrees = entreesDuType(type);
+  const entrees = type === 'engin'
+    ? siegeEngines().map((engin) => ({ id: engin.id, label: libelleDAuteur(engin) }))
+    : entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
   return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
@@ -2472,9 +2511,9 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
 /** Libellé d'affichage d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec —,
  *  ou d'un emplacement `choix` par `choixLabel`. Aucun site ne s'en sert de clé : une identité de
  *  référence est `refKey(id, spec)`. */
-export function refLabel(category: string, ref: RefASpecialisation): PlayerText {
+export function refLabel(category: string, ref: RefASpecialisation, repli = ref.id): PlayerText {
   if (ref.choix != null) return choixLabel(category, ref.id, ref.choix);
-  const base = dataLabel(findById(category, ref.id)?.label, ref.id);
+  const base = dataLabel(findById(category, ref.id)?.label, repli);
   return ref.spec ? dataLabel(`${base} (${specLabel(category, ref.id, ref.spec)})`) : base;
 }
 /** Copie une qualité de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}` ou `{id, majoration}`) — objet
@@ -2550,12 +2589,12 @@ function libelleDuParmi(pick: number, options: PlayerText[]): PlayerText {
  *  aléatoires », « Magie des Arcanes (Bête) ». SOURCE UNIQUE (Codex + résolution création). */
 export function advancementLabel(category: string, a: AdvancementRef): PlayerText {
   if ('id' in a) return refLabel(category, a);
-  if ('pick' in a) return libelleDuParmi(a.pick, a.of.map((x) => advancementLabel(category, x)));
-  return a.random === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.random });
+  if ('of' in a) return libelleDuParmi(a.pick, a.of.map((x) => advancementLabel(category, x)));
+  return a.pick === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.pick });
 }
 /** id de base d'un `AdvancementRef` SIMPLE (référence, avec ou sans régime de spécialisation) — pour
  *  matcher par id une compétence/un talent POSSÉDÉ (ex. compétence de revenus). undefined pour un
- *  `{pick}`/`{random}` (pas un id unique). */
+ *  choix ou un tirage de table. */
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
@@ -2575,7 +2614,7 @@ function libelleDeLaPossession(ref: DotationDePossession): PlayerText {
     case 'creature':
       return dataLabel(findCreatureById(ref.id)?.label, ref.id);
     case 'engin':
-      return refLabel('trappings', ref);
+      return refLabel('siegeEngines', ref);
   }
 }
 export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {

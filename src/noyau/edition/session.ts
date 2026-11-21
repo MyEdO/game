@@ -23,7 +23,8 @@ import type {
 } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
-import { inventaireApres, type IntentionDObjet } from '../../engine/items';
+import { inventaireApres, type IntentionDObjet, type TrappingResolver } from '../../engine/items';
+import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir4, Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
@@ -56,6 +57,8 @@ import {
   deleteProjectScene,
   duplicateProjectScene,
   renameScene,
+  renommeSceneDuProjet,
+  refusDIdDeRacine,
   type ProjectScenes,
   addMember,
   addStoreyAbove,
@@ -86,7 +89,8 @@ import {
   avecLaValeurDuPorteur,
   avecLAdresseRescellee,
   avecLElementMonte,
-  renameEntry,
+  renommeEntreeDuProjet,
+  refusDIdDEntree,
   setPosteCrew,
   setPosteEngine,
   setPosteSide,
@@ -125,7 +129,8 @@ import {
 } from '../sceneEditLecture';
 import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
-import { poserLesNavires, poserUnNavire } from '../planDeNavire';
+import { flottaisonDuNavire, poserLesNavires, poserUnNavire } from '../planDeNavire';
+import { refusDePoseDesPonts } from '../../data/poseDesPonts';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
@@ -355,23 +360,23 @@ function allerALaScene(s: SessionDEdition, id: string): SessionDEdition {
   return { ...remiseAZero(s), historique: poser(s.historique, { ...cran, sceneId: id }, false) };
 }
 
-/** La session `s` dont la scène éditée `scene` prend l'identifiant `id` (`renameScene`), hors de l'historique : chaque
- *  cran le porte, sa scène montrée comprise, et ses calques le suivent. Telle quelle sous un identifiant vide ou pris
- *  par une racine d'un cran (`racinesDeLHistorique`). */
-function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEdition {
+/** Renomme la scène éditée et ses références en une fois dans chaque cran, scène montrée et calques compris.
+ *  Telle quelle sous un identifiant vide ou pris par une racine d'un cran. */
+function sceneRenommee(s: SessionDEdition, id: string): SessionDEdition {
   const ancien = idDeLaSceneEditee(s);
-  const renommee = renameScene(scene, racinesDeLHistorique(s.historique).filter((r) => r.id !== ancien), id);
-  if (renommee === scene) return s;
+  const nouveau = id.trim();
+  if (nouveau === ancien || refusDIdDeRacine(ancien, racinesDeLHistorique(s.historique), nouveau)) return s;
+  const sceneRenommeeDans = (sceneId: string): string => sceneId === ancien ? nouveau : sceneId;
   const renommer = (c: CranDEdition): CranDEdition => ({
-    ...(c.decalage ? { decalage: { ...c.decalage, sceneId: c.decalage.sceneId === ancien ? renommee.id : c.decalage.sceneId } } : {}),
-    projet: { ...c.projet, scenes: c.projet.scenes.map((sc) => (sc.id === ancien ? { ...sc, id: renommee.id } : sc)) },
-    sceneId: c.sceneId === ancien ? renommee.id : c.sceneId,
+    ...(c.decalage ? { decalage: { ...c.decalage, sceneId: sceneRenommeeDans(c.decalage.sceneId) } } : {}),
+    projet: renommeSceneDuProjet(c.projet, ancien, nouveau),
+    sceneId: sceneRenommeeDans(c.sceneId),
   });
   const { [ancien]: siens, ...autres } = s.calques;
   return {
     ...s,
     historique: { ...reecrire(s.historique, renommer), present: renommer(s.historique.present) },
-    ...(siens ? { calques: { ...autres, [renommee.id]: siens } } : {}),
+    ...(siens ? { calques: { ...autres, [nouveau]: siens } } : {}),
   };
 }
 
@@ -640,6 +645,12 @@ export const sceneEditee = (s: SessionDEdition): Scene => sceneDuCran(s.historiq
  *  L'hôte la montre, le pointeur y vise les ponts, ses couches sont celles qu'on édite ; les écritures vont à la scène
  *  éditée, qui ne porte de chaque navire que son entité. */
 export const vueDeLaScene = (s: SessionDEdition): Scene => poserLesNavires(sceneEditee(s));
+
+/** La vue sur laquelle on marche et la flottaison des coques éditées. */
+function contexteDesCopies(s: SessionDEdition) {
+  const scene = sceneEditee(s);
+  return { vue: vueDeLaScene(s), flottaison: (entite: SceneEntity) => flottaisonDuNavire(scene, entite) };
+}
 
 /** La couche `z` est-elle l'une de la vue de `scene` (`poserLesNavires`) ? */
 const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).layers.some((l) => l.z === z);
@@ -963,7 +974,7 @@ const gestesDuSingulier = (s: SessionDEdition) => {
   const gestes: { readonly [S in SorteDePorteur]?: { nommer?: (nom: string) => SessionDEdition; identifier: (id: string) => SessionDEdition } } = {
     scene: {
       nommer: (nom) => ecrire(s, setSceneLabel(sceneEditee(s), nom)),
-      identifier: (id) => sceneRenommee(s, sceneEditee(s), id),
+      identifier: (id) => sceneRenommee(s, id),
     },
     carte: {
       identifier: (id) => {
@@ -1010,7 +1021,7 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
  *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
  *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
  *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
-function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
+function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite, resolveTrapping: TrappingResolver): Partial<SceneEntity> {
   const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
@@ -1026,7 +1037,7 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
       competencesDeCarriere: avecCarrieres?.competencesDeCarriere,
       dotationsDeCarriere: avecCarrieres?.dotationsDeCarriere,
     }),
-    ...(objet === undefined ? {} : { inventaire: sansVide(inventaireApres(ent.inventaire ?? {}, objet)) }),
+    ...(objet === undefined ? {} : { inventaire: sansVide(inventaireApres(ent.inventaire ?? {}, objet, resolveTrapping)) }),
     ...(crewIds === undefined ? {} : { crewIds: sansVide(crewIds) }),
     ...(couvre === undefined ? {} : { couvre: sansVide(couvre) }),
   };
@@ -1129,6 +1140,9 @@ export function refusDeRetrait(s: SessionDEdition, element?: string): string | n
  *  élément : le refus que la table de sa sorte dit (`ECRITURES_DES_PORTEURS`, `refusDeRenommer`), le nom laissé vide
  *  compris ; `null` si elle le donne, ou si sa sorte ne dit pas ce refus. #3606 B8 */
 export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'nommer' | 'identifier' }>): string | null {
+  if (g.geste === 'nommer' && s.sel?.type === 'entry') return refusDIdDEntree(sceneEditee(s), s.sel.id, g.nom ?? '');
+  if (g.geste === 'identifier' && g.element === undefined && s.sel === null && s.document === 'scene')
+    return refusDIdDeRacine(idDeLaSceneEditee(s), racinesDeLHistorique(s.historique), g.id);
   const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   const refus = porteur && s.sel ? ECRITURES_DES_PORTEURS[porteur.sorte].refusDeRenommer : undefined;
   if (!porteur || !refus) return null;
@@ -1149,7 +1163,7 @@ export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, {
  *  `refusDeLaValeur`, sélectionner un porteur absent du projet, ajouter un porteur d'une sorte qui ne se crée pas
  *  par la table, renommer une entrée, un déclencheur, un dialogue ou une rencontre, ou réidentifier une zone d'effet ou un
  *  élément d'un porteur, d'un nom vide ou déjà pris, supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
- *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
+ *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné, ou manquer d’une case pour une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, d'un chapitre qui n'est pas celui qu'elle attend, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent, ouvrir le plan d'un lieu absent de la carte ouverte ou celui déjà ouvert, changer la forme d'un état
  *  vers la sienne ou quand elle est refusée (`refusDeForme`), retirer un point d'intérêt sans point
@@ -1193,7 +1207,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'entite': {
       const ent = entiteDeLaSelection(scene, s.sel);
-      return ent ? ecrireSurLaSelection(s, editEntity(scene, ent.id, enPatchDEntite(ent, g.patch)), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+      if (!ent) return s;
+      const patch = enPatchDEntite(ent, g.patch, objetDuNarratif(projetEdite(s).narratif));
+      return ecrireSurLaSelection(s, editEntity(scene, ent.id, patch), (sc) => entiteDeLaSelection(sc, s.sel));
     }
     case 'poste': {
       const ent = entiteDeLaSelection(scene, s.sel);
@@ -1231,8 +1247,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       }
       if (g.nom === undefined) return s;
       if (s.sel.type === 'entry') {
-        const renommee = renameEntry(scene, s.sel.id, g.nom);
-        return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
+        const projet = projetEdite(s);
+        const renomme = renommeEntreeDuProjet(projet, scene.id, s.sel.id, g.nom);
+        return renomme === projet ? s : ecrireLeProjet(s, renomme, { type: 'entry', id: g.nom.trim() });
       }
       const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
@@ -1347,12 +1364,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'dupliquer': {
       const ent = entiteDeLaSelection(scene, s.sel);
       if (!ent) return s;
-      const out = dupliquerLEntite(scene, ent);
-      return ecrire(s, out.scene, { type: 'entity', id: out.id });
+      const out = dupliquerLEntite(scene, ent, contexteDesCopies(s));
+      return out.scene === scene ? s : ecrire(s, out.scene, { type: 'entity', id: out.id });
     }
     case 'troupe': {
       const ent = entiteDeLaSelection(scene, s.sel);
-      const out = ent?.kind === 'personnage' ? poserUneTroupe(scene, ent, g.nombre) : null;
+      const out = ent?.kind === 'personnage' ? poserUneTroupe(scene, ent, g.nombre, contexteDesCopies(s)) : null;
       return out?.ids.length ? ecrire(s, out.scene, s.sel) : s;
     }
     case 'supprimer': {
@@ -1430,5 +1447,16 @@ function avecSonChapitreDemande(s: SessionDEdition): SessionDEdition {
  *  calage est celui de la couche éditée, changer de couche l'abandonne. */
 export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
+  const apres = sceneEditee(suite);
+  const avant = projetEdite(s).scenes.find((sc) => sc.id === apres.id);
+  if (avant && avant !== apres && (avant.entities !== apres.entities || avant.dimensions !== apres.dimensions || avant.metresPerTile !== apres.metresPerTile)) {
+    const debordementNeuf = apres.entities.some((entite) => {
+      const refus = refusDePoseDesPonts(apres, entite);
+      if (!refus) return false;
+      const precedente = avant.entities.find((e) => e.id === entite.id);
+      return !precedente || refus !== refusDePoseDesPonts(avant, precedente);
+    });
+    if (debordementNeuf) return s;
+  }
   return suite.z === s.z ? suite : { ...suite, calage: HORS_DU_CALAGE };
 }

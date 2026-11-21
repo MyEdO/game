@@ -58,6 +58,8 @@ import { listerArbre } from './lister.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { fileURLToPath } from 'node:url';
 
+/** @typedef {import('./sourceCorpus.mjs').CorpusFile} CorpusFile */
+
 /** Racine du dépôt : `scripts/guards/lib/` → `../../../`. */
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '');
 
@@ -96,11 +98,11 @@ export function sAppliqueA(fichier, declaration) {
 const posixDepuisRacine = (p) => relative(ROOT, p).split('\\').join('/');
 
 /** Corpus par CLÉ de contenu des paramètres. Vit aussi longtemps que ce module — soit, sous
- *  `isolate: false`, le worker Vitest entier. @type {Map<string, ReadonlyArray<Readonly<{ abs: string, rel: string, text: string }>>>} */
+ *  `isolate: false`, le worker Vitest entier. @type {Map<string, ReadonlyArray<CorpusFile>>} */
 const CORPUS = new Map();
 
 /** Entrée gelée par chemin ABSOLU, partagée par toutes les clés : un chemin n'a qu'un texte.
- *  @type {Map<string, Readonly<{ abs: string, rel: string, text: string }>>} */
+ *  @type {Map<string, CorpusFile>} */
 const ENTREES = new Map();
 
 /** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande. @param {string} p */
@@ -123,7 +125,7 @@ export function entreeDe(p) {
  *   `.bench.`, tous dialectes (`estFichierVitest`, `fichierVitest.mjs`), et KITS de test (`estKitDeTest`) — (défaut : non). L'option
  *   INCLUT exactement ce que le filtre exclut : un seul prédicat décide des deux côtés. Les `*.d.ts`
  *   sont hors corpus, sans option (cf. `EST_DECLARATION`).
- * @returns {ReadonlyArray<Readonly<{ abs: string, rel: string, text: string }>>} gelé, `rel` =
+ * @returns {ReadonlyArray<CorpusFile>} gelé, `rel` =
  *   chemin POSIX depuis la racine.
  * @throws {Error} si l'une des bases rend 0 fichier (voir REFUS DU VIDE, en-tête).
  */

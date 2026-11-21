@@ -84,6 +84,8 @@ export function fenetreDInstruction(plat, i) {
  * @returns {{ line: number, detail: string }[]}
  */
 export function scanHeroDebout(relPath, contenu) {
+  // Le blanchiment conserve ces mots dans le code. Sans eux, aucun prédicat de la classe ne peut apparaître.
+  if (!contenu.includes('party') || !contenu.includes('wounds')) return [];
   const { plat, ligneDe } = aplatir(contenu);
   /** @type {{ line: number, detail: string }[]} */
   const findings = [];

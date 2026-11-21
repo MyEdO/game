@@ -32,7 +32,7 @@ import {
   specialsApplicables, difficulteDuJoueur, difficulteDeBase,
   TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
-import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
+import { deDeLaTableTiree, findTableEntry, tableOuverte } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
@@ -105,7 +105,8 @@ import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './monde/sceneNpc';
-import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import type { TrappingResolver } from '../engine/items';
+import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import type { Scene } from './monde/scene';
 import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
@@ -174,7 +175,8 @@ export function tavernGameValue(hero: Combatant, game: TavernGame): number {
  *  SOURCE UNIQUE — sans elle, un site lirait `party` seul et le PNJ à fiche redeviendrait anonyme. */
 function tavernActor(get: Get, id: string | undefined): Combatant | undefined {
   if (!id) return undefined;
-  return actorIn(get(), id) ?? sceneNpc(get().scene, id, presetDuNarratif(get().campaignNarratif));
+  const s = get();
+  return actorIn(s, id) ?? sceneNpc(s.scene, id, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif));
 }
 
 /**
@@ -183,11 +185,11 @@ function tavernActor(get: Get, id: string | undefined): Combatant | undefined {
  * le libellé affiché est celui que rend la projection (`sceneNpc`), jamais un id brut. Un personnage SANS
  * fiche n'a aucune valeur à opposer : il n'est pas proposé (sa faute est dite par `validateScene`, #1882).
  */
-export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: ResolveurDePreset): { id: string; label: string; gameId: string; stakeBrass?: number }[] {
+export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): { id: string; label: string; gameId: string; stakeBrass?: number }[] {
   return (scene?.entities ?? [])
     .filter((e) => e.kind === 'personnage' && e.tavernGame)
     .flatMap((e) => {
-      const fiche = sceneNpc(scene, e.id, presetDe);
+      const fiche = sceneNpc(scene, e.id, presetDe, resolveTrapping);
       return fiche ? [{
         id: e.id,
         label: fiche.label,
@@ -413,7 +415,7 @@ export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, k
   if (findTavernGameById(gameId)?.team) return t('tavern.equipeContreLaSalle');
   if (kind === 'heros') return s.party.some((h) => !h.dead && h.id !== challengerId) ? null : t('tavern.aucunCompagnon');
   if (designe !== undefined) return null;
-  return tavernNpcOffers(s.scene, presetDuNarratif(s.campaignNarratif)).length ? null : t('tavern.personneDansLaSalle');
+  return tavernNpcOffers(s.scene, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif)).length ? null : t('tavern.personneDansLaSalle');
 }
 
 /**
@@ -436,7 +438,7 @@ function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): Partie
   const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
   if (refusDuVisAVis) return { refus: refusDuVisAVis };
   const opponentActor = opp.kind === 'heros' ? s.party.find((h) => h.id === opp.id)
-    : opp.kind === 'pnj' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif))
+    : opp.kind === 'pnj' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif))
       : pnjAuProfil(opp.id, HABITUE);
   if (!!game.team !== (opts.allyProfil !== undefined)) {
     return { refus: t(game.team ? 'tavern.equipeSansCoequipier' : 'tavern.coequipierHorsEquipe', { jeu: game.label }) };
@@ -1071,7 +1073,13 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
     const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
-      const ligne = sequenceTableRow(seq.parametres, opp.netSL);
+      const table = seq.parametres.table;
+      // NADJ 16 l.111, LDB 12 l.73-77
+      const plafondHistorique = 99;
+      const tableDeTouche = table && opp.netSL > plafondHistorique && table.every((rangée) => rangée.max <= plafondHistorique)
+        ? tableOuverte(table.map((rangée) => rangée.max === plafondHistorique ? { ...rangée, max: null } : rangée))
+        : table;
+      const ligne = sequenceTableRow({ table: tableDeTouche }, opp.netSL);
       const touche = garanti(ligne, opp.netSL, 'ligne de touche');
       const gain = touche.points;
       cumuls[lanceur.camp] = (cumuls[lanceur.camp] ?? 0) + gain;

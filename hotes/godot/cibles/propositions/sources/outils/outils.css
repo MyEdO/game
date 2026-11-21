@@ -1,6 +1,6 @@
 /* Hors partie et outils (#4411) : les pièces propres à la coop, à l'éditeur et au Compendium, posées par `rendu.js`
    et placées par `rendu.css` (la ligne de liste, la tablée du salon, le volet à onglets, la barre, la palette,
-   l'inspecteur, l'atelier). */
+   l'inspecteur ; la barre, la liste, la fiche, l'atelier et l'Index du Compendium). */
 
 /* ligne de liste (sur bois) */
 .ligne{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:2px;font-size:14.5px;color:#f0e2c2;white-space:nowrap}
@@ -20,10 +20,10 @@
 .feuillet-coop .plaque>div{font-size:17px}
 .refus{display:flex;align-items:center;gap:9px;font-style:italic;font-size:14px;color:#6b1c10}
 .cases{display:flex;gap:7px}
-.cases b{flex:1;height:58px;display:grid;place-items:center;font-size:36px;line-height:58px;color:#3a1a10;background:rgba(255,248,222,.55);border-radius:2px;box-shadow:inset 0 1px 3px rgba(60,35,5,.55),0 0 0 1px rgba(60,40,20,.7)}
+.cases b{flex:1;height:58px;display:grid;place-items:center;font-size:30px;line-height:58px;color:#3a1a10;background:rgba(255,248,222,.55);border-radius:2px;box-shadow:inset 0 1px 3px rgba(60,35,5,.55),0 0 0 1px rgba(60,40,20,.7)}
 #tablee{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:16px}
 #tablee>svg{position:absolute;left:0;top:0;width:100%;height:100%}
-#tablee .legende{grid-column:span 2;margin-top:10px;text-align:center;font-size:14px;color:var(--creme-2);white-space:nowrap}
+#tablee .legende{grid-column:span 2;margin-top:10px;text-align:center;font-size:14px;line-height:18px;color:var(--creme-2)}
 .siege{position:relative;width:200px;box-sizing:border-box;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .siege .q{display:flex;align-items:center;gap:10px}
 .siege .q b{display:block;font-weight:600;font-size:22px;line-height:34px;margin:-7px 0 -6px;color:#f4e8ca;white-space:nowrap}
@@ -38,7 +38,7 @@
 .siege.vide{background:rgba(20,12,7,.7);box-shadow:0 0 0 1px rgba(226,192,106,.3);border:1px dashed rgba(226,192,106,.35)}
 .siege.vide .q b{font-weight:400;font-size:17px;color:var(--creme-2);font-family:"Fell";font-style:italic;letter-spacing:0}
 #invitation .fond{padding:30px 18px 18px;display:flex;flex-direction:column;gap:14px}
-#invitation .code{height:84px;display:grid;place-items:center;font-size:52px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
+#invitation .code{height:84px;display:grid;place-items:center;font-size:44px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
 #invitation .r{font-size:14px;color:var(--or);margin-top:4px}
 #invitation .joueur{display:flex;align-items:center;gap:10px;height:34px;font-size:16px;color:#f0e2c2;white-space:nowrap}
 #invitation .joueur.absent{color:#f0c8b4;font-style:italic}
@@ -46,6 +46,8 @@
 #invitation .plaque{flex:none}
 #attribution .fond{padding:34px 20px 18px}
 #attribution .rang{display:grid;grid-template-columns:50px 1fr auto;align-items:center;column-gap:12px;padding:9px 0;border-bottom:1px solid rgba(60,40,20,.28)}
+/* le nom d'un héros passe à la ligne plutôt que de pousser les sièges hors du volet */
+#attribution .rang .nom{white-space:normal}
 #attribution .mj{padding:14px 0 4px}
 #attribution .mj .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 #attribution .mj b{font-size:22px;line-height:30px;margin:-5px 0;color:#3a1a10}
@@ -104,31 +106,11 @@
 #inspecteur .plaque>div{font-size:13px}
 #inspecteur .segments b{font-size:11.5px;padding:3px 7px 4px;letter-spacing:.3px}
 
-/* ───────── le Compendium ───────── */
-#categories .fond{padding:30px 16px 16px;display:flex;flex-direction:column;gap:12px}
-#categories .ligne{height:38px;font-size:16px}
-#categories .r{font-size:13.5px;color:var(--or)}
 .facettes{display:flex;flex-wrap:wrap;gap:6px}
 .facettes b{font-family:"Fell SC";font-weight:400;font-size:12.5px;letter-spacing:.7px;padding:3px 9px 4px;border-radius:2px;color:#e6dabd;background:#150c07;box-shadow:0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.25);white-space:nowrap}
 .facettes b em{font-family:"Chiffres";font-style:normal;font-size:10.5px;color:var(--creme-2);margin-left:5px;letter-spacing:0}
 .facettes b.la{color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
 .facettes b.la em{color:#3a2a12}
-#categories .plaque{flex:none}
-.entree{position:relative;z-index:1;display:flex;align-items:baseline;gap:10px;height:42px;line-height:42px;padding:0 10px;border-bottom:1px solid rgba(60,40,20,.25);font-size:17px;color:#2a1d12;white-space:nowrap}
-.entree em{margin-left:auto;font-style:normal;font-size:11.5px;color:#5a4530}
-.entree.pointee{background:rgba(255,244,206,.55);box-shadow:0 0 0 1px rgba(138,106,38,.9),0 2px 7px rgba(60,35,5,.3);border-radius:2px;border-bottom-color:transparent;font-weight:600;color:#3a1a10}
-.fiche{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;min-height:0}
-.fiche .puces{display:flex;gap:8px;margin:6px 0 2px}
-.fiche .puce{display:flex;gap:6px;align-items:baseline;padding:2px 10px 3px;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.3);font-size:13.5px;color:#2a1d12;white-space:nowrap}
-.fiche .puce span{font-size:12px;color:#6b1c10}
-.fiche .r{font-size:13.5px;color:#6b1c10;margin:10px 0 3px;display:flex;align-items:baseline;gap:8px;white-space:nowrap}
-.fiche .r em{font-family:"Chiffres";font-style:normal;font-size:11px;color:#5a4530;letter-spacing:0}
-.fiche p{margin:0 0 7px;font-size:14.5px;line-height:20px;color:#2a1d12}
-.fiche .liens{display:flex;flex-wrap:wrap;gap:5px 6px}
-.fiche .lien{padding:1px 8px 2px;font-size:13px;color:#5a130b;border-bottom:1px solid rgba(107,28,16,.55);white-space:nowrap}
-.fiche .lien.reste{color:#5a4530;border-bottom-color:transparent;font-style:italic}
-.feuille .pied .plaque{flex:none;width:150px}
-.feuille .pied .plaque>div{font-size:13.5px}
 
 .outils .o span{white-space:normal;text-align:center;line-height:11px;max-width:74px}
 #routes .ligne{height:44px;font-size:13px}
@@ -137,23 +119,98 @@
 .valide{display:flex;gap:7px;align-items:flex-start;font-size:12px;line-height:15.5px;color:#2f4416}
 .valide svg{flex:none;margin-top:1px}
 
-/* l'atelier du Compendium */
-.atelier .fiche{gap:9px;padding-top:6px}
-.atelier .deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.atelier .champ>b{height:34px;font-size:15.5px}
-.atelier .champ.long>b{height:84px;overflow-y:auto;scrollbar-width:none;display:block;padding:8px 12px 0;white-space:normal;font-size:14px;line-height:19px}
-.atelier .champ .curseur-texte{display:none}
-.atelier .champ.saisi .curseur-texte{display:block}
-.atelier .aide{margin-top:3px;font-style:italic;font-size:12.5px;line-height:16px;color:#4a3420}
-.atelier .aide .lien{padding:0 2px 1px;font-style:normal}
-.atelier .fiche .r{margin:4px 0 -3px}
-.atelier .facettes b{color:#3a2a18;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.55)}
-.atelier .pied{justify-content:flex-start;gap:10px}
-.atelier .pied .plaque{position:relative;z-index:2}
-.atelier .pied .plaque{flex:1 1 0;width:auto;min-width:0}
-.atelier .pied .plaque>div{font-size:12.5px;letter-spacing:.4px;padding:0 6px;gap:7px}
-.atelier .pied .bulle-refus{white-space:normal;width:340px;text-align:center;left:auto;right:0;transform:none}
-.atelier .pied .bulle-refus::before{left:auto;right:56px}
+/* ───────── le Compendium ───────── */
+/* la barre : le titre, retour et suivant, la recherche, le fil, la bascule de l'atelier, la croix au bout */
+#barre-du-compendium{position:absolute;display:flex;align-items:center;gap:10px;padding:0 25px 0 6px;box-sizing:border-box;border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
+#barre-du-compendium .medaillon{flex:none}
+#barre-du-compendium .nom{font-size:24px;line-height:32px;margin:-6px 6px -4px 0;color:#f4e8ca;white-space:nowrap}
+#barre-du-compendium>.fond{width:440px;flex:none;background:none}
+#barre-du-compendium .champ>b{height:32px;font-size:15px}
+#barre-du-compendium .fil{flex:1;min-width:0;font-size:13.5px;color:var(--creme-2);white-space:nowrap}
+#barre-du-compendium .fil .lien{color:#f0d48a;border-bottom:1px solid rgba(240,212,138,.5)}
+#barre-du-compendium .fil b{font-weight:400;color:#f4e8ca}
+#barre-du-compendium .plaque{flex:none;width:110px}
+#barre-du-compendium .croix{position:static}
+/* la liste : sa tête et son compte, le filtre de livre, les rangées de 23 px qui défilent, le rail de lettres */
+#liste-du-compendium .fond{display:flex;flex-direction:column;padding:6px 0 0;box-sizing:border-box}
+.tete-de-liste{display:flex;align-items:baseline;gap:8px;height:34px;margin:0 8px;padding:0 10px;box-sizing:border-box;border-radius:2px;box-shadow:0 0 0 1px rgba(226,192,106,.45);background:rgba(0,0,0,.25)}
+.tete-de-liste span{font-size:22px;line-height:32px;color:#f4e8ca;white-space:nowrap}
+.tete-de-liste em{margin-left:auto;font-style:normal;font-size:12px;color:var(--creme-2)}
+.livres{display:flex;align-items:center;gap:8px;height:26px;margin:6px 10px 6px}
+.livres>span{font-size:12.5px;color:var(--creme-2)}
+.livres .facettes b{padding:1px 8px 2px}
+.corps-de-liste{flex:1;min-height:0;display:flex}
+.corps-de-liste .defile{flex:1}
+.rangee{display:flex;align-items:baseline;height:23px;line-height:23px;padding:0 8px 0 12px;font-size:14.5px;color:#f0e2c2;white-space:nowrap;border-bottom:1px solid rgba(226,192,106,.12)}
+.rangee em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
+.rangee.pointee{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;font-weight:600}
+.rangee.pointee em{color:#3a2a12}
+.groupe{display:flex;align-items:baseline;height:23px;line-height:23px;padding:0 8px 0 12px;font-size:12px;color:var(--or);background:rgba(0,0,0,.35)}
+.groupe em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
+.rail{flex:none;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:4px 0 8px;font-size:10.5px;color:var(--creme-2)}
+.rail b{font-weight:400;line-height:12px}
+.rail b.la{color:#f3dc93}
+/* la fiche : la tête sur toute la largeur ; le corps à gauche, les renvois à droite ; le pied de l'atelier sous le corps */
+#fiche-du-compendium .fond{box-sizing:border-box}
+#fiche-du-compendium>.fond>.tete{position:absolute;left:22px;right:22px;top:14px;display:flex;align-items:baseline;gap:14px;white-space:nowrap}
+#fiche-du-compendium>.fond>.tete .dom{font-size:36px;line-height:58px;margin:-12px 0 -10px;color:#3a1a10}
+#fiche-du-compendium>.fond>.tete .sous{font-size:14px;color:#6b1c10}
+#fiche-du-compendium>.fond>.tete .source{font-size:13px;padding:1px 8px 2px;border:1px solid rgba(60,40,20,.55);border-radius:2px;color:#2a1d12}
+#fiche-du-compendium>.fond>.tete .epingle{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:13px;color:#5a130b}
+#fiche-du-compendium>.fond>.filet{position:absolute;left:22px;right:22px;top:56px;margin:0}
+.corps-de-fiche>.gauche{position:absolute;left:22px;top:78px;width:572px;bottom:14px;display:flex;flex-direction:column}
+.corps-de-fiche.atelier>.gauche{bottom:58px}
+.corps-de-fiche .puces{display:flex;gap:8px;margin:0 0 12px}
+.corps-de-fiche .puce{display:flex;gap:6px;align-items:baseline;padding:3px 10px 4px;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.3);font-size:14.5px;color:#2a1d12;white-space:nowrap}
+.corps-de-fiche .puce span{font-size:12.5px;color:#6b1c10}
+.corps-de-fiche p{margin:0 0 10px;font-size:16px;line-height:22px;color:#2a1d12}
+#fiche-du-compendium .lien{color:#5a130b;border-bottom:1px solid rgba(107,28,16,.55)}
+.renvois{position:absolute;right:22px;top:78px;width:300px;bottom:14px;padding-left:16px;box-sizing:border-box;border-left:1px solid rgba(60,40,20,.3)}
+.onglets-comptes{display:flex;gap:5px}
+.onglets-comptes b{display:flex;align-items:baseline;gap:5px;height:26px;line-height:26px;padding:0 8px;font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:.4px;color:#3a2a18;border-radius:2px;box-shadow:0 0 0 1px rgba(60,40,20,.55);white-space:nowrap}
+.onglets-comptes b em{font-family:"Chiffres";font-style:normal;font-size:11px}
+.onglets-comptes b.la{color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre))}
+.renvois>.r{margin:10px 0 0;height:16px;font-size:11.5px;color:#6b1c10;white-space:nowrap}
+.renvois>.defile{position:absolute;left:16px;right:0;top:60px;bottom:0}
+.nom-renvoi{display:flex;align-items:baseline;gap:4px;height:26px;line-height:26px;font-size:14px;white-space:nowrap;border-bottom:1px solid rgba(60,40,20,.18);overflow:hidden}
+.nom-renvoi .lien{border-bottom:none;overflow:hidden;text-overflow:ellipsis}
+.nom-renvoi em{margin-left:auto;flex:none;font-style:normal;font-size:10.5px;color:#5a4530}
+.nom-renvoi.survol .lien{color:#8a1c0b;font-weight:600}
+/* l'aperçu du renvoi survolé : à gauche de la colonne, sa pointe sur la ligne (rangées de 26 px depuis le haut de la
+   colonne qui défile) */
+#fiche-du-compendium .apercu{right:334px;top:calc(101px + var(--rang) * 26px);--pointe:42px;z-index:3}
+#fiche-du-compendium .apercu p{margin:6px 0 0;font-size:14px;line-height:19px}
+#fiche-du-compendium .apercu .source-du-renvoi{margin-top:6px;font-size:12px;color:#6b1c10}
+/* l'atelier : les champs par paires, la description sur la hauteur qui reste, les champs absents ; le pied */
+.formulaire{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.formulaire .deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.formulaire .un.long{flex:1;min-height:0;display:flex;flex-direction:column}
+.formulaire .un.long>div,.formulaire .champ.long{flex:1;min-height:0;display:flex;flex-direction:column}
+.formulaire .champ>b{height:34px;font-size:15.5px}
+.formulaire .champ.long>b{flex:1;height:auto;overflow-y:auto;scrollbar-width:none;display:block;padding:8px 12px 0;white-space:normal;font-size:15px;line-height:21px}
+.formulaire .champ .curseur-texte{display:none}
+.formulaire .champ.saisi .curseur-texte{display:block}
+.formulaire .aide{margin-top:3px;font-style:italic;font-size:12.5px;line-height:16px;color:#4a3420}
+.formulaire .aide .lien{font-style:normal}
+.formulaire>.r{margin:0 0 -6px;font-size:13px;color:#6b1c10}
+.formulaire .facettes b{color:#3a2a18;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.55)}
+#fiche-du-compendium>.fond>.pied{position:absolute;left:22px;bottom:14px;width:572px;display:flex;gap:10px}
+#fiche-du-compendium>.fond>.pied .plaque{flex:1 1 0;position:relative;z-index:2}
+#fiche-du-compendium>.fond>.pied .bulle-refus{white-space:normal;width:340px;text-align:center;left:auto;right:0;transform:none}
+/* l'Index, par-dessus la liste et la fiche : sa tête, les familles, les catégories de l'ouverte sur trois colonnes */
+#index-du-compendium{z-index:4}
+#index-du-compendium .fond{box-sizing:border-box}
+.tete-d-index{position:absolute;left:18px;right:18px;top:12px;display:flex;align-items:center;gap:18px}
+.tete-d-index>.gothique{font-size:30px;line-height:36px;color:#f4e8ca}
+.tete-d-index .champ{width:380px}
+.tete-d-index .champ>b{height:34px;font-size:15px}
+.tete-d-index>.rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
+#index-du-compendium .familles{position:absolute;left:14px;top:64px;width:220px}
+#index-du-compendium .familles .ligne{height:40px;font-size:18px}
+#index-du-compendium .categories{position:absolute;left:256px;right:18px;top:64px;bottom:12px;columns:3;column-gap:24px}
+.ligne-d-index{display:flex;align-items:baseline;gap:8px;padding:1px 0 2px;font-size:13px;line-height:15px;color:#f0e2c2;border-bottom:1px solid rgba(226,192,106,.14);break-inside:avoid}
+.ligne-d-index em{margin-left:auto;flex:none;font-style:normal;font-size:11px;color:var(--creme-2)}
+.intertitre{padding:4px 0 1px;font-size:12px;line-height:14px;color:var(--or);break-after:avoid}
 
 /* l'éditeur : les options d'un outil, la suppression de ce qui est choisi */
 #inspecteur .pinceau .segments{display:flex;margin-top:4px}

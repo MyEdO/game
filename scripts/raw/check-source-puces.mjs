@@ -34,6 +34,7 @@ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { normText } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-puces-stock.json')
 
@@ -164,4 +165,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

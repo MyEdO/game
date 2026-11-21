@@ -34,7 +34,6 @@ export const RACINES = [
   { constante: 'FORMAT_SAVE', module: 'src/noyau/persistance/save.ts', type: 'SaveGame' },
   { constante: 'FORMAT_ROSTER', module: 'src/noyau/persistance/roster.ts', type: 'RosterStocke' },
   { constante: 'FORMAT_EXPORT_HEROS', module: 'src/noyau/persistance/roster.ts', type: 'ExportDeHeros' },
-  { constante: 'FORMAT_CALQUE', module: 'src/state/traceLayer.ts', type: 'CalqueStocke' },
   { constante: 'FORMAT_CALQUES', module: 'src/noyau/edition/calque.ts', type: 'CalquesStockes' },
 ]
 

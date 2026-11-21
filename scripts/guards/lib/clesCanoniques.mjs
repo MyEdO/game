@@ -55,6 +55,7 @@ const refusNomme = (surface) => /** @type {F} */ ((...a) => {
  */
 export function clesCanoniques({ ferme, litSonContexte }) {
   const referencesPrivees = new WeakMap()
+  const referencesScalaires = ferme ? new Map() : null
   const objetsCles = new WeakSet()
   const clesDesValeurs = new WeakMap()
   const clesDesArguments = new WeakMap()
@@ -341,7 +342,19 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     const pile = new Map()
     const referenceDe = (v) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
-      if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
+      const type = typeof v
+      if (v === null || type !== 'object') {
+        if (referencesScalaires && (v === null || type === 'undefined' || type === 'string' ||
+          type === 'boolean' || type === 'number') &&
+          !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')) {
+          const deja = referencesScalaires.get(v)
+          if (deja !== undefined) return deja
+          const reference = interner(tuple(type, v))
+          referencesScalaires.set(v, reference)
+          return reference
+        }
+        return interner(tuple(type, v))
+      }
       if (ferme) {
         const deja = references.get(v)
         if (deja !== undefined) return deja

@@ -27,7 +27,7 @@
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { auChemin, estObjet } from '../../../lib/objet.mjs';
-import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
+import { coDescendre, defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
 import {
   baseDe,
   champsDiscriminants,
@@ -336,25 +336,52 @@ export function controlerSousPortee<N extends z.ZodType>(noeud: N, portee: Porte
   return noeud;
 }
 
+type RestrictionSousPortee = (branche: PointDeDonnee, site: PointDeDonnee) => string | undefined;
+
+const RESTRICTIONS_SOUS_PORTEE = new WeakMap<object, { readonly portee: PorteeLocale; readonly refus: RestrictionSousPortee }>();
+
+/** Restreint les références locales sous ce nœud selon le porteur de la branche et le site visé. */
+export function restreindreSousPortee<N extends z.ZodType>(noeud: N, portee: PorteeLocale, refus: RestrictionSousPortee): N {
+  RESTRICTIONS_SOUS_PORTEE.set(noeud, { portee, refus });
+  return noeud;
+}
+
+function refusDeBranche(site: PointDeDonnee, portee: PorteeLocale): string | undefined {
+  for (let branche: PointDeDonnee | undefined = site; branche; branche = branche.parent) {
+    for (const noeud of branche.noeuds) {
+      const restriction = estObjet(noeud) ? RESTRICTIONS_SOUS_PORTEE.get(noeud) : undefined;
+      if (restriction?.portee !== portee) continue;
+      const refus = restriction.refus(branche, site);
+      if (refus !== undefined) return refus;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Ouvre les PORTÉES LOCALES `portees` sur `objet` : chaque référence `ref(portee)` de son arbre est jugée
  * (`jugerRefLocale`) contre les ids de la collection `portee.collection` de la MÊME valeur. FAIL-FAST à la
- * CONSTRUCTION : collection absente des champs ou qui n'est pas une liste à clé, collection marquée `espace`
- * (un id local n'entre dans aucun espace de l'INDEX DES IDS), portée qu'aucune référence de l'arbre ne désigne.
+ * CONSTRUCTION sous `'collections'` : collection absente des champs ou qui n'est pas une liste à clé,
+ * collection marquée `espace` (un id local n'entre dans aucun espace de l'INDEX DES IDS), portée qu'aucune
+ * référence de l'arbre ne désigne.
  * Le jugement court même quand une issue de l'arbre avorte les raffinements de l'objet (`when`) : au parse de
  * mesure, le repère d'une feuille `idDe` de l'arbre en est une (`mesureDuParse`), et une référence locale non
  * jugée ne serait pas comptée. Une collection qui n'est pas une liste, refusée par son propre nœud, ne juge
  * aucune référence de sa portée. La co-descente élague, par portée, toute valeur dont aucun nœud ne mène à une
- * référence de cette portée (ses PORTEURS, relevés à la construction), et toute valeur dont un nœud est un ouvreur
+ * référence de cette portée (ses PORTEURS), et toute valeur dont un nœud est un ouvreur
  * intérieur de la même portée : ce qu'il porte, lui seul le juge. UNE co-descente rend les jugements du parse et les
  * sites de la portée (`sitesDeLaPortee`). Sous la source `'vide'`, chaque portée est déclarée
- * VIDE, sans collection : toute référence de l'arbre à l'une d'elles est absente de son catalogue, et une feuille
- * `idDe(…, { portee })` y vaut son catalogue seul (`refusDeLaRefLocale`).
+ * VIDE, sans collection. La mesure des porteurs attend le premier jugement, y compris sous un tableau
+ * récursif. Une feuille `idDe(…, { portee })` y vaut son catalogue seul (`refusDeLaRefLocale`).
  */
-export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[], source: SourceDesPortees = 'collections'): N {
+export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[], source?: SourceDesPortees): N;
+export function ouvrirPortees<N extends z.ZodType>(objet: N, portees: readonly PorteeLocale[], source: 'vide'): N;
+export function ouvrirPortees<N extends z.ZodType>(objet: N, portees: readonly PorteeLocale[], source: SourceDesPortees = 'collections'): N {
   const marques = new Map<PorteeLocale, MarqueDeCollection | 'vide'>(
     portees.map((portee) => {
       if (source === 'vide') return [portee, 'vide'] as const;
+      if (!(objet instanceof z.ZodObject))
+        throw new Error('ouvrirPortees : seul un objet peut porter les collections d’une portée locale.');
       const champ = champAuChemin(objet, portee.collection);
       const marque = champ === undefined ? undefined : ouverts([champ]).map(collectionDe).find((m) => m !== undefined);
       if (marque?.forme !== 'liste')
@@ -364,25 +391,30 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
       return [portee, marque] as const;
     }),
   );
-  const designees = new Set<PorteeLocale>();
-  const porteurs = new Map<PorteeLocale, Set<unknown>>(portees.map((portee) => [portee, new Set()]));
-  const parents = new Map<unknown, unknown[]>();
-  descendre([objet], ({ noeud }) => {
-    const portee = porteeDuJugementLocal(noeud);
-    const siens = portee === undefined ? undefined : porteurs.get(portee);
-    if (portee !== undefined && siens) {
-      designees.add(portee);
-      siens.add(noeud);
-    }
-    for (const { noeud: enfant } of enfantsDe(noeud)) parents.set(enfant, [...(parents.get(enfant) ?? []), noeud]);
-  });
-  for (const siens of porteurs.values()) for (const porteur of siens) for (const parent of parents.get(porteur) ?? []) siens.add(parent);
-  for (const portee of portees)
-    if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
-  const refus = (noeud: unknown, portee: PorteeLocale, id: string, admises: ReadonlyMap<string, unknown>): string | undefined =>
-    admises.has(id) ? undefined : refusDeLaRefLocale(noeud, portee, id, marques.get(portee) === 'vide');
+  const mesurerPorteurs = () => {
+    const designees = new Set<PorteeLocale>();
+    const porteurs = new Map<PorteeLocale, Set<unknown>>(portees.map((portee) => [portee, new Set()]));
+    const parents = new Map<unknown, unknown[]>();
+    descendre([objet], ({ noeud }) => {
+      const portee = porteeDuJugementLocal(noeud);
+      const siens = portee === undefined ? undefined : porteurs.get(portee);
+      if (portee !== undefined && siens) {
+        designees.add(portee);
+        siens.add(noeud);
+      }
+      for (const { noeud: enfant } of enfantsDe(noeud)) parents.set(enfant, [...(parents.get(enfant) ?? []), noeud]);
+    });
+    for (const siens of porteurs.values()) for (const porteur of siens) for (const parent of parents.get(porteur) ?? []) siens.add(parent);
+    for (const portee of portees)
+      if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
+    return porteurs;
+  };
+  let porteursConnus = source === 'collections' ? mesurerPorteurs() : undefined;
+  const refus = (noeud: unknown, portee: PorteeLocale, id: string, admises: ReadonlyMap<string, unknown>, point: PointDeDonnee): string | undefined =>
+    admises.has(id) ? refusDeBranche(point, portee) : refusDeLaRefLocale(noeud, portee, id, marques.get(portee) === 'vide');
   const juger = (valeur: unknown, acceptee: (entree: unknown) => unknown): readonly JugementSousPortee[] => {
-    if (!estObjet(valeur)) return [];
+    if (!estConteneur(valeur)) return [];
+    const porteurs = porteursConnus ??= mesurerPorteurs();
     const entrees = new Map(portees.flatMap((portee) => {
       const admises = entreesSousLaMarque(marques.get(portee), valeur, portee);
       return admises ? [[portee, admises] as const] : [];
@@ -408,7 +440,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
           for (const cle of Object.keys(id)) {
             const portee = porteeDuJugementLocal(cles, cle);
             const admisesDeCle = portee && ici.includes(portee) ? entrees.get(portee) : undefined;
-            if (portee && admisesDeCle) jugements.push({ chemin: [...chemin, cle], portee, id: cle, parCle: true, refus: refus(cles, portee, cle, admisesDeCle) });
+            if (portee && admisesDeCle) jugements.push({ chemin: [...chemin, cle], portee, id: cle, parCle: true, refus: refus(cles, portee, cle, admisesDeCle, point) });
           }
       }
       if (typeof id !== 'string') return;
@@ -416,7 +448,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
         const portee = porteeDuJugementLocal(noeud, id);
         const admises = portee !== undefined && ici.includes(portee) ? entrees.get(portee) : undefined;
         if (portee !== undefined && admises !== undefined) {
-          jugements.push({ chemin, portee, id, parCle: false, refus: refus(noeud, portee, id, admises) });
+          jugements.push({ chemin, portee, id, parCle: false, refus: refus(noeud, portee, id, admises, point) });
           return;
         }
       }
@@ -424,7 +456,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
     return jugements;
   };
   const ouvreur = objet.superRefine((valeur, ctx) => {
-    if (!estObjet(valeur)) return;
+    if (!estConteneur(valeur)) return;
     // Les entrées que leur propre nœud refuse : une faute de l'arbre (jamais un repère) sous leur chemin.
     const refusees = new Set(ctx.issues.filter(estUneFaute).flatMap(({ path = [] }) =>
       portees.flatMap((portee) => {
@@ -446,13 +478,20 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
  *  (`document()`, `grammaire/document.ts`). FAIL-FAST à la CONSTRUCTION : un tel `schema` qui n'est pas un objet. */
 export function ouvrirLesPorteesSansCollection(schema: z.ZodType, site: string): z.ZodType {
   const designees = new Set<PorteeLocale>();
-  const ouvertes = new Set<PorteeLocale>();
   descendre([schema], ({ noeud }) => {
     const portee = declarationDeFeuilleDId(noeud)?.portee;
     if (portee !== undefined) designees.add(portee);
-    for (const p of porteesOuvertes(noeud)) ouvertes.add(p);
   });
-  const vides = [...designees].filter((p) => !ouvertes.has(p));
+  const vides = [...designees].filter((portee) => {
+    let libre = false;
+    descendre([schema], ({ noeud }) => {
+      if (porteesOuvertes(noeud).includes(portee)) return 'elaguer';
+      if (declarationDeFeuilleDId(noeud)?.portee !== portee) return;
+      libre = true;
+      return 'arreter';
+    });
+    return libre;
+  });
   if (!vides.length) return schema;
   if (!(schema instanceof z.ZodObject))
     throw new Error(`${site} : la portée des ${vides[0].catalogue} est désignée sans être ouverte, et l’entrée n’est pas un objet qui l’ouvre.`);
@@ -696,6 +735,20 @@ export const cleDesLibellesDeLaSource = (source: SourceDeSpecs): string =>
   'vocabulaire' in source.libelle ? cleDesLibelles(cleDuVocabulaire(source.libelle.vocabulaire)) : cleDesLibelles(source.univers, source.libelle.champs);
 
 
+function renvoiDesSpecs(lue: CleLue, doc: { readonly schema: unknown; readonly racine: unknown }, cle: string): string | undefined {
+  const source = sourceDesSpecs(lue, doc, cle);
+  if (!source) return undefined;
+  if (lue.libelles?.length) throw new Error(`${cle} : les libellés des \`specs\` d'une entrée à specsSource sont ceux que sa source déclare.`);
+  return lue.libelles ? cleDesLibellesDeLaSource(source) : source.univers;
+}
+
+/** L'univers délégué par une entrée, sans charger les spécialisations ni leurs libellés. */
+export function renvoiDeLEspace(cle: string, acces: AccesAuxDocuments): string | undefined {
+  const lue = lireCleDEspace(cle);
+  const doc = acces(lue.fichier);
+  return doc && renvoiDesSpecs(lue, doc, cle);
+}
+
 /**
  * Lecture de l'espace `cle` (`grammaire/cle-d-espace.ts`) sur les documents d'`acces` : la collection
  * atteinte par sa suite nichée, qui doit être marquée `espace`, son filtre, qui doit être un paramètre
@@ -708,11 +761,8 @@ export function lectureDeLEspace(cle: string, acces: AccesAuxDocuments): Lecture
   const lue = lireCleDEspace(cle);
   const doc = acces(lue.fichier);
   if (!doc) return undefined;
-  const source = sourceDesSpecs(lue, doc, cle);
-  if (source) {
-    if (lue.libelles?.length) throw new Error(`${cle} : les libellés des \`specs\` d'une entrée à specsSource sont ceux que sa source déclare.`);
-    return { univers: lue.libelles ? cleDesLibellesDeLaSource(source) : source.univers };
-  }
+  const univers = renvoiDesSpecs(lue, doc, cle);
+  if (univers !== undefined) return { univers };
   const collection = atteindre(doc.schema, doc.racine, lue.niche ?? '');
   const espace = collection?.marque.espace;
   if (!collection || !espace || (lue.filtre && !filtreDeclare(espace, lue.filtre))) return undefined;

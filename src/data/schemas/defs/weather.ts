@@ -93,8 +93,7 @@ const doc = document(
     //  - COMPLÉTUDE : une condition SUPPRIMÉE au Codex éteindrait le libellé et les effets d'une météo
     //    que la table saisonnière tire encore (`weatherCondition`, engine, ne lit que ce tableau).
     // COUVERTURE du dé de chaque saison (`ecartsDeCouverture`, grammaire) : les deux bornes étant
-    //    éditables au Codex, un trou ou un chevauchement passerait le z.number() — et le tirage
-    //    tomberait sur la dernière rangée par REPLI de `findTableEntry`, sans un mot.
+    //    éditables au Codex, le schéma vérifie qu'à chaque jet correspond une seule météo.
     // Refus NOMINATIF dans les deux cas, aux trois portes (CI `schema-contract`, boot `dev-validate`,
     // save transactionnel du Codex).
     affinerEntree: (entree) =>
@@ -116,7 +115,7 @@ const doc = document(
             ctx.addIssue({
               code: 'custom',
               path: ['seasons', i, 'entries'],
-              message: `weather.json › saison « ${s.id} » : le ${formatDice(s.die)} n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}. Un trou fait tomber le tirage sur la DERNIÈRE rangée (repli de \`findTableEntry\`), un chevauchement rend la seconde rangée inatteignable : dans les deux cas la météo tirée ment sans un mot.`,
+              message: `weather.json › saison « ${s.id} » : le ${formatDice(s.die)} n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}.`,
             });
           }
         }

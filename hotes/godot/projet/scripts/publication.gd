@@ -30,7 +30,9 @@ func _init(pont: PontDuNoyau, scene: Node, interface: Node, publie: Callable) ->
 		suivre.call(conteneur)
 	var arbre := scene.get_tree()
 	arbre.node_added.connect(suivre)
-	scene.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
+	scene.tree_exited.connect(func() -> void:
+		arbre.node_added.disconnect(suivre)
+		_cesser_d_attendre(arbre))
 
 
 func _remettre_en_page() -> void:
@@ -45,11 +47,20 @@ func demander() -> void:
 	if _attendue:
 		return
 	_attendue = true
-	var arbre := _scene.get_tree()
-	await arbre.process_frame
-	while _remise_en_page and _scene.is_inside_tree():
+	_scene.get_tree().process_frame.connect(_a_l_image)
+
+
+func _cesser_d_attendre(arbre: SceneTree) -> void:
+	if _attendue:
+		arbre.process_frame.disconnect(_a_l_image)
+		_attendue = false
+
+
+func _a_l_image() -> void:
+	if not _attendue:
+		return
+	if _remise_en_page:
 		_remise_en_page = false
-		await arbre.process_frame
-	_attendue = false
-	if _scene.is_inside_tree():
-		_pont.publier_l_ecran(_publie)
+		return
+	_cesser_d_attendre(_scene.get_tree())
+	_pont.publier_l_ecran(_publie)

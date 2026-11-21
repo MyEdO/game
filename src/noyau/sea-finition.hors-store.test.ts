@@ -63,7 +63,7 @@ function freshState() {
     port: null,
     gameTime: 8 * 60,
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' },
     journal: [],
   } as never);
   creditBourse(get, set, get().party[0].id, { gold: 5000, silver: 0, brass: 0 }); // bourse du groupe (SOCLE POSSESSIONS #531)
@@ -183,7 +183,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(get().pendingSeaActivities).toBeTruthy();
   });
 
-  it('la semaine validée — Cartographie réussie → une Carte marine (+2 DR d’Orientation) sur le héros', async () => {
+  it('la semaine validée — Cartographie réussie → une Carte marine sur le héros', async () => {
     seedBattleRng(3);
     const heroes = get().party;
     // Un cartographe hors pair : Métier (Cartographe) à 90.
@@ -196,9 +196,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     await runSeaActivities();
     const owner = get().party[0];
     const chart = (owner.items ?? []).find((it) => it.trappingId === 'carte-marine');
-    // Métier 90 Complexe (−10) = 80 → très probablement réussi ; la carte est créée en cas de succès.
-    // (RNG seedé déterministe : on tolère l'absence si l'unique jet échoue, mais on vérifie la halte.)
-    if (chart) expect(chart.trappingId).toBe('carte-marine');
+    expect(chart?.trappingId).toBe('carte-marine');
     expect(get().pendingRest).toBeTruthy(); // la halte de nuit suit la confirmation
     expect(get().pendingSeaActivities).toBeNull();
   });

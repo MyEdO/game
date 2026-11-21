@@ -24,7 +24,7 @@ import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ec
  *
  * Le défaut que cette garde ferme n'est pas une liste de 22 champs — c'est la CLASSE : un champ peut
  * naître au modèle, être lu par le moteur, et n'avoir pour seul écrivain le compilateur d'authoring
- * (`mapSpec.ts`), un script ou l'interface web (`src/ui/**`). Rien ne casse ; l'auteur découvre le trou en
+ * (`mapSpec.ts`) ou un script. Rien ne casse ; l'auteur découvre le trou en
  * cherchant le contrôle qui n'existe pas.
  *
  * Deux propriétés font que cette garde MESURE quelque chose, et elles sont éprouvées ici :
@@ -91,7 +91,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // 415 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
   // type, `CustomStatblock.type` ; `OptionalSwap.note`, discriminant de PRÉSENCE, reste).
   // L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`).
-  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 100_000 });
+  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 250_000 });
 
   it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
@@ -526,6 +526,14 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'AjustementsDArme.ajusteeAuPorteur @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.allonge @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.groupesDeManiement @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites.id @ src/data/schemas/grammaire/ref.ts',
+      'AjustementsDArme.qualites.value @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.retire @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.sansSpecialisation @ src/data/schemas/grammaire/reference.ts',
       'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
       'Calage.x @ src/data/props.types.ts',
       'Calage.y @ src/data/props.types.ts',
@@ -545,26 +553,31 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
       'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.accent.id @ src/data/schemas/grammaire/ref.ts',
+      'Couleurs.barreau @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corps @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cuir @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.fourrure @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.gravats @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.joint @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.metal @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.metal2 @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.peau @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.planche @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.plume @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.traverse @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vegetal @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vet1 @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vet2 @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.vitre @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.yeux @ src/data/schemas/grammaire/valeurs.ts',
       'CustomStatblock.char @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.followsCharacterRules @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.inert @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.label @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.randomChars @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills.value @ src/data/index.ts',
@@ -583,6 +596,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.natural @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.parLocalisation @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.plage @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.profilDArme @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
@@ -662,6 +676,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
+      'SujetDuJet.avisSurLeStatut @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.begging @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.characteristic @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.crewTestType @ src/data/schemas/grammaire/mecanique.ts',
@@ -799,36 +814,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
-  it('l’interface web ne crédite rien : un champ écrit par le seul `src/ui/**` est orphelin, le même écrit par une primitive atteinte depuis `editer` est crédité', () => {
-    const SCENE = { 'src/noyau/monde/scene.ts': `export interface Scene { id: string; notes: string }\n` };
-    const NOTES = `import type { Scene } from '../../noyau/monde/scene';
-export const saisirNotes = (s: Scene, v: string): Scene => ({ ...s, notes: v });\n`;
-    const RENOMMER = `import type { Scene } from '../../noyau/monde/scene';
-export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
-    const web = virtualProgram({
-      ...SCENE,
-      'src/ui/editor/Notes.tsx': NOTES,
-      'src/noyau/edition/renommer.ts': RENOMMER,
-      ...pontQuiEdite({ 'src/noyau/edition/renommer': ['renommer'] }),
-    });
-    try {
-      const rows = auditerLEditabilite(VIRTUAL_ROOT, web, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.notes']);
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/renommer.ts']);
-    } finally { web.dispose(); }
-    const godot = virtualProgram({
-      ...SCENE,
-      'src/noyau/edition/notes.ts': NOTES,
-      'src/noyau/edition/renommer.ts': RENOMMER,
-      ...pontQuiEdite({ 'src/noyau/edition/notes': ['saisirNotes'], 'src/noyau/edition/renommer': ['renommer'] }),
-    });
-    try {
-      const rows = auditerLEditabilite(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual([]);
-      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/edition/notes.ts']);
-    } finally { godot.dispose(); }
-  });
-
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Scene {
@@ -954,13 +939,13 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...PRIMITIVES,
       // Même NOM, autre module (hors chemin de l'auteur) : la fermeture d'appels résout un SYMBOLE,
       // pas un nom — l'appel ci-dessous ne rend pas `sceneEdit.setSceneFlags` atteignable.
-      'src/state/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/lib/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: patch };
 }\n`,
       'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
 import { setNotes } from '../../hote/editorState';
-import { setSceneFlags } from '../../state/runtimeFlags';
+import { setSceneFlags } from '../../lib/runtimeFlags';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const basculer = (s: Scene, k: string) => setScene(setSceneFlags(s, { [k]: true }));

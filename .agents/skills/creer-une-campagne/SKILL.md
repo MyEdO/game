@@ -15,10 +15,9 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    ou comme document JSON. « Ouvrir » une campagne du jeu en fait une COPIE de travail libellée « Copie de
    <label> » ; l'aller-retour vers le paquet est « Fichier → Exporter forme dépôt (dev) » : le fichier
    `BuiltinCampaign.fichier`, au format du dépôt, libellé d'origine tant que le projet n'est pas renommé,
-   ordre des scènes et scène d'entrée conservés (garde `src/ui/editor/export-forme-depot.test.tsx`).
+   ordre des scènes et scène d'entrée conservés.
    « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
-   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`, garde
-   `src/ui/editor/export-passe-la-porte.test.tsx`). Tout paquet neuf se déclare dans
+   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`). Tout paquet neuf se déclare dans
    `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` : le volet couverture de
    `src/scenes/generateurs-byte-stables.test.ts` exige que tout
    `*-projet.json` soit produit par un générateur OU nommé manuscrit.
@@ -31,15 +30,13 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    `worldMap.places[].scene` doit pointer un id du tableau `scenes` ; deux routes entre les mêmes lieux
    sont permises (seul `id` est une clé) et le moteur ne force PAS le sens : nommer `-aller`/`-retour`.
 5. **Validé par ce qui le lit, AUCUN test nominatif sur le paquet livré.** `parseProject`
-   (`src/noyau/worldMap.ts`) refuse un document mal formé ; au démarrage en DEV, `src/dev-validate.ts`
-   le confronte à son schéma. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
+   (`src/noyau/worldMap.ts`) refuse un document mal formé. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
    `validateScene` (`src/noyau/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
    du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME
    commit (#2404) : par leur générateur, ou par un script one-shot non commité pour un paquet manuscrit. Une MÉCANIQUE à prouver se prouve sur une scène de FIXTURE (skill `creer-un-scenario-de-test`),
    jamais sur la carte livrée.
-6. **Recette navigateur** — `chargerLeProjet(doc.scenes, startId, doc.worldMap, doc.narratif)` puis flux
-   complet déroulé : skill `recette-navigateur`.
+6. **Recette Godot** — charger le projet et dérouler son parcours complet dans le jeu. Voir `.claude/rules/hote-godot.md`.
 
 ## `scripts/campagne/lib.mjs` et les générateurs
 

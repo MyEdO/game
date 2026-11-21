@@ -76,11 +76,22 @@ export interface CaseDePont { x: number; y: number; z: number; glyphe: string }
 /** Une arête de pont : `t` entre les cases (x-1, y) et (x, y), `l` entre (x, y-1) et (x, y) ; son pont et son mot. */
 export interface AreteDePont { sens: 't' | 'l'; x: number; y: number; z: number; glyphe: string }
 
+function dimensionsDesLignes(lignes: readonly string[][]): { w: number; h: number } {
+  return {
+    w: (Math.max(...lignes.flat().map((l) => l.length)) - 1) >> 1,
+    h: (Math.max(...lignes.map((l) => l.length)) - 1) >> 1,
+  };
+}
+
+/** Dimensions en cases de la grille couverte par tous les ponts. */
+export function dimensionsDesPonts(ponts: readonly string[]): { w: number; h: number } {
+  return dimensionsDesLignes(ponts.map((p) => p.split('\n')));
+}
+
 /** La grille des ponts : dimensions en cases, cases et arêtes non vides. PURE. */
 export function grilleDesPonts(ponts: readonly string[]): { w: number; h: number; cases: CaseDePont[]; aretes: AreteDePont[] } {
   const lignes = ponts.map((p) => p.split('\n'));
-  const h = (Math.max(...lignes.map((l) => l.length)) - 1) >> 1;
-  const w = (Math.max(...lignes.flat().map((l) => l.length)) - 1) >> 1;
+  const { w, h } = dimensionsDesLignes(lignes);
   const a = (z: number, l: number, c: number) => lignes[z][l]?.[c] ?? ' ';
   const vide = (g: string) => GRAMMAIRE_ASCII.base.includes(g);
   const cases: CaseDePont[] = [];

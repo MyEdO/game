@@ -153,14 +153,14 @@ describe('Aux Armes — qualités d’artillerie câblées', () => {
   });
 });
 
-describe('Poudre imprégnée d’Aqshy (AA 08 l.544) — seuil de Maladresse élargi {8,9}', () => {
+describe('Poudre imprégnée d’Aqshy (AA 08 l.542) — seuil de Maladresse élargi {8,9}', () => {
   it('Dangereuse seule (LDB 62 l.315) : Maladresse sur 9 (dizaines OU unités), jamais sur 8 seul', () => {
     expect(dangerousNine(w(['Dangereuse']), 91, false)).toBe(true);
     expect(dangerousNine(w(['Dangereuse']), 19, false)).toBe(true);
     expect(dangerousNine(w(['Dangereuse']), 99, false)).toBe(true);
     expect(dangerousNine(w(['Dangereuse']), 84, false)).toBe(false);
   });
-  it('Poudre imprégnée d’Aqshy (via weaponWithAmmo) : Maladresse sur 8 OU 9 (AA 08 l.544)', async () => {
+  it('Poudre imprégnée d’Aqshy (via weaponWithAmmo) : Maladresse sur 8 OU 9 (AA 08 l.542)', async () => {
     const { weaponWithAmmo } = await import('../items');
     const weapon = w(['Empaleuse']);
     const ammo = itemFromTrappingById('poudre-impregnee-d-aqshy', idsDeTest)!;

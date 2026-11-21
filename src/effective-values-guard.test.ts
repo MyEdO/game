@@ -16,7 +16,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * compte déclaré échoue (zéro entrée fantôme), toute ligne non exemptée échoue aussi.
  */
 
-const DIRS = ['src/ui', 'src/state', 'src/noyau'];
+const DIRS = ['src/noyau'];
 
 const CHAR_ACCESS_RX = /\.characteristics\b/;
 
@@ -33,24 +33,6 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
     file: 'src/noyau/codex/registry.ts',
     match: 'lv.characteristics',
     count: 2,
-    reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
-  },
-  {
-    file: 'src/ui/creator/CharacterCreator.tsx',
-    match: 'lvlExplored.characteristics',
-    count: 1,
-    reason: "idem — champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
-  },
-  {
-    file: 'src/ui/editor/codex/CodexEdit.tsx',
-    match: 'safeParse(entry.characteristics)',
-    count: 1,
-    reason: "éditeur Codex GÉNÉRIQUE de champ `characteristics: CharKey[]` (CareerLevel/DomainData) — édite une LISTE d'ids CharKey, pas une valeur de Combatant.",
-  },
-  {
-    file: 'src/noyau/codex/relations.ts',
-    match: 'lv.characteristics',
-    count: 1,
     reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
   },
   {

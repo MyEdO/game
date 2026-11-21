@@ -8,12 +8,14 @@ import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
+import type { ConsumableDuration } from './consumables';
+import type { CritTestNode } from '../data/criticals';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention, RaceKey } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { RegimeDeBord } from './disease';
 import type { ActionId, NightStakeId } from '../data/index';
@@ -205,13 +207,20 @@ export interface TalentInstance {
   times: number;
 }
 
+export interface ReferenceDeCouleur {
+  id: string;
+  colonne: RaceKey;
+}
+
+export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: string;
-  hair?: string;
+  eyes?: CouleurDePersonnage;
+  hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;
   ambitionLong?: string;
@@ -296,6 +305,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  l'usage par `effectiveRange(weapon.range, BF du tireur)` aux sites combat/affichage. */
   range?: WeaponRangeSpec | null;
   qualities: QualityInstance[];
+  /** AA 08 l.69-77 */
+  atoutOptionnel?: string;
   /** `id` du Groupe d'arme/famille de munition (`WeaponGroupData.id`) — réf, ≠ libellé. Pilote la
    *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`). */
   subType?: string;
@@ -325,9 +336,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
    *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
   removedTypes?: ('atout' | 'defaut')[];
-  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (la première de `TrappingData.munitions`) — discrimine la
-   *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
-   *  `ammoFamilyLabel` pour le hint joueur. */
+  /** `id` de munition REPRÉSENTATIVE de l'arme (la première de `TrappingData.munitions`), là où `subType` seul ne
+   *  la nomme pas. Lu par `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
   /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
    *  ZI 13 l.193 */
@@ -379,6 +389,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
+  /** Guide de Frenchy, chap. 26, lignes 827, 832 ; Guide de Frenchy, chap. 51, lignes 350, 354 */
+  sansSpecialisation?: true;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
    *  posé par `recomputeLoadout` : une arme dérivée n'est pas une arme tenue que l'on lâche. */
   derivedFromItem?: string;
@@ -882,6 +894,8 @@ export interface ActiveEffect {
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;
+  /** VDM 09 l.354 */
+  fleeForbidden?: true;
   /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
    *  lu par `prayerBannedOn`). LDB 40 l.64 */
   deityBan?: string;
@@ -999,7 +1013,7 @@ export interface Trauma {
    *  personnage porte l'État `whileCondition`, tout critique SUBSÉQUENT à `location` (ou toute Localisation si
    *  absente) impose le nœud `test` de sauvegarde (la branche empruntée porte ses ops). Stampé par
    *  `stampCriticalEscalation`, lu par `fireCritTriggers` au point unique de résolution des critiques. */
-  critTrigger?: { location?: HitLocation; whileCondition: string; test: import('../data/criticals').CritTestNode };
+  critTrigger?: { location?: HitLocation; whileCondition: string; test: CritTestNode };
   /** Amputation DIFFÉRÉE à la fin de la rencontre (LDB 18, « Coupure à l'orteil » l.171 : « Une fois la
    *  rencontre terminée… ») : le/les Test(s) FABRIQUÉS par `resolveCritique` pour un
    *  `amputation.timing === 'postEncounter'`, ENJEU POSÉ — ARMÉS ici (même patron de nœud persisté que
@@ -1087,13 +1101,13 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   desc?: string;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — copiée du trapping,
    *  résolue AU BOIRE (`consumableUntilTime`) → `ctx.defaultUntilTime` des ops appliquées. */
-  consumableDuration?: import('./consumables').ConsumableDuration;
+  consumableDuration?: ConsumableDuration;
   /** `id` du Groupe/famille (`WeaponGroupData.id`) — munition : famille compatible (arc/arbalete/
    *  poudre-noire) ; armure : type (plate/mailles/cuir-souple…). Correspond à `Weapon.subType`. */
   subType?: string;
   /** Groupe de Projectiles d'une arme de siège (cf. `Weapon.weaponGroup`) — propagé à l'arme dérivée. */
   weaponGroup?: string;
-  /** Munition REPRÉSENTATIVE d'une arme de siège (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
+  /** Munition REPRÉSENTATIVE de l'arme (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
   defaultAmmo?: string;
   /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
    *  par `armeDeLaDonnee`). */
@@ -1199,7 +1213,7 @@ export type DeckCoverClass = 'imparfaite' | 'moyenne' | 'totale';
 export type CoverClass = 'none' | DeckCoverClass;
 
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222) : l'entrée de son schéma
- *  (`authoredShipPosteSchema`), telle qu'un auteur l'écrit. La pièce et son coffre désignent le catalogue ;
+ *  (`authoredShipPosteSchema`). La pièce et le coffre désignent les catalogues des engins et des munitions ;
  *  `hydratePoste` les matérialise au spawn, chaque uid d'instance dérivé de la place (#2907). */
 export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
@@ -1208,7 +1222,7 @@ export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/sch
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
 export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
-  /** L'arme HYDRATÉE (instance complète, base via `trappingId`). Jamais persistée : re-résolue à chaque spawn
+  /** L'arme HYDRATÉE (instance complète, profil d’engin via `trappingId`). Re-résolue à chaque spawn
    *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
   /** Le coffre MATÉRIALISÉ de la pièce : des `ItemInstance` `kind:'ammo'` avec leur `qty`, fondues au pool du chef
@@ -1237,7 +1251,7 @@ export type ZoneBarre = 'arsenal' | 'accesRapide' | 'capacites';
 
 /** UNE case posée : l'action du registre (`src/data/actions.json`) et la CLÉ DÉCLARÉE de la case,
  *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `avantage-<skillId>`,
- *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`, ou `ActionDef.keys[0]`).
+ *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`).
  *  Cette clé est une identité de MODÈLE, déclarée au site de la case — jamais un uid d'INSTANCE
  *  (boire une potion changerait l'uid et tuerait l'adresse), jamais un libellé. */
 export interface EntreeBarre {
@@ -1299,10 +1313,9 @@ export interface Combatant {
    *  d'incantation (LDB 46 l.107-111, une possession/dépense de personnage), Tests de fin de combat
    *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), Terreurs
    *  subies de la Phobie du noir (ADE II 09 l.9).
-   *  Un HÉROS (`kind:'heros'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
-   *  générique du bestiaire ne l'est PAS par défaut ; un PNJ humain hostile MODÉLISÉ (statbloc d'auteur)
-   *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
-   *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
+   *  Un héros du groupe l'est implicitement. Un combattant apparu depuis une fiche peut l'être
+   *  explicitement (`CreatureData.followsCharacterRules` ou `CustomStatblock.followsCharacterRules`),
+   *  quel que soit son camp. Prédicat : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
    *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —

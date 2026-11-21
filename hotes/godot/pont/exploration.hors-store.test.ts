@@ -10,7 +10,9 @@ import { drainer, erreurDe, table, enFocus, mondeDe, morceauxDe, vueDe } from '.
 import type { MorceauxDuPont } from './pont';
 import { hash32AuMillieme } from '../../../src/lib/hash';
 import { depuisBase64 } from '../../../src/lib/base64';
-import { CLIC_DU_CHAMP, type AreteDessinee, type RetraitDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, cotesDeMarchesDeLaScene, type AreteDessinee, type CoteDeMarches, type RetraitDuMonde } from '../../../src/noyau/index';
+import { testScenarios } from '../../../src/scenes/test-scenarios';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -52,7 +54,7 @@ describe('l’exploration par le pont', () => {
     expect(auMilieu(fermees), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
       .toEqual({
         cle: '2,1,E,0', cases: [{ x: 2, y: 1, z: 0 }, { x: 3, y: 1, z: 0 }], milieu: { x: 2.5, y: 1 },
-        sens: { x: 0, y: -1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage',
+        sens: { x: 0, y: -1 }, pied: 0, piece: 'porte-fermee', position: 'seule', famille: 'colombage',
         palette: expect.any(Object), hauteurM: 4, bloc: '0/0/0',
       });
     expect(fermees.filter((a) => a !== auMilieu(fermees)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
@@ -88,5 +90,13 @@ describe('l’exploration par le pont', () => {
     expect([retrait.largeur, retrait.rangees]).toEqual([plateau.w, 2 * monde.hauteurs.length * plateau.h]);
     expect(hash32AuMillieme(depuisBase64(retrait.masque)).toString(36), 'la clé du retrait est l’empreinte des octets de son masque').toBe(plateau.cleDuRetrait);
     expect(erreurDe(appel('retrait', { regard: 'plateau' })).message).toBe('retrait : regard hors de l’entrée (aucune clé)');
+  });
+
+  it('`aretes` sert aussi les côtés des cases de marches de la scène, sous la même clé de relecture (#4471)', () => {
+    appel('quitter');
+    drainer(appel, appel('demarrer', { scenario: 'fenetre-ecuries', graine: 7 }));
+    const servis = (appel('aretes') as unknown as { cotesDeMarches: CoteDeMarches[] }).cotesDeMarches;
+    expect(servis.length, 'la volée de la cour').toBeGreaterThan(0);
+    expect(servis).toEqual(cotesDeMarchesDeLaScene(testScenarios.find((s) => s.id === 'fenetre-ecuries')!.construire(idsDeTest).scene));
   });
 });

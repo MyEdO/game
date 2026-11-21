@@ -70,13 +70,15 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     livre: '<path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6"/>',
     pieces: '<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.700 3.100 3 7 3s7-1.300 7-3V7M5 12v5c0 1.700 3.100 3 7 3s7-1.300 7-3v-5"/>',
     cible: '<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.500"/>',
-    poing: '<path d="M7 11V7.500a1.500 1.500 0 0 1 3 0V7a1.500 1.500 0 0 1 3 0v.5a1.500 1.500 0 0 1 3 0V9a1.500 1.500 0 0 1 3 0v5c0 4-2.500 6.500-6.500 6.500S6 18 5 15l-1-3c-.4-1.500 1.500-2.500 3-1z"/>',
+    poing: '<path d="M4.500 9.500a1.900 1.900 0 0 1 3.800 0 1.900 1.900 0 0 1 3.800 0 1.900 1.900 0 0 1 3.800 0 1.900 1.900 0 0 1 3.800 0v4.500c0 3.600-3 6.500-7.600 6.500s-7.600-2.900-7.600-6.500zM4.500 14h6.500a2 2 0 0 0 0-4"/>',
     plus: '<path d="M12 6v12M6 12h12"/>',
     moins: '<path d="M6 12h12"/>',
     ancre: '<circle cx="12" cy="5.500" r="2"/><path d="M12 7.500V20M5 13c0 4 3 7 7 7s7-3 7-7M8.500 11h7"/>',
     sablier: '<path d="M7 3h10M7 21h10M8.500 3c0 5 7 6.500 7 9s-7 4-7 9M15.500 3c0 5-7 6.500-7 9s7 4 7 9"/>',
+    noeud: '<path d="M3.500 17.500c3.500 0 5-2.500 6.200-5.500S12.500 6.500 16 6.500a3 3 0 0 1 0 6c-3.500 0-5-2.200-8-2.200a2.400 2.400 0 0 1 0-4.800c3.500 0 4.800 3 6 6s2.700 5.500 6.500 5.500"/>',
     lune: '<path d="M19 14.500A8 8 0 0 1 9.500 5a8 8 0 1 0 9.500 9.500z"/>',
     ville: '<path d="M4 20V9l2-2 2 2v3h3V6l3-2.500L17 6v6h3v8zM4 20h16M13 9.500h2M7 14h.01M13 14h2"/>',
+    fer: '<path d="M7 4.500v7a5 5 0 0 0 10 0v-7M5.500 4.500h3M15.500 4.500h3"/><path d="M8.300 9h.01M8.600 13h.01M15.700 9h.01M15.400 13h.01" stroke-width="2.200"/>',
     cle: '<circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M16.500 16.500l2-2M14 14l2-2"/>',
     coche: '<path d="M5 12.500l4.500 4.500L19 7"/>',
     goutte: '<path d="M12 4c3 4 5 6.500 5 9.500a5 5 0 0 1-10 0C7 10.500 9 8 12 4z"/>',
@@ -208,7 +210,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* la plaque : `taille` appel, moyenne ou petite ; `numero` : sa touche, en tête ; `prix` à droite */
   const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
   /* choisir par carte : la plaque haute, un portrait et deux lignes ; `refus` : la bulle de la carte fermée survolée */
-  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div>${refus ? raison(refus) : ''}</div>`;
+  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c" data-secondaire>${sous}</div></div></div>${refus ? raison(refus) : ''}</div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
   const outil = (nom, libelle, { ouvert = false, ferme = false, taille = 'petit' } = {}) => `<div class="outil${ouvert ? ' ouvert' : ''}">${rond(nom, taille, { ferme, arme: ouvert })}<span class="rubrique">${libelle}</span></div>`;
   /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas */
@@ -219,19 +221,19 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const compteur = (n, libelle) => `<div class="compteur">${disque(n, { taille: 'grand' })}<span class="rubrique">${libelle}</span></div>`;
   /* le d10 du d100, vu de face : la silhouette et la face du dé de `navigation/des` (src/data/icons/defs/navigation.ts:11-13), à 36×40 */
   const d10 = (texte) => `<svg width="36" height="40" viewBox="0.5 -0.5 23 25"><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="#b8a67e"/><path d="M12 23V18.4L4.8 13.6L2.5 14.1ZM12 23V18.4L19.2 13.6L21.5 14.1Z" fill="#2a1d12" fill-opacity=".16"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6Z" fill="#f1e6cc"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6ZM4.8 13.6L2.5 14.1M19.2 13.6L21.5 14.1M12 18.4V23" fill="none" stroke="#2a1d12" stroke-width=".55" stroke-linejoin="round"/><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="none" stroke="#2a1d12" stroke-width=".8" stroke-linejoin="round"/><text x="12" y="${texte.length > 1 ? 14.2 : 14.8}" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 6.6 : 8.4}" fill="#2a1d12">${texte}</text></svg>`;
-  /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite ou vide ;
-     `de` : le dé dont le chiffre est le jet, écrit dessous */
+  /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite, reussite critique ou
+     vide ; `de` : le dé dont le chiffre est le jet, écrit dessous */
   const SCEAU = { menu: 12, petit: 15, moyen: 20, grand: 26, maitre: 32 };
   const sceau = (contenu, taille = 'petit', { etat = '', classe = '', de = '' } = {}) => `<div class="sceau ${taille} ${etat}${de ? ' de' : ''} ${classe}">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}${de ? `<i>${de}</i>` : ''}</div>`;
   /* le ruban : centré sur son `left` ; `gothique` : le titre d'un panneau */
   const ruban = (texte, { gothique = false, style = '' } = {}) => `<div class="ruban ${gothique ? 'gothique' : 'rubrique'}" style="${style}">${texte}</div>`;
   /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
-     `tete` : ce qui se pose sur le bord haut */
-  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '' } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${id}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
-  /* une rangée de cartes se lit en liste à partir de quatre, ou quand ses cartes n'y tiennent pas à 200 de large */
+     `tete` : ce qui se pose sur le bord haut ; `piece` : son rôle au relevé du rendu, son `id` sans autre rôle */
+  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '', piece = id } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${piece}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
+  /* une rangée de cartes se lit en liste à partir de quatre, paginée, ou quand ses cartes n'y tiennent pas à 200 de large */
   const ranger = () => document.querySelectorAll('.cartes').forEach((r) => {
     const n = r.querySelectorAll(':scope>.carte').length;
-    r.classList.toggle('liste', n > 3 || r.clientWidth < n * 200 + (n - 1) * 9);
+    r.classList.toggle('liste', r.classList.contains('paginee') || n > 3 || r.clientWidth < n * 200 + (n - 1) * 9);
     r.querySelectorAll(':scope>.carte').forEach((c) => {
       c.classList.remove('deux-lignes');
       const l = c.querySelector('.c');
@@ -243,55 +245,94 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     const q = r.getBoundingClientRect();
     r.parentElement.querySelectorAll(':scope>.clou[style*="top"]').forEach((c) => { const k = c.getBoundingClientRect(); if (k.right > q.left - 12 && k.left < q.right + 12) c.remove(); });
   });
-  /* la bulle de refus reste dans son cadre (dans la vue hors cadre) et ne couvre aucun texte hors de l'élément refusé :
-     au-dessus de lui, décalée de côté pour rester dans le cadre ; sinon dessous ; sinon posée sur lui, au bout de sa
-     ligne, puis à sa largeur */
+  /* la bulle reste dans son cadre (dans la vue hors cadre, sous ce qui la rogne) et ne couvre aucun texte libre, pas
+     même le libellé de l'élément qu'elle qualifie, ni d'abord un autre contrôle : au-dessus de lui, centrée, puis alignée
+     sur son bord droit ou gauche, décalée pour rester dans le cadre ; sinon dessous, de même, puis sous les lignes de texte qui le bordent ; sinon à sa droite, puis à sa
+     gauche, centrée sur sa hauteur ; sinon la raison prend la place de
+     la ligne secondaire de l'élément refusé (`data-secondaire`) ; sans elle, la bulle peut couvrir un autre contrôle,
+     son libellé compris, jamais un texte libre : sans aucune pose, elle porte `data-sans-pose`, que le relevé refuse */
   const poserLesBulles = () => {
-    const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && e.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+    const lignesDe = (e) => [...e.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => { const g = document.createRange(); g.selectNodeContents(n); return [...g.getClientRects()].filter((l) => l.width && l.height); });
+    const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b, .niche';
+    const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).map((e) => ({ e, lignes: lignesDe(e) }));
+    const controles = [...document.querySelectorAll(`#ui :is(${CONTROLE})`)];
     document.querySelectorAll('.bulle-refus').forEach((b) => {
-      const refuse = b.parentElement, bord = (b.closest('.cadre') ?? document.getElementById('ui')).getBoundingClientRect(), r = refuse.getBoundingClientRect();
-      const lignes = textes.filter((e) => !refuse.contains(e)).flatMap((e) => { const g = document.createRange(); g.selectNodeContents(e); return [...g.getClientRects()].filter((l) => l.width && l.height); });
-      const libre = (q, [x, y]) => q.left + x >= bord.left && q.right + x <= bord.right && q.top + y >= bord.top && q.bottom + y <= bord.bottom
-        && !lignes.some((l) => Math.min(l.right, q.right + x) - Math.max(l.left, q.left + x) > 1 && Math.min(l.bottom - l.height / 4, q.bottom + y) - Math.max(l.top + l.height / 4, q.top + y) > 1);
+      const refuse = b.parentElement;
+      /* l'élément survolé est en vue : ce qui le fait défiler l'y amène */
+      refuse.scrollIntoView({ block: 'nearest' });
+      const r = refuse.getBoundingClientRect();
+      const bord = [...(function* ancetres(a) { for (; a && a.id !== 'ui'; a = a.parentElement) yield a; })(refuse)].filter((a) => a.matches('.cadre') || getComputedStyle(a).overflow !== 'visible')
+        .reduce((c, a) => { const q = a.getBoundingClientRect(); return new DOMRect(Math.max(c.left, q.left), Math.max(c.top, q.top), Math.min(c.right, q.right) - Math.max(c.left, q.left), Math.min(c.bottom, q.bottom) - Math.max(c.top, q.top)); }, document.getElementById('ui').getBoundingClientRect());
+      const autres = controles.filter((c) => !c.contains(b)).map((c) => c.getBoundingClientRect());
+      /* les textes libres : hors de tout contrôle, sauf celui que la bulle qualifie */
+      const libres = textes.filter(({ e }) => !e.closest(CONTROLE) || e.closest(CONTROLE).contains(b)).flatMap((t) => t.lignes);
+      const libre = (obstacles) => (q, [x, y]) => q.left + x >= bord.left && q.right + x <= bord.right && q.top + y >= bord.top && q.bottom + y <= bord.bottom
+        && !obstacles.some((l) => Math.min(l.right, q.right + x) - Math.max(l.left, q.left + x) > 1 && Math.min(l.bottom, q.bottom + y) - Math.max(l.top, q.top + y) > 1);
       /* le décalage de côté qui garde la bulle `q`, déplacée de `x`, dans le cadre */
       const dans = (q, x = 0) => x + Math.max(bord.left + 6 - q.left - x, Math.min(0, bord.right - 6 - q.right - x));
+      const cotes = [() => 0, (q) => r.right - q.right, (q) => r.left - q.left];
+      const sousLesLignes = (q, x) => Math.max(r.bottom, ...textes.flatMap((t) => t.lignes).filter((l) => l.right > q.left + x && l.left < q.right + x && l.top >= r.bottom - 1 && l.top < r.bottom + 11 + q.height).map((l) => l.bottom));
       const milieu = (q) => (r.top + r.bottom) / 2 - (q.top + q.bottom) / 2;
       const places = [
-        ['dessus', (q) => [dans(q), 0]],
-        ['dessous', (q) => [dans(q), r.bottom + 11 - q.top]],
-        ['dedans', (q) => [r.right - 10 - q.right, milieu(q)]],
-        ['dedans', (q) => [dans(q, (r.left + r.right) / 2 - (q.left + q.right) / 2), milieu(q)], () => Object.assign(b.style, { whiteSpace: 'normal', width: `${Math.max(r.width - 12, 140)}px`, textAlign: 'center' })],
+        ...cotes.map((cote) => ['dessus', (q) => [dans(q, cote(q)), 0]]),
+        ...cotes.map((cote) => ['dessous', (q) => [dans(q, cote(q)), r.bottom + 11 - q.top]]),
+        /* dessous, passé sous les lignes de texte qui le bordent (l'issue sous le camp) */
+        ...cotes.map((cote) => ['dessous', (q) => { const x = dans(q, cote(q)); return [x, sousLesLignes(q, x) + 11 - q.top]; }]),
+        ['cote-droit', (q) => [r.right + 11 - q.left, milieu(q)]],
+        ['cote-gauche', (q) => [r.left - 11 - q.right, milieu(q)]],
       ];
-      const pose = places.find(([, ou, regler]) => { regler?.(); const q = b.getBoundingClientRect(); if (libre(q, ou(q))) return true; b.style.removeProperty('white-space'); b.style.removeProperty('width'); b.style.removeProperty('text-align'); return false; }) ?? places[0];
-      const [x, y] = pose[1](b.getBoundingClientRect());
+      const poser = (obstacles) => places.find(([, ou]) => { const q = b.getBoundingClientRect(); return libre(obstacles)(q, ou(q)); });
+      const secondaire = refuse.querySelector('[data-secondaire]');
+      const pose = poser([...textes.flatMap((t) => t.lignes), ...autres]) ?? (secondaire ? null : poser(libres));
+      if (!pose && secondaire) {
+        secondaire.textContent = b.textContent;
+        secondaire.classList.add('raison-de-refus');
+        b.remove();
+        refuse.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      /* aucune pose ne laisse libre tout texte libre : la bulle reste au-dessus, marquée, et le relevé refuse l'état */
+      if (!pose) b.dataset.sansPose = '';
+      const [nom, ou] = pose ?? places[0];
+      const [x, y] = ou(b.getBoundingClientRect());
       b.style.translate = `${x}px ${y}px`;
-      b.style.setProperty('--pointe', `${-x}px`);
-      b.classList.add(pose[0]);
+      if (!nom.startsWith('cote-')) b.style.setProperty('--pointe', `${-x}px`);
+      b.classList.add(nom);
     });
   };
   /* les clous d'un meuble (barre, jet, arrêt), ou d'un bandeau de `cases` héros : aux bords et entre deux cases */
   const MEUBLE = [[.0593, .2797, .7203, .9407], [.0593, .2797, .5, .7203, .9407]];
   const clouer = (cases = null) => (cases ? [0, 1].map(() => [.05, ...Array.from({ length: cases - 1 }, (_, k) => (k + 1) / cases), .945]) : MEUBLE)
     .map((ligne, k) => ligne.map((t) => `<i class="clou" style="left:${(100 * t).toFixed(2)}%;${k ? 'bottom' : 'top'}:3px"></i>`).join('')).join('');
-  /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est ; `taille` ligne, ou titre : celui de
-     l'écran, dans son cadre au coin haut-gauche, large de `largeur` */
-  const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne', largeur = null }) => {
+  /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est (`sous`, une ligne ou une liste de lignes) ; `taille` ligne, ou titre : celui de
+     l'écran, dans son cadre au coin haut-gauche */
+  const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne' }) => {
     const titre = taille === 'titre';
-    const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}</div>`;
-    return titre ? cadre('titre', null, null, largeur, null, 'bois cartouche', corps) : `<div class="cartouche">${corps}</div>`;
+    const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => `<div class="s rubrique">${s}</div>`).join('')}</div>`;
+    return titre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche">${corps}</div>`;
   };
   /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,
      `fin` au bout du rang */
   const rang = (genre, { camp, taille = 'moyen', choisi = false, nom, gothique = false, sous = '', corps = '', fin = '', classe = '' }) => `<div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, { camp, taille, choisi })}
     <div class="qui"><div class="nom ${gothique ? 'gothique' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}${corps}</div>${fin}</div>`;
-  /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques */
-  const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }))).join('')}</div>`;
+  /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
+     place sans contenu n'est pas posée */
+  const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
+  /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
+     chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
+  const onglets = (noms, active, cadre = '') => {
+    const onglet = (s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }));
+    return `<div class="onglets">${cadre ? places(cadre, Object.fromEntries(noms.map((s, k) => [`onglet-${k + 1}`, s && onglet(s)]))) : noms.map(onglet).join('')}</div>`;
+  };
   /* les sections d'un panneau en signets, au bord droit de son registre : `sections` = [{ nom, compte, marque }], le
      signet `ouverte` est de laiton ; `marque` : une règle de la section est modifiée */
   const signets = (sections, ouverte) => `<div class="signets" data-piece="signets">${sections.map(({ nom, compte = null, marque = false }) => `<div class="signet${nom === ouverte ? ` ouvert${nom.length > 12 ? ' serre' : ''}` : ''}"><span class="rubrique">${nom}</span>${marque ? '<i class="cire"></i>' : ''}${compte == null ? '' : `<em class="chiffres">${compte}</em>`}</div>`).join('')}</div>`;
+  /* ce qui suit ce qu'il désigne, hors de la table des cadres (`../rendu.js`) : `ancre` survol (aperçu, bulle de refus),
+     scene (marque, pastille, poste) ou ancre (liste déroulée, fiche d'un combattant) */
+  const mobile = (ancre) => ` data-mobile data-ancre="${ancre}"`;
   /* l'aperçu au survol : son nom, à droite ce qu'il est, son corps ; `vers` : le bord dont la pointe montre l'élément
      survolé (gauche, droite, haut, bas) ; `style` le place */
-  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu" style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
+  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
   /* la bannière d'issue d'un combat, et sous elle sa sortie, une plaque d'appel ; `suite` : ce que l'issue laisse */
   const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${suite ? `<p class="ombre" data-texte="suite de l'issue">${suite}</p>` : ''}${action ? plaque(action, { armee: true, taille: 'appel' }) : ''}</div>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
@@ -306,10 +347,32 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const vie = (pv, max) => jauge(pv / max);
   /* un rang de pas en losanges : `pleins` sur `total` */
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
-  /* pose les pièces ; une fois les polices chargées, range les cartes et dégage les rubans de leurs clous ; passe le grain */
+  /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
+     par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
+     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied */
+  const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
+  const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
+    const action = [...d.querySelectorAll('.plaque.armee, .en-cours')].at(-1);
+    if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
+    else if (action) d.scrollTop += Math.max(0, action.getBoundingClientRect().bottom - d.getBoundingClientRect().bottom + parseFloat(getComputedStyle(d).getPropertyValue('--fondu')));
+    d.classList.toggle('suite', d.scrollTop + d.clientHeight < d.scrollHeight - 1);
+    d.classList.toggle('avant', d.scrollTop > 1);
+  });
+  /* ce qui se pagine (`defile(contenu, 'pages')`) : sa page tient un nombre entier de ses lignes, la suite est aux pages
+     suivantes ; le folio de son cadre dit la page lue et leur nombre, à partir de deux */
+  const paginer = () => document.querySelectorAll('.defile.pages').forEach((d) => {
+    const ligne = parseFloat(getComputedStyle(d).lineHeight), hauteur = Math.floor(d.clientHeight / ligne) * ligne;
+    Object.assign(d.style, { flex: 'none', height: `${hauteur}px` });
+    const n = Math.ceil(d.scrollHeight / d.clientHeight);
+    const folio = d.closest('.cadre').querySelector('.folio');
+    folio.querySelector('b').textContent = `Page 1 sur ${n}`;
+    folio.hidden = n < 2;
+  });
+  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, pose les bulles,
+     annonce les suites et les pages ; passe le grain */
   const monter = (pieces) => {
     document.getElementById('ui').innerHTML = pieces.join('');
-    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); });
+    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); suites(); paginer(); });
     document.getElementById('grain').style.backgroundImage = svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`);
   };
 
@@ -321,25 +384,27 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* hors combat : le journal, et le système sous lui, au coin bas droit (`../dispositions.md`) */
   const coins = () => `<div id="coins" data-piece="coins">${rond('journal', 'grand')}${rond('systeme', 'grand')}</div>`;
   const retour = (libelle, icone = 'sortie') => `<div class="retour" data-piece="retour">${rond(icone, 'grand')}<span class="rubrique ombre">${libelle}</span></div>`;
-  /* ouvrir un écran posé sur celui-ci (carte, dossier du navire, postes de bord) : la pastille du bord droit, à la hauteur `haut` */
-  const ouvrir = (libelle, icone, haut) => `<div class="ouvrir" data-piece="ouvrir ${libelle}" style="top:${haut}px"><span class="rubrique ombre">${libelle}</span>${rond(icone)}</div>`;
+  /* ouvrir un écran posé sur celui-ci (carte, dossier du navire, postes de bord) : la pastille du bord droit, la `rang`-ième */
+  const ouvrir = (libelle, icone, rang) => `<div class="ouvrir" data-piece="ouvrir-${rang}"><span class="rubrique ombre">${libelle}</span>${rond(icone)}</div>`;
   /* régler une quantité : − et +, la valeur réglée entre les deux ; un bord atteint se ferme */
   const moinsPlus = ({ moins = true, plus = true, entre = '' } = {}) => `<div class="moins-plus">${rond('moins', 'menu', { ferme: !moins })}${entre}${rond('plus', 'menu', { ferme: !plus })}</div>`;
   /* fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline` : la bulle du geste fermé que le curseur survole */
-  const raison = (texte) => `<span class="bulle-refus parchemin" data-dessus>${texte}</span>`;
+  const raison = (texte) => `<span class="bulle-refus parchemin" data-dessus${mobile('survol')}>${texte}</span>`;
   /* #3004. Acte individuel : `bourse({ heros, avoir })`, la bourse de celui qui agit. Entreprise commune ou tarif par
      personne : `bourse({ parts: [[nom, part, avoir]], total })`, la part de chacun réglable avant validation ;
      `reglable: false` pour qui regarde sans régler (l'invité d'une partie à plusieurs). */
   const bourse = ({ heros, avoir, parts, total, reglable = true }) => `<div class="qui-paie${parts ? ' parts' : ''}">${medaillon('bourse', { taille: 'moyen' })}<div class="q">${parts
     ? `<span class="rubrique">Bourses du groupe</span>${parts.map(([nom, part, reste]) => `<div class="part"><span>${nom}</span>${reglable ? moinsPlus({ entre: `<b class="chiffres">${part}</b>` }) : `<b class="chiffres">${part}</b>`}<i>sur ${reste}</i></div>`).join('')}<div class="total"><span class="rubrique">Total</span><b class="chiffres">${total}</b></div>`
-    : `<span class="rubrique">Bourse de ${heros}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+    : `<span class="rubrique">Bourse ${de(heros)}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+  /* « de » devant un nom, élidé devant une voyelle (« Bourse d’Ilyanwe », « Test d’Intuition ») */
+  const de = (nom) => (/^[aeiouàâäéèêëîïôöùûüœæ]/i.test(String(nom)) ? `d’${nom}` : `de ${nom}`);
   /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
      `defile` : la valeur, plus haute que le champ, y défile */
   const champ = (libelle, valeur, { attente = '', classe = '', defile = false } = {}) => `<label class="champ ${classe}">${libelle ? `<span class="rubrique">${libelle}</span>` : ''}<b class="${valeur ? '' : 'vide'}"${defile ? ' data-defile' : ''}>${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, onglets, signets, apercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, onglets, signets, apercu, issue,
+    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
   });
 }

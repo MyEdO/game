@@ -27,6 +27,7 @@ import {
   assoirALaPlace,
   idDuCorps,
   labelEmplacement,
+  libelleDAuteur,
   lightTones,
   lumiereAllumee,
   PARTY_MAX,
@@ -126,7 +127,8 @@ import {
   groupesDuLieu,
   isWearable,
   objetsDeLInventaire,
-  trappingsInstanciables,
+  objetDuNarratif,
+  objetsInstanciablesDuProjet,
   candidatsDuSlot,
   carriereActuelle,
   careers,
@@ -156,6 +158,8 @@ import {
   listesDeSorts,
   sortsImprimes,
   aLEchelleDesPonts,
+  rectangleDesPonts,
+  refusDePoseDesPonts,
   CAPS_DES_PONTS,
   TYPES_DE_NAVIRE,
   vueDeLaScene,
@@ -348,9 +352,9 @@ export interface ZonesDeLEditeur {
    */
   'editeur.historique': Bouton[];
   /**
-   * copier l'entité sélectionnée et la dupliquer sur la case voisine au sud-est, sur sa couche, refusés sans entité
-   * sélectionnée ; coller la copie sur la dernière case appuyée, sur la couche éditée, refusé sans copie ou quand cette
-   * case est d'une autre couche
+   * copier l'entité sélectionnée et la dupliquer sur la case libre la plus proche de sa couche, en préférant la voisine
+   * au sud-est si elle est libre. Ces gestes exigent une sélection et la duplication est sans effet faute de place.
+   * Coller la copie sur la dernière case appuyée, sur la couche éditée, exige une copie et une case de cette couche.
    */
   'editeur.presse': Bouton[];
   /**
@@ -428,11 +432,11 @@ export interface ZonesDeLEditeur {
    * d'un emplacement de siège, l'engin de son poste en liste, son arc, omni ou l'un des quatre, ses servants parmi les
    * personnages de la scène et, parmi eux, le chef de pièce ; d'un emplacement ou d'une coque, son équipage exposé ;
    *
-   * d'un personnage, son inventaire d'auteur (`inventaire`, chaque objet du catalogue par son id, vrai s'il est
+   * d'un personnage, son inventaire d'auteur (`inventaire`, chaque objet du projet par son id, vrai s'il est
    * porté) : chaque objet sur sa ligne `inventaire/<id>`, nommé du catalogue, « Porté » pour un objet qui se porte
    * (`isWearable`), pressé s'il l'est, que sa pression bascule en ôtant les pièces qu'il chevauche (`inventaireApres`,
    * `equipConflicts`), et « Retirer », ou une ligne qui dit qu'il n'en a aucun, puis, en liste, chaque objet du
-   * catalogue instanciable (`trappingsInstanciables`) qu'il n'a pas, à ajouter, non porté ;
+   * catalogue et du narratif (`objetsInstanciablesDuProjet`) qu'il n'a pas, à ajouter, non porté ;
    *
    * d'un personnage d'une fiche du bestiaire sans profil d'auteur ni préréglage, son parcours de carrière (EDO 11
    * l.17-21, `porterAuParcours`) : chaque carrière portée, la dernière l'actuelle, ses Niveaux en boutons
@@ -788,13 +792,13 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (outil.mode === 'casesDeZone') return [...emprise(outil.zoneId, outil), boutonDEdition('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'selection' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
-      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, libelleDAuteur(e), { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
   }
   if (outil.mode === 'navire') {
     const scene = sceneEditee(s);
     return [
       choix('navires', t('ecran.editeur.navires'), TYPES_DE_NAVIRE.map(({ id, label }) =>
-        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene, id))), 'liste'),
+        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene))), 'liste'),
       choix('navire/cap', t('ecran.editeur.entite.cap'), CAPS_DES_PONTS.map((cap) =>
         boutonDEdition(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
     ];
@@ -950,10 +954,10 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
 const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
   listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
-/** Pourquoi le navire du type `ref` ne se pose pas dans `scene` : elle n'est pas à l'échelle de ses ponts
+/** Pourquoi l'outil ne pose pas de navire dans `scene` : elle n'est pas à l'échelle des ponts
  *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
-const refusDuNavire = (scene: Scene, ref: string): string | null =>
-  aLEchelleDesPonts(scene, ref) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
+const refusDuNavire = (scene: Scene): string | null =>
+  aLEchelleDesPonts(scene) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
 
 /** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
 const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
@@ -972,19 +976,24 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
-  const cap = capDeLEntite(ent);
+  const scene = sceneEditee(s);
+  const cap = rectangleDesPonts(scene, ent)?.cap ?? capDeLEntite(ent);
+  const caps = capsOfferts(ent).map((c) => boutonDEdition(
+    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } },
+    c === cap, refusDePoseDesPonts(scene, { ...ent, facing: c }) ?? null,
+  ));
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
       types.map((o) => boutonDEdition(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
-    choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => boutonDEdition(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
+    choix('entite/cap', t('ecran.editeur.entite.cap'), caps),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent), ...identifiantsDesActions(ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
     ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(s, ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
     ...formulaireDuPorteur(s, { sorte: 'entite', id: ent.id }, ent),
     boutonDEdition('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
@@ -1073,7 +1082,7 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
   const parId = new Map(sceneEditee(s).entities.map((e) => [e.id, e]));
   const nom = (id: string) => { const e = parId.get(id); return e ? nomALEcran(s, e) : id; };
   return [
-    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
+    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, libelleDAuteur(e), { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       boutonDEdition('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
       ...FIRE_ARCS.map((a) => boutonDEdition(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
@@ -1085,24 +1094,28 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
 }
 
 /** L'inventaire du personnage `ent` : chaque objet, par son id, à retirer et, s'il se porte (`isWearable`), porté ou
- *  non ; ou la ligne qui dit qu'il n'en a aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`)
+ *  non ; ou la ligne qui dit qu'il n'en a aucun ; puis, en liste, chaque objet du projet (`objetsInstanciablesDuProjet`)
  *  qu'il n'a pas, à y ajouter. Chaque bouton écrit son intention sur l'objet (`inventaireApres`). */
-function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
+function inventaire(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const { narratif } = projetEdite(s);
   const objets = ent.inventaire ?? {};
-  const instances = objetsDeLInventaire(objets, String);
+  const resolveTrapping = objetDuNarratif(narratif);
+  const instances = new Map(objetsDeLInventaire(objets, String, undefined, resolveTrapping).map((objet) => [objet.uid, objet]));
+  const ids = Object.keys(objets);
   const ecrire = (objet: NonNullable<PatchDEntite['objet']>): GesteDEdition => ({ geste: 'entite', patch: { objet } });
   return [
-    ...(instances.length
-      ? instances.map((objet) => {
-        const id = `inventaire/${objet.uid}`;
-        return choix(id, objet.label, [
-          ...(isWearable(objet) ? [boutonDEdition(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire({ porter: objet.uid }), objet.equipped)] : []),
-          boutonDEdition(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire({ retirer: objet.uid })),
+    ...(ids.length
+      ? ids.map((trappingId) => {
+        const objet = instances.get(trappingId);
+        const id = `inventaire/${trappingId}`;
+        return choix(id, objet?.label ?? resolveTrapping(trappingId)?.label ?? trappingId, [
+          ...(objet && isWearable(objet) ? [boutonDEdition(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire({ porter: trappingId }), objet.equipped)] : []),
+          boutonDEdition(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire({ retirer: trappingId })),
         ]);
       })
       : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
     choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
-      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => boutonDEdition(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ajouter: tr.id }))), 'liste'),
+      objetsInstanciablesDuProjet(narratif).filter((tr) => !(tr.id in objets)).map((tr) => boutonDEdition(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ajouter: tr.id }))), 'liste'),
   ];
 }
 
@@ -1181,7 +1194,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
  *  Compétences à la valeur de leur Test, ses Talents, ses possessions et ses mentions, une ligne par nature. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
+  const porte = ficheEditee(ent, projetEdite(s).narratif);
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -1204,7 +1217,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
  *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
  *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
 function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
-  const fiche = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
+  const fiche = ficheEditee(ent, projetEdite(s).narratif);
   if (!fiche) return [];
   const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
@@ -1673,17 +1686,25 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`), au
  *  choix parmi le sien et ceux qu'elle offre à la création (`avecs`) quand elle en offre ; ses
  *  éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison
- *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
-function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table et que le retrait du porteur est demandé. #3606 */
+function inspecteurDuPorteur(
+  s: SessionDEdition,
+  prefixe: string,
+  porteur: { sorte: SorteDePorteur; id: string },
+  propres: (Choix | Ligne | Bouton | Formulaire)[],
+  avecRetrait = true,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const { renommer, retirer, avecs } = ECRITURES_DES_PORTEURS[porteur.sorte];
-  const refus = retirer ? refusDeRetrait(s) : null;
+  const retrait = avecRetrait
+    ? [boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, retirer ? refusDeRetrait(s) : null)]
+    : [];
   const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)];
   return [
     ...(renommer ? [formulaireDuNom(porteur.id, false, noms)] : []),
     ...propres,
     ...formulaireDuPorteur(s, porteur, donnee),
-    boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
+    ...retrait,
   ];
 }
 
@@ -1828,9 +1849,14 @@ const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdit
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
  *  (`inspecteurDuPorteur`, ses éléments d'id `<sorte>/…`), ses éléments propres (`PROPRES_DE_LA_LOGIQUE`). */
-function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sorte: S, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
+function inspecteurDeLaLogique<S extends SorteDePorteur>(
+  s: SessionDEdition,
+  sorte: S,
+  donnee: DonneeDuPorteur[S],
+  avecRetrait: boolean,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const propres: ((s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[]) | undefined = PROPRES_DE_LA_LOGIQUE[sorte];
-  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? []);
+  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? [], avecRetrait);
 }
 
 /** Les documents dont l'inspecteur de la carte du monde, sans sélection, montre le porteur singulier : la carte, puis le
@@ -1855,8 +1881,11 @@ const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Form
  *  son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se retire par la table (la carte du
  *  monde), le bouton qui le retire du projet, refusé avec sa raison (`refusDeRetrait`) ; rien sans lui. Chaque
  *  inspecteur propre s'appelle par son nom dans la table : la fermeture d'appels de la garde #841 le suit depuis
- *  `editer`. */
-export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  `editer`. `retraitDuPorteurLogique` inclut le bouton de retrait du porteur entier dans l'inspecteur de la zone Logique. */
+export function inspecteurDeLaSession(
+  s: SessionDEdition,
+  { retraitDuPorteurLogique = true }: { retraitDuPorteurLogique?: boolean } = {},
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
@@ -1866,7 +1895,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
-  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee);
+  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee, retraitDuPorteurLogique);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
   if (s.sel) return inspecteurDArete(s);
@@ -2086,8 +2115,9 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
- * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
+ * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), `cotesDeMarches` les côtés des cases de
+ * marches de la couche éditée (`cotesDeMarchesDeLaCouche`, chacun comme la méthode `aretes` le sert), rendues avec
+ * `monde`, comme `navires`, les navires de la scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
  * d'un combattant »). `monde` porte le manifeste du volume du monde de
  * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
  * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche
@@ -2135,7 +2165,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
     boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
     boutonDEdition('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
-    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
+    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene)),
     boutonDEdition('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     boutonDEdition('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, s.outil.mode === 'entite' && s.outil.kind === 'heroStart'),
     boutonDEdition('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entree' } }, s.outil.mode === 'entree'),

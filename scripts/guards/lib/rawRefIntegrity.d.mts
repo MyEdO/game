@@ -48,7 +48,7 @@ export function isBlindRef(
 ): boolean;
 export function refsInLine(ln: string): Generator<{ abbr: string; nn: string; lo: number; hi: number; ref: string }>;
 export function isExcludedSrc(rel: string): boolean;
-export function scanBlindRefs(racines?: string | readonly string[]): BlindRef[];
+export function scanBlindRefs(racines?: string | readonly string[], chapitreDe?: typeof chapterFile): BlindRef[];
 export function scanEmptyLineRefs(racines?: string | readonly string[]): EmptyLineRef[];
 export function sitesAveugles(blind: BlindRef[]): Site[];
 export function ecartDesRefsAveugles(

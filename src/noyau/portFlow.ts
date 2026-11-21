@@ -39,12 +39,13 @@ import { refuserGeste } from './refusVisible';
 import { findVehicleById, findCrewRoleById, findTrappingById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import { ajouterDeLEau, ajouterDesRations } from './navireOps';
+import { applyVesselCrewLoss, inscrireLesRecrues } from './shipCrew';
 import { t } from '../i18n';
-import { ajouterAuRoster, soldeDuRole, weeklyCrewWageBrass } from '../engine/crewMorale';
+import { soldeDuRole, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
-  cargoOverload, overloadMaxEnc, overloadHardCapPct, alterationsDuPort, profilDuMarche,
+  cargoOverload, overloadMaxEnc, alterationsDuPort, profilDuMarche,
   type PortProfile, type CargoLot, type AlterationDuMarche,
 } from '../engine/seaVoyage';
 import type { Formula, GameOp } from '../engine/ops';
@@ -166,12 +167,6 @@ export function vesselMaxLoadEnc(get: Get): number {
 /** Prix d'un lot de l'offre `offre` en CO (MDG 15 l.319-349, l.256) : sa remise, puis `pct`, l'effet du Marchandage. */
 function prixDuLotEnPort(enc: number, offre: Pick<PortOffer, 'basePrice' | 'remisePct'>, pct: number): number {
   return Math.max(0, Math.round(enc * offre.basePrice * (1 - (offre.remisePct ?? 0) / 100) * (1 + pct / 100)));
-}
-
-/** Cale du navire à l'escale : place libre nominale, Enc embarquable jusqu'au plafond dur, et ce plafond en %
- *  de la Contenance (MDG 12 l.70-75, donnée `hardCapPct`). Lue par l'écran du port. PUR. */
-export function caleALEscale(vessel: Jeu['vessel']): { libre: number; embarquable: number; plafondPct: number } {
-  return { libre: encLibreNominale(vessel), embarquable: encEmbarquable(vessel), plafondPct: overloadHardCapPct() };
 }
 
 /** Devis d'achat d'une cargaison à l'escale, AVANT Marchandage : Enc retenu (défaut : l'offre dans la place
@@ -526,9 +521,10 @@ export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1)
   const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
   const solde = soldeDuRole(role);
   if (count <= 0 || !solde) return [];
-  const next = ajouterAuRoster(vessel.crew, roleId, count);
-  set({ vessel: { ...vessel, crew: next } });
-  const lines = [t('port.hired', { count, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
+  const recrute = inscrireLesRecrues(vessel, roleId, count);
+  if (!recrute.admis) { refuserGeste(get, set, t('eff.equipageComplet')); return []; }
+  set({ vessel: recrute.vessel });
+  const lines = [t('port.hired', { count: recrute.admis, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(recrute.vessel.crew))) })];
   log(get, set, lines);
   return lines;
 }
@@ -539,14 +535,12 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
   const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
-  const crew = vessel.crew ?? [];
-  const cur = garanti(crew.find((h) => h.roleId === roleId), roleId, 'poste à débarquer');
-  if (count <= 0) return [];
-  const left = cur.count - count;
-  const next = left > 0 ? crew.map((h) => h.roleId === roleId ? { ...h, count: left } : h) : crew.filter((h) => h.roleId !== roleId);
-  set({ vessel: { ...vessel, crew: next } });
+  const inscrits = (vessel.crew ?? []).reduce((n, h) => n + (h.roleId === roleId ? h.count : 0), 0);
+  const demandes = Math.max(0, Math.min(Math.floor(count), inscrits));
+  const { variation } = applyVesselCrewLoss(get, set, demandes, { roleId, registre: 'crew' });
+  if (!variation) return [];
   const role = findCrewRoleById(roleId);
-  const lines = [t('port.dismissed', { count: Math.min(count, cur.count), role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
+  const lines = [t('port.dismissed', { count: variation, role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(get().vessel?.crew))) })];
   log(get, set, lines);
   return lines;
 }

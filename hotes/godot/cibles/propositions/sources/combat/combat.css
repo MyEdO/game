@@ -2,13 +2,12 @@
 @import url(jet.css);
 
 /* le round */
-#round{left:22px;top:16px;width:214px;height:66px}
 #round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
 #round .n{font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
 #round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
-#ordre{position:absolute;left:22px;bottom:12px;width:226px;display:flex;flex-direction:column-reverse;gap:8px}
+#ordre{position:absolute;display:flex;flex-direction:column-reverse;gap:8px}
 .rang .jauge{width:92px;margin-top:5px}
 .rang .pv{font-family:"Fell SC";font-size:11.5px;color:var(--creme-2);margin-left:8px;white-space:nowrap}
 .rang .ligne{display:flex;align-items:center}
@@ -20,7 +19,6 @@
 .borne i{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,185,149,.6),rgba(201,185,149,0))}
 
 /* la barre de l'actif */
-#barre{left:260px;top:634px;width:1186px;height:138px}
 #barre .fond{background:none;box-shadow:none}
 #actif-portrait{position:absolute;left:806px;top:580px;width:96px;height:118px;z-index:3}
 #actif-nom{position:absolute;left:764px;top:700px;width:180px;text-align:center;z-index:3}
@@ -42,15 +40,15 @@
 .pastilles{display:flex;justify-content:space-between;margin-top:10px;padding:0 2px}
 
 /* la fin du tour */
-#fin{position:absolute;left:1560px;top:640px;width:104px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#fin{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px}
 #fin span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
 #fin.ferme span{color:var(--eteint)}
 #tour-outils{position:absolute;left:1474px;top:648px;display:flex;flex-direction:column;gap:10px}
-#systeme{position:absolute;right:22px;top:18px}
-#ui:has(>#systeme) .croix{top:76px}
+#systeme{position:absolute}
+#fiche-lue .croix{top:76px}
 
 /* le journal : trois lignes dans un coin */
-#journal{position:absolute;right:24px;bottom:164px;width:300px;text-align:right}
+#journal{position:absolute;text-align:right}
 #journal .tete{display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
 #journal p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:#e6dabd}
 #journal p.vieux{color:#bdb096}
@@ -71,9 +69,6 @@
 /* le jet : un bandeau à la place de la barre */
 
 /* le fil sur la ligne basse : 164 du bas sous la barre, 20 au-dessus d'une fenêtre du bas (`../../dispositions.md`) */
-#ui:has(>#jet) #journal{bottom:240px}
-#ui:has(>#jet .fond.consigne) #journal{bottom:198px}
-#ui:has(>#jet .cartes.liste) #journal,#ui:has(>#jet .chansons) #journal,#ui:has(>#jet .testeurs) #journal{bottom:294px}
 
 /* variantes : la liste ouverte d'une pastille, les emplacements rapides */
 #liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}
@@ -101,37 +96,23 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-.reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
 #round .n,#round .t{white-space:nowrap}
-.choix .l{font-size:12px;color:#4a3420;margin-top:3px}
-.choix .v{display:flex;align-items:center;gap:10px}
-.choix .v .gothique{font-size:25px;line-height:27px;color:#3a1a10}
-.choix .v .modif{margin-top:0}
-.choix .bas{display:flex;align-items:center;gap:16px;margin-top:8px}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
-.visee .pv{display:flex;flex-direction:row-reverse;align-items:center;gap:9px;margin-top:16px}
-.visee .pv .jauge{width:132px}
+.visee .pv{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;height:100%}
 .visee .pv b{font-weight:400;font-size:13.5px;white-space:nowrap}
 
 /* le coup critique */
-#jet .fond.critique{grid-template-columns:392px 1fr}
-#jet .fond.critique.duel{grid-template-columns:auto 1fr auto;column-gap:20px}
-#jet .fond.critique.duel #critique{padding:0 28px;border-right:1px solid rgba(60,40,20,.4)}
-.camp.touche{align-items:flex-start}
-.camp.touche .silhouette{margin:0 2px}
 .camp.touche .c{color:#7c1f14}
-.camp.touche .des{margin-top:10px}
 #critique{height:104px;padding:0 0 0 28px;border-left:1px solid rgba(60,40,20,.4)}
 #critique .dr{font-size:31px;line-height:36px;color:#3a1a10}
 #critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
 
-/* le début du round : un choix, à la place du jet (`#jet .fond.debut`, `jet.css`) */
-.annonce{height:92px;margin-right:8px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
+/* le titre d'un choix, à la place du héros */
+.annonce{height:92px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
 .annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
 .annonce .sous{font-size:13.5px;color:#4a3420}
-#jet .fond.debut #suites .plaque.large{flex-basis:232px}
 
 /* le journal entier */
 #journal-entier h4{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-weight:400;font-size:13px;color:#5a2a12}
@@ -140,7 +121,6 @@
 #journal-entier p{margin:0 0 6px;font-style:italic;font-size:14.5px;line-height:19px;color:#2a1d12;white-space:nowrap}
 
 /* la fiche au clic sur un portrait de l'ordre */
-#f-identite{left:264px;top:14px;width:270px;height:516px}
 #f-identite .fond{padding:18px 17px 0}
 #f-identite .fond>.tete{display:flex;gap:13px}
 #f-identite .n{font-size:28px;line-height:30px;color:#3a1a10}
@@ -150,18 +130,15 @@
 #f-identite .mesure .tete b{font-family:"Chiffres";font-weight:600;font-size:13.5px;letter-spacing:0;color:var(--encre)}
 #f-identite .filet{margin:28px 8px 24px}
 .reserves{display:flex;flex-direction:column;gap:13px}
-#f-profil{left:544px;top:14px;width:826px;height:88px}
 #f-profil .fond{display:grid;grid-template-columns:repeat(12,1fr);align-items:start;padding:22px 8px 0}
 .carac{text-align:center;border-left:1px solid rgba(60,40,20,.3)}
 .carac:first-child{border-left:0}
 .carac span{display:block;font-size:12.5px;line-height:15px;color:#5a4530}
 .carac b{display:block;font-size:22px;line-height:27px;color:#2a1d12}
-#f-figure{left:544px;top:112px;width:250px;height:418px}
 #f-figure .fond{padding:9px}
 .niche{height:100%;padding:4px;border-radius:2px;box-shadow:0 0 0 1px #1a1005}
 .niche>div{height:100%;display:grid;place-items:end center;padding-bottom:26px;background:radial-gradient(90% 70% at 50% 38%,#e6d5ad,#b89f6e 70%,#7d6844);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 30px rgba(60,35,10,.6)}
 .niche svg{width:190px;height:268px;filter:sepia(.4) saturate(.85) drop-shadow(0 4px 3px rgba(40,20,5,.45))}
-#f-sections{left:804px;top:112px;width:566px;height:418px}
 #f-sections .fond{padding:36px 18px 0}
 .arme{display:flex;gap:18px;padding:12px;margin-bottom:12px;border:1px solid rgba(60,40,20,.45);background:rgba(255,245,215,.22);box-shadow:inset 0 0 14px rgba(120,90,40,.25)}
 .vignette{flex:none;width:112px;height:112px;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.5),0 0 0 1px #1a1005}
@@ -184,9 +161,7 @@
 .rang .etats{display:flex;gap:9px;margin-top:4px}
 /* le meuble étendu : trois rangs de mesures à gauche, deux rangs de plaques à droite */
 #ecran[data-etat^=meuble-] #etat{top:7px;row-gap:8px}
-.jetons,.portes{grid-column:1 / 3;display:flex;align-items:center}
-.jetons{justify-content:space-between}
-.jetons .jeton{margin-top:0;gap:8px}
+.portes{grid-column:1 / 3;display:flex;align-items:center}
 .portes{gap:12px;height:24px;font-size:12px;color:var(--creme-2)}
 .portes em{font-size:13px}
 #ecran[data-etat^=meuble-] #gestes{top:7px}
@@ -201,45 +176,32 @@
 .pastille-entite{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
 .pastille-entite span{font-size:12px;color:#f0e2c2;white-space:nowrap}
 
-/* avant le dé, les réglages en rangées : la défense, les armes de l'attaque */
-#verdict.reglages.haut{height:116px}
-.reactions{display:flex;gap:8px;margin:3px 0 5px}
-.plaque.carte.courte{flex:1;width:auto;height:31px}
-.plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:baseline}
-.plaque.carte.courte .n{font-size:18px;line-height:20px}
-.plaque.carte.courte .c{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:20px}
-/* trois réactions : la substitution sociale s'ajoute, les cartes se serrent à la mesure de leur nom */
-.reactions:has(.carte:nth-child(3)){gap:6px}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte{flex:1 1 auto}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte>div{gap:7px;padding:0 9px}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte :is(.n,.c){font-size:16.5px;white-space:nowrap}
 .regle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;text-align:left}
 .regle .l{font-size:12px;color:#4a3420;white-space:nowrap}
 #jet .regle .options{gap:6px}
 #jet .regle .options .plaque{min-width:0}
 #jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
-.fond.armes .rangee{gap:16px;align-items:flex-start;margin-top:3px}
-.fond.armes .choix{flex:1}
-.bascules{display:flex;gap:16px;margin-top:7px}
-.fond.armes .choix p{margin:5px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;white-space:nowrap}
+/* les lignes de réglage, chacune à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) */
+#jet .place>.regle{margin:0;height:100%}
+#jet .place>.regle.localisation{justify-content:flex-start;gap:8px}
+#jet .place>.regle.localisation>:not(.options){flex:none}
+#jet .place>.regle.localisation .gothique{margin-left:2px;font-size:22px;line-height:24px;color:#3a1a10}
+#jet .place>.regle.localisation .modif{margin-top:0}
+#jet .place>.regle.localisation .options{margin-left:auto}
+#jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
+.bascules{display:flex;gap:16px;align-items:center;height:100%}
+.bascules .bascule span{line-height:14px}
 
-/* le début du round à deux choix : agir en premier, préempter */
-#jet .fond.deux{padding-top:16px;gap:16px}
-#jet .fond.deux .annonce{margin-top:10px}
-/* les cartes d'un choix en groupe */
-.groupe .t{font-size:12.5px;color:#4a3420;margin-bottom:3px;text-align:left}
-.groupe .plaque.carte .modif{margin:0 0 0 6px}
-.groupe .plaque.carte br+.modif{margin:1px 0 0}
+/* la marque d'une carte de choix */
+#jet .place>.carte .modif{margin:0 0 0 6px}
+#jet .place>.carte br+.modif{margin:1px 0 0}
 
 /* une suite de frappe : la consigne tient la place du meuble, le champ reste à cliquer */
-#jet:has(.fond.consigne){top:602px;height:170px}
-#jet .fond.consigne{grid-template-columns:420px 1fr;padding-top:20px}
 p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20,.4);height:70px;font-style:italic;font-size:17px;line-height:23px;color:#2a1d12}
 
 /* la fin du combat : la conséquence sous le cartouche ; la victoire rend ses gains dans le bandeau du bas */
-#jet .fond.butin{grid-template-columns:230px 250px 1fr;column-gap:24px}
 .gains{display:flex;align-items:flex-start;gap:22px;padding-top:6px}
-.gains .en-reserve .res,.argent span{font-size:12px;line-height:17px;color:#2a1d12}
+.argent span{font-size:12px;line-height:17px;color:#2a1d12}
 .argent{display:flex;flex-direction:column;align-items:center}
 .argent b{height:46px;line-height:46px;font-size:30px;color:#3a1a10}
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}
@@ -248,5 +210,5 @@ p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20
 #jet .vaincus .options .plaque{min-width:0}
 .ligne-b{display:flex;align-items:center;gap:9px;height:28px;font-size:14.5px;color:#2a1d12;border-bottom:1px solid rgba(60,40,20,.25)}
 .ligne-b span{flex:1}
-.ligne-b i{font-style:normal;font-size:11.5px;color:#5a4530}
+.ligne-b i{font-style:normal;font-size:13px;color:var(--rouille)}
 

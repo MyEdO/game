@@ -481,12 +481,6 @@ export function refusDePrepaDeBataille(mb: MassBattleState, hero: Combatant, def
  *  la confirmation et de la note du volet. #257 */
 export const soutienCouteUneActivite = (): boolean => rule('interlude-assister-coute-un-creneau') === true;
 
-/** La note de Soutien d'une préparation SOUTENABLE (`def.assisted`), ou `null`. LDB 12 l.187-200 */
-export function noteDeSoutien(def: ActivityDef): string | null {
-  if (!def.assisted) return null;
-  return t(soutienCouteUneActivite() ? 'mbf.soutienPayant' : 'mbf.soutienGratuit');
-}
-
 /** Résout l'AFFECTATION explicite d'une action (`assignment[actionId]`) en la LISTE des PJ effectivement
  *  DISPONIBLES : membres du groupe, vivants, non encore engagés ce Round (`actedHeroes`). Tableau vide si
  *  aucun poste valable — l'appelant retombe sur la SUGGESTION. Pur : lit l'état, ne mute rien. */
@@ -897,7 +891,7 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
   if (!mb) return;
   // Lue par l'id de l'Activité courante, une chaîne : la table des rencontres s'élargit à ses clés.
   const rencontres: Partial<Record<string, { id: string }>> = mb.sceneEncounters ?? {};
-  const encId = rencontres[scene.id]?.id ?? scene.encounter;
+  const encId = rencontres[scene.id]?.id;
   const enc = encId && get().scene?.encounters.find((e) => e.id === encId);
   if (!enc) {
     get().ecrireAuJournal(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));

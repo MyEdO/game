@@ -5,6 +5,7 @@
  * mêlée, l'attaque part ; (c) l'Atout Pistolet (`LDB 62 l.284-285`) tire Engagé sans commuter ; (d) set
  * SANS arme = combattant désarmé → Mains nues et frappe ; (e) statbloc sans loadout : arsenal intact.
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -39,7 +40,7 @@ function shooter(rangedId: string) {
   h.activeLoadoutId = 'lo-tir';
   h.pos = { x: 3, y: 3 };
   recomputeLoadout(h);
-  loadWeapon(h, h.weapons.find((w) => w.type === 'distance')); // cycle de charge RÉEL (Recharge 1)
+  loadWeapon(findTrappingById, h, h.weapons.find((w) => w.type === 'distance')); // cycle de charge RÉEL (Recharge 1)
   return h;
 }
 
@@ -61,7 +62,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 const pendingWeaponLabel = (): string => {
   const pa = banc.getState().pendingAttack!;
   const b = banc.getState().battle!;
-  return attackWeaponOf(banc.getState().scene, b, live(pa.attackerId), live(pa.targetId), pa).label;
+  return attackWeaponOf(findTrappingById, banc.getState().scene, b, live(pa.attackerId), live(pa.targetId), pa).label;
 };
 
 beforeEach(() => {
@@ -156,7 +157,7 @@ describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
     e.loadouts = [{ id: 'lo-tir', main: 'arbalete' }];
     e.activeLoadoutId = 'lo-tir';
     recomputeLoadout(e);
-    loadWeapon(e, e.weapons.find((w) => w.type === 'distance'));
+    loadWeapon(findTrappingById, e, e.weapons.find((w) => w.type === 'distance'));
     expect(e.weapons.map((w) => w.label)).toEqual(['Arbalète']); // pas de Mains nues fabriquées
     e.engagedWith = [h.id]; h.engagedWith = [e.id];
     (e as unknown as { aiDriven: boolean }).aiDriven = true;

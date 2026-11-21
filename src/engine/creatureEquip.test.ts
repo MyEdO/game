@@ -1,13 +1,16 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits } from './creatureEquip';
+import { ajusterTraitsDuProfil, weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits } from './creatureEquip';
 import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, recomputeLoadout, formeResolue } from './items';
-import type { Combatant, Weapon } from './types';
+import type { Combatant, ItemInstance, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import { traitsDuPorteur, type TraitInstance } from './statEntry';
-import { porteurDuProfil } from '../noyau/monde/spawn';
+import { porteurDuProfil, spawnEnemy } from '../noyau/monde/spawn';
 import { findCreatureById, findTrappingById } from '../data';
+import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
+import { attackDRAdjust, dangerousNine, qualityDamageStep, resolveQualities } from './qualities/dispatch';
+import { resetRule, setRule } from './policy';
 
 const t = (o: TraitInstance): TraitInstance => o;
 
@@ -115,12 +118,11 @@ describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
  */
 describe('armement — la projection catalogue → arme est UNE, quel que soit le canal', () => {
   const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
+  const porteur = (items: ItemInstance[], traits: TraitInstance[] = []): Combatant =>
+    ({ items, traits, weapons: [], armour: emptyArmour(), characteristics: chars }) as unknown as Combatant;
   /** Canal POSSESSION DE HÉROS : l'objet du catalogue équipé, projeté par `recomputeLoadout`. */
   const parPossession = (trappingId: string): Weapon | undefined => {
-    const c = {
-      items: [{ ...itemFromTrappingById(trappingId, idsDeTest)!, equipped: true }],
-      weapons: [], armour: emptyArmour(), characteristics: chars,
-    } as unknown as Combatant;
+    const c = porteur([{ ...itemFromTrappingById(trappingId, idsDeTest)!, equipped: true }]);
     recomputeLoadout(c);
     return c.weapons.find((w) => w.trappingId === trappingId);
   };
@@ -138,6 +140,53 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     expect(parPossession('arbalete')!.reload).toBe(1);
   });
 
+  it('le profil de mêlée conserve les Atouts de la variante et des possessions, retire ceux du groupe et fixe l’Allonge', () => {
+    setRule('combat-aa-armement', true);
+    try {
+      const objet = itemFromTrappingById('fleuret', idsDeTest)!;
+      objet.equipped = true;
+      objet.qualities.push({ id: 'solide', value: 2 });
+      const c = porteur([objet], [{ id: 'arme', arg: 'fleuret', value: 9, profilDArme: {
+        allonge: 'Courte', retire: ['empaleuse'], qualites: [{ id: 'defensive' }],
+      } }]);
+
+      ajusterTraitsDuProfil(c, [objet], [], { armureDecriteParLeTrait: false });
+      recomputeLoadout(c);
+
+      const arme = c.weapons.find((w) => w.uid === objet.uid)!;
+      expect(arme).toMatchObject({ reach: 'Courte', damage: { plusBF: false, flat: 9, bfInclus: true } });
+      expect(resolveQualities(arme).map((q) => q.instance)).toEqual([
+        { id: 'precise' }, { id: 'inoffensive' }, { id: 'solide', value: 2 }, { id: 'defensive' }, { id: 'rapide' },
+      ]);
+      expect(objet.qualities).toContainEqual({ id: 'solide', value: 2 });
+      expect(objet.reach).toBe('Moyenne');
+    } finally {
+      resetRule('combat-aa-armement');
+    }
+  });
+
+  it('la Recharge suit l’Indice posé sur l’attaque, sans changer l’entrée du catalogue', () => {
+    const arme = weaponFromTrait(t({ id: 'a-distance', arg: 'arbalete', value: 9, profilDArme: {
+      qualites: [{ id: 'recharge', value: 2 }],
+    } }))!;
+    expect(arme.qualities.filter((q) => q.id === 'recharge')).toEqual([{ id: 'recharge', value: 2 }]);
+    expect(arme.reload).toBe(2);
+    expect(parPossession('arbalete')!.reload).toBe(1);
+  });
+
+  it('une arme de prothèse reçoit le profil du Trait qui désigne la possession', () => {
+    const crochet = { ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true };
+    const c = porteur([crochet], [{ id: 'arme', arg: 'crochet', value: 8, profilDArme: {
+      qualites: [{ id: 'defensive' }],
+    } }]);
+    ajusterTraitsDuProfil(c, [crochet], [], { armureDecriteParLeTrait: false });
+    recomputeLoadout(c);
+    const arme = c.weapons.find((w) => w.derivedFromItem === crochet.uid)!;
+    expect(arme).toMatchObject({ reach: 'Très courte', damage: { plusBF: false, flat: 8, bfInclus: true } });
+    expect(resolveQualities(arme).map((q) => q.id)).toEqual(['defensive']);
+    expect(crochet.derivedWeapon?.qualities).toEqual([]);
+  });
+
   it('arme de catalogue à `onHitEffects` (Arc d’empathie sanglante) : la possession (héros ou inventaire de PNJ) et le trait de statbloc la portent', () => {
     const canaux = [
       parPossession('arc-d-empathie-sanglante')!,
@@ -151,20 +200,13 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     }
   });
 
-  it('machine de guerre ADE II (Canon à flammes nain) : `onHitEffects`, `minRangeBand`, Groupe de Projectiles et Recharge portés par le trait ET par le poste servi', () => {
-    const canaux = [
-      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }, 'poste-de-test'))!,
-      weaponFromTrait(t({ id: 'a-distance', arg: 'canon-a-flammes-nain-ade2', value: 12 }))!,
-    ];
-    for (const w of canaux) {
-      expect(w.onHitEffects).toHaveLength(1);
-      expect(w.minRangeBand).toBe('courte'); // ADE II 8 l.253
-      expect(w.weaponGroup).toBe('machine-de-guerre');
-      expect(w.reload).toBe(3); // LDB 62 l.333
-    }
-    // Divergence LÉGITIME entre canaux, ≠ trou de projection : une machine à Équipe (ADE II 8 l.233) ne se
-    // manie jamais en loadout solo — le canal « possession de héros » la REFUSE, elle doit être servie.
-    expect(parPossession('canon-a-flammes-nain-ade2')).toBeUndefined();
+  it('la fiche du Canon à flammes nain fournit le profil du poste servi (ADE II 08 l.233-253, l.270)', () => {
+    const trappingId = 'canon-a-flammes-nain-ade2';
+    const arme = mannedPosteWeapon(chef, hydratePoste({ trappingId, side: 'tribord' }, 'poste-de-test'));
+    expect(arme).toMatchObject({ trappingId, minRangeBand: 'courte', weaponGroup: 'machine-de-guerre', reload: 3 });
+    expect(arme?.onHitEffects).toHaveLength(1);
+    expect(weaponFromTrait(t({ id: 'a-distance', arg: trappingId, value: 12 }))?.trappingId).toBeUndefined();
+    expect(parPossession(trappingId)).toBeUndefined();
   });
 
   it('arme de JET (`range: {bf}`, LDB 62) : la SPEC traverse le constructeur d’arme, sans être reposée après coup', () => {
@@ -201,10 +243,46 @@ describe('statblocs armés au catalogue : Atouts/Allonge du catalogue, Dégâts 
     expect([w.type, w.reach, w.qualities, w.damage]).toEqual(['melee', 'Moyenne', [], { plusBF: false, flat: 12, bfInclus: true }]);
   });
 
-  it('Technomage du clan Skryre : ses deux attaques à distance, dont le Pistolet à malepierre +9 (20) (ZI 13 l.222)', () => {
-    const distance = armesDe('technomage-du-clan-skryre').filter((a) => a.type === 'distance');
+  it('le technomage tire au pistolet +9 (20) sans Dangereuse (ZI 13 l.205, l.222, l.224)', () => {
+    const c = spawnEnemy({ ref: 'technomage-du-clan-skryre' }, 'technomage', undefined);
+    const distance = c.weapons.filter((a) => a.type === 'distance');
     expect(distance).toHaveLength(2);
     const pistolet = distance.find((a) => a.trappingId === 'pistolet-a-malepierre')!;
-    expect([pistolet.damage, pistolet.range]).toEqual([{ plusBF: false, flat: 9 }, 20]);
+    expect(pistolet).toMatchObject({ damage: { plusBF: false, flat: 9 }, range: 20, reload: 1, onHitEffects: [expect.any(Object)] });
+    expect(resolveQualities(pistolet).map((q) => q.id)).toEqual([
+      'pistolet', 'a-poudre-noire', 'devastatrice', 'empaleuse', 'perforante', 'recharge',
+    ]);
+    expect(dangerousNine(pistolet, 91, false)).toBe(false);
+    expect(dangerousNine(weaponFromTrait(t({ id: 'a-distance', arg: 'pistolet-a-malepierre', value: 9 }))!, 91, false)).toBe(true);
+  });
+
+  it('le prototype ne subit pas Imprécise au canon et joue les deux Atouts de son poing (ZI 13 l.197, l.238–242)', () => {
+    const c = spawnEnemy({ ref: 'prototype-du-clan-skryre' }, 'prototype', undefined);
+    const canon = c.weapons.find((a) => a.trappingId === 'canon-ratling')!;
+    expect(canon).toMatchObject({ damage: { plusBF: false, flat: 11 }, range: 40, onHitEffects: [expect.any(Object)] });
+    expect(resolveQualities(canon).map((q) => q.id)).toEqual([
+      'a-poudre-noire', 'empaleuse', 'a-explosion', 'perforante', 'dangereuse', 'arme-d-equipe',
+    ]);
+    expect(attackDRAdjust(canon, true)).toBe(0);
+    expect(attackDRAdjust(weaponFromTrait(t({ id: 'a-distance', arg: 'canon-ratling', value: 11 }))!, true)).toBe(-1);
+
+    const poing = c.weapons.find((w) => w.type === 'melee')!;
+    expect(poing).toMatchObject({ label: 'Poing à pistons', sizeless: true, damage: { plusBF: false, flat: 12, bfInclus: true } });
+    expect(poing.trappingId).toBeUndefined();
+    const qualites = resolveQualities(poing);
+    expect(qualites.map((q) => q.id)).toEqual(['assommante', 'percutante']);
+    expect(qualites[0].data?.effects).toContainEqual(expect.objectContaining({ trigger: 'onHit' }));
+    expect(qualityDamageStep(poing, { effDR: 2, units: 4 })).toEqual({ dmgDR: 2, bonus: 4 });
+  });
+});
+
+describe('profil d’arme dans le Trait posé', () => {
+  it('admet références de qualités et Allonge canoniques sur les Traits d’arme', () => {
+    const melee = { id: 'arme', profilDArme: { qualites: [{ id: 'defensive' }], retire: ['percutante'], allonge: 'Moyenne' } };
+    expect(traitInstanceSchema.parse(melee)).toEqual(melee);
+    expect(traitInstanceSchema.safeParse({ id: 'a-distance', profilDArme: { retire: ['imprecise'] } }).success).toBe(true);
+    expect(traitInstanceSchema.safeParse({ ...melee, id: 'a-distance' }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ ...melee, id: 'morsure' }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ ...melee, profilDArme: { retire: ['Inconnue'] } }).success).toBe(false);
   });
 });

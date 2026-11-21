@@ -20,7 +20,9 @@ import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from '.
 import type {
   IdDAdversaireADistraire,
   IdDAdversaireDuBattement,
+  IdDAtoutOptionnel,
   IdDeChanson,
+  IdDeChoixDeCibles,
   IdDeCombattant,
   IdDeFormeConjuree,
   IdDeHeros,
@@ -43,6 +45,8 @@ export interface ReglagesDuJet {
     localisationDuCritique: HitLocation;
     /** `null` : l'arme par défaut du loadout actif. */
     arme: IdDObjet | null;
+    /** AA 08 l.69-77 */
+    atoutOptionnel: IdDAtoutOptionnel;
     /** LDB 10 l.767-773 */
     deuxArmes: boolean;
     /** AA 07 l.59-61 */
@@ -67,6 +71,8 @@ export interface ReglagesDuJet {
     effetCritique: 'critique' | 'puissance' | 'ineluctable';
     /** LDB 47 */
     formeConjuree: IdDeFormeConjuree;
+    /** VDM 09 l.346–354 */
+    choixDeCibles: IdDeChoixDeCibles;
     /** LDB 40 l.42 */
     discret: boolean;
     /** EDOC 13 l.276 */
@@ -201,10 +207,11 @@ const offertDuSort = (d: Omit<DeclarationDuReglage, 'offre'>, reglage: ReglageOf
 
 /** La déclaration de chaque réglage, table TOTALE sur `ReglagesDuJet`. */
 export const REGLAGES_DU_JET = {
-  attaque: { localisation: avant, localisationDuCritique: apres, arme: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
+  attaque: { localisation: avant, localisationDuCritique: apres, arme: avant, atoutOptionnel: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
   defense: { reaction: avant, armeDeParade: avant, porteBouclier: avant, riposte: avant },
   incantation: {
     effetCritique: offertDuSort(apres, 'effetCritique'), formeConjuree: offertDuSort(horsDuJet, 'formeConjuree'),
+    choixDeCibles: offertDuSort(avant, 'choixDeCibles'),
     discret: offertDuSort(avant, 'discret'), jetsDeTable: offertDuSort(apres, 'jetsDeTable'),
     surincantationPortee: apres, surincantationZone: apres, surincantationDuree: apres, surincantationCibles: apres, surincantationDegats: apres,
     ciblesSupplementaires: apres,

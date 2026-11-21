@@ -30,10 +30,3 @@ export const PORTEURS_DE_CAPACITES: readonly PorteurDeCapacites[] = Object.entri
     const schema = capacitesDuDataset(dataset);
     return schema ? [{ categorie, dataset, schema }] : [];
   });
-
-/** Nœud OBJET des capacités du dataset `dataset`, lu sur sa route d'édition. */
-export const capacitesDe = (dataset: DatasetKey): z.ZodObject => {
-  const p = PORTEURS_DE_CAPACITES.find((x) => x.dataset === dataset);
-  if (!p) throw new Error(`capacitesDe : « ${dataset} » ne porte pas de capacités.`);
-  return p.schema;
-};

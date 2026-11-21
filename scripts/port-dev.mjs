@@ -8,8 +8,7 @@
 // La règle ne se branche PAS sur la forme du chemin (`.wt-*`, nom du dossier…) mais sur le seul
 // fait qui distingue les deux natures d'arbre pour git : `<racine>/.git` est un DOSSIER dans un
 // arbre principal ou un clone, un FICHIER dans un worktree LIÉ. L'arbre principal garde donc le
-// port historique 5173 (`docs/recette-navigateur.md`, les skills de recette
-// et `scripts/docs/build-reprise.mjs` le disent tous), les worktrees liés se répartissent sur la
+// port historique 5173. Les worktrees liés se répartissent sur la
 // plage suivante.
 //
 // Deux CLONES sur la même machine réclament tous deux 5173 : avec `strictPort`, le second ÉCHOUE
@@ -19,7 +18,7 @@ import { statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** Racine de l'arbre : le dossier qui porte `vite.config.ts` et ce dossier `scripts/`. */
+/** Racine de l'arbre : le dossier qui contient `scripts/`. */
 export const RACINE = fileURLToPath(new URL('..', import.meta.url))
 
 /** Port de l'arbre PRINCIPAL (dev), et premier port de la plage dérivée des worktrees liés. */

@@ -44,12 +44,10 @@ const fixtureRun = (t) => {
   return { racine, traces, verrou: { chemin: join(racine, 'geste.verrou'), libelle: 'fixture' }, env }
 }
 
-/** Fixture partagée node/jsdom : deux fichiers, un par côté, et l'énumération qui les rend. */
-const fixturePartagee = (t) => {
+const fixtureDeTranche = (t) => {
   const p = fixtureRun(t)
-  const suite = ['moteur.test.ts', 'ecran.test.tsx']
-  suite.forEach((n, i) => writeFileSync(join(p.racine, n), i ? '// @vitest-environment jsdom\n' : 'export {}'))
-  return { ...p, enumerer: () => suite }
+  const suite = ['moteur.test.ts', 'hote.test.ts']
+  return { ...p, env: { ...p.env, [VARIABLE_PARTIE]: '1/1' }, enumerer: () => suite }
 }
 
 /** Les traces ÉCRITES du dossier : une trace en cours (`.part`, `ecrireTrace`) n'en est pas une. */
@@ -106,13 +104,13 @@ test('lancerTests : lancement de Vitest impossible rend 1 et rend le verrou', as
   assert.equal(existsSync(p.verrou.chemin), false)
 })
 
-test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et verrou rendus après leur close', { timeout: 30000 }, async (t) => {
-  const p = fixturePartagee(t)
+test('lancerTests : annulation en cours relayée à Vitest, atelier et verrou rendus après son close', { timeout: 30000 }, async (t) => {
+  const p = fixtureDeTranche(t)
   const controle = new AbortController()
   const avant = relais()
   let nes
   const guet = setInterval(() => {
-    if (tracesDe(p.traces).length !== 2) return
+    if (tracesDe(p.traces).length !== 1) return
     nes = Date.now()
     controle.abort()
   }, 10)
@@ -123,29 +121,30 @@ test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et ver
   } finally { clearInterval(guet) }
   assert.equal(code, 1)
   const lancements = lancementsDe(p.traces)
-  assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'])
+  assert.deepEqual(lancements.map(([cote]) => cote), ['node'])
   for (const [cote, pid] of lancements) assert.equal(estPidVivantDepuis(pid, nes, IDENTITE_MESUREE), false, cote)
   assert.deepEqual(readdirSync(join(p.racine, 'node_modules/.vitest-split')), [])
   assert.equal(existsSync(p.verrou.chemin), false)
   assert.deepEqual(relais(), avant)
 })
 
-for (const [mode, sig] of [['mono', 'SIGINT'], ['mono', 'SIGTERM'], ['partagé', 'SIGINT'], ['partagé', 'SIGTERM']]) {
+for (const [mode, sig] of [['normal', 'SIGINT'], ['normal', 'SIGTERM'], ['tranche', 'SIGINT'], ['tranche', 'SIGTERM']]) {
   test(`lancerTests : ${sig} du processus relayé à chaque Vitest (${mode}), verrou rendu après leur close, atelier et relais retirés`, { timeout: 30000 }, async (t) => {
-    const p = fixturePartagee(t)
-    const partage = mode === 'partagé'
+    const p = fixtureDeTranche(t)
+    const tranche = mode === 'tranche'
+    if (!tranche) delete p.env[VARIABLE_PARTIE]
     const avant = relais()
     const vus = []
     const etat = { relaye: false, nes: 0 }
-    const guet = signalerAuxRelais({ traces: p.traces, attendus: partage ? 2 : 1, sig, avant, vus, etat })
+    const guet = signalerAuxRelais({ traces: p.traces, attendus: 1, sig, avant, vus, etat })
     let code
     try {
-      code = await lancerTests({ ...p, argv: partage ? [] : ['src/un.test.ts'], enfant: espionDe(vus, p.verrou.chemin),
-        env: { ...p.env, WFRP_TEST_COEURS: partage ? '16' : '4', FAUX_VITEST_ATTENTE: '1' } })
+      code = await lancerTests({ ...p, argv: tranche ? [] : ['src/un.test.ts'], enfant: espionDe(vus, p.verrou.chemin),
+        env: { ...p.env, WFRP_TEST_COEURS: '4', FAUX_VITEST_ATTENTE: '1' } })
     } finally { clearInterval(guet) }
     assert.equal(etat.relaye, true, `${sig} relayé par un écouteur du lancement`)
     assert.equal(code, 1)
-    assert.deepEqual(lancementsDe(p.traces).map(([cote]) => cote), partage ? ['node', 'jsdom'] : ['node'])
+    assert.deepEqual(lancementsDe(p.traces).map(([cote]) => cote), ['node'])
     for (const vu of vus) {
       assert.equal(estPidVivantDepuis(vu.pid, etat.nes, IDENTITE_MESUREE), false, `pid ${vu.pid}`)
       assert.deepEqual([vu.ferme, vu.verrouALaFermeture], [true, true], 'le verrou est encore tenu au close de chaque Vitest')
@@ -156,26 +155,6 @@ for (const [mode, sig] of [['mono', 'SIGINT'], ['mono', 'SIGTERM'], ['partagé',
     assert.deepEqual(relais(), avant)
   })
 }
-
-test('lancerTests : une exception levée avec un Vitest vivant le ferme AVANT de rendre le verrou, atelier et relais retirés', { timeout: 30000 }, async (t) => {
-  const p = fixturePartagee(t)
-  const avant = relais()
-  const vus = []
-  let atelier
-  await assert.rejects(lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
-    env: { ...p.env, WFRP_TEST_COEURS: '16', FAUX_VITEST_ATTENTE: '1' },
-    enumerer: (racine) => {
-      const ateliers = join(racine, 'node_modules/.vitest-split')
-      atelier = join(ateliers, readdirSync(ateliers)[0])
-      mkdirSync(join(atelier, 'vitest.jsdom.config.ts'))
-      return p.enumerer(racine)
-    } }), (e) => e.code === 'EISDIR')
-  assert.equal(vus.length, 1, 'le Vitest node lancé avant la levée')
-  assert.deepEqual([vus[0].ferme, vus[0].verrouALaFermeture], [true, true], 'fermé verrou encore tenu')
-  assert.equal(existsSync(atelier), false)
-  assert.equal(existsSync(p.verrou.chemin), false)
-  assert.deepEqual(relais(), avant)
-})
 
 test('lancerTests : une suite qu’on ne peut énumérer, VIDE comprise, est un REFUS (code 1) sans aucun Vitest lancé (#2651)', async (t) => {
   const p = fixtureRun(t)
@@ -188,7 +167,7 @@ test('lancerTests : une suite qu’on ne peut énumérer, VIDE comprise, est un 
   const ecrits = []
   t.mock.method(process.stderr, 'write', (texte) => { ecrits.push(String(texte)); return true })
   const code = await lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
-    env: { ...envDeDepotForge(), WFRP_TEST_COEURS: '16', WFRP_TEST_MEMOIRE_MO: '65536', TRACE_DOSSIER: p.traces } })
+    env: { ...envDeDepotForge(), [VARIABLE_PARTIE]: '1/1', WFRP_TEST_COEURS: '16', WFRP_TEST_MEMOIRE_MO: '65536', TRACE_DOSSIER: p.traces } })
   t.mock.restoreAll()
   assert.equal(code, 1)
   assert.ok(ecrits.some((e) => e.startsWith('[test] REFUS — énumération de la suite impossible : suiteVitest : aucune suite Vitest sous ')), ecrits.join(''))
@@ -198,19 +177,19 @@ test('lancerTests : une suite qu’on ne peut énumérer, VIDE comprise, est un 
   assert.equal(existsSync(p.verrou.chemin), false)
 })
 
-test('lancerTests : sous PARTIE et partage node/jsdom, les deux côtés jouent EXACTEMENT la tranche — les K parties partitionnent la suite (#2651)', async (t) => {
-  const suite = Array.from({ length: 8 }, (_, n) => (n % 2 ? `ecran${n}.test.tsx` : `moteur${n}.test.ts`))
+test('lancerTests : sous PARTIE, Vitest joue EXACTEMENT la tranche — les K parties partitionnent la suite (#2651)', async (t) => {
+  const suite = Array.from({ length: 8 }, (_, n) => `moteur${n}.test.ts`)
   const K = 2
   const joues = []
   for (let i = 1; i <= K; i += 1) {
     const p = fixtureRun(t)
     writeFileSync(join(p.racine, 'node_modules/vitest/vitest.mjs'), VITEST_DE_PARTIE)
-    for (const n of suite) writeFileSync(join(p.racine, n), n.endsWith('.tsx') ? '// @vitest-environment jsdom\n' : 'export {}\n')
+    for (const n of suite) writeFileSync(join(p.racine, n), 'export {}\n')
     const code = await lancerTests({ ...p, argv: [], enumerer: () => suite,
       env: { ...p.env, WFRP_TEST_COEURS: '16', [VARIABLE_PARTIE]: `${i}/${K}` } })
     assert.equal(code, 0, `partie ${i}`)
     const lancements = lancementsDe(p.traces)
-    assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'], `partie ${i} : le partage node/jsdom n'a pas eu lieu`)
+    assert.deepEqual(lancements.map(([cote]) => cote), ['node'], `partie ${i} : nombre de lancements inattendu`)
     const inclus = lancements.flatMap(([, , include]) => include)
     assert.equal(new Set(inclus).size, inclus.length, `partie ${i} : un fichier joué des deux côtés`)
     joues.push(...inclus)
@@ -235,13 +214,12 @@ test('lancerTests : annulation avant principal interdit aussi énumération PART
 
 test('lancerTests : bornes validées sur le mode réel et une seule option par enfant', async (t) => {
   for (const [nom, argv, memoire, attendu, bornes] of [
-    ['camel séparé', ['--maxWorkers', '4'], '17000', 0, [4, 2]],
-    ['camel égal', ['--maxWorkers=4'], '17000', 0, [4, 2]],
-    ['tirets séparés', ['--max-workers', '4'], '17000', 0, [4, 2]],
-    ['tirets égal', ['--max-workers=4'], '17000', 0, [4, 2]],
-    ['inférieur', ['--maxWorkers=1'], '17000', 0, [1, 1]],
-    ['partagé supérieur à mono', ['--maxWorkers=8'], '65536', 0, [8, 5]],
-    ['trop grand partagé', ['--maxWorkers=5'], '17000', 2, []],
+    ['camel séparé', ['--maxWorkers', '4'], '17000', 0, [4]],
+    ['camel égal', ['--maxWorkers=4'], '17000', 0, [4]],
+    ['tirets séparés', ['--max-workers', '4'], '17000', 0, [4]],
+    ['tirets égal', ['--max-workers=4'], '17000', 0, [4]],
+    ['inférieur', ['--maxWorkers=1'], '17000', 0, [1]],
+    ['dépasse la borne', ['--maxWorkers=5'], '17000', 2, []],
     ['trop grand reporter', ['--reporter=json', '--maxWorkers=8'], '65536', 2, []],
     ['trop grand config', ['--config=autre.ts', '--maxWorkers=8'], '65536', 2, []],
     ['trop grand filtre', ['moteur.test.ts', '--maxWorkers=8'], '65536', 2, []],
@@ -250,7 +228,7 @@ test('lancerTests : bornes validées sur le mode réel et une seule option par e
     ['valeur absente', ['--maxWorkers'], '17000', 2, []],
     ['valeur invalide', ['--max-workers=0'], '17000', 2, []],
   ]) {
-    const p = fixturePartagee(t)
+    const p = fixtureRun(t)
     const erreurs = []
     const error = console.error
     console.error = (...args) => erreurs.push(args.join(' '))
@@ -260,8 +238,8 @@ test('lancerTests : bornes validées sur le mode réel et une seule option par e
     } finally { console.error = error }
     assert.equal(code, attendu, nom)
     const lancements = lancementsDe(p.traces).map(([, , args]) => args)
-    assert.deepEqual(lancements.map((a) => Number(a[a.indexOf('--maxWorkers') + 1])), bornes, nom)
-    for (const args of lancements) assert.equal(args.filter((a) => /^--max-?workers/i.test(a)).length, 1, nom)
+    assert.deepEqual(lancements.map((a) => Number(a.find((arg) => arg.startsWith('--maxWorkers='))?.split('=')[1])), bornes, nom)
+    for (const args of lancements) assert.equal(args.filter((a) => /^--max-?workers(?:=|$)/i.test(a)).length, 1, nom)
     if (attendu === 2) assert.match(erreurs.join('\n'), /CONCURRENCE_SUPERIEURE_CAPACITE|MAX_WORKERS_DUPLIQUE|MAX_WORKERS_INVALIDE/, nom)
     assert.equal(existsSync(p.verrou.chemin), false, nom)
   }

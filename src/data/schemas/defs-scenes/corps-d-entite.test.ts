@@ -1,7 +1,7 @@
 /**
  * #2968 L16b — le corps d'une entité de scène se désigne par `ref(type)` sous une clé qui NOMME son type : `decor`
  * (`ref('prop')`), et d'un personnage, au plus un de `creature` (`ref('creature')`), `vehicule` (`ref('vehicle')`) et
- * `engin` (`ref('trapping')`, un engin de siège). Fixtures : les projets réels, référence connue, inconnue, écrite en
+ * `engin` (`ref('engin')`). Fixtures : les projets réels, référence connue, inconnue, écrite en
  * id nu, sous l'ancienne clé `ref`, deux corps, un objet qui n'est pas un engin. Aucun porteur n'est une liste.
  */
 import { describe, expect, it } from 'vitest';
@@ -17,13 +17,13 @@ import loupProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.j
 const PROJETS = { arene: areneProjet, 'barge-du-sel': bargeProjet, diligence: diligenceProjet, 'loup-et-saumure': loupProjet };
 
 /** Le type de catalogue de chaque clé de corps. */
-const TYPE_DU_CORPS: Record<string, string> = { decor: 'prop', creature: 'creature', vehicule: 'vehicle', engin: 'trapping' };
+const TYPE_DU_CORPS: Record<string, string> = { decor: 'prop', creature: 'creature', vehicule: 'vehicle', engin: 'engin' };
 
 const PORTEURS = [
   { cle: 'decor', kind: 'prop', connue: 'tonneau', catalogue: 'décors (props.json)' },
   { cle: 'creature', kind: 'personnage', connue: 'humain', catalogue: 'créatures (creatures.json)' },
   { cle: 'vehicule', kind: 'personnage', connue: 'cogue', catalogue: 'véhicules (vehicles.json)' },
-  { cle: 'engin', kind: 'personnage', connue: 'baliste', catalogue: 'objets (trappings.json)' },
+  { cle: 'engin', kind: 'personnage', connue: 'baliste', catalogue: 'engins de siège (siege-engines.json)' },
 ];
 
 const entite = (kind: string, corps: Record<string, unknown>) => ({ id: 'e', kind, pos: { x: 0, y: 0 }, ...corps });
@@ -62,7 +62,7 @@ describe('#2968 L16b — le corps d’une entité de scène désigné par `ref(t
   });
 
   it('un engin est un engin de siège', () => {
-    expect(messages(entite('personnage', { engin: { id: 'baton-de-combat' } }))).toEqual(['engin.id « baton-de-combat » n\'est pas un engin de siège']);
+    expect(messages(entite('personnage', { engin: { id: 'baton-de-combat' } }))).toEqual(['engin.id « baton-de-combat » est absent du catalogue des engins de siège (siege-engines.json).']);
   });
 
   it('un décor ne porte pas le corps d’un personnage, ni un personnage celui d’un décor', () => {

@@ -216,16 +216,16 @@
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
   "prop--toile-ecrue.jpg": {
-    "sha256": "671d2607ce70c5a0b869912381b1a3af0ed36d7fd8617bff392dfbd11c7d6b81",
+    "sha256": "35f17b453c6d512255cf0535f9fd13cb2c3746764cfa285cd7398ad0f9c14968",
     "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--toile-ecrue.normale.jpg": {
-    "sha256": "b20db2823eb342d2ec1e3cd8e8ba1bd6ab49c47d32ff602f3717767dab842475",
+    "sha256": "3e7d5c9ef004b37b8b07136caffe38303e1a17b9c936d18fcf21f49a47d16ad7",
     "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 90"
   },
   "prop--toile-rouge.jpg": {
     "sha256": "b14cee4480409d33a3f10d1bf11f703e9fc02b37946d1406979935db25be39cb",
@@ -252,16 +252,16 @@
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
   "prop--corde.jpg": {
-    "sha256": "e3b0c8bd04dc04ee9db2d4994fbbec8a230c21614bd6356e35a80c5e2eca6685",
+    "sha256": "bc72d2aa70222b39fc72cda1840f26c20cfaf4fe9c38750d334a468a2eef5073",
     "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 1024x512! -duplicate 1 -append -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -resize 64x32! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--corde.normale.jpg": {
-    "sha256": "320df2e34bdf078d09509fb074dacb9a91918cced249aec264564894180ef8ce",
+    "sha256": "675cc0ec1d5aee4d56ca323aabbb29135b6c3f565393a284dadef3a3798ef565",
     "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 512x256! -duplicate 1 -append -strip -quality 90"
+    "traitement": "ImageMagick : -resize 64x32! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 90"
   },
   "prop--laiton-dore.jpg": {
     "sha256": "69e0f3aaf33c242509ae91695d8bc9606115225acd4a84044d7f167bb760fb68",
@@ -277,9 +277,9 @@
   },
   "prop--acier-battu.jpg": {
     "sha256": "ee351a160da0fa2339e14b0ada41117dc0010f39549a168553b75ae4d8fba896",
-    "source": "https://ambientcg.com/view?id=Metal046B (Metal046B_1K-JPG.zip : Metal046B_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Metal046B (Metal046B_1K-JPG.zip : Metal046B_1K-JPG_Color.jpg) ; dérivée de prop--acier-battu.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8b9096 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8b9096 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--acier-battu.neutre.jpg": {
     "sha256": "027ecf94f37e0e2b372112087a8a6ccc765c096df7880675d51e29715bc89e27",
@@ -300,16 +300,16 @@
     "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--corde.neutre.jpg": {
-    "sha256": "105eee1d7f15b9faa2f9d3ad75bc5a31d763051856eb9f5f017c6db6792debe1",
-    "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_Color.jpg) ; dérivée de prop--corde.jpg",
+    "sha256": "232b6e3f10173ff2dbfe7c70bdadc292683067a6e3b33e740852404ce13a3b27",
+    "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -resize 64x32! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--cuir-tanne.jpg": {
     "sha256": "c9cc49affce755a96f1f5ea4614519db963b0e420e6314032a97da88dc820fa5",
-    "source": "https://ambientcg.com/view?id=Leather033A (Leather033A_1K-JPG.zip : Leather033A_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Leather033A (Leather033A_1K-JPG.zip : Leather033A_1K-JPG_Color.jpg) ; dérivée de prop--cuir-tanne.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6a4128 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6a4128 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--cuir-tanne.neutre.jpg": {
     "sha256": "ebc758b2088df4f0b3e05f69c80d0f9d0ff3cd680ea9915b6f6c0ba7d1ea82b1",
@@ -325,9 +325,9 @@
   },
   "prop--drap-terne.jpg": {
     "sha256": "3107481f3534a151ba340946aff265759a556d0343e64d81709e70600f4191ca",
-    "source": "https://ambientcg.com/view?id=Fabric031 (Fabric031_1K-JPG.zip : Fabric031_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Fabric031 (Fabric031_1K-JPG.zip : Fabric031_1K-JPG_Color.jpg) ; dérivée de prop--drap-terne.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#57503f ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#57503f ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--drap-terne.neutre.jpg": {
     "sha256": "eaca1a23d09131fa472dad8325ad804fc71da9b1d3bbbe7458e816c986cab8b6",
@@ -349,9 +349,9 @@
   },
   "prop--fourrure.jpg": {
     "sha256": "0c25f811e5f501ab969b2fc0f1b1b044de16a16d2d8536faba0de7d2e72d0d7f",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5a48 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5a48 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--fourrure.neutre.jpg": {
     "sha256": "feb8a1fe25f5bfc9b6a5153aae4ee3141438d806d2aa4e6101d4cc545726793d",
@@ -367,9 +367,9 @@
   },
   "prop--laine.jpg": {
     "sha256": "c86183b8f72732eab6efc3b10af095c68115e50bb3784675b8687716da2ee840",
-    "source": "https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_Color.jpg) ; dérivée de prop--laine.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--laine.neutre.jpg": {
     "sha256": "39b8176ec2a8907f2bd35ba5490561bde16de43c67d51a60dedd6a6c7b06f954",
@@ -391,9 +391,9 @@
   },
   "prop--mailles.jpg": {
     "sha256": "7259009e0ea187d28903ad8c1eb55b4a355bea648934dbbea6af367cdb7cf72d",
-    "source": "https://ambientcg.com/view?id=Chainmail004 (Chainmail004_1K-JPG.zip : Chainmail004_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Chainmail004 (Chainmail004_1K-JPG.zip : Chainmail004_1K-JPG_Color.jpg) ; dérivée de prop--mailles.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6f7377 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6f7377 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--mailles.neutre.jpg": {
     "sha256": "cb23df13a6501c531ee17c21492d1516841b34d6f720709248ba5fe2a4cf4b54",
@@ -408,10 +408,10 @@
     "traitement": "ImageMagick : -resize 128x128! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
   },
   "prop--toile-ecrue.neutre.jpg": {
-    "sha256": "57a4e0ce293a47870076ad839e02354d95d5ecd7c097b573318b5315c9fba5fb",
-    "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_Color.jpg) ; dérivée de prop--toile-ecrue.jpg",
+    "sha256": "18d5c47c58482691b328fba99e069beeae2e2f5d62903cad04510c900bfb9727",
+    "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -resize 256x256! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--toile-rouge.neutre.jpg": {
     "sha256": "a2b0c8eee45d02a69432468f4ac6543e45b6371f307a9e02a70326d5d835f7d2",
@@ -421,9 +421,9 @@
   },
   "prop--bois-mort.jpg": {
     "sha256": "05b773e3b80faac99a06ed3f4c9ee5e2b78b262156974e60f1d04726479dca05",
-    "source": "https://ambientcg.com/view?id=Bark002 (Bark002_1K-JPG.zip : Bark002_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Bark002 (Bark002_1K-JPG.zip : Bark002_1K-JPG_Color.jpg) ; dérivée de prop--bois-mort.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--bois-mort.neutre.jpg": {
     "sha256": "7fb623ab0d86aed0bd732328f595f6f51a3493d6dc2f30d0b8f2be64b7e9555f",
@@ -439,9 +439,9 @@
   },
   "prop--feuillage.jpg": {
     "sha256": "f9623429c95d59ff24e1f9d5a6a0ae2450951710cede3bd68252938b16496e6a",
-    "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_Color.jpg) ; dérivée de prop--feuillage.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3f6b34 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3f6b34 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--feuillage.neutre.jpg": {
     "sha256": "4fe20292bce9edea2cab76ff9584b1e14aaebf1dffff738858332b7ba944f1ef",
@@ -457,9 +457,9 @@
   },
   "prop--ecorce-hetre.jpg": {
     "sha256": "e4ba82e6733400c362383795596beae85ef54cd4bc3c732f95e2267259100f21",
-    "source": "https://ambientcg.com/view?id=Bark010 (Bark010_1K-JPG.zip : Bark010_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Bark010 (Bark010_1K-JPG.zip : Bark010_1K-JPG_Color.jpg) ; dérivée de prop--ecorce-hetre.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--ecorce-hetre.neutre.jpg": {
     "sha256": "ed13e14587b8606493b11c3e4a6735b481e4e367b4a61b4e4e37a819f32edc2c",
@@ -475,9 +475,9 @@
   },
   "prop--ecorce-pin.jpg": {
     "sha256": "ea434c7da7a2f92fccbfdcf9125771ea0e2ab85a6e4290d9c6012096e2d95ab8",
-    "source": "https://ambientcg.com/view?id=Bark004 (Bark004_1K-JPG.zip : Bark004_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Bark004 (Bark004_1K-JPG.zip : Bark004_1K-JPG_Color.jpg) ; dérivée de prop--ecorce-pin.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#7a4a30 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#7a4a30 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--ecorce-pin.neutre.jpg": {
     "sha256": "561bfdc84325e24c43183a904e97c4c3c53eabad5b5ff2620d8852a4d3769552",
@@ -493,9 +493,9 @@
   },
   "prop--ecorce.jpg": {
     "sha256": "961c2c9f37df6c20c666b05240653927aeafaa742bf6af543f88ae2c3e51ba79",
-    "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_Color.jpg)",
+    "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_Color.jpg) ; dérivée de prop--ecorce.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--ecorce.neutre.jpg": {
     "sha256": "fc8be8958d22217e37f34325b5d2decc67724f74133d68cea7a37e8fb68b1737",
@@ -506,6 +506,78 @@
   "prop--ecorce.normale.jpg": {
     "sha256": "43be4b0c87d3fcf6cec23ece130076ad0ae7ab00bf146a76c7c058ba13b5c9de",
     "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--pierre-atre.jpg": {
+    "sha256": "8c5b2c9a7845f337d6b7b4e42deebc813a6cf8338db9950e586ddbe7ddc52628",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-atre.neutre.jpg": {
+    "sha256": "7dd6ae81168c64abc3899089b1e8eb8162142e1877df7e7cc7dc8c7e941b86e1",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_Color.jpg) ; dérivée de prop--pierre-atre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-atre.normale.jpg": {
+    "sha256": "14722f27dc5836436b3f9b4b1bcaae810445e28f8522887211f35571b4b025bb",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--terre-battue.jpg": {
+    "sha256": "11bd8d3dac4558fff2b2faccd65d0863d80cf5a3a0d60021ee6f845fbb8d162f",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_diff_1k.jpg, Amal Kumar)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-battue.neutre.jpg": {
+    "sha256": "f9e5e00f7fdf400810754dea8fa9bcd0817573b92f05ba72e5f68f5427327a56",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_diff_1k.jpg, Amal Kumar) ; dérivée de prop--terre-battue.jpg",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-battue.normale.jpg": {
+    "sha256": "36e2c1d37ac22739f800b1c4b86dc8f86b0046a0b984890d0fabb3b9615cb204",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_nor_gl_1k.jpg, Amal Kumar)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "roof--toit-ardoise.neutre.jpg": {
+    "sha256": "943163c0b956d5798f0b28e448f6644387f7d1e3ca080d3740be3f04dea50234",
+    "source": "https://polyhaven.com/a/grey_roof_tiles_02 (grey_roof_tiles_02_diff_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 720x742+177+100 +repage -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--toit-ardoise.normale.jpg": {
+    "sha256": "7582bb5814678588e5a4c0e55daf10763977cf04c40eb90723d7165e3d0f7af6",
+    "source": "https://polyhaven.com/a/grey_roof_tiles_02 (grey_roof_tiles_02_nor_gl_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 720x742+177+100 +repage -resize 512x512! -strip -quality 90"
+  },
+  "roof--tuile.neutre.jpg": {
+    "sha256": "a361c30b04d475ac4249869397cf5b6125e21559fca864112e628aaabd44d42d",
+    "source": "https://polyhaven.com/a/roof_3 (roof_3_diff_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 723x745+181+92 +repage -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--tuile.normale.jpg": {
+    "sha256": "15c6a54fc91d2b31643388b6aff4f0701744ae0444d7aefe274253bc6c264383",
+    "source": "https://polyhaven.com/a/roof_3 (roof_3_nor_gl_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 723x745+181+92 +repage -resize 512x512! -strip -quality 90"
+  },
+  "roof--chaume.neutre.jpg": {
+    "sha256": "98bb5f4fbcbdc7eccb96ca9be8558f0f81fea8bbf1c2bf858302428863c55a00",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--chaume.normale.jpg": {
+    "sha256": "ec594a31a6534a6a046584d6a63a7d874e9a99552625193dd032ed8bac60f253",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }

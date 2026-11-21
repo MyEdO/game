@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { areteDessinee, aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard } from './aretes';
+import {
+  areteDessinee, aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, natureDOuverture, paletteDeLApparence,
+  plateauDeLaScene, regardDuJeu, REGARDS, type AreteDessinee, type Regard,
+} from './aretes';
 import { EYE_H } from './iso';
 import type { Pt } from './path';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 import { emptyScene, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene, type WallSeg } from './scene';
+import { edgeKey } from './facades';
 import { volumeDuMonde } from './volume/volume';
 import { casesMontrees } from './volume/volume.testkit';
 import { depuisBase64 } from '../../lib/base64';
@@ -11,6 +16,7 @@ import { structureAppearances, terrains } from '../../data';
 import { datasetArray, setDataset } from '../../data/overrides';
 import { garanti } from '../../lib/garanti';
 import { terrainAbsent } from './terrain';
+import { paintHeight } from '../sceneEdit';
 
 /** Une scène dont `walls` sont les murs, et dont un corps de bâtiment porte une façade d'auberge sur l'arête nord de (1, 1). */
 function scene(walls: WallSeg[]): Scene {
@@ -44,6 +50,29 @@ describe('areteDessinee — la pièce', () => {
     const mur: WallSeg = { x: 0, y: 0, side: 'N', structure: 'mur-en-pierre' };
     expect(piece(setStructureDown(scene([mur]), 0, 0, 'N', 0, true), mur)).toBe('breche');
   });
+  it('une échelle (LDB 15 l.55), haute du dénivelé des deux cases qu’elle sépare, dressée de la plus basse', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const s = paintHeight(scene([echelle]), { x: 1, y: 1 }, 3, 1);
+    expect(areteDessinee(s, echelle)).toMatchObject({ piece: 'echelle', hauteurM: 3, pied: 0 });
+    expect(piece(s, { ...echelle, climb: { kind: 'surface' } }), 'une paroi à escalader reste un mur').toBe('mur');
+  });
+  it('une échelle qui monte à l’étage, de cases plates au rez, haute de la cote de la case de l’étage où elle mène moins son pied', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const base = scene([echelle]);
+    const etage = 3.5;
+    const s: Scene = { ...base, layers: [...base.layers, {
+      z: 1, tiles: base.layers[0].tiles.map((t, i) => (i === 4 + 1 ? t : terrainAbsent())), height: base.layers[0].tiles.map(() => etage),
+    }] };
+    const { sens, ...dessinee } = areteDessinee(s, echelle);
+    expect(dessinee).toMatchObject({ piece: 'echelle', pied: 0, hauteurM: etage });
+    expect({ x: -sens.y + 0, y: sens.x + 0 }, 'dehors vers le pied, au sud').toEqual({ x: 0, y: 1 });
+  });
+  it('le dehors d’une échelle, à (-sens.y, sens.x), va vers la plus basse des deux cases, d’où on la monte', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const dehors = (haussee: Pt) => { const { sens } = areteDessinee(paintHeight(scene([echelle]), haussee, 3, 1), echelle); return { x: -sens.y + 0, y: sens.x + 0 }; };
+    expect(dehors({ x: 1, y: 1 }), 'la case du nord haussée : vers le sud').toEqual({ x: 0, y: 1 });
+    expect(dehors({ x: 1, y: 2 }), 'la case du sud haussée : vers le nord').toEqual({ x: 0, y: -1 });
+  });
 });
 
 describe('areteDessinee — la famille du kit et la hauteur', () => {
@@ -70,26 +99,206 @@ describe('areteDessinee — la famille du kit et la hauteur', () => {
 
 describe('areteDessinee — la palette de l’apparence (#4471)', () => {
   const apparence = (id: string) => structureAppearances.find((a) => a.id === id)!;
-  it('la face, le poteau, le vantail, le meneau et la poignée, replis compris', () => {
+  /** Une apparence qui déclare chaque couleur que lit la palette, toutes distinctes, d'après `porte-de-ville`. */
+  const declaree = (base: string, teinte: (rang: number) => string) => {
+    const ville = apparence(base);
+    return {
+      ...ville,
+      face: teinte(1), post: teinte(2), band: teinte(3), rubble: teinte(4),
+      detail: { ...ville.detail!, courses: { ...ville.detail!.courses!, joint: teinte(5) } },
+      door: { ...ville.door!, leaf: teinte(6), plank: teinte(7), handle: teinte(8), herse: { ...ville.door!.herse!, traverseColor: teinte(9) } },
+      window: { glass: teinte(10), frame: teinte(12), mullion: teinte(13) },
+    };
+  };
+  it('une apparence qui les déclare sert les onze emplacements, chacun de sa couleur', () => {
+    const a = declaree('porte-de-ville', (rang) => `#0000${rang.toString(16).padStart(2, '0')}`);
+    expect(paletteDeLApparence(a)).toEqual({
+      corps: a.face, bois: a.post, joint: a.detail.courses.joint, gravats: a.rubble,
+      accent: a.door.leaf, vet1: a.window.mullion, metal: a.door.handle, planche: a.door.plank,
+      vitre: a.window.glass, barreau: a.band, traverse: a.door.herse.traverseColor,
+    });
+  });
+  it('le mur qui porte fournit le corps, le bois, le joint et les gravats ; l’arête, sa menuiserie', () => {
+    const arete = declaree('porte-de-ville', (rang) => `#0000${rang.toString(16).padStart(2, '0')}`);
+    const porteur = declaree('porte-de-ville', (rang) => `#00ff${rang.toString(16).padStart(2, '0')}`);
+    expect(paletteDeLApparence(arete, porteur)).toEqual({
+      corps: porteur.face, bois: porteur.post, joint: porteur.detail.courses.joint, gravats: porteur.rubble,
+      accent: arete.door.leaf, vet1: arete.window.mullion, metal: arete.door.handle, planche: arete.door.plank,
+      vitre: arete.window.glass, barreau: arete.band, traverse: arete.door.herse.traverseColor,
+    });
+  });
+  it('les replis d’une apparence qui ne les déclare pas, le cadre de sa croisée au vantail d’un mur sans bois', () => {
     const porte = apparence('porte');
+    const nu = apparence('plain');
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'porte' }).palette).toEqual({
       corps: porte.face,
       bois: porte.post,
+      joint: porte.detail!.courses!.joint,
+      gravats: porte.wood!.rubble,
       accent: porte.door!.leaf,
       vet1: porte.wood!.frame,
       metal: porte.door!.handle,
+      planche: porte.door!.plank,
+      vitre: nu.window!.glass,
+      barreau: porte.face,
+      traverse: porte.face,
     });
-    const nu = apparence('plain');
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N' }).palette).toEqual({
       corps: nu.face,
       bois: nu.post,
+      joint: nu.detail!.courses!.joint,
+      gravats: nu.wood!.rubble,
       accent: nu.wood!.inset,
       vet1: nu.window!.mullion,
       metal: nu.wood!.cap,
+      planche: nu.wood!.skirt,
+      vitre: nu.window!.glass,
+      barreau: nu.face,
+      traverse: nu.face,
+    });
+    expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'mur-en-pierre' }).palette.accent)
+      .toBe(apparence('mur-en-pierre').window!.frame);
+  });
+  it('chaque apparence avec window.frame donne sa couleur au vantail de l’arête', () => {
+    const porteuses = structureAppearances.filter((apparence) => apparence.window?.frame !== undefined);
+    expect(porteuses.length, 'le catalogue fournit au moins une couleur de cadre').toBeGreaterThan(0);
+    const monde = scene([]);
+    expect(
+      porteuses
+        .filter((apparence) => {
+          const arete = areteDessinee(monde, { x: 0, y: 0, side: 'N', appearance: apparence.id, window: true });
+          return arete.piece !== 'fenetre' || arete.palette.accent !== apparence.window!.frame;
+        })
+        .map((apparence) => apparence.id),
+      'chaque cadre de croisée déclaré doit atteindre la couleur accent de l’arête',
+    ).toEqual([]);
+  });
+  it('une croisée qui ne déclare que son bois le donne aux vantaux, sa vitre et son meneau pris aux replis', () => {
+    const { door: _porte, wood: _bois, ...pierre } = apparence('mur-de-chateau');
+    const croisee = { ...pierre, window: { frame: '#000001' } };
+    expect(paletteDeLApparence(croisee)).toMatchObject({
+      accent: '#000001',
+      vitre: apparence('plain').window!.glass,
+      vet1: croisee.post,
     });
   });
   it('aucune couleur pour une apparence hors du catalogue', () => {
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'inconnue' }).palette).toEqual({});
+  });
+});
+
+describe('areteDessinee — l’ouverture et le mur qui la porte (#4471)', () => {
+  const apparence = (id: string) => structureAppearances.find((a) => a.id === id)!;
+  const PORTE = 'solide-porte-en-bois';
+  const porte = (x: number, y: number): WallSeg => ({ x, y, side: 'N', door: true, closed: true, structure: PORTE });
+  /** `n` portes fermées bout à bout sur la ligne nord de la rangée 1, de (1, 1) à (n, 1), entre le mur `avant` en
+   *  (0, 1) et le mur `apres` en (n + 1, 1), chacun omis sans apparence ; en terrain ouvert, le dehors au nord. */
+  const rangee = (n: number, avant?: string, apres?: string): Scene => ({
+    ...emptyScene('ouverture', n + 3, 3),
+    walls: [
+      ...(avant ? [{ x: 0, y: 1, side: 'N' as const, structure: avant }] : []),
+      ...Array.from({ length: n }, (_, i) => porte(i + 1, 1)),
+      ...(apres ? [{ x: n + 1, y: 1, side: 'N' as const, structure: apres }] : []),
+    ],
+  });
+  const portes = (s: Scene) => aretesDeLaScene(s).filter((a) => a.piece === 'porte-fermee');
+  const tenue = ({ famille, palette }: AreteDessinee) => ({ famille, palette });
+  it.each([
+    [1, ['seule']],
+    [2, ['droite', 'gauche']],
+    [3, ['droite', 'milieu', 'gauche']],
+    [4, ['droite', 'milieu', 'milieu', 'gauche']],
+  ])('une ouverture de %i arêtes : de -X à +X le long de leur sens commun', (n, positions) => {
+    const dessinees = portes(rangee(n));
+    expect(dessinees.map((a) => a.position)).toEqual(positions);
+    for (const a of dessinees) expect(a.sens).toEqual(dessinees[0].sens);
+    const bout = (position: string) => dessinees.find((a) => a.position === position || a.position === 'seule')!;
+    const [gauche, droite] = [bout('gauche'), bout('droite')];
+    const { sens } = gauche;
+    expect((droite.milieu.x - gauche.milieu.x) * sens.x + (droite.milieu.y - gauche.milieu.y) * sens.y).toBe(n - 1);
+  });
+  it('le sens de l’ouverture est celui de sa première arête qui a un dehors', () => {
+    const piece: WallSeg[] = [{ x: 1, y: 1, side: 'N' }, { x: 0, y: 1, side: 'E' }, { x: 1, y: 1, side: 'E' }];
+    const [dedans, libre] = [porte(1, 2), porte(2, 2)];
+    const seule = areteDessinee({ ...emptyScene('ouverture', 4, 4), walls: [...piece, dedans] }, dedans);
+    const s: Scene = { ...emptyScene('ouverture', 4, 4), walls: [...piece, dedans, libre] };
+    expect(areteDessinee(s, libre).sens).not.toEqual(areteDessinee({ ...s, walls: [libre] }, libre).sens);
+    expect([dedans, libre].map((seg) => areteDessinee(s, seg)).map(({ sens, position }) => ({ sens, position })))
+      .toEqual([{ sens: seule.sens, position: 'gauche' }, { sens: seule.sens, position: 'droite' }]);
+  });
+  it('une autre apparence, un mur entre elles ou une autre couche séparent deux ouvertures', () => {
+    const s = rangee(2);
+    const position = (walls: WallSeg[]) => aretesDeLaScene({ ...s, walls }).map((a) => a.position);
+    const [une, deux] = s.walls!;
+    expect(position([une, { ...deux, structure: 'porte' }])).toEqual(['seule', 'seule']);
+    expect(position([une, { ...deux, x: 3 }, { x: 2, y: 1, side: 'N' }])).toEqual(['seule', 'seule', 'seule']);
+    expect(position([une, { ...deux, z: 1 }])).toEqual(['seule', 'seule']);
+  });
+  it('une porte prend la famille et les teintes de mur du mur qui la porte, au bout -X, sinon +X', () => {
+    const [mur, autre] = [apparence('mur-de-pierre-aa'), apparence('mur-a-ossature-en-bois')];
+    const deLaPorte = paletteDeLApparence(apparence(PORTE));
+    const melee = (de: typeof mur) => {
+      const { corps, bois, joint, gravats } = paletteDeLApparence(de);
+      const { accent, vet1, metal, planche, vitre, barreau, traverse } = deLaPorte;
+      return { corps, bois, joint, gravats, accent, vet1, metal, planche, vitre, barreau, traverse };
+    };
+    expect(mur.kit).not.toBe(apparence(PORTE).kit);
+    for (const s of [rangee(2, undefined, mur.id), rangee(2, autre.id, mur.id)])
+      for (const a of portes(s)) expect(tenue(a)).toEqual({ famille: mur.kit, palette: melee(mur) });
+    for (const a of portes(rangee(1, autre.id)))
+      expect(tenue(a)).toEqual({ famille: autre.kit, palette: melee(autre) });
+  });
+  it('une porte prend la hauteur du mur qui la porte, la pièce de son kit étant un pan de ce mur', () => {
+    const muret = apparence('mur-en-pierres-seches');
+    expect(muret.wallHeightM).not.toBe(apparence(PORTE).wallHeightM);
+    for (const a of portes(rangee(2, undefined, muret.id))) expect(a.hauteurM).toBe(muret.wallHeightM);
+  });
+  it('sans mur qui la porte, une porte garde sa famille ; une porte de ville garde la sienne dans son mur', () => {
+    const propre = { famille: apparence(PORTE).kit, palette: paletteDeLApparence(apparence(PORTE)) };
+    for (const a of portes(rangee(2))) expect(tenue(a)).toEqual(propre);
+    const ville: WallSeg[] = [
+      { x: 1, y: 1, side: 'N', structure: 'porte-de-ville' }, { x: 2, y: 1, side: 'N', structure: 'porte-de-ville' },
+      { x: 3, y: 1, side: 'N', structure: 'mur-de-pierre-aa' },
+    ];
+    const dessinees = aretesDeLaScene({ ...emptyScene('ouverture', 5, 3), walls: ville }).slice(0, 2);
+    const kit = apparence('porte-de-ville').kit;
+    expect(dessinees.map(({ position, famille }) => ({ position, famille })))
+      .toEqual([{ position: 'droite', famille: kit }, { position: 'gauche', famille: kit }]);
+  });
+});
+
+describe('areteDessinee — les ouvertures des campagnes livrées (#4471)', () => {
+  /** Les ouvertures de `scene` : pour chacune, sa largeur, sa famille et ses positions dans l'ordre de son sens, la
+   *  suite d'arêtes d'une nature d'ouverture (`natureDOuverture`) qui part d'une `seule` ou d'une `gauche` et avance
+   *  d'un `sens` jusqu'à sa `droite`. */
+  const ouvertures = (scene: Scene) => {
+    const segs = new Map((scene.walls ?? []).map((seg) => [edgeKey(seg), seg]));
+    const aretes = aretesDeLaScene(scene).filter((a) => natureDOuverture(scene, segs.get(a.cle)!));
+    const lieu = (a: AreteDessinee, d = 0) =>
+      `${a.cases[0].z}|${a.milieu.x + d * a.sens.x},${a.milieu.y + d * a.sens.y}|${a.sens.x},${a.sens.y}`;
+    const parLieu = new Map(aretes.map((a) => [lieu(a), a]));
+    return aretes.filter((a) => a.position === 'seule' || a.position === 'gauche').map((premiere) => {
+      const suite = [premiere];
+      let a = premiere;
+      while (a.position !== 'seule' && a.position !== 'droite') {
+        const suivante = parLieu.get(lieu(a, 1));
+        if (!suivante) break;
+        suite.push(suivante);
+        a = suivante;
+      }
+      return { largeur: suite.length, famille: premiere.famille, positions: suite.map((a) => a.position), suite };
+    });
+  };
+  const livrees = allBuiltinCampaigns.flatMap((c) => paquetDuJeu(c).scenes.map((scene) => ({ c, scene })));
+  const mesurees = livrees.flatMap(({ c, scene }) =>
+    ouvertures(scene).map((o) => ({ ...o, ou: `${c.id}/${scene.id}` })));
+  it('chaque ouverture va de -X à +X le long de son sens commun', () => {
+    for (const { positions, suite, ou } of mesurees) {
+      const attendues = positions.length === 1 ? ['seule']
+        : ['gauche', ...Array<string>(positions.length - 2).fill('milieu'), 'droite'];
+      expect(positions, ou).toEqual(attendues);
+      for (const a of suite) expect(a.sens, ou).toEqual(suite[0].sens);
+    }
   });
 });
 

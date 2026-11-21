@@ -1,5 +1,6 @@
 """Les entrées d'une reconstruction de la chaîne 3D (#3412, lot 4C) : un SUJET est un élément sur base (`element/<base>/<dossier>`)
-ou un modèle sans base (`<famille>/<modele>` : `vehicule/caraque`, `decor/arbre`, `arete/colombage`), avec son
+ou un modèle sans base (`<famille>/<modele>` : `vehicule/caraque`, `decor/arbre`, `arete/colombage`,
+`escalier/bois`), avec son
 dossier et les ids publiés qu'il
 lit sous `hotes/godot/projet/modeles/` (les siens, ceux qu'il contourne et celui dont il prend un emplacement). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
 lit la gate `personnage-3d:tests` (`ECRIT_LU`, `scripts/gates/toutes.mjs`), hors du dossier d'un autre sujet, et, sous les
@@ -23,7 +24,8 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[1]
 MODELES = 'hotes/godot/projet/modeles/'
 TOUT = 'WFRP_3D_TOUT'
-CATEGORIES_DES_FAMILLES = {'vehicule': ('vehicule', 'amelioration'), 'decor': ('decor',), 'arete': ('arete',)}
+CATEGORIES_DES_FAMILLES = {'vehicule': ('vehicule', 'amelioration'), 'decor': ('decor',), 'arete': ('arete',),
+                           'escalier': ('escalier',)}
 """Par famille de modèles sans base (`<famille>/<modele>/`, `construire.py`), les catégories des éléments qu'ils publient
 (`identifiant` de `construire.py`)."""
 

@@ -13,10 +13,15 @@ import { choiceStep } from '../noyau/rollSeam';
 import { estUneCle, t } from '../i18n';
 import type { Bouton, Entite } from './elements';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
+import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
+import { buildSeaPlan } from '../noyau/seaVoyageFlow';
+import type { CampaignVessel } from '../noyau/etat';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { emptyScene } from '../noyau/monde/scene';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
+import { testScene } from '../scenes/test-fixture';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -69,6 +74,75 @@ describe('la pastille d’une offre par candidat (`combat.offres`)', () => {
     const parCandidat = ACTIONS.filter((a) => a.candidates).map((a) => a.id);
     expect(parCandidat, 'des actions s’offrent par candidat').toContain('incantation');
     expect(parCandidat.filter((id) => !estUneCle(`ecran.offre.${id}`))).toEqual([]);
+  });
+});
+
+describe('les modificateurs de visibilité dans l’écran de jet (MDG 13 l.234–243)', () => {
+  const brouillard = { type: 'puce', libelle: 'Brouillard', valeur: '−2 DR' };
+  const vessel = (): CampaignVessel => ({
+    vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+    meteosImposees: [{ label: 'Brouillard', jusqua: 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: 'brouillard' } } }],
+  });
+  const zones = (etat: Jeu) => zonesDeLEcran(
+    etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER,
+  );
+
+  it('l’Orientation joue deux rangées et montre une seule puce de DR pour tout l’équipage', () => {
+    const banc = ouvrirLeBanc();
+    const [navigateur, vigie] = tousLesHerosDeScenario(idsDeTest);
+    banc.setState({
+      party: [{ ...navigateur, shipRole: 'navigateur' }, { ...vigie, shipRole: 'vigie' }],
+      scene: emptyScene('port-a', 2, 2), lieu: 'A', gameTime: 8 * 60, vessel: vessel(),
+      worldMap: {
+        id: 'mer', label: 'Mer des Griffes',
+        places: [
+          { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
+          { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' } },
+        ],
+        routes: [{ id: 'vers-b', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+      },
+    });
+    banc.getState().ensemencerLeTirage(1);
+    banc.getState().partirEnVoyage('vers-b', 'mer', { cadence: 'jourParJour' });
+    const etape = () => {
+      const c = banc.getState().pendingCascade;
+      return c?.participants[c.cursor];
+    };
+    for (let i = 0; i < 30 && etape() && etape()?.kind !== 'equipage-orientation'; i++) avanceEtapeCascade(banc.getState);
+    const orientation = etape();
+    expect(orientation?.kind).toBe('equipage-orientation');
+    expect(orientation?.participants).toHaveLength(2);
+    const ecran = zones(banc.getState());
+    expect(ecran['fenetre.corps'].filter((e) => e.type === 'puce' && e.libelle === 'Brouillard')).toEqual([expect.objectContaining(brouillard)]);
+    const jets = ecran['groupe.heros'].flatMap((h) => h.elements.filter((e) => e.type === 'jet'));
+    expect(jets).toHaveLength(2);
+    for (const part of orientation!.participants!) {
+      expect(jets.find((j) => j.combattant === part.id)).toMatchObject({ cible: `≤ ${part.target}`, modificateurs: [] });
+    }
+  });
+
+  it('le tir à 12 m dans le brouillard montre la puce avant et après le jet avec la même cible', () => {
+    const banc = ouvrirLeBanc();
+    const jouer = banc.getState;
+    banc.setState({ party: [heroDuDuel()] });
+    jouer().lancerLaScene({ ...testScene(), metresPerTile: 2 });
+    banc.setState({ gameTime: 8 * 60, vessel: vessel() });
+    const plan = buildSeaPlan(jouer, 'vers-b', 'A', 'B', { km: 550, seaHeading: 'est' })!;
+    banc.setState({ travelPlan: { ...plan, interrupted: true } });
+    jouer().lancerLeCombat('enc-mutants');
+    jouer().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const { H, E, patch } = auContact(jouer());
+    H.weapons = [{ label: 'Projectile de test', type: 'distance', damage: { plusBF: false, flat: 3 }, range: 20, qualities: [] }];
+    E.pos = { x: 16, y: 10 };
+    banc.setState(patch);
+    expect(jouer().travelPlan?.sea?.weather.visibilite).toBe('brouillard');
+    jouer().cliquerLaCase(E.pos, E.id, { confirm: true });
+    const jet = () => zones(jouer())['fenetre.corps'].filter((e) => e.type === 'jet').find((e) => e.id === 'jet');
+    const avant = jet();
+    expect(avant).toMatchObject({ resultat: null, modificateurs: expect.arrayContaining([expect.objectContaining(brouillard)]) });
+    jouer().jetLancer('attaque');
+    expect(jet()).toMatchObject({ cible: avant?.cible, resultat: expect.any(String), modificateurs: expect.arrayContaining([expect.objectContaining(brouillard)]) });
   });
 });
 

@@ -6,6 +6,8 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { lireLeFichier, ligneDuFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, table, verbe } from './hote.testkit';
@@ -15,7 +17,8 @@ import { testScenarios } from '../scenes/test-scenarios';
 afterEach(fermerLaTable);
 
 /** Un fichier de partie committé à côté de ce test. */
-const fixture = (nom: string): string => readFileSync(new URL(`./${nom}`, import.meta.url), 'utf8');
+const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
+const fixture = (nom: string): string => readFileSync(join(DOSSIER, nom), 'utf8');
 
 /** Les gestes d'exploration de la partie que ce texte rejoue. */
 function gestesDuTexte(texte: string) {

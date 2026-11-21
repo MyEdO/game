@@ -11,7 +11,7 @@
 // repayer les vingt autres.
 //
 // TROIS PHASES, et l'ordre est la garantie :
-//   1. `npm run gen` — `build`, la suite et `docs:build` produisent les cibles de CODE depuis plusieurs
+//   1. `npm run gen` — `docs:build` et l’installation produisent les cibles de CODE depuis plusieurs
 //      lanes : produites ici, elles ne se réécrivent plus.
 //   2. les LANES, qui ne contiennent que des LECTEURS (ce qu'une gate écrit encore est FERMÉ par sa
 //      porte, `ecritFerme`).
@@ -128,7 +128,7 @@ export const ECRIT_LU = {
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', ...DOSSIERS_DES_ZONES, 'Source/',
       'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'oxlint.noms-par-ligne.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
-      'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts', '.mcp.json',
+      'kill-pid.mjs', 'knip-exports-baseline.json', 'vitest.config.ts', '.mcp.json',
     ],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
@@ -181,7 +181,7 @@ export const ECRIT_LU = {
       '--porcelain` avant/après identique, et aucun résidu `migr-` dans os.tmpdir() ; +1 lecture le 2026-09-23 (#1739) : la garde du dépôt ' +
       '`guards/lib/pdfHorsCouture.test.mjs` LIT tout fichier de code et tout JSON de configuration, suivi ou ' +
       'non indexé — son banc exige que chaque racine de `racinesBalayees` soit couverte par ce `lit` ' +
-      '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
+      '(kill-pid.mjs, knip-exports-baseline.json, vitest.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
       '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +1 écrivain le ' +
@@ -247,7 +247,10 @@ export const ECRIT_LU = {
   'test:corpus': {
     ecrit: [],
     lit: LIT_DES_AUDITS,
-    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus. `scripts/corpus/docs/manual-docs-ratchet.test.mjs` ' +
+      'lit la table de routage d’AGENTS.md pour vérifier que les docs à plat sont atteignables. Les copies, mutations et rapports des bancs ' +
+      'restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; ' +
+      'les rendus sont lus sans publication dans l’arbre.',
   },
   'test:corpus-isole': {
     ecrit: [],
@@ -311,7 +314,7 @@ export const ECRIT_LU = {
   },
   'test:runner': {
     ecrit: [],
-    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json', 'vite.config.ts'],
+    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json', 'vitest.config.ts'],
     raison: RETRAIT_WORKTREE_FERME +
       'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
       'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
@@ -329,26 +332,7 @@ export const ECRIT_LU = {
       '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
       'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
       '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
-      '`mkdtempSync` d’os.tmpdir() des bancs) ; +1 le 2026-11-13 (#3412) : `partition.test.mjs` importe vite.config.ts (LU) ' +
-      'et trie par son séquenceur des fixtures posées sous un `mkdtempSync` d’os.tmpdir(), `rmSync` en finally',
-  },
-  'test:noyau': {
-    ecrit: [],
-    ecritFerme: {
-      'hotes/godot/projet/modeles/':
-        'le même dépôt que `godot:sonde` : `recupererModeles` (hotes/godot/asset/release.ts, #2948), que jouent la suite des ' +
-        'assets (`asset.hors-store.test.ts`) et la table de test du pont avant de lister les modèles (`modelesCommites`, ' +
-        'hotes/godot/pont/pont.testkit.ts, #3945), n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa ' +
-        'provenance, par temporaire exclusif puis renommage : un lecteur concurrent ne voit jamais un fichier partiel ; ' +
-        '`test:noyau` précède `godot:sonde` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE ; dans ' +
-        'ci.yml, chacune joue dans son job (`types`, `godot`), sur son arbre',
-    },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
-    raison: RETRAIT_WORKTREE_FERME +
-      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` du noyau et de ses hôtes (`HOTES_DU_NOYAU`), sans le store, ' +
-      'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
-      'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre ' +
-      'hors des GLB épinglés, que git ignore (`ecritFerme`)',
+      '`mkdtempSync` d’os.tmpdir() des bancs)',
   },
   'noyau:chargement': {
     ecrit: [],
@@ -367,7 +351,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', ...DOSSIERS_DES_ZONES, '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
@@ -393,15 +377,13 @@ export const ECRIT_LU = {
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
-      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
-      'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
-      'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ (#2203) : `manual-docs-ratchet.test.mjs` rend chaque cible ' +
-      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches de docs/dossiers/ et les projets livrés sous src/scenes/ ' +
+      'quand `scripts/docs/build-dossiers-de-chapitre.test.mjs` rend leur état des lieux. ' +
+      '`scripts/docs/lib/enregistreur-lectures.test.mjs` charge `src/lib/coupeAuMot.mjs` depuis une fixture ' +
+      'pour vérifier la mesure d’un module préchauffé ; ' +
+      'LIT scripts/raw/ et scripts/gen-registry.mjs : `scripts/docs/generateurs-contrat.test.mjs` charge les modules ' +
+      'des générateurs de `GENERATORS`. LIT Source/ : `scripts/docs/rendre-cible.test.mjs` vérifie le rendu des ' +
+      'catalogues de l’Atlas par `build-catalogs.mjs`, qui lit les chapitres. LIT les sources, configurations et inventaires du runbook ' +
       'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
       '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
       'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
@@ -418,26 +400,26 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       ...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', 'package.json', 'knip.json', 'knip-exports-baseline.json',
-      'tsconfig.json', 'vite.config.ts', 'oxlint.config.mjs', 'index.html', '.gitignore', 'CLAUDE.md',
+      'tsconfig.json', 'vitest.config.ts', 'oxlint.config.mjs', '.gitignore', 'CLAUDE.md',
     ],
     raison:
       'knip et le cliquet LISENT ; la baseline ne s’écrit que sous `--sync`, absent de la commande de ci.yml ; ' +
-      'LIT docs/ et Source/ — la passe knip OUVRE docs/charte-ui.md, docs/donnees.md et les trois chapitres ' +
+      'LIT docs/ et Source/ — la passe knip OUVRE docs/donnees.md et les trois chapitres ' +
       'Source/ que des tests adressent en tête de module (Psychologie, Aux Armes ANNEXE III, Artefacts ' +
       'magiques) : deux passes d’enregistreur, même ensemble de 5 (2026-09-08) — c’est cette lecture-là ' +
       'qui met la gate sous la clé COMPLÈTE',
   },
   'test:recette': {
     ecrit: [],
-    lit: ['scripts/recette/', 'scripts/port-dev.mjs'],
+    lit: ['scripts/recette/'],
     raison: RETRAIT_WORKTREE_FERME + 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'tsconfig.json', 'package.json', 'vite.config.ts'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'tsconfig.json', 'package.json', 'vitest.config.ts'],
     raison:
       '`tsc --noEmit --incremental false` : aucune sortie, aucun `.tsbuildinfo` ; LIT package.json et ' +
-      'vite.config.ts (mesurés à la sonde, hors des deux racines de `include`)',
+      'vitest.config.ts (mesurés à la sonde, hors des deux racines de `include`)',
   },
   'pont:godot': {
     ecrit: [],
@@ -467,8 +449,7 @@ export const ECRIT_LU = {
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
-        'qu’après l’écriture ; le lint lit des modules ; la suite du noyau, que la lane locale `types` joue avant elle ' +
-        '(`LANE_LOCALE_DE_JOB`), y dépose les mêmes GLB (`ecritFerme` de `test:noyau`)',
+        'qu’après l’écriture',
       'src/scenes/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
@@ -499,6 +480,15 @@ export const ECRIT_LU = {
       'par renommageResilient.mjs) et la garde par le verrou `<copie>.verrou` (`prendreVerrouAsync`, scripts/test/verrou.mjs, ' +
       'temporaire et reprise à côté du verrou) : rien sous l’arbre ; `godot:rendus`, `godot:coop` et `godot:recette` ' +
       'passent par la même copie',
+  },
+  'godot:web': {
+    ecrit: [],
+    ecritFerme: {
+      'dist/godot/': 'export Web Godot, paquets et avis de licences sous la sortie ignorée par git',
+      'hotes/godot/projet/modeles/': 'mêmes GLB épinglés et mêmes écritures atomiques que `godot:sonde`, avant lui dans le job godot',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    raison: 'Le constructeur Godot exporte depuis sa copie importée et produit le pont, les paquets, les planches et les licences sous dist/godot/. Les caches sont hors du dépôt.',
   },
   'godot:rendus': {
     ecrit: [],
@@ -552,23 +542,21 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       'hotes/godot/projet/modeles/':
-        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `piloter`) : `recupererModeles` ' +
-        'n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis ' +
-        'renommage, que ses jeux menés de front répètent sans rien écrire ; `godot:recette` suit `godot:sonde` et ' +
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
+        '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
         '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      'Les recettes natives de l’hôte Godot (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) : les jeux `combat` et ' +
-      '`editeur`, menés de front (`jeuxPilotesDeFront`, #3412), par `recette.mjs --natif`, qui bâtit le pont en mémoire (`write: false`), sert le jeu sans ' +
-      'export (`servir.mjs`) et lance Godot `--headless` sur une COPIE importée du projet sous `os.tmpdir()`, effacée ' +
-      '(`piloter`, hotes/godot/construire.mjs), tirée de la copie importée de `godot:sonde`, hors de l’arbre ' +
-      '(`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
-      '`os.tmpdir()` (`depot`), où son enregistrement écrit, jamais sous src/scenes/ ; les journaux vont sous ' +
-      '`dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit ; LIT ce que lit `godot:sonde`. Écrit sous ' +
-      'hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; `deposerLesModeles`, `deposerLesPlanches` et ' +
-      '`deposerLesAvis` n’écrivent que sous `--export` et `--bureau`, dans leur `--sortie`, et le stockage du pont est ' +
-      'celui du processus de la recette (`stockageDuProcessus(null)`, hotes/godot/stockage.mjs), qui ne dure que lui',
+      'Le lot natif (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) prépare sous `os.tmpdir()` le bundle du pont ' +
+      'et un clone de la copie importée hors de l’arbre (`~/.cache/wfrp-godot-copies/`). Les jeux `combat`, `editeur` et ' +
+      '`compendium` se jouent de front (`jeuxPilotesDeFront`, #3412) par `recette.mjs --natif`. Chaque processus lit ' +
+      'le bundle, sert le jeu sans export (`servir.mjs`), possède son stockage du pont (`stockageDuProcessus(null)`) ' +
+      'et lance Godot `--headless` sur son clone jetable (`piloter`, hotes/godot/construire.mjs). Les parcours ' +
+      '`editeur` et `compendium` servent chacun un dépôt temporaire pour leurs enregistrements. La préparation et les ' +
+      'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
+      'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
   'personnage-3d:tests': {
     ecrit: [],
@@ -576,13 +564,13 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
-        'les constructions que `test_vehicule.py`, `test_decor.py`, `test_arete.py` et `test_element.py` lancent ' +
+        'les constructions que `test_vehicule.py`, `test_decor.py`, `test_arete.py`, `test_escalier.py` et `test_element.py` lancent ' +
         'en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
       'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/structureAppearance.json',
-      'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/relief.ts'],
+      'src/data/terrains.json', 'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/piecesDArete.ts', 'src/noyau/monde/relief.ts'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -596,7 +584,12 @@ export const ECRIT_LU = {
       '`polygonesDePrimitive` de `src/data/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
       '`decor/polygones.mjs`), `test_arete.py` les arêtes d’`arete/`, d’après la forme des apparences de ' +
       '`src/data/structureAppearance.json` et la hauteur d’un niveau (`METRES_PER_LEVEL` de ' +
-      '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`), et `test_element.py` les éléments ' +
+      '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`) et les pièces d’une arête (`PIECES_D_ARETE` de ' +
+      '`src/noyau/monde/piecesDArete.ts`, que lance `arete/pieces.mjs`) et leurs places dans une suite ' +
+      '(`POSITIONS_DANS_L_OUVERTURE` du même module, que lance `arete/positions.mjs`), `test_escalier.py` les escaliers d’`escalier/` ' +
+      'et les pièces d’un côté de marches (`PIECES_D_ESCALIER` du même module, que lance `escalier/pieces.mjs`), ' +
+      'chaque famille de kit d’escalier qu’un terrain nomme (`kitDEscalier` de `src/data/terrains.json`) ayant son modèle, ' +
+      'tous deux sous les gardes communes aux kits de pièces de `banc_des_kits.py`, et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +
@@ -616,21 +609,16 @@ export const ECRIT_LU = {
   },
   test: {
     ecrit: [],
-    ecritFerme: {
-      'src/':
-        'le `buildStart` du plugin `registryGen` (vite.config.ts) lance `build-all.mjs --code`, qui n’écrit que si ' +
-        'le rendu diffère (`ecrireDoc`, scripts/docs/lib/ecriture-derives.mjs) — `toutes.mjs` joue ' +
-        '`npm run gen` avant toute gate, donc il ne reste rien à écrire',
-    },
-    lit: [...DOSSIERS_DES_ZONES, 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
+    lit: [...DOSSIERS_DES_ZONES, 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vitest.config.ts'],
     raison:
+      'La suite des assets et les bancs du pont récupèrent les GLB épinglés dans des dossiers temporaires hors de l’arbre. ' +
       'LIT scripts/ EN ENTIER, pas les seules racines `scripts/` de son `include` (racinesDeLaSuite.mjs) : ' +
       'les tests de `src/` IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
       'docs/lib, data/lib, qc/lib, raw, migrations, campagne, arene, gen-registry.mjs) ; ' +
       'LIT docs/ ET docs/raw/ (sonde `fs` du 2026-09-16, #1738) : la famille des ' +
       'CLIQUETS ET CONTRATS qui confrontent le code à un doc DÉRIVÉ (data-atlas-complete, ' +
       'index-moteur-ratchet, slots-contrat, structures-contrat, roll-seam-exclusivity-guard, ' +
-      'scene-field-editability-guard, ui-ratchets, oversize-search-blindspot) — d’où la lane ' +
+      'scene-field-editability-guard, oversize-search-blindspot) — d’où la lane ' +
       'SÉPARÉE des trois écrivains de docs/raw ; AUCUNE lecture sous .claude/ ni de CLAUDE.md ' +
       '(même sonde) : les deux gardes documentaires qui les balayaient vivent ' +
       'en node:test (scripts/guards/lib/memoryLinks.test.mjs dans test:hooks, ' +
@@ -641,43 +629,11 @@ export const ECRIT_LU = {
       'src/oversize-search-blindspot.test.ts) ; LIT .gitattributes parce que le verdict de `nonLf` ' +
       '(src/source-hygiene-guard.test.ts) tient à la colonne `-text` que `git ls-files --eol` en tire',
   },
-  build: {
-    ecrit: [],
-    ecritFerme: {
-      [CACHE_FRAICHEUR]:
-        '`build-all.mjs --code` invalide puis certifie ses écritures par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage ; ' +
-        'destination sous docs/.cache/ gitignoré, hors arbre versionné ; les seuls lecteurs réels build/docs:build sont dans le même job/lane docs de ci.yml, ' +
-        'séquentiels par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
-      'src/':
-        'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
-        '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
-      'docs/.sources-lues.json':
-        '`build-all.mjs --code` conserve les mesures des autres générateurs et enregistre celles des cibles de code ; seuls build et docs:build lisent cette mesure réelle dans le même job/lane docs, séquentiels par jouerLane ; les autres lanes utilisent leurs mesures de fixtures sous os.tmpdir()',
-      'vite.config.ts.timestamp-*.mjs':
-        'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
-        '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
-        'ce chemin — c’est un module que Vite écrit pour lui-même, sous un nom que le suffixe horodaté rend ' +
-        'unique à chaque run, et il est gitignoré (.gitignore, section « Config de Vite recompilée »), donc ' +
-        'il ne salit pas l’arbre. `ecrit` le dirait CHEVAUCHANT `vite.config.ts` (recouvrement par PRÉFIXE), ' +
-        'que `test` et `typecheck` lisent depuis d’autres lanes : ce serait un faux conflit',
-    },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
-    raison: RETRAIT_WORKTREE_FERME +
-      '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
-      '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
-      'parce que `transformWithOxc` de Vite 8.3.2 résout la configuration TypeScript pendant la transformation ' +
-      'des modules (node_modules/vite/dist/node/chunks/node.js, `transformWithOxc` → `getTSConfigResolutionCache`) — l’alias `@`, lui, ' +
-      'est déclaré dans `resolve.alias` de vite.config.ts ; LIT Source/ parce que le plugin ' +
-      '`wfrp:prose-source` (scripts/source/prose-source-plugin.mjs) y résout la prose que les entrées ADRESSENT ' +
-      '— la sonde du 2026-09-08 n’a compté AUCUNE lecture sous Source/ sur un build complet (2 056 lectures) : ' +
-      'la déclaration reste, une sur-déclaration ne peut que RESSERRER les lanes ; LIT aussi index.html ' +
-      '(l’entrée) et package.json',
-  },
   'docs:build': {
     ecrit: [],
     ecritFerme: {
       [CACHE_FRAICHEUR]:
-        'certificat écrit par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage sur ce cache gitignoré sous docs/.cache/, hors arbre versionné ; seuls build et docs:build lisent celui de la racine réelle : ' +
+        'certificat écrit par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage sur ce cache gitignoré sous docs/.cache/, hors arbre versionné ; le job docs lit celui de la racine réelle : ' +
         'même job/lane docs de ci.yml, joués séquentiellement par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'docs/':
         'les mesures docs/.sources-lues.json sont écrites par build-all.mjs ; ' +
@@ -893,21 +849,7 @@ export function lanesDeCi(gates, laneDeJob = LANE_LOCALE_DE_JOB) {
  */
 export const TIMEOUTS = { defaut: 600, test: 1020, 'docs:build': 760 }
 
-/**
- * Cœurs servis à la SUITE pendant les lanes. Valeur mesurée le 2026-09-04 sur un poste de 16 cœurs
- * et 31,2 Go, suite SEULE et sans lane, workers SANS borne de tas :
- * `[diag] mémoire système max : 31.2 Go / 31.2 Go (100 %)` à 16 cœurs (node 10 + jsdom 5). À
- * saturation, ajouter des lanes ne rend pas du parallélisme, cela rend du swap — la suite se borne
- * donc par la couture qui existe déjà (`coeurs` de `scripts/test/partition.mjs`), jamais par une
- * seconde. À 10, `repartitionWorkers` sert node 6 + jsdom 3 : 9 workers au lieu de 15. Ce qui dit
- * le point d'équilibre est le compteur de spawns rejoués du résumé, et `worker perdu` du bloc
- * `[diag]` de la suite.
- * `capacite` (`scripts/test/partition.mjs`) borne aussi la suite par la mémoire disponible lue AU
- * LANCEMENT de la suite, avant que les lanes voisines n'allouent : aucune réserve n'est faite pour
- * elles (#2035). Sur un poste de 31,2 Go, `capacite` sert au plus 8 workers (node 5 + jsdom 3) : la
- * valeur 10 n'y mord qu'à partir de 35 306 Mo disponibles.
- * `WFRP_TEST_COEURS` posé par l'appelant PRIME — c'est par lui que la valeur se re-mesure.
- */
+/** Seuil de cœurs pour lancer les autres portes en parallèle de la suite Vitest. */
 export const COEURS_SUITE_EN_LANES = 10
 
 /**

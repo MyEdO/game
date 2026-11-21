@@ -2,11 +2,13 @@
  * LE PONT DE COMBAT AU NOYAU (#3059) : le combattant que porte la console à l'ouverture, les États de situation de
  * l'acteur et l'état de charge d'un set se lisent sans écran. Le combat se pose au banc ; les sièges par `net`.
  */
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type EntreesDuBanc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
 import { etatsDeSituation, pontDOuverture } from './pontDeCombat';
-import { outnumberMod } from '../engine/combat';
+import { engage } from '../engine/engagement';
+import { mountUp } from './mount';
 import { loadWeapon, setNonCharge, weaponFromItem } from '../engine/items';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { Combatant, ItemInstance } from '../engine/types';
@@ -58,37 +60,66 @@ describe('pontDOuverture — le combattant que la console porte à l’ouverture
 describe('etatsDeSituation — les États que porte le combat, pas le Combatant', () => {
   const battleDe = (combattants: Combatant[], over: Partial<BattleState> = {}) => ({ ...combat(combattants).getState().battle!, ...over });
 
-  it('un ennemi au contact : pas d’Assailli', () => {
-    const H = heros('H');
-    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1')]))).toEqual(SANS);
+  it('deux adversaires proches donnent Assailli ×2 une fois Engagés', () => {
+    const h = heros('H');
+    const e1 = ennemi('E1');
+    const e2 = ennemi('E2', { pos: { x: 5, y: 6 } });
+    const b = battleDe([h, e1, e2]);
+    expect(etatsDeSituation(h, b)).toEqual(SANS);
+    engage(h, e1);
+    engage(h, e2);
+    expect(etatsDeSituation(h, b)).toEqual({ assailli: { nombre: 2 }, cloue: false, renfort: false });
   });
 
-  it('deux ennemis au contact : Assailli ×2', () => {
-    const H = heros('H');
-    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 } })]))).toEqual({ assailli: { nombre: 2 }, cloue: false, renfort: false });
+  it('un ennemi hors d’action est écarté du Surnombre', () => {
+    const h = heros('H');
+    const e1 = ennemi('E1');
+    const e2 = ennemi('E2', ko);
+    engage(h, e1);
+    engage(h, e2);
+    expect(etatsDeSituation(h, battleDe([h, e1, e2]))).toEqual(SANS);
   });
 
-  it('ennemi hors d’action ignoré', () => {
-    const H = heros('H');
-    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 }, ...ko })]))).toEqual(SANS);
+  it('une monture Engagée compte lorsqu’elle est libre (arbitrage #4202)', () => {
+    const h = heros('H');
+    const cavalier = ennemi('E1', { mountId: 'M' });
+    const monture = ennemi('M', { riderId: 'E1' });
+    engage(h, cavalier);
+    engage(h, monture);
+    const b = battleDe([h, cavalier, monture]);
+    expect(etatsDeSituation(h, b)).toEqual(SANS);
+    delete cavalier.mountId;
+    delete monture.riderId;
+    expect(etatsDeSituation(h, b)).toEqual({ assailli: { nombre: 2 }, cloue: false, renfort: false });
   });
 
-  it('ennemi à un autre niveau (z, 4 m plus haut) : pas au contact', () => {
-    const H = heros('H');
-    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6, z: 1, h: 4 } })]))).toEqual(SANS);
+  it('Assailli lit le lien de la seule monture et omet son lien une fois hors d’action', () => {
+    const cavalier = heros('C');
+    const monture = heros('M', { bodyShape: 'quadrupede' });
+    const e1 = ennemi('E1');
+    const e2 = ennemi('E2');
+    mountUp(cavalier, monture);
+    engage(monture, e1);
+    engage(monture, e2);
+    const b = battleDe([cavalier, monture, e1, e2]);
+
+    expect(etatsDeSituation(cavalier, b).assailli).toEqual({ nombre: 2 });
+    monture.dead = true;
+    expect(etatsDeSituation(cavalier, b)).toEqual(SANS);
   });
 
-  it('Assailli suit le Surnombre de la résolution (LDB 14 l.110) : un camp au contact, jamais deux camps additionnés', () => {
-    const H = heros('H');
+  it('Assailli compte séparément les camps Engagés (LDB 14 l.110)', () => {
+    const h = heros('H');
+    const e = ennemi('E');
     const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'pnj', pos: { x: 5, y: 6 } });
-    // Un ennemi et un PNJ au contact : aucun camp n'est à deux contre un — la résolution n'accorde aucun Surnombre.
-    expect(outnumberMod(1)).toBeNull();
-    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), neutre]))).toEqual(SANS);
+    engage(h, e);
+    engage(h, neutre);
+    expect(etatsDeSituation(h, battleDe([h, e, neutre]))).toEqual(SANS);
   });
 
   it('Cloué : le Test d’approche raté de ce Tour', () => {
     const H = heros('H', { pos: undefined });
-    expect(etatsDeSituation(null, H, battleDe([H], { fearGate: 'failed' }))).toEqual({ assailli: null, cloue: true, renfort: false });
+    expect(etatsDeSituation(H, battleDe([H], { fearGate: 'failed' }))).toEqual({ assailli: null, cloue: true, renfort: false });
   });
 
   it('Renfort : le servant qui n’est pas le chef de pièce ; le chef ne l’est pas', () => {
@@ -96,8 +127,8 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
     const chef = heros('chef', { pos: undefined, mannedPoste: poste });
     const aide = heros('aide', { pos: undefined, mannedPoste: poste });
     const b = battleDe([chef, aide]);
-    expect(etatsDeSituation(null, aide, b)).toEqual({ assailli: null, cloue: false, renfort: true });
-    expect(etatsDeSituation(null, chef, b)).toEqual(SANS);
+    expect(etatsDeSituation(aide, b)).toEqual({ assailli: null, cloue: false, renfort: true });
+    expect(etatsDeSituation(chef, b)).toEqual(SANS);
   });
 });
 
@@ -113,7 +144,7 @@ describe('setNonCharge — un set porte-t-il une arme à distance à recharger ?
 
   it('arme à recharge chargée par la couture de charge : prête', () => {
     const H = porteur();
-    loadWeapon(H, weaponFromItem(H.items!.find((i) => i.uid === 'w-arb')!));
+    loadWeapon(findTrappingById, H, weaponFromItem(H.items!.find((i) => i.uid === 'w-arb')!));
     expect(setNonCharge(H, H.loadouts![0])).toBe(false);
   });
 

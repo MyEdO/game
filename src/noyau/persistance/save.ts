@@ -6,18 +6,28 @@
  * Snapshot ZÉRO-MAINTENANCE : toute clé de `etatInitialDuJeu()` entre dans la save, hors `HORS_SAVE` ; aucune liste
  * de champs tenue à la main. Les règles maison (`engine/policy`, hors état) voyagent à part dans `rules`.
  *
- * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : `version` vaut
- * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Toute autre forme est refusée
- * (`lireSave`), sans migration. Une save au format courant qui nomme une règle, un État ou la Cible d'un Trait
- * psychologique hors du registre courant se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
+ * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
+ * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
+ * de la transition #4649 pour un même contenu et convertit la forme précédant les références de création (#3917). Une save
+ * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
+ * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
 import type { RuleValue } from '../../engine/policy';
-import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../etat';
+import { weeklyCrewWageBrass } from '../../engine/crewMorale';
+import { reecrireLesOps, walkFlow } from '../../engine/flowCore';
+import { PORT_EVENTS } from '../../engine/seaVoyage';
+import type { StakeRef } from '../../data';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import { etatInitialDuJeu, initialNet, type CampaignVessel, type EtatDeJeu } from '../etat';
+import type { PendingCascade } from '../pendings';
+import { bornerLesRegistresDuBord } from '../shipCrew';
+import { opsDeRetourDEquipage } from '../navireOps';
 import { pruneSeatAssignments } from '../monde/seating';
 import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
+import { formatAvantLesReferences, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { EVT } from '../bus';
@@ -100,12 +110,22 @@ export function unpackHouseRules(data: Record<string, unknown>): { game: Record<
   return { game, rules: rules as Record<string, RuleValue> | undefined };
 }
 
-/** Validation de forme d'une save (format COURANT + data objet). */
+/** #4649 */
+const TRANSITION_DES_FORMES_D_APPARENCE: Readonly<{ avant: string; apres: string }> = {
+  avant: 'e5b0e479130fc5d7',
+  apres: '173a6a2589cee962',
+};
+const FORMAT_DE_REFERENCE = FORMAT_SAVE === TRANSITION_DES_FORMES_D_APPARENCE.apres
+  ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_SAVE;
+
+/** Validation de l'enveloppe de sauvegarde à la lecture. */
 function isValidSave(s: unknown): s is SaveGame {
-  return !!s && typeof s === 'object'
-    && (s as SaveGame).version === FORMAT_SAVE
-    && typeof (s as SaveGame).savedAt === 'string'
-    && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
+  if (!s || typeof s !== 'object') return false;
+  const { version, savedAt, data } = s as SaveGame;
+  return (version === FORMAT_SAVE || version === FORMAT_DE_REFERENCE
+      || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
+    && typeof savedAt === 'string'
+    && !!data && typeof data === 'object';
 }
 
 /** Les métadonnées d'affichage de `save`. */
@@ -128,7 +148,14 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
     return 'illisible';
   }
   if (!isValidSave(parsed)) return 'autreFormat';
-  return scenesRefusees(parsed.data) ? 'sceneInvalide' : parsed;
+  if (scenesRefusees(parsed.data)) return 'sceneInvalide';
+  if (parsed.version !== FORMAT_SAVE) {
+    if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
+      migrerLaSaveAvantLesReferences(parsed.data);
+    }
+    parsed.version = FORMAT_SAVE;
+  }
+  return parsed;
 }
 
 /** Une scène de `data` (la courante, celles du paquet de campagne) est-elle refusée par la porte des scènes
@@ -181,15 +208,59 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
   const scene = data.scene?.seatAssignments
     ? { ...data.scene, seatAssignments: pruneSeatAssignments(data.scene, (data.party ?? []).length) }
     : data.scene;
+  const vessel = data.vessel ? bornerLesRegistresDuBord(data.vessel) : null;
+  const reprise = data.vessel && vessel && vessel !== data.vessel ? reprendreUnRetourDEquipageAncien(data, data.vessel, vessel) : {};
+  const conseil = vessel && vessel !== data.vessel && data.pendingCouncil?.phase === 'choix'
+    ? { ...data.pendingCouncil, wageBrass: weeklyCrewWageBrass(vessel.crew) }
+    : data.pendingCouncil ?? null;
   const etat: EtatDeJeu = {
     ...etatInitialDuJeu(),
     ...data,
+    ...reprise,
     ...(scene ? { scene } : {}),
+    vessel,
+    pendingCouncil: conseil,
     screen: 'campaign',
     net: initialNet(),
     ...reposerPaquetDeCampagne(data.campaignDoc),
   };
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
+}
+
+function enjeuDeRetourDEquipage(enjeu: StakeRef | undefined): boolean {
+  const cle = enjeu && 'key' in enjeu ? enjeu.key : undefined;
+  return cle?.dataset === 'voyage' && cle.entryCategory === 'seaPortEvents'
+    && PORT_EVENTS.some((evenement) => evenement.id === cle.entryId && !!evenement.liaisonEquipage);
+}
+
+function contientUnEnjeuDeRetourDEquipage(flow: Flow | undefined): boolean {
+  let trouve = false;
+  if (flow) walkFlow(flow, (n) => { if (n.kind === 'test' && enjeuDeRetourDEquipage(n.test.stake)) trouve = true; });
+  return trouve;
+}
+
+/** MDG 15 l.245 */
+function reprendreUnRetourDEquipageAncien(data: DonneesDeSave, avant: CampaignVessel, apres: CampaignVessel): Partial<DonneesDeSave> {
+  const lier = (flow: Flow | undefined): Flow | undefined => flow && reecrireLesOps(flow, (o) =>
+    o.op === 'equipage' && typeof o.delta === 'number' && o.delta > 0 && o.role === undefined
+      ? opsDeRetourDEquipage(avant, apres, o.delta) : o);
+  const reprendre = (cascade: PendingCascade): PendingCascade => ({
+    ...cascade,
+    participants: cascade.participants.map((etape) => {
+      const meta = etape.meta;
+      if (!meta || etape.kind !== 'choixDeFlux'
+        || !(contientUnEnjeuDeRetourDEquipage(meta.choiceYes) || contientUnEnjeuDeRetourDEquipage(meta.choiceNo))) return etape;
+      return { ...etape, meta: { ...meta, choiceYes: lier(meta.choiceYes), choiceNo: lier(meta.choiceNo) } };
+    }),
+  });
+  const cascade = data.pendingCascade;
+  const test = data.pendingTest;
+  const courant = cascade?.participants[cascade.cursor];
+  return {
+    pendingCascade: cascade ? reprendre(cascade) : null,
+    ...(data.suspendedCascades?.length ? { suspendedCascades: data.suspendedCascades.map(reprendre) } : {}),
+    ...(test && enjeuDeRetourDEquipage(courant?.stake) ? { pendingTest: { ...test, onSuccess: lier(test.onSuccess) } } : {}),
+  };
 }
 
 /** Si l'événement `e` d'un appel pose un point de reprise, que l'hôte garde à son emplacement automatique : l'arrivée

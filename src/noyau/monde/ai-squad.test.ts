@@ -1,6 +1,6 @@
 /**
  * LOT 4 — CONTEXTE D'ESCOUADE & COORDINATION (déterministe, sans dé). Trois comportements émergents :
- *  (a) FEU CONCENTRÉ — l'IA converge sur la cible que ses alliés ENCADRENT (surnombre RAW : meilleure
+ *  (a) FEU CONCENTRÉ — l'IA converge sur la cible Engagée avec ses alliés (surnombre RAW : meilleure
  *      proba de toucher → plus de dégâts attendus). Une coque de l'escouade n'y compte pas (LDB 14 l.110).
  *  (b) ÉVITEMENT du DANGER — entre deux cases d'approche équidistantes, l'IA choisit la MOINS exposée à
  *      la menace des héros (danger-map).
@@ -9,7 +9,10 @@
  * espérances de dégâts (`expectedDamage`) soient chiffrables (≠ tests à `{} as never`).
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput } from './ai';
+import { chooseEnemyAction, consumeAiRanking, setAiTrace, type EnemyAction, type EnemyTurnInput } from './ai';
+import { engage } from '../../engine/engagement';
+import { itemFromTrappingById, weaponFromItem } from '../../engine/items';
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
@@ -43,16 +46,29 @@ const tidOf = (a: EnemyAction): string | undefined =>
   (a as { targetId?: string }).targetId ?? (a as { thenTargetId?: string }).thenTargetId;
 
 describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
-  it('deux cibles équivalentes au contact : l’IA vise CELLE qu’un allié encadre déjà (surnombre +20)', () => {
-    // Enemy au centre, deux héros identiques tous deux au contact (mêlée). Un allié de l'enemy est adjacent
-    // au héros « encadré » → surnombre 2c1 (+20 au toucher) sur lui → meilleure espérance de dégâts.
-    const e = mk('e', 'ennemi', { x: 10, y: 10 }, { weapons: [MELEE] });
-    const flanked = mk('flanked', 'heros', { x: 11, y: 10 }); // contact à l'est
-    const alone = mk('alone', 'heros', { x: 9, y: 10 }); // contact à l'ouest, sans allié près
-    const ally = mk('ally', 'ennemi', { x: 12, y: 10 }); // adjacent à `flanked` (distanceDeContact 1)
-    const a = chooseEnemyAction(input(e, [flanked, alone], { squad: [ally] }));
-    expect(a.kind).toBe('melee');
-    expect(tidOf(a)).toBe('flanked'); // le surnombre fait pencher le feu concentré sur la cible encadrée
+  it.each([
+    { situation: 'voisin à une case', x: 12, engageAvecLaCible: false, cible: 'alone', ecart: 0 },
+    { situation: 'engagé à une case', x: 12, engageAvecLaCible: true, cible: 'flanked', ecart: 1 },
+    { situation: 'engagé à deux cases avec une Lance', x: 13, engageAvecLaCible: true, cible: 'flanked', ecart: 1 },
+  ])('l’IA évalue le Surnombre : $situation (LDB 14 l.110)', ({ x, engageAvecLaCible, cible, ecart }) => {
+    const e = mk('e', 'ennemi', { x: 10, y: 10 });
+    const flanked = mk('flanked', 'heros', { x: 11, y: 10 });
+    const alone = mk('alone', 'heros', { x: 9, y: 10 });
+    const lance = weaponFromItem(itemFromTrappingById('lance', idsDeTest)!);
+    const ally = mk('ally', 'ennemi', { x, y: 10 }, { weapons: [lance] });
+    if (engageAvecLaCible) engage(ally, flanked);
+    setAiTrace(true);
+    try {
+      const action = chooseEnemyAction(input(e, [flanked, alone], { squad: [ally] }));
+      const melee = consumeAiRanking().filter((c) => c.kind === 'melee');
+      const score = (id: string) => melee.find((c) => c.targetId === id)!.utility;
+      expect(score('flanked') - score('alone')).toBeCloseTo(ecart);
+      expect(action.kind).toBe('melee');
+      expect(tidOf(action)).toBe(cible);
+      expect(e.engagedWith).toBeUndefined();
+    } finally {
+      setAiTrace(false);
+    }
   });
 
   it('sans escouade, les deux cibles équivalentes restent départagées comme au Lot 3 (PAS « flanked »)', () => {
@@ -66,11 +82,28 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     expect(tidOf(a)).toBe('alone'); // tie-break par id (≠ « flanked ») → l'escouade est bien la cause de (a)
   });
 
-  it('la Barque des pirates au contact d’une cible n’encadre pas : l’IA départage comme sans escouade (LDB 14 l.110)', () => {
+  it('un défenseur Engagé, hors de la perception de l’IA, compte dans l’estimation', () => {
+    const e = mk('e', 'ennemi', { x: 10, y: 10 });
+    const flanked = mk('flanked', 'heros', { x: 11, y: 10 });
+    const alone = mk('alone', 'heros', { x: 9, y: 10 });
+    const masque = mk('masque', 'heros', { x: 10, y: 9 });
+    const ally = mk('ally', 'ennemi', { x: 12, y: 10 });
+    engage(ally, flanked);
+    engage(e, masque);
+    const action = chooseEnemyAction(input(e, [flanked, alone, masque], {
+      squad: [ally], combatants: [e, flanked, alone, masque, ally],
+      perceived: new Set(['11,10,0', '9,10,0']),
+    }));
+    expect(action.kind).toBe('melee');
+    expect(tidOf(action)).toBe('alone');
+  });
+
+  it('une Barque reliée à la cible ne compte pas (LDB 14 l.110)', () => {
     const e = mk('e', 'ennemi', { x: 10, y: 10 }, { weapons: [MELEE] });
     const flanked = mk('flanked', 'heros', { x: 11, y: 10 });
     const alone = mk('alone', 'heros', { x: 9, y: 10 });
     const barque = mk('barque', 'ennemi', { x: 12, y: 10 }, { label: 'Barque des pirates', bodyShape: 'vehicule', weapons: [] });
+    engage(barque, flanked);
     const a = chooseEnemyAction(input(e, [flanked, alone], { squad: [barque] }));
     expect(a.kind).toBe('melee');
     expect(tidOf(a)).toBe('alone');

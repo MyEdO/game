@@ -157,6 +157,8 @@ export interface TraitInstance extends SansFourchette {
   difficulte?: Difficulty;
   /** Traits conférés aux touches de ce Trait d'attaque, lus par l'arme qui en naît. ZI 03 l.75, l.77 */
   confere?: TraitInstance[];
+  /** ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
+  profilDArme?: TraitPose['profilDArme'];
 }
 
 /**
@@ -240,11 +242,3 @@ export const isOptionalNote = (e: OptionalEntry): e is OptionalNote => 'note' in
 
 /** Nom canonique seul (raccourci pour les lookups Codex/registre). */
 export const statName = (raw: string): string => parseStatEntry(raw).name;
-
-/** Décompose un libellé concret « Nom (Spec) » → { name, spec } via le parseur unifié (compte/
- *  bonus/indice/portée éventuels écartés). Source UNIQUE du split nom↔spécialisation (carrières,
- *  compétences/talents de statbloc). */
-export function splitLabel(raw: string): { name: string; spec?: string } {
-  const p = parseStatEntry(raw);
-  return p.arg ? { name: p.name, spec: p.arg } : { name: p.name };
-}

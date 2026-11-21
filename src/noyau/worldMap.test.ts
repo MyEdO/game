@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseProject,
   parseSceneDeProjet,
+  projetVersDepot,
   declutterPositions,
   resolvePortRef,
   portVersDepot,
@@ -19,6 +20,8 @@ import {
 } from './worldMap';
 import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
+import { poserRegimeVivant } from '../data/schemas/grammaire/idsVivants';
+import { espaceDe } from '../data/schemas/grammaire/ref';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -31,6 +34,56 @@ const projet = (scenes: unknown[], plus: Record<string, unknown> = {}) => ({
   narratif: emptyNarratif(), scenes, ...plus,
 });
 const wm = { id: 'm', label: 'Carte', places: [], routes: [] };
+
+const place = (id: string) => ({ id, label: id, pos: { x: 0, y: 0 }, scene: { id } });
+const trajet = (route: Record<string, unknown>) => projet([scene('s1'), scene('s2')], {
+  worldMap: {
+    ...wm,
+    places: [place('s1'), place('s2')],
+    routes: [{ id: 'liaison', a: { id: 's1' }, b: { id: 's2' }, from: { id: 's1' }, km: 2, modes: ['pied'], ...route }],
+  },
+});
+
+describe('parseProject — modes et tarifs du trajet', () => {
+  const modes = ['pied', 'monture', 'mer', 'barque-fluviale', 'diligence'];
+  const provenance = { maison: 'Valeur de test' };
+
+  it('admet les modes réservés et les véhicules du catalogue avec des records partiels', () => {
+    const speed = { pied: 4, 'barque-fluviale': 7 };
+    const billets = { diligence: { prix: { interieur: 4 }, ...provenance } };
+    const projet = trajet({ modes, speed, provenances: { speed: provenance }, billets });
+    expect(parseProject(projet).worldMap!.routes[0]).toMatchObject({ modes, speed, billets });
+    expect(parseProject(trajet({ modes, speed: {}, billets: {} })).worldMap!.routes[0]).toMatchObject({ speed: {}, billets: {} });
+  });
+
+  it('refuse un mode inconnu dans la liste des modes et dans les clés de vitesse', () => {
+    expect(() => parseProject(trajet({ modes: ['pied', 'mode-de-voyage-inconnu'] }))).toThrow(/mode-de-voyage-inconnu/);
+    expect(() => parseProject(trajet({
+      speed: { 'mode-de-voyage-inconnu': 7 },
+      provenances: { speed: provenance },
+    }))).toThrow(/mode-de-voyage-inconnu/);
+  });
+
+  it('refuse un billet sur une réserve ou un véhicule sans passage et un prix de classe inconnue', () => {
+    const billet = { prix: { interieur: 4 }, ...provenance };
+    expect(() => parseProject(trajet({ modes, billets: { mer: billet } }))).toThrow(/« mer »/);
+    expect(() => parseProject(trajet({ modes, billets: { 'barque-fluviale': billet } }))).toThrow(/pas un véhicule à passage payant/);
+    expect(() => parseProject(trajet({ modes, billets: { diligence: { ...billet, prix: { cabine: 4 } } } }))).toThrow(/classe « cabine » inconnue/);
+  });
+
+  it('distingue une absence de clé d’une valeur explicitement undefined avant la sérialisation', () => {
+    expect(() => parseProject(trajet({ modes, speed: { pied: undefined } }))).toThrow();
+    expect(() => parseProject(trajet({ modes, billets: { diligence: undefined } }))).toThrow();
+    expect(() => parseProject(trajet({ modes, billets: { diligence: { prix: { interieur: undefined }, ...provenance } } }))).toThrow();
+  });
+
+  it('exige un libellé de transition, y compris pour un POI qui porte la valeur undefined', () => {
+    const poi = { id: 'passage', pos: { x: 0, y: 0 }, sceneId: { id: 's2' }, label: undefined };
+    const places = [{ ...place('s1'), poi: [poi] }, place('s2')];
+    const doc = projet([scene('s1'), scene('s2')], { worldMap: { ...wm, places } });
+    expect(() => parseProject(doc)).toThrow(/point d’intérêt qui mène à une scène porte son « label »/);
+  });
+});
 
 describe('parseProject — validation du format projet', () => {
   it('document valide → scènes restituées', () => {
@@ -94,6 +147,9 @@ describe('parseProject — validation du format projet', () => {
     expect(port.taille).toBe(4);
     expect(port.richesse).toBe(4);
     expect(port.ref).toBe('salzenmund');
+    const depot = projetVersDepot(round);
+    expect(depot.worldMap!.places[0].port).toEqual({ ref: 'salzenmund' });
+    expect(parseProject(depot).worldMap!.places[0].port).toEqual(port);
   });
 
   it('#217 : MapPlace.port.ref + surcharge locale → la surcharge gagne sur le catalogue', () => {
@@ -255,7 +311,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
 
   it('lieu COMPLET (port + marché + auberge propre) → 3 services, port et offres RÉFÉRENCÉS, marché à la Taille du port', () => {
     const port = { taille: 4, richesse: 5, production: ['commerce-mer'] };
-    const market = { richesse: 4, produits: ['vin-eau-de-vie'] };
+    const market: NonNullable<MapPlace['market']> = { richesse: 4, produits: ['vin-eau-de-vie'] };
     const offres = [{ id: 'repas' as const, source: { book: 'livre-de-base', page: 302 } }];
     const p = place({ port, market, services: [{ id: 'auberge', kind: { id: 'auberge' }, rest: { quality: 'grande', offres } }] });
     const svc = placeServices(p);
@@ -323,6 +379,89 @@ describe('parseProject — porte de schéma', () => {
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
     expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
+  });
+});
+
+describe.each([
+  { porte: 'parseSceneDeProjet', lire: parseSceneDeProjet },
+  { porte: 'parseProject', lire: (brute: unknown) => parseProject(projet([brute])).scenes[0] },
+])('$porte — offre de couchage de scène', ({ lire }) => {
+  const rect = { x: 0, y: 0, w: 1, h: 1 };
+
+  it('préserve l’absence et les offres vides', () => {
+    const sansOffre = lire(scene('s1'));
+    expect(sansOffre.rest).toBeUndefined();
+    expect(sansOffre.restZones).toBeUndefined();
+
+    const restZones = [{ rect, places: {} }];
+    const offreVide = lire({ ...scene('s1'), rest: {}, restZones });
+    expect(offreVide.rest).toStrictEqual({});
+    expect(offreVide.restZones).toStrictEqual(restZones);
+  });
+
+  it.each(['pietre', 'normale', 'grande'])('préserve les couchages combinés et la qualité %s', (quality) => {
+    const rest = { auberge: true, maison: false, camp: true, quality };
+    const restZones = [{ rect, places: { auberge: false, maison: true, camp: true }, quality }];
+    const chargee = lire({ ...scene('s1'), rest, restZones });
+    expect(chargee.rest).toStrictEqual(rest);
+    expect(chargee.restZones).toStrictEqual(restZones);
+  });
+
+  it.each([
+    { variante: 'bord dans l’offre globale', repos: { rest: { bord: true } }, faute: /Clé non reconnue : "bord"/ },
+    {
+      variante: 'bord dans les places d’une zone',
+      repos: { restZones: [{ rect, places: { bord: true } }] },
+      faute: /Clé non reconnue : "bord"/,
+    },
+    {
+      variante: 'qualité dans les places d’une zone',
+      repos: { restZones: [{ rect, places: { quality: 'normale' } }] },
+      faute: /Clé non reconnue : "quality"/,
+    },
+    { variante: 'couchage global non booléen', repos: { rest: { maison: 'oui' } }, faute: /chez soi:.*booléen attendu/ },
+    {
+      variante: 'couchage de zone non booléen',
+      repos: { restZones: [{ rect, places: { maison: 'oui' } }] },
+      faute: /chez soi:.*booléen attendu/,
+    },
+    { variante: 'qualité globale inconnue', repos: { rest: { quality: 'confortable' } }, faute: /qualité: Option invalide/ },
+    {
+      variante: 'qualité de zone inconnue',
+      repos: { restZones: [{ rect, places: {}, quality: 'confortable' }] },
+      faute: /qualité: Option invalide/,
+    },
+  ])('refuse la variante « $variante »', ({ repos, faute }) => {
+    expect(() => lire({ ...scene('s1'), ...repos })).toThrow(faute);
+  });
+});
+
+describe('parseProject — offre de l’établissement', () => {
+  const livre = 'livre-de-test';
+  const typeDeService = 'hebergement-de-test';
+  const espaces = new Map([
+    [espaceDe('book'), new Set([livre])],
+    [espaceDe('serviceDeLieu'), new Set([typeDeService])],
+  ]);
+
+  function lireLHebergement(rest: Record<string, unknown>) {
+    const services = [{ id: 'auberge', kind: { id: typeDeService }, rest }];
+    const worldMap = { ...wm, places: [{ ...place('s1'), services }] };
+    const precedent = poserRegimeVivant((cle) => espaces.get(cle) ?? precedent?.(cle));
+    try {
+      return parseProject(projet([scene('s1')], { worldMap })).worldMap?.places[0].services?.[0].rest;
+    } finally {
+      poserRegimeVivant(precedent);
+    }
+  }
+
+  it('préserve la qualité et les offres d’auberge sourcées', () => {
+    const rest = { quality: 'grande', offres: [{ id: 'chambre', source: { book: livre, page: 1 } }] };
+    expect(lireLHebergement(rest)).toStrictEqual(rest);
+  });
+
+  it.each(['auberge', 'maison', 'camp', 'bord'])('refuse le booléen de couchage %s', (cle) => {
+    expect(() => lireLHebergement({ [cle]: true })).toThrow(`Clé non reconnue : "${cle}"`);
   });
 });
 

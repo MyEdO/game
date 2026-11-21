@@ -169,7 +169,7 @@ const REF_SITE_RE = /([A-Za-z0-9_@./\\-]+\.[A-Za-z0-9]+):(\d+)/g
 // OUVERT avec la formule historique des soldes #829/#900 ».
 const MAX_RESTES_ROUTANTS = 1
 const MIN_ETAT_INVENTAIRE = 20
-// Recette visuelle : la capture vit sous `public/qc/` (convention de `scripts/qc/capture-jeu.mjs`).
+// Recette visuelle : la capture vit sous `public/qc/`.
 const CAPTURE_RE = /capture\s*:\s*(\S+)/i
 // Fiche `user-doctrine-recette-web-suspendue-migration-godot` : une capture de l'écran web est interdite.
 const RECETTE_SUSPENDUE_RE = /^suspendue\s*:\s*user-doctrine-recette-web-suspendue-migration-godot\s*$/m
@@ -255,7 +255,7 @@ function jugerCapture(chemin, { racine, mtimeMin, ignorees }) {
   const problemes = []
   const norm = cheminDeCapture(chemin)
   if (!norm.startsWith(DOSSIER_CAPTURES)) {
-    problemes.push(`capture "${chemin}" hors de ${DOSSIER_CAPTURES} (les captures de recette y vivent, cf. scripts/qc/capture-jeu.mjs)`)
+    problemes.push(`capture "${chemin}" hors de ${DOSSIER_CAPTURES} (les captures de recette y vivent)`)
     return { ok: false, problemes }
   }
   // Une capture qu'un `.gitignore` retient ne part PAS avec le commit : quiconque relit le solde
@@ -419,12 +419,12 @@ function problemesInventaire([, epic, etat], rang, { issuesFermees }) {
 }
 
 /** Section « ## Recette visuelle » : exigée dès que le diff stagé touche un fichier d'écran
- *  (`src/ui/**` / `src/gameIso/**`, hors tests) — décision E1, un écran ne se solde pas sur parole. */
+ *  (périmètre historique, hors tests) — décision E1, un écran ne se solde pas sur parole. */
 function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
   if (!touchesUi) return []
   const section = sectionDe(content, TITRE_RECETTE_VISUELLE)
   if (section === null) {
-    return ['section "## Recette visuelle" absente alors que le commit touche un écran (src/ui/** ou src/gameIso/**) — y porter "suspendue: user-doctrine-recette-web-suspendue-migration-godot" ou "capture: public/qc/<fichier>.png"']
+    return ['section "## Recette visuelle" absente alors que le commit touche un écran de l’ancien hôte — y porter "suspendue: user-doctrine-recette-web-suspendue-migration-godot" ou "capture: public/qc/<fichier>.png"']
   }
   if (RECETTE_SUSPENDUE_RE.test(section)) return []
   const capture = captureDuSolde(content)
@@ -719,7 +719,7 @@ export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = fals
 // EXACTEMENT le même déclencheur qu'`evaluateAntiEsquive` (un `ref #N` rattaché sans fermer,
 // jamais un commit sans ticket du tout, jamais une fermeture — déjà couverte par sa propre section
 // "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter sa
-// déclaration de juge : ses rondes (deux au plus), ou « aucun juge » et sa preuve (#3223). Si le diff touche `src/ui/**`, une
+// déclaration de juge : ses rondes (deux au plus), ou « aucun juge » et sa preuve (#3223). Si le diff touche un écran, une
 // preuve DISTINCTE de jugement sur captures (JUGE-VISION) est exigée en plus.
 const MIN_JUGE_LINE_LEN = TRAILERS.JUGE.min
 const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
@@ -783,7 +783,7 @@ export function evaluateJuge({ message, commentaire, fusionEnCours = false, stag
   if (!visionSatisfied) {
     missing.push(
       `ligne "JUGE-VISION: <captures jugées — ≥${MIN_JUGE_VISION_LINE_LEN} caractères>" (ou section ` +
-      `"## Juge-Vision" dans .claude/soldes/ref-<N>.md) — un ÉCRAN est touché (src/ui/** ou src/gameIso/**)`,
+      `"## Juge-Vision" dans .claude/soldes/ref-<N>.md) — un écran du périmètre historique est touché`,
     )
   }
 

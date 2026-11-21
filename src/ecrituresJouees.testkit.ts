@@ -28,7 +28,7 @@ import { ENTREES_DE_DOSSIER } from './data/dossiers';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { detenteur } from './lib/detenteur.testkit';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
 /** La session `s` où le geste `geste` est joué, puis le chapitre qu'elle attend chargé du `Source/` versionné, comme
@@ -46,7 +46,8 @@ const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
 
 /** Les zones d'une session réduites à son inspecteur (`inspecteurDeLaSession`), seul lu par le jeu de ses offres. */
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;
-const inspecteur = (s: SessionDEdition): Inspecteur => ({ 'editeur.inspecteur': inspecteurDeLaSession(s) });
+const inspecteur = (s: SessionDEdition, retraitDuPorteurLogique = true): Inspecteur =>
+  ({ 'editeur.inspecteur': inspecteurDeLaSession(s, { retraitDuPorteurLogique }) });
 
 /** Les boutons des zones `zones` : chaque bouton, et chaque valeur d'un choix ou d'une liste. */
 const boutonsDesZones = (zones: ZonesDeLEditeur) =>
@@ -85,7 +86,7 @@ const porteurDuJeu = (jeu: Jeu): { sorte: SorteDePorteur; id: string } | undefin
  *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`) ; le schéma du porteur du jeu d'une offre
  *  (`porteurDuJeu`), celui de son formulaire (`FORMULAIRES`), et sa donnée. */
 const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEditeur>, GesteDEdition> = {
-  zones: inspecteur,
+  zones: (s) => inspecteur(s, s.document !== 'narratif'),
   elements: (z) => z['editeur.inspecteur'],
   deballe: (jeu) => ('edition' in jeu ? jeu.edition : undefined),
   geste: (zones, _s, recu) => ('edition' in recu ? (boutonDeLEdition(zones, recu.edition) ? recu.edition : undefined) : gesteDuFormulaire(zones, recu)),
@@ -273,15 +274,15 @@ const personnageDuDialogue = (): SessionDEdition => poserPersonnage(ajouter(pres
 /** La `COQUE`, sélectionnée. */
 const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(projetDuJeu(COQUE.campagne), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
 
-/** La case de la scène neuve de la première campagne du jeu, à l'échelle des ponts, où l'outil navire pose un navire
- *  neuf. */
-const NAVIRE_NEUF = { x: 2, y: 6 } as const;
+/** L'ancre de la caraque à un cap qui tient dans la scène neuve de 20 × 15 cases. */
+const NAVIRE_NEUF = { x: 8, y: 6 } as const;
 
 /** La session `s` où l'outil navire pose un navire à la case `(x, y)`, sélectionné ; l'écriture de son entité, à son
  *  rang parmi les entités de la scène, s'ajoute à `out`. */
 function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJouee[]): SessionDEdition {
   const avant = sceneEditee(s);
-  const suite = jouer(presser(s, 'outil/navire'), { geste: 'appui', point: point(x, y) });
+  const outil = presser(presser(s, 'outil/navire'), 'navire/cap/E');
+  const suite = jouer(outil, { geste: 'appui', point: point(x, y) });
   const porteur = porteurChoisi(suite);
   const apres = sceneEditee(suite);
   const rang = apres.entities.findIndex((e) => e.id === porteur?.id);
@@ -333,7 +334,9 @@ export function ecrituresJouees(): EcritureJouee[] {
   s = jouerLInspecteur(presser(s, `logique/rencontre/${rencontre}`), out);
   jouerLInspecteur(jouer(s, gesteDuChoix(s, MONTURE, (v) => v === true)), out, [CHEVAUCHEE]);
   jouerLesVariantes(s, VICTOIRE, out);
-  poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
+  const navire = poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
+  const coqueAlliee = presser(presser(navire, `rencontre/${rencontre}/enrole`), `rencontre/${rencontre}/allie`);
+  jouerLInspecteur(presser(coqueAlliee, `logique/rencontre/${rencontre}`), out, ['valeur/members/']);
   const pnj = jouerLInspecteur(poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id);

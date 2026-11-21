@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { exigerUnRefus, parseProject } from '../worldMap';
 import { emptyNarratif } from './campaignNarratif';
+import { presetDuNarratif, resolvePresetCreature } from './resolveursDuNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene } from './scene';
@@ -81,6 +82,26 @@ describe('paquet de campagne — bloc narratif', () => {
     expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › PNJ « pnj-vide »: ni base ni profil/);
   });
 
+  it.each([
+    { mode: 'avec base', base: { id: GLOBAL_CREATURE }, idResolu: GLOBAL_CREATURE },
+    { mode: 'sans base', base: undefined, idResolu: 'pnj-capitaine' },
+  ])('un profil de PNJ $mode conserve l’identité de sa créature', ({ base, idResolu }) => {
+    const id = 'pnj-capitaine';
+    const profil = { label: 'Capitaine', char: { 'capacite-de-combat': 40 }, traits: [] };
+    const projet = doc({ ...emptyNarratif(), presetsPnj: [{ id, base, profil }] });
+    const resultat = parseProject(projet);
+    expect(resolvePresetCreature(id, presetDuNarratif(resultat.narratif))?.creature).toMatchObject({
+      id: idResolu,
+      label: 'Capitaine',
+    });
+
+    const profilAvecIdentite = { ...profil, id: 'intrus' };
+    expect(() => parseProject({
+      ...projet,
+      narratif: { ...projet.narratif, presetsPnj: [{ id, base, profil: profilAvecIdentite }] },
+    })).toThrow(/Bloc narratif › PNJ « pnj-capitaine » › profil: Clé non reconnue : "id"/);
+  });
+
   it('(d) LÈVE si indice.refs pointe un indice inconnu', () => {
     const n = validNarratif();
     n.indices[1].refs = ['in-fantome'];
@@ -146,12 +167,12 @@ describe('paquet de campagne — bloc narratif', () => {
   };
 
   // LDB 08 l.140
-  it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; la sentinelle passe (#1463 L3)', () =>
+  it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; le littéral « Au choix » est refusé', () =>
     avecLesEntreesDeSpecs(() => {
       expect(parseProject(doc(presetTalent(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
       expect(() => parseProject(doc(presetTalent(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
       expect(() => parseProject(doc(presetTalent(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
-      expect(parseProject(doc(presetTalent('Au choix', FERMEE))).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetTalent('Au choix', FERMEE)))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné/);
     }));
 
   it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {

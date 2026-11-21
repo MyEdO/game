@@ -12,9 +12,9 @@ import {
   resoudreAdresse, tablesOf, unitesDe, unitesDuBloc, unitesDuTexte,
 } from './decoupe.ts';
 import { adressesDuDepot } from '../../../scripts/source/adresses.mjs';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { chapitresDe, lireChapitre } from '../../../scripts/source/lecteur-fs.mjs';
-// @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { PRESENTE_AU_LIVRE, judge, verifier } from '../../../scripts/source/derive-decoupes.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));

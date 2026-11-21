@@ -7,7 +7,6 @@ import { attackTestOf } from '../engine/combat';
 import { effectiveWeaponDamage } from '../engine/weaponDamage';
 import { bonusDeForce, forceDuPorteur } from '../engine/characteristics';
 import type { ForceDoorParticipant, PendingForceDoor } from './pendings';
-import { rollLine, type RollLineParts } from './ligneDeJet';
 
 /** EDO 11 l.93. */
 const TEST_A_MAINS_NUES = { skill: { id: 'corps-a-corps', spec: 'bagarre' } } as const;
@@ -31,11 +30,6 @@ function testDEnfoncement(actor: Combatant, arme: Weapon | undefined): TestDesig
 export function valeurDEnfoncement(actor: Combatant, arme: Weapon | undefined): number {
   const t = testDEnfoncement(actor, arme);
   return testValue(actor, t);
-}
-
-/** Ligne du Test d'enfoncement (`rollLine`) — EDO 11 l.93. */
-export function ligneDEnfoncement(actor: Combatant, arme: Weapon | undefined): RollLineParts {
-  return rollLine({ actor, test: testDEnfoncement(actor, arme), difficulty: 'intermediaire' });
 }
 
 /** Dégâts infligés à la porte au DR `sl` — EDO 11 l.93-95 ; décision de l'orchestrateur (2026-11-03,

@@ -1,0 +1,13 @@
+{
+  "model": "escalier--pierre.glb",
+  "model_sha256": "de1710966caa558b95e95ca7b96109078b1e08c27da809308fb9c6a1fa2d326a",
+  "importe_le": "2026-11-21",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

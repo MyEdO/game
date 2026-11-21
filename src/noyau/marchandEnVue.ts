@@ -27,6 +27,7 @@ import { totalDesBourses } from './bourseFlow';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
@@ -101,7 +102,8 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
   const m = fenetreDuJeu(s)?.cle === 'marchand' ? s.merchant : null;
   if (!m) return null;
   const devis = devisDuPanier(m, contexteDAchat(s, m));
-  const vente = devisDeVente(m, s.party);
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+  const vente = devisDeVente(m, s.party, resolveTrapping);
   const auLot = new Set((m.sellCart ?? []).map((c) => c.uid));
   return {
     bourse: formatMoney(totalDesBourses(s.party)),
@@ -115,7 +117,7 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
       heros: s.party.map((h) => ({
         id: h.id, nom: h.label,
         possessions: (h.items ?? []).map((it) => ({
-          uid: it.uid, nom: it.label, gain: formatMoney(sellGain(it, m)), refus: sellRefusal(it), auLot: auLot.has(it.uid),
+          uid: it.uid, nom: it.label, gain: formatMoney(sellGain(it, m, resolveTrapping)), refus: sellRefusal(it, resolveTrapping), auLot: auLot.has(it.uid),
           basculer: choix(auLot.has(it.uid) ? 'retirerDeLaVente' : 'ajouterALaVente', it.uid),
         })),
       })),

@@ -1,4 +1,4 @@
-#feuillets{position:absolute;left:70px;top:226px;display:flex;gap:26px}
+#feuillets{position:absolute;display:flex;gap:26px}
 .feuillet{position:relative;width:372px;height:286px}
 .feuillet .fond{padding:26px 14px 14px;display:flex;flex-direction:column}
 .feuillet.vise{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 30px rgba(255,214,140,.45)}
@@ -12,4 +12,4 @@
 .feuillet .blanc{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center;padding:0 60px}
 .feuillet .blanc em{font-size:19px;color:#4a3420}
 .feuillet .blanc .filet{margin:0}
-#avis{position:absolute;left:74px;top:548px;display:flex;align-items:center;gap:11px;font-style:italic;font-size:15px;color:#f0c8b4}
+#avis{position:absolute;display:flex;align-items:center;gap:11px;font-style:italic;font-size:15px;color:#f0c8b4}

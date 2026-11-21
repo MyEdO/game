@@ -6,7 +6,7 @@ import {
   mightReduction, rollMightTest, resolveClash,
   battleOutcome, isDestroyed, gapDifficulty, roundToStep,
   battleHazard, clampMight, MIGHT_MODIFIERS, POWER_ESTIMATE,
-  WAR_MACHINES, STRUCTURES, BATTLE_HAZARDS,
+  STRUCTURES, BATTLE_HAZARDS,
   rallyHealAmount, initHoldState, resolveHoldRound, holdEnemyBonus, INSPIRE_BONUS,
 } from './massBattle';
 import { desEnSuite } from './dice.testkit';
@@ -166,7 +166,6 @@ describe('Issue de la bataille (l.124) & aléa (l.309)', () => {
     expect(battleHazard(1).label).toBe('Tempête');
     expect(battleHazard(10).label).toBe('Peur');
     expect(STRUCTURES.find((s) => s.id === 'mur-en-pierre')).toMatchObject({ be: 12, wounds: 40 });
-    expect(WAR_MACHINES.find((m) => m.id === 'canon')?.siege).toBe(true);
   });
 
   it('clampMight borne et arrondit', () => {

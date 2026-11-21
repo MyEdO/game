@@ -17,7 +17,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SCAN_DIRS = porteeDeGarde(['noyau'], ['state']);
+const SCAN_DIRS = porteeDeGarde(['noyau']);
 const FOYERS = new Set(['src/noyau/monde/shipDamage.ts', 'src/noyau/seaVoyageFlow.ts']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || FOYERS.has(rel);
 

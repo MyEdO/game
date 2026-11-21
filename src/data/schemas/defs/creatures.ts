@@ -6,6 +6,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import {
   availabilitySchema,
   baremeDEmbaucheSchema,
@@ -15,8 +16,8 @@ import {
   moneySchema,
   profilChiffreSchema,
 } from '../grammaire/valeurs';
-import { optionalSwapSchema, talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
-import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { optionalSwapSchema, possessionDeCreatureSchema, talentRefSchema, lireLaCapaciteDuTrait, traitInstanceSchema } from '../grammaire/reference';
+import { affinerAvecCatalogues, ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { estObjet } from '../../../lib/objet.mjs';
 
@@ -65,11 +66,11 @@ const champs = {
     genre: ref('creature').optional(),
     /** src/data/index.ts */
     char: profilChiffreSchema(z.number().nullable()),
-    traits: z.array(traitInstanceSchema),
-    optionals: z.array(optionalEntrySchema),
-    skills: z.array(competenceChiffreeAEmplacementSchema),
-    talents: z.array(talentRefSchema),
-    trappings: z.array(trappingRefSchema),
+    traits: listeSansCle(z.array(traitInstanceSchema)),
+    optionals: listeSansCle(z.array(optionalEntrySchema)),
+    skills: listeSansCle(z.array(competenceChiffreeAEmplacementSchema)),
+    talents: listeSansCle(z.array(talentRefSchema)),
+    trappings: listeSansCle(z.array(possessionDeCreatureSchema)),
     spells: refs('spell'),
     /** Emplacements SECONDAIRES (#563) — le MÊME statbloc réimprimé par un autre livre (Bête des
      *  marais : LDB 79 l.14, republiée verbatim par VDM 13 folio 179). L'ANCRE `source` reste seule
@@ -108,15 +109,16 @@ const doc = document(
       label: 'Caractéristiques',
       hint: 'Table des 10 caractéristiques (CC/CT/F/E/I/Ag/Dex/Int/FM/Soc) — valeur ou vide si non imprimée',
     },
-    traits: { label: 'Traits', hint: 'Traits de créature structurés (identifiant + argument ou valeur)' },
+    traits: { label: 'Traits', inverseCodex: { type: 'trait', portee: 'directe' }, hint: 'Traits de créature structurés (identifiant + argument ou valeur)' },
     optionals: {
       label: 'Traits optionnels',
+      inverseCodex: { type: 'trait', portee: 'directe', detail: 'facultatif' },
       hint: 'Traits ou notes composées proposés au choix à l’apparition de la créature (LDB 76)',
     },
-    skills: { label: 'Compétences', hint: 'Compétences de la créature : identifiant + valeur de Test imprimée' },
-    talents: { label: 'Talents', hint: 'Talents de la créature : identifiant + spécialisation ou niveau' },
-    trappings: { label: 'Possessions', hint: 'Objets portés par la créature (référence catalogue ou texte narratif)' },
-    spells: { label: 'Sorts connus', hint: 'Sorts que la créature peut lancer' },
+    skills: { label: 'Compétences', inverseCodex: { type: 'skill', portee: 'directe' }, hint: 'Compétences de la créature : identifiant + valeur de Test imprimée' },
+    talents: { label: 'Talents', inverseCodex: { type: 'talent', portee: 'directe' }, hint: 'Talents de la créature : identifiant + spécialisation ou niveau' },
+    trappings: { label: 'Possessions', inverseCodex: { type: 'trapping', portee: 'directe' }, hint: 'Objets portés par la créature (référence catalogue ou texte narratif)' },
+    spells: { label: 'Sorts connus', inverseCodex: true, hint: 'Sorts que la créature peut lancer' },
     appearance: { label: 'Apparence', hint: 'Apparence par défaut de la créature (espèce, tenue, couleurs), affichée en jeu' },
     harvest: { label: 'Récolte', hint: 'Rareté, dangerosité et usages des organes récoltables sur cette créature' },
     followsCharacterRules: {
@@ -135,9 +137,22 @@ const doc = document(
     exiges: ['source'],
     /** #2993 */
     affinerEntree: (entree) =>
-      entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
+      affinerAvecCatalogues(entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
         path: ['appearance', 'species'],
         error: (iss) => `${estObjet(iss.input) ? String(iss.input.id) : ''} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).`,
+      }), (lire) => {
+        const admetLaMatiere = lireLaCapaciteDuTrait(lire, 'matiere');
+        return (e, ctx) => {
+          const decritArmure = Array.isArray(e.trappings) && e.trappings.some((p: unknown) => estObjet(p) && p.decritLeTraitArmure === true);
+          if (!decritArmure) return;
+          const porteUneArmure = Array.isArray(e.traits) && e.traits.some((t: unknown) =>
+            estObjet(t) && typeof t.id === 'string' && admetLaMatiere(t.id) && t.matiere !== 'peau');
+          if (!porteUneArmure) ctx.addIssue({
+            code: 'custom',
+            path: ['trappings'],
+            message: 'Une pièce décrite par le Trait Armure exige un Trait Armure porté sur la fiche.',
+          });
+        };
       }),
   },
 );

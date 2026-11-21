@@ -19,7 +19,7 @@ l'annexe au moment de son déclencheur.
 |---|---|
 | Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.agents/skills/orchestrer-des-agents/publication.md` |
 | Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.agents/skills/orchestrer-des-agents/fermeture.md` |
-| Lancer, briefer, surveiller ou fermer une session Claude ou Codex ; lire son rendu, committer son diff | skill `orchestrer-des-sessions` |
+| Lancer, briefer, surveiller ou fermer une session et vérifier sa livraison | skill `orchestrer-des-sessions` |
 | Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.agents/skills/orchestrer-des-agents/calibrage.md` |
 | Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
 | Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.agents/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
@@ -41,7 +41,7 @@ l'annexe au moment de son déclencheur.
 - **Il tient dans son BUDGET** (`BUDGET_DU_SUIVI`) : un lot qui le dépasse ET grossit est refusé avec ses
   gestes de condensation.
 - **Chaque lecture le CONFRONTE à la mesure** (`confronter`) : le lecteur ne mesure jamais, il demande
-  `aMesurer` (mod `harnais` ; Codex : `--mesurer` à la main). Chaque anomalie se corrige, ou, ACCEPTÉE,
+  `aMesurer` au mod `harnais` quand il est chargé et lance `--mesurer` autrement. Chaque anomalie se corrige, ou, ACCEPTÉE,
   se tait par `--ignorer-anomalie <genre> <clé> <motif>`.
 - **Un ticket prévu = un item** (`--ajouter-item`, ou `--enfiler` puis `--demarrer`), d'état `actif |
   attente | gare | clos` ; ses étapes (`--ajouter-etape`, `--cocher <ticket>.<n>`) s'écrivent AU FIL DE
@@ -103,8 +103,8 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
 - **Un brief de juge ne prescrit JAMAIS de mutation** : elle est au codeur, le juge la vérifie.
 - **Code de règle : jamais de « parité de comportement »** : le codeur rouvre `Source/`, migre la version
   CORRIGÉE ; un commentaire qui avoue une interprétation se re-vérifie.
-- **UI** : nommer AUSSI la couche atomique — aucun élément nu (`<button>` → `.btn`/`.chip`, conteneur →
-  `.panel`, focusable custom → focus maison) ; citer `docs/primitives.md` + `docs/charte-ui.md`.
+- **Écran Godot** : nommer la maquette et les primitives en jeu. Citer `docs/primitives.md` et
+  `.claude/rules/ecrans-godot.md`.
 - **Mise aux normes** : ce que le geste traverse sort aux normes (un concept = un terme, duplication
   mutualisée, morts purgés) ; l'adjacent qu'il ne traverse pas va au ticket ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
@@ -159,7 +159,7 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
   principal, `commande-piege` refuse toute attente en fond et au premier plan celle sans borne (#2603).
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et `npm run
-test:perimetre` avant commit, revue du diff, UI → tests DOM, sans recette ni capture (fiche `user-doctrine-recette-web-suspendue-migration-godot`).
+test:perimetre` avant commit et relire le diff. Pour un écran Godot, suivre `.claude/rules/ecrans-godot.md`.
 - **Effets à distance qu'un agent ne voit pas** : ses tests ciblés n'en disent rien, le brief exige la
   preuve.
   - Dataset ou champ retiré : rejouer chaque migration de `scripts/migrations/` qui le nomme (sortie 0,

@@ -27,6 +27,7 @@ import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'dead-code-refs-stock.json')
 export const EMPTY_LINE_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'empty-line-code-refs-stock.json')
@@ -59,14 +60,14 @@ function lineCount(path) {
 /** Parcourt `racines` (`RACINES_CITANTES` par défaut) et retourne les réfs mortes du code :
  *  `{ file, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
  *  `kind` ∈ `out-of-bounds` (chapitre résolu, ligne hors borne) | `chapter-not-found` (chapitre absent). */
-export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
+export function scanDeadCodeRefs(racines = RACINES_CITANTES, chapitreDe = chapterFile) {
   const dead = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, hi } of refsInLine(ln)) {
-        const cf = chapterFile(abbr, nn)
+        const cf = chapitreDe(abbr, nn)
         const ref = `${abbr} ${Number(nn)} l.${hi}`
         if (!cf) {
           dead.push({ file: rel, row: i + 1, ref, abbr, nn, hi, kind: 'chapter-not-found' })
@@ -86,14 +87,14 @@ export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
  *  chapitre résolu : `{ file, row, ref, abbr, nn, lo, hi, chapterFile }`. Une réf dans les bornes qui
  *  tombe sur du blanc ne cite RIEN — symptôme d'une dérive de lignes (ré-extraction, restitution de
  *  folio). Les réfs hors borne / à chapitre introuvable sont l'affaire de `scanDeadCodeRefs`. */
-export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
+export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES, chapitreDe = chapterFile) {
   const vides = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, lo, hi } of refsInLine(ln)) {
-        const cf = chapterFile(abbr, nn)
+        const cf = chapitreDe(abbr, nn)
         if (!cf) continue
         const chap = chapterLinesOf(cf.path)
         if (hi > chap.length) continue
@@ -183,4 +184,7 @@ function main() {
   if (!neuves.length && !perimees.length && !neuvesV.length && !perimeesV.length) console.log('OK — cliquets alignés, aucune régression.')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

@@ -1,6 +1,5 @@
 /**
- * MESURE des TROIS COUCHES CSS (#1800) — définition UNIQUE, partagée par les cliquets (xxi)/(xxii)
- * (`src/ui/ui-ratchets.test.ts`) et la régénération de `cssCouchesStock.mjs` (`regenerations`).
+ * Mesure des trois couches CSS (#1800) et régénération de `cssCouchesStock.mjs`.
  *
  * Trois classes de défaut, trois collections :
  *   1. IDENTITÉ en module d'ÉCRAN — une déclaration qui PEINT (couleur, bordure, police, rayon,
@@ -23,7 +22,7 @@
  * (`mesureCssCouches`, pur sur ce qu'il reçoit) et LIT les images — disque ou ref git — par le
  * lecteur unique des hooks (`imageCss`, `cssImages.mjs`).
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from './sourceCorpus.mjs';
@@ -49,7 +48,8 @@ const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 export const imageDuDisque = (): ImageCss => imageCss(sourceGit({ cwd: RACINE, arbre: TRAVAIL }), { racine: RACINE });
 
 /** Le corpus que juge le volet INLINE : les composants `.tsx` de `src/ui`. */
-export const composantsDuDisque = (): readonly Fichier[] => readCorpus(['src/ui'], { exts: ['.tsx'] });
+export const composantsDuDisque = (): readonly Fichier[] =>
+  existsSync(resolve(RACINE, 'src/ui')) ? readCorpus(['src/ui'], { exts: ['.tsx'] }) : [];
 
 /** Corps à partir duquel un texte est un GRAND TITRE D'AFFICHAGE, en px. */
 export const SEUIL_GRAND_TITRE_PX = 30;

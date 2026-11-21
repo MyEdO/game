@@ -69,7 +69,8 @@ export const tenantEnUneLigne = (tenant) =>
 /**
  * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string, generation?: string, empreinte?: string, creation?: number }} Tenant
  * @typedef {{ echeanceMs: number, pasMs: number, parTenant?: boolean, plafondMs?: number, annoncer?: (tenant: Tenant | null) => void }} Attente
- * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number }} Identite
+ * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number,
+ *   estZombie?: (pid: number) => boolean }} Identite
  * @typedef {{ identite?: Identite, estVivant?: (pid: number) => boolean, horloge?: () => number }} Juge
  * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
  *   fs?: typeof fsReel, estVivant?: (pid: number) => boolean, maintenant?: () => string,
@@ -87,9 +88,10 @@ export const tenantEnUneLigne = (tenant) =>
  * (`reprendre`). `liberer` ne retire que le verrou qui porte encore la `generation` de la prise.
  * `identite` (`IDENTITE_MESUREE` par défaut) : un PID vivant dont `lireCreation` rend une date postérieure à la
  * `creation` du tenant + `toleranceMs` est un PID RÉUTILISÉ, donc mort ; `null` (indéterminé) vaut vivant ; un
- * tenant sans `creation` se juge sur son existence (`naissanceDuTenant`). Lu une fois par texte de verrou
- * distinct, puis tous les `pasMs` (sans `pasMs`, à chaque jugement). `estVivant` est la sonde d'existence de
- * `estPidVivantDepuis`. `borneMs` et `orphelins` : le juge est `consignant` (âge borné, tenant absent consigné).
+ * tenant sans `creation` se juge d’abord sur son existence (`naissanceDuTenant`). La création mesurée est lue une fois
+ * par texte de verrou distinct puis tous les `pasMs` (sans `pasMs`, à chaque jugement). `estVivant` est la sonde
+ * d'existence de `estPidVivantDepuis`. Si `estZombie` prouve un zombie, son verrou est repris (#4614).
+ * `borneMs` et `orphelins` : le juge est `consignant` (âge borné, tenant absent consigné).
  * La prise écrit sa `creation` : `performance.timeOrigin` au PID courant, `identite.lireCreation(pid)` à un PID tiers.
  * Un jeton d'emprunt du verrou dans `env` est jugé par `verdictDuJeton` : valide, la prise est empruntée ;
  * invalide, refus DÉFINITIF qui nomme sa raison.
@@ -216,15 +218,17 @@ function etapesDePrise({
 
 /**
  * Le juge de vie d'un tenant, `(tenant, brut) => boolean` : `estPidVivantDepuis` à sa naissance
- * (`naissanceDuTenant`), la date que `lireCreation` mesure lue une fois par texte `brut`, puis tous les `pasMs`.
+ * (`naissanceDuTenant`), puis la preuve éventuelle de son état zombie. La date que `lireCreation` mesure est lue
+ * une fois par texte `brut`, puis tous les `pasMs`.
  * @param {Juge} [juge]
  */
 function vivantSelon({ estVivant = estPidVivant, identite = IDENTITE_MESUREE, horloge = Date.now } = {}) {
   const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs ?? 0, horloge })
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
-    toleranceMs: identite.toleranceMs,
-    lireCreation: (pid) => lire(pid, brut),
-  }, { estVivant })
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) =>
+    estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
+      toleranceMs: identite.toleranceMs,
+      lireCreation: (pid) => lire(pid, brut),
+    }, { estVivant }) && !identite.estZombie?.(tenant.pid)
 }
 
 /** La clé du tenant d'un essai : sa `generation`, à défaut son texte. */
@@ -425,12 +429,24 @@ const sousBorne = (tenant, borneMs, horloge) => {
 }
 
 /**
- * Le juge de vie `(tenant, brut) => boolean` d'un tenant (`vivantSelon` de `juge`) qui n'a pas dépassé `borneMs` d'âge.
+ * La raison pour laquelle un tenant ne tient plus le verrou, ou `null` s’il le tient.
+ * @param {number | null} borneMs @param {Juge} juge
+ */
+const raisonDuRejet = (borneMs, juge) => {
+  const vivant = vivantSelon(juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
+    if (!vivant(tenant, brut)) return 'PID mort'
+    return sousBorne(tenant, borneMs, juge.horloge ?? Date.now) ? null : 'âge > borne'
+  }
+}
+
+/**
+ * Le juge de vie `(tenant, brut) => boolean` d'un tenant qui n'a pas dépassé `borneMs` d'âge.
  * @param {number | null} borneMs @param {Juge} [juge]
  */
 export const vivantSousBorne = (borneMs, juge = {}) => {
-  const vivant = vivantSelon(juge)
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => vivant(tenant, brut) && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
+  const raison = raisonDuRejet(borneMs, juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => raison(tenant, brut) === null
 }
 
 /** La date de modification ISO du fichier `chemin`, `null` s'il manque. @param {string} chemin */
@@ -451,12 +467,12 @@ export function mtimeDe(chemin) {
  * @param {string} chemin @param {number | null} borneMs @param {Juge} [juge] @param {Map<string, Orphelin>} [orphelins]
  */
 export const consignant = (chemin, borneMs, juge = {}, orphelins) => {
-  const vivant = vivantSelon(juge)
+  if (!orphelins) return vivantSousBorne(borneMs, juge)
+  const raison = raisonDuRejet(borneMs, juge)
   return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
-    const enVie = vivant(tenant, brut)
-    const retenu = enVie && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
-    if (!retenu) orphelins?.set(chemin, { verrou: chemin, pid: tenant.pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: enVie ? 'âge > borne' : 'PID mort' })
-    return retenu
+    const preuve = raison(tenant, brut)
+    if (preuve !== null) orphelins.set(chemin, { verrou: chemin, pid: tenant.pid, depuis: tenant.date ?? mtimeDe(chemin), preuve })
+    return preuve === null
   }
 }
 

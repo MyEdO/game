@@ -11,10 +11,11 @@ import { addLayer, paintHeight, paintTiles } from '../sceneEdit';
 import { advanceTurn, aiAvailableFreeAttack, attackEnv, attackPlan, buildAiInput, collapseStructure } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { hoverTargeting } from '../targeting';
-import { effectifAuContact } from '../combat/surnombre';
+import { effectifAuContactParmi } from '../combat/surnombre';
 import { ligneDeRegle, refDeRegle } from '../../engine/reglesChiffrees';
 import { ligneDe } from '../../engine/modLine.testkit';
 import { isInanimate } from '../../engine/structures';
+import { engage } from '../../engine/engagement';
 import type { Combatant } from '../../engine/types';
 
 /**
@@ -39,37 +40,37 @@ const melee = (A: Combatant, B: Combatant): { offerte: boolean; aTraversLeSol: b
 const offert = (A: Combatant, B: Combatant) => melee(A, B).offerte;
 
 describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () => {
-  it('cale (5,6,0) et pont (5,6,1) : ni mêlée offerte, ni Surnombre, ni attaque gratuite', () => {
+  it('cale (4,8,0) et pont (4,8,1) : ni mêlée offerte, ni Surnombre, ni attaque gratuite', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 5, y: 6, z: 0 });
-    poser(H, { x: 5, y: 6, z: 1 });
+    poser(E, { x: 4, y: 8, z: 0 });
+    poser(H, { x: 4, y: 8, z: 1 });
     expect(distanceDeContact(banc.getState().scene, E, H), 'la cale est sous le pont').toBe(Infinity);
     expect(melee(H, E).aTraversLeSol).toBe(false);
     expect(attackPlan(banc.getState, E, H).kind, 'ni attaque ni charge de la cale vers le pont').toBe('bloque');
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
     expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(false);
     expect(banc.getState().pendingDefense).toBeFalsy();
   });
 
-  it('colonne voisine sous le même pont : (3,8,0) et (4,8,1) séparés', () => {
+  it('colonne voisine sous le même pont : (2,6,0) et (2,7,1) séparés', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 3, y: 8, z: 0 });
-    poser(H, { x: 4, y: 8, z: 1 });
+    poser(E, { x: 2, y: 6, z: 0 });
+    poser(H, { x: 2, y: 7, z: 1 });
     expect(footprintChebyshev(E.pos!, 1, H.pos!, 1)).toBe(1);
     expect(attackPlan(banc.getState, H, E).kind).not.toBe('attaque');
     expect(melee(H, E).aTraversLeSol).toBe(false);
     expect(melee(E, H).aTraversLeSol).toBe(false);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
   });
 
-  it('sous la trappe, la case (4,7) de la cale garde le contact avec le pont voisin (5,7,1)', () => {
+  it('sous la trappe, la case (3,7) de la cale garde le contact avec le pont voisin (3,8,1)', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 4, y: 7, z: 0 });
-    poser(H, { x: 5, y: 7, z: 1 });
+    poser(E, { x: 3, y: 7, z: 0 });
+    poser(H, { x: 3, y: 8, z: 1 });
     expect(offert(H, E)).toBe(true);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(1);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(1);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
     expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(true);
@@ -80,9 +81,9 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     const H2 = T!;
     const b = banc.getState().battle!;
     b.combatants = [H, ...b.combatants.filter((c) => c !== H)];
-    poser(E, { x: 5, y: 6, z: 0 });
-    poser(H, { x: 5, y: 6, z: 1 });
-    poser(H2, { x: 4, y: 6, z: 0 });
+    poser(E, { x: 4, y: 8, z: 0 });
+    poser(H, { x: 4, y: 8, z: 1 });
+    poser(H2, { x: 4, y: 7, z: 0 });
     expect(distanceDeContact(banc.getState().scene, E, H)).toBe(Infinity);
     expect(distanceDeContact(banc.getState().scene, E, H2)).toBe(1);
     E.aiControlled = true;
@@ -94,9 +95,9 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
   it('la Charge réelle du joueur vers la cale pose sa position d’arrivée : sous le pont, hors de contact du pont, et aucun Engagement à travers lui', () => {
     const { H, E, T, poser } = duel('embuscade-fluviale', 'enc-fluvial', 'ennemi');
     const D = T!;
-    poser(E, { x: 3, y: 9, z: 0 });
-    poser(D, { x: 5, y: 9, z: 1 });
-    poser(H, { x: 8, y: 9, z: 0 });
+    poser(E, { x: 1, y: 6, z: 0 });
+    poser(D, { x: 1, y: 8, z: 1 });
+    poser(H, { x: 1, y: 11, z: 0 });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente();
     expect(banc.getState().pendingAttack?.fromCharge).toBe(true);
@@ -109,10 +110,10 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(H.engagedWith ?? []).not.toContain(D.id);
   });
 
-  it('la cale (5,6,0) sous le pont (5,6,1) : la Charge du joueur ne s’offre pas, aucune attaque ni Engagement', () => {
+  it('la cale (4,8,0) sous le pont (4,8,1) : la Charge du joueur ne s’offre pas, aucune attaque ni Engagement', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 5, y: 6, z: 1 });
-    poser(H, { x: 5, y: 6, z: 0 });
+    poser(E, { x: 4, y: 8, z: 1 });
+    poser(H, { x: 4, y: 8, z: 0 });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente();
     expect(banc.getState().pendingAttack).toBeFalsy();
@@ -125,31 +126,31 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     const H2 = T!;
     H2.wounds = { ...H2.wounds, current: 1 };
     banc.setState({ battle: { ...banc.getState().battle!, action: 'soins' } });
-    poser(H, { x: 5, y: 6, z: 1 });
-    poser(H2, { x: 5, y: 6, z: 0 });
+    poser(H, { x: 4, y: 8, z: 1 });
+    poser(H2, { x: 4, y: 8, z: 0 });
     expect(distanceDeContact(banc.getState().scene, H, H2)).toBe(Infinity);
     expect(hoverTargeting(banc.getState, H, H2).kind, 'à travers le pont').toBe('none');
-    poser(H2, { x: 5, y: 7, z: 1 });
+    poser(H2, { x: 3, y: 8, z: 1 });
     expect(distanceDeContact(banc.getState().scene, H, H2)).toBe(1);
     expect(hoverTargeting(banc.getState, H, H2).kind, 'au contact sur le pont').not.toBe('none');
   });
 
   it('la portée ne change pas : distanceDeCombat entre la cale et le pont reste la distance d’empreinte et de relief', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 3, y: 8, z: 0 });
-    poser(H, { x: 4, y: 8, z: 1 });
+    poser(E, { x: 2, y: 6, z: 0 });
+    poser(H, { x: 2, y: 7, z: 1 });
     expect(distanceDeCombat(banc.getState().scene, H, E)).toBe(Math.max(1, Math.abs((H.pos!.h ?? 0) - (E.pos!.h ?? 0)) / 2));
   });
 
   it('le plafond se lit à la scène où le combattant se tient : à ciel ouvert sous la trappe, sous le pont, puis sorti', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
     const contact = () => distanceDeContact(banc.getState().scene, E, H);
-    poser(H, { x: 5, y: 7, z: 1 });
-    poser(E, { x: 4, y: 7, z: 0 });
+    poser(H, { x: 3, y: 8, z: 1 });
+    poser(E, { x: 3, y: 7, z: 0 });
     expect(contact(), 'sous la trappe, à ciel ouvert').toBe(distanceDeCombat(banc.getState().scene, E, H));
-    poser(E, { x: 5, y: 6, z: 0 });
+    poser(E, { x: 4, y: 8, z: 0 });
     expect(contact(), 'sous le pont').toBe(Infinity);
-    poser(E, { x: 4, y: 7, z: 0 });
+    poser(E, { x: 3, y: 7, z: 0 });
     expect(contact(), 'sorti de sous le pont').toBe(distanceDeCombat(banc.getState().scene, E, H));
   });
 });
@@ -168,7 +169,7 @@ describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personna
     if (D) poser(D, { x: 12, y: 7, z: 0 });
     E.aiControlled = true;
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0 }, pendingDefense: null });
-    return { H, E, B };
+    return { H, E, B, D };
   }
   /** La mêlée réelle de E sur H : la fin du tour de H rend la main à l'IA, dont l'attaque ouvre la défense de H. */
   const attaqueDeE = (H: Combatant, E: Combatant) => {
@@ -180,18 +181,23 @@ describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personna
     return ligneDe(def!.env, refDeRegle('superiorite-numerique'));
   };
 
-  it('au contact de la barque et d’un seul Pirate, le héros n’est pas en infériorité : la mêlée du Pirate est sans Surnombre', () => {
+  it('la barque reste exclue du Surnombre même si une partie contient un lien avec elle', () => {
     const { H, E, B } = abordage();
+    engage(B, H);
     expect(distanceDeContact(banc.getState().scene, B, H), 'la barque touche le héros').toBe(1);
     expect(distanceDeContact(banc.getState().scene, E, H)).toBe(1);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, H, 'ennemi')).toBe(1);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, H, 'ennemi')).toBe(1);
     expect(attaqueDeE(H, E)).toBeUndefined();
   });
 
-  it('un second Pirate au contact donne le Surnombre à la même mêlée', () => {
-    const { H, E } = abordage('ennemi');
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, H, 'ennemi')).toBe(2);
-    expect(attaqueDeE(H, E)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un'));
+  it.each([
+    { lie: false, ligne: undefined },
+    { lie: true, ligne: ligneDeRegle('superiorite-numerique', 'deux-contre-un') },
+  ])('la mêlée réelle du Pirate lit le lien du second Pirate : Engagé = $lie', ({ lie, ligne }) => {
+    const { H, E, D } = abordage('ennemi');
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, H, 'ennemi')).toBe(2);
+    if (lie) engage(D!, H);
+    expect(attaqueDeE(H, E)).toEqual(ligne);
   });
 
   it('l’escouade que l’IA reçoit du jeu porte la barque', () => {

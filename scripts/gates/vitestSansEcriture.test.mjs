@@ -31,7 +31,7 @@ function empreintesSansLiens(racine) {
 
 
 test('la configuration Vitest réelle protège les suites avant leur import', async () => {
-  const { default: config } = await import('../../vite.config.ts')
+  const { default: config } = await import('../../vitest.config.ts')
   assert.ok(config.test.setupFiles.includes(fileURLToPath(new URL('./vitestSansEcriture.mjs', import.meta.url))))
 })
 

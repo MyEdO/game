@@ -146,107 +146,114 @@ function forger(fichiers) {
   }
 }
 
-/** Les ponts hors des zones vers `src/state/store.ts` (`scripts/pont.mts`, que l'instrument lit en `.mjs`), sous chaque
- *  forme d'arc que la marche lit. */
+/** Les ponts vers le module hors des zones qui acquiert Three, sous chaque forme d'arc que la marche lit. */
 const PONTS = {
-  relatif: "export { useGame as x } from '../src/state/store.ts';\n",
-  'chemin `/…`': "export { useGame as x } from '/src/state/store.ts';\n",
-  'alias `@/`': "export { useGame as x } from '@/state/store';\n",
-  'gabarit sans expression': 'export const x = () => import(`../src/state/store.ts`);\n',
-  'import.meta.glob': "export const x = import.meta.glob('../src/state/*.ts', { eager: true });\n",
-  'vi.importActual': "import { vi } from 'vitest';\nexport const x = () => vi.importActual('../src/state/store.ts');\n",
-  'vi.mock': "import { vi } from 'vitest';\nvi.mock('../src/state/store.ts');\nexport const x = 1;\n",
-  'liaison `createRequire(…)`': "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport const x = r('../src/state/store.ts');\n",
-  'type seul': "export type { U as x } from '../src/state/store.ts';\n",
-  'tsImport': "import { tsImport } from 'tsx/esm/api';\nexport const x = () => tsImport('../src/state/store.ts', import.meta.url);\n",
+  relatif: "export { valeur as x } from './transit/dep.ts';\n",
+  'chemin `/…`': "export { valeur as x } from '/scripts/transit/dep.ts';\n",
+  'alias `@/`': "export { valeur as x } from '@/dep';\n",
+  'gabarit sans expression': 'export const x = () => import(`./transit/dep.ts`);\n',
+  'import.meta.glob': "export const x = import.meta.glob('./transit/*.ts', { eager: true });\n",
+  'vi.importActual': "import { vi } from 'vitest';\nexport const x = () => vi.importActual('./transit/dep.ts');\n",
+  'vi.mock': "import { vi } from 'vitest';\nvi.mock('./transit/dep.ts');\nexport const x = 1;\n",
+  'liaison `createRequire(…)`': "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport const x = r('./transit/dep.ts');\n",
+  'type seul': "export type { U as x } from './transit/dep.ts';\n",
+  'tsImport': "import { tsImport } from 'tsx/esm/api';\nexport const x = () => tsImport('./transit/dep.ts', import.meta.url);\n",
 }
 
-test('CLÔTURE : un transit forgé par un module hors des zones est rouge sous chaque forme d’arc, et vers un paquet de l’hôte web ; un transit vers une zone qui survit passe', () => {
+test('CLÔTURE : un paquet fermé atteint par un module hors des zones est rouge sous chaque forme d’arc ; la traversée vers une zone ouverte passe', () => {
   const commun = {
-    'tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } } }),
+    'tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['scripts/transit/*'] } } }),
     'src/noyau/a.test.ts': "import { x } from '../../scripts/pont.mjs';\nexport const a = x;\n",
-    'src/state/store.ts': 'export const useGame = 1;\nexport type U = number;\n',
+    'scripts/transit/dep.ts': "export { Mesh as valeur } from 'three';\nexport type U = number;\n",
   }
   const formes = Object.keys(PONTS)
   assert.deepEqual(tableTotale(formes, (forme) => forger({ ...commun, 'scripts/pont.mts': PONTS[forme] })),
-    tableTotale(formes, () => ['noyau : src/state/store.ts ← scripts/pont.mts']))
-  const paquet = forger({ ...commun, 'scripts/pont.mts': "import type { FC } from 'react';\nexport type x = FC;\nexport { z } from 'zod';\n" })
-  assert.deepEqual(paquet, ['noyau : paquet react ← scripts/pont.mts'], 'un paquet de l’hôte web atteint en transit, même pour un type ; un autre paquet passe')
+    tableTotale(formes, () => ['noyau : paquet three ← scripts/transit/dep.ts']))
+  const paquet = forger({ ...commun, 'scripts/pont.mts': "import type { Mesh } from 'three';\nexport type x = Mesh;\nexport { z } from 'zod';\n" })
+  assert.deepEqual(paquet, ['noyau : paquet three ← scripts/pont.mts'], 'un paquet fermé atteint en transit, même pour un type ; zod passe')
   assert.deepEqual(forger({
     'hotes/c.bench.ts': "import { y } from '../scripts/neutre.mjs';\nexport const c = y;\n",
-    'src/state/d.test.ts': "import { u } from '../ui/u';\nexport const d = u;\n",
     'scripts/neutre.mjs': "export { z as y } from '../src/noyau/z.ts';\n",
     'src/noyau/z.ts': 'export const z = 1;\n',
-    'src/ui/u.ts': 'export const u = 1;\n',
   }), [])
 })
 
-test('CLÔTURE : un module de PRODUCTION d’une zone qui survit qui atteint une zone qui n’y survit pas par un pont hors des zones est rouge ; le même pont vers une zone qui survit passe', () => {
+test('CLÔTURE : un module de production atteint Three par un pont hors des zones ; l’évaluateur d’assets de Godot peut l’utiliser', () => {
   const hote = { 'hotes/x.mjs': "import { y } from '../scripts/pont.mjs';\nexport const x = y;\n" }
-  assert.deepEqual(forger({ ...hote,
-    'scripts/pont.mjs': "export { e as y } from '../src/state/e.ts';\n",
-    'src/state/e.ts': 'export const e = 1;\n',
-  }), ['hotes : src/state/e.ts ← scripts/pont.mjs'])
+  const pont = { 'scripts/pont.mjs': "export { Mesh as y } from 'three';\n" }
+  assert.deepEqual(forger({ ...hote, ...pont }), ['hotes : paquet three ← scripts/pont.mjs'])
+  assert.deepEqual(forger({
+    'hotes/godot/asset/evaluateur/x.mjs': "export { y as x } from '../../../../scripts/pont.mjs';\n",
+    ...pont,
+  }), [])
   assert.deepEqual(forger({ ...hote,
     'scripts/pont.mjs': "export { e as y } from '../src/lib/e.ts';\n",
     'src/lib/e.ts': 'export const e = 1;\n',
   }), [])
 })
 
-/** Le socle des arbres forgés d'acquisition calculée : une suite du noyau qui importe `scripts/pont.mjs`, le store, un
- *  module du noyau, et les modules du dépôt que la forme fermée lit par leur chemin (`listerEntrees`). */
+/** Une suite du noyau qui importe le pont, un module qui acquiert Three et un module autorisé. */
 const SOCLE_CALCULE = {
   'src/noyau/a.test.ts': "import { x } from '../../scripts/pont.mjs';\nexport const a = x;\n",
-  'src/state/store.ts': 'export const useGame = 1;\n',
+  'scripts/transit/dep.ts': "export { Mesh } from 'three';\n",
   'src/noyau/z.ts': 'export const z = 1;\n',
   'scripts/guards/lib/lister.mjs': 'export const listerEntrees = () => ({ entrees: [] });\n',
   'scripts/reg.mjs': "export const REG = ['../src/noyau/z.ts'];\nexport const CFG = { p: '../src/noyau/z.ts' };\n",
-  'scripts/reg2.mjs': "export const P = '../src/noyau/z.ts'.replace('noyau', 'state');\n",
-  'scripts/mut.mjs': "import { REG, CFG } from './reg.mjs';\nREG.push('../src/state/store.ts');\nCFG.p = '../src/state/store.ts';\n",
+  'scripts/reg2.mjs': "export const P = '../src/noyau/z.ts'.replace('src/noyau/z.ts', 'scripts/transit/dep.ts');\n",
+  'scripts/mut.mjs': "import { REG, CFG } from './reg.mjs';\nREG.push('./transit/dep.ts');\nCFG.p = './transit/dep.ts';\n",
 }
 
 const LISTER = "import { listerEntrees } from './guards/lib/lister.mjs';\n"
 
-/** Les acquisitions calculées qui chargent `src/state/store.ts` à l'exécution ou que la forme fermée ne lit pas, chacune
- *  avec le site que sa ligne rouge doit nommer (`<module>:<ligne>`) et les modules qu'elle ajoute au socle. */
+/** Les acquisitions non suivies et le paquet fermé chargé par un spécificateur calculé, avec le site à nommer. */
 const ROUGES_CALCULES = {
-  'replace': ["export const x = () => import('../src/noyau/z.ts'.replace('noyau', 'state'));\n", 'scripts/pont.mjs:1'],
-  'replaceAll': ["export const x = () => import('../src/noyau/z.ts'.replaceAll('noyau', 'state'));\n", 'scripts/pont.mjs:1'],
-  'split/join': ["export const x = () => import('../src/noyau/z.ts'.split('noyau').join('state'));\n", 'scripts/pont.mjs:1'],
-  'slice': ["const s = '../src/noyau/z.ts#../src/state/store.ts';\nexport const x = () => import(s.slice(19));\n", 'scripts/pont.mjs:2'],
-  '`join` homonyme local': ["const join = () => '../src/state/store.ts';\nexport const x = () => import(join('../src/noyau', 'z.ts'));\n", 'scripts/pont.mjs:2'],
+  'replace': ["export const x = () => import('../src/noyau/z.ts'.replace('src/noyau/z.ts', 'scripts/transit/dep.ts'));\n", 'scripts/pont.mjs:1'],
+  'replaceAll': ["export const x = () => import('../src/noyau/z.ts'.replaceAll('src/noyau/z.ts', 'scripts/transit/dep.ts'));\n", 'scripts/pont.mjs:1'],
+  'split/join': ["export const x = () => import('../src/noyau/z.ts'.split('src/noyau/z.ts').join('scripts/transit/dep.ts'));\n", 'scripts/pont.mjs:1'],
+  'slice': ["const s = '../src/noyau/z.ts#./transit/dep.ts';\nexport const x = () => import(s.slice(18));\n", 'scripts/pont.mjs:2'],
+  '`join` homonyme local': ["const join = () => './transit/dep.ts';\nexport const x = () => import(join('../src/noyau', 'z.ts'));\n", 'scripts/pont.mjs:2'],
   '`replace` dans un autre module': ["import { P } from './reg2.mjs';\nexport const x = () => import(P);\n", 'scripts/pont.mjs:2'],
-  '`resolve` depuis le cwd': ["import { resolve } from 'node:path';\nexport const x = () => import(resolve('src/state/store.ts'));\n", 'scripts/pont.mjs:2'],
-  '`pathToFileURL(texte)`': ["import { pathToFileURL } from 'node:url';\nexport const x = () => import(pathToFileURL('src/state/store.ts').href);\n", 'scripts/pont.mjs:2'],
-  '`push` local': ["const L = ['../src/noyau/z.ts'];\nL.push('../src/state/store.ts');\nexport const x = () => Promise.all(L.map((m) => import(m)));\n", 'scripts/pont.mjs:3'],
-  '`Object.assign`': ["const C = { p: '../src/noyau/z.ts' };\nObject.assign(C, { p: '../src/state/store.ts' });\nexport const x = () => import(C.p);\n", 'scripts/pont.mjs:3'],
+  '`push` local': ["const L = ['../src/noyau/z.ts'];\nL.push('./transit/dep.ts');\nexport const x = () => Promise.all(L.map((m) => import(m)));\n", 'scripts/pont.mjs:3'],
+  '`Object.assign`': ["const C = { p: '../src/noyau/z.ts' };\nObject.assign(C, { p: './transit/dep.ts' });\nexport const x = () => import(C.p);\n", 'scripts/pont.mjs:3'],
   'registre muté ailleurs': ["import './mut.mjs';\nimport { REG } from './reg.mjs';\nexport const x = () => import(REG.find((m) => m));\n", 'scripts/pont.mjs:3'],
   'objet muté ailleurs': ["import './mut.mjs';\nimport { CFG } from './reg.mjs';\nexport const x = () => import(CFG.p);\n", 'scripts/pont.mjs:3'],
-  '`createRequire` renommé': ["import { createRequire as cr } from 'node:module';\nconst r = cr(import.meta.url);\nexport const x = r('../src/state/store.ts');\n", 'scripts/pont.mjs:1'],
-  'liaison `createRequire` recopiée': ["import { createRequire } from 'node:module';\nconst q = createRequire(import.meta.url);\nconst r = q;\nexport const x = r('../src/state/store.ts');\n", 'scripts/pont.mjs:3'],
-  'espace de Vitest': ["import * as V from 'vitest';\nexport const x = () => V.vi.importActual('../src/state/store.ts');\n", 'scripts/pont.mjs:2'],
-  '`vi` déstructuré': ["import { vi } from 'vitest';\nconst { importActual } = vi;\nexport const x = () => importActual('../src/state/store.ts');\n", 'scripts/pont.mjs:2'],
-  'descente sous deux `dirname` et un suffixe': [`${LISTER}import { dirname, join } from 'node:path';\nimport { fileURLToPath } from 'node:url';\nconst D = fileURLToPath(new URL('../src/noyau/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(join(dirname(dirname(join(D, f.nom))), 'state/store.ts')));\n`, 'scripts/pont.mjs:5'],
+  '`createRequire` renommé': ["import { createRequire as cr } from 'node:module';\nconst r = cr(import.meta.url);\nexport const x = r('./transit/dep.ts');\n", 'scripts/pont.mjs:1'],
+  'liaison `createRequire` recopiée': ["import { createRequire } from 'node:module';\nconst q = createRequire(import.meta.url);\nconst r = q;\nexport const x = r('./transit/dep.ts');\n", 'scripts/pont.mjs:3'],
+  'espace de Vitest': ["import * as V from 'vitest';\nexport const x = () => V.vi.importActual('./transit/dep.ts');\n", 'scripts/pont.mjs:2'],
+  '`vi` déstructuré': ["import { vi } from 'vitest';\nconst { importActual } = vi;\nexport const x = () => importActual('./transit/dep.ts');\n", 'scripts/pont.mjs:2'],
+  'descente sous deux `dirname` et un suffixe': [`${LISTER}import { dirname, join } from 'node:path';\nimport { fileURLToPath } from 'node:url';\nconst D = fileURLToPath(new URL('../src/noyau/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(join(dirname(dirname(join(D, f.nom))), '../scripts/transit/dep.ts')));\n`, 'scripts/pont.mjs:5'],
   'descente sur un espace': [`${LISTER}import { join } from 'node:path';\nimport { tmpdir } from 'node:os';\nimport { pathToFileURL } from 'node:url';\nconst D = join(tmpdir(), 'x');\nexport const x = () => listerEntrees(D).entrees.map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`, 'scripts/pont.mjs:6'],
-  'F1 boucle sur un littéral': ["for (const m of ['../src/state/store.ts']) await import(m);\nexport const x = 1;\n", 'scripts/pont.mjs:1'],
-  'F2 descente de `src/state/`': [`${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../src/state/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`, 'scripts/pont.mjs:5'],
+  'F1 boucle sur un littéral': ["for (const m of ['./transit/dep.ts']) await import(m);\nexport const x = 1;\n", 'scripts/pont.mjs:1'],
   'F3 segment inconnu': ["import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../src/', import.meta.url));\nexport const x = () => import(pathToFileURL(join(D, process.env.X)).href);\n", 'scripts/pont.mjs:4'],
   'F4 relais': ['export const x = (p) => import(p);\n', 'scripts/pont.mjs:1'],
-  'F5 paquet de l’hôte web': ["const nom = 'react';\nexport const x = () => import(nom);\n", 'scripts/pont.mjs:2'],
-  'F7 second ordre': ["const b = './b.mjs';\nexport const x = () => import(b);\n", 'scripts/b.mjs:2', { 'scripts/b.mjs': "const s = '../src/state/store.ts';\nexport const y = () => import(s);\n" }],
-  'F8 `require` lié et `vi.importActual` calculés dans un kit': ["import { k } from './kit.testkit.mjs';\nexport const x = k;\n", 'scripts/kit.testkit.mjs:5', { 'scripts/kit.testkit.mjs': "import { createRequire } from 'node:module';\nimport { vi } from 'vitest';\nconst r = createRequire(import.meta.url);\nconst s = '../src/state/store.ts';\nexport const k = () => [r(s), vi.importActual(s), vi.importActual(process.env.X)];\n" }],
+  'F5 paquet de l’hôte web': ["const nom = 'three';\nexport const x = () => import(nom);\n", 'scripts/pont.mjs:2'],
+  'F8 `require` lié et `vi.importActual` calculés dans un kit': ["import { k } from './kit.testkit.mjs';\nexport const x = k;\n", 'scripts/kit.testkit.mjs:5', { 'scripts/kit.testkit.mjs': "import { createRequire } from 'node:module';\nimport { vi } from 'vitest';\nconst r = createRequire(import.meta.url);\nconst s = './transit/dep.ts';\nexport const k = () => [r(s), vi.importActual(s), vi.importActual(process.env.X)];\n" }],
   'valeur vide': ["const V = Object.freeze([].map(Object.freeze));\nexport const x = () => import(V.find((v) => v).s);\n", 'scripts/pont.mjs:2'],
 }
 
 /** La ligne rouge d'un arbre forgé qui nomme `site` sous la zone `zone`, sinon tous ses transits. */
 const rougeAuSite = (transits, zone, site) => transits.find((t) => t.startsWith(`${zone} : `) && t.includes(`${site} «`)) ? 'rouge au site' : transits
 
-test('CLÔTURE : une acquisition calculée d’un membre est rouge, au site, si elle atteint une zone qui ne survit pas, un paquet de l’hôte web, ou si la forme fermée ne la lit pas', () => {
+test('CLÔTURE : une acquisition calculée d’un membre nomme le site si elle charge directement un paquet fermé ou si la forme fermée ne la lit pas', () => {
   const formes = Object.keys(ROUGES_CALCULES)
   assert.deepEqual(tableTotale(formes, (forme) => {
     const [pont, site, autres = {}] = ROUGES_CALCULES[forme]
     return rougeAuSite(forger({ ...SOCLE_CALCULE, ...autres, 'scripts/pont.mjs': pont }), 'noyau', site)
   }), tableTotale(formes, () => 'rouge au site'))
+})
+
+test('CLÔTURE : les acquisitions calculées résolues étendent la clôture jusqu’au paquet fermé, y compris au second ordre', () => {
+  const formes = {
+    '`resolve` depuis le cwd': ["import { resolve } from 'node:path';\nexport const x = () => import(resolve('scripts/transit/dep.ts'));\n"],
+    '`pathToFileURL(texte)`': ["import { pathToFileURL } from 'node:url';\nexport const x = () => import(pathToFileURL('scripts/transit/dep.ts').href);\n"],
+    'F2 descente de `scripts/transit/`': [`${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../scripts/transit/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`],
+    'F7 second ordre': ["const b = './b.mjs';\nexport const x = () => import(b);\n", { 'scripts/b.mjs': "const s = './transit/dep.ts';\nexport const y = () => import(s);\n" }],
+  }
+  const noms = Object.keys(formes)
+  assert.deepEqual(tableTotale(noms, (nom) => {
+    const [pont, autres = {}] = formes[nom]
+    return forger({ ...SOCLE_CALCULE, ...autres, 'scripts/pont.mjs': pont })
+  }), tableTotale(noms, () => ['noyau : paquet three ← scripts/transit/dep.ts']))
 })
 
 test('CLÔTURE : une acquisition calculée partagée par deux groupes, ou atteinte d’un module de production, est rouge dans chacun', () => {

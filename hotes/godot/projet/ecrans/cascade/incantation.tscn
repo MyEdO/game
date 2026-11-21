@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://cadres/fenetre_de_jet.tscn" id="0_cadre"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/issue_du_jet.tres" id="3_issue"]
 [ext_resource type="Theme" path="res://art/dr_net.tres" id="2_titre"]
+[ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="4_bandeau"]
 
 [node name="Cadre" instance=ExtResource("0_cadre")]
 
@@ -35,13 +36,25 @@ script = ExtResource("1_zone")
 source = "fenetre.etape"
 formes = PackedStringArray("ligne:rubrique")
 
+[node name="Niveau" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("4_bandeau")
+alignment = 1
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Niveau" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("ni")
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
+
 [node name="Sort" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("2_titre")
 
 [node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Sort"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("sort")
-formes = PackedStringArray("ligne:rubrique")
+formes = PackedStringArray("ligne:ligneAuCentre")
 
 [node name="Pastilles" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
 theme = ExtResource("2_titre")

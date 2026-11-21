@@ -7,8 +7,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, executer, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { ciblesSurDisque, executer, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -30,6 +30,8 @@ test('codeDeLArbre : la vraie couture CLI mesure et certifie les seuls codes pé
     return { status: 17 }
   }
   assert.equal(codeDeLArbre(cwd, lancer), 17)
+  assert.equal(codeDeLArbre(cwd, () => ({ status: 0, signal: 'SIGTERM' })), 1)
+  assert.equal(codeDeLArbre(cwd, () => ({ status: null, signal: null })), 1)
   assert.equal(codeDeLArbre(cwd, () => ({ error: new Error('absent') })), 1)
 })
 import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
@@ -476,13 +478,13 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
   }
 })
 
-/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière et ses `import()` (le verrou, la
- *  porte), le répartiteur sans les siens (ses gardes) — dérivés de leurs imports (`clotureDImports`) —, et le lecteur
- *  d'entrée que la barrière charge par un `import()` à gabarit, hors de la clôture (`LECTEUR`, `scripts/hooks/barriere-outil.mjs`, #2712). */
+/**
+ * Les modules qu'un point d'entrée d'outil charge avant ses gardes : la clôture de la barrière, imports
+ * dynamiques compris, et celle des imports statiques du répartiteur (#2187 #2712).
+ */
 const CHAINE_DE_LA_BARRIERE = [...new Set([
   ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'barriere-outil.mjs')], { racine: RACINE, typesEffaces: true }),
   ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'repartiteur.mjs')], { racine: RACINE, typesEffaces: true, dynamiques: false }),
-  ...clotureDImports([join(RACINE, 'scripts', 'guards', 'lib', 'stdinBorne.mjs')], { racine: RACINE, typesEffaces: true }),
 ])]
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {
@@ -848,6 +850,79 @@ test('F2 : une source modifiée à chaque passe se solde, à la borne, de `CODE_
     assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [1, 1, 1, CODE_SOURCE_MODIFIEE])
     assert.notEqual(CODE_SOURCE_MODIFIEE, CODE_DIFFERE)
     assert.notEqual(CODE_SOURCE_MODIFIEE, 1)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2629 : coalescence, différé et changement de tête comptent les reconstructions effectivement épuisées', () => {
+  const racine = depotDeReconstruction()
+  const git = gitDe(racine)
+  const sourceModifiee = () => CODE_SOURCE_MODIFIEE
+  const servir = (passe) => servirLesDemandes({ racine, passe })
+  const demander = () => demanderSansDetache(racine)
+  try {
+    const tete = git('rev-parse', 'HEAD').trim()
+    demander()
+    demander()
+    demander()
+    assert.equal(servir(sourceModifiee), REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete, demandes: 1 })
+    assert.equal(etatDe(racine).dernier.sourceModifieePersistante, undefined)
+
+    demander()
+    assert.equal(servir(() => CODE_DIFFERE), 1)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete, demandes: 1 })
+
+    demander()
+    let passes = 0
+    assert.equal(servir(() => {
+      if (++passes === 2) git('commit', '--allow-empty', '-m', 'nouvelle tête')
+      return CODE_SOURCE_MODIFIEE
+    }), REJEUX_SUR_SOURCE_MODIFIEE + 3)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete: git('rev-parse', 'HEAD').trim(), demandes: 1 })
+    assert.equal(etatDe(racine).dernier.sourceModifieePersistante, undefined)
+
+    demander()
+    assert.equal(servir(sourceModifiee), REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual(etatDe(racine).dernier.sourceModifieePersistante, { raison: null }, 'le diagnostic reste indépendant de l’échec')
+    demander()
+    assert.equal(servir(() => 0), 1)
+    assert.equal(etatDe(racine).conflitsDeSource, null)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2629 : un autre détaché solde pendant l’opération Git, la nouvelle demande a tous ses rejeux', () => {
+  const racine = depotDeReconstruction()
+  const mergeHead = join(racine, '.git', 'MERGE_HEAD')
+  const demander = () => demanderSansDetache(racine)
+  const module = pathToFileURL(join(RACINE, 'scripts/git-hooks/reconstruction.mjs')).href
+  let passes = 0
+  try {
+    const tete = gitDe(racine)('rev-parse', 'HEAD')
+    demander()
+    servirLesDemandes({
+      racine,
+      attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      passe: () => {
+        if (++passes === REJEUX_SUR_SOURCE_MODIFIEE) writeFileSync(mergeHead, tete)
+        return CODE_SOURCE_MODIFIEE
+      },
+      dormir: () => {
+        assert.ok(existsSync(mergeHead), 'le premier détaché a rendu son verrou pendant l’opération')
+        rmSync(mergeHead)
+        const tiers = spawnSync(process.execPath, ['--input-type=module', '-e',
+          `import { servirLesDemandes } from ${JSON.stringify(module)}; servirLesDemandes({ racine: process.cwd(), passe: () => 0 })`,
+        ], { cwd: racine, encoding: 'utf8', timeout: 10_000 })
+        assert.equal(tiers.status, 0, tiers.stderr)
+        assert.deepEqual([etatDe(racine).soldees, etatDe(racine).dernier.code], [1, 0])
+        assert.equal(demander(), 2)
+      },
+    })
+    assert.equal(passes, 2 * REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual([etatDe(racine).soldees, etatDe(racine).dernier.code], [2, CODE_SOURCE_MODIFIEE])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

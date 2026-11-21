@@ -23,7 +23,6 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 const AUTHORE = 'libellé AUTHORÉ optionnel : un défaut d’affichage de donnée, aucune identité de porteur absente';
 const SANS_ARME = 'arme absente : l’absence EST l’état affiché (mains nues, arme non désignée), pas une identité masquée';
 const CHOIX_OUVERT = 'création en cours : le choix reste OUVERT et l’écran le dit — aucune entité absente';
-const PLACEHOLDER = 'placeholder de saisie d’éditeur : aucune entité à nommer';
 const PRIMITIVE = 'corps d’une primitive d’absence : le repli nommé EST sa définition, tout lecteur passe par elle';
 const OUTILLAGE = 'outillage (recette `__wfrp`, galerie QC, diagnostic dev, relais réseau) : aucun flux de jeu';
 
@@ -35,7 +34,6 @@ const EXEMPTES = new Map<string, string>([
   ["src/noyau/combatEffects.ts|e.label || t('eff.sceneDePsychologie')", AUTHORE],
   ["src/noyau/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
-  ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],
   ['src/hote/coop/relay.ts|env.name ?? \'\'', OUTILLAGE],
   ['src/noyau/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
   ['src/noyau/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
@@ -43,35 +41,10 @@ const EXEMPTES = new Map<string, string>([
   ['src/noyau/combatEffects.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combatFlow.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combatFlow.ts|parryWeaponObj?.label ?? \'arme\'', SANS_ARME],
-  ['src/state/devtools.ts|c?.label ?? \'—\'', OUTILLAGE],
-  ['src/state/devtools.ts|here?.label ?? \'?\'', OUTILLAGE],
   ['src/noyau/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],
   ['src/noyau/jetsEnVue.ts|s.label ?? \'\'', AUTHORE],
-  ['src/ui/CascadeModal.tsx|r.label ?? \'\'', AUTHORE],
-  ['src/ui/CascadeModal.tsx|cur.label ?? \'\'', AUTHORE],
-  ['src/ui/console/CombatConsole.tsx|setWeapon?.label ?? \'Mains nues\'', SANS_ARME],
-  ['src/ui/editor/codex/CodexEdit.tsx|indice?.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/codex/CodexEdit.tsx|r.label ?? \'\'', AUTHORE],
-  ['src/ui/compendium/CompendiumScreen.tsx|cat?.label ?? \'\'', PLACEHOLDER],
   ['src/data/index.ts|e.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/codex/StructFields.tsx|t.label ?? \'\'', AUTHORE],
-  ['src/ui/creator/CharacterCreator.tsx|lvl1?.label ?? \'—\'', CHOIX_OUVERT],
-  ['src/ui/creator/CreatorSummary.tsx|sp?.label ?? \'Race à choisir\'', CHOIX_OUVERT],
   ['src/noyau/creation/brouillon.ts|hero.label ?? \'\'', CHOIX_OUVERT],
-  ['src/ui/editor/EffectList.tsx|e.ref?.custom?.label ?? \'?\'', AUTHORE],
-  ['src/ui/editor/EffectList.tsx|e.label || \'?\'', AUTHORE],
-  ['src/ui/editor/EffectList.tsx|e.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/GameOpEditor.tsx|o.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/Inspector.tsx|efz.label || \'Piège\'', AUTHORE],
-  ['src/ui/editor/Inspector.tsx|architectureBody.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/Inspector.tsx|ent.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/Inspector.tsx|a.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/NarratifEditor.tsx|profil.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/NarratifEditor.tsx|base?.label ?? \'ex. Josef Quartjin\'', PLACEHOLDER],
-  ['src/ui/gallery/registry.tsx|signeAstralExemple()?.label ?? \'\'', OUTILLAGE],
-  ['src/ui/gallery/registry.tsx|heros?.label ?? \'Héros\'', OUTILLAGE],
-  ['src/ui/PossessionsScreen.tsx|selected.label ?? \'\'', AUTHORE],
-  ['src/ui/ReloadModal.tsx|weapon?.label ?? \'arme\'', SANS_ARME],
   ['src/noyau/cascade.ts|ctx?.title ?? choix.label ?? \'Choix\'', AUTHORE],
 ]);
 

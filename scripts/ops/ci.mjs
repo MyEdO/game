@@ -11,7 +11,7 @@
 // Usage : node scripts/ops/ci.mjs --attendre [<sha>] | --echecs <run>
 import { fileURLToPath } from 'node:url'
 import { GitIndisponible, brancheDe, depotDe, estShaComplet, shasDistants } from '../guards/lib/gitPorte.mjs'
-import { coursesCi, echecsDuLog, jobsEnEchecDe, journalDe, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, derniereTentativeDe, echecsDuLog, jobsEnEchecDe, journalDe, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { PERIODE_SONDE_MS, refusDeBranche } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -99,7 +99,7 @@ export function attendreLaCi({
 export function lignesDuRouge({ jobs, echecs }) {
   return jobs.flatMap((job) => {
     const vu = echecs.find((e) => e.job === job)
-    if (!vu) return [`  ${job} : absent du journal en échec (\`gh run view --log-failed\`)`]
+    if (!vu) return [`  ${job} : absent du journal en échec de la tentative`]
     return [
       `  ${job}${vu.etape ? ` — ${vu.etape}` : ''} :`,
       ...vu.lignes.map((l) => `    ${l}`),
@@ -117,12 +117,14 @@ export function lignesDuRouge({ jobs, echecs }) {
  * @returns {{disponible:true, valeur:{rouges:string[], annules:string[], motif:string|null, lignes:string[]}}|{disponible:false, raison:string}}
  */
 export function echecsDeLaCourse({ cwd, id, attempt = null, spawn }) {
-  const jobs = jobsEnEchecDe({ cwd, id, attempt, spawn })
+  const essai = attempt === null ? derniereTentativeDe({ cwd, id, spawn }) : { disponible: true, valeur: attempt }
+  if (!essai.disponible) return essai
+  const jobs = jobsEnEchecDe({ cwd, id, attempt: essai.valeur, spawn })
   if (!jobs.disponible) return jobs
   const { rouges, annules, motif } = jobs.valeur
   let rougesNommes = []
   if (rouges.length) {
-    const journal = journalDe({ cwd, id, attempt, echecsSeuls: true, spawn })
+    const journal = journalDe({ cwd, id, attempt: essai.valeur, echecsSeuls: true, spawn })
     if (!journal.disponible) return journal
     rougesNommes = lignesDuRouge({ jobs: rouges, echecs: echecsDuLog(journal.valeur) })
   }

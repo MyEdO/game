@@ -56,7 +56,7 @@ function rendu() {
   const rollers = engineRollerExports(prodFiles('src/engine'))
   const tableDesRollers = tableDesExports(prodFiles('src/engine'), rollers.keys())
   const delegue = new Map()
-  for (const { rel, text } of prodFiles('src/state', 'src/noyau', 'src/ui')) {
+  for (const { rel, text } of prodFiles('src/noyau')) {
     if (ROLL_SEAM_CORE.has(rel)) continue
     const sites = scanEngineDelegatedRoll(rel, text, tableDesRollers)
     if (sites.length) delegue.set(rel, sites)
@@ -254,7 +254,7 @@ function rendu() {
   out += `  \`ns.f\` compte ; une référence passée en callback, qui n'est pas un appel, échappe.\n`
   out += `- **(D)** indexe les fonctions de \`src/engine\` par nom **à plat** : deux homonymes dans deux modules se\n`
   out += `  confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.\n`
-  out += `- **(D)** ne scanne que \`src/state\` et \`src/ui\` (les consommateurs de flux) ; **(F)** scanne tout \`src\`.\n`
+  out += `- **(D)** scanne \`src/noyau\` (les consommateurs de flux) ; **(F)** scanne tout \`src\`.\n`
   out += `- **Un tirage qui n'appelle ni \`rollTest\` ni \`d100\` n'est vu par AUCUN des trois scanners** — ex. le \`rollDice\` de\n`
   out += `  \`massBattleFlow.ts\` (\`tirerLAlea\`, facteur environnemental du Round, \`ADE II 8 l.309\`) : un jet du\n`
   out += `  RAW résolu en silence, hors de tout registre. Le surfaçage vit sur #1067, qui le nomme déjà.\n`
@@ -288,7 +288,6 @@ function rendu() {
   out += `| Fichier | Sites | Nature | Lignes | Justification |\n|---|---|---|---|---|\n`
   for (const [rel, dec] of PENDING_JET_FABRICATION_STOCK) {
     // Ancrage par NUMÉROS DE LIGNE dans le contenu comparé : churn à chaque édition au-dessus d'un site
-    // -> #1110 (patron correctif : `enclosingSymbol` de scripts/docs/lib/rollShellUsage.mjs).
     out += `| \`${rel}\` | ${dec.n} | ${dec.kind} | ${fabrication.get(rel).map((s) => s.line).join(', ')} | ${esc(dec.why)} |\n`
   }
   out += `\n_${total(fabrication)} sites mesurés dans ${fabrication.size} fichiers — par nature : ${parNature(PENDING_JET_FABRICATION_STOCK)}._\n\n`

@@ -5,14 +5,14 @@ config_version=5
 [application]
 
 config/name="WFRP — hôte Godot"
-run/main_scene="res://scenes/Accueil.tscn"
-run/main_scene.web="res://scenes/Demarrage.tscn"
+run/main_scene="res://scenes/Demarrage.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
 Pont="*res://scripts/pont.gd"
 Police="*res://scripts/police.gd"
+Textures="*res://scripts/textures_de_matiere.gd"
 
 [display]
 
