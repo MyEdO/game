@@ -161,10 +161,10 @@ export interface ModelesDeLAtelier {
    *  de base. */
   escaliers: Record<string, string>;
   /** par famille de kit de toit (`kit` d'une couverture de `materials.json`), l'id de l'élément `toit` servi dont la
-   *  `cle.kit` la nomme (#4471) : un nœud racine par pièce (`Noyau.PieceDeToit`), d'où le volume pose les faîtières des
-   *  nappes de cette couverture (`faitieres` de la méthode `aretes`). La pièce `faitiere` court le long de X de −1 à
-   *  +1 m, Y vertical à 0 sur l'arête du faîte, et dessine en travers (Z) un V symétrique dont chaque bras descend d'une
-   *  pente de 1 (45°) ; sa surface porte l'emplacement de palette `corps`. Un élément `toit` n'a pas de base. */
+   *  `cle.kit` la nomme (#4471) : un nœud racine par pièce (`Noyau.PieceDeToit`), d'où le volume pose les pièces de toit
+   *  des nappes de cette couverture (`piecesDeToit` de la méthode `aretes`), selon le repère du chapitre 13 de
+   *  `procedure.md` (skill `creer-un-personnage-3d`) ; sa surface porte l'emplacement de palette `corps`. Un élément
+   *  `toit` n'a pas de base. */
   toits: Record<string, string>;
 }
 

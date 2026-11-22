@@ -177,17 +177,23 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
-## La pente, dans le plan du plateau, d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
-## (mètres) à son premier bout à la cote `sortie` à son second, sur un plateau de `par_case` mètres par case (#4471) :
-## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
-static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
-	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
+## Le gradient (mètres par case, en plan) d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
+## (mètres) à son premier bout à la cote `sortie` à son second (#4471) : sa seule montée le long de son sens.
+static func gradient_d_arete(sens: Vector2, entree: float, sortie: float) -> Vector2:
+	return sens.normalized() * (sortie - entree) / longueur_d_arete(sens)
 
 
-## L'échelle d'une faîtière d'un modèle de toit longue de `long` mètres, dont chaque bras descend d'une pente de 1,
-## posée sur un faîte qui court selon `sens` entre deux pans dont les pentes diffèrent de deux fois `ecart` (mètres par
-## case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la longueur du faîte,
-## en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
+## La pente, dans le plan du plateau, d'une pièce de gradient `gradient` (mètres par case, en plan), sur un plateau de
+## `par_case` mètres par case (#4471) : en X et en Z du plateau, ce dont monte un point de la pièce par unité de
+## plateau, ses montants gardés verticaux ; le cisaillement de sa pose.
+static func pente_de_gradient(gradient: Vector2, par_case: float) -> Vector2:
+	return Vector2(hauteur_au_plateau(gradient.x, par_case), hauteur_au_plateau(gradient.y, par_case))
+
+
+## L'échelle d'une pièce d'un modèle de toit longue de `long` mètres, dont chaque bras monte ou descend d'une pente de 1,
+## posée sur une arête de toit qui court selon `sens` en plan entre deux pans dont les pentes diffèrent de deux fois
+## `ecart` (mètres par case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la
+## longueur de l'arête en plan, en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
 static func echelle_de_faitiere(sens: Vector2, ecart: float, long: float, par_case: float) -> Vector3:
 	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(ecart, par_case) * echelle_metrique(par_case), echelle_metrique(par_case))
 

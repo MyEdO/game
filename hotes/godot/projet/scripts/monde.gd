@@ -586,7 +586,7 @@ func _zoomer(sens: float) -> void:
 ## d'une brèche. Il habille de même chaque côté de marches (`cotesDeMarches`) de chacune de ses pièces, celle du modèle
 ## `escalier--<kit>` servi pour sa famille (`escaliers` de `modeles`), étirée à la longueur du côté, à la hauteur du
 ## modèle, son milieu à la cote du milieu du côté, cisaillée de `entree` à `sortie` le long de son sens, ses montants
-## verticaux (`MiseEnPage.pente_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
+## verticaux (`MiseEnPage.gradient_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
 ## et les pièces des côtés de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe
 ## d'instances, retirées par leur clé (`plateau.aretesDegagees`).
 

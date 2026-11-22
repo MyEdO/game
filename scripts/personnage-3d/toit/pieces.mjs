@@ -1,5 +1,5 @@
-// LES PIÈCES D'UN SEGMENT DE TOIT (#4471) : `PIECES_DE_TOIT` de `src/noyau/monde/piecesDArete.ts`, les pièces que le
-// noyau pose sur un segment de toit (`PieceDeToit`, `src/noyau/monde/faitieres.ts`), dont `test_toit.py` exige le nœud
+// LES PIÈCES D'UNE ARÊTE DE TOIT (#4471) : `PIECES_DE_TOIT` de `src/noyau/monde/piecesDArete.ts`, les pièces que le
+// noyau pose sur une arête de toit (`PieceDeToit`, `src/noyau/monde/piecesDeToit.ts`), dont `test_toit.py` exige le nœud
 // de chaque kit. Écrit sur la sortie standard leur liste.
 //   node scripts/personnage-3d/toit/pieces.mjs
 import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'

@@ -70,8 +70,8 @@ import {
   aretesDeLaScene,
   cotesDeMarchesDeLaCouche,
   cotesDeMarchesDeLaScene,
-  faitieresDeLaScene,
-  type Faitiere,
+  piecesDeToitDeLaScene,
+  type PieceDeToitPosee,
   type AreteDessinee,
   type CoteDeMarches,
   type Combatant,
@@ -1556,15 +1556,15 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
      * son pied, la cote de son milieu, et le bloc de sa case.
-     * `{ faitieres }` : `Faitiere[]` (`faitieresDeLaScene`), vides sans scène, sous la même clé de relecture
+     * `{ piecesDeToit }` : `PieceDeToitPosee[]` (`piecesDeToitDeLaScene`), vides sans scène, sous la même clé de relecture
      */
-    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; piecesDeToit: PieceDeToitPosee[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
       return {
         aretes: scene ? aretesDeLaScene(scene) : [],
         cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [],
-        faitieres: scene ? faitieresDeLaScene(scene) : [],
+        piecesDeToit: scene ? piecesDeToitDeLaScene(scene) : [],
       };
     },
     /**
@@ -1993,10 +1993,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, cotesDeMarches, faitieres, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * @returns `{ monde, aretes, cotesDeMarches, piecesDeToit, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
      * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
      * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
-     * plateau au regard `immersion`, ses côtés de marches et ses faîtières (`aretes`, section « Vue »), ses nappes de toit, ses
+     * plateau au regard `immersion`, ses côtés de marches et ses pièces de toit (`aretes`, section « Vue »), ses nappes de toit, ses
      * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme

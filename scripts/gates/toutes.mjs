@@ -589,7 +589,7 @@ export const ECRIT_LU = {
       '(`POSITIONS_DANS_L_OUVERTURE` du même module, que lance `arete/positions.mjs`), `test_escalier.py` les escaliers d’`escalier/` ' +
       'et les pièces d’un côté de marches (`PIECES_D_ESCALIER` du même module, que lance `escalier/pieces.mjs`), ' +
       'chaque famille de kit d’escalier qu’un terrain nomme (`kitDEscalier` de `src/data/terrains.json`) ayant son modèle, ' +
-      '`test_toit.py` les faîtières de `toit/` et les pièces d’un segment de toit (`PIECES_DE_TOIT` du même module, que lance `toit/pieces.mjs`), chaque famille de kit de toit qu’une couverture nomme (`kit` de `src/data/materials.json`) ayant son modèle, ' +
+      '`test_toit.py` les pièces de toit de `toit/` et les pièces d’une arête de toit (`PIECES_DE_TOIT` du même module, que lance `toit/pieces.mjs`), chaque famille de kit de toit qu’une couverture nomme (`kit` de `src/data/materials.json`) ayant son modèle, ' +
       'tous trois sous les gardes communes aux kits de pièces de `banc_des_kits.py`, et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +

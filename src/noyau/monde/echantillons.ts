@@ -31,7 +31,7 @@ import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainKitDEscalier, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
 import { cotesDeMarchesDeLaScene, type CoteDeMarches } from './cotesDeMarches';
-import { faitieresDeLaScene, type Faitiere } from './faitieres';
+import { piecesDeToitDeLaScene, type PieceDeToitPosee } from './piecesDeToit';
 import { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** Une famille d'échantillons : les décors (`props.json`), les sols (`terrains.json`, hors de l'absence de sol,
@@ -48,12 +48,12 @@ export interface FamilleDEchantillons {
 }
 
 /** Un échantillon dessiné : ce que le jeu sert à son hôte pour une scène, son volume, ses arêtes, ses côtés de
- *  marches, ses faîtières, ses nappes de toit, ses couronnes crénelées et celles qui tombent avec leur mur. */
+ *  marches, ses pièces de toit, ses nappes de toit, ses couronnes crénelées et celles qui tombent avec leur mur. */
 export interface EchantillonDessine {
   monde: VolumeDuMonde;
   aretes: AreteDessinee[];
   cotesDeMarches: CoteDeMarches[];
-  faitieres: Faitiere[];
+  piecesDeToit: PieceDeToitPosee[];
   toits: NappeDuMonde[];
   couronnes: NappeDuMonde[];
   couronnesAbattues: string[];
@@ -211,5 +211,5 @@ export function echantillonDessine(familleOuScene: FamilleDEchantillon | Scene, 
   const scene = typeof familleOuScene === 'string' ? sceneDEchantillon(familleOuScene, idOuDecors as string) : familleOuScene;
   const decorsServis = typeof idOuDecors === 'string' ? undefined : idOuDecors;
   const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), cotesDeMarches: cotesDeMarchesDeLaScene(scene), faitieres: faitieresDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), cotesDeMarches: cotesDeMarchesDeLaScene(scene), piecesDeToit: piecesDeToitDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }

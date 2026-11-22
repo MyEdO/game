@@ -1,8 +1,8 @@
 """Construction des toits (#4471) : chaque modèle de `toit/` se bâtit par `construire.py`, deux fois aux mêmes octets,
 et reproduit ses éléments publiés sans lire hors de ses entrées (`reconstruction.DUneFamille`), sous les gardes
 communes aux kits de pièces (`banc_des_kits.py`). Chaque famille de kit de toit qu'une couverture nomme (`kit`,
-`src/data/materials.json`) a son modèle. Son GLB porte un nœud racine à mesh par pièce (`PIECES_DE_TOIT`,
-`src/noyau/monde/piecesDArete.ts`), la seule `faitiere`, dans le repère d'une faîtière (`toit/faitage.py`) : X le long
+`src/data/materials.json`) a son modèle. Son GLB porte un nœud racine à mesh par pièce qu'il couvre (`PIECES_DE_TOIT`,
+`src/noyau/monde/piecesDArete.ts`), la `faitiere` au moins, dans le repère d'une faîtière (`toit/faitage.py`) : X le long
 du faîte, d'un bout à l'autre de la case ; Y depuis l'arête du faîte ; Z en travers, autant d'un côté que de l'autre.
 Elle coiffe le toit d'école, dont chaque pan descend d'une pente de 1 : elle passe l'arête du faîte, rien d'elle ne
 descend sous un pan, et le bord de chacun de ses bras est posé sur le sien. Deux cases voisines se raccordent bout à
@@ -37,9 +37,11 @@ class Construction(DesKits, unittest.TestCase):
         couvertures = [m for m in json.loads(donnee.read_text(encoding='utf-8')) if m.get('couverture')]
         self.assertEqual(sorted({m['kit'] for m in couvertures if 'kit' in m} - set(self.bati)), [])
 
-    def test_les_noeuds_racine_sont_les_pieces_d_un_segment_de_toit(self):
+    def test_les_noeuds_racine_sont_des_pieces_d_une_arete_de_toit_dont_la_faitiere(self):
         for _, _, glb in self.chaque():
-            self.assertEqual(sorted(self.noeuds(glb)), PIECES)
+            noeuds = set(self.noeuds(glb))
+            self.assertIn(FAITIERE, noeuds)
+            self.assertEqual(sorted(noeuds - set(PIECES)), [])
 
     def test_la_faitiere_tient_la_case_d_un_bout_a_l_autre_et_passe_l_arete_du_faite(self):
         for demi, sommets in self.chaque_faitiere():
