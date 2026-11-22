@@ -5,7 +5,8 @@ extends SceneTree
 ## navire, `voile-de-la-caraque.gd` et `voile-de-la-barge.gd`, qui déclarent `RECETTE_RENDUE` et leur scénario
 ## (`_scenario`) ; lui ne le déclare pas, `rendre` ne le joue pas seul. La partie tourne sur son pont espion
 ## (`PontDuNavire`) et son combat (`scenes/Combat.tscn`). Le monde, le navire, les cases que couvrent ses morceaux, leur
-## sol (`monde.hauteurs`) et le masque (la réponse `vision`) viennent du pont. Calques de l'écran et combattants cachés,
+## sol (`monde.hauteurs`) et le masque (la réponse `vision`) viennent du pont. Calques de l'écran, combattants et ce que
+## montre chaque foyer (sa flamme animée, `Foyer`) cachés,
 ## tonemap linéaire (la part se lit en lumière linéaire), brouillard volumétrique coupé, MSAA coupé (une arête ne mêle
 ## pas deux positions), le fondu avancé par la recette seule, sous la caméra tactique centrée sur le navire servi, dans
 ## une fenêtre de `FENETRE`. La part d'un pixel est sa luminance voilée sur celle de la même image sans vision. Sous
@@ -164,6 +165,10 @@ func _demarrer(scenario: String) -> Node:
 	for couche: CanvasLayer in root.find_children("*", "CanvasLayer", true, false):
 		couche.visible = false
 	plateau.get_node("Combattants").visible = false
+	for foyer: Foyer in root.find_children("*", "Foyer", true, false):
+		for montre: Node in foyer.get_children():
+			if montre is Node3D and not montre is Light3D:
+				(montre as Node3D).visible = false
 	_monde.volume.set_process(false)
 	_monde.volume.avancer_le_fondu(VolumeDeScene.DUREE_DU_FONDU_S)
 	var environnement := (_monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment
