@@ -259,6 +259,9 @@ jobs:
   godot-rendus:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Deux fils de rastérisation Mesa par recette, deux recettes de front sur quatre vCPU.
+      LP_NUM_THREADS: '2'
     steps:
       - if: ${{ github.event_name == 'merge_group' }}
         uses: actions/checkout@v4
