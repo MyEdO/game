@@ -81,11 +81,11 @@ describe('porteeDeComposition', () => {
   });
 
   it('une pièce portée prend sa variante (#3446), à son libellé, à l’emplacement de sa pièce, apportée comme elle', () => {
-    const { portees } = porteeDeComposition(lue({ ...composition, variantesPieces: { 'haut-de-chausses': { id: 'haut-de-chausses-ample' }, plumet: { id: 'plumet-simple' } } }));
-    const ample = portees.find((p) => p.cle.id === 'haut-de-chausses-ample');
-    expect(ample).toMatchObject({ cle: { champ: 'piece', id: 'haut-de-chausses-ample' }, label: findVarianteById('haut-de-chausses-ample')!.label, par: { type: 'tenue', id: 'uniforme-de-soldat' } });
-    expect(portees.find((p) => p.cle.id === 'plumet-simple')?.point).toBe(findPieceById('plumet')!.emplacement!.id);
-    expect(portees.map((p) => p.cle.id)).not.toContain('haut-de-chausses');
+    const { portees } = porteeDeComposition(lue({ ...composition, variantesPieces: { bottes: { id: 'bottines' }, baudrier: { id: 'baudrier-sur-armure' } } }));
+    const bottines = portees.find((p) => p.cle.id === 'bottines');
+    expect(bottines).toMatchObject({ cle: { champ: 'piece', id: 'bottines' }, label: findVarianteById('bottines')!.label, par: { type: 'tenue', id: 'uniforme-de-soldat' } });
+    expect(portees.find((p) => p.cle.id === 'baudrier-sur-armure')?.point).toBe(findPieceById('baudrier')!.emplacement!.id);
+    expect(portees.map((p) => p.cle.id)).not.toContain('bottes');
   });
 
   it('ce qui apporte une pièce porte le libellé de son ensemble : la chemise du Soldat, par l’uniforme de soldat', () => {
@@ -157,14 +157,14 @@ describe('lireComposition', () => {
   });
 
   it('la variante d’une pièce non portée, ou d’une autre pièce, est une faute à sa clé (#3446)', () => {
-    const sansPlumet = { ...composition, pieces: composition.pieces!.filter((p) => p !== 'plumet') };
-    expect(lireComposition({ ...sansPlumet, variantesPieces: { plumet: { id: 'plumet-simple' } } })).toEqual({
+    const sansBaudrier = { ...composition, pieces: composition.pieces!.filter((p) => p !== 'baudrier') };
+    expect(lireComposition({ ...sansBaudrier, variantesPieces: { baudrier: { id: 'baudrier-sur-armure' } } })).toEqual({
       ok: false,
-      fautes: [{ chemin: ['variantesPieces', 'plumet'], message: expect.stringContaining('sans être une des pièces portées') }],
+      fautes: [{ chemin: ['variantesPieces', 'baudrier'], message: expect.stringContaining('sans être une des pièces portées') }],
     });
-    expect(lireComposition({ ...composition, variantesPieces: { bottes: { id: 'casque-a-cornes' } } })).toEqual({
+    expect(lireComposition({ ...composition, variantesPieces: { bottes: { id: 'brassards-d-acier' } } })).toEqual({
       ok: false,
-      fautes: [{ chemin: ['variantesPieces', 'bottes'], message: expect.stringContaining('variante de « casque »') }],
+      fautes: [{ chemin: ['variantesPieces', 'bottes'], message: expect.stringContaining('variante de « brassards »') }],
     });
   });
 
