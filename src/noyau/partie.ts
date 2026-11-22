@@ -21,6 +21,7 @@ import { bus, EVT, type ChargesDuBus } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
 import { patchDeLArmement } from './monde/carrier';
+import { detientLAutoriteDuJeu } from './netOwnership';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -69,6 +70,8 @@ export interface ResultatDeLAppel {
 export interface Partie {
   etat: Get;
   reprojeterLArmement: () => void;
+  /** Relance les automates de la partie à la cadence choisie par son hôte. */
+  reprendreLaCadence: () => ResultatDeLAppel;
   /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
    *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`).
    *  Chez un invité, une intention qui porte un siège ou dont le verbe est de classe `hôte` ne se joue pas : elle se
@@ -187,6 +190,13 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
       ouvertePour('reprojeterLArmement');
       set(patchDeLArmement(get()) ?? {});
     },
+    reprendreLaCadence: () => appeler('reprendreLaCadence', () => {
+      const avant = get();
+      if (!detientLAutoriteDuJeu(avant)) return 'appliquee';
+      avant.reprendreLaCadence();
+      if (get() === avant) set({});
+      return 'appliquee';
+    }),
     envoyer: (intention) => {
       let refusDuSiege: string | undefined;
       const resultat = appeler('envoyer', () => {

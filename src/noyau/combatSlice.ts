@@ -1369,11 +1369,10 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...b, handRaisedBy, log: [...b.log, ev('information', t(levee ? 'store.handRaised' : 'store.handLowered'))] } });
     },
 
-    /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES
-     *  (engine/policy), pas dans le store → la passer en Auto/Rapide ne traverse NI la boucle de tours NI la
+    /** Reprise après un CHANGEMENT DE CADENCE en plein combat. Le passage en Auto/Rapide ne traverse NI la boucle de tours NI la
      *  souscription de `combatAuto` (aucun `set`) : le combat se figeait sur le tour courant. On RÉ-ENTRE donc
      *  explicitement : `tickCombatAuto` auto-résout une éventuelle modale ouverte, `maybeRunEnemyTurn` joue le
-     *  tour de l'acteur si l'IA le pilote. No-op en mode manuel / hors combat (gardes internes). */
+     *  tour de l'acteur si l'IA le pilote. La reprise requiert un combat en cours. */
     reprendreLaCadence: () => {
       const b = get().battle;
       if (!b || b.over) return;

@@ -14,7 +14,8 @@ import {
   valeurConforme,
   nommerLesRetraits,
   ruleOverrides,
-  type Jeu as Partie,
+  type Jeu,
+  type Partie,
   type Difficulty,
   type OptionalRule,
   type Preference,
@@ -173,7 +174,7 @@ function domaineEnEntite(groupe: string, surcharges: Readonly<Record<string, Rul
 }
 
 /** Les zones des réglages sur `stockage` ; `etat` : la partie ouverte, `null` sans partie. */
-export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null): ZonesDesReglages {
+export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'> | null): ZonesDesReglages {
   const verrou = reglesMaisonMutables(etat ?? { battle: null, net: initialNet() });
   const refus = verrou.mutable ? null : verrou.reason;
   const surcharges = ruleOverrides();
@@ -190,7 +191,12 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
 /** Joue le geste des réglages `geste` sur `stockage` et le persiste ; `etat` : la partie ouverte, `null` sans partie.
  *  Lève l'erreur de validation d'un geste, d'un id ou d'une valeur que la table ou le registre refuse, et l'erreur de
  *  règle du verrou du noyau (`reglesMaisonMutables` : un combat en cours, un invité). */
-export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null, geste: { type: unknown; args: unknown }, reprojeter?: () => void): void {
+export function jouerUnReglage(
+  stockage: Stockage | null,
+  etat: Pick<Jeu, 'battle' | 'net'> | null,
+  geste: { type: unknown; args: unknown },
+  partie?: Pick<Partie, 'reprojeterLArmement' | 'reprendreLaCadence'>,
+): void {
   const args = Array.isArray(geste.args) ? geste.args : [];
   const [id, valeur] = args;
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
@@ -201,7 +207,10 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
     const def = preferenceDef(id);
     if (args.length !== 2 || !def || (geste.type === 'pourcent' && !enPourcent(def))) return refuser('validation', t('ecran.reglages.inconnu', { id }));
     const conforme = geste.type !== 'pourcent' ? valeur : typeof valeur === 'number' ? valeur / 100 : undefined;
+    const lireCadence = preferenceDef('combat-cadence')!.get;
+    const cadenceAvant = lireCadence();
     if (!reglerUnePreference(stockage, id, conforme)) return refuser('validation', t('ecran.reglages.nonConforme', { valeur: JSON.stringify(valeur), id }));
+    if (cadenceAvant !== lireCadence()) partie?.reprendreLaCadence();
     return;
   }
   if (geste.type !== 'regle' && geste.type !== 'retablir') return refuser('validation', 'type, `preference`, `pourcent`, `regle` ou `retablir`');
@@ -212,6 +221,6 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
   const jeu = etat ?? { battle: null, net: initialNet() };
   const verrou = reglesMaisonMutables(jeu);
   if (!verrou.mutable) return refuser('regle', verrou.reason);
-  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id, reprojeter);
-  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur, reprojeter);
+  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id, partie?.reprojeterLArmement);
+  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur, partie?.reprojeterLArmement);
 }

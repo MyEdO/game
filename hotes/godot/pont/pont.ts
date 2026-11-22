@@ -784,6 +784,7 @@ const demandeUnHeros = (e: ResultatDeLAppel['evenements'][number]): boolean => e
 const enFile = (partie: Partie, verser: (resultat: ResultatDeLAppel) => ResultatDeLAppel): Partie => ({
   etat: partie.etat,
   reprojeterLArmement: partie.reprojeterLArmement,
+  reprendreLaCadence: () => verser(partie.reprendreLaCadence()),
   envoyer: (intention) => verser(partie.envoyer(intention)),
   lancer: (lancement) => verser(partie.lancer(lancement)),
   reprendre: (jeton) => verser(partie.reprendre(jeton)),
@@ -1870,7 +1871,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     reglages(json) {
       const e = entreeDe('reglages', json, (e) => ('type' in e ? ['type', 'args'] : []));
       const etat = ouverte?.partie.etat() ?? null;
-      if ('type' in e) jouerUnReglage(stockage, etat, { type: e.type, args: e.args }, ouverte?.partie.reprojeterLArmement);
+      if ('type' in e) jouerUnReglage(stockage, etat, { type: e.type, args: e.args }, ouverte?.partie);
       return { zones: zonesDesReglages(stockage, etat) };
     },
     /**
