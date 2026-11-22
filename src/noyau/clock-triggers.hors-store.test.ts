@@ -81,7 +81,7 @@ describe('onDayStart — une émission PAR JOUR franchi (rattrapage compris)', (
 
     const lines = runDailyUpkeep(get, set, { onDeferTest: () => {} });
 
-    const gains = lines.filter((l) => l.includes('gagne le Trait'));
+    const gains = lines.filter(({ text }) => text.includes('gagne le Trait'));
     expect(gains).toHaveLength(3); // un par jour franchi — jamais « un seul pour tout le saut »
   });
 
@@ -215,7 +215,7 @@ describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance)', () => {
 
     const lines = fireClockTriggers(get, 'onDayStart', { rng: desDuTest });
 
-    expect(lines.some((l) => l.includes('gagne le Trait'))).toBe(true);
+    expect(lines.some(({ text, actorId }) => actorId === h.id && text.includes('gagne le Trait'))).toBe(true);
     expect(findMutationById(HAINE_SPORADIQUE)?.effects?.[0].trigger).toBe('onDayStart');
   });
 
