@@ -339,11 +339,12 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   /** Les fichiers TEXTE d'une copie de l'arbre : ce que lisent la génération du code et la mesure. */
   const estTexte = (p: string) => estModule(p) || /\.(?:md|json|css|snap)$/.test(p);
   const env = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_')));
-  /** Les comptes de la racine `cwd`, mesurés par le point d'entrée de la porte dans un processus `tsx`. */
   const executer = promisify(execFile);
+  const chargeurTsx = import.meta.resolve('tsx/esm');
+  /** Les comptes de la racine `cwd`, mesurés par le point d'entrée de la porte dans un processus `tsx`. */
   const mesurer = async (cwd: string): Promise<Comptes> => {
     const { stdout } = await executer(process.execPath,
-      [join(ROOT, 'node_modules/tsx/dist/cli.mjs'), join(cwd, 'scripts/guards/lib/corpusDesComptes.mts')],
+      ['--import', chargeurTsx, join(cwd, 'scripts/guards/lib/corpusDesComptes.mts')],
       { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28 });
     return new Map(JSON.parse(stdout) as [string, never[]][]);
   };
@@ -351,7 +352,11 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
    *  littérale du `code` authoré (un `.generated.` recopie chaque id). */
   const citations = (donnees: readonly unknown[], code: readonly string[]): Map<string, number> => {
     const n = new Map<string, number>();
-    const compter = (v: string) => new Set([v, ...v.split(/\s*,\s*/)]).forEach((t) => n.set(t, (n.get(t) ?? 0) + 1));
+    const compterTerme = (t: string) => n.set(t, (n.get(t) ?? 0) + 1);
+    const compter = (v: string) => {
+      if (v.includes(',')) new Set([v, ...v.split(/\s*,\s*/)]).forEach(compterTerme);
+      else compterTerme(v);
+    };
     const marcher = (v: unknown): void => {
       if (typeof v === 'string') compter(v);
       else if (v && typeof v === 'object') Object.entries(v).forEach(([cle, x]) => { compter(cle); marcher(x); });
@@ -420,11 +425,10 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
       /** Par document, ses gestes, ceux que son schéma a refusés (et le premier motif) et ceux appliqués. */
       const parDocument = new Map<string, { gestes: number; refuses: number; appliques: number; motif: string }>();
       documents.forEach((d) => {
-        const brut = brutParDocument.get(d.chemin);
+        const donnee = brutParDocument.get(d.chemin);
         const def = defs.find((x) => d.chemin.endsWith(`/${x.file}`));
         if (!def) throw new Error(`${d.chemin} : aucun def, la donnée mutée ne se validerait pas.`);
-        if (!def.schema.safeParse(brut).success) throw new Error(`${d.chemin} : la donnée d’origine est invalide, un geste refusé ne prouverait rien.`);
-        const donnee = structuredClone(brut);
+        if (!def.schema.safeParse(donnee).success) throw new Error(`${d.chemin} : la donnée d’origine est invalide, un geste refusé ne prouverait rien.`);
         const bilan = { gestes: 0, refuses: 0, appliques: 0, motif: '' };
         parDocument.set(d.chemin, bilan);
         /** Un geste n'est gardé que si le schéma du document admet encore la donnée : elle reste SAINE. */
@@ -434,7 +438,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
           const lu = def.schema.safeParse(donnee);
           if (lu.success) { bilan.appliques += 1; touches[sorte] += 1; } else { defaire(); bilan.refuses += 1; bilan.motif ||= lu.error.issues[0]?.message ?? ''; }
         };
-        const regime = regimeEntrees(brut, familles.get(d.nom));
+        const regime = regimeEntrees(donnee, familles.get(d.nom));
         for (const c of entreesDe(donnee, regime)) {
           if (Array.isArray(c)) {
             const retiree = c.reduce<number>((r, e, j) => (j > 0 && typeof (e as { id?: unknown }).id === 'string' && cite.get((e as { id: string }).id) === 1 ? j : r), -1);
