@@ -20,20 +20,30 @@ const PLAQUETTE: Piece = {
   sommets: [-1, 0, 1].flatMap((y) => [-1, 0, 1].map((x): Point => [x * 0.02, y * 0.02, x * 0.01])),
   triangles: [0, 1, 3, 4].flatMap((i) => [i, i + 1, i + 3, i + 1, i + 4, i + 3]),
 };
+/** La même plaquette, plus penchée : son bord -X à 4,5 cm derrière son centre, son bord +X à 4,5 cm devant. */
+const PLAQUETTE_RAIDE: Piece = { ...PLAQUETTE, sommets: PLAQUETTE.sommets.map(([x, y]): Point => [x, y, x * 2.25]) };
 /** La translation de (x, y, z), en 16 nombres colonne par colonne. */
 const translation = (x: number, y: number, z: number): number[] => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
 
 const CLIP = 'Marche';
 const base = glb([cube('corps', 0.3, 'torse')], CLIP);
+/** La même base, avec une silhouette `large` qui ne déplace aucun sommet. */
+const AVEC_SILHOUETTE = glb([{ ...cube('corps', 0.3, 'torse'), formes: { large: () => [0, 0, 0] } }], CLIP);
 const robe = glb([cube('robe', 0.4, 'bras')]);
 const gilet = glb([cube('gilet', 0.4, 'torse')]);
 const fiole = glb([PLAQUETTE]);
+const fioleRaide = glb([PLAQUETTE_RAIDE]);
 const couches: (CoucheDeLElement | null)[] = [{ couche: 'tenue', couvre: [] }, null];
 /** L'os de l'emplacement : celui du corps, de zone `torse`. */
 const OS = 'jambe';
 /** La plaquette à cheval sur la face +Z de la robe (z = 0,2) : un bord 14 mm derrière, son milieu 4 mm derrière, l'autre
  *  bord 6 mm devant. */
 const DEDANS = translation(0, 1, 0.196);
+/** La plaquette raide à cheval sur cette face : son bord -X 14 mm derrière, son centre et son bord +X à plus de 3 cm
+ *  devant (`PORTEE_DE_COUVERTURE_M`). */
+const ENFONCEE = translation(0, 1, 0.231);
+/** La plaquette toute derrière cette face, comme sous une cape, à 2 cm au moins. */
+const DERRIERE = translation(0, 1, 0.17);
 /** La plaquette toute devant cette face, à 1 cm au plus près. */
 const POSEE = translation(0, 1, 0.22);
 const rigides = (fiche: Awaited<ReturnType<typeof evaluer>>) => fiche.ecarts.filter((e) => e.code === 'objet-dans-un-vetement');
@@ -60,14 +70,20 @@ describe('rangement', () => {
   });
 
   it('posé devant le vêtement, ou laissé où son GLB le pend : aucun écart ; à cheval sur lui : un sous le clip, un au repos', async () => {
-    const sous = (pose: number[] | null, offrants: number[] = [], vetement = robe, plafondsDesMembres = {}) => evaluer({ base, elements: [vetement, fiole], couches, plafondsDesMembres, ranger: async (i) => [null, { meshes: { fiole: i.map(() => pose) }, offrants, os: OS }] });
+    const sous = (pose: number[] | null, offrants: number[] = [], vetement = robe, plafondsDesMembres = {}, objet = fiole) => evaluer({ base, elements: [vetement, objet], couches, plafondsDesMembres, ranger: async (i) => [null, { meshes: { fiole: i.map(() => pose) }, offrants, os: OS }] });
     expect(rigides(await sous(POSEE))).toEqual([]);
     expect(rigides(await sous(null))).toEqual([]);
+    expect(rigides(await sous(DERRIERE)), 'tout derrière, sans le traverser').toEqual([]);
     const dedans = rigides(await sous(DEDANS));
     expect(dedans.map((e) => e.clip)).toEqual([CLIP, undefined]);
-    expect(dedans[1]).toMatchObject({ garde: 'rigideRange', mesh: 'élément 2/fiole#0', seuil: -ECART_DE_SUIVI_M });
-    expect(dedans[1].valeur).toBeCloseTo(-0.006, 6);
+    expect(dedans[1]).toMatchObject({ garde: 'rigideRange', mesh: 'élément 2/fiole#0', seuil: ECART_DE_SUIVI_M });
+    expect(dedans[1].valeur).toBeCloseTo(0.014, 6);
+    const enfoncee = rigides(await sous(ENFONCEE, [], robe, {}, fioleRaide)).filter((e) => e.garde === 'rigideRange');
+    expect(enfoncee, 'enfoncée, le reste à plus de 3 cm devant').toHaveLength(1);
+    expect(enfoncee[0].valeur).toBeCloseTo(0.014, 6);
     expect(rigides(await sous(DEDANS, [0])), 'la robe offre sa case').toEqual([]);
+    const sousUneSilhouette = await evaluer({ base: AVEC_SILHOUETTE, elements: [robe, fiole], couches, silhouettes: { large: 1 }, ranger: async (i) => [null, { meshes: { fiole: i.map(() => DEDANS) }, offrants: [], os: OS }] });
+    expect(rigides(sousUneSilhouette).map((e) => e.garde), 'au repos d’une silhouette aussi').toContain('rigideRange');
     expect(rigides(await sous(DEDANS, [], gilet)).map((e) => e.clip), 'un vêtement de sa zone : au repos seul, comme une couche').toEqual([undefined]);
     expect(rigides(await sous(DEDANS, [], robe, { [CLIP]: 1 })).map((e) => e.clip), 'au plafond du clip').toEqual([undefined]);
   });

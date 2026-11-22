@@ -5,10 +5,13 @@
 // `--captures/<nom du jeu>/` ; le verdict de chacun s'imprime à sa fin, la fin d'un journal rouge aussi, et le code est
 // non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
 // Avec `--rendu`, chaque jeu natif se joue en rendu réel : ses captures montrent l'écran (`npm run godot:regarder`).
-// Le jeu `planche:<nom>`, que seul `--jeux` nomme, montre et capture la planche `<nom>` (parcours `planche`) : sa capture
-// `<nom>.png` et son journal `<nom>.journal.txt` vont sous `--captures/planche/`, et, la planche verte et sa maquette
-// déclarée (`MAQUETTES`, `planches.mjs`), son côte à côte `<nom>-cote-a-cote.png`, dont le chemin s'imprime.
-//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,planche:<nom>]
+// Les jeux paramétrés, que seul `--jeux` nomme (`JEUX_PARAMETRES`) : `planche:<nom>` montre et capture la planche
+// `<nom>` (parcours `planche`) : sa capture `<nom>.png` et son journal `<nom>.journal.txt` vont sous
+// `--captures/planche/`, et, la planche verte et sa maquette déclarée (`MAQUETTES`, `planches.mjs`), son côte à côte
+// `<nom>-cote-a-cote.png`, dont le chemin s'imprime ; `preset:<id>[:<clip>:<instant>]` compose le preset `<id>` à
+// l'atelier (parcours `preset`), posé au clip `<clip>` à l'instant `<instant>` s s'il est nommé, et le capture sous
+// chaque vue, journal et captures sous `--captures/preset-<id>/`.
+//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,planche:<nom>,preset:<id>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -23,6 +26,16 @@ import { MAQUETTES, coteACote } from './planches.mjs'
 const DOSSIER = '<dossier>'
 /** Le préfixe d'un jeu de planche, `planche:<nom>`. */
 const PLANCHE = 'planche:'
+
+/** Les jeux paramétrés, par préfixe : le jeu que nomme `<préfixe><paramètres>`, ou `null` sur des paramètres refusés. */
+export const JEUX_PARAMETRES = {
+  [PLANCHE]: (planche) => ({ parcours: 'planche', args: ['--planche', planche], dossier: 'planche', journal: `${planche}.journal.txt` }),
+  'preset:': (parametres) => {
+    const [preset, clip, instant, ...reste] = parametres.split(':')
+    if (reste.length || (clip === undefined) !== (instant === undefined) || (instant !== undefined && !Number.isFinite(Number(instant)))) return null
+    return { parcours: 'preset', args: ['--preset', preset, ...(clip === undefined ? [] : ['--clip', clip, '--instant', instant])], dossier: `preset-${preset}`, journal: 'journal.txt' }
+  },
+}
 
 /**
  * Les jeux de chaque parcours de `recette.mjs`, `{ nom du jeu: arguments après --parcours <parcours> }` ; `DOSSIER` y
@@ -127,12 +140,13 @@ if (import.meta.main) {
   const lieu = (parcours) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(parcours) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
-  for (const nom of voulus.filter((v) => v.startsWith(PLANCHE) && v.length > PLANCHE.length)) {
-    const planche = nom.slice(PLANCHE.length)
-    jeux.push({ nom, parcours: 'planche', args: ['--planche', planche], dossier: 'planche', journal: `${planche}.journal.txt` })
+  for (const nom of voulus) {
+    const prefixe = Object.keys(JEUX_PARAMETRES).find((p) => nom.startsWith(p) && nom.length > p.length)
+    const jeu = prefixe && JEUX_PARAMETRES[prefixe](nom.slice(prefixe.length))
+    if (jeu) jeux.push({ nom, ...jeu })
   }
   const inconnus = voulus.filter((nom) => !jeux.some((j) => j.nom === nom))
-  if (inconnus.length) throw new Error(`--jeux ${inconnus.join(',')} : ${jeux.map((j) => j.nom).join(' ou ')} ou ${PLANCHE}<nom> attendu`)
+  if (inconnus.length) throw new Error(`--jeux ${inconnus.join(',')} : ${jeux.map((j) => j.nom).join(' ou ')} ou ${PLANCHE}<nom> ou preset:<id>[:<clip>:<instant>] attendu`)
   const horsNatif = (nom) => o.natif && Object.hasOwn(HORS_NATIF, nom)
   const refuses = (o.jeux ? voulus : []).filter(horsNatif)
   if (refuses.length) throw new Error(`--natif ne joue pas ${refuses.map((nom) => `${nom} (${HORS_NATIF[nom]})`).join(', ')}`)
