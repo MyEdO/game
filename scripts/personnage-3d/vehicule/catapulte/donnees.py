@@ -10,6 +10,11 @@ ONAGRE = ("onagre-ade2",)
 MATERIAUX = {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "corde": ("cuir", "corde"),
              "cuir": ("cuir", "cuir-tanne")}
 
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"catapulte": 1200, "onagre": 1050}
+
 CHASSIS = {
     "longerons": (0.55, -1.40, 2.60, 0.22, 0.26),       # x du milieu, y avant, y arrière, largeur, hauteur
     "traverses": [(-1.25, 0.20), (0.50, 0.26), (2.40, 0.20)],   # y, profondeur ; entre les longerons, z 0.04 à 0.26

@@ -643,8 +643,9 @@ def booleen(obj, operation, operande):
     bpy.data.meshes.remove(ancien)
 
 
-def reunir(cible, sources):
-    """Les meshes de `sources` versés dans `cible` (matériaux réunis par nom), puis supprimés."""
+def reunir(cible, sources, angle_lisse):
+    """Les meshes de `sources` versés dans `cible` (matériaux réunis par nom), puis supprimés ; `cible` lissée sous
+    `angle_lisse` (degrés)."""
     bm = bmesh.new()
     bm.from_mesh(cible.data)
     noms = [m.name for m in cible.data.materials]
@@ -663,7 +664,7 @@ def reunir(cible, sources):
     bm.free()
     for poly in cible.data.polygons:
         poly.use_smooth = True
-    cible.data.set_sharp_from_angle(angle=math.radians(35))
+    cible.data.set_sharp_from_angle(angle=math.radians(angle_lisse))
 
 
 def fondre(solides, interieurs):

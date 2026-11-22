@@ -6,7 +6,7 @@ from mathutils import Vector
 
 import habillage
 from clips import REPOS, animer, cahoter, tirer
-from maille import Maille, boite, cylindre, objet, plaque, poutre, recentrer, tour, tube
+from maille import Maille, boite, cylindre, monter, plaque, poutre, tour, tube
 
 
 def pied(D, bois, fer):
@@ -118,11 +118,7 @@ def construire(D):
     bois, fer, cordage = mats["bois"], mats["fer"], mats["cordage"]
     socle = pied(D, bois, fer)
     arme = baliste(D, bois, fer, cordage)
-
-    # emprise recentrée en x et y ; le sol reste z = 0
-    dx, dy = recentrer([socle, arme])
-    objet("pied", socle, (0.0, 0.0, 0.0), 35)
-    objet("baliste", arme, (dx, dy, D["PIVOT_Z"]), 35)
+    monter({"pied": (socle, None), "baliste": (arme, (0.0, 0.0, D["PIVOT_Z"]))}, D["ANGLE_LISSE"])
     return animer([REPOS, cahoter(["pied", "baliste"]), tirer(D["TIR"], D["TIR_TEMPS"], [], ["baliste"])])
 
 
