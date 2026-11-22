@@ -666,6 +666,18 @@
     "kind": "coiffure"
   },
   {
+    "id": "cheveux-courts",
+    "type": "garde-robe",
+    "label": "Cheveux courts",
+    "kind": "coiffure"
+  },
+  {
+    "id": "cheveux-attaches",
+    "type": "garde-robe",
+    "label": "Cheveux attachés en chignon",
+    "kind": "coiffure"
+  },
+  {
     "id": "taureau-rouge",
     "type": "garde-robe",
     "label": "Tête de taureau rouge",
