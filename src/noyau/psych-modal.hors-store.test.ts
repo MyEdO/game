@@ -15,6 +15,7 @@ import { t } from '../i18n';
 import { sansPeurLabel } from '../engine/psychology';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { actorIn } from './monde/combatants';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -231,8 +232,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.getState().jetValider('cascade');
     expect((heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)?.surmontee).toBe(true);
     const journal = rangee.outcome!.map((l) => l.text);
-    expect(journal).toContain(t('out.fearOvercome', { name: H.label, foe: E.label }));
-    expect(journal).not.toContain(t('turn.fearVanquished', { name: H.label, foe: E.label, talent: sansPeurLabel() }));
+    expect(journal).toContain(t('out.fearOvercome', { name: nomDe(H), foe: nomDe(E) }));
+    expect(journal).not.toContain(t('turn.fearVanquished', { name: nomDe(H), foe: nomDe(E), talent: sansPeurLabel() }));
   });
 
   it('pas de source de peur (ennemi de même Taille) → aucune cascade (ni début ni fin de Round)', () => {

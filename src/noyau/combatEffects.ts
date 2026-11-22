@@ -173,6 +173,7 @@ import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
 import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
+import { nomDe } from '../engine/nom';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -1180,7 +1181,7 @@ export function openSkillTest(
       pont,
     });
     return {
-      id: actor.id, label: actor.label, value,
+      id: actor.id, label: nomDe(actor), value,
       // La LIGNE MONTÉE voyage avec le candidat : base NUE + lignes nommées telles que le monteur les
       // a émises (famille et fiche comprises). L'affichage n'a plus rien à recomposer.
       base: line.base, ...(line.mods ? { mods: line.mods } : {}),
@@ -1370,7 +1371,7 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
   const meta = { choiceYes: { kind: 'effet' as const, effet: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
     id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'interface/reflexion',
-    label: stepPrecision(dataLabel(question), dataLabel(h.label)),
+    label: stepPrecision(dataLabel(question), nomDe(h)),
     options: [{ key: 'oui', label: dataLabel(question) }, { key: 'non', label: t('opt.renoncer') }],
     defaultChoice: 'non',
     ...(i === heros.length - 1 ? { meta } : {}),
@@ -1699,7 +1700,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
       const who = env.mutateHero(e.heroId, (h) => avecObjet(h, it)); // arrive NON équipé
-      env.log(who ? t('eff.recuperation', { name: who.label, item: it.label }) : t('eff.recuperationSansHeros', { item: it.label }));
+      env.log(who ? t('eff.recuperation', { name: nomDe(who), item: it.label }) : t('eff.recuperationSansHeros', { item: it.label }));
     },
   },
   givePossession: {
@@ -1722,7 +1723,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         }
       })();
       const uid = ajouterLaPossession(env.get, env.set, input);
-      env.log(t('eff.recuperation', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
+      env.log(t('eff.recuperation', { name: nomDe(owner), item: possessionLabel({ ...input, uid } as Possession) }));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
     refs: (e) => {
@@ -1771,7 +1772,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       );
       if (!who) { env.log(e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label })); return; }
       const verdict = verdictApprentissage(who, sp);
-      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: who.label, spell: sp.label }));
+      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: nomDe(who), spell: sp.label }));
     },
   },
   petitePriere: {
@@ -1790,7 +1791,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Un Bienheureux prie NORMALEMENT (Miracle/Bénédiction) — les Petites Prières sont la voie des
       // non-Bénis (LDB 25 l.24).
       if (isBeni(target)) {
-        env.log(t('eff.petitePriereBeni', { name: target.label }));
+        env.log(t('eff.petitePriereBeni', { name: nomDe(target) }));
         return;
       }
       // Seuil : « exaucé sur 01 » ; LDB 25 l.22-24 — silence, valeur maison (règle
@@ -1799,10 +1800,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const threshold = 1 + Math.max(0, priereAdv) * Number(rule('priere-petites-bonus-par-avance'));
       const roll = d100(battleRng());
       if (petitePriereAnswered(roll, threshold)) {
-        env.log(t('eff.petitePriereExaucee', { name: target.label, roll, threshold }));
+        env.log(t('eff.petitePriereExaucee', { name: nomDe(target), roll, threshold }));
         jouerFlowEntier(runFlow(env.get, env.set, e.reward, t('eff.recompenseDePetitePriere'))); // récompense authorée (bonus/don/flag)
       } else {
-        env.log(t('eff.petitePriereSansReponse', { name: target.label, roll }));
+        env.log(t('eff.petitePriereSansReponse', { name: nomDe(target), roll }));
       }
     },
   },
@@ -1954,7 +1955,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.to && !env.get().battle) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
-        env.log(t('eff.chuteOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
+        env.log(t('eff.chuteOuverte', { m, noms: targets.map(nomDe).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
       }
     },
@@ -1979,7 +1980,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const whoId = cible.id;
       const who = env.mutateHero(whoId, (h) => (porte(h) ? h : { ...h, diseases: [...(h.diseases ?? []), { ...dz }] }));
       if (who) {
-        const line = t('eff.maladieContractee', { name: who.label, disease: e.disease });
+        const line = t('eff.maladieContractee', { name: nomDe(who), disease: e.disease });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
         env.pushReveal({ kind: 'effet', title: t('eff.titreDeMaladie', { disease: e.disease }), lines: [line], subjectId: whoId });
@@ -2048,7 +2049,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const steps: BuiltCascadeStep[] = [];
       const lines: string[] = [];
       for (const c of heroes) {
-        if (isWeatherWarded(c)) { lines.push(t('eff.meteoConjuree', { name: c.label, what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') })); continue; }
+        if (isWeatherWarded(c)) { lines.push(t('eff.meteoConjuree', { name: nomDe(c), what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') })); continue; }
         const resVal = testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
@@ -2089,7 +2090,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const labels = traumas.map((tr) => tr.label);
       const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: avecSequelles(h.traumas, structuredClone(traumas)), criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
-        const line = t('eff.critiqueSubi', { name: who.label, kind: e.kind, location: e.location });
+        const line = t('eff.critiqueSubi', { name: nomDe(who), kind: e.kind, location: e.location });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
         env.pushReveal({ kind: 'effet', title: t('eff.titreDeCritique', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
@@ -2102,7 +2103,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Trauma « Cauchemars » (LDB 21 l.95) posé sur un héros (défaut : le premier).
       const who = env.mutateHero(e.heroId, (h) => ({ ...h, nightmares: true }));
-      if (who) env.log(t('eff.cauchemars', { name: who.label }));
+      if (who) env.log(t('eff.cauchemars', { name: nomDe(who) }));
     },
   },
   ambitionLost: {
@@ -2114,7 +2115,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!cible) return;
       const calme = calmeDAcquisition(cible, 'accessible', battleRng());
       if (!calme) return;
-      const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: cible.label, roll: calme.roll, target: calme.target });
+      const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: nomDe(cible), roll: calme.roll, target: calme.target });
       env.log(line);
       if (calme.success) return;
       env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: cible.id });
@@ -2405,7 +2406,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
         for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
-        env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
+        env.log(t('eff.rituelGaranti', { name: nomDe(caster), sort: spell.label }));
         return;
       }
       if (!get().battle && isMagicMissile(spell)) {
@@ -2501,14 +2502,14 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
 const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
-  if (step.result.success) return { consequences: freeCons([t('eff.eauSansContagion', { name: hero.label })]) };
+  if (step.result.success) return { consequences: freeCons([t('eff.eauSansContagion', { name: nomDe(hero) })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
   const lines = applyContraction(hero, draw.disease, false, battleRng());
   const rollTxt = draw.modified !== draw.roll ? `${draw.roll} (+${draw.modified - draw.roll} → ${draw.modified})` : String(draw.roll);
   return {
     consequences: freeCons([
       t('eff.tirageDeLEau', { roll: rollTxt, disease: diseaseLabel(draw.disease) }),
-      ...(lines.length ? lines : [t('eff.eauDejaPorteur', { name: hero.label })]),
+      ...(lines.length ? lines : [t('eff.eauDejaPorteur', { name: nomDe(hero) })]),
     ]),
   };
 };
@@ -2560,10 +2561,10 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
   const { scene, campaignNarratif } = get();
   const npc = sceneNpc(scene, e.entityId.id, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
   if (!npc) { get().ecrireAuJournal(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' })); return; }
-  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: npc.label })); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) })); return; }
   ouvrirLeMedecin(get, set, undefined, {
     id: e.entityId.id,
-    label: npc.label,
+    label: nomDe(npc),
     skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
     intBonus: bonus(effectiveChar(npc, 'intelligence')),
     acts,
@@ -2661,7 +2662,7 @@ export const TABLES = {
       const aTerre = !dejaATerre && hasCondition(hero, 'a-terre');
       set(touchActors(get()));
       return { consequences: freeCons([t('eff.chuteDeLaCible', {
-        name: hero.label,
+        name: nomDe(hero),
         m: metres,
         lost: perte,
         aterre: aTerre ? t('eff.fragATerre') : '',

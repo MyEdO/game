@@ -10,10 +10,11 @@ import type { CascadeStep } from './pendings';
 import type { GesteDuJeu } from './modalArbiter';
 import { VERBE_DE_REGLAGE, declarationDuReglageNomme, type EffetDuChoix, type FluxRegle, type ReglageDuJet } from './reglagesDuJet';
 import { declarationDuChoixNomme } from './choixDesFenetres';
+import type { SansMarqueNonAffichable } from '../i18n/playerText';
 
 /** Une valeur qu'un argument prend : celle que le verbe reçoit, son libellé, et la raison qui la ferme (`null` :
  *  ouverte). */
-export interface ValeurDuReglage { valeur: string | number | boolean | null; libelle: string; refus: string | null }
+export interface ValeurDuReglage { valeur: string | number | boolean | null; libelle: SansMarqueNonAffichable; refus: string | null }
 
 /** Un choix d'une fenêtre : le geste qui le règle (`GesteDuJeu`), le paramètre qu'il règle (absent : le premier argument
  *  libre du verbe), son libellé, la valeur retenue et les valeurs offertes, chacune avec la raison qui la ferme
@@ -23,7 +24,7 @@ export interface ChoixNomme<V extends string | number | boolean = string> {
   parametre?: string;
   libelle: string;
   choisie: V | null;
-  options: { valeur: V | null; libelle: string; refus?: string | null }[];
+  options: { valeur: V | null; libelle: SansMarqueNonAffichable; refus?: string | null }[];
 }
 
 /** Une bascule d'une fenêtre : le geste qui la règle, son libellé, son état, et la note qui en dit l'effet (`null` :

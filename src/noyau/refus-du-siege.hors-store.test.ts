@@ -14,6 +14,7 @@ import { t } from '../i18n';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -92,8 +93,8 @@ describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’
     expect(refus.mock.calls).toEqual([
       [t('cs.magicMissileNeedsTarget', { spell: findSpellById('flechette')!.label })],
       [t('cs.cannotFocus')],
-      [t('cs.focusBlocked', { name: doc.label, reason: 'Vue assombrie' })],
-      [t('cf.incantationImpossible', { name: doc.label, reason: 'Propos ésotériques' })],
+      [t('cs.focusBlocked', { name: nomDe(doc), reason: 'Vue assombrie' })],
+      [t('cf.incantationImpossible', { name: nomDe(doc), reason: 'Propos ésotériques' })],
     ]);
     expect(banc.getState().journal).toEqual([]);
     expect(banc.getState().pendingCast).toBeNull();

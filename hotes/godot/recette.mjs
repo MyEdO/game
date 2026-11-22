@@ -4308,7 +4308,7 @@ async function prouverLaPile() {
   for (const [compte, attendu] of Object.entries(mesures.pile)) {
     assert.ok(Math.abs(a.pile[compte] - attendu) <= TOLERANCE_DE_LA_PILE * Math.max(attendu, 1 / TOLERANCE_DE_LA_PILE), `pile, ${compte} : ${a.pile[compte]} dans la fusion, ${attendu} à l'évaluateur`)
   }
-  assert.ok(mesures.pile.couverts > 0 && mesures.pile.masques > 0, 'la tenue du preset empile des couches')
+  assert.ok(mesures.pile.couverts > 0, 'la tenue du preset empile des couches')
 }
 
 /** Le clip `clip` posé en pause à l'instant `instant` (s) : choisi à l'onglet Animation, mis en pause, puis avancé

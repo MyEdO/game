@@ -233,6 +233,12 @@ const lesCombattants = (s: Jeu) => {
 };
 const combattants = (s: Jeu): string[] => ids(lesCombattants(s));
 const nomDeCombattant = (s: Jeu): Nommer => parLabel(lesCombattants(s));
+/** Le nom d'une créature vaincue (`pendingVictory.defeated`) : celui de son groupe en vue s'il en a un, sinon celui de
+ *  son groupe hors de vue, le nom neutre (#4017). */
+const nomDuVaincu = (s: Jeu): Nommer => {
+  const groupes = (s.pendingVictory?.defeated ?? []).flatMap((d) => (d.creatureId === undefined ? [] : [{ ...d, id: d.creatureId }]));
+  return indexe([...groupes.filter((d) => d.enVue), ...groupes.filter((d) => !d.enVue)], (d) => d.id, (d) => d.nom);
+};
 const lesObjets = (s: Jeu) => [
   ...lesCombattants(s).flatMap((c) => [...(c.items ?? []), ...(c.postes ?? []).flatMap((p) => p.ammo ?? [])]),
   ...s.possessions.flatMap((p) => p.items),
@@ -294,7 +300,7 @@ export const DESIGNATIONS = {
     nom: (s) => parLabel(choixDeCiblesEnAttente(s)),
   },
   IdDeChoixDePaie: { mot: 'id de choix de paie', lire: choixDePaieOuverts, nom: (_s) => (id) => findMoraleFactor(id)?.label ?? null },
-  IdDeCreatureADepecer: { mot: 'id de créature à dépecer', lire: creaturesADepecer, nom: (_s) => (id) => findCreatureById(id)?.label ?? null },
+  IdDeCreatureADepecer: { mot: 'id de créature à dépecer', lire: creaturesADepecer, nom: nomDuVaincu },
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
@@ -335,8 +341,7 @@ export const DESIGNATIONS = {
     mot: 'id de dépôt',
     lire: (s) => s.bank.map((d) => d.uid),
     nom: (s) => {
-      const { party } = s;
-      return indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot({ party }, d));
+      return indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot(s, d));
     },
   },
   IdDeSort: { mot: 'id de sort', lire: () => ids(spells), nom: (_s) => parLabel(spells) },

@@ -17,6 +17,7 @@ import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import { nomDe } from '../engine/nom';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
 
@@ -114,7 +115,7 @@ function gatesFermesPar(ctx: ActionCtx, def: ActionDef, etat: string): Map<strin
 
 describe('Matrice des verrous d’État : le registre ferme ce que la console grisait, et rien d’autre', () => {
   const raisons: Record<'brise' | 'sonne', (c: Combatant) => string> = {
-    brise: (c) => t('cs.stateLockFlee', { name: c.label, etat: findConditionById('brise')!.label }),
+    brise: (c) => t('cs.stateLockFlee', { name: nomDe(c), etat: findConditionById('brise')!.label }),
     sonne: () => t('agate.unableToAct'),
   };
   for (const etat of ['brise', 'sonne'] as const) {

@@ -16,6 +16,7 @@ import { mangerLaCale, noterLeRepas, type LotDeVivres } from './provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { fixtureText } from '../i18n/fixtureText';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre. */
 const seq = (values: number[]): RNG => desEnSuite(values);
@@ -85,7 +86,7 @@ describe('Scorbut (MDG 14 l.232) — la Durée ne décroît qu’aux jours de vi
 
 describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', () => {
   it('contraction, contagion, déclaration et guérison sur un équipage sans fiche', () => {
-    const equipage: PorteurDeMaladies = { label: 'L’équipage', diseases: [] };
+    const equipage: PorteurDeMaladies = { label: fixtureText('L’équipage'), diseases: [] };
     expect(contractionDue(equipage, 'verole-urticante')).toBe(true);
     applyContraction(equipage, 'verole-urticante', false, makeRNG(1));
     expect(equipage.diseases!.map((d) => d.phase)).toEqual(['incubation']);
@@ -104,7 +105,7 @@ describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', 
   it('le Rhume commun mue en Pneumonie au même jour en pas d’une journée ou d’une heure (EDOC 08 l.122)', () => {
     const apres = (pas: number) => {
       const equipage: PorteurDeMaladies = {
-        label: 'L’équipage',
+        label: fixtureText('L’équipage'),
         diseases: [contractDisease('rhume-commun', seq([]), { incubation: 0, duration: 10 })!],
       };
       prolongDisease(equipage, 'rhume-commun', 10);
@@ -125,7 +126,7 @@ describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', 
   });
 
   it('scorbut du porteur sans fiche : ne décroît qu’aux jours de vivres frais', () => {
-    const equipage: PorteurDeMaladies = { label: 'L’équipage', diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 1 })!], regimeDeBord: { joursSansVivreFrais: 3, joursDeSoupe: 0 } };
+    const equipage: PorteurDeMaladies = { label: fixtureText('L’équipage'), diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 1 })!], regimeDeBord: { joursSansVivreFrais: 3, joursDeSoupe: 0 } };
     avancerLesMaladies(equipage, 4 * MINUTES_PER_DAY, makeRNG(1));
     expect(equipage.diseases!.map((d) => d.id)).toEqual(['scorbut']);
     noterLeRepas(equipage, FRAIS);
@@ -135,7 +136,7 @@ describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', 
 
   /** Jours de Durée que décompte l'horloge après `jours` repas de la cale `lots`, en pas de `pas` jours. */
   const decompte = (lots: LotDeVivres[], jours: number, pas: number): number => {
-    const equipage: PorteurDeMaladies = { label: 'L’équipage', diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 10 })!] };
+    const equipage: PorteurDeMaladies = { label: fixtureText('L’équipage'), diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 10 })!] };
     for (const repas of mangerLaCale(lots, 1, jours, 0).repas) noterLeRepas(equipage, repas);
     for (let k = 0; k < jours / pas; k++) avancerLesMaladies(equipage, pas * MINUTES_PER_DAY, makeRNG(1));
     return 10 - equipage.diseases![0].minutesLeft / MINUTES_PER_DAY;
