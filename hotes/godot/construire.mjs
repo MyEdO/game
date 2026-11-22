@@ -55,7 +55,7 @@ import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFi
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
-import { createContext, runInContext } from 'node:vm'
+import { constants, createContext } from 'node:vm'
 import { gzipSync, inflateRawSync } from 'node:zlib'
 import { Linter } from 'eslint'
 import { build } from 'vite'
@@ -178,7 +178,7 @@ const SCENARIO = 'dome'
 /** Les lectures du bundle `code` en identifiant libre : par nom, leur nombre. Une passe de la règle `no-undef` du `Linter`
  *  d'ESLint, ses globaux ceux d'un contexte `node:vm` vide ; un nom lu sous `typeof` seul n'y est pas une lecture. */
 export function lecturesDuBundle(code) {
-  const globaux = runInContext('Object.getOwnPropertyNames(globalThis)', createContext())
+  const globaux = Object.getOwnPropertyNames(createContext(constants.DONT_CONTEXTIFY))
   const messages = new Linter({ configType: 'flat' }).verify(code, [{
     languageOptions: { ecmaVersion: 'latest', sourceType: 'script', globals: tableTotale(globaux, () => 'readonly') },
     rules: { 'no-undef': 'error' },

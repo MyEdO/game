@@ -1518,6 +1518,7 @@ export const CONTRATS_DE_DERIVATION = [
   { fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' },
   { fonction: politiqueExclusionsDe, lectures: 'corpus', retour: { exclude: { chemin: 'corpus' }, global: { chemin: 'corpus' } } },
   { fonction: nonSuivisIgnoresDe, lectures: 'corpus', retour: 'corpus' },
+  { fonction: fichiersIgnoresDe, lectures: 'corpus', retour: 'corpus' },
 ]
 
 /** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
@@ -1709,6 +1710,14 @@ export function cheminsIgnores(depot, chemins, { suivisCompris = false } = {}) {
 export function nonSuivisIgnoresDe(depot) {
   const brut = lireLeLotOuLever(depot, ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'], {}, 'non suivis ignorés', (s) => !s || s.endsWith('\0'))
   return new Set(brut.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
+}
+
+/** Les fichiers ignorés de l'arbre de travail que couvrent les pathspecs, sans réduire les dossiers ignorés à leur nom.
+ * @param {Depot} depot @param {...string} pathspecs @returns {string[]} */
+export function fichiersIgnoresDe(depot, ...pathspecs) {
+  const brut = lireLeLotOuLever(depot, ['ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', ...pathspecs],
+    {}, 'fichiers ignorés', (s) => !s || s.endsWith('\0'))
+  return brut.split('\0').filter(Boolean)
 }
 
 /** La configuration BRUTE (`config --null --list`, git-scm.com/docs/git-config) : une entrée
