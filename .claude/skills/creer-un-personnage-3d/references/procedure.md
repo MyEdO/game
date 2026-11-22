@@ -296,7 +296,9 @@ dague : un dossier ne porte que son `donnees.py` et `from lame import construire
 robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
 Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
 `anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
-ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+ce qui ceint la taille sur un vêtement publié (cordelière, ceinture à boucle, ceinture large : `axe_du_corps`, `ceindre`,
+la bande de cuir `Cuir`, `boucler`, `raidir`), `element/culotte.py` pour une culotte à anneaux de jambe (haut-de-chausses
+du Soldat, haut-de-chausses ample : `table`, `coupe`, `colonnes_des_hanches`, `nappe_de_culotte`),
 `element/tete.py` pour une tête de race sur la couture du cou (un dossier ne porte que son `donnees.py` et
 `from tete import construire`) et
 `element/sangle.py` pour une sangle en bandoulière posée sur la pièce

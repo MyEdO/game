@@ -362,6 +362,24 @@
     }
   },
   {
+    "id": "bottes-a-revers",
+    "type": "garde-robe",
+    "label": "Bottes à revers",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "haut-de-chausses-ample",
+    "type": "garde-robe",
+    "label": "Haut-de-chausses ample",
+    "kind": "variante",
+    "piece": {
+      "id": "haut-de-chausses"
+    }
+  },
+  {
     "id": "bas-de-chausses",
     "type": "garde-robe",
     "label": "Bas-de-chausses",
@@ -428,6 +446,15 @@
     "id": "ceinture-a-boucle",
     "type": "garde-robe",
     "label": "Ceinture à boucle",
+    "kind": "variante",
+    "piece": {
+      "id": "ceinture"
+    }
+  },
+  {
+    "id": "ceinture-large",
+    "type": "garde-robe",
+    "label": "Ceinture large",
     "kind": "variante",
     "piece": {
       "id": "ceinture"
