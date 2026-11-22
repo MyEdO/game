@@ -117,7 +117,8 @@ button.c:disabled { cursor: default; opacity: .7; }
 .bande .c.faite .aug { color: #4f6b2e; font-weight: 600; }
 .rub.colonnes { display: flex; gap: 46px; margin-right: 38px; }
 .socle-compagnie > .fond { padding: 8px 10px; }
-.socle-compagnie .rang-heros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; height: 100%; }
+.socle-compagnie .rang-heros { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 24px) / 4); gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scroll-snap-type: x mandatory; }
+.socle-compagnie .carte-heros { max-width: none; scroll-snap-align: start; }
 .talent.acquis { background: rgba(201,161,74,.16); }
 .gestes-ident { margin-top: auto; padding-top: 8px; }
 @media (max-width: 899px) {
@@ -126,7 +127,7 @@ button.c:disabled { cursor: default; opacity: .7; }
   .place-cadre { position: relative; left: auto !important; top: auto !important; width: auto !important; height: auto !important; margin: 0 16px 14px; }
   .place-cadre > .cadre > .fond { overflow: visible; }
   .place-cadre > .cadre.bande > .fond { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 6px; padding: 18px 6px 8px; }
-  .socle-compagnie .rang-heros { grid-template-columns: repeat(2, 1fr); }
+  .socle-compagnie .rang-heros { grid-auto-columns: 78%; }
   .ecran-plein .croix-ecran { position: fixed; left: auto; right: 16px; top: 12px; z-index: 3; }
 }
 .croix-ecran { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; line-height: 1; color: var(--encre); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen) 55%, var(--laiton)); box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 2px var(--laiton-ombre); }
@@ -226,6 +227,9 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .place-cadre > .page-service > .fond { overflow: hidden; }
 .corps-service { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: grid; gap: 6px; align-content: start; }
 .page-service .talent { margin-top: 0; }
+.page-service .talent .plaque { width: auto; min-width: 94px; }
+.cartouche-lieu-fixe .titre, .cartouche-lieu-fixe .sous-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cartouche-lieu-fixe .cartouche > div { min-width: 0; }
 .emplacement { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--filet-encre); }
 .emporte { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--filet-encre); }
 /* Les lieux (hameau, expédition) : leur scène posée sur le décor, qui laisse passer les clics hors de ses cadres. */

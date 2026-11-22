@@ -159,7 +159,7 @@ export function ecranDeService(ctx: Contexte, service: Service): string {
   const b = J.BATIMENTS.find((x) => x.id === service);
   const destination = service === 'depart' ? J.DESTINATIONS.find((x) => x.id === ctx.dest) : undefined;
   const titre = b ? b.nom : destination ? destination.nom : 'Chronique';
-  const sous = b ? `${b.role} · Grisefosse · jour ${e.jour}` : destination ? `Départ · ${destination.salles} salles` : `Grisefosse · jour ${e.jour}`;
+  const sous = b ? `${b.role} · jour ${e.jour}` : destination ? `Départ · ${destination.salles} salles` : `Grisefosse · jour ${e.jour}`;
   const icone = b ? PICTO_DU_BATIMENT[b.id] : destination ? 'route' : 'livre';
   const pourQui = SERVENT_UN_HEROS.has(service) ? servi : undefined;
   const page = PAGES[service]({ e, servi, choix: ctx.choix });

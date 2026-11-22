@@ -29,25 +29,28 @@ export function ecran(o: { nom: string; classe?: 'service' | 'lieu'; cadres: str
   </div></div>`;
 }
 
-/** Pose la scène fixe sur l'écran ; aucune pièce ne grandit (l'échelle ne passe jamais 1). Un lieu ou un service prend
- *  toute la vue, chaque pièce à `data-rect` ancrée au bord le plus proche de son centre, ou centrée si elle l'est, et
- *  seul le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ; `placeDe` de `rendu.js`) ;
- *  la fiche reste un bloc centré. Sous 900 px de large, les cadres s'empilent. */
+/** La hauteur de vue, en pixels logiques, que l'écran montre : un écran plus haut agrandit la scène, un plus bas la
+ *  réduit. Valeur de l'hôte : les maquettes visent 720, où la densité des écrans lite paraît trop grosse. */
+const HAUTEUR_DE_VUE = 840;
+
+/** Pose la scène fixe sur l'écran, à l'échelle de `HAUTEUR_DE_VUE` (sans jamais dépasser la vue de référence
+ *  1280 × 720). La scène prend toute la vue ; chaque pièce à `data-rect` s'ancre en hauteur au bord le plus proche de
+ *  son centre (le socle en bas partout). En largeur, un lieu ou un service ancre chaque pièce au bord le plus proche,
+ *  ou la centre si elle l'est, et le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ;
+ *  `placeDe` de `rendu.js`) ; la fiche garde ses cadres groupés au centre. Sous 900 px de large, les cadres s'empilent. */
 export function ajusterLaScene(): void {
   const s = document.querySelector<HTMLElement>('.scene-fixe');
   if (!s) return;
   if (window.innerWidth < 900) return void Object.assign(s.style, { transform: '', width: '', height: '' });
-  const k = Math.min(1, window.innerWidth / 1280, window.innerHeight / 720);
-  if (!s.closest('.service, .lieu')) {
-    return void Object.assign(s.style, { width: '', height: '', transform: `translate(${(window.innerWidth - 1280 * k) / 2}px, ${(window.innerHeight - 720 * k) / 2}px) scale(${k})` });
-  }
+  const k = Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / HAUTEUR_DE_VUE);
   const largeur = window.innerWidth / k;
   const hauteur = window.innerHeight / k;
+  const ancreLaLargeur = !!s.closest('.service, .lieu');
   Object.assign(s.style, { transform: `scale(${k})`, width: `${largeur}px`, height: `${hauteur}px` });
   s.querySelectorAll<HTMLElement>('[data-rect]').forEach((el) => {
     const [x, y, l = 0, h = 0] = (el.dataset.rect ?? '').split(' ').map(Number);
     const cx = x + l / 2;
-    el.style.left = `${cx === 640 ? x + (largeur - 1280) / 2 : cx > 640 ? x + largeur - 1280 : x}px`;
+    el.style.left = `${!ancreLaLargeur || cx === 640 ? x + (largeur - 1280) / 2 : cx > 640 ? x + largeur - 1280 : x}px`;
     el.style.top = `${y + h / 2 > 360 ? y + hauteur - 720 : y}px`;
   });
 }
