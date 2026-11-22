@@ -750,111 +750,111 @@
     "traitement": "ImageMagick : -resize 128x128! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
   },
   "prop--chevelure.jpg": {
-    "sha256": "6f9b62868bbb81d561a08b6c565168dc203c68fa2d755abf017eabe4ed74d6a5",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--chevelure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "cc00c8351381f1acc38d3e26cca943b1c75e00b84834dbd60ae2a0fcff088fde",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chevelure.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3a2c20 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--chevelure.neutre.jpg": {
-    "sha256": "034c8a9a7d4e507807d1449168f9bdf75754997b0cbd2c3aed52b0cec70958ce",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -motion-blur 0x24+90 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level +level 45%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "8141cf405d6902899605d624b61ccfad3752f1dbe76d7013c3ec5db528bd3760",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -motion-blur 0x24+90 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level +level 45%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--chevelure.normale.jpg": {
-    "sha256": "e98af21bdc06bfc054ed29a5b727dfa9bfaabd1269283679fd031d7e20ad08e2",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--chevelure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "845dac11ded727b797470cf28c634ac1335fee2131a8bda83650b2771379562b",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chevelure.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--crin.jpg": {
-    "sha256": "e7046aea0b677c0f12d77cb840bc829419b1cf67b4649843452ca8b1e542900f",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--crin.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "96d53f757b15fbfa4a42f6ba734fe03310d2342d8070d4650a765852e01f6e41",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--crin.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#2a2420 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--crin.neutre.jpg": {
-    "sha256": "cee77d7ad10df00321b30d89b82e24e79047a40040e36014c35c0921e0dd9a18",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -roll +311+0 -blur 1.2x0.9 -motion-blur 0x40+90 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level +level 40%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "188a1ffdf3b0f0277f4356c9bee38524a4c2809325fb4dc327b9c1e39e89e877",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -roll +311+0 -blur 1.2x0.9 -motion-blur 0x40+90 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level +level 40%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--crin.normale.jpg": {
-    "sha256": "6205aa551cfa7768551f56ced99c747aff42db427b0fa77a47118f0304a9e615",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--crin.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "8e49e5eba7e13812aefd2c8f191861cc8775e9488aef9ea52623021cb7e93ca6",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--crin.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--plume.jpg": {
-    "sha256": "aa513ed7113a1e235b608eb10bb49db8a2b096b21ffeb9126bf9e68c19a3fc6b",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--plume.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "a37c3501442dc00a901e6a4ca6232cd8bc6f8df7ea8fd3d71e309a8a40962e24",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--plume.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#cfc8b8 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--plume.neutre.jpg": {
-    "sha256": "b7e5a217757d35d7ae582deefaef3aa8991a9535644e65d3f9ff04a83d116feb",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -motion-blur 0x10+35 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level ( +clone -flop ) ( -size 32x1 xc:black xc:white +append -write mpr:m +delete -size 1024x1024 tile:mpr:m ) -composite ( -size 64x1 gradient:white-gray40 -write mpr:r +delete -size 1024x1024 tile:mpr:r ) -compose Multiply -composite -compose Over -auto-level +level 45%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "491df775fc8ec9b3a30034ec79cfc509322f56fb450e1e5aeaa39a7950bdd25c",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -motion-blur 0x10+35 ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -auto-level ( +clone -flop ) ( -size 32x1 xc:black xc:white +append -write mpr:m +delete -size 1024x1024 tile:mpr:m ) -composite ( -size 64x1 gradient:white-gray40 -write mpr:r +delete -size 1024x1024 tile:mpr:r ) -compose Multiply -composite -compose Over -auto-level +level 45%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--plume.normale.jpg": {
-    "sha256": "9b1c6eac6868739a1d96db7de41c13c25e0d9b63c04edd01d02305168e48cab7",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--plume.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "6d4cebc50beb47013b56f14a823f4a13f18b9ffe11aec316c8201fb859304095",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--plume.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--cire.jpg": {
-    "sha256": "01621376d07afe744195b827a358ee34ef2f800ead0a5a81d6390bc5bec01416",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--cire.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "4ff0681219d91392c85cee48651f3adaf71ab8ea4c7de194a8dafff684295f37",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--cire.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#e0d2a8 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--cire.neutre.jpg": {
-    "sha256": "a9d3154a3b3672ff4deae567ad3dba7f538dc977d3743eb2580fc0b4342219ad",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -blur 0x5 -auto-level +level 86%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "54dd411a3132e2bd5de9b93ef8949fb636ffa1f7177b76c9cdddc5e1e706fa7f",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x5 -auto-level +level 86%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--cire.normale.jpg": {
-    "sha256": "685bc7181959b53773d0f4cf071fed1f26a79f6a1086356a455c2dc8ee807986",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--cire.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "f8712ded43645e29d3b2f3bded991eac049d432255de76df71a0cea516477f46",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--cire.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--verre.jpg": {
-    "sha256": "0946016269c19b72e9960e54c4616ec871847cc3e39611280a7e73a515be68a2",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--verre.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "a285551aa0ba70d0f104758ae54bef059c0253519bf48d83bbe2002646a688c1",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--verre.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#4a5a63 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--verre.neutre.jpg": {
-    "sha256": "9b3ff27b441c78b513b11609450c1f17792bc571811786952dad054a7a751d7f",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -blur 0x14 -auto-level +level 90%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "a908ee405282f890755676cb0249ac684b07c23f40be37285e09d7baaca6005a",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x14 -auto-level +level 90%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--verre.normale.jpg": {
-    "sha256": "0ad16e5b54148122128f64cf84f64632faf0b00102ef58bc19401a7fcd26a9ad",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--verre.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "aef464670a8d1d4bcd000d54e55c3d65c65e90cbac4f70e26aef3a284724ba96",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--verre.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--emaille.jpg": {
-    "sha256": "a447f72f902050bd969b1d3cb88e6f49917533193e811d414d59edc1629de52c",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--emaille.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "ce4c974133857a322897a839793e8d2b1095169f6ad26cb011cbf65d991f7417",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--emaille.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#23508c ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--emaille.neutre.jpg": {
-    "sha256": "1a8ff4eb74556ed1fe0b26f83b1524cca98d1280393c6c357f533d389414b3cd",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--fourrure.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -colorspace Gray -virtual-pixel tile -blur 0x3 -auto-level -posterize 3 -edge 1 -negate -blur 0x0.6 +level 80%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+    "sha256": "59dbdc03cd47eb74c6a5f965d9747a7eff7b49520295646c119f2d0545067fd1",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% ( +clone -blur 0x12 ) -compose Mathematics -define compose:args=0,-1,1,0.5 -composite -compose Over -blur 0x3 -auto-level -posterize 3 -edge 1 -negate -blur 0x0.6 +level 80%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--emaille.normale.jpg": {
-    "sha256": "8f4d9f9c6a3d21ca9cd6f4e68c6bf4f8bc40c4fa3d62eaf39c78d67f997ac9d5",
-    "source": "https://ambientcg.com/view?id=Carpet012 (Carpet012_1K-JPG.zip : Carpet012_1K-JPG_Color.jpg) ; dérivée de prop--emaille.neutre.jpg",
-    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "sha256": "096923169d0ddb6f4e318b5319511b7a96cc5e0df8c1766304c7c3245bb13968",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--emaille.neutre.jpg",
+    "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   }
 }
