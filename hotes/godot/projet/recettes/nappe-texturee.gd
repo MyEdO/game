@@ -119,7 +119,7 @@ func _poser(monde: Monde, matiere: String, couleur: Color, sol: String) -> void:
 		rangee.fill(0.0)
 		plat.append(rangee)
 	var recus := {volume = [terrain], toits = toits, couronnes = []}
-	var _textures_gardees := await TexturesDeMatiere.preparer(monde, VolumeDeScene.matieres_des_morceaux(recus))
+	var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(monde, VolumeDeScene.textures_des_morceaux(recus))
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [terrain]}, toits = toits, couronnes = []}, recus)
 
 

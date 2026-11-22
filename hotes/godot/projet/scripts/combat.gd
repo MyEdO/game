@@ -329,11 +329,11 @@ func _suivre(reponse: Dictionary) -> void:
 	_pose_des_vues = pose
 	while not _file_des_vues.is_empty():
 		var plan: Dictionary = _file_des_vues.front()
-		var matieres := VolumeDeScene.matieres_des_morceaux(plan.get("recus", {}))
+		var chemins := VolumeDeScene.textures_des_morceaux(plan.get("recus", {}))
 		var lumiere: Variant = plan.suite.vue.lumiere
 		if lumiere != null and lumiere.horsCarte.sol != null:
-			matieres[lumiere.horsCarte.sol.matiere] = true
-		var _textures_gardees := await TexturesDeMatiere.preparer(self, matieres)
+			chemins.append_array(VolumeDeScene.textures_de_la_matiere(lumiere.horsCarte.sol.matiere))
+		var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(self, chemins)
 		if pose != _pose_des_vues:
 			return
 		_file_des_vues.pop_front()

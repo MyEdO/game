@@ -188,14 +188,22 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
-## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor, chacune
-## à vrai : sa texture neutre sert si le projet la porte (`albedo_de`).
-static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
+## Les chemins des textures que les maillages des géométries reçues peuvent lire, y compris après remaillage d'un décor
+## (`textures_de_la_matiere` de chacune de leurs matières).
+static func textures_des_morceaux(recus: Dictionary) -> PackedStringArray:
 	var matieres := {}
 	for famille in ["volume", "toits", "couronnes"]:
 		for geometrie: Dictionary in recus.get(famille, []):
 			_relever_les_matieres(geometrie, matieres)
-	return matieres
+	var chemins := PackedStringArray()
+	for nom: String in matieres:
+		chemins.append_array(textures_de_la_matiere(nom))
+	return chemins
+
+
+## Les chemins des textures que lit une surface de la matière `nom` : son albédo (`albedo_de`) et son relief.
+static func textures_de_la_matiere(nom: String) -> PackedStringArray:
+	return PackedStringArray([albedo_de(nom), relief_de(nom)])
 
 
 static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary) -> void:
@@ -524,7 +532,7 @@ func _preparer_le_repli(decor: String, secours: Dictionary) -> bool:
 	var recus := pont.appeler("retablirDecors", secours.merged({prop = decor}))
 	if recus.get("ok") != true:
 		return false
-	var textures := await TexturesDeMatiere.preparer(self, matieres_des_morceaux(recus))
+	var textures := await TexturesDeMatiere.preparer_les_chemins(self, textures_des_morceaux(recus))
 	if not is_inside_tree() or secours != _secours_des_decors:
 		return false
 	_poser_le_repli(decor, recus)
@@ -734,7 +742,7 @@ static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictio
 	_relever_les_matieres(geometrie, matieres)
 	var textures: Array[Texture2D] = []
 	for nom: String in matieres:
-		for chemin: String in [albedo_de(nom), relief_de(nom)]:
+		for chemin: String in textures_de_la_matiere(nom):
 			var texture := TexturesDeMatiere.retenue(chemin)
 			if texture != null:
 				textures.append(texture)

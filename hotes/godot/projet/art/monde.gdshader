@@ -17,7 +17,7 @@
 // les rangs restent horizontaux et se raccordent d'un pan à l'autre ; `TANGENT` et `BINORMAL` suivent ces axes, et le
 // relief avec eux. Sur une face d'axe, c'est la projection du code généré ; une face à normale verticale garde sa
 // projection sur `xz`. `nappe` ne dit que cette projection et le plan `toit` de la vision.
-// Une texture neutre (`teinte_des_sommets` à 1, `VolumeDeScene._albedo_de` : morceau, nappe ou couronne) est teinte par
+// Une texture neutre (`teinte_des_sommets` à 1, `VolumeDeScene.albedo_de` : morceau, nappe ou couronne) est teinte par
 // la couleur de ses sommets, multipliée en lumière linéaire comme la vision ; sur un sol horizontal d'un morceau, la
 // même neutre, relue à grande échelle (`RAPPORT_DU_GRAND_MOTIF`, non entier), module en plus sa luminance
 // (`AMPLEUR_DU_GRAND_MOTIF`, autour de `LUMINANCE_MOYENNE_DES_NEUTRES`) pour casser la répétition du motif.

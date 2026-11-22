@@ -52,7 +52,7 @@ func _recetter() -> void:
 	scene.add_child(lumiere)
 	var penombre := Color(PENOMBRE)
 	var matiere: String = LUMIERE.horsCarte.sol.matiere
-	var textures := await TexturesDeMatiere.preparer(root, {matiere: true})
+	var textures := await TexturesDeMatiere.preparer_les_chemins(root, VolumeDeScene.textures_de_la_matiere(matiere))
 	var chemin := VolumeDeScene.texture_neutre_de(matiere)
 	var relief := VolumeDeScene.relief_de(matiere)
 	lumiere.eclairer(LUMIERE, PLATEAU)
