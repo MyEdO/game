@@ -12,10 +12,8 @@ metadata:
 
 **Verbatim (2026-09-14)** : « En tout cas il est important d'offrir des outils qui ne demande pas de ma part une validation de la creation ou la modification d'un fichier, ou ca serait absurde » — #1750.
 
-**Contexte** : prolonge #1736 (« pourquoi on doit tout faire a la main ? »).
-
 **Why :** un geste du régime refait à la main coûte la cérémonie ET crée des variantes. Le régime est FIXE, donc il s'outille ; ce qu'une session invente encore est un défaut d'outillage.
 
 **How to apply :** avant d'écrire à la main un artefact du régime (worktree, suivi, solde, message de commit, brief, train), chercher l'outil `scripts/ops/*` qui le pose ; absent ou refusant → ticket `domaine:outillage` traité dans le geste. Un outil se joue depuis tout worktree, sans exiger de savoir ce que le dépôt déclare. L'ARBRE PRINCIPAL n'est jamais un point d'entrée : aucune commande git à la main (`worktree add`, `pull`, `branch -d`) ; si c'est le seul moyen, l'outil est en défaut. Ni outil ni hook ne fait valider une création ou modification de fichier : un hook `PreToolUse` sur `Write`/`Edit` juge le DELTA et ne DEMANDE jamais : refus avec raison, ou avertissement ([[user-doctrine-gardes-jamais-de-ask]]) ; toute demande de validation vue par l'utilisateur est un défaut de la classe « hook = contenu entier ». Épique : #1750.
 
-**Verbatim (2026-11-22)** : « Comme je l'ai dit a l'autre claude, pense a entretenir les outils qui sont communs a tous, et surtout a les mettre a jour. Il n'est pas normal de vivre dans un environnement dégradé car les outils ont des lacunes ou des défauts. » — #4746 (inventaire des lacunes des outils 3D contournées à la main).
+**Verbatim (2026-11-22)** : « Comme je l'ai dit a l'autre claude, pense a entretenir les outils qui sont communs a tous, et surtout a les mettre a jour. Il n'est pas normal de vivre dans un environnement dégradé car les outils ont des lacunes ou des défauts. » — #4746.
