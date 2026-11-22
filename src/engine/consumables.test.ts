@@ -97,7 +97,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     expect(f.kind).toBe('test');
     expect(f.test.skill).toEqual({ id: 'resistance' });
     expect(f.test.difficulty).toBe('complexe');
-    expect(f.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: 'poison' } }); // LDB 85 l.174
+    expect(f.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', ref: { id: 'poison' } } }); // LDB 85 l.174
     expect(consumableOps(f.echec)).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, value: 4 }]);
   });
   it('faxtoryll : « retirent tous les États Hémorragique sans Test de Guérison » — SANS preventInfection (hors-RAW retiré, LDB 72 l.22)', () => {

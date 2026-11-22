@@ -32,11 +32,11 @@ export type Intention = {
 export type NomDEvenement = Exclude<(typeof EVT)[keyof typeof EVT], typeof EVT.LIGNE_AU_JOURNAL>;
 
 /** Ce qu'un appel de la partie rend : un événement émis sur le bus, un appel différé programmé, que
- *  l'hôte rejoue par `reprendre(jeton)` après `delai` millisecondes, ou un État qu'un combattant porte au sortir de
- *  l'appel et ne portait pas avant (#3834). */
+ *  l'hôte rejoue par `reprendre(jeton)` après le déplacement présenté des porteurs nommés (le cas échéant) et `delai`
+ *  millisecondes, ou un État qu'un combattant porte au sortir de l'appel et ne portait pas avant (#3834). */
 export type Evenement =
   | { [E in NomDEvenement]: { type: 'emis'; evt: E; payload: ChargesDuBus[E] } }[NomDEvenement]
-  | { type: 'programme'; jeton: Jeton; delai: number }
+  | { type: 'programme'; jeton: Jeton; delai: number; apresDeplacement?: readonly string[] }
   | { type: 'etatGagne'; porteur: string; etat: string };
 
 /** Les entrées que l'hôte fournit (D8) : la graine des dés, les règles maison, la cadence, les dés fixés,
@@ -119,7 +119,9 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   const lignes: LigneDuJournal[] = [];
   let ouverte = true;
 
-  const proprietaire = ouvrirLeProprietaire(etatInitial, entrees, (jeton, delai) => tampon.push({ type: 'programme', jeton, delai }));
+  const proprietaire = ouvrirLeProprietaire(etatInitial, entrees, (jeton, delai, apresDeplacement) => {
+    tampon.push({ type: 'programme', jeton, delai, ...(apresDeplacement ? { apresDeplacement } : {}) });
+  });
   const { get, set } = proprietaire;
   // Le journal de la partie se capte à ses écrivains (`EVT.LIGNE_AU_JOURNAL`) ; celui du combat, dont chaque
   // entrée est un objet neuf et qui se pousse aussi en place (`battle.log.push`), par comparaison à une copie,

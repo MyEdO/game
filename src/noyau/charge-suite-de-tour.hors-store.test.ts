@@ -643,14 +643,18 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     expect([frappeOuverte()?.annulable, qui('h').pos, qui('h').chargedThisTurn], 'la cible a répondu : Annuler est refusé, la Charge reste').toEqual([false, depuis, true]);
   });
 
-  it('S3 : un second clic pendant le glissé — une seule frappe, rien ne se rouvre après l’Action', () => {
+  it('S3 : un second clic pendant le glissé laisse la frappe de la Charge attendre son échéance', () => {
     chargeManuelle(4, { reactive: false });
     cliquerLaCharge();
+    const premiere = b().tourEnCours?.suite;
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    expect(frappeOuverte(), 'le second clic ouvre la frappe de la Charge, engagée').toEqual({ de: 'h', fromCharge: true, annulable: false });
+    expect(b().tourEnCours?.suite).toBe(premiere);
+    expect(frappeOuverte()).toBeNull();
+    banc.reprendreTout();
+    expect(frappeOuverte(), 'la frappe originale s’ouvre et garde son Annuler').toEqual({ de: 'h', fromCharge: true, annulable: true });
     frapper();
     banc.reprendreTout();
-    expect([attaques('h', 'e'), frappeOuverte(), g().pendingCascade], 'une frappe, l’échéance du premier clic ne rouvre rien').toEqual([1, null, null]);
+    expect([attaques('h', 'e'), frappeOuverte(), g().pendingCascade]).toEqual([1, null, null]);
   });
 
   it('S5 : l’Auto-combat remis après une frappe pilotée — le combat avance', () => {

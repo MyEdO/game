@@ -193,7 +193,7 @@ export function diseaseTestModLines(c: Combatant, diseaseName: string): ModLine[
     const periods = Math.floor((dz.infectedMinutes ?? 0) / PERIOD);
     if (periods <= 0) continue;
     for (const op of diseaseDefs()[dz.id]?.infectionPassive ?? []) {
-      if (op.op === 'diseaseTestMod' && (!op.diseases || op.diseases.includes(diseaseName)) && op.amount) {
+      if (op.op === 'diseaseTestMod' && (!op.diseases || op.diseases.some((id) => id === diseaseName)) && op.amount) {
         lignes.push({ label: diseaseLabel(dz.id), famille: 'jet', value: op.amount * periods, ref: { category: 'maladies', id: dz.id } });
       }
     }
@@ -300,11 +300,11 @@ function opsDeLEchec(node: FlowTestNode): GameOp[] {
 function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: string) => boolean, log: string[], emit?: ConditionEmit): void {
   for (const op of onFail) {
     if (op.op === 'aggravateSymptom') {
-      const r = aggravateDiseaseSymptom(c, op.disease, op.symptomId, op.severity);
+      const r = aggravateDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity);
       log.push(...r.log);
       if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, log, emit);
-    } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease, op.symptomId, op.severity));
-    else if (op.op === 'contractDisease') contractOnce(op.disease);
+    } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity));
+    else if (op.op === 'contractDisease') contractOnce(op.disease.id);
     else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: c.label }) : t('op.mort', { name: c.label }));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
@@ -427,8 +427,9 @@ export function contagiousDiseases(c: PorteurDeMaladies): Disease[] {
 /** Les `expositions` après l'op `exposeDisease` `o` : entrée neuve, ou fusion avec celle de la même maladie
  *  qui garde la plus dure (cran le plus bas, `instant` si l'une l'impose). PUR. LDB 20 l.25/51 ; EDO App.2 l.228-230 */
 export function exposerALaMaladie(expositions: readonly DiseaseExposure[] | undefined, o: Extract<GameOp, { op: 'exposeDisease' }>): DiseaseExposure[] {
-  const entry: DiseaseExposure = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
-  const prev = (expositions ?? []).find((e) => e.disease === o.disease);
+  const maladie = o.disease.id;
+  const entry: DiseaseExposure = { disease: maladie, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
+  const prev = (expositions ?? []).find((e) => e.disease === maladie);
   if (!prev) return [...(expositions ?? []), entry];
   const shift = Math.min(prev.difficultyShift ?? 0, entry.difficultyShift ?? 0);
   return (expositions ?? []).map((e) => e !== prev ? e : {

@@ -53,12 +53,14 @@ export interface EnfantZod {
 export interface DeclarationDEnfants {
   readonly nature: 'payloads-op';
   readonly enfants: readonly EnfantZod[];
+  /** Les charges à segment `^op` sont ouvertes par `choisir` au point de donnée. */
+  readonly sansChargesNommees: readonly EnfantZod[];
   readonly choisir: (valeur: unknown) => readonly unknown[];
 }
 const ENFANTS_DECLARES = new WeakMap<object, DeclarationDEnfants>();
 
 export function declarerEnfants<N extends object>(noeud: N, enfants: readonly EnfantZod[], choisir: (valeur: unknown) => readonly unknown[], nature: DeclarationDEnfants['nature']): N {
-  ENFANTS_DECLARES.set(noeud, { enfants, choisir, nature });
+  ENFANTS_DECLARES.set(noeud, { enfants, sansChargesNommees: enfants.filter((e) => !e.segment.startsWith('^')), choisir, nature });
   return noeud;
 }
 
@@ -109,6 +111,11 @@ export const CHAMPS_D_ENFANTS = Object.keys(ENFANTS_PAR_CHAMP) as readonly (keyo
  * `[N]` élément de tuple, `[...]` reste de tuple, `''` enveloppe et cible d'un `lazy`.
  */
 export function enfantsDe(noeud: unknown): EnfantZod[] {
+  return enfantsAvec(noeud, declarationDEnfants(noeud)?.enfants);
+}
+
+/** Les enfants Zod puis les enfants déclarés retenus pour ce parcours. */
+function enfantsAvec(noeud: unknown, declares: readonly EnfantZod[] = []): EnfantZod[] {
   const def = defDe(noeud);
   if (!def) return [];
   const enfants: EnfantZod[] = [];
@@ -120,7 +127,7 @@ export function enfantsDe(noeud: unknown): EnfantZod[] {
     const cible = cibleDuLazy(noeud);
     if (cible !== undefined) enfants.push({ noeud: cible, segment: '' });
   }
-  enfants.push(...(ENFANTS_DECLARES.get(noeud as object)?.enfants ?? []));
+  enfants.push(...declares);
   return enfants;
 }
 
@@ -194,9 +201,9 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     vus.add(n);
     const def = defDe(n);
     const discriminant = def?.discriminator;
-    const enfants = enfantsDe(n);
+    const declares = declarationDEnfants(n);
+    const enfants = enfantsAvec(n, declares?.sansChargesNommees);
     const retient = def?.type === 'union' && valeur !== undefined ? (n as Noeud).meta?.()?.retientBrancheDeLUnion : undefined;
-    const declares = ENFANTS_DECLARES.get(n);
     if (declares) file.push(...(valeur === undefined ? declares.enfants.map(e => e.noeud) : declares.choisir(valeur)));
     const lu = discriminant !== undefined && estConteneur(valeur) ? valeur[discriminant] : undefined;
     const absentAdmis =
@@ -220,7 +227,7 @@ export function pasDeDonnee(noeuds: readonly unknown[], cle: string | number): u
     const def = defDe(n);
     const horsShape = typeof cle === 'string' && !Object.prototype.hasOwnProperty.call(def?.shape ?? {}, cle);
     const horsItems = typeof cle === 'number' && cle >= (def?.items?.length ?? 0);
-    return enfantsDe(n)
+    return enfantsAvec(n, declarationDEnfants(n)?.sansChargesNommees)
       .filter((e) =>
         typeof cle === 'number'
           ? e.segment === '[]' || e.segment === `[${cle}]` || (e.segment === '[...]' && horsItems)

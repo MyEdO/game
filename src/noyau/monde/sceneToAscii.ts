@@ -30,6 +30,7 @@ import { DIR8_ORDER, rotateDir8 } from '../../geometry/dir8';
 import { estPoseParSesPonts } from '../planDeNavire';
 import { casesDuGroupe } from './combatants';
 import type { Jeu } from '../etat';
+import { combattantEnVue, entiteConnue, type EntreesDeLaConnaissance } from '../visionDuGroupe';
 
 /** Alphabet BRUT de l'allocateur, moins les mots de la grammaire du plan (`carte-ascii.ts`). Les
  *  glyphes DÉCLARÉS par la donnée (`terrains.json › ascii`) en sont retirés à chaque export : ils
@@ -360,10 +361,14 @@ const SENS_DES_MARQUES: Record<Exclude<keyof typeof MARQUES_DU_PLAN, 'oeil'>, st
 /**
  * Le plan de la couche `z` de la scène de `jeu` (#3686) : sa grille box-drawing (`sceneToAscii`, `walled`), chaque case
  * qui porte une marque (`MARQUES_DU_PLAN`) sous elle (l'œil `oeil` s'il est sur cette couche, au cap le plus proche de
- * son azimut, les héros du groupe, les autres personnages hors des navires posés par leurs ponts, les décors), puis la
- * légende des glyphes que ses cases montrent. PUR.
+ * son azimut, les héros du groupe, les autres personnages en vue hors des navires posés par leurs ponts, les décors),
+ * puis la légende des glyphes que ses cases montrent. PUR.
  */
-export function planDeLaCouche(jeu: Pick<Jeu, 'battle' | 'partyPos'> & { scene: Scene }, z: number, oeil: OeilDuPlan | null): string {
+export function planDeLaCouche(
+  jeu: EntreesDeLaConnaissance & Pick<Jeu, 'battle'> & { scene: Scene },
+  z: number,
+  oeil: OeilDuPlan | null,
+): string {
   const { scene } = jeu;
   const exporte = sceneToAscii(scene);
   const lignes = exporte.walled[`z${z}`].slice(1, -1).split('\n').map((ligne) => [...ligne]);
@@ -375,8 +380,12 @@ export function planDeLaCouche(jeu: Pick<Jeu, 'battle' | 'partyPos'> & { scene: 
     sens.set(glyphe, quoi);
   };
   const autres = jeu.battle
-    ? jeu.battle.combatants.filter((c) => c.kind !== 'heros' && c.pos && !estPoseParSesPonts(scene, c.id)).map((c) => c.pos!)
-    : scene.entities.filter((e) => e.kind === 'personnage' && !estPoseParSesPonts(scene, e.id)).map((e) => ({ ...e.pos, z: e.z }));
+    ? jeu.battle.combatants
+      .filter((c) => c.kind !== 'heros' && c.pos && !estPoseParSesPonts(scene, c.id) && combattantEnVue(jeu, c))
+      .map((c) => c.pos!)
+    : scene.entities
+      .filter((e) => e.kind === 'personnage' && !estPoseParSesPonts(scene, e.id) && entiteConnue(jeu, e))
+      .map((e) => ({ ...e.pos, z: e.z }));
   const decors = scene.entities.filter((e) => e.kind === 'prop').map((e) => ({ ...e.pos, z: e.z }));
   for (const p of decors) marquer(p, MARQUES_DU_PLAN.decor, SENS_DES_MARQUES.decor);
   for (const p of autres) marquer(p, MARQUES_DU_PLAN.personnage, SENS_DES_MARQUES.personnage);

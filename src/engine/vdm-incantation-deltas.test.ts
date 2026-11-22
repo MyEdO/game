@@ -91,11 +91,11 @@ describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
     expect(rollMiscast('mineure', rngOn88(), 0, 'feu').label).toBe('Marqué par la Magie');
   });
 
-  it('option ON, lanceur d’un Domaine de Couleur : la rangée tire sur la table de MARQUES de SON Vent', () => {
+  it('option ON, lanceur d’un Domaine de Couleur : la rangée tire sur la table de MARQUES de SON Vent (VDM 02 l.238)', () => {
     setRule(RULE, true);
     for (const [d, arcaneMark] of domains.flatMap((x) => (x.tables?.arcaneMark ? [[x, x.tables.arcaneMark] as const] : []))) {
       const ops = rollMiscast('mineure', rngOn88(), 0, d.id).ops;
-      expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', tableId: arcaneMark });
+      expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', table: { id: arcaneMark } });
       const marques = findEffectTableById(arcaneMark);
       expect(marques.entries).toHaveLength(facesDuDe(deDeLaTableTiree(marques)));
     }

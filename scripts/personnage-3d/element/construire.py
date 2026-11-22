@@ -18,7 +18,8 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
   repère ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
-  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste ;
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (ni silhouette de la
+  base ni `gabarit_*` : `visage_inverse` et les traits d'une tête), lues sur la pièce exportée, à `formesDeTete` (#4413) ;
 - `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
   glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
@@ -52,6 +53,7 @@ import maille  # noqa: E402
 import tissu  # noqa: E402
 from entrees import glb_locaux  # noqa: E402
 from glb import lire_glb  # noqa: E402
+from formes import noms_des_cles  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
 ECART_ROTATION_MAX = 1e-4      # rad, entre le nœud exporté et le repère de prise
@@ -227,7 +229,11 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_,
         objets = base.decouper_par_zone(piece)
     octets = exporter(temporaire, base.rig, objets, skinne=True, blasons=D.get("BLASONS", ()))
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
-    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
+    de_la_base = set(manifeste_de_base["silhouettes"])
+    siennes = list(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)
+                                 if nom not in de_la_base and not nom.startswith("gabarit_")))
+    formes_de_tete = {"formesDeTete": siennes} if siennes else {}
+    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **formes_de_tete, **offerts}, triangles
 
 
 def main():

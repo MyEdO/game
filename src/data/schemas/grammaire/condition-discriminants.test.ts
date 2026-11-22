@@ -1,100 +1,81 @@
-import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
-import { entreeDe } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
-/**
- * VERROU D'UNION de `Condition` (#1466 L1a T3-c, sonde du juge promue en garde).
- *
- * POURQUOI ce test existe : un schéma récursif est OBLIGÉ de s'annoter `z.ZodType<Condition>` (le
- * `z.lazy` empêche l'inférence), et cette annotation est SATISFAITE par une SOUS-union — un schéma
- * qui ne déclare que 26 des 30 variantes reste vert au typecheck ET au test d'infer
- * (`mecanique-infer.test.ts`), tout en REFUSANT au runtime les 6 variantes manquantes. C'est
- * exactement ainsi que 4 variantes ont manqué de T3-a à T3-c sans qu'aucune porte ne rougisse.
- *
- * Le contrat tenu ici est donc une ÉGALITÉ D'ENSEMBLE, mesurée des DEUX côtés du pont :
- * — côté TYPE : les membres de l'union manuscrite `Condition` (`src/engine/flowCore.ts`), extraits
- *   à l'AST TypeScript (jamais une liste recopiée : une liste en dur mourrait au premier ajout) ;
- * — côté SCHÉMA : les discriminants réels des options de `conditionSchema`, par INTROSPECTION zod
- *   (le `z.lazy` est déroulé — c'est la seule façon de voir ce que la porte accepte VRAIMENT).
- * Manquants et en-trop sont NOMMÉS dans les deux sens.
- */
-import { describe, it, expect } from 'vitest';
-import { resolve } from 'node:path';
-import * as ts from 'typescript/unstable/ast';
-import { conditionSchema } from './mecanique';
-import { defDe, enfantsDe, ouverts } from './descente';
+/** Les discriminants du catalogue donnent tous une Condition que sa famille peut parser. */
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import type { z } from 'zod';
+import type { Condition } from '../../../engine/flowCore';
+import { CONDITION_TOUJOURS, recast } from '../../valeursNeuves';
+import { CONDITIONS_RESERVEES, conditionSchema, hasConditionSchema, hasWhatSchema, mecaniqueDe } from './mecanique';
+import { defDe, enfantsDe, ouverts, valeursAdmises } from './descente';
+import { idsDe, idsDeLaSousListe } from './ref';
+import { CIBLE_D_APPARTENANCE } from './sousListes';
 
-const FLOW_CORE = resolve(__dirname, '../../../engine/flowCore.ts');
+const tousLesRegimes = Object.fromEntries(CONDITIONS_RESERVEES.map((kind) => [`condition.${kind}`, 'admis'] as const));
+const famille = mecaniqueDe(tousLesRegimes);
+const reservees = new Set<string>(CONDITIONS_RESERVEES);
 
-/** Les `kind` de l'union manuscrite `Condition`, lus à l'AST. Un membre sans littéral `kind` sort
- *  sous une clé `<…>` PARLANTE : il ferait rougir l'égalité au lieu de disparaître en silence. */
-function kindsDuType(): string[] {
-  const sf = ast({ rel: FLOW_CORE, text: entreeDe(FLOW_CORE).text })!;
-  const kinds: string[] = [];
-  sf.forEachChild((n) => {
-    if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Condition') return;
-    const membres = ts.isUnionTypeNode(n.type) ? n.type.types : [n.type];
-    for (const m of membres) {
-      if (!ts.isTypeLiteralNode(m)) {
-        kinds.push(`<non-literal: ${m.getText().slice(0, 40)}>`);
-        continue;
-      }
-      const k = m.members.find((mm) => ts.isPropertySignatureDeclaration(mm) && mm.name?.getText() === 'kind') as
-        | ts.PropertySignatureDeclaration
-        | undefined;
-      kinds.push(
-        k?.type && ts.isLiteralTypeNode(k.type)
-          ? k.type.literal.getText().replace(/'/g, '')
-          : `<sans kind: ${m.getText().slice(0, 40)}>`,
-      );
-    }
-  });
-  return kinds;
-}
-
-/** Les branches d'une union (`|N`). */
 const branches = (union: unknown) => enfantsDe(union).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
 
-/** Le `kind` d'une option : son littéral, ou celui, UNIQUE, de toutes les branches d'une union imbriquée
- *  (la Condition `has`, discriminée par `what`). */
+/** Le discriminant du parse traverse aussi bien l'union de `has` que le refus d'une réservée. */
 function kindDeLOption(noeud: unknown): string {
-  const sous = branches(noeud);
-  if (sous.length) {
-    const kinds = new Set(sous.map(kindDeLOption));
-    if (kinds.size !== 1) throw new Error(`Union imbriquée à plusieurs kind : ${[...kinds].join(', ')}`);
-    return [...kinds][0];
-  }
-  const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values;
-  if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
+  const valeurs = [...(valeursAdmises(noeud).kind ?? [])];
+  if (valeurs.length !== 1 || typeof valeurs[0] !== 'string')
     throw new Error('Discriminant kind absent ou non littéral de chaîne unique');
   return valeurs[0];
 }
 
-/** Les discriminants des options de `conditionSchema` — le `z.lazy` est déroulé pour atteindre le
- *  `discriminatedUnion` réellement servi à la porte. */
-function kindsDuSchema(): string[] {
-  const union = ouverts([conditionSchema]).find((n) => defDe(n)?.type === 'union');
+function kindsDuSchema(schema: unknown): string[] {
+  const union = ouverts([schema]).find((n) => defDe(n)?.type === 'union');
   return branches(union).map(kindDeLOption);
 }
 
-describe('`conditionSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {
-  const kindsType = kindsDuType();
-  const kindsSchema = kindsDuSchema();
-  const duType = new Set(kindsType);
-  const duSchema = new Set(kindsSchema);
+function temoinsDe(kind: Condition['kind']): Condition[] {
+  const condition = recast(CONDITION_TOUJOURS, kind);
+  switch (condition.kind) {
+    case 'flag': return [{ ...condition, expr: 'sonde' }];
+    case 'etat': return [{ ...condition, etat: 'sonde' }];
+    case 'skill':
+    case 'talent':
+    case 'career':
+    case 'species': return [{ ...condition, id: [...idsDe(condition.kind)][0] }];
+    case 'has': {
+      const ids = {
+        group: idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE),
+        talent: [...idsDe('talent')],
+        trait: [...idsDe('trait')],
+        psych: [...idsDe('psychology')],
+        immunity: [...idsDe('damageType')],
+      } satisfies Record<typeof hasWhatSchema.options[number], readonly string[]>;
+      return hasWhatSchema.options.map((what) => hasConditionSchema.parse({ kind: 'has', who: condition.who, what, ref: { id: ids[what][0] } }));
+    }
+    default: return [condition];
+  }
+}
 
-  it('les deux extractions VOIENT leur union (une lecture muette rendrait l\'égalité vacueuse)', () => {
-    expect(kindsType.length).toBeGreaterThan(20);
-    expect(kindsSchema.length).toBeGreaterThan(20);
-    expect(kindsType.filter((k) => k.startsWith('<')), `Membre(s) de \`Condition\` sans littéral \`kind\` :\n${kindsType.filter((k) => k.startsWith('<')).join('\n')}`).toEqual([]);
-    expect(kindsSchema.length, 'discriminant DUPLIQUÉ dans les options du schéma.').toBe(duSchema.size);
+describe('les discriminants de Condition et leur régime', () => {
+  it('la famille qui admet les réservées a le type du moteur et le même catalogue de discriminants', () => {
+    expectTypeOf<z.output<typeof famille.condition>>().toEqualTypeOf<Condition>();
+    expectTypeOf<z.output<typeof conditionSchema>['kind']>()
+      .toEqualTypeOf<Exclude<Condition['kind'], typeof CONDITIONS_RESERVEES[number]>>();
+    const kinds = kindsDuSchema(famille.condition);
+    expect(kinds.length).toBeGreaterThan(20);
+    expect(kinds.length).toBe(new Set(kinds).size);
+    expect(kindsDuSchema(conditionSchema)).toEqual(kinds);
   });
 
-  it('AUCUNE variante du type ne MANQUE au schéma — la porte accepterait moins que le moteur', () => {
-    const manquants = [...duType].filter((k) => !duSchema.has(k));
-    expect(manquants, `Variante(s) de \`Condition\` absente(s) de \`conditionSchema\` (refusées au runtime) :\n${manquants.join('\n')}`).toEqual([]);
-  });
-
-  it('AUCUNE variante EN TROP au schéma — la porte accepterait ce que le moteur ne sait pas évaluer', () => {
-    const enTrop = [...duSchema].filter((k) => !duType.has(k));
-    expect(enTrop, `Option(s) de \`conditionSchema\` sans membre correspondant dans \`Condition\` :\n${enTrop.join('\n')}`).toEqual([]);
+  it('les témoins de chaque variante passent le parse dans son régime, les réservées sont refusées nommément ailleurs', () => {
+    for (const kind of kindsDuSchema(famille.condition)) {
+      for (const condition of temoinsDe(kind as Condition['kind'])) {
+        expect(condition.kind).toBe(kind);
+        expect(famille.condition.parse(condition)).toEqual(condition);
+        const fermee = conditionSchema.safeParse(condition);
+        if (reservees.has(kind)) {
+          expect(fermee.error?.issues).toMatchObject([
+            { path: [], message: expect.stringContaining(`Condition « ${kind} » : réservée`) },
+          ]);
+        } else {
+          expect(fermee.data, kind).toEqual(condition);
+        }
+      }
+    }
+    expect(conditionSchema.safeParse({ kind: 'condition-inconnue' }).success).toBe(false);
   });
 });

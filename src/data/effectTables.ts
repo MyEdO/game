@@ -1,9 +1,9 @@
 /**
  * Tables d'EFFETS référençables (`tables.json`) — des tableaux `[min,max] → GameOp[]` tirés par l'op
- * `rollTable` variante `tableId` (moteur : `applyOps`). MÊME patron que `mutationTables.ts` (plages +
+ * `rollTable` variante `table: { id }` (moteur : `applyOps`). MÊME patron que `mutationTables.ts` (plages +
  * référence par id), mais la rangée porte des `GameOp[]` (grantTrait/rollMutation…) au lieu d'un id de
  * mutation. Découple la DONNÉE (le Tableau RAW, éditable/citable) de la MÉCANIQUE (l'op générique) : un
- * sort « lancez sur le Tableau » ne recopie plus la table dans son Flow, il la RÉFÉRENCE par `tableId`.
+ * sort « lancez sur le Tableau » ne recopie plus la table dans son Flow, il la RÉFÉRENCE par `table.id`.
  * Ce module = TYPES + lecteur vivant + lookup ; ajouter/régler = éditer `tables.json`, jamais ce fichier.
  */
 import { tableOuverte, type DeDeTable } from '../engine/tables';

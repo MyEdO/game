@@ -82,7 +82,7 @@ const doc = document(
       base: z.number(),
       portEventMod: z.number(),
       source: sourceRefSchema,
-      factors: listeCle(manannFactor, 'id'),
+      factors: listeCle(manannFactor, 'id', { espace: {} }),
     }), {
       base: { label: 'Base' },
       portEventMod: { label: 'Modificateur d’événement au port' },

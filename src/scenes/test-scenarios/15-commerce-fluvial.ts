@@ -7,7 +7,7 @@ import type { Scene } from '../../noyau/monde/scene';
 import type { MapPlace, MapRoute, WorldMap } from '../../noyau/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import { REIK_INDEX, hasTradeGoods, reikMarket, type ReikEntry } from './_reik-index';
-import { firstLevel, especeDApparence } from '../../data';
+import { firstLevel, especeDApparence, findVehicleById } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 
 /**
@@ -35,8 +35,7 @@ function traders(idNeuf: FabriqueDId): Combatant[] {
   renforcerCompetence(berta, 'ragot', 55);
   renforcerCompetence(berta, 'evaluation', 50);
   renforcerCompetence(berta, 'resistance-a-l-alcool', 45);
-  // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
-  // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
+  // #327
   const convoi: ItemInstance = { uid: 'com-convoi', label: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false };
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, convoi];
   berta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
@@ -46,6 +45,8 @@ function traders(idNeuf: FabriqueDId): Combatant[] {
   const gunnar = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
   renforcerCompetence(gunnar, 'ramer', 50);
   renforcerCompetence(gunnar, 'voile', 40, 'chaland');
+  // Adaptation du scénario. Gunnar a 40 Avancements de Charpentier. MSRC 7 l.109
+  renforcerCompetence(gunnar, 'metier', 40, 'charpentier');
   gunnar.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const otto = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
@@ -98,9 +99,12 @@ function quay(e: ReikEntry, start: boolean): Scene {
     startMessage: { texte: start
       ? `Berta Kaufmann inspecte les étals de ${e.label} d’un œil connaisseur. « On achète bon marché ici, on redescend ` +
         `le Reik en barge, et on revend plus cher où la ville est florissante — à Altdorf, on paiera dix bons pour cent ` +
-        `de plus. Le chariot de convoi porte la cargaison tout le voyage. » (Ouvrez le marché pour acheter, puis la carte ` +
-        `du monde pour prendre la barge.) Berta marchande, jauge le vin et tend l’oreille aux rumeurs de marché.`
-      : `${e.label}, sur le Reik. (Le marché pour acheter ou vendre ; la carte du monde pour reprendre la barge.)` },
+        `de plus. Chargez la cargaison dans la cale. La coque a pris des coups et ici je n’ai qu’un anneau pour l’amarrer. ` +
+        `À Altdorf, on pourra la mettre au sec. » (Ouvrez le marché pour acheter, puis la carte du monde pour prendre la barge.)`
+      : e.id === SELL_ID
+        ? 'Vous êtes aux quais d’Altdorf. Ouvrez le marché pour vendre la cargaison et le lieu pour utiliser la cale sèche. ' +
+          'Le constructeur peut réparer la coque, ou Gunnar peut se servir du matériel de l’atelier.'
+        : `${e.label}, sur le Reik. (Le marché pour acheter ou vendre, la carte du monde pour reprendre la barge.)` },
   });
 }
 
@@ -121,6 +125,12 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   }));
 
   const placeIdOf = (id: string) => `p-${id}`;
+  // Adaptation du scénario. Grünburg offre un amarrage. Altdorf fournit une cale, son matériel et un constructeur à 65. MSRC 7 l.109-111
+  places.find((p) => p.id === placeIdOf(START_ID))!.amarrage = 'simple';
+  const altdorf = places.find((p) => p.id === placeIdOf(SELL_ID))!;
+  altdorf.amarrage = 'cale-seche';
+  altdorf.constructeurDeBateaux = 65;
+  altdorf.materiauxCaleSeche = true;
 
   /** Route de barge entre deux Lieux (voie navigable) — modes barge + pied, sans péripétie (démo commerce ;
    *  les périls de voyage sont couverts par le scénario « Voyage & temps long »). */
@@ -144,8 +154,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
   // permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
   // est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
-  // atteignable : débris flottants (l.123-125) et barrage de débris (l.128). Le chariot de convoi (porteur réel)
-  // persiste pendant la descente.
+  // atteignable : débris flottants (l.123-125) et barrage de débris (l.128).
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
   // Débris à 55 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
@@ -180,21 +189,25 @@ export const scenario: TestScenario = {
     // MSRC 13
     'Commerce de cargaison JOUABLE : le Reik peuplé de ses VRAIES localités marchandes (Index ' +
     'géographique l.185-270, indices Taille/Richesse/Produits verbatim), reliées par des routes de BARGE. ' +
-    'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge (le convoi ' +
-    'persiste sur le chariot de convoi), revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
-    'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente Grünburg → Altdorf ' +
-    // MSRC 7
-    'EXERCE les périls du fleuve (débris, barrage de débris à forcer ou dégager) et l’exposition ' +
+    'Achetez une cargaison à Grünburg (R 2), puis emportez-la dans la cale de votre barge et revendez-la à Altdorf ' +
+    '(Florissant R 5, Mise à prix +10 %, l.156). Berta marchande, jauge le vin et écoute les rumeurs à chaque marché. ' +
+    // MSRC 7 l.109-111, l.125, l.128
+    'À Grünburg, la barge est endommagée et simplement amarrée. Rejoignez la cale sèche d’Altdorf pour engager le ' +
+    'constructeur ou faire travailler Gunnar avec le matériel de l’atelier. La descente expose la barge aux débris et aux barrages. ' +
     // MSRC 16
-    'hydrique : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
-  partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
+    'En approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
+  partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier et charpentier) · Otto (garde) · Lise (scribe)',
   construire: (idNeuf) => {
     const { scenes, carte } = construireReik();
+    const barge = findVehicleById('barge-fluviale')!;
+    const max = barge.hull!.char.B;
     return {
       party: traders(idNeuf),
       scene: scenes.find((s) => s.id === `quai-${START_ID}`)!,
       extraScenes: scenes.filter((s) => s.id !== `quai-${START_ID}`),
       worldMap: carte,
+      // Adaptation du scénario. La barge commence avec 8 Dégâts et un Moral de 75.
+      vessel: { vehicleId: barge.id, morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: max - 8, max } },
     };
   },
   money: { gold: 5000, silver: 0, brass: 0 }, // de quoi acheter une cargaison entière (lot plein = pas de surcoût, l.131)

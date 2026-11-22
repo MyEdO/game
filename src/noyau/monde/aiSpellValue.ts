@@ -201,7 +201,7 @@ function marginalBuff(_caster: Combatant, subject: Combatant, op: GameOp, ctx: O
 function summonValue(op: Extract<GameOp, { op: 'summon' }>, caster: Combatant, ctx: OpEvalCtx): number {
   const count = Math.max(1, Math.round(finite(formulaExpectation(op.count, caster), 1)));
   try {
-    const c = spawnEnemy({ ref: op.ref }, '__ai-eval__', { x: 0, y: 0 });
+    const c = spawnEnemy({ ref: op.creature.id }, '__ai-eval__', { x: 0, y: 0 });
     return count * ((c.wounds?.max ?? 6) + 0.5 * bestAttackEV(c, ctx.refEnemy));
   } catch (e) {
     if (e instanceof RefIrresoluble) return count * 6;

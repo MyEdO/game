@@ -585,9 +585,13 @@ export interface Suite {
   /** la vue d'après (section « Vue »). */
   vue: VueDuPont;
   /**
-   * les jetons que la partie a programmés, chacun numéroté dans l'ordre d'arrivée (`tenueDesJetons`,
-   * `src/hote/partie.ts`). Godot arme un minuteur de `delai` millisecondes, puis appelle `reprendre { jeton: id }`. Un
-   * jeton se reprend une seule fois.
+   * Les jetons que la partie a programmés, chacun numéroté dans l'ordre d'arrivée (`tenueDesJetons`,
+   * `src/hote/partie.ts`). `apresDeplacement` donne les identifiants des combattants dont le déplacement visible
+   * de cet appel précède le `delai` en millisecondes. Dans une suite qui réunit plusieurs appels, seul le dernier
+   * déplacement visible de chaque combattant est attendu par son appel. L'hôte qui présente ces déplacements
+   * attend la fin ou l'abandon des parcours qu'il a démarrés. Il arme ensuite le minuteur et appelle
+   * `reprendre { jeton: id }` une fois. Sans déplacement présenté, le délai court dès la pose de la suite. En coop,
+   * seule la partie de l'hôte programme la suite du tour.
    */
   programmes: Programme[];
   /**
@@ -1155,7 +1159,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   const suite = (o: Tenue): Suite => {
     o.partie.relever();
     const resultats = o.file.splice(0);
-    const programmes = resultats.flatMap((r) => o.jetons.programmes(r));
+    const jetonsParAppel = resultats.map((r) => o.jetons.programmes(r));
     const evenements = resultats.flatMap((r) => r.evenements);
     const journal = resultats.flatMap((r) => r.journal);
     if (!creationOuverte(o) && evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
@@ -1164,7 +1168,17 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const zones = { 'journal.lignes': lignes };
     o.lignes += journal.length;
     o.jour = jour;
-    const rendue = { vue: vueDe(o), programmes, journal, zones, effets: effetsDeLAppel(o.partie.etat(), evenements) };
+    const etat = o.partie.etat();
+    const effetsParAppel = resultats.map((r) => effetsDeLAppel(etat, r.evenements));
+    const appelDuDernierDeplacement = new Map<string, number>();
+    effetsParAppel.forEach((effets, i) => {
+      for (const e of effets) if (e.quoi === 'deplacement') appelDuDernierDeplacement.set(e.qui, i);
+    });
+    const programmes = jetonsParAppel.flatMap((jetons, i) => jetons.map(({ id, delai, apresDeplacement }) => {
+      const visibles = apresDeplacement?.filter((qui) => appelDuDernierDeplacement.get(qui) === i);
+      return { id, delai, ...(visibles?.length ? { apresDeplacement: visibles } : {}) };
+    }));
+    const rendue = { vue: vueDe(o), programmes, journal, zones, effets: effetsParAppel.flat() };
     o.aDire = false;
     o.refusPrioritaire = o.refusRecus.length > 0;
     return rendue;
@@ -1598,7 +1612,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ plan }` : le plan de la couche en texte (`planDeLaCouche`, `src/noyau/monde/sceneToAscii.ts`), la
      * grille box-drawing de `sceneToAscii` (`GRAMMAIRE_ASCII`, `src/data/schemas/grammaire/carte-ascii.ts`), ponts
      * des navires compris, chaque case qui porte une marque sous elle (`MARQUES_DU_PLAN` : l'œil au cap le plus proche
-     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages, les décors à leur case
+     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages en vue, les décors à leur case
      * d'ancrage), puis la légende des glyphes que ses cases montrent ; refusé hors scène ou hors de ses couches. La
      * partie n'en change pas.
      */

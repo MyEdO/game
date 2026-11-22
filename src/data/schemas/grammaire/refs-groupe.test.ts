@@ -1,7 +1,7 @@
 /**
  * Champs de Groupe typés au parse (#1463, #3045 A0-a) : toute feuille `idDe('groupe')` des schémas refuse un
  * id fantôme ; un champ de PORTEUR (`DECLARABLE_PAR_UN_PORTEUR`) refuse un Groupe-Cible joker, composite ou relatif, un
- * champ de Cible d'APPARTENANCE (`CIBLE_D_APPARTENANCE`) refuse un relatif, un champ de Cible psy admet les deux ; la Condition `has` résout `value` dans le registre de son `what`, et la `spec` d'un Talent
+ * champ de Cible d'APPARTENANCE (`CIBLE_D_APPARTENANCE`) refuse un relatif, un champ de Cible psy admet les deux ; la Condition `has` résout `ref.id` dans le registre de son `what`, et la `spec` d'un Talent
  * dans les spécialisations de ce Talent.
  */
 import { describe, expect, it } from 'vitest';
@@ -92,12 +92,16 @@ describe('Sans Peur (Ennemi) — sa source est la sous-liste d’appartenance (L
   });
 });
 
-describe('Condition `has` — `value` résout dans le registre de son `what`', () => {
+describe('Condition `has` — `ref.id` résout dans le registre de son `what`', () => {
   const REGISTRE: Record<string, TypeEntite> = { group: 'groupe', talent: 'talent', trait: 'trait', psych: 'psychology', immunity: 'damageType' };
   const WHATS = Object.keys(valeursDe(hasWhatSchema) ?? {});
-  const branche = (what: string) => pasDeDonnee(ouverts([hasConditionSchema], { what }), 'value').map(declarationDeFeuilleDId).find((d) => d !== undefined);
+  const branche = (what: string) => {
+    const formes = ouverts([hasConditionSchema], { what });
+    const references = ouverts(pasDeDonnee(formes, 'ref'));
+    return pasDeDonnee(references, 'id').map(declarationDeFeuilleDId).find((d) => d !== undefined);
+  };
 
-  it('chaque `what` nommé a sa branche, et sa `value` est une feuille de son registre', () => {
+  it('chaque `what` nommé a sa branche, et sa `ref.id` est une feuille de son registre', () => {
     expect(WHATS.length).toBeGreaterThan(0);
     expect(tableTotale(WHATS, (w) => branche(w)?.type)).toEqual(REGISTRE);
   });
@@ -108,15 +112,15 @@ describe('Condition `has` — `value` résout dans le registre de son `what`', (
       const [sien] = siens;
       const etranger = WHATS.filter((w) => w !== what).flatMap((w) => [...idsDe(REGISTRE[w])]).find((id) => !siens.has(id));
       expect(etranger, what).toBeDefined();
-      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, value: sien }).success, `${what} ← ${sien}`).toBe(true);
-      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, value: etranger }).success, `${what} ← ${etranger}`).toBe(false);
+      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, ref: { id: sien } }).success, `${what} ← ${sien}`).toBe(true);
+      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, ref: { id: etranger } }).success, `${what} ← ${etranger}`).toBe(false);
     }
   });
 
   it('la spécialisation n’appartient qu’au Talent', () => {
     for (const what of WHATS.filter((w) => w !== 'talent')) {
       const [sien] = idsDe(REGISTRE[what]);
-      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, value: sien, spec: 'x' }).success, what).toBe(false);
+      expect(conditionSchema.safeParse({ kind: 'has', who: 'target', what, ref: { id: sien, spec: 'x' } }).success, what).toBe(false);
     }
   });
 
@@ -126,7 +130,7 @@ describe('Condition `has` — `value` résout dans le registre de son `what`', (
     const nu = talents.find((id) => !estSpecialisable('talent', id));
     expect(specialise).toBeDefined();
     expect(nu).toBeDefined();
-    const has = (value: string, spec?: string) => conditionSchema.safeParse({ kind: 'has', who: 'target', what: 'talent', value, ...(spec === undefined ? {} : { spec }) }).success;
+    const has = (id: string, spec?: string) => conditionSchema.safeParse({ kind: 'has', who: 'target', what: 'talent', ref: { id, ...(spec === undefined ? {} : { spec }) } }).success;
     const [sienne] = catalogueSpecs('talent', specialise!);
     expect(has(specialise!), specialise).toBe(true);
     expect(has(specialise!, sienne), `${specialise} (${sienne})`).toBe(true);
