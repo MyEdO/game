@@ -22,7 +22,7 @@ const TENUES: Record<string, Partial<Gabarit>> = {
   soldat: { tenue: 'f-rouge', coiffe: 'casque' }, chasseur: { tenue: 'f-vert', coiffe: 'capuche' }, 'hors-la-loi': { tenue: 'f-cuir', coiffe: 'capuche' },
   pretre: { tenue: 'f-os', corps: 'robe', coiffe: 'capuche' }, sorcier: { tenue: 'f-rouge', corps: 'robe', coiffe: 'chapeau' },
   tueur: { tenue: 'f-cuir', coiffe: 'crete' }, repurgateur: { tenue: 'f-noir', coiffe: 'chapeau' }, 'pretre-guerrier': { tenue: 'f-acier', coiffe: 'casque' },
-  duelliste: { tenue: 'f-robe', coiffe: 'chapeau' }, medecin: { tenue: 'f-noir', corps: 'robe', coiffe: 'bonnet' },
+  duelliste: { tenue: 'f-robe', coiffe: 'chapeau' },
   'joueur-d-epee': { tenue: 'f-rouge', coiffe: 'casque' }, flagellant: { tenue: 'f-os' }, 'chasseur-de-primes': { tenue: 'f-noir', coiffe: 'chapeau' },
 };
 
@@ -160,7 +160,8 @@ export function buste(g: Gabarit, camp: 'heros' | 'ennemi'): string {
   const t = g.taille;
   const sens = camp === 'ennemi' ? -1 : 1;
   const voute = g.corps === 'voute';
-  const [cx, cy, r] = g.bete ? [27 * sens * t, -32 * t, 20 * t] : [(voute ? 8 : 0) * sens * t, ((voute ? -50 : -59) + 9) * t, 19 * t];
+  const tete: [number, number, number] = g.bete === 'rat' ? [16, -12, 12] : g.bete === 'loup' ? [28, -36, 16] : [voute ? 8 : 0, (voute ? -50 : -59) + 9, 19];
+  const [cx, cy, r] = [tete[0] * sens * t, tete[1] * t, tete[2] * t];
   return `<svg class="buste-fig" viewBox="${cx - r} ${cy - r * 1.1} ${2 * r} ${2.3 * r}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g transform="${camp === 'ennemi' ? 'scale(-1,1) ' : ''}scale(${t})">${g.bete ? bete(g) : humanoide(g)}</g></svg>`;
 }
 

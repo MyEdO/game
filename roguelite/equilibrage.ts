@@ -25,7 +25,7 @@ for (let exp = 0; exp < Number(process.argv[3] ?? 8); exp++) {
   }
   const dest = J.destinationsOuvertes(e).at(-1)!;
   const err = J.partir(e, dest.id, e.roster.filter((h) => J.valide(h) && h.c.wounds.current >= h.c.wounds.max * 0.6).slice(0, 4).map((h) => h.c.id));
-  if (err) { console.log('départ refusé', err, e.roster.length, e.or); continue; }
+  if (err) { console.log('départ refusé', err, e.roster.length, e.or, J.attendreUneSemaine(e) ?? 'la compagnie attend une semaine'); continue; }
   while (e.expedition) {
     const r = J.avancer(e);
     const g = J.herosDuGroupe(e);
@@ -36,5 +36,5 @@ for (let exp = 0; exp < Number(process.argv[3] ?? 8); exp++) {
     console.log(`  ${r.titre}${r.combat ? ` (${r.combat.issue}, ${r.combat.pas.length} pas)` : ''} | valides ${valides}/${g.length}`);
     if (e.expedition && valides < 2 && !r.fin) { J.rentrer(e, false); console.log('  → retraite'); }
   }
-  console.log(`J${e.jour} ${dest.nom}: or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, morts ${e.cimetiere.length}, bât ${JSON.stringify(e.batiments)}`);
+  console.log(`J${e.jour} ${dest.nom}: or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, morts ${e.cimetiere.length}, niveaux ${e.roster.map((h) => h.c.careerLevel ?? 1).join("")}, sorts ${e.roster.map((h) => (h.c.spells ?? []).length).join("")}, bât ${JSON.stringify(e.batiments)}`);
 }

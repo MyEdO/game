@@ -20,7 +20,7 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Relais de diligence', role: 'Recrues et provisions', paliers: [
-    { cout: 0, trophees: 0, effet: '2 candidats ; bandages et cataplasmes' },
+    { cout: 0, trophees: 0, effet: '2 candidats ; cataplasmes de guérison' },
     { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de guérison' },
     { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite ; potions de vitalité' },
   ] },
@@ -72,14 +72,13 @@ export const PROFILS: readonly Profil[] = [
   { id: 'hors-la-loi', nom: 'Hors-la-loi', relais: 0, identite: { talent: { id: 'vigilance' } }, devise: 'Jamais surpris. Vigilance.' },
   { id: 'pretre', nom: 'Prêtre de Shallya', relais: 0, identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Béni de Shallya.',
     voie: { talent: 'invocation', spec: 'shallya', nom: 'Invocation (Shallya)', sorts: [] } },
-  { id: 'sorcier', nom: 'Sorcier', relais: 0, identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant', 'drain'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
+  { id: 'sorcier', nom: 'Sorcier', relais: 0, identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
     voie: { talent: 'magie-des-arcanes', spec: 'feu', nom: 'Magie des Arcanes (Feu)', sorts: ['carreau', 'explosion', 'arme-aethyrique', 'armure-aethyrique', 'effrayant', 'sang-corrosif'] } },
   { id: 'tueur', nom: 'Tueur', relais: 1, espece: 'nains', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
   { id: 'repurgateur', nom: 'Répurgateur', relais: 1, identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
   { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 1, identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
     voie: { talent: 'invocation', spec: 'sigmar', nom: 'Invocation (Sigmar)', sorts: ['marteau-ardent-de-sigmar', 'n-ecoutez-point-la-sorciere'] } },
   { id: 'duelliste', nom: 'Duelliste', relais: 1, identite: { talent: { id: 'pas-de-cote' } }, devise: 'Pare, esquive, riposte. Pas de côté.' },
-  { id: 'medecin', nom: 'Médecin', relais: 1, identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les vivants. Pansement de fortune.' },
   { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
   { id: 'flagellant', nom: 'Flagellant', relais: 2, identite: { talent: { id: 'frenesie' } }, devise: 'La douleur est une prière. Frénésie.' },
   { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
@@ -103,26 +102,26 @@ export interface Destination {
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
 }
 export const DESTINATIONS: readonly Destination[] = [
-  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 15, lumiere: 'jour',
+  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 30, lumiere: 'jour',
     recit: 'Des loups et des peaux-vertes rôdent le long de la route de la diligence.',
     meutes: [['gobelin', 'gobelin'], ['loup'], ['rat-geant', 'rat-geant'], ['brigand'], ['snotling', 'snotling', 'gobelin']],
     elites: [['orc'], ['brigand', 'loup']], boss: ['loup-funeste'] },
-  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 18, lumiere: 'crepuscule',
+  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 36, lumiere: 'crepuscule',
     recit: 'Les morts ne reposent plus sous les vieux tertres. Quelqu’un les réveille.',
     meutes: [['squelette', 'zombie'], ['zombie', 'zombie', 'zombie'], ['goule-de-crypte', 'zombie']],
     elites: [['squelette', 'squelette', 'goule-de-crypte'], ['chevalier-mort-vivant-revenant']], boss: ['necromancien', 'squelette', 'squelette'] },
-  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 25, lumiere: 'couvert',
+  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 50, lumiere: 'couvert',
     recit: 'Les hommes-bêtes se rassemblent autour d’une pierre de harde.',
     meutes: [['ungor', 'ungor'], ['gor', 'ungor'], ['ungor', 'ungor', 'ungor']],
     elites: [['gor', 'gor', 'ungor'], ['gor-combattant', 'ungor']], boss: ['minotaure', 'ungor'] },
-  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 35, lumiere: 'crepuscule',
+  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 70, lumiere: 'crepuscule',
     recit: 'Un culte a dressé un autel aux Puissances de la Ruine. Il faut l’abattre.',
     meutes: [['cultiste', 'cultiste'], ['mutant', 'cultiste'], ['cultiste', 'cultiste', 'mutant']],
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
 ];
 
 /** PX gagnés par salle franchie, par type. */
-const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 20, elite: 35, boss: 60, camp: 0, tresor: 5 };
+const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10 };
 const OR_INITIAL = 100;
 const PRIX_DE_RECRUE = [15, 30, 50];
 const TAILLE_DU_GROUPE = 4;
@@ -143,7 +142,7 @@ const MAIN_SECONDAIRE = new Set(['dague', 'bouclier', 'bouclier-grand']);
 /** Les munitions qu'une arme à projectiles réclame. */
 const MUNITIONS: Record<string, string> = { 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau' };
 /** Les provisions du relais, par palier. */
-const PROVISIONS: readonly string[][] = [['bandages', 'cataplasme-de-guerison'], ['potion-de-guerison'], ['potion-de-vitalite']];
+const PROVISIONS: readonly string[][] = [['cataplasme-de-guerison'], ['potion-de-guerison'], ['potion-de-vitalite']];
 
 // ─── État ───────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -353,10 +352,13 @@ export function acheterUneArme(e: Etat, id: string, armeId: string): string | nu
   const ancien = lo?.[slot];
   const munition = MUNITIONS[armeId];
   const neufs = doter(munition && !h.c.items?.some((i) => i.trappingId === munition) ? [armeId, munition] : [armeId], `forge${e.graine++}`);
-  h.c.items = [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs];
-  if (!lo) return 'Ce héros n’a pas de panoplie.';
-  auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }]);
-  return null;
+  const avant = h.c;
+  h.c = { ...h.c, items: [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs] };
+  const ligne = lo ? auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }]) : 'Ce héros n’a pas de panoplie.';
+  if ((h.c.loadouts ?? []).some((l) => l[slot] === neufs[0].uid)) return null;
+  h.c = avant;
+  e.or += prixDe(armeId);
+  return ligne || 'Le forgeron ne peut pas lui mettre cette arme en main.';
 }
 
 /** Achète l'armure `poids` des règles rapides au héros et la lui fait porter ; ses anciennes pièces sont reprises. */
@@ -518,29 +520,31 @@ function terminerEnDeroute(e: Etat, destinAvant: Map<string, number>): string[] 
   return lignes;
 }
 
-/** Retour au hameau, le butin en poche. Les jours de l'expédition ont passé : seuls les héros restés au hameau
- *  se sont reposés ; ceux qui rentrent portent leurs blessures. */
+/** Retour au hameau, le butin en poche. Chaque salle franchie a pris un jour : seuls les héros restés au hameau
+ *  se sont reposés ; ceux qui rentrent portent leurs blessures. Rentrer sans avoir franchi une salle ne fait passer
+ *  aucun jour. */
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const peage = x.index > 0 ? [0, 10, 25, 50][e.batiments.peage] : 0;
   e.or += x.or + peage; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
-  const jours = Math.max(1, x.index);
-  const lignes = [`Retour à Grisefosse après ${jours} jour${jours > 1 ? 's' : ''} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée(s)` : ''}${peage ? `, +${peage} CO du péage` : ''}.`];
+  const jours = x.index;
+  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée(s)` : ''}${peage ? `, +${peage} CO du péage` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
   for (const h of herosDuGroupe(e)) h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
   e.expedition = null;
-  passerDesJours(e, jours, partis);
+  if (jours) passerDesJours(e, jours, partis);
   return lignes;
 }
 
-/** Quand personne n'est plus en état de partir, la compagnie attend une semaine que les blessés se relèvent. */
-export const tousHorsDeCombat = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some(valide);
+/** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
+ *  attend une semaine que les blessés se relèvent : jamais d'impasse, faute d'or pour la chapelle. */
+export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => valide(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
 export function attendreUneSemaine(e: Etat): string | null {
-  if (!tousHorsDeCombat(e)) return 'Il reste des héros en état de partir.';
-  noter(e, 'Personne ne tient debout : la compagnie panse ses plaies une semaine durant.');
+  if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
+  noter(e, 'Personne n’est en état de partir : la compagnie panse ses plaies une semaine durant.');
   passerDesJours(e, SEMAINE_DE_REPOS, new Set());
   return null;
 }

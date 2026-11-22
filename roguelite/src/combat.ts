@@ -299,7 +299,7 @@ export const ARMURES_RAPIDES: Record<PoidsDArmure, { label: string; pa: number; 
   lourde: { label: 'Armure lourde', pa: 3, enc: 6, matiere: 'plate', qualites: [{ id: 'impenetrable' }, { id: 'points-faibles' }, { id: 'en-perception', value: -20 }, { id: 'en-discretion', value: -20 }] },
 };
 
-/** L'armure rapide `poids`, portée, sous l'uid `uid`. */
+/** L'armure rapide `poids`, née non portée (`equiperLObjet` la fait porter), sous l'uid `uid`. */
 export function armureRapide(poids: PoidsDArmure, uid: string): ItemInstance {
   const a = ARMURES_RAPIDES[poids];
   return { uid, label: a.label, kind: 'armor', qualities: a.qualites.map((q) => ({ ...q })), pa: a.pa, locs: [...PARTOUT], enc: a.enc, equipped: false, subType: a.matiere } as ItemInstance;
