@@ -5,6 +5,7 @@
  * moteur, la ligne de jet (`ligneDeJet`) et la bourse ; `transitionDuJeu` le compose sans tirer aucun flux. Le lancer de
  * l'acte (`lancerLActeDeSoin`) vit côté flux, dans `medicFlow`.
  */
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
@@ -23,6 +24,7 @@ import { t } from '../i18n';
 import { totalDesBourses } from './bourseFlow';
 import type { Jeu } from './etat';
 import type { PendingHeal, PendingSurgery } from './pendings';
+import { refusEnCombat } from './verrousDeFiche';
 
 export interface MedicCost { gold?: number; silver?: number; brass?: number }
 
@@ -120,15 +122,52 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
 const plaiesDeLActe = (patient: Combatant, act: ActeOperatoire): Trauma[] =>
   (act === 'reeducation' ? recoverableTraumas(patient) : surgeryTraumas(patient));
 
+const plaiesDeLInfirmerieFermees = (s: Pick<Jeu, 'battle'>): boolean => refusEnCombat('medic.inCombat')(s) !== null;
+
 /** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre, par l'`uid` que `jetValider('chirurgie')` lit : celles de
  *  l'opération armée avant sa première passe, sinon celles du brouillon d'une opération ; vide sinon. */
-export function plaiesDeLOperation(s: Pick<Jeu, 'medic' | 'party' | 'pendingHeal'>): Trauma[] {
+export function plaiesDeLOperation(s: Pick<Jeu, 'battle' | 'medic' | 'party' | 'pendingHeal'>): Trauma[] {
+  if (plaiesDeLInfirmerieFermees(s)) return [];
   const m = s.medic;
   const patient = m && s.party.find((h) => h.id === m.patientId);
   if (!m || !patient) return [];
   if (m.surgery) return m.surgery.last ? [] : plaiesDeLActe(patient, m.surgery.kind);
   const ph = s.pendingHeal;
   return ph && ph.roll == null && ph.targetId === patient.id && estOperation(ph.mode) ? plaiesDeLActe(patient, ph.mode) : [];
+}
+
+const ID_DE_PLAIE_DU_MONDE = /^plaie-[1-9]\d*$/;
+
+export function stabiliserLesPlaiesDuPatient(
+  s: Pick<Jeu, 'battle' | 'medic' | 'party' | 'pendingHeal'>,
+  idNeuf: FabriqueDId,
+): Partial<Pick<Jeu, 'medic' | 'party' | 'pendingHeal'>> {
+  if (plaiesDeLInfirmerieFermees(s)) return {};
+  const medic = s.medic;
+  const patient = medic && s.party.find((h) => h.id === medic.patientId);
+  if (!medic || !patient) return {};
+
+  const nouvellesPlaies = new Map<string, string>();
+  for (const trauma of [...surgeryTraumas(patient), ...recoverableTraumas(patient)]) {
+    if (!ID_DE_PLAIE_DU_MONDE.test(trauma.uid) && !nouvellesPlaies.has(trauma.uid)) {
+      nouvellesPlaies.set(trauma.uid, idNeuf('plaie'));
+    }
+  }
+  if (!nouvellesPlaies.size) return {};
+
+  const traumas = patient.traumas?.map((trauma) => {
+    const uid = nouvellesPlaies.get(trauma.uid);
+    return uid === undefined ? trauma : { ...trauma, uid };
+  });
+  const soin = s.pendingHeal;
+  const operation = medic.surgery;
+  const plaie = soin?.targetId === patient.id && soin.plaie !== undefined ? nouvellesPlaies.get(soin.plaie) : undefined;
+  const traumaUid = operation?.traumaUid !== undefined ? nouvellesPlaies.get(operation.traumaUid) : undefined;
+  return {
+    party: s.party.map((h) => (h === patient ? { ...h, traumas } : h)),
+    ...(soin && plaie ? { pendingHeal: { ...soin, plaie } } : {}),
+    ...(operation && traumaUid ? { medic: { ...medic, surgery: { ...operation, traumaUid } } } : {}),
+  };
 }
 
 /** Pourquoi l'acte `act` est refusé sur le patient courant de l'infirmerie, `null` s'il s'offre. Pendant une opération
