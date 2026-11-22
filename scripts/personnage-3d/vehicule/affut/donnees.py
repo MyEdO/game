@@ -8,20 +8,16 @@ projet). Repère de `maille.py` : la bouche vers l'avant ; l'emprise est recentr
 # (`habillage.py`), communs à toutes les pièces. Le bronze se montre en fer noirci (#2987 : « canon marron », refusé).
 MATERIAUX = {"bronze": ("metal", "fer-noirci"), "bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci")}
 
-ESSIEU_Z = 0.65                 # hauteur de l'essieu : rayon de roue
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
 
-ROUE = {
-    "voie": 0.70,               # x du plan de chaque roue
-    "segments": 20,
-    "bandage": (0.615, 0.650, 0.110),   # rayon intérieur, extérieur, largeur (fer)
-    "jante": (0.500, 0.615, 0.095),     # rayon intérieur, extérieur, largeur (bois)
-    "moyeu": (0.115, -0.22, 0.11),      # rayon, x intérieur et extérieur relatifs au plan (vers l'extérieur positif)
-    "chapeau": (0.080, 0.11, 0.15),     # frette de fer au bout du moyeu : rayon, x de début et de fin
-    "frette": (0.125, -0.20, -0.16),    # frette de fer côté intérieur du moyeu
-    "rayons": 12,
-    "rayon_section": (0.055, 0.040),    # largeur tangentielle, épaisseur en x
-    "segments_moyeu": 10,
-}
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"canon": 3900, "mortier": 3500, "feu-d-enfer": 4900, "batterie": 3600, "canon-a-flammes": 4500}
+
+# Le train de l'affût (`roulant.py`), son essieu sous les tourillons : nœuds `roue_g` et `roue_d`.
+TRAINS = {"": {
+    "y": 0.0, "voie": 0.70, "rayon": 0.65, "largeur": 0.11, "pans": 20, "bandage": 0.035, "moyeu": (0.115, 0.14),
+    "essieu": (0.07, 0.006), "fusee": (0.05, 0.16, 8), "tours": 1,
+}}
 
 # Temps du coup de chaque tir (`clips.coup`) : départ, tenue, remise en batterie par les servants, en secondes.
 TIR = (0.06, 0.05, 0.90)
@@ -62,8 +58,6 @@ AFFUT = {
     "flasque_epaisseur": 0.10,
     "entretoises": [(-0.52, 0.62, 0.90, 0.10), (0.70, 0.45, 0.70, 0.12), (1.42, 0.24, 0.44, 0.12), (1.85, 0.02, 0.22, 0.10)],  # y, z bas, z haut, profondeur
     "coin": (0.78, 0.70, 0.85, 0.40, 0.20),       # coin de mire sous la culasse : y, z bas, z haut, largeur, profondeur
-    "corps_essieu": (0.70, 0.55, 0.72, 0.16),     # corps d'essieu en bois : demi-largeur, z bas, z haut, profondeur
-    "fusee": (0.05, 0.86),                        # essieu de fer : rayon, demi-longueur
     "bandes": [-0.40, 0.30, 1.12],                # y des bandes de fer qui ceinturent les flasques
     "bande": (0.06, 0.012),                       # largeur, épaisseur
     "sus_bande": (0.24, 0.018, 0.04),             # sus-bande sur le tourillon : longueur en y, épaisseur, demi-largeur ajoutée

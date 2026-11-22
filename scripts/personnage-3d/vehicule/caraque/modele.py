@@ -573,30 +573,32 @@ def construire(D, P):
         "ancrages": {**{nom: [gltf(x, y(f), z) for x, f, z in points] for nom, points in D["ANCRAGES"].items()}, **aux_cases,
                      "nid-de-pie": [gltf(*pied_de_hune)], **lisse},
     }
-    percer(objet("coque", coque, (0.0, 0.0, 0.0), 35), [objet("bordage", bordage, (0, 0, 0), 35), objet("chateau", chateau, (0, 0, 0), 35),
-                                                     objet("gaillard", gaillard, (0, 0, 0), 35)],
-           objet("interieurs", interieurs, (0, 0, 0), 35), objet("ouvertures", ouvertures, (0, 0, 0), 35))
-    objet("avec-sabord", cartouches, (0.0, 0.0, 0.0), 35)
+    lissage = D["ANGLE_LISSE"]
+    percer(objet("coque", coque, (0.0, 0.0, 0.0), lissage), [objet("bordage", bordage, (0, 0, 0), lissage), objet("chateau", chateau, (0, 0, 0), lissage),
+                                                     objet("gaillard", gaillard, (0, 0, 0), lissage)],
+           objet("interieurs", interieurs, (0, 0, 0), lissage), objet("ouvertures", ouvertures, (0, 0, 0), lissage), lissage)
+    objet("avec-sabord", cartouches, (0.0, 0.0, 0.0), lissage)
     for nom in ("beaupre", "misaine", "grand_mat", "grand_mat_arriere", "artimon"):
         mm, pied = noeuds[nom]
-        objet(nom, mm, pied, 35)
+        objet(nom, mm, pied, lissage)
     sortie["cases"] = emprises(D, P, C)
     return sortie
 
 
-def percer(coque, solides, interieurs, ouvertures):
+def percer(coque, solides, interieurs, ouvertures, angle_lisse):
     """Réunit les `solides` (bordé, château, gaillard) en un seul volume, sans faces internes qui se chevauchent, y creuse
     les `interieurs` (cale, entrepont, pièces du château, écoutilles, portes, passages de la passerelle), puis les `ouvertures` des
-    sabords : ce qui les traverse va au nœud `sans-sabord` (le bordé qui les bouche sans Sabord), le reste à `coque`."""
+    sabords : ce qui les traverse va au nœud `sans-sabord` (le bordé qui les bouche sans Sabord), le reste à `coque`, lissés
+    sous `angle_lisse`."""
     solide = fondre(solides, interieurs)
     sans = solide.copy()
     sans.data = solide.data.copy()
     bpy.context.scene.collection.objects.link(sans)
     booleen(sans, "INTERSECT", ouvertures)
     booleen(solide, "DIFFERENCE", ouvertures)
-    reunir(sans, [])
+    reunir(sans, [], angle_lisse)
     sans.name = sans.data.name = "sans-sabord"
-    reunir(coque, [solide])
+    reunir(coque, [solide], angle_lisse)
     bpy.data.objects.remove(ouvertures)
 
 

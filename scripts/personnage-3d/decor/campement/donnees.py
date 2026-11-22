@@ -80,18 +80,6 @@ RETRAIT = 0.0005
 ARETE = 0.08
 """Chanfrein d'une arête de bois adoucie, en fraction de l'épaisseur de la pièce."""
 
-# Roue (`modele.roue`) : `jante` : son rayon du dedans (part de son rayon du dehors) ; `largeur` : sa largeur (part de
-# celle que lui donne le décor) ; `rais` : leur nombre ; `pied` : leur départ (part du rayon du moyeu) ; `tete` : leur
-# bout (part du rayon du dedans de la jante, où ils entrent) ; `rai` : leur rayon (part de la demi-largeur donnée) ;
-# `fuseau` : leur profil (part de la longueur, part du rayon) ; `pans` : leurs côtés ; `noix` : profil du moyeu, d'un
-# bout à l'autre ; `cotes` du moyeu.
-ROUE = {
-    "jante": 0.86, "largeur": 0.8, "rais": 12, "pied": 0.7, "tete": 1.03, "rai": 0.55,
-    "fuseau": ((0.0, 1.0), (0.12, 1.0), (0.2, 0.72), (1.0, 0.6)), "pans": 5,
-    "noix": ((0.0, 0.55), (0.08, 0.75), (0.2, 1.0), (0.42, 1.0), (0.5, 0.8), (0.58, 1.0), (0.8, 1.0), (0.92, 0.75),
-             (1.0, 0.55)), "cotes": 8,
-}
-
 # Charrette : rang du plateau, des ridelles, des roues (bandage, bois, moyeu) et des brancards dans la recette.
 # `plancher` : les planches du plateau (`geometrie.bordage`), de toute son épaisseur.
 # `ridelle`, en fractions de l'épaisseur de la primitive : `lisse` : épaisseur d'une lisse, au dedans ; `ancrage` :

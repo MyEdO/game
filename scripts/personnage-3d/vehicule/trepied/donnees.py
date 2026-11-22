@@ -9,6 +9,11 @@ porteur. Repère de `maille.py` : la bouche vers l'avant ; l'emprise est recentr
 # fourche (`habillage.py`), communs aux deux pièces. Le bronze se montre en fer noirci (#2987 : « canon marron », refusé).
 MATERIAUX = {"bronze": ("metal", "fer-noirci"), "bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci")}
 
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"pierrier": 1100, "canon-a-repetition": 1900}
+
 # Temps du coup de chaque tir (`clips.coup`) : départ, tenue, retour, en secondes. La pièce ne recule pas sur son pivot.
 TIR = (0.05, 0.05, 0.50)
 
