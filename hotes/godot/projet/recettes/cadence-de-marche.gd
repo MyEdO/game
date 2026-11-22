@@ -7,17 +7,24 @@ const CIBLE := "enemy-enc-dome-1"
 const CASE_DE_LA_CIBLE := Vector3i(7, 5, 0)
 const ATTENTE_DU_PONT_MS := 120000
 const ATTENTE_DE_LA_CHARGE_MS := 30000
-const MARGE_DU_BEAT_MS := 1500
+const TENUE_DU_JETON_MS := 400
 
 var _fautes: Array[String] = []
 
 
 class PontDuDome extends PontEspion:
-	var reprises_en_ms: Array[int] = []
+	var reprises: Array[Dictionary] = []
+	var temps_simule_s := 0.0
+	var delta_s := 0.0
+
+	## Le delta de la boucle de scène, lu une fois par image avant les minuteurs et les tweens.
+	func avancer_l_horloge() -> void:
+		delta_s = get_tree().root.get_process_delta_time()
+		temps_simule_s += delta_s
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
 		if methode == "reprendre":
-			reprises_en_ms.append(Time.get_ticks_msec())
+			reprises.append({mur_ms = Time.get_ticks_msec(), simule_s = temps_simule_s, delta_s = delta_s})
 		return super(methode, entree)
 
 	func parametre(cle: String) -> String:
@@ -35,6 +42,7 @@ func _recetter() -> void:
 	print("[cadence-de-marche] version=", Engine.get_version_info().string)
 	var pont := PontDuDome.new()
 	PontDuNoyau.remplacer(self, pont)
+	process_frame.connect(pont.avancer_l_horloge)
 	pont.panne.connect(func(message: String) -> void: _fautes.append("panne : " + message))
 	pont.refus.connect(func(message: String) -> void: _fautes.append("refus : " + message))
 	var marche := await _recetter_la_charge(pont, 1.0)
@@ -47,10 +55,10 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-func _recetter_la_charge(pont: PontDuDome, vitesse: float) -> int:
+func _recetter_la_charge(pont: PontDuDome, vitesse: float) -> float:
 	var combat: Node = (load("res://scenes/Combat.tscn") as PackedScene).instantiate()
 	root.add_child(combat)
-	var duree := -1
+	var duree := -1.0
 	if await _attendre(func() -> bool: return not combat.get("_vue").is_empty(), ATTENTE_DU_PONT_MS, "la première vue"):
 		duree = await _charger(combat, pont, vitesse)
 		pont.appeler("quitter")
@@ -59,7 +67,7 @@ func _recetter_la_charge(pont: PontDuDome, vitesse: float) -> int:
 	return duree
 
 
-func _charger(combat: Node, pont: PontDuDome, vitesse: float) -> int:
+func _charger(combat: Node, pont: PontDuDome, vitesse: float) -> float:
 	combat.call("_jouer", {type = "fenetreValider", args = ["debutDuRound"]})
 	if not await _attendre(func() -> bool: return combat.get("_vue").projection.fenetre == null, ATTENTE_DE_LA_CHARGE_MS, "le tour du héros"):
 		return -1
@@ -73,7 +81,7 @@ func _charger(combat: Node, pont: PontDuDome, vitesse: float) -> int:
 	combat.call("_jouer", {type = "armerLIntention", args = ["charge"]})
 	if not await _attendre(func() -> bool: return combat.get("_vue").projection.combat.cibles.liste.has(CIBLE), ATTENTE_DE_LA_CHARGE_MS, "la cible de la charge"):
 		return -1
-	var reprises := pont.reprises_en_ms.size()
+	var reprises := pont.reprises.size()
 	pont.reponses.erase("reprendre")
 	plateau.case_cliquee.emit(CASE_DE_LA_CIBLE)
 	if not combattant.se_deplace():
@@ -81,6 +89,7 @@ func _charger(combat: Node, pont: PontDuDome, vitesse: float) -> int:
 	if not await _attendre(combattant.se_deplace, ATTENTE_DE_LA_CHARGE_MS, "le déplacement de la charge"):
 		return -1
 	var depart := Time.get_ticks_msec()
+	var depart_simule_s := pont.temps_simule_s
 	var marche: Tween = combattant.get("_deplacement")
 	marche.set_speed_scale(vitesse)
 	var suite: Dictionary = pont.reponses["jouer"]
@@ -93,30 +102,46 @@ func _charger(combat: Node, pont: PontDuDome, vitesse: float) -> int:
 		metres += case.metres
 	var arrivee: Dictionary = chemin.back()
 	var lieu: Vector3 = (plateau.get_node("Monde") as Monde).lieu(Vector2i(int(arrivee.x), int(arrivee.y)), int(arrivee.z))
-	var mesures := {fin = -1, demande = -1, attaque = -1, marche_a_l_attaque = false, lieu_a_l_attaque = Vector3.ZERO}
-	combattant.deplacement_fini.connect(func() -> void: mesures.fin = Time.get_ticks_msec() - depart, CONNECT_ONE_SHOT)
+	var mesures := {fin = -1, fin_simulee_s = -1.0, reprise = {}, attaque = -1, marche_a_l_attaque = false, lieu_a_l_attaque = Vector3.ZERO}
+	combattant.deplacement_fini.connect(func() -> void:
+		mesures.fin = Time.get_ticks_msec() - depart
+		mesures.fin_simulee_s = pont.temps_simule_s,
+		CONNECT_ONE_SHOT)
 	var limite := depart + ATTENTE_DE_LA_CHARGE_MS
 	while Time.get_ticks_msec() < limite and (mesures.fin < 0 or mesures.attaque < 0):
 		if mesures.attaque < 0 and _jet_d_attaque(pont.reponses.get("reprendre", {})):
-			mesures.demande = pont.reprises_en_ms.back() - depart
+			mesures.reprise = pont.reprises.back()
 			mesures.attaque = Time.get_ticks_msec() - depart
 			mesures.marche_a_l_attaque = combattant.se_deplace()
 			mesures.lieu_a_l_attaque = combattant.position
 		await process_frame
 	var delais: Array = suite.programmes.map(func(programme: Dictionary) -> int: return int(programme.delai))
-	var echanges := pont.reprises_en_ms.size() - reprises
+	var echanges := pont.reprises.size() - reprises
+	var demande := int(mesures.reprise.mur_ms) - depart if mesures.reprise.has("mur_ms") else -1
 	print(("[cadence-de-marche] Dôme, graine 7, vitesse ×%.0f : %d pas, %.2f m ; délais=%s ms ; marche=%d ms ; " +
 		"reprise=%d ms ; ouverture attaque=%d ms ; marche en cours=%s ; reprises=%d") %
-		[vitesse, chemin.size() - 1, metres, delais, mesures.fin, mesures.demande, mesures.attaque, mesures.marche_a_l_attaque, echanges])
-	_verifier(mesures.fin > 0 and mesures.demande >= mesures.fin and not mesures.marche_a_l_attaque, "la reprise qui ouvre l'attaque doit suivre la fin de la marche")
+		[vitesse, chemin.size() - 1, metres, delais, mesures.fin, demande, mesures.attaque, mesures.marche_a_l_attaque, echanges])
+	_verifier(mesures.fin > 0 and demande >= mesures.fin and not mesures.marche_a_l_attaque, "la reprise qui ouvre l'attaque doit suivre la fin de la marche")
 	_verifier(mesures.lieu_a_l_attaque.is_equal_approx(lieu), "à l'ouverture de l'attaque : héros en %s, arrivée attendue %s" % [mesures.lieu_a_l_attaque, lieu])
-	if _verifier(echanges == 1 and delais.size() == 1, "la charge doit reprendre un seul jeton"):
-		var tenue := int(mesures.demande) - int(mesures.fin)
-		_verifier(tenue >= delais[0] - 40 and tenue <= delais[0] + MARGE_DU_BEAT_MS,
-			"entre l'arrivée et la reprise : %d ms, tenue programmée %d ms" % [tenue, delais[0]])
+	_verifier(echanges == 1 and delais == [TENUE_DU_JETON_MS], "un jeton repris, avec une tenue de %d ms" % TENUE_DU_JETON_MS)
+	if mesures.fin_simulee_s >= 0.0 and not mesures.reprise.is_empty():
+		_verifier_la_tenue(mesures.fin_simulee_s, mesures.reprise)
 	if _fautes.is_empty():
 		await _frapper(combat, plateau, pont, actif)
-	return mesures.fin
+	return float(mesures.fin_simulee_s) - depart_simule_s
+
+
+func _verifier_la_tenue(fin_s: float, reprise: Dictionary) -> void:
+	var tenue_s: float = reprise.simule_s - fin_s
+	var attendue_s := MiseEnPage.secondes(TENUE_DU_JETON_MS)
+	## Le minuteur expire à la première image dont le delta couvre son reste.
+	var borne_haute_s: float = attendue_s + reprise.delta_s
+	var atteint := tenue_s >= attendue_s or is_equal_approx(tenue_s, attendue_s)
+	var dans_la_derniere_image := tenue_s <= borne_haute_s or is_equal_approx(tenue_s, borne_haute_s)
+	_verifier(atteint and dans_la_derniere_image,
+		"entre l'arrivée et la reprise : %.1f ms simulées, tenue %d ms et dernière image %.1f ms" %
+		[tenue_s * 1000.0, TENUE_DU_JETON_MS, reprise.delta_s * 1000.0])
+	print("[cadence-de-marche] tenue simulée=%.1f ms ; dernière image=%.1f ms" % [tenue_s * 1000.0, reprise.delta_s * 1000.0])
 
 
 func _frapper(combat: Node, plateau: Plateau, pont: PontDuDome, actif: String) -> void:
