@@ -84,7 +84,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
 
   it('la Fièvre ATTÉNUÉE (LDB 20 l.159) rend la conscience — et le journal NOMME le symptôme', () => {
     const { c } = pneumoniqueGrave();
-    const log = applyOps(c, [{ op: 'attenuateSymptom', disease: 'pneumonie', symptomId: 'fievre' }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY });
+    const log = applyOps(c, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY });
     // L'instance n'est PAS mutée : c'est la sévérité EFFECTIVE qui redescend, le temps de l'effet.
     expect(c.diseases![0].symptoms.find((s) => s.symptomId === 'fievre')!.severity).toBe('grave');
     expect(severiteEffective(c, 'pneumonie', c.diseases![0].symptoms.find((s) => s.symptomId === 'fievre')!), 'grave → moderee').toBe('moderee');
@@ -94,7 +94,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
 
   it('le symptôme SUSPENDU (op `suppressSymptom`, LDB 72 l.28) rend la conscience', () => {
     const { c } = pneumoniqueGrave();
-    applyOps(c, [{ op: 'suppressSymptom', symptomId: 'fievre' }], { idNeuf: idsDeTest, rng: seq([]), label: 'Racine de terre' });
+    applyOps(c, [{ op: 'suppressSymptom', symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), label: 'Racine de terre' });
     expect(stacks(c, 'inconscient')).toBe(0);
   });
 
@@ -135,7 +135,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
     addCondition(c, 'inconscient'); // KO à 0 PB (LDB 16) — la pose native prend possession du pion
     expect(stacks(c, 'inconscient'), 'l’État Inconscient s’est cumulé').toBe(1);
     expect(derivedStacks(c, 'inconscient'), 'le pion appartient désormais à la cause NATIVE').toBe(0);
-    applyOps(c, [{ op: 'attenuateSymptom', disease: 'pneumonie', symptomId: 'fievre' }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY });
+    applyOps(c, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY });
     expect(stacks(c, 'inconscient'), 'le KO natif doit RESTER').toBe(1);
     expect(derivedStacks(c, 'inconscient')).toBe(0);
   });
@@ -279,7 +279,7 @@ describe('la réconciliation reste BON MARCHÉ et sans dérive sur une suite de 
     const precedent = setConditionGainedHook((porteur) => {
       if (porteur !== a) return;
       // B contracte à son tour, PENDANT la réconciliation de A (applyOps clôt par `syncDerivedConditions`).
-      applyOps(b, [{ op: 'contractDisease', disease: 'pneumonie' }], { idNeuf: idsDeTest, rng: seq([5, 5, 5]) });
+      applyOps(b, [{ op: 'contractDisease', disease: { id: 'pneumonie' } }], { idNeuf: idsDeTest, rng: seq([5, 5, 5]) });
       b.diseases![0].phase = 'active';
       b.diseases![0].symptoms = b.diseases![0].symptoms.map((s) => (s.symptomId === 'fievre' ? { ...s, severity: 'grave' as const } : s));
       applyOps(b, [], { idNeuf: idsDeTest, rng: seq([]) });

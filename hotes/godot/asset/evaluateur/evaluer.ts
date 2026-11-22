@@ -10,6 +10,7 @@
  */
 import { Skeleton, type Bone, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale.ts';
+import { estFormeDeTete } from '../../../../src/lib/formesDeTete.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import { libellesDesMeshes, type Ecart } from './ecart.ts';
@@ -88,7 +89,10 @@ export interface EntreeDEvaluation {
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres aux `FACTEURS_NEUTRES`. */
   readonly facteurs?: Partial<GabaritResolu>;
-  /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés `gabarit_*` ; ils priment sur la carrure calculée et un nom hors de cette liste est refusé par `silhouette-absente`. */
+  /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés
+   *  `gabarit_*` ; ils priment sur la carrure calculée. Une forme de la tête (`estFormeDeTete`, #4413) se pose par son
+   *  nom, comme l'hôte la cuit, sans régler le gabarit ; tout autre nom est refusé par `silhouette-absente`. Les
+   *  `morphes` d'une composition (`CompositionSurLaBase`) s'y passent tels quels. */
   readonly silhouettes?: Readonly<Record<string, number>>;
   /** Les clips échantillonnés, par nom ; tous sans liste. */
   readonly clips?: readonly string[];
@@ -184,7 +188,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const formes = contenus[0].formes;
   const formesDeSilhouette = [...formes].filter((nom) => !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT));
   const nomsDesSilhouettes = manifeste?.silhouettes ?? formesDeSilhouette;
-  const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !nomsDesSilhouettes.includes(nom));
+  const explicites = Object.entries(entree.silhouettes ?? {});
+  const formesDeTete = Object.fromEntries(explicites.filter(([nom]) => estFormeDeTete(nom)));
+  const silhouettesExplicites = Object.fromEntries(explicites.filter(([nom]) => !estFormeDeTete(nom)));
+  const absentes = Object.keys(silhouettesExplicites).filter((nom) => !nomsDesSilhouettes.includes(nom));
   if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : nom(s) absent(s) des silhouettes déclarées ; silhouettes : ${nomsDesSilhouettes.join(', ') || 'aucune'}`);
   const parCarrure: Readonly<Record<string, number>> = table ? poidsDeCarrure(facteurs.st, table.st) : {};
   const carrure = Object.entries(parCarrure).find(([, poids]) => poids > 0)?.[0];
@@ -192,8 +199,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const aZero = tableTotale(nomsDesSilhouettes, () => 0);
   const poidsDesFormes = poidsDesFormesDe(manifeste, facteurs);
   const carrures = Object.fromEntries(Object.entries(parCarrure).filter(([nom]) => nomsDesSilhouettes.includes(nom)));
-  const poidsDesSilhouettes = { ...aZero, ...carrures, ...entree.silhouettes };
-  const poids = poidsDesFormes(poidsDesSilhouettes);
+  const poidsDesSilhouettes = { ...aZero, ...carrures, ...silhouettesExplicites };
+  const poids = { ...poidsDesFormes(poidsDesSilhouettes), ...formesDeTete };
   if (manifeste && !sontNeutres(facteurs)) {
     const manquantes = Object.keys(poids).filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT) && !formes.has(nom));
     if (manquantes.length) throw new Error(`évaluation : [gabarit-absent] shape key(s) absente(s) de la base : ${manquantes.join(', ')}`);
@@ -302,9 +309,9 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
     return pairesHorsDeZone(ranges, vetements.filter((v) => !offerts.has(v)), zoneDuMembre, voisines, triangles).map((p) => ({ ...p, objet: libelle(p.membre) }));
   });
-  const rigidesPercesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
+  const rigidesEnfoncesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
     const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
-    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).percements;
+    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).enfoncements;
   });
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
     traversees.push(...mesurerTraversee(couches.liaisons, e));
@@ -320,7 +327,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
-  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle), ...gardeRigideRangeAuRepos(rigidesPercesAuRepos, libelle));
+  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
+  ecarts.push(...gardeRigideRangeAuRepos(rigidesEnfoncesAuRepos, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {

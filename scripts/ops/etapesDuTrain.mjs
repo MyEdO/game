@@ -15,7 +15,7 @@
 // module de la clôture (#2073).
 import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
-import { PLAFOND_RELANCES, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
+import { PLAFOND_RELANCES, phraseDesJobs, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
@@ -332,15 +332,16 @@ function issueDeBranche(ci, pr, tete) {
  * celui de la PR, et une fusion d'`origin/main` rejouerait le même arbre en file. Elle n'est attribuée que
  * si `G^1`, le premier parent de son commit de file, est dans `origin/main` ; sinon GitHub reconstruit
  * l'entrée (`managing-a-merge-queue.md` l.104-109) et on attend. Des jobs illisibles se NOMMENT. Une course
- * de file ANNULÉE se redemande sur la même tête (#2392) ; `ecartees` : les courses terminées avant la
- * demande (`coursesDeFileTerminees`).
+ * de file EN VOL se juge sur ses jobs déjà conclus (#4197). Une course de file ANNULÉE se redemande sur la
+ * même tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
  * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{rouge:true, raison:string}}
  */
 function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   const vues = ctx.coursesDeFile()
   if (!vues.disponible) return { attendre: true, dit: `courses de file illisibles : ${vues.raison}` }
   const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe, ecartees })
-  const etat = course ? verdictDesRuns([course], course.headSha).etat : 'absente'
+  const juge = course ? verdictJuge([course], course.headSha, ctx.jobsEnEchec) : { etat: 'absente' }
+  const { etat } = juge
   if (!['rouge', 'annulee'].includes(etat)) return enFile
     ? { attendre: true, dit: `course de file ${etat}` }
     : { redemander: true, raison: `PR #${pr.numero} sortie de la file sans course en échec (course de file ${etat})` }
@@ -351,7 +352,6 @@ function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
-  const juge = verdictJuge([course], course.headSha, ctx.jobsEnEchec)
   if (juge.jobsIllisibles) return { rouge: true, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${juge.jobsIllisibles}` }
   const jobs = phraseDesJobs(juge) || 'aucun job nommé'
   if (juge.etat === 'annulee') return { redemander: true, raison: `PR #${pr.numero} éjectée par la course ${url} ANNULÉE — ${jobs}` }

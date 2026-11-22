@@ -14,6 +14,7 @@ import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from './mond
 import { sceneLightSources } from './visionState';
 import { bus, EVT } from './bus';
 import { createHero } from '../engine/character';
+import { setDesFixes } from '../engine/fixedDie';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from './marcheDuGroupe';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -207,16 +208,25 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
     banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
+    expect(banc.getState().pendingTest).toBeNull();
   });
 
-  it('Talent porté par le meneur DEBOUT : la paroi s’ouvre (montée optimiste au sommet)', () => {
+  it('Talent porté par le meneur DEBOUT : le meneur ouvre le Test et le groupe monte après sa réussite', () => {
     // Héros COMPLETS : la paroi ouverte déclenche le Test d'Escalade, qui lit des Compétences réelles.
     const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     a.wounds.current = 0;
+    a.conditions = [...a.conditions, { id: 'inconscient', value: 1 }];
     b.talents = [...(b.talents ?? []), { talentId: 'grimpeur', times: 1 }];
     poser([a, b], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
     banc.getState().franchirLArete(SOMMET);
+    expect(banc.getState().partyPos).toMatchObject(PIED);
+    expect(banc.getState().pendingTest).toMatchObject({ actorId: b.id, sujet: { skill: { id: 'escalade' } } });
+    setDesFixes(true);
+    banc.getState().jetLancer('test');
+    banc.getState().jetImposerLeResultat('test', 1);
+    expect(banc.getState().pendingTest).toMatchObject({ roll: 1, success: true });
+    banc.getState().jetValider('test');
     expect(banc.getState().partyPos).toMatchObject(SOMMET);
   });
 
@@ -224,11 +234,13 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
     poser([A_INCONSCIENT([{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
     banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
+    expect(banc.getState().pendingTest).toBeNull();
   });
 
   it('GROUPE ENTIER à terre : la paroi se refuse — aucun meneur n’est fabriqué pour grimper', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), hero('b', 0, [{ talentId: 'grimpeur', times: 1 }])], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
     banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
+    expect(banc.getState().pendingTest).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 // Le tirage des packs sources de la Release (#3248) : `tirerSources`, sur des archives fabriquées.
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,13 +13,14 @@ afterAll(() => { for (const r of RACINES) rmSync(r, { recursive: true, force: tr
 
 const FICHIERS = { ual1: 'ual1.glb', ual2: 'ual2.glb', corps: 'corps.gltf', 'corps-feminin': 'feminin.gltf', mpfb: 'data' }
 
-/** Sous un `mkdtempSync` d'os.tmpdir(), retiré après la suite : une archive des cinq packs, ses octets, l'index qui la décrit et la provenance de ses empreintes. */
-function fabriquer() {
+/** Sous un `mkdtempSync` d'os.tmpdir(), retiré après la suite : une archive des cinq packs, dont `cibles` fichiers sous
+ *  `data`, ses octets, l'index qui la décrit et la provenance de ses empreintes. */
+function fabriquer(cibles = 1) {
   const racine = mkdtempSync(join(tmpdir(), 'sources-3d-')), contenu = join(racine, 'contenu')
   RACINES.push(racine)
   mkdirSync(join(contenu, 'data', 'cibles'), { recursive: true })
   for (const [pack, fichier] of Object.entries(FICHIERS)) if (pack !== 'mpfb') writeFileSync(join(contenu, fichier), `octets de ${pack}`)
-  writeFileSync(join(contenu, 'data', 'cibles', 'a.target'), 'cible')
+  for (let i = 0; i < cibles; i++) writeFileSync(join(contenu, 'data', 'cibles', `${i}.target`), `cible ${i}`)
   writeFileSync(join(contenu, 'License.txt'), 'License: CC0')
   const archive = join(racine, 'archive.tar.gz')
   expect(spawnSync('tar', ['-czf', archive, '-C', contenu, '.']).status).toBe(0)
@@ -38,6 +39,21 @@ function telechargement(octets: Uint8Array) {
 
 const silence = () => {}
 
+/** Le code de sortie d'un processus Node qui charge `sources.ts` comme `sources.mjs` et lance `tirerSources` sur
+ *  `options`, sans téléchargement. */
+function tirageDansUnProcessus(options: object): Promise<{ code: number | null; stderr: string }> {
+  const charger = new URL('../../../hotes/godot/asset/charger.mjs', import.meta.url).href
+  const code = `const { chargerEvaluateur } = await import(${JSON.stringify(charger)})
+const { tirerSources } = await chargerEvaluateur('../../../../scripts/personnage-3d/base/sources.ts')
+await tirerSources({ ...JSON.parse(process.argv[1]), telecharger: () => { throw new Error('téléchargement inattendu') }, journal: () => {} })`
+  return new Promise((fini) => {
+    const processus = spawn(process.execPath, ['--input-type=module', '-e', code, JSON.stringify(options)], { stdio: ['ignore', 'ignore', 'pipe'] })
+    let stderr = ''
+    processus.stderr.on('data', (d: Buffer) => { stderr += d.toString() })
+    processus.on('close', (code) => fini({ code, stderr }))
+  })
+}
+
 describe('tirerSources', { timeout: 120_000 }, () => {
   it('tire, vérifie et rend chaque pack ; un second tirage ne télécharge rien', async () => {
     const { racine, octets, archives, provenance } = fabriquer(), cache = join(racine, 'cache')
@@ -47,6 +63,17 @@ describe('tirerSources', { timeout: 120_000 }, () => {
     expect(readFileSync(chemins.mpfb.licence, 'utf8')).toBe('License: CC0')
     await tirerSources({ archives, cache, provenance, telecharger, journal: silence })
     expect(appels.length).toBe(1)
+  })
+
+  it('des tirages menés de front par plusieurs processus sur un cache sans extraction réussissent tous', async () => {
+    const { racine, octets, archives, provenance } = fabriquer(10000), cache = join(racine, 'cache')
+    mkdirSync(cache)
+    const [somme] = Object.keys(archives)
+    writeFileSync(join(cache, `${somme}.tar.gz`), octets)
+    const tirages = await Promise.all(Array.from({ length: 4 }, () => tirageDansUnProcessus({ archives, cache, provenance })))
+    expect(tirages.filter((t) => t.code !== 0).map((t) => t.stderr)).toEqual([])
+    const chemins = await tirerSources({ archives, cache, provenance, telecharger: telechargement(octets).telecharger, journal: silence })
+    expect(readFileSync(join(chemins.mpfb.source, 'cibles', '9999.target'), 'utf8')).toBe('cible 9999')
   })
 
   it('ROUGE : une archive dont la somme diffère est refusée', async () => {

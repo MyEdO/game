@@ -15,6 +15,7 @@ import { applyCast } from './combatFlow';
 import { herosDeScenario, groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { findCreatureById, findSpellById } from '../data';
 import { spellEffectOps } from '../engine/flowCore';
+import type { GameOp } from '../engine/ops';
 import { effectiveChar } from '../engine/characteristics';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
@@ -24,22 +25,20 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
-const opOf = (id: string, op: string) => spellEffectOps(findSpellById(id)!.effects).find((o) => o.op === op);
+const opOf = <O extends GameOp['op']>(id: string, op: O) =>
+  spellEffectOps(findSpellById(id)!.effects).find((o): o is Extract<GameOp, { op: O }> => o.op === op);
 
 describe('effets « lourds » présents dans le Flow éditable (données app-owned)', () => {
-  it('les 8 invocations portent une op `summon` (ref bestiaire en id slug, résout par findCreatureById)', () => {
-    // ref = id SLUG du bestiaire (résolu par `findCreatureById` au spawn) — PAS un libellé (qui dégénérait
-    // en mannequin B:10, cf. data-wellformed.test). Le polymorph voisin utilise déjà le slug (`ours`).
+  it('les 8 invocations portent une op `summon` dont `creature.id` résout une fiche du bestiaire', () => {
     const summons: [string, string][] = [
       ['reanimation', 'zombie'], ['relever-les-morts', 'squelette'], ['manifestation-de-demon-mineur', 'sanguinaire-de-khorne'],
       ['dechirer-l-aethyr', 'sanguinaire-de-khorne'], ['destrier-d-ombre', 'cheval'], ['menace-rampante', 'rat-geant'],
       ['hurlement-du-loup', 'loup'], ['roi-de-la-nature', 'loup'],
     ];
-    for (const [id, ref] of summons) {
-      const op = opOf(id, 'summon') as { ref?: string } | undefined;
-      expect(op, id).toBeTruthy();
-      expect(op!.ref, id).toBe(ref);
-      expect(findCreatureById(op!.ref!), `${id}: la ref doit résoudre une vraie créature`).toBeTruthy();
+    for (const [id, creature] of summons) {
+      const creatureId = opOf(id, 'summon')?.creature.id;
+      expect(creatureId, id).toBe(creature);
+      expect(findCreatureById(creatureId), `${id}: la référence résout une vraie créature`).toBeTruthy();
     }
   });
 
@@ -50,8 +49,8 @@ describe('effets « lourds » présents dans le Flow éditable (données app-own
     for (const id of ['caresse-de-laniph', 'vol-de-vie']) {
       expect(opOf(id, 'lifeSteal'), id).toBeTruthy();
     }
-    const poly = opOf('forme-bestiale', 'polymorph') as { ref?: string } | undefined;
-    expect(poly?.ref).toBe('ours'); // ref créature en id (slug)
+    // LDB 48 l.15-25 : la forme choisie ici est l’ours du Bestiaire.
+    expect(opOf('forme-bestiale', 'polymorph')?.creature.id).toBe('ours');
   });
 });
 

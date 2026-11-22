@@ -36,7 +36,7 @@ export const MOTIF_NON_TYPEE = 'non typée'
 /** Le motif d'un site de `DETTE_OPS` dont la clé `cle` du payload est une feuille `idDe` À PLAT (`refsAPlat`). */
 export const motifAPlat = (cle) => `à plat:${cle}`
 
-/** Le volet DETTE_OPS (L1c #1468) : un site par op de `OPS_NON_TYPEES` et un par couple (op, clé) de `refsAPlat(OP_DEFS)`,
+/** Le volet DETTE_OPS : un site par op de `OPS_NON_TYPEES` et un par couple (op, clé) de `refsAPlat(OP_DEFS)`,
  *  mesurés par `sitesDeDetteDOps` (`corpusDesComptes.mts`). */
 export const DETTE_OPS = Object.freeze({
   nom: 'DETTE_OPS',

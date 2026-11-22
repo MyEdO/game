@@ -12,7 +12,7 @@ export type Jeton = { readonly [marqueDuJeton]: true };
 
 /** Les services d'un hôte dont l'appel différé rend des jetons `J` (en propriétés : paramètres contravariants). */
 export interface PlateformeDe<J> {
-  programmer: (suite: () => void, delai: number) => J;
+  programmer: (suite: () => void, delai: number, apresDeplacement?: readonly string[]) => J;
   /** Vrai tant que l'appel du jeton n'a ni tiré ni été annulé par l'hôte. */
   enAttente: (jeton: J) => boolean;
   persisterLeHeros: (heros: Combatant) => void;
@@ -38,8 +38,8 @@ export function retirerLaPlateforme(): Plateforme {
   return p;
 }
 
-export function programmer(suite: () => void, delai: number): Jeton {
-  return plateforme().programmer(suite, delai);
+export function programmer(suite: () => void, delai: number, apresDeplacement?: readonly string[]): Jeton {
+  return plateforme().programmer(suite, delai, apresDeplacement);
 }
 
 export function enAttente(jeton: Jeton): boolean {

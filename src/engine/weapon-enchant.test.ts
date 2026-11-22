@@ -5,7 +5,7 @@ import { recomputeLoadout, parseDamage, itemFromGive } from './items';
 import type { TrappingData } from '../data';
 import { t } from '../i18n';
 import { isMagicWeapon } from './qualities/dispatch';
-import { applyOps } from './ops';
+import { applyOps, type GameOp } from './ops';
 import { endOfRound } from './conditions';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import type { Combatant, ItemInstance, Weapon } from './types';
@@ -71,7 +71,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       'lance-de-myrmidia': { requiresWeapon: ['pique', 'pertuisane_lance'], addQualities: ['percutante', 'magique'] },
       'morsure-de-l-hiver': { requiresWeapon: ['hache'], addQualities: ['magique'] },
       'epee-de-justice': { requiresWeapon: ['rapiere'], addQualities: ['magique'] },
-    };
+    } satisfies Record<string, Pick<Extract<GameOp, { op: 'augmentWeapon' }>, 'requiresWeapon' | 'addQualities'>>;
     const enchantement = enchantements[miracle];
     expect(c.weapons[0]?.uid).toBe(item.uid);
     const lignes = applyOps(c, [{ op: 'augmentWeapon', ...enchantement }], {

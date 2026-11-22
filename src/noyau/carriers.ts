@@ -31,9 +31,10 @@ import { rule } from '../engine/policy';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PatchDeFlux } from './flowTypes';
+import { estBateauFluvial } from './worldMap';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
-export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'possessions'>;
+export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'possessions' | 'lieu'>;
 
 /** id STABLE du porteur « navire de campagne » (un seul en jeu). */
 export const CAMPAIGN_VESSEL_CARRIER_ID = 'vessel';
@@ -58,13 +59,13 @@ function possessionCarrier(p: Possession, capacity: number): CargoCarrier {
 }
 
 /** Possessions terrestres AVEC-LE-GROUPE d'un propriétaire du groupe, filtrées par nature. */
-function partyLandPossessions(s: CarrierStateSlice): Possession[] {
+function partyLandPossessions(s: Pick<CarrierStateSlice, 'party' | 'possessions'>): Possession[] {
   const ownerIds = new Set(s.party.filter(heroInParty).map((h) => h.id));
   return s.possessions.filter((p) => !p.destroyed && ownerIds.has(p.ownerId) && p.location.kind === 'avec-le-groupe');
 }
 
 /** Porteurs de bât/chargement possédés par le groupe, SÉPARÉS véhicules/bêtes (pour la priorité d'achat). */
-function landCarriers(s: CarrierStateSlice): { vehicles: CargoCarrier[]; beasts: CargoCarrier[] } {
+function landCarriers(s: Pick<CarrierStateSlice, 'party' | 'possessions'>): { vehicles: CargoCarrier[]; beasts: CargoCarrier[] } {
   const vehicles: CargoCarrier[] = [];
   const beasts: CargoCarrier[] = [];
   for (const p of partyLandPossessions(s)) {
@@ -81,9 +82,8 @@ export function nomDuNavire(vessel: { label?: string; vehicleId: string }): Play
 }
 
 /** Porteur « navire de campagne » : la cale (`vessel.cargo`) EST la source unique (verrou 1). */
-function vesselCarrier(s: CarrierStateSlice): CargoCarrier | undefined {
-  const vessel = s.vessel;
-  if (!vessel) return undefined;
+function vesselCarrier({ vessel, lieu }: Pick<CarrierStateSlice, 'vessel' | 'lieu'>): CargoCarrier | undefined {
+  if (!vessel || (vessel.escale !== undefined && vessel.escale !== lieu && estBateauFluvial(vessel))) return undefined;
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
   return { id: CAMPAIGN_VESSEL_CARRIER_ID, label: nomDuNavire(vessel), hull: 'coque', capacity, discreteEnc: 0, cargo: vessel.cargo ?? [], location: AVEC_LE_GROUPE };
 }
@@ -117,7 +117,7 @@ export function bulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
 const mostFree = (list: CargoCarrier[]): CargoCarrier | undefined =>
   list.reduce<CargoCarrier | undefined>((best, c) => (!best || carrierFreeEnc(c) > carrierFreeEnc(best) ? c : best), undefined);
 
-/** Porteur DE DÉFAUT d'un achat de cargaison (verrou 4 / décision 7) : navire de campagne s'il existe,
+/** Porteur DE DÉFAUT d'un achat de cargaison (verrou 4 / décision 7) : navire de campagne s'il est accessible,
  *  sinon le véhicule terrestre le plus libre, sinon la bête de bât la plus libre. `undefined` = le groupe
  *  n'a AUCUN porteur → le commerce de cargaison refuse (Contenance = plafond réel). */
 export function primaryCargoCarrier(s: CarrierStateSlice): CargoCarrier | undefined {
@@ -191,7 +191,7 @@ export function carrierById(s: CarrierStateSlice, id: string): CargoCarrier | un
 }
 
 /** Porteurs de VRAC TERRESTRES du convoi (bêtes/véhicules — hors navire) : cible du vol terrestre. */
-export function landBulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
+export function landBulkCarriers(s: Pick<CarrierStateSlice, 'party' | 'possessions'>): CargoCarrier[] {
   const { vehicles, beasts } = landCarriers(s);
   return [...vehicles, ...beasts];
 }
@@ -202,7 +202,7 @@ export function landBulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
  *  RÉELS (tronc `spoilCargoByPct`) et renvoie le patch d'état (`persistCarriersCargo`) + l'Enc perdu par
  *  porteur — le call-site (store) journalise en Consequence structurée. */
 export function applyLandCargoRaid(
-  s: CarrierStateSlice, outcome: CargoRaidOutcome,
+  s: Omit<CarrierStateSlice, 'lieu'>, outcome: CargoRaidOutcome,
 ): { patch: PatchDeFlux; pct: number; losses: { label: string; removed: number }[] } {
   const pct = cargoRaidLossPct(outcome, Number(rule('vol-terrestre-fuite-pct')), Number(rule('vol-terrestre-defaite-pct')));
   const losses: { label: string; removed: number }[] = [];
@@ -219,7 +219,7 @@ export function applyLandCargoRaid(
  *  (`vessel.cargo`) ou `Possession.cargo` de la bête/véhicule possédé (registre `possessions`, SOCLE
  *  POSSESSIONS #617/#618). Renvoie le patch d'état (`vessel`/`possessions`) à passer au `set` — jamais un
  *  2ᵉ compteur. */
-export function persistCarriersCargo(s: CarrierStateSlice, updates: { carrierId: string; cargo: CargoLot[] }[]): PatchDeFlux {
+export function persistCarriersCargo(s: Pick<CarrierStateSlice, 'vessel' | 'possessions'>, updates: { carrierId: string; cargo: CargoLot[] }[]): PatchDeFlux {
   const map = new Map(updates.map((u) => [u.carrierId, u.cargo]));
   const patch: PatchDeFlux = {};
   if (s.vessel && map.has(CAMPAIGN_VESSEL_CARRIER_ID)) {

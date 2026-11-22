@@ -20,7 +20,7 @@ const enLigne = (extra: Partial<TableEnLigne> = {}): TableEnLigne => ({
   ...extra,
 } as TableEnLigne);
 
-const parLaTable: OpTable = { op: 'rollTable', tableId: 'allure-demoniaque-nurgle' };
+const parLaTable: OpTable = { op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' } };
 
 /** Applique les rangées de la primitive une à une, `rolled` exposé, comme `applyOps` sur la table. */
 function appliquerLesRangees(o: OpTable, ctx: Omit<OpsCtx, 'idNeuf'>) {
@@ -32,7 +32,7 @@ function appliquerLesRangees(o: OpTable, ctx: Omit<OpsCtx, 'idNeuf'>) {
 describe('tirerLaTable — mêmes rangées qu’applyOps sur la table', () => {
   const cas: [string, OpTable, Omit<OpsCtx, 'idNeuf' | 'rng'>][] = [
     ['table en ligne', enLigne(), {}],
-    ['table `tableId`', parLaTable, { defaultDurationRounds: 5 }],
+    ['table référencée', parLaTable, { defaultDurationRounds: 5 }],
     ['`addNegativeSL` sur le `sl` du contexte', enLigne({ addNegativeSL: true }), { sl: -3 }],
     ['`mod`', enLigne({ mod: 2 }), {}],
     ['`extraRollsPerStep` aux pas alloués', enLigne({ extraRollsPerStep: 1 }), { overcastDurationSteps: 2, defaultDurationRounds: 3 }],
@@ -53,7 +53,7 @@ describe('tirerLaTable — mêmes rangées qu’applyOps sur la table', () => {
     expect([...tirerLaTable(o, { sl: -3 }, deFixe(5))]).toEqual([{ ops: o.entries[2].ops, rolled: 5 }]);
   });
 
-  it('`tableId` : la rangée vient de tables.json', () => {
+  it('la référence `table` désigne la rangée dans tables.json', () => {
     const [r] = [...tirerLaTable(parLaTable, {}, deFixe(3))];
     expect(r).toEqual({ ops: [{ op: 'grantTrait', trait: { id: 'demoniaque', value: 7 } }], rolled: 3 });
   });
@@ -67,21 +67,21 @@ describe('tirerLaTable — mêmes rangées qu’applyOps sur la table', () => {
 
 describe('exposerALaMaladie — fusion d’une exposition', () => {
   it('maladie neuve : entrée ajoutée, crans et incubation de l’op', () => {
-    expect(exposerALaMaladie([{ disease: 'toux' }], { op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }))
+    expect(exposerALaMaladie([{ disease: 'toux' }], { op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' }, difficultyShift: -2, incubation: 'instant' }))
       .toEqual([{ disease: 'toux' }, { disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
   });
 
   it('même maladie : garde la plus dure (cran le plus bas, `instant` si l’une l’impose)', () => {
     const avant = [{ disease: 'toux' }, { disease: 'fievre-du-rongeur', instant: true }];
-    expect(exposerALaMaladie(avant, { op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2 }))
+    expect(exposerALaMaladie(avant, { op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' }, difficultyShift: -2 }))
       .toEqual([{ disease: 'toux' }, { disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
-    expect(exposerALaMaladie([{ disease: 'fievre-du-rongeur', difficultyShift: -2 }], { op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -1 }))
+    expect(exposerALaMaladie([{ disease: 'fievre-du-rongeur', difficultyShift: -2 }], { op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' }, difficultyShift: -1 }))
       .toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2 }]);
   });
 
   it('`applyOps` pose sur `diseaseExposure` la fusion de la primitive', () => {
     const c = combattantDeTest({ diseaseExposure: [{ disease: 'fievre-du-rongeur', difficultyShift: -1 }] });
-    const op = { op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' } as const;
+    const op = { op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' }, difficultyShift: -2, incubation: 'instant' } as const;
     const attendu = exposerALaMaladie(c.diseaseExposure, op);
     applyOps(c, [op], { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(c.diseaseExposure).toEqual(attendu);

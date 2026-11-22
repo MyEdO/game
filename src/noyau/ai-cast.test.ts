@@ -9,7 +9,6 @@ import { findCreatureById, type SpellData, findSpellById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CastResult } from '../engine/magic';
-import type { GameOp } from '../engine/ops';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 
@@ -37,7 +36,8 @@ function foeAt(id: string, x: number, y: number): Combatant {
 function spellData(over: Partial<SpellData> = {}): SpellData {
   return { id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over };
 }
-const doOps = (ops: GameOp[], on: 'target' | 'caster' = 'target'): SpellData['effects'] => ({ kind: 'effet', effet: { type: 'ops', on, ops } });
+type OpsDeSort = Extract<NonNullable<SpellData['effects']>, { kind: 'effet' }>['effet']['ops'];
+const doOps = (ops: OpsDeSort, on: 'target' | 'caster' = 'target'): SpellData['effects'] => ({ kind: 'effet', effet: { type: 'ops', on, ops } });
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
   const data = over.data ?? spellData({ id: idDeFixture('spell', over.id ?? 'sp'), missile: true, damage: 8 });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };

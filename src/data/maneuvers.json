@@ -750,7 +750,9 @@
               {
                 "op": "transform",
                 "tag": "ulric-hybride",
-                "morphRef": "enfant-d-ulric",
+                "creature": {
+                  "id": "enfant-d-ulric"
+                },
                 "ops": [
                   {
                     "op": "charMod",

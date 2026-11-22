@@ -14,7 +14,7 @@ import { familleDuRepere, idDe, idsDe, mesureDuParse, recordDIds, reperesDuParse
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema, refDEtatSchema } from './mecanique';
 import { OBJETS_DU_PROJET, ouReserve } from './valeurs';
-import { descendre } from './descente';
+import { declarationDEnfants, descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { conditionIds } from '../../index';
@@ -121,12 +121,8 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
 //    de l'espace d'une feuille OUVERTE n'est pas une référence : il n'émet aucun repère, et ne compte pas) ;
 //  - COUVERTURE : un repère rendu vient d'une feuille que la marche instrumentée n'a pas atteinte.
 // Les deux familles de repère y passent : la référence (feuille `idDe`, objet qui ouvre une portée locale) et le
-// nœud d'op (`emetteursDOp`, `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
+// répartiteur d'op (`declarationDEnfants`, `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
 // ============================================================================
-
-/** Les nœuds qui émettent le repère d'op : le côté `in` du `gameOp` de CHAQUE famille construite
- *  (`famillesConstruites`, `grammaire/mecanique.ts`), qui porte le `superRefine`. */
-const emetteursDOp = (): ReadonlySet<object> => new Set(famillesConstruites().map((f) => (f.gameOp as unknown as z.ZodPipe).in));
 
 type Issue = { readonly code: string; readonly params?: object; readonly errors?: readonly (readonly Issue[])[]; readonly issues?: readonly Issue[] };
 type Charge = { value: unknown; issues: Issue[] };
@@ -164,13 +160,12 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
     (i.code === 'invalid_union' && (i.errors ?? []).some((b) => b.length > 0 && b.every(estPropre))) ||
     ((i.code === 'invalid_key' || i.code === 'invalid_element') && (i.issues ?? []).length > 0 && i.issues!.every(estPropre));
   const originaux: [AvecRun['_zod'], Run][] = [];
-  const emetteurs = emetteursDOp();
   for (const [noeud, nom] of noeudsAtteints(racines)) {
     const zod = (noeud as AvecRun)._zod;
     const run = zod.run;
     originaux.push([zod, run]);
     const feuille = declarationDeFeuilleDId(noeud);
-    const emetteurDOp = emetteurs.has(noeud);
+    const emetteurDOp = declarationDEnfants(noeud)?.nature === 'payloads-op';
     zod.run = (charge, ctx) => {
       const avant = charge.issues.length;
       const valeur = charge.value;

@@ -11,6 +11,7 @@
  *  - le `schema` littéral courant (un document non migré n'entre pas par cette porte).
  */
 import { describe, it, expect } from 'vitest';
+import type { GameOp } from '../../../engine/ops';
 import { projetSchema, projetDoc } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
@@ -130,21 +131,22 @@ describe('apparence des objets de campagne', () => {
 describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `narratif.objets`', () => {
   const objet = objetDeCampagne();
   const DU_CATALOGUE = 'arme-simple';
+  const CHEMIN_D_OP = 'scenes.0.entities.0.usable.actions.1.flow.effet.ops.0';
   /** Le projet qui référence `id` aux quatre positions : Effet et GameOp `giveTrapping`, clé `apparencesObjets` d'une
    *  entité et d'un PNJ précomposé. */
-  const document = (id: string) => projet({
+  const document = (id: string, op: GameOp = { op: 'giveTrapping', objet: { id } }) => projet({
     narratif: { ...emptyNarratif(), objets: [objet], presetsPnj: [{ id: 'pnj-de-sonde', base: { id: 'gobelin' }, apparence: { apparencesObjets: { [id]: { id: 'epee' } } } }] },
     scenes: [sceneMinimale({ entities: [
       { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
         { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: id } } } },
-        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: id } }] } } },
+        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [op] } } },
       ] } },
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: { [id]: { id: 'epee' } } } },
     ] })],
   });
   const POSITIONS = [
     ['scenes.0.entities.0.usable.actions.0.flow.effet.objet.id', false],
-    ['scenes.0.entities.0.usable.actions.1.flow.effet.ops.0.objet.id', false],
+    [`${CHEMIN_D_OP}.objet.id`, false],
     [`scenes.0.entities.1.appearance.apparencesObjets.${'@'}`, true],
     [`narratif.presetsPnj.0.apparence.apparencesObjets.${'@'}`, true],
   ] as const;
@@ -234,6 +236,38 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     const reperes = mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === 'local:narratif.objets').map((r) => [r.path.join('.'), r.parCle] as const).sort();
     expect(sitesDe(doc)).toEqual(reperes);
     expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
+  });
+
+  const mesureDeLOp = (doc: unknown) => {
+    const { reperes, ops } = mesureDuParse(projetSchema, doc);
+    return {
+      reperes: reperes.map((r) => [r.path.join('.'), r.type, r.parCle] as const).filter(([chemin]) => chemin.startsWith(`${CHEMIN_D_OP}.`)).sort(),
+      ops: ops.map((chemin) => chemin.join('.')),
+    };
+  };
+
+  it('le don garde le repère de l’objet local avec celui de son apparence de catalogue', () => {
+    const doc = document(objet.id, { op: 'giveTrapping', objet: { id: objet.id }, apparence: { id: 'epee' } });
+    expect(mesureDeLOp(doc)).toEqual({
+      reperes: [
+        [`${CHEMIN_D_OP}.apparence.id`, 'apparence', false],
+        [`${CHEMIN_D_OP}.objet.id`, 'local:narratif.objets', false],
+      ],
+      ops: [CHEMIN_D_OP],
+    });
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
+  });
+
+  it('un don différé conserve le repère local et les chemins des deux opérations', () => {
+    const doc = document(objet.id, { op: 'delayed', afterDays: 1, ops: [{ op: 'giveTrapping', objet: { id: objet.id } }] });
+    const don = `${CHEMIN_D_OP}.ops.0`;
+    const cheminLocal = `${don}.objet.id`;
+    expect(mesureDeLOp(doc)).toEqual({
+      reperes: [[cheminLocal, 'local:narratif.objets', false]],
+      ops: [CHEMIN_D_OP, don],
+    });
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET.map(([chemin, parCle]) =>
+      [chemin === `${CHEMIN_D_OP}.objet.id` ? cheminLocal : chemin, parCle]).sort());
   });
 
   it.each([

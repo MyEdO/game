@@ -6,7 +6,7 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG, type RNG } from './dice';
-import { resolveFormula, applyOps, applyActiveEffect, isValidFormula, formulaExpectation, type Formula } from './ops';
+import { resolveFormula, applyOps, applyActiveEffect, isValidFormula, formulaExpectation, type Formula, type GameOp } from './ops';
 import { groupMatch, groupesDe } from './groups';
 import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
@@ -275,7 +275,7 @@ describe('applyOps — opérations unitaires', () => {
   it('grantTrait onlyGroups (Bannissement) : Instable n’atteint que Mort-vivant/Démon', () => {
     const undead = hero({ groups: ['mort-vivant'] });
     const human = hero({ groups: ['humain'] });
-    const op = { op: 'grantTrait' as const, trait: { id: 'instable' }, onlyGroups: ['mort-vivant', 'demon'] };
+    const op: GameOp = { op: 'grantTrait', trait: { id: 'instable' }, onlyGroups: ['mort-vivant', 'demon'] };
     applyOps(undead, [op], { idNeuf: idsDeTest, rng: desDuTest });
     applyOps(human, [op], { idNeuf: idsDeTest, rng: desDuTest });
     expect(hasTraitKey(undead.traits, 'instable')).toBe(true);
@@ -716,8 +716,9 @@ describe("op:'corruption' amount négatif — Absolution (LDB 19 l.167-182, #97 
 
 describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, source unique)", () => {
   // Table jouet : d10 → ops de la rangée touchée (min/max), avec ops IMBRIQUÉES appliquées au même ctx.
-  const table = (extra: Partial<Extract<import('./ops').GameOp, { op: 'rollTable' }>> = {}) => ({
-    op: 'rollTable' as const, die: { n: 1, sides: 10 },
+  type TableEnLigne = Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
+  const table = (extra: Partial<TableEnLigne> = {}): TableEnLigne => ({
+    op: 'rollTable', die: { n: 1, sides: 10 },
     entries: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
       { min: 3, max: 8, ops: [{ op: 'condition' as const, id: { id: 'sonne' } }] },

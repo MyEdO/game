@@ -224,30 +224,32 @@ func _poser_le_voile() -> void:
 
 
 ## Le mesh de `piece` recopié, chaque sommet blanc, d'opacité sa hauteur dans la boîte `boite` de son repère
-## (`MiseEnPage.opacite_de_coupe`), et chaque matière de ses surfaces locale (`MontageDeComposition.materiau_local`), qui
-## en tire son opacité et écarte ce qui est sous son seuil. La passe d'ombre ne suit pas cette opacité (une matière à
-## ciseau d'alpha de sommet n'y projette rien, ou tout) : `piece` ne projette plus d'ombre, et son double, son mesh et ses
-## matières d'avant la coupe, enfant à son repère, projette seul la sienne, entière (`SHADOWS_ONLY`).
+## (`MiseEnPage.opacite_de_coupe`), à ses niveaux de détail (`MontageDeComposition.poser_les_niveaux`), et chaque matière
+## de ses surfaces locale (`MontageDeComposition.materiau_local`), qui en tire son opacité et écarte ce qui est sous son
+## seuil. La passe d'ombre ne suit pas cette opacité (une matière à ciseau d'alpha de sommet n'y projette rien, ou tout) :
+## `piece` ne projette plus d'ombre, et son double, le même mesh sous ses matières d'avant la coupe, enfant à son repère,
+## projette seul la sienne, entière (`SHADOWS_ONLY`), aux mêmes niveaux de détail que ce qui la reçoit.
 func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 	var source := piece.mesh as ArrayMesh
-	var ombre := MeshInstance3D.new()
-	ombre.mesh = source
-	for rang in source.get_surface_count():
-		ombre.set_surface_override_material(rang, piece.get_active_material(rang))
-	ombre.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-	piece.add_child(ombre)
-	piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var copie := ArrayMesh.new()
+	var copie := ImporterMesh.new()
 	for rang in source.get_surface_count():
 		var tableaux := source.surface_get_arrays(rang)
 		var couleurs := PackedColorArray()
 		for sommet: Vector3 in tableaux[Mesh.ARRAY_VERTEX]:
 			couleurs.append(Color(1.0, 1.0, 1.0, MiseEnPage.opacite_de_coupe(to_local(piece.to_global(sommet)).y, boite.position.y, boite.end.y)))
 		tableaux[Mesh.ARRAY_COLOR] = couleurs
-		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux)
-		copie.surface_set_material(rang, source.surface_get_material(rang))
-	piece.mesh = copie
-	for rang in copie.get_surface_count():
+		copie.add_surface(source.surface_get_primitive_type(rang), tableaux, [], {}, source.surface_get_material(rang), source.surface_get_name(rang))
+	MontageDeComposition.poser_les_niveaux(copie)
+	var coupe_mesh := copie.get_mesh()
+	var ombre := MeshInstance3D.new()
+	ombre.mesh = coupe_mesh
+	for rang in source.get_surface_count():
+		ombre.set_surface_override_material(rang, piece.get_active_material(rang))
+	ombre.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	piece.add_child(ombre)
+	piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	piece.mesh = coupe_mesh
+	for rang in coupe_mesh.get_surface_count():
 		var locale := MontageDeComposition.materiau_local(piece, rang, _locaux)
 		locale.vertex_color_use_as_albedo = true
 		locale.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR

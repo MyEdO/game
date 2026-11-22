@@ -79,7 +79,7 @@ describe('resoudreFlowTest — joué ou non', () => {
   });
 
   it('`gate` d’Immunité : une cible Immunisée au poison ne teste pas (LDB 85 l.174)', () => {
-    const ft: FlowTest = { skill: { id: 'resistance' }, difficulty: 'complexe', gate: { kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: 'poison' } } };
+    const ft: FlowTest = { skill: { id: 'resistance' }, difficulty: 'complexe', gate: { kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', ref: { id: 'poison' } } } };
     const immunise = combattantDeTest({ traits: [{ id: 'immunite', arg: 'poison' }] });
     expect(resoudreFlowTest(ft, { cc: { ...cc, target: buildActorView(profane) }, sujet: profane }).joue).toBe(true);
     expect(resoudreFlowTest(ft, { cc: { ...cc, target: buildActorView(immunise) }, sujet: immunise }).joue).toBe(false);

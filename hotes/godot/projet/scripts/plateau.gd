@@ -14,9 +14,9 @@
 ## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; touchables par le rayon même retirées, hors de l'immersion, les cases
 ## jouables qui se voient : celle de chaque combattant dessiné et chaque case peinte en cible (`Monde.poser_les_cases_jouables`),
-## la plus haute d'une colonne prenant le clic ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
-## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
-## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
+## aucun combattant sous l'œil de l'immersion ; les effets de chaque appel entre ses combattants (`Effets`), dont le
+## chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la case cliquée : celle que le monde
+## désigne sous le pointeur en donnant priorité aux cibles de combat offertes, ou que l'œil franchit ou vise ; et, au clic droit, la
 ## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
 class_name Plateau
 extends Node3D
@@ -52,6 +52,8 @@ var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
+## Par case, l'id de la première cible offerte par la projection de combat, prioritaire au clic gauche.
+var _cases_de_cibles := {}
 
 
 func _ready() -> void:
@@ -147,9 +149,11 @@ func _marquer(id: String, lieu: Vector3, marques: Array, metres_par_case: float)
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
 ## effet (`Effets.cases_de`) : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
 ## d'un coup qui touche l'accuse à son arrivée, un combattant dessiné qui se déplace parcourt son chemin.
-func jouer_les_effets(effets: Array) -> void:
+## Rend les tweens des parcours démarrés par ces effets, par combattant.
+func jouer_les_effets(effets: Array) -> Dictionary[String, Tween]:
+	var trajets: Dictionary[String, Tween] = {}
 	if _vue.plateau == null:
-		return
+		return trajets
 	var lieux := {}
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
@@ -157,6 +161,10 @@ func jouer_les_effets(effets: Array) -> void:
 		for case: Dictionary in Effets.cases_de(effet):
 			lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
+	for effet: Dictionary in effets:
+		if effet.quoi == Noyau.Effet.DEPLACEMENT and _modeles.has(effet.qui):
+			trajets[effet.qui] = _modeles[effet.qui].trajet_en_cours()
+	return trajets
 
 
 ## L'auteur `de` d'un effet, s'il est encore dessiné, se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur
@@ -271,6 +279,11 @@ func points() -> Dictionary:
 	return points
 
 
+## L'id de la première cible offerte à cette case au clic gauche, ou `null`.
+func cible_offerte_en(case: Vector3i) -> Variant:
+	return _cases_de_cibles.get(case)
+
+
 ## Les cases (`[x, y, z]`) que `vue.casesDesCibles` donne aux cibles `ids`, en vue ou non ; un id nul n'en a aucune.
 func _cases_des(ids: Array) -> Array:
 	return ids.filter(func(id: Variant) -> bool: return id != null).map(func(id: String) -> Array: return _vue.casesDesCibles[id])
@@ -293,24 +306,30 @@ func _lieu(pos: Array) -> Vector3:
 ## Les cases peintes (`Monde.peindre`) : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis
 ## la case sous le pointeur, chacune à la place de celle qu'elle portait ; et les cases jouables qui se voient hors de
 ## l'immersion (`Monde.poser_les_cases_jouables`) : celle de chaque combattant dessiné et chaque case peinte en cible.
+## Les cases des cibles de combat offertes sont prioritaires au clic gauche (`Monde.case_sous`).
 func _peindre() -> void:
 	var plaques := {}
+	_cases_de_cibles.clear()
 	var jouables: Array[Vector3i] = []
 	var projection: Dictionary = _vue.get("projection", {})
 	for c in _dessines(projection):
 		if c.pos != null:
 			jouables.append(Vector3i(int(c.pos[0]), int(c.pos[1]), int(c.pos[2])))
-	var surligner := func(pos: Array, item: int) -> void:
+	var surligner := func(pos: Array, item: int) -> Vector3i:
 		var case := Vector3i(int(pos[0]), int(pos[1]), int(pos[2]))
 		plaques[case] = item
 		if item == Monde.ITEM_CIBLE:
 			jouables.append(case)
+		return case
 	for c in _vue.get("cases", []):
 		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = projection.get("combat")
 	if combat != null:
-		for case: Array in _cases_des(combat.cibles.liste):
-			surligner.call(case, Monde.ITEM_CIBLE)
+		for id: Variant in combat.cibles.liste:
+			if id == null:
+				continue
+			var case: Vector3i = surligner.call(_vue.casesDesCibles[id], Monde.ITEM_CIBLE)
+			_cases_de_cibles.get_or_add(case, id)
 		var apercu: Variant = combat.apercu
 		if apercu != null:
 			for case: Array in _cases_des([apercu.cible]):
@@ -327,6 +346,7 @@ func _peindre() -> void:
 	_monde.peindre(plaques)
 	if not _combattants.visible:
 		jouables.clear()
+		_cases_de_cibles.clear()
 	_monde.poser_les_cases_jouables(jouables)
 
 
@@ -334,7 +354,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_survoler(_monde.case_sous(event.position))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var case: Variant = _monde.case_sous(event.position)
+		var case: Variant = _monde.case_sous(event.position, _cases_de_cibles)
 		_survol = null
 		_peindre()
 		if case != null:
@@ -377,7 +397,7 @@ func _survoler(case: Variant) -> void:
 ## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses
 ## `manifestes` et ses `osDesRigides` avant `demarrer`. Pour chaque corps de la vue, Godot charge la base sous
 ## `modeles/` (`fichiers` de la réponse de `modeles`, sous la `forme` du listage), la pose à l'échelle du plateau (un mètre du modèle vaut
-## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
+## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes et les formes de sa tête (`morphes`), ses `materiaux` et sa
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
 ## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps est animé par un arbre d'états

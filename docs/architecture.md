@@ -123,6 +123,12 @@ déclare les seules zones du dépôt.
   bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), le héros
   persisté (`persisterLeHeros`, le roster de l'hôte qui a un stockage : `src/hote/roster.ts`), et,
   pour `validateScene`, les pistes de musique que l'hôte sait jouer.
+- **La cadence après une approche** (#3839) dépend du parcours présenté. L'autorité du combat arme le geste
+  depuis le noyau et le reprend une seule fois. Son jeton donne les identifiants des porteurs dont le déplacement
+  précède le délai de tenue.
+  Le pont expose ceux du même appel dont le chemin est visible. Godot compte le délai après la fin des parcours
+  effectivement joués, y compris s'ils sont accélérés ou abandonnés. L'hôte texte rejoue le jeton à l'horloge
+  virtuelle, sans attente de présentation. Le miroir coop applique les instantanés de l'autorité.
 - **Registres fermés** : au noyau, un registre d'effets ou de crochets est une table statique typée par une
   union fermée (une entrée manquante ne compile pas), jamais une fonction d'inscription appelée à l'import.
 - **Les données s'éditent au Compendium Godot** (#4020) : sa session vit au noyau
@@ -325,12 +331,10 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             `base64.ts` : le base64 des octets dans les deux sens (`enBase64`, `depuisBase64`),
                             seul site de `btoa` et `atob` (`murs/base64`, #3948).
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
-                            besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
+                            besoin pour SA PROPRE logique — curseur de combat, IA —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
                             isométrique (Dims, tileCenter, rotTile…) — `noyau/monde/iso.ts` la ré-importe pour
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
-                            `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
-                            STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
                             `dir8.ts` : Dir8 (8 caps grille) et son sous-ensemble cardinal Dir4 +
                             géométrie associée : rotateDir8, DIR8_DELTA, facingToward (#161, #2884 : la
                             géométrie de cap grille n'est ni du rendu ni du monde ; `data`, `noyau`, `ui` et
@@ -656,8 +660,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import) ;
-                            depuis le cloud, une branche `transfert/<x>` qui porte les fichiers et leur provenance les y
-                            verse au push (`.github/workflows/transfert.yml`, `epingles.mjs`), puis s'efface.
+                            depuis le cloud, une branche `transfert/<nom>` qui porte les fichiers et leur provenance
+                            (`asset/transfert.ts`, `npm run godot:transfert`) les y verse au push
+                            (`.github/workflows/transfert.yml`, `epingles.mjs`), puis s'efface.
   projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles 3D, leurs licences) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,

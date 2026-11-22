@@ -590,7 +590,6 @@ export interface ZonesDeLEditeur {
    * pour une op), la courante pressée, précédées de « Aucune » si son absence est admise, puis les champs de la
    * variante courante, sans son discriminant, ou le choix de sa propre union sous le même chemin ;
    *
-   * une op sans forme déclarée (`OPS_NON_TYPEES`, #1468), une ligne qui le dit puis la saisie JSON de l'op entière ;
    * d'une variante hors objet, la saisie de sa valeur (le nombre d'une formule, au pas de 1 s'il est entier) ; un objet
    * d'une union sans variantes nommées, sa ligne titre et les champs de la branche qu'il dessine (`formeAuPoint`) ;
    *

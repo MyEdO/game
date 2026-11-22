@@ -210,6 +210,91 @@ describe('resoudreLaPile', () => {
     expect(['bras', 'epaule', 'torse', 'manche'].reduce((t, nom) => t + poidsSur(pres, 40, nom), 0)).toBeCloseTo(1, 6);
   });
 
+  /** Un maillage plan sur l'os `cou`, à la hauteur `z`, de sommets (x, y) et de triangles `triangles`, tournés vers +Z
+   *  dans le sens trigonométrique. */
+  const plan = (sommets: readonly (readonly [number, number])[], triangles: readonly number[], z = 0): MaillageDePile => ({
+    positions: Float32Array.from(sommets.flatMap(([x, y]) => [x, y, z])), indices: Uint32Array.from(triangles),
+    os: new Uint16Array(sommets.length * 4), poids: Float32Array.from(sommets.flatMap(() => [1, 0, 0, 0])), noms: ['cou'],
+  });
+  const dents = 4, pas = 0.025;
+  /** La couture en zigzag : creux k en (2k × pas, 0), pointe k en ((2k + 1) × pas, pas / 2). */
+  const couture = Array.from({ length: 2 * dents + 1 }, (_, i) => [i * pas, i % 2 ? pas / 2 : 0] as const);
+  const creux = (k: number) => 2 * k, pointe = (k: number) => 2 * k + 1;
+  /** Sous la couture, une rangée en y = −2 pas ; chaque pointe ferme une dent, aux trois sommets sur la couture. Au-dessus,
+   *  la pièce qui la partage, jusqu'à une rangée en y = 2 pas. */
+  const cousus = (): { cou: MaillageDePile; tete: MaillageDePile } => {
+    const rangee = (y: number) => Array.from({ length: dents + 1 }, (_, k) => [2 * k * pas, y] as const);
+    const n = couture.length;
+    return {
+      cou: plan([...couture, ...rangee(-2 * pas)], Array.from({ length: dents }, (_, k) => [
+        n + k, n + k + 1, creux(k + 1), n + k, creux(k + 1), creux(k),
+        creux(k), creux(k + 1), pointe(k),
+      ]).flat()),
+      tete: plan([...couture, ...rangee(2 * pas)], Array.from({ length: dents }, (_, k) => [
+        creux(k), pointe(k), n + k, pointe(k), n + k + 1, n + k, pointe(k), creux(k + 1), n + k + 1,
+      ]).flat()),
+    };
+  };
+
+  it('une couverture cousue au bord d’une pièce ne masque pas les triangles de ce bord ; sous une couverture de même contour, tous (#4413)', () => {
+    const { cou, tete } = cousus();
+    /** Sous une couverture de même contour, tout point du bord l'est aussi au bord d'elle, chaque triangle sous elle. */
+    const temoin = nappe(0, 'cou', 0.1, 4, 0.5);
+    const bilan = empiler([piece(cou, temoin), piece(tete, nappe(SERRAGE_M, 'cou', 0.1, 4, 0.5))]);
+    expect(bilan.couverts).toBe(couture.length + 25);
+    expect(cou.indices).toHaveLength(dents * 9);
+    expect(temoin.indices).toHaveLength(0);
+    expect(bilan.masques).toBe(4 * 4 * 2);
+  });
+
+  it('une dent de la couture dont un seul coin est retenu hors du bord d’une seconde couverture, qui ne couvre pas son centre, reste dessinée (#4413)', () => {
+    const { cou, tete } = cousus();
+    /** Devant la pointe de la première dent, au-dessus de son centre (y = pas / 6) : la pointe est sous elle, hors de son bord. */
+    const casque = nappe(SERRAGE_M / 2, 'cou', 0.02, 2, pas);
+    for (let s = 0; s < casque.positions.length / 3; s++) casque.positions[s * 3 + 1] += pas * 0.8;
+    empiler([piece(cou), piece(tete), piece(casque)]);
+    expect(cou.indices).toHaveLength(dents * 9);
+  });
+
+  /** Un carré de 2 cm centré en (x, y), à `SERRAGE_M` / 2 devant le plan, en quatre triangles autour de son centre : un
+   *  point sous son centre est hors de son bord. */
+  const carreAutour = (x: number, y: number): MaillageDePile =>
+    plan([[x, y], [x - 0.01, y - 0.01], [x + 0.01, y - 0.01], [x + 0.01, y + 0.01], [x - 0.01, y + 0.01]], [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1], SERRAGE_M / 2);
+
+  it('un triangle dont chaque coin est retenu hors du bord d’une couverture différente, et dont aucune ne couvre le centre, reste dessiné (#4413)', () => {
+    const coins = [[0, 0], [0.06, 0], [0.03, 0.05]] as const;
+    const peau = plan(coins, [0, 1, 2]);
+    empiler([piece(peau), ...coins.map(([x, y]) => piece(carreAutour(x, y)))]);
+    expect(peau.indices).toHaveLength(3);
+  });
+
+  /** Un carré de 20 cm à `SERRAGE_M` / 2 devant le plan, percé d'un trou triangulaire V (0, 0), P (−3, 6) et Q (3, 6) cm,
+   *  ses bords ceux du carré et du trou ; sous V, le triangle (V, L, R) n'a aucune arête de bord. `retournes` tourne vers
+   *  −Z les deux triangles qui portent les arêtes VP et VQ : V n'est plus touché que par (V, L, R). */
+  const percee = (retournes: boolean): MaillageDePile => {
+    const [V, P, Q, L, R, S0, S1, S2, S3] = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    return plan(
+      [[0, 0], [-0.03, 0.06], [0.03, 0.06], [-0.02, -0.05], [0.02, -0.05], [-0.1, -0.1], [0.1, -0.1], [0.1, 0.1], [-0.1, 0.1]],
+      [
+        V, L, R, ...(retournes ? [V, L, P, V, Q, R] : [V, P, L, V, R, Q]),
+        S0, S1, R, S0, R, L, S1, S2, Q, S1, Q, R, S2, S3, P, S2, P, Q, S3, S0, L, S3, L, P,
+      ],
+      SERRAGE_M / 2,
+    );
+  };
+
+  it('un triangle dont un coin touche une arête de bord de sa couverture entre ses sommets, les deux autres sous elle, et dont le centre est dans son trou, reste dessiné (#4413)', () => {
+    const peau = plan([[-0.015, 0.03], [0.01, 0.07], [-0.01, 0.07]], [0, 1, 2]);
+    empiler([piece(peau), piece(percee(false))]);
+    expect(peau.indices).toHaveLength(3);
+  });
+
+  it('un triangle dont un coin touche un sommet de bord de sa couverture par un triangle sans arête de bord, les deux autres sous elle, et dont le centre est dans son trou, reste dessiné (#4413)', () => {
+    const peau = plan([[0, 0], [0.01, 0.07], [-0.01, 0.07]], [0, 1, 2]);
+    empiler([piece(peau), piece(percee(true))]);
+    expect(peau.indices).toHaveLength(3);
+  });
+
   it('les sommets confondus de deux maillages d’une pièce restent liés pareil', () => {
     const gauche = nappe(0, 'bras', 0.1, 8, -0.05), droite = nappe(0, 'torse', 0.1, 8, 0.05), dessus = nappe(SERRAGE_M, 'manche', 0.1, 8, -0.05);
     empiler([piece(gauche, droite), piece(dessus)]);

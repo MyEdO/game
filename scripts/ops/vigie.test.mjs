@@ -187,7 +187,7 @@ test('câblage : `tick` lit les têtes de l’origine, la CI par sha, le journal
       const conclusion = verdicts.get(sha)
       return { disponible: true, valeur: [{ headSha: sha, workflowName: 'CI', status: conclusion ? 'completed' : 'in_progress', conclusion, databaseId: 1, attempt: 1 }] }
     }
-    const rougesDuTick = () => ({ disponible: true, valeur: { rouges: ['suite'], annules: [] } })
+    const rougesDuTick = () => ({ disponible: true, valeur: { rouges: verdicts.get(branche) ? ['suite'] : [], annules: [] } })
     const premier = tick({ arbre: aval, lire, jobs: rougesDuTick, horloge: () => 0 })
     assert.equal(premier.ligne, 'CI main ✓ · chantier/9 … · train : —')
     assert.deepEqual(premier.transitions, [])

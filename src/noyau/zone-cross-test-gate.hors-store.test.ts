@@ -32,7 +32,7 @@ const CROSS_TEST_ZONE: BattleZone = {
   ],
   crossTest: {
     characteristic: 'agilite', difficulty: 'difficile', label: "Forêt d'épines",
-    gate: { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'vie' } },
+    gate: { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', ref: { id: 'magie-des-arcanes', spec: 'vie' } } },
   },
 };
 

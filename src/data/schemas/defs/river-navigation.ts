@@ -56,6 +56,11 @@ const champs = {
   }),
   horsDeControle: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
   echouage: nommerChamps(z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }), { hullDamage: { label: 'Dégâts de coque' }, source: { label: 'Source' } }),
+  /** MSRC 7 l.109-111 */
+  permanentRepairCarpenterPenalty: z.int().nonpositive(),
+  permanentRepairGoldPerDamage: z.int().positive(),
+  permanentRepairWounds: tirageSchema,
+  permanentRepairHours: tirageSchema,
   temporaryRepair: nommerChamps(z.strictObject({
     woundsPerRepair: tirageSchema,
     enduranceDifficulty: difficultySchema,
@@ -91,6 +96,10 @@ const doc = document(
     capsize: { label: 'Chavirage', hint: 'Difficultés d’amener la voile et de redresser, pénalité cumulative' },
     horsDeControle: { label: 'Hors de contrôle', hint: 'Malus au Test de Navigation quand le bateau est hors de contrôle' },
     echouage: { label: 'Échouage', hint: 'Dégâts de coque infligés par un échouage' },
+    permanentRepairCarpenterPenalty: { label: 'Malus du Charpentier en cale sèche' },
+    permanentRepairGoldPerDamage: { label: 'Couronnes d’or par Dégât restauré en cale sèche' },
+    permanentRepairWounds: { label: 'Dégâts restaurés par Test réussi en cale sèche' },
+    permanentRepairHours: { label: 'Heures par Test réussi en cale sèche' },
     temporaryRepair: { label: 'Réparation temporaire', hint: 'Blessures réparées par Test, Test d’Endurance de suivi' },
   },
   { codex: { keys: ['riverNavigation'] }, edit: { object: 'unique' } },

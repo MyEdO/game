@@ -36,6 +36,7 @@ from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
 from formes import decalages, poser_la_cle
+from noms_formes_de_tete import VISAGE_INVERSE
 from tissu import Maillage, direction_spatiale, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur
 
 POLE = np.array([0.0, 0.0, 1.0])
@@ -149,6 +150,17 @@ def elevation(p):
     return math.degrees(math.atan2(p[2], math.hypot(p[0], p[1])))
 
 
+def depuis_l_arriere(boucle, P, C):
+    """La boucle `boucle` (indices dans `P`, positions monde) en azimut croissant depuis l'arrière, vue de `C`."""
+    phis = np.array([azimut(P[i] - C) for i in boucle])
+    if np.sum(np.sin(np.radians(np.roll(phis, -1) - phis))) < 0:
+        boucle = boucle[::-1]
+        phis = phis[::-1]
+    phis = np.where(phis >= 180.0, phis - 360.0, phis)
+    debut = int(np.argmin(phis))
+    return boucle[debut:] + boucle[:debut]
+
+
 def couture(b, zones, C):
     """Les sommets du bord du `cou` de la base qu'il partage avec les zones `zones`, en boucle d'azimut croissant depuis
     l'arrière (vu de `C`, monde) : (indices dans le cou, positions monde). Deux sommets confondus du cou n'en font qu'un."""
@@ -183,13 +195,7 @@ def couture(b, zones, C):
         boucle.append(suivant)
     if len(boucle) != len(voisins):
         raise ValueError('tête : la couture du cou est en plusieurs boucles')
-    phis = np.array([azimut(P[i] - C) for i in boucle])
-    if np.sum(np.sin(np.radians(np.roll(phis, -1) - phis))) < 0:
-        boucle.reverse()
-        phis = phis[::-1]
-    phis = np.where(phis >= 180.0, phis - 360.0, phis)
-    debut = int(np.argmin(phis))
-    boucle = boucle[debut:] + boucle[:debut]
+    boucle = depuis_l_arriere(boucle, P, C)
     return np.array(boucle), P[boucle]
 
 
@@ -206,6 +212,26 @@ def elevation_de_la_couture(S, C, phis):
     for _ in range(3):
         E = 0.25 * np.roll(E, 1) + 0.5 * E + 0.25 * np.roll(E, -1)
     return np.maximum(E, enveloppe)
+
+
+def directions_des_rangs(phis, E, rangs):
+    """Les directions, rang par rang, des colonnes d'azimuts `phis` : chaque rang de `rangs` à sa part de l'arc qui va
+    de l'enveloppe de la couture `E` (par colonne) au pôle."""
+    return np.array([direction_spatiale(phi, e + (90.0 - e) * g) for g in rangs for phi, e in zip(phis, E)])
+
+
+def parts_du_fondu(arcs, portee):
+    """La part de la tête, par part `arcs` de l'arc de la couture au pôle : nulle à la couture, entière à `portee`."""
+    return np.array([fondu(a / portee) for a in arcs])
+
+
+def fondre_sur_le_cou(porteur, C, dirs, rayons, arcs, portee):
+    """Par direction de `dirs` depuis `C`, `(rayon, part)` : le rayon passe de la peau de la tête de la base (visée sur
+    `porteur`), qui prolonge le cou, à `rayons`, à la part `parts_du_fondu` de `rayons` ; `arcs` est la part de l'arc de la
+    couture au pôle où pointe chaque direction."""
+    parts = parts_du_fondu(arcs, portee)
+    de_la_base = np.array([np.linalg.norm(sur_le_porteur(porteur, C, d, PORTEE_M)[0] - C) for d in dirs])
+    return (1 - parts) * de_la_base + parts * rayons, parts
 
 
 def coudre(M, bord, S, anneau, A, C):
@@ -475,15 +501,13 @@ def construire(D, materiaux, b):
     phis = vs - k * np.degrees(np.sin(np.radians(vs)))
     E = elevation_de_la_couture(S, C, phis)
     rangs = np.asarray(D['RANGS'], float)
-    fondus = np.array([fondu(g / D['FONDU_DU_COU']) for g in rangs])
 
-    dirs = np.array([direction_spatiale(phi, e + (90.0 - e) * g) for g in rangs for phi, e in zip(phis, E)] + [POLE])
+    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [POLE]])
     r_forme = rayons_vises(C - H, dirs, vols)
     r_inverse = rayons_vises(C - H, dirs, vols_inverses)
-    poids_forme = np.concatenate([np.repeat(fondus, len(phis)), [1.0]])
     porteur = b.porteur(zones)
-    r_couture = np.array([np.linalg.norm(sur_le_porteur(porteur, C, d, PORTEE_M)[0] - C) for d in dirs])
-    r = (1 - poids_forme) * r_couture + poids_forme * r_forme
+    r, poids_forme = fondre_sur_le_cou(porteur, C, dirs, r_forme, np.concatenate([np.repeat(rangs, len(phis)), [1.0]]),
+                                       D['FONDU_DU_COU'])
     inverse = (poids_forme * (r_inverse - r_forme))[:, None] * dirs
 
     M = Maillage()
@@ -544,5 +568,5 @@ def construire(D, materiaux, b):
         if tourne:
             p = X[sommets]
             retourne[sommets] = np.column_stack([-p[:, 0], p[:, 1], 2 * (H[2] + z_axe) - p[:, 2]]) - p
-    poser_la_cle(piece, 'visage_inverse', retourne)
+    poser_la_cle(piece, VISAGE_INVERSE, retourne)
     return piece
