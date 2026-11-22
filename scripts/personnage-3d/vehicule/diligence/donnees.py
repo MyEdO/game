@@ -15,49 +15,32 @@ siège du cocher n'est pas.
 Matières : `bois-chene` pour le train et la caisse, le catalogue n'ayant pas de bois peint ; la caisse a son
 emplacement de palette, `vet1`, pour qu'une couleur d'apparence la peigne sans peindre le train."""
 
-DEFINITIONS = ("diligence",)
-
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {"bois": ("bois", "bois-chene"), "caisse": ("vet1", "bois-chene"), "cuir": ("cuir", "cuir-tanne"),
              "fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore"), "vitre": ("vitre", "verre")}
 
-# Les deux trains : y de l'essieu, puis la table de `maille.roue`. `tours` : tours de roue par boucle du clip de
-# déplacement ; le chemin d'une boucle, tours × circonférence, est le même aux deux trains.
-ROUE_ARRIERE = {
-    "voie": 0.83,
-    "segments": 20,
-    "bandage": (0.625, 0.660, 0.070),   # rayon intérieur, extérieur, largeur (fer)
-    "jante": (0.540, 0.625, 0.060),     # rayon intérieur, extérieur, largeur (bois)
-    "moyeu": (0.100, -0.12, 0.10),      # rayon, x intérieur et extérieur relatifs au plan (vers l'extérieur positif)
-    "chapeau": (0.070, 0.10, 0.13),     # frette de fer au bout du moyeu : rayon, x de début et de fin
-    "frette": (0.110, -0.11, -0.08),    # frette côté intérieur du moyeu
-    "rayons": 12,
-    "rayon_section": (0.045, 0.035),    # largeur tangentielle, épaisseur en x
-    "segments_moyeu": 10,
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"diligence": 6100}
+
+# Les deux trains (`roulant.py`), les grandes roues à l'arrière : nœuds `roue_avg`, `roue_avd`, `roue_arg`, `roue_ard`.
+# Les cales montent de l'essieu au milieu des longerons.
+TRAIN = {"voie": 0.83, "largeur": 0.07, "essieu": (0.045, 0.004), "fusee": (0.035, 0.12, 8)}
+TRAINS = {
+    "av": {**TRAIN, "y": -0.55, "rayon": 0.44, "pans": 18, "bandage": 0.03, "moyeu": (0.09, 0.10),
+           "cales": (0.40, 0.71, 0.07, 0.05), "tours": 3},
+    "ar": {**TRAIN, "y": 1.45, "rayon": 0.66, "pans": 20, "bandage": 0.035, "moyeu": (0.10, 0.10),
+           "cales": (0.40, 0.71, 0.07, 0.05), "tours": 2},
 }
-ROUE_AVANT = {
-    "voie": 0.83,
-    "segments": 18,
-    "bandage": (0.410, 0.440, 0.070),
-    "jante": (0.345, 0.410, 0.060),
-    "moyeu": (0.090, -0.12, 0.10),
-    "chapeau": (0.065, 0.10, 0.13),
-    "frette": (0.100, -0.11, -0.08),
-    "rayons": 10,
-    "rayon_section": (0.042, 0.035),
-    "segments_moyeu": 10,
-}
-TRAINS = {"arriere": {"y": 1.45, "roue": ROUE_ARRIERE, "tours": 2}, "avant": {"y": -0.55, "roue": ROUE_AVANT, "tours": 3}}
 
 CHASSIS = {
     "longerons": (0.40, 0.05, -1.30, 2.00, 0.66, 0.76),    # x du milieu, demi-largeur, y avant, y arrière, z bas, z haut
     "traverses": ([-1.25, 0.35, 1.95], 0.05, 0.67, 0.75),  # y, demi-profondeur, z bas, z haut
-    "essieu": (0.045, 0.72),                               # corps d'essieu de bois : demi-section, demi-longueur
-    "fusee": (0.035, 0.93),                                # essieu de fer : rayon, demi-longueur
-    "cale": (0.07, 0.05),                                  # cale entre l'essieu et le longeron : demi-profondeur, demi-largeur
 }
 
 CAISSE = {
+    "definitions": ("diligence",),
     "boite": (0.70, -0.50, 1.60, 0.76, 2.15),              # demi-largeur, y avant, y arrière, z bas, z haut
     "paroi": 0.03,                                         # épaisseur des parois et du plancher
     "baies": (1.57, 2.00),                                 # z de l'appui et du linteau des baies

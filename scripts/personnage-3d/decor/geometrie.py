@@ -9,7 +9,8 @@ les familles partagent
 et la pièce profilée dans une boîte de la recette, pièce tournée, son profil droit, le fil droit et la pièce tournée
 dans un cylindre de la recette, prolongée dans ses voisines, étoffe froncée et le point de sa surface, pièce ronde
 courbée, feuille en lame, cheville et ses cotes, clou, anneau plat de section rectangulaire, chaîne pendue, bougie sur
-sa bobèche, étoffe plissée et dais, rampe d'escalier, pierre taillée, assise et massif harpé, charbons, ardoises,
+sa bobèche, roue à rais et train sans ses roues, que partagent les véhicules à roues (`vehicule/roulant.py`), étoffe
+plissée et dais, rampe d'escalier, pierre taillée, assise et massif harpé, charbons, ardoises,
 planches côte à côte, pièce plate découpée) et le partage inégal d'une longueur ; et la déclaration des éléments d'une
 famille, avec ses nœuds par matériau et la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
@@ -325,6 +326,58 @@ def cercle(m, axe, centre, r, h, e, segments, mat):
     le long de l'axe, son épaisseur `e`."""
     tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments,
          mat, ferme=True)
+
+
+# Roue à rais (`roue`) : `jante` : son rayon du dedans (part de son rayon du dehors) ; `largeur` : sa largeur (part de
+# celle de la roue) ; `rais` : leur nombre ; `pied` : leur départ (part du rayon du moyeu) ; `tete` : leur bout (part
+# du rayon du dedans de la jante, où ils entrent) ; `rai` : leur rayon (part de la demi-largeur de la roue) ;
+# `fuseau` : leur profil (part de la longueur, part du rayon) ; `pans` : leurs côtés ; `noix` : profil du moyeu, d'un
+# bout à l'autre ; `cotes` du moyeu.
+ROUE = {
+    "jante": 0.86, "largeur": 0.8, "rais": 12, "pied": 0.7, "tete": 1.03, "rai": 0.55,
+    "fuseau": ((0.0, 1.0), (0.12, 1.0), (0.2, 0.72), (1.0, 0.6)), "pans": 5,
+    "noix": ((0.0, 0.55), (0.08, 0.75), (0.2, 1.0), (0.42, 1.0), (0.5, 0.8), (0.58, 1.0), (0.8, 1.0), (0.92, 0.75),
+             (1.0, 0.55)), "cotes": 8,
+}
+
+
+def roue(m, axe, centre, dehors, large, pans, moyeu, manquants=(), bandage=None):
+    """Une roue de bois à rais d'après `ROUE`, autour de l'axe `axe` de `maille` ('x', 'y' ou 'z') par `centre` : une
+    jante de rayon `dehors`, à `pans` pans, large de `ROUE["largeur"]` de `large` ; un moyeu tourné `moyeu` (maille,
+    matériau, rayon, demi-longueur) ; des rais tournés du moyeu à la jante, hors les rangs `manquants` ; un `bandage`
+    (maille, matériau, épaisseur) cerclé à mi-épaisseur sur la jante, large de `large`."""
+    R = ROUE
+    essieu = Vector(point(axe, (0, 0, 0), 1, 0, 0))
+    u, w = repere(axe)
+    dedans = dehors * R["jante"]
+    if bandage:
+        cerclage, fer, epais = bandage
+        cercle(cerclage, axe, tuple(centre), dehors, large, epais, pans, fer)
+    cercle(m, axe, tuple(centre), (dedans + dehors) / 2, large * R["largeur"], dehors - dedans, pans, MAT)
+    noix, mat, rayon, demi = moyeu
+    tournee(noix, centre - essieu * demi, centre + essieu * demi, u, w, rayon, R["noix"], R["cotes"], mat)
+    for k in range(R["rais"]):
+        if k in manquants:
+            continue
+        d = autour(u, w, 2 * math.pi * (k + 1 / 2) / R["rais"])
+        tournee(m, centre + d * (rayon * R["pied"]), centre + d * (dedans * R["tete"]), essieu, essieu.cross(d),
+                large / 2 * R["rai"], R["fuseau"], R["pans"])
+
+
+def train(m, gauche, droite, demi, arete, cales=(), fusee=None):
+    """Un train sans ses roues : l'essieu de bois équarri du centre d'une roue, `gauche`, à celui de l'autre, `droite`,
+    de demi-côté `demi`, ses arêtes abattues de `arete` ; ses `cales` [(point de l'axe de l'essieu, hauteur de leur
+    tête, demi-longueur le long de la route, demi-largeur le long de l'essieu)], dressées de l'essieu à ce qu'il
+    porte ; sa `fusee` (maille, matériau, rayon, saillie, côtés), l'essieu de fer qui le traverse et dépasse de
+    `saillie` le centre de chaque roue."""
+    travers = (droite - gauche).normalized()
+    route = travers.cross(HAUT)
+    planche(m, gauche, droite, route, HAUT, demi, demi, arete)
+    for pied, tete, long, large in cales:
+        planche(m, pied, Vector((pied.x, pied.y, tete)), route, travers, long, large, arete)
+    if fusee:
+        fer, mat, rayon, saillie, cotes = fusee
+        tournee(fer, gauche - travers * saillie, droite + travers * saillie, route, HAUT, rayon, CYLINDRE, cotes, mat)
 
 
 def chaine(m, x, y, z0, z1, nombre, grand, petit, segments, mat):
