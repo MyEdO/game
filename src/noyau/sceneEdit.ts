@@ -75,7 +75,7 @@ import {
 } from './worldMapEdit';
 import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
-import { creatures, findCreatureById, findPropById, findSiegeEngineById, findVehicleById, refEstVolumique, semencesDeScene } from '../data';
+import { creatures, findCreatureById, findPropById, findSiegeEngineById, refEstVolumique, semencesDeScene } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
@@ -122,7 +122,7 @@ import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
 import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
-import { ancreDuDecor, footprintN, footprintTiles } from './monde/footprint';
+import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -968,17 +968,13 @@ function placerDesCopies(scene: Scene, modele: SceneEntity, nombre: number, cont
   const flottaison = contexte?.flottaison(modele);
   const navire = flottaison !== undefined || (isMerScene(scene) && estUneCoqueNavale(modele));
   const carte = navire ? scene : (contexte?.vue ?? scene);
-  const empreinteSansPlan = (e: SceneEntity) => {
-    const coque = navire && e.vehicule && findVehicleById(e.vehicule.id)?.ship;
-    return coque ? footprintTiles(e.pos, footprintN(coque)) : entiteFootTiles(e, mpt);
-  };
-  const empreinte = flottaison ?? empreinteSansPlan(modele);
+  const empreinte = flottaison ?? entiteFootTiles(modele, mpt);
   const decalages = empreinte.map((t) => ({ x: t.x - modele.pos.x, y: t.y - modele.pos.y }));
   const cle = (t: Pt) => tileKey(t.x, t.y, z);
   const casesTenues = (e: SceneEntity) => {
     if (e.id === modele.id) return empreinte.map(cle);
     const plan = navire ? contexte?.flottaison(e) : undefined;
-    return (plan ?? empreinteSansPlan(e)).map(cle);
+    return (plan ?? entiteFootTiles(e, mpt)).map(cle);
   };
   const tenues = new Set(carte.entities.filter((e) => (e.z ?? 0) === z).flatMap(casesTenues));
   const sol = aUnRoleEnJeu(scene, modele) ? isWalkable : solPraticable;

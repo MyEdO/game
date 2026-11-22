@@ -48,7 +48,7 @@ import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
 import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
-import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
+import { footprintN, footprintTiles, propFootTiles } from './footprint';
 import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
@@ -153,11 +153,22 @@ export function entitySize(ent: { creature?: { id: string }; statblock?: CustomS
   });
 }
 
+/** L'empreinte que la fiche d'un corps déclare, celle que `ficheDuCorps` pose au combattant : coque (`hull.footprint`),
+ *  engin de siège (`siegeFootprint`). */
+function empreinteDeLaFiche(ent: Pick<SceneEntity, 'vehicule' | 'engin'>): number | undefined {
+  if (ent.vehicule) return findVehicleById(ent.vehicule.id)?.hull?.footprint;
+  if (ent.engin) return findSiegeEngineById(ent.engin.id)?.siegeFootprint;
+  return undefined;
+}
+
+/** Le côté de l'empreinte d'un corps de scène (`footprintN`), celui de son combattant. */
+export const coteDeLEmpreinte = (ent: SceneEntity): number => footprintN({ size: entitySize(ent), footprint: empreinteDeLaFiche(ent) });
+
 /** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
- *  couture unique de la marchabilité et de la ligne de vue), le carré de sa Taille pour une créature. */
+ *  couture unique de la marchabilité et de la ligne de vue), sinon le carré de `coteDeLEmpreinte`. */
 export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
   if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
-  return footprintTiles(ent.pos, sizeFootprint(entitySize(ent)));
+  return footprintTiles(ent.pos, coteDeLEmpreinte(ent));
 }
 
 /** Nuée non imprimée au profil : LDB 85 l.253 ; ZI 02 l.138-140 (Nuée imprimée). Ses Blessures : `effectiveMaxWounds`. */

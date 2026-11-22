@@ -40,7 +40,7 @@ export function vehicleCombatant(v: VehicleData, id = `vehicle-${v.id}`, milieuN
     refId: v.id,
     bodyShape: v.hull.bodyShape, // 'vehicule' — Tableau de Localisation de coque (data-driven, dalle 2-3)
     hull: { e: v.hull.char.endurance, woundsB: v.hull.char.B },
-    footprint: v.ship?.footprint, // EMPREINTE de grille (côté N×N) autorée — découplée de la Taille créature
+    footprint: v.hull.footprint, // EMPREINTE de grille (côté N×N) autorée — découplée de la Taille créature
   });
   return v.ship && milieuNaval ? { ...coque, milieuNaval } : coque;
 }

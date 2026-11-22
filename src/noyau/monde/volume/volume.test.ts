@@ -649,7 +649,7 @@ describe('une écriture au catalogue, sur la même scène : volume, nappes, cour
     const s = buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'O' }] });
     const ponts = () => JSON.stringify(poserLesNavires(s).entities.filter((e) => e.id.startsWith('c1-')).map((e) => e.pos));
     const depart = ponts();
-    const elargie = sousLesVehicules((v) => (v.id === 'caraque' && v.ship && v.ship.footprint !== undefined ? { ...v, ship: { ...v.ship, footprint: v.ship.footprint + 2 } } : v), ponts);
+    const elargie = sousLesVehicules((v) => (v.id === 'caraque' && v.hull?.footprint !== undefined ? { ...v, hull: { ...v.hull, footprint: v.hull.footprint + 2 } } : v), ponts);
     expect(elargie).not.toBe(depart);
     expect(ponts()).toBe(depart);
   });

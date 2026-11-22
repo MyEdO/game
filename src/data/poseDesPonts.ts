@@ -21,7 +21,7 @@ export function rectangleDesPonts(scene: SupportDesPonts, entite: AncreDesPonts)
   const dimensions = dimensionsDesPonts(fiche.ponts[0]);
   const horizontal = cap === 'E' || cap === 'O';
   const [w, h] = horizontal ? [dimensions.w, dimensions.h] : [dimensions.h, dimensions.w];
-  const cote = fiche.ship?.footprint ?? 1;
+  const cote = fiche.hull?.footprint ?? 1;
   const coin = (ancre: number, longueur: number) => Math.floor(ancre + (cote - longueur) / 2 + 0.5);
   return { x: coin(entite.pos.x, w), y: coin(entite.pos.y, h), w, h, cap };
 }

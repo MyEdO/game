@@ -15,8 +15,8 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from './monde/rooms';
-import { footprintTiles, sizeFootprint } from './monde/footprint';
-import { entiteFootTiles, entitySize } from './monde/spawn';
+import { footprintTiles } from './monde/footprint';
+import { coteDeLEmpreinte, entiteFootTiles } from './monde/spawn';
 import { METRES_PER_LEVEL } from './monde/relief';
 import { borneALaCarte, realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
@@ -557,7 +557,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
         // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à
         // l'authoring, pas au jeu. L'ancre seule ne suffit donc pas à juger la pose.
-        const n = sizeFootprint(entitySize(membre));
+        const n = coteDeLEmpreinte(membre);
         const z = membre.z ?? 0;
         const tuiles = footprintTiles(membre.pos, n);
         const nom = membre.label ?? idDuCorps(membre) ?? membre.id;
