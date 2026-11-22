@@ -131,6 +131,45 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(formes.find((f) => f.champ === 'scalaire')).toMatchObject({ signature: 'id-nu', statut: 'historique', occurrences: 2, cibles: ['skills.json'] });
     expect(formes.find((f) => f.champ === 'skillRef')).toMatchObject({ signature: 'id', statut: 'cible', occurrences: 2, cibles: ['skills.json'] });
   });
+  it('écarte le discriminant d’une GameOp validée au site et conserve les vraies références', () => {
+    const catalogue = z.array(z.strictObject({ id: z.string(), label: z.string() }));
+    const ops = z.array(gameOpSchema);
+    const porteur = z.array(z.strictObject({
+      id: z.string(),
+      label: z.string(),
+      ops,
+      refusees: ops,
+      copies: z.array(z.strictObject({ op: z.string(), amount: z.number() })),
+    }));
+    const defs: SchemaDef[] = [
+      { file: 'characteristics.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'maladies.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'porteur.json', root: 'src/data', famille: 'entite', schema: porteur },
+    ];
+    const mesure = scannerFixtureDeReferences('structures-discriminant-op-', {
+      'characteristics.json': [{ id: 'corruption', label: 'Homonyme témoin' }],
+      'maladies.json': [{ id: 'peste-noire', label: 'Maladie témoin' }],
+      'porteur.json': [{
+        id: 'porteur',
+        label: 'Porteur',
+        ops: [{ op: 'corruption', amount: 1 }, { op: 'exposeDisease', disease: 'peste-noire' }],
+        refusees: [{ op: 'corruption', amount: false }],
+        copies: [{ op: 'corruption', amount: 1 }],
+      }],
+    }, defs);
+
+    expect(mesure.totalOps).toBe(2);
+    expect(mesure.autresPorteursDOp.filter(({ dataset }) => dataset === 'porteur.json')).toMatchObject([
+      { champ: 'refusees', op: 'corruption', motif: 'charge refusée' },
+      { champ: 'copies', op: 'corruption', motif: 'hors site GameOp' },
+    ]);
+    const references = [...mesure.referencesParPorteur.values()].flatMap((cases) =>
+      [...cases].filter(([, occurrence]) => occurrence.dataset === 'porteur.json')
+        .map(([cle, occurrence]) => `${occurrence.champ}.${cle}`),
+    );
+    expect(lignes(references)).toEqual(['copies.op', 'ops.disease', 'refusees.op']);
+  });
+
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('structures-scan.mts');
