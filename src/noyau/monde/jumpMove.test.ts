@@ -29,6 +29,14 @@ describe('planJump', () => {
     expect(plan.kind).toBe('free');
   });
 
+  it('saut au-dessus d’une case d’étage meublée d’un décor solide : aucune surface, l’échec ne traverse pas jusqu’au rez (#4576)', () => {
+    const meublee = platformGap();
+    meublee.layers[1].tiles[1 * 5 + 2] = 'plancher';
+    meublee.layers[1].height![1 * 5 + 2] = 4;
+    meublee.entities = [{ id: 'brasero', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 2, y: 1 }, z: 1 }];
+    expect(planJump(meublee, { x: 1, y: 1, z: 1 }, { x: 3, y: 1, z: 1 }, 4, 0)).toEqual({ kind: 'none', raison: 'aucune-surface' });
+  });
+
   it('saut trop long pour un humain = nœud Test « Saut » dont l’échec tombe dans le gouffre', () => {
     const plan = planJump(scene, { x: 1, y: 1, z: 1 }, { x: 3, y: 1, z: 1 }, 4, 0); // M=4 → libre=0 → Test requis
     expect(plan.kind).toBe('test');
