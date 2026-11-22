@@ -412,6 +412,9 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
 
   it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'comptes-2995-'));
+    // La mesure de la racine ne lit pas la copie : son processus tourne pendant les gestes.
+    const mesureOriginale = mesurer(ROOT);
+    mesureOriginale.catch(() => undefined);
     try {
       for (const rel of Object.keys(CHEMINS_EXPORTES))
         if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
@@ -480,10 +483,10 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
       writeFileSync(join(dossier, 'src/data/schemas/defs-scenes/aaa-sonde-2995.ts'), module);
       execFileSync(process.execPath, ['--input-type=module', '-e', `const { preparerExport } = await import(${JSON.stringify(pathToFileURL(join(ROOT, 'scripts/migrations/replay-head.mjs')).href)}); preparerExport(process.argv[1]);`, dossier], { cwd: dossier, env, stdio: 'pipe' });
       expect(readFileSync(join(dossier, 'src/data/schemas/_registry-scenes.generated.ts'), 'utf8'), 'le projet neuf n’est pas au registre régénéré : la sonde ne prouverait rien.').toContain('aaa-sonde-2995');
-      const [mesureOriginale, mesureMutee] = await Promise.allSettled([mesurer(ROOT), mesurer(dossier)]);
-      if (mesureOriginale.status === 'rejected') throw mesureOriginale.reason;
-      if (mesureMutee.status === 'rejected') throw mesureMutee.reason;
-      const [original, copie] = [mesureOriginale.value, mesureMutee.value];
+      const [originale, mutee] = await Promise.allSettled([mesureOriginale, mesurer(dossier)]);
+      if (originale.status === 'rejected') throw originale.reason;
+      if (mutee.status === 'rejected') throw mutee.reason;
+      const [original, copie] = [originale.value, mutee.value];
       expect([...original.keys()], 'la mesure ne rend pas chaque volet sous la porte').toEqual(SOUS_LA_PORTE.map((c) => c.nom));
       expect(refusDesComptes(original, copie), 'une donnée ajoutée ou retirée fait refuser la plage : un volet lit la donnée.').toEqual([]);
       expect(refusDesComptes(copie, original), 'retirer la donnée ajoutée fait refuser la plage : un volet lit la donnée.').toEqual([]);
