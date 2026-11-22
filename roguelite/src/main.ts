@@ -5,8 +5,10 @@
  * relevés du noyau.
  */
 import * as J from './jeu';
-import { carac, coutDAugmentation, libelleDeCarac, libelleDEtat, nomDeCreature, type IssueDuCombat, type Pas, type PionDuPlateau, type Combatant } from './combat';
-import { BUSTES, cadre, jauge, medaillon, plaque, portrait, poserLesTextures, rond } from './kit';
+import { carac, coutDAugmentation, libelleDeCarac, libelleDEtat, nomDeCreature, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau, type Combatant } from './combat';
+import { DEGRADES_DES_FIGURINES, figurine, gabaritDeCreature, gabaritDuHeros } from './figures';
+import { dessinerLaCour, type Cour } from './cour';
+import { cadre, jauge, medaillon, plaque, portrait, poserLesTextures, rond } from './kit';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from './hameau';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
@@ -15,7 +17,7 @@ const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;',
 type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string } | { type: 'depart'; dest: string | null; choix: Set<string> } | { type: 'chronique' };
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
-let modale: { type: 'recit'; recit: J.RecitDeSalle; illustration?: string } | { type: 'reset' } | null = null;
+let modale: { type: 'recit'; recit: J.RecitDeSalle; illustration?: string; terrain?: string } | { type: 'reset' } | null = null;
 let congediement: string | null = null;
 let panoramaCentre = false;
 
@@ -261,79 +263,173 @@ function rendre() {
 // ─── Rejeu du combat ────────────────────────────────────────────────────────────────────────────────────────
 
 let rejeu: { issue: IssueDuCombat; i: number; vitesse: number; minuteur: number; fin: () => void } | null = null;
-const DELAI = 520;
 
-function ouvrirLeRejeu(issue: IssueDuCombat, fin: () => void) {
+function gabaritDuPion(q: PionDuPlateau) {
+  if (q.camp === 'heros') {
+    const h = etat.roster.find((x) => x.c.id === q.id);
+    if (h) return gabaritDuHeros(h.carriere, h.espece, h.c.weapons.map((w) => w.label));
+    return gabaritDeCreature(q.creature ?? '');
+  }
+  return gabaritDeCreature(q.creature ?? '');
+}
+
+let cour: Cour | null = null;
+
+/** L'échelle de la cour : elle tient dans l'écran sur un bureau ; sur un écran étroit, elle garde une taille lisible et défile. */
+function mettreALEchelle() {
+  const cadreCour = document.querySelector<HTMLElement>('#combat .cour-cadre');
+  if (!cadreCour || !cour) return;
+  const { x, y, largeur, hauteur } = cour.cadrage;
+  const dispo = Math.max(240, window.innerHeight - 290);
+  const k = Math.max(0.62, Math.min(1.25, (window.innerWidth - 32) / largeur, dispo / hauteur));
+  cadreCour.style.setProperty('--k', String(k));
+  cadreCour.style.width = `${largeur * k}px`;
+  cadreCour.style.height = `${hauteur * k}px`;
+  cadreCour.querySelector<HTMLElement>('.cour')!.style.transform = `scale(${k}) translate(${-x}px, ${-y}px)`;
+}
+
+function ouvrirLeRejeu(issue: IssueDuCombat, fin: () => void, terrain: string) {
   const scene = $('#combat');
   scene.hidden = false;
-  const cases = Array.from({ length: issue.largeur * issue.hauteur }, () => '<i></i>').join('');
-  scene.innerHTML = `<div class="arene-cadre">
-    <header><div class="titre gothique">Combat</div><span class="etiquette compte fer" id="round">Round 1</span>
-      <div class="vitesse" role="group" aria-label="Vitesse">${[1, 2, 4].map((v) => `<button type="button" class="plaque petite laiton${v === 1 ? ' armee' : ''}" data-v="${v}"><div>×${v}</div></button>`).join('')}<button type="button" class="plaque petite laiton" data-v="0"><div>Passer</div></button></div></header>
-    <div class="arene-corps">${cadre(`<div class="arene-zone"><div class="arene" style="--w:${issue.largeur};--h:${issue.hauteur}">${cases}<div class="pions"></div></div></div>`, { classe: 'plateau', balise: 'div' })}
-      ${cadre(`<div class="effectifs"><div class="sous-titre">Compagnie</div><ul data-camp="heros"></ul><div class="sous-titre">Adversaires</div><ul data-camp="ennemi"></ul></div>`, { balise: 'div', classe: 'panneau-eff' })}</div>
-    ${cadre('<ol class="journal" aria-live="polite"></ol>', { fond: 'parchemin', balise: 'div', classe: 'panneau-journal' })}
-    <footer id="combat-fin-place"></footer>
+  cour = dessinerLaCour(issue.largeur, issue.hauteur, terrain);
+  scene.innerHTML = `<div class="combat-ecran">
+    <header class="combat-tete">
+      ${cadre(`<div class="cartouche">${medaillon('epee', 'grand')}<div><div class="titre gothique">Combat</div><div class="sous-titre" id="round">Round 1</div></div></div>`, { balise: 'div', classe: 'cartouche-combat' })}
+      <ol class="ordre" aria-label="Ordre du round"></ol>
+      <div class="vitesse" role="group" aria-label="Vitesse">${[1, 2, 4].map((v) => `<button type="button" class="plaque petite laiton${v === 1 ? ' armee' : ''}" data-v="${v}"><div>×${v}</div></button>`).join('')}<button type="button" class="plaque petite laiton" data-v="0"><div>Passer</div></button></div>
+    </header>
+    <div class="tour" id="tour" aria-live="polite"></div>
+    <div class="champ"><div class="cour-cadre"><div class="cour" style="width:${cour.largeur}px;height:${cour.hauteur}px">${cour.svg}<div class="figures"></div></div></div></div>
+    <div class="combat-pied">
+      ${cadre('<ol class="journal"></ol>', { fond: 'parchemin', balise: 'div', classe: 'panneau-journal' })}
+      <div class="rang-heros vivant"></div>
+    </div>
+    <div class="issue-place" id="combat-fin-place"></div>
   </div>`;
+  mettreALEchelle();
   rejeu = { issue, i: 0, vitesse: 1, minuteur: 0, fin };
-  poserLePas(issue.pas[0], null);
+  poserLePas(issue.pas[0]);
   planifier();
+}
+
+/** La durée d'un pas : le temps de ses coups, un mouvement, ou un battement bref. */
+function dureeDuPas(p: Pas, avant: Pas | null): number {
+  const bouge = !!avant && p.pions.some((q) => { const a = avant.pions.find((x) => x.id === q.id); return a && (a.x !== q.x || a.y !== q.y); });
+  const base = p.coups.length ? 380 + p.coups.length * 720 : bouge ? 520 : p.etats.length ? 520 : p.actif !== avant?.actif ? 420 : 160;
+  return base / (rejeu?.vitesse ?? 1);
 }
 
 function planifier() {
   if (!rejeu) return;
   clearTimeout(rejeu.minuteur);
   if (rejeu.i >= rejeu.issue.pas.length - 1) return terminerLeRejeu();
+  const p = rejeu.issue.pas[rejeu.i];
   rejeu.minuteur = window.setTimeout(() => {
     if (!rejeu) return;
     rejeu.i++;
-    poserLePas(rejeu.issue.pas[rejeu.i], rejeu.issue.pas[rejeu.i - 1]);
+    poserLePas(rejeu.issue.pas[rejeu.i]);
     planifier();
-  }, DELAI / rejeu.vitesse);
+  }, dureeDuPas(p, rejeu.issue.pas[rejeu.i - 1] ?? null));
 }
 
-function contenuDuPion(q: PionDuPlateau): string {
-  const buste = busteDuPion(q);
-  return buste ? `<svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${BUSTES[buste]}</svg>` : `<b class="gothique">${esc(q.label[0])}</b>`;
+const figureDe = (id: string) => document.querySelector<HTMLElement>(`#combat .fig[data-id="${CSS.escape(id)}"]`);
+
+function flotter(el: HTMLElement | null, texte: string, genre: string) {
+  if (!el) return;
+  const f = document.createElement('span');
+  f.className = `flottant ${genre}`;
+  f.textContent = texte;
+  el.append(f);
+  setTimeout(() => f.remove(), 1500);
 }
 
-function poserLePas(p: Pas, avant: Pas | null) {
-  const zone = $('#combat .pions');
-  const anciens = new Map((avant?.pions ?? []).map((q) => [q.id, q]));
+/** Un coup : la fente ou le trait, puis l'impact et son issue, écrite. */
+function jouerLeCoup(c: Coup, vitesse: number) {
+  const de = figureDe(c.de);
+  const vers = figureDe(c.vers);
+  if (!de || !vers) return;
+  const pos = (el: HTMLElement) => [Number(el.dataset.px), Number(el.dataset.py)];
+  const [x0, y0] = pos(de);
+  const [x1, y1] = pos(vers);
+  const impact = 300 / vitesse;
+  vers.classList.add('cible');
+  setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
+  if (c.genre === 'distance' || c.genre === 'spell') {
+    const t = document.createElement('i');
+    t.className = `trait ${c.genre}`;
+    t.style.cssText = `left:${x0}px;top:${y0 - 50}px;--dx:${x1 - x0}px;--dy:${y1 - y0}px;--duree:${impact}ms;--angle:${Math.atan2(y1 - y0, x1 - x0)}rad`;
+    de.parentElement!.append(t);
+    setTimeout(() => t.remove(), impact + 60);
+    de.classList.remove('tire'); void de.offsetWidth; de.classList.add('tire');
+  } else {
+    const n = Math.hypot(x1 - x0, y1 - y0) || 1;
+    de.style.setProperty('--fx', `${((x1 - x0) / n) * 26}px`);
+    de.style.setProperty('--fy', `${((y1 - y0) / n) * 26}px`);
+    de.style.setProperty('--duree', `${560 / vitesse}ms`);
+    de.classList.remove('fente'); void de.offsetWidth; de.classList.add('fente');
+  }
+  setTimeout(() => {
+    if (c.touche) {
+      vers.classList.remove('frappe'); void vers.offsetWidth; vers.classList.add('frappe');
+      flotter(vers, c.blessures ? `−${c.blessures}` : 'Touché', c.critique ? 'degat critique' : 'degat');
+      if (c.critique) setTimeout(() => flotter(vers, 'Critique !', 'critique-mot'), 120);
+    } else {
+      flotter(vers, c.defense === 'parade' ? 'Paré' : c.defense === 'esquive' ? 'Esquivé' : 'Raté', 'evite');
+      vers.classList.remove('esquive'); void vers.offsetWidth; vers.classList.add('esquive');
+    }
+  }, impact);
+}
+
+/** Pose un pas sur le plateau ; `anime` faux le pose sans jouer ses coups (« Passer »). */
+function poserLePas(p: Pas, anime = true) {
+  const zone = $('#combat .figures');
+  const vitesse = rejeu?.vitesse ?? 1;
   for (const q of p.pions) {
-    let el = zone.querySelector<HTMLElement>(`[data-id="${CSS.escape(q.id)}"]`);
+    let el = figureDe(q.id);
     if (!el) {
+      const g = gabaritDuPion(q);
       el = document.createElement('div');
       el.dataset.id = q.id;
-      el.className = `pion camp-${q.camp}`;
-      el.innerHTML = `<div class="disque">${contenuDuPion(q)}</div><span class="pv"><i></i></span>`;
+      el.className = `fig camp-${q.camp}`;
       el.title = q.label;
+      el.style.setProperty('--s', String(q.cases > 1 ? 1.5 : 1));
+      el.style.setProperty('--haut', `${(g.bete ? 46 : 74) * g.taille + 14}px`);
+      el.innerHTML = `${figurine(g, q.camp)}<span class="pv-fig"><i></i></span>`;
       zone.append(el);
     }
-    el.style.setProperty('--x', String(q.x));
-    el.style.setProperty('--y', String(q.y));
-    el.style.setProperty('--n', String(q.cases));
+    const [px, py] = cour!.centre(q.x, q.y, q.cases);
+    el.dataset.px = String(px);
+    el.dataset.py = String(py);
+    el.style.left = `${px - 50}px`;
+    el.style.top = `${py - 130}px`;
+    el.style.zIndex = String(Math.round(py));
     el.classList.toggle('hors', q.hors);
-    (el.querySelector('.pv i') as HTMLElement).style.width = `${(100 * q.pv) / Math.max(1, q.max)}%`;
-    const a = anciens.get(q.id);
-    if (a && a.pv !== q.pv) {
-      const delta = q.pv - a.pv;
-      const f = document.createElement('span');
-      f.className = `degat chiffres ${delta < 0 ? 'perte' : 'gain'}`;
-      f.textContent = delta < 0 ? String(delta) : `+${delta}`;
-      el.append(f);
-      el.classList.remove('touche'); void el.offsetWidth; el.classList.add('touche');
-      setTimeout(() => f.remove(), 1100);
-    }
+    el.classList.toggle('actif', q.id === p.actif);
+    (el.querySelector('.pv-fig i') as HTMLElement).style.width = `${(100 * q.pv) / Math.max(1, q.max)}%`;
   }
-  for (const camp of ['heros', 'ennemi'] as const) {
-    $(`#combat .effectifs [data-camp="${camp}"]`).innerHTML = p.pions.filter((q) => q.camp === camp).map((q) => {
-      const buste = busteDuPion(q);
-      return `<li class="rang ${camp}${q.hors ? ' hors' : ''}">${buste ? portrait(buste, camp, 'petit') : `<div class="portrait fer ennemi petit"><div class="initiale gothique">${esc(q.label[0])}</div></div>`}
-        <div class="qui"><div class="nom">${esc(q.label)}${q.hors ? ' <span class="glose">hors de combat</span>' : ''}</div>${jauge(q.pv / Math.max(1, q.max))}<span class="chiffres pv-t">${q.pv} / ${q.max}</span></div></li>`;
-    }).join('');
+  if (anime) {
+    p.coups.forEach((c, k) => setTimeout(() => jouerLeCoup(c, vitesse), (k * 720) / vitesse));
+    const apres = (p.coups.length * 720 + 200) / vitesse;
+    p.etats.forEach((e, k) => setTimeout(() => flotter(figureDe(e.porteur), libelleDEtat(e.etat, 1), 'etat'), apres + k * 160));
+  }
+  const actif = p.pions.find((q) => q.id === p.actif);
+  const champ = document.querySelector<HTMLElement>('#combat .champ');
+  if (actif && champ && champ.scrollWidth > champ.clientWidth) {
+    const k = Number(document.querySelector<HTMLElement>('#combat .cour-cadre')?.style.getPropertyValue('--k')) || 1;
+    champ.scrollTo({ left: (Number(figureDe(actif.id)!.dataset.px) - cour!.cadrage.x) * k - champ.clientWidth / 2, behavior: anime ? 'smooth' : 'auto' });
   }
   $('#round').textContent = `Round ${p.round}`;
+  $('#tour').innerHTML = actif ? `<span class="ruban gothique">${actif.camp === 'heros' ? 'Au tour de' : 'Tour adverse :'} ${esc(actif.label)}</span>` : '';
+  $('#tour').className = `tour ${actif?.camp ?? ''}`;
+  const parId = new Map(p.pions.map((q) => [q.id, q]));
+  $('#combat .ordre').innerHTML = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q).map((q) => {
+    const buste = busteDuPion(q);
+    return `<li class="${q.id === p.actif ? 'actif' : ''}${q.hors ? ' hors' : ''}" title="${esc(q.label)}">${buste ? portrait(buste, q.camp, 'petit') : `<div class="portrait fer ennemi petit"><div class="initiale gothique">${esc(q.label[0])}</div></div>`}</li>`;
+  }).join('');
+  $('#combat .rang-heros').innerHTML = p.pions.filter((q) => q.camp === 'heros').map((q) => {
+    const h = etat.roster.find((x) => x.c.id === q.id);
+    return `<div class="carte-heros${q.hors ? ' hors' : ''}${q.id === p.actif ? ' choisi' : ''}">${h ? portrait(busteDuHeros(h), 'heros', 'moyen') : ''}<span class="qui"><span class="nom-propre petit gothique">${esc(q.label)}</span><span class="vie"><span>Blessures</span><span class="chiffres">${q.pv} / ${q.max}</span></span>${jauge(q.pv / Math.max(1, q.max), { taille: 'forte' })}</span></div>`;
+  }).join('');
   const j = $('#combat .journal');
   for (const l of p.lignes) {
     const li = document.createElement('li');
@@ -347,10 +443,10 @@ function poserLePas(p: Pas, avant: Pas | null) {
 
 function terminerLeRejeu() {
   const place = $('#combat-fin-place');
-  if (place && !place.innerHTML) {
-    place.innerHTML = plaque('Voir l’issue', 'id="combat-fin"', { armee: true, taille: 'appel' });
-    $('#combat-fin').focus();
-  }
+  if (!place || place.innerHTML || !rejeu) return;
+  const victoire = rejeu.issue.issue === 'victoire';
+  place.innerHTML = `<div class="banniere-issue ${victoire ? 'victoire' : 'defaite'}"><span class="gothique">${victoire ? 'Victoire' : rejeu.issue.issue === 'defaite' ? 'Déroute' : 'Le combat s’enlise'}</span></div>${plaque('Voir l’issue', 'id="combat-fin"', { armee: true, taille: 'appel' })}`;
+  $('#combat-fin').focus();
 }
 
 function fermerLeRejeu() {
@@ -378,7 +474,7 @@ document.addEventListener('click', (ev) => {
     const n = Number(v.dataset.v);
     if (n === 0) {
       clearTimeout(rejeu.minuteur);
-      for (let i = rejeu.i + 1; i < rejeu.issue.pas.length; i++) poserLePas(rejeu.issue.pas[i], rejeu.issue.pas[i - 1]);
+      for (let i = rejeu.i + 1; i < rejeu.issue.pas.length; i++) poserLePas(rejeu.issue.pas[i], false);
       rejeu.i = rejeu.issue.pas.length - 1;
       terminerLeRejeu();
     } else {
@@ -421,18 +517,19 @@ document.addEventListener('click', (ev) => {
     }
     case 'avancer': {
       panneau = null;
+      const terrain = etat.expedition?.destination ?? 'reikwald';
       const camp = etat.expedition?.salles[etat.expedition.index].type === 'camp';
       const recit = J.avancer(etat);
       J.sauver(etat);
-      const montrer = () => { modale = { type: 'recit', recit, ...(camp ? { illustration: 'bivouac.jpg' } : {}) }; rendre(); };
-      if (recit.combat) { rendre(); ouvrirLeRejeu(recit.combat, montrer); } else montrer();
+      const montrer = () => { modale = { type: 'recit', recit, terrain, ...(camp ? { illustration: 'bivouac.jpg' } : {}) }; rendre(); };
+      if (recit.combat) { rendre(); ouvrirLeRejeu(recit.combat, montrer, terrain); } else montrer();
       return;
     }
     case 'revoir': {
       if (modale?.type !== 'recit' || !modale.recit.combat) return;
       const m = modale;
       modale = null; rendre();
-      return ouvrirLeRejeu(m.recit.combat!, () => { modale = m; rendre(); });
+      return ouvrirLeRejeu(m.recit.combat!, () => { modale = m; rendre(); }, m.terrain ?? 'reikwald');
     }
     case 'rentrer': {
       panneau = null;
@@ -456,9 +553,11 @@ document.addEventListener('keydown', (ev) => {
 });
 
 window.addEventListener('resize', () => {
+  mettreALEchelle();
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) pano.scrollLeft = (pano.scrollWidth - pano.clientWidth) * 0.42;
 });
 
+document.body.insertAdjacentHTML('beforeend', DEGRADES_DES_FIGURINES);
 poserLesTextures();
 rendre();

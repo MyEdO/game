@@ -20,6 +20,11 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (`fenetreFermer`) qui rend la main au noyau : retour en exploration, et `etat().party` débarrassé de ces
   champs. Rien ne le dit à un hôte. Idée : une issue de rencontre explicite (`rencontreClose`, ou
   `party` rendu par l'appel qui ferme), et le `jouerJusquAIssue` ci-dessus qui la rendrait.
+- **Friction — le coup n'est lisible qu'à travers le bus interne.** Pour animer un combat (qui frappe qui, touche,
+  Blessures, parade, esquive, Critique), la seule source structurée est `EVT.ANIM_ATTACK` et sa `ChargeDAttaque`
+  (`src/noyau/bus.ts`), que `Partie` relaie dans `evenements`. Le type et le nom de l'événement ne sont pas dans la
+  surface (`src/noyau/index.ts`) : l'hôte importe `bus.ts`. Sans eux, il devrait relire le texte du journal. Le
+  résultat d'un sort (`CastResult`) n'a pas la même forme que celui d'une arme (`AttackResult`), l'hôte normalise.
 - **Friction — `fenetreDuJeu` hors de la surface du noyau.** La surface (`src/noyau/index.ts`) ne
   réexporte pas `fenetreDuJeu` (`src/noyau/combatAuto.ts`), alors qu'un hôte en a besoin pour piloter
   la cadence auto : l'hôte importe un module interne.

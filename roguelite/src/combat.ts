@@ -7,6 +7,7 @@
 import { ouvrirLeLancement } from '../../src/hote/partie';
 import { arena, setEncounters } from '../../src/scenes/test-scenarios/_shared';
 import { fenetreDuJeu } from '../../src/noyau/combatAuto';
+import { EVT, type ChargeDAttaque } from '../../src/noyau/bus';
 import { footprintN } from '../../src/noyau/monde/footprint';
 import { createHero } from '../../src/engine/character';
 import { fabriqueLocale } from '../../src/engine/fabriqueDId';
@@ -50,8 +51,13 @@ export function augmenter(c: Combatant, k: CharKey): string | null {
 }
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
-export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; creature?: string; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
-export interface Pas { lignes: string[]; pions: PionDuPlateau[]; round: number }
+export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; creature?: string; arme?: string; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
+/** Un coup tel que le noyau l'annonce au rendu (`EVT.ANIM_ATTACK`, `ChargeDAttaque`). */
+export interface Coup { de: string; vers: string; genre: 'melee' | 'distance' | 'creature' | 'spell'; touche: boolean; blessures: number; critique: boolean; defense: 'parade' | 'esquive' | 'aucune' }
+/** Un État qu'un combattant gagne pendant le pas (`etatGagne` de la partie). */
+export interface EtatGagne { porteur: string; etat: string }
+/** Un pas du rejeu : les lignes du journal, le plateau, les coups portés, l'actif et l'ordre du round. */
+export interface Pas { lignes: string[]; pions: PionDuPlateau[]; round: number; coups: Coup[]; etats: EtatGagne[]; actif: string | null; ordre: string[] }
 export interface IssueDuCombat {
   issue: 'victoire' | 'defaite' | 'impasse';
   pas: Pas[];
@@ -86,7 +92,18 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     () => {},
   );
   const file: number[] = [];
-  const recevoir = (r: Parameters<typeof jetons.programmes>[0]) => file.push(...jetons.programmes(r).map((p) => p.id));
+  let coups: Coup[] = [];
+  let etats: EtatGagne[] = [];
+  const recevoir = (r: Parameters<typeof jetons.programmes>[0]) => {
+    file.push(...jetons.programmes(r).map((p) => p.id));
+    for (const e of r.evenements) {
+      if (e.type === 'etatGagne') etats.push({ porteur: e.porteur, etat: e.etat });
+      if (e.type !== 'emis' || e.evt !== EVT.ANIM_ATTACK) continue;
+      const a = e.payload as ChargeDAttaque;
+      const res = a.result as { hit?: boolean; woundsLost?: number; critical?: boolean };
+      coups.push({ de: a.from, vers: a.to, genre: a.kind, touche: !!res.hit, blessures: res.woundsLost ?? 0, critique: !!res.critical, defense: 'defense' in a ? a.defense : 'aucune' });
+    }
+  };
   recevoir(lancement);
 
   const pas: Pas[] = [];
@@ -98,15 +115,18 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     vus = b.log.length;
     const montee = (c: Combatant) => !!c.riderId && b.combatants.some((r) => r.id === c.riderId && !r.dead);
     const pions = b.combatants.filter((c) => c.pos && !montee(c)).map((c): PionDuPlateau => ({
-      id: c.id, label: c.label, camp: c.kind === 'heros' ? 'heros' : 'ennemi', ...(c.creatureId ? { creature: c.creatureId } : {}),
+      id: c.id, label: c.label, camp: c.kind === 'heros' ? 'heros' : 'ennemi', ...(c.creatureId ? { creature: c.creatureId } : {}), ...(c.weapons[0] ? { arme: c.weapons[0].label } : {}),
       pv: Math.max(0, c.wounds.current), max: c.wounds.max, x: c.pos!.x, y: c.pos!.y, cases: footprintN(c),
       hors: !!c.dead || c.conditions.some((e) => e.id === 'inconscient'),
     }));
+    const actif = b.order[b.turn] ?? null;
     const precedent = pas[pas.length - 1];
-    const memePlateau = precedent && JSON.stringify(precedent.pions) === JSON.stringify(pions);
-    if (memePlateau && lignes.length === 0) return;
-    if (memePlateau && precedent.lignes.length === 0) precedent.lignes.push(...lignes);
-    else pas.push({ lignes, pions, round: b.round });
+    const memePlateau = precedent && precedent.actif === actif && JSON.stringify(precedent.pions) === JSON.stringify(pions);
+    if (memePlateau && lignes.length === 0 && coups.length === 0 && etats.length === 0) return;
+    if (memePlateau && precedent.lignes.length === 0 && precedent.coups.length === 0) { precedent.lignes.push(...lignes); precedent.coups.push(...coups); precedent.etats.push(...etats); }
+    else pas.push({ lignes, pions, round: b.round, coups, etats, actif, ordre: [...b.order] });
+    coups = [];
+    etats = [];
   };
 
   /** La rencontre close par le noyau : la fenêtre de fin fermée (`fenetreFermer`), le groupe revenu en exploration,
