@@ -28,10 +28,10 @@ PRISE = 'main'
 
 MATERIAUX = {
     'metal': ('metal', 'acier-battu'),
-    'os': ('corne', ((0.75, 0.75, 0.75), 0.0, 0.85)),
+    'os': ('corne', 'os'),
 }
-"""Brief (#4261) : chaîne, petit crâne et fuseaux sur l'emplacement `metal` ; le crâne d'os sur `corne`, l'ivoire de
-l'os et de la corne, comme la tranche du livre (`rigide--livre`)."""
+"""Brief (#4261) : chaîne, petit crâne et fuseaux sur l'emplacement `metal` ; le crâne d'`os` sur `corne`, l'ivoire
+de l'os et de la corne, comme la tranche du livre (`rigide--livre`)."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire (brief du ticket)
 

@@ -23,7 +23,7 @@ qu'elle ne la traverse pas (comme `accessoire--bandouliere-a-parchemins` sur la 
 MATERIAUX = {
     'corde': ('cuir', 'corde'),
 }
-"""Brief : palette `cuir`. Gris de construction."""
+"""Brief : palette `cuir` ; la matière `corde` du catalogue."""
 
 BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 

@@ -25,7 +25,7 @@ MATERIAUX = {
     'sangle': ('cuir', 'cuir-tanne'),
 }
 """La surface `sangle` du kit, à l'emplacement `cuir` du baudrier publié. HYPOTHÈSE : sans la boucle de métal du baudrier publié, que
-l'inventaire de l'illustration ne relève pas. Gris de construction."""
+l'inventaire de l'illustration ne relève pas."""
 
 BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 

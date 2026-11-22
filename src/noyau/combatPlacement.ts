@@ -25,6 +25,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { testerLaTraverseeDeZone } from './combat/triggeredTest';
 import { normaliserLesAppuis } from './monde/poseDuDecor';
 import { placeCombatant } from './monde/spawn';
+import { nomDe } from '../engine/nom';
 
 /** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
  *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
@@ -131,8 +132,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label }), mover.id)); continue; }
-    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: mover.label, zone: z.label }), mover.id));
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label }), mover.id)); continue; }
+    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {

@@ -27,6 +27,8 @@ import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import { nomEnVue } from './visionDuGroupe';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
@@ -43,7 +45,7 @@ export interface LigneDuPanierEnVue { id: string; nom: string; qty: number; sous
 export interface PossessionAVendre { uid: string; nom: string; gain: string; refus: string | null; auLot: boolean; basculer: GesteDuNoyau }
 
 /** Les possessions d'un héros. */
-export interface HerosVendeur { id: string; nom: string; possessions: PossessionAVendre[] }
+export interface HerosVendeur { id: string; nom: PlayerText; possessions: PossessionAVendre[] }
 
 /** L'échoppe ouverte. */
 export interface MarchandEnVue {
@@ -116,7 +118,7 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
     },
     vente: {
       heros: s.party.map((h) => ({
-        id: h.id, nom: h.label,
+        id: h.id, nom: garanti(nomEnVue(s, h.id), h.id, 'héros vendeur'),
         possessions: (h.items ?? []).map((it) => ({
           uid: it.uid, nom: it.label, gain: formatMoney(sellGain(it, m, resolveTrapping)), refus: sellRefusal(it, resolveTrapping), auLot: auLot.has(it.uid),
           basculer: choix(auLot.has(it.uid) ? 'retirerDeLaVente' : 'ajouterALaVente', it.uid),

@@ -17,6 +17,7 @@ import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildScene } from './mapSpec';
 import { patchWall } from './sceneEdit';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -235,7 +236,7 @@ describe('enjamber la croisée — combat', () => {
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(3);
-    expect(refusDit()).toBe(t('fenetre.mouvementInsuffisant', { name: H.label, cout: 2 }));
+    expect(refusDit()).toBe(t('fenetre.mouvementInsuffisant', { name: nomDe(H), cout: 2 }));
   });
 
   it('Mouvement → Action → enjamber : refus NOMMÉ (`canMove`, `gesteDArete`), rien ne bouge', () => {
@@ -244,7 +245,7 @@ describe('enjamber la croisée — combat', () => {
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(1);
-    expect(refusDit()).toBe(t('geste.refus.mouvementEntrelace', { name: H.label }));
+    expect(refusDit()).toBe(t('geste.refus.mouvementEntrelace', { name: nomDe(H) }));
   });
 
   it('case d’arrivée occupée → refus NOMMÉ, rien ne bouge', () => {
@@ -255,7 +256,7 @@ describe('enjamber la croisée — combat', () => {
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(0);
-    expect(refusDit()).toBe(t('franchir.caseOccupee', { name: H.label }));
+    expect(refusDit()).toBe(t('franchir.caseOccupee', { name: nomDe(H) }));
   });
 });
 

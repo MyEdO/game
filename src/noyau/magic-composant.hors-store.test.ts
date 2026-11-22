@@ -23,6 +23,7 @@ import { prendUnComposant } from '../engine/magic';
 import type { CastResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => {
@@ -152,7 +153,7 @@ describe('liaison par le joueur (arbitrage #4132 « Choisi à l’acquisition »
   it('refus : Sort inconnu, Sort sans composant, objet déjà lié', () => {
     const h = erina();
     const [a] = composants(h);
-    expect(refusDeDesignation(h, a.uid, SPELL)).toBe(t('pf.spellUnknown', { name: h.label, spell: findSpellById(SPELL)!.label }));
+    expect(refusDeDesignation(h, a.uid, SPELL)).toBe(t('pf.spellUnknown', { name: nomDe(h), spell: findSpellById(SPELL)!.label }));
     expect(refusDeDesignation(h, a.uid, 'lumiere')).toBe(t('pf.componentArcaneOnly', { spell: findSpellById('lumiere')!.label }));
     a.sortLie = 'envol';
     expect(refusDeDesignation(h, a.uid, 'chute')).toBe(t('pf.componentAlreadyBound', { item: a.label, spell: findSpellById('envol')!.label }));

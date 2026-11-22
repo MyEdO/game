@@ -12,6 +12,7 @@ import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
 import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan } from './monde/exploreNav';
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
+import { nomDe } from '../engine/nom';
 import { entityBlockedAt } from './monde/sceneRules';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
@@ -143,7 +144,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
     return plan ? { kind: 'rejoindre', plan, pending: { id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest } } : null;
   }
   if (ent?.kind === 'personnage') {
-    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe, objetDuNarratif(s.campaignNarratif)).label }) };
+    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: nomDe(ficheDEntite(ent, presetDe, objetDuNarratif(s.campaignNarratif))) }) };
     return marcherOu(sansChemin);
   }
   // DÉCOR qui OCCUPE sa case (`entityBlockedAt`, la règle d'`isWalkable`) : on s'en approche, sinon on le dit. Un décor

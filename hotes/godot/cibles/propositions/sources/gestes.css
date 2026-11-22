@@ -67,12 +67,11 @@ html,body{margin:0;background:var(--noir)}
 #titre .fond{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;column-gap:10px;padding:0 12px 0 14px}
 #titre .fond>:first-child{justify-self:center}
 #titre .fond>div:last-child{height:70px}
-#titre .n{font-size:31px;line-height:44px;margin:-6px 0 -5px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap}
-#titre .s{font-size:12.5px;color:var(--creme-2);white-space:nowrap;margin-top:1px;display:flex;align-items:center;gap:6px}
+#titre .n,.titre.ecran{font-size:31px;line-height:44px;margin:-6px 0 -5px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap}
+#titre .sous-titre{white-space:nowrap;margin-top:1px;display:flex;align-items:center;gap:6px}
 
-/* le ruban : centré sur son `left` */
-.ruban{position:absolute;z-index:1;left:50%;top:-9px;transform:translateX(-50%);padding:2px 26px 4px;font-size:14.5px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:0 2px 5px var(--ombre),inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
-.ruban.gothique{font-size:18px;padding:1px 34px 4px;letter-spacing:.6px}
+/* le ruban : le titre d'un cadre, centré sur son `left` */
+.ruban{position:absolute;z-index:1;left:50%;top:-9px;transform:translateX(-50%);padding:1px 34px 4px;font-size:18px;letter-spacing:.6px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:0 2px 5px var(--ombre),inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
 
 /* le portrait : camp, taille, choisi */
 .portrait{position:relative;flex:none;border-radius:3px;box-shadow:0 3px 7px var(--ombre-forte),0 0 0 1px var(--contour)}
@@ -103,26 +102,57 @@ html,body{margin:0;background:var(--noir)}
 .rang{display:flex;align-items:center;gap:10px}
 .rang .qui{min-width:0}
 .rang .nom{font-size:13.5px;color:#eadfc4;white-space:nowrap}
-.rang .nom.gothique{font-size:19px;color:#f6ead0;letter-spacing:.3px}
+.rang .nom-propre{white-space:nowrap}
 .rang.ennemi .nom{color:#f0a48e}
-.rang .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+.rang .sous-titre{white-space:nowrap}
 .parchemin .rang .nom{color:var(--sepia);text-shadow:none}
-.parchemin .rang .s{color:var(--rouille)}
+/* le titre d'un panneau ; sur parchemin, à l'encre */
+.titre{font-size:28px;line-height:40px;margin:-7px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+.parchemin .titre:not(.ecran){color:var(--sepia);text-shadow:none}
+/* le nom : trois tailles ; sur la scène, à l'ivoire ombré ; sur bois, à l'ivoire, ombre courte ; sur parchemin, à la sépia */
+.nom-propre{margin:0;color:var(--ivoire);text-shadow:0 1px 2px var(--noir),0 0 10px var(--ombre-forte),0 0 22px var(--ombre-forte)}
+.nom-propre.grand{font-size:22px;line-height:30px}
+.nom-propre.moyen{font-size:18px;line-height:24px}
+.nom-propre.petit{font-size:16px;line-height:22px}
+.bois .nom-propre{text-shadow:0 1px 2px var(--noir)}
+.parchemin .nom-propre{color:var(--sepia);text-shadow:none}
+.parchemin .bois .nom-propre{color:var(--ivoire);text-shadow:0 1px 2px var(--noir)}
+/* le sous-titre ; sur parchemin, à l'encre brune */
+.sous-titre{font-family:"Fell SC",serif;font-size:12.5px;line-height:14px;letter-spacing:1.1px;color:var(--creme-2)}
+.parchemin .sous-titre{color:var(--encre-2)}
+/* l'intertitre d'un bloc et sa note ; sur un fond de bois, à la crème ; sur parchemin, à la rouille ; sur la scène, à l'ivoire ombré */
+.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+.bois .rub{color:var(--creme-2);text-shadow:none}
+.parchemin .rub{color:var(--rouille);text-shadow:none}
+.rub .glose{display:inline}
+/* la note : Spectral italique 12,5 / 16 ; sur parchemin, à l'encre brune ; la consigne 17 / 23 à l'encre, son filet à gauche ; l'avertissement au sang */
+.glose{display:block;font-family:"Spectral",serif;font-style:italic;font-weight:400;font-size:12.5px;line-height:16px;letter-spacing:0;color:var(--creme-2)}
+.parchemin .glose{color:var(--encre-2)}
+.glose.consigne{font-size:17px;line-height:23px;color:var(--encre);padding-left:24px;border-left:1px solid var(--filet-encre)}
+.glose.avertissement{color:var(--sang)}
+/* l'étiquette : rectangle, pastille ou compte (en chiffres) ; au repos, le voile de son fond : sur bois, l'ivoire sur l'ombre au liseré d'or,
+   sur parchemin, l'encre sur le voile au trait d'encre ; teintes or, cire, fer ; la valeur qui suit le texte, en chiffres */
+.etiquette{display:inline-flex;align-items:center;gap:5px;flex:none;box-sizing:border-box;margin:0;white-space:nowrap;font-style:normal;text-shadow:none;text-transform:none;border:1px solid var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
+:where(.parchemin) .etiquette{border-color:var(--trait-encre);color:var(--encre);background:var(--voile)}
+:where(.parchemin .bois) .etiquette{border-color:var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
+.etiquette.or{border-color:var(--laiton-ombre);color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen))}
+.etiquette.cire{border-color:var(--cire-sombre);color:var(--ivoire);background:linear-gradient(180deg,var(--cire-clair),var(--sang))}
+.etiquette.fer{border-color:var(--noir);color:var(--eteint);background:linear-gradient(180deg,var(--fer-clair),var(--fer-sombre))}
+.etiquette.rectangle{height:19px;padding:0 9px;border-radius:2px;font-family:"Fell SC",serif;font-weight:400;font-size:12.5px;line-height:15px;letter-spacing:1px}
+.etiquette.pastille{height:21px;padding:0 10px;border-radius:11px;font-family:"Fell SC",serif;font-weight:400;font-size:10.5px;line-height:15px;letter-spacing:.8px}
+.etiquette.compte{height:21px;padding:0 9px;border-radius:11px;font-family:"Chiffres",sans-serif;font-weight:600;font-size:11.5px;line-height:15px;letter-spacing:.2px}
+.etiquette em{font-family:"Chiffres",sans-serif;font-style:normal;font-weight:600;font-size:10.5px;letter-spacing:0;opacity:.75}
 /* le cartouche à la taille `ligne` : médaillon, nom, ce qu'il est */
 .cartouche{display:flex;align-items:center;gap:11px;min-width:0}
-.cartouche .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
-.cartouche .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-.parchemin .cartouche .n{color:var(--sepia);text-shadow:none}
-.parchemin .cartouche .s{color:var(--rouille)}
+.cartouche .nom-propre{white-space:nowrap}
+.cartouche .sous-titre{white-space:nowrap}
 .onglets{position:absolute;left:30px;top:-9px;display:flex;align-items:center;gap:9px;z-index:2}
 .onglets .ruban{position:static;transform:none}
 .onglets .plaque{flex:none}
-.onglets .plaque>div{padding:0 15px;font-size:12.5px}
 /* l'onglet à sa place (`onglets`, `cadre`) : la largeur de la place, actif ou non */
 .onglets .place{display:flex;align-items:center}
 .onglets .place>:is(.ruban,.plaque){width:100%;text-align:center}
 .onglets .place>.ruban{padding-left:12px;padding-right:12px}
-.onglets .place>.plaque>div{padding:0 6px}
 /* les signets : la forme verticale des onglets, au bord droit du registre */
 .signets{position:absolute;left:calc(100% - 184px);top:66px;display:flex;flex-direction:column;gap:4px}
 .signet{display:flex;align-items:center;gap:7px;width:176px;height:38px;padding:0 36px 2px 13px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,calc(100% - 16px) 0,calc(100% - 26px) 50%,calc(100% - 16px) 100%,0 100%);filter:drop-shadow(0 2px 3px var(--ombre))}
@@ -145,8 +175,16 @@ html,body{margin:0;background:var(--noir)}
 .apercu .tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;height:26px}
 /* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde (`tableDApercu`) */
 .apercu .defile.table{height:125px}
-.apercu .tete .n{font-size:22px;line-height:24px;color:var(--sepia);white-space:nowrap}
-.apercu .tete .c{font-size:12px;color:var(--rouille);white-space:nowrap}
+.apercu .tete .nom-propre{white-space:nowrap}
+.apercu .tete .sous-titre{white-space:nowrap}
+/* le corps de l'aperçu : la table et sa valeur à droite, la somme, le paragraphe, le pied */
+.apercu table{border-collapse:collapse;width:100%}
+.apercu td{padding:1px 0;vertical-align:baseline}
+.apercu td:first-child{white-space:nowrap;padding-right:10px}
+.apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
+.apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
+.apercu p{margin:4px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
+.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
 /* la bannière d'issue d'un combat : centrée, haut à 190, sa plaque d'appel 28 dessous */
 .issue-du-combat{position:absolute;left:calc(50% - 280px);top:190px;width:560px;display:flex;flex-direction:column;align-items:center;gap:28px}
 .issue-du-combat .banniere{position:relative;flex:none;width:560px;height:150px;display:grid;place-items:center;background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 30px) 50%,100% 100%,0 100%,30px 50%);filter:drop-shadow(0 16px 24px var(--ombre-forte))}
@@ -154,8 +192,7 @@ html,body{margin:0;background:var(--noir)}
 .issue-du-combat .banniere span{font-size:60px;line-height:90px;letter-spacing:1px;color:var(--ivoire);text-shadow:0 3px 4px var(--ombre-forte);white-space:nowrap}
 .issue-du-combat .place>p{margin:0;text-align:center;font-style:italic;font-size:17px;color:var(--creme)}
 .issue-du-combat .place>.plaque{width:100%}
-.issue-du-combat .plaque>div{padding:0 24px}
-.cartouche .marque{display:inline-block;margin-left:8px;padding:0 7px 1px;font-family:"Fell SC";font-size:11px;letter-spacing:1px;color:var(--encre);border-radius:2px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));vertical-align:3px}
+.cartouche .etiquette{margin-left:8px;vertical-align:3px}
 
 /* la jauge : teinte cire (la vie) ou or, fine ou forte */
 .jauge{position:relative;background:var(--lit);border-radius:1px;box-shadow:0 0 0 1px var(--filet-or),inset 0 1px 2px var(--noir)}
@@ -167,10 +204,18 @@ html,body{margin:0;background:var(--noir)}
 .jauge>u{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--or) 0 3px,var(--or-sombre) 3px 6px);opacity:.85}
 .parchemin .jauge{box-shadow:0 0 0 1px var(--trait-encre),inset 0 1px 2px var(--noir)}
 
-/* le pas en losanges */
-.pas{display:flex;gap:7px;margin-top:5px}
-.pas i{width:15px;height:15px;transform:rotate(45deg);background:linear-gradient(135deg,var(--ivoire),var(--creme-2));box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--ombre-forte)}
-.pas i.vide{background:var(--lit);box-shadow:0 0 0 1px var(--filet-creme),inset 0 1px 2px var(--noir)}
+/* le rang de pas : losanges moyens ou petits, de la teinte du fond ou de cire ; clous d'or par groupes de cinq */
+.pas{display:flex;gap:8px}
+.pas>i{width:15px;height:15px;transform:rotate(45deg);background:linear-gradient(135deg,var(--ivoire),var(--creme-2));box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--ombre-forte)}
+.pas>i.vide{background:var(--lit);box-shadow:0 0 0 1px var(--filet-creme),inset 0 1px 2px var(--noir)}
+.parchemin .pas>i{background:linear-gradient(135deg,#6a3d1c,#2a160a);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.5)}
+.parchemin .pas>i.vide{background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.6)}
+.pas.petit>i{width:11px;height:11px}
+.pas.cire>i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}
+.pas.clous{gap:3px}
+.pas.clous>i{width:9px;height:9px;transform:none;border-radius:50%;border:1px solid var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
+.pas.clous>i.vide{border-color:var(--trait-encre);background:rgba(60,40,20,.08);box-shadow:none}
+.pas.clous>i:nth-child(5){margin-right:4px}
 
 /* la plaque : moyenne ou petite ; repos, survol, armée, fermée */
 .plaque{position:relative;flex:1;height:40px;min-height:40px;padding:2px;border-radius:3px;box-shadow:0 3px 6px var(--ombre-forte),0 0 0 1px var(--contour)}
@@ -179,6 +224,7 @@ html,body{margin:0;background:var(--noir)}
 .plaque.petite>div{font-size:13px}
 .plaque.appel{height:52px;min-height:52px}
 .plaque.appel>div{font-size:18px;letter-spacing:1.4px;gap:12px}
+.plaque.geste>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 .plaque .numero{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:var(--lit);box-shadow:0 0 0 1px var(--filet-or-vif);font-family:"Fell SC";font-size:12px;letter-spacing:0;color:var(--ivoire)}
 .plaque.survol{box-shadow:0 3px 6px var(--ombre-forte),0 0 0 1px var(--contour),0 0 8px var(--halo)}
 .plaque.survol>div{color:var(--or-eclat);box-shadow:inset 0 0 0 1px var(--filet-or-vif),inset 0 1px 0 var(--reflet)}
@@ -187,6 +233,7 @@ html,body{margin:0;background:var(--noir)}
 .plaque.fermee{box-shadow:0 2px 4px var(--ombre),0 0 0 1px var(--noir)}
 .plaque.fermee>div{background:radial-gradient(120% 140% at 50% 0%,var(--fer-mat),var(--fer-sombre) 75%);color:var(--eteint);box-shadow:inset 0 0 0 1px var(--ombre-forte)}
 .plaque .prix{margin-left:auto;font-size:12.5px}
+.plaque .prix.seul{margin-left:0}
 .plaque.gauche>div{justify-content:flex-start}
 /* la carte : une plaque haute, un portrait et deux lignes, dont la plus longue passe à la ligne quand la carte est
    étroite ; la seule pièce qui s'étire, de 200 à 262, les cartes d'une rangée à parts égales ; sous 200 de large, ou à
@@ -196,7 +243,13 @@ html,body{margin:0;background:var(--noir)}
 /* la carte courte, à la hauteur d'une bande : son nom et la valeur qui décide sur une ligne */
 .plaque.carte.courte{height:26px}
 .plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
-.plaque.carte .qui{min-width:0}
+.plaque.carte .qui{flex:1 1 0;min-width:0}
+/* la marque, sur sa ligne sous le portrait et le texte, de toute la largeur intérieure ; en liste, à la suite du texte */
+.plaque.carte>div{flex-wrap:wrap;align-content:center;row-gap:6px}
+.plaque.carte .marque-de-carte{flex:0 0 100%;display:flex}
+.cartes.liste>.carte>div{flex-wrap:nowrap}
+.cartes.liste>.carte .marque-de-carte{flex:none}
+.cartes.liste>.carte:has(.marque-de-carte) .qui{flex:0 1 auto}
 .plaque.carte :is(.n,.c){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}
 .plaque.carte .c{-webkit-line-clamp:3}
 .plaque.carte .n{font-size:16px;line-height:19px;letter-spacing:.3px;color:var(--ivoire)}
@@ -207,8 +260,8 @@ html,body{margin:0;background:var(--noir)}
 .cartes.liste>.carte .portrait{display:none}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}
-.plaque.carte .c .sep,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
-.cartes.liste>.carte:not(.deux-lignes) .c .sep{display:inline}
+.plaque.carte .c .separateur:has(+br),.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
+.cartes.liste>.carte:not(.deux-lignes) .c .separateur:has(+br){display:contents}
 .cartes.liste>.carte :is(.n,.c){-webkit-line-clamp:1}
 .cartes.liste>.carte.deux-lignes{height:44px}
 .cartes.liste>.carte.deux-lignes .c{-webkit-line-clamp:2}
@@ -224,18 +277,22 @@ html,body{margin:0;background:var(--noir)}
 .medaillon>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,var(--chene),var(--chene-nuit) 72%);box-shadow:inset 0 0 0 1px var(--ombre-forte),inset 0 0 0 2px var(--filet-or)}
 .medaillon.ferme{color:var(--eteint)}
 .medaillon.inerte{color:var(--creme)}
+.medaillon.vise{box-shadow:0 3px 6px var(--ombre-forte),0 0 18px var(--halo-vif)}
 .medaillon.grand{width:54px;height:54px;padding:4px}
 .medaillon.moyen{width:40px;height:40px;padding:3px}
 .medaillon.petit{width:30px;height:30px;padding:3px}
 
-/* le disque numéroté et le compteur */
+/* le disque numéroté ; les réserves (`reserves`) : une case de largeur fixe par jeton, son icône à gauche de son disque */
 .disque{flex:none;border-radius:50%;box-shadow:0 2px 5px var(--ombre-forte)}
 .disque>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,var(--chene),var(--chene-nuit) 70%);box-shadow:inset 0 0 0 1px var(--ombre-forte);font-family:"Grenze Gotisch";font-weight:600;color:var(--ivoire)}
 .disque.vide>div{background:radial-gradient(circle at 40% 30%,var(--fer-mat),var(--fer-sombre) 70%);color:var(--eteint)}
 .disque.grand{width:42px;height:42px;padding:3px;font-size:20px}
 .disque.moyen{width:32px;height:32px;padding:3px;font-size:16px}
 .disque.petit{width:28px;height:28px;padding:2px;font-size:16px}
-.compteur{display:flex;align-items:center;gap:13px;font-size:14.5px}
+.en-reserve{display:flex;gap:10px;align-items:center}
+.en-reserve .res{position:relative;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:50px}
+.en-reserve.grand .res{width:66px}
+.en-reserve .res.vide>svg{opacity:.5}
 
 /* le sceau de cire : pictogramme gravé ou chiffre ; réussite, critique (cerclé d'or), vide */
 .sceau{position:relative;flex:none;display:grid;place-items:center;color:var(--encre-cire);background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 50%,var(--cire-sombre) 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px var(--ombre-forte),inset 0 0 0 3px var(--cire-creux),inset 2px 2px 3px var(--cire-reflet)}
@@ -252,16 +309,19 @@ html,body{margin:0;background:var(--noir)}
 .sceau.de b{font-weight:700;font-size:28px;line-height:26px}
 .sceau.de i{margin-top:5px;font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
 
-/* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond */
-.filet{display:flex;align-items:center;margin:11px 0;color:var(--creme-2)}
+/* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond ; sans marge, son écart est du placement */
+.filet{display:flex;align-items:center;color:var(--creme-2)}
 .parchemin .filet{color:var(--encre-2)}
 .filet.or{color:var(--or)}
 .filet::before,.filet::after{content:"";flex:1;height:1px;background:currentColor;opacity:.5}
 .filet.fondu::before{background:linear-gradient(90deg,transparent,currentColor)}
 .filet.fondu::after{background:linear-gradient(90deg,currentColor,transparent)}
 .filet .losange{margin:0 10px}
+/* la puce : le losange plein de 7, la coche ; de la teinte du texte */
 .losange{flex:none;width:7px;height:7px;transform:rotate(45deg);background:currentColor}
-
+.coche{flex:none;display:flex}
+/* le séparateur ne fait pas de boîte : son texte se lit avec celui qu'il sépare, dans une rangée flexible comme ailleurs */
+.separateur{display:contents}
 /* un choix parmi quelques valeurs : sur parchemin ou sur bois */
 .segments{display:inline-flex;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px var(--trait-encre)}
 .segments b{font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:.8px;padding:3px 11px 4px;color:var(--encre-2);background:var(--voile);white-space:nowrap}
@@ -299,7 +359,7 @@ html,body{margin:0;background:var(--noir)}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */
 .retour{position:absolute;left:30px;bottom:34px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
 /* le libellé d'une sortie ou d'un écran à ouvrir a sa boîte, quelle que soit sa longueur : deux lignes posées sur le rond */
-.retour span{width:124px;height:36px;display:flex;align-items:flex-end;font-size:14.5px;line-height:18px;color:var(--ivoire)}
+.retour>span{width:124px;height:36px;display:flex;align-items:flex-end;font-size:14.5px;line-height:18px;color:var(--ivoire)}
 /* hors combat : le journal et le système, 30 / 23 du coin bas-droit */
 #coins{position:absolute;right:30px;bottom:23px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
 /* ouvrir un écran posé sur celui-ci : la pastille du bord droit, à 24 */
@@ -316,15 +376,15 @@ html,body{margin:0;background:var(--noir)}
 /* régler une quantité */
 .moins-plus{display:flex;align-items:center;gap:6px}
 .moins-plus .bouton-rond{box-shadow:0 1px 3px var(--ombre),0 0 0 1px var(--contour)}
-/* la raison d'un refus, au survol du geste fermé */
-.bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
+/* la raison d'un refus, ou le détail de ce que le curseur survole : sur une ligne jusqu'à 320, puis à la ligne */
+.bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);width:max-content;max-width:320px;padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-weight:400;font-size:13px;line-height:17px;letter-spacing:0;white-space:normal;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
 .bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);translate:var(--pointe,0) 0;box-shadow:2px 2px 0 var(--contour)}
 .bulle-refus.dessous::before{top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
 .bulle-refus:is(.cote-droit,.cote-gauche)::before{top:calc(50% - 5px);bottom:auto;translate:none}
 .bulle-refus.cote-droit::before{left:-5px;box-shadow:-2px 2px 0 var(--contour)}
 .bulle-refus.cote-gauche::before{left:auto;right:-5px;box-shadow:2px -2px 0 var(--contour)}
-/* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle */
-.raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
+/* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle : à la taille de cette ligne */
+#ui [data-secondaire].raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
 /* qui paie */
 .qui-paie{display:flex;align-items:center;gap:11px}
 .qui-paie.parts{align-items:flex-start}

@@ -12,7 +12,7 @@
     {
       "nom": "metal",
       "palette": "metal",
-      "matiere": "prop--laiton-dore"
+      "matiere": "prop--cuivre"
     },
     {
       "nom": "cordon",
@@ -21,7 +21,7 @@
     }
   ],
   "glb": {
-    "sha256": "1c2ce58e089edfc4ccb5c362e5465e2b6d8d3d5da58163a21a3ba0154706f6df",
-    "octets": 120764
+    "sha256": "a578c36fbbab7c93a7526aed57c7bd3766dcdb4613aef0570cf21336c53333d5",
+    "octets": 120760
   }
 }

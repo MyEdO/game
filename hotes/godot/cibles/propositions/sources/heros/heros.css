@@ -24,13 +24,9 @@
 .pan>.fond{padding:15px 19px 14px}
 .pan>.fond.bois{padding:14px 16px}
 .pan:has(>.onglets)>.fond{padding-top:26px}
-.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:var(--rouille);white-space:nowrap}
-.fond.bois .rub{color:var(--creme-2)}
-.rub .note{font-family:"Spectral";font-style:italic;font-size:12.5px;letter-spacing:0;color:var(--encre-2)}
 .pan .filet{margin:9px 26px}
 .tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
 .tete-l>.plaque{flex:none}
-.tete-l>.plaque>div{font-size:12.5px;padding:0 12px}
 .lignes{display:flex;flex-direction:column}
 .deux{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
 .trois{display:grid;grid-template-columns:repeat(3,1fr);column-gap:12px}
@@ -41,18 +37,14 @@
 .ligne>.n small{font-size:13px;color:var(--encre-2)}
 .ligne.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
 .ligne.refusee{color:rgba(42,29,18,.42)}
-.ligne.refusee .tag{opacity:.45}
+.ligne.refusee .etiquette{opacity:.45}
 .ligne .bulle-refus{left:auto;right:6px;top:calc(100% + 11px);bottom:auto;transform:none}
 .ligne .bulle-refus::before{left:auto;right:24px;top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
 .ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:var(--rouille)}
-.ligne>.losange{margin:0 4px;color:var(--encre-2)}
-.tag{display:inline-block;flex:none;width:32px;text-align:center;font-family:"Fell SC";font-size:11px;line-height:16px;letter-spacing:.6px;color:var(--rouille);border:1px solid var(--filet-encre);border-radius:2px;background:var(--voile)}
+.ligne>.losange{margin:0 4px}
+/* la Caractéristique d'une ligne : une colonne de 32 */
+:is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
 .val{flex:none;font-family:"Chiffres";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
-.jeton{flex:none;display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11.5px;font-weight:600;letter-spacing:.2px;color:var(--encre);background:var(--voile);white-space:nowrap}
-.fond.bois .jeton{border-color:var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
-.jeton.or{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre)}
-.jeton.cire{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
-.jeton.fer{border-color:var(--noir);background:linear-gradient(180deg,var(--fer-clair),var(--fer-sombre));color:var(--eteint)}
 .comptes{display:flex;align-items:center;gap:9px;margin-top:9px}
 .trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
 .tirage{display:flex;gap:18px;align-items:center}
@@ -60,24 +52,18 @@
 
 /* paliers, clous d'Augmentation */
 .paliers{flex:none;display:flex;gap:5px}
-.palier{flex:none;width:32px;height:20px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11px;font-weight:600;color:var(--encre-2);background:var(--voile)}
-.palier.pris{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre);box-shadow:0 1px 3px var(--brou)}
-.palier.zero{border-color:var(--encre);color:var(--encre);background:var(--voile-fort)}
-.palier.ferme{border-color:var(--filet-encre);color:rgba(42,29,18,.32);background:none}
+.paliers>.etiquette{width:32px;justify-content:center}
 /* l'Augmentation de race, rappelée sur la page de la carrière : hors des dix clous (LDB 05 l.535) */
-.palier.race{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
-.palier.race.sans{visibility:hidden}
-.clous{flex:none;display:flex;gap:3px}
-.clous>i{width:9px;height:9px;border-radius:50%;border:1px solid var(--trait-encre);background:rgba(60,40,20,.08)}
-.clous>i.p{border-color:var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
-.clous>i:nth-child(5){margin-right:4px}
+.race.sans{visibility:hidden}
+.race>.etiquette{width:32px;justify-content:center}
+.ligne>.pas{flex:none}
 .ligne .moins-plus{flex:none}
 
 /* le détail du milieu */
 .page-c{display:flex;flex-direction:column;align-items:center;height:100%}
 .page-c>*{flex:none}
-.page-c>.nom{font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:40px;color:var(--sepia);letter-spacing:.3px;white-space:nowrap;text-align:center;max-width:100%;overflow:hidden}
-.page-c>.sous{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.page-c>.titre{text-align:center;max-width:100%;overflow:hidden}
+.page-c>.sous-titre{white-space:nowrap}
 .page-c>.filet{align-self:stretch;margin:7px 40px}
 .page-c>.rub{align-self:stretch;margin:10px 0 5px}
 .page-c>.pills,.page-c>.tete-l{align-self:stretch}
@@ -94,10 +80,7 @@
 .fait b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--encre)}
 .attributs{display:flex;gap:5px;margin-top:2px}
 .pills{display:flex;flex-wrap:wrap;gap:5px}
-.pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--encre);background:var(--voile);white-space:nowrap}
-.pill.prise{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:0 1px 3px var(--brou)}
-.pill.fermee{color:rgba(42,29,18,.68);border-color:var(--filet-encre);background:none}
-.pill b{font-size:10.5px}
+.pills>.etiquette{position:relative}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
 
 /* ───────── création : la colonne du choix, ses places (`choix/*`, `../rendu.js`) ───────── */
@@ -112,12 +95,10 @@
 #choix .ligne-ecrite{margin-top:0}
 
 /* ───────── création : les Caractéristiques ───────── */
-.methodes .jeton{margin-left:auto}
+.methodes .etiquette{margin-left:auto}
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
 .tirage-c>.l{flex:1}
 .tirage-c .plaque{flex:none;width:250px}
-.tirage-c .plaque>div{font-size:12.5px}
-.tirage-c .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
 .ligne.repartie{height:30px}
 .profil-c{align-self:stretch;flex:none;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.25)}
 .profil-c>.fond{display:grid;grid-template-columns:repeat(6,1fr)}
@@ -131,7 +112,6 @@
 .profil-c .v{font-family:"Chiffres";font-size:19px;line-height:23px;color:var(--encre)}
 .profil-c .pts{height:22px;display:grid;place-items:center;font-family:"Fell SC";font-size:10px;letter-spacing:.6px;color:var(--rouille)}
 .profil-c .pts.nb{font-family:"Chiffres";font-size:13.5px;font-weight:600;letter-spacing:0;color:var(--encre-2)}
-.caracteristiques .page-c>.nom{margin-top:4px}
 .jets{align-self:stretch;display:grid;grid-template-columns:repeat(5,1fr);justify-items:center;gap:2px 0}
 .jet{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border:2px solid transparent;border-radius:3px}
 .jet i{font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:.8px;color:var(--rouille)}
@@ -140,14 +120,12 @@
 /* ───────── création : le signe astral ───────── */
 .signe .tirage{margin-bottom:-2px}
 .signe .tirage .ligne{height:30px}
-.signe .tirage .jeton{margin-left:auto}
+.signe .tirage .etiquette{margin-left:auto}
 .signe .filet{margin:6px 26px}
 .signes .ligne{height:22px;font-size:14px}
 .variante{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 8px;margin-top:6px}
 .variante .pills{grid-column:1 / -1;gap:4px}
-.variante .pill{padding:0 7px;font-size:10.5px}
 .signe .page-c>.vignette{margin-top:2px}
-.signe .page-c>.nom{margin-top:4px}
 
 /* ───────── création : les Compétences ───────── */
 .competencesDeRace .ligne{height:28px}
@@ -161,7 +139,6 @@
 .ligne.carriere{height:36px;gap:7px;font-size:14px;padding:0 6px}
 .test{align-self:stretch;display:flex;align-items:center;gap:12px;margin-top:2px}
 .test b{font-family:"Fell";font-weight:400;font-size:15px;color:var(--encre)}
-.competencesDeCarriere .page-c>.pills .pill{height:21px;padding:0 8px;font-size:10.5px}
 
 /* ───────── création : les Talents ───────── */
 .talents .ligne .raison{margin-left:auto}
@@ -170,13 +147,10 @@
 .tire .n{display:flex;flex-direction:column;justify-content:center;line-height:16px}
 .tire .n>span{overflow:hidden}
 .tire .n .raison{font-size:10px}
-.tire .pill{height:20px}
 .tire .plaque{flex:none}
-.tire .plaque>div{font-size:12px;padding:0 10px}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
-.mineurs .pill{height:23px;padding:0 8px;font-size:12px}
-.mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
+.mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%)}
 .mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
 
 /* ───────── création : les possessions ───────── */
@@ -203,7 +177,6 @@
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
 .physique .mesure{display:flex;align-items:center;gap:11px}
 .physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
-.physique .mesure .rub .note{font-size:11.5px}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -214,7 +187,6 @@
 /* ───────── l'identité : création achevée, fiche, progression ───────── */
 .ident .tete{display:flex;gap:14px}
 .ident .tete>.q{flex:1;min-width:0}
-.ident .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:26px;line-height:36px;color:var(--sepia);letter-spacing:.3px;margin:-3px 0 1px}
 .ident .l{font-family:"Fell SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
 .ident .tete .faits{margin-top:10px}
 .ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
@@ -241,7 +213,6 @@
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
 .ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
-.ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
 /* ───────── la fiche : le profil, la figure, les sections ───────── */
@@ -251,7 +222,7 @@
 .bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
 .bande .c .v{font-family:"Chiffres";font-size:23px;line-height:27px;color:var(--encre)}
 .bande .c .aug{font-family:"Chiffres";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
-.bande .c .jeton{margin-top:1px;height:19px;font-size:10.5px;padding:0 6px}
+.bande .c>.etiquette{margin-top:1px}
 .bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
 .bande .c>*{position:relative}
 /* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur, la valeur décalée d'autant pour
@@ -266,15 +237,16 @@
 #heros-neuf>.fond{display:flex;gap:12px}
 #heros-neuf .niche{width:104px}
 .acquis{flex:1;min-width:0;display:flex;flex-direction:column}
-.acquis .qui{font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:32px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap;overflow:hidden;margin:-4px 0 4px}
+.acquis>.nom-propre{white-space:nowrap;overflow:hidden;margin-bottom:4px}
 .acquis .a{margin-bottom:7px;min-width:0}
 .acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
-.acquis .a i .jeton{height:16px;font-size:10px;padding:0 6px}
+/* le compte des PX déborde la ligne de sa rubrique, sans la grandir */
+.acquis .a i>.etiquette{margin:-3px 0}
 .acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
 .acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .acquis .gestes .plaque{flex:none}
-.acquis .gestes .bulle-refus{left:auto;right:0;transform:none;box-sizing:border-box;width:100%;white-space:normal;text-align:center}
+.acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
 .acquis .gestes .bulle-refus::before{left:auto;right:60px}
 
 /* ───────── la fiche : les possessions ───────── */
@@ -299,7 +271,6 @@
 .inventaire .ligne{height:26px;font-size:14px;padding:0 6px}
 .inventaire .ligne svg{flex:none}
 .ouvert{display:flex;flex-direction:column;gap:5px;padding:9px 12px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px var(--brou);min-width:0}
-.ouvert .cartouche .n{font-size:20px}
 .ouvert .ligne{height:26px;font-size:14px;padding:0 5px;gap:6px}
 .ouvert .deux{column-gap:8px}
 .ouvert .achat{height:auto;min-height:34px;gap:8px;padding:1px 2px}
@@ -309,8 +280,6 @@
 .consequence{color:var(--sang)}
 .gestes-o{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gestes-o .plaque.large,.gestes-o .plaque:is(:first-child,.large+*):is(:last-child,:has(+.large)){grid-column:1 / -1}
-.gestes-o .plaque>div{font-size:12.5px;padding:0 10px}
-.gestes-o .plaque .prix{font-family:"Fell";font-weight:400;letter-spacing:0;color:var(--creme)}
 .gestes-o .bulle-refus{left:auto;right:0;transform:none}
 .gestes-o .bulle-refus::before{left:auto;right:60px}
 .cout{margin-left:auto;font-family:"Chiffres";font-size:11.5px;font-weight:600;color:var(--encre-2)}
@@ -324,10 +293,9 @@
 .achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
 .achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
 .achat .plaque{flex:none;width:64px}
-.achat .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 4px}
 .achat .val span{font-weight:400}
 .achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
-.achat .designer{margin-left:auto;color:var(--sang)}
+.achat .avertissement{margin-left:auto}
 .achat.hors{border-bottom:0;color:var(--encre-2)}
 .achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
@@ -335,23 +303,15 @@
 #competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
-.depli .pill{height:19px;padding:0 7px;font-size:10px}
 .depli .plaque{flex:none;width:150px}
-.depli .plaque>div{font-size:12px;padding:0 9px}
-.depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
 .talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
 .talent .t{flex:1;min-width:0}
-.talent .t b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
 .talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
 .talent .plaque{flex:none;width:94px}
-.talent .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 6px}
-.talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11px;letter-spacing:.8px}
-.talent.clos b{color:rgba(42,29,18,.6)}
+.talent.clos .nom-propre{color:rgba(42,29,18,.6)}
 .achat.sort{height:31px;gap:10px;padding:0 4px}
 .achat.sort .cout{margin-left:0;width:38px}
 .achat.sort .plaque.composant{width:146px}
-.achat.sort .plaque.composant>div{font-family:"Fell SC";font-weight:400;letter-spacing:.6px}
-.achat.sort .plaque .prix{font-family:"Chiffres";font-size:11.5px}
 #talents .rub{margin-top:8px;white-space:normal}
 #talents .rub:first-child{margin-top:0}
 .pied-de-bourse{margin-top:8px;padding:0 4px;color:var(--encre)}
@@ -364,22 +324,19 @@
 .chemin .rail.fait{height:3px;top:20px;background:linear-gradient(180deg,var(--or-moyen),var(--laiton-ombre))}
 .station{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:4px}
 .station .pt{position:relative;width:34px;height:34px;display:grid;place-items:center}
-.station .pt>.jeton{position:absolute;left:40px;top:7px;height:19px;font-size:10.5px;padding:0 7px}
+.station .pt>.etiquette{position:absolute;left:40px;top:6px}
 .station .clou-fer{position:relative;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,var(--fer-clair) 60%,var(--noir));box-shadow:0 1px 2px var(--ombre)}
 .station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
-.station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
-.station .et{margin-top:4px;text-align:center;white-space:nowrap}
-.station .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
+.station .et{margin-top:2px;text-align:center;white-space:nowrap}
 .station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:13px;letter-spacing:.8px;color:var(--rouille)}
-.station.loin .et b{color:rgba(42,29,18,.5)}
+.station.loin .et .nom-propre{color:rgba(42,29,18,.5)}
 .station.loin .et i{color:rgba(90,58,28,.6)}
 .ouvre{align-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:start}
 .ouvre .rub{padding-top:3px}
-.ouvre .pill{height:21px;padding:0 8px;font-size:10.5px}
-.prose.note{font-style:italic;text-align:center}
+.page-c>.glose{margin:6px 0 0;align-self:stretch;text-align:center}
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
 #autre .plaques{height:28px;margin:0 0 8px}
-#autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}
+#autre>.fond>.glose{margin-top:9px}

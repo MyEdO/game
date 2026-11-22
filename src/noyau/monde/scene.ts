@@ -480,13 +480,18 @@ export function heightAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number,
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
 }
 
-/** Le plafond (m) de la case `p` : le plus bas des sols posés plus haut que le sien sur une couche au-dessus de la
- *  sienne, dans sa colonne, une tuile effondrée (`tileCollapsed`) n'étant plus un sol ; `Infinity` à ciel ouvert.
+/** La couche `z` a-t-elle un plancher en (x,y) : une tuile présente (`estAbsent`) et non effondrée (`tileCollapsed`).
  *  PUR. */
+function plancherPresent(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
+  return !estAbsent(tileAt(scene, x, y, z)) && !tileCollapsed(scene, x, y, z);
+}
+
+/** Le plafond (m) de la case `p` : le plus bas des planchers (`plancherPresent`) posés plus haut que son sol sur une
+ *  couche au-dessus de la sienne, dans sa colonne ; `Infinity` à ciel ouvert. PUR. */
 export function plafondDe(scene: SceneDuVolume, p: Pt): number {
   const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
   const dessus = scene.layers
-    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)) && !tileCollapsed(scene, p.x, p.y, l.z))
+    .filter((l) => l.z > (p.z ?? 0) && plancherPresent(scene, p.x, p.y, l.z))
     .map((l) => heightAt(scene, p.x, p.y, l.z))
     .filter((h) => h > sol);
   return Math.min(Infinity, ...dessus);
@@ -608,12 +613,12 @@ export type Atterrissage =
   | { kind: 'aucune-surface' };
 
 /**
- * SURFACE D'ATTERRISSAGE en (x,y) pour qui part de `hauteurDepart` (m) : la plus HAUTE surface
- * MARCHABLE (`isWalkable`, tuile effondrée exclue) dont la hauteur ne dépasse pas le départ d'un pas
- * (`STEP_MAX_M`), sur TOUTES les couches, par hauteur MÉTRIQUE — l'index de couche ne départage
- * qu'une égalité (cf. `hauteurDe`). Calque de la boucle de couches de `path.ts::neighborsOf`. Seule
- * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`noyau/fallMove.ts`),
- * effondrement d'une passerelle (`collapseStructure`). Le mode `chute` exige un appui strictement
+ * SURFACE D'ATTERRISSAGE en (x,y) pour qui part de `hauteurDepart` (m) : la surface du premier plancher présent
+ * (`plancherPresent`) sous le départ, si on peut s'y tenir (`isWalkable`), sinon aucune — on ne tombe pas à travers un
+ * plancher (#4576). « Sous le départ » : hauteur qui ne dépasse pas le départ d'un pas (`STEP_MAX_M`), sur TOUTES les
+ * couches, par hauteur MÉTRIQUE — l'index de couche ne départage qu'une égalité (cf. `hauteurDe`). Calque de la boucle
+ * de couches de `path.ts::neighborsOf`. Seule réponse à « où atterrit-on ? » : chute volontaire, croisée franchie
+ * (`noyau/fallMove.ts`), effondrement d'une passerelle (`collapseStructure`). Le mode `chute` exige un appui strictement
  * sous le départ. `appuiAdmissible` écarte une case avant le classement des appuis. `LDB 15 l.82`. PUR.
  */
 export function surfaceDAtterrissage(
@@ -622,13 +627,13 @@ export function surfaceDAtterrissage(
 ): Atterrissage {
   let best: { z: number; h: number } | null = null;
   for (const layer of scene.layers) {
-    if (!isWalkable(scene, x, y, layer.z)) continue;
+    if (!plancherPresent(scene, x, y, layer.z)) continue;
     const h = heightAt(scene, x, y, layer.z);
     if (mode === 'chute' ? h >= hauteurDepart : h > hauteurDepart + STEP_MAX_M) continue;
     if (appuiAdmissible && !appuiAdmissible({ x, y, z: layer.z })) continue;
     if (!best || h > best.h || (h === best.h && layer.z > best.z)) best = { z: layer.z, h };
   }
-  return best ? { kind: 'surface', to: { x, y, z: best.z }, hauteur: best.h } : { kind: 'aucune-surface' };
+  return best && isWalkable(scene, x, y, best.z) ? { kind: 'surface', to: { x, y, z: best.z }, hauteur: best.h } : { kind: 'aucune-surface' };
 }
 
 /** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une

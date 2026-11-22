@@ -25,7 +25,8 @@
  *    ch.14) ou sous la règle optionnelle `penurie-d-eau` (siège, désert, souterrain). « Ni nourriture
  *    ni boisson … ne peuvent pas récupérer » (LDB 18 l.338) → `isDeprived` = affamé OU assoiffé, lu par `rest.ts`.
  *
- * La nourriture = objets `isRations` (trappings LDB 66 l.20) dans l'inventaire du héros.
+ * La nourriture vient du garde-manger (`GardeManger`) choisi par l'appelant : les objets `isRations` du sac
+ * (`rationsDuSac`, LDB 66 l.20), ou la cale du navire à bord en mer (`upkeep.ts`).
  * CHOIX documenté (canon muet sur la résorption) : manger à nouveau remet les compteurs ET les
  * malus de faim à zéro.
  *
@@ -37,7 +38,6 @@ import { RNG, d10 } from './dice';
 import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
 import { itemCapability } from './capabilities';
-import { dailyWaterLitres } from './seaWeather';
 import { findDiseaseById, findTraitById, findTrappingById, refLabel } from '../data';
 import { garanti } from '../lib/garanti';
 import { rule } from './policy';
@@ -88,7 +88,7 @@ export interface ThirstState {
 }
 
 /** Talent Brouet (LDB 10 l.139) — lu sur la donnée, sans import. */
-export function hasBrouet(c: Combatant): boolean {
+function hasBrouet(c: Combatant): boolean {
   return effectiveTalents(c).some((t) => t.talentId === 'brouet' && (t.times ?? 1) >= 1);
 }
 
@@ -135,7 +135,7 @@ export function feedFromMeal(c: Combatant): void {
 export interface FoodUpkeepResult {
   /** A mangé aujourd'hui (ration consommée, ou jour « gratuit » de Brouet). */
   ate: boolean;
-  /** Une ration a été retirée de l'inventaire. */
+  /** Le garde-manger a fourni le repas (et non une journée déjà couverte). */
   rationConsumed: boolean;
   /** Dégâts NETS à appliquer par l'appelant (ignorant les PA — via `loseWounds`). */
   damage: number;
@@ -156,10 +156,10 @@ export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: R
   let damage = 0;
   if (!success) {
     h.failures += 1;
-    if (h.failures === 1) log.push(t('prov.starving', { name: c.label }));
+    if (h.failures === 1) log.push(t('prov.starving', { name: nomDe(c) }));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-      log.push(t('prov.wasting', { name: c.label, dmg: damage }));
+      log.push(t('prov.wasting', { name: nomDe(c), dmg: damage }));
     }
   } // réussite : aucune conséquence (le jet a déjà été montré dans l'étape — pas de bruit de journal)
   c.hunger = h;
@@ -167,12 +167,30 @@ export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: R
 }
 
 /**
- * `dailyFoodUpkeep` : mange une ration (ou couvre la journée), sinon installe la faim. `deferTest`
+/** Source des vivres d'un repas : prend `besoin` rations et rend le vivre qui a nourri (`RepasDuJour`), ou `null`
+ *  sans rien prendre s'il n'y en a pas assez. */
+export type GardeManger = (besoin: number) => RepasDuJour | null;
+
+/** Le sac du héros : ses objets `isRations`, dans l'ordre de l'inventaire. LDB 66 l.20 */
+export function rationsDuSac(c: Combatant): GardeManger {
+  return (besoin) => {
+    const idxs: number[] = [];
+    (c.items ?? []).forEach((it, i) => { if (idxs.length < besoin && isRation(it)) idxs.push(i); });
+    if (idxs.length < besoin) return null;
+    const vivres = new Set(idxs.map((i) => c.items![i].trappingId));
+    const [seul] = vivres;
+    for (const i of [...idxs].reverse()) c.items!.splice(i, 1);
+    return vivres.size === 1 && seul !== undefined ? seul as Id<'trapping'> : undefined;
+  };
+}
+
+/**
+ * `dailyFoodUpkeep` : mange sur `gardeManger` (ou couvre la journée), sinon installe la faim. `deferTest`
  * (cascade de nuit) : si un Test de Faim TOMBE ce jour, on NE le roule PAS — on appelle `deferTest`
  * avec la pénalité cumulative (−10 × Tests déjà tentés, LDB 18 l.338) pour qu'il devienne une ÉTAPE
  * influençable (résolue par `applyFaimTest`). Sans `deferTest` (contextes eager), le jet est roulé ici.
  */
-export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: RNG, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
+export function dailyFoodUpkeep(c: Combatant, gardeManger: GardeManger, resVal: number, be: number, rng: RNG, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
   const res: FoodUpkeepResult = { ate: false, rationConsumed: false, damage: 0, log: [] };
   if (c.dead) return res;
   // Sustentation magique (Graisse de la terre, LDB 48 : « n'a pas besoin de manger ou de boire ») :
@@ -193,14 +211,9 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
     res.ate = true;
     repas = h.coveredDay === true ? 'repas' : h.coveredDay.repas;
   } else {
-    const need = traitConsumptionFactor(c);
-    const idxs: number[] = [];
-    (c.items ?? []).forEach((it, i) => { if (idxs.length < need && isRation(it)) idxs.push(i); });
-    if (idxs.length >= need) {
-      const vivres = new Set(idxs.map((i) => c.items![i].trappingId));
-      const [seul] = vivres;
-      repas = vivres.size === 1 && seul !== undefined ? seul as Id<'trapping'> : undefined;
-      for (const i of [...idxs].reverse()) c.items!.splice(i, 1);
+    const pris = gardeManger(traitConsumptionFactor(c));
+    if (pris !== null) {
+      repas = pris;
       res.ate = true;
       res.rationConsumed = true;
     }
@@ -208,7 +221,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
   noterLeRepas(c, repas);
 
   if (res.ate) {
-    if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: c.label }));
+    if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: nomDe(c) }));
     // Brouet : demi-ration → le jour suivant est couvert (LDB 10 l.139). Sinon, plus d'état de faim.
     c.hunger = brouet && res.rationConsumed ? { days: 0, tests: 0, failures: 0, coveredDay: { repas } } : undefined;
     return res;
@@ -236,10 +249,10 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
     if (!t2.success) {
       h.failures += 1;
       if (h.failures === 1) {
-        res.log.push(t('prov.starving', { name: c.label }));
+        res.log.push(t('prov.starving', { name: nomDe(c) }));
       } else {
         res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-        res.log.push(t('prov.wasting', { name: c.label, dmg: res.damage }));
+        res.log.push(t('prov.wasting', { name: nomDe(c), dmg: res.damage }));
       }
     }
   }
@@ -267,10 +280,10 @@ export function applySoifTest(c: Combatant, success: boolean, be: number, rng: R
   let damage = 0;
   if (!success) {
     s.failures += 1;
-    if (s.failures === 1) log.push(t('prov.parched', { name: c.label }));
+    if (s.failures === 1) log.push(t('prov.parched', { name: nomDe(c) }));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      log.push(t('prov.dehydrating', { name: c.label, dmg: damage }));
+      log.push(t('prov.dehydrating', { name: nomDe(c), dmg: damage }));
     }
   }
   c.thirst = s;
@@ -291,7 +304,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   // la Soif est suspendue au même titre que la Faim (drapeau `noHunger`), compteurs purgés.
   if (hasWater || hasActiveFlag(c, 'noHunger')) {
     res.drank = true;
-    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(t('prov.quenched', { name: c.label }));
+    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(t('prov.quenched', { name: nomDe(c) }));
     c.thirst = undefined;
     return res;
   }
@@ -311,10 +324,10 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   }));
   if (!t2.success) {
     s.failures += 1;
-    if (s.failures === 1) res.log.push(t('prov.parched', { name: c.label }));
+    if (s.failures === 1) res.log.push(t('prov.parched', { name: nomDe(c) }));
     else {
       res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      res.log.push(t('prov.dehydrating', { name: c.label, dmg: res.damage }));
+      res.log.push(t('prov.dehydrating', { name: nomDe(c), dmg: res.damage }));
     }
   }
   c.thirst = s;
@@ -372,7 +385,7 @@ export function retirerDuVivre(lots: readonly LotDeVivres[], vivre: Id<'trapping
   return lots.map((l) => ({ ...l, rations: l.rations - (pris.get(l) ?? 0) })).filter((l) => l.rations > 0);
 }
 
-/** Ce que l'équipage a mangé de la cale (`mangerLaCale`) : lots restants, jours-homme manquants, et le repas de
+/** Ce que des bouches ont mangé de la cale (`mangerLaCale`) : lots restants, jours-homme manquants, et le repas de
  *  chaque jour, dans l'ordre (`RepasDuJour` : le vivre qui a nourri seul toutes les bouches, absent si mêlé ou à court). */
 export interface RepasDeLaCale { lots: LotDeVivres[]; manque: number; repas: (Id<'trapping'> | undefined)[] }
 
@@ -383,7 +396,7 @@ export type RepasDuJour = Id<'trapping'> | 'repas' | undefined;
 /** Écrit le régime de bord d'un porteur pour UN jour où il a mangé `repas` : un vivre frais remet le mois à zéro, sinon
  *  un jour de plus sans frais, et de soupe si le vivre porte `scurvyGuard`. Le porteur d'une maladie à `dureeAuFrais`
  *  acquiert un jour de vivre frais à décompter (`minutesAuFrais`, consommé par `avancerLesMaladies`) ; sans elle, il
- *  n'en garde aucun. Geste unique des deux mangeurs, `dailyFoodUpkeep` (PJ) et `mangerLaCale` via
+ *  n'en garde aucun. Geste unique des deux mangeurs, `dailyFoodUpkeep` (PJ, au sac ou à la cale) et
  *  `consumeCrewProvisions` (équipage). MDG 14 l.230-232 */
 export function noterLeRepas(p: Pick<PorteurDeMaladies, 'regimeDeBord' | 'diseases'>, repas: RepasDuJour): void {
   const frais = repas === 'repas' || (repas !== undefined && vivrePerissable(repas));
@@ -425,43 +438,13 @@ export function mangerLaCale(lots: readonly LotDeVivres[], bouches: number, jour
   return { lots: cale.filter((l) => l.rations > 0), manque, repas };
 }
 
-/** Manifeste d'avitaillement AU DÉPART (#241/#245) : vivres/eau disponibles vs requis pour couvrir
- *  `joursEstimes` de voyage, sur la POPULATION EMBARQUÉE ENTIÈRE (héros + effectif PNJ, MDG 14 l.238).
- *  PUR — aucune mutation, aucune consommation. `waterLitres` = tonneaux du navire (`CampaignVessel.waterLitres`,
- *  absent = ravitaillement réputé assuré, cf. en-tête) ; l'eau requise suit le régime de bord médian
- *  (`dailyWaterLitres('mediane')`, MDG 14 l.242 — la bande de Température réelle n'est tirée qu'en mer).
- *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`), comptés pour ce
- *  que l'équipage en mangera avant péremption depuis la minute `now` (`mangerLaCale`, MDG 14 l.238) :
- *  l'équipage mange 1 ration/jour (pas de Brouet), les héros suivent Brouet (LDB 10 l.139) sur leurs rations
- *  portées. Rations disponibles = celles des héros + les jours-homme de cale que l'équipage mangera. `crew` absent : voyage à terre
- *  (`travelFlow`), seuls les héros comptent. */
-export interface ProvisioningManifest {
-  joursEstimes: number;
-  /** Population embarquée totale (héros vivants + effectif PNJ) — l'eau se calcule dessus. */
-  souls: number;
-  rationsDispo: number;
-  rationsRequises: number;
-  eauDispoLitres: number | null;
-  eauRequiseLitres: number;
-  suffisant: boolean;
-}
-
-export function provisioningManifest(
-  party: Combatant[], waterLitres: number | undefined, joursEstimes: number, now: number,
-  crew: { count?: number; provisions?: readonly LotDeVivres[] } = {},
-): ProvisioningManifest {
-  const alive = party.filter((h) => !h.dead);
-  const days = Math.max(0, joursEstimes);
-  const crewCount = Math.max(0, crew.count ?? 0);
-  const souls = alive.length + crewCount;
-  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0)
-    + crewCount * days - mangerLaCale(crew.provisions ?? [], crewCount, days, now).manque;
-  // Ogre (ADE II 2 l.708) : facteur ×2 sur les vivres/eau requis, PAR TÊTE — `traitConsumptionFactor`.
-  const rationsRequises =
-    alive.reduce((sum, h) => sum + (hasBrouet(h) ? Math.ceil(days / 2) : days) * traitConsumptionFactor(h), 0) + crewCount * days;
-  const eauRequiseLitres =
-    alive.reduce((sum, h) => sum + traitConsumptionFactor(h) * days * dailyWaterLitres('mediane'), 0) + crewCount * days * dailyWaterLitres('mediane');
-  const eauDispoLitres = waterLitres ?? null;
-  const suffisant = rationsDispo >= rationsRequises && (eauDispoLitres == null || eauDispoLitres >= eauRequiseLitres);
-  return { joursEstimes: days, souls, rationsDispo, rationsRequises, eauDispoLitres, eauRequiseLitres, suffisant };
+/** La cale du navire comme garde-manger d'une bouche, le jour de la minute `now` (`mangerLaCale`) : chaque repas
+ *  remplace `cale.lots` par les lots restants. MDG 14 l.238, l.263 */
+export function rationsDeLaCale(cale: { lots: LotDeVivres[] }, now: number): GardeManger {
+  return (besoin) => {
+    const r = mangerLaCale(cale.lots, besoin, 1, now);
+    if (r.manque > 0) return null;
+    cale.lots = r.lots;
+    return r.repas[0];
+  };
 }

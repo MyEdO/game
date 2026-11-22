@@ -29,7 +29,7 @@ export const FAMILLES = [
   { classe: 'Variante', module: 'src/noyau/effetsDeLAppel.ts', type: 'VarianteDeVitrine' },
   { classe: 'Piece', module: 'src/noyau/monde/aretes.ts', type: 'PieceDArete' },
   { classe: 'PieceDEscalier', module: 'src/noyau/monde/cotesDeMarches.ts', type: 'PieceDEscalier' },
-  { classe: 'PieceDeToit', module: 'src/noyau/monde/faitieres.ts', type: 'PieceDeToit' },
+  { classe: 'PieceDeToit', module: 'src/noyau/monde/piecesDeToit.ts', type: 'PieceDeToit' },
   { classe: 'Position', module: 'src/noyau/monde/aretes.ts', type: 'PositionDansLOuverture' },
   { classe: 'TypeDeSaisie', module: 'src/hote/elements.ts', type: 'Saisie', champ: 'type' },
 ]

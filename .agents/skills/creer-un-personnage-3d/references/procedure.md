@@ -275,8 +275,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
   Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
-  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
-  un morceau de cette apparence garde la couleur de ses sommets (#4471).
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur (#4471).
+  Toute surface du monde dont la matière a sa neutre la lit et la teint de la couleur de ses sommets, morceau, nappe
+  ou couronne (`VolumeDeScene.albedo_de`, `teinte_des_sommets` de `art/monde.gdshader`) : un terrain la dérive de sa
+  texture (`; dérivée de terrain--<id>.jpg`), et son sol horizontal la relit à grande échelle pour casser la
+  répétition du motif.
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
@@ -1003,22 +1006,42 @@ budget, coques closes, raccord) et compare chaque manifeste au publié. Une fami
 
 ## 13. Toit
 
-La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
-couverture de `src/data/materials.json`) se construit comme
+Les pièces qu'un hôte pose sur les arêtes d'un toit, la faîtière d'un faîte, l'arêtier d'une arête saillante montante et
+la noue d'une arête rentrante (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une couverture de
+`src/data/materials.json`), se construisent comme
 un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
 `scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
 ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
 nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
-`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+`toit/pieces.mjs`) : `faitiere`, `aretier` et `noue`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
 bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
 bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
 à trois brins sur son dos, baguettes de noisetier filées et croisées).
 
 **Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
 faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
-étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+étire Y à l'écart des pentes des deux pans qu'elle coiffe, et la cisaille de leur gradient moyen, nul sur un faîte
+symétrique. Rien n'y suppose donc une pente : le dessous
 de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
 levée au-dessus du pan), jamais d'équerre au pan.
+
+**Largeur.** Rien d'une pièce ne passe, en travers et en plan, la demi-largeur de pose `DEMI_LARGEUR_DE_POSE_M`
+(`src/noyau/monde/piecesDArete.ts`, 0,5 m) de son axe : à un nœud, l'hôte recule chaque arête de ce dont une pose
+aussi large déborderait sur le pan d'une voisine, sans pièce de nœud.
+
+**Arêtier.** X le long de l'arête en plan, de -L/2 à +L/2 avec L = 2√2 m, la diagonale d'une case de 2 m : -X est le
+bas (l'égout), +X le haut ; Y la hauteur, 0 sur l'arête ; Z en travers. Le modèle est horizontal : l'hôte l'étire en X
+à la longueur du tronçon en plan, et le cisaille de son gradient, montants verticaux, ce qui le fait monter le long de
+l'arête et l'allonge le long de la pente d'un facteur √(1 + s²) (s, la pente de l'arête : 1,29 à 0,816) ; les
+recouvrants le tolèrent, sans joint qui s'ouvre. Ce qui se recouvre le long recouvre vers le bas : l'élément du haut
+sur celui du bas. Le V se modèle sur deux pans qui descendent de l'arête d'une pente de 1 : l'hôte étire Y à l'écart
+des pentes des deux pans et le cisaille par Z au travers de leur gradient moyen, si bien que rien n'y suppose un V
+symétrique. Bouts francs, dans les plans X = ±L/2 : le bas s'arrête au coin du débord, l'about fermé sans rien
+au-delà ; le haut finit sous la faîtière, ou recule à un nœud.
+
+**Noue.** Le repère de l'arêtier, mais le V est creux : deux pans qui montent de l'arête d'une pente de 1, la pièce
+couchée dans le creux, au-dessus des pans, son épaisseur portée en hauteur. Ce qui se recouvre recouvre vers le bas.
+Bouts francs : la noue s'arrête au point d'égout, sans débord.
 
 **Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
 même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
@@ -1027,6 +1050,9 @@ tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin
 qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
 au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
 cases.
+
+Un tronçon d'arêtier ou de noue oblique s'étire autrement qu'à 45° : rien n'y dépend d'un nombre entier d'éléments par
+mètre.
 
 **Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
 couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
@@ -1043,12 +1069,17 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py
   --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
 ```
 
-`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
-elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
-trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
-comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
-kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
-compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+`toit/revue.py` rend chaque pièce du kit (`faitiere`, `aretier`, `noue`) teinte du `ridgeCap` de la couverture
+`--couverture` dont il est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus : une ligne
+par pièce, seule sur son toit d'école ; une ligne par faîte de `revue.FAITES`, trois faîtières bout à bout sur deux pans
+de même pente, un toit raide puis un toit plat, étirées en hauteur comme l'hôte les pose ; puis une ligne par toit de
+`toit/poses.mjs` (une croupe d'école, une croupe en L, une croupe en croix), ses pans et ses pièces que le noyau sert,
+posées comme l'hôte les pose, pour voir les arêtiers monter, les noues dans leur creux et leurs rencontres aux nœuds.
+`npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque kit deux fois aux mêmes octets et compare chaque manifeste
+au publié ; chaque kit qu'une couverture nomme y a son modèle, dont les nœuds racine sont exactement `PIECES_DE_TOIT`
+(lu par `toit/pieces.mjs`, avec `DEMI_LARGEUR_DE_POSE_M`). Il mesure chaque pièce : repère, longueur, aucune pièce au-delà
+de la demi-largeur de pose, coques closes, assise sur les pans du toit d'école, l'arêtier sur la croupe d'école et la noue
+dans son creux, section égale à ses deux bouts. Une couverture neuve entre
 d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 

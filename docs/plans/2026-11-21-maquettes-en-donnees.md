@@ -55,7 +55,7 @@ Le détail et les sources sont dans la carte.
 - **Style** :
   - 179 règles hors `gestes.css` stylent une primitive, et 156 la stylent en contexte ;
   - des surcharges d'identité passent par un sélecteur de contexte (`#lieu .plaque.envoyer>div`, `#verdict .dr`) ;
-  - le DOM écrit aussi du style (`rendu.js:1821`, `n.style.fontSize`).
+  - le DOM écrit aussi du style (`rendu.js:1820`, `n.style.fontSize`).
 - **Peintres sous `#ui`** : `#plan` de l'éditeur, `#carte` de la ville, `#reikland`, `#trajet`, `#frise`. Ce sont des centaines de nœuds SVG, avec des mots en dur.
 - **Outillage** :
   - `rendre.mjs` sort en 1 sur tout relevé non vide et lance le navigateur épinglé (2026-11-21) ;
@@ -82,20 +82,37 @@ Le détail et les sources sont dans la carte.
    - référence par id, résolue par une table déclarée (héros, PNJ, lieux).
 
    Elle n'a aucun corps de fonction. Chaque type d'état reçoit un discriminant littéral. Une disposition que la grammaire n'exprime pas se traite en enrichissant la grammaire par une déclaration, jamais par une fonction d'écran.
+
+   **Admission d'une forme.** Les déclarations D1 à D8 de `dispositions.md` et toute forme nouvelle passent trois tests :
+   - aucun opérateur au-delà de la présence et de l'égalité avec un champ ;
+   - des chemins et des branches vérifiables contre le type de l'état ;
+   - au moins deux tables qui l'emploient.
+
+   Une forme qu'une seule table réclame remonte à l'utilisateur. Il en découle trois précisions :
+   - D7 (suite de fragments) se replie dans le dictionnaire à emplacements (règle 4) ;
+   - D2 (conteneur vide absent) est une règle du moteur, toujours active ;
+   - D1 (repli) et D4 (égalité) ne s'imbriquent pas.
+
+   Un validateur passe chaque table sur les 170 états réels.
 4. **Les mots à part.**
    - La donnée porte la valeur et l'id du libellé.
    - Les libellés vivent dans un seul dictionnaire des maquettes, keyé par id : les mots fixes d'interface y vont aussi.
    - La primitive place la valeur et le libellé, et n'écrit aucun mot.
+   - Une entrée peut porter des emplacements nommés et un pluriel, par exemple « {n} km avant {lieu} ». La donnée fournit les valeurs. Choix de l'utilisateur du 2026-11-21 : « Emplacements et pluriel ».
+   - Les faits de jeu que le rendu calcule aujourd'hui passent dans l'état : issue d'un jet, somme des DR, −/+ ouverts, état d'un compte… La liste est dans `docs/plans/2026-11-21-tables-d-essai.md`, § « Valeurs à porter par l'état ». Choix de l'utilisateur du 2026-11-21 : « Oui, dans l'état ».
 5. **Décor et illustration.**
    - Le décor, c'est `#scene`.
    - Sous `#ui`, un dessin tracé (carte, plan, frise, trajet) est une **illustration** : une primitive dont l'intérieur est tracé par un peintre de module décor. Ses textes et ses contrôles passent par des primitives, avec des mots keyés.
    - Tout le reste sous `#ui` est de l'interface.
 6. **Feuilles hors kit = placement seul** (A1), quel que soit le sélecteur : grille, gap, largeur, position. Aucune couleur, bordure, police, taille de police, rayon ni ombre. Le style écrit par le DOM (`.style.`, `style.setProperty`) suit la même règle.
-7. **Pixel constant dans un lot de migration.**
-   - Les 170 états sont comparés dans les 4 formats (`rendre.mjs:42-47`), sous le navigateur épinglé, par `ecart`, avec la tolérance mesurée sur deux passes de la même tête.
-   - Un écart est une erreur de migration.
-   - Une variante actuelle devient une variante nommée du catalogue, jamais une surcharge de famille.
-8. **Harmonisation à part.** Réduire des variantes change ce qu'on voit : ce travail se fait dans un lot d'harmonisation, montré d'abord sur un écran, avec ses « À valider ».
+7. **Deux sortes de lots, jamais mêlées.** Choix de l'utilisateur du 2026-11-21 : « Harmoniser d'abord ».
+   - **Lot de nature (visible).** Une nature d'élément reçoit une seule forme, construite d'emblée en primitive du kit, puis appliquée à tous ses sites en une passe. On ne fait aucune harmonisation dans l'ancien code.
+     - La forme se choisit sur image : une planche du kit montre les variantes réelles et la forme proposée, sur la page de jugement, et l'utilisateur la valide.
+     - Les sites viennent du relevé `brut`, pas des citations du catalogue.
+     - Preuve : les PNG qui changent sont **exactement** les états qui portent cette nature, et aucun autre. `contenu` et `masque` restent bloquants.
+     - Outil : `npm run godot:maquettes:reference` à la tête de départ, puis `npm run godot:maquettes:comparer -- --attendu <fichier.json>` après l'application (`scripts/maquettes/pixels.mjs`, écarts dans `scripts/maquettes/ecarts.mjs`). Le fichier attendu liste les états qui portent la nature, `{ "<écran>/<état>": [...] }` ; `--attendu` se répète et ses fichiers s'unissent. Le rapport donne les états attendus restés inchangés et les états changés hors attendu, les entrées de relevé neuves dans chacun des 4 formats, et l'écart du style calculé de chaque texte en 16:9 par signature (deux derniers maillons du chemin DOM et propriétés changées), en entier dans `dist/maquettes-pixels/style-ecart.json`. Il sort en 1 sur un état changé hors attendu, un PNG sans pendant ou un relevé neuf ; l'écart de style se relit, et ne fait sortir en 1 que sous `--style-bloquant`. `--ecran <écran>` (répétable) restreint la référence et la comparaison à ces écrans.
+   - **Lot de table (invisible).** Un gabarit devient une table (règle 3). Les 170 états sont comparés dans les 4 formats (`rendre.mjs:52-57`), sous le navigateur épinglé, par `ecart`, et l'écart doit être de 0 px. Un écart est une erreur de migration.
+8. **Plus de variantes propres à un écran.** Un lot de nature réduit sa nature à sa forme cible. Le catalogue ne garde que les variantes qui ont une raison d'être, jamais une surcharge de famille.
 
 ## Étapes
 
@@ -120,7 +137,12 @@ Le détail et les sources sont dans la carte.
    - La grammaire de table (règle 3) est écrite. Sa preuve se fait **sur papier** : tables de `voyage` (`lieu-et-voyage`) et de `fiche`, écrites sans fonction.
    - Le dictionnaire des libellés (règle 4) est défini.
    - **Point d'arrêt utilisateur** sur trois choses : le catalogue, le nombre de variantes propres à un écran admises jusqu'à l'harmonisation, et la grammaire avec ses deux tables d'essai.
-3. **Pilote : `fenetre-du-bas` (49 états) et `edition` (4 états, deux types, illustration `#plan`).**
+   - *Réponses de l'utilisateur du 2026-11-21* : Q1 « Harmoniser d'abord », Q2 avis rendu (règle 3), Q3 « Oui, dans l'état », Q4 « Emplacements et pluriel ». Le détail est sur #4585.
+3. **Lots de nature (règle 7)**, de la plus dispersée à la moins dispersée (carte, § variantes) : lignes libellé-valeur, titres, sous-titres et rubriques, notes, étiquettes, puces et listes, filets, bulles, plaques, jauges.
+   - **Le premier va de bout en bout avant les autres** : planche, validation, primitive, application, preuve. Ce sont les titres de cadre et de panneau, l'exemple que l'utilisateur a cité.
+   - Chaque nature : planche des variantes réelles et de la forme proposée, primitive au kit, sites tirés du relevé `brut`, application en une passe, puis la preuve de la règle 7 : la référence posée avant l'application, la comparaison avec `--attendu` après (règle 7, § Outil).
+   - **Les titres faits, les neuf autres natures et l'échelle des noms passent par un seul point d'arrêt.** Choix de l'utilisateur du 2026-11-22 : « Un seul arrêt (Recommandé) ». Elles sont relevées et proposées ensemble, l'utilisateur les tranche en une fois, l'application suit, puis il juge les maquettes finales écran par écran.
+4. **Pilote des tables : `fenetre-du-bas` (49 états) et `edition` (4 états, deux types, illustration `#plan`).**
    - Les primitives utilisées passent à l'émission marquée (règle 2).
    - Les gabarits deviennent des tables (règle 3), les mots sont keyés (règle 4), l'illustration suit la règle 5.
    - Le relevé `brut` est à 0 sur ces deux gabarits. Les 16 fenêtres de `lieu-et-voyage` migreront avec leur gabarit.
@@ -128,10 +150,10 @@ Le détail et les sources sont dans la carte.
    - Les feuilles touchées sont ramenées au placement.
    - Coût mesuré : temps, fonctions supprimées, règles retirées.
    - **Point d'arrêt utilisateur** : le catalogue appliqué, la table d'un gabarit, et le fichier de données d'un état à côté de son écran.
-4. **Gabarits suivants**, du plus petit au plus gros : `recit`, `ouverture`, `consultation`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`. Un lot par gabarit, avec la preuve du pilote.
+5. **Gabarits suivants**, du plus petit au plus gros : `recit`, `ouverture`, `consultation`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`. Un lot par gabarit, avec la preuve du pilote.
    - Le relevé `brut` devient bloquant pour un gabarit dès qu'il est à 0.
    - Chaque lot met à jour les références vivantes qui citent ce qu'il déplace : `hotes/godot/projet/art/ferme.gdshader:2`, `art/grain.gdshader:2`, `scripts/bulle.gd`, `cibles/ecrites/*.md`, `cibles/images.md:248-260`, `src/data/icons/defs/interface.ts:68`, `src/data/paysages/defs/accueil.ts:6`, `src/data/paysages/defs/table.ts:4-5`, `scripts/guards/lib/couches.mjs:60`.
-5. **Gardes finales.**
+6. **Gardes finales.**
    - Le relevé `brut` devient bloquant partout.
    - Les primitives refusent par erreur tout emplacement non marqué.
    - Gardes de dépôt :
@@ -140,10 +162,6 @@ Le détail et les sources sont dans la carte.
      - aucune propriété d'identité dans une feuille hors kit (A1) ni dans le style écrit par le DOM ;
      - aucun `style=` hors variables CSS (A2) ;
      - aucun `data-primitive` hors du kit.
-6. **Harmonisation** (règle 8), nature par nature, de la plus dispersée à la moins dispersée (carte, § variantes) :
-   - ordre : lignes libellé-valeur, titres, sous-titres et rubriques, notes, étiquettes, puces et listes, filets, bulles, plaques, jauges ;
-   - la forme se montre d'abord sur un écran ; ensuite le catalogue est réduit et appliqué partout ;
-   - « À valider » dans `kit.md`.
 
 ## Hypothèses
 
