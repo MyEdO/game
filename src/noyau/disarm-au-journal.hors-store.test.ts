@@ -42,7 +42,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     applyCriticalToTarget(heros, 'brasD', 0, log, banc.setState, { prerolled: crit, get: banc.getState });
     const c = banc.getState().pendingCascade!;
     const reveal = c.participants[c.participants.length - 1].reveal!;
-    expect(reveal.crit?.woundsLost).toBe(1);
+    expect(reveal.crit, 'la localisation par son id').toMatchObject({ location: 'brasD', woundsLost: 1 });
     expect(reveal.details?.map((d) => d.text)).toEqual(['Héros lâche Arme simple.', crit.desc]);
     expect(log.filter((l) => l.startsWith('  ↳ '))).toEqual(['  ↳ Héros subit 1 Blessure(s) (ignorant BE et PA).', '  ↳ Héros lâche Arme simple.', `  ↳ ${crit.desc}`]);
   });
@@ -58,6 +58,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     const c = banc.getState().pendingCascade!;
     const reveal = c.participants[c.participants.length - 1].reveal!;
     expect(reveal.details?.map((d) => d.text)).toContain(`Héros reçoit ${sonne} État Sonné.`);
+    expect(reveal.crit?.location).toBe('tete');
     expect(reveal.crit?.conditions?.map((x) => x.id)).toEqual(['assourdi', 'hemorragique']);
   });
 });

@@ -1209,7 +1209,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
     const opLines: string[] = [];
     for (const h of get().party) {
       if (h.dead || h.outOfRencontre) continue;
-      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }));
+      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }).lignes);
     }
     set({ party: [...get().party] });
     lines.push(...opLines);

@@ -252,7 +252,7 @@ export const TABLES = {
         const { forgerUnId, campaignNarratif } = get();
         const resolveTrapping = objetDuNarratif(campaignNarratif);
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng(), forgerUnId, undefined, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), forgerUnId, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher

@@ -9,7 +9,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * QUESTION : quand une entité (héros, combattant, lieu, navire, donnée) n'est pas résolue, le rendu
  * écrit-il « ? », « Le groupe », « Navire » à sa place ? Non : une absence IMPOSSIBLE est requise par le
  * type ou lève (`garanti`, `noyau/monde/combatants.ts`) ; une absence ATTEIGNABLE se NOMME en français de
- * joueur (`libelleOuAbsence`, `data/index.ts` ; la source d'un lot d'ops par `nomDeSource`, `engine/ops.ts` ;
+ * joueur (`libelleOuAbsence`, `data/index.ts` ; la source d'un lot d'ops par `nomDeSource`, `engine/faits.ts` ;
  * le navire de campagne par `nomDuNavire`, `noyau/carriers.ts`).
  *
  * FORME jugée sur l'AST (`typescript`), jamais sur le nom des variables : tout `??` ou `||` dont
@@ -28,7 +28,7 @@ const OUTILLAGE = 'outillage (recette `__wfrp`, galerie QC, diagnostic dev, rela
 
 /** `fichier|texte du site` → raison. */
 const EXEMPTES = new Map<string, string>([
-  ["src/engine/ops.ts|ctx?.label ?? t(`op.nature.${nature}`)", PRIMITIVE],
+  ["src/engine/faits.ts|ctx?.label ?? t(`op.nature.${nature}`)", PRIMITIVE],
   ["src/engine/traceLine.ts|row.label ?? t('casc.autoRowFallbackLabel')", AUTHORE],
   ["src/engine/traceLine.ts|d.label ?? t('casc.dieTraceLabel')", AUTHORE],
   ["src/noyau/combatEffects.ts|e.label || t('eff.sceneDePsychologie')", AUTHORE],

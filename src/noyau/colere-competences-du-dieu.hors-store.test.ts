@@ -41,7 +41,7 @@ function associees(p: Combatant): string[] {
 /** Tire la rangée de Colère dont le dé NATUREL est `de` sous `peche` Points de Péché, puis l'applique. */
 function subirLaColere(p: Combatant, peche: number, de: number, rng: RNG) {
   const m = rollMiscast('colere', aucunDe, peche, undefined, de);
-  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng, label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
+  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng, label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) }).lignes;
   return { m, lignes };
 }
 

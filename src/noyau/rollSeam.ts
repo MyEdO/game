@@ -36,7 +36,7 @@ import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, CharKey, Difficulty, Weapon, ContexteDeTest } from '../engine/types';
-import type { PairedSense, GameOp } from '../engine/ops';
+import type { PairedSense } from '../engine/ops';
 import type {
   CascadeStep, CascadeStepMeta, BatchParticipant, CascadeAggregate, CascadeSecondRead, PendingCascade, CascadeTableDecl, CascadeTableResult, RevealEntry,
   PendingDeviation, PendingBladeTrap, PendingCritSeverity, PendingMiscastStep, PendingMutationStep,
@@ -47,7 +47,8 @@ import type { PlayerText } from '../i18n/playerText';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
 import type { OupsResolved } from '../engine/oups';
-import type { RecapLine, RecapTone } from './recapLine';
+import { tonDuFait, type RecapLine, type RecapTone } from './recapLine';
+import type { Applique, FaitApplique } from '../engine/faits';
 import type { ModLine } from '../engine/combat';
 import {
   startCascade,
@@ -68,7 +69,7 @@ import { porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
 import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
-import { conditionLabel, dataLabel, testSkillLabel, type StakeRef } from '../data';
+import { dataLabel, testSkillLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
 import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { type RNG, type DiceSpec } from '../engine/dice';
@@ -232,36 +233,16 @@ export function rollTitle(get: Get, req: RollRequest): string {
 }
 
 /**
- * Conséquence d'une étape DÉJÀ appliquée (#295 Lot 0, Décision 1b) — soit un effet mécanique (`ops`,
- * montant RÉEL rendu depuis le `GameOp` appliqué), soit une note narrative (`say`, clé `out.*` SANS
- * placeholder de jet — cf. garde i18n `i18n.test.ts`). AUCUN accès à roll/target/sl/won : la
+ * Conséquence d'une étape DÉJÀ appliquée (#295 Lot 0, Décision 1b) — soit un effet mécanique (ce
+ * qu'`applyOps` a rendu : les FAITS appliqués et leurs lignes, #4574), soit une note narrative (`say`, clé
+ * `out.*` SANS placeholder de jet — cf. garde i18n `i18n.test.ts`). AUCUN accès à roll/target/sl/won : la
  * duplication d'outcome (`${roll}/${target}`, « réussi (DR X) ») est INEXPRIMABLE par construction.
  * `tone`/`icon` (#349) habillent l'affichage de la ligne — `RecapTone` = vocabulaire UNIQUE, celui de
  * `NightEntry.tone`/`RecapLine.tone` (`noyau/recapLine.ts`), jamais un second jeu de valeurs.
  */
 export type Consequence =
-  | { ops: GameOp[]; tone?: RecapTone }
+  | (Applique & { tone?: RecapTone })
   | { say: OutKey; vars?: OutVars; tone?: RecapTone; icon?: IconId };
-
-/** Ligne d'un `GameOp` DÉJÀ appliqué — le montant est un LITTÉRAL résolu par l'applier (jamais une
- *  `Formula` à re-tirer ici : `resultLine` ne reçoit ni cible ni RNG, cf. Décision 1b). Étend au fil
- *  des Lots de migration (#295 Lot 1) — un `op` sans formatteur reste silencieux (`''`), jamais un crash. */
-function opConsequenceLine(op: GameOp): string {
-  switch (op.op) {
-    case 'wounds': return typeof op.amount === 'number' && op.amount > 0 ? t('out.consWounds', { n: op.amount }) : '';
-    case 'heal': return typeof op.amount === 'number' && op.amount > 0 ? t('out.consHeal', { n: op.amount }) : '';
-    case 'condition': return t('out.consCondition', { cond: conditionLabel(op.id.id) });
-    default: return '';
-  }
-}
-
-/** Ton PAR DÉFAUT d'une conséquence `ops` sans `tone` explicite — dérivé du GameOp lui-même (soin =
- *  positif, Blessures/État = négatif), jamais deviné au call-site. */
-function defaultOpsTone(ops: GameOp[]): RecapTone {
-  if (ops.some((o) => o.op === 'heal')) return 'reussite';
-  if (ops.some((o) => o.op === 'wounds' || o.op === 'condition')) return 'echec';
-  return 'neutre';
-}
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée en LIGNES STRUCTURÉES (#349) — LA forme
@@ -271,14 +252,19 @@ function defaultOpsTone(ops: GameOp[]): RecapTone {
  * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
  * pas — dans le cadre d'issue d'une modale de jet, elle se rend donc à PLEINE couleur, comme les
  * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'neutre'`) est une décision de site, jamais un
- * défaut technique. Une conséquence `ops`, elle, DÉRIVE son ton de l'op appliquée (soin/dégâts).
+ * défaut technique. Une conséquence appliquée, elle, DÉRIVE son ton de son fait (`tonDuFait`).
  */
 export function resultLines(cons: Consequence[]): RecapLine[] {
   return cons
     .map((c): RecapLine => ('say' in c
       ? { text: t(c.say, c.vars), ...(c.tone ? { tone: c.tone } : {}), ...(c.icon ? { icon: c.icon } : {}) }
-      : { text: c.ops.map(opConsequenceLine).filter(Boolean).join(' '), tone: c.tone ?? defaultOpsTone(c.ops) }))
+      : { text: c.lignes.join(' '), tone: c.tone ?? (c.faits.length ? tonDuFait(c.faits[0]) : 'neutre') }))
     .filter((l) => l.text.length > 0);
+}
+
+/** Les faits appliqués que portent `cons` (#4574) : posés à côté de l'`outcome` que `resultLines` en lit. */
+export function faitsDesConsequences(cons: Consequence[]): FaitApplique[] {
+  return cons.flatMap((c) => ('faits' in c ? c.faits : []));
 }
 
 /**

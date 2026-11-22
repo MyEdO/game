@@ -253,7 +253,8 @@ import {
   type EffectTrigger,
 } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, nomDeSource, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { nomDeSource } from '../engine/faits';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -2322,7 +2323,7 @@ export function applyCriticalToTarget(
       kind: 'critique', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines: revealLines, subjectId: target.id,
       ...(origine ? { origine } : {}),
       actorId: ctx?.attackerId, weapon: ctx?.weapon, details,
-      crit: { location: locationLabel(crit.location, target.bodyShape), woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
+      crit: { location: crit.location, woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
     }, { table: severity?.table }); // la DÉCLARATION résolue voyage avec la révélation : dé + ligne atteinte sur la rangée
   }
   // Le(s) Test(s) que la Blessure impose (LDB 18 : « Réussissez un Test de Résistance… » ; l.74 pour un
@@ -2517,7 +2518,7 @@ export function previewCritEntry(target: Combatant, crit: CriticalResolved, orig
   return {
     kind: 'critique', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines, subjectId: target.id,
     actorId: ctx?.attackerId, weapon: ctx?.weapon, details, origine,
-    crit: { location: locationLabel(crit.location, target.bodyShape), woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
+    crit: { location: crit.location, woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
   };
 }
 
@@ -4278,7 +4279,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
-    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) }).lignes;
     if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
     return false;
   }
@@ -5193,7 +5194,7 @@ function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<Retur
   if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
   if ((caster.items ?? []).some(isRation)) return;
   const n = spell.cn ?? 0;
-  lines.push(tr('cf.faimALIncantation', { name: caster.label, spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }));
+  lines.push(tr('cf.faimALIncantation', { name: caster.label, spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }).lignes);
 }
 
 // ---------------------------------------------------------------------------
@@ -5295,7 +5296,7 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
 function sorceryCorruptionLines(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): string[] {
   if (!ctx.sorceryCorruption || !recoitLaCorruption(caster)) return [];
   const lines: string[] = [];
-  for (let i = 0; i < jets; i++) lines.push(...gainCorruption(get, set, caster, 1));
+  for (let i = 0; i < jets; i++) lines.push(...gainCorruption(get, set, caster, 1).lignes);
   return lines;
 }
 
@@ -5327,14 +5328,14 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     source: miscastRowSource(miscastTableId(severity), m.rowId),
     ...crochetsDeCorruption(get, set), ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   };
-  lines.push(...applyOps(caster, m.ops, opsCtx));
+  lines.push(...applyOps(caster, m.ops, opsCtx).lignes);
   // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
     if (!cibles.length) lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
     for (const c of cibles) {
       const cibleCtx: OpsCtx = { ...opsCtx, caster };
-      lines.push(...applyOps(c, m.targetOps, cibleCtx));
+      lines.push(...applyOps(c, m.targetOps, cibleCtx).lignes);
     }
   }
   // Sorcellerie : 1 Point de Corruption PAR JET de table (LDB 49 l.5, verbatim en tête de
@@ -6688,7 +6689,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   {
     const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
-    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }));
+    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }).lignes);
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
@@ -9466,7 +9467,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       }
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines: string[] = rt.struggleDamage != null
-        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: enemy })
+        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: enemy }).lignes
         : [];
       const removed = recoveredStacks(netSL, stacks(enemy, action.state), success);
       if (removed > 0) removeCondition(enemy, action.state, removed);
@@ -9713,7 +9714,7 @@ export const TABLES = {
       // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
       // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
       if (gain <= 0) return [tr('out.corruptExposureResist', { name: hero.label, label })];
-      return [tr('out.corruptExposureFail', { name: hero.label, label }), ...gainCorruption(get, set, hero, gain)];
+      return [tr('out.corruptExposureFail', { name: hero.label, label }), ...gainCorruption(get, set, hero, gain).lignes];
     }),
     /** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)
      *  est pré-posé sur l'étape (la mutation a déjà eu lieu dans `applyBladeTrap`) → rien à appliquer ici, seul

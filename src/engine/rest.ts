@@ -71,14 +71,14 @@ export function dailyDiseaseUpkeep(
   c: Combatant, rng: RNG, defer: UpkeepDeferTest, caredFor = false, peutDeclarer?: CycleDeFiche['peutDeclarer'],
 ): string[] {
   if (c.dead || !c.diseases?.length) return [];
-  const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')), undefined, peutDeclarer);
+  const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')), peutDeclarer);
   if (caredFor) {
     for (const dz of c.diseases ?? []) {
       // −1 JOUR supplémentaire par maladie active, minimum 1 jour restant (LDB 09-Compétences).
       if (maladieDeclaree(dz) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
     }
   }
-  log.push(...syncDerivedConditions(c));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 
@@ -93,7 +93,7 @@ export function dailyDiseaseUpkeep(
  */
 export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
   const log = applyDiseasePersist(c, diseaseName, success, sl, rng);
-  log.push(...syncDerivedConditions(c));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 
@@ -113,7 +113,7 @@ export function cureDiseases(c: Combatant, n: number): string[] {
     log.push(t('rest.cured', { name: nomDe(c), disease: diseaseLabel(d.id) }));
     if (diseaseDefs()[d.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), d.id];
   }
-  log.push(...syncDerivedConditions(c));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 

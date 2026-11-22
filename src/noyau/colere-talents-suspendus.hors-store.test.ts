@@ -41,7 +41,7 @@ function pretre(): Combatant {
  *  au prêtre, les dés de durée étant `desDeDuree`. */
 function subirLaColere(p: Combatant, de: number, desDeDuree: number[]) {
   const m = rollMiscast('colere', aucunDe, PECHE, undefined, de);
-  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng: desEnSuite(desDeDuree), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
+  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng: desEnSuite(desDeDuree), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) }).lignes;
   return { m, lignes };
 }
 

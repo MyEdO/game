@@ -52,6 +52,7 @@ import { fireClockTriggers } from './clockHooks';
 import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
+import type { Applique } from '../engine/faits';
 
 interface LigneDEntretien {
   text: string;
@@ -78,10 +79,10 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
       for (const p of exp) lignes.push(t('upkeep.fades', { name: nomDe(h), what: p.label }));
       h.castPenalties = h.castPenalties!.filter((p) => !(p.untilTime != null && p.untilTime <= now));
     }
-    const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
-    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, undefined, porte);
+    const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
+    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, porte);
     for (const e of fx) lignes.push(t('upkeep.fades', { name: nomDe(h), what: e.label }));
-    lignes.push(...porte);
+    lignes.push(...porte.lignes);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const conds = (h.conditions ?? []).filter((x) => x.untilTime != null && x.untilTime <= now);
@@ -91,7 +92,7 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
     }
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
-    lignes.push(...syncDerivedConditions(h));
+    lignes.push(...syncDerivedConditions(h).lignes);
     expiredLog.push(...lignesDEntretien(lignes, h.id));
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog.map(({ text }) => text)); }
@@ -155,10 +156,10 @@ function jeterLesVivresPourris(get: Get, set: Set): string[] {
 export function purgeAdventureEffects(get: Get, set: Set): string[] {
   const expiredLog: string[] = [];
   for (const h of get().party) {
-    const porte: string[] = [];
-    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', undefined, porte);
+    const porte: Applique = { lignes: [], faits: [] };
+    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', porte);
     for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label }));
-    expiredLog.push(...porte);
+    expiredLog.push(...porte.lignes);
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
   return expiredLog;
@@ -283,7 +284,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       for (const h of party) {
         if (h.dead) continue;
         lines.push({ text: t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' }), actorId: h.id });
-        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }), h.id));
+        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }).lignes, h.id));
       }
     }
   }

@@ -2,7 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { type CascadeApplier } from './cascade';
 import { spyApplier } from './cascade.testkit';
-import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
+import {
+  openRoll,
+  openSequence,
+  monoStep,
+  rollTitle,
+  composeRollLabel,
+  resultLine,
+  resultLines,
+  freeCons,
+  type RollRequest,
+  type Consequence,
+} from './rollSeam';
+import { applyOps } from '../engine/ops';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { desDuTest } from '../engine/dice.testkit';
+import { fixtureText } from '../i18n/fixtureText';
 import { testSkillLabel } from '../data';
 import { modalOwnerOf } from './modalArbiter';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
@@ -229,14 +244,26 @@ describe('resultLine — dénouement sans roll/target/sl/won (#295 Lot 0, Décis
     expect(resultLine([])).toBe('');
   });
 
-  it('{ops} rend le montant RÉEL depuis le GameOp déjà appliqué', () => {
-    const cons: Consequence[] = [{ ops: [{ op: 'wounds', amount: 3 }] }];
-    expect(resultLine(cons)).toBe('3 Blessure(s) perdue(s).');
+  it('une conséquence appliquée rend la ligne de son fait, au ton du camp de sa cible (#4574)', () => {
+    const blesser = (c: Combatant): Consequence => applyOps(c, [{ op: 'wounds', amount: 3 }], { idNeuf: idsDeTest, rng: desDuTest });
+    expect(resultLines([blesser(combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10) }))]))
+      .toEqual([{ text: 'Hilda subit 3 Blessure(s) (ignorant BE et PA).', tone: 'echec' }]);
+    expect(resultLines([blesser(combattantDeTest({ id: 'e', label: fixtureText('Orque'), kind: 'ennemi', wounds: blessuresDeBase(10) }))]))
+      .toEqual([{ text: 'Orque subit 3 Blessure(s) (ignorant BE et PA).', tone: 'reussite' }]);
+    expect(resultLines([blesser(combattantDeTest({ id: 'p', label: fixtureText('Passant'), kind: 'pnj', wounds: blessuresDeBase(10) }))]))
+      .toEqual([{ text: 'Passant subit 3 Blessure(s) (ignorant BE et PA).', tone: 'neutre' }]);
+  });
+
+  it('une conséquence sans variation est neutre, une Corruption écartée reste un gain (#4574)', () => {
+    const hilda = () => combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10) });
+    const soinNul = applyOps(hilda(), [{ op: 'heal', amount: 4 }], { idNeuf: idsDeTest, rng: desDuTest });
+    const ecartee: Consequence = { lignes: ['Hilda : protection.'], faits: [{ genre: 'corruption', cible: 'h', camp: 'groupe', valeur: 0, contre: 'protection' }] };
+    expect(resultLines([soinNul, ecartee]).map((l) => l.tone)).toEqual(['neutre', 'reussite']);
   });
 
   it('{say} résout la clé i18n out.* (sans placeholder de jet)', () => {
-    const cons: Consequence[] = [{ say: 'out.consHeal', vars: { n: 2 } }];
-    expect(resultLine(cons)).toBe('2 Blessure(s) récupérée(s).');
+    const cons: Consequence[] = [{ say: 'out.activityDone', vars: { name: 'Hilda', activity: 'Chasse' } }];
+    expect(resultLine(cons)).toBe('Hilda — Chasse (effectué).');
   });
 
   it('type : resultLine ne prend PAS roll/target/sl/won — la duplication d\'outcome est INEXPRIMABLE', () => {

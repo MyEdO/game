@@ -9,6 +9,7 @@ import { applyEffects, ctxRepris, porterOpsCtx } from './combatEffects';
 import { gainCorruption, corruptionTarget, releaseCorruptionSlot } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
+import type { Jeu } from './etat';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
@@ -139,11 +140,32 @@ describe('Effet corruptionExposure → modale → jetValider@corruption', () => 
   });
 });
 
+describe('gainCorruption rend son fait de Corruption (#4574)', () => {
+  it('un gain appliqué : sa valeur et le total, et sa ligne', () => {
+    const { a, party } = party2();
+    banc.setState({ party });
+    expect(gainCorruption(banc.getState, banc.setState, a, 1))
+      .toEqual({ lignes: ['Sigmund : +1 Point de Corruption (total 1).'], faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 1, total: 1 }] });
+  });
+
+  // LDB 48 l.393
+  it('dans la Protection de Phâ : le gain est écarté, son fait le dit et rien n’est appliqué', () => {
+    const { a, party } = party2();
+    a.pos = { x: 5, y: 5 };
+    banc.setState({ party, battle: { zones: [{ label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, noCorruption: true }] } as unknown as Jeu['battle'] });
+    expect(gainCorruption(banc.getState, banc.setState, a, 2)).toEqual({
+      lignes: ['Sigmund : la lumière sacrée de Phâ écarte la Corruption (aucun gain).'],
+      faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 0, contre: 'protection' }],
+    });
+    expect(a.corruption ?? 0).toBe(0);
+  });
+});
+
 describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
   it('sous le seuil : aucun Test, juste le compteur', () => {
     const { a, party } = party2();
     banc.setState({ party });
-    const lines = gainCorruption(banc.getState, banc.setState, a, 1);
+    const lines = gainCorruption(banc.getState, banc.setState, a, 1).lignes;
     expect(a.corruption).toBe(1);
     expect(a.mutations ?? []).toHaveLength(0);
     expect(lines[0]).toMatch(/\+1 Point de Corruption/);
@@ -401,7 +423,7 @@ describe('Corruption personnelle au combat (#4096)', () => {
   function reprendreLaCorruption(c: Combatant) {
     const contexte = porterOpsCtx({ idNeuf: idsDeTest, rng: battleRng() });
     const repris = ctxRepris(banc.getState, banc.setState, structuredClone(contexte))!;
-    return applyOps(c, [{ op: 'corruptionExposure', level: 'mineure' }, { op: 'corruption', amount: 1 }], repris);
+    return applyOps(c, [{ op: 'corruptionExposure', level: 'mineure' }, { op: 'corruption', amount: 1 }], repris).lignes;
   }
 
   it.each(['bestiaire', 'campagne'])('une exclusion maison suit le profil de %s, malgré un changement d’espèce et de camp', (origine) => {
@@ -434,7 +456,7 @@ describe('Corruption personnelle au combat (#4096)', () => {
     expect(membre.traits?.map((t) => t.id)).toContain('corruption');
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: membre.id }]);
     expect(reprendreLaCorruption(membre)).toEqual([]);
-    expect(applyOps(membre, [{ op: 'corruption', amount: 1 }], { idNeuf: idsDeTest, rng: battleRng() })).toEqual([]);
+    expect(applyOps(membre, [{ op: 'corruption', amount: 1 }], { idNeuf: idsDeTest, rng: battleRng() }).lignes).toEqual([]);
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(banc.getState().corruptionQueue).toEqual([]);
     expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'mutationNature') ?? false).toBe(false);

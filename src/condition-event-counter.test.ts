@@ -15,8 +15,8 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /** Stock RESTANT par fichier. Aucun de ces sites n'a d'id d'État sous la main : ils déversent des
  *  `string[]` fabriqués ailleurs (sinks de hooks/triggers, files différées). Leur migration attend que
- *  le canal `OpsCtx.onCondition` (#1330 lot A) soit relayé jusqu'à eux par un canal de journal APPARIÉ
- *  — tant que les fabricants rendent des `string[]` nus, l'id ne peut pas les rejoindre. */
+ *  les faits appliqués (`FaitApplique`, #4574) soient relayés jusqu'à eux — tant que les fabricants
+ *  rendent des `string[]` nus, l'id ne peut pas les rejoindre. */
 const REMAINING: Record<string, number> = {
   'src/noyau/combatFlow.ts': 5,
   'src/noyau/combatEffects.ts': 1,

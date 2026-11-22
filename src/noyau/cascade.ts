@@ -50,7 +50,7 @@ import { libelleDeLaFermeture } from './libelles';
 import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { resultLines, surfaceOf } from './rollSeam';
+import { faitsDesConsequences, resultLines, surfaceOf } from './rollSeam';
 import { canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
@@ -1383,6 +1383,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
   const shown = lines.length ? lines : (step.outcome ?? []);
+  const faits = faitsDesConsequences(out?.consequences ?? []);
   // Pilote INTERACTIF (`liveMerge`) : l'applier d'une conséquence de combat FOLDÉE (déviation) re-déclenche
   // le reste de l'attaque, qui APPEND des étapes au pending (via pushReveal). On repart alors des
   // participants COURANTS (post-applier) pour préserver ces appends — le pending est EN PHASE ici
@@ -1402,7 +1403,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     if (k !== i) return x;
     const { foldMemo: _joue, ...sansMemo } = x;
     const { apresSuite: _suite, ...meta } = x.meta ?? {};
-    return { ...sansMemo, ...(x.meta ? { meta } : {}), ...(step.result ? { result: step.result } : {}), committed: true, outcome: shown };
+    return { ...sansMemo, ...(x.meta ? { meta } : {}), ...(step.result ? { result: step.result } : {}), committed: true, outcome: shown, ...(faits.length ? { faits } : {}) };
   });
   // LES DEUX voies d'insertion d'un applier, fusionnées ICI et nulle part ailleurs (#1508) : ce qu'il
   // DÉCLARE en rendant la main (`insert`), et ce qu'il a POUSSÉ pendant qu'il tournait (la fenêtre) —

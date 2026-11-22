@@ -789,7 +789,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // « Chaque +DR vous permet de mémoriser un sort pour 100PX de moins […] vous devez acheter le
       // sort immédiatement » (ACE 12 l.55) : remise = DR × 100, appliquée à CET achat seul par acheterLeSort.
       const r = partyBuySpell(get, set, h.id, pa.spellId, { discountXp: Math.max(0, pa.sl) * 100 });
-      if (r.ok && r.chaos) return { lines: gainCorruption(get, set, h, 1) }; // sort du Chaos : +1 Corruption (LDB 51)
+      if (r.ok && r.chaos) return { lines: gainCorruption(get, set, h, 1).lignes }; // sort du Chaos : +1 Corruption (LDB 51)
       return { lines: [] };
     }
     case 'combatTraining': {
@@ -799,7 +799,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!pa.chosenSkill) return { lines: [] };
       const skillLabel = refLabel('skills', pa.chosenSkill);
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: h.label, skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
@@ -809,7 +809,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
-      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) });
+      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes;
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
       return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
     }
@@ -1032,7 +1032,7 @@ function appliquerLActivite(get: Get, set: Set): void {
         lines.push(...applyOps(h, immediate, { idNeuf: get().forgerUnId,
           rng: battleRng(), label: def.label, now: get().gameTime, source, sl: pa.sl,
           ...crochetsDeCorruption(get, set),
-        }));
+        }).lignes);
       }
       if (band.payoutPct != null && pa.depotId) lines.push(...mecenatPayout(get, set, h, pa.depotId, band.payoutPct));
       if (band.resolver) {
@@ -1191,7 +1191,7 @@ function cloreLInterlude(get: Get, set: Set): void {
     for (const { heroId, lots } of devis.lots) {
       const h = get().party.find((x) => x.id === heroId);
       if (!h) continue;
-      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }));
+      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }).lignes);
     }
     set({ party: [...get().party] });
     for (const l of after) get().ecrireAuJournal(l);

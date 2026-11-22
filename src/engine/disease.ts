@@ -21,7 +21,7 @@
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
  *    `nausea` (combat), `endTest` (Persistant).
  */
-import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type DiseaseExposure, type ModLine, type TestIds } from './types';
+import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type DiseaseExposure, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
 import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY, dureeEnJours, minutesParSemaine } from './clock';
@@ -36,7 +36,6 @@ import {
   diseaseLabel,
   findSymptomById,
   symptomLabel,
-  conditionLabel,
   memoParVersion,
   type SymptomCapabilities,
   type DiseaseDef,
@@ -47,6 +46,8 @@ import { traitOctroye } from './psych/opsPsy';
 import { t, type MsgKey } from '../i18n';
 import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
+import { emettreDans, type Applique } from './faits';
+import { campOf } from './relations';
 import { suspendSource } from './suspension';
 import { diseasePassiveOps, maladieDeclaree, severiteEffective, srcSymptome, symptomSuppressed } from './passifsDeMaladie';
 import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
@@ -297,24 +298,24 @@ function opsDeLEchec(node: FlowTestNode): GameOp[] {
  *  MSRC 16 l.101), Blessure directe + État (éclatement du Vers du Reik, l.142). Les ops RICHES à dés/table
  *  (`rollTable`/`charDamage` — table du Vers de carie, l.90) passent par la voie DIFFÉRÉE (`maladie-test-quotidien`
  *  → `applyOps` côté state, vocabulaire complet) ; elles sont IGNORÉES ici (jamais roulées à l'aveugle). */
-function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: string) => boolean, log: string[], emit?: ConditionEmit): void {
+function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: string) => boolean, sortie: Applique): void {
+  const log = sortie.lignes;
   for (const op of onFail) {
     if (op.op === 'aggravateSymptom') {
       const r = aggravateDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity);
       log.push(...r.log);
-      if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, log, emit);
+      if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, sortie);
     } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity));
     else if (op.op === 'contractDisease') contractOnce(op.disease.id);
     else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: c.label }) : t('op.mort', { name: c.label }));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
-      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.blessures', { name: c.label, n, mitig: '' })); }
+      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); emettreDans(sortie, c, { genre: 'blessures', cible: c.id, camp: campOf(c), valeur: -n }); }
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
       addCondition(c, op.id.id, valeur);
-      log.push(t('op.etat', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
-      emit?.({ stateId: op.id.id, change: 'gain', targetId: c.id });
+      emettreDans(sortie, c, { genre: 'etat', cible: c.id, camp: campOf(c), id: op.id.id, valeur });
     }
   }
 }
@@ -662,7 +663,7 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
  */
 export function tickDisease(
   c: Combatant, minutes: number, rng: RNG, defer: UpkeepDeferTest, beForGangrene = 0,
-  emit?: ConditionEmit, peutDeclarer?: CycleDeFiche['peutDeclarer'],
+  peutDeclarer?: CycleDeFiche['peutDeclarer'],
 ): string[] {
   if (minutes <= 0) return [];
   // Décroissance du RÉSIDU post-infection : −1 par jour plein (MSRC 16 l.138), indépendante de toute maladie en cours.
@@ -686,7 +687,7 @@ export function tickDisease(
         if (tick.once && activeDay !== tick.afterDays) continue;
         if (tick.difficulty == null) {
           // Conséquence INCONDITIONNELLE (pas de jet, MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
-          applyOnFailInline(c, tick.onFail, contractOnce, log, emit);
+          applyOnFailInline(c, tick.onFail, contractOnce, { lignes: log, faits: [] });
         } else {
           defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
         }

@@ -621,7 +621,7 @@ function opDarkPact<P extends PendingBase>(
   if (!actor || fermetureDuPacte(actorInfluenceView(actor), { rolled, failed: false })) return;
   const patch = reresolve();
   if (!patch) return;
-  const lines = gainCorruption(get, set, actor, 1);
+  const lines = gainCorruption(get, set, actor, 1).lignes;
   for (const l of lines) get().ecrireAuJournal(l);
   commit(patch, { touch: true });
 }

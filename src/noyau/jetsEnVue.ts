@@ -13,7 +13,7 @@ import type { HostJet } from './slotsDeJet';
 import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import { attackTestOf, defenseTestOf, sommeDesModificateursDR, type AttackResult, type RollBreakdown } from '../engine/combat';
-import type { CharKey, Combatant, Difficulty, ModLine, Weapon } from '../engine/types';
+import type { CharKey, Combatant, ConditionId, Difficulty, ModLine, Weapon } from '../engine/types';
 import { CHAR_LABELS } from '../engine/types';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { cibleDuTest, clampTarget, estJete, evaluateTest, hydrateTR, resolveOpposed, type EchecSansJet, type OpposedResult } from '../engine/tests';
@@ -33,6 +33,9 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme, parryWeaponOf } from './rollFlowSpecs';
 import { JET_FIGE, jetFigeRevele } from './netOwnership';
+import { tonDuFait, type RecapTone } from './recapLine';
+import type { DureeDEtat, FaitApplique, MitigationDesBlessures } from '../engine/faits';
+import type { CodexTarget } from '../engine/ruleRefs';
 import { nomEnVue, porteurEnVue } from './visionDuGroupe';
 import { mancheOpposeeDeTaverneEnVue } from './tavernFlow';
 import { fenetreDAttaque } from './fenetreDAttaque';
@@ -71,14 +74,106 @@ type DonneesDeLigne =
   | { genre: 'table'; qui: string | null; table: string; jet: { d100: number; effectif: number; ligne: string } | null }
   | { genre: 'de'; qui: string | null; de: string; jet: { naturel: number; total: number; lecture: string } | null };
 
+/**
+ * @contrat Vue
+ * Le détail d'une conséquence de genre `blessures`.
+ */
+export interface DetailDeBlessures {
+  /** Atténuation d'une perte hors coup d'arme : `sans`, ou ce que la perte a déduit (`pa`, `be`). */
+  mitigation?: MitigationDesBlessures;
+  /** Regagnées par drain. */
+  vol?: true;
+}
+
+/**
+ * @contrat Vue
+ * Le détail d'une conséquence de genre `avantage`.
+ */
+export interface DetailDAvantage {
+  /** Avantage après le fait. */
+  total: number;
+  /** Porté à `total` plutôt qu'incrémenté. */
+  complete?: true;
+}
+
+/**
+ * @contrat Vue
+ * Le détail d'une conséquence de genre `etat`.
+ */
+export interface DetailDEtat {
+  /** Id de l'État. */
+  id: ConditionId;
+  /** Durée de la pose : `rounds`, `minutes`, ou annonce `parRound` (pions par Round, Rounds de la cause). */
+  duree?: DureeDEtat;
+  /** État porté par un effet ; `src` : ce qui le porte. */
+  porte?: { src?: CodexTarget };
+  /** Retiré par l'acte de soin qui lève son verrou. */
+  verrouLeve?: true;
+  /** Tout l'État retiré. */
+  tous?: true;
+  /** Re-pose d'une cause persistante. */
+  regagne?: true;
+  /** Annonce d'une cause persistante. */
+  sauf?: true;
+}
+
+/**
+ * @contrat Vue
+ * Le détail d'une conséquence de genre `corruption`.
+ */
+export interface DetailDeCorruption {
+  /** Corruption après le fait ; absent d'un gain écarté. */
+  total?: number;
+  /** Ce qui a écarté le gain : `protection`. */
+  contre?: 'protection';
+}
+
+/**
+ * @contrat Vue
+ * Le détail propre au genre d'une conséquence (`ConsequenceEnVue.detail`, #4574) ; l'argent n'en porte aucun.
+ */
+export type DetailDeConsequence =
+  /** Genre `blessures`. */
+  | DetailDeBlessures
+  /** Genre `avantage`. */
+  | DetailDAvantage
+  /** Genre `etat`. */
+  | DetailDEtat
+  /** Genre `corruption`. */
+  | DetailDeCorruption;
+
+/**
+ * @contrat Vue
+ * Une conséquence que le jet de la rangée a appliquée (#4574) : ce que l'op a réellement fait, en données. Le
+ * texte du journal en est la lecture ; l'hôte compose son affichage depuis ces champs. Une rangée d'une étape
+ * opposée au jet figé masqué (`jetFigeRevele` faux) n'en publie aucune.
+ */
+export interface ConsequenceEnVue {
+  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption` ou `argent`. */
+  genre: FaitApplique['genre'];
+  /** La variation signée : Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre. */
+  valeur: number;
+  /** L'id du combattant qui subit le fait, `null` s'il est hors de la vue du groupe. */
+  qui: string | null;
+  /** Présent quand le porteur du fait est hors de la vue du groupe. */
+  porteurHorsDeVue?: true;
+  /** Le ton vu du groupe : un gain du groupe ou une perte d'un hostile est une `reussite`, l'inverse un `echec` ; un
+   *  fait sans variation ou sur un neutre est `neutre`. */
+  ton: RecapTone;
+  /** Le détail propre au genre (État et durée, atténuation, total), absent quand le genre n'en porte pas. */
+  detail?: DetailDeConsequence;
+}
+
 /** L'identité de rangée est locale au jet. Un résultat masqué ne porte aucune valeur du dé. */
 export type LigneDeJet = DonneesDeLigne & {
   id: string;
   etat: EtatDeLigneDeJet;
   reference: ReferenceDeJet | null;
   porteurHorsDeVue?: true;
+  /** Les conséquences que ce jet a appliquées, absentes s'il n'en a publié aucune. */
+  consequences?: ConsequenceEnVue[];
 };
-type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null };
+type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null; faits?: FaitApplique[] };
 
 /** Test opposé tranché : l'index de la ligne gagnante (null pour une égalité) et le DR net du vainqueur. */
 export interface OppositionEnVue { gagnante: number | null; drNet: number }
@@ -596,11 +691,19 @@ function etapeCourante(s: Jeu): CascadeStep | undefined {
   return p ? p.participants[p.cursor] : undefined;
 }
 
-/** La ligne d'une rangée de bande (`BatchParticipant`). */
-function ligneDeBande(s: Jeu, part: BatchParticipant): LigneLue {
+/** Les faits appliqués qu'une étape publie : aucun tant que le jet figé d'une étape opposée n'est pas révélé
+ *  (`jetFigeRevele`). */
+function faitsPublies(s: Jeu, step: CascadeStep, faits: FaitApplique[] | undefined): { faits?: FaitApplique[] } {
+  if (!faits?.length) return {};
+  const masquee = !!step.meta?.opposed && !!stepOpposedFreeze(step) && !jetFigeRevele(s, JET_FIGE.cascade(step));
+  return masquee ? {} : { faits };
+}
+
+/** La ligne d'une rangée de bande (`BatchParticipant`), avec les faits appliqués que son étape publie. */
+function ligneDeBande(s: Jeu, step: CascadeStep, part: BatchParticipant): LigneLue {
   const r = jete(part.result);
   const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label ?? pool(s).find((c) => c.id === part.id)?.label : nomEnVue(s, part.id));
-  return ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee });
+  return { ...ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee }), ...faitsPublies(s, step, part.faits) };
 }
 
 /** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse, révélé selon le calendrier (`jetFigeRevele`). */
@@ -633,8 +736,8 @@ function jetPropre(r: CascadeRoll | null, oppose: boolean, forcee?: boolean): Ca
 function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetLuEnVue[] {
   if (step.participants) {
     if (step.meta?.opposed) return step.participants.filter((p) => p.refus == null).map((p) => opposeDEtape(s, step,
-      ligneDeBande(s, { ...p, result: jetPropre(jete(p.result), true, p.forcee) }), jete(p.result), p.base));
-    const lignes = rangees(step.participants, (p) => ligneDeBande(s, p));
+      ligneDeBande(s, step, { ...p, result: jetPropre(jete(p.result), true, p.forcee) }), jete(p.result), p.base));
+    const lignes = rangees(step.participants, (p) => ligneDeBande(s, step, p));
     const taverne = mancheOpposeeDeTaverneEnVue(s, step);
     const issue = taverne?.issue;
     const gagnant = issue?.gagnant === 'joueur' ? taverne?.joueurId : issue?.gagnant === 'adversaire' ? taverne?.adversaireId : null;
@@ -646,8 +749,8 @@ function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetLuEnVue[] {
   if (step.refus != null) return [];
   if (step.target != null) {
     const r = jete(step.result);
-    const reponse = ligne(step.actorId, step.rollLabel, jetPropre(r, !!step.meta?.opposed, step.forcee), step.target,
-      { reference: referenceDuSujet(step), mods: step.mods, forcee: step.forcee });
+    const reponse = { ...ligne(step.actorId, step.rollLabel, jetPropre(r, !!step.meta?.opposed, step.forcee), step.target,
+      { reference: referenceDuSujet(step), mods: step.mods, forcee: step.forcee }), ...faitsPublies(s, step, step.faits) };
     return [courante || step.meta?.opposed ? opposeDEtape(s, step, reponse, r, step.base) : vue('cascade', [reponse])];
   }
   if (step.table) {
@@ -682,6 +785,16 @@ function fluxDeLaFenetre(cle: string): readonly FlowKey[] {
   return def?.flux ?? [];
 }
 
+/** Un fait appliqué tel que le groupe le voit : son porteur hors de vue n'est pas nommé, le ton suit son camp. */
+function consequenceEnVue(s: Jeu, f: FaitApplique): ConsequenceEnVue {
+  const { cible, camp: _camp, genre, valeur, ...detail } = f;
+  const horsDeVue = !porteurEnVue(s, cible);
+  return {
+    genre, valeur, qui: horsDeVue ? null : cible, ...(horsDeVue ? { porteurHorsDeVue: true } : {}), ton: tonDuFait(f),
+    ...(Object.keys(detail).length ? { detail } : {}),
+  };
+}
+
 /** LES JETS EN VUE de la fenêtre qui tient la main (`fenetreDuJeu`), dans l'ordre où elle les range, chacun avec au
  *  moins une ligne. Vide : aucune fenêtre, ou une fenêtre sans jet. */
 export function jetsEnVue(s: Jeu): JetEnVue[] {
@@ -693,13 +806,14 @@ export function jetsEnVue(s: Jeu): JetEnVue[] {
   });
   return jets.filter((j) => j.lignes.length).map((j) => ({
     ...j,
-    lignes: j.lignes.map(({ id, masque, reference, ...l }, i): LigneDeJet => {
+    lignes: j.lignes.map(({ id, masque, reference, faits, ...l }, i): LigneDeJet => {
       const porteurHorsDeVue = l.qui !== null && !porteurEnVue(s, l.qui);
       const qui = porteurHorsDeVue ? null : l.qui;
       const quiUnique = qui && j.lignes.filter((r) => r.qui === qui).length === 1 ? qui : null;
       return {
         ...l, qui, id: id ?? quiUnique ?? `${j.flux}/${i}`, reference: reference ?? null, etat: masque ? 'masque' : l.jet ? 'revele' : 'aJouer',
         ...(porteurHorsDeVue ? { porteurHorsDeVue: true } : {}),
+        ...(faits?.length ? { consequences: faits.map((f) => consequenceEnVue(s, f)) } : {}),
       };
     }),
   }));

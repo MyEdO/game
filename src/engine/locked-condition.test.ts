@@ -92,7 +92,7 @@ describe('Verrou d’acte de soin — unlockBy (LDB 18 : medicalAid / surgery / 
       const shouldLift = lifts[lock].includes(act);
       it(`verrou ${lock} ${shouldLift ? 'LEVÉ' : 'INTACT'} par l’acte ${act}`, () => {
         const c = withLock('aveugle', lock);
-        const log = releaseConditionLocks(c, act);
+        const log = releaseConditionLocks(c, act).lignes;
         expect(hasCondition(c, 'aveugle')).toBe(!shouldLift);
         expect(log.length > 0).toBe(shouldLift);
         if (!shouldLift) expect(isConditionLocked(c.conditions[0], c)).toBe(true); // toujours verrouillé

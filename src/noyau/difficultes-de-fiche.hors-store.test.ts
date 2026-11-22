@@ -289,7 +289,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     for (let graine = 1; graine <= 60; graine++) {
       E.corruption = 99;
       g().ensemencerLeTirage(graine);
-      const lignes = gainCorruption(g, banc.setState, E, 1);
+      const lignes = gainCorruption(g, banc.setState, E, 1).lignes;
       expect(g().pendingCorruption).toBeNull();
       expect(lignes.some((l) => String(l).includes(t('cor.contained', { name: E.label }))), `graine ${graine}`).toBe(reussit(graine, skill, d));
       if (reussit(graine, jeuSkill, d) !== reussit(graine, skill, d)) ecarts.competence++;
