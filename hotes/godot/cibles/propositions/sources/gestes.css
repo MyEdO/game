@@ -260,8 +260,8 @@ html,body{margin:0;background:var(--noir)}
 .cartes.liste>.carte .portrait{display:none}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}
-.plaque.carte .c .separateur,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
-.cartes.liste>.carte:not(.deux-lignes) .c .separateur{display:contents}
+.plaque.carte .c .separateur:has(+br),.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
+.cartes.liste>.carte:not(.deux-lignes) .c .separateur:has(+br){display:contents}
 .cartes.liste>.carte :is(.n,.c){-webkit-line-clamp:1}
 .cartes.liste>.carte.deux-lignes{height:44px}
 .cartes.liste>.carte.deux-lignes .c{-webkit-line-clamp:2}

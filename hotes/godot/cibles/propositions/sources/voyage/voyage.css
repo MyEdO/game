@@ -38,7 +38,7 @@
 #evenement .choix.paies .plaque.carte .n{font-size:14.5px;line-height:20px;white-space:nowrap}
 #evenement .choix.paies .plaque.carte .c{font-size:11.5px;white-space:nowrap}
 #evenement .choix.paies .carte .c br{display:none}
-#evenement .choix.paies .carte .c .separateur{display:inline}
+#evenement .choix.paies .carte .c .separateur:has(+br){display:contents}
 #evenement .choix.paies{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px 10px}
 #evenement [data-place$="/parts"]>.cadre{position:relative;height:100%;padding:4px}
 #evenement [data-place$="/parts"] .qui-paie.parts .q{grid-auto-rows:minmax(18px,auto)}

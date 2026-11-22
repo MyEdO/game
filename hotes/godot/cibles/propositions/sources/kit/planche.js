@@ -11,7 +11,7 @@ const TAILLES = ['menu', 'petit', 'moyen', 'grand', 'maitre'];
 const repere = (x, y, appel) => `<div style="position:absolute;left:${x}px;top:${y}px;color:var(--creme-2)">${nom(appel)}</div>`;
 const marques = (matiere) => [
   ligne(piece("segments([…], 'Bois')", segments(['Fer', 'Bois', 'Cuir'], 'Bois')), piece("{ egaux: true }", segments(['1', '2', '3'], '2', { egaux: true })), piece('ouiNon(true)', ouiNon(true))),
-  ligne(piece('reglette(.6)', reglette(.6)), piece('reglette(.3, null)', large(140, reglette(.3, null))), piece('rangDePas({ pleins: 3, total: 5 })', rangDePas({ pleins: 3, total: 5 }))),
+  ligne(piece('reglette(.6)', reglette(.6)), piece('reglette(.3, null)', large(140, reglette(.3, null))), piece('rangDePas({ pleins: 3, total: 5 })', rangDePas({ pleins: 3, total: 5 })), piece("{ forme: 'clous' }", rangDePas({ pleins: 6, total: 8, forme: 'clous' }))),
   ligne(piece('vie(8, 14)', large(140, vie(8, 14))), piece("jauge(.6, { taille: 'forte' })", large(140, jauge(.6, { taille: 'forte' }))), piece("{ teinte: 'or', ajout: .2 }", large(140, jauge(.5, { teinte: 'or', taille: 'forte', ajout: .2 })))),
   ligne(piece('filet()', large(100, filet())), piece('{ fondu: true }', large(100, filet({ fondu: true }))), piece('{ losange: true }', large(100, filet({ losange: true }))), piece(matiere === 'bois' ? '{ or: true, losange: true }' : '{ fondu, losange }', large(100, filet(matiere === 'bois' ? { or: true, losange: true } : { fondu: true, losange: true })))),
 ];
@@ -23,8 +23,8 @@ const FEUILLES = {
         piece("moinsPlus({ entre })", moinsPlus({ entre: '<b class="chiffres">3</b>' })), piece('moinsPlus({ moins: false, entre })', moinsPlus({ moins: false, entre: '<b class="chiffres">0</b>' })))),
     page('outils', 24, 280, 1040, 146, 'bois', "outil(nom, libelle, { ouvert, ferme, taille })",
       ligne(piece("outil('carte', 'Carte')", outil('carte', 'Carte')), piece('{ ouvert: true }', outil('carte', 'Carte', { ouvert: true })), piece('{ ferme: true }', outil('carte', 'Carte', { ferme: true })), piece("{ taille: 'grand' }", outil('carte', 'Carte', { taille: 'grand' })))),
-    page('medaillons', 24, 450, 1060, 130, 'bois', "medaillon(nom, { taille, ferme, inerte })",
-      ligne(...['grand', 'moyen', 'petit'].map((t) => piece(`medaillon('carte', { taille: '${t}' })`, medaillon('carte', { taille: t }))), piece('{ ferme: true }', medaillon('carte', { ferme: true })), piece('{ inerte: true }', medaillon('carte', { inerte: true })))),
+    page('medaillons', 24, 450, 1060, 130, 'bois', "medaillon(nom, { taille, ferme, inerte, vise })",
+      ligne(...['grand', 'moyen', 'petit'].map((t) => piece(t === 'grand' ? "medaillon('carte')" : `{ taille: '${t}' }`, medaillon('carte', { taille: t }))), piece('{ vise: true }', medaillon('carte', { vise: true })), piece('{ ferme: true }', medaillon('carte', { ferme: true })), piece('{ inerte: true }', medaillon('carte', { inerte: true })))),
     croix(), repere(1110, 30, 'croix() →'),
     `<div style="position:absolute;top:300px;right:0">${ouvrir('La carte', 'carte', 1)}</div>`, repere(1088, 352, "ouvrir('La carte', 'carte', 1)"),
     retour('Quitter la planche'), repere(180, 664, "← retour('Quitter la planche')"),
@@ -32,7 +32,8 @@ const FEUILLES = {
   ],
   plaques: () => [
     page('plaques', 24, 22, 1232, 380, 'bois', "plaque(libelle, { survol, armee, fermee, icone, numero, prix, taille })",
-      ligne(...[['plaque(\'Attaquer\')', {}], ['{ survol: true }', { survol: true }], ['{ armee: true }', { armee: true }], ['{ fermee: true }', { fermee: true }]].map(([a, o]) => piece(a, plaque('Attaquer', o), 'width:170px')), piece("{ icone: 'epee', prix: '2/-' }", plaque('Acheter', { icone: 'epee', prix: '2/-' }), 'width:190px')),
+      ligne(...[['plaque(\'Attaquer\')', {}], ['{ survol: true }', { survol: true }], ['{ armee: true }', { armee: true }], ['{ fermee: true }', { fermee: true }]].map(([a, o]) => piece(a, plaque('Attaquer', o), 'width:140px')), piece("{ icone: 'epee', prix: '2/-' }", plaque('Acheter', { icone: 'epee', prix: '2/-' }), 'width:190px'),
+        piece("{ taille: 'geste' }", large(96, plaque('Utiliser une compétence', { taille: 'geste' })), 'width:120px'), piece("{ prix: '25 PX' }", plaque('', { prix: '<span class="chiffres">25 PX</span>', taille: 'petite' }), 'width:110px')),
       ligne(...[["{ taille: 'petite' }", {}], ['petite, survol', { survol: true }], ['petite, armee', { armee: true }], ['petite, fermee', { fermee: true }]].map(([a, o]) => piece(a, plaque('Réussite', { taille: 'petite', ...o }), 'width:130px')),
         piece("plaque(…, { fermee }) + raison(texte)", `<div style="position:relative;display:flex;justify-content:center;margin-top:40px">${plaque('Lancer', { fermee: true })}${raison('Plus de Chance à dépenser.')}</div>`, 'width:220px'),
         piece("onglets(noms, active)", `<div style="position:relative;width:300px;height:30px">${onglets(['État', 'Charge', 'Cargaison'], 'État')}</div>`)),

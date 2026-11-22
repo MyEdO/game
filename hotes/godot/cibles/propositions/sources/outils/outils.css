@@ -58,6 +58,7 @@
 #barre .plaque{flex:none}
 #barre .segments b{padding:6px 10px 7px;font-size:13px}
 #barre .croix{position:static}
+#barre .plaque.seule>div{padding:0 9px}
 /* les lots de la barre : le titre, les documents, chaque lot de gestes, à 17 l’un de l’autre */
 #barre .lot-de-gestes{display:flex;align-items:center;gap:8px}
 #barre .medaillon+div{margin-right:9px}

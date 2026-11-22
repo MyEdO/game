@@ -26,8 +26,11 @@ Ce document porte l'application des natures d'interface aux maquettes. Il sert d
 | nom | `nom({ texte, taille, cle })`, `.nom-propre` (`grand` 22/30, `moyen` 18/24, `petit` 16/22) | `35e4297dab` | 149 états = attendu ; `bureau` : profil du changement de carrière débordait, repris dans `25f3826e0f` |
 | étiquette | `etiquette({ texte, variante, teinte, valeur })` (rectangle, pastille, compte ; or, cire, fer) | `5754e8627b` | pas d'état changé hors attendu ; l'étiquette rognée du début du round est reprise dans `25f3826e0f` |
 | puce | `puce('losange' \| 'coche')`, `.losange`, `.coche` | `5754e8627b` | idem |
-| séparateur | `separateur('median')`, `.separateur.median` | `5754e8627b` pour la bascule des cartes seulement | les « · » écrits en texte restent à faire (voir Reste) |
+| séparateur | `separateur('median')` : « · » entre deux espaces, sans boîte (`display:contents`) | `5754e8627b` (bascule des cartes), `298308183` (les « · » écrits dans `rendu.js`) | passe 0 rouge ; voir la preuve du lot 3 |
 | filet | `filet({ fondu, losange, or })` ; sa marge est du placement | `25f3826e0f` | passe 0 rouge ; 69 états attendus, tous changés ; formats sans relevé neuf ; deux écarts hors attendu en `bureau` seulement, non expliqués : `dossier-du-navire-cargaison` (2 px), `mer-conseil-de-bord` (1 px) |
+| jauge | `rangDePas({ pleins, total, taille, teinte, forme })` : losanges écart 8, `petit` 11, `cire` ; forme `clous` | `cc4f7cfeb` | passe 0 rouge ; voir la preuve du lot 3 |
+| plaque | `plaque(libelle, { taille })` : `petite` 13, `moyenne` 15, `appel` 18, `geste` ; un nombre seul dans `prix` ; outil au kit ; `medaillon({ vise })` | `cfff50879` | idem |
+| bulle | `raison(texte, { survolee })` : une ligne jusqu'à 320, puis à la ligne ; corps de l'`apercu` au kit ; `reserves` au kit, `compteur` supprimé ; 0 `title=` | `8e63cbab7` | idem |
 
 Teintes d'étiquette hors des quatre prévues, choisies sans question (révisables, un argument chacune) :
 - `pill.fermee`, `palier.ferme` et `attend.autre` → `fer` ;
@@ -38,33 +41,20 @@ Le cartouche ouvert de la fiche du héros prend le cran `grand` du cartouche (22
 
 ## Reste, dans l'ordre
 
-1. **Lot 3, groupe `pieces-et-jauges`** (doc du groupe), une nature à la fois :
-   - jauges (pas 15 et 11, écart 8, teinte cire ; forme `clous` à part) ;
-   - plaques et boutons (petite 13, moyenne 15, appel 18, `geste` 13/12 ; un nombre seul va dans `prix` en Chiffres 12,5 ; outil 11,5 ; médaillon `vise`) ;
-   - bulles (`raison` sur une ligne jusqu'à 300 px puis à la ligne ; raison en ligne en Spectral italique 13/16). Par doctrine `user-doctrine-icone-identifie-survol-detaille` :
-     - les 113 infobulles natives (`title=`) deviennent une `raison` au survol, jusqu'à 0 `title=` ;
-     - le compteur devient icône et nom au survol. Chaque réserve garde son picto, et au moins un état montre la bulle : sinon le libellé devient une information cachée.
-2. **Séparateur écrit en texte** : 91 « · » dans `sources/rendu.js`, une passe à part, après les bulles. Converti trop tôt, il cassait le HTML partout où la chaîne finit dans un attribut ou est découpée par un consommateur :
-   - `title="${bulle}"` (`combat/jet.js`, nourri par `rendu.js`) ;
-   - le `title` des issues ;
-   - les bornes de `frise` ;
-   - le marchandage.
-
-   Le contrôle se fait producteur par producteur. `&nbsp;·&nbsp;` est un médian insécable.
-3. **Lot 4** : `ligne` (libellé-valeur : `courante`, `empilee`, `mesure`, `tabulaire` ; libellé = `rubrique()`, sauf la ligne de tableau en Spectral 13,5) et `ligneDeListe` (28 px, 44 avec une précision dessous ; puce losange ou coche). Elles se composent des primitives déjà posées et passent donc en dernier.
-4. **Nettoyage de chaque groupe**, une fois toutes ses natures posées :
+1. **Lot 4** : `ligne` (libellé-valeur : `courante`, `empilee`, `mesure`, `tabulaire` ; libellé = `rubrique()`, sauf la ligne de tableau en Spectral 13,5) et `ligneDeListe` (28 px, 44 avec une précision dessous ; puce losange ou coche). Elles se composent des primitives déjà posées et passent donc en dernier.
+2. **Nettoyage des groupes `textes` et `listes-et-noms`**, une fois leurs natures posées (le groupe `pieces-et-jauges` est nettoyé) :
    - `sources/kit/proposition-<groupe>.js` et son CSS local partent ;
    - la planche montre les primitives et sa feuille passe dans `kit/planche.js`, sans contournement de `data-etat` ;
    - `kit.md` (catalogue et § 2) dit l'état après le lot ;
    - les citations `fichier:ligne` se recalent.
-5. **Hors des natures**, à lister en tête de la page de jugement ou à donner à un lot :
+3. **Hors des natures**, à lister en tête de la page de jugement ou à donner à un lot :
    - chiffres en gothique (sceaux, disques, seuils : 538 sites) ;
    - mot d'issue et verdict ;
    - cartes de choix ; saisie ; prose ;
    - `regleMaison` et `pref` des options ;
    - `.carac`, `.case-bourse` ;
    - sous-titres de `bataille-de-masse-issue` (même émission que l'état sans issue).
-6. Étapes 4 à 6 du plan (tables, dictionnaire, gardes finales) : 0 px, rien de visible.
+4. Étapes 4 à 6 du plan (tables, dictionnaire, gardes finales) : 0 px, rien de visible.
 
 ## Méthode d'un lot de nature
 
@@ -90,12 +80,27 @@ La simulation combinée des trois groupes, faite avant l'application avec les se
 - `p.aide.raison-de-refus` est une raison en ligne (lot 3) ;
 - `p.prose.pied` n'appartient à aucune nature.
 
-Restent du lot 3 :
-- fiche du héros (prothèse) : la bulle couvre « Possessions » ;
-- le-bord et Compendium : `retrecit` à 300 px ;
-- changement de carrière : `retrecit` `pt` ;
-- nuit (bivouac) : « Rien » × portrait ;
-- fenêtre du jet : plaques des options.
+Le lot 3 a repris ainsi les états qui ne tenaient pas. Ce sont des choix d'ingénierie, révisables :
+- **la bulle s'arrête à 320 px**, et non à 300 : le plus long refus du noyau, « Dernière panoplie — un héros en garde toujours une. » (301 px), tient alors sur une ligne au-dessus de la croix de la panoplie. Cela vaut pour la prothèse, le-bord et le Compendium ;
+- **la raison en ligne garde la taille de la ligne secondaire qu'elle remplace**, en Spectral italique, au lieu du 13/16 prévu. À 13/16, elle débordait le chemin du changement de carrière et coupait l'aide des options ;
+- nuit (bivouac) : la nourriture met son libellé au-dessus de ses plaques ;
+- fenêtre du jet :
+  - les lignes de réglage sans figure sont pleines (`pleine-1` sur deux bandes, son libellé au-dessus des options) ;
+  - « Au hasard » est un rond `menu`.
+
+Preuve du lot 3 (jauge, plaque, bulle, séparateur), contre la référence `0636a6206` :
+- passe : 57 écrans, 170 états, 8 planches, 0 rouge ;
+- pixels : 130 états changés, aucun hors attendu, aucun relevé neuf ; six états attendus restent inchangés (`creation-talents`, les trois fins de combat, `fuite-seuil-survole`, `tour-adverse`) ;
+- l'attendu du séparateur compte 40 états : tout « · » écrit déplace le calage du texte qui l'entoure, et ses voisins portent aussi les pas des jauges ;
+- typecheck complet, `oxlint`, `docs:check` et `test:perimetre` au vert.
+
+Autres choix du lot 3, révisables :
+- les prix écrits en mots (« sans PX », « sans achat ») passent en Chiffres avec le reste de `prix` ;
+- les infobulles natives deviennent des raisons cachées ;
+- le compteur cède la place aux réserves, et la fiche du combat montre la bulle de Destin survolée ;
+- le séparateur prend des espaces ordinaires plutôt que fines, parce que Fell et Chiffres n'ont pas l'espace fine et que Grenze la dessine à 0,6 em ;
+- les règles de famille qui stylaient tout `span` descendant visent désormais leur cible.
+- dans la barre des éditeurs, la plaque à pictogramme seul garde sa marge de 9 : la barre est une disposition dense, et la marge du kit la rognait en bureau.
 
 ## Outils
 
