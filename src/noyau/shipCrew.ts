@@ -200,8 +200,8 @@ export function shipMoraleScore(get: Get, ship: Combatant): number {
  * PNJ NOMINAL encore présent (`ship.crew − crewLost`, MÊME agrégat que le Manque de bras / la désertion /
  * l'Embrigadement). Le roster salarié (`vessel.crew`, #216) REMPLIT ces postes nominaux — jamais des corps EN
  * SUS (la caractéristique Équipage du type EST le complément entier, MDG 12 l.85) → jamais additionné, sous
- * peine de double compte. `heroes`/`crew` séparés pour le manifeste (les héros mangent leurs rations, l'équipage
- * ses vivres de cale). PUR. */
+ * peine de double compte. `heroes`/`crew` séparés : l'équipage mange la cale le jour (`consumeCrewProvisions`),
+ * les héros à leur entretien (`runDailyUpkeep`). PUR. */
 export function shipboardSouls(s: Pick<Jeu, 'party' | 'vessel'>): { heroes: number; crew: number; total: number } {
   const heroes = s.party.filter((h) => !h.dead).length;
   const vessel = s.vessel;
