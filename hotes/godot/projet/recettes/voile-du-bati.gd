@@ -197,7 +197,7 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 		var regard := "tactique" if camera == "en plongée" else "immersion"
 		var lumiere: Dictionary = PIXELS.LUMIERE_DU_JEU[regard]
 		var matiere: String = lumiere.horsCarte.sol.matiere
-		var _textures_gardees := await TexturesDeMatiere.preparer(monde, {matiere: false})
+		var _textures_gardees := await TexturesDeMatiere.preparer(monde, {matiere: true})
 		(monde.get_node("Lumiere") as Lumiere).eclairer(lumiere, PLATEAU)
 		monde.regarder(regard)
 		if camera == "en plongée":

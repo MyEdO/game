@@ -176,13 +176,3 @@ export function terrainMatiere(id: string): string | undefined {
 export function terrainKitDEscalier(id: string): KitDEscalier | undefined {
   return indexDesTerrains()[id]?.kitDEscalier;
 }
-/** Recette de détail d'un terrain, RESTREINTE aux sections d'ACCENT (touffes, mouchetis) — `null`
- *  quand l'entrée n'en porte aucune. Elle vit avec le dataset qu'elle interroge, au même titre que
- *  `decorDuTerrain`.
- *
- *  Type par ACCÈS INDEXÉ sur `TerrainDef`, déjà importé ici : `DetailRecipe` vit dans
- *  `src/data/materials.types.ts` ; l'accès indexé économise un second import. */
-export function terrainDetail(id: string): NonNullable<TerrainDef['detail']> | null {
-  const d = indexDesTerrains()[id]?.detail;
-  return d && (d.tufts || d.speckle) ? d : null;
-}

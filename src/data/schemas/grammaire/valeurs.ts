@@ -723,8 +723,8 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
 
 /**
  * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ
- * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
- * `structureAppearance.json`). Reflet STRICT de l'interface TS (mêmes sous-objets/champs requis).
+ * optionnel `detail` de 2 datasets d'apparence (`terrains.json` et `structureAppearance.json`). Reflet
+ * STRICT de l'interface TS (mêmes sous-objets/champs requis).
  */
 export const detailRecipeSchema = nommerChamps(z.strictObject({
   courses: nommerChamps(z
@@ -738,7 +738,6 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       paletteVar: z.number().optional(),
     }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "largeur de bloc en mètres" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
-  bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
   timber: nommerChamps(z
     .strictObject({
       postEveryM: z.number(),
@@ -747,24 +746,8 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       color: z.string(),
     }), { postEveryM: { label: "espacement des poteaux" }, braces: { label: "consoles" }, wM: { label: "largeur en mètres" }, color: { label: "couleur" } })
     .optional(),
-  speckle: nommerChamps(z
-    .strictObject({
-      perM2: z.number(),
-      rM: z.tuple([z.number(), z.number()]),
-      colors: z.array(z.string()),
-      vBias: z.number().optional(),
-    }), { perM2: { label: "par mètre carré" }, rM: { label: "rayon en mètres" }, colors: { label: "couleurs" }, vBias: { label: "biais vertical" } })
-    .optional(),
-  tufts: nommerChamps(z
-    .strictObject({
-      perM2: z.number(),
-      hM: z.tuple([z.number(), z.number()]),
-      colors: z.array(z.string()),
-    }), { perM2: { label: "par mètre carré" }, hM: { label: "hauteur en mètres" }, colors: { label: "couleurs" } })
-    .optional(),
   tintVar: z.number().optional(),
-  seedScope: z.enum(['edge', 'tile', 'instance']),
-}), { courses: { label: "rangs" }, bands: { label: "bandes" }, timber: { label: "charpente" }, speckle: { label: "mouchetures" }, tufts: { label: "touffes" }, tintVar: { label: "variation de teinte" }, seedScope: { label: "portée de la graine" } });
+}), { courses: { label: "rangs" }, timber: { label: "charpente" }, tintVar: { label: "variation de teinte" } });
 
 /**
  * Niveau de `Difficulty` (`src/engine/types.ts`) tel qu'il apparaît en DONNÉE — vu sur plusieurs

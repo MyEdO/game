@@ -8,7 +8,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   tousLesTerrains, terrainIds, terrainEntree, terrainLabel, terrainWalkable, terrainPriority,
-  terrainOpaque, terrainBuilt, terrainSolidHeightM, decorDuTerrain, terrainDetail,
+  terrainOpaque, terrainBuilt, terrainSolidHeightM, decorDuTerrain,
   terrainAbsent, estAbsent, terrainHorsGrille, glypheDe, terrainsAvecGlyphe, terrainStopsOrdonnes,
 } from './index';
 import { GLYPHES_RESERVES } from '../../../data/schemas/grammaire/carte-ascii';
@@ -31,13 +31,12 @@ describe('terrains — la règle lue au dataset', () => {
     expect(terrainWalkable('mur')).toBe(false);
   });
 
-  it('id inconnu → non franchissable, transparent, non bâti, sans bloc ni décor ni recette', () => {
+  it('id inconnu → non franchissable, transparent, non bâti, sans bloc ni décor', () => {
     expect(terrainWalkable('zzz-inconnu')).toBe(false);
     expect(terrainOpaque('zzz-inconnu')).toBe(false);
     expect(terrainBuilt('zzz-inconnu')).toBe(false);
     expect(terrainSolidHeightM('zzz-inconnu')).toBe(0);
     expect(decorDuTerrain('zzz-inconnu', 0, 0, 0)).toBeUndefined();
-    expect(terrainDetail('zzz-inconnu')).toBeNull();
   });
 
   it('`terrainLabel` (id garanti au parse) : le nom d’auteur, et un id inconnu LÈVE (#3031)', () => {

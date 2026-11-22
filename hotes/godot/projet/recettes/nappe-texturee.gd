@@ -1,7 +1,7 @@
 extends SceneTree
 
-## La nappe de toit texturée (#4471) : sur le monde (`Monde`) d'un volume de deux couches, sous un soleil de biais
-## (`LUMIERE`), un terrain texturé (`terrain--herbe`, un sol et une rampe) et, à la seconde couche, des nappes de toit
+## La nappe de toit texturée et le sol neutre (#4471) : sur le monde (`Monde`) d'un volume de deux couches, sous un soleil
+## de biais (`LUMIERE`), un terrain texturé (un sol et une rampe) et, à la seconde couche, des nappes de toit
 ## d'ardoise (`roof--toit-ardoise`) : un pan tourné vers +Z, son soffite et sa planche de rive, et un pan tourné vers +X,
 ## chacune sa nappe (`VolumeDeScene._matiere`, `art/monde.gdshader`, `nappe`), et un pignon vertical tourné vers +Z, au
 ## bardage de son mur (`structure--mur-a-ossature-en-bois`), lus aux pixels de l'image rendue. Chaque pan, vu de face,
@@ -9,8 +9,10 @@ extends SceneTree
 ## moyennes de leurs lignes de pixels sont périodiques d'au moins `RANGS_LE_LONG_DE_L_EGOUT` de plus que celles de leurs
 ## colonnes. Chaque face, rendue
 ## texturée puis de la couleur de ses sommets seule (une matière sans texture), garde son ton : sa texture neutre la
-## multiplie de la même part sur chaque canal, à `MEME_TON` près. Le terrain rend les mêmes pixels quelle que soit la
-## couleur de ses sommets.
+## multiplie de la même part sur chaque canal, à `MEME_TON` près. Un terrain à neutre (`terrain--herbe`) la teint de la
+## couleur de ses sommets (`teinte_des_sommets`) et garde son ton de même ; un terrain sans neutre (`terrain--sable`)
+## rend les mêmes pixels quelle que soit la couleur de ses sommets. L'empreinte des nappes seules s'imprime, à comparer
+## d'un shader à l'autre.
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
@@ -22,9 +24,13 @@ const METRES_PAR_CASE := 2.0
 const ARDOISE := "roof--toit-ardoise"
 const SANS_TEXTURE := "roof--sans-texture"
 const HERBE := "terrain--herbe"
+const SABLE := "terrain--sable"
+const SOL_SANS_TEXTURE := "terrain--sans-texture"
 const BARDAGE := "structure--mur-a-ossature-en-bois"
 ## Les couleurs de sommets, loin du gris, d'un pan, de son soffite et de sa planche de rive.
 const TONS := {pan = Color(0.7, 0.35, 0.2), soffite = Color(0.25, 0.6, 0.3), rive = Color(0.25, 0.35, 0.75)}
+## La couleur de sommets, loin du gris, du sol neutre.
+const TON_DU_SOL := Color(0.7, 0.3, 0.45)
 const RANGS_LE_LONG_DE_L_EGOUT := 0.05
 ## La demi-largeur, en lignes ou colonnes lues, de la tendance retirée d'un profil (`_periodicite`).
 const LISSAGE := 8
@@ -59,20 +65,24 @@ func _recetter() -> void:
 	var environnement := (monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment
 	environnement.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	environnement.volumetric_fog_enabled = false
-	await _poser(monde, ARDOISE, 0.5)
+	await _poser(monde, ARDOISE, Color(0.5, 0.5, 0.5), HERBE)
 	var nappes := _nappes(monde)
 	for nom in ["pan", "pan-x", "pignon"]:
 		var matiere := (nappes[nom].mesh as ArrayMesh).surface_get_material(0) as ShaderMaterial
 		if matiere.get_shader_parameter("albedo_texture") == null or matiere.get_shader_parameter("nappe") != 1.0:
 			_fautes.append("%s : la matière de la nappe n'est pas texturée en nappe" % nom)
-	var terrain := ((monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu") as MeshInstance3D).mesh as ArrayMesh).surface_get_material(0) as ShaderMaterial
+	var terrain := _matiere_du_terrain(monde)
 	if terrain.get_shader_parameter("albedo_texture") == null or terrain.get_shader_parameter("nappe") != 0.0:
 		_fautes.append("le terrain n'est pas texturé hors nappe")
+	if terrain.get_shader_parameter("teinte_des_sommets") != 1.0:
+		_fautes.append("le terrain à neutre n'est pas teint par la couleur de ses sommets")
 	monde.regarder("immersion")
 	await _rangs(monde, nappes.pan, Vector3(0.0, 1.0, 1.0), 0.0, -PI / 4.0)
 	await _rangs(monde, nappes["pan-x"], Vector3(1.0, 1.0, 0.0), PI / 2.0, -PI / 4.0)
 	await _rangs(monde, nappes.pignon, Vector3(0.0, 0.0, 1.0), 0.0, 0.0)
 	await _tons(monde)
+	await _empreinte_des_nappes(monde)
+	await _sol_neutre(monde)
 	await _terrain(monde)
 	for faute in _fautes:
 		push_error("[nappe-texturee] " + faute)
@@ -80,8 +90,9 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## Le volume posé : le terrain du gris `gris`, les nappes de la matière `matiere`, chacune sa clé et son empreinte.
-func _poser(monde: Monde, matiere: String, gris: float) -> void:
+## Le volume posé : le terrain de la matière `sol` et de la couleur `couleur`, les nappes de la matière `matiere`, chacune
+## sa clé et son empreinte.
+func _poser(monde: Monde, matiere: String, couleur: Color, sol: String) -> void:
 	var a := 3.0
 	var pan := [Vector3(2, 6, 5), Vector3(6, 6, 5), Vector3(6, 3, 8), Vector3(2, 3, 8)]
 	var soffite := [Vector3(2, 3, 8), Vector3(6, 3, 8), Vector3(6, 2.4, 8.6), Vector3(2, 2.4, 8.6)]
@@ -95,13 +106,12 @@ func _poser(monde: Monde, matiere: String, gris: float) -> void:
 		_nappe("pan-x", [[pan_x, TONS.pan]], matiere),
 		_nappe("pignon", [[pignon, TONS.pan]], BARDAGE),
 	]
-	var gris_c := Color(gris, gris, gris)
-	var sol := [Vector3(-1, 0, -1), Vector3(15, 0, -1), Vector3(15, 0, 15), Vector3(-1, 0, 15)]
+	var plan := [Vector3(-1, 0, -1), Vector3(15, 0, -1), Vector3(15, 0, 15), Vector3(-1, 0, 15)]
 	var rampe := [Vector3(15, 0, 2), Vector3(19, 2, 2), Vector3(19, 2, 6), Vector3(15, 0, 6)]
-	var terrain := _nappe("terrain", [[sol, gris_c], [rampe, gris_c]], HERBE).merged({rangee = 0})
+	var terrain := _nappe("terrain", [[plan, couleur], [rampe, couleur]], sol).merged({rangee = 0})
 	for toit: Dictionary in toits:
 		toit.empreinte = "%s/%s" % [toit.cle, matiere]
-	terrain.empreinte = "terrain/%s" % gris
+	terrain.empreinte = "terrain/%s/%s" % [sol, couleur.to_html()]
 	var plat := []
 	for y in HAUTEUR:
 		var rangee := []
@@ -191,9 +201,9 @@ func _tons(monde: Monde) -> void:
 		nappes[nom].visible = false
 		masques[nom] = PIXELS.interieur(PIXELS.masque(texturee, await PIXELS.image(self)))
 		nappes[nom].visible = true
-	await _poser(monde, SANS_TEXTURE, 0.5)
+	await _poser(monde, SANS_TEXTURE, Color(0.5, 0.5, 0.5), HERBE)
 	var seule := await PIXELS.image(self)
-	await _poser(monde, ARDOISE, 0.5)
+	await _poser(monde, ARDOISE, Color(0.5, 0.5, 0.5), HERBE)
 	for nom: String in TONS:
 		var parts: Array[float] = []
 		for canal in 3:
@@ -214,21 +224,66 @@ static func _mediane(image: Image, pixels: Array[Vector2i], canal: int) -> float
 	return valeurs[valeurs.size() / 2] if not valeurs.is_empty() else 0.0
 
 
-## Sous l'œil au-dessus de la rampe, le terrain rendu du gris 0,5 puis 0,9 : les mêmes pixels. L'empreinte de l'image,
-## nappes cachées, s'imprime, à comparer d'un shader à l'autre.
-func _terrain(monde: Monde) -> void:
+## La matière de l'instance vue du terrain posé.
+static func _matiere_du_terrain(monde: Monde) -> ShaderMaterial:
+	return (_terrain_vu(monde).mesh as ArrayMesh).surface_get_material(0) as ShaderMaterial
+
+
+## L'instance vue du terrain posé.
+static func _terrain_vu(monde: Monde) -> MeshInstance3D:
+	return monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu") as MeshInstance3D
+
+
+## Sous l'œil face au pan tourné vers +Z, puis au pignon, le terrain caché : l'empreinte de l'image des nappes seules
+## s'imprime, à comparer d'un shader à l'autre.
+func _empreinte_des_nappes(monde: Monde) -> void:
 	var nappes := _nappes(monde)
-	for vu: Node3D in nappes.values():
-		vu.visible = false
+	_terrain_vu(monde).visible = false
+	for vu: MeshInstance3D in [nappes.pan, nappes.pignon]:
+		var milieu := vu.to_global(vu.mesh.get_aabb().get_center())
+		monde.poser_l_oeil(milieu + Vector3(0.0, 1.0, 1.0).normalized() * RECUL * 2.0, 0.0, -PI / 4.0)
+		var image := await PIXELS.image(self)
+		print("[nappe-texturee] nappes seules (%s) : empreinte %s" % [vu.get_parent().name, hash(image.get_data())])
+	_terrain_vu(monde).visible = true
+
+
+## Sous l'œil au-dessus du sol, nappes cachées, le terrain à neutre de la couleur `TON_DU_SOL`, texturé puis sans
+## texture : la part de chaque canal de l'un rapportée à l'autre est la même à `MEME_TON` près, et le ton n'est pas le
+## gris de la neutre.
+func _sol_neutre(monde: Monde) -> void:
+	monde.poser_l_oeil(Vector3(7.0, 6.0, 9.0), PI / 4.0, -PI / 3.0)
+	var images := {}
+	for sol: String in [HERBE, SOL_SANS_TEXTURE]:
+		await _poser(monde, ARDOISE, TON_DU_SOL, sol)
+		for vu: Node3D in _nappes(monde).values():
+			vu.visible = false
+		images[sol] = await PIXELS.image(self)
+	_terrain_vu(monde).visible = false
+	var pixels := PIXELS.interieur(PIXELS.masque(images[HERBE], await PIXELS.image(self)))
+	var parts: Array[float] = []
+	for canal in 3:
+		parts.append(_mediane(images[HERBE], pixels, canal) / maxf(_mediane(images[SOL_SANS_TEXTURE], pixels, canal), 1e-4))
+	var moyenne := (parts[0] + parts[1] + parts[2]) / 3.0
+	var ecart: float = (parts.max() - parts.min()) / maxf(moyenne, 1e-4)
+	print("[nappe-texturee] sol neutre : %d pixels, parts r %.3f v %.3f b %.3f, écart %.3f" % [pixels.size(), parts[0], parts[1], parts[2], ecart])
+	if pixels.size() < 1000 or ecart > MEME_TON:
+		_fautes.append("sol neutre : ton perdu (parts %.3f %.3f %.3f, %d pixels)" % [parts[0], parts[1], parts[2], pixels.size()])
+
+
+## Sous l'œil au-dessus de la rampe, nappes cachées, le terrain sans neutre rendu du gris 0,5 puis 0,9 : les mêmes
+## pixels.
+func _terrain(monde: Monde) -> void:
 	monde.poser_l_oeil(Vector3(7.0, 4.0, 9.0), PI / 4.0, -PI / 5.0)
-	var avant := await PIXELS.image(self)
-	await _poser(monde, ARDOISE, 0.9)
-	for vu: Node3D in _nappes(monde).values():
-		vu.visible = false
-	var apres := await PIXELS.image(self)
-	print("[nappe-texturee] terrain : empreinte %s" % hash(avant.get_data()))
-	if avant.get_data() != apres.get_data():
-		_fautes.append("le terrain texturé change avec la couleur de ses sommets")
+	var images := []
+	for gris in [0.5, 0.9]:
+		await _poser(monde, ARDOISE, Color(gris, gris, gris), SABLE)
+		for vu: Node3D in _nappes(monde).values():
+			vu.visible = false
+		images.append(await PIXELS.image(self))
+	if _matiere_du_terrain(monde).get_shader_parameter("teinte_des_sommets") == 1.0:
+		_fautes.append("le terrain sans neutre est teint par la couleur de ses sommets")
+	if images[0].get_data() != images[1].get_data():
+		_fautes.append("le terrain sans neutre change avec la couleur de ses sommets")
 
 
 ## La géométrie `cle` des faces `faces` (chacune ses quatre coins en mètres, dans le sens trigonométrique vu de sa
@@ -252,6 +307,6 @@ static func _nappe(cle: String, faces: Array, matiere: String) -> Dictionary:
 				normales.append_array([normale.x, normale.y, normale.z])
 				couleurs.append_array([couleur.r, couleur.g, couleur.b, 1.0])
 				centre += coin / 3.0
-			cases.append_array([clampi(roundi(centre.x / METRES_PAR_CASE), 0, LARGEUR - 1), clampi(roundi(centre.z / METRES_PAR_CASE), 0, HAUTEUR - 1), 0 if matiere == HERBE else 1])
+			cases.append_array([clampi(roundi(centre.x / METRES_PAR_CASE), 0, LARGEUR - 1), clampi(roundi(centre.z / METRES_PAR_CASE), 0, HAUTEUR - 1), 0 if matiere.begins_with("terrain--") else 1])
 	return {cle = cle, empreinte = cle, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = matiere}]}

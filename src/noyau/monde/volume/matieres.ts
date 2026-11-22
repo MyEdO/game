@@ -130,14 +130,12 @@ export function couleurDeMatiere({ domain, id, part }: MaterialRef): string {
   }
 }
 
-/** Recette de détail d'une matière, prise à sa def ; un matériau de décor n'en porte aucune. */
+/** Recette de détail d'une matière, prise à sa def ; une matière de relief, de toit ou de décor n'en porte aucune. */
 export function recetteDeMatiere({ domain, id }: MaterialRef): DetailRecipe | undefined {
   switch (domain) {
     case 'terrain': return terrainDef(id).detail;
-    case 'relief': return reliefMaterial(id).detail;
     case 'structure': return facadeStructureAppearance(id).detail;
-    case 'roof': return roofMaterial(id).detail;
-    case 'prop': return undefined;
+    case 'relief': case 'roof': case 'prop': return undefined;
   }
 }
 

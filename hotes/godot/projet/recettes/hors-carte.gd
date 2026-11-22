@@ -52,12 +52,13 @@ func _recetter() -> void:
 	scene.add_child(lumiere)
 	var penombre := Color(PENOMBRE)
 	var matiere: String = LUMIERE.horsCarte.sol.matiere
-	var textures := await TexturesDeMatiere.preparer(root, {matiere: false})
-	var chemin := VolumeDeScene.texture_de(matiere)
+	var textures := await TexturesDeMatiere.preparer(root, {matiere: true})
+	var chemin := VolumeDeScene.texture_neutre_de(matiere)
 	var relief := VolumeDeScene.relief_de(matiere)
 	lumiere.eclairer(LUMIERE, PLATEAU)
 	var shader := lumiere.sol_hors_carte
-	_verifier(textures.has(chemin) and shader.get_shader_parameter("albedo_texture") == textures[chemin], "le hors-carte ne montre pas l'albédo préparé de l'herbe")
+	_verifier(textures.has(chemin) and shader.get_shader_parameter("albedo_texture") == textures[chemin], "le hors-carte ne montre pas la neutre préparée de l'herbe")
+	_verifier(shader.get_shader_parameter("teinte").is_equal_approx(Color(LUMIERE.horsCarte.sol.couleur)), "la neutre du hors-carte n'est pas teinte par la couleur de l'herbe")
 	_verifier(textures.has(relief) and shader.get_shader_parameter("normal_enabled") and shader.get_shader_parameter("normal_texture") == textures[relief], "le hors-carte ne montre pas le relief préparé de l'herbe")
 	var image: Image = await PIXELS.image(self)
 	_verifier(_ecart(image, camera, AU_BORD, penombre) > SOL_VU, "avec un fondu, le sol ne se voit pas au bord du plateau")

@@ -16,13 +16,13 @@
  * cinq `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
  * `document()` ne saurait y poser ni sa provenance, ni son `type`, ni ses métas d'édition.
  *
- * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `detail` l'est par
- * `roof` et `relief`, `color` par `prop` et `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
+ * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `color` l'est par `prop` et
+ * `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
  * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
+import { couleurHexSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
 import { estObjet } from '../../../lib/objet.mjs';
 import { kitDeToitSchema } from './structureAppearance';
@@ -53,10 +53,10 @@ const chargeParDiscriminant = {
   couleur: ['color'],
   prop: ['color', 'roughness', 'metalness'],
   roof: [
-    'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
+    'couverture', 'vueDeDessus', 'N', 'E', 'S', 'O', 'line',
     'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap', 'kit',
   ],
-  relief: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'],
+  relief: ['built', 'face', 'foot', 'slopeTop', 'shadeDark'],
 } as const satisfies Record<MaterialDomain, readonly string[]>;
 
 /** Clés EXIGÉES d'un domaine qui n'exige pas toute sa charge (`espace.requisesParDiscriminant`) ; le reste de sa charge
@@ -97,8 +97,6 @@ const doc = document(
     foot: z.string().optional(),
     slopeTop: z.string().optional(),
     shadeDark: z.number().optional(),
-    // ── `roof` ET `relief`
-    detail: detailRecipeSchema.optional(),
   },
   {
     domain: {
@@ -140,7 +138,6 @@ const doc = document(
     foot: { label: 'Couleur de pied', hint: 'Falaise : ombre de pied' },
     slopeTop: { label: 'Couleur de nez de pente', hint: 'Rampe : arête haute éclairée de la pente (le pied est dérivé par ombrage)' },
     shadeDark: { label: 'Assombrissement', hint: 'Facteur d’assombrissement de la face sombre' },
-    detail: { label: 'Recette de détail' },
   },
   {
     codex: { keys: ['materials'] },

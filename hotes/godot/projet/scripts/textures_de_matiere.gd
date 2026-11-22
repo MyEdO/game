@@ -24,7 +24,7 @@ static func retenue(chemin: String) -> Texture2D:
 	return ResourceLoader.get_cached_ref(chemin) as Texture2D
 
 
-## Les chemins d'une matière, y compris sa variante neutre si une palette ou la couleur d'une nappe la teint.
+## Les chemins d'une matière, y compris sa variante neutre si une palette ou la couleur de ses sommets la teint.
 static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
 	var chemins := PackedStringArray([VolumeDeScene.texture_de(matiere), VolumeDeScene.relief_de(matiere)])
 	if neutre:

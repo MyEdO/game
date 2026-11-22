@@ -332,7 +332,7 @@ func _suivre(reponse: Dictionary) -> void:
 		var matieres := VolumeDeScene.matieres_des_morceaux(plan.get("recus", {}))
 		var lumiere: Variant = plan.suite.vue.lumiere
 		if lumiere != null and lumiere.horsCarte.sol != null:
-			matieres[lumiere.horsCarte.sol.matiere] = false
+			matieres[lumiere.horsCarte.sol.matiere] = true
 		var _textures_gardees := await TexturesDeMatiere.preparer(self, matieres)
 		if pose != _pose_des_vues:
 			return
