@@ -15483,6 +15483,216 @@
      },
      "z": 1,
      "facing": "E"
+    },
+    {
+     "id": "diligence-salle-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 22,
+      "y": 20
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salle-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 18,
+      "y": 21
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-salle-applique-3",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 21,
+      "y": 12
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-salle-applique-4",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 30
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-portier-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 15,
+      "y": 7
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-cuisine-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 15
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salon-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 13,
+      "y": 27
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 27,
+      "y": 19
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 34,
+      "y": 24
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-candelabre",
+     "kind": "prop",
+     "decor": {
+      "id": "chandelier"
+     },
+     "pos": {
+      "x": 35,
+      "y": 18
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-brasserie-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 34,
+      "y": 34
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-haut-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 26,
+      "y": 16
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-couloir-haut-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 33,
+      "y": 17
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-galerie-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 29
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-reunion-nord-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 28,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reunion-sud-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 26,
+      "y": 23
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-gustav-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 14,
+      "y": 16
+     },
+     "z": 1,
+     "facing": "N"
     }
    ],
    "dialogues": [],
