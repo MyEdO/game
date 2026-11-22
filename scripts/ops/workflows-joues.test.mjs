@@ -184,8 +184,9 @@ test('table-simulee : sans `args.maxEchanges`, le plafond se DÉRIVE du dossier 
 
 test('table-simulee : un tirage hors suite est une anomalie journalisée', async () => {
   const { rendu, journal } = await jouerTable((numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: jetsDe(premier + 5, 1) }));
-  assert.deepEqual(rendu.journal.echanges[0].anomaliesDeTirage, [TIRAGE_5_ATTENDU_0]);
-  assert.ok(journal.some((l) => /1 anomalie\(s\) de tirage/.test(l)));
+  assert.deepEqual(rendu.journal.echangeRejete.anomaliesDeTirage, [TIRAGE_5_ATTENDU_0]);
+  assert.ok(journal.some((l) => l.includes(TIRAGE_5_ATTENDU_0)));
+  assert.equal(rendu.journal.tiragesConsommes, 0);
 });
 
 test('table-simulee : la commande d’un jet porte SON tirage, borné — « --tirage 12 » n’est pas « --tirage 1 »', async () => {
@@ -194,7 +195,7 @@ test('table-simulee : la commande d’un jet porte SON tirage, borné — « --t
   const juste = await jouerTable(mj(commandeDe));
   assert.deepEqual(juste.rendu.journal.echanges[0].anomaliesDeTirage, [], 'témoin : chaque commande porte son tirage');
   const fautif = await jouerTable(mj((t) => commandeDe(`${t}2`)));
-  assert.deepEqual(fautif.rendu.journal.echanges[0].anomaliesDeTirage, ['jet 2 : commande sans --seed "graine" ou sans --tirage 1']);
+  assert.deepEqual(fautif.rendu.journal.echangeRejete.anomaliesDeTirage, ['jet 2 : commande sans --seed "graine" ou sans --tirage 1']);
 });
 
 test('table-simulee : THÉÂTRE tant que les personas ADVERSES n’ont ni refus ni hors livre, SIGNAL sinon', async () => {
@@ -343,8 +344,8 @@ test('table-simulee : un id de PJ vide ou en double, rendu par les fiches des PJ
     const { rendu, promptsParLabel, journal } = await jouerTable(mjSansFin, analyseCouvrante(), ARGS_TABLE, fiches);
     assert.equal(rendu.verdict, 'ARRÊT', ids.join(','));
     assert.deepEqual(rendu.manques, manques);
-    assert.deepEqual([...promptsParLabel.keys()], ['Préparation:fiches-pj'], 'aucun agent après les fiches');
-    assert.ok(journal.some((l) => /^ARRÊT : \d+ id\(s\) de PJ invalide\(s\)/.test(l)), journal.join('\n'));
+    assert.deepEqual([...promptsParLabel.keys()], ['Préparation:fiches-pj', 'Préparation:fiches-pj:renvoi1'], 'aucun agent après les fiches');
+    assert.ok(journal.some((l) => l.startsWith('ARRÊT : fiches des PJ —')), journal.join('\n'));
   }
 });
 
@@ -376,7 +377,8 @@ test('table-simulee : un choix du sosie sans rendu ARRÊTE avant la partie, et s
   const { rendu, promptsParLabel } = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'fiches-pj' ? FICHES_PJ : null));
   assert.equal(rendu.verdict, 'ARRÊT');
   assert.deepEqual(rendu.manques, ['choix du sosie sans rendu — rien rendu']);
-  assert.deepEqual([...promptsParLabel.keys()], ['Préparation:fiches-pj', 'Préparation:sosie']);
+  assert.deepEqual([...promptsParLabel.keys()], ['Préparation:fiches-pj', 'Préparation:sosie', 'Préparation:sosie:renvoi1']);
+  assert.deepEqual(rendu.preparationPartielle.pjs, FICHES_PJ.pjs);
 });
 
 test('table-simulee : les DÉCLENCHEURS du dossier (EDO 01 l.200) atteignent le MJ, et JOUÉ se relit', async () => {
@@ -402,11 +404,11 @@ test('table-simulee : chaque déclencheur a UN état — non-échu reste en atte
   assert.deepEqual(ecarte.rendu.declencheursNonJoues, []);
 
   const sansMotif = await jouerTable(mjAuxSorts((n) => (n === 1 ? { statut: 'non-echu', motif: ' ' } : { statut: 'ecarte', motif: '' })));
-  assert.deepEqual(sansMotif.rendu.journal.echanges.map((e) => e.anomaliesDeDeclencheurs), [
-    ['déclencheur « d1 » : statut « non-echu » sans motif'],
-    ['déclencheur « d1 » : statut « ecarte » sans motif'],
-    [],
-  ]);
+  assert.deepEqual(sansMotif.rendu.journal.echangeRejete.anomaliesDeDeclencheurs,
+    ['déclencheur « d1 » : statut « non-echu » sans motif']);
+  assert.deepEqual(sansMotif.rendu.journal.echanges, []);
+  assert.deepEqual(sansMotif.rendu.declencheursEcartes, []);
+  assert.ok(!sansMotif.promptsParLabel.has('Partie:mj:2'));
 });
 
 test('table-simulee : un déclencheur JAMAIS joué ou ÉCARTÉ est rendu, journalisé et soumis au juge d’analyse, sous son id', async () => {
@@ -454,6 +456,7 @@ test('table-simulee : un joueur sans rendu ARRÊTE la partie — aucun échange 
   assert.deepEqual(rendu.trous.joueursSansRendu, ['échange 1 : fouineur — rien rendu']);
   assert.ok(promptsParLabel.has('Partie:mj:1'), 'témoin : le premier échange est joué');
   assert.ok(!promptsParLabel.has('Partie:mj:2'), 'aucun MJ ne rejoue une partie déjà incomplète');
+  assert.deepEqual(rendu.journal.intentionsNonResolues.map((i) => i.persona), ['rôliste', 'saboteur', 'hors-cadre']);
 });
 
 test('table-simulee : un MJ mort INTERROMPT la partie — 0 échange = verdict INTERROMPU, sans dispatcher l’analyse', async () => {
@@ -473,7 +476,7 @@ test('table-simulee : un MJ mort INTERROMPT la partie — 0 échange = verdict I
 });
 
 test('table-simulee : un agent qui LÈVE est capturé — sa cause se nomme au trou, le journal garde les échanges joués', async () => {
-  const leve = (label) => (prompt, opts) => (opts.label === label ? Promise.reject(new Error('API morte')) : repondreALaTable(mjSansFin, analyseSignal())(prompt, opts));
+  const leve = (label) => (prompt, opts) => (opts.label.replace(/:renvoi1$/, '') === label ? Promise.reject(new Error('API morte')) : repondreALaTable(mjSansFin, analyseSignal())(prompt, opts));
   const mj = await jouer('table-simulee.js', ARGS_TABLE, leve('mj:2'));
   assert.deepEqual([mj.rendu.verdict, mj.rendu.trous.interruption], ['INTERROMPU', ['échange 2 : MJ — échec : API morte, 4 intention(s) sans résolution']]);
   assert.equal(mj.rendu.journal.echanges.length, 1, 'l’échange joué reste au journal');
@@ -487,25 +490,25 @@ test('table-simulee : un agent qui LÈVE est capturé — sa cause se nomme au t
   }
 });
 
-test('table-simulee : un rendu du MJ anomal se RENVOIE — prompt d’origine, sortie fautive, anomalies précises —, deux fois au plus ; corrigé, il entre au journal', async () => {
+test('table-simulee : un rendu du MJ anomal se RENVOIE — prompt d’origine, sortie fautive, anomalies précises —, deux appels au plus ; corrigé, il entre au journal', async () => {
   const horsSuite = (numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: jetsDe(premier + 5, 1) });
   const tetu = await jouerTable(horsSuite);
   const original = tetu.promptsParLabel.get('Partie:mj:1');
-  for (const essai of [1, 2]) {
+  for (const essai of [1]) {
     const renvoi = tetu.promptsParLabel.get(`Partie:mj:1:renvoi${essai}`);
     assert.ok(renvoi.startsWith(original), `renvoi ${essai} : le prompt d’origine, entier`);
     assert.match(renvoi, /SORTIE À CORRIGER[^]*"tirage": 5/, `renvoi ${essai} : la sortie fautive`);
     assert.ok(renvoi.split('\n').includes(`- ${TIRAGE_5_ATTENDU_0}`), `renvoi ${essai} : l’anomalie précise, et le geste — relancer au bon tirage, la résolution et la narration suivent`);
     assert.equal(tetu.optionsParLabel.get(`Partie:mj:1:renvoi${essai}`).agentType, 'mj-de-table');
   }
-  assert.ok(!tetu.promptsParLabel.has('Partie:mj:1:renvoi3'), 'pas de troisième renvoi');
-  assert.deepEqual([tetu.rendu.journal.echanges[0].renvois, tetu.rendu.journal.echanges[0].anomaliesDeTirage, tetu.rendu.agents.mj], [2, [TIRAGE_5_ATTENDU_0], 3]);
-  assert.equal(tetu.rendu.verdict, 'PARTIE ANOMALE', 'après deux renvois, l’anomalie reste un trou');
+  assert.ok(!tetu.promptsParLabel.has('Partie:mj:1:renvoi2'), 'pas de troisième appel');
+  assert.deepEqual([tetu.rendu.journal.echangeRejete.renvois, tetu.rendu.journal.echangeRejete.anomaliesDeTirage, tetu.rendu.agents.mj], [1, [TIRAGE_5_ATTENDU_0], 2]);
+  assert.equal(tetu.rendu.verdict, 'PARTIE ANOMALE', 'après deux appels, l’anomalie reste un trou');
 
   const perdu = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1:renvoi1'
     ? Promise.reject(new Error('API morte'))
     : repondreALaTable(horsSuite)(prompt, opts)));
-  assert.deepEqual([perdu.rendu.journal.echanges[0].renvois, perdu.rendu.journal.echanges[0].anomaliesDeTirage, perdu.rendu.journal.echanges[0].anomaliesDeRenvoi],
+  assert.deepEqual([perdu.rendu.journal.echangeRejete.renvois, perdu.rendu.journal.echangeRejete.anomaliesDeTirage, perdu.rendu.journal.echangeRejete.anomaliesDeRenvoi],
     [1, [TIRAGE_5_ATTENDU_0], ['renvoi 1 sans rendu — échec : API morte']], 'un renvoi sans rendu garde le rendu précédent et NOMME sa cause');
 
   const corrige = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1'
@@ -771,19 +774,19 @@ test('dossier-de-chapitre : une seconde correction de la MÊME cible se nomme «
   assert.deepEqual(rendu.corrections.map((c) => c.type), ['ref-fausse', 'contenu-faux', 'contenu-faux']);
 });
 
-test('dossier-de-chapitre : une correction inapplicable se RENVOIE au juge — prompt d’origine, sortie fautive, anomalie précise —, deux fois au plus', async () => {
+test('dossier-de-chapitre : une correction inapplicable se RENVOIE au juge — prompt d’origine, sortie fautive, anomalie précise —, deux appels au plus', async () => {
   const doublon = { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.201'], motif: 'm' }, { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.999'], motif: 'm' }] };
   const tetu = await jouerDossier(ARGS_DOSSIER, doublon);
   const original = tetu.promptsParLabel.get('Complétude:completude');
-  for (const essai of [1, 2]) {
+  for (const essai of [1]) {
     const renvoi = tetu.promptsParLabel.get(`Complétude:completude:renvoi${essai}`);
     assert.ok(renvoi.startsWith(original), `renvoi ${essai} : le prompt d’origine, entier`);
     assert.match(renvoi, /SORTIE À CORRIGER[^]*"EDO 01 l\.999"/, `renvoi ${essai} : la sortie fautive`);
     assert.match(renvoi, /^- réf fausse « declencheurs:d1 » : cible déjà corrigée$/m, `renvoi ${essai} : l’anomalie précise`);
   }
-  assert.ok(!tetu.promptsParLabel.has('Complétude:completude:renvoi3'), 'pas de troisième renvoi');
+  assert.ok(!tetu.promptsParLabel.has('Complétude:completude:renvoi2'), 'pas de troisième appel');
   assert.deepEqual([tetu.rendu.verdict, tetu.rendu.agents.completude, tetu.rendu.trous.anomaliesDeCorrection],
-    ['CORRECTIONS INAPPLICABLES', 3, ['réf fausse « declencheurs:d1 » : cible déjà corrigée']], 'après deux renvois, l’anomalie reste un trou');
+    ['CORRECTIONS INAPPLICABLES', 2, ['réf fausse « declencheurs:d1 » : cible déjà corrigée']], 'après deux appels, l’anomalie reste un trou');
 
   const corrige = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.phase === 'Lecture'
     ? LECTURES[opts.label]
@@ -834,7 +837,7 @@ test('dossier-de-chapitre : le schéma du juge, VALIDÉ comme le harnais le vali
 });
 
 test('dossier-de-chapitre : un agent qui LÈVE est capturé — sa cause se nomme au trou, le reste du run se rend', async () => {
-  const leve = (label) => (prompt, opts) => (opts.label === label ? Promise.reject(new Error('schéma non tenu')) : repondreAuDossier()(prompt, opts));
+  const leve = (label) => (prompt, opts) => (opts.label.replace(/:renvoi1$/, '') === label ? Promise.reject(new Error('schéma non tenu')) : repondreAuDossier()(prompt, opts));
   const lentille = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, leve('mecanique'));
   assert.deepEqual([lentille.rendu.verdict, lentille.rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique — échec : schéma non tenu']]);
   assert.deepEqual(lentille.rendu.pnj.map((p) => p.id), ['pnj1', 'pnj2'], 'les autres lentilles entrent à la fiche');
@@ -859,7 +862,7 @@ test('dossier-de-chapitre : un run qui n’est pas au verdict DOSSIER ne s’éc
 
 test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lentille — réordonner les lecteurs ne change pas la fiche', async () => {
   const source = readFileSync(join(DOSSIER, 'dossier-de-chapitre.js'), 'utf8');
-  const lecteur = (lentille) => source.indexOf(`  [${lentille}, () => agent(promptDeLecture(${lentille}),`);
+  const lecteur = (lentille) => source.indexOf(`  [${lentille}, (prompt, essai) => agent(prompt,`);
   const [a, b, c] = ['LENTILLE_IMPERATIFS_ET_BEATS', 'LENTILLE_PNJ_LIEUX_TEXTES', 'LENTILLE_MECANIQUE'].map(lecteur);
   assert.ok(a >= 0 && a < b && b < c, 'les trois premiers lecteurs, dans cet ordre');
   const permute = source.slice(0, a) + source.slice(b, c) + source.slice(a, b) + source.slice(c);
@@ -898,4 +901,58 @@ test('les deux workflows : tout agent qui cite le livre prend ses lignes sur une
     assert.match(prompt, /lecture BRUTE numérotée \(`Read`, ou `Grep` avec ses numéros de ligne\), jamais sur une vue résumée/, cle);
     assert.match(prompt, /toute réf se vérifie en relisant la ligne citée avant d'être rendue/, cle);
   }
+});
+
+test('#2721 : chaque site des deux workflows répare un rejet du schéma en un seul renvoi', async () => {
+  const erreur = 'rendu.sujet : propriété supplémentaire interdite';
+  const cas = [
+    ['dossier-de-chapitre.js', argsDossier(['EDOC-03']), repondreAuDossier(), 'DOSSIER',
+      ['Lecture:imperatifs-et-beats', 'Lecture:pnj-lieux-textes', 'Lecture:mecanique', 'Lecture:matiere-compagnons', 'Complétude:completude']],
+    ['table-simulee.js', ARGS_TABLE, repondreALaTable(mjSansFin, analyseSignal()), 'SIGNAL',
+      ['Préparation:fiches-pj', 'Préparation:sosie', 'Partie:mj:2', 'Partie:joueur:fouineur:1', 'Analyse:analyse']],
+  ];
+  for (const [script, args, repondre, verdict, sites] of cas) {
+    for (const site of sites) {
+      const { rendu, promptsParLabel, optionsParLabel } = await jouer(script, args, (prompt, opts) => {
+        if (`${opts.phase}:${opts.label}` === site) throw new Error(erreur);
+        return repondre(prompt, opts);
+      });
+      const original = promptsParLabel.get(site);
+      const renvoi = promptsParLabel.get(`${site}:renvoi1`);
+      assert.ok(renvoi?.startsWith(original), site);
+      assert.ok(renvoi.includes(erreur), site);
+      assert.deepEqual(optionsParLabel.get(`${site}:renvoi1`), {
+        ...optionsParLabel.get(site), label: `${optionsParLabel.get(site).label}:renvoi1`,
+      });
+      assert.ok(!promptsParLabel.has(`${site}:renvoi2`), site);
+      assert.equal(rendu.verdict, verdict, site);
+    }
+  }
+});
+
+test('#2721 : le rejet persistant du MJ reste borné et privé, le juge reçoit le dernier échange joué', async () => {
+  const prive = 'TRACE-DU-MJ-PRIVEE';
+  const erreur = `tour.beat : valeur hors enum (${prive}${'x'.repeat(5000)})`;
+  const repondre = repondreALaTable(mjSansFin);
+  const { rendu, promptsParLabel } = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => {
+    if (/^mj:2(?::renvoi1)?$/.test(opts.label)) throw new Error(erreur);
+    return repondre(prompt, opts);
+  });
+  assert.equal(rendu.verdict, 'INTERROMPU');
+  assert.equal(rendu.journal.echanges.length, 1);
+  assert.equal(rendu.journal.interrompue.intentionsNonResolues.length, 4);
+  assert.match(rendu.trous.interruption[0], /tour\.beat : valeur hors enum/);
+  assert.ok(rendu.trous.interruption[0].length < 600);
+  assert.ok(promptsParLabel.has('Partie:mj:2:renvoi1'));
+  assert.ok(!promptsParLabel.get('Analyse:analyse').includes(prive));
+});
+
+test('#2721 : sans secret, la rubrique fuites du juge admet un tableau vide sans enum vide', async () => {
+  const { rendu, optionsParLabel } = await jouerTable(mjSansFin, analyseSignal(), {
+    ...ARGS_TABLE, dossier: { ...DOSSIER_DU_CHAPITRE, secrets: [] },
+  });
+  const schema = optionsParLabel.get('Analyse:analyse').schema.properties.fuites;
+  assert.equal(schema.maxItems, 0);
+  assert.doesNotMatch(JSON.stringify(schema), /"enum":\[\]/);
+  assert.deepEqual(rendu.analyse.fuites, []);
 });

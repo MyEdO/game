@@ -66,7 +66,7 @@ const analyseCouvrante = (classeDe = () => 'prevu', besoins = [], retouche = (a)
 };
 /** `mjDe(numero, premierTirage, schema)` décide le rendu du MJ ; `analyseDe(prompt, opts)` celui du juge. */
 const repondreALaTable = (mjDe, analyseDe = analyseCouvrante(), fichesPJ = FICHES_PJ, sosie = SANS_SOSIE) => (prompt, opts) => {
-  if (opts.phase === 'Préparation') return opts.label === 'fiches-pj' ? fichesPJ : { sosie };
+  if (opts.phase === 'Préparation') return labelInitial(opts.label) === 'fiches-pj' ? fichesPJ : { sosie };
   if (opts.phase === 'Analyse') return analyseDe(prompt, opts);
   if (opts.label.startsWith('mj:')) {
     const premier = Number(prompt.match(/commencent à (\d+)/)[1]);
@@ -117,10 +117,11 @@ const completude = (opts, corrige = {}) => ({
   contenusFaux: corrige.contenusFaux ?? [],
   synthese: { markdown: 's' },
 });
-const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[opts.label] : completude(opts, corrige));
+const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[labelInitial(opts.label)] : completude(opts, corrige));
 const jouerDossier = (argsDuRun = ARGS_DOSSIER, corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(corrige));
+const labelInitial = (label) => label.replace(/:renvoi\d+$/, '');
 /** `label` meurt (rend `rendu`, `null` par défaut) ; tout autre agent répond par `repondre`. */
-const sauf = (repondre, label, rendu = null) => (prompt, opts) => (opts.label === label ? rendu : repondre(prompt, opts));
+const sauf = (repondre, label, rendu = null) => (prompt, opts) => (labelInitial(opts.label) === label ? rendu : repondre(prompt, opts));
 
 export const FICHES = fichesDAgent(RACINE)
 export const TYPES_DECLARES = new Set(FICHES.keys())
