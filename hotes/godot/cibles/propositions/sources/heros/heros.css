@@ -150,7 +150,7 @@
 .tire .plaque{flex:none}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
-.mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
+.mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%)}
 .mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
 
 /* ───────── création : les possessions ───────── */
@@ -246,7 +246,7 @@
 .acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .acquis .gestes .plaque{flex:none}
-.acquis .gestes .bulle-refus{left:auto;right:0;transform:none;box-sizing:border-box;width:100%;white-space:normal;text-align:center}
+.acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
 .acquis .gestes .bulle-refus::before{left:auto;right:60px}
 
 /* ───────── la fiche : les possessions ───────── */

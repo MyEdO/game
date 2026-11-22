@@ -109,10 +109,7 @@
    bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau ; le carton d'un arrêt
    au rect `carton` (`rendu.js`) */
 #apercu-test .apercu{left:576px;top:270px;--pointe:124px}
-.apercu td:first-child{white-space:nowrap;padding-right:10px}
-.apercu table{border-collapse:collapse;width:100%}
-.apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
-.apercu td:last-child,#verdict.tests td:last-child{text-align:right;white-space:nowrap}
+#verdict.tests td:last-child{text-align:right;white-space:nowrap}
 /* les lignes du Test défilent entre sa tête et les gestes du pied */
 #verdict.tests{text-align:left;padding:0 6px;display:flex;flex-direction:column}
 #verdict.tests .tete{display:flex;align-items:baseline;gap:12px}
@@ -212,7 +209,7 @@
 #fiche-lue #f-identite .fond{padding:16px 15px 0}
 #fiche-lue #f-identite .mesure{margin-top:14px}
 #fiche-lue #f-identite .filet{margin:12px 8px}
-#fiche-lue #f-identite .reserves{gap:6px}
+#fiche-lue #f-identite .en-reserve{flex-wrap:wrap;justify-content:center;gap:12px 24px}
 #fiche-lue #f-profil{left:486px;top:16px;width:714px;height:80px}
 #fiche-lue #f-profil .fond{padding-top:20px}
 #fiche-lue #f-figure{left:486px;top:106px;width:200px;height:330px}

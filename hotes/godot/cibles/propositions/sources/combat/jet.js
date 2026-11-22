@@ -37,7 +37,7 @@ const verdict = ({ sous, mot, sens, consequences, dr, phrase }) => ({
 /* les conséquences d'un jet, une pièce chacune, de la couleur de son ton (`gain`, `perte`) : son pictogramme et sa
    valeur ; son nom, sa cible et son détail dans la bulle de son survol (fiche `user-doctrine-icone-identifie-survol-detaille`) ;
    sans pictogramme, son nom écrit, la pièce marquée `data-sans-icone` */
-const consequences = (liste) => `<div class="consequences" data-primitive="consequences">${liste.map(({ icone, nom, valeur, ton, survol, bulle }) => `<span class="consequence ${ton}"${icone ? '' : ' data-sans-icone'}${icone ? ` title="${bulle}"` : ''}>${icone ?? `<span class="nom">${nom}</span>`}${valeur ? `<b>${valeur}</b>` : ''}${survol ? raison(bulle) : ''}</span>`).join('')}</div>`;
+const consequences = (liste) => `<div class="consequences" data-primitive="consequences">${liste.map(({ icone, nom, valeur, ton, survol, bulle }) => `<span class="consequence ${ton}"${icone ? '' : ' data-sans-icone'}>${icone ?? `<span class="nom">${nom}</span>`}${valeur ? `<b>${valeur}</b>` : ''}${survol ? raison(bulle) : ''}</span>`).join('')}</div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
    des gestes, une place par plaque (`plaques`, une liste) et la réserve qu'elles dépensent */
 const bandeauDuJet = (titre, classe, contenu, plaques, reserve = '') => cadre('jet', null, null, null, null, `parchemin ${classe}`, `
@@ -69,10 +69,6 @@ const options = (liste) => `<div class="options" data-primitive="options">${list
 const bascule = (libelle, allumee = false) => `<div class="bascule${allumee ? ' allumee' : ''}" data-primitive="bascule"><i class="fer"><b class="laiton"></b></i><span class="rubrique">${libelle}</span></div>`;
 
 /* ───────── les gestes du bandeau ───────── */
-/* les réserves d'un héros, à gauche des gestes : un jeton par réserve, chacun dans sa case de largeur fixe, son icône
-   (un pictogramme, ou le portrait de qui la porte) et son disque ; son nom et sa valeur dans la bulle de son survol
-   (`survol`), comme les influences du seuil (fiche `user-doctrine-icone-identifie-survol-detaille`) ; `taille` du disque */
-const reserves = (r, taille = 'petit') => `<div class="en-reserve ${taille}" data-primitive="reserves">${r.map(({ valeur, icone, nom, survol = false }) => `<div class="res${valeur ? '' : ' vide'}">${icone}${disque(valeur, { taille, vide: !valeur })}${survol ? raison(`${nom} : ${valeur}`) : ''}</div>`).join('')}</div>`;
 /* la silhouette des localisations : six zones, trois états (libre, choisie, touchee) */
 const ZONES = {
   tete: '<circle cx="30" cy="11" r="9"/>',
@@ -85,4 +81,4 @@ const ZONES = {
 const silhouette = (h, etats = {}) => `<svg class="silhouette" data-primitive="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
 
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { camp, fiche, verdict, reglage, consequences, bandeauDuJet, testeurs, options, bascule, reserves, silhouette });
+Object.assign(globalThis, { camp, fiche, verdict, reglage, consequences, bandeauDuJet, testeurs, options, bascule, silhouette });

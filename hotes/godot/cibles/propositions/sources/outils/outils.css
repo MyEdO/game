@@ -166,7 +166,7 @@
 /* l'aperçu du renvoi survolé : à gauche de la colonne, sa pointe sur la ligne (rangées de 26 px depuis le haut de la
    colonne qui défile) */
 #fiche-du-compendium .apercu{right:334px;top:calc(101px + var(--rang) * 26px);--pointe:42px;z-index:3}
-#fiche-du-compendium .apercu p{margin:6px 0 0;font-size:14px;line-height:19px}
+#fiche-du-compendium .apercu p{margin:6px 0 0}
 #fiche-du-compendium .apercu .source-du-renvoi{margin-top:6px;font-size:12px;color:#6b1c10}
 /* l'atelier : les champs par paires, la description sur la hauteur qui reste, les champs absents ; le pied */
 .formulaire{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
@@ -182,7 +182,7 @@
 .formulaire>.rub{margin:0 0 -6px}
 #fiche-du-compendium>.fond>.pied{position:absolute;left:22px;bottom:14px;width:572px;display:flex;gap:10px}
 #fiche-du-compendium>.fond>.pied .plaque{flex:1 1 0;position:relative;z-index:2}
-#fiche-du-compendium>.fond>.pied .bulle-refus{white-space:normal;width:340px;text-align:center;left:auto;right:0;transform:none}
+#fiche-du-compendium>.fond>.pied .bulle-refus{left:auto;right:0;transform:none}
 /* l'Index, par-dessus la liste et la fiche : sa tête, les familles, les catégories de l'ouverte sur trois colonnes */
 #index-du-compendium{z-index:4}
 #index-du-compendium .fond{box-sizing:border-box}

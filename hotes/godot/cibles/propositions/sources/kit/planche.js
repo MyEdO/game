@@ -60,9 +60,9 @@ const FEUILLES = {
       ligne(piece("picto('carte', 22, 'var(--cire)')", picto('carte', 22, 'var(--cire)')))),
   ],
   marques: () => [
-    page('disques', 24, 22, 440, 200, 'bois', 'disque(n, { taille, vide }) · compteur(n, libelle)',
+    page('disques', 24, 22, 440, 200, 'bois', 'disque(n, { taille, vide }) · reserves(jetons, taille)',
       ligne(...['grand', 'moyen', 'petit'].map((t) => piece(`'${t}'`, disque(3, { taille: t }))), piece('{ vide: true }', disque(0, { vide: true }))),
-      ligne(piece("compteur(2, 'Destin')", compteur(2, 'Destin')))),
+      ligne(piece("reserves([{ valeur: 2, icone, nom: 'Destin' }], 'grand')", reserves([{ valeur: 2, icone: picto('noeud', 20, undefined, 1.8), nom: 'Destin' }], 'grand')))),
     page('sceaux', 24, 246, 440, 450, 'bois', 'sceau(contenu, taille, { etat, de })',
       ligne(...TAILLES.map((t) => piece(`'${t}'`, sceau('goutte', t)))),
       ligne(piece("sceau(7, 'grand')", sceau(7, 'grand')), piece("'reussite'", sceau(7, 'grand', { etat: 'reussite' })), piece("'vide'", sceau('', 'grand', { etat: 'vide' }))),

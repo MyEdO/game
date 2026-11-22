@@ -40,10 +40,7 @@
 .poste::after{content:"";position:relative;left:var(--pointe,0px);width:10px;height:10px;margin-top:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
 
 /* le corps de l'aperçu */
-.apercu table{border-collapse:collapse;width:100%;margin-top:5px}
-.apercu td{padding:1px 0;vertical-align:baseline}
-.apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
-.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
+.apercu table{margin-top:5px}
 
 /* l'hôte : son cartouche, son boniment, sa pointe */
 .hote{position:absolute}

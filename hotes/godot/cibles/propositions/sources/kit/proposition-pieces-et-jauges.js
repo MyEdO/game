@@ -45,7 +45,7 @@
     ligne(
       piece('outil 11,5 · 13 (accueil)', `<div style="display:flex;gap:4px">${outil('carte', 'Carte')}${sous('& .outil span{font-size:13px;color:var(--ivoire)}', outil('carte', 'Carte'))}</div>`),
       piece('visé : 18 ,9 · 16 ,75', `<div style="display:flex;gap:16px">${sous('& .medaillon{box-shadow:0 0 0 1px #150d04,0 0 18px rgba(255,214,140,.9)}', medaillon('chope', { taille: 'moyen' }))}${sous('& .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}', medaillon('chope', { taille: 'moyen' }))}</div>`),
-      piece('compteur · 4 sites', compteur(2, 'Détermination'))),
+      piece('compteur · 4 sites', `<div style="display:flex;align-items:center;gap:13px;font-size:14.5px">${disque(2, { taille: 'grand' })}<span class="rubrique">Détermination</span></div>`)),
   ];
   const plaquesCible = (fond) => [
     ligne(

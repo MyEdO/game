@@ -177,6 +177,14 @@ html,body{margin:0;background:var(--noir)}
 .apercu .defile.table{height:125px}
 .apercu .tete .nom-propre{white-space:nowrap}
 .apercu .tete .sous-titre{white-space:nowrap}
+/* le corps de l'aperçu : la table et sa valeur à droite, la somme, le paragraphe, le pied */
+.apercu table{border-collapse:collapse;width:100%}
+.apercu td{padding:1px 0;vertical-align:baseline}
+.apercu td:first-child{white-space:nowrap;padding-right:10px}
+.apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
+.apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
+.apercu p{margin:4px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
+.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
 /* la bannière d'issue d'un combat : centrée, haut à 190, sa plaque d'appel 28 dessous */
 .issue-du-combat{position:absolute;left:calc(50% - 280px);top:190px;width:560px;display:flex;flex-direction:column;align-items:center;gap:28px}
 .issue-du-combat .banniere{position:relative;flex:none;width:560px;height:150px;display:grid;place-items:center;background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 30px) 50%,100% 100%,0 100%,30px 50%);filter:drop-shadow(0 16px 24px var(--ombre-forte))}
@@ -274,14 +282,17 @@ html,body{margin:0;background:var(--noir)}
 .medaillon.moyen{width:40px;height:40px;padding:3px}
 .medaillon.petit{width:30px;height:30px;padding:3px}
 
-/* le disque numéroté et le compteur */
+/* le disque numéroté ; les réserves (`reserves`) : une case de largeur fixe par jeton, son icône à gauche de son disque */
 .disque{flex:none;border-radius:50%;box-shadow:0 2px 5px var(--ombre-forte)}
 .disque>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,var(--chene),var(--chene-nuit) 70%);box-shadow:inset 0 0 0 1px var(--ombre-forte);font-family:"Grenze Gotisch";font-weight:600;color:var(--ivoire)}
 .disque.vide>div{background:radial-gradient(circle at 40% 30%,var(--fer-mat),var(--fer-sombre) 70%);color:var(--eteint)}
 .disque.grand{width:42px;height:42px;padding:3px;font-size:20px}
 .disque.moyen{width:32px;height:32px;padding:3px;font-size:16px}
 .disque.petit{width:28px;height:28px;padding:2px;font-size:16px}
-.compteur{display:flex;align-items:center;gap:13px;font-size:14.5px}
+.en-reserve{display:flex;gap:10px;align-items:center}
+.en-reserve .res{position:relative;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:50px}
+.en-reserve.grand .res{width:66px}
+.en-reserve .res.vide>svg{opacity:.5}
 
 /* le sceau de cire : pictogramme gravé ou chiffre ; réussite, critique (cerclé d'or), vide */
 .sceau{position:relative;flex:none;display:grid;place-items:center;color:var(--encre-cire);background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 50%,var(--cire-sombre) 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px var(--ombre-forte),inset 0 0 0 3px var(--cire-creux),inset 2px 2px 3px var(--cire-reflet)}
@@ -366,15 +377,15 @@ html,body{margin:0;background:var(--noir)}
 /* régler une quantité */
 .moins-plus{display:flex;align-items:center;gap:6px}
 .moins-plus .bouton-rond{box-shadow:0 1px 3px var(--ombre),0 0 0 1px var(--contour)}
-/* la raison d'un refus, au survol du geste fermé */
-.bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
+/* la raison d'un refus, ou le détail de ce que le curseur survole : sur une ligne jusqu'à 320, puis à la ligne */
+.bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);width:max-content;max-width:320px;padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-weight:400;font-size:13px;line-height:17px;letter-spacing:0;white-space:normal;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
 .bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);translate:var(--pointe,0) 0;box-shadow:2px 2px 0 var(--contour)}
 .bulle-refus.dessous::before{top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
 .bulle-refus:is(.cote-droit,.cote-gauche)::before{top:calc(50% - 5px);bottom:auto;translate:none}
 .bulle-refus.cote-droit::before{left:-5px;box-shadow:-2px 2px 0 var(--contour)}
 .bulle-refus.cote-gauche::before{left:auto;right:-5px;box-shadow:2px -2px 0 var(--contour)}
-/* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle */
-.raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
+/* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle : à la taille de cette ligne */
+#ui [data-secondaire].raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
 /* qui paie */
 .qui-paie{display:flex;align-items:center;gap:11px}
 .qui-paie.parts{align-items:flex-start}

@@ -21,7 +21,6 @@
 .apercu .geste{display:flex;align-items:center;gap:9px;margin-top:8px;padding-top:7px;border-top:1px solid var(--filet-encre);font-family:"Fell SC";font-size:14px;letter-spacing:1px;color:var(--sepia)}
 .apercu .geste em{margin-left:auto;font-family:"Spectral";font-size:12.5px;letter-spacing:0;color:var(--encre-2)}
 .apercu .geste em .touche{margin-right:3px;font-style:normal}
-.apercu p{margin:4px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
 
 /* le regard tenu parmi les trois, la touche d'un geste du clavier */
 #regard .fond{display:flex;align-items:center;gap:10px;padding:8px 12px}

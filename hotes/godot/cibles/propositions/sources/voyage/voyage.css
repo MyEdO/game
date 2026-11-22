@@ -52,5 +52,5 @@
 /* les Activités de la semaine en mer : les réglages de la semaine et sa validation */
 #bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#eadfc4}
 #bord.semaine .moins-plus b{min-width:56px;text-align:center;font-size:13.5px;color:#f4e8ca}
-.poste.ferme .et .bulle-refus{z-index:3;font-weight:400;white-space:normal;width:310px;margin:0;font-size:13px;line-height:17px;color:#2a1d12;text-align:center}
+.poste.ferme .et .bulle-refus{z-index:3;margin:0}
 .etat-du-navire{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}

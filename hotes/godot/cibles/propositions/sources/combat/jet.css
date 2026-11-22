@@ -26,7 +26,6 @@
 .camp>.place>.issue.echec{color:var(--sang)}
 .camp>.place>.issue.critique{color:#3d5a26}
 .camp>.place>.issue .etiquette{margin-right:4px}
-.camp .seuil>.bulle-refus{font-weight:400}
 /* l'issue posée dans la rangée des dés (le tirage d'une table, les Blessures perdues) : deux lignes, le mot en rouge sang */
 .camp .des .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:var(--sang)}
 .camp .des .issue span{font-size:14px;color:#2a1d12;font-weight:600}
@@ -54,11 +53,6 @@
 #jet :is([data-place="fenetre/issue-phrase"],[data-place="fenetre/reglage-phrase"])>.glose{padding:0 6px;text-align:center}
 #suites .place>.plaque{width:100%}
 
-/* les réserves du héros (`reserves`, `jet.js`) : une case de largeur fixe par jeton, son icône à gauche de son disque */
-.en-reserve{display:flex;gap:10px;align-items:center;color:#2a1d12}
-.en-reserve .res{position:relative;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:50px}
-.en-reserve.grand .res{width:66px}
-.en-reserve .res.vide>svg{opacity:.5}
 
 /* avant le dé, chaque nature à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) : la sorte du Test en grande ligne, une
    carte à la hauteur de sa bande, son nom à gauche, sa valeur à droite */

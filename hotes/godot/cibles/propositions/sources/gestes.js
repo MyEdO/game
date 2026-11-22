@@ -211,8 +211,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      plus) ; `numero` : sa touche, en tête ; `prix` : un nombre, à droite du libellé, seul au centre sans libellé */
   const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" data-primitive="plaque" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres${libelle ? '' : ' seul'}">${prix}</span>` : ''}</div></div>`;
   /* choisir par carte : la plaque haute, un portrait et deux lignes ; `marque` : son étiquette, sur sa ligne sous le texte ;
-     `refus` : la bulle de la carte fermée survolée */
-  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '', marque = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}" data-primitive="carte"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c" data-secondaire>${sous}</div></div>${marque ? `<div class="marque-de-carte">${etiquette({ texte: marque })}</div>` : ''}</div>${refus ? raison(refus) : ''}</div>`;
+     `refus` : la bulle de la carte fermée survolée ; `detail` : tout son détail, dans la bulle de son survol */
+  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '', detail = '', marque = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}" data-primitive="carte"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c" data-secondaire>${sous}</div></div>${marque ? `<div class="marque-de-carte">${etiquette({ texte: marque })}</div>` : ''}</div>${refus ? raison(refus) : ''}${detail ? raison(detail, { survolee: false }) : ''}</div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
   const outil = (nom, libelle, { ouvert = false, ferme = false, taille = 'petit' } = {}) => `<div class="outil${ouvert ? ' ouvert' : ''}" data-primitive="outil">${rond(nom, taille, { ferme, arme: ouvert })}<span class="rubrique">${libelle}</span></div>`;
   /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas ; `vise` : ce qu'il
@@ -221,7 +221,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const medaillon = (nom, { taille = 'grand', ferme = false, inerte = false, vise = false } = {}) => `<div class="medaillon ${ferme || inerte ? 'fer' : 'laiton'} ${taille}${ferme ? ' ferme' : ''}${inerte ? ' inerte' : ''}${vise ? ' vise' : ''}" data-primitive="medaillon"><div>${picto(nom, MEDAILLON[taille])}</div></div>`;
   /* le disque numéroté : `taille` grand, moyen, petit ; `vide` : la réserve est épuisée */
   const disque = (n, { taille = 'moyen', vide = false } = {}) => `<div class="disque fer ${taille}${vide ? ' vide' : ''}" data-primitive="disque"><div>${n}</div></div>`;
-  const compteur = (n, libelle) => `<div class="compteur" data-primitive="compteur">${disque(n, { taille: 'grand' })}<span class="rubrique">${libelle}</span></div>`;
+  /* les réserves d'un héros : un jeton par réserve, chacun dans sa case de largeur fixe, son icône
+     (un pictogramme, ou le portrait de qui la porte) et son disque ; son nom et sa valeur dans la bulle de son survol
+     (`survol`), comme les influences du seuil (fiche `user-doctrine-icone-identifie-survol-detaille`) ; `taille` du disque */
+  const reserves = (r, taille = 'petit') => `<div class="en-reserve ${taille}" data-primitive="reserves">${r.map(({ valeur, icone, nom, survol = false }) => `<div class="res${valeur ? '' : ' vide'}">${icone}${disque(valeur, { taille, vide: !valeur })}${survol ? raison(`${nom} : ${valeur}`) : ''}</div>`).join('')}</div>`;
   /* le d10 du d100, vu de face : la silhouette et la face du dé de `navigation/des` (src/data/icons/defs/navigation.ts:11-13), à 36×40 */
   const d10 = (texte) => `<svg data-primitive="d10" width="36" height="40" viewBox="0.5 -0.5 23 25"><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="#b8a67e"/><path d="M12 23V18.4L4.8 13.6L2.5 14.1ZM12 23V18.4L19.2 13.6L21.5 14.1Z" fill="#2a1d12" fill-opacity=".16"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6Z" fill="#f1e6cc"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6ZM4.8 13.6L2.5 14.1M19.2 13.6L21.5 14.1M12 18.4V23" fill="none" stroke="#2a1d12" stroke-width=".55" stroke-linejoin="round"/><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="none" stroke="#2a1d12" stroke-width=".8" stroke-linejoin="round"/><text x="12" y="${texte.length > 1 ? 14.2 : 14.8}" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 6.6 : 8.4}" fill="#2a1d12">${texte}</text></svg>`;
   /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite, reussite critique ou
@@ -259,7 +262,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .etiquette.pastille, .facettes .etiquette, .niche';
     const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).map((e) => ({ e, lignes: lignesDe(e) }));
     const controles = [...document.querySelectorAll(`#ui :is(${CONTROLE})`)];
-    document.querySelectorAll('.bulle-refus').forEach((b) => {
+    document.querySelectorAll('.bulle-refus:not([hidden])').forEach((b) => {
       const refuse = b.parentElement;
       /* l'élément survolé est en vue : ce qui le fait défiler l'y amène */
       refuse.scrollIntoView({ block: 'nearest' });
@@ -421,8 +424,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const ouvrir = (libelle, icone, rang) => `<div class="ouvrir" data-primitive="ouvrir" data-piece="ouvrir-${rang}"><span class="rubrique ombre">${libelle}</span>${rond(icone)}</div>`;
   /* régler une quantité : − et +, la valeur réglée entre les deux ; un bord atteint se ferme */
   const moinsPlus = ({ moins = true, plus = true, entre = '' } = {}) => `<div class="moins-plus" data-primitive="moinsPlus">${rond('moins', 'menu', { ferme: !moins })}${entre}${rond('plus', 'menu', { ferme: !plus })}</div>`;
-  /* fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline` : la bulle du geste fermé que le curseur survole */
-  const raison = (texte) => `<span class="bulle-refus parchemin" data-primitive="raison" data-dessus${mobile('survol')}>${texte}</span>`;
+  /* fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline` : la bulle du geste fermé que le curseur survole, ou
+     le détail de ce qu'il survole (fiche `user-doctrine-icone-identifie-survol-detaille`) ; `survolee: false` : ce
+     qu'elle qualifie n'est pas sous le curseur, la bulle est cachée et ne se pose au-dessus de rien */
+  const raison = (texte, { survolee = true } = {}) => `<span class="bulle-refus parchemin" data-primitive="raison"${mobile('survol')}${survolee ? ' data-dessus' : ' hidden'}>${texte}</span>`;
   /* #3004. Acte individuel : `bourse({ heros, avoir })`, la bourse de celui qui agit. Entreprise commune ou tarif par
      personne : `bourse({ parts: [[nom, part, avoir]], total })`, la part de chacun réglable avant validation ;
      `reglable: false` pour qui regarde sans régler (l'invité d'une partie à plusieurs). */
@@ -432,7 +437,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* les bourses du groupe au pied d'une page : une case fixe par héros, son portrait et sa part, puis le total ; le −/+
      de la part réglée (`reglee`) autour du portrait, ce que la bourse contient dans la bulle du survol (fiche
      `user-doctrine-icone-identifie-survol-detaille`) ; `reglable: false` comme `bourse` */
-  const rangeeDeBourses = ({ parts, total, reglable = true }) => `<div class="bourses" data-primitive="rangeeDeBourses">${parts.map(({ id, nom, part, avoir, reglee }) => `<div class="case-bourse" title="${nom} : ${part} sur ${avoir}">${reglable && reglee ? moinsPlus({ entre: portrait(id, { taille: 'menu' }) }) : portrait(id, { taille: 'menu' })}<b class="chiffres" data-texte="part ${nom}">${part}</b></div>`).join('')}<div class="case-bourse total" title="Total des parts">${medaillon('bourse', { taille: 'petit' })}<b class="chiffres" data-texte="total">${total}</b></div></div>`;
+  const rangeeDeBourses = ({ parts, total, reglable = true }) => `<div class="bourses" data-primitive="rangeeDeBourses">${parts.map(({ id, nom, part, avoir, reglee }) => `<div class="case-bourse">${reglable && reglee ? moinsPlus({ entre: portrait(id, { taille: 'menu' }) }) : portrait(id, { taille: 'menu' })}<b class="chiffres" data-texte="part ${nom}">${part}</b>${raison(`${nom} : ${part} sur ${avoir}`, { survolee: false })}</div>`).join('')}<div class="case-bourse total">${medaillon('bourse', { taille: 'petit' })}<b class="chiffres" data-texte="total">${total}</b></div></div>`;
   /* « de » devant un nom, élidé devant une voyelle (« Bourse d’Ilyanwe », « Test d’Intuition ») */
   const de = (nom) => (/^[aeiouàâäéèêëîïôöùûüœæ]/i.test(String(nom)) ? `d’${nom}` : `de ${nom}`);
   /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
@@ -441,7 +446,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, reserves, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
     puce, separateur, filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }
