@@ -21,7 +21,7 @@ import { sceneNpc } from './monde/sceneNpc';
 import { inBattleId } from './monde/combatants';
 import type { EtatDeJeu } from './etat';
 import type { SceneEntity } from './monde/scene';
-import { combattantEnVue, entiteConnue, nomDejaVu, nomObserve, type EntreesDeLaConnaissance } from './visionDuGroupe';
+import { combattantEnVue, entiteConnue, nomDejaVu, nomObserve, personneDejaVue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 
 /** Une personne désignable : son id de combattant (`Combatant.id`, celui d'une entité de scène hors combat),
  *  son nom, son camp et sa case. */
@@ -73,7 +73,7 @@ export function personnesConnues(s: EtatDesPersonnes, cible: Combatant): Personn
     if (isInanimate(c)) return undefined;
     const nom = enVue ? nomObserve(c) : nomDejaVu(s, c.id);
     return nom === undefined ? undefined : personneDe(c, nom, enVue ? c.pos : undefined);
-  }, (e, enVue) => enVue || nomDejaVu(s, e.id) !== undefined);
+  }, (e, enVue) => enVue || personneDejaVue(s, e.id));
 }
 
 /** Le choix connu par défaut quand un joueur délègue sa désignation (#4017). */
