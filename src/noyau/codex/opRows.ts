@@ -115,7 +115,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'psychologies', id: o.psychType.id, label, show: label };
     }
     case 'endPsych': {
-      if ('instance' in o) return textRow(o); // l'instance de l'effet : pas d'ancre
+      if (!o.type) return textRow(o); // l'instance de l'effet : pas d'ancre
       const label = psychologyLabel(o.type.id);
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label };
     }
@@ -164,39 +164,39 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'trappings', id: o.objet.id, label, show: giveTrappingLabel(o), badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
     }
     case 'contractDisease': {
-      const label = diseaseLabel(o.disease);
-      return { t: 'ref', category: 'maladies', id: o.disease, label, show: label };
+      const label = diseaseLabel(o.disease.id);
+      return { t: 'ref', category: 'maladies', id: o.disease.id, label, show: label };
     }
     case 'exposeDisease': {
-      const label = diseaseLabel(o.disease);
-      return { t: 'ref', category: 'maladies', id: o.disease, label, show: label };
+      const label = diseaseLabel(o.disease.id);
+      return { t: 'ref', category: 'maladies', id: o.disease.id, label, show: label };
     }
     case 'reduceDiseaseDays': {
       if (!o.disease) return textRow(o); // « une maladie » au choix : pas d'ancre
-      const label = diseaseLabel(o.disease);
+      const label = diseaseLabel(o.disease.id);
       const days = o.dice ? `${o.dice.n}d${o.dice.sides}` : String(o.days ?? 1);
-      return { t: 'ref', category: 'maladies', id: o.disease, label, show: label, badge: `−${days} j` };
+      return { t: 'ref', category: 'maladies', id: o.disease.id, label, show: label, badge: `−${days} j` };
     }
     case 'suppressSymptom': {
-      const label = symptomLabel(o.symptomId);
-      return { t: 'ref', category: 'symptoms', id: o.symptomId, label, show: label };
+      const label = symptomLabel(o.symptom.id);
+      return { t: 'ref', category: 'symptoms', id: o.symptom.id, label, show: label };
     }
     case 'summon': {
-      const label = creatureLabel(o.ref);
-      return { t: 'ref', category: 'creatures', id: o.ref, label, show: label, badge: `×${humanizeFormula(o.count)}${o.allyOfCaster === false ? ' (hostile)' : ''}` };
+      const label = creatureLabel(o.creature.id);
+      return { t: 'ref', category: 'creatures', id: o.creature.id, label, show: label, badge: `×${humanizeFormula(o.count)}${o.allyOfCaster === false ? ' (hostile)' : ''}` };
     }
     case 'scheduleRespawn': {
-      const label = creatureLabel(o.ref);
-      return { t: 'ref', category: 'creatures', id: o.ref, label, show: label, badge: `${humanizeFormula(o.delayDays)} j` };
+      const label = creatureLabel(o.creature.id);
+      return { t: 'ref', category: 'creatures', id: o.creature.id, label, show: label, badge: `${humanizeFormula(o.delayDays)} j` };
     }
     case 'polymorph': {
-      const label = creatureLabel(o.ref);
-      return { t: 'ref', category: 'creatures', id: o.ref, label, show: label };
+      const label = creatureLabel(o.creature.id);
+      return { t: 'ref', category: 'creatures', id: o.creature.id, label, show: label };
     }
     case 'transform': {
-      if (!o.morphRef) return textRow(o); // deltas purs sans forme visuelle référencée
-      const label = creatureLabel(o.morphRef);
-      return { t: 'ref', category: 'creatures', id: o.morphRef, label, show: label, badge: o.tag };
+      if (!o.creature) return textRow(o); // deltas purs sans forme visuelle référencée
+      const label = creatureLabel(o.creature.id);
+      return { t: 'ref', category: 'creatures', id: o.creature.id, label, show: label, badge: o.tag };
     }
     case 'rollMutation': {
       const label = mutationTables.find((t) => t.id === o.table.id)?.label ?? o.table.id;
@@ -233,15 +233,15 @@ export function tableRows(table: { die: DiceSpec; entries: { min: number | null;
 function opRowsForOp(o: GameOp, depth: number, ctx?: OpRowCtx): CodexRow[] {
   if (o.op === 'rollTable') {
     if (depth >= MAX_TABLE_DEPTH) {
-      // Table imbriquée déjà sous une rangée expansée : libellé + lien codex (tableId), sinon repli texte
+      // Table imbriquée déjà sous une rangée expansée : libellé + lien codex, sinon repli texte
       // (rangées inline sans id à lier) — jamais de ré-expansion (borne l'imbrication).
-      if ('tableId' in o) {
-        const t = findEffectTableById(o.tableId);
+      if (o.table) {
+        const t = findEffectTableById(o.table.id);
         return [{ t: 'ref', category: 'effectTables', id: t.id, label: t.label, show: t.label }];
       }
       return [textRow(o)];
     }
-    const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
+    const table = o.table ? findEffectTableById(o.table.id) : o;
     return tableRows(table, depth + 1, ctx);
   }
   return [opRow(o, ctx)];

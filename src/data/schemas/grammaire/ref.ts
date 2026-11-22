@@ -112,6 +112,8 @@ export const TYPES = {
   steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
   // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
   seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
+  manannFactor: { espace: 'sea-events.json#manann.factors', catalogue: 'facteurs de l’humeur de Manann' },
+  fallHeightTable: { espace: 'ship-criticals.json#tablesDeChute', catalogue: 'tables de hauteur de chute' },
   tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
   // MDG 13 l.170 : les axes d'une rangée de la météo marine et d'une op `meteoImposee` résolvent AU PARSE.
   seaPrecipitation: { espace: 'sea-weather.json#precipitations', catalogue: 'précipitations en mer' },
@@ -645,8 +647,7 @@ function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type:
 
 /**
  * Marque le nœud en cours de validation comme un NŒUD D'OP ATTEINT par le parse (`gameOpSchema`,
- * `grammaire/mecanique.ts`), AVANT tout jugement de son payload : « atteint » ne dit pas « jugé » (une
- * op de `OPS_NON_TYPEES` est atteinte et son payload n'est jugé par aucune feuille `idDe`). Hors du
+ * `grammaire/mecanique.ts`), AVANT le jugement de son payload. Le repère compte aussi les opérations refusées. Hors du
  * parse de mesure, l'appel ne fait rien : le parse normal n'y gagne aucun chemin.
  */
 export function marquerOpAtteinte(ctx: z.RefinementCtx): void {
@@ -709,6 +710,25 @@ const estPropre = (issue: IssueLue): boolean =>
 
 /** L'issue `issue` est-elle une FAUTE, et non un repère du parse de mesure (`estPropre`) ? */
 export const estUneFaute = (issue: unknown): boolean => !estPropre(issue as IssueLue);
+
+/**
+ * Retrouve la sortie d'une charge qui ne rend que des repères. Les ouvreurs doivent encore parcourir
+ * cette valeur pour juger ses références locales. Seul le parse de mesure rejoue la charge validée.
+ */
+export function relireChargeSansReperes<S extends z.ZodType>(
+  schema: S,
+  entree: unknown,
+  issues: readonly z.core.$ZodIssue[],
+): z.ZodSafeParseResult<z.output<S>> | undefined {
+  if (!parseDeMesure || issues.length === 0 || issues.some(estUneFaute)) return undefined;
+  const precedent = parseDeMesure;
+  parseDeMesure = false;
+  try {
+    return schema.safeParse(entree);
+  } finally {
+    parseDeMesure = precedent;
+  }
+}
 
 /** Ce que rend le parse de mesure : les références validées par `idDe` et le path de DONNÉE de chaque
  *  nœud d'op que `gameOpSchema` a validé (`marquerOpAtteinte`). */
@@ -850,6 +870,7 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
 export function ref<F extends z.ZodType<string, string>>(feuille: F): ReturnType<typeof objetDeRef<F, Record<never, never>>>;
+export function ref<F extends z.ZodType<string, string>, E extends Record<string, z.ZodType>>(feuille: F, extra: E): ReturnType<typeof objetDeRef<F, E>>;
 export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
 export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite> | z.ZodType<string, string>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {

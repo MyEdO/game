@@ -27,10 +27,11 @@ import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './a
  * Une composition est une entrée de `src/data/presets-de-personnage.json` sans son enveloppe, les clés de
  * `CLES_ENVELOPPE` (`src/data/schemas/grammaire/document.ts`) : `race`, `gabarit?`, `sex`, `build?`, `tete`,
  * `coiffure?`, `tenue?`, `pieces?`, `objets?`, `rangementsObjets?`, `variantesPieces?`, `prises?`,
- * `apparencesObjets?`, `embleme?` (`compositionSchema`, `schemas/defs/presets-de-personnage.ts`). Une seule fonction
- * du noyau la valide, `lireComposition` (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles,
- * dont « rien n'est porté deux fois » : `composer` et `presetDeComposition` la lisent ; une composition refusée, ou
- * absente, est une erreur `validation` qui nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau
+ * `apparencesObjets?`, `embleme?`, `couleurs?`, `formesDeTete?` (`compositionSchema`,
+ * `schemas/defs/presets-de-personnage.ts`). Une seule fonction du noyau la valide, `lireComposition`
+ * (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles, dont « rien n'est porté deux fois » :
+ * `composer` et `presetDeComposition` la lisent ; une composition refusée, ou absente, est une erreur `validation` qui
+ * nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau
  * (`porteeDeComposition`, `src/noyau/apparence/composition.ts`), dans cet ordre : la tête, la coiffure, les pièces de
  * l'ensemble de la tenue, les `pieces`, chaque pièce sous sa variante (`variantesPieces`, une clé par pièce portée,
  * la valeur une variante de cette pièce, #3446), puis chaque objet, tenu (`prises`) puis porté (`objets`). Un objet
@@ -42,9 +43,10 @@ import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './a
  * `objets`), à défaut le `rangement` du trapping (`trappings.json`) ; sans l'un ni l'autre, il va à `rapport`, sans
  * point. Chaque objet porte sa teinte (`teinteDeLObjet`, `Portee.teinte`) : celle de son Groupe d'armure (`teinte` de
  * `weaponGroups.json`) s'il en est un. Cette portée (`PorteeDeComposition`) porte aussi le corps qu'elle habille,
- * `sex`, `build?` et `couleurs?`, que `composerSurLaBase` lit sans relire la composition ; `porteeDuCombattant`
- * (`src/noyau/apparence/combattant.ts`) en est le second producteur, par le même assembleur d'objet
- * (`porteesDesObjets`).
+ * `sex`, `build?`, `couleurs?` et `formesDeTete?`, que `composerSurLaBase` lit sans relire la composition ;
+ * `porteeDuCombattant` (`src/noyau/apparence/combattant.ts`) en est le second producteur, par le même assembleur d'objet
+ * (`porteesDesObjets`), les formes de la tête d'un combattant étant celles de ses Mutations (`formesDeTete` de
+ * `mutations.json`).
  */
 export interface CompositionSurLaBase {
   /** une entrée par chose portée, dans l'ordre ci-dessus. `ligne` est la clé d'emplacement du panneau (section «
@@ -72,8 +74,9 @@ export interface CompositionSurLaBase {
    *  Gabarit d'une base ») sur les facteurs de `gabaritResolu` de la composition (son `gabarit`, à défaut celui de sa
    *  race et sa surcharge, `raceAppearance.json`). */
   gabarit?: PoseDuGabarit;
-  /** vide sur une base sans table de gabarit ; sinon `poidsDeSilhouettes` sur `sex`, `build` (absent :
-   *  `BUILD_NEUTRE`) et le `st` de ces facteurs. */
+  /** les poids des shape keys, par nom : sur une base à table de gabarit, `poidsDeSilhouettes` sur `sex`, `build`
+   *  (absent : `BUILD_NEUTRE`) et le `st` de ces facteurs ; puis les formes de la tête de la portée
+   *  (`PorteeDeComposition.formesDeTete`, #4413), qui ne règlent ni le gabarit ni le relief. */
   morphes: Record<string, number>;
   /** par surface de la base dont `parSexe` nomme un matériau pour `sex` (`asset/surfaces.ts`, #3188), le nom de son
    *  matériau du GLB vers le nom de ce matériau ; vide sinon. Le pont choisit le matériau ; Godot le prend au GLB par
@@ -176,15 +179,15 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
   const { gabarit, appuis, clips, clipsDeuxMains, surfaces = [], reliefDeCorpulence } = manifestes[base.id] as ManifesteDeBase;
-  const morphes = gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {};
-  const corpulence = morphes[CORPULENCE] ?? 0;
+  const silhouettes = gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {};
+  const corpulence = silhouettes[CORPULENCE] ?? 0;
   const relief = reliefDeCorpulence === undefined || corpulence === 0 ? undefined : 1 - corpulence + reliefDeCorpulence * corpulence;
   return {
     montes,
     manquants,
     rapport: portee.rapport,
-    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis, clips, clipsDeuxMains }, portee.facteurs, morphes) } : {}),
-    morphes,
+    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis, clips, clipsDeuxMains }, portee.facteurs, silhouettes) } : {}),
+    morphes: { ...silhouettes, ...portee.formesDeTete },
     materiaux: Object.fromEntries(surfaces.flatMap(({ nom, parSexe }) => (parSexe?.[portee.sex] ? [[nom, parSexe[portee.sex]!]] : []))),
     reliefs: relief === undefined ? {} : Object.fromEntries(surfaces.flatMap(({ nom, palette }) => (palette === 'peau' ? [[nom, relief]] : []))),
     palette: paletteDesCouleurs(portee.couleurs),

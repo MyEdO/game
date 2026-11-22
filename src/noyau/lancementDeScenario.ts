@@ -83,7 +83,7 @@ export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario):
     uid: get().forgerUnId('navire'),
     morale: { ...l.vessel.morale, lastMoraleWeek: semainesCompletes(dayIndex(now)) },
     ...(l.vessel.provisions ? { provisions: l.vessel.provisions.map((lot) => ({ ...lot, entre: now })) } : {}),
-    ...quaiDuGroupe(get()),
+    ...quaiDuGroupe(get(), l.vessel),
   } });
   if (l.combatDirect) get().lancerLeCombat(l.combatDirect);
   if (l.semainesDInterlude) get().ouvrirLInterlude(l.semainesDInterlude);

@@ -49,7 +49,6 @@ import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } 
 import { pilotedByHuman } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 import { detenteurDuCiblage } from './targetingHolder';
-import { approachMs } from './combatDirector';
 import { ev } from './combatLog';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { chargeArmee, intentionLocale } from './localIntent';
@@ -58,7 +57,35 @@ import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 import {
-  attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, ciblesDuBalayage, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
+  attackPlan,
+  previewAttack,
+  previewCast,
+  firedAttackBlock,
+  outOfSightTargetIds,
+  castOutOfSightTargetIds,
+  retenuParLaPeur,
+  frenzyTarget,
+  noteApproachMove,
+  placingZoneOf,
+  placedZoneValidAt,
+  commitPlacedZone,
+  overcastTargetCandidates,
+  ciblesDuBalayage,
+  dualStrikeTargets,
+  castZoneSpell,
+  castSpell,
+  spellSightOf,
+  firedWeapon,
+  armeDeLaGratuite,
+  difficultyOf,
+  activeCombatant,
+  castTargetBlock,
+  armerLaSuite,
+  declarerLaCharge,
+  emettreLApproche,
+  frappePiloteeEnAttente,
+  type AttackPreview,
+  type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot, campAuContact } from './monde/combatGeometry';
@@ -78,7 +105,7 @@ export type HoverTargeting =
    *  verrouille son Action (LDB 16 l.52) ; `frenesie-cible` = la Frénésie impose une autre cible (LDB 21
    *  l.33) ; `cible-gratuite` = cible hors de ce que la gratuite armée admet ; `action-depensee` = l'approche
    *  d'une attaque qui coûte l'Action, l'Action dépensée. */
-  | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' | 'hors-d-etat' | 'frenesie-cible' | 'cible-gratuite' | 'action-depensee' }
+  | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' | 'hors-d-etat' | 'frenesie-cible' | 'cible-gratuite' | 'action-depensee' | 'frappe-en-attente' }
   /** Mode Soin armé : allié soignable à portée, mais aucun soin de combat ne s'offre (`modesDOuverture`). */
   | { kind: 'invalid'; reason: 'sans-soin-de-combat' }
   | {
@@ -350,6 +377,9 @@ export type RefusDAttaque = { reason: Extract<HoverTargeting, { kind: 'invalid' 
  */
 export function refusDAttaque(get: Get, active: Combatant, target: Combatant, option: AttackOption, plan: AttackPlan | null, { approche }: { approche: boolean }): RefusDAttaque | null {
   const battle = get().battle!;
+  if (plan && frappePiloteeEnAttente(battle, active.id)) {
+    return { reason: 'frappe-en-attente', texte: t('cs.refusFrappeEnAttente') };
+  }
   const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active) ?? (option.cost.action ? refusPriereImposee(active) : null);
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
@@ -600,7 +630,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const avantagePaye = avantageAvant - active.advantage;
   const coutPaye = avantagePaye || mouvementPaye ? { advantage: avantagePaye, movement: mouvementPaye } : undefined;
   // === Approche-puis-frappe : DEUX beats explicites ===
-  let approachPath: { x: number; y: number }[] | null = null;
+  let apresDeplacement: readonly string[] | undefined;
   let pa: Jeu['pendingAttack'];
   if (plan.kind === 'charge') {
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
@@ -614,15 +644,14 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       advGained: plan.adv, gainedAdvBefore: active.gainedAdvThisRound ?? false, chargedBefore: active.chargedThisTurn ?? false, avecAvantageBefore: active.chargeAvecAvantage ?? false,
     };
     const geom = mountOf(battle, active) ?? active;
-    approachPath = plan.path;
+    const approachPath = plan.path;
     const chargeFrom = { ...active.pos! };
     placeCombatant(active, get().scene, plan.dest);
     if (geom !== active) placeCombatant(geom, get().scene, plan.dest); // la monture charge sous le cavalier
     displaceSmaller(get, geom); // charge d'un grand : idem dégage les plus petits (85 l.373-374)
     get().orienterSelonLeChemin(active.id, approachPath);
     if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
-    bus.emit(EVT.ANIM_MOVE, { id: active.id, path: approachPath });
-    if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: approachPath });
+    apresDeplacement = emettreLApproche(active, geom, approachPath);
     applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11) : charger À TRAVERS coûte
     noteApproachMove(active, chargeFrom); // LDB 21 l.27 — événement EN ATTENTE : purgé si la charge est annulée avant le jet
     set({ battle: { ...get().battle!, movementUsed: mountMovement(battle, active), action: null, preview: null } });
@@ -635,15 +664,14 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       const b = get().battle!;
       const snapshot = (b.movementUsed ?? 0) === 0 ? captureMoveSnapshot(b, get().facing) : b.moveSnapshot ?? null;
       const geom = mountOf(b, active) ?? active;
-      approachPath = plan.path;
+      const approachPath = plan.path;
       const moveFrom = { ...active.pos! };
       placeCombatant(active, get().scene, plan.dest);
       if (geom !== active) placeCombatant(geom, get().scene, plan.dest);
       displaceSmaller(get, geom);
       get().orienterSelonLeChemin(active.id, approachPath);
       if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
-      bus.emit(EVT.ANIM_MOVE, { id: active.id, path: approachPath });
-      if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: approachPath });
+      apresDeplacement = emettreLApproche(active, geom, approachPath);
       applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11)
       noteApproachMove(active, moveFrom); // LDB 21 l.27 — événement EN ATTENTE, scellé par l'attaque qui suit
       set({ battle: { ...b, moveSnapshot: snapshot, movementUsed: (b.movementUsed ?? 0) + plan.cost, movedPreAction: b.movedPreAction || !b.acted, action: null, reachable: new Map(), preview: null } });
@@ -676,7 +704,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   if (active.chargedThisTurn) pa = { ...pa, fromCharge: true }; // LDB 15 l.35
   // (2) FRAPPE — après le glissé d'approche (sur-le-champ au contact) : la suite du tour du joueur, armée par l'armeur
   // unique (`armerLaSuite`), ouvre la SÉQUENCE de combat (jet d'attaque = ÉTAPE 0).
-  armerLaSuite(get, set, active, { kind: 'frappePilotee', pa }, approachMs(get, approachPath));
+  armerLaSuite(get, set, active, { kind: 'frappePilotee', pa }, 0, apresDeplacement);
 }
 
 /** CAST : un token n'est pas une cible de ZONE (la zone se pose après le jet) → modale ; sinon

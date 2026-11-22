@@ -1,13 +1,16 @@
 /**
  * L'HORLOGE VIRTUELLE d'un hôte sans minuteur (#2928, #3058) : elle rejoue, dans l'ordre de leurs échéances, les jetons
  * numérotés que programme la plateforme du noyau (`plateforme.ts`), sans `setTimeout`. Un hôte (`src/hote/partie.ts`)
- * la vide après chaque geste ; un banc de test (`banc.testkit.ts`) l'avance par ses quatre gestes.
+ * la vide après chaque geste sans attente de présentation ; un banc de test (`banc.testkit.ts`) l'avance par ses quatre gestes.
  */
 
 /** Un jeton programmé, numéroté : un jeton du noyau est une identité d'objet (`partie.ts`), qui ne traverse pas JSON. */
 export interface Programme {
   id: number;
+  /** Millisecondes de tenue, comptées après les déplacements que l’hôte présente. */
   delai: number;
+  /** Porteurs dont les déplacements de cet appel précèdent la reprise, si l’hôte les présente. */
+  apresDeplacement?: readonly string[];
 }
 
 /** Le plafond de reprises d'un geste de l'horloge : au-delà, la partie boucle. */

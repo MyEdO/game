@@ -1861,9 +1861,12 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     saisir('valeur/onCross/0/value', 2);
     expect([option('valeur/onCross/0/id/id', 'Sonné').presse, formulaire('valeur/onCross/0/value').champs[2]], 'son État et ses pions écrits').toMatchObject([true, { valeur: 2 }]);
     choisir('valeur/onCross/0/op', 'Standing temporaire (prochaine aventure)');
-    expect(inspecteur().find((el) => el.id === 'valeur/onCross/0/motif'), 'une op sans forme déclarée le dit').toMatchObject({ type: 'ligne' });
-    saisir('valeur/onCross/0', { op: 'statusMod', amount: 1 });
-    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"statusMod","amount":1}' });
+    expect(inspecteur().some((el) => el.id === 'valeur/onCross/0/motif'), 'le modificateur de statut dispose d’une forme déclarée').toBe(false);
+    saisir('valeur/onCross/0/amount', 1);
+    expect(formulaire('valeur/onCross/0/amount').champs[2]).toMatchObject({ type: 'saisieNombre', valeur: 1 });
+    const opInconnue = { op: 'pas-une-op' };
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [zone, ['onCross', 0], opInconnue] })).categorie,
+      'le formulaire offre le choix de variante et ses champs, sans saisie de l’objet entier').toBe('validation');
     presser('valeur/onCross/0/retirer');
     expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');
@@ -1894,7 +1897,13 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const { appel: rouvrir } = table();
     const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
     rmSync(depot, { recursive: true, force: true });
-    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
+    const projetEnregistre = JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] };
+    const neuve = projetEnregistre.scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
+    const projetInvalide = { ...projetEnregistre, scenes: projetEnregistre.scenes.map((sc) => sc.id !== neuve.id ? sc : {
+      ...sc, effectZones: sc.effectZones?.map((z) => z.id !== zone.id ? z : { ...z, onCross: [opInconnue, ...z.onCross!.slice(1)] }),
+    }) };
+    expect(erreurDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(projetInvalide) })),
+      'le pont refuse à l’ouverture un projet dont une seule op est inconnue').toMatchObject({ categorie: 'validation', message: expect.stringContaining('Ouverture refusée') });
     expect(neuve.triggers.find((t) => t.id === declencheur.id)).toMatchObject({
       when: { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] },
       flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'porte' } }] },

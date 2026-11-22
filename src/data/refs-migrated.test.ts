@@ -22,18 +22,17 @@ import type { SchemaDef } from './schemas/types';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
-import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { pretires } from './pregens';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { fauteDEspece } from './schemas/grammaire/valeurs';
-import { GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender } from '../../scripts/guards/lib/gameOpRefFk.mjs';
-import { champsDOpASlot, opsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
+import { opsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
+import { estObjet } from '../lib/objet.mjs';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -563,118 +562,69 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
   });
 });
 
-// ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847). Le PÉRIMÈTRE (quels champs d'op portent
-// une chaîne) est DÉRIVÉ de l'union `GameOp` par le TypeChecker ; chaque champ est un CHAMP D'OP À SLOT
-// d'`OP_DEFS` (`champsDOpASlot`), jugé au parse par sa feuille `idDe`, ou il porte sa classification
-// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `nonRef`). Les registres des
-// champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
-describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
-  const resolvers: Record<string, (id: string) => boolean> = {
-    seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
-  };
-
-  /** Le corpus des DEUX racines, celui que parse le registre des slots (`scanDuCorpus`) : une seule
-   *  lecture, pour que les nœuds d’op du scan se joignent à ceux du parse par IDENTITÉ d’objet. */
+describe('GameOp — les références de la donnée sont jugées au parse (#847, #1473)', () => {
   const { defs: DEFS, scan: CORPUS } = CORPUS_SCANNE;
-  const sources = [...CORPUS.brutParNom].map(([file, data]) => ({ file, data }));
-  const CHAMPS_A_SLOT = champsDOpASlot();
-  const scan = scanGameOpRefs({ sources, resolvers, champsASlot: CHAMPS_A_SLOT });
-  it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', { timeout: 30_000 }, () => {
-    const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(0);
-    expect(unclassified, `champs de GameOp sans cible déclarée (gameOpRefFk.mjs) :\n${unclassified.join('\n')}`).toEqual([]);
-    expect(stale.map((c) => `${c.key} — ${c.raison}`), 'cibles déclarées hors périmètre').toEqual([]);
-  });
 
-  it('une cible déclarée sur un champ d’op à slot sort en `stale`, raison nommée (contre-épreuve)', { timeout: 30_000 }, () => {
-    expect(CHAMPS_A_SLOT.has('removeTrait.trait')).toBe(true);
-    const declare = GAMEOP_FIELD_TARGETS as Record<string, unknown>;
-    declare['removeTrait.trait'] = { nonRef: 'fixture' };
-    try {
-      const { stale: doublon } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-      expect(doublon.map((c) => c.key)).toEqual(['removeTrait.trait']);
-      expect(doublon[0].raison).toMatch(/typé AU PARSE par sa feuille `idDe` d’`OP_DEFS`/);
-    } finally {
-      delete declare['removeTrait.trait'];
+  interface NoeudDOp {
+    readonly path: string;
+    readonly op: string;
+    readonly noeud: object;
+  }
+
+  /** Les opérations observées dans le document brut, par identité, sans ouvrir son schéma. */
+  function* noeudsDOp(valeur: unknown, path: string): Generator<NoeudDOp> {
+    if (Array.isArray(valeur)) {
+      for (const [rang, enfant] of valeur.entries()) yield* noeudsDOp(enfant, `${path}[${rang}]`);
+      return;
     }
+    if (!estObjet(valeur)) return;
+    if (typeof valeur.op === 'string' && !('kind' in valeur)) yield { path, op: valeur.op, noeud: valeur };
+    for (const [cle, enfant] of Object.entries(valeur)) yield* noeudsDOp(enfant, `${path}.${cle}`);
+  }
+
+  const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) =>
+    noeuds.filter((n) => !atteintes.has(n.noeud)).map(({ path, op }) => `${path} : ${op}`);
+
+  it('chaque nœud GameOp des deux racines atteint son schéma de porteur', () => {
+    const fichiersAvecOps = [...CORPUS.brutParNom].map(([file, doc]) => [file, [...noeudsDOp(doc, file)]] as const)
+      .filter(([, ops]) => ops.length > 0);
+    const racines = new Set(DEFS.filter((d) => fichiersAvecOps.some(([file]) => file === d.file)).map((d) => d.root));
+    expect([...racines].sort()).toEqual(['src/data', 'src/scenes']);
+    const noeuds = fichiersAvecOps.flatMap(([, ops]) => ops);
+    const atteintes = opsDuParse(CORPUS, DEFS);
+    const lignes = horsDuParse(noeuds, atteintes);
+    expect(lignes, `nœuds d’op hors du parse :\n${lignes.join('\n')}`).toEqual([]);
+    expect(atteintes.size).toBe(noeuds.length);
   });
 
-  // COUVERTURE : un champ d'op à slot est jugé par sa feuille `idDe` là où le parse ATTEINT son
-  // nœud. Ce test prouve la JOINTURE : tout nœud `GameOp` du corpus est ATTEINT par le parse de mesure
-  // (`opsDuParse`, par IDENTITÉ d'objet). Un nœud non atteint pend sous un conteneur que le parse ne
-  // descend pas : son conteneur se type.
-  const ATTEINTES = opsDuParse(CORPUS, DEFS);
-  /** La jointure corpus ↔ parse : les nœuds d'op que le parse de mesure n'atteint pas. */
-  type NoeudDOp = (typeof scan.noeudsDOp)[number];
-  const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) => noeuds.filter((n) => !atteintes.has(n.noeud));
-  const ligneHorsParse = (n: NoeudDOp) => `${n.path} : ${n.op}`;
-  it('tout nœud GameOp du corpus est atteint par le parse de mesure', () => {
-    expect(scan.noeudsDOp.length, 'aucun nœud d’op visité — le scan est vide').toBeGreaterThan(500);
-    const lignes = horsDuParse(scan.noeudsDOp, ATTEINTES).map(ligneHorsParse);
-    expect(lignes, `nœuds d’op hors du parse — typer leur conteneur (OP_DEFS) :\n${lignes.join('\n')}`).toEqual([]);
-  });
-
-  // Conteneur OPAQUE de fixture : un `z.record(z.string(), z.unknown())`, que le parse ne descend pas.
-  it('une op typée sous un conteneur que le parse ne descend pas est vue du corpus, absente du parse, nommée hors parse (fixture)', () => {
+  it('le parcours brut révèle une op sous un conteneur que le parse ne descend pas', () => {
     const def: SchemaDef = { file: 'opaque.json', root: 'src/data', famille: 'config', schema: z.strictObject({ params: z.record(z.string(), z.unknown()) }) };
     const op = { op: 'domeWard', trait: { id: IDS_PAR_ESPACE['traits.json'][0], value: 1 } };
     const document = { params: { ops: [op] } };
-    const noeuds = scanGameOpRefs({ sources: [{ file: def.file, data: document }], resolvers, champsASlot: CHAMPS_A_SLOT }).noeudsDOp;
+    const noeuds = [...noeudsDOp(document, def.file)];
     expect(noeuds.map((n) => n.noeud)).toEqual([op]);
-    const atteintes = opsDuParse({ brutParNom: new Map<string, unknown>([[def.file, document]]) }, [def]);
+    const atteintes = opsDuParse({ brutParNom: new Map([[def.file, document]]) }, [def]);
     expect(atteintes.has(op)).toBe(false);
-    expect(horsDuParse(noeuds, atteintes).map(ligneHorsParse)).toEqual(['opaque.json.params.ops[0] : domeWard']);
+    expect(horsDuParse(noeuds, atteintes)).toEqual(['opaque.json.params.ops[0] : domeWard']);
   });
 
-  it('une op sous un conteneur d’ops est atteinte par le parse : une valeur OBJET fantôme y est REFUSÉE (contre-épreuve)', () => {
+  it('une op sous un conteneur d’ops est atteinte et juge sa référence imbriquée', () => {
     const delayed = (id: string) => ({ op: 'delayed', afterDays: 1, ops: [{ op: 'testMod', amount: -10, exceptSkills: [{ id }] }] });
     expect(mesureDuParse(gameOpSchema, delayed('athletisme')).ops).toEqual([[], ['ops', 0]]);
     const refus = gameOpSchema.safeParse(delayed('competence-fantome'));
     expect(refus.success).toBe(false);
-    expect(refus.error?.issues.map((i) => i.path.join('.'))).toEqual(['ops.0.exceptSkills.0.id']);
+    expect(refus.error?.issues.map((i) => i.path)).toEqual([['ops', 0, 'exceptSkills', 0, 'id']]);
   });
 
-  it('chaque registre visé par la table a son résolveur câblé', () => {
-    expect(scan.missingResolvers, scan.missingResolvers.join(', ')).toEqual([]);
-  });
-
-  it('src/data/*.json + src/scenes/**.json : toute ref d’op que le parse ne juge pas résout', () => {
-    expect(sources.length, 'aucun document scanné').toBeGreaterThan(50);
-    const lines = scan.offenders.map(formatOffender);
-    expect(lines, lines.join('\n')).toEqual([]);
-  });
-
-  // Le format d'une cible est un ensemble FERMÉ (`gameOpRefFk.mjs`, doc de `GAMEOP_FIELD_TARGETS`) :
-  // `{ registry }` | `{ nonRef }`. Une clé hors de cet ensemble serait lue par
-  // PERSONNE dans `scanGameOpRefs` — donc une tolérance muette, ou un champ tenu pour gardé sans l'être.
-  it('le format d’une cible est fermé : une seule clé, registry ou nonRef, non vide', () => {
-    const CLES = ['registry', 'nonRef'];
-    const anomalies: string[] = [];
-    for (const [cible, decl] of Object.entries(GAMEOP_FIELD_TARGETS as Record<string, Record<string, unknown>>)) {
-      const cles = Object.keys(decl);
-      if (cles.length !== 1 || !CLES.includes(cles[0])) anomalies.push(`${cible} : clés [${cles.join(', ')}] hors du format fermé`);
-      for (const v of Object.values(decl)) if (typeof v !== 'string' || !v) anomalies.push(`${cible} : valeur absente`);
-    }
-    expect(anomalies, anomalies.join('\n')).toEqual([]);
-  });
-
-  it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = (factorId: string) => [{
-      file: 'fixture.json',
-      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'manann', factorId }] } } }] }],
-    }];
-    expect(scanGameOpRefs({ sources: fixture('chat-heureux'), resolvers }).offenders).toEqual([]);
-    const out = scanGameOpRefs({ sources: fixture('facteur-fantome'), resolvers }).offenders;
-    expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('seaManannFactors');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].factorId');
-  });
-
-  it('un champ NON-RÉFÉRENCE porte sa justification', () => {
-    for (const [key, t] of Object.entries(GAMEOP_FIELD_TARGETS)) {
-      if ('registry' in t) { expect(resolvers[t.registry], `${key} → registre inconnu ${t.registry}`).toBeTruthy(); continue; }
-      expect(t.nonRef.length > 20, `${key} : justification absente ou trop maigre`).toBe(true);
-    }
+  it('une op Manann juge son facteur dans son catalogue', () => {
+    const manann = (id: string) => ({ op: 'manann', facteur: { id } });
+    const valide = manann('vaincre-stromfels');
+    expect(gameOpSchema.safeParse(valide)).toMatchObject({ success: true, data: valide });
+    const refus = gameOpSchema.safeParse(manann('facteur-fantome'));
+    expect(refus.success).toBe(false);
+    expect(refus.error?.issues).toEqual([
+      expect.objectContaining({ path: ['facteur', 'id'], message: expect.stringContaining('sea-events.json#manann.factors') }),
+    ]);
   });
 });
 

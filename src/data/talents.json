@@ -1034,7 +1034,9 @@
               "kind": "has",
               "who": "target",
               "what": "psych",
-              "value": "frenesie"
+              "ref": {
+                "id": "frenesie"
+              }
             }
           },
           "reussite": {

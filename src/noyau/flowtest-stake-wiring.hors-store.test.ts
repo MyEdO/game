@@ -6,7 +6,6 @@ import { EMPTY_FLOW, testFlow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { combatStakeRef, resolveStake, findSpellById } from '../data';
 import { routeTriggeredTest } from './combat/triggeredTest';
-import { planClimb } from './monde/climbMove';
 import { emptyScene, type Scene } from './monde/scene';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
@@ -56,7 +55,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
     const step = firstStep();
     expect(step.stake, 'étape muette : le joueur ne saurait pas ce que ce jet met en jeu').toEqual(stake);
     expect(resolveStake(step.stake!).text).toContain('4 m de chute');
-    expect(resolveStake(step.stake!).rule).toEqual({ category: 'regles', id: 'chute' });
+    expect(resolveStake(step.stake!).rule).toEqual({ category: 'skills', id: 'escalade' });
   });
 
   it('sans enjeu déclaré NI porteur, l’étape reste sans `stake` (le transport n’en invente pas)', () => {
@@ -108,11 +107,12 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
     expect(() => resolveStake({ authored: '   ' })).toThrow(/enjeu vide/);
   });
 
-  it('bout en bout : le plan d’ESCALADE joué par `runFlow` porte l’enjeu de SA hauteur', () => {
-    const plan = planClimb(cliff(), { x: 2, y: 1 }, { x: 2, y: 0 }, false);
-    expect(plan?.kind, 'la falaise doit produire un plan à Test (sinon la sonde ne mesure rien)').toBe('test');
-    if (plan?.kind !== 'test') throw new Error('attendu test');
-    runFlow(banc.getState, banc.setState, plan.flow);
-    expect(resolveStake(firstStep().stake!).text).toContain('4 m de chute'); // hauteur RÉELLE du décor
+  it('en descente, l’enjeu d’Escalade annonce le seuil, la hauteur et le retour à l’appui sur les autres échecs', () => {
+    banc.setState({ scene: cliff(), mode: 'exploration', partyPos: { x: 2, y: 0 } });
+    banc.getState().franchirLArete({ x: 2, y: 1 });
+    const resolu = resolveStake(firstStep().stake!);
+    expect(resolu.text).toContain('−4 DR ou moins ou une Maladresse entraîne 4 m de chute');
+    expect(resolu.text).toContain('Sur les autres échecs, vous restez à votre point de départ');
+    expect(resolu.rule).toEqual({ category: 'skills', id: 'escalade' });
   });
 });

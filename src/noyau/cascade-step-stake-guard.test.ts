@@ -507,7 +507,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
   });
 
   /** Les `FlowTest` : les 7 producteurs de Flow (vague 5) fournissent leur `FlowTest.stake`
-   *  (Escalade et Saut → la fiche Chute ; Surprise → l'État Surpris ; Vigilance → le Talent ;
+   *  (Escalade → la compétence Escalade ; Saut → la fiche Chute ; Surprise → l'État Surpris ; Vigilance → le Talent ;
    *  Focalisation interrompue et Récolte → leur fiche ; Piège-lame → l'Atout qui la porte), et les Flows
    *  AUTHORÉS des documents de scène ont leur forme d'enjeu (`AuthoredStake`, #1262 V2 L6c — le texte
    *  voyage avec le document, arbitrage user 2026-08-12), tenue par `validateScene`, qui voit AUSSI les

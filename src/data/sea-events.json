@@ -922,7 +922,9 @@
                                 "ops": [
                                   {
                                     "op": "exposeDisease",
-                                    "disease": "fievre-du-rongeur"
+                                    "disease": {
+                                      "id": "fievre-du-rongeur"
+                                    }
                                   }
                                 ]
                               },
@@ -1206,7 +1208,9 @@
                                 "ops": [
                                   {
                                     "op": "exposeDisease",
-                                    "disease": "fievre-du-rongeur"
+                                    "disease": {
+                                      "id": "fievre-du-rongeur"
+                                    }
                                   }
                                 ]
                               },
@@ -1528,7 +1532,9 @@
                   "ops": [
                     {
                       "op": "exposeDisease",
-                      "disease": "peste-noire"
+                      "disease": {
+                        "id": "peste-noire"
+                      }
                     }
                   ]
                 }

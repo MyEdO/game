@@ -1780,6 +1780,30 @@
     }
   },
   {
+    "id": "reparer-des-bateaux",
+    "type": "regles",
+    "label": "Réparer des bateaux",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "reparer-des-bateaux",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "35ec274d733800c2"
+        }
+      ]
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.109-111"
+    }
+  },
+  {
     "id": "reparation-temporaire-bateau",
     "type": "regles",
     "label": "Réparations temporaires d’un bateau",

@@ -47,7 +47,7 @@ export const file = 'trappings.json';
 export const famille = 'entite';
 export const VARIANT_RESOLVED_FIELDS = ['source', 'alsoIn', 'descRef', 'qualities', 'availability', 'damage', 'price', 'manieAussi', 'qualitesAuChoix'] as const;
 
-export const apparenceDObjetSchema = nommerChamps(z.looseObject({
+export const apparenceDObjetSchema = nommerChamps(z.strictObject({
   shape: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
   formChoices: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
 }), {

@@ -65,7 +65,7 @@ describe('tirerSources', { timeout: 120_000 }, () => {
     expect(appels.length).toBe(1)
   })
 
-  it('ROUGE : des tirages menés de front par plusieurs processus sur un cache sans extraction réussissent tous', async () => {
+  it('des tirages menés de front par plusieurs processus sur un cache sans extraction réussissent tous', async () => {
     const { racine, octets, archives, provenance } = fabriquer(10000), cache = join(racine, 'cache')
     mkdirSync(cache)
     const [somme] = Object.keys(archives)

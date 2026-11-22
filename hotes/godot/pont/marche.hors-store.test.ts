@@ -6,7 +6,7 @@
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { drainer, table, gestesDessines } from './pont.testkit';
-import type { Bouton, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
+import type { Bouton, Choix, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
@@ -35,6 +35,7 @@ function marche(scenario: string, verbe: string, cle: string) {
 const corps = (s: Suite) => Object.fromEntries(s.vue.zones['fenetre.corps'].map((e: Element) => [e.id, e]));
 const dans = (e: Element, id: string) => (e as Entite).elements.find((x) => x.id === id);
 const champ = (f: Formulaire, nom: string) => f.champs.find((c) => c.nom === nom) as Saisie;
+const CHOIX_PORTEUR = 'fenetreChoisir@marcheDeTerre#porteur';
 
 describe('le marché de cargaison par le pont', () => {
   it('la halle : chaque offre, son Enc et son prix par Enc, son achat composé sur un porteur de vrac', () => {
@@ -49,24 +50,37 @@ describe('le marché de cargaison par le pont', () => {
     const compose = jouer((dans(offre, 'acheter') as Bouton).jeu);
     expect(dans(corps(compose)['offre/laine-terre'], 'acheter'), 'l’achat composé, pressé').toMatchObject({ presse: true });
     const reglages = Object.fromEntries(compose.vue.zones['fenetre.reglages'].map((e) => [e.id, e]));
-    expect(reglages['fenetreChoisir@marcheDeTerre#porteur'], 'chaque porteur de vrac et sa place, le retenu pressé').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
-    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#encombrement', 'fenetreChoisir@marcheDeTerre#acheter']);
+    expect(reglages[CHOIX_PORTEUR], 'chaque porteur de vrac et sa place, la barge retenue').toMatchObject({ valeurs: [
+      { libelle: 'Charrette · 25/25 Enc libres', presse: false },
+      { libelle: 'Mule · 14/14 Enc libres', presse: false },
+      { libelle: 'Barge fluviale · 300/300 Enc libres', presse: true },
+    ] });
+    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual([CHOIX_PORTEUR, 'fenetreChoisir@marcheDeTerre#encombrement', 'fenetreChoisir@marcheDeTerre#acheter']);
   });
 
   it('un lot acheté : son porteur et son Enc, sa vente, son bradage, son transfert vers la mule', () => {
     const { suite, jouer } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
-    jouer((dans(corps(suite)['offre/laine-terre'], 'acheter') as Bouton).jeu);
+    const compose = jouer((dans(corps(suite)['offre/laine-terre'], 'acheter') as Bouton).jeu);
+    const porteurs = compose.vue.zones['fenetre.reglages'].find((e) => e.id === CHOIX_PORTEUR) as Choix;
+    jouer(porteurs.valeurs[0].jeu);
     const c = corps(jouer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'acheter', true] }));
     const lot = Object.values(c).find((e) => e.id.startsWith('lot/'))!;
     expect(lot, 'le lot de laine').toMatchObject({ type: 'entite', nom: 'Laine' });
     expect(dans(lot, 'porteur'), 'sur la charrette').toMatchObject({ libelle: 'Charrette', valeur: '25 Enc' });
     const recompose = jouer((dans(c['offre/laine-terre'], 'acheter') as Bouton).jeu);
-    expect(recompose.vue.zones['fenetre.reglages'].find((e) => e.id === 'fenetreChoisir@marcheDeTerre#porteur'), 'la charrette pleine, la mule charge le reste').toMatchObject({ valeurs: [{ libelle: 'Charrette · 0/25 Enc libres', presse: false }, { libelle: 'Mule · 14/14 Enc libres', presse: true }] });
+    expect(recompose.vue.zones['fenetre.reglages'].find((e) => e.id === CHOIX_PORTEUR), 'charrette pleine, la barge reste disponible par défaut').toMatchObject({ valeurs: [
+      { libelle: 'Charrette · 0/25 Enc libres', presse: false },
+      { libelle: 'Mule · 14/14 Enc libres', presse: false },
+      { libelle: 'Barge fluviale · 300/300 Enc libres', presse: true },
+    ] });
     expect(dans(lot, 'vendre'), 'il se vend').toMatchObject({ jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'vendre', lot.id.slice('lot/'.length)] }, refus: null });
     expect(dans(lot, 'brader'), 'son bradage dit sa raison').toMatchObject({ jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', lot.id.slice('lot/'.length)] } });
     const deplacer = dans(lot, 'deplacer') as Formulaire;
     expect(deplacer, 'il passe sur la mule').toMatchObject({ verbe: 'deplacerLaCargaison', refus: null });
-    expect(champ(deplacer, 'vers'), 'la mule, co-localisée').toMatchObject({ valeurs: [{ libelle: 'Mule · 14/14 Enc libres', presse: true }] });
+    expect(champ(deplacer, 'vers'), 'porteurs co-localisés').toMatchObject({ valeurs: [
+      { libelle: 'Mule · 14/14 Enc libres', presse: true },
+      { libelle: 'Barge fluviale · 300/300 Enc libres', presse: false },
+    ] });
   });
 
   it('le port : la cale du navire de campagne, sa bourse, son écran', () => {

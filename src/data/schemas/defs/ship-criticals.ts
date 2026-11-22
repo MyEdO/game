@@ -31,7 +31,7 @@ const doc = document(
     die: deDeTirageSchema,
     shrapnelHit: executeesDe(),
     replisSansExpose: replisSansExposeSchema,
-    tablesDeChute: z.array(tableDeChuteSchema),
+    tablesDeChute: listeCle(tableDeChuteSchema, 'id', { espace: {} }),
     tables: nommerChamps(z.strictObject({
       cargaison: listeCle(shipCritEntrySchema, 'id'),
       greement: listeCle(shipCritEntrySchema, 'id'),

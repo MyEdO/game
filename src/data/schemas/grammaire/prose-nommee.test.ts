@@ -18,6 +18,7 @@ import { resolve } from 'node:path';
 import { couleurHexSchema } from './valeurs';
 import { refOuSpec } from './ref';
 import { detenteur } from '../../../lib/detenteur.testkit';
+import { unionDuNoeud } from '../../../noyau/codex/editFields';
 
 const SOURCE = { book: 'ennemi-dans-l-ombre', page: 12 };
 const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
@@ -69,7 +70,7 @@ describe('prose nommée — déclaration et provenance locales', () => {
     console.log('exclusions runtime', JSON.stringify([...finale.exclusions]));
     console.log('défauts runtime', JSON.stringify({ compte: fautes.length, fautes }));
     expect(fautes).toEqual([]);
-    expect(declarationDEnfants(gameOpSchema)?.enfants.length).toBe(Object.keys(OP_DEFS).length);
+    expect(unionDuNoeud(gameOpSchema)?.variantes.length).toBe(Object.keys(OP_DEFS).length);
     expect(OPS_NON_TYPEES).not.toContain('narrative');
   });
   it('une catchall technique sans déclaration de dispatch rougit', () => {

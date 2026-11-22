@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { GameOp } from '../../engine/ops';
-// `newOp` (générateur d'échantillon, #3059) et `OP_LABEL` (énumération EXHAUSTIVE des kinds `GameOp['op']`,
-// `Record` complet forcé par TS, au schéma).
 import { newOp } from '../valeursNeuves';
-import { OP_REF_FIELDS, opRefValue, opWithRefValue } from '../../data/refsDOp';
-import { OP_LABEL } from '../../data/schemas/grammaire/mecanique';
-import { entreesDuDataset } from '../../data/overrides';
+import { coDescendre } from '../../data/schemas/grammaire/descente';
+import { gameOpSchema, OP_DEFS } from '../../data/schemas/grammaire/mecanique';
+import { estFeuilleDId } from '../../data/schemas/grammaire/ref';
+import { avecLaValeur } from '../edition/formulaire';
+import { choixDuNoeud } from './editFields';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
@@ -30,7 +30,7 @@ import { spellOps } from '../../engine/flowCore';
 import { opPsy } from '../../engine/psych/opsPsy';
 import { ciblePsy } from '../../engine/psych/ciblage';
 
-const ALL_KINDS = Object.keys(OP_LABEL) as GameOp['op'][];
+const ALL_KINDS = Object.keys(OP_DEFS);
 
 /** Ancres attendues (minimum imposé par le brief #495) — kind → catégorie Codex. */
 const EXPECTED_ANCHOR: Partial<Record<GameOp['op'], string>> = {
@@ -40,17 +40,23 @@ const EXPECTED_ANCHOR: Partial<Record<GameOp['op'], string>> = {
   grantCareerSkill: 'skills',
 };
 
-/** Échantillon COMPLET d'un kind. `newOp` n'ÉLIT aucune réf de registre (l'auteur choisit) : l'échantillon
- *  les renseigne avec une entrée RÉELLE de leur dataset, sinon ce renderer ne mesurerait qu'une op à
- *  compléter. `narrative` : même idée sur son texte (le défaut d'atelier est vide par nature). */
-function sample(kind: GameOp['op']): GameOp {
-  if (kind === 'narrative') return { op: 'narrative', text: 'Un effet non modélisé, RAW verbatim.' };
-  let o = { ...newOp(kind) } as Record<string, unknown>;
-  for (const f of OP_REF_FIELDS[kind] ?? []) {
-    const v = opRefValue(o, f.field);
-    if (v == null || v === '') o = opWithRefValue(o, f.field, entreesDuDataset(f.ds)[0]?.id);
-  }
-  return o as unknown as GameOp;
+/** Remplit les références laissées à choisir d'un brouillon depuis les choix de son schéma. */
+function sample(kind: string): GameOp {
+  const schema = OP_DEFS[kind];
+  let brouillon = kind === 'narrative' ? { ...newOp(kind), text: 'Texte du journal.' } : newOp(kind);
+  coDescendre(schema, brouillon, ({ noeuds, valeur, chemin }) => {
+    if (valeur !== '') return;
+    const feuille = noeuds.find(estFeuilleDId);
+    if (!feuille) return;
+    const choix = choixDuNoeud(feuille)?.[0];
+    if (!choix) throw new Error(`${kind} : aucun choix offert sur ${chemin.join('.')}`);
+    const ecrit = avecLaValeur(schema, brouillon, chemin, choix.valeur);
+    if (!ecrit.ok) throw new Error(`${kind} : ${chemin.join('.')} refuse son choix ${String(choix.valeur)}`);
+    brouillon = ecrit.valeur;
+  });
+  const parsed = gameOpSchema.safeParse(brouillon);
+  if (!parsed.success) throw new Error(`${kind} : ${parsed.error.message}`);
+  return parsed.data;
 }
 
 describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
@@ -72,28 +78,31 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
 
   it('les kinds à ancre nominative produisent une chip `ref` de la bonne catégorie', () => {
     for (const [kind, category] of Object.entries(EXPECTED_ANCHOR)) {
-      const row = opRow(newOp(kind as GameOp['op']));
+      const row = opRow(sample(kind));
       expect(row.t, `kind ${kind} : attendu t:'ref'`).toBe('ref');
       if (row.t === 'ref') expect(row.category, `kind ${kind} : mauvaise catégorie`).toBe(category);
     }
   });
 
   it('opRows(ops) mappe 1:1 et dans l’ordre', () => {
-    const ops: GameOp[] = [newOp('charMod'), newOp('grantTalent'), newOp('kill')];
+    const ops: GameOp[] = [sample('charMod'), sample('grantTalent'), sample('kill')];
     const rows = opRows(ops);
     expect(rows).toHaveLength(3);
     expect(rows.map((r) => r.t)).toEqual(['ref', 'ref', 'text']);
   });
 
-  /** Spot-check : un `t:'text'` (repli `humanizeOp`, registre JOUEUR déjà résolveur) ne laisse jamais
-   *  fuiter un id BRUT (kebab-case) porté par le champ de l'op elle-même — les labels sont résolus. */
+  /** Les champs de l'op et les feuilles de référence de son schéma se lisent sous leurs libellés. */
   it('aucun repli texte ne laisse fuiter un id brut kebab-case de son propre op', () => {
     const KEBAB_RX = /^[a-z][a-z0-9]*(-[a-z0-9]+)+$/;
     for (const kind of ALL_KINDS) {
       const op = sample(kind);
       const row = opRow(op);
       if (row.t !== 'text') continue;
-      for (const v of Object.values(op as Record<string, unknown>)) {
+      const valeurs = new Set(Object.values(op));
+      coDescendre(OP_DEFS[kind], op, ({ noeuds, valeur }) => {
+        if (noeuds.some(estFeuilleDId)) valeurs.add(valeur);
+      });
+      for (const v of valeurs) {
         if (typeof v === 'string' && KEBAB_RX.test(v)) {
           expect(row.text, `kind ${kind} : id brut « ${v} » visible dans le texte`).not.toContain(v);
         }
@@ -101,9 +110,9 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     }
   });
 
-  /** Résolvabilité des ancres — DATA-DRIVEN (zéro id en dur) : chaque kind à ancre nominative
-   *  d'`opRows.ts` produit un `{t:'ref'}` dont l'id RÉSOUT réellement dans le Codex (même lookup
-   *  que `CodexRef.tsx:131`, `codexLookupById`). L'id de fixture est le PREMIER item du dataset réel
+  /** Résolvabilité des ancres : chaque kind à ancre nominative
+   *  d'`opRows.ts` produit un `{t:'ref'}` que `codexLookupById` résout.
+   *  L'id de fixture est le PREMIER item du dataset réel
    *  de la catégorie visée, la première clé de `CHAR_KEYS` pour une Caractéristique — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
    *  dataset renommé) casse ce test au lieu de fuiter en silence sur une chip Codex morte. */
   const ANCHOR_FIXTURES: { kind: GameOp['op']; category: string; build: () => GameOp }[] = [
@@ -126,14 +135,14 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'condition', category: 'etats', build: () => ({ op: 'condition', id: { id: etats[0].id } }) },
     { kind: 'removeCondition', category: 'etats', build: () => ({ op: 'removeCondition', id: { id: etats[0].id } }) },
     { kind: 'giveTrapping', category: 'trappings', build: () => ({ op: 'giveTrapping', objet: { id: trappings[0].id } }) },
-    { kind: 'contractDisease', category: 'maladies', build: () => ({ op: 'contractDisease', disease: maladies[0].id }) },
-    { kind: 'exposeDisease', category: 'maladies', build: () => ({ op: 'exposeDisease', disease: maladies[0].id }) },
-    { kind: 'reduceDiseaseDays', category: 'maladies', build: () => ({ op: 'reduceDiseaseDays', disease: maladies[0].id, days: 1 }) },
-    { kind: 'suppressSymptom', category: 'symptoms', build: () => ({ op: 'suppressSymptom', symptomId: symptoms[0].id }) },
-    { kind: 'summon', category: 'creatures', build: () => ({ op: 'summon', ref: creatures[0].id, count: 1 }) },
-    { kind: 'scheduleRespawn', category: 'creatures', build: () => ({ op: 'scheduleRespawn', ref: creatures[0].id, delayDays: 1 }) },
-    { kind: 'polymorph', category: 'creatures', build: () => ({ op: 'polymorph', ref: creatures[0].id }) },
-    { kind: 'transform', category: 'creatures', build: () => ({ op: 'transform', tag: 'x', ops: [], morphRef: creatures[0].id }) },
+    { kind: 'contractDisease', category: 'maladies', build: () => ({ op: 'contractDisease', disease: { id: maladies[0].id } }) },
+    { kind: 'exposeDisease', category: 'maladies', build: () => ({ op: 'exposeDisease', disease: { id: maladies[0].id } }) },
+    { kind: 'reduceDiseaseDays', category: 'maladies', build: () => ({ op: 'reduceDiseaseDays', disease: { id: maladies[0].id }, days: 1 }) },
+    { kind: 'suppressSymptom', category: 'symptoms', build: () => ({ op: 'suppressSymptom', symptom: { id: symptoms[0].id } }) },
+    { kind: 'summon', category: 'creatures', build: () => ({ op: 'summon', creature: { id: creatures[0].id }, count: 1 }) },
+    { kind: 'scheduleRespawn', category: 'creatures', build: () => ({ op: 'scheduleRespawn', creature: { id: creatures[0].id }, delayDays: 1 }) },
+    { kind: 'polymorph', category: 'creatures', build: () => ({ op: 'polymorph', creature: { id: creatures[0].id } }) },
+    { kind: 'transform', category: 'creatures', build: () => ({ op: 'transform', tag: 'x', ops: [], creature: { id: creatures[0].id } }) },
   ];
 
   it('couvre chaque kind ancré (10 catégories) et résout réellement dans le Codex', () => {
@@ -167,10 +176,10 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(kill.t).toBe('text'); // `kill` n'a pas d'ancre nominative → repli texte humanisé
     });
 
-    it('rollTable par `tableId` (allure-demoniaque-nurgle, EDOC 13 l.234-245) : rangées de la table référencée, résolue via effectTables', () => {
+    it('rollTable par `table` (allure-demoniaque-nurgle, EDOC 13 l.234-245) : rangées de la table référencée, résolue via effectTables', () => {
       const table = effectTables.find((t) => t.id === 'allure-demoniaque-nurgle');
       expect(table).toBeTruthy();
-      const rows = opRows([{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }]);
+      const rows = opRows([{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' } }]);
       const subs = rows.filter((r) => r.t === 'sub');
       expect(subs).toHaveLength(table!.entries.length);
       // Rangée 1 → Trait « Grand » (grantTrait, ancré catégorie traits).
@@ -180,7 +189,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     });
 
     it('un `rollTable` sur une table d100 écrit ses bandes sur les faces de son dé (AA Annexe II)', () => {
-      const rows = opRows([{ op: 'rollTable', tableId: 'contremaitre-lieu' }]);
+      const rows = opRows([{ op: 'rollTable', table: { id: 'contremaitre-lieu' } }]);
       expect(rows[0]).toEqual({ t: 'sub', label: '01–05 · Une cabane sinistre à l\'orée des bois.' });
     });
 
@@ -199,7 +208,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       const nested: import('../../engine/ops').GameOp = {
         op: 'rollTable',
         die: { n: 1, sides: 10 },
-        entries: [{ min: 1, max: 10, ops: [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }] }],
+        entries: [{ min: 1, max: 10, ops: [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' } }] }],
       };
       const rows = opRows([nested]);
       // 1 sous-titre (rangée de tête) + 1 chip ref vers la table imbriquée — PAS ses 10 sous-rangées.
