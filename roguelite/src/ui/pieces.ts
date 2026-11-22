@@ -58,10 +58,10 @@ export function etiquettesDeSequelles(c: Combatant) {
 
 // ─── Ce qu'on possède ou qu'on achète ───────────────────────────────────────────────────────────────────────
 
-/** Une entrée : médaillon, nom, état ; une action à droite (une plaque) ; l'aperçu au survol. Talents, sorts,
- *  provisions et prières s'y montrent de la même façon. */
-export function entree(o: { icone: string; nom: string; etat: string; acquis?: boolean; ferme?: boolean; action?: string; apercu: Apercu }) {
-  return `<div class="talent${o.acquis ? ' acquis' : ''}${o.ferme ? ' clos' : ''}"${apercuDe(o.apercu)}>${medaillon(o.icone, 'moyen', !!o.ferme)}<div class="t"><div class="nom-propre petit gothique">${esc(o.nom)}</div><i>${esc(o.etat)}</i></div>${o.action ?? ''}</div>`;
+/** Une entrée : médaillon (ou portrait d'une personne), nom, état ; une action à droite (une plaque) ; l'aperçu au
+ *  survol. Talents, sorts, provisions, prières, voyageurs, routes et tombes s'y montrent de la même façon. */
+export function entree(o: { icone: string; portrait?: string; nom: string; etat: string; acquis?: boolean; ferme?: boolean; action?: string; apercu: Apercu }) {
+  return `<div class="talent${o.acquis ? ' acquis' : ''}${o.ferme ? ' clos' : ''}"${apercuDe(o.apercu)}>${o.portrait ? portrait(o.portrait, 'heros', 'petit') : medaillon(o.icone, 'moyen', !!o.ferme)}<div class="t"><div class="nom-propre petit gothique">${esc(o.nom)}</div><i>${esc(o.etat)}</i></div>${o.action ?? ''}</div>`;
 }
 
 const PICTO_D_ARME: Record<string, string> = { 'grande-epee': 'epee', massue: 'marteau', fronde: 'arc' };

@@ -8,7 +8,8 @@ import { cadreA, carteDeHeros, esc } from './pieces';
 
 /** Les rectangles des cadres, ceux des maquettes. */
 export const CADRES = {
-  cartouche: [26, 20, 340, 110], lieu: [26, 148, 340, 408], service: [384, 20, 872, 536],
+  cartouche: [24, 20, 372, 96], recit: [32, 136, 340, 112], 'colonne-gauche': [24, 136, 372, 304], note: [24, 456, 372, 100],
+  hote: [412, 20, 340, 300], page: [776, 20, 480, 520], 'colonne-droite': [896, 20, 360, 420], frise: [180, 480, 920, 70], coins: [1198, 470, 56, 230],
   identite: [26, 20, 340, 536], bande: [384, 20, 800, 96], gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
   socle: [160, 560, 960, 152],
 } satisfies Record<string, [number, number, number, number]>;
@@ -16,12 +17,15 @@ export const CADRES = {
 /** Le socle : la compagnie en cartes ; `geste` dit ce qu'un clic fait, `choisi` et `ferme` l'état de chacune. */
 export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; ferme?: (h: J.Heros) => boolean }
 
-export function ecran(o: { nom: string; cadres: string; socle: Socle }): string {
+/** `classe` : `service` laisse voir le décor du hameau derrière la scène ; `lieu` est la scène même du hameau ou de
+ *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
+export function ecran(o: { nom: string; classe?: 'service' | 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
   const cartes = o.socle.heros.map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, o.socle.ferme?.(h) ?? false)).join('');
-  return `<div class="ecran-plein" role="dialog" aria-label="${esc(o.nom)}"><div class="scene-fixe">
+  const lieu = o.classe === 'lieu';
+  return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}
-    ${cadreA(CADRES.socle, `<div class="rang-heros">${cartes}</div>`, { fond: '', classe: 'socle' })}
-    <button type="button" class="croix-ecran" data-a="fermer-panneau" aria-label="Fermer">×</button>
+    ${cadreA(CADRES.socle, cartes ? `<div class="rang-heros">${cartes}</div>` : `<p class="glose courante vide">${esc(o.vide ?? '')}</p>`, { fond: '', classe: 'socle-compagnie' })}
+    ${lieu ? '' : '<button type="button" class="croix-ecran" data-a="fermer-panneau" aria-label="Fermer">×</button>'}
   </div></div>`;
 }
 
