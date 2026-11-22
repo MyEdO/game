@@ -38,10 +38,12 @@ const navire = (marin: Combatant): Combatant => {
   c.crewIds = [marin.id];
   return c;
 };
+/** Le combat de `combatants` sous les yeux d'un héros témoin, comme tout combat du jeu (`lancerLeCombat`) : le journal nomme ce que le groupe voit (#4017). */
 const poser = (combatants: Combatant[]): void => {
+  const temoin = perso('temoin', { kind: 'heros', pos: { x: 6, y: 6 } });
   banc.setState({
-    battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
-    party: combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
+    battle: { combatants: [...combatants, temoin], order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
+    party: [...combatants.filter((c) => c.kind === 'heros'), temoin], scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null,
   } as never);
 };

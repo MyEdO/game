@@ -235,9 +235,9 @@ const combattants = (s: Jeu): string[] => ids(lesCombattants(s));
 const nomDeCombattant = (s: Jeu): Nommer => parLabel(lesCombattants(s));
 /** Le nom d'une créature vaincue (`pendingVictory.defeated`) : celui de son groupe en vue s'il en a un, sinon celui de
  *  son groupe hors de vue, le nom neutre (#4017). */
-const nomDuVaincu = (s: Jeu): Nommer => (id) => {
-  const groupes = s.pendingVictory?.defeated.filter((d) => d.creatureId === id) ?? [];
-  return (groupes.find((d) => d.enVue) ?? groupes[0])?.nom ?? null;
+const nomDuVaincu = (s: Jeu): Nommer => {
+  const groupes = (s.pendingVictory?.defeated ?? []).flatMap((d) => (d.creatureId === undefined ? [] : [{ ...d, id: d.creatureId }]));
+  return indexe([...groupes.filter((d) => d.enVue), ...groupes.filter((d) => !d.enVue)], (d) => d.id, (d) => d.nom);
 };
 const lesObjets = (s: Jeu) => [
   ...lesCombattants(s).flatMap((c) => [...(c.items ?? []), ...(c.postes ?? []).flatMap((p) => p.ammo ?? [])]),

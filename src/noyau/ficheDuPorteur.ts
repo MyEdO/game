@@ -12,10 +12,10 @@ import { porteurParId, rencontreEngagee } from './monde/combatants';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ficheDuPersonnage, nomDIndividu } from './monde/sceneNpc';
 import { nomDe } from '../engine/nom';
-import { garanti } from '../lib/garanti';
 import {
   entiteConnue,
   nomEnVue,
+  nomObserve,
 } from './visionDuGroupe';
 import type { NomDIndividu } from '../engine/psych/ciblage';
 import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant } from '../engine/types';
@@ -181,7 +181,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
 /** L'en-tête de la fiche du porteur `id`, au domaine de `ficheDuPorteur` : `null` sans lui ou pour une coque. PUR. */
 export function enTeteDuPorteur(s: Jeu, id: string): EnTeteDeFiche | null {
   const c = porteurDeLaFiche(s, id);
-  return aUneFiche(c) ? enTeteDuCombattant(c, garanti(nomEnVue(s, id), id, 'porteur de la fiche')) : null;
+  return aUneFiche(c) ? enTeteDuCombattant(c, nomEnVue(s, id) ?? nomObserve(c)) : null;
 }
 
 /** La fiche du combattant `c`, les individus que nomment ses Traits par `nom` ; `null` pour une coque (`aUneFiche`). PUR. */
