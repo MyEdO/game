@@ -14,9 +14,9 @@
 ## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; touchables par le rayon même retirées, hors de l'immersion, les cases
 ## jouables qui se voient : celle de chaque combattant dessiné et chaque case peinte en cible (`Monde.poser_les_cases_jouables`),
-## la plus haute d'une colonne prenant le clic ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
-## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
-## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
+## aucun combattant sous l'œil de l'immersion ; les effets de chaque appel entre ses combattants (`Effets`), dont le
+## chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la case cliquée : celle que le monde
+## désigne sous le pointeur en donnant priorité aux cibles de combat offertes, ou que l'œil franchit ou vise ; et, au clic droit, la
 ## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
 class_name Plateau
 extends Node3D
@@ -52,6 +52,8 @@ var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
+## Par case, l'id de la première cible offerte par la projection de combat, prioritaire au clic gauche.
+var _cases_de_cibles := {}
 
 
 func _ready() -> void:
@@ -277,6 +279,11 @@ func points() -> Dictionary:
 	return points
 
 
+## L'id de la première cible offerte à cette case au clic gauche, ou `null`.
+func cible_offerte_en(case: Vector3i) -> Variant:
+	return _cases_de_cibles.get(case)
+
+
 ## Les cases (`[x, y, z]`) que `vue.casesDesCibles` donne aux cibles `ids`, en vue ou non ; un id nul n'en a aucune.
 func _cases_des(ids: Array) -> Array:
 	return ids.filter(func(id: Variant) -> bool: return id != null).map(func(id: String) -> Array: return _vue.casesDesCibles[id])
@@ -299,24 +306,30 @@ func _lieu(pos: Array) -> Vector3:
 ## Les cases peintes (`Monde.peindre`) : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis
 ## la case sous le pointeur, chacune à la place de celle qu'elle portait ; et les cases jouables qui se voient hors de
 ## l'immersion (`Monde.poser_les_cases_jouables`) : celle de chaque combattant dessiné et chaque case peinte en cible.
+## Les cases des cibles de combat offertes sont prioritaires au clic gauche (`Monde.case_sous`).
 func _peindre() -> void:
 	var plaques := {}
+	_cases_de_cibles.clear()
 	var jouables: Array[Vector3i] = []
 	var projection: Dictionary = _vue.get("projection", {})
 	for c in _dessines(projection):
 		if c.pos != null:
 			jouables.append(Vector3i(int(c.pos[0]), int(c.pos[1]), int(c.pos[2])))
-	var surligner := func(pos: Array, item: int) -> void:
+	var surligner := func(pos: Array, item: int) -> Vector3i:
 		var case := Vector3i(int(pos[0]), int(pos[1]), int(pos[2]))
 		plaques[case] = item
 		if item == Monde.ITEM_CIBLE:
 			jouables.append(case)
+		return case
 	for c in _vue.get("cases", []):
 		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = projection.get("combat")
 	if combat != null:
-		for case: Array in _cases_des(combat.cibles.liste):
-			surligner.call(case, Monde.ITEM_CIBLE)
+		for id: Variant in combat.cibles.liste:
+			if id == null:
+				continue
+			var case: Vector3i = surligner.call(_vue.casesDesCibles[id], Monde.ITEM_CIBLE)
+			_cases_de_cibles.get_or_add(case, id)
 		var apercu: Variant = combat.apercu
 		if apercu != null:
 			for case: Array in _cases_des([apercu.cible]):
@@ -333,6 +346,7 @@ func _peindre() -> void:
 	_monde.peindre(plaques)
 	if not _combattants.visible:
 		jouables.clear()
+		_cases_de_cibles.clear()
 	_monde.poser_les_cases_jouables(jouables)
 
 
@@ -340,7 +354,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_survoler(_monde.case_sous(event.position))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var case: Variant = _monde.case_sous(event.position)
+		var case: Variant = _monde.case_sous(event.position, _cases_de_cibles)
 		_survol = null
 		_peindre()
 		if case != null:
