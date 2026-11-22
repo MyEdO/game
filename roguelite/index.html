@@ -4,22 +4,22 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;600;700&family=IM+Fell+English+SC&family=Open+Sans:wght@600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
 <link rel="stylesheet" href="kit.css">
 <style>
-/* Mise en page du jeu, posée sur le kit des maquettes (`kit.css`) : ses jetons de teinte, ses matières, ses pièces.
-   Les cadres du kit sont placés en absolu sur un écran de 1280 × 720 ; ici ils suivent le flux de la page. */
-html, body { background: var(--lit); color: var(--creme); color-scheme: dark; }
-body { font: 16px/1.5 "Spectral", Georgia, serif; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background-image: radial-gradient(120% 80% at 50% 0%, var(--chene-nuit), var(--lit) 70%); background-attachment: fixed; }
-.page { max-width: 1180px; margin: 0 auto; display: grid; gap: 30px; }
-#vue { display: grid; gap: 34px; }
+/* Un écran de jeu plein cadre posé sur le kit des maquettes (`kit.css`) : la scène du lieu au fond, ses enseignes
+   dessus, le cartouche en haut à gauche, Partir en haut à droite, la compagnie en bandeau, une page sur parchemin à
+   droite pour ce qu'on ouvre. Les cadres du kit, placés en absolu sur 1280 × 720, suivent ici leurs conteneurs. */
+html, body { height: 100%; background: #0d0b1e; color: var(--creme); color-scheme: dark; overflow: hidden; }
+body { font: 16px/1.5 "Spectral", Georgia, serif; }
 button { font: inherit; color: inherit; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--or-eclat); outline-offset: 3px; }
 .gothique { font-family: "Grenze Gotisch", serif; }
+p { margin: 0; }
+#jeu, .ecran { position: fixed; inset: 0; }
+:root { --bandeau: 132px; --gouttiere-g: max(16px, env(safe-area-inset-left, 0px)); --gouttiere-d: max(16px, env(safe-area-inset-right, 0px)); }
 
 /* le kit dans le flux */
 .cadre { position: relative; padding: 9px; }
-.cadre > .fond { height: auto; padding: 26px 20px 20px; }
-.cadre > .fond.parchemin { color: var(--encre); }
-.cadre > .fond:not(.parchemin) { background: radial-gradient(130% 120% at 50% 0%, rgba(59,39,24,.55), rgba(13,8,6,.9)); }
+.cadre > .fond { height: auto; padding: 22px 18px 18px; }
+.cadre > .fond:not(.parchemin) { background: radial-gradient(130% 120% at 50% 0%, rgba(59,39,24,.75), rgba(13,8,6,.94)); }
 .ruban { font-family: "Grenze Gotisch", serif; font-weight: 600; }
 button.plaque { border: 0; cursor: pointer; color: inherit; font: inherit; flex: none; }
 button.plaque > div { width: 100%; }
@@ -27,122 +27,141 @@ button.plaque:hover:not(:disabled) > div { color: var(--or-eclat); box-shadow: i
 button.plaque.armee:hover:not(:disabled) > div { color: var(--encre); filter: brightness(1.06); }
 button.plaque:disabled { cursor: not-allowed; }
 .plaque .prix { margin-left: 10px; }
-.plaque > div > span:first-of-type { overflow: hidden; text-overflow: ellipsis; }
+.parchemin { color: var(--encre); }
 .parchemin .glose, .parchemin .sous-titre { color: var(--encre-2); }
 .parchemin .nom-propre { color: var(--sepia); text-shadow: none; }
 .portrait > .initiale { width: 100%; height: 100%; display: grid; place-items: center; font-size: 20px; color: var(--ivoire); background: radial-gradient(90% 80% at 50% 28%, var(--ennemi-clair), var(--ennemi) 60%, var(--ennemi-sombre)); }
-.lien { background: none; border: 0; padding: 4px 2px; font-family: "IM Fell English SC", serif; letter-spacing: 1px; color: var(--creme-2); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
-.lien:hover { color: var(--or-eclat); }
+.lien { background: none; border: 0; padding: 4px 2px; font-family: "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .gestes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.gestes .plaque { flex: 0 1 auto; }
+.gestes.colonne { flex-direction: column; align-items: stretch; }
 .etats, .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.vide { margin: 0; }
-p { margin: 0; }
+.niveaux { display: inline-flex; gap: 5px; margin-top: 4px; }
+.niveaux i { width: 9px; height: 9px; transform: rotate(45deg); box-shadow: inset 0 0 0 1px var(--trait-encre); }
+.niveaux i.plein { background: linear-gradient(135deg, var(--or-eclat), var(--laiton)); box-shadow: 0 0 0 1px var(--laiton-ombre); }
+.vie { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-family: "IM Fell English SC", serif; letter-spacing: .6px; color: var(--creme-2); }
+.vie .chiffres { font-family: "Open Sans", sans-serif; letter-spacing: 0; color: var(--ivoire); }
+.parchemin .vie { color: var(--encre-2); }
+.parchemin .vie .chiffres { color: var(--encre); }
 
-/* bandeau du hameau : l'illustration du kit, la ville au crépuscule */
-.bandeau { position: relative; min-height: 210px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 30px max(16px, env(safe-area-inset-left, 0px)) 22px;
-  background: url(hameau.jpg) center bottom / cover no-repeat, var(--chene-nuit); display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
-.bandeau::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,0) 45%, rgba(13,8,6,.85) 100%); pointer-events: none; }
-.bandeau > * { position: relative; }
-.bandeau h1 { margin: 0; font: 600 64px/0.95 "Grenze Gotisch", serif; letter-spacing: .5px; color: var(--or-eclat); background: linear-gradient(180deg, var(--ivoire), var(--or) 55%, var(--or-moyen)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 3px 4px rgba(0,0,0,.8)); }
-.bandeau.en-route { background: url(bivouac.jpg) center 62% / cover no-repeat, var(--chene-nuit); min-height: 240px; }
-.bandeau.en-route h1 { font-size: 52px; }
-.bandeau .sous-titre { margin-top: 6px; font-size: 14px; letter-spacing: 2px; color: var(--creme); text-shadow: 0 1px 3px #000; }
-#ressources { display: flex; gap: 8px; flex-wrap: wrap; }
-#ressources .etiquette { height: 26px; font-size: 13.5px; padding: 0 12px; }
+/* la scène : un panorama qui défile à l'horizontale quand l'écran est étroit */
+.panorama { position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; background: linear-gradient(180deg, #0d0b1e 55%, #110c17 85%, #060408); }
+.panorama::-webkit-scrollbar { display: none; }
+/* sur un écran de bureau, tout le village tient en largeur ; sur un écran étroit, il garde sa hauteur et défile */
+.toile { position: absolute; left: 0; bottom: 40px; width: max(100vw, calc((100dvh - 200px) * 1600 / 720)); aspect-ratio: 1600 / 720; }
+.toile::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 40px; background: #060408; }
+.toile .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene .bat { cursor: pointer; transition: filter .2s; }
+.scene .bat:hover { filter: brightness(1.35) drop-shadow(0 0 10px rgba(255,190,110,.35)); }
+.enseigne { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border: 0; border-radius: 3px; cursor: pointer; text-align: left;
+  background: radial-gradient(130% 140% at 50% 0%, var(--chene), var(--chene-nuit) 80%); box-shadow: 0 6px 14px var(--ombre-forte), 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or); transition: transform .15s; white-space: nowrap; }
+.enseigne::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 12px; height: 12px; transform: translateX(-50%) rotate(45deg); background: var(--chene-nuit); box-shadow: 1px 1px 0 var(--filet-or); }
+.enseigne:hover, .enseigne.ouverte { transform: translate(-50%, -100%) translateY(-3px); box-shadow: 0 8px 18px var(--ombre-forte), 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or-vif), 0 0 16px var(--halo); }
+.enseigne .nom { display: block; font-size: 17px; line-height: 1.1; color: var(--ivoire); }
+.enseigne .sous { display: block; font: 11.5px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--creme-2); }
+.enseigne.ruine { background: radial-gradient(130% 140% at 50% 0%, var(--fer-mat), var(--fer-sombre) 80%); }
+.enseigne.ruine .nom { color: var(--creme-2); }
+.pastille-batir { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--or-eclat), var(--laiton)); box-shadow: 0 0 10px var(--halo-vif), 0 0 0 1px var(--laiton-ombre); animation: pouls 1.6s ease-in-out infinite; }
+@keyframes pouls { 50% { transform: scale(1.25); } }
 
-/* rangées */
-.rangee { display: grid; gap: 22px; align-items: start; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
-.grille { display: grid; gap: 16px; }
-.heros-liste { grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
-.batiments { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px 26px; }
-.deux { display: grid; gap: 30px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+/* cartouche du lieu, en haut à gauche */
+.cartouche-lieu { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: var(--gouttiere-g); width: min(380px, calc(100vw - 32px)); display: grid; gap: 10px; z-index: 3; }
+.cartouche-lieu .fond { padding: 12px 14px; display: grid; gap: 10px; }
+.cartouche { display: flex; align-items: center; gap: 12px; }
+.cartouche .titre { font-size: 30px; line-height: 1.05; margin: 0; white-space: normal; }
+.ressources { display: flex; flex-wrap: wrap; gap: 6px; }
+.recit-lieu { font-style: italic; font-size: 15.5px; line-height: 1.45; color: var(--creme); max-width: 360px; }
 
-/* destinations */
-.destination { display: grid; gap: 10px; align-content: start; }
-.destination .plaque { justify-self: start; margin-top: 6px; }
-.destination.fermee { grid-template-columns: auto 1fr; align-items: center; gap: 14px; }
+/* coin droit : Partir, puis les outils */
+.coin-droit { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); right: var(--gouttiere-d); width: 300px; display: grid; gap: 14px; z-index: 3; }
+.partir { display: grid; gap: 10px; padding-top: 4px; }
+.outils { display: flex; justify-content: flex-end; gap: 14px; }
+.seul-etroit { display: none; }
+.outil { background: none; border: 0; padding: 0; cursor: pointer; display: grid; justify-items: center; gap: 4px; }
+.outil .bouton-rond { display: block; }
+.outil .bouton-rond > span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, var(--chene), var(--chene-nuit) 70%); box-shadow: inset 0 0 0 1px var(--ombre-forte), inset 0 2px 5px var(--ombre-forte); }
+.outil .libelle { font: 11.5px "IM Fell English SC", serif; letter-spacing: .7px; color: var(--creme); text-shadow: 0 1px 3px #000; }
+.outil:hover .bouton-rond { box-shadow: 0 4px 8px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 12px var(--halo); }
+.bandeau-victoire { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 8px 36px; font-size: 26px; color: var(--ivoire); background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or); clip-path: polygon(0 0,100% 0,calc(100% - 12px) 50%,100% 100%,0 100%,12px 50%); z-index: 3; }
 
-/* héros */
-.barre-compagnie { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.heros-carte { display: grid; gap: 12px; align-content: start; padding: 12px; background: linear-gradient(180deg, rgba(59,39,24,.45), rgba(27,16,10,.6)); border-radius: 3px; box-shadow: 0 0 0 1px var(--filet-or), inset 0 0 18px var(--ombre); min-width: 0; }
-.heros-carte.hors { box-shadow: 0 0 0 1px var(--cire), inset 0 0 18px var(--ombre); }
-.heros-carte.hors .portrait > div { filter: grayscale(.8) brightness(.7); }
-.tete-h { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
-.tete-h .qui { min-width: 0; display: grid; gap: 3px; }
-.tete-h .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vie { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; font-size: 12.5px; }
-.vie .rubrique { font-family: "IM Fell English SC", serif; font-size: 12px; color: var(--creme-2); }
+/* bandeau de la compagnie */
+.bandeau-heros { position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(1180px, calc(100vw - 32px)); z-index: 4; }
+.bandeau-heros .fond { padding: 10px; }
+.rang-heros { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: thin; }
+.carte-heros { flex: 1 0 236px; max-width: 290px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 3px; cursor: pointer; text-align: left;
+  background: linear-gradient(180deg, rgba(59,39,24,.5), rgba(27,16,10,.7)); box-shadow: inset 0 0 0 1px var(--filet-or); }
+.carte-heros:hover, .carte-heros.choisi { box-shadow: inset 0 0 0 1px var(--filet-or-vif), 0 0 14px var(--halo); }
+.carte-heros .qui { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.carte-heros .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-heros .ligne-etat { font-size: 12.5px; font-style: italic; color: var(--creme-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-heros.hors .portrait > div { filter: grayscale(.8) brightness(.6); }
+.carte-heros.hors .ligne-etat { color: var(--cire-clair); }
+.vide { margin: 4px 8px; }
+
+/* la page ouverte, sur parchemin */
+.page { position: absolute; right: var(--gouttiere-d); top: max(14px, env(safe-area-inset-top, 0px)); max-height: calc(100dvh - var(--bandeau) - 36px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100vw - 32px)); z-index: 5; display: flex; }
+.page > .cadre { flex: 1; display: flex; min-height: 0; }
+.page > .cadre > .fond { flex: 1; overflow-y: auto; display: grid; gap: 14px; align-content: start; padding-top: 30px; scrollbar-width: thin; }
+.croix { position: absolute; top: 14px; right: 16px; z-index: 2; width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 28px; color: var(--or);
+  background: radial-gradient(circle at 40% 30%, var(--chene), var(--chene-nuit) 70%); box-shadow: 0 2px 4px var(--ombre-forte), 0 0 0 1px var(--contour); }
+.tete-page { display: flex; gap: 14px; align-items: center; }
+.tete-page .qui { flex: 1; display: grid; gap: 3px; }
+.glose.consigne { font-size: 16px; line-height: 1.45; }
+.batir { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--filet-encre); }
+.batir .plaque { justify-self: start; }
+.cout { color: var(--rouille); font-weight: 600; }
+.acheve { color: var(--vert); }
+.liste-h, .destinations, .tombes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.liste-h li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); }
+.liste-h .qui, .tombes li { display: grid; min-width: 0; font-size: 13.5px; color: var(--encre-2); }
+.liste-h .qui b, .tombes b { font-size: 17px; color: var(--sepia); font-weight: 600; }
+.destinations li { display: grid; gap: 4px; padding: 10px 12px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); }
+.destinations .detail { font: 12.5px "IM Fell English SC", serif; letter-spacing: .8px; color: var(--rouille); }
+.destinations .plaque { justify-self: start; margin-top: 4px; }
 .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin: 0; text-align: center; }
-.stats div { padding: 4px 0 3px; background: var(--lit); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--filet-or); }
-.stats dt { font-family: "IM Fell English SC", serif; font-size: 11.5px; letter-spacing: .8px; color: var(--creme-2); }
-.stats dd { margin: 0; font-size: 15px; color: var(--ivoire); font-variant-numeric: tabular-nums; }
+.stats div { padding: 4px 0 3px; border-radius: 2px; background: var(--voile-fort); box-shadow: inset 0 0 0 1px var(--filet-encre); }
+.stats dt { font: 11.5px "IM Fell English SC", serif; letter-spacing: .8px; color: var(--rouille); }
+.stats dd { margin: 0; font-size: 15px; color: var(--encre); }
 .meta .glose { font-size: 13px; }
-
-/* relais */
-.liste { display: grid; gap: 10px; }
-.candidat { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 8px 10px; border-radius: 3px; background: rgba(27,16,10,.55); box-shadow: 0 0 0 1px var(--filet-or); }
-.candidat .qui { min-width: 0; }
-
-/* chronique, sur parchemin */
+.entrainement { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.entrainement th { font: 12px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-align: left; padding: 4px; }
+.entrainement td { padding: 4px; border-top: 1px solid var(--filet-encre); }
+.entrainement .plaque { width: 110px; }
 .chronique { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14.5px; line-height: 1.45; }
-.chronique li { padding-left: 14px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
+.chronique li { padding-left: 12px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
 .chronique li:first-child { color: var(--encre); }
-
-/* bâtiments */
-.batiment { display: grid; gap: 8px; align-content: start; }
-.tete-b { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
-.batiment > .glose { font-size: 14.5px; line-height: 1.45; min-height: 2.9em; color: var(--creme); font-style: italic; }
-.suite-b { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--filet-creme); }
-.suite-b p { font-size: 14px; color: var(--creme-2); }
-.suite-b .plaque { justify-self: start; }
-.acheve { color: var(--vert-clair); }
-
-/* tombes */
-.tombes { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; columns: 2 320px; }
-.tombes .gothique { font-size: 18px; color: var(--ivoire); }
-.pied { text-align: center; }
-
-/* expédition */
-.titre-expe { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-.titre-expe .titre { font-size: 36px; line-height: 1.1; margin: 0; white-space: normal; }
-.butin { display: flex; gap: 8px; flex-wrap: wrap; }
-.piste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; position: relative; }
-.piste::before { content: ""; position: absolute; left: 6%; right: 6%; top: 27px; height: 2px; background: var(--filet-or); }
-.piste li { position: relative; display: grid; justify-items: center; gap: 6px; flex: 1 1 70px; }
-.piste li .medaillon.moyen { margin-top: 7px; }
-.piste li.ici .sous-titre { color: var(--or-eclat); }
-.piste li.ici .medaillon { box-shadow: 0 3px 6px var(--ombre-forte), 0 0 18px var(--halo-vif); }
-.salle { display: grid; gap: 14px; }
-.suite-b .cout { color: var(--or); font-size: 14px; }
-.candidat .glose { font-size: 13px; }
-.illustration { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; object-position: center 70%; border-radius: 2px; box-shadow: 0 0 0 1px var(--trait-encre), 0 4px 10px var(--ombre); }
-.salle .glose.consigne { font-size: 18px; }
-
-/* fenêtres */
-.modale { position: fixed; inset: 0; z-index: 20; background: rgba(5,3,2,.78); display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
-.boite { width: min(620px, 100%); max-height: calc(100% - 10px); display: flex; flex-direction: column; }
-.boite > .fond { overflow: auto; display: grid; gap: 14px; padding-top: 30px; }
 .choix { display: grid; gap: 8px; }
-.choix label { display: grid; grid-template-columns: auto auto 1fr; gap: 12px; align-items: center; padding: 6px 10px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; }
+.choix label { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; }
 .choix label.coche { background: var(--voile-fort); box-shadow: inset 0 0 0 1px var(--trait-encre); }
 .choix label.hors { opacity: .45; cursor: not-allowed; }
 .choix input { width: 18px; height: 18px; accent-color: var(--cire); }
-.choix .qui { display: grid; }
-.choix .qui b { font-size: 18px; color: var(--sepia); font-weight: 600; }
-.choix .qui .sous { font-size: 13.5px; color: var(--encre-2); }
-.entrainement { width: 100%; border-collapse: collapse; font-size: 15px; }
-.entrainement th { font: 12.5px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-align: left; padding: 4px; }
-.entrainement td { padding: 5px 4px; border-top: 1px solid var(--filet-encre); }
-.entrainement .plaque { width: 130px; }
+.choix .qui { display: grid; font-size: 13.5px; color: var(--encre-2); }
+.choix .qui b { font-size: 17px; color: var(--sepia); font-weight: 600; }
+
+/* l'expédition */
+.fond-expe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 70%; }
+.expedition::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 40%, rgba(0,0,0,.55)); pointer-events: none; z-index: 1; }
+.piste-cadre { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); z-index: 3; }
+.expedition .cartouche-lieu { z-index: 4; }
+.piste { list-style: none; margin: 0; padding: 4px 0 0; display: flex; justify-content: space-between; gap: 8px; position: relative; }
+.piste::before { content: ""; position: absolute; left: 8%; right: 8%; top: 31px; height: 2px; background: var(--filet-or); }
+.piste li { position: relative; display: grid; justify-items: center; gap: 4px; flex: 1; }
+.piste li .medaillon.moyen { margin-top: 7px; }
+.piste li.ici .sous-titre { color: var(--or-eclat); }
+.piste li.ici .medaillon { box-shadow: 0 3px 6px var(--ombre-forte), 0 0 18px var(--halo-vif); }
+.salle-cadre { position: absolute; right: var(--gouttiere-d); top: 50%; transform: translateY(-62%); width: min(380px, calc(100vw - 32px)); z-index: 3; }
+.salle-cadre .fond { display: grid; gap: 12px; }
+
+/* fenêtres */
+.modale { position: fixed; inset: 0; z-index: 20; background: rgba(5,3,2,.72); display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top, 0px)) var(--gouttiere-d) max(16px, env(safe-area-inset-bottom, 0px)) var(--gouttiere-g); }
+.boite { width: min(600px, 100%); max-height: calc(100% - 10px); display: flex; flex-direction: column; }
+.boite > .fond { overflow: auto; display: grid; gap: 14px; padding-top: 30px; }
 .recit { display: grid; gap: 8px; font-size: 16px; }
 .recit.defaite p:first-child { color: var(--sang); }
-.issue-finale { text-align: center; padding: 22px; background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or), 0 6px 18px var(--ombre); }
-.issue-finale .gothique { font-size: 36px; color: var(--ivoire); }
+.illustration { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; object-position: center 70%; border-radius: 2px; box-shadow: 0 0 0 1px var(--trait-encre), 0 4px 10px var(--ombre); }
 
 /* combat */
 #combat { position: fixed; inset: 0; z-index: 30; overflow: auto; background: radial-gradient(120% 90% at 50% 0%, var(--chene-nuit), var(--lit) 70%);
-  padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(14px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  padding: max(14px, env(safe-area-inset-top, 0px)) var(--gouttiere-d) max(14px, env(safe-area-inset-bottom, 0px)) var(--gouttiere-g); }
 .arene-cadre { max-width: 1060px; margin: 0 auto; display: grid; gap: 16px; }
 .arene-cadre > header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .arene-cadre > header .titre { font-size: 34px; line-height: 1.1; margin: 0; }
@@ -188,18 +207,30 @@ p { margin: 0; }
 #combat-fin-place { display: flex; justify-content: center; min-height: 52px; }
 #combat-fin-place .plaque { width: min(360px, 100%); }
 
-#toast { position: fixed; z-index: 40; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 3px; color: var(--encre);
+#toast { position: fixed; z-index: 40; left: 50%; bottom: calc(var(--bandeau) + 30px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 3px; color: var(--encre);
   background: var(--parchemin); background-image: var(--tex-parchemin); background-blend-mode: multiply; box-shadow: 0 8px 20px var(--ombre-forte), inset 0 0 0 1px var(--trait-encre); }
-#chargement { padding: 60px 0; text-align: center; font-style: italic; color: var(--creme-2); }
+#chargement { padding: 60px 16px; text-align: center; font-style: italic; color: var(--creme-2); }
 
-@media (prefers-reduced-motion: reduce) { .pion, .pion .pv i { transition: none; } .pion.touche .disque, .degat { animation: none; } }
-@media (max-width: 760px) { .arene-corps { grid-template-columns: 1fr; } .effectifs { grid-template-columns: 1fr 1fr; column-gap: 14px; } .effectifs .sous-titre:nth-of-type(2) { grid-row: 1; grid-column: 2; } .effectifs ul[data-camp="ennemi"] { grid-column: 2; grid-row: 2; } }
-@media (max-width: 520px) { .bandeau h1 { font-size: 46px; } .bandeau { min-height: 170px; } .candidat { grid-template-columns: auto 1fr; } .candidat .plaque { grid-column: 1 / -1; } .vitesse { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .pion, .pion .pv i { transition: none; } .pion.touche .disque, .degat, .pastille-batir { animation: none; } }
+@media (max-width: 900px) {
+  .coin-droit { width: auto; left: var(--gouttiere-g); top: calc(max(14px, env(safe-area-inset-top, 0px)) + 132px); }
+  .coin-droit > .cadre { display: none; }
+  .seul-etroit { display: contents; }
+  .outils { justify-content: flex-start; gap: 6px; }
+  .outil { width: 76px; }
+  .outil .libelle { font-size: 10.5px; letter-spacing: .3px; }
+  .outil .bouton-rond.grand { width: 44px; height: 44px; }
+  .recit-lieu { display: none; }
+  .cartouche-lieu { width: min(330px, calc(100vw - 32px)); }
+  .salle-cadre { top: auto; bottom: calc(var(--bandeau) + 22px); transform: none; left: var(--gouttiere-g); right: var(--gouttiere-d); width: auto; }
+  .piste-cadre { top: 150px; }
+  .arene-corps { grid-template-columns: 1fr; }
+  .effectifs { grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  .effectifs .sous-titre:nth-of-type(2) { grid-row: 1; grid-column: 2; }
+  .effectifs ul[data-camp="ennemi"] { grid-column: 2; grid-row: 2; }
+}
 </style>
-<div class="page">
-  <header class="bandeau"><div><h1 id="titre">Grisefosse</h1><div class="sous-titre" id="sous-titre">Compagnie franche du Reikland</div></div><div id="ressources"></div></header>
-  <main id="vue"><p id="chargement">Le noyau de règles se charge…</p></main>
-</div>
+<div id="jeu"><p id="chargement">Le noyau de règles se charge…</p></div>
 <div id="modale"></div>
 <div id="combat" hidden></div>
 <div id="toast" role="status" hidden></div>

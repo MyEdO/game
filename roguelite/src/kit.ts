@@ -76,3 +76,7 @@ export const medaillon = (nom: string, taille: 'grand' | 'moyen' | 'petit' = 'mo
 /** La jauge du kit (`cire` : la vie). */
 export const jauge = (part: number, { teinte = 'cire', taille = 'fine' } = {}): string =>
   `<div class="jauge ${teinte} ${taille}"><i style="width:${Math.max(0, Math.min(1, part)) * 100}%"></i></div>`;
+
+/** Le bouton rond du kit, à pictogramme, et son libellé dessous (l'« outil » du kit). */
+export const rond = (nom: string, libelle: string, attrs: string, taille: 'moyen' | 'grand' = 'grand'): string =>
+  `<button type="button" class="outil" ${attrs}><span class="bouton-rond laiton ${taille}"><span>${picto(nom, taille === 'grand' ? 24 : 20)}</span></span><span class="libelle">${libelle}</span></button>`;
