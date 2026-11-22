@@ -17,7 +17,9 @@ son armature. Sous `--preset`, un rigide que le jeu range (`rangementsObjets` du
 pose là où le jeu le range, sur l'emplacement de la base ou la case de la pièce qui l'offre, au repos comme à l'image du
 clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`poses_des_ranges`,
 `hotes/godot/asset/posesDesRanges.mjs`, #4351) ; un élément porté plusieurs fois par le preset se donne autant de fois,
-chaque `--element` montant à son tour la ligne suivante du preset. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
+chaque `--element` montant à son tour la ligne suivante du preset. Sous `--preset`, les formes de la tête que le jeu pose
+au preset se posent aussi, sur tout mesh qui les porte, une forme que `--silhouettes` nomme gardant le poids qu'il lui
+donne (`silhouettesSousLePreset`, `posesDesRanges.mjs`). `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
 la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
 y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
@@ -88,9 +90,9 @@ def lire_cadre(texte):
     return cadre
 
 
-def poser_les_silhouettes(bpy, poids):
-    """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom qu'aucun mesh ne
-    porte arrête le rendu."""
+def poser_les_silhouettes(bpy, poids, exigees):
+    """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom d'`exigees` qu'aucun
+    mesh ne porte arrête le rendu."""
     poses = {nom: [] for nom in poids}
     for obj in bpy.context.scene.objects:
         cles = obj.data.shape_keys if obj.type == 'MESH' else None
@@ -101,7 +103,7 @@ def poser_les_silhouettes(bpy, poids):
             cle.slider_min, cle.slider_max = min(cle.slider_min, valeur), max(cle.slider_max, valeur)
             cle.value = valeur
             poses[nom].append(obj.name)
-    absentes = sorted(nom for nom, objets in poses.items() if not objets)
+    absentes = sorted(nom for nom in exigees if not poses[nom])
     if absentes:
         raise ValueError(f'--silhouettes : {absentes} portée(s) par aucun mesh')
     return poses
@@ -241,16 +243,16 @@ VERS_BLENDER = ((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1))
 
 
 def poses_des_ranges(base, manifeste, elements, preset, silhouettes, clip=None, t=0):
-    """Par GLB d'`elements`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne
-    par colonne) où le jeu range ce mesh sous le `preset`, `None` s'il ne le montre pas rangé, au repos ou à l'instant
-    `t` du `clip` (`hotes/godot/asset/posesDesRanges.mjs`). Une ligne du preset sans GLB donné se dit sur la sortie
-    d'erreur."""
+    """`(poses, poids)` : par GLB d'`elements`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF
+    (16 nombres, colonne par colonne) où le jeu range ce mesh sous le `preset`, `None` s'il ne le montre pas rangé, au
+    repos ou à l'instant `t` du `clip` ; les poids des `silhouettes` sous le `preset` que cet instant pose
+    (`hotes/godot/asset/posesDesRanges.mjs`). Une ligne du preset sans GLB donné se dit sur la sortie d'erreur."""
     demande = {'base': str(base), 'manifeste': str(manifeste), 'elements': [str(e) for e in elements], 'preset': preset,
                'silhouettes': silhouettes, **({'clip': clip, 't': t} if clip else {})}
     reponse = json.loads(lancer(DEPOT / 'hotes' / 'godot' / 'asset' / 'posesDesRanges.mjs', [], json.dumps(demande)))
     if reponse['sans']:
         print(f"--preset {preset} : ligne(s) montée(s) par le jeu sans --element répété : {', '.join(reponse['sans'])}", file=sys.stderr)
-    return reponse['elements']
+    return reponse['elements'], reponse['silhouettes']
 
 
 def ranger(elements, poses):
@@ -625,7 +627,7 @@ def main():
     parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
                         help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
     parser.add_argument('--element', action='append', default=[], help='GLB d\'élément monté sur la base --input')
-    parser.add_argument('--preset', help='id du preset de personnage dont la palette colore les surfaces')
+    parser.add_argument('--preset', help='id du preset de personnage dont la palette colore les surfaces et dont les formes de la tête se posent')
     parser.add_argument('--clip', help='clip de la base posé avant le rendu')
     parser.add_argument('--image', type=int, default=1, help='image du clip posée')
     parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
@@ -646,6 +648,7 @@ def main():
     manifeste_de_base = {} if chemin is None else json.loads(chemin.read_text(encoding='utf-8'))
     deplacements = deplacements_des_os(lire_glb(source)[0], manifeste_de_base.get('gabarit', {}).get('osDesSilhouettes', {}),
                                        args.silhouettes)
+    poids = args.silhouettes
     if args.element or args.preset or args.clip or deplacements:
         rigs = [obj for obj in base if obj.type == 'ARMATURE']
         if len(rigs) != 1:
@@ -673,10 +676,11 @@ def main():
             # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
             cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
             instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
-            ranger(elements, poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
-                                              args.silhouettes, **instant))
+            poses, poids = poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
+                                            args.silhouettes, **instant)
+            ranger(elements, poses)
             bpy.context.view_layer.update()
-    silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
+    silhouettes = poser_les_silhouettes(bpy, poids, args.silhouettes)
     relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
     if relief is not None:
         accuser_le_relief(base, {s['nom'] for s in manifeste_de_base.get('surfaces', []) if s['palette'] == 'peau'}, relief)
@@ -703,7 +707,7 @@ def main():
                         value = socket.default_value
                         inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
-    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
+    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': poids[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     render = studio(bpy, low, center, extent, output, start)
     cible, etendue = (Vector(args.cadre[:3]), args.cadre[3]) if args.cadre else (center, extent)
     if args.isometric_only:

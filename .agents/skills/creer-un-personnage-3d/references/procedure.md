@@ -194,7 +194,9 @@ traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `
 cibles de MakeHuman lues sommet à sommet), et leur clé `feminin` ajoute à celle du corps l'écart de MakeHuman
 entre ses deux sexes. Les noms admis sont la liste fermée
 `NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
-un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
+un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur et `rendu.py` posent une forme de la tête par son
+nom (`--silhouettes`) ; sous `--preset <id>`, ils posent celles que le jeu pose au preset (`silhouettesSousLePreset`,
+`hotes/godot/asset/posesDesRanges.mjs`), une forme que `--silhouettes` nomme gardant le poids qu'il lui donne. Le
 validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
 exactement les silhouettes et les `formesDeTete` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
 la base (`shape-key-non-declaree`, `shape-key-absente`). L'hôte pose leurs poids : le preset
