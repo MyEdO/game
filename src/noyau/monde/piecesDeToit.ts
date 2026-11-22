@@ -312,7 +312,7 @@ export function piecesDuGroupe(groupId: string, pans: readonly PanDuGroupe[], me
     const def = roofMaterial(pan.couverture);
     if (!piece || !def.kit || !def.ridgeCap) return [];
     const { kit, ridgeCap } = def;
-    return tronconsDeLArete(a, b, etendueCouverte(a, b, pan.cells)).filter(([ta, tb]) => posable(pans, versants, ta, tb)).map(([ta, tb]): PieceDeToitPosee => {
+    return tronconsDeLArete(a, b, etendueCouverte(a, b, pan.cells)).filter(([ta, tb]) => posable(pans, versants, ta, tb, demi)).map(([ta, tb]): PieceDeToitPosee => {
       const cases = casesDuSegment(ta, tb, pan.cells, pan.z);
       return {
         cle: `${piece}|${groupId}|${cle3(ta)}|${cle3(tb)}`,
@@ -336,26 +336,23 @@ export function piecesDuGroupe(groupId: string, pans: readonly PanDuGroupe[], me
   });
 }
 
-/** La pièce d'un tronçon `ta`→`tb` couvre une case : en l'un de ses bouts ou en son milieu, une demi-case de part et
- *  d'autre du faîte, l'un des pans les plus hauts des pans `pans` du groupe doit être l'un des `versants` du faîte (même
+/** La pièce d'un tronçon `ta`→`tb` est posable : en l'un de ses bouts ou en son milieu, à `demi` (cases, la demi-largeur
+ *  de pose `DEMI_LARGEUR_DE_POSE_M` convertie) de part et d'autre du faîte, l'un des pans les plus hauts des pans `pans` du groupe doit être l'un des `versants` du faîte (même
  *  plan). Sinon un autre pan passe au-dessus de la pose sur toute sa longueur, là où les versants se resserrent (le faîte
  *  d'une enveloppe qui rejoint la croupe commune) ; un croisement de faîtes ne la retire pas. */
-function posable(pans: readonly PanDuGroupe[], versants: readonly [PanDuGroupe, PanDuGroupe], ta: GP, tb: GP): boolean {
+function posable(pans: readonly PanDuGroupe[], versants: readonly [PanDuGroupe, PanDuGroupe], ta: GP, tb: GP, demi: number): boolean {
   const m = { x: (ta.x + tb.x) / 2, y: (ta.y + tb.y) / 2 };
   const l = Math.hypot(tb.x - ta.x, tb.y - ta.y);
   const n = { x: -(tb.y - ta.y) / l, y: (tb.x - ta.x) / l };
   const plan = (p: PanDuGroupe, q: Pt) => p.poly[0].h + p.gx * (q.x - p.poly[0].x) + p.gy * (q.y - p.poly[0].y);
   const memePlan = (p: PanDuGroupe, v: PanDuGroupe) => Math.abs(p.gx - v.gx) < EPS && Math.abs(p.gy - v.gy) < EPS && Math.abs(plan(p, m) - plan(v, m)) < EPS;
   return [ta, m, tb].some((o) => [-1, 1].every((cote) => {
-    const q = { x: o.x + cote * DEMI_POSE * n.x, y: o.y + cote * DEMI_POSE * n.y };
+    const q = { x: o.x + cote * demi * n.x, y: o.y + cote * demi * n.y };
     const sous = pans.filter((p) => dansLePan(p.poly, q));
     const haut = Math.max(...sous.map((p) => plan(p, q)));
     return sous.some((p) => plan(p, q) > haut - EPS && versants.some((v) => memePlan(p, v)));
   }));
 }
-
-/** La demi-largeur (cases) que couvre la pièce d'un tronçon de part et d'autre de son faîte. */
-const DEMI_POSE = 0.5;
 
 /** Le point `q` est-il dans le polygone `poly` (repère des cases centrées), bord compris ? */
 function dansLePan(poly: readonly GP[], q: Pt): boolean {
