@@ -309,9 +309,9 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
     return pairesHorsDeZone(ranges, vetements.filter((v) => !offerts.has(v)), zoneDuMembre, voisines, triangles).map((p) => ({ ...p, objet: libelle(p.membre) }));
   });
-  const rigidesPercesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
+  const rigidesEnfoncesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
     const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
-    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).percements;
+    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).enfoncements;
   });
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
     traversees.push(...mesurerTraversee(couches.liaisons, e));
@@ -328,7 +328,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
   if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
-  ecarts.push(...gardeRigideRangeAuRepos(rigidesPercesAuRepos, libelle));
+  ecarts.push(...gardeRigideRangeAuRepos(rigidesEnfoncesAuRepos, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {

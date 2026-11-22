@@ -261,7 +261,7 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
-  à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
+  à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
@@ -383,7 +383,9 @@ arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un ob
 la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
 de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
 la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
-pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe. Une pose isolée se demande à
+pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe : la profondeur où il s'enfonce derrière
+un vêtement qu'il traverse, quelle que soit la longueur qui ressort devant ; tout entier derrière, comme sous une cape,
+il ne le traverse pas. Une pose isolée se demande à
 `node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
 chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
@@ -618,8 +620,8 @@ retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON V
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
 Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : la capture du preset
-dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, sous
-`dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
+dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, puis `gros-plan` : le visage de face, au zoom
+minimal de la molette, sous `dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
 côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 

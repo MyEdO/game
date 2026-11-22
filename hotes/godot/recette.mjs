@@ -215,7 +215,8 @@
 //   montée dans la scène ou nommée manquante ; la fusion porte la pile des couches (#3842), au bilan de l'évaluateur
 //   sur les mêmes éléments et les mêmes formes ; avec `--instant <s>`, posé au clip `--clip` à cet instant, en pause
 //   (onglet Animation, image par image) ; puis capturé de face, de trois quarts, de profil et de dos (glissés au bouton
-//   droit de l'orbite) : ce que le jeu montrera d'un preset.
+//   droit de l'orbite), enfin de face en gros plan, la molette tournée jusqu'au zoom minimal de l'orbite, qui monte
+//   sa visée sur la tête : ce que le jeu montrera d'un preset.
 // - `vision` (`--scenario grimpant`, #3950) : la fenêtre du round à l'Entrée, l'ennemi en vue a son corps posé et son
 //   rang dans l'ordre du tour ; sous chaque regard que la touche V offre au combat (tactique et plateau, `regardDuJeu`
 //   y rendant la tactique pour l'immersion), la caméra posée au même point par `wfrpCadrer` (`CADRAGES_DE_LA_VISION`),
@@ -4264,8 +4265,17 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-/** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, profil, puis dos. */
-const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['profil', -Math.PI / 2], ['dos', Math.PI]]
+/** Les vues capturées par le parcours `preset` : le lacet de l'orbite, en radians depuis la face (trois quarts, profil,
+ *  dos, puis de nouveau la face), et, pour le gros plan, le zoom avant à fond. */
+const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['profil', -Math.PI / 2], ['dos', Math.PI], ['gros-plan', 0, true]]
+/** Les crans de molette qui portent l'orbite de son cadre à son zoom minimal, où le zoom se borne
+ *  (`MiseEnPage.echelle_zoomee`) : plus qu'il n'en faut, un cran de trop n'y change rien. */
+const CRANS_DU_ZOOM_MINIMAL = 20
+/** Le point de la scène de l'atelier, hors du panneau, où la molette zoome et autour duquel glisse l'orbite. */
+const SCENE_DE_L_ATELIER = { surface: 'canvas', x: 850, y: 360 }
+/** La course d'un glissé de l'orbite, en pixels, centrée sur `SCENE_DE_L_ATELIER` : elle tient entre le panneau, qui
+ *  prend le mouvement de la souris, et le bord de la fenêtre. */
+const COURSE_DE_L_ORBITE = 400
 /** Chaque élément de la composition (`composition.montes`) monté dans la scène (`montes` et `lignes` de l'atelier), ses
  *  GLB lus : une capture plus tôt montre les premiers objets seuls. */
 const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.element).map((m) => m.element).sort())
@@ -4323,7 +4333,8 @@ async function poserLInstant(clip, instant) {
 }
 
 /** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts, de profil
- *  et de dos : sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion
+ *  et de dos, puis de face en gros plan, la molette tournée de `CRANS_DU_ZOOM_MINIMAL` crans sur la scène, chaque
+ *  glissé de l'orbite tenu dans la scène (`COURSE_DE_L_ORBITE`) : sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion
  *  porte la pile des couches de l'évaluateur (`prouverLaPile`) ; avec `--instant`, posé au clip `--clip` à cet instant
  *  (`poserLInstant`). */
 async function parcoursPreset() {
@@ -4344,11 +4355,15 @@ async function parcoursPreset() {
   await prouverLaPile()
   const pose = o.instant === undefined ? '' : `-${o.clip}-${(await poserLInstant(o.clip, Number(o.instant))).toFixed(2)}s`
   let lacet = 0
-  for (const [nom, cible] of VUES_DU_PRESET) {
-    const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)
-    const pas = Math.ceil(Math.abs(dx) / 10)
-    if (dx) await geste(session, { surface: 'canvas', x: 1000, y: 360 }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
+  for (const [nom, cible, dePres] of VUES_DU_PRESET) {
+    for (let reste = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL); reste;) {
+      const dx = Math.sign(reste) * Math.min(Math.abs(reste), COURSE_DE_L_ORBITE)
+      const pas = Math.ceil(Math.abs(dx) / 10)
+      await geste(session, { ...SCENE_DE_L_ATELIER, x: SCENE_DE_L_ATELIER.x - Math.round(dx / 2) }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
+      reste -= dx
+    }
     lacet = cible
+    if (dePres) await molette(session, SCENE_DE_L_ATELIER, -CRAN_DE_MOLETTE, { crans: CRANS_DU_ZOOM_MINIMAL })
     await capturer(`preset-${preset.id}${pose}-${nom}`)
   }
 }
