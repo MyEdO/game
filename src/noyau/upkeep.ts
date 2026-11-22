@@ -29,6 +29,7 @@
 import { battleRng } from './battleRng';
 import { porteursABord, tickCampaignVesselWeek } from './shipCrew';
 import { WORLD_STEP_OWNER } from './pendings';
+import { estBateauFluvial } from './worldMap';
 import { avancerLesMaladies } from '../engine/disease';
 import { dayIndex } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepas, rationsDeCale } from '../engine/provisions';
@@ -99,13 +100,14 @@ export function purgeSurAvanceDHorloge(get: Get, set: Set, minutes: number): voi
 }
 
 /** Les maladies de l'équipage collectif (`porteursABord`) avancent de `minutes`, sans cycle de fiche, au port comme
- *  en mer. Navire à quai (`escale`), chaque journée franchie compte un repas frais, noté avant le pas. RENVOIE les
+ *  en mer. Navire maritime à quai, chaque journée franchie compte un repas frais, noté avant le pas. RENVOIE les
  *  lignes (déjà au journal). MDG 14 l.39, l.208, l.232 ; #4243 */
 function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
   const equipage = porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER);
   if (!equipage) return [];
   const now = get().gameTime;
-  if (get().vessel?.escale !== undefined) {
+  const { vessel } = get();
+  if (vessel?.escale !== undefined && !estBateauFluvial(vessel)) {
     for (let jours = dayIndex(now) - dayIndex(now - minutes); jours > 0; jours--) noterLeRepas(equipage.porteur, 'repas');
   }
   const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng());

@@ -197,6 +197,20 @@
       "note": "ch.5 « Navigation fluviale » — S’échouer (l.97-99)."
     }
   },
+  "permanentRepairCarpenterPenalty": -10,
+  "permanentRepairGoldPerDamage": 1,
+  "permanentRepairWounds": {
+    "dice": {
+      "n": 1,
+      "sides": 10
+    }
+  },
+  "permanentRepairHours": {
+    "dice": {
+      "n": 1,
+      "sides": 10
+    }
+  },
   "temporaryRepair": {
     "woundsPerRepair": {
       "dice": {

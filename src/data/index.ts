@@ -1212,8 +1212,8 @@ export const SYMPTOM_SEVERITIES = ['moderee', 'grave'] as const;
 export type MutationData = EntreeDe<typeof mutationsDef>;
 export const mutations = datasetDe<typeof mutationsDef>(mutationsJson);
 export const mutationTables = datasetDe<typeof tablesDeCorruption>(mutationTablesJson);
-/** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `tableId`) —
- *  loader + lookup fail-fast dans `data/effectTables.ts` (importe le type `GameOp` du moteur, réservé). */
+/** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `table: { id }`) —
+ *  chargement et recherche par id dans `data/effectTables.ts`, depuis le schéma du dataset. */
 export { effectTables, findEffectTableById } from './effectTables';
 const mutationParId = indexParId('mutations', mutations);
 /** Résout une Mutation (entité) par son `id` STABLE — lookup DONNÉE sans cycle (le résolveur de tirage

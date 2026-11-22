@@ -77,13 +77,13 @@ describe('opValue — CONTRÔLE (condition) = aiThreat de etats.json', () => {
 
 describe('opValue — INVOCATION', () => {
   it('summon ALLIÉ → > 0 (vaut la créature invoquée)', () => {
-    expect(opValue(op({ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBeGreaterThan(0);
+    expect(opValue(op({ op: 'summon', creature: { id: 'loup' }, count: 1, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBeGreaterThan(0);
   });
   it('summon HORS DE CONTRÔLE (allyOfCaster:false, démon non lié) → 0 pour le lanceur', () => {
-    expect(opValue(op({ op: 'summon', ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }), combatant(), combatant(), ctxOf())).toBe(0);
+    expect(opValue(op({ op: 'summon', creature: { id: 'sanguinaire-de-khorne' }, count: 1, allyOfCaster: false }), combatant(), combatant(), ctxOf())).toBe(0);
   });
   it('summon à réf IRRÉSOLUBLE → le proxy borné (6 par créature), sans lever (#2097)', () => {
-    expect(opValue(op({ op: 'summon', ref: 'creature-absente', count: 2, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBe(12);
+    expect(opValue(op({ op: 'summon', creature: { id: 'creature-absente' }, count: 2, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBe(12);
   });
 });
 
@@ -92,7 +92,7 @@ describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silenci
     expect(opValue(op({ op: 'grantTalent', ref: 'x', times: 1 }), combatant(), combatant(), ctxOf())).toBeGreaterThan(0);
   });
   it('op HOSTILE non explicitement câblée (contractDisease) → petit + (contrôle)', () => {
-    expect(opValue(op({ op: 'contractDisease', ref: 'x' }), combatant(), combatant({ id: 'h' }), ctxOf())).toBeGreaterThan(0);
+    expect(opValue(op({ op: 'contractDisease', disease: { id: 'pneumonie' } }), combatant(), combatant({ id: 'h' }), ctxOf())).toBeGreaterThan(0);
   });
   it('op NEUTRE / inconnue → 0 (pas de gain inventé)', () => {
     expect(opValue(op({ op: '__inconnue__' }), combatant(), combatant(), ctxOf())).toBe(0);

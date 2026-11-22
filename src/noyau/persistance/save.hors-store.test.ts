@@ -66,6 +66,42 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
+  it('réserve la reprise de la carte et de la coque à la transition de l’amarrage', () => {
+    const etat: EtatDeJeu = {
+      ...etatInitialDuJeu(),
+      lieu: 'quai',
+      worldMap: {
+        id: 'reik', label: 'Reik',
+        places: [{ id: 'quai', label: 'Quai', pos: { x: 10, y: 20 }, scene: { id: 'quai' } }],
+        routes: [],
+      },
+      vessel: {
+        uid: 'navire-1', vehicleId: 'barge-fluviale', wounds: { current: 48, max: 60 },
+        morale: { score: 50, lastMoraleWeek: 0, factors: [] },
+      },
+    };
+    const courante = snapshotSave(etat, '2026-11-22T06:30:00.000Z');
+    const ancienne = { ...courante, version: '3bdb6fe66470f1fe' };
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(
+      courante.version === '8f9224af02d1831d' ? courante : 'autreFormat',
+    );
+    expect(lireSave(exporterLaSauvegarde({ ...ancienne, version: 'e8e579742f3dbb30' }))).toBe('autreFormat');
+
+    const carte = etat.worldMap!;
+    const avecCale = snapshotSave({
+      ...etat,
+      worldMap: {
+        ...carte,
+        places: carte.places.map((lieu) => ({ ...lieu, amarrage: 'cale-seche', constructeurDeBateaux: 43, materiauxCaleSeche: true })),
+      },
+    }, courante.savedAt);
+    expect(lireSave(exporterLaSauvegarde(avecCale))).toEqual(avecCale);
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {
     const fiche = combattantDeTest({ id: 'heros-usure', kind: 'heros' });
     const banc = ouvrirLeBanc({ etat: { party: [fiche] } });

@@ -17,6 +17,10 @@ import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
 import { actorIn, inBattleId } from './monde/combatants';
+import { placeCombatant } from './monde/spawn';
+import { flowFromEffects } from './monde/flow';
+import { poserLeGroupe } from './marcheDuGroupe';
+import { chuteSurEchecDEscalade } from './monde/climbMove';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
@@ -215,8 +219,23 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
         // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
         // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
-        const branch = effSuccess ? pt.onSuccess : pt.onFailure;
         const avant = comptePasDifferes(get());
+        let branch = effSuccess ? pt.onSuccess : pt.onFailure;
+        if (pt.escalade) {
+          const etat = get();
+          const grimpeur = actorIn(etat, pt.actorId);
+          if (effSuccess) {
+            if (!etat.battle) poserLeGroupe(get, set, pt.escalade.arrivee);
+            else if (grimpeur) {
+              placeCombatant(grimpeur, etat.scene, pt.escalade.arrivee);
+              set(touchActors(get()));
+              bus.emit(EVT.SCENE_DIRTY);
+            }
+          } else {
+            const chute = chuteSurEchecDEscalade(pt.escalade, pt.sl, lance, grimpeur);
+            if (chute) branch = flowFromEffects([chute]);
+          }
+        }
         const issue = pt.subi
           ? reprendreTestSubi(get, set, pt, effSuccess)
           : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);

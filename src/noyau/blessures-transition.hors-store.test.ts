@@ -14,12 +14,11 @@ import { blesseDeTest } from '../engine/combattantDeTest.testkit';
 import { ID_DE_PORTEUR, PORTEURS } from '../engine/porteursDePassifs.testkit';
 import { createHero } from '../engine/character';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
-import type { OpPassive } from '../engine/ops';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const plus3 = (): OpPassive[] => [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
+const plus3 = () => [{ op: 'attrMod' as const, attr: 'wounds' as const, mod: 3 }];
 
 afterEach(() => resetData());
 

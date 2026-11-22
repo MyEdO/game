@@ -8677,7 +8677,9 @@
               "ops": [
                 {
                   "op": "contractDisease",
-                  "disease": "infection-mineure"
+                  "disease": {
+                    "id": "infection-mineure"
+                  }
                 }
               ]
             }
@@ -8733,7 +8735,9 @@
             "kind": "has",
             "who": "target",
             "what": "immunity",
-            "value": "poison"
+            "ref": {
+              "id": "poison"
+            }
           }
         },
         "menace": "poison",
@@ -8883,7 +8887,9 @@
         "kind": "has",
         "who": "target",
         "what": "group",
-        "value": "elfe"
+        "ref": {
+          "id": "elfe"
+        }
       },
       "alors": {
         "kind": "effet",
@@ -9036,7 +9042,9 @@
                           "kind": "has",
                           "who": "target",
                           "what": "immunity",
-                          "value": "poison"
+                          "ref": {
+                            "id": "poison"
+                          }
                         }
                       },
                       "menace": "poison"
@@ -9566,7 +9574,9 @@
         "ops": [
           {
             "op": "suppressSymptom",
-            "symptomId": "bubons"
+            "symptom": {
+              "id": "bubons"
+            }
           },
           {
             "op": "diseaseTestMod",
@@ -9720,7 +9730,9 @@
                 "every": 1,
                 "amount": 1
               },
-              "disease": "blessure-purulente"
+              "disease": {
+                "id": "blessure-purulente"
+              }
             }
           ]
         }
@@ -9811,7 +9823,9 @@
                           "kind": "has",
                           "who": "target",
                           "what": "immunity",
-                          "value": "poison"
+                          "ref": {
+                            "id": "poison"
+                          }
                         }
                       },
                       "menace": "poison"
@@ -9897,7 +9911,9 @@
               "n": 1,
               "sides": 10
             },
-            "disease": "verole-du-tanneur"
+            "disease": {
+              "id": "verole-du-tanneur"
+            }
           },
           {
             "op": "diseaseTestMod",
@@ -18534,7 +18550,9 @@
             "ops": [
               {
                 "op": "rollTable",
-                "tableId": "vdm-maladie-coups-de-poing-maudits"
+                "table": {
+                  "id": "vdm-maladie-coups-de-poing-maudits"
+                }
               }
             ]
           }

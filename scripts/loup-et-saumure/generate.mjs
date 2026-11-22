@@ -250,7 +250,7 @@ scenes.push(scene({
               // id `pretre-sans-peche`).
               label: 'Demander la bénédiction du navire',
               flow: flowOf([
-                { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'pretre-sans-peche' }] },
+                { type: 'ops', on: 'navire', ops: [{ op: 'manann', facteur: { id: 'pretre-sans-peche' } }] },
                 { type: 'setFlag', flag: 'ls_benediction_aldo' },
               ]),
               next: { id: 'a-benediction' },
@@ -258,19 +258,19 @@ scenes.push(scene({
             {
               id: 'faire-petit-sacrifice',
               label: 'Faire un petit sacrifice (une pièce jetée à la mer)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -1 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'petit-sacrifice' }] }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -1 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', facteur: { id: 'petit-sacrifice' } }] }]),
               next: { id: 'a-petit' },
             },
             {
               id: 'faire-sacrifice-moyen',
               label: 'Faire un sacrifice moyen (une gemme de votre bourse)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -20 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'sacrifice-moyen' }] }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -20 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', facteur: { id: 'sacrifice-moyen' } }] }]),
               next: { id: 'a-moyen' },
             },
             {
               id: 'faire-grand-sacrifice',
               label: 'Faire un grand sacrifice (une vache entière, la moitié des provisions)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -50 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'grand-sacrifice' }] }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -50 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', facteur: { id: 'grand-sacrifice' } }] }]),
               next: { id: 'a-grand' },
             },
             { id: 'demander-origine-ordre', label: 'Lui demander l’origine de son ordre', next: { id: 'a-origine' } },

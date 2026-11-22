@@ -26,7 +26,7 @@ import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
-import { lieuDuGroupe, placeById, type MapPlace } from './worldMap';
+import { estBateauFluvial, lieuDuGroupe, placeById, type MapPlace } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -195,18 +195,16 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
 }
 
-/** Refus de tout geste sur le navire de campagne au port : sans navire, ou navire qui n'est pas à quai (`vessel.escale`)
- *  au lieu du groupe ; `null` sinon. SOURCE UNIQUE de la présence du navire au port, lue par l'entrée au port
- *  (`ouvrirLePort`, hub du lieu) et par `refusDeGesteAQuai`. MDG 15 l.319 */
+/** Présence du navire de campagne à quai au lieu du groupe. MDG 15 l.319 ; MSRC 7 l.109-111 */
 export function refusAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap'>): string | null {
   if (!s.vessel) return t('port.sansNavire');
   return s.vessel.escale !== undefined && s.vessel.escale === lieuDuGroupe(s)?.id ? null : t('port.pasAQuai');
 }
 
-/** Refus d'un geste à quai sur le navire ou la bourse du groupe (chantier, équipage, avitaillement) : siège invité
- *  (`refusDeGesteSurLeGroupe`), puis `refusAQuai` ; `null` sinon. Le refus que lisent leurs devis. */
+/** Refus d'un geste maritime à quai : chantier, équipage, avitaillement. */
 export function refusDeGesteAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap' | 'net'>): string | null {
-  return refusDeGesteSurLeGroupe(s) ?? refusAQuai(s);
+  return refusDeGesteSurLeGroupe(s) ?? refusAQuai(s)
+    ?? (s.vessel && estBateauFluvial(s.vessel) ? t('port.gesteMaritimeIndisponible') : null);
 }
 
 /** Génère les offres d'ACHAT de l'escale (l.319-331) : Production + Surplus (Enc = (Taille+Richesse+

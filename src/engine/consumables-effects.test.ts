@@ -94,7 +94,7 @@ describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
     const then = onHitVeninThen('lotus-noir');
     expect(then.test.skill).toEqual({ id: 'resistance' });
     expect(then.test.difficulty).toBe('complexe');
-    expect(then.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: 'poison' } }); // LDB 85 l.174
+    expect(then.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', ref: { id: 'poison' } } }); // LDB 85 l.174
   });
   it("échec du Test → 2 états Empoisonné : « subissent immédiatement 2 États Empoisonnés »", () => {
     const then = onHitVeninThen('lotus-noir');
@@ -131,7 +131,7 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
     const test = f.etapes.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
     expect(test.test.exceptGroups).toEqual(['peau-verte']);
     expect(test.test.difficulty).toBe('intermediaire');
-    expect(consumableOps(test.echec)).toEqual([{ op: 'contractDisease', disease: 'infection-mineure' }]);
+    expect(consumableOps(test.echec)).toEqual([{ op: 'contractDisease', disease: { id: 'infection-mineure' } }]);
   });
   it('Durée « mâché plus 2d10 minutes » → consumableDuration 2d10 min (borne basse RAW, mastication non modélisée)', () => {
     expect(itemFromTrappingById('bonnet-de-fou', idsDeTest)!.consumableDuration).toEqual({ minutes: { dice: { n: 2, sides: 10 } } });
@@ -155,7 +155,7 @@ describe('delice-de-ranald (LDB 71 l.24)', () => {
 describe('fleur-de-lune (LDB 71 l.26-29)', () => {
   it('Elfes : « +30 à tous les Tests associés pour résister à la [Peste noire] » (branche if has group elfe)', () => {
     const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'si' }>;
-    expect(f.condition).toEqual({ kind: 'has', who: 'target', what: 'group', value: 'elfe' });
+    expect(f.condition).toEqual({ kind: 'has', who: 'target', what: 'group', ref: { id: 'elfe' } });
     expect(consumableOps(f.alors)).toEqual([{ op: 'diseaseTestMod', diseases: ['peste-noire'], amount: 30 }]);
   });
   it('autres races : Test de FM Très difficile — raté → Inconscient (1d10+5 h) ; réussi → +20 Calme + 1 Exténué', () => {
@@ -259,7 +259,7 @@ describe('gesundheit (MSRC 04 l.184-186) — Test de Résistance Accessible (+20
   it('succès → reduceDiseaseDays SCOPÉ blessure-purulente, échelle daysPerSL 1/DR — jamais fixe', () => {
     const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(consumableOps(f.reussite)).toEqual([
-      { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' },
+      { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: { id: 'blessure-purulente' } },
     ]);
   });
   it('échec → aucune réduction (le Test n\'a pas été réussi)', () => {

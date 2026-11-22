@@ -194,7 +194,7 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
     const def = activityById('mendier')!;
     const bandes = matchOutcomes(def, { success: false, sl: -7 });
     expect(bandes).toHaveLength(1);
-    expect(bandes[0].ops).toEqual([{ op: 'rollTable', tableId: 'mendier-ennuis' }]);
+    expect(bandes[0].ops).toEqual([{ op: 'rollTable', table: { id: 'mendier-ennuis' } }]);
     expect(matchOutcomes(def, { success: false, sl: -2 })).toEqual([]);
     expect(matchOutcomes(def, { success: false, sl: -6 })).toHaveLength(1);
   });

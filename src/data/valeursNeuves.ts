@@ -5,10 +5,10 @@
  * (`statblockDeLaCreature`). Le défaut d'une union fermée est son PREMIER membre, lu au
  * schéma. Les fabriques qui lisent le moteur ou le monde vivent au noyau (`noyau/valeursNeuves.ts`).
  */
-import { EMPTY_FLOW, type Condition, type FlowTestNode } from '../engine/flowCore';
+import { EMPTY_FLOW, type Condition } from '../engine/flowCore';
 import type { CustomStatblock } from '../engine/statblock';
 import { semencesDeScene, type CreatureData } from './index';
-import type { Effect, FlowDeScene, TestDeScene } from './schemas/defs-scenes/effets';
+import type { FlowDeScene } from './schemas/defs-scenes/effets';
 import { actorRefSchema, partyWhoSchema, startleCauseSchema } from './schemas/grammaire/mecanique';
 import { hitLocationSchema } from './schemas/grammaire/valeurs';
 
@@ -49,7 +49,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };
     case 'capability': return cond.kind === 'capability' ? cond : { kind: 'capability', who: ACTEUR, id: 'braveheart', op: '>=', value: 1 };
     case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: ACTEUR, is: 'adversaire' };
-    case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: ACTEUR, what: 'group', value: '' };
+    case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: ACTEUR, what: 'group', ref: { id: '' } };
     case 'casterChaosDomain': return cond.kind === 'casterChaosDomain' ? cond : { kind: 'casterChaosDomain', is: 'nurgle' };
     case 'skill': return cond.kind === 'skill' ? cond : { kind: 'skill', id: '', who: HEROS };
     case 'talent': return cond.kind === 'talent' ? cond : { kind: 'talent', id: '', who: HEROS };
@@ -84,7 +84,7 @@ export function statblockDeLaCreature(c: CreatureData): CustomStatblock {
 
 /** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). Un nœud de
  *  document de scène, donc une instance de tout Flow de feuille `Effect`. */
-export const noeudTestNeuf = (): FlowTestNode<Effect, TestDeScene, number> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
+export const noeudTestNeuf = (): Extract<FlowDeScene, { kind: 'test' }> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
 
 /** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
 export function blocNeuf(kind: Exclude<FlowDeScene['kind'], 'sequence' | 'effet'>): FlowDeScene {

@@ -110,7 +110,7 @@ export function opsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs: re
  * CHAMPS D'OP À SLOT, lus STATIQUEMENT sur `OP_DEFS` : pour chaque op (chaque membre objet d'une union
  * comprise), chaque champ dont le sous-arbre porte une feuille `idDe`. Une op IMBRIQUÉE (`z.lazy` vers
  * `gameOpSchema`) n'y compte pas : chaque op a son entrée ici.
- * Clé : `op.champ`, la graphie de `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`).
+ * Chaque champ est identifié par sa clé `op.champ`.
  */
 export function champsDOpASlot(opDefs: Readonly<Record<string, unknown>> = OP_DEFS): Set<string> {
   const out = new Set<string>();

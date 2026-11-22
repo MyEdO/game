@@ -354,7 +354,9 @@
             "ops": [
               {
                 "op": "contractDisease",
-                "disease": "blessure-purulente"
+                "disease": {
+                  "id": "blessure-purulente"
+                }
               }
             ],
             "on": "target"

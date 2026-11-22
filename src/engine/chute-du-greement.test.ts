@@ -14,6 +14,7 @@ import { schema as shipCriticalsSchema } from '../data/schemas/defs/ship-critica
 import type * as shipCriticalsDef from '../data/schemas/defs/ship-criticals';
 import shipCriticalsJson from '../data/ship-criticals.json';
 import { datasetDe } from '../data/datasets';
+import { setEnTete } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
@@ -215,9 +216,17 @@ describe('l’op `fall` NOMME ses anomalies (règle 7 : jamais un repli muet)', 
     expect(c.wounds.current, 'rien n’a été appliqué en douce').toBe(200);
   });
 
-  it('table de hauteur inconnue : anomalie nommée', () => {
-    expect(() => applyOps(cible(), [{ op: 'fall', hauteur: { table: { id: 'tomberDeLaLune' } } }], { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }))
-      .toThrow(/table de hauteur inconnue/);
+  it('une table de hauteur référencée absente du catalogue vivant est nommée à l’exécution', () => {
+    const ops = opsDEchec(10);
+    const tables = SHIP_CRIT_SET.tablesDeChute!;
+    expect(tables.some((table) => table.id === 'tomberDuGreement')).toBe(true);
+    setEnTete('shipCriticalsCoque', [{ ancetre: '', champ: 'tablesDeChute', valeur: [] }]);
+    try {
+      expect(() => applyOps(cible(), ops, { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }))
+        .toThrow(/table de hauteur inconnue.*tomberDuGreement/);
+    } finally {
+      setEnTete('shipCriticalsCoque', [{ ancetre: '', champ: 'tablesDeChute', valeur: tables }]);
+    }
   });
 
   it('station sans colonne de hauteur : anomalie nommée', () => {

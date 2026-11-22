@@ -170,24 +170,24 @@ describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC
 
 describe('FK des ops de symptôme : une coquille est REFUSÉE AU PARSE (#674 M1)', () => {
   const op = (patch: Record<string, unknown>) =>
-    gameOpSchema.safeParse({ op: 'aggravateSymptom', disease: 'pneumonie', symptomId: 'fievre', severity: 'grave', ...patch });
+    gameOpSchema.safeParse({ op: 'aggravateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' }, severity: 'grave', ...patch });
 
   it('la forme JUSTE passe', () => {
     expect(op({}).success).toBe(true);
   });
 
-  it('`symptomId` coquillé → refusé (la chaîne ne peut plus tomber en silence sur l’échelon suivant)', () => {
-    expect(op({ symptomId: 'fievr' }).success).toBe(false);
+  it('`symptom.id` coquillé → refusé (la chaîne ne peut plus tomber en silence sur l’échelon suivant)', () => {
+    expect(op({ symptom: { id: 'fievr' } }).success).toBe(false);
   });
 
-  it('`disease` coquillé → refusé', () => {
-    expect(op({ disease: 'pneumoni' }).success).toBe(false);
+  it('`disease.id` coquillé → refusé', () => {
+    expect(op({ disease: { id: 'pneumoni' } }).success).toBe(false);
   });
 
   it('`grantSymptom` porte les MÊMES deux clés étrangères', () => {
-    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: 'pneumonie', symptomId: 'toxine' }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: 'pneumonie', symptomId: 'toxin' }).success).toBe(false);
-    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: 'pneumoni', symptomId: 'toxine' }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'toxine' } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'toxin' } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'grantSymptom', disease: { id: 'pneumoni' }, symptom: { id: 'toxine' } }).success).toBe(false);
   });
 });
 

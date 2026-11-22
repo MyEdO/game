@@ -24,11 +24,19 @@
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
 import type { z } from 'zod';
-import type { IconId } from '../data/icons';
-import type { effectTargetingSchema, effectTriggerSchema, flowTestSchema, testFixeSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
+import type {
+  ArbreDeFlow,
+  EffetDeclencheMoteur,
+  JetDecidable,
+  Condition,
+  effectTargetingSchema,
+  effectTriggerSchema,
+  flowTestSchema,
+  testFixeSchema,
+} from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
 import type { CharKey, EffectSource, HitLocation } from './types';
-import { relationBetween, type Camp, type Relation } from './relations';
+import { relationBetween, type Camp } from './relations';
 import { groupMatch } from './groups';
 import {
   estOpDAttaquesSubies,
@@ -41,12 +49,10 @@ import { valeurNonLiee } from './formule';
 import type { Formula, GameOp } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id } from '../data/schemas/grammaire/ref';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
 import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
-import type { Status } from './money';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { estObjet } from '../lib/objet.mjs';
 
@@ -166,123 +172,7 @@ export interface ActorView {
  *  Référence non désignée → le prédicat sélectionné est faux. */
 export type PartySelector = 'any' | 'all' | { etat: string };
 
-export type Condition =
-  | { kind: 'always' }
-  /** ET de drapeaux avec négation : « v1,!v2 » ⇔ flags.v1 && !flags.v2 (sémantique `condMet`). */
-  | { kind: 'flag'; expr: string }
-  /** Fenêtre horaire (heure-du-jour, `before` exclusif) — sémantique `temporalConditionMet`. */
-  | { kind: 'time'; window: TemporalCondition }
-  | { kind: 'hasItem'; objet: { id: string }; count?: number }
-  /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre) : un montant, ou une
-   *  valeur LIÉE du Flow en sous de cuivre (`{brass: {tire}}`, substituée par `lierLesTirages`) — « la bourse
-   *  couvre la rançon tirée » (MDG 15 l.245-247). */
-  | { kind: 'money'; atLeast: Purse | { brass: { tire: string } } }
-  /** État vital du groupe : `any` = au moins un héros mort, `all` = tous morts, `{etat}` = le héros désigné
-   *  est mort. */
-  | { kind: 'partyDead'; who: PartySelector }
-  /** ÉTAT DE CAMPAGNE `etat` (registre `narratif.etats`, valeur `GameState.etats`) : sans `value`, « est
-   *  défini » ; avec `value`, égal à cette valeur — EDO 02 l.27. */
-  | { kind: 'etat'; etat: string; value?: string }
-  /** Un héros du groupe (`any`) OU tous (`all`, défaut `any`) possède la Compétence `id` (`spec` éventuel)
-   *  avec au moins `advances` avances (défaut 0 = simple possession) — #711, gate de dialogue party-level. */
-  | { kind: 'skill'; id: string; spec?: string; advances?: number; who?: PartySelector }
-  /** Un héros du groupe (`any`/`all`) exerce la carrière `id` (`Combatant.career`) — #711. */
-  | { kind: 'career'; id: string; who?: PartySelector }
-  /** Un héros du groupe (`any`/`all`) porte le Talent `id` (`spec` éventuelle : Béni (Manann)) — gate
-   *  « un Prêtre ou une Nonne de Manann à bord » (MDG 15 l.197-198, l.230-232). */
-  | { kind: 'talent'; id: string; spec?: string; who?: PartySelector }
-  /** Un héros du groupe (`any`/`all`) est de l'espèce `id` (`Combatant.species`) — #711. */
-  | { kind: 'species'; id: string; who?: PartySelector }
-  /** Un héros du groupe (`any`/`all`) a un Statut (LDB 08, `actorStatus`) au moins `atLeast` — #711. */
-  | { kind: 'status'; atLeast: Status; who?: PartySelector }
-  /** COMPARAISON sur un ACTEUR du Flow (cible OU lanceur) — UNIQUE Condition « données d'acteur » :
-   *  `subject` (`who` × donnée fixe OU valeur d'un État) · `op` (≥ ≤ = < >) · `value`. `value` est une
-   *  CONSTANTE ou le champ d'un AUTRE acteur (« cible plus petite que l'attaquant » ⇔
-   *  `{who:'target',field:'size'} '<' {who:'caster',field:'size'}`). Régénération « PB > 0 » ⇔
-   *  `{who:'target',field:'woundsCurrent'} >= 1`. Acteur absent → false. `factor` met à l'échelle la valeur
-   *  référencée (« la MOITIÉ de l'Endurance » ⇔ `{who:'target',characteristic:'endurance',factor:0.5}`, Voie d'eau). */
-  | { kind: 'compare'; subject: CompareSubject; op: CompareOp; value: number | (CompareSubject & { factor?: number }) }
-  /** Seuil de MARGE / DR du contexte (`ctx.sl`) : vrai si `sl ≥ atLeast`. Permet d'authorer les issues
-   *  échelonnées d'une manœuvre (Regard pétrifiant : « si la marge atteint 6 DR → Pétrifié », LDB 85
-   *  l.238) en GameOp Flow — `if slThreshold(6) → … else if slThreshold(2) → …`. Hors contexte = 0. */
-  | { kind: 'slThreshold'; op: CompareOp; value: number }
-  /** Localisation touchée par l'attaque courante (`ctx.location`, dé inversé) — Assommante : « si vous
-   *  touchez la Tête… ». Hors contexte d'attaque (location absente) = jamais vrai. */
-  | { kind: 'location'; is: HitLocation }
-  /** KIND de l'attaque courante (`ctx.attackKind` : 'morsure'/'cornes'/'caudale'/… cf. `creatureAttackKind`)
-   *  — gate « seulement quand l'attaque est une Morsure » (Vampirique). Hors contexte = jamais vrai. */
-  | { kind: 'attackKind'; is: string }
-  /** CAUSE d'un effarouchement courant (`ctx.startleCause` : 'noise' bruits forts / 'magic' présence de
-   *  magie — LDB 85 l.197 Nerveux) — gate l'exemption Dressé (Guerre ignore les bruits, Magie ignore la
-   *  magie, LDB 85 l.110). Hors contexte d'effarouchement = jamais vrai. */
-  | { kind: 'startleCause'; is: 'noise' | 'magic' }
-  /** Blessures infligées par l'attaque/lancement courant (`ctx.woundsDealt`), comparées par `op` à
-   *  `value` (Venin : `> 0` → Empoisonné ; un rider « coup lourd » : `>= 3`). Hors contexte = 0. */
-  | { kind: 'woundsDealt'; op: CompareOp; value: number }
-  /** Écart d'Avantage avec les adversaires Engagés (`ctx.engagedAdvantageGap`), comparé par `op` à `value`
-   *  (Instable : `> 0` → la créature est repoussée et perd des PB, LDB 85 l.177). Hors combat = 0. */
-  | { kind: 'engagedAdvantageGap'; op: CompareOp; value: number }
-  /** AVANCE d'Avantage sur TOUS les adversaires Engagés (`ctx.engagedAdvantageLead` = son Avantage − le
-   *  meilleur Avantage ennemi engagé), SIGNÉE et non bornée, comparée par `op` à `value`. C'est l'INVERSE
-   *  non-clampé de `engagedAdvantageGap` (qui mesure de combien un ennemi DÉPASSE le porteur, ≥ 0) : `> 0`
-   *  = le porteur a un Avantage STRICTEMENT supérieur à TOUS ses adversaires engagés (Absorption « si la
-   *  créature a un Avantage plus élevé que tous les adversaires engagés », EDO 11 l.222). Hors combat / sans
-   *  foe engagé = 0. */
-  | { kind: 'engagedAdvantageLead'; op: CompareOp; value: number }
-  /** Y a-t-il un adversaire VIVANT dans la Ligne de Vue de `target` (`ctx.foeInLoS`) ? Géométrie d'arène
-   *  emballée en donnée (au-dessus de `lineOfSightCover`) : sortie de Frénésie « plus d'ennemi en vue → fin »
-   *  (LDB 21 l.35), fuite/récupération du Brisé « hors de vue de l'ennemi » (LDB 16 l.52). Hors combat = false. */
-  | { kind: 'foeInLoS' }
-  /** La Cible de l'affliction psychologique qui porte l'effet a-t-elle encore un membre dans la Ligne de Vue du
-   *  porteur (`ctx.cibleEnVue`, précalculé) ? `hostiles` : un membre qui ne s'est pas calmé. Réservée aux
-   *  `effects` de `psychology.json` (régime de famille `condition.cibleEnVue`). LDB 21 l.19, l.39, l.48 ; #3045 */
-  | { kind: 'cibleEnVue'; hostiles?: true }
-  /** Aucun adversaire VIVANT ne voit l'acteur (sens foe→acteur, ≠ `foeInLoS` acteur→foe) — « caché hors de
-   *  vue de l'ennemi » (Brisé, LDB 16 l.54/56 : retrait sans Test + difficulté Accessible). Précalculé sur
-   *  la battle (`ctx.hiddenFromFoes`). Hors combat = false. */
-  | { kind: 'hiddenFromFoes' }
-  /** L'acteur est-il ENGAGÉ avec un adversaire (LDB 13 l.159) ? Gate de récupération du Brisé (LDB 16 l.54 :
-   *  aucun Test si Engagé). Précalculé (`ctx.engaged`). Hors combat = false. */
-  | { kind: 'engaged' }
-  /** Le Test courant est-il un TEST D'ÉQUIPAGE à bord (MDG 14) ? Gate du bonus « Commandant émérite »
-   *  (MDG 09 l.54 : « à bord de votre bateau ou impliquant votre équipage »). Hors Test d'équipage = false. */
-  | { kind: 'crewTest' }
-  /** Le Test courant se joue-t-il pendant un Round de combat (`ctx.roundDeCombat`) ? Ligne « Tests : » de
-   *  Pansement de fortune et de Chirurgie (LDB 10 l.182, l.897). Hors contexte = false. */
-  | { kind: 'roundDeCombat' }
-  /** Distance (cases) à l'adversaire VIVANT le plus proche, comparée par `op` à `value` (Brisé,
-   *  LDB 16 l.54). Précalculée (`ctx.nearestFoeDist`). Aucun adversaire / hors combat = +∞. */
-  | { kind: 'nearestFoe'; op: CompareOp; value: number }
-  /** Niveau d'une CAPACITÉ de combat (`CombatFeature`) de l'acteur `who`, comparé par `op` (défaut `>=`) à
-   *  `value` (défaut 1) — Cœur vaillant (`braveheart`) octroyable par talent OU effet. Acteur absent = 0. */
-  | { kind: 'capability'; who: ActorRef; id: string; op?: CompareOp; value?: number }
-  /** Camp / RELATION d'un acteur (`who`) — gate « seulement les ennemis / les alliés / les neutres »
-   *  (riders de domaine offensifs : `who:'target', is:'adversaire'`). `allie`/`adversaire` sont RELATIFS à
-   *  l'autre acteur (même camp / camp différent) ; `groupe`/`neutre`/`hostile` sont ABSOLUS (le `kind`).
-   *  Acteur(s) absent(s) = false. */
-  | { kind: 'relation'; who: ActorRef; is: Relation | Camp }
-  /** L'acteur (`who`) POSSÈDE un élément : appartenance à un **Groupe** (faction, via `groupMatch`),
-   *  un **Talent** (par id, `spec` éventuel — « Magie des Arcanes (Feu) »), un **Trait** (par id), ou
-   *  un **état psychologique** actif (par type — `psych`, ex. 'frenesie' : gate du Contrôle de la
-   *  Frénésie, LDB 10), ou une **Immunité** à un Type de Dégâts (par id — Immunité (Poison) : Venin sans
-   *  effet ; gate d'un Test de poison). Généralise la gate op-level `onlyGroups`. Acteur absent = false. */
-  | { kind: 'has'; who: ActorRef; what: 'talent'; value: string; spec?: string }
-  | { kind: 'has'; who: ActorRef; what: 'group' | 'trait' | 'psych' | 'immunity'; value: string }
-  /** Le Domaine du Chaos du LANCEUR (`ctx.caster.chaosDomain`, `chaosDomainOf`) est-il `is` ? Gate
-   *  GÉNÉRIQUE de tout Sort d'Arcanes du Chaos « se manifestant selon le Domaine spécifique » (EDOC 13
-   *  l.264-266) — la branche du Flow sélectionne sa colonne (Allure démoniaque : Nurgle/Slaanesh/Tzeentch/
-   *  Indivisible). Lanceur sans Domaine résolu → toutes les branches sont fausses (bug de données côté
-   *  authoring : un Sort d'Arcanes du Chaos exige le Talent Magie du Chaos). */
-  | { kind: 'casterChaosDomain'; is: string }
-  /** L'acteur (`who`) montre-t-il un passif VISIBLE (`ActorView.visiblePassive` — une lésion apparente,
-   *  émise `visible` par sa source) ? Gate d'apparence : « à quel point votre apparence peut susciter la
-   *  sympathie » (LDB 09 l.97). Acteur absent = false. */
-  | { kind: 'visiblePassive'; who: ActorRef }
-  /** L'acteur (`who`) est-il un NAVIRE (`ActorView.navire`) ? #4202. Acteur absent = false. */
-  | { kind: 'navire'; who: ActorRef }
-  | { kind: 'all'; of: Condition[] }
-  | { kind: 'any'; of: Condition[] }
-  | { kind: 'not'; of: Condition };
+export type { Condition } from '../data/schemas/grammaire/mecanique';
 
 /** Contexte d'évaluation d'une Condition (lecture seule) — ensemble CLOS : drapeaux, horloge, et état
  *  VIVANT du groupe (mort/inventaire/bourse). `party`/`money` absents → les conditions d'état sont false. */
@@ -448,11 +338,11 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'has': {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;
       if (!a) return false;
-      if (cond.what === 'group') return groupMatch(cond.value, a.groups);
-      if (cond.what === 'talent') return a.talents.some((t) => refCouvre({ id: cond.value, spec: cond.spec }, t));
-      if (cond.what === 'psych') return (a.psych ?? []).includes(cond.value);
-      if (cond.what === 'immunity') return (a.immunities ?? []).includes(cond.value);
-      return a.traits.includes(cond.value);
+      if (cond.what === 'group') return groupMatch(cond.ref.id, a.groups);
+      if (cond.what === 'talent') return a.talents.some((t) => refCouvre(cond.ref, t));
+      if (cond.what === 'psych') return (a.psych ?? []).includes(cond.ref.id);
+      if (cond.what === 'immunity') return (a.immunities ?? []).includes(cond.ref.id);
+      return a.traits.includes(cond.ref.id);
     }
     case 'casterChaosDomain': return ctx.caster?.chaosDomain === cond.is;
     case 'visiblePassive': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.visiblePassive === true;
@@ -478,8 +368,9 @@ export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: numb
 
 /** Spécification d'un jet de compétence/caractéristique différé (→ modale) : la sortie de `flowTestSchema`
  *  (`data/schemas/grammaire/mecanique.ts`), sans les branches (portées par le nœud Flow `test`), dont l'enjeu
- *  s'élargit aux formes du MOTEUR (`StakeRef` : valeurs calculées, enjeu dérivé du porteur). */
-export interface FlowTest extends Omit<z.output<typeof flowTestSchema>, 'stake'> {
+ *  s'élargit aux formes du MOTEUR (`StakeRef` : valeurs calculées, enjeu dérivé du porteur). Sa décision
+ *  comporte les Conditions que le moteur évalue (`JetDecidable`). */
+export interface FlowTest extends Omit<z.output<typeof flowTestSchema>, 'stake' | keyof JetDecidable>, JetDecidable {
   stake?: StakeRef;
 }
 
@@ -495,8 +386,8 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = z.output<typeof 
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
  * `state` instancie `Flow<Effect>`), du Test `T` de ses nœuds `test` et du coût d'Avantage `C` de ses
- * `choix` : un schéma (`arbreDeFlow`, `grammaire/mecanique.ts`) fait passer ses trois sorties dans le type
- * qu'il produit (le Flow de scène, `FlowDeScene`). Cinq formes, RÉCURSIVES, jamais cycliques :
+ * `choix`, et de la Condition `D` des nœuds `si`. `arbreDeFlow` (`grammaire/mecanique.ts`) compose les
+ * sorties de ces schémas dans chaque arbre (par exemple le Flow de scène, `FlowDeScene`). Cinq formes, RÉCURSIVES, jamais cycliques :
  *  - `sequence` : exécute `etapes` dans l'ordre (forme Flow d'une liste d'effets) ;
  *  - `effet`    : une feuille — applique un effet `E` (action) ;
  *  - `si`       : évalue `condition` (PUR) → `alors` / `sinon` ;
@@ -507,12 +398,7 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = z.output<typeof 
  *    terme, des choix de dialogue/pièges. Son exécuteur (`resolveFlowChoice`) pousse une étape-choix
  *    GÉNÉRIQUE `choixDeclenche` (`pushCombatStep` oui/non + applier unique) — il n'invente pas de mécanisme.
  */
-export type Flow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate> =
-  | { kind: 'sequence'; etapes: Flow<E, T, C>[] }
-  | { kind: 'effet'; effet: E }
-  | { kind: 'si'; condition: Condition; alors: Flow<E, T, C>; sinon?: Flow<E, T, C> }
-  | { kind: 'test'; test: T; reussite: Flow<E, T, C>; echec: Flow<E, T, C> }
-  | { kind: 'choix'; invite: string; source?: SourceRef; adapteDe?: SourceRef; coutEnAvantage?: C; icon?: IconId; oui: Flow<E, T, C>; non?: Flow<E, T, C> };
+export type Flow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate, D = Condition> = ArbreDeFlow<E, T, C, D>;
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choix` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le
@@ -527,11 +413,11 @@ export const ARG_TEMPLATE = '$arg';
 
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
-export type FlowTestNode<E = EffectOp, T = FlowTest, C = number | IndiceTemplate> = Extract<Flow<E, T, C>, { kind: 'test' }>;
+export type FlowTestNode<E = EffectOp, T = FlowTest, C = number | IndiceTemplate, D = Condition> = Extract<Flow<E, T, C, D>, { kind: 'test' }>;
 
 /** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
-export const EMPTY_FLOW: Flow<never, never, never> = gelerLaConstante({ kind: 'sequence', etapes: [] });
+export const EMPTY_FLOW = gelerLaConstante<{ kind: 'sequence'; etapes: [] }>({ kind: 'sequence', etapes: [] });
 
 /** DÉCLENCHEUR d'un effet déclenché : la sortie d'`effectTriggerSchema` (`data/schemas/grammaire/mecanique.ts`). */
 export type EffectTrigger = z.output<typeof effectTriggerSchema>;
@@ -541,7 +427,7 @@ export type EffectTargeting = z.output<typeof effectTargetingSchema>;
 
 /** Effet DÉCLENCHÉ : la sortie de `triggeredEffectSchema` (`data/schemas/grammaire/mecanique.ts`), plus ce que le
  *  jeu lui pose. */
-export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {
+export type TriggeredEffect = EffetDeclencheMoteur & {
   /** ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf`
    *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage jusqu'à
    *  l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
@@ -551,7 +437,7 @@ export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {
 /** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `sequence` de `effet` — pont de
  *  migration des consommateurs (`Trigger.effects`, `DialogueChoice.effects`) vers le Flow, sans réécrire
  *  la donnée. GÉNÉRIQUE sur la feuille (défaut `EffectOp`). */
-export function flowFromEffects<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(effects: E[] | undefined): Flow<E, T, C> {
+export function flowFromEffects<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(effects: E[] | undefined): Flow<E, T, C, never> {
   return { kind: 'sequence', etapes: (effects ?? []).map((effet) => ({ kind: 'effet', effet })) };
 }
 
@@ -799,7 +685,9 @@ export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
 
 /** Constructeur d'un nœud `test` (jet → réussite/échec). Sucre pour les PRODUCTEURS de Flow (récolte,
  *  saut…) : un jet se POSE en nœud de Flow, jamais poussé dans une liste d'effets. */
-export function testFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(test: T, success: Flow<E, T, C>, fail: Flow<E, T, C>): Flow<E, T, C> {
+export function testFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate, D = Condition>(
+  test: T, success: Flow<E, T, C, D>, fail: Flow<E, T, C, D>,
+): FlowTestNode<E, T, C, D> {
   return { kind: 'test', test, reussite: success, echec: fail };
 }
 
@@ -887,7 +775,10 @@ export function racinesDeFlow(scene: unknown): RacineDeFlow[] {
 }
 /** RÉÉCRITURE d'un Flow, des feuilles vers la racine : `f` reçoit chaque nœud, ses branches déjà réécrites.
  *  Immuable (copie). */
-export function reecrireFlow<E = EffectOp>(flow: Flow<E>, f: (node: Flow<E>) => Flow<E>): Flow<E> {
+export function reecrireFlow<E, T, C, D>(
+  flow: ArbreDeFlow<E, T, C, D>,
+  f: (node: ArbreDeFlow<E, T, C, D>) => ArbreDeFlow<E, T, C, D>,
+): ArbreDeFlow<E, T, C, D> {
   switch (flow.kind) {
     case 'sequence': return f({ ...flow, etapes: flow.etapes.map((s) => reecrireFlow(s, f)) });
     case 'si': return f({ ...flow, alors: reecrireFlow(flow.alors, f), ...(flow.sinon ? { sinon: reecrireFlow(flow.sinon, f) } : {}) });

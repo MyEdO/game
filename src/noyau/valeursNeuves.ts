@@ -3,20 +3,21 @@
  * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`), la valeur neuve d'un nœud de schéma
  * (`valeurNeuveDe`) et celle de chaque variante d'une union (`variantesAChoisir`). Fonctions pures, au noyau parce
  * qu'elles lisent le moteur et le modèle du monde
- * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
+ * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée le même brouillon d'atelier.
  */
-import type { Formula, GameOp } from '../engine/ops';
+import type { Formula } from '../engine/ops';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import type { FormuleAuPeche } from '../data/schemas/grammaire/valeurs';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import { OP_DEFS, OPS_NON_TYPEES, testFixeDEquipageSchema } from '../data/schemas/grammaire/mecanique';
+import { OP_DEFS, testFixeDEquipageSchema } from '../data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../data/schemas/grammaire/produits';
 import { declarationDEnfants, ouverts } from '../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
 import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
+import { estObjet } from '../lib/objet.mjs';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { memoByRef } from './monde/sceneMemo';
@@ -130,11 +131,9 @@ function sansReferenceElue(noeud: unknown, valeur: unknown): unknown {
   }));
 }
 
-/** L'op NEUVE `op` : celle de sa fabrique ; une op typée qui n'y est pas, la valeur neuve de son payload (`OP_DEFS`), ses
- *  références vides (`sansReferenceElue`) ; une op de `OPS_NON_TYPEES` qui n'y est pas, son seul nom. Lève pour une op
- *  inconnue des deux registres. */
-export function newOp(op: GameOp['op'] | string): GameOp {
-  switch (op as GameOp['op']) {
+/** Brouillon d'une op authorée : les références dont l'auteur doit choisir l'id restent vides. */
+export function newOp(op: string): Record<string, unknown> {
+  switch (op) {
     case 'wounds': return { op: 'wounds', amount: 5 };
     case 'heal': return { op: 'heal', amount: 3 };
     case 'healCaster': return { op: 'healCaster', amount: 1 };
@@ -183,10 +182,10 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'cureDisease': return { op: 'cureDisease', count: 1 };
     case 'reduceDiseaseDays': return { op: 'reduceDiseaseDays', days: 1 };
     case 'diseaseTestMod': return { op: 'diseaseTestMod', amount: 10 };
-    case 'suppressSymptom': return { op: 'suppressSymptom', symptomId: '' };
-    case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: '', symptomId: '', severity: 'grave' };
-    case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: '', symptomId: '' };
-    case 'grantSymptom': return { op: 'grantSymptom', disease: '', symptomId: '' };
+    case 'suppressSymptom': return { op: 'suppressSymptom', symptom: { id: '' } };
+    case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: { id: '' }, symptom: { id: '' }, severity: 'grave' };
+    case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: { id: '' }, symptom: { id: '' } };
+    case 'grantSymptom': return { op: 'grantSymptom', disease: { id: '' }, symptom: { id: '' } };
     case 'testDAgir': return { op: 'testDAgir', characteristic: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
@@ -206,12 +205,12 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'martyr': return { op: 'martyr' };
     case 'giveTrapping': return { op: 'giveTrapping' };
     case 'perRound': return { op: 'perRound', ops: [] };
-    case 'summon': return { op: 'summon', ref: '', count: 1, allyOfCaster: true };
+    case 'summon': return { op: 'summon', creature: { id: '' }, count: 1, allyOfCaster: true };
     case 'zone': return { op: 'zone', shape: 'disc', radiusMeters: { bonusOf: 'force-mentale' } };
     case 'push': return { op: 'push', meters: { bonusOf: 'force-mentale' } };
     case 'teleport': return { op: 'teleport', meters: { bonusOf: 'force-mentale' } };
     case 'chain': return { op: 'chain', maxBounces: { bonusOf: 'force-mentale' }, hopMeters: { bonusOf: 'force-mentale' } };
-    case 'polymorph': return { op: 'polymorph', ref: '' };
+    case 'polymorph': return { op: 'polymorph', creature: { id: '' } };
     case 'transform': return { op: 'transform', tag: 'forme', ops: [] };
     case 'endTransform': return { op: 'endTransform', tag: 'forme' };
     case 'lifeSteal': return { op: 'lifeSteal', num: 1, den: 2, round: 'floor' };
@@ -220,7 +219,6 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'skillDRBonus': return { op: 'skillDRBonus', skill: { id: '' }, bonus: 1 };
     case 'charDRBonus': return { op: 'charDRBonus', characteristic: 'sociabilite', bonus: 1 };
     case 'crewTestMod': return { op: 'crewTestMod', mod: 10 };
-    // Aucun id EN DUR : la table se choisit, comme une table référencée de `rollTable` (`tableId: ''`).
     case 'fall': return { op: 'fall', hauteur: { table: { id: '' } } };
     case 'moveScale': return { op: 'moveScale', num: 1, den: 2 };
     case 'moveMod': return { op: 'moveMod', mod: -1 };
@@ -257,18 +255,21 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
     case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
     case 'infestation': {
-      return sansReferenceElue(OP_DEFS.infestation, {
+      const test = sansReferenceElue(testFixeDEquipageSchema, valeurNeuveDe(testFixeDEquipageSchema));
+      if (!estObjet(test)) throw new Error('Le Test fixe d’équipage attend un brouillon objet.');
+      return {
         op: 'infestation',
-        test: { ...(valeurNeuveDe(testFixeDEquipageSchema) as object), difficulty: 'intermediaire' },
+        test: { ...test, difficulty: 'intermediaire' },
         drCible: 10,
         chaqueNuit: { kind: 'sequence', etapes: [] },
-      }) as GameOp;
+      };
     }
     default: {
+      if (!Object.prototype.hasOwnProperty.call(OP_DEFS, op)) throw new Error(`newOp : op inconnue de OP_DEFS (${op})`);
       const payload = OP_DEFS[op];
-      if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;
-      if (OPS_NON_TYPEES.includes(op)) return { op } as GameOp;
-      throw new Error(`newOp : op inconnue de OP_DEFS et de OPS_NON_TYPEES (${op})`);
+      const brouillon = sansReferenceElue(payload, valeurNeuveDe(payload));
+      if (!estObjet(brouillon)) throw new Error(`newOp : l’op « ${op} » attend un brouillon objet.`);
+      return brouillon;
     }
   }
 }

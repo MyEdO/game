@@ -417,15 +417,16 @@ Documents porteurs :
 
 ${tablePorteurs('capabilities')}
 
-## 5. Éditer — au Codex, jamais en dur
+## 5. Éditer dans le Compendium Godot
 
-- \`passive\` → \`GameOpEditor\`, la primitive de liste d'ops EXISTANTE (celle des sorts) ;
-- \`effects\` → le champ d'effets déclenchés, qui compose le même éditeur d'ops sous chaque feuille ;
-- \`capabilities\` → formulaire générique inféré (§4) ;
-- la sauvegarde réécrit le \`.json\` app-owned ; Vite recharge.
+Le formulaire d’atelier lit le schéma du document. Pour \`passive\` et les opérations au sein d’un
+\`effects[].flow\`, le sélecteur propose les charges déclarées au nœud \`gameOpSchema\`. Les champs
+de la variante choisie et les choix de références proviennent des mêmes nœuds qui valident la saisie.
+\`capabilities\` s’édite par les cases du formulaire générique.
 
-**Réutiliser, ne jamais réinventer** : toute liste d'ops passe par la primitive partagée (table des
-primitives, \`docs/primitives.md\`). Ne pas dupliquer une op qui existe déjà sous un autre nom.
+Pour étendre le vocabulaire, déclare la charge stricte dans \`${MECANIQUE}\` et compose ses
+références avec les primitives de la grammaire. \`OP_DEFS\` rassemble les charges et alimente
+\`docs/vocabulaire-mecanique.md\`. Le moteur et le formulaire lisent ce contrat.
 
 ## 6. Frontière donnée / machinerie
 
@@ -442,7 +443,7 @@ primitives, \`docs/primitives.md\`). Ne pas dupliquer une op qui existe déjà s
 ## 7. Recettes
 
 - **Modificateur de profil sur un trait** : Codex → le trait → \`passive\` → \`+\` une op de
-  modificateur. La def TS du registre ne porte que le libellé.
+  modificateur. Le formulaire propose ses champs d’après la charge déclarée.
 - **Effet « à la touche » sur un Atout d'arme** : Codex → la qualité → \`effects\` → une entrée dont
   le \`trigger\` est le déclencheur voulu et le \`flow\` la conséquence.
 - **Capacité irréductible sur un trait** : Codex → le trait → \`capabilities\` → la case ; puis

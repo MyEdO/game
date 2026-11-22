@@ -33,8 +33,8 @@
  * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Quand le point ne porte que des
  * records, il prend leur classe la plus lourde (`G` > `C`). Le reste (`.*`) d'un objet conjoint
  * n'est pas un site quand son point est déjà `D5`, qu'un autre objet y ferme le reste (`catchall` `never`), ou que son
- * point est `G` : le reste d'un nœud PARTAGÉ de la grammaire est la dette de la grammaire, pas du document qui le
- * compose (`gameOp`, porte `DETTE_OPS`, #1468).
+ * point est `G` : le reste d’un nœud partagé se compte dans le schéma de grammaire qui le déclare.
+ * La porte `DETTE_OPS` mesure les écarts des opérations à leur déclaration.
  *
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site

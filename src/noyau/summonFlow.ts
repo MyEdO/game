@@ -34,7 +34,7 @@ import { mirrorPools } from '../engine/advantagePool';
 type Summon = Omit<Extract<GameOp, { op: 'summon' }>, 'op'>;
 /** Ce qu'`applySummon` invoque : l'op `summon` (réf. du bestiaire), ou la fiche d'un défunt qui se
  *  reconstitue (`ScheduledRespawn`, #1882). */
-export type Invocation = Summon | (Omit<Summon, 'ref'> & { porteur: PorteurDeFiche });
+export type Invocation = Summon | (Omit<Summon, 'creature'> & { porteur: PorteurDeFiche });
 
 /** Cases walkable et LIBRES (toute empreinte exclue) autour de `center`, en anneaux croissants (≤8),
  *  sur l'ÉTAGE de `center` (z-aware, #802) : un lanceur posé sur un chemin de ronde `z>0` invoque sur
@@ -89,8 +89,8 @@ export interface SummonOpts {
  * renvoie le journal. Hors combat : journalisé (rien posé sur la grille).
  */
 export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts): string[] {
-  const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.ref };
-  const invoque = 'porteur' in summon ? caster.label : summon.ref;
+  const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.creature.id };
+  const invoque = 'porteur' in summon ? caster.label : summon.creature.id;
   const rng = opts.rng;
   const count = Math.max(1, resolveFormula(summon.count, caster, rng) + slBonus(opts.sl, summon.countPerSL));
   const battle = get().battle;

@@ -34,6 +34,12 @@ const visionDe = (r: Reponse): VisionDuMonde => {
   return r as unknown as VisionDuMonde;
 };
 
+const marqueDuPlan = (appel: ReturnType<typeof table>['appel'], x: number, y: number, z: number): string => {
+  const reponse = appel('plan', { z });
+  if (!reponse.ok || typeof reponse.plan !== 'string') throw new Error(`réponse sans plan : ${JSON.stringify(reponse)}`);
+  return [...reponse.plan.split('\n')[2 * y + 1]][2 * x + 1];
+};
+
 describe('siege-enceinte — les ennemis vus par la herse ou masqués par la courtine', () => {
   const { appel } = table();
   let suite: Suite;
@@ -59,6 +65,19 @@ describe('siege-enceinte — les ennemis vus par la herse ou masqués par la cou
     expect(nommes.every((id) => enVue().includes(id)), `l’ordre du tour ne nomme que des combattants en vue : ${rangs.join(', ')}`).toBe(true);
     expect(rangs.filter((id) => id.startsWith('suite/')).length, 'la tête du round suivant : ses premiers en vue, au plus `TETE_DU_ROUND_SUIVANT`')
       .toBe(Math.min(vue().projection.combat!.tours, TETE_DU_ROUND_SUIVANT));
+  });
+
+  it('le plan marque le gobelin visible par la herse mais ne situe pas celui derrière la courtine', () => {
+    const marqueDe = (id: string) => {
+      const caseOccupee = Object.keys(vue().occupants).find((cle) => vue().occupants[cle] === id);
+      expect(caseOccupee, `le combattant ${id} occupe une case`).toBeDefined();
+      const [x, y, z] = caseOccupee!.split(',').map(Number);
+      return marqueDuPlan(appel, x, y, z);
+    };
+    expect(enVue()).toContain(GOBELIN_PAR_LA_HERSE);
+    expect(horsDeVue()).toContain(GOBELIN_CACHE);
+    expect(marqueDe(GOBELIN_PAR_LA_HERSE)).toBe('&');
+    expect(marqueDe(GOBELIN_CACHE)).not.toBe('&');
   });
 
   it('la fiche d’un ennemi hors de vue se refuse en `validation`, en mots du joueur ; celle d’un héros s’ouvre', () => {
@@ -173,14 +192,18 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
 });
 
 describe('poursuite-terrestre — les embusqués', () => {
-  it('ses 3 brigands embusqués ne sont pas aux entités de l’exploration', { timeout: 60_000 }, () => {
+  it('ses 3 brigands embusqués sont absents des entités de l’exploration et du plan', { timeout: 60_000 }, () => {
     const { appel } = table();
     try {
       const { vue } = drainer(appel, appel('demarrer', { scenario: 'poursuite-terrestre', graine: 1 })).suite;
-      const embusques = entitesDe('poursuite-terrestre').filter((e) => e.combat?.hiddenUntilCombat).map((e) => e.id);
+      const embusques = entitesDe('poursuite-terrestre').filter((e) => e.combat?.hiddenUntilCombat);
       expect(embusques, 'témoin : 3 embusqués à la scène').toHaveLength(3);
       const entites = vue.projection.exploration!.entites.liste.map((e) => e.id);
-      expect(entites.filter((id) => embusques.includes(id)), `les entités de l’exploration : ${entites.join(', ')}`).toEqual([]);
+      expect(embusques.filter((e) => entites.includes(e.id)), `les entités de l’exploration : ${entites.join(', ')}`).toEqual([]);
+      const { masque, largeur } = visionDe(appel('vision'));
+      const octets = depuisBase64(masque);
+      expect(embusques.some(({ pos }) => octets[pos.y * largeur + pos.x] === 255), 'un brigand embusqué sur une case vue').toBe(true);
+      for (const { id, pos, z } of embusques) expect(marqueDuPlan(appel, pos.x, pos.y, z ?? 0), id).not.toBe('&');
     } finally {
       appel('quitter');
     }

@@ -618,7 +618,9 @@
              "ops": [
               {
                "op": "manann",
-               "factorId": "pretre-sans-peche"
+               "facteur": {
+                "id": "pretre-sans-peche"
+               }
               }
              ]
             }
@@ -659,7 +661,9 @@
              "ops": [
               {
                "op": "manann",
-               "factorId": "petit-sacrifice"
+               "facteur": {
+                "id": "petit-sacrifice"
+               }
               }
              ]
             }
@@ -693,7 +697,9 @@
              "ops": [
               {
                "op": "manann",
-               "factorId": "sacrifice-moyen"
+               "facteur": {
+                "id": "sacrifice-moyen"
+               }
               }
              ]
             }
@@ -727,7 +733,9 @@
              "ops": [
               {
                "op": "manann",
-               "factorId": "grand-sacrifice"
+               "facteur": {
+                "id": "grand-sacrifice"
+               }
               }
              ]
             }
