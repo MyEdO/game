@@ -381,7 +381,9 @@ arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un ob
 la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
 de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
 la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
-pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe. Une pose isolée se demande à
+pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe : la profondeur où il s'enfonce derrière
+un vêtement qu'il traverse, quelle que soit la longueur qui ressort devant ; tout entier derrière, comme sous une cape,
+il ne le traverse pas. Une pose isolée se demande à
 `node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
 chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
