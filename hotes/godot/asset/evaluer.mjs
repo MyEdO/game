@@ -31,6 +31,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { coeurs, memoireDisponibleMo } from '../../../scripts/test/partition.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
 import { manifesteVoisin, posesDesRanges } from './posesDesRanges.mjs'
@@ -144,8 +145,8 @@ if (values.porte) {
     enfant.stderr.on('data', (d) => { sortie += d })
     enfant.on('close', (code) => resolve({ nom, code, sortie }))
   })
-  const memoire = process.availableMemory() / 2 ** 20
-  const deFront = Math.max(1, Math.min(availableParallelism(), passes.length, Math.floor(memoire / (TAS_MINIMAL_MO + HORS_DU_TAS_MO))))
+  const memoire = memoireDisponibleMo(process.env)
+  const deFront = Math.max(1, Math.min(coeurs(process.env, availableParallelism), passes.length, Math.floor(memoire / (TAS_MINIMAL_MO + HORS_DU_TAS_MO))))
   const tas = `--max-old-space-size=${Math.max(TAS_MINIMAL_MO, Math.floor(memoire / deFront - HORS_DU_TAS_MO))}`
   const resultats = []
   const file = [...passes]
