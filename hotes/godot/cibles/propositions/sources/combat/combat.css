@@ -59,7 +59,7 @@
 .apercu .pv{display:flex;align-items:center;gap:9px;height:20px;margin:6px 0 9px}
 .apercu .pv .jauge{flex:1}
 .apercu .pv b{font-family:"Fell SC";font-weight:400;font-size:13.5px}
-.apercu .titre{font-size:12.5px;color:#5a2a12;border-top:1px solid rgba(60,40,20,.45);padding-top:7px;margin-bottom:3px}
+.apercu .entete{font-size:12.5px;color:#5a2a12;border-top:1px solid rgba(60,40,20,.45);padding-top:7px;margin-bottom:3px}
 .apercu table{border-collapse:collapse;width:100%}
 .apercu td{padding:1px 0;vertical-align:baseline}
 .apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14.5px;white-space:nowrap}

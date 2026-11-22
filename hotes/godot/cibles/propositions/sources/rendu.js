@@ -468,8 +468,8 @@
     ];
   };
   /* le corps d'un aperçu du tour (une cible, un sort), chaque part à sa place fixe : la ligne de jauge, vide sans elle,
-     le titre, la table à hauteur fixe qui défile si elle déborde, le pied */
-  const corpsDuTour = ({ pv = '', titre, lignes, pied }) => `<div class="pv">${pv}</div><div class="titre rubrique">${titre}</div>${tableDApercu(lignes)}<div class="pied">${pied}</div>`;
+     l’en-tête, la table à hauteur fixe qui défile si elle déborde, le pied */
+  const corpsDuTour = ({ pv = '', titre, lignes, pied }) => `<div class="pv">${pv}</div><div class="entete rubrique">${titre}</div>${tableDApercu(lignes)}<div class="pied">${pied}</div>`;
   const ficheDuSort = (s, sous, vers) => apercu({ nom: echapper(s.nom), sous, vers, corps: corpsDuTour({ titre: `Sort · coûte ${echapper(s.cout)}`,
     lignes: `<tr><td>Niveau d’incantation</td><td>${s.ni}</td></tr><tr><td>Portée</td><td>${s.portee.metres} mètres (${echapper(s.portee.selon)})</td></tr><tr><td>Cible</td><td>${s.cibles}</td></tr><tr><td>Durée</td><td>${echapper(s.duree)}</td></tr>`,
     pied: echapper(s.note) }) });
@@ -1370,7 +1370,7 @@
   /* le document remis, en carton au-dessus du bandeau : son titre, d'où il vient et qui le tient, son texte paginé, son cachet ;
      au pied, où il se relit et « Replier » */
   const documentDu = (d) => cadre('document', null, null, null, null, 'parchemin', `
-    <div class="tete"><div>${titre({ texte: echapper(d.titre), cle: 'titre du document' })}${d.sous ? titre({ texte: echapper(d.sous), cle: 'sous-titre du document' }) : ''}</div><span class="rubrique">${echapper(d.provenance)} · lu par ${prenomDe(d.heros)}</span></div>
+    <div class="tete">${titre({ texte: [d.titre, d.sous].filter(Boolean).map(echapper).join(' '), cle: 'titre du document' })}<span class="rubrique">${echapper(d.provenance)} · lu par ${prenomDe(d.heros)}</span></div>
     ${filet({ losange: true })}
     ${defile(`${d.paragraphes.map((p, k) => `<p data-texte="document ${k + 1}">${echapper(p)}</p>`).join('')}<p class="signe">${d.signature.map(echapper).join('<br>')}</p>`, 'pages texte', { liste: true })}
     <div class="pied"><span class="pas-a-pas folio">${picto('gauche', 13, '#5a4530', 2)}<b class="rubrique"></b>${picto('droite', 13, '#5a4530', 2)}</span><div class="note">${rond(d.relu ? 'livre' : 'journal', 'menu', { arme: true })}<span>${d.relu ? 'Relu depuis le carnet : « Replier » y ramène.' : 'Consigné au carnet : il se relit quand on veut.'}</span></div>

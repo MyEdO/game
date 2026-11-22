@@ -45,7 +45,7 @@
 #evenement [data-place$="/parts"]>.cadre{position:relative;height:100%;padding:4px}
 #evenement [data-place$="/parts"] .qui-paie.parts .q{grid-auto-rows:minmax(18px,auto)}
 #evenement [data-place$="/parts"] .qui-paie .total{margin-top:2px;padding-top:2px}
-#evenement [data-place$="/parts"] .cadre .fond{position:static;height:100%;padding:5px 12px 4px;color:#eadfc4}
+#evenement [data-place$="/parts"] .cadre .fond{position:static;height:100%;padding:3px 12px 2px;color:#eadfc4}
 /* la station à bord du héros choisi, sous le dossier du navire */
 #station .fond{padding:22px 14px 10px}
 .stations{display:flex;gap:7px}
