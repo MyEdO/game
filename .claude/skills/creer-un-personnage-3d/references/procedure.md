@@ -682,7 +682,7 @@ par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/model
 `caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
 aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`), `barge-fluviale` (le Bérébéli, bâti de même sur
 les ponts de sa fiche, ses postes d'armes lourdes sur ses plates-formes de proue et de poupe et, aux deux bords, sur
-le toit de son rouf) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+le toit de son rouf), `diligence` (coque terrestre sans ponts, train à deux essieux, sans poste) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
 engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
 batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
 (catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
