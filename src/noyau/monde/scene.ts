@@ -613,14 +613,19 @@ export type Atterrissage =
  * (`STEP_MAX_M`), sur TOUTES les couches, par hauteur MÉTRIQUE — l'index de couche ne départage
  * qu'une égalité (cf. `hauteurDe`). Calque de la boucle de couches de `path.ts::neighborsOf`. Seule
  * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`noyau/fallMove.ts`),
- * effondrement d'une passerelle (`collapseStructure`). `LDB 15 l.82`. PUR.
+ * effondrement d'une passerelle (`collapseStructure`). Le mode `chute` exige un appui strictement
+ * sous le départ. `appuiAdmissible` écarte une case avant le classement des appuis. `LDB 15 l.82`. PUR.
  */
-export function surfaceDAtterrissage(scene: Scene, x: number, y: number, hauteurDepart: number): Atterrissage {
+export function surfaceDAtterrissage(
+  scene: Scene, x: number, y: number, hauteurDepart: number, mode: 'pas-ou-chute' | 'chute' = 'pas-ou-chute',
+  appuiAdmissible?: (appui: Pt) => boolean,
+): Atterrissage {
   let best: { z: number; h: number } | null = null;
   for (const layer of scene.layers) {
     if (!isWalkable(scene, x, y, layer.z)) continue;
     const h = heightAt(scene, x, y, layer.z);
-    if (h > hauteurDepart + STEP_MAX_M) continue;
+    if (mode === 'chute' ? h >= hauteurDepart : h > hauteurDepart + STEP_MAX_M) continue;
+    if (appuiAdmissible && !appuiAdmissible({ x, y, z: layer.z })) continue;
     if (!best || h > best.h || (h === best.h && layer.z > best.z)) best = { z: layer.z, h };
   }
   return best ? { kind: 'surface', to: { x, y, z: best.z }, hauteur: best.h } : { kind: 'aucune-surface' };
