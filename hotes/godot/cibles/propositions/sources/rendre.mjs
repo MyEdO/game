@@ -107,7 +107,7 @@ const releve = ([largeur, hauteur, ILLUSTRATIONS]) => {
   const coupe = [...document.querySelectorAll('[data-texte]')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map((e) => e.dataset.texte)
   /* les feuilles visibles : un texte (le rectangle de chacune de ses lignes) ou un contrôle (sa boîte) */
   const nomme = (e) => `${e.closest('[data-piece]')?.dataset.piece ?? '-'} : ${(e.textContent.trim().replace(/\s+/g, ' ') || e.className.baseVal || e.className).slice(0, 40)}`
-  const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b'
+  const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .etiquette.pastille, .facettes .etiquette'
   /* les lignes d'un texte : la boîte de police de chacune, ramenée à la hauteur de ligne qui lui est allouée ; ce qu'il
      porte au-dessus de lui (`data-dessus`) n'en est pas */
   const lignes = (e) => {

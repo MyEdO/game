@@ -18,7 +18,6 @@
 #evenement .defile{height:100%}
 #evenement .defile>p{margin:0;font-size:16px;line-height:22px;color:#2a1d12}
 #evenement .sceau.de{position:absolute;right:26px;top:16px}
-.heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
 /* panneau de bord, à droite */
 .bord{position:absolute}
 .bord .rub{margin-bottom:5px}
@@ -40,7 +39,7 @@
 #evenement .choix.paies .plaque.carte .n{font-size:14.5px;line-height:20px;white-space:nowrap}
 #evenement .choix.paies .plaque.carte .c{font-size:11.5px;white-space:nowrap}
 #evenement .choix.paies .carte .c br{display:none}
-#evenement .choix.paies .carte .c .sep{display:inline}
+#evenement .choix.paies .carte .c .separateur{display:inline}
 #evenement .choix.paies{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px 10px}
 #evenement [data-place$="/parts"]>.cadre{position:relative;height:100%;padding:4px}
 #evenement [data-place$="/parts"] .qui-paie.parts .q{grid-auto-rows:minmax(18px,auto)}

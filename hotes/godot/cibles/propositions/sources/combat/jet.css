@@ -25,13 +25,12 @@
 .camp>.place>.issue.reussite{color:#3d5a26}
 .camp>.place>.issue.echec{color:var(--sang)}
 .camp>.place>.issue.critique{color:#3d5a26}
-.camp>.place>.issue.critique b{padding:0 5px;border-radius:2px;color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:inset 0 0 0 1px var(--or-sombre)}
+.camp>.place>.issue .etiquette{margin-right:4px}
 .camp .seuil>.bulle-refus{font-weight:400}
 /* l'issue posée dans la rangée des dés (le tirage d'une table, les Blessures perdues) : deux lignes, le mot en rouge sang */
 .camp .des .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:var(--sang)}
 .camp .des .issue span{font-size:14px;color:#2a1d12;font-weight:600}
 .camp>.place>.sous-titre{max-height:28px;overflow:hidden}
-.modif{display:inline-block;margin-top:5px;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
 #verdict{text-align:center;padding:2px 8px 0;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:104px}
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
@@ -70,7 +69,7 @@
 .plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}
 .plaque.carte.courte .n{font-size:13px;line-height:12px}
 .plaque.carte.courte .c{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:14px;line-height:15px;-webkit-line-clamp:1}
-#jet .place>.glose .modif{margin:0 3px}
+#jet .place>.glose .etiquette{margin:0 3px}
 /* avant le dé : le testeur, désigné aux suites, les réglages */
 .testeurs{height:100%;display:flex;align-items:center;justify-content:flex-end;gap:7px;font-size:11.5px;color:#4a3420}
 .testeurs .t{opacity:.6}

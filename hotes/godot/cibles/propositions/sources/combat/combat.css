@@ -144,7 +144,6 @@
 .mesures .m span{display:block;font-size:12px;line-height:14px;color:#5a4530}
 .mesures .m b{font-weight:600;font-size:16px;line-height:21px;color:#2a1d12;white-space:nowrap}
 .atouts{display:flex;gap:8px;margin-top:7px;height:24px}
-.atouts span{padding:1px 12px 2px;border:1px solid rgba(42,29,18,.7);border-radius:12px;font-size:12.5px;line-height:19px;color:#2a1d12;background:rgba(255,245,215,.4)}
 
 /* ───────── écrans neufs (#4411) : meuble étendu, États, Détermination, défense, fin de combat, suites de frappe ───────── */
 /* un État porté : un sceau de cire, son nom, ses exemplaires */
@@ -179,15 +178,14 @@
 #jet .place>.regle.localisation{justify-content:flex-start;gap:8px}
 #jet .place>.regle.localisation>:not(.options){flex:none}
 #jet .place>.regle.localisation .nom-propre{margin-left:2px}
-#jet .place>.regle.localisation .modif{margin-top:0}
 #jet .place>.regle.localisation .options{margin-left:auto}
 #jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
 .bascules{display:flex;gap:16px;align-items:center;height:100%}
 .bascules .bascule span{line-height:14px}
 
 /* la marque d'une carte de choix */
-#jet .place>.carte .modif{margin:0 0 0 6px}
-#jet .place>.carte br+.modif{margin:1px 0 0}
+#jet .place>.carte .etiquette{margin:0 0 0 6px}
+#jet .place>.carte br+.etiquette{margin:1px 0 0}
 
 /* une suite de frappe : la consigne tient la place du meuble, le champ reste à cliquer */
 .glose.consigne{margin:14px 0 0;height:70px}

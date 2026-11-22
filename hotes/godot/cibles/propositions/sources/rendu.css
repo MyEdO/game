@@ -9,7 +9,6 @@
 #verdict>p{font-size:13px;line-height:17px}
 #jet .camp .nom-propre{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal}
 #jet .camp.droite .nom-propre{justify-content:flex-end}
-#jet .camp .nom-propre .modif{margin-top:0}
 #verdict .sous-titre{display:flex;justify-content:center;align-items:center;gap:7px}
 #jet .annonce{white-space:nowrap}
 /* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
@@ -23,7 +22,7 @@
 /* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
 #jet .place>.regle{gap:6px}
 #jet .place>.regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}
-#jet .place>.regle>.modif,#jet .place>.regle>.options{flex:none}
+#jet .place>.regle>.options{flex:none}
 #jet .place>.regle .options{gap:4px}
 #jet .place>.regle .options .plaque>div{padding:0 4px;letter-spacing:0;white-space:normal;line-height:11px}
 #verdict.surinc{grid-template-columns:minmax(0,1fr) 192px;column-gap:12px;height:auto;padding:0 6px 0 10px}

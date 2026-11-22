@@ -85,8 +85,6 @@
 #affaire .tete{display:flex;justify-content:space-between;align-items:flex-end}
 #affaire .indice{display:flex;align-items:center;gap:10px}
 #affaire .indice .nom-propre{margin-right:6px}
-.chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--encre);border:1px solid var(--trait-encre);border-radius:2px;background:var(--voile)}
-.chip.neuf{color:var(--ivoire);border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire),var(--sang))}
 #affaire .plaque.epingle{flex:none;width:136px;margin-left:auto}
 #affaire .defile{flex:1;margin-top:14px}
 #affaire .lectures{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);column-gap:26px;padding-bottom:12px}

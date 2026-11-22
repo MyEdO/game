@@ -10,7 +10,7 @@
 const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = [], survol = null, reussite = false, critique = false }) => fiche({
   cote, portrait, nom, ligne: carac,
   rangee: `<div class="des${regles ? ' regles' : ''}" data-primitive="camp"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
-  issue: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}" data-primitive="camp"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
+  issue: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}" data-primitive="camp">${critique ? etiquette({ texte: 'Critique', teinte: 'or' }) : `<b>${reussite ? 'Réussite' : 'Échec'}</b>`} DR ${dr}</div>`,
 });
 /* qui occupe un camp de la fenêtre, quel que soit son rôle (testeur, cible, lanceur visé, interlocuteur, touché) : les
    places du camp (`PLACES_DU_CAMP`, `../rendu.js`), en miroir à droite : le portrait, l'identité (le nom, la ligne de

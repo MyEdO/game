@@ -72,7 +72,6 @@
    famille y change : un centre plus large pour les prix, des libellés sur une ligne */
 #jet .fond{grid-template-columns:1fr 340px 1fr}
 .camp .issue b{text-transform:none}
-.modif{margin-top:0;white-space:nowrap}
 #verdict .sous-titre,#verdict .dr{white-space:nowrap}
 
 /* la halle vue d'un siège invité */
@@ -80,8 +79,6 @@
 #main .nom-propre{white-space:nowrap}
 #main span{display:block;font-size:12px;line-height:15px;color:var(--creme-2)}
 .heros .joue{display:flex;align-items:center;gap:6px;margin-top:9px}
-.heros .joue .attend{margin-top:0}
-.heros .attend.autre{background:linear-gradient(180deg,#3a3630,#1e1c18);color:#cfc5ae;box-shadow:0 0 0 1px #000,0 2px 4px rgba(0,0,0,.6)}
 #page .note.refus{display:flex;align-items:center;gap:8px}
 /* les parts de l'achat, sous le compte */
 #page .qui-paie{padding-top:5px;border-top:1px solid rgba(60,40,20,.42);color:#2a1d12}

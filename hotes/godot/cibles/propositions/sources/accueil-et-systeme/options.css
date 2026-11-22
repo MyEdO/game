@@ -34,7 +34,6 @@
 .regle.pointee{background:rgba(255,244,206,.5);box-shadow:0 0 0 1px rgba(138,106,38,.9),0 2px 7px rgba(60,35,5,.3);border-radius:2px;border-bottom-color:transparent}
 .regle.modifiee .t b{color:#7c1f14}
 .regle.modifiee::before{content:"";position:absolute;left:-13px;top:50%;width:13px;height:13px;margin-top:-7px;border-radius:48% 52% 55% 45%/52% 46% 54% 48%;background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b);box-shadow:0 1px 2px rgba(0,0,0,.6)}
-.defaut{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#6b1c10;padding:2px 8px 3px;border:1px solid rgba(107,28,16,.6);border-radius:2px;background:rgba(255,245,215,.3);white-space:nowrap}
 .pas-a-pas{display:inline-flex;align-items:center;gap:6px;padding:2px 5px 3px;border-radius:3px;box-shadow:0 0 0 1px rgba(60,40,20,.7);background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
 .pas-a-pas b{font-weight:400;font-size:13px;color:#2a1a08;white-space:nowrap;min-width:92px;text-align:center}
 .pas-a-pas svg{stroke:#2a1a08}

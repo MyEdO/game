@@ -253,7 +253,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      son libellé compris, jamais un texte libre : sans aucune pose, elle porte `data-sans-pose`, que le relevé refuse */
   const poserLesBulles = () => {
     const lignesDe = (e) => [...e.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => { const g = document.createRange(); g.selectNodeContents(n); return [...g.getClientRects()].filter((l) => l.width && l.height); });
-    const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b, .niche';
+    const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .etiquette.pastille, .facettes .etiquette, .niche';
     const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).map((e) => ({ e, lignes: lignesDe(e) }));
     const controles = [...document.querySelectorAll(`#ui :is(${CONTROLE})`)];
     document.querySelectorAll('.bulle-refus').forEach((b) => {
@@ -308,7 +308,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      l'écran, dans son cadre au coin haut-gauche */
   const cartouche = ({ icone, nom: nomme, sous = '', marque = '', texte = nomme, taille = 'ligne' }) => {
     const deTitre = taille === 'titre';
-    const tenu = `${nomme}${marque ? `<span class="marque">${marque}</span>` : ''}`;
+    const tenu = `${nomme}${marque ? etiquette({ texte: marque, teinte: 'or' }) : ''}`;
     const corps = `${medaillon(icone, deTitre ? { inerte: true } : { taille: 'moyen' })}<div>${deTitre ? `<div class="n gothique" data-texte="${texte}">${tenu}</div>` : nom({ texte: tenu, taille: 'grand', cle: texte })}${[sous].flat().filter(Boolean).map((s) => sousTitre({ texte: s })).join('')}</div>`;
     return deTitre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche" data-primitive="cartouche">${corps}</div>`;
   };
@@ -356,8 +356,15 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* la note : une précision, une aide ; `variante` courante, consigne (ce que le joueur a à faire) ou avertissement (un
      coût, un refus) ; `cle` : son rôle au relevé ; `secondaire` : une raison de refus peut prendre sa place (`poserLesBulles`) */
   const glose = ({ texte, variante = 'courante', cle = '', secondaire = false }) => `<span class="glose ${variante}" data-primitive="glose"${cle ? ` data-texte="${cle}"` : ''}${secondaire ? ' data-secondaire' : ''}>${texte}</span>`;
+  /* l'étiquette : `variante` rectangle, pastille ou compte (en chiffres) ; `teinte` or, cire ou fer, sinon au repos ; `valeur` : le
+     nombre qui suit le texte */
+  const etiquette = ({ texte, variante = 'rectangle', teinte = '', valeur = null }) => `<span class="etiquette ${variante}${teinte ? ` ${teinte}` : ''}" data-primitive="etiquette">${texte}${valeur == null ? '' : `<em>${valeur}</em>`}</span>`;
+  /* la puce d'une ligne, de la teinte de son texte : `losange`, ou `coche` (la ligne choisie) */
+  const puce = (forme) => (forme === 'coche' ? `<i class="coche" data-primitive="puce">${picto('coche', 15, undefined, 2)}</i>` : '<i class="losange" data-primitive="puce"></i>');
+  /* entre deux textes d'une même ligne : `median`, le point médian */
+  const separateur = (forme) => `<span class="separateur ${forme}" data-primitive="separateur">·</span>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
-  const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}" data-primitive="filet">${losange ? '<i class="losange"></i>' : ''}</div>`;
+  const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}" data-primitive="filet">${losange ? puce('losange') : ''}</div>`;
   /* un choix parmi quelques valeurs nommées : la valeur tenue est dorée ; `egaux` : cases de même largeur */
   const segments = (options, la, { egaux = false } = {}) => `<span class="segments${egaux ? ' egaux' : ''}" data-primitive="segments">${options.map((o) => `<b class="${o === la ? 'la' : ''}">${o}</b>`).join('')}</span>`;
   const ouiNon = (v) => segments(['Non', 'Oui'], v ? 'Oui' : 'Non', { egaux: true });
@@ -430,7 +437,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, glose, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    puce, separateur, filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

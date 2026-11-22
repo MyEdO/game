@@ -130,6 +130,18 @@ html,body{margin:0;background:var(--noir)}
 .parchemin .glose{color:var(--encre-2)}
 .glose.consigne{font-size:17px;line-height:23px;color:var(--encre);padding-left:24px;border-left:1px solid var(--filet-encre)}
 .glose.avertissement{color:var(--sang)}
+/* l'étiquette : rectangle, pastille ou compte (en chiffres) ; au repos, le voile de son fond : sur bois, l'ivoire sur l'ombre au liseré d'or,
+   sur parchemin, l'encre sur le voile au trait d'encre ; teintes or, cire, fer ; la valeur qui suit le texte, en chiffres */
+.etiquette{display:inline-flex;align-items:center;gap:5px;flex:none;box-sizing:border-box;margin:0;white-space:nowrap;font-style:normal;text-shadow:none;text-transform:none;border:1px solid var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
+:where(.parchemin) .etiquette{border-color:var(--trait-encre);color:var(--encre);background:var(--voile)}
+:where(.parchemin .bois) .etiquette{border-color:var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
+.etiquette.or{border-color:var(--laiton-ombre);color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen))}
+.etiquette.cire{border-color:var(--cire-sombre);color:var(--ivoire);background:linear-gradient(180deg,var(--cire-clair),var(--sang))}
+.etiquette.fer{border-color:var(--noir);color:var(--eteint);background:linear-gradient(180deg,var(--fer-clair),var(--fer-sombre))}
+.etiquette.rectangle{height:19px;padding:0 9px;border-radius:2px;font-family:"Fell SC",serif;font-weight:400;font-size:12.5px;line-height:15px;letter-spacing:1px}
+.etiquette.pastille{height:21px;padding:0 10px;border-radius:11px;font-family:"Fell SC",serif;font-weight:400;font-size:10.5px;line-height:15px;letter-spacing:.8px}
+.etiquette.compte{height:21px;padding:0 9px;border-radius:11px;font-family:"Chiffres",sans-serif;font-weight:600;font-size:11.5px;line-height:15px;letter-spacing:.2px}
+.etiquette em{font-family:"Chiffres",sans-serif;font-style:normal;font-weight:600;font-size:10.5px;letter-spacing:0;opacity:.75}
 /* le cartouche à la taille `ligne` : médaillon, nom, ce qu'il est */
 .cartouche{display:flex;align-items:center;gap:11px;min-width:0}
 .cartouche .nom-propre{white-space:nowrap}
@@ -175,7 +187,7 @@ html,body{margin:0;background:var(--noir)}
 .issue-du-combat .place>p{margin:0;text-align:center;font-style:italic;font-size:17px;color:var(--creme)}
 .issue-du-combat .place>.plaque{width:100%}
 .issue-du-combat .plaque>div{padding:0 24px}
-.cartouche .marque{display:inline-block;margin-left:8px;padding:0 7px 1px;font-family:"Fell SC";font-size:11px;letter-spacing:1px;color:var(--encre);border-radius:2px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));vertical-align:3px}
+.cartouche .etiquette{margin-left:8px;vertical-align:3px}
 
 /* la jauge : teinte cire (la vie) ou or, fine ou forte */
 .jauge{position:relative;background:var(--lit);border-radius:1px;box-shadow:0 0 0 1px var(--filet-or),inset 0 1px 2px var(--noir)}
@@ -227,8 +239,8 @@ html,body{margin:0;background:var(--noir)}
 .cartes.liste>.carte .portrait{display:none}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}
-.plaque.carte .c .sep,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
-.cartes.liste>.carte:not(.deux-lignes) .c .sep{display:inline}
+.plaque.carte .c .separateur,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
+.cartes.liste>.carte:not(.deux-lignes) .c .separateur{display:inline}
 .cartes.liste>.carte :is(.n,.c){-webkit-line-clamp:1}
 .cartes.liste>.carte.deux-lignes{height:44px}
 .cartes.liste>.carte.deux-lignes .c{-webkit-line-clamp:2}
@@ -280,7 +292,11 @@ html,body{margin:0;background:var(--noir)}
 .filet.fondu::before{background:linear-gradient(90deg,transparent,currentColor)}
 .filet.fondu::after{background:linear-gradient(90deg,currentColor,transparent)}
 .filet .losange{margin:0 10px}
+/* la puce : le losange plein de 7, la coche ; de la teinte du texte */
 .losange{flex:none;width:7px;height:7px;transform:rotate(45deg);background:currentColor}
+.coche{flex:none;display:flex}
+/* le séparateur médian : une espace fine de part et d'autre */
+.separateur.median{margin:0 .2em}
 
 /* un choix parmi quelques valeurs : sur parchemin ou sur bois */
 .segments{display:inline-flex;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px var(--trait-encre)}

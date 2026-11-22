@@ -38,18 +38,14 @@
 .ligne>.n small{font-size:13px;color:var(--encre-2)}
 .ligne.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
 .ligne.refusee{color:rgba(42,29,18,.42)}
-.ligne.refusee .tag{opacity:.45}
+.ligne.refusee .etiquette{opacity:.45}
 .ligne .bulle-refus{left:auto;right:6px;top:calc(100% + 11px);bottom:auto;transform:none}
 .ligne .bulle-refus::before{left:auto;right:24px;top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
 .ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:var(--rouille)}
-.ligne>.losange{margin:0 4px;color:var(--encre-2)}
-.tag{display:inline-block;flex:none;width:32px;text-align:center;font-family:"Fell SC";font-size:11px;line-height:16px;letter-spacing:.6px;color:var(--rouille);border:1px solid var(--filet-encre);border-radius:2px;background:var(--voile)}
+.ligne>.losange{margin:0 4px}
+/* la Caractéristique d'une ligne : une colonne de 32 */
+:is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
 .val{flex:none;font-family:"Chiffres";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
-.jeton{flex:none;display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11.5px;font-weight:600;letter-spacing:.2px;color:var(--encre);background:var(--voile);white-space:nowrap}
-.fond.bois .jeton{border-color:var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
-.jeton.or{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre)}
-.jeton.cire{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
-.jeton.fer{border-color:var(--noir);background:linear-gradient(180deg,var(--fer-clair),var(--fer-sombre));color:var(--eteint)}
 .comptes{display:flex;align-items:center;gap:9px;margin-top:9px}
 .trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
 .tirage{display:flex;gap:18px;align-items:center}
@@ -57,13 +53,10 @@
 
 /* paliers, clous d'Augmentation */
 .paliers{flex:none;display:flex;gap:5px}
-.palier{flex:none;width:32px;height:20px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11px;font-weight:600;color:var(--encre-2);background:var(--voile)}
-.palier.pris{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre);box-shadow:0 1px 3px var(--brou)}
-.palier.zero{border-color:var(--encre);color:var(--encre);background:var(--voile-fort)}
-.palier.ferme{border-color:var(--filet-encre);color:rgba(42,29,18,.32);background:none}
+.paliers>.etiquette{width:32px;justify-content:center}
 /* l'Augmentation de race, rappelée sur la page de la carrière : hors des dix clous (LDB 05 l.535) */
-.palier.race{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
-.palier.race.sans{visibility:hidden}
+.race.sans{visibility:hidden}
+.race>.etiquette{width:32px;justify-content:center}
 .clous{flex:none;display:flex;gap:3px}
 .clous>i{width:9px;height:9px;border-radius:50%;border:1px solid var(--trait-encre);background:rgba(60,40,20,.08)}
 .clous>i.p{border-color:var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
@@ -91,10 +84,7 @@
 .fait b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--encre)}
 .attributs{display:flex;gap:5px;margin-top:2px}
 .pills{display:flex;flex-wrap:wrap;gap:5px}
-.pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--encre);background:var(--voile);white-space:nowrap}
-.pill.prise{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:0 1px 3px var(--brou)}
-.pill.fermee{color:rgba(42,29,18,.68);border-color:var(--filet-encre);background:none}
-.pill b{font-size:10.5px}
+.pills>.etiquette{position:relative}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
 
 /* ───────── création : la colonne du choix, ses places (`choix/*`, `../rendu.js`) ───────── */
@@ -109,7 +99,7 @@
 #choix .ligne-ecrite{margin-top:0}
 
 /* ───────── création : les Caractéristiques ───────── */
-.methodes .jeton{margin-left:auto}
+.methodes .etiquette{margin-left:auto}
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
 .tirage-c>.l{flex:1}
 .tirage-c .plaque{flex:none;width:250px}
@@ -136,12 +126,11 @@
 /* ───────── création : le signe astral ───────── */
 .signe .tirage{margin-bottom:-2px}
 .signe .tirage .ligne{height:30px}
-.signe .tirage .jeton{margin-left:auto}
+.signe .tirage .etiquette{margin-left:auto}
 .signe .filet{margin:6px 26px}
 .signes .ligne{height:22px;font-size:14px}
 .variante{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 8px;margin-top:6px}
 .variante .pills{grid-column:1 / -1;gap:4px}
-.variante .pill{padding:0 7px;font-size:10.5px}
 .signe .page-c>.vignette{margin-top:2px}
 
 /* ───────── création : les Compétences ───────── */
@@ -156,7 +145,6 @@
 .ligne.carriere{height:36px;gap:7px;font-size:14px;padding:0 6px}
 .test{align-self:stretch;display:flex;align-items:center;gap:12px;margin-top:2px}
 .test b{font-family:"Fell";font-weight:400;font-size:15px;color:var(--encre)}
-.competencesDeCarriere .page-c>.pills .pill{height:21px;padding:0 8px;font-size:10.5px}
 
 /* ───────── création : les Talents ───────── */
 .talents .ligne .raison{margin-left:auto}
@@ -165,12 +153,10 @@
 .tire .n{display:flex;flex-direction:column;justify-content:center;line-height:16px}
 .tire .n>span{overflow:hidden}
 .tire .n .raison{font-size:10px}
-.tire .pill{height:20px}
 .tire .plaque{flex:none}
 .tire .plaque>div{font-size:12px;padding:0 10px}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
-.mineurs .pill{height:23px;padding:0 8px;font-size:12px}
 .mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
 .mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
 
@@ -243,7 +229,7 @@
 .bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
 .bande .c .v{font-family:"Chiffres";font-size:23px;line-height:27px;color:var(--encre)}
 .bande .c .aug{font-family:"Chiffres";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
-.bande .c .jeton{margin-top:1px;height:19px;font-size:10.5px;padding:0 6px}
+.bande .c>.etiquette{margin-top:1px}
 .bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
 .bande .c>*{position:relative}
 /* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur, la valeur décalée d'autant pour
@@ -261,7 +247,8 @@
 .acquis>.nom-propre{white-space:nowrap;overflow:hidden;margin-bottom:4px}
 .acquis .a{margin-bottom:7px;min-width:0}
 .acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
-.acquis .a i .jeton{height:16px;font-size:10px;padding:0 6px}
+/* le compte des PX déborde la ligne de sa rubrique, sans la grandir */
+.acquis .a i>.etiquette{margin:-3px 0}
 .acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
 .acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
@@ -326,7 +313,6 @@
 #competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
-.depli .pill{height:19px;padding:0 7px;font-size:10px}
 .depli .plaque{flex:none;width:150px}
 .depli .plaque>div{font-size:12px;padding:0 9px}
 .depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
@@ -354,7 +340,7 @@
 .chemin .rail.fait{height:3px;top:20px;background:linear-gradient(180deg,var(--or-moyen),var(--laiton-ombre))}
 .station{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:4px}
 .station .pt{position:relative;width:34px;height:34px;display:grid;place-items:center}
-.station .pt>.jeton{position:absolute;left:40px;top:7px;height:19px;font-size:10.5px;padding:0 7px}
+.station .pt>.etiquette{position:absolute;left:40px;top:6px}
 .station .clou-fer{position:relative;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,var(--fer-clair) 60%,var(--noir));box-shadow:0 1px 2px var(--ombre)}
 .station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
 .station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
@@ -364,7 +350,6 @@
 .station.loin .et i{color:rgba(90,58,28,.6)}
 .ouvre{align-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:start}
 .ouvre .rub{padding-top:3px}
-.ouvre .pill{height:21px;padding:0 8px;font-size:10.5px}
 .page-c>.glose{margin:6px 0 0;align-self:stretch;text-align:center}
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
