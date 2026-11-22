@@ -840,10 +840,12 @@ const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts
  *  son identifiant, l'offre s'ajoutant et se retirant par ses écrivains (`offreAjoutee`, `offreRetiree`) ; de chacun de
  *  ses points d'intérêt, à son rang, son icône et, s'il mène à une scène, son nom, sa position posée au plan, sa cible
  *  par son écrivain (`ciblerPoi`). #3606 #4277 */
-const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi']);
+const CHAMPS_DE_LA_CALE_SECHE = ['constructeurDeBateaux', 'materiauxCaleSeche'] as const;
+const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi', ...CHAMPS_DE_LA_CALE_SECHE]);
 const CHAMPS_DE_L_OFFRE = champsSauf(offreDAubergeSchema, ['id']);
 const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
   ...CHAMPS_DU_LIEU,
+  ...(lieu.amarrage === 'cale-seche' ? CHAMPS_DE_LA_CALE_SECHE.map((champ) => [champ]) : []),
   ...(lieu.services ?? []).flatMap((sv, i) => [
     ['services', i, 'label'],
     ['services', i, 'when'],

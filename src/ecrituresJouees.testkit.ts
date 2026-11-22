@@ -475,6 +475,23 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   const depart = projetEdite(s).worldMap!.places[0];
   const lieuNeuf = cree(s, cliquer(presser(s, 'outil/lieu'), 85, 15), 'lieu', out);
   ecrire(lieuNeuf, gesteDuChoix(lieuNeuf, 'valeur/port/ajouter', (v) => estObjet(v) && typeof v.ref === 'string'), 'saisieChoix', out, 'ref');
+  const relireLieu = (session: SessionDEdition) =>
+    projetEdite(session).worldMap!.places.find((lieu) => lieu.id === selectionne(lieuNeuf))!;
+  const choisirAmarrage = (session: SessionDEdition, valeur: 'simple' | 'cale-seche') =>
+    ecrire(session, gesteDuChoix(session, 'valeur/amarrage', (v) => v === valeur), 'saisieChoix', out);
+  const amarrage = choisirAmarrage(lieuNeuf, 'simple');
+  expect(relireLieu(amarrage).amarrage).toBe('simple');
+  const cale = choisirAmarrage(amarrage, 'cale-seche');
+  const caleEditee = jouerLInspecteur(cale, out, ['valeur/constructeurDeBateaux', 'valeur/materiauxCaleSeche']);
+  expect(relireLieu(caleEditee)).toMatchObject({ amarrage: 'cale-seche', constructeurDeBateaux: expect.any(Number), materiauxCaleSeche: expect.any(Boolean) });
+  const sansCale = relireLieu(choisirAmarrage(caleEditee, 'simple'));
+  expect(sansCale.amarrage).toBe('simple');
+  expect(sansCale.constructeurDeBateaux).toBeUndefined();
+  expect(sansCale.materiauxCaleSeche).toBeUndefined();
+  const sansAmarrage = relireLieu(presser(caleEditee, 'valeur/amarrage/aucune'));
+  expect(sansAmarrage.amarrage).toBeUndefined();
+  expect(sansAmarrage.constructeurDeBateaux).toBeUndefined();
+  expect(sansAmarrage.materiauxCaleSeche).toBeUndefined();
   s = jouerLInspecteur(lieuNeuf, out);
   const neuf = selectionne(s);
   s = jouerLInspecteur(ajouter(presser(s, 'outil/select'), 'lieu', out), out);
