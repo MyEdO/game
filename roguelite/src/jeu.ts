@@ -5,9 +5,9 @@
  * le RNG à graine du moteur (`makeRNG`), jamais par `Math.random`.
  */
 import {
-  refusDUsage, makeRNG, generateName, type RNG, nouvelleRecrue, jouerLeCombat, reposer, soigner, guerirDesSequelles, sequelles, horsDeCombat,
-  nomDeCreature, nomDeCarriereDuLivre, auHameau, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, progression,
-  type Combatant, type IssueDuCombat, type Geste, type Identite, type PoidsDArmure, type Progression,
+  refusDUsage, plaiesASoigner, panserLesPlaies, opererLesBlessures, makeRNG, generateName, type RNG, nouvelleRecrue, jouerLeCombat, reposer, soigner, guerirDesSequelles, sequelles, horsDeCombat,
+  nomDeCreature, nomDeCarriereDuLivre, libellesDeQualites, auHameau, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, progression,
+  type ArticleDuCatalogue, type Combatant, type IssueDuCombat, type Geste, type Identite, type PoidsDArmure, type Progression,
 } from './combat';
 
 export type { CharKey, PoidsDArmure } from './combat';
@@ -24,11 +24,11 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de guérison' },
     { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite ; potions de vitalité' },
   ] },
-  { id: 'temple', nom: 'Chapelle de Shallya', role: 'Soins', paliers: [
+  { id: 'temple', nom: 'Chapelle de Shallya', role: 'Soins et hospice', paliers: [
     { cout: 0, trophees: 0, effet: 'Fermée : seuls les héros restés au hameau se reposent' },
-    { cout: 80, trophees: 0, effet: 'Soins complets, 15 CO par héros' },
-    { cout: 220, trophees: 1, effet: 'Soins à 5 CO ; Larmes de Shallya : une séquelle guérie pour 40 CO' },
-    { cout: 450, trophees: 2, effet: 'Soins gratuits, séquelle à 20 CO, +1 Destin à qui n’en a plus' },
+    { cout: 80, trophees: 0, effet: 'Soins à 15 CO ; les sœurs pansent les plaies à l’hospice' },
+    { cout: 220, trophees: 1, effet: 'Soins à 5 CO ; un chirurgien opère ; Larmes de Shallya' },
+    { cout: 450, trophees: 2, effet: 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus' },
   ] },
   { id: 'salle', nom: 'Salle d’armes', role: 'Carrières', paliers: [
     { cout: 0, trophees: 0, effet: 'Fermée : les PX attendent' },
@@ -127,8 +127,12 @@ const PRIX_DE_RECRUE = [15, 30, 50];
 const TAILLE_DU_GROUPE = 4;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 const ECHELLE_DES_PRIX = 10;
-/** Jours de repos accordés à tous quand personne n'est plus en état de partir. */
+/** Jours de repos accordés à tous quand personne n'est plus en état de partir ; durée d'un séjour à l'hospice. */
 const SEMAINE_DE_REPOS = 7;
+/** La Guérison des sœurs et du chirurgien de l'hospice. */
+const GUERISON_DE_L_HOSPICE = 45;
+/** Prix des actes de l'hospice, avant la remise du dernier palier. */
+const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 
 /** Ce que vend la forge, par palier : armes du catalogue (`trappings.json`) et armures des règles rapides. */
 const ARMES_DE_FORGE: readonly string[][] = [
@@ -146,7 +150,8 @@ const PROVISIONS: readonly string[][] = [['cataplasme-de-guerison'], ['potion-de
 
 // ─── État ───────────────────────────────────────────────────────────────────────────────────────────────────
 
-export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number }
+/** `retrait` : jours restants à l'hospice ; le héros ne part pas en expédition. */
+export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean }
@@ -258,6 +263,28 @@ export function soignerAuTemple(e: Etat, id: string): string | null {
   return null;
 }
 
+export type ActeDHospice = keyof typeof PRIX_DE_L_HOSPICE;
+/** Le prix de l'acte à l'hospice, `null` s'il n'y est pas encore pratiqué (panser au palier 1, opérer au palier 2). */
+export const prixDeLHospice = (e: Etat, acte: ActeDHospice): number | null =>
+  e.batiments.temple < (acte === 'panser' ? 1 : 2) ? null : PRIX_DE_L_HOSPICE[acte] / (e.batiments.temple >= 3 ? 2 : 1);
+/** Ce que l'hospice peut faire pour le héros. */
+export const actesPossibles = (h: Heros): ActeDHospice[] => { const p = plaiesASoigner(h.c); return [...(p.panser ? ['panser' as const] : []), ...(p.operer ? ['operer' as const] : [])]; };
+
+/** Confie le héros à l'hospice : les sœurs pansent ses plaies, ou le chirurgien l'opère ; il y reste une semaine. */
+export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): string | null {
+  const h = heros(e, id);
+  const prix = prixDeLHospice(e, acte);
+  if (!h || prix == null) return 'L’hospice ne pratique pas encore cet acte.';
+  if (h.retrait) return `${h.c.label} est déjà à l’hospice.`;
+  if (!actesPossibles(h).includes(acte)) return acte === 'panser' ? 'Aucune plaie que les sœurs puissent panser.' : 'Rien à opérer.';
+  if (e.or < prix) return `Il faut ${prix} CO.`;
+  e.or -= prix;
+  const lignes = acte === 'panser' ? panserLesPlaies(h.c, GUERISON_DE_L_HOSPICE, e.graine++) : opererLesBlessures(h.c);
+  h.retrait = SEMAINE_DE_REPOS;
+  noter(e, `${lignes.join(' ')} ${h.c.label} reste une semaine à l’hospice.`);
+  return null;
+}
+
 export function guerirUneSequelle(e: Etat, id: string): string | null {
   const prix = prixDeSequelle(e);
   const h = heros(e, id);
@@ -319,18 +346,23 @@ const messageDuNoyau = (ligne: string, pris: () => boolean): string | null => (p
 const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
 export const prixDArmure = (p: PoidsDArmure): number => Math.round({ legere: 2, moyenne: 5, lourde: 30 }[p] * ECHELLE_DES_PRIX); // LDB 63 l.95-103
 
-export interface Article { id: string; label: string; prix: number; enc: number; desc?: string }
-const article = (id: string): Article => { const a = articleDuCatalogue(id); return { id, label: a.label, prix: prixDe(id), enc: a.enc, desc: a.desc }; };
+/** Un objet en vente : ce que le catalogue en dit, son prix au hameau, et la main où il se tient (arme). */
+export interface Article extends ArticleDuCatalogue { id: string; prix: number; tenue: 'main' | 'secondaire' }
+const article = (id: string): Article => ({ ...articleDuCatalogue(id), id, prix: prixDe(id), tenue: MAIN_SECONDAIRE.has(id) ? 'secondaire' : 'main' });
 export const armesEnVente = (e: Etat): Article[] => ARMES_DE_FORGE.slice(0, e.batiments.forge + 1).flat().map(article);
-export const armuresEnVente = (e: Etat): (Article & { poids: PoidsDArmure; pa: number })[] =>
-  ARMURES_DE_FORGE.slice(0, e.batiments.forge + 1).map((poids) => ({ id: poids, poids, label: ARMURES_RAPIDES[poids].label, prix: prixDArmure(poids), enc: ARMURES_RAPIDES[poids].enc, pa: ARMURES_RAPIDES[poids].pa }));
+export interface ArmureEnVente { poids: PoidsDArmure; label: string; prix: number; enc: number; pa: number; qualites: string[] }
+export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
+  ARMURES_DE_FORGE.slice(0, e.batiments.forge + 1).map((poids) => {
+    const a = ARMURES_RAPIDES[poids];
+    return { poids, label: a.label, prix: prixDArmure(poids), enc: a.enc, pa: a.pa, qualites: libellesDeQualites(a.qualites) };
+  });
 export const provisionsEnVente = (e: Etat): Article[] => PROVISIONS.slice(0, e.batiments.relais + 1).flat().map(article);
 
-/** Ce que le héros tient : main principale, main secondaire (du set actif), armure portée. */
-export function equipement(h: Heros): { main?: string; secondaire?: string; armure?: string } {
+/** Ce que le héros tient : main principale, main secondaire (du set actif), armure portée et ses PA au corps. */
+export function equipement(h: Heros): { main?: string; secondaire?: string; armure?: string; pa: number } {
   const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
   const nom = (uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid)?.label : undefined);
-  return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined };
+  return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
 }
 
 function payer(e: Etat, h: Heros | undefined, prix: number): string | null {
@@ -399,11 +431,13 @@ export function provisionsPortees(h: Heros): { id: string; label: string; nombre
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 export const valide = (h: Heros): boolean => !horsDeCombat(h.c);
+/** En état de partir : valide, et pas à l'hospice. */
+export const disponible = (h: Heros): boolean => valide(h) && !h.retrait;
 
 export function partir(e: Etat, destinationId: string, groupe: string[]): string | null {
   const d = DESTINATIONS.find((x) => x.id === destinationId);
   if (!d || d.palier > e.batiments.cartographe) return 'Destination inconnue.';
-  const choisis = groupe.map((id) => heros(e, id)).filter((h): h is Heros => !!h && valide(h));
+  const choisis = groupe.map((id) => heros(e, id)).filter((h): h is Heros => !!h && disponible(h));
   if (!choisis.length) return 'Choisissez au moins un héros valide.';
   if (choisis.length > TAILLE_DU_GROUPE) return `${TAILLE_DU_GROUPE} héros au plus.`;
   const rng = tirer(e);
@@ -541,7 +575,7 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
  *  attend une semaine que les blessés se relèvent : jamais d'impasse, faute d'or pour la chapelle. */
-export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => valide(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
+export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
   noter(e, 'Personne n’est en état de partir : la compagnie panse ses plaies une semaine durant.');
@@ -558,6 +592,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of e.roster) {
     if (absents.has(h.c.id)) continue;
+    if (h.retrait) h.retrait = Math.max(0, h.retrait - jours) || undefined;
     h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
     reposer(h.c, e.graine++, jours);
   }

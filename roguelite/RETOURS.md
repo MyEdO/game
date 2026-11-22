@@ -103,6 +103,12 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (`UpkeepDeferTest`) ; hors de la cascade de nuit, l'hôte lance lui-même le jet (`testValue`, `rollTest`) et applique
   `applyFractureEnd`. Un résolveur « immédiat » public éviterait cette recopie.
 
+- **Friction — l'infirmerie du noyau suppose un joueur et un soigneur en scène.** `ouvrirLeMedecin(patientId)` ouvre une
+  fenêtre à choix (acte, soigneur, passes d'un Test étendu) sans drive automatique, et le soigneur PNJ (`MedicNpc`) n'est
+  pas un argument du verbe public. Un hôte qui tient un hospice (« le chirurgien opère, le héros reste une semaine »)
+  appelle les primitives pures `treatTrauma` et `removeSurgicalTrauma` (`engine/trauma.ts`) et lance lui-même le Test de
+  Guérison. Idée : un verbe `soignerParUnPNJ(patient, acte, valeur)` qui joue l'acte de bout en bout.
+
 ## Bundle navigateur
 
 - **Friction — 9 Mo minifiés pour un combat.** Le graphe d'import tire tout le corpus : `creatures.json`

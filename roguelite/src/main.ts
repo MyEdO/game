@@ -14,7 +14,8 @@ import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from './hameau';
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string } | { type: 'depart'; dest: string | null; choix: Set<string> } | { type: 'chronique' };
+type Onglet = 'fiche' | 'carriere' | 'route';
+type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string; onglet: Onglet } | { type: 'depart'; dest: string | null; choix: Set<string> } | { type: 'chronique' };
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 let modale: { type: 'recit'; recit: J.RecitDeSalle; vignette?: J.Heros[]; terrain?: string } | { type: 'reset' } | null = null;
@@ -92,35 +93,46 @@ function choixDuClient(id: string) {
   return `<div class="choix-client">${etat.roster.map((h) => `<button type="button" data-a="client" data-id="${h.c.id}" title="${esc(h.c.label)}" class="${h.c.id === id ? 'choisi' : ''}">${portrait(busteDuHeros(h), 'heros', 'petit', h.c.id === id ? 'choisi' : '')}<span>${esc(h.c.label.split(' ')[0])}</span></button>`).join('')}</div>`;
 }
 const leClient = (): J.Heros | undefined => etat.roster.find((h) => h.c.id === client) ?? etat.roster[0];
-const etal = (articles: { label: string; detail: string; prix: number; attrs: string }[]) =>
-  `<ul class="etal">${articles.map((a) => `<li><span class="qui"><b>${esc(a.label)}</b><span>${esc(a.detail)}</span></span>${plaque('Acheter', a.attrs, { prix: String(a.prix), taille: 'petite', armee: etat.or >= a.prix, fermee: etat.or < a.prix })}</li>`).join('')}</ul>`;
+/** Une offre en pastille : le nom, l'essentiel, le prix ; le détail au survol. */
+const offre = (label: string, essentiel: string, prix: number, detail: string, attrs: string, actuelle = false) =>
+  `<button type="button" class="offre${actuelle ? ' actuelle' : ''}" ${attrs} title="${esc(detail)}"${actuelle || etat.or < prix ? ' disabled' : ''}><b>${esc(label)}</b><span>${esc(essentiel)}</span><i class="prix">${actuelle ? 'porté' : prix}</i></button>`;
+const detailDArme = (a: J.Article) => [a.degats && `Dégâts ${a.degats}`, a.mains === 2 && 'deux mains', a.allonge && `allonge ${a.allonge.toLowerCase()}`, a.portee && `portée ${a.portee} m`, ...a.qualites, `Enc. ${a.enc}`].filter(Boolean).join(' · ');
 
+/** La forge, à la manière d'une case par emplacement : la main principale, la main secondaire, l'armure. Chacune montre
+ *  ce que le héros porte et ce que la forge propose pour elle seule. */
 function pageDeForge() {
   const h = leClient();
   if (!h) return '<p class="glose">Personne à équiper.</p>';
   const eq = J.equipement(h);
-  return `${choixDuClient(h.c.id)}<p class="detail">En main : ${esc(eq.main ?? 'rien')}${eq.secondaire ? ` et ${esc(eq.secondaire)}` : ''} · Armure : ${esc(eq.armure ?? 'aucune')}</p>${ligneDEncombrement(h.c)}
-    <div class="sous-titre">Armures</div>${etal(J.armuresEnVente(etat).map((a) => ({ label: a.label, detail: `${a.pa} PA partout · Enc. ${a.enc}`, prix: a.prix, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"` })))}
-    <div class="sous-titre">Armes</div>${etal(J.armesEnVente(etat).map((a) => ({ label: a.label, detail: `Enc. ${a.enc}`, prix: a.prix, attrs: `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"` })))}
-    <p class="glose">L’objet remplacé reste au forgeron. Au-delà de sa capacité, un héros surchargé perd Mouvement et Agilité.</p>`;
+  const armes = J.armesEnVente(etat);
+  const caseDArmes = (tenue: 'main' | 'secondaire', titre: string, porte?: string) => `<section class="emplacement"><header><span class="sous-titre">${titre}</span><b>${esc(porte ?? 'rien')}</b></header>
+    <div class="offres">${armes.filter((a) => a.tenue === tenue).map((a) => offre(a.label, [a.degats, a.mains === 2 ? '2 mains' : ''].filter(Boolean).join(' · '), a.prix, detailDArme(a), `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`, a.label === porte)).join('')}</div></section>`;
+  return `${choixDuClient(h.c.id)}${ligneDEncombrement(h.c)}
+    ${caseDArmes('main', 'Main principale', eq.main)}${caseDArmes('secondaire', 'Main secondaire', eq.secondaire)}
+    <section class="emplacement"><header><span class="sous-titre">Armure</span><b>${esc(eq.armure ?? 'aucune')}</b></header>
+    <div class="offres">${J.armuresEnVente(etat).map((a) => offre(a.poids === 'legere' ? 'Légère' : a.poids === 'moyenne' ? 'Moyenne' : 'Lourde', `${a.pa} PA · Enc. ${a.enc}`, a.prix, [`${a.pa} PA à chaque emplacement`, ...a.qualites, `Enc. ${a.enc}`].join(' · '), `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"`, a.label === eq.armure)).join('')}</div></section>
+    <p class="glose">Survolez une offre pour son détail. L’objet remplacé reste au forgeron ; au-delà de sa capacité, un héros perd Mouvement et Agilité.</p>`;
 }
 
-function sectionDesProvisions() {
-  const h = leClient();
-  if (!h) return '';
-  const portees = J.provisionsPortees(h);
-  return `<div class="sous-titre">Provisions</div>${choixDuClient(h.c.id)}
-    <p class="detail">${portees.length ? `Dans le sac : ${portees.map((p) => `${esc(p.label)} ×${p.nombre}`).join(', ')}` : 'Le sac est vide.'}</p>
-    ${etal(J.provisionsEnVente(etat).map((a) => ({ label: a.label, detail: a.desc ? a.desc.split('. ')[0] : '', prix: a.prix, attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"` })))}
-    <p class="glose">Chaque héros porte ses provisions et les utilise entre deux salles.</p>`;
+/** Au départ, les provisions de chaque héros choisi : ce qu'il porte, et une pastille par provision du relais. */
+function provisionsDuDepart(choix: Set<string>) {
+  const heros = etat.roster.filter((h) => choix.has(h.c.id));
+  if (!heros.length) return '';
+  const vente = J.provisionsEnVente(etat);
+  return `<div class="sous-titre">Provisions</div><ul class="provisions">${heros.map((h) => {
+    const portees = J.provisionsPortees(h);
+    return `<li>${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><b class="gothique">${esc(h.c.label.split(' ')[0])}</b><span>${portees.length ? portees.map((q) => `${esc(q.label)} ×${q.nombre}`).join(', ') : 'sac vide'}</span></span>
+      <span class="offres">${vente.map((a) => offre(`+ ${a.label}`, '', a.prix, a.desc ?? a.label, `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`)).join('')}</span></li>`;
+  }).join('')}</ul>`;
 }
+
 
 function carteDeHeros(h: J.Heros, choisi: boolean) {
   const c = h.c;
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${choisi ? ' choisi' : ''}" data-a="heros" data-id="${c.id}">
     ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : J.valide(h) ? `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}` : 'hors de combat'}</span></span>
+    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `à l’hospice · ${h.retrait} j` : J.valide(h) ? `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}` : 'hors de combat'}</span></span>
   </button>`;
 }
 
@@ -154,15 +166,14 @@ function pageDuBatiment(id: J.IdBatiment) {
       const gratuit = etat.roster.length === 0 && etat.or < c.prix;
       return `<li>${portrait(busteDuHeros(c), 'heros', 'petit')}<span class="qui"><b class="gothique">${esc(c.c.label)}</b><span>${esc(J.nomDeCarriere(c.carriere))} · ${esc(J.nomDEspece(c.espece))} · ${c.c.wounds.max} PB · CC ${carac(c.c, 'capacite-de-combat')}</span><span class="glose">${esc(J.deviseDe(c.carriere))} ${gratuit ? 'Servira sans solde.' : `Solde : ${c.prix} couronnes.`}</span></span>${plaque('Engager', `data-a="recruter" data-i="${i}"`, { prix: gratuit ? '' : String(c.prix), taille: 'petite', armee: gratuit || etat.or >= c.prix, fermee: !gratuit && etat.or < c.prix })}</li>`;
     }).join('')}</ul>` : '<p class="glose">Personne au relais. D’autres voyageurs arriveront avec la prochaine diligence.</p>';
-    corps += sectionDesProvisions();
+    corps += `<p class="glose">Les provisions du relais s’achètent au départ d’une expédition, pour chaque héros choisi.</p>`;
   } else if (id === 'temple') {
-    const prix = J.prixDuSoin(etat);
-    const larmes = J.prixDeSequelle(etat);
-    corps = prix == null ? '<p class="glose">La chapelle est en ruine : il faut la relever pour que les sœurs soignent les blessés. En attendant, seuls les héros restés au hameau se reposent.</p>'
-      : `<div class="sous-titre">Les blessés</div>${listeDeHeros((h) => `<span class="gestes-h">${J.blesse(h) ? plaque('Soigner', `data-a="soigner" data-id="${h.c.id}"`, { icone: 'soin', prix: prix ? String(prix) : '', taille: 'petite', armee: etat.or >= prix }) : '<span class="glose">indemne</span>'}${larmes != null && J.sequellesGuerissables(h) ? plaque('Larmes de Shallya', `data-a="sequelle" data-id="${h.c.id}"`, { prix: String(larmes), taille: 'petite', armee: etat.or >= larmes }) : ''}</span>`)}`;
+    corps = J.prixDuSoin(etat) == null ? '<p class="glose">La chapelle est en ruine : il faut la relever pour que les sœurs soignent les blessés. En attendant, seuls les héros restés au hameau se reposent.</p>'
+      : `<div class="sous-titre">Les blessés</div>${listeDeHeros((h) => `<span class="offres">${soinsDuHeros(h)}</span>`)}
+        <p class="glose">Les sœurs pansent les plaies, le chirurgien opère : le héros reste une semaine à l’hospice. Les séquelles de convalescence guérissent aussi avec le temps, au repos.</p>`;
   } else if (id === 'salle') {
     corps = n === 0 ? '<p class="glose">La salle d’armes est en ruine : il faut la relever pour dépenser les PX.</p>'
-      : `<div class="sous-titre">Carrières · jusqu’au niveau ${J.niveauMaximal(etat)}</div>${listeDeHeros((h) => plaque('Progresser', `data-a="heros" data-id="${h.c.id}"`, { icone: 'epee', taille: 'petite', armee: (h.c.xp ?? 0) >= 100 }))}`;
+      : `<div class="sous-titre">Carrières · jusqu’au niveau ${J.niveauMaximal(etat)}</div>${listeDeHeros((h) => plaque('Progresser', `data-a="heros" data-id="${h.c.id}" data-k="carriere"`, { icone: 'epee', taille: 'petite', armee: (h.c.xp ?? 0) >= 100 }))}`;
   } else if (id === 'forge') {
     corps = pageDeForge();
   } else if (id === 'cartographe') {
@@ -190,64 +201,103 @@ function pageDuDepart(p: Extract<Panneau, { type: 'depart' }>) {
   const d = J.DESTINATIONS.find((x) => x.id === p.dest)!;
   return page(d.nom, `<p class="glose consigne">${esc(d.recit)} Choisissez jusqu’à quatre héros. Pendant l’expédition, seuls ceux qui restent au hameau se reposent.</p>
     <div class="choix">${etat.roster.map((h) => {
-      const ok = J.valide(h);
+      const ok = J.disponible(h);
       return `<label class="${ok ? '' : 'hors'}${p.choix.has(h.c.id) ? ' coche' : ''}"><input type="checkbox" id="pick-${h.c.id}" data-a="choisir" data-id="${h.c.id}"${p.choix.has(h.c.id) ? ' checked' : ''}${ok ? '' : ' disabled'}>
-        ${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><b class="gothique">${esc(h.c.label)}</b><span>${esc(J.nomDeCarriere(h.carriere))} · ${Math.max(0, h.c.wounds.current)}/${h.c.wounds.max} PB</span></span></label>`;
+        ${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><b class="gothique">${esc(h.c.label)}</b><span>${esc(J.nomDeCarriere(h.carriere))} · ${Math.max(0, h.c.wounds.current)}/${h.c.wounds.max} PB${h.retrait ? ` · à l’hospice ${h.retrait} j` : ''}</span></span></label>`;
     }).join('') || '<p class="glose">Personne à envoyer.</p>'}</div>
+    ${provisionsDuDepart(p.choix)}
     <div class="gestes">${plaque(`Partir avec ${p.choix.size} héros`, 'data-a="partir"', { icone: 'route', armee: p.choix.size > 0, fermee: !p.choix.size })}${plaque('Autre route', 'data-a="ouvrir-depart"', { taille: 'petite' })}</div>`);
 }
 
-function sectionDesSequelles(c: Combatant) {
-  const l = sequelles(c);
-  return l.length ? `<div class="sous-titre">Séquelles</div><ul class="sequelles">${l.map((q) => `<li title="${esc(q.desc ?? '')}"><b>${esc(q.label)}</b><span>${q.jours != null ? `${q.jours} jour${q.jours > 1 ? 's' : ''} de convalescence` : 'permanente'}</span></li>`).join('')}</ul>` : '';
+/** Les séquelles en étiquettes : une par nature (×N si plusieurs), sa convalescence la plus longue, le texte au survol. */
+function etiquettesDeSequelles(c: Combatant) {
+  const groupes = new Map<string, { n: number; jours?: number; desc?: string }>();
+  for (const q of sequelles(c)) {
+    const g = groupes.get(q.label);
+    if (g) { g.n++; if (q.jours != null) g.jours = Math.max(g.jours ?? 0, q.jours); } else groupes.set(q.label, { n: 1, jours: q.jours, desc: q.desc });
+  }
+  return groupes.size ? `<div class="etiquettes-sequelles" aria-label="Séquelles">${[...groupes].map(([label, g]) =>
+    `<span class="etiquette sequelle${g.jours == null ? ' permanente' : ''}" title="${esc(`${g.desc ?? label}${g.jours != null ? ` — ${g.jours} jours de convalescence` : ' — permanente'}`)}">${esc(label)}${g.n > 1 ? ` ×${g.n}` : ''}${g.jours != null ? ` · ${g.jours} j` : ''}</span>`).join('')}</div>` : '';
 }
 
 /** Entre deux salles : les provisions du héros, et la prière de soin d'un Béni. */
-function sectionDeRoute(h: J.Heros) {
+function ongletDeRoute(h: J.Heros) {
   const provisions = J.provisionsPortees(h);
   const blesses = J.herosDuGroupe(etat).filter((x) => x.c.wounds.current < x.c.wounds.max);
   const benit = (h.c.spells ?? []).includes('benediction-de-guerison');
   const priere = !benit ? '' : J.peutPrier(etat, h)
-    ? `<div class="sous-titre">Bénédiction de Guérison · une fois par expédition</div><div class="gestes">${blesses.length ? blesses.map((x) => plaque(`Prier pour ${x.c.label.split(' ')[0]}`, `data-a="prier" data-id="${h.c.id}" data-k="${x.c.id}"`, { icone: 'soin', taille: 'petite', armee: true })).join('') : '<span class="glose">Personne n’est blessé.</span>'}</div>`
+    ? `<div class="sous-titre">Bénédiction de Guérison · une fois par expédition</div><div class="offres">${blesses.length ? blesses.map((x) => `<button type="button" class="offre" data-a="prier" data-id="${h.c.id}" data-k="${x.c.id}"><b>${esc(x.c.label.split(' ')[0])}</b><span>${Math.max(0, x.c.wounds.current)}/${x.c.wounds.max} PB</span></button>`).join('') : '<span class="glose">Personne n’est blessé.</span>'}</div>`
     : '<p class="glose">A déjà prié pour soigner pendant cette expédition.</p>';
-  return `<div class="sous-titre">Provisions</div>${provisions.length ? `<ul class="etal">${provisions.map((p) => `<li><span class="qui"><b>${esc(p.label)} ×${p.nombre}</b>${p.refus ? `<span>${esc(p.refus)}</span>` : ''}</span>${plaque('Utiliser', `data-a="utiliser" data-id="${h.c.id}" data-k="${p.uid}"`, { taille: 'petite', armee: !p.refus, fermee: !!p.refus })}</li>`).join('')}</ul>` : '<p class="glose">Aucune provision. Le relais en vend.</p>'}${priere}`;
+  return `<div class="sous-titre">Provisions</div>${provisions.length ? `<div class="offres">${provisions.map((q) => `<button type="button" class="offre" data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}" title="${esc(q.refus ?? 'Utiliser maintenant')}"${q.refus ? ' disabled' : ''}><b>${esc(q.label)}</b><span>×${q.nombre}</span></button>`).join('')}</div>` : '<p class="glose">Aucune provision.</p>'}${priere}`;
 }
 
-/** La carrière du héros : Augmentations et Talents de son niveau, niveau suivant, sorts ou miracles de sa voie. */
-function sectionDeCarriere(h: J.Heros) {
+/** Une tuile d'achat : le nom, l'état (Augmentations ou acquis), le prix ; elle se grise sans assez de PX. */
+const tuile = (label: string, etatDeLaTuile: string, prix: number | null, attrs: string, faite: boolean, xp: number) =>
+  `<button type="button" class="tuile${faite ? ' faite' : ''}" ${attrs} title="${esc(label)}"${prix != null && xp < prix ? ' disabled' : ''}><span class="t-nom">${esc(label)}</span><span class="t-etat">${etatDeLaTuile}</span>${prix != null ? `<span class="t-prix">${prix} PX</span>` : ''}</button>`;
+
+/** La carrière, à la manière d'une guilde : où en est le niveau, puis des tuiles à acheter. */
+function ongletDeCarriere(h: J.Heros) {
   if (!J.niveauMaximal(etat)) return '<p class="glose">Relevez la salle d’armes pour dépenser les PX.</p>';
   const o = J.offresDeCarriere(h);
   const xp = h.c.xp ?? 0;
-  const ligne = (label: string, valeur: string, augm: number, cout: number, attrs: string) =>
-    `<tr><td>${esc(label)}</td><td class="chiffres">${valeur}</td><td class="chiffres${augm >= o.requis ? ' acquis' : ''}">${augm}/${o.requis}</td><td>${plaque('+1', attrs, { prix: String(cout), taille: 'petite', fermee: xp < cout })}</td></tr>`;
+  const caracsFaites = o.caracs.filter((k) => k.augmentations >= o.requis).length;
+  const compsFaites = Math.min(8, o.competences.filter((k) => k.augmentations >= o.requis).length);
+  const talentFait = o.talents.some((t) => t.possede) ? 1 : 0;
   const voie = J.voieDe(h.carriere);
   const initie = voie && h.c.talents.some((t) => t.talentId === voie.talent);
   const aApprendre = voie && initie ? voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id)) : [];
   const suivant = o.suivant;
-  return `<div class="sous-titre">${esc(o.titre)} · niveau ${o.niveau} · ${xp} PX à dépenser</div>
-    <table class="entrainement"><thead><tr><th>Caractéristique</th><th>Valeur</th><th>Augm.</th><th>PX</th></tr></thead><tbody>
-    ${o.caracs.map((k) => ligne(k.label, String(k.valeur), k.augmentations, k.cout, `data-a="carac" data-id="${h.c.id}" data-k="${k.id}"`)).join('')}</tbody></table>
-    <table class="entrainement"><thead><tr><th>Compétence</th><th></th><th>Augm.</th><th>PX</th></tr></thead><tbody>
-    ${o.competences.map((k, i) => ligne(k.label, '', k.augmentations, k.cout, `data-a="competence" data-id="${h.c.id}" data-i="${i}"`)).join('')}</tbody></table>
-    <div class="sous-titre">Talents du niveau</div><ul class="etal">${o.talents.map((t, i) => `<li><span class="qui"><b>${esc(t.label)}</b><span>${t.possede ? `acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : 'à apprendre'}</span></span>${plaque(t.possede ? 'Encore' : 'Apprendre', `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, { prix: String(t.cout), taille: 'petite', fermee: xp < t.cout })}</li>`).join('')}</ul>
-    ${aApprendre.length ? `<div class="sous-titre">${esc(voie!.nom)}</div><div class="gestes">${aApprendre.map((id) => plaque(`Apprendre ${nomDeSort(id)}`, `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, { taille: 'petite' })).join('')}</div>` : ''}
-    ${suivant ? `<div class="niveau-suivant"><span class="qui"><b>${esc(suivant.titre)}</b><span>${o.complet ? 'Niveau achevé.' : `Pour passer : ${o.requis} Augmentations dans chaque Caractéristique et dans 8 Compétences de la carrière, et un Talent du niveau.`}${suivant.niveau > J.niveauMaximal(etat) ? ' La salle d’armes n’enseigne pas encore ce niveau.' : ''}</span></span>${plaque(`Niveau ${suivant.niveau}`, `data-a="niveau" data-id="${h.c.id}"`, { prix: String(suivant.cout), taille: 'petite', armee: o.complet && xp >= suivant.cout, fermee: !o.complet || xp < suivant.cout || suivant.niveau > J.niveauMaximal(etat) })}</div>` : '<p class="glose">Sommet de la carrière.</p>'}`;
+  const bloque = suivant && suivant.niveau > J.niveauMaximal(etat);
+  const pas = (n: number, sur: number, nom: string) => `<span class="${n >= sur ? 'fait' : ''}">${nom} ${n}/${sur}</span>`;
+  return `<div class="bilan-niveau"><div><b class="gothique">${esc(o.titre)}</b> · niveau ${o.niveau}</div><span class="etiquette pastille or">${xp} PX</span></div>
+    ${suivant ? `<div class="vers-niveau"><span class="sous-titre">Vers ${esc(suivant.titre)}</span>${pas(caracsFaites, o.caracs.length, 'Caractéristiques')}${pas(compsFaites, 8, 'Compétences')}${pas(talentFait, 1, 'Talent')}
+      ${plaque(`Niveau ${suivant.niveau}`, `data-a="niveau" data-id="${h.c.id}"`, { prix: String(suivant.cout), taille: 'petite', armee: o.complet && xp >= suivant.cout && !bloque, fermee: !o.complet || xp < suivant.cout || !!bloque, titre: bloque ? 'La salle d’armes n’enseigne pas encore ce niveau.' : `Chaque élément à ${o.requis} Augmentations, et un Talent du niveau.` })}</div>` : '<p class="glose">Sommet de la carrière.</p>'}
+    <div class="sous-titre">Caractéristiques · ${o.requis} Augmentations chacune</div>
+    <div class="tuiles">${o.caracs.map((k) => tuile(`${k.label} ${k.valeur}`, `${k.augmentations}/${o.requis}`, k.cout, `data-a="carac" data-id="${h.c.id}" data-k="${k.id}"`, k.augmentations >= o.requis, xp)).join('')}</div>
+    <div class="sous-titre">Compétences · 8 à ${o.requis} Augmentations</div>
+    <div class="tuiles">${o.competences.map((k, i) => tuile(k.label, `${k.augmentations}/${o.requis}`, k.cout, `data-a="competence" data-id="${h.c.id}" data-i="${i}"`, k.augmentations >= o.requis, xp)).join('')}</div>
+    <div class="sous-titre">Talents · un suffit</div>
+    <div class="tuiles">${o.talents.map((t, i) => tuile(t.label, t.possede ? `acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : '—', t.cout, `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, t.possede > 0, xp)).join('')}</div>
+    ${aApprendre.length ? `<div class="sous-titre">${esc(voie!.nom)}</div><div class="tuiles">${aApprendre.map((id) => tuile(nomDeSort(id), 'à apprendre', null, `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, false, xp)).join('')}</div>` : ''}`;
 }
 
-function pageDuHeros(id: string) {
+/** Ce que la chapelle offre au héros : soins complets, plaies pansées, opération, Larmes de Shallya. */
+function soinsDuHeros(h: J.Heros) {
+  if (h.retrait) return `<span class="glose">à l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}</span>`;
+  const soin = J.prixDuSoin(etat);
+  const larmes = J.prixDeSequelle(etat);
+  const actes = J.actesPossibles(h);
+  const bouton = (label: string, essentiel: string, prix: number, detail: string, attrs: string) => offre(label, essentiel, prix, detail, attrs);
+  const tout = [
+    J.blesse(h) && soin != null ? bouton('Soigner', 'PB et États', soin, 'Tous les Points de Blessure et les États de la rencontre', `data-a="soigner" data-id="${h.c.id}"`) : '',
+    ...actes.map((acte) => { const prix = J.prixDeLHospice(etat, acte); return prix == null ? '' : bouton(acte === 'panser' ? 'Panser' : 'Opérer', 'une semaine', prix, acte === 'panser' ? 'Les sœurs pansent les plaies : une déchirure guérit plus vite, une fracture est réduite (LDB 18 l.204, l.222).' : 'Le chirurgien opère les blessures qui l’exigent : amputation, fracture majeure (LDB 18 l.208, l.239).', `data-a="hospice" data-id="${h.c.id}" data-k="${acte}"`); }),
+    larmes != null && J.sequellesGuerissables(h) ? bouton('Larmes de Shallya', 'une séquelle', larmes, 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation (LDB 42).', `data-a="sequelle" data-id="${h.c.id}"`) : '',
+  ].join('');
+  return tout || '<span class="glose">rien à soigner</span>';
+}
+
+/** La fiche : l'essentiel d'un coup d'œil, le détail au survol. */
+function ongletDeFiche(h: J.Heros) {
+  const c = h.c;
+  const eq = J.equipement(h);
+  const armes = c.weapons.map((w) => w.label).join(' et ') || 'mains nues';
+  return `<dl class="stats">${STATS.map((k) => `<div title="${esc(libelleDeCarac(k).label)}"><dt>${esc(libelleDeCarac(k).abr)}</dt><dd class="chiffres">${carac(c, k)}</dd></div>`).join('')}</dl>
+    <div class="equipement-fiche"><span title="Armes en main">${esc(armes)}</span><span title="Armure portée">${esc(eq.armure ?? 'sans armure')} · ${eq.pa} PA</span></div>
+    ${ligneDEncombrement(c)}${etats(c)}${etiquettesDeSequelles(c)}
+    ${etat.expedition ? '' : `${J.prixDuSoin(etat) != null ? `<div class="sous-titre">Chapelle de Shallya</div><div class="offres">${soinsDuHeros(h)}</div>` : ''}<div class="gestes">
+    ${congediement === c.id ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}` : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer</button>`}</div>`}`;
+}
+
+function pageDuHeros(id: string, onglet: Onglet) {
   const h = etat.roster.find((x) => x.c.id === id);
   if (!h) return '';
   const c = h.c;
   const enRoute = !!etat.expedition?.groupe.includes(c.id);
-  const prix = J.prixDuSoin(etat);
-  const eq = J.equipement(h);
-  const hameau = etat.expedition ? '' : `${sectionDeCarriere(h)}<div class="gestes">
-    ${J.blesse(h) && prix != null ? plaque('Soigner à la chapelle', `data-a="soigner" data-id="${c.id}"`, { icone: 'soin', prix: prix ? String(prix) : '', taille: 'petite', armee: etat.or >= prix }) : ''}
-    ${congediement === c.id ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}` : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
-  return page(c.label, `<div class="tete-page">${portrait(busteDuHeros(h), 'heros', 'grand')}<div class="qui"><div class="nom-propre moyen gothique">${esc(J.nomDeCarriere(h.carriere))}</div><div class="sous-titre">${esc(J.nomDEspece(h.espece))} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div><p class="glose devise">${esc(J.deviseDe(h.carriere))}</p>${ligneDeVie(c)}</div></div>
-    <dl class="stats">${STATS.map((k) => `<div><dt title="${esc(libelleDeCarac(k).label)}">${esc(libelleDeCarac(k).abr)}</dt><dd class="chiffres">${carac(c, k)}</dd></div>`).join('')}</dl>
-    <p class="meta"><span class="etiquette pastille or">${c.xp ?? 0} PX</span><span class="etiquette pastille fer">Destin ${c.fate ?? 0}</span><span class="glose">${esc(eq.main ?? 'mains nues')}${eq.secondaire ? ` et ${esc(eq.secondaire)}` : ''} · ${esc(eq.armure ?? 'sans armure')}</span></p>
-    ${ligneDEncombrement(c)}${etats(c)}${sectionDesSequelles(c)}${enRoute ? sectionDeRoute(h) : hameau}`);
+  const second: [Onglet, string] | null = enRoute ? ['route', 'Route'] : etat.expedition ? null : ['carriere', 'Carrière'];
+  const actif = second && onglet === second[0] ? onglet : 'fiche';
+  const onglets = second ? `<div class="onglets-fiche" role="tablist">${([['fiche', 'Fiche'], second] as [Onglet, string][]).map(([o, l]) => `<button type="button" role="tab" class="onglet-fiche${o === actif ? ' actif' : ''}" data-a="onglet" data-k="${o}" aria-selected="${o === actif}">${l}</button>`).join('')}</div>` : '';
+  return page(c.label, `<div class="tete-page">${portrait(busteDuHeros(h), 'heros', 'grand')}<div class="qui"><div class="nom-propre moyen gothique">${esc(J.nomDeCarriere(h.carriere))}</div><div class="sous-titre">${esc(J.nomDEspece(h.espece))} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''} · Destin ${c.fate ?? 0}</div><p class="glose devise">${esc(J.deviseDe(h.carriere))}</p>${ligneDeVie(c)}</div></div>
+    ${onglets}${actif === 'route' ? ongletDeRoute(h) : actif === 'carriere' ? ongletDeCarriere(h) : ongletDeFiche(h)}`);
 }
 
 function pageDeLaChronique() {
@@ -257,7 +307,7 @@ function pageDeLaChronique() {
 function pageOuverte(): string {
   if (!panneau) return '';
   if (panneau.type === 'batiment') return pageDuBatiment(panneau.id);
-  if (panneau.type === 'heros') return pageDuHeros(panneau.id);
+  if (panneau.type === 'heros') return pageDuHeros(panneau.id, panneau.onglet);
   if (panneau.type === 'depart') return pageDuDepart(panneau);
   return pageDeLaChronique();
 }
@@ -589,7 +639,8 @@ document.addEventListener('click', (ev) => {
   const { a, id = '', i, k } = el.dataset;
   switch (a) {
     case 'batiment': return basculer({ type: 'batiment', id: id as J.IdBatiment });
-    case 'heros': return basculer({ type: 'heros', id });
+    case 'heros': return basculer({ type: 'heros', id, onglet: (k as Onglet | undefined) ?? (etat.expedition?.groupe.includes(id) ? 'route' : 'fiche') });
+    case 'onglet': if (panneau?.type === 'heros') panneau = { ...panneau, onglet: k as Onglet }; return rendre();
     case 'chronique': return basculer({ type: 'chronique' });
     case 'ouvrir-depart': panneau = { type: 'depart', dest: null, choix: new Set() }; return rendre();
     case 'fermer-panneau': panneau = null; congediement = null; return rendre();
@@ -597,6 +648,7 @@ document.addEventListener('click', (ev) => {
     case 'recruter': return agir(() => J.recruter(etat, Number(i)));
     case 'soigner': return agir(() => J.soignerAuTemple(etat, id));
     case 'sequelle': return agir(() => J.guerirUneSequelle(etat, id));
+    case 'hospice': return agir(() => J.confierALHospice(etat, id, k as J.ActeDHospice));
     case 'client': client = id; return rendre();
     case 'arme': return agir(() => J.acheterUneArme(etat, id, k!));
     case 'armure': return agir(() => J.acheterUneArmure(etat, id, k as J.PoidsDArmure));
@@ -615,7 +667,7 @@ document.addEventListener('click', (ev) => {
     case 'congedier': congediement = id; return rendre();
     case 'congedier-non': congediement = null; return rendre();
     case 'congedier-ok': congediement = null; panneau = null; return agir(() => J.congedier(etat, id));
-    case 'preparer': panneau = { type: 'depart', dest: id, choix: new Set(etat.roster.filter(J.valide).slice(0, 4).map((h) => h.c.id)) }; return rendre();
+    case 'preparer': panneau = { type: 'depart', dest: id, choix: new Set(etat.roster.filter(J.disponible).slice(0, 4).map((h) => h.c.id)) }; return rendre();
     case 'choisir': {
       if (panneau?.type !== 'depart') return;
       const input = el as HTMLInputElement;

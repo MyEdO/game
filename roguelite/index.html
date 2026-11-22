@@ -121,24 +121,48 @@ button.plaque:disabled { cursor: not-allowed; }
 .stats dt { font: 11.5px "IM Fell English SC", serif; letter-spacing: .8px; color: var(--rouille); }
 .stats dd { margin: 0; font-size: 15px; color: var(--encre); }
 .meta .glose { font-size: 13px; }
-.entrainement { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-.entrainement th { font: 12px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-align: left; padding: 4px; }
-.entrainement td { padding: 4px; border-top: 1px solid var(--filet-encre); }
-.entrainement .plaque { width: 110px; }
-.entrainement .acquis { color: var(--vert, #4f6b2e); font-weight: 600; }
-.etal { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.etal li, .niveau-suivant { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 5px 8px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); }
-.etal .qui, .niveau-suivant .qui, .sequelles li { display: grid; min-width: 0; font-size: 13px; color: var(--encre-2); }
-.etal .qui b, .niveau-suivant .qui b, .sequelles b { font-size: 15.5px; color: var(--sepia); font-weight: 600; }
-.niveau-suivant { margin-top: 8px; }
-.sequelles { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.sequelles li { padding: 4px 8px; border-radius: 3px; background: rgba(124,31,20,.08); box-shadow: inset 0 0 0 1px rgba(124,31,20,.25); cursor: help; }
+.gestes-h { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.onglets-fiche { display: flex; gap: 4px; border-bottom: 1px solid var(--filet-encre); margin: 6px 0 8px; }
+.onglet-fiche { border: 0; background: none; padding: 6px 14px; font: 15px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--encre-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.onglet-fiche.actif { color: var(--sepia); border-bottom-color: var(--rouille); }
+.tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 5px; margin-bottom: 6px; }
+.tuile { display: grid; gap: 1px; text-align: left; padding: 5px 7px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); }
+.tuile:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--rouille); background: var(--voile-fort); }
+.tuile:disabled { opacity: .55; cursor: default; }
+.tuile .t-nom { font-size: 13.5px; font-weight: 600; color: var(--sepia); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tuile .t-etat { font-size: 12.5px; color: var(--encre-2); }
+.tuile .t-prix { font: 12px "IM Fell English SC", serif; color: var(--rouille); }
+.tuile.faite { background: rgba(79,107,46,.12); box-shadow: inset 0 0 0 1px rgba(79,107,46,.45); }
+.tuile.faite .t-etat { color: #4f6b2e; font-weight: 600; }
+.bilan-niveau { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--sepia); }
+.vers-niveau { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 8px; margin: 6px 0 4px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); font-size: 13px; color: var(--encre-2); }
+.vers-niveau .fait { color: #4f6b2e; font-weight: 600; }
+.vers-niveau .plaque { margin-left: auto; }
+.offres { display: flex; flex-wrap: wrap; gap: 5px; }
+.offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
+.offre b { font-size: 13.5px; color: var(--sepia); }
+.offre span { grid-column: 1; font-size: 12px; color: var(--encre-2); }
+.offre .prix { grid-row: 1 / span 2; grid-column: 2; align-self: center; font: 13px "IM Fell English SC", serif; font-style: normal; color: var(--rouille); }
+.offre:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--rouille); background: var(--voile-fort); }
+.offre:disabled { opacity: .5; cursor: default; }
+.offre.actuelle { opacity: 1; background: rgba(201,161,74,.18); box-shadow: inset 0 0 0 1px rgba(201,161,74,.7); }
+.emplacement { margin: 8px 0; }
+.emplacement header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.emplacement header b { font-size: 14px; color: var(--sepia); }
+.provisions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.provisions li { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; }
+.provisions .qui { display: grid; font-size: 12.5px; color: var(--encre-2); }
+.provisions .offres { justify-content: flex-end; }
+.liste-h li > .offres { grid-column: 1 / -1; justify-content: flex-end; }
+.equipement-fiche { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 2px; font-size: 14px; color: var(--encre); }
+.etiquettes-sequelles { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.etiquette.sequelle { cursor: help; padding: 2px 8px; border-radius: 10px; font-size: 12.5px; background: rgba(124,31,20,.1); color: #7c1f14; box-shadow: inset 0 0 0 1px rgba(124,31,20,.35); }
+.etiquette.sequelle.permanente { background: #5a1a10; color: #f4e6cf; }
 .choix-client { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
 .choix-client button { display: grid; justify-items: center; gap: 2px; padding: 3px; border: 0; background: none; cursor: pointer; font: 12px "IM Fell English SC", serif; color: var(--encre-2); border-radius: 3px; }
 .choix-client button.choisi { background: var(--voile-fort); color: var(--sepia); }
 .encombrement { margin: 4px 0; font-size: 13.5px; color: var(--encre-2); }
 .encombrement.surcharge { color: var(--rouille); }
-.gestes-h { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .devise { margin: 2px 0 4px; font-style: italic; }
 .tableau { overflow: hidden; }
 .tableau:not(.fond-expe) { position: relative; }

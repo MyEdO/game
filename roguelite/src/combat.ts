@@ -21,7 +21,7 @@ import { testValue } from '../../src/engine/skills';
 import { makeRNG } from '../../src/engine/dice';
 import { restRecovery } from '../../src/engine/rest';
 import { applyHealWounds } from '../../src/engine/healing';
-import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds } from '../../src/engine/trauma';
+import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableTrauma, treatTrauma, surgeryTraumas, removeSurgicalTrauma } from '../../src/engine/trauma';
 import { encumbrancePenalties } from '../../src/engine/encumbrance';
 import { consommableDe } from '../../src/engine/consumables';
 import { refusDeConsommer } from '../../src/noyau/consumableFlow';
@@ -223,6 +223,29 @@ export const soigner = (c: Combatant, pv: number): string[] => applyHealWounds(c
 export const sequelles = (c: Combatant): { label: string; jours?: number; desc?: string }[] =>
   (c.traumas ?? []).map((t) => ({ label: t.label, ...(t.recoveryDays != null ? { jours: t.recoveryDays } : {}), ...(t.desc ? { desc: t.desc } : {}) }));
 
+/** Ce qu'un soigneur peut encore faire des séquelles : des plaies à panser par la Guérison (LDB 18 l.204, l.222), des
+ *  blessures à opérer (LDB 18 l.208, l.239). */
+export const plaiesASoigner = (c: Combatant): { panser: boolean; operer: number } => ({ panser: hasTreatableTrauma(c), operer: surgeryTraumas(c).length });
+
+/** Un soigneur de Guérison `valeur` panse chaque plaie qui le permet : un Test par plaie, le jet consommé même raté
+ *  (`treatTrauma`). LDB 18 l.204, l.222 */
+export function panserLesPlaies(c: Combatant, valeur: number, graine: number): string[] {
+  const rng = makeRNG(graine);
+  const lignes: string[] = [];
+  while (hasTreatableTrauma(c)) {
+    const r = rollTest(valeur, 'intermediaire', rng);
+    lignes.push(...treatTrauma(c, r.sl, r.success));
+  }
+  return lignes;
+}
+
+/** L'opération réussie de chaque blessure qui exige la Chirurgie (`removeSurgicalTrauma`). LDB 10 l.184 */
+export function opererLesBlessures(c: Combatant): string[] {
+  const lignes: string[] = [];
+  while (surgeryTraumas(c).length) lignes.push(...removeSurgicalTrauma(c));
+  return lignes;
+}
+
 /** Guérit `n` Blessures critiques de convalescence, jamais une amputation (`cureCriticalWounds`). LDB 42 */
 export const guerirDesSequelles = (c: Combatant, n: number): string[] => cureCriticalWounds(c, n);
 
@@ -310,12 +333,28 @@ export function doter(ids: readonly string[], prefixe: string): ItemInstance[] {
   return doterLePorteur(ids.map((id) => ({ id })) as never, makeRNG(ids.length), fabriqueLocale(prefixe)).items;
 }
 
-/** Libellé et prix au catalogue d'un objet, le prix en couronnes d'or (CO). */
-export function articleDuCatalogue(id: string): { label: string; enc: number; prixCO: number; desc?: string } {
+/** Ce que le catalogue dit d'un objet : libellé, Encombrement, prix en couronnes d'or (CO), et pour une arme ses
+ *  Dégâts, ses mains, son allonge ou sa portée et ses qualités. */
+export interface ArticleDuCatalogue { label: string; enc: number; prixCO: number; desc?: string; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: string[] }
+export function articleDuCatalogue(id: string): ArticleDuCatalogue {
   const t = findTrappingById(id);
   const p = t?.price && t.price !== 'ND' ? t.price : { gold: 0, silver: 0, brass: 0 };
-  return { label: t?.label ?? id, enc: Number(t?.enc ?? 0), prixCO: (p.gold ?? 0) + (p.silver ?? 0) / 20 + (p.brass ?? 0) / 240, desc: t?.desc };
+  const d = t?.damage as { plusBF?: boolean; flat?: number } | undefined;
+  return {
+    label: t?.label ?? id, enc: Number(t?.enc ?? 0), prixCO: (p.gold ?? 0) + (p.silver ?? 0) / 20 + (p.brass ?? 0) / 240, desc: t?.desc,
+    ...(d ? { degats: d.plusBF ? `BF+${d.flat ?? 0}` : String(d.flat ?? 0) } : {}),
+    ...(t?.hands ? { mains: Number(t.hands) } : {}), ...(t?.reach ? { allonge: String(t.reach) } : {}), ...(t?.range ? { portee: Number(t.range) } : {}),
+    qualites: libellesDeQualites((t?.qualities ?? []) as { id: string; value?: number }[]),
+  };
 }
+
+/** Les libellés des qualités d'un objet (`qualities.json`), leur valeur comprise. */
+export const libellesDeQualites = (qs: readonly { id: string; value?: number }[]): string[] =>
+  qs.map((q) => {
+    const nom = refLabel('qualities', { id: q.id });
+    if (q.value == null) return nom;
+    return nom.startsWith('%') ? `${q.value} ${nom}` : `${nom} (${q.value})`;
+  });
 
 /** Pourquoi le héros ne peut pas utiliser maintenant l'objet `uid` (`refusDeConsommer`), ou `null`. */
 export function refusDUsage(c: Combatant, uid: string): string | null {
