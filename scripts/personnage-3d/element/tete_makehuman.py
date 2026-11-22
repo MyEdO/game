@@ -5,7 +5,7 @@
 Forme : `base.obj` chargé des cibles `macrodetails` d'un homme jeune moyen (`corpulence.forme_macro`) et de
 `BOUCHE_FERMEE`, puis des cibles `CUITES` de `donnees.py` (`((cible sous targets/, poids), …)`), qui font la race. La forme se recale sur le tronc de la
 base (`corpulence.recalage`), puis se cale au crâne de la tête humaine publiée (`TAILLE_PUBLIEE`, `calage`) : le calage
-se mesure sur la forme sans cibles cuites, pour qu'une race garde l'écart que ses cibles lui donnent.
+se mesure sur la forme sans cibles cuites de l'état `ETAT`, pour qu'une race garde l'écart que ses cibles lui donnent.
 
 Maillage : les faces de `body` dont l'os dominant est la tête ou le cou (`corpulence.os_des_faces`), au-dessus de
 l'enveloppe haute de la couture du cou de la base vue de `CENTRE` (`tete.elevation_de_la_couture`, plus
@@ -18,16 +18,16 @@ trait, sont retirées. Le bord bas se coud à un rang posé sur la peau de la ba
 tout autre bord (entre les lèvres, entre les paupières derrière chaque œil) se ferme d'un éventail à ses propres
 sommets (`fermer`), qui prend les poids et les clés du bord qu'il double : sous `visage_inverse`, qui emporte l'œil,
 la peau est close derrière lui. Les poids, empruntés au plus près à la peau de la tête de la base, sont adoucis
-(`poids_adoucis`). Yeux : les groupes `helper-l-eye` et `helper-r-eye`. Sourcils : les faces que la cible `SOURCILS`
-déplace le plus (`faces_des_sourcils`), doublées à `EPAISSEUR_DES_SOURCILS_M` de la peau en matière `cheveux`, aux
-poids et aux clés de la peau qu'elles doublent.
+(`poids_adoucis`). Yeux : les groupes `helper-l-eye` et `helper-r-eye`.
 
 Clés : les silhouettes et les clés `gabarit_*` de la base, transférées du corps (`tete.cles_du_corps`) ; `feminin` y
-ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée et calée comme elle : le calage
-annule l'écart de taille de MakeHuman entre les deux états, qui est celui de la stature, que la base ne change pas, et
-les pièces de tête restent bâties à cette taille ; hors du visage et des oreilles, cet écart ne garde que ce qu'il
-change de la forme (`sans_glissement`), et à la nuque, hors de l'avant (`part_de_l_avant`), la clé passe au-dessus de
-la couture de celle du cou de la base à celle de la tête sur `FONDU_DU_FEMININ`. Chaque trait de
+ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée sur le tronc à son tour puis
+portée par le calage de l'état `ETAT` : chaque état a la stature de la base, et la tête de la femme y garde la taille
+que MakeHuman lui donne sur son corps ; elle se pose sur le cou de la base, son menton (`MENTON_M`) déplacé comme le
+devant de la couture du cou (`DEVANT_DU_COU_DEG`) sous la clé de la base, d'avant en arrière et en hauteur : la gorge
+suit le menton, et c'est le crâne qui rapetisse vers lui ; hors du visage et des oreilles, cet écart ne garde que ce
+qu'il change de la forme (`sans_glissement`), et à la nuque, hors de l'avant (`part_de_l_avant`), la clé passe
+au-dessus de la couture de celle du cou de la base à celle de la tête sur `FONDU_DU_FEMININ`. Chaque trait de
 `TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
@@ -70,14 +70,9 @@ passe de celle du cou de la base, à la couture, à celle de la tête (`tete.par
 la base s'amincit, la nuque le suit et le ressaut sous le crâne s'adoucit ; devant, sous la mâchoire, la tête garde sa
 clé, sans facette sous le menton. Étendu aux autres clés du corps, ce fondu rompt leur suivi du corps (`suiviDuCorps`,
 `gabarit_head_plus`)."""
-SOURCILS = 'eyebrows/eyebrows-trans-forward'
-"""Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
 """Cibles qui déplacent chaque oreille d'un bloc : la part d'un sommet dans une oreille est son déplacement sur le plus
 grand de sa cible."""
-EPAISSEUR_DES_SOURCILS_M = 0.001
-"""HYPOTHÈSE : écart des sourcils à la peau (brief de l'orchestrateur du 2026-11-20, #4413, « environ 1 mm » : une
-évaluation d'ingénierie, pas un arbitrage de l'utilisateur)."""
 OS_DE_LA_TETE = ('Head', 'neck_01')
 YEUX = ('helper-l-eye', 'helper-r-eye')
 BOUCHE_FERMEE = (('mouth/mouth-upperlip-height-incr', 1.0),
@@ -106,6 +101,10 @@ PINCEAU_M = {'rayon': 0.001, 'depart': 0.005}
 ferme."""
 MILIEU_M = 0.012
 """Demi-largeur de la bande médiane où se lit le dessous du menton."""
+MENTON_M = 0.02
+"""HYPOTHÈSE : écart au point le plus avancé vers l'avant et le bas, dans la bande médiane, en deçà duquel un sommet est du menton."""
+DEVANT_DU_COU_DEG = 30.0
+"""HYPOTHÈSE : azimut, de part et d'autre de l'avant, en deçà duquel un sommet de la couture est du devant du cou."""
 DEVANT_M = 0.045
 """Recul depuis le bout du nez en deçà duquel un point de la bande médiane est du visage, pas du cou."""
 TAILLE_PUBLIEE = {'sommet': 0.2103, 'menton': -0.0125, 'yeux': 0.0986, 'avant': -0.1119, 'arriere': 0.0887,
@@ -198,17 +197,6 @@ def composante_du_haut(triangles, X):
     de = composantes(triangles)
     haut = de[max(de, key=lambda i: X[i][2])]
     return np.array([t for t in triangles if de[t[0]] == haut])
-
-
-def faces_des_sourcils(triangles, amplitudes):
-    """Les triangles de `triangles` que la cible `SOURCILS` déplace le plus (`amplitudes`, par sommet), aussi loin
-    qu'ils font deux sourcils : le plus bas niveau d'amplitude au-dessus duquel les triangles aux trois sommets déplacés
-    forment deux composantes. Plus bas, les deux sourcils se rejoignent en un bandeau sur le front."""
-    for niveau in np.unique(amplitudes[amplitudes > 0]):
-        faces = triangles[(amplitudes[triangles] >= niveau).all(axis=1)]
-        if len(set(composantes(faces).values())) == 2:
-            return faces
-    raise ValueError('tête MakeHuman : aucun niveau de la cible des sourcils ne fait deux sourcils')
 
 
 def visees():
@@ -417,20 +405,19 @@ def construire(D, materiaux, b):
     triangles = triangles[np.isin(os_des_faces(mpfb, noms, triangles), [noms.index(n) for n in OS_DE_LA_TETE])]
     de_la_tete = np.unique(triangles)
 
-    def calee(etat):
-        """`(forme sans cibles cuites, forme de la race, échelle)` à l'état macro `etat`, recalées sur le tronc puis
-        calées à la taille publiée."""
+    def sur_le_tronc(etat):
+        """`(forme sans cibles cuites, forme de la race, échelle)` à l'état macro `etat`, recalées sur le tronc de la
+        base."""
         neutre = forme_macro(mpfb, sommets, etat) + cible(BOUCHE_FERMEE)
         echelle, translation = recalage({nom: vers_blender(neutre[i]).mean(axis=0) for nom, i in groupes.items()},
                                         tetes(b.rig))
-        sur_le_tronc = vers_blender(neutre) * echelle + translation
-        e, t = calage(sur_le_tronc[de_la_tete], sur_le_tronc[des_yeux], H)
-        echelle, translation = echelle * e, translation * e + t
         return (vers_blender(neutre) * echelle + translation,
                 vers_blender(neutre + cible(D.get('CUITES', ()))) * echelle + translation, echelle)
 
-    cale, X, echelle = calee(ETAT)
-    de_makehuman = {FEMININ: calee(ETAT_FEMININ)[1] - X,
+    cale, X, echelle = sur_le_tronc(ETAT)
+    e, t = calage(cale[de_la_tete], cale[des_yeux], H)
+    cale, X, echelle = cale * e + t, X * e + t, echelle * e
+    de_makehuman = {FEMININ: sur_le_tronc(ETAT_FEMININ)[1] * e + t - X,
                     **{nom: vers_blender(cible(liste)) * echelle for nom, liste in TRAITS.items()}}
 
     indices_du_cou, S = couture(b, ZONES_DES_CLES, C)
@@ -441,6 +428,13 @@ def construire(D, materiaux, b):
     triangles = composante_du_haut(triangles[au_dessus[triangles].all(axis=1)], cale)
     oreilles = np.max([a / a.max() for a in (np.linalg.norm(cible([(nom, 1.0)]), axis=1) for nom in OREILLES)], axis=0)
     utiles = np.unique(triangles)
+    milieu = utiles[np.abs(X[utiles, 0]) < MILIEU_M]
+    du_menton = milieu[(X[milieu, 1] + X[milieu, 2]) < (X[milieu, 1] + X[milieu, 2]).min() + MENTON_M]
+    devant = np.abs([azimut(p - C) for p in S]) < DEVANT_DU_COU_DEG
+    sur_le_cou = (decalages_monde(b.zones['cou'], FEMININ)[indices_du_cou][devant].mean(axis=0)
+                  - de_makehuman[FEMININ][du_menton].mean(axis=0)) * np.array([0.0, 1.0, 1.0])
+    de_makehuman[FEMININ] += sur_le_cou
+    print('TETE_MH féminin : menton posé sur le devant du cou, de', np.round(sur_le_cou, 4).tolist(), flush=True)
     de_makehuman[FEMININ] = sans_glissement(X, de_makehuman[FEMININ], utiles, triangles, oreilles, H)
     rayons = np.linalg.norm(X[utiles] - C, axis=1)
     enveloppe = elevation_de_la_couture(S, C, np.array([azimut(x - C) for x in X[utiles]]))
@@ -502,22 +496,9 @@ def construire(D, materiaux, b):
             M.triangle(*(rangs[i] for i in tri), centre)
         lus.append(lambda champ, siens=siens: champ[siens])
     fin_des_yeux = len(M.sommets)
-    sourcils = faces_des_sourcils(triangles, np.linalg.norm(cible([(SOURCILS, 1.0)]), axis=1))
-    poilus = np.unique(sourcils)
-    de_sommet = np.zeros_like(X)
-    for k in range(3):
-        np.add.at(de_sommet, triangles[:, k], sens * normales)
-    de_sommet[poilus] /= np.linalg.norm(de_sommet[poilus], axis=1, keepdims=True)
-    rang_des_poils = dict(zip(poilus.tolist(), M.ajouter(list(X[poilus] + EPAISSEUR_DES_SOURCILS_M * de_sommet[poilus]),
-                                                         'cheveux')))
-    for tri in sourcils.tolist():
-        M.triangle(*(rang_des_poils[i] for i in tri), X[tri].mean(axis=0))
-    lus.append(lambda champ: champ[poilus])
-    doublures.append((list(rang_des_poils.values()), lambda champ, doubles=[rang[i] for i in poilus]: champ[doubles]))
 
     P, orientes, _ = M.orienter()
-    print('TETE_MH', D['NOM'], ': triangles de peau', len(triangles), ', de sourcils', len(sourcils), ', bord du cou',
-          len(bas), 'arêtes ; cotes',
+    print('TETE_MH', D['NOM'], ': triangles de peau', len(triangles), ', bord du cou', len(bas), 'arêtes ; cotes',
           {k: round(float(x), 4) for k, x in cotes(P[len(bord):peau], P[peau:fin_des_yeux], H).items()}, flush=True)
     W = np.zeros((len(P), len(b.os)))
     W[:len(bord)] = b.corps('cou')[2][indices_du_cou]

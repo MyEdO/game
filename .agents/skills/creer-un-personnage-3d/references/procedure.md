@@ -265,7 +265,7 @@ dague : un dossier ne porte que son `donnees.py` et `from lame import construire
 robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `element/tete.py` pour une tête de race bâtie de
 volumes sur la couture du cou (orc, gobelin), `element/tete_makehuman.py` pour une tête humanoïde tirée de la tête de
-MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées et avec ses sourcils en surface `cheveux`
+MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées
 (humain, nain, haut-elfe, halfling : le dossier ne porte que son `donnees.py`, dont `CUITES` nomme les cibles qui font
 la race, et `from tete_makehuman import construire` ; le pack `mpfb` de la base se tire seul,
 `production.pack_source`), `formes.py` pour les

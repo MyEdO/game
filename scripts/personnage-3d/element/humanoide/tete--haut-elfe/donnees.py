@@ -13,7 +13,6 @@ MANIFESTE = {
 MATERIAUX = {                            # gris de construction, sans couleur cuite
     'peau': ('peau', ((0.62, 0.62, 0.62), 0.0, 0.8)),
     'yeux': ('yeux', ((0.35, 0.35, 0.35), 0.0, 0.3)),
-    'cheveux': ('cheveux', ((0.6, 0.6, 0.6), 0.0, 0.95)),   # les sourcils
 }
 BUDGET_TRIANGLES = 6600                  # procédure, section 7 : tête humanoïde MakeHuman
 NOM = 'tete_haut_elfe'
