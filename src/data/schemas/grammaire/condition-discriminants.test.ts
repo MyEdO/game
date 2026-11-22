@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import type { Condition } from '../../../engine/flowCore';
 import { CONDITION_TOUJOURS, recast } from '../../valeursNeuves';
 import { CONDITIONS_RESERVEES, conditionSchema, hasConditionSchema, hasWhatSchema, mecaniqueDe } from './mecanique';
-import { defDe, enfantsDe, ouverts } from './descente';
+import { defDe, enfantsDe, ouverts, valeursAdmises } from './descente';
 import { idsDe, idsDeLaSousListe } from './ref';
 import { CIBLE_D_APPARTENANCE } from './sousListes';
 
@@ -14,16 +14,10 @@ const reservees = new Set<string>(CONDITIONS_RESERVEES);
 
 const branches = (union: unknown) => enfantsDe(union).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
 
-/** Une union imbriquée comme `has` porte le même `kind` dans toute option. */
+/** Le discriminant du parse traverse aussi bien l'union de `has` que le refus d'une réservée. */
 function kindDeLOption(noeud: unknown): string {
-  const sous = branches(noeud);
-  if (sous.length) {
-    const kinds = new Set(sous.map(kindDeLOption));
-    if (kinds.size !== 1) throw new Error(`Union imbriquée à plusieurs kind : ${[...kinds].join(', ')}`);
-    return [...kinds][0];
-  }
-  const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values;
-  if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
+  const valeurs = [...(valeursAdmises(noeud).kind ?? [])];
+  if (valeurs.length !== 1 || typeof valeurs[0] !== 'string')
     throw new Error('Discriminant kind absent ou non littéral de chaîne unique');
   return valeurs[0];
 }
