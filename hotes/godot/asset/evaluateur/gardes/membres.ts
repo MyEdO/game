@@ -18,6 +18,7 @@ import { Quaternion, Triangle, Vector3, type Mesh, type SkinnedMesh } from 'thre
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import { rotationLocale, type Echantillon, type Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
+import { cleDeCellule } from '../../pile.ts';
 
 /** Les zones des avant-bras et des mains, que Godot lit aussi (`Noyau.ZONES_DES_MEMBRES`, `scripts/gen-noyau-godot.mjs`). */
 export const ZONES_DES_MEMBRES = ['avant_bras_g', 'avant_bras_d', 'main_g', 'main_d'] as const;
@@ -101,53 +102,67 @@ function postureDuTronc(tronc: Tronc, e: Pose): Quaternion {
 
 const cellule = (x: number): number => Math.floor(x / PORTEE_DU_VOISINAGE_M);
 
-function ranger(grille: Map<string, number[]>, cle: string, t: number): void {
+function ranger(grille: Map<number, number[]>, cle: number, t: number): void {
   const liste = grille.get(cle);
   if (liste) liste.push(t);
   else grille.set(cle, [t]);
 }
 
 /** Les triangles du tronc posé, ramenés au repère du tronc au repos, neuf coordonnées chacun, rangés par colonne
- *  avant-arrière, rangées sur les axes latéral et vertical, et par cellule. Au repère glTF du corps au repos, l'avant
- *  est +z, le haut +y, le latéral x. */
+ *  avant-arrière, rangées sur les axes latéral et vertical, et par cellule (`cleDeCellule`), chaque grille bâtie à sa
+ *  première lecture. Au repère glTF du corps au repos, l'avant est +z, le haut +y, le latéral x. */
 interface TroncPose {
   readonly sommets: Float32Array;
-  readonly colonnes: Map<string, number[]>;
-  readonly cellules: Map<string, number[]>;
+  readonly colonnes: () => ReadonlyMap<number, readonly number[]>;
+  readonly cellules: () => ReadonlyMap<number, readonly number[]>;
   readonly min: Vector3;
   readonly max: Vector3;
   /** La rotation qui ramène une position monde de l'échantillon au repère du tronc au repos. */
   readonly retour: Quaternion;
 }
 
+/** Les cellules de chaque triangle de `sommets` sur un axe, de sa coordonnée la plus basse à la plus haute. */
+const etendue = (sommets: Float32Array, t: number, axe: number): readonly [number, number] => {
+  const [a, b, c] = [sommets[t * 9 + axe], sommets[t * 9 + 3 + axe], sommets[t * 9 + 6 + axe]];
+  return [cellule(Math.min(a, b, c)), cellule(Math.max(a, b, c))];
+};
+
+/** La grille de `sommets` sur les axes latéral et vertical, et sur l'axe avant-arrière avec `profondeur`. */
+function grilleDu(sommets: Float32Array, profondeur: boolean): Map<number, number[]> {
+  const grille = new Map<number, number[]>();
+  for (let t = 0; t < sommets.length / 9; t++) {
+    const [[x0, x1], [y0, y1]] = [etendue(sommets, t, 0), etendue(sommets, t, 1)];
+    const [z0, z1] = profondeur ? etendue(sommets, t, 2) : [0, 0];
+    for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) for (let k = z0; k <= z1; k++) ranger(grille, cleDeCellule(i, j, k), t);
+  }
+  return grille;
+}
+
 function poserLeTronc(tronc: Tronc, e: Pose): TroncPose {
   const retour = postureDuTronc(tronc, e).invert();
-  const coordonnees: number[] = [];
-  for (const m of tronc.meshes) {
+  const triangles = tronc.meshes.map((m) => {
     const p = e.positions.get(m);
     if (!p) throw new Error(`${GARDE} : mesh absent ${m.name}`);
-    const indices = m.geometry.index?.array ?? Uint32Array.from({ length: p.length / 3 }, (_, i) => i);
+    return { p, indices: m.geometry.index?.array ?? Uint32Array.from({ length: p.length / 3 }, (_, i) => i) };
+  });
+  const sommets = new Float32Array(triangles.reduce((n, { indices }) => n + Math.floor(indices.length / 3) * 9, 0));
+  const min = new Vector3(Infinity, Infinity, Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity);
+  let o = 0;
+  for (const { p, indices } of triangles) {
     for (let t = 0; t + 2 < indices.length; t += 3) {
-      for (const s of [indices[t], indices[t + 1], indices[t + 2]]) {
+      for (let k = 0; k < 3; k++) {
+        const s = indices[t + k];
         v.set(p[s * 3], p[s * 3 + 1], p[s * 3 + 2]).applyQuaternion(retour);
-        coordonnees.push(v.x, v.y, v.z);
+        sommets[o++] = v.x; sommets[o++] = v.y; sommets[o++] = v.z;
       }
     }
   }
-  const sommets = Float32Array.from(coordonnees);
-  const colonnes = new Map<string, number[]>(), cellules = new Map<string, number[]>();
-  const min = new Vector3(Infinity, Infinity, Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity);
-  for (let t = 0; t < sommets.length / 9; t++) {
-    const axe = (a: number, f: (...v: number[]) => number) => f(sommets[t * 9 + a], sommets[t * 9 + 3 + a], sommets[t * 9 + 6 + a]);
-    const [x0, y0, z0, x1, y1, z1] = [axe(0, Math.min), axe(1, Math.min), axe(2, Math.min), axe(0, Math.max), axe(1, Math.max), axe(2, Math.max)];
-    min.min(new Vector3(x0, y0, z0));
-    max.max(new Vector3(x1, y1, z1));
-    for (let i = cellule(x0); i <= cellule(x1); i++) for (let j = cellule(y0); j <= cellule(y1); j++) {
-      ranger(colonnes, `${i},${j}`, t);
-      for (let k = cellule(z0); k <= cellule(z1); k++) ranger(cellules, `${i},${j},${k}`, t);
-    }
+  for (let i = 0; i < sommets.length; i += 3) {
+    min.set(Math.min(min.x, sommets[i]), Math.min(min.y, sommets[i + 1]), Math.min(min.z, sommets[i + 2]));
+    max.set(Math.max(max.x, sommets[i]), Math.max(max.y, sommets[i + 1]), Math.max(max.z, sommets[i + 2]));
   }
-  return { sommets, colonnes, cellules, min, max, retour };
+  let colonnes: Map<number, number[]> | null = null, cellules: Map<number, number[]> | null = null;
+  return { sommets, colonnes: () => (colonnes ??= grilleDu(sommets, false)), cellules: () => (cellules ??= grilleDu(sommets, true)), min, max, retour };
 }
 
 function poserTriangle(s: Float32Array, t: number): void {
@@ -161,7 +176,7 @@ function profondeurDansLeTronc(tronc: TroncPose, point: Vector3): number | null 
   const { sommets } = tronc;
   const x = point.x + DECALAGE_M, y = point.y + DECALAGE_M;
   let derriere = 0, devant = 0, plusProche = Infinity;
-  for (const t of tronc.colonnes.get(`${cellule(x)},${cellule(y)}`) ?? []) {
+  for (const t of tronc.colonnes().get(cleDeCellule(cellule(x), cellule(y), 0)) ?? []) {
     const o = t * 9;
     const [ax, ay, bx, by, cx, cy] = [sommets[o], sommets[o + 1], sommets[o + 3], sommets[o + 4], sommets[o + 6], sommets[o + 7]];
     const aire = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
@@ -179,7 +194,7 @@ function profondeurDansLeTronc(tronc: TroncPose, point: Vector3): number | null 
   const [ci, cj, ck] = [cellule(point.x), cellule(point.y), cellule(point.z)];
   const vus = new Set<number>();
   for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
-    for (const t of tronc.cellules.get(`${i},${j},${k}`) ?? []) {
+    for (const t of tronc.cellules().get(cleDeCellule(i, j, k)) ?? []) {
       if (vus.has(t)) continue;
       vus.add(t);
       poserTriangle(sommets, t);

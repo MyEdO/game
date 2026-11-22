@@ -12,7 +12,9 @@
 // un sac rangé n'en a pas. Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base). `--porte` joue les passes de la porte d'un
 // élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
-// processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart. `--plafonds` nomme la table des
+// processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart. Sous `--porte`, `--json` et
+// `--temoin` nomment un rapport par passe, le nom de la passe inséré avant `.json` (`mesure.json` → `mesure.neutre.json`,
+// `parPasse`) : le `--json` d'une porte sert de témoin à la suivante. `--plafonds` nomme la table des
 // écarts `membre-dans-un-vetement` que la tenue admet, `{ "<passe>": { "<clip>": <nombre> } }` (`gardeMembreDansUnVetement`).
 // `--temoin` nomme le rapport `--json` d'un run antérieur : la sortie ne liste que les écarts absents du témoin
 // (`identiteDEcart`, `evaluateur/temoin.ts`) après une ligne de compte, et le code est 1 seulement s'il y en a ; `--json`
@@ -84,15 +86,15 @@ try {
   if (values['etats-gabarit'] && (!values.manifeste || values.facteurs !== undefined || values.silhouettes !== undefined)) {
     throw new Error('--etats-gabarit : --manifeste requis, --facteurs et --silhouettes incompatibles')
   }
-  if (values.porte && (!values.manifeste || values['etats-gabarit'] || values.silhouettes !== undefined || values.json !== undefined)) {
-    throw new Error('--porte : --manifeste requis, --etats-gabarit, --silhouettes et --json incompatibles')
+  if (values.porte && (!values.manifeste || values['etats-gabarit'] || values.silhouettes !== undefined)) {
+    throw new Error('--porte : --manifeste requis, --etats-gabarit et --silhouettes incompatibles')
   }
   facteurs = values.facteurs === undefined ? undefined : lirePaires(values.facteurs, 'facteurs', FACTEURS)
   silhouettes = values.silhouettes === undefined ? undefined : lirePaires(values.silhouettes, 'silhouettes')
   if (values.plafonds !== undefined && (values['etats-gabarit'] || facteurs !== undefined)) throw new Error('--plafonds : --etats-gabarit et --facteurs incompatibles')
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
-  if (values.temoin !== undefined && (values.porte || values['etats-gabarit'])) throw new Error('--temoin : --porte et --etats-gabarit incompatibles')
-  temoin = values.temoin === undefined ? undefined : lireTemoin(values.temoin)
+  if (values.temoin !== undefined && values['etats-gabarit']) throw new Error('--temoin : --etats-gabarit incompatible')
+  temoin = values.temoin === undefined || values.porte ? undefined : lireTemoin(values.temoin)
   if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error('--preset : --base et --manifeste requis')
 } catch (erreur) {
   console.error(erreur.message)
@@ -125,9 +127,11 @@ const ligneDEcart = (e) =>
 if (values.porte) {
   const { silhouettes: declarees = [] } = JSON.parse(readFileSync(values.manifeste, 'utf8'))
   const passes = [['neutre', []], ...declarees.map((nom) => [nom, ['--silhouettes', `${nom}=1`]])]
-  const args = process.argv.slice(2).filter((a) => a !== '--porte')
+  const parPasse = (option, nom) => (values[option] === undefined ? [] : [`--${option}`, values[option].replace(/(\.json)?$/, `.${nom}$1`)])
+  const propres = ['json', 'temoin']
+  const args = process.argv.slice(2).filter((a, i, tous) => a !== '--porte' && !propres.some((o) => a === `--${o}` || a.startsWith(`--${o}=`) || tous[i - 1] === `--${o}`))
   const jouer = ([nom, ajout]) => new Promise((resolve) => {
-    const enfant = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args, ...ajout], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const enfant = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args, ...ajout, ...propres.flatMap((o) => parPasse(o, nom))], { stdio: ['ignore', 'pipe', 'pipe'] })
     let sortie = ''
     enfant.stdout.on('data', (d) => { sortie += d })
     enfant.stderr.on('data', (d) => { sortie += d })
