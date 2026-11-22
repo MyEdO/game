@@ -7,7 +7,7 @@
 import {
   effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis,
-  CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet,
+  CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
@@ -35,7 +35,7 @@ import { appelEcrit } from './outils';
  *  chaque liste de la vue a son nombre d'éléments au plus, le reste se dit « +N ». */
 export const BORNES = {
   largeur: 160,
-  lignes: { vue: 15, jouer: 28, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16, cases: 10, verbes: 16, erreur: 16 },
+  lignes: { vue: 15, choix: 16, jouer: 28, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16, cases: 10, verbes: 16, erreur: 16 },
   /** Combattants listés par la vue après l'actif et ses engagés. */
   autresEnVue: 5,
   /** Offres ouvertes que la vue nomme (une par action, ses candidats comptés). */
@@ -97,8 +97,20 @@ const BORNES_DE_LA_PROJECTION: BornesDeLaProjection = {
   entites: BORNES.page,
 };
 
+type FenetreTexte = NonNullable<Projection['fenetre']> & { choixNommes?: { key: string; label: string }[] };
+type ProjectionTexte = Projection & { fenetre: FenetreTexte | null };
+
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes, aux bornes de l'hôte texte. */
-export const projeter = (etat: Jeu, pas: number, journal: number): Projection => projeterAuxBornes(etat, pas, journal, BORNES_DE_LA_PROJECTION);
+export function projeter(etat: Jeu, pas: number, journal: number): ProjectionTexte {
+  const projection = projeterAuxBornes(etat, pas, journal, BORNES_DE_LA_PROJECTION);
+  const { fenetre } = projection;
+  if (fenetre?.etape?.genre !== 'personneChoisie') return projection;
+  const cles = new Set(fenetre.etape.choix);
+  const choixNommes = fenetreDuJeu(etat)?.etape?.options
+    ?.filter(({ key }) => cles.has(key))
+    .map(({ key, label }) => ({ key, label }));
+  return { ...projection, fenetre: { ...fenetre, choixNommes } };
+}
 
 const enPlus = (n: number, suite: string): string[] => (n > 0 ? [`+${n} ${suite}`] : []);
 
@@ -125,11 +137,14 @@ function enteteDeCombat(p: Projection): string {
 const quiTientLaFenetre = (p: ProprietaireDeLaFenetre): string =>
   p.genre === 'porteur' ? (p.nom ?? t('ecran.proprietaire.sansNom')) : t(p.genre === 'tous' ? 'ecran.proprietaire.tous' : 'ecran.proprietaire.aucun');
 
-const ligneDeFenetre = (f: NonNullable<Projection['fenetre']>): string => {
+const ligneDeFenetre = (f: FenetreTexte): string => {
   const e = f.etape;
-  const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${e.choix.length ? ` [${e.choix.join(' | ')}]` : ''}` : '';
+  const choix = !f.choixNommes && e?.choix.length ? ` [${e.choix.join(' | ')}]` : '';
+  const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${choix}` : '';
   return `fenêtre ${f.cle} (à ${quiTientLaFenetre(f.proprietaire)})${etape}`;
 };
+
+const ligneDOption = ({ key, label }: { key: string; label: string }): string => `${key} = ${label.replace(/\s+/g, ' ').trim()}`;
 
 /** Un texte replié à la largeur, au mot, jamais coupé : une ligne de plus (en retrait) quand la largeur est atteinte ;
  *  un saut de ligne interne commence une ligne. Un mot plus large que la ligne reste entier, `borner` le coupe. */
@@ -163,6 +178,15 @@ const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] => {
   ];
 };
 
+function lignesDeFenetre(f: FenetreTexte): string[] {
+  const lignes = [ligneDeFenetre(f), ...ligneDeVerbes(f)];
+  if (f.choixNommes?.length) {
+    lignes.push(`${f.choixNommes.length} choix · ${appelEcrit('lire', { quoi: 'choix' })}`);
+    lignes.push(...f.choixNommes.slice(0, 2).map(ligneDOption));
+  }
+  return lignes;
+}
+
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
 /** Une ligne de jet : qui jette, quoi, puis le dé tombé (un Test : d100 sur la cible, DR, verdict ; une table : d100, la
@@ -195,12 +219,12 @@ export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.lib
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 
 /** La vue par défaut (`BORNES.lignes.vue`). */
-export function rendreLaVue(p: Projection): string[] {
+export function rendreLaVue(p: ProjectionTexte): string[] {
   const lignes: string[] = [];
   if (p.combat) {
     const c = p.combat;
     lignes.push(enteteDeCombat(p));
-    if (p.fenetre) lignes.push(ligneDeFenetre(p.fenetre), ...ligneDeVerbes(p.fenetre));
+    if (p.fenetre) lignes.push(...lignesDeFenetre(p.fenetre));
     lignes.push(...p.jets.flatMap(ligneDeJets));
     if (c.apercu) lignes.push(ligneDApercu(c.apercu));
     if (c.intention || c.finDeTourArmee) lignes.push([c.intention && `intention armée : ${c.intention} (un clic du champ la commet)`, c.finDeTourArmee && 'fin de tour armée (la même offre la confirme)'].filter(Boolean).join(' · '));
@@ -214,7 +238,7 @@ export function rendreLaVue(p: Projection): string[] {
     } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);
-    if (p.fenetre) lignes.push(ligneDeFenetre(p.fenetre), ...ligneDeVerbes(p.fenetre));
+    if (p.fenetre) lignes.push(...lignesDeFenetre(p.fenetre));
     lignes.push(...p.jets.flatMap(ligneDeJets));
     if (p.exploration) {
       const x = p.exploration;
@@ -236,6 +260,14 @@ function page<T>(liste: readonly T[], depuis: number | undefined, defaut: 'debut
   const elements = liste.slice(debut, debut + BORNES.page);
   const k = debut + elements.length;
   return { elements, suite: k < liste.length ? [`+${liste.length - k} : ${suite(k)}`] : [] };
+}
+
+/** Les choix nommés de la fenêtre courante, une option par ligne. */
+export function rendreLesChoix(p: ProjectionTexte, depuis?: number): string[] {
+  const choix = p.fenetre?.choixNommes ?? [];
+  if (!choix.length) return ['aucun choix nommé dans la fenêtre courante'];
+  const { elements, suite } = page(choix, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'choix', depuis: k }));
+  return borner([...elements.map(ligneDOption), ...suite], 'choix');
 }
 
 /** Le journal : une page, les dernières lignes, ou celles depuis `depuis`. */

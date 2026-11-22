@@ -35,7 +35,7 @@ export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: num
 export function preparerLEntretienQuotidien(get: Get, set: Set, minutes: number) {
   if (!get().battle && minutes >= TIME_COST.combatRound) releaseSeatsOfDowned(get, set);
   const deferred: DeferredUpkeepTest[] = [];
-  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
+  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) }).map(({ text }) => text);
   return { steps: nightBands(restFlow.deferredUpkeepSteps(get().party, deferred)), log };
 }
 

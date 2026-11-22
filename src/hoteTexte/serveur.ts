@@ -19,6 +19,7 @@ import {
   rendreLaCarte,
   rendreLaFiche,
   rendreLaSuite,
+  rendreLesChoix,
   rendreLaVue,
   rendreLeJournal,
   rendreLesCases,
@@ -144,6 +145,8 @@ export function creerHote(disque: Disque) {
     switch (quoi) {
       case 'vue':
         return rendu(rendreLaVue(projection(r)));
+      case 'choix':
+        return rendu(rendreLesChoix(projection(r), depuis));
       case 'fiche': {
         if (id && !porteurEnVue(etat, id)) throw new ErreurDeGeste('validation', `fiche : ${t('vision.ficheHorsDeVue')}`);
         const fiche = id ? rendreLaFiche(etat, id) : null;

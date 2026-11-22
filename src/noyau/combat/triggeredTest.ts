@@ -61,7 +61,18 @@ import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../trigger
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee, porteurParId } from '../monde/combatants';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
-import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
+import { tenuParUnHumain } from '../sieges';
+import {
+  choixDesPersonnesConnues,
+  fluxDEnvers,
+  personneConnueParDefaut,
+  personneDuDecideurAuto,
+  personnesCandidates,
+  personnesConnues,
+  sontAmis,
+  visePersonneChoisie,
+  type Personne,
+} from '../personneChoisie';
 import { acquerirLeTrait, poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
 import { ciblesDeTrauma, TRAITS_DE_TRAUMA } from '../../engine/psychology';
@@ -680,20 +691,31 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
  */
 function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, reste: ResteDuFlow<Effect>): PasDeFlow<Effect, void> {
   const decideur = ctx.caster ?? cible;
-  const candidates = personnesCandidates(ctx.get(), cible);
-  const auto = personneDuDecideurAuto(cible, candidates);
-  if (candidates.length && surfaceOf(ctx.get, decideur.id)) {
+  const etat = ctx.get();
+  const surface = surfaceOf(ctx.get, decideur.id);
+  const choix = surface ? choixDesPersonnesConnues(etat, cible) : undefined;
+  if (choix) {
     const after = reste();
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
       kind: 'personneChoisie', actorId: decideur.id, icon: 'mecanique/psychologie',
-      label: t('step.personneChoisie', { src: nomDeSource(oc), name: cible.label }),
-      options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
-      defaultChoice: (auto ?? candidates[0]).id,
-      meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc), differeLaSuite: true },
+      label: t('step.personneChoisie', { src: nomDeSource(oc), name: nomDe(cible) }),
+      options: choix.options,
+      defaultChoice: choix.defaultChoice,
+      meta: {
+        feuilleEnvers: { kind: 'effet', effet },
+        after,
+        choiceTargetId: cible.id,
+        personnesEnOption: choix.personnesEnOption,
+        opsDeCtx: porterOpsCtx(oc),
+        differeLaSuite: true,
+      },
     }));
     return FIN_DU_FLOW;
   }
+  const auto = surface ? undefined : tenuParUnHumain(etat, decideur.id)
+    ? personneConnueParDefaut(etat, cible, personnesConnues(etat, cible))
+    : personneDuDecideurAuto(cible, personnesCandidates(etat, cible));
   queueLines(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
   return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
@@ -701,8 +723,8 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
 /** La ligne de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
 function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc: Pick<OpsCtx, 'label'>): string {
   return personne
-    ? t('op.personneDesignee', { src: nomDeSource(oc), name: cible.label, personne: personne.label })
-    : t('op.personneAbsente', { src: nomDeSource(oc), name: cible.label });
+    ? t('op.personneDesignee', { src: nomDeSource(oc), name: nomDe(cible), personne: personne.label })
+    : t('op.personneAbsente', { src: nomDeSource(oc), name: nomDe(cible) });
 }
 
 /**
@@ -953,7 +975,11 @@ export const TABLES = {
       if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-      const personne = personnesCandidates(get(), cible).find((p) => p.id === step.chosen);
+      const etat = get();
+      const options = step.meta?.personnesEnOption;
+      const rang = step.options?.findIndex((option) => option.key === step.chosen) ?? -1;
+      const id = options?.sceneId === (etat.scene?.id ?? null) ? options.ids[rang] : undefined;
+      const personne = id === undefined ? undefined : personnesConnues(etat, cible).find((p) => p.id === id);
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
       queueLines(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [fluxDEnvers(feuille.effet, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });

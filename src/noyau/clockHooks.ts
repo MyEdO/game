@@ -26,14 +26,14 @@ export type ClockTrigger = Extract<EffectTrigger, 'onDayStart' | 'onWake'>;
  * déclencheur (coût nul pour la quasi-totalité des héros — patron `fireOwnTestFailed`).
  * Renvoie les lignes produites, que l'appelant range dans le bilan du jour.
  */
-export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: RNG; set?: SetFn }): string[] {
-  const lines: string[] = [];
+export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: RNG; set?: SetFn }): { text: string; actorId: string }[] {
+  const lines: { text: string; actorId: string }[] = [];
   const { party, campaignNarratif } = get();
   const resolveTrapping = objetDuNarratif(campaignNarratif);
   for (const h of party) {
     if (h.dead) continue;
     if (!effectSourcesOf(h, resolveTrapping).some((s) => s.effects.some((e) => e.trigger === trigger))) continue;
-    lines.push(...fireTriggers(get, h, trigger, ctx));
+    lines.push(...fireTriggers(get, h, trigger, ctx).map((text) => ({ text, actorId: h.id })));
   }
   return lines;
 }
