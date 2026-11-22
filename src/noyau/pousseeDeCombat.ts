@@ -13,6 +13,7 @@ import { tileKey, type Pt } from './monde/path';
 import type { Scene } from './monde/scene';
 import { posteDeLaBataille, translaterFormation } from './monde/shipPostes';
 import { pushCrewOk, pushEligible, pushReachable } from './siegePush';
+import { nomDe } from '../engine/nom';
 
 /** ADE II 08 l.233, l.258 ; LDB 13 l.79, l.106. */
 export function preparerPoussee(battle: BattleState, scene: Scene, active: Combatant) {
@@ -43,7 +44,7 @@ export function executerPoussee(get: Get, set: Set, active: Combatant, to: Pt): 
     if (servant) servant.loseNextMovement = true;
   }
   const dist = chebyshev(delta, { x: 0, y: 0 });
-  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: active.label, weapon: plan.hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
+  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: nomDe(active), weapon: nomDe(plan.hull), n: dist, s: dist > 1 ? 's' : '' }), active.id)];
   set({
     battle: {
       ...get().battle!,

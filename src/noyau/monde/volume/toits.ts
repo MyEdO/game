@@ -586,8 +586,8 @@ export function roofPans(
   //    (le débord PROLONGE la nappe vers l'extérieur, en CONTINUANT sa pente → son bord extérieur descend
   //    de `overhang` × la pente du pan sous l'égout) + une FASCIA verticale pendant sous ce bord. ADDITIF :
   //    posé APRÈS le pavage et la fusion, il ne perturbe pas les pans. Un égout est
-  //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, opposée au
-  //    centroïde de l'empreinte) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
+  //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, vers la case hors
+  //    du domaine) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
   //    Les bouts sont prolongés d'`overhang` LE LONG de l'égout, à sa pente (nulle sur un égout, celle du
   //    rampant sur une rive de pignon, dont le débord reste ainsi dans le plan de son pan) : aux angles
   //    convexes, deux soffites/fascias voisins se RECOUVRENT (même ton) au lieu de laisser un trou — coin
@@ -595,9 +595,6 @@ export function roofPans(
   //    pignon, où ses deux rampants se rejoignent en chevron) ne se prolonge pas.
   if (eave && eave.overhang > EPS) {
     const e = eave.overhang;
-    let cX = 0, cY = 0;
-    for (const k of cells) { const [x, y] = k.split(',').map(Number); cX += x; cY += y; }
-    cX /= cells.size; cY /= cells.size; // centroïde d'empreinte (repère GP : centre de cellule = (cx,cy))
     const continue_ = (s: { a: GP; b: GP }, p: GP): boolean => egouts.some((o) => o !== s
       && ((o.a.x === p.x && o.a.y === p.y) || (o.b.x === p.x && o.b.y === p.y))
       && Math.abs((o.b.x - o.a.x) * (s.b.y - s.a.y) - (o.b.y - o.a.y) * (s.b.x - s.a.x)) < EPS);
@@ -608,8 +605,10 @@ export function roofPans(
       if (len < EPS) continue;
       const ux = dx / len, uy = dy / len; // le long de l'égout
       let nx = -uy, ny = ux; // normale
+      // Orientée vers l'EXTÉRIEUR : la case qu'elle désigne au milieu de l'égout (repère GP : centre de case entier) est
+      // hors du domaine ; une case du domaine la retourne, quelle que soit la forme de l'emprise (L, U, cour).
       const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      if (nx * (mx - cX) + ny * (my - cY) < 0) { nx = -nx; ny = -ny; } // orientée vers l'EXTÉRIEUR
+      if (fld.domain.has(vk(Math.round(mx + nx * 0.5), Math.round(my + ny * 0.5)))) { nx = -nx; ny = -ny; }
       const plane = pieces.find((piece) => {
         const p0 = piece.pts[0];
         const onPlane = (point: GP) =>
@@ -1219,7 +1218,7 @@ export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<strin
 
 /** Les pans de chaque nappe de `scene`, par `nappeKey` : `roofPans` de ses cellules sur le champ de son groupe, à
  *  l'avant-toit de sa couverture (`eaveOverhangM` en cases, `fasciaDropM`). SOURCE UNIQUE des pans que servent
- *  `buildRoofs` et des faîtes qu'en tire `../faitieres.ts`. Mémoïsés par scène et version des datasets (`memoByRef`). */
+ *  `buildRoofs` et des faîtes qu'en tire `../piecesDeToit.ts`. Mémoïsés par scène et version des datasets (`memoByRef`). */
 export const pansDesNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, RoofPanGeometry[]> => {
   const out = new Map<string, RoofPanGeometry[]>();
   for (const [cle, { cells, mass, field }] of resolveNappes(scene)) {

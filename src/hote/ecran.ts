@@ -914,7 +914,7 @@ function victoire(etat: Jeu, cle: string): Element[] {
   return [
     ...(v.xp ? [puce(`${cle}/xp`, t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
     ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce(`${cle}/argent`, t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
-    ...v.defeated.map((d, i) => ligne(`${cle}/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
+    ...v.defeated.map((d, i) => ligne(`${cle}/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.nom, nombre: d.count }) : d.nom)),
     ...(v.messages ?? []).map((m, i) => ligne(`${cle}/message/${i}`, m)),
   ];
 }
@@ -1109,7 +1109,7 @@ function ordreDuTour(etat: Jeu, c: Combat, ouverte: FicheOuverte | null): (Entit
     const presse = ouverte?.porteur === id;
     const ton: Ton = famille === 'ordre' && id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre';
     return [{
-      type: 'entite', id: `${famille}/${id}`, ton, nom: x.label,
+      type: 'entite', id: `${famille}/${id}`, ton, nom: garanti(nomEnVue(etat, id), id, 'nom du rang de l’ordre'),
       elements: [
         { type: 'portrait', id: 'portrait', combattant: id },
         jauge('blessures', t('ecran.jauge.blessures'), [x.wounds.current, x.wounds.max]),

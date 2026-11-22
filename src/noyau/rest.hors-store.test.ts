@@ -214,3 +214,16 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     expect(banc.getState().gameTime).toBe(t0); // inchangé
   });
 });
+
+describe('sleepParty — la ligne de nuit retire le nom que le texte compose (#4017)', () => {
+  it('un nommeur qui rend un autre nom que le `label` : la ligne de récupération ne le porte plus', () => {
+    banc.setState({ party: [hero({ id: 'a' })], gameTime: 12 * 60, lastUpkeepDay: 0 }); // sans ration : la nuit dit la Faim
+    const pose = poserLeNommeur((id) => (id === 'a' ? fixtureText('Autre') : null));
+    try {
+      const lignes = sleepParty(banc.getState, banc.setState as never, 1).filter((e) => e.actorId === 'a').map((e) => e.text);
+      expect(lignes).toContain('est affamé — pas de récupération naturelle (Faim & Soif).');
+    } finally {
+      poserLeNommeur(pose);
+    }
+  });
+});

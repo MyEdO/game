@@ -171,7 +171,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_pose_des_vues = pose
 	while not _file_des_vues.is_empty():
 		var plan: Dictionary = _file_des_vues.front()
-		var _textures_gardees := await TexturesDeMatiere.preparer(self, VolumeDeScene.matieres_des_morceaux(plan.recus))
+		var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(self, VolumeDeScene.textures_des_morceaux(plan.recus))
 		if pose != _pose_des_vues:
 			return
 		_file_des_vues.pop_front()

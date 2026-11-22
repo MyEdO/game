@@ -172,7 +172,8 @@
   "surfaces": [
     {
       "nom": "osier",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--osier"
     },
     {
       "nom": "cuir",
@@ -181,7 +182,7 @@
     }
   ],
   "glb": {
-    "sha256": "f76a1f1f86524eff1f6c2bd0113b6260f9f26f03440866b04e8614e20fad7ad0",
-    "octets": 374572
+    "sha256": "99217ccb4ff986c9d47d45034610dbfa2573b12e14d3feef33461c528c8a6bda",
+    "octets": 374580
   }
 }

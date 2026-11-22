@@ -29,6 +29,7 @@ import { chebyshev } from '../engine/grid';
 import { effectiveTalents } from '../engine/talentEffects';
 import { itemCapability } from '../engine/capabilities';
 import { equipConflicts, recomputeLoadout } from '../engine/items';
+import { nomDe } from '../engine/nom';
 
 /** Ce combattant chevauche-t-il une monture (= cavalier) ? */
 export const isRider = (c: Combatant): boolean => !!c.mountId;
@@ -268,7 +269,7 @@ export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[]
   for (const mount of battle.combatants) {
     if (!mount.riderId || !isOutOfAction(mount)) continue;
     const rider = handleMountDeath(battle, scene, mount);
-    if (rider) lines.push(t('mount.unhorsed', { rider: rider.label, mount: mount.label }));
+    if (rider) lines.push(t('mount.unhorsed', { rider: nomDe(rider), mount: nomDe(mount) }));
   }
   return lines;
 }

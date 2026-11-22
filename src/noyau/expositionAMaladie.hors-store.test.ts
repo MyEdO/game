@@ -3,6 +3,7 @@ import { avancerLesMaladies, contractDisease, declareDisease } from '../engine/d
 import { makeRNG } from '../engine/dice';
 import { ouvrirLeBanc } from './banc.testkit';
 import { calculerLePasDExposition, calculerLesTestsDExposition } from './expositionAMaladie';
+import { fixtureText } from '../i18n/fixtureText';
 
 const maladieId = 'verole-urticante';
 const rng = makeRNG(1);
@@ -19,9 +20,9 @@ it.each([
     minutesLeft: debutIncubee,
     durationMinutes: 20,
   };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [declaree] } };
-  const releve = { id: 'releve', porteur: { label: 'Relève', diseases: [incubee] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [declaree] } };
+  const releve = { id: 'releve', porteur: { label: fixtureText('Relève'), diseases: [incubee] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   expect(calculerLesTestsDExposition(banc.getState, banc.setState, 90, [[source, releve, temoin]])).toEqual([
     { porteurId: temoin.id, diseaseName: maladieId, difficulty: 'accessible', nombre },
   ]);
@@ -36,8 +37,8 @@ it.each([
     ...contractDisease(maladieId, rng, { incubation: phase === 'incubation' ? 1 : 0, duration: 1 })!,
     minutesLeft,
   };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [maladie] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [maladie] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   const nombres = segments.map((minutes) => {
     const dus = calculerLesTestsDExposition(banc.getState, banc.setState, minutes, [[source, temoin]]);
     banc.getState().avancerLHorloge(minutes);
@@ -49,8 +50,8 @@ it.each([
 it('ouvre une nouvelle heure après une séparation réelle malgré une phase inchangée', () => {
   const banc = ouvrirLeBanc();
   const maladie = { ...contractDisease(maladieId, rng, { incubation: 0, duration: 1 })!, minutesLeft: 60 };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [maladie] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [maladie] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   const parcours = [
     { minutes: 20, groupes: [[source, temoin]] },
     { minutes: 5, groupes: [[source], [temoin]] },
@@ -69,8 +70,8 @@ it.each([{ segments: [1550] }, { segments: [50, 1500] }, { segments: [50, 20, 14
   ({ segments }) => {
     const banc = ouvrirLeBanc();
     const maladie = { ...contractDisease('rhume-commun', rng, { incubation: 1, duration: 1 })!, minutesLeft: 30 };
-    const source = { id: 'equipage', porteur: { label: 'Équipage', diseases: [maladie] } };
-    const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+    const source = { id: 'equipage', porteur: { label: fixtureText('Équipage'), diseases: [maladie] } };
+    const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
     let nombre = 0;
     for (const minutes of segments) {
       nombre += calculerLesTestsDExposition(banc.getState, banc.setState, minutes, [[source, temoin]])[0]?.nombre ?? 0;
@@ -84,8 +85,8 @@ it.each([{ segments: [1550] }, { segments: [50, 1500] }, { segments: [50, 20, 14
 it('démarre la durée à l’arrivée pour une incubation différée (EDOC 09 l.21)', () => {
   const banc = ouvrirLeBanc();
   const maladie = { ...contractDisease('rhume-commun', rng, { incubation: 1, duration: 1 })!, minutesLeft: 30 };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [maladie] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [maladie] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   const groupe = [[source, temoin]];
   expect(calculerLesTestsDExposition(banc.getState, banc.setState, 100, groupe, () => false)).toEqual([]);
   avancerLesMaladies(source.porteur, 100, rng);
@@ -97,8 +98,8 @@ it('démarre la durée à l’arrivée pour une incubation différée (EDOC 09 l
 it('part de la déclaration observée quand la phase bascule sans temps d’infection écoulé', () => {
   const banc = ouvrirLeBanc();
   const maladie = { ...contractDisease('rhume-commun', rng, { incubation: 1, duration: 1 })!, minutesLeft: 30 };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [maladie] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [maladie] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   const groupe = [[source, temoin]];
   expect(calculerLesTestsDExposition(banc.getState, banc.setState, 10, groupe)).toEqual([]);
   banc.getState().avancerLHorloge(100);
@@ -110,8 +111,8 @@ it('part de la déclaration observée quand la phase bascule sans temps d’infe
 it('attend l’heure d’éclosion malgré la bascule anticipée par l’entretien calendaire (LDB 20 l.12, l.206)', () => {
   const banc = ouvrirLeBanc();
   const maladie = { ...contractDisease(maladieId, rng, { incubation: 1, duration: 8 })!, minutesLeft: 1380 };
-  const source = { id: 'source', porteur: { label: 'Source', diseases: [maladie] } };
-  const temoin = { id: 'temoin', porteur: { label: 'Témoin' } };
+  const source = { id: 'source', porteur: { label: fixtureText('Source'), diseases: [maladie] } };
+  const temoin = { id: 'temoin', porteur: { label: fixtureText('Témoin') } };
   const groupe = [[source, temoin]];
   const pas = (minutes: number) => calculerLePasDExposition(banc.getState, banc.setState, minutes, groupe);
   expect(pas(960)).toEqual({ minutes: 960, tests: [] });

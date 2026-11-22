@@ -13,6 +13,7 @@ import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -235,7 +236,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     });
     const refus = vi.fn();
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 10, y: 0 }], refus)).toBe('appliquee');
-    expect(refus.mock.calls).toEqual([[t('cf.siegeSansCible', { name: gunner.label })]]);
+    expect(refus.mock.calls).toEqual([[t('cf.siegeSansCible', { name: nomDe(gunner) })]]);
     expect(banc.getState().journal).toEqual([]);
     expect(banc.getState().pendingAttack).toBeNull(); // tir à vide → aucune modale ouverte
     expect(far.wounds.current).toBe(far.wounds.max);

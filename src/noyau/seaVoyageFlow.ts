@@ -189,7 +189,7 @@ import {
 } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { applyContraction, contractionDue, diseaseDefs, diseaseHasCapability, maladieDeclaree, type Disease } from '../engine/disease';
+import { applyContraction, contractionDue, diseaseDefs, diseaseHasCapability, maladieDeclaree, nomDuPorteurDeMaladies, type Disease } from '../engine/disease';
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
@@ -243,6 +243,7 @@ import { lierLeRetourDesMarins, referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `equipage-zero-dr-succes` comprise) dans
@@ -1367,7 +1368,7 @@ export function startFastVoyage(
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
-  log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
+  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -1426,8 +1427,6 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     patch.waterLitres = Math.max(0, vessel.waterLitres - souls * dailyWaterLitres('mediane') * fast.days);
   }
   if (vessel) set({ vessel: { ...vessel, ...patch } });
-  // Vivres de l'équipage PNJ sur toute la traversée rapide (MÊME couture que le détaillé).
-  log(get, set, consumeCrewProvisions(get, set, fast.days));
   const minutes = fast.days * MINUTES_PER_DAY;
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + minutes } });
   continuerLeTempsEnMer(get, set);
@@ -1444,6 +1443,13 @@ function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours
 function contagionPossibleABord(porteurs: ReturnType<typeof porteursABord>): boolean {
   return rule('maladie-mode') !== 'off' && porteurs.some((source) =>
     source.porteur.diseases?.some((maladie) => diseaseHasCapability(maladie, 'contagious')));
+}
+
+/** Minutes jusqu'au jour où le premier porteur à bord atteint un multiple de `JOURS_DU_MOIS` jours sans vivre
+ *  frais (`buildScurvySteps`). MDG 14 l.230 */
+function avantLeProchainMoisSansFrais(porteurs: ReturnType<typeof porteursABord>, debut: number): number {
+  const jours = Math.min(...porteurs.map(({ porteur }) => JOURS_DU_MOIS - ((porteur.regimeDeBord?.joursSansVivreFrais ?? 0) % JOURS_DU_MOIS)));
+  return (minutesUntilNext(debut, 0) || MINUTES_PER_DAY) + (jours - 1) * MINUTES_PER_DAY;
 }
 
 function prochaineEcheance(s: Jeu, maximum: number): number {
@@ -1495,13 +1501,14 @@ function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: num
       return false;
     }
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
-    if (entretien.steps.length
-      && !jouerLesBandesDeSanteEnMer(get, set, entretien.steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+    const steps = [...entretien.steps, ...(dayIndex(borneDuPas) > dayIndex(borneDuPas - minutes) ? buildScurvySteps(get, set) : [])];
+    if (steps.length
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
   }
   return !checkPartyWiped(get, set);
 }
 
-/** LDB 20 l.12-13, l.206 ; MDG 14 l.208 ; MDG 15 l.25 */
+/** LDB 20 l.12-13, l.206 ; MDG 14 l.208, l.230 ; MDG 15 l.25 */
 export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeStep[]): void {
   if (doneSteps && !get().travelPlan?.sea?.fast) noteSeaLine(get, set, lignesResolues(doneSteps));
   for (;;) {
@@ -1523,7 +1530,8 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
       const restantes = temps.fin - debut;
       const avantEntretien = sea.fast && contagionPossibleABord(porteurs) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
       const avantEcheance = prochaineEcheance(get(), restantes);
-      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance));
+      const avantScorbut = sea.fast ? avantLeProchainMoisSansFrais(porteurs, debut) : restantes;
+      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance, avantScorbut));
       const pas = calculerLePasDExposition(get, set, maximum, [porteurs]);
       fin = debut + pas.minutes;
       const steps = bandesDeContagion(get, set, pas.tests);
@@ -1539,6 +1547,7 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
       patchSea(get, set, { tempsEnMer: { fin: temps.fin } });
     }
     const minutes = fin - debut;
+    if (sea.fast) log(get, set, consumeCrewProvisions(get, set, dayIndex(fin) - dayIndex(debut)));
     const avant = comptePasDifferes(get());
     if (minutes > 0) get().avancerLHorloge(minutes);
     else fireScheduledEffects(get, set);
@@ -1868,7 +1877,7 @@ function jouerLaTemperatureDuJour(get: Get, set: Set): void {
     for (const h of get().party) {
       if (h.dead) continue;
       if (isWeatherWarded(h)) { // protection magique : aucun Test à jouer
-        tell(get, set, [t('sv.wardedExposure', { name: h.label, what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
+        tell(get, set, [t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
       const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
@@ -2120,13 +2129,13 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     if (step.drCible != null) {
       let etape = { total: 0, done: step.drCible <= 0 };
       for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(value, difficulty, rng), step.drCible);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      tell(get, set, [t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
       let t = rollTest(value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
-      tell(get, set, [tr('sv.engineRestart', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
+      tell(get, set, [tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
     }
   }
   return lastDR;
@@ -2153,7 +2162,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
+    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines]);
   }
 
   // Moteur détruit : l'Amélioration Propulsion à vapeur saute (à ré-installer au chantier) → le navire
@@ -2208,9 +2217,9 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
+    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines]);
   } else if (eng) {
-    tell(get, set, [t('sv.dodgedSteam', { name: eng.label })]);
+    tell(get, set, [t('sv.dodgedSteam', { name: nomDe(eng) })]);
   }
   if (get().travelPlan?.sea) continueSeaDayFromPostProgression(get, set);
 }
@@ -2262,7 +2271,7 @@ function coqueDuPont(get: Get): CoqueDuPont | null {
   const navireDeCampagne = estLeNavireDeCampagne(coque, vessel);
   return {
     ref: coque.creatureId,
-    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : coque.label,
+    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : nomDe(coque),
     navireDeCampagne,
   };
 }
@@ -3167,7 +3176,7 @@ export const TABLES = {
         if (porteur.regimeDeBord) porteur.regimeDeBord = { ...porteur.regimeDeBord, joursDeSoupe: 0 };
         // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
         if (applyContraction(porteur, 'scorbut', row.result.success, battleRng()).length) {
-          lignes.push({ text: t('sv.scurvyGot', { name: porteur.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+          lignes.push({ text: t('sv.scurvyGot', { name: nomDuPorteurDeMaladies(porteur), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
         }
         aLui.ecrire();
       }
@@ -3183,7 +3192,7 @@ export const TABLES = {
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
         if (!hero || !row.result || row.result.success) continue;
-        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: hero.label }), tone: 'echec' });
+        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: nomDe(hero) }), tone: 'echec' });
       }
       touchParty(get, set);
       return { consequences: freeCons(lignes) };
@@ -3195,7 +3204,7 @@ export const TABLES = {
       const lignes: FreeConsLine[] = [];
       for (const row of step.participants ?? []) {
         const verdict = contracterABord(get, set, row, diseaseId, battleRng());
-        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: verdict.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
+        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: nomDuPorteurDeMaladies(verdict.porteur), disease: diseaseLabel(diseaseId) }), tone: 'echec' });
       }
       return { consequences: freeCons(lignes) };
     },
@@ -3217,7 +3226,7 @@ export const TABLES = {
         // Succès sans effet (rien à ajouter) → aucune conséquence.
         if (!hero || !row.result || row.result.success) continue;
         addCondition(hero, 'extenue');
-        lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
+        lignes.push({ text: t('sv.exhaustionGot', { name: nomDe(hero), diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
       }
       set({ party: [...get().party] });
       return { consequences: freeCons(lignes) };

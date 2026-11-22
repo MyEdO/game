@@ -17,6 +17,7 @@ import { setRule, resetRule } from './policy';
 import { setDataset } from '../data/overrides';
 import { makeRNG, type RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
+import { fixtureText } from '../i18n/fixtureText';
 
 const seq = (values: number[]): RNG => desEnSuite(values);
 /** Seed des facteurs (restauré après chaque test qui édite la donnée). */
@@ -135,7 +136,7 @@ describe('resolveCrewTest — Test d’équipage (somme des DR, rôle essentiel 
 
 describe('#4243 — `maladieFaitRage` : maladie déclarée du collectif, hors règle des Personnages (MDG 14 l.172)', () => {
   afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
-  const collectif = (incubation: number) => ({ label: "l'équipage", diseases: [contractDisease('scorbut', makeRNG(1), { incubation, duration: 30 })!] });
+  const collectif = (incubation: number) => ({ label: fixtureText("l'équipage"), diseases: [contractDisease('scorbut', makeRNG(1), { incubation, duration: 30 })!] });
 
   it('maladie DÉCLARÉE du collectif → vrai, règle `mer-moral-maladie-contagieuse-a-bord` désactivée comprise', () => {
     setRule('mer-moral-maladie-contagieuse-a-bord', false);

@@ -20,7 +20,8 @@
  * calculé. Tous les minteurs sont sous ce lint (#1709 C3c-3b, #1988), chacun par exemption AU SITE avec
  * sa raison : `t()` (`i18n/index.ts`), `composeRollLabel` (`noyau/rollSeam.ts`), les deux casts du
  * minteur (b) — `data/index.ts` (`dataLabel`) et `data/mutations.ts` (`mutationTablePlayerLabel`) —, le nom d'un
- * combattant `nomDe` (`engine/nom.ts`, #4017) et la fabrique de fixture `i18n/fixtureText.ts`.
+ * combattant `nomDe` (`engine/nom.ts`, #4017), celui d'un porteur en vue `nomEnVue` (`noyau/visionDuGroupe.ts`, #4017)
+ * et la fabrique de fixture `i18n/fixtureText.ts`.
  *
  * La CONCATÉNATION blanchit à l'envers : `` `${a} — ${b}` `` de deux `PlayerText` rend un `string` nu.
  * C'est VOULU — recomposer du texte est une FABRIQUE DE FORME, et une fabrique de forme est un
@@ -36,3 +37,6 @@ declare const NON_AFFICHABLE: unique symbol;
 
 /** Marque d'une chaîne qui n'est PAS du texte joueur (une `CiblePsy`, #3045) : `Params` de `t()` la refuse. */
 export type NonAffichable = { readonly [NON_AFFICHABLE]: true };
+
+/** Une chaîne qui ne porte pas la marque `NonAffichable` : `Params` de `t()`, un libellé de projection. #3045 #4017 */
+export type SansMarqueNonAffichable = string & { readonly [K in keyof NonAffichable]?: never };
