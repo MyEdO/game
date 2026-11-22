@@ -7,7 +7,7 @@ import type * as J from '../jeu';
 import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../combat';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
-import { cadre, jauge, medaillon, plaque, portrait } from '../kit';
+import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
 import { busteDuHeros, esc } from './pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
@@ -54,7 +54,7 @@ export function ouvrirLeRejeu(issue: IssueDuCombat, fin: () => void, terrain: st
     <div class="tour" id="tour" aria-live="polite"></div>
     <div class="champ"><div class="cour-cadre"><div class="cour" style="width:${cour.largeur}px;height:${cour.hauteur}px">${cour.svg}<div class="figures"></div></div></div></div>
     <div class="combat-pied">
-      ${cadre('<ol class="journal"></ol>', { fond: 'parchemin', balise: 'div', classe: 'panneau-journal' })}
+      ${cadre(`<button type="button" class="agrandir-journal" data-j aria-pressed="false" data-bulle="Agrandir ou réduire le journal">${picto('livre', 16, 1.7)}</button><ol class="journal"></ol>`, { fond: 'parchemin', balise: 'div', classe: 'panneau-journal' })}
       <div class="rang-heros vivant"></div>
     </div>
     <div class="issue-place" id="combat-fin-place"></div>
@@ -228,7 +228,7 @@ export function fermerLeRejeu() {
   fin();
 }
 
-/** Les clics propres au rejeu (vitesse, « Passer », fin) ; vrai s'il en a traité un. */
+/** Les clics propres au rejeu (vitesse, « Passer », fin, journal agrandi) ; vrai s'il en a traité un. */
 export function cliquerDansLeRejeu(cible: Element): boolean {
   const v = cible.closest<HTMLElement>('[data-v]');
   if (v && rejeu) {
@@ -246,6 +246,14 @@ export function cliquerDansLeRejeu(cible: Element): boolean {
     return true;
   }
   if (cible.closest('#combat-fin')) { fermerLeRejeu(); return true; }
+  const j = cible.closest<HTMLElement>('[data-j]');
+  if (j) {
+    const ouvert = j.closest('.panneau-journal')!.classList.toggle('ouvert');
+    j.setAttribute('aria-pressed', String(ouvert));
+    const liste = $('#combat .journal');
+    liste.scrollTop = liste.scrollHeight;
+    return true;
+  }
   return false;
 }
 

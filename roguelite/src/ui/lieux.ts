@@ -11,7 +11,7 @@ import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { medaillon, plaque, portrait, rond } from '../kit';
 import { CADRES, ecran } from './ecran';
-import { busteDuHeros, cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose } from './pieces';
+import { busteDuHeros, cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
@@ -52,9 +52,9 @@ export function ecranDuHameau(e: J.Etat, ouvert: string): string {
   const scene = ouvert || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: `${cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' })}
-      <div class="recit-lieu" style="left:${CADRES.recit[0]}px;top:${CADRES.recit[1]}px;width:${CADRES.recit[2]}px">${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${cadreA([CADRES['colonne-droite'][0], 20, 360, 132], `<div class="partir"><div><div class="nom-propre petit gothique">${ouvertes} route${ouvertes > 1 ? 's' : ''} ouverte${ouvertes > 1 ? 's' : ''}</div><div class="sous-titre">${e.bossVaincus.length} maître${e.bossVaincus.length > 1 ? 's' : ''} vaincu${e.bossVaincus.length > 1 ? 's' : ''}</div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`, { ruban: 'Partir', classe: 'carte-partir' })}
-      <div class="coins" style="left:${CADRES.coins[0]}px;top:${CADRES.coins[1]}px">${J.compagnieEpuisee(e) ? rond('lune', 'Attendre une semaine', 'data-a="attendre"', 'moyen') : ''}${rond('livre', 'Chronique', 'data-a="chronique"', 'moyen')}${rond('sablier', 'Recommencer', 'data-a="reset"', 'moyen')}</div>`,
+      <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
+      ${cadreA([CADRES['colonne-droite'][0], 20, 360, 150], `<div class="partir"><div><div class="nom-propre petit gothique">${ouvertes} route${ouvertes > 1 ? 's' : ''} ouverte${ouvertes > 1 ? 's' : ''}</div><div class="sous-titre">${e.bossVaincus.length} maître${e.bossVaincus.length > 1 ? 's' : ''} vaincu${e.bossVaincus.length > 1 ? 's' : ''}</div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`, { ruban: 'Partir', classe: 'carte-partir' })}
+      <div class="coins" ${place(CADRES.coins)}>${J.compagnieEpuisee(e) ? rond('lune', 'Attendre une semaine', 'data-a="attendre"', 'moyen') : ''}${rond('livre', 'Chronique', 'data-a="chronique"', 'moyen')}${rond('sablier', 'Recommencer', 'data-a="reset"', 'moyen')}</div>`,
     socle: { heros: e.roster, geste: 'heros', choisi: () => false },
     vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
   });

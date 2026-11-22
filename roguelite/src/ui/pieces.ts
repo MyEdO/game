@@ -117,8 +117,10 @@ export function soinsDuHeros(e: J.Etat, h: J.Heros) {
   return tout || glose('rien à soigner');
 }
 
+/** Ce qui se pose à un rectangle de la scène fixe : `data-rect`, que `ajusterLaScene` ancre au bord le plus proche. */
+export const place = (rect: readonly number[]) => `data-rect="${rect.join(' ')}" style="left:${rect[0]}px;top:${rect[1]}px${rect[2] ? `;width:${rect[2]}px;height:${rect[3]}px` : ''}"`;
 /** Un cadre du kit posé à son rectangle d'une scène fixe (`CADRES` des maquettes). */
 export const cadreA = (rect: [number, number, number, number], contenu: string, o: { ruban?: string; fond?: string; classe?: string; tete?: string } = {}) =>
-  `<div class="place-cadre" style="left:${rect[0]}px;top:${rect[1]}px;width:${rect[2]}px;height:${rect[3]}px">${cadre(contenu, { fond: o.fond ?? 'parchemin', ruban: o.ruban ?? '', classe: `pan ${o.classe ?? ''}`, balise: 'div', tete: o.tete ?? '' })}</div>`;
+  `<div class="place-cadre" ${place(rect)}>${cadre(contenu, { fond: o.fond ?? 'parchemin', ruban: o.ruban ?? '', classe: `pan ${o.classe ?? ''}`, balise: 'div', tete: o.tete ?? '' })}</div>`;
 /** Les onglets du kit sur le bord haut d'un cadre : l'actif est le ruban, les autres des plaques. */
 export const onglets = (noms: [string, string][], actif: string) => `<div class="onglets">${noms.map(([id, nomme]) => (id === actif ? `<div class="ruban gothique">${nomme}</div>` : plaque(nomme, `data-a="onglet" data-k="${id}"`, { taille: 'petite' }))).join('')}</div>`;

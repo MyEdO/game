@@ -30,6 +30,37 @@ function poserLaBulle(porteur: HTMLElement, texte: string) {
   bulle.style.setProperty('--pointe', `${r.left + r.width / 2 - (x + q.width / 2)}px`);
 }
 
+/** Le texte d'une ligne, son gras (`**…**`) et son italique (`*…*`, `_…_`) en éléments, sans HTML injecté. */
+function enLigne(texte: string): Node[] {
+  return texte.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|(?<![\p{L}\d])_[^_]+_(?![\p{L}\d]))/u).filter(Boolean).map((morceau) => {
+    const gras = /^\*\*(.+)\*\*$/.exec(morceau);
+    const italique = /^[*_](.+)[*_]$/.exec(morceau);
+    if (!gras && !italique) return document.createTextNode(morceau);
+    const el = document.createElement(gras ? 'b' : 'i');
+    el.textContent = (gras ?? italique)![1];
+    return el;
+  });
+}
+
+/** Le texte du livre, verbatim, rendu : ses paragraphes, ses listes, son gras et son italique (Markdown). */
+function corpsDuTexte(texte: string): HTMLElement {
+  const corps = document.createElement('div');
+  corps.className = 'corps-apercu';
+  for (const bloc of texte.split(/\n{2,}/)) {
+    const lignes = bloc.split('\n');
+    if (lignes.every((l) => /^\s*[-*] /.test(l))) {
+      const ul = document.createElement('ul');
+      for (const l of lignes) { const li = document.createElement('li'); li.append(...enLigne(l.replace(/^\s*[-*] /, ''))); ul.append(li); }
+      corps.append(ul);
+      continue;
+    }
+    const p = document.createElement('p');
+    lignes.forEach((l, i) => { if (i) p.append(document.createElement('br')); p.append(...enLigne(l.replace(/^#+\s*/, ''))); });
+    corps.append(p);
+  }
+  return corps;
+}
+
 function poserLApercu(porteur: HTMLElement, a: Apercu) {
   apercu.replaceChildren();
   const tete = document.createElement('div');
@@ -40,7 +71,7 @@ function poserLApercu(porteur: HTMLElement, a: Apercu) {
   tete.append(nom);
   apercu.append(tete);
   if (a.nature) { const n = document.createElement('div'); n.className = 'sous-titre'; n.textContent = a.nature; apercu.append(n); }
-  if (a.texte) { const p = document.createElement('p'); p.textContent = a.texte; apercu.append(p); }
+  if (a.texte) apercu.append(corpsDuTexte(a.texte));
   if (a.pied) { const p = document.createElement('div'); p.className = 'pied glose avertissement'; p.textContent = a.pied; apercu.append(p); }
   apercu.hidden = false;
   const r = porteur.getBoundingClientRect();
