@@ -367,8 +367,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const etiquette = ({ texte, variante = 'rectangle', teinte = '', valeur = null }) => `<span class="etiquette ${variante}${teinte ? ` ${teinte}` : ''}" data-primitive="etiquette">${texte}${valeur == null ? '' : `<em>${valeur}</em>`}</span>`;
   /* la puce d'une ligne, de la teinte de son texte : `losange`, ou `coche` (la ligne choisie) */
   const puce = (forme) => (forme === 'coche' ? `<i class="coche" data-primitive="puce">${picto('coche', 15, undefined, 2)}</i>` : '<i class="losange" data-primitive="puce"></i>');
-  /* entre deux textes d'une même ligne : `median`, le point médian */
-  const separateur = (forme) => `<span class="separateur ${forme}" data-primitive="separateur">·</span>`;
+  /* entre deux textes d'une même ligne : `median`, le point médian entre deux espaces, où la ligne peut se couper */
+  const separateur = (forme) => `<span class="separateur ${forme}" data-primitive="separateur"> · </span>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
   const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}" data-primitive="filet">${losange ? puce('losange') : ''}</div>`;
   /* un choix parmi quelques valeurs nommées : la valeur tenue est dorée ; `egaux` : cases de même largeur */

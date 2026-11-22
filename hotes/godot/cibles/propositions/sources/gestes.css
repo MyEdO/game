@@ -261,7 +261,7 @@ html,body{margin:0;background:var(--noir)}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}
 .plaque.carte .c .separateur,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
-.cartes.liste>.carte:not(.deux-lignes) .c .separateur{display:inline}
+.cartes.liste>.carte:not(.deux-lignes) .c .separateur{display:contents}
 .cartes.liste>.carte :is(.n,.c){-webkit-line-clamp:1}
 .cartes.liste>.carte.deux-lignes{height:44px}
 .cartes.liste>.carte.deux-lignes .c{-webkit-line-clamp:2}
@@ -320,9 +320,8 @@ html,body{margin:0;background:var(--noir)}
 /* la puce : le losange plein de 7, la coche ; de la teinte du texte */
 .losange{flex:none;width:7px;height:7px;transform:rotate(45deg);background:currentColor}
 .coche{flex:none;display:flex}
-/* le séparateur médian : une espace fine de part et d'autre */
-.separateur.median{margin:0 .2em}
-
+/* le séparateur ne fait pas de boîte : son texte se lit avec celui qu'il sépare, dans une rangée flexible comme ailleurs */
+.separateur{display:contents}
 /* un choix parmi quelques valeurs : sur parchemin ou sur bois */
 .segments{display:inline-flex;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px var(--trait-encre)}
 .segments b{font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:.8px;padding:3px 11px 4px;color:var(--encre-2);background:var(--voile);white-space:nowrap}
@@ -360,7 +359,7 @@ html,body{margin:0;background:var(--noir)}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */
 .retour{position:absolute;left:30px;bottom:34px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
 /* le libellé d'une sortie ou d'un écran à ouvrir a sa boîte, quelle que soit sa longueur : deux lignes posées sur le rond */
-.retour span{width:124px;height:36px;display:flex;align-items:flex-end;font-size:14.5px;line-height:18px;color:var(--ivoire)}
+.retour>span{width:124px;height:36px;display:flex;align-items:flex-end;font-size:14.5px;line-height:18px;color:var(--ivoire)}
 /* hors combat : le journal et le système, 30 / 23 du coin bas-droit */
 #coins{position:absolute;right:30px;bottom:23px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
 /* ouvrir un écran posé sur celui-ci : la pastille du bord droit, à 24 */

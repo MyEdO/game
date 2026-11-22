@@ -123,7 +123,7 @@
 #f-profil .fond{display:grid;grid-template-columns:repeat(12,1fr);align-items:start;padding:22px 8px 0}
 .carac{text-align:center;border-left:1px solid rgba(60,40,20,.3)}
 .carac:first-child{border-left:0}
-.carac span{display:block;font-size:12.5px;line-height:15px;color:#5a4530}
+.carac>span{display:block;font-size:12.5px;line-height:15px;color:#5a4530}
 .carac b{display:block;font-size:22px;line-height:27px;color:#2a1d12}
 #f-figure .fond{padding:9px}
 .niche{height:100%;padding:4px;border-radius:2px;box-shadow:0 0 0 1px #1a1005}
@@ -137,7 +137,7 @@
 .mesures{display:flex;align-items:center;gap:11px;margin-top:7px}
 .mesures .rub{margin-right:16px}
 .mesures .m{margin-right:20px}
-.mesures .m span{display:block;font-size:12px;line-height:14px;color:#5a4530}
+.mesures .m>span{display:block;font-size:12px;line-height:14px;color:#5a4530}
 .mesures .m b{font-weight:600;font-size:16px;line-height:21px;color:#2a1d12;white-space:nowrap}
 .atouts{display:flex;gap:8px;margin-top:7px;height:24px}
 

@@ -5,7 +5,7 @@
 #reikland .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 #reikland .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-14px;box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or);white-space:nowrap}
 #reikland .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:var(--bois);box-shadow:1px 1px 0 var(--contour)}
-#reikland .lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
+#reikland .lieu .rubrique{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
 #reikland .lieu.choisi{box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or-vif),0 0 18px var(--halo-vif)}
 #reikland .lieu .ici{display:flex;gap:3px;margin-left:4px}
 #reikland .lieu.sous{transform:translate(-50%,0);margin-top:14px}
@@ -17,10 +17,10 @@
 .etapes .e{flex:none;width:74px;text-align:center}
 .etapes .e i{display:block;width:11px;height:11px;margin:0 auto 5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--noir)}
 .etapes .e.ici i{background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 60%)}
-.etapes .e span{display:block;font-size:10.5px;line-height:12.5px;color:var(--creme)}
+.etapes .e>span{display:block;font-size:10.5px;line-height:12.5px;color:var(--creme)}
 .etapes .t{flex:1;text-align:center;margin-top:-7px}
 .etapes .t u{display:block;height:2px;margin:11px -30px 0;background:linear-gradient(180deg,var(--cire-clair),var(--sang));box-shadow:0 0 0 1px var(--ombre)}
-.etapes .t span{display:block;font-size:10.5px;color:var(--creme-2);margin-top:-17px;white-space:nowrap}
+.etapes .t>span{display:block;font-size:10.5px;color:var(--creme-2);margin-top:-17px;white-space:nowrap}
 .transport{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:var(--lit);box-shadow:inset 0 0 0 1px var(--filet-creme)}
 .transport.pris{box-shadow:inset 0 0 0 1px var(--filet-or-vif),0 0 12px var(--halo)}
 .transport .q{flex:1;min-width:0}

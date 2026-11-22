@@ -3,7 +3,7 @@
 #carte .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 11px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-12px;box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3);white-space:nowrap}
 .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
-.lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
+.lieu .rubrique{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
 /* la place du héros qui s'y rend, tenue vide : l'étiquette garde sa largeur qu'un héros y aille ou non */
 .lieu .qui{display:flex;flex:none;width:25px;height:26px;align-items:center}
 .lieu .portrait{margin:-3px -4px -3px 3px;flex:none}
@@ -21,7 +21,6 @@
 .activite i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
 .rangs{display:flex;flex-direction:column;gap:9px;margin-top:12px}
 .rangs .r{margin-left:auto;text-align:right}
-.rangs .r span{display:block;margin-top:6px;font-size:11px;color:var(--or);white-space:nowrap}
 .pips{display:flex;gap:7px;padding:0 3px;justify-content:flex-end}
 .pips i{width:11px;height:11px;transform:rotate(45deg);background:linear-gradient(135deg,#f0e4c6,#b9a57b);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.8)}
 .pips i.vide{background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 2px #000}

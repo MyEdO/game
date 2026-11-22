@@ -24,7 +24,7 @@
 .siege{position:relative;width:200px;box-sizing:border-box;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .siege .q{display:flex;align-items:center;gap:10px}
 .siege .q .nom-propre{white-space:nowrap}
-.siege .q span{display:block;font-size:12px;color:var(--creme-2);white-space:nowrap}
+.siege .q .rubrique{display:block;font-size:12px;color:var(--creme-2);white-space:nowrap}
 .siege .medaillon{flex:none}
 .siege .tient{display:flex;align-items:center;gap:7px;margin-top:9px;min-height:50px}
 .siege .tient i{font-size:12.5px;color:var(--creme-2)}

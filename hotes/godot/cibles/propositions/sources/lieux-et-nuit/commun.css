@@ -32,7 +32,7 @@
 .poste .tenants{align-self:stretch;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
 .poste .et{align-self:stretch;margin-top:-5px;padding:7px 12px 4px;text-align:center;border-radius:2px;box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .poste .et .nom-propre{white-space:nowrap}
-.poste .et span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}
+.poste .et>span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}
 .poste.vide .et{box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px #0c0705}
 .poste.vide .et .nom-propre{color:#e2d5b6}
 .poste.ferme .et :is(.nom-propre,span){color:#8d8474}

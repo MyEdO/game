@@ -252,7 +252,7 @@ const releve = ([largeur, hauteur, ILLUSTRATIONS]) => {
   /* le contenu des places (`contenu`, `contenus.mjs`) : le rect de chaque enfant visible d'une place (`data-place`), ou
      du fond d'une pièce qui n'en a aucune, depuis le coin de ce qui le porte, sous la clé porteur + rôle (sa pièce, sa
      place, sa première classe, son `data-texte` et son `data-cle`, l'id stable de ce qu'il désigne quand le markup en porte un, le rang parmi ceux du même rôle), marqué `texte` quand il porte du texte et que rien
-     en lui n'est autre qu'en ligne (`inline`, `inline-block`, `inline-flex`) ; les entrées de ce qui y défile (`data-defile`) en une seule liste sous la clé porteur +
+     en lui n'est autre qu'en ligne (`inline`, `inline-block`, `inline-flex`, ou sans boîte : `contents`) ; les entrées de ce qui y défile (`data-defile`) en une seule liste sous la clé porteur +
      rôle du défilant + `*` : le départ de la première depuis le haut du contenu défilé, leurs x et l'écart de chacune à
      la précédente, jamais leur rang */
   const role = (d) => d.dataset.piece ?? d.dataset.place ?? `${d.tagName.toLowerCase()}${d.classList[0] ? '.' + d.classList[0] : ''}${d.dataset.texte ? `[${d.dataset.texte}]` : ''}${d.dataset.cle ? `@${d.dataset.cle}` : ''}`
@@ -263,7 +263,7 @@ const releve = ([largeur, hauteur, ILLUSTRATIONS]) => {
     for (const [nom, porteur] of propres.length ? propres.map((p) => [`${e.dataset.piece} > ${p.dataset.place}`, p]) : [[e.dataset.piece, e.querySelector(':scope > .fond') ?? e]]) {
       const o = porteur.getBoundingClientRect()
       const vus = (parent) => [...parent.children].filter((d) => d.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
-      const texte = (d) => d.textContent.trim() !== '' && [...d.querySelectorAll('*')].every((x) => getComputedStyle(x).display.startsWith('inline'))
+      const texte = (d) => d.textContent.trim() !== '' && [...d.querySelectorAll('*')].every((x) => /^(inline|contents)/.test(getComputedStyle(x).display))
       for (const d of vus(porteur)) {
         const q = d.getBoundingClientRect()
         poser(`${nom} | ${role(d)}`, { rect: [q.left - o.left, q.top - o.top, q.width, q.height].map(Math.round), porteur: [o.left, o.top, o.width, o.height].map(Math.round), texte: texte(d) })
