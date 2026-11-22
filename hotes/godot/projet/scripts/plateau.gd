@@ -52,7 +52,7 @@ var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
-## Les cases des cibles offertes par la projection de combat, prioritaires au clic gauche.
+## Par case, l'id de la première cible offerte par la projection de combat, prioritaire au clic gauche.
 var _cases_de_cibles := {}
 
 
@@ -279,6 +279,11 @@ func points() -> Dictionary:
 	return points
 
 
+## L'id de la première cible offerte à cette case au clic gauche, ou `null`.
+func cible_offerte_en(case: Vector3i) -> Variant:
+	return _cases_de_cibles.get(case)
+
+
 ## Les cases (`[x, y, z]`) que `vue.casesDesCibles` donne aux cibles `ids`, en vue ou non ; un id nul n'en a aucune.
 func _cases_des(ids: Array) -> Array:
 	return ids.filter(func(id: Variant) -> bool: return id != null).map(func(id: String) -> Array: return _vue.casesDesCibles[id])
@@ -320,9 +325,11 @@ func _peindre() -> void:
 		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = projection.get("combat")
 	if combat != null:
-		for pos: Array in _cases_des(combat.cibles.liste):
-			var case: Vector3i = surligner.call(pos, Monde.ITEM_CIBLE)
-			_cases_de_cibles[case] = true
+		for id: Variant in combat.cibles.liste:
+			if id == null:
+				continue
+			var case: Vector3i = surligner.call(_vue.casesDesCibles[id], Monde.ITEM_CIBLE)
+			_cases_de_cibles.get_or_add(case, id)
 		var apercu: Variant = combat.apercu
 		if apercu != null:
 			for case: Array in _cases_des([apercu.cible]):

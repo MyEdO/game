@@ -27,6 +27,16 @@ const AU_DESSUS := Vector3(0.6, 5.0, 0.6)
 var _fautes: Array[String] = []
 
 
+class CombatEnregistre extends "res://scripts/combat.gd":
+	var gestes: Array[Dictionary] = []
+
+	func _init() -> void:
+		add_child(_musique)
+
+	func _jouer(jeu: Dictionary) -> void:
+		gestes.append(jeu)
+
+
 func _initialize() -> void:
 	_recetter.call_deferred()
 
@@ -65,11 +75,19 @@ func _recetter() -> void:
 
 
 func _recetter_le_clic(plateau: Plateau, monde: Monde, etage: Dictionary) -> void:
-	var vue := _vue([], {cible = [BAS.x, BAS.y, BAS.z], etage = [HAUT.x, HAUT.y, HAUT.z], voisine = [1, 0, 0]})
+	var vue := _vue([], {
+		cible = [BAS.x, BAS.y, BAS.z], autre = [BAS.x, BAS.y, BAS.z],
+		etage = [HAUT.x, HAUT.y, HAUT.z], voisine = [1, 0, 0],
+	})
 	vue.plateau.regard = "plateau"
-	vue.projection.combat.cibles.liste = ["cible"]
-	vue.occupants = {"0,0,0": "cible", "1,0,0": "voisine"}
+	vue.projection.combat.cibles.liste = [null, "cible"]
+	vue.occupants = {"0,0,0": "autre", "1,0,0": "voisine"}
+	vue.champ = "cliquerLaCase"
 	plateau.montrer(vue)
+	var combat := CombatEnregistre.new()
+	combat._plateau = plateau
+	combat._vue = vue
+	plateau.case_cliquee.connect(combat._cliquer)
 	monde.cadrer(Vector3.ZERO, 0.0, 10.0)
 	await process_frame
 	var points := plateau.points()
@@ -87,6 +105,15 @@ func _recetter_le_clic(plateau: Plateau, monde: Monde, etage: Dictionary) -> voi
 	_attendu(inspections, [HAUT], "le clic droit inspecte la surface")
 	_clic(point)
 	_attendu(clics.pop_front(), BAS, "le clic gauche atteint la cible offerte sous le plancher conservé")
+	var args_cible := [{x = BAS.x, y = BAS.y}, "cible"]
+	_attendu(combat.gestes.back(), {type = vue.champ, args = args_cible}, "le champ vise la cible offerte, même avec un autre occupant")
+	_attendu(monde.get_node("Surbrillance").get_child_count(), 1, "une seule plaque pour la case partagée")
+
+	vue.projection.combat.cibles.liste = ["cible", "autre"]
+	plateau.montrer(vue)
+	_clic(point)
+	_attendu(clics.pop_front(), BAS, "deux cibles offertes à la même case se cliquent")
+	_attendu(combat.gestes.back(), {type = vue.champ, args = args_cible}, "le champ reçoit la première cible offerte à la case")
 
 	vue.projection.combat.cibles.liste = ["cible", "etage"]
 	plateau.montrer(vue)
@@ -118,6 +145,12 @@ func _recetter_le_clic(plateau: Plateau, monde: Monde, etage: Dictionary) -> voi
 	plateau.montrer(vue)
 	_clic(point)
 	_attendu(clics.pop_front(), HAUT, "le clic sans offre rend le plancher")
+	monde.volume.retirer(_retrait(true))
+	_clic(point)
+	_attendu(clics.pop_front(), BAS, "le clic ordinaire traverse la couche retirée")
+	_attendu(combat.gestes.back(), {type = vue.champ, args = [{x = BAS.x, y = BAS.y}, "autre"]},
+		"le clic ordinaire transmet l'occupant du rez")
+	monde.volume.retirer(_retrait(false))
 	var eau := _morceau("pose/0/0/0", 0.0, 0, 1)
 	eau.surfaces[0].flottaison = "barge"
 	_poser_le_monde(plateau, eau, etage)
@@ -133,6 +166,7 @@ func _recetter_le_clic(plateau: Plateau, monde: Monde, etage: Dictionary) -> voi
 	_clic(point)
 	_attendu(clics.pop_front(), BAS, "le clic atteint la plaque offerte au niveau de la flottaison")
 	_attendu(clics.size(), 0, "chaque clic ne publie qu'une case")
+	combat.free()
 
 
 func _clic(point: Vector2, bouton := MOUSE_BUTTON_LEFT) -> void:

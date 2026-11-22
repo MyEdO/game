@@ -874,14 +874,26 @@ const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.
 /** Le combat joué en joueur pressé jusqu'à ce que `fini(v)` tienne : chaque fenêtre à l'Entrée, ou par la première
  *  valeur ouverte et non pressée de ses choix, gestes ou réglages, quand aucun n'a le focus, chaque tour une charge
  *  ou une attaque cliquée sur la case de la première cible (`caseDeLaCible`), sinon la fin du tour ; `quoi` nomme ce
- *  qu'on attend. */
+ *  qu'on attend. Les publications entre deux gestes ont leur propre borne. */
 async function jouerEnJoueurPresse(fini, quoi) {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  for (let pas = 0; !fini(v); pas++) {
+  let pas = 0
+  let publicationsPassives = 0
+  while (!fini(v)) {
     const c = v.projection.combat
-    assert.ok(pas < 600 && c, `${quoi} : rien après ${pas} gestes, combat ${c?.fin ?? 'en cours'}`)
+    assert.ok(c, `${quoi} : le combat n'est plus publié après ${pas} gestes`)
+    if (!v.projection.fenetre && !(c.intention && c.cibles.liste.length) && c.barre.forme !== 'ouverte') {
+      assert.ok(publicationsPassives < 600, `${quoi} : ${publicationsPassives} publications consécutives sans geste après ${pas} gestes`)
+      await marquer()
+      await nouvelEcran(FIL_DE_LA_PAGE_MS)
+      publicationsPassives++
+      v = await vue()
+      continue
+    }
+
+    assert.ok(pas < 600, `${quoi} : rien après ${pas} gestes, combat ${c.fin ?? 'en cours'}`)
     const offres = zone(v, 'combat.offres').flatMap((e) => e.valeurs).filter((b) => !b.refus)
     const choixDeLaFenetre = [...zone(v, 'fenetre.gestes'), ...zone(v, 'fenetre.reglages')]
     const valeur = choixDeLaFenetre.some((g) => g.focus) ? null : choixDeLaFenetre.flatMap((g) => (g.type === 'choix' ? g.valeurs : [])).find((b) => !b.refus && !b.presse)
@@ -891,11 +903,9 @@ async function jouerEnJoueurPresse(fini, quoi) {
       await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
       await nouvelEcran()
     } else if (c.intention && c.cibles.liste.length) await cliquerCase(caseDeLaCible(v, c.cibles.liste[0]))
-    else if (c.barre.forme === 'ouverte') await presserLOffre(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour'))
-    else {
-      await marquer()
-      await nouvelEcran()
-    }
+    else await presserLOffre(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour'))
+    pas++
+    publicationsPassives = 0
     v = await vue()
   }
   return v
