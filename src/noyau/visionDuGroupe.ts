@@ -132,10 +132,15 @@ function memoireDesPersonnes(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personn
   return scene && Object.prototype.hasOwnProperty.call(personnesVues, scene.id) ? personnesVues[scene.id] : undefined;
 }
 
+/** Le groupe a-t-il déjà observé cette personne sur cette scène (#4017) ? */
+export function personneDejaVue(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personnesVues'>, id: string): boolean {
+  const noms = memoireDesPersonnes(etat);
+  return !!noms && Object.prototype.hasOwnProperty.call(noms, id);
+}
+
 /** Le dernier nom d'une personne observée sur cette scène (#4017). */
 export function nomDejaVu(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personnesVues'>, id: string): PlayerText | undefined {
-  const noms = memoireDesPersonnes(etat);
-  return noms && Object.prototype.hasOwnProperty.call(noms, id) ? noms[id] : undefined;
+  return personneDejaVue(etat, id) ? memoireDesPersonnes(etat)![id] : undefined;
 }
 
 /** Les personnes vues sur cette écriture, jointes à la mémoire de la scène (#4017). */
