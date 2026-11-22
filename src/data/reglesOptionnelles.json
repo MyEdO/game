@@ -35,7 +35,7 @@
     "group": "Tests",
     "kind": "flag",
     "default": false,
-    "hint": "Hors combat, un double affiche « Succès Stupéfiant » (✦) si le Test réussit ou « Échec Stupéfiant » s’il échoue. L’issue du Test reste la même."
+    "hint": "Pour un Test de compétence, un double réussi affiche « Succès Stupéfiant ». Un double raté affiche « Échec Stupéfiant » et constitue une Maladresse. En Escalade, cette Maladresse peut provoquer une chute selon la règle maison."
   },
   {
     "id": "test-dr-rapide",
@@ -351,6 +351,17 @@
       "tresDifficile"
     ],
     "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
+  },
+  {
+    "id": "escalade-chute-sur-echec",
+    "type": "reglesOptionnelles",
+    "label": "Chute sur un échec d’Escalade (maison)",
+    "ref": "LDB 15 l.53-57, l.80-84",
+    "maison": "Arbitrage utilisateur du 22 novembre 2026 (#4188) : « chute à −4 DR ou moins ou sur une Maladresse, depuis le dernier appui ».",
+    "group": "Combat",
+    "kind": "flag",
+    "default": true,
+    "hint": "Si une chute est déclenchée, elle part du dernier appui occupé jusqu’au premier appui libre en dessous. Désactivez cette règle pour rester à votre point de départ sur tout échec d’Escalade."
   },
   {
     "id": "frenesie-difficulte",

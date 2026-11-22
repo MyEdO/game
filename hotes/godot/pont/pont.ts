@@ -1612,7 +1612,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ plan }` : le plan de la couche en texte (`planDeLaCouche`, `src/noyau/monde/sceneToAscii.ts`), la
      * grille box-drawing de `sceneToAscii` (`GRAMMAIRE_ASCII`, `src/data/schemas/grammaire/carte-ascii.ts`), ponts
      * des navires compris, chaque case qui porte une marque sous elle (`MARQUES_DU_PLAN` : l'œil au cap le plus proche
-     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages, les décors à leur case
+     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages en vue, les décors à leur case
      * d'ancrage), puis la légende des glyphes que ses cases montrent ; refusé hors scène ou hors de ses couches. La
      * partie n'en change pas.
      */
