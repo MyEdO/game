@@ -2938,8 +2938,11 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
  *  `vessel.upgrades` (recopiée sur la coque à chaque départ), et les jours de la pose passent. `units` = cabines
  *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
 export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
-  const vessel = get().vessel;
-  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteAQuai(get()), lieuDuGroupe(get())?.port?.ref);
+  const s = get();
+  const { vessel } = s;
+  const port = lieuDuGroupe(s)?.port;
+  const refusDuQuai = port ? (refusDeGesteSurLeGroupe(s) ?? refusAQuai(s)) : refusDeGesteAQuai(s);
+  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDuQuai, port?.ref);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
   const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
   const { gold, enc, label } = devis;
