@@ -311,6 +311,9 @@ Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`,
 ce qui ceint la taille sur un vêtement publié (cordelière, ceinture à boucle, ceinture large : `axe_du_corps`, `ceindre`,
 la bande de cuir `Cuir`, `boucler`, `raidir`), `element/culotte.py` pour une culotte à anneaux de jambe (haut-de-chausses
 du Soldat, haut-de-chausses ample : `table`, `coupe`, `colonnes_des_hanches`, `nappe_de_culotte`),
+`element/casque.py` pour un casque rigide sur la tête (casque du Soldat, casque à cornes : `Coque`, `rigide`, `solide`,
+`fleuron`, `offrir_le_cimier`), `element/plume.py` pour une plume rigide sur un cimier (plumet, plumet simple : `courbe`,
+`plume`, `construire`),
 `element/tete.py` pour une tête de race bâtie de volumes sur la couture du cou (orc, gobelin : un dossier ne porte que
 son `donnees.py` et `from tete import construire`), `element/tete_makehuman.py` pour une tête humanoïde tirée de la
 tête de MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées (humain, nain, haut-elfe, halfling : le
