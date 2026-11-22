@@ -233,7 +233,7 @@
   };
   /* celle qu'une Influence corruptrice expose : ses Points de Corruption sur son seuil */
   const expose = (e) => `<div class="camp expose">${portraitDe(e.qui)}<div>${nom({ texte: echapper(qui(e.qui).nom) })}${sousTitre({ texte: echapper(e.exposition) })}
-    <div class="points"><div class="l rubrique"><span>Points de Corruption</span><b>${e.corruption.points} / ${e.corruption.seuil}</b></div>${rangDePas(e.corruption.points, e.corruption.seuil, 'petit cire')}</div></div></div>`;
+    <div class="points"><div class="l rubrique"><span>Points de Corruption</span><b>${e.corruption.points} / ${e.corruption.seuil}</b></div>${rangDePas({ pleins: e.corruption.points, total: e.corruption.seuil, taille: 'petit', teinte: 'cire' })}</div></div></div>`;
   const HEROS = { testeur: (h) => testeur(h), heros: sansDe, subit, expose };
   /* à droite : l'autre camp, ce que le jet vise, ce qu'un Critique touche */
   const AUTRES = {
@@ -310,7 +310,7 @@
       ...verdict({
         sous: `${echapper(c.sur)}${c.cible ? ` · Cible : ${echapper(qui(c.cible).nom)}` : ''}${c.relance === undefined ? '' : ` · <span class="relance">relancé, <s>${d100(c.relance)}</s></span>`}${etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : ''}`,
         mot: MOT_DU_VERDICT[c.verdict], sens: c.verdict, consequences: consequences(c.consequences.map((x, k) => consequenceDe(x, k, c.survol))),
-        dr: `${c.drNet === undefined ? `DR ${signe(c.dr)}` : `DR net ${signe(c.drNet)}`}${c.cumul ? ` · ${rangDePas(c.cumul.dr, c.cumul.vise, 'petit')}<b data-texte="cumul">${c.cumul.dr} DR sur ${c.cumul.vise}</b>` : ''}`,
+        dr: `${c.drNet === undefined ? `DR ${signe(c.dr)}` : `DR net ${signe(c.drNet)}`}${c.cumul ? ` · ${rangDePas({ pleins: c.cumul.dr, total: c.cumul.vise, taille: 'petit' })}<b data-texte="cumul">${c.cumul.dr} DR sur ${c.cumul.vise}</b>` : ''}`,
         phrase: echapper(c.phrase),
       }),
       ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}),
@@ -346,7 +346,7 @@
     table: (c) => ({ large: tableDu(c) }),
     surincantation: (c) => {
       const axe = (a) => ('sansObjet' in a ? `<div class="axe ferme"><span class="rubrique">${echapper(a.nom)}</span><em>sans objet</em></div>`
-        : `<div class="axe"><span class="rubrique">${echapper(a.nom)}</span>${rangDePas(a.alloues, a.sur, 'petit')}<b>${'cibles' in a.effet ? pluriel(a.effet.cibles, 'cible') : `×${a.effet.facteur}`}</b>${moinsPlus({ moins: a.alloues > 0, plus: a.alloues < a.sur })}</div>`);
+        : `<div class="axe"><span class="rubrique">${echapper(a.nom)}</span>${rangDePas({ pleins: a.alloues, total: a.sur, taille: 'petit' })}<b>${'cibles' in a.effet ? pluriel(a.effet.cibles, 'cible') : `×${a.effet.facteur}`}</b>${moinsPlus({ moins: a.alloues > 0, plus: a.alloues < a.sur })}</div>`);
       return { centre: `<div id="verdict" class="surinc">
         <div class="sort">${sousTitre({ texte: `Sort · Niveau d’incantation ${c.ni}` })}${titre({ texte: echapper(c.sort) })}
           <p data-texte="consigne">Cibles supplémentaires : ${c.supplementaires.choisies} / ${c.supplementaires.sur}, à cliquer sur la carte.</p></div>
@@ -357,7 +357,7 @@
     /* un Test étendu avant le dé : le Sort et son Niveau d'incantation sur la ligne du jet tombé, le cumul à la place du DR */
     etendu: (c) => ({
       ...reglage({ sous: `${echapper(c.sort)} · Niveau d’incantation ${c.ni}`, mot: 'Test étendu',
-        cumul: `<div class="dr-du-jet rubrique">${rangDePas(c.cumul, c.ni, 'petit')}<b data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div>`, phrase: echapper(c.phrase) }),
+        cumul: `<div class="dr-du-jet rubrique">${rangDePas({ pleins: c.cumul, total: c.ni, taille: 'petit' })}<b data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div>`, phrase: echapper(c.phrase) }),
       ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}),
     }),
     nature: (c) => ({ ...reglage({ sous: echapper(c.libelle), mot: 'Test simple', cartes: c.cartes.map(carteDuCentre) }), droite: enjeuDu(c.enjeu) }),
@@ -447,7 +447,7 @@
     const c = qui(b.qui);
     if (b.adverse) return mesure('Blessures', `${c.blessures} / ${c.max}`);
     return `${mesure('Blessures', `${c.blessures} / ${c.max}`)}
-      ${b.charge ? mesure('Chargé', `${b.charge.reste} / ${b.charge.sur}`, 'or') : `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${b.mouvement.reste} / ${b.mouvement.sur}</b></div>${rangDePas(b.mouvement.reste, b.mouvement.sur)}</div>`}
+      ${b.charge ? mesure('Chargé', `${b.charge.reste} / ${b.charge.sur}`, 'or') : `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${b.mouvement.reste} / ${b.mouvement.sur}</b></div>${rangDePas({ pleins: b.mouvement.reste, total: b.mouvement.sur })}</div>`}
       <div class="jeton">${sceau('epee')}<div class="v"><span class="rubrique">Action</span> <em>${b.action ? 'disponible' : 'dépensée'}</em></div></div>
       <div class="jeton"><div class="chiffre">${b.avantage}</div><div class="v"><span class="rubrique">Avantage</span></div></div>
       <div class="tiers">${b.determination === undefined ? '' : reserves([jetonDe({ id: 'determination', nom: 'Détermination', valeur: b.determination })])}
@@ -1468,8 +1468,6 @@
   const optionDe = (o, fin = '') => `<div class="ligne${o.choisie ? ' choisie' : ''}${o.refus ? ' refusee' : ''}">${puce(o.choisie ? 'coche' : 'losange')}<span class="n" data-texte="${echapper(o.nom)}${o.precision ? ` ${echapper(o.precision)}` : ''}">${nomDe(o.nom, o.precision)}</span>${fin}${o.refus && o.survol ? raison(echapper(o.refus)) : ''}</div>`;
   const faitDu = (f) => `<div class="fait">${rubrique({ texte: echapper(f.rubrique) })}<b data-texte="${echapper(f.rubrique)}">${echapper(f.valeur)}</b></div>`;
   const pills = (noms, prise = null) => `<div class="pills">${noms.map((n) => etiquette({ texte: echapper(n), variante: 'pastille', teinte: n === prise ? 'or' : '' })).join('')}</div>`;
-  /* des clous d'Augmentation : `n` posés sur `sur` */
-  const clous = (n, sur) => `<div class="clous">${Array.from({ length: sur }, (_, k) => `<i class="${k < n ? 'p' : ''}"></i>`).join('')}</div>`;
   /* un compteur nommé d'une possession, au pied de son identité */
   const compteurNomme = (r) => `<div class="reserve">${disque(r.valeur, { taille: 'grand' })}${rubrique({ texte: echapper(r.nom) })}</div>`;
 
@@ -1504,7 +1502,7 @@
       const points = p.methode === 'points', visee = p.profil.find((x) => x.carac === p.pressee);
       const porte = (x) => (x.origine ? `<span class="pts">${echapper(x.origine)}</span>` : points ? `<span class="pts nb">${x.points}</span>` : `<span class="pts">${sceau(x.de, 'petit')}</span>`);
       const caseDe = (x) => `<div class="c${x.carac === p.pressee ? ' carr' : ''}"><span class="ab">${x.carac}</span>${porte(x)}<span class="v">${x.valeur}</span>${points && !x.origine ? moinsPlus({ moins: x.points > p.points.min, plus: x.points < p.points.max && p.points.reste.n > 0 }) : ''}</div>`;
-      const ligne = (r, l) => `<div class="ligne repartie">${l.carac ? car(l.carac) : ''}<span class="n" data-texte="${echapper(l.nom)}">${echapper(l.nom)}</span>${clous(l.augmentations.n, l.augmentations.sur)}${moinsPlus({ moins: l.augmentations.n > 0, plus: r.reste.n > 0 && l.augmentations.n < l.augmentations.sur })}<span class="val">${l.valeur}</span></div>`;
+      const ligne = (r, l) => `<div class="ligne repartie">${l.carac ? car(l.carac) : ''}<span class="n" data-texte="${echapper(l.nom)}">${echapper(l.nom)}</span>${rangDePas({ pleins: l.augmentations.n, total: l.augmentations.sur, forme: 'clous' })}${moinsPlus({ moins: l.augmentations.n > 0, plus: r.reste.n > 0 && l.augmentations.n < l.augmentations.sur })}<span class="val">${l.valeur}</span></div>`;
       const methode = (m) => optionDe({ nom: m.nom, ...(m.id === p.methode ? { choisie: true } : {}) }, m.px ? compte(`+${px(m.px)}`, m.id === p.methode ? 'or' : '') : '');
       return [places('choix', { 'rangee-1': `${rubrique({ texte: 'Méthode' })}<div class="lignes methodes">${p.methodes.map(methode).join('')}</div>`,
         'rangee-2': `<div class="tirage-c">${points
@@ -1543,7 +1541,7 @@
       const c = p.competences.find((x) => x.pressee);
       const race = (n) => `<span class="race${n ? '' : ' sans'}">${compte(`+${n}`, 'cire')}</span>`;
       return [places('choix', { corps: `${teteDeListe(rubrique({ texte: 'Compétences de carrière' }), plaque('Répartition simple', { taille: 'petite', classe: 'regler' }))}
-        ${defile(p.competences.map((x) => `<div class="ligne carriere${x.pressee ? ' choisie' : ''}">${car(x.carac)}<span class="n" data-texte="${echapper(x.nom)}">${nomDe(x.nom, x.precision)}</span>${race(x.race)}${clous(x.augmentations.n, x.augmentations.sur)}${moinsPlus({ moins: x.augmentations.n > 0, plus: p.reste.n > 0 && x.augmentations.n < x.augmentations.sur })}<span class="val">${x.test}</span></div>`).join(''), 'lignes', { liste: true })}`,
+        ${defile(p.competences.map((x) => `<div class="ligne carriere${x.pressee ? ' choisie' : ''}">${car(x.carac)}<span class="n" data-texte="${echapper(x.nom)}">${nomDe(x.nom, x.precision)}</span>${race(x.race)}${rangDePas({ pleins: x.augmentations.n, total: x.augmentations.sur, forme: 'clous' })}${moinsPlus({ moins: x.augmentations.n > 0, plus: p.reste.n > 0 && x.augmentations.n < x.augmentations.sur })}<span class="val">${x.test}</span></div>`).join(''), 'lignes', { liste: true })}`,
         pied: `<div class="comptes">${reste(p.reste)}${glose({ texte: `${c.augmentations.sur} Augmentations au plus par Compétence.` })}</div>
         <div class="comptes">${race(5)}${glose({ texte: `Augmentations de race : acquises, hors des ${p.reste.sur} et des ${c.augmentations.sur}.` })}</div>` }),
       echapper(p.niveau),

@@ -11,7 +11,7 @@ const TAILLES = ['menu', 'petit', 'moyen', 'grand', 'maitre'];
 const repere = (x, y, appel) => `<div style="position:absolute;left:${x}px;top:${y}px;color:var(--creme-2)">${nom(appel)}</div>`;
 const marques = (matiere) => [
   ligne(piece("segments([…], 'Bois')", segments(['Fer', 'Bois', 'Cuir'], 'Bois')), piece("{ egaux: true }", segments(['1', '2', '3'], '2', { egaux: true })), piece('ouiNon(true)', ouiNon(true))),
-  ligne(piece('reglette(.6)', reglette(.6)), piece('reglette(.3, null)', large(140, reglette(.3, null))), piece('rangDePas(3, 5)', rangDePas(3, 5))),
+  ligne(piece('reglette(.6)', reglette(.6)), piece('reglette(.3, null)', large(140, reglette(.3, null))), piece('rangDePas({ pleins: 3, total: 5 })', rangDePas({ pleins: 3, total: 5 }))),
   ligne(piece('vie(8, 14)', large(140, vie(8, 14))), piece("jauge(.6, { taille: 'forte' })", large(140, jauge(.6, { taille: 'forte' }))), piece("{ teinte: 'or', ajout: .2 }", large(140, jauge(.5, { teinte: 'or', taille: 'forte', ajout: .2 })))),
   ligne(piece('filet()', large(100, filet())), piece('{ fondu: true }', large(100, filet({ fondu: true }))), piece('{ losange: true }', large(100, filet({ losange: true }))), piece(matiere === 'bois' ? '{ or: true, losange: true }' : '{ fondu, losange }', large(100, filet(matiere === 'bois' ? { or: true, losange: true } : { fondu: true, losange: true })))),
 ];

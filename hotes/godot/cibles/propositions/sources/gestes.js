@@ -374,8 +374,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* la jauge : `teinte` cire (la vie) ou or ; `taille` fine ou forte ; `ajout` : la part prévue, hachurée */
   const jauge = (part, { teinte = 'cire', taille = 'fine', ajout = 0 } = {}) => `<div class="jauge ${teinte} ${taille}" data-primitive="jauge"><i style="width:${100 * part}%"></i>${ajout ? `<u style="left:${100 * part}%;width:${100 * ajout}%"></u>` : ''}</div>`;
   const vie = (pv, max) => jauge(pv / max);
-  /* un rang de pas en losanges : `pleins` sur `total` */
-  const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}" data-primitive="rangDePas">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
+  /* un rang de pas : `pleins` sur `total` ; en losanges, `taille` moyen ou petit, `teinte` cire ; `forme` clous : des ronds
+     d'or par groupes de cinq */
+  const rangDePas = ({ pleins, total, taille = 'moyen', teinte = '', forme = 'losanges' }) => `<div class="pas ${forme === 'clous' ? 'clous' : `${taille}${teinte ? ` ${teinte}` : ''}`}" data-primitive="rangDePas">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
      par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
      sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied ;

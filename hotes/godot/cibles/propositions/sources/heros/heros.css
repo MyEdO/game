@@ -57,10 +57,7 @@
 /* l'Augmentation de race, rappelée sur la page de la carrière : hors des dix clous (LDB 05 l.535) */
 .race.sans{visibility:hidden}
 .race>.etiquette{width:32px;justify-content:center}
-.clous{flex:none;display:flex;gap:3px}
-.clous>i{width:9px;height:9px;border-radius:50%;border:1px solid var(--trait-encre);background:rgba(60,40,20,.08)}
-.clous>i.p{border-color:var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
-.clous>i:nth-child(5){margin-right:4px}
+.ligne>.pas{flex:none}
 .ligne .moins-plus{flex:none}
 
 /* le détail du milieu */

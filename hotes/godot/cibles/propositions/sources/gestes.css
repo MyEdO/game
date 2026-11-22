@@ -199,10 +199,18 @@ html,body{margin:0;background:var(--noir)}
 .jauge>u{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--or) 0 3px,var(--or-sombre) 3px 6px);opacity:.85}
 .parchemin .jauge{box-shadow:0 0 0 1px var(--trait-encre),inset 0 1px 2px var(--noir)}
 
-/* le pas en losanges */
-.pas{display:flex;gap:7px;margin-top:5px}
-.pas i{width:15px;height:15px;transform:rotate(45deg);background:linear-gradient(135deg,var(--ivoire),var(--creme-2));box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--ombre-forte)}
-.pas i.vide{background:var(--lit);box-shadow:0 0 0 1px var(--filet-creme),inset 0 1px 2px var(--noir)}
+/* le rang de pas : losanges moyens ou petits, de la teinte du fond ou de cire ; clous d'or par groupes de cinq */
+.pas{display:flex;gap:8px}
+.pas>i{width:15px;height:15px;transform:rotate(45deg);background:linear-gradient(135deg,var(--ivoire),var(--creme-2));box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--ombre-forte)}
+.pas>i.vide{background:var(--lit);box-shadow:0 0 0 1px var(--filet-creme),inset 0 1px 2px var(--noir)}
+.parchemin .pas>i{background:linear-gradient(135deg,#6a3d1c,#2a160a);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.5)}
+.parchemin .pas>i.vide{background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.6)}
+.pas.petit>i{width:11px;height:11px}
+.pas.cire>i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}
+.pas.clous{gap:3px}
+.pas.clous>i{width:9px;height:9px;transform:none;border-radius:50%;border:1px solid var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
+.pas.clous>i.vide{border-color:var(--trait-encre);background:rgba(60,40,20,.08);box-shadow:none}
+.pas.clous>i:nth-child(5){margin-right:4px}
 
 /* la plaque : moyenne ou petite ; repos, survol, armée, fermée */
 .plaque{position:relative;flex:1;height:40px;min-height:40px;padding:2px;border-radius:3px;box-shadow:0 3px 6px var(--ombre-forte),0 0 0 1px var(--contour)}

@@ -65,12 +65,12 @@
     ligne(
       piece("jauge fine 6 · cire · 413", large(90, jauge(.6))),
       piece("forte 8 · or · 32", large(90, jauge(.5, { teinte: 'or', taille: 'forte' }))),
-      piece('pas 15 · écart 5 (combat, bois)', `<div class="bois" style="padding:4px 6px">${sous('& .pas{gap:5px;margin:0}', rangDePas(3, 5))}</div>`),
-      piece('pas petit 11 · écart 8', sous('& .pas{gap:8px;margin:0}& .pas i{width:11px;height:11px}', rangDePas(2, 4))),
-      piece('écart 13 · cire (corruption)', sous('& .pas{gap:13px;margin:0}& .pas i{width:11px;height:11px}& .pas i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}', rangDePas(2, 4))),
+      piece('pas 15 · écart 5 (combat, bois)', `<div class="bois" style="padding:4px 6px">${sous('& .pas{gap:5px;margin:0}', rangDePas({ pleins: 3, total: 5 }))}</div>`),
+      piece('pas petit 11 · écart 8', sous('& .pas{gap:8px;margin:0}& .pas i{width:11px;height:11px}', rangDePas({ pleins: 2, total: 4 }))),
+      piece('écart 13 · cire (corruption)', sous('& .pas{gap:13px;margin:0}& .pas i{width:11px;height:11px}& .pas i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}', rangDePas({ pleins: 2, total: 4 }))),
       piece('clous 9 · écart 3 · 23', sous('& .c{display:flex;gap:3px}& .c i{width:9px;height:9px;border-radius:50%;border:1px solid var(--trait-encre);background:rgba(60,40,20,.08)}& .c i.p{border-color:var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%)}& .c i:nth-child(5){margin-right:4px}', `<div class="c">${'<i class="p"></i>'.repeat(4)}${'<i></i>'.repeat(4)}</div>`))),
   ];
-  const pas = (pleins, total, petit, teinte = '') => sous(`& .pas{gap:8px;margin:0}${petit ? '& .pas i{width:11px;height:11px}' : ''}${teinte ? '& .pas i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}' : ''}`, rangDePas(pleins, total));
+  const pas = (pleins, total, petit, teinte = '') => sous(`& .pas{gap:8px;margin:0}${petit ? '& .pas i{width:11px;height:11px}' : ''}${teinte ? '& .pas i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}' : ''}`, rangDePas({ pleins, total }));
   const jaugesCible = (fond) => [
     ligne(
       piece('fine · forte', `<div style="width:80px">${jauge(.6)}<div style="height:8px"></div>${jauge(.5, { teinte: 'or', taille: 'forte' })}</div>`),

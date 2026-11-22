@@ -2,11 +2,6 @@
 
 /* la carte funeste */
 .plaque.carte.funeste .n{color:#f0a48e}
-.parchemin .pas i{background:linear-gradient(135deg,#6a3d1c,#2a160a);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.5)}
-.parchemin .pas i.vide{background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.6)}
-.pas.cire i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}
-.pas.petit i{width:11px;height:11px}
-.pas.petit{gap:8px;margin:0}
 
 /* la surincantation : le sort, les pas à répartir par axe, les cibles désignées */
 #verdict.surinc{display:grid;grid-template-columns:1fr 236px;column-gap:16px;height:116px;padding:0 14px 0 16px;text-align:left}
@@ -33,7 +28,7 @@
 .expose .points{margin-top:14px;width:196px}
 .points .l,.enjeu>.l{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420}
 .points .l b{font-weight:400;font-size:14px;color:#2a1d12}
-.points .pas{margin-top:9px;margin-left:5px;gap:13px}
+.points .pas{margin-top:9px;margin-left:5px}
 .deux{display:flex;gap:12px;margin-top:8px}
 
 /* ce qu'un Test décide, la ligne que le dé désigne */
