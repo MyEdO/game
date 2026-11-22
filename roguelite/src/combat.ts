@@ -50,7 +50,7 @@ export function augmenter(c: Combatant, k: CharKey): string | null {
 }
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
-export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
+export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; creature?: string; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
 export interface Pas { lignes: string[]; pions: PionDuPlateau[]; round: number }
 export interface IssueDuCombat {
   issue: 'victoire' | 'defaite' | 'impasse';
@@ -98,7 +98,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     vus = b.log.length;
     const montee = (c: Combatant) => !!c.riderId && b.combatants.some((r) => r.id === c.riderId && !r.dead);
     const pions = b.combatants.filter((c) => c.pos && !montee(c)).map((c): PionDuPlateau => ({
-      id: c.id, label: c.label, camp: c.kind === 'heros' ? 'heros' : 'ennemi',
+      id: c.id, label: c.label, camp: c.kind === 'heros' ? 'heros' : 'ennemi', ...(c.creatureId ? { creature: c.creatureId } : {}),
       pv: Math.max(0, c.wounds.current), max: c.wounds.max, x: c.pos!.x, y: c.pos!.y, cases: footprintN(c),
       hors: !!c.dead || c.conditions.some((e) => e.id === 'inconscient'),
     }));
