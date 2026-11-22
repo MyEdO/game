@@ -5,17 +5,18 @@
  * relevés du noyau.
  */
 import * as J from './jeu';
-import { carac, encombrement, libelleDeCarac, libelleDEtat, nomDeCreature, nomDeSort, sequelles, talentsAcquis, type CharKey, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau, type Combatant } from './combat';
-import { DEGRADES_DES_FIGURINES, armeDuLibelle, buste, figurine, gabaritDeCreature, gabaritDuHeros } from './figures';
+import { carac, ficheDuSort, libelleDEtat, nomDeCreature, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from './combat';
+import { DEGRADES_DES_FIGURINES, buste, figurine, gabaritDeCreature, gabaritDuHeros } from './figures';
 import { dessinerLaCour, type Cour } from './cour';
-import { cadre, jauge, medaillon, picto, plaque, portrait, poserLesTextures, rond } from './kit';
+import { cadre, jauge, medaillon, plaque, portrait, poserLesTextures, rond } from './kit';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from './hameau';
+import { ajusterLaScene } from './ui/ecran';
+import { ecranDuHeros, type Onglet } from './ui/fiche';
+import { installerLesSurvols } from './ui/bulles';
+import { busteDuHeros, carteDeHeros, caseObjet, casesDuSac, encombrementDe, esc, gabaritDe, offre, soinsDuHeros, apercuDeProvision } from './ui/pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
-const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-
-type Onglet = 'fiche' | 'carriere' | 'route';
-type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string; onglet: Onglet } | { type: 'depart'; dest: string | null; choix: Set<string> } | { type: 'chronique' };
+type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string; onglet: Onglet | null } | { type: 'depart'; dest: string | null; choix: Set<string> } | { type: 'chronique' };
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 let modale: { type: 'recit'; recit: J.RecitDeSalle; vignette?: J.Heros[]; terrain?: string } | { type: 'reset' } | null = null;
@@ -41,10 +42,6 @@ function agir(f: () => string | null | void) {
 }
 
 // ─── Portraits et tableaux ──────────────────────────────────────────────────────────────────────────────────
-
-const gabaritDe = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => gabaritDuHeros(h.carriere, h.espece, h.c.weapons.map((w) => w.label));
-/** Le portrait d'un héros : le buste de sa figurine. */
-const busteDuHeros = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => buste(gabaritDe(h), 'heros');
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
 function tableau(terrain: string, heros: J.Heros[], classe: string): string {
@@ -73,28 +70,16 @@ function ajusterLesTableaux() {
 
 const croix = '<button type="button" class="croix" data-a="fermer-panneau" aria-label="Fermer">×</button>';
 const page = (titre: string, corps: string) => `<aside class="page" aria-label="${esc(titre)}">${cadre(`${croix}${corps}`, { ruban: esc(titre), fond: 'parchemin', balise: 'div' })}</aside>`;
-const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
-const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire">${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
 const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="palier ${n + 1} sur ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i <= n ? 'plein' : ''}"></i>`).join('')}</span>`;
 
 const enRuine = (id: J.IdBatiment) => J.enRuine(etat.batiments, id);
 const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces', memorial: 'croix' };
 
-/** L'encombrement porté, et ses pénalités au-delà de la capacité. LDB 61 l.35-40 */
-function ligneDEncombrement(c: Combatant) {
-  const e = encombrement(c);
-  const trop = e.porte > e.capacite;
-  return `<p class="encombrement${trop ? ' surcharge' : ''}">Encombrement <b class="chiffres">${e.porte} / ${e.capacite}</b>${trop ? (e.immobile ? ' · Immobilisé' : ` · Surchargé : Mouvement −${e.mouvement}, Agilité −${Math.abs(e.agilite)}`) : ''}</p>`;
-}
-
 /** Les héros entre qui choisir le client de la forge ou du relais. */
 function choixDuClient(id: string) {
-  return `<div class="choix-client">${etat.roster.map((h) => `<button type="button" data-a="client" data-id="${h.c.id}" title="${esc(h.c.label)}" class="${h.c.id === id ? 'choisi' : ''}">${portrait(busteDuHeros(h), 'heros', 'petit', h.c.id === id ? 'choisi' : '')}<span>${esc(h.c.label.split(' ')[0])}</span></button>`).join('')}</div>`;
+  return `<div class="choix-client">${etat.roster.map((h) => `<button type="button" data-a="client" data-id="${h.c.id}" data-bulle="${esc(h.c.label)}" class="${h.c.id === id ? 'choisi' : ''}">${portrait(busteDuHeros(h), 'heros', 'petit', h.c.id === id ? 'choisi' : '')}<span>${esc(h.c.label.split(' ')[0])}</span></button>`).join('')}</div>`;
 }
 const leClient = (): J.Heros | undefined => etat.roster.find((h) => h.c.id === client) ?? etat.roster[0];
-/** Une offre en pastille : le nom, l'essentiel, le prix ; le détail au survol. */
-const offre = (label: string, essentiel: string, prix: number, detail: string, attrs: string, actuelle = false) =>
-  `<button type="button" class="offre${actuelle ? ' actuelle' : ''}" ${attrs} title="${esc(detail)}"${actuelle || etat.or < prix ? ' disabled' : ''}><b>${esc(label)}</b><span>${esc(essentiel)}</span><i class="prix">${actuelle ? 'porté' : prix}</i></button>`;
 const detailDArme = (a: J.Article) => [a.degats && `Dégâts ${a.degats}`, a.mains === 2 && 'deux mains', a.allonge && `allonge ${a.allonge.toLowerCase()}`, a.portee && `portée ${a.portee} m`, ...a.qualites, `Enc. ${a.enc}`].filter(Boolean).join(' · ');
 
 /** La forge, à la manière d'une case par emplacement : la main principale, la main secondaire, l'armure. Chacune montre
@@ -105,11 +90,11 @@ function pageDeForge() {
   const eq = J.equipement(h);
   const armes = J.armesEnVente(etat);
   const caseDArmes = (tenue: 'main' | 'secondaire', titre: string, porte?: string) => `<section class="emplacement"><header><span class="sous-titre">${titre}</span><b>${esc(porte ?? 'rien')}</b></header>
-    <div class="offres">${armes.filter((a) => a.tenue === tenue).map((a) => offre(a.label, [a.degats, a.mains === 2 ? '2 mains' : ''].filter(Boolean).join(' · '), a.prix, detailDArme(a), `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`, a.label === porte)).join('')}</div></section>`;
-  return `${choixDuClient(h.c.id)}${ligneDEncombrement(h.c)}
+    <div class="offres">${armes.filter((a) => a.tenue === tenue).map((a) => offre({ nom: a.label, essentiel: [a.degats, a.mains === 2 ? '2 mains' : ''].filter(Boolean).join(' · '), prix: a.prix, apercu: { nom: a.label, nature: `Arme · ${a.prix} CO`, texte: detailDArme(a) }, attrs: `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`, or: etat.or, portee: a.label === porte })).join('')}</div></section>`;
+  return `${choixDuClient(h.c.id)}${encombrementDe(h.c)}
     ${caseDArmes('main', 'Main principale', eq.main)}${caseDArmes('secondaire', 'Main secondaire', eq.secondaire)}
     <section class="emplacement"><header><span class="sous-titre">Armure</span><b>${esc(eq.armure ?? 'aucune')}</b></header>
-    <div class="offres">${J.armuresEnVente(etat).map((a) => offre(a.poids === 'legere' ? 'Légère' : a.poids === 'moyenne' ? 'Moyenne' : 'Lourde', `${a.pa} PA · Enc. ${a.enc}`, a.prix, [`${a.pa} PA à chaque emplacement`, ...a.qualites, `Enc. ${a.enc}`].join(' · '), `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"`, a.label === eq.armure)).join('')}</div></section>
+    <div class="offres">${J.armuresEnVente(etat).map((a) => offre({ nom: a.poids === 'legere' ? 'Légère' : a.poids === 'moyenne' ? 'Moyenne' : 'Lourde', essentiel: `${a.pa} PA · Enc. ${a.enc}`, prix: a.prix, apercu: { nom: a.label, nature: `Armure · ${a.prix} CO`, texte: [`${a.pa} PA à chaque emplacement`, ...a.qualites, `Enc. ${a.enc}`].join(' · ') }, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"`, or: etat.or, portee: a.label === eq.armure })).join('')}</div></section>
     <p class="glose">Survolez une offre pour son détail. L’objet remplacé reste au forgeron ; au-delà de sa capacité, un héros perd Mouvement et Agilité.</p>`;
 }
 
@@ -121,19 +106,10 @@ function provisionsDuDepart(choix: Set<string>) {
   return `<div class="sous-titre">Provisions</div><ul class="provisions">${heros.map((h) => {
     const portees = J.provisionsPortees(h);
     return `<li>${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><b class="gothique">${esc(h.c.label.split(' ')[0])}</b><span>${portees.length ? portees.map((q) => `${esc(q.label)} ×${q.nombre}`).join(', ') : 'sac vide'}</span></span>
-      <span class="offres">${vente.map((a) => offre(`+ ${a.label}`, '', a.prix, a.desc ?? a.label, `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`)).join('')}</span></li>`;
+      <span class="offres">${vente.map((a) => offre({ nom: `+ ${a.label}`, essentiel: '', prix: a.prix, apercu: apercuDeProvision(a.id), attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`, or: etat.or })).join('')}</span></li>`;
   }).join('')}</ul>`;
 }
 
-
-function carteDeHeros(h: J.Heros, choisi: boolean) {
-  const c = h.c;
-  return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${choisi ? ' choisi' : ''}" data-a="heros" data-id="${c.id}">
-    ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}
-    <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `à l’hospice · ${h.retrait} j` : J.valide(h) ? `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}` : 'hors de combat'}</span></span>
-  </button>`;
-}
 
 function bandeauDesHeros(heros: J.Heros[], vide: string) {
   const choisi = panneau?.type === 'heros' ? panneau.id : null;
@@ -168,11 +144,11 @@ function pageDuBatiment(id: J.IdBatiment) {
     corps += `<p class="glose">Les provisions du relais s’achètent au départ d’une expédition, pour chaque héros choisi.</p>`;
   } else if (id === 'temple') {
     corps = J.prixDuSoin(etat) == null ? '<p class="glose">La chapelle est en ruine : il faut la relever pour que les sœurs soignent les blessés. En attendant, seuls les héros restés au hameau se reposent.</p>'
-      : `<div class="sous-titre">Les blessés</div>${listeDeHeros((h) => `<span class="offres">${soinsDuHeros(h)}</span>`)}
+      : `<div class="sous-titre">Les blessés</div>${listeDeHeros((h) => `<span class="offres">${soinsDuHeros(etat, h)}</span>`)}
         <p class="glose">Les sœurs pansent les plaies ; le chirurgien opère, et l’opéré reste une semaine à l’hospice. Une séquelle « repos » guérit avec le temps au hameau ; une séquelle « permanente » reste.</p>`;
   } else if (id === 'salle') {
     corps = n === 0 ? '<p class="glose">La salle d’armes est en ruine : il faut la relever pour dépenser les PX.</p>'
-      : `<div class="sous-titre">Carrières · jusqu’au niveau ${J.niveauMaximal(etat)}</div>${listeDeHeros((h) => plaque('Progresser', `data-a="heros" data-id="${h.c.id}" data-k="carriere"`, { icone: 'epee', taille: 'petite', armee: (h.c.xp ?? 0) >= 100 }))}`;
+      : `<div class="sous-titre">Carrières · jusqu’au niveau ${J.niveauMaximal(etat)}</div>${listeDeHeros((h) => plaque('Progresser', `data-a="heros" data-id="${h.c.id}" data-k="talents"`, { icone: 'epee', taille: 'petite', armee: (h.c.xp ?? 0) >= 100 }))}`;
   } else if (id === 'forge') {
     corps = pageDeForge();
   } else if (id === 'cartographe') {
@@ -208,191 +184,6 @@ function pageDuDepart(p: Extract<Panneau, { type: 'depart' }>) {
     <div class="gestes">${plaque(`Partir avec ${p.choix.size} héros`, 'data-a="partir"', { icone: 'route', armee: p.choix.size > 0, fermee: !p.choix.size })}${plaque('Autre route', 'data-a="ouvrir-depart"', { taille: 'petite' })}</div>`);
 }
 
-/** Les séquelles en étiquettes : une par nature (×N si plusieurs), sa convalescence la plus longue, le texte au survol. */
-function etiquettesDeSequelles(c: Combatant) {
-  const groupes = new Map<string, { n: number; jours?: number; chirurgie: boolean; desc?: string }>();
-  for (const q of sequelles(c)) {
-    const g = groupes.get(q.label);
-    if (g) { g.n++; if (q.jours != null) g.jours = Math.max(g.jours ?? 0, q.jours); } else groupes.set(q.label, { n: 1, jours: q.jours, chirurgie: q.chirurgie, desc: q.desc });
-  }
-  const issue = (g: { jours?: number; chirurgie: boolean }) => (g.jours != null ? `repos ${g.jours} j` : g.chirurgie ? 'chirurgie' : 'permanente');
-  return groupes.size ? `<div class="etiquettes-sequelles" aria-label="Séquelles">${[...groupes].map(([label, g]) =>
-    `<span class="etiquette sequelle${g.jours == null && !g.chirurgie ? ' permanente' : ''}" title="${esc(g.desc ?? label)}">${esc(label)}${g.n > 1 ? ` ×${g.n}` : ''} · ${issue(g)}</span>`).join('')}</div>` : '';
-}
-
-/** Ce que la chapelle offre au héros : soins complets, plaies pansées, opération, Larmes de Shallya. */
-function soinsDuHeros(h: J.Heros) {
-  if (h.retrait) return `<span class="glose">à l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}</span>`;
-  const soin = J.prixDuSoin(etat);
-  const larmes = J.prixDeSequelle(etat);
-  const actes = J.actesPossibles(h);
-  const bouton = (label: string, essentiel: string, prix: number, detail: string, attrs: string) => offre(label, essentiel, prix, detail, attrs);
-  const tout = [
-    J.blesse(h) && soin != null ? bouton('Soigner', 'PB et États', soin, 'Tous les Points de Blessure et les États de la rencontre', `data-a="soigner" data-id="${h.c.id}"`) : '',
-    ...actes.map((acte) => { const prix = J.prixDeLHospice(etat, acte); return prix == null ? '' : bouton(acte === 'panser' ? 'Panser' : 'Opérer', acte === 'panser' ? 'dans la journée' : 'une semaine', prix, acte === 'panser' ? 'Les sœurs pansent les plaies : une déchirure guérit plus vite, une fracture est réduite (LDB 18 l.204, l.222).' : 'Le chirurgien opère les blessures qui l’exigent : amputation, fracture majeure (LDB 18 l.208, l.239).', `data-a="hospice" data-id="${h.c.id}" data-k="${acte}"`); }),
-    larmes != null && J.sequellesGuerissables(h) ? bouton('Larmes de Shallya', 'une séquelle', larmes, 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation (LDB 42).', `data-a="sequelle" data-id="${h.c.id}"`) : '',
-  ].join('');
-  return tout || '<span class="glose">rien à soigner</span>';
-}
-
-// ─── Objets en cases : une icône, un compte, le détail au survol ─────────────────────────────────────────────
-
-const PICTO_D_ARME: Record<string, string> = { 'grande-epee': 'epee', massue: 'marteau', fronde: 'arc' };
-const iconeDArme = (label: string) => (/bouclier/i.test(label) ? 'bouclier' : (() => { const f = armeDuLibelle(label) ?? 'epee'; return PICTO_D_ARME[f] ?? f; })());
-const iconeDeProvision = (id: string) => (id.startsWith('potion') ? 'fiole' : 'pot');
-/** Une case d'objet : son pictogramme, son compte, son nom dessous ; `attrs` en fait un bouton, `refus` le ferme. */
-function caseObjet(o: { icone?: string; nom: string; detail: string; compte?: number; attrs?: string; refus?: string | null; taille?: 'grande' | 'petite' }) {
-  const vide = !o.icone;
-  const corps = `${vide ? '' : picto(o.icone!, o.taille === 'grande' ? 30 : 22, 1.6)}${o.compte && o.compte > 1 ? `<em class="chiffres">${o.compte}</em>` : ''}`;
-  const titre = esc(o.refus ? `${o.detail} — ${o.refus}` : o.detail);
-  const boite = o.attrs
-    ? `<button type="button" class="boite-objet" ${o.attrs} title="${titre}"${o.refus ? ' disabled' : ''}>${corps}</button>`
-    : `<span class="boite-objet" title="${titre}">${corps}</span>`;
-  return `<div class="case-objet ${o.taille ?? 'petite'}${vide ? ' vide' : ''}">${boite}<span class="nom-objet">${esc(o.nom)}</span></div>`;
-}
-const essentielDe = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`, x.pa != null && `${x.pa} PA`].filter(Boolean).join(' · ');
-const detailDe = (x: J.PieceDecrite) => [x.label, essentielDe(x), ...x.qualites].filter(Boolean).join(' · ');
-/** Le sac d'un héros en cases ; en expédition, un clic utilise l'objet. */
-const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPortees(h).map((q) => caseObjet({
-  icone: iconeDeProvision(q.id), nom: q.label, detail: q.label, compte: q.nombre,
-  ...(utilisable ? { attrs: `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, refus: q.refus } : {}),
-})).join('');
-
-// ─── L'écran du héros : la disposition de la fiche des maquettes, en lite ───────────────────────────────────
-
-const CARACS_DU_PROFIL: CharKey[] = ['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'intelligence', 'force-mentale', 'sociabilite'];
-/** La note du kit : une précision, une aide. */
-const glose = (texte: string) => `<span class="glose courante">${texte}</span>`;
-const coche = (fait: boolean) => (fait ? `<i class="trou plein">${picto('coche', 14, 2.4)}</i>` : '<i class="trou"></i>');
-const exige = (fait: boolean, texte: string, compte = '') => `<div class="exige">${coche(fait)}<span>${texte}</span>${compte ? `<span class="cpt chiffres">${compte}</span>` : ''}</div>`;
-/** Un cadre de l'écran, posé à son rectangle de la scène 1280 × 720 (`CADRES` des maquettes). */
-const cadreA = (rect: [number, number, number, number], contenu: string, o: { ruban?: string; fond?: string; classe?: string; tete?: string } = {}) =>
-  `<div class="place-cadre" style="left:${rect[0]}px;top:${rect[1]}px;width:${rect[2]}px;height:${rect[3]}px">${cadre(contenu, { fond: o.fond ?? 'parchemin', ruban: o.ruban ?? '', classe: `pan ${o.classe ?? ''}`, balise: 'div', tete: o.tete ?? '' })}</div>`;
-const onglets = (noms: [string, string][], actif: string) => `<div class="onglets">${noms.map(([id, nomme]) => (id === actif ? `<div class="ruban gothique">${nomme}</div>` : plaque(nomme, `data-a="onglet" data-k="${id}"`, { taille: 'petite' }))).join('')}</div>`;
-
-/** L'identité : qui il est, sa vie, ses séquelles ; au hameau, ses PX et ce que son niveau exige. */
-function identite(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, progresse: boolean) {
-  const c = h.c;
-  const xp = c.xp ?? 0;
-  const caracsFaites = o.caracs.filter((k) => k.augmentations >= o.requis).length;
-  const compsFaites = Math.min(8, o.competences.filter((k) => k.augmentations >= o.requis).length);
-  const suivant = o.suivant;
-  const bloque = !!suivant && suivant.niveau > J.niveauMaximal(etat);
-  const progression = progresse ? `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${xp}</div></div><div><b>PX à dépenser</b>${glose(`niveau ${o.niveau} : ${o.titre}`)}</div></div>
-    ${suivant ? `<div class="rub">Pour passer ${esc(suivant.titre)}</div><div class="exigences">
-      ${exige(caracsFaites >= o.caracs.length, `${o.requis} Augmentations par Caractéristique dorée`, `${caracsFaites} / ${o.caracs.length}`)}
-      ${exige(compsFaites >= 8, `${o.requis} dans huit Compétences`, `${compsFaites} / 8`)}
-      ${exige(o.talentAcquis, 'Un Talent du niveau')}</div>
-      <div class="pied">${plaque(`Niveau ${suivant.niveau}`, `data-a="niveau" data-id="${c.id}"`, { prix: String(suivant.cout), armee: o.complet && xp >= suivant.cout && !bloque, fermee: !o.complet || xp < suivant.cout || bloque, titre: bloque ? 'La salle d’armes n’enseigne pas encore ce niveau.' : '' })}${bloque ? glose('La salle d’armes n’enseigne pas encore ce niveau.') : ''}</div>` : glose('Sommet de la carrière.')}`
-    : etat.expedition ? '' : glose('Relevez la salle d’armes pour dépenser les PX.');
-  return `<div class="tete">${portrait(busteDuHeros(h), 'heros', 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
-    <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(J.nomDeCarriere(h.carriere))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
-    ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${etats(c)}${etiquettesDeSequelles(c)}${progression}
-    ${etat.expedition ? '' : `<div class="gestes-ident">${congediement === c.id ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}` : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`}`;
-}
-
-/** La bande des Caractéristiques : celles de la carrière, cernées de laiton, s'augmentent au hameau. */
-function bande(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, progresse: boolean) {
-  const parCarac = new Map(o.caracs.map((k) => [k.id, k]));
-  const xp = h.c.xp ?? 0;
-  return CARACS_DU_PROFIL.map((k) => {
-    const offre = parCarac.get(k);
-    const cellule = `<span class="ab">${esc(libelleDeCarac(k).abr)}</span><span class="v chiffres">${carac(h.c, k)}</span><span class="aug chiffres">${offre?.augmentations ? `+${offre.augmentations}` : ''}</span>`;
-    if (!offre || !progresse) return `<div class="c${offre ? ' carr' : ''}" title="${esc(libelleDeCarac(k).label)}">${cellule}</div>`;
-    return `<button type="button" class="c carr${offre.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" title="${esc(`${libelleDeCarac(k).label} : +1 pour ${offre.cout} PX`)}"${xp < offre.cout ? ' disabled' : ''}>${cellule}<span class="etiquette compte ${xp >= offre.cout ? 'or' : 'fer'}">${offre.cout} PX</span></button>`;
-  }).join('');
-}
-
-const ligneDAchat = (fait: boolean, car: string, nomme: string, droite: string) => `<div class="achat"><span class="fait">${fait ? picto('coche', 15, 2.4) : ''}</span>${car ? `<span class="etiquette rectangle">${esc(car)}</span>` : ''}<span class="n">${nomme}</span>${droite}</div>`;
-
-/** Le panneau de gauche : au hameau les Compétences de la carrière ; en route, les provisions et la prière. */
-function panneauGauche(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, enRoute: boolean, progresse: boolean) {
-  const xp = h.c.xp ?? 0;
-  if (enRoute) {
-    const provisions = J.provisionsPortees(h);
-    const blesses = J.herosDuGroupe(etat).filter((x) => x.c.wounds.current < x.c.wounds.max);
-    const benit = (h.c.spells ?? []).includes('benediction-de-guerison');
-    return `<div class="rub">Provisions ${glose('utilisables entre deux salles')}</div>
-      ${provisions.length ? provisions.map((q) => ligneDAchat(false, '', `${esc(q.label)} <small>×${q.nombre}</small>`, plaque('Utiliser', `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, { taille: 'petite', fermee: !!q.refus, titre: q.refus ?? '' }))).join('') : glose('Aucune provision : le relais en vend au départ.')}
-      ${benit ? `<div class="rub">Bénédiction de Guérison ${glose('une fois par expédition')}</div>${J.peutPrier(etat, h)
-        ? (blesses.length ? blesses.map((x) => ligneDAchat(false, '', `${esc(x.c.label)} <small>${Math.max(0, x.c.wounds.current)}/${x.c.wounds.max} PB</small>`, plaque('Prier', `data-a="prier" data-id="${h.c.id}" data-k="${x.c.id}"`, { taille: 'petite', armee: true }))).join('') : glose('Personne n’est blessé.'))
-        : glose('Déjà priée pendant cette expédition.')}` : ''}`;
-  }
-  if (!progresse) return glose(etat.expedition ? 'Ce héros attend au hameau.' : 'Relevez la salle d’armes pour augmenter les Compétences.');
-  return `<div class="tete-l"><div class="rub">De la carrière ${glose('une Augmentation à la fois')}</div><span class="rub colonnes"><span>Test</span><span>Coût</span></span></div>
-    <div class="defile">${o.competences.map((k, i) => ligneDAchat(k.augmentations >= o.requis, k.carac, esc(k.label), `<span class="aug chiffres">+${k.augmentations}</span><span class="val chiffres">${k.valeur}</span>${plaque('', `data-a="competence" data-id="${h.c.id}" data-i="${i}"`, { prix: `${k.cout} PX`, taille: 'petite', fermee: xp < k.cout })}`)).join('')}</div>`;
-}
-
-/** Le panneau de droite, en onglets : Talents et Sorts au hameau, Équipement partout. */
-function panneauDroit(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, actif: string, progresse: boolean) {
-  const xp = h.c.xp ?? 0;
-  const voie = J.voieDe(h.carriere);
-  if (actif === 'talents' && !progresse) {
-    const acquis = talentsAcquis(h.c);
-    const autres = acquis.filter((t) => !t.combat).length;
-    return `<div class="rub">Acquis ${glose('ceux qui agissent en combat')}</div>${acquis.filter((t) => t.combat).map((t) => `<div class="talent acquis">${medaillon('etoile', 'moyen')}<div class="t"><div class="nom-propre petit gothique">${esc(t.label)}</div><i>${t.fois > 1 ? `Acquis ×${t.fois}` : 'Acquis'}</i></div></div>`).join('')}
-      ${autres ? glose(`Et ${autres} autre${autres > 1 ? 's' : ''}, sans effet en combat.`) : ''}
-      ${glose(etat.expedition ? 'Les Talents s’achètent au hameau.' : 'Relevez la salle d’armes pour en apprendre d’autres.')}`;
-  }
-  if (actif === 'talents') {
-    return `<div class="rub">Du niveau ${glose('ceux qui agissent en combat')}</div>${o.talents.map((t, i) => `<div class="talent${t.possede ? ' acquis' : ''}">${medaillon(t.possede ? 'etoile' : 'livre', 'moyen', !t.possede)}<div class="t"><div class="nom-propre petit gothique">${esc(t.label)}</div><i>${t.possede ? `Acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : 'À apprendre'}</i></div>${plaque('', `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, { prix: `${t.cout} PX`, taille: 'petite', fermee: xp < t.cout })}</div>`).join('')}`;
-  }
-  if (actif === 'sorts') {
-    const connus = (h.c.spells ?? []).map((id) => `<span class="etiquette rectangle">${esc(nomDeSort(id))}</span>`).join('');
-    const initie = !!voie && h.c.talents.some((t) => t.talentId === voie.talent);
-    const aApprendre = voie && initie ? voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id)) : [];
-    const voieHtml = !voie ? '' : !progresse ? glose(`Au hameau, la salle d’armes enseigne ${voie.nom}.`)
-      : !initie ? glose(`Au niveau 2, le Talent ${voie.nom} ouvre ces sorts.`)
-      : aApprendre.map((id) => ligneDAchat(false, '', esc(nomDeSort(id)), plaque('Apprendre', `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, { taille: 'petite' }))).join('') || glose('Tout est appris.');
-    return `<div class="rub">Connus ${glose('lancés seuls en combat')}</div><div class="etats">${connus || glose('aucun')}</div>${voie ? `<div class="rub">${esc(voie.nom)}</div>${voieHtml}` : ''}`;
-  }
-  const p = J.panoplie(h);
-  const e = encombrement(h.c);
-  const trop = e.porte > e.capacite;
-  const deuxMains = p.main?.mains === 2 && !p.secondaire;
-  const piece = (titre: string, x: J.PieceDecrite | undefined, icone: string | undefined) => caseObjet({ icone: x ? icone : undefined, nom: x ? x.label : titre, detail: x ? `${titre} : ${detailDe(x)}` : `${titre} : vide`, taille: 'grande' });
-  const sac = casesDuSac(h, !!etat.expedition?.groupe.includes(h.c.id));
-  return `<div class="rub">Porté ${glose('le détail au survol')}</div>
-    <div class="cases-equipement">${piece('Main principale', p.main, p.main && iconeDArme(p.main.label))}
-      ${deuxMains ? caseObjet({ nom: 'Prise à deux mains', detail: 'Main secondaire : prise par l’arme à deux mains', taille: 'grande' }) : piece('Main secondaire', p.secondaire, p.secondaire && iconeDArme(p.secondaire.label))}
-      ${piece('Armure', p.armure, 'armure')}</div>
-    <div class="essentiels">${[p.main, p.armure].filter((x): x is J.PieceDecrite => !!x).map((x) => `<span>${esc(essentielDe(x))}</span>`).join('')}</div>
-    <div class="rub">Encombrement <span class="glose ${trop ? 'avertissement' : 'courante'}">${e.porte} / ${e.capacite}${trop ? (e.immobile ? ' · immobilisé' : ` · Mouvement −${e.mouvement}, Agilité −${Math.abs(e.agilite)}`) : ''}</span></div>
-    ${jauge(Math.min(1, e.porte / Math.max(1, e.capacite)), { teinte: trop ? 'cire' : 'or', taille: 'forte' })}
-    <div class="rub">Sac</div><div class="cases-sac">${sac || '<span class="glose courante">Aucune provision : le relais en vend au départ.</span>'}</div>
-    ${etat.expedition ? '' : `<div class="pied-equipement">${plaque('Aller à la forge', `data-a="batiment" data-id="forge" data-client="${h.c.id}"`, { icone: 'enclume', taille: 'petite', armee: true })}</div>`}`;
-}
-
-function ecranDuHeros(id: string, onglet: Onglet) {
-  const h = etat.roster.find((x) => x.c.id === id);
-  if (!h) return '';
-  const enRoute = !!etat.expedition?.groupe.includes(h.c.id);
-  const progresse = !etat.expedition && J.niveauMaximal(etat) > 0;
-  const o = J.offresDeCarriere(h);
-  const voie = J.voieDe(h.carriere);
-  const lanceur = !!voie || (h.c.spells ?? []).length > 0;
-  const noms: [string, string][] = [['talents', 'Talents'], ...(lanceur ? [['sorts', 'Sorts'] as [string, string]] : []), ['equipement', 'Équipement']];
-  const actif = noms.some(([k]) => k === onglet) ? onglet : progresse ? noms[0][0] : 'equipement';
-  const groupe = enRoute ? J.herosDuGroupe(etat) : etat.roster;
-  return `<div class="ecran-heros" role="dialog" aria-label="${esc(h.c.label)}"><div class="scene-fiche">
-    ${cadreA([26, 20, 340, 536], identite(h, o, progresse), { classe: 'ident' })}
-    ${cadreA([384, 20, 800, 96], bande(h, o, progresse), { ruban: 'Caractéristiques', classe: 'bande' })}
-    ${cadreA([384, 136, 470, 420], panneauGauche(h, o, enRoute, progresse), { ruban: enRoute ? 'Entre deux salles' : 'Compétences', classe: 'competences' })}
-    ${cadreA([872, 136, 384, 420], panneauDroit(h, o, actif, progresse), { classe: 'droite', tete: onglets(noms, actif) })}
-    ${cadreA([160, 560, 960, 152], `<div class="rang-heros">${groupe.map((x) => carteDeHeros(x, x.c.id === h.c.id)).join('')}</div>`, { fond: '', classe: 'socle' })}
-    <button type="button" class="croix-ecran" data-a="fermer-panneau" aria-label="Fermer">×</button>
-  </div></div>`;
-}
-
-/** La scène de la fiche tient l'écran : 1280 × 720, réduite d'un bloc, centrée ; sous 900 px, les cadres s'empilent. */
-function ajusterLaFiche() {
-  const s = document.querySelector<HTMLElement>('.scene-fiche');
-  if (!s) return;
-  if (window.innerWidth < 900) return void (s.style.transform = '');
-  const k = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-  s.style.transform = `translate(${(window.innerWidth - 1280 * k) / 2}px, ${(window.innerHeight - 720 * k) / 2}px) scale(${k})`;
-}
-
 function pageDeLaChronique() {
   return page('Chronique', `<ol class="chronique">${etat.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>`);
 }
@@ -400,7 +191,7 @@ function pageDeLaChronique() {
 function pageOuverte(): string {
   if (!panneau) return '';
   if (panneau.type === 'batiment') return pageDuBatiment(panneau.id);
-  if (panneau.type === 'heros') return ecranDuHeros(panneau.id, panneau.onglet);
+  if (panneau.type === 'heros') return ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet);
   if (panneau.type === 'depart') return pageDuDepart(panneau);
   return pageDeLaChronique();
 }
@@ -414,7 +205,7 @@ function enseigne(b: J.Batiment) {
   const suivant = b.paliers[n + 1];
   const peutBatir = !!suivant && etat.or >= suivant.cout && etat.trophees >= suivant.trophees;
   return `<button type="button" class="enseigne${enRuine(b.id) ? ' ruine' : ''}${ouvert ? ' ouverte' : ''}" style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
-    ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', enRuine(b.id))}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${enRuine(b.id) ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" title="Vous pouvez bâtir"></i>' : ''}</button>`;
+    ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', enRuine(b.id))}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${enRuine(b.id) ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}</button>`;
 }
 
 function ecranDuHameau() {
@@ -439,11 +230,12 @@ const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'epee', elite: '
 
 /** Les sacs du groupe côte à côte, à la manière de la grille d'expédition : un clic sur une case utilise l'objet ; la
  *  Bénédiction de Guérison d'un Béni est une case de plus, une fois par expédition, sur le plus blessé. */
+const ficheDeLaPriere = () => { const f = ficheDuSort('benediction-de-guerison'); return { nom: f.label, nature: f.nature, texte: f.texte }; };
 function sacsDeLExpedition(groupe: J.Heros[]) {
   const plusBlesse = groupe.filter((x) => !x.c.dead).sort((a, b) => a.c.wounds.current / a.c.wounds.max - b.c.wounds.current / b.c.wounds.max)[0];
   const rangees = groupe.map((h) => {
     const benit = (h.c.spells ?? []).includes('benediction-de-guerison');
-    const priere = benit ? caseObjet({ icone: 'soin', nom: 'Bénédiction', detail: `Bénédiction de Guérison sur ${plusBlesse?.c.label ?? 'personne'}, une fois par expédition`,
+    const priere = benit ? caseObjet({ icone: 'soin', nom: 'Bénédiction', apercu: { ...ficheDeLaPriere(), pied: `Sur ${plusBlesse?.c.label ?? 'personne'}, une fois par expédition.` },
       ...(plusBlesse ? { attrs: `data-a="prier" data-id="${h.c.id}" data-k="${plusBlesse.c.id}"` } : {}),
       refus: !J.peutPrier(etat, h) ? 'déjà priée, ou le Béni est hors de combat' : plusBlesse && plusBlesse.c.wounds.current >= plusBlesse.c.wounds.max ? 'personne n’est blessé' : null }) : '';
     const cases = casesDuSac(h, true) + priere;
@@ -499,7 +291,7 @@ function rendre() {
     else { pano.scrollLeft = (pano.scrollWidth - pano.clientWidth) * 0.42; panoramaCentre = true; }
   }
   ajusterLesTableaux();
-  ajusterLaFiche();
+  ajusterLaScene();
 }
 
 // ─── Rejeu du combat ────────────────────────────────────────────────────────────────────────────────────────
@@ -606,7 +398,7 @@ function jouerLeCoup(c: Coup, vitesse: number) {
   // LDB 21 l.19-20 (Animosité)
   if (allie && c.genre !== 'spell') {
     flotter(de, 'Animosité !', 'querelle');
-    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.title)} cède à son Animosité contre ${esc(vers.title)}</span>`;
+    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.dataset.bulle ?? '')} cède à son Animosité contre ${esc(vers.dataset.bulle ?? '')}</span>`;
   }
   vers.classList.add('cible');
   setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
@@ -651,7 +443,7 @@ function poserLePas(p: Pas, anime = true) {
       el = document.createElement('div');
       el.dataset.id = q.id;
       el.className = `fig camp-${q.camp}`;
-      el.title = q.label;
+      el.dataset.bulle = q.label;
       el.style.setProperty('--s', String(q.cases > 1 ? 1.5 : 1));
       el.style.setProperty('--haut', `${(g.bete ? 46 : 74) * g.taille + 14}px`);
       el.innerHTML = `${figurine(g, q.camp)}<span class="pv-fig"><i></i></span>`;
@@ -683,7 +475,7 @@ function poserLePas(p: Pas, anime = true) {
   $('#tour').className = `tour ${actif?.camp ?? ''}`;
   const parId = new Map(p.pions.map((q) => [q.id, q]));
   $('#combat .ordre').innerHTML = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q).map((q) => {
-    return `<li class="${q.id === p.actif ? 'actif' : ''}${q.hors ? ' hors' : ''}" title="${esc(q.label)}">${portrait(buste(gabaritDuPion(q), q.camp), q.camp, 'petit')}</li>`;
+    return `<li class="${q.id === p.actif ? 'actif' : ''}${q.hors ? ' hors' : ''}" data-bulle="${esc(q.label)}">${portrait(buste(gabaritDuPion(q), q.camp), q.camp, 'petit')}</li>`;
   }).join('');
   $('#combat .rang-heros').innerHTML = p.pions.filter((q) => q.camp === 'heros').map((q) => {
     const h = etat.roster.find((x) => x.c.id === q.id);
@@ -749,7 +541,7 @@ document.addEventListener('click', (ev) => {
   const { a, id = '', i, k } = el.dataset;
   switch (a) {
     case 'batiment': if (el.dataset.client) client = el.dataset.client; return basculer({ type: 'batiment', id: id as J.IdBatiment });
-    case 'heros': return basculer({ type: 'heros', id, onglet: (k as Onglet | undefined) ?? (etat.expedition?.groupe.includes(id) ? 'route' : 'fiche') });
+    case 'heros': return basculer({ type: 'heros', id, onglet: (k as Onglet | undefined) ?? null });
     case 'onglet': if (panneau?.type === 'heros') panneau = { ...panneau, onglet: k as Onglet }; return rendre();
     case 'chronique': return basculer({ type: 'chronique' });
     case 'ouvrir-depart': panneau = { type: 'depart', dest: null, choix: new Set() }; return rendre();
@@ -832,11 +624,12 @@ document.addEventListener('keydown', (ev) => {
 window.addEventListener('resize', () => {
   mettreALEchelle();
   ajusterLesTableaux();
-  ajusterLaFiche();
+  ajusterLaScene();
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) pano.scrollLeft = (pano.scrollWidth - pano.clientWidth) * 0.42;
 });
 
+installerLesSurvols();
 document.body.insertAdjacentHTML('beforeend', DEGRADES_DES_FIGURINES);
 poserLesTextures();
 J.sauver(etat);

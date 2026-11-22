@@ -64,7 +64,7 @@ export const cadre = (contenu: string, { ruban = '', fond = '', classe = '', bal
 
 /** La plaque du kit en bouton : repos laiton, `armee` (l'appel principal), `fermee` (désactivée). */
 export const plaque = (libelle: string, attrs: string, { armee = false, fermee = false, icone = '', prix = '', taille = 'moyenne', titre = '' } = {}): string =>
-  `<button type="button" class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}" ${attrs}${fermee ? ' disabled' : ''}${titre ? ` title="${titre}"` : ''}><div>${icone ? picto(icone, 19, 1.7) : ''}<span>${libelle}</span>${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></button>`;
+  `<button type="button" class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}" ${attrs}${fermee ? ' disabled' : ''}${titre ? ` data-bulle="${titre}"` : ''}><div>${icone ? picto(icone, 19, 1.7) : ''}<span>${libelle}</span>${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></button>`;
 
 /** Le médaillon du kit : un rond à pictogramme. */
 export const medaillon = (nom: string, taille: 'grand' | 'moyen' | 'petit' = 'moyen', ferme = false): string =>

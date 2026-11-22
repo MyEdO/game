@@ -124,8 +124,8 @@ button.plaque:disabled { cursor: not-allowed; }
 .gestes-h { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 /* L'écran du héros : la disposition de la fiche des maquettes (scène 1280 × 720, cadres fixes), règles de
    `heros/heros.css` du kit (`main`), polices remappées comme `kit.css`. */
-.ecran-heros { position: fixed; inset: 0; z-index: 20; background: radial-gradient(120% 90% at 50% 30%, #2a1d14, #0d0907 70%); }
-.scene-fiche { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+.ecran-plein { position: fixed; inset: 0; z-index: 20; background: radial-gradient(120% 90% at 50% 30%, #2a1d14, #0d0907 70%); }
+.scene-fixe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
 .place-cadre { position: absolute; display: flex; }
 .place-cadre > .cadre { flex: 1; display: flex; min-height: 0; min-width: 0; }
 .place-cadre > .cadre.bande > .fond { display: grid; overflow: visible; flex-direction: row; }
@@ -150,13 +150,13 @@ button.c:disabled { cursor: default; opacity: .7; }
 .talent.acquis { background: rgba(201,161,74,.16); }
 .gestes-ident { margin-top: auto; padding-top: 8px; }
 @media (max-width: 899px) {
-  .ecran-heros { overflow-y: auto; }
-  .scene-fiche { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
+  .ecran-plein { overflow-y: auto; }
+  .scene-fixe { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
   .place-cadre { position: relative; left: auto !important; top: auto !important; width: auto !important; height: auto !important; margin: 0 16px 14px; }
   .place-cadre > .cadre > .fond { overflow: visible; }
   .place-cadre > .cadre.bande > .fond { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 6px; padding: 18px 6px 8px; }
   .socle .rang-heros { grid-template-columns: repeat(2, 1fr); }
-  .ecran-heros .croix-ecran { position: fixed; left: auto; right: 16px; top: 12px; z-index: 3; }
+  .ecran-plein .croix-ecran { position: fixed; left: auto; right: 16px; top: 12px; z-index: 3; }
 }
 .croix-ecran { position: absolute; left: 1206px; top: 22px; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; line-height: 1; color: var(--encre); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen) 55%, var(--laiton)); box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 2px var(--laiton-ombre); }
 .pan>.fond{padding:15px 19px 14px}
@@ -237,6 +237,11 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .sacs-cadre .cases-sac .case-objet { width: 50px; }
 .sacs-cadre .nom-objet { display: none; }
 @media (max-width: 899px) { .sacs-cadre { display: none; } }
+.bulle-du-jeu { position: fixed; z-index: 50; transform: none; bottom: auto; pointer-events: none; }
+.bulle-du-jeu[hidden] { display: none; }
+.apercu-du-jeu { position: fixed; z-index: 50; pointer-events: none; }
+.apercu-du-jeu[hidden] { display: none; }
+.apercu-du-jeu p { white-space: pre-line; max-height: 240px; overflow: hidden; }
 .offres { display: flex; flex-wrap: wrap; gap: 5px; }
 .offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
 .offre b { font-size: 13.5px; color: var(--sepia); }

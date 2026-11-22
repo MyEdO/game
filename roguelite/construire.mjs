@@ -20,7 +20,8 @@ await build({
   plugins: [{
     name: 'facade-du-noyau',
     setup(b) {
-      b.onResolve({ filter: /^\.\/combat$/ }, () => ({ path: './noyau.js', external: true }));
+      const facade = join(ici, 'src/combat');
+      b.onResolve({ filter: /(^|\/)combat$/ }, (a) => (join(a.resolveDir, a.path) === facade ? { path: './noyau.js', external: true } : undefined));
     },
   }],
 });
