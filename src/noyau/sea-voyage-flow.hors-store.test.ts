@@ -7,6 +7,7 @@ import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
   buildOverspeedSteps, engineerOf, etapeDEquipage, entrerDansLeTourbillon, applyVesselCritical, type SeaVoyageState,
+  millesDeCroisiere, mDeCroisiere,
 } from './seaVoyageFlow';
 import type { ShipCriticalResolved } from '../engine/shipCritical';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -39,7 +40,7 @@ import { applyVesselCrewLoss, navigationDuNavire, shipboardSouls } from './shipC
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, startCascade, stepInteraction, tableSpec, toutResoudre } from './cascade';
 import { feedFromMeal, noterLeRepas } from '../engine/provisions';
-import { duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex, duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, draineEtapes, type PoseDe, type ChoisitCle } from './cascade.testkit';
@@ -1894,6 +1895,54 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [BISCUITS]: 7 });
       expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 12, vivre: 'Nourriture, courses/journée', total: 12 }));
     });
+  });
+
+  it('scorbut : une traversée de 40 jours aux biscuits teste chaque porteur au 30e jour, une fois, avant l’accostage (MDG 14 l.230 ; MDG 15 l.25 ; #4454)', () => {
+    const debut = get().gameTime;
+    const milles = 40 * millesDeCroisiere(mDeCroisiere({ vehicleId: get().vessel!.vehicleId }));
+    const biscuits = () => Array.from({ length: 40 }, () => itemFromTrappingById(BISCUITS, idsDeTest)!);
+    set({ party: get().party.map((h) => ({ ...h, items: biscuits() })), worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] }, vessel: { ...get().vessel!, ...benign, provisions: cale({ [BISCUITS]: 15 * 40 }) } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    expect(get().travelPlan!.sea!.fast!.days).toBe(40);
+    driveFast();
+    const joursDesTests: number[] = [];
+    draineEtapes(get, 200, (etape) => {
+      if (etape.kind !== 'mer-scorbut') return undefined;
+      joursDesTests.push(dayIndex(get().gameTime) - dayIndex(debut));
+      return 100;
+    });
+    expect(joursDesTests, 'un Test par rangée, tous au 30e jour').toEqual(Array(get().party.length + 1).fill(30));
+    expect(get().vessel!.porteurDeLEquipage!.diseases!.map((d) => d.id), 'd100 100 : échec').toEqual(['scorbut']);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursSansVivreFrais).toBe(40);
+    expect(get().travelPlan).toBeNull();
+    expect(get().pendingShoreLeave).toBeTruthy();
+  });
+
+  it('scorbut : des comptes décalés font arrêter la traversée au multiple de 30 de chaque porteur, jusqu’au jour de l’accostage (MDG 14 l.230 ; #4454)', () => {
+    const debut = get().gameTime;
+    const milles = 65 * millesDeCroisiere(mDeCroisiere({ vehicleId: get().vessel!.vehicleId }));
+    const biscuits = () => Array.from({ length: 70 }, () => itemFromTrappingById(BISCUITS, idsDeTest)!);
+    const [premier, ...autres] = get().party;
+    set({
+      party: [{ ...premier, items: biscuits(), regimeDeBord: { joursSansVivreFrais: 25, joursDeSoupe: 0 } }, ...autres.map((h) => ({ ...h, items: biscuits() }))],
+      worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] },
+      vessel: { ...get().vessel!, ...benign, porteurDeLEquipage: { regimeDeBord: { joursSansVivreFrais: 10, joursDeSoupe: 0 } }, provisions: cale({ [BISCUITS]: 15 * 65 }) },
+    });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    expect(get().travelPlan!.sea!.fast!.days).toBe(65);
+    driveFast();
+    const joursParPorteur: Record<string, number[]> = {};
+    draineEtapes(get, 2000, (etape, rangee) => {
+      if (etape.kind !== 'mer-scorbut') return undefined;
+      (joursParPorteur[rangee!.id] ??= []).push(dayIndex(get().gameTime) - dayIndex(debut));
+      return 1;
+    });
+    expect(joursParPorteur).toEqual({
+      [premier.id]: [5, 35, 65],
+      ...Object.fromEntries(autres.map((h) => [h.id, [30, 60]])),
+      [WORLD_STEP_OWNER]: [20, 50],
+    });
+    expect(get().travelPlan).toBeNull();
   });
 
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {
