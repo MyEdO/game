@@ -5,9 +5,9 @@ Par pan de `PAN` colonnes, celle du milieu bombe à l'aisance, les deux autres r
 pans est le crevé. Mi-partie : la jambe gauche a ses pans en `toile` et ses crevés en `drap`, la droite l'inverse ; le
 bandeau est en `drap`. Poids lissés ; silhouettes et clés `gabarit_*` transférées.
 """
-from culotte import nappe_de_culotte, table
+from culotte import nappe_de_culotte
 from robe import piece_de
-from tissu import selon
+from tissu import selon, table
 
 
 def azimut(D, j):

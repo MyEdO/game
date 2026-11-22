@@ -15,10 +15,6 @@ from tissu import anneau, centre_de, direction, emprunter
 COTES = {'g': 1.0, 'd': -1.0}
 
 
-def table(points, z):
-    return float(np.interp(z, *zip(*sorted(points))))
-
-
 def coupe(b, z, zones):
     return b.coupe(zones, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), minimum=1)
 

@@ -1,6 +1,6 @@
 """Rendus de contrôle d'un personnage ou d'un élément rigide sans skin (véhicule, décor) : studio Cycles (vues
-trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la hauteur des meshes skinnés du personnage
-ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
+trois-quarts, face, profil et dos du personnage, son portrait, échelles, isométrique), cadré sur la hauteur des meshes
+skinnés du personnage ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
 `--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
 rendu. Si le manifeste voisin de `--input` porte `gabarit.osDesSilhouettes`, chaque os de repos de la base est translaté
@@ -23,10 +23,10 @@ y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
 couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
-directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
-`--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
-de face, de trois-quarts, de dos, d'échelle et isométriques au lieu de celles du modèle ; l'éclairage reste celui du
-modèle (#4338).
+directrice à gauche des vues de face, de trois-quarts, de profil (côté gauche du personnage) et de dos dans
+`planche.png` : un rendu se montre à côté d'elle. `--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut)
+vise ce centre et cadre cette étendue dans les vues de face, de trois-quarts, de profil, de dos, d'échelle et
+isométriques au lieu de celles du modèle ; l'éclairage reste celui du modèle (#4338).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
@@ -716,9 +716,10 @@ def main():
         render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, 1000, 1200)
         if skinned:
             render('face.png', (0, -1, 0.05), cible, etendue * 1.12, 1000, 1200)
+            render('profil.png', (1, 0, 0.05), cible, etendue * 1.12, 1000, 1200)
             render('dos.png', (0, 1, 0.05), cible, etendue * 1.12, 1000, 1200)
             if args.illustration:
-                planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
+                planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'profil.png', 'dos.png')],
                         output / 'planche.png')
             portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
             render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)

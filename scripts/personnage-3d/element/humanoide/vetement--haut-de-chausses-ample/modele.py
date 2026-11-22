@@ -7,9 +7,9 @@ clés `gabarit_*` transférées.
 """
 import math
 
-from culotte import nappe_de_culotte, table
+from culotte import nappe_de_culotte
 from robe import piece_de
-from tissu import fondu, selon
+from tissu import fondu, selon, table
 
 
 def azimut(D, j):

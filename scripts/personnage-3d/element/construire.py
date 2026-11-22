@@ -19,8 +19,9 @@ skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de pal
   repère ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
-  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (ni silhouette de la
-  base ni `gabarit_*` : `visage_inverse` et les traits d'une tête), lues sur la pièce exportée, à `formesDeTete` (#4413) ;
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (`Base.propres` :
+  `visage_inverse` et les traits d'une tête, ou ceux qu'une pièce copie de la tête publiée sur laquelle elle est bâtie),
+  lues sur la pièce exportée, à `formesDeTete` (#4413) ;
 - `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
   glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
@@ -234,9 +235,7 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_,
         objets = base.decouper_par_zone(piece)
     octets = exporter(temporaire, base.rig, objets, skinne=True)
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
-    de_la_base = set(manifeste_de_base["silhouettes"])
-    siennes = list(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)
-                                 if nom not in de_la_base and not nom.startswith("gabarit_")))
+    siennes = base.propres(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)))
     formes_de_tete = {"formesDeTete": siennes} if siennes else {}
     return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **formes_de_tete, **offerts}, triangles
 

@@ -18,7 +18,8 @@ from mathutils.bvhtree import BVHTree
 
 from anatomie import AXES_DU_PERSONNAGE, attache
 from filets import filets_au_repos, unitaire  # noqa: F401
-from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
+from formes import (aretes_des_triangles, aux_noeuds, decalages, decalages_monde, noms_des_cles, poser_la_cle, rapports,
+                    region_locale, retournees_par, transferer_les_cles)
 from maille import tirage
 
 BORNES_DES_CLES = (0.4, 2.5)
@@ -50,6 +51,11 @@ def direction_spatiale(phi, e=0.0):
     (degrés, vers +Z)."""
     a, b = math.radians(phi), math.radians(e)
     return np.array([math.cos(b) * math.sin(a), -math.cos(b) * math.cos(a), math.sin(b)])
+
+
+def table(points, x):
+    """La valeur de `points` (`[(abscisse, valeur)]`) à l'abscisse `x`, interpolée, bornée aux extrémités."""
+    return float(np.interp(x, *zip(*sorted(points))))
 
 
 def selon(table, phi):
@@ -184,14 +190,26 @@ class Base:
             decalage += len(p)
         return porteur_de(np.concatenate(P), np.concatenate(T), np.concatenate(W))
 
+    def propres(self, noms):
+        """Parmi les clés `noms`, celles propres à un élément, ni silhouette de la base ni `gabarit_*` : `visage_inverse`
+        et les traits d'une tête (`formesDeTete`, #4413)."""
+        return [nom for nom in noms if nom not in self.manifeste['silhouettes'] and not nom.startswith('gabarit_')]
+
     def matieres_publiees(self, id_, matieres):
         """Positions monde au repos, triangles des faces de `matieres` et poids (par os de la base) de l'élément publié
-        `id_`, que la pièce contourne ; ses objets sont retirés de la scène ensuite. Une matière de `matieres` dont
-        l'élément n'a aucune face arrête la construction."""
+        `id_`, que la pièce contourne (`matieres_et_cles_publiees`)."""
+        return self.matieres_et_cles_publiees(id_, matieres)[:3]
+
+    def matieres_et_cles_publiees(self, id_, matieres):
+        """Positions monde au repos, triangles des faces de `matieres`, poids (par os de la base) et clés propres
+        (`propres` : `{nom: décalage monde par sommet}`, nul sur un mesh qui ne la porte pas) de l'élément publié `id_`,
+        que la pièce contourne ; ses objets sont retirés de la scène ensuite. Une pièce bâtie sur ses sommets les copie
+        sommet à sommet (`nappe`, `nappe_simple`). Une matière de `matieres` dont l'élément n'a aucune face arrête la
+        construction."""
         avant = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
         nouveaux = [o for o in bpy.data.objects if o not in avant]
-        P, T, W, n, portees = [], [], [], 0, set()
+        P, T, W, C, n, portees = [], [], [], [], 0, set()
         for o in nouveaux:
             if o.type != 'MESH' or not o.data.materials:
                 continue
@@ -211,13 +229,16 @@ class Base:
             P.append(co)
             T.append(t + n)
             W.append(w)
+            C.append({nom: decalages_monde(o, nom) for nom in self.propres(noms_des_cles(o))})
             n += len(co)
         for o in nouveaux:
             bpy.data.objects.remove(o, do_unlink=True)
         absentes = [m for m in matieres if m not in portees]
         if absentes:
             raise ValueError(f'{id_} : aucune face de {absentes}, il porte {sorted(portees)}')
-        return np.concatenate(P), np.concatenate(T), np.concatenate(W)
+        noms = dict.fromkeys(nom for c in C for nom in c)
+        cles = {nom: np.concatenate([c.get(nom, np.zeros_like(p)) for c, p in zip(C, P)]) for nom in noms}
+        return np.concatenate(P), np.concatenate(T), np.concatenate(W), cles
 
     def coupe(self, zones, origine, normale, u, v, minimum=4):
         """Points de la coupe des arêtes des zones `zones` par le plan (`origine`, `normale`), en coordonnées (u, v)
@@ -256,11 +277,13 @@ class Base:
         personnage."""
         self.offrir(nom, emprunter(point, porteur_)[0], point, np.array(AXES_DU_PERSONNAGE).T)
 
-    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None):
+    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None, cles=None):
         """La nappe simple skinnée `nom` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il n'est pas
-        `None` (`teindre`), ses poids `W` par os de la base, lisse, hors des arêtes de plus d'`angle_vif` degrés s'il est
-        donné ; chaque sommet est son propre jumeau."""
+        `None` (`teindre`), ses poids `W` par os de la base, ses clés `cles` (`{nom: décalage monde par sommet}`), lisse,
+        hors des arêtes de plus d'`angle_vif` degrés s'il est donné ; chaque sommet est son propre jumeau."""
         piece = maillage_skinne(nom, sommets, faces, mat, self.rig, poids_normalises(W, self.os))
+        for nom_, champ in (cles or {}).items():
+            poser_la_cle(piece, nom_, champ)
         for polygone in piece.data.polygons:
             polygone.use_smooth = True
         teindre(piece, teintes)
@@ -269,11 +292,12 @@ class Base:
         piece.data.attributes.new(JUMEAU, 'INT', 'POINT')
         return piece
 
-    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None):
+    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None, cles=None):
         """La double nappe skinnée `nom` sur la nappe extérieure (positions `X`, `normales`, poids `W` par os de la base,
-        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales ; `matieres` : par triangle, le
-        matériau de son endroit et celui de son envers, `None` pour `mat`."""
-        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres)
+        triangles `orientes`, clés `cles` par sommet), l'intérieure à `epaisseur` en retrait le long des normales ;
+        `matieres` : par triangle, le matériau de son endroit et celui de son envers, `None` pour `mat`."""
+        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres,
+                            cles)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
@@ -632,10 +656,11 @@ def teindre(obj, teintes):
             polygone.material_index = rangs[teinte.name]
 
 
-def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None):
+def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None, cles=None):
     """Deux nappes et leurs bords : chaque sommet porté par plusieurs éventails de triangles est dédoublé par éventail,
     la nappe intérieure est la copie retournée à `epaisseur` le long des normales, chaque arête de bord est fermée ;
-    normales recalculées vers l'extérieur. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
+    normales recalculées vers l'extérieur. Chaque double et son jumeau intérieur prennent les poids et les clés `cles`
+    (`{nom: décalage monde par sommet de X}`) du sommet qu'ils doublent. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
     d'envers (`None` : `mat`), ajoutés à ceux de l'objet dans l'ordre où les triangles les nomment (`teindre`).
     Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
     sommet sur une même face d'un côté portent la même normale au bit près, que l'export glTF fusionne quel que soit
@@ -644,6 +669,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
     points = [Vector(p.tolist()) for p in X]
     normales = [Vector(n.tolist()) for n in normales]
     poids = list(poids)
+    origines = list(range(len(points)))
     triangles = [tuple(t) for t in triangles]
     for sommet in range(len(points)):
         incidents = {i for i, t in enumerate(triangles) if sommet in t}
@@ -663,6 +689,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
             points.append(points[sommet].copy())
             normales.append(normales[sommet].copy())
             poids.append(dict(poids[sommet]))
+            origines.append(sommet)
             for i in eventail:
                 triangles[i] = tuple(double if s == sommet else s for s in triangles[i])
     moitie = len(points)
@@ -696,6 +723,8 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
     bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
     bm.to_mesh(obj.data)
     bm.free()
+    for nom_, champ in (cles or {}).items():
+        poser_la_cle(obj, nom_, np.concatenate([np.asarray(champ)[origines]] * 2))
     return obj
 
 

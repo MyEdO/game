@@ -35,7 +35,7 @@ from mathutils import Vector
 from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
-from formes import decalages, poser_la_cle
+from formes import decalages_monde, poser_la_cle
 from maille import revolution
 from noms_formes_de_tete import VISAGE_INVERSE
 from tente import HAUT
@@ -414,11 +414,6 @@ def anneau_d_oreille(M, spec, repere, partie):
 
 
 # --- clés ------------------------------------------------------------------------------------------------------------
-
-def decalages_monde(objet, nom):
-    """Les décalages de la clé `nom` de `objet`, dans le repère monde."""
-    return decalages(objet, nom) @ np.array(objet.matrix_world)[:3, :3].T
-
 
 def cles_du_corps(b, zones, X):
     """Par silhouette déclarée de la base et par clé `gabarit_*`, le décalage de chaque sommet `X` : celui du corps de la
