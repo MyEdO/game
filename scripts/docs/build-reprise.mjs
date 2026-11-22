@@ -394,11 +394,12 @@ npm run godot:ouvrir # jeu Godot local
 chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantier se pose à côté de
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
 \`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. L’équipement final copie les docs
-Markdown dérivés depuis le principal lorsque les deux HEAD complets concordent. Chaque générateur
-porte son certificat local dans \`docs/.cache/docs-fraicheur.json\` : fichiers réellement lus,
-listings réellement parcourus, requêtes Git et sondes de présence, outillage et sorties. Pour chaque
-doc, des sources et sorties valides permettent la copie. Un certificat absent laisse les autres
-docs frais copiables ; les certificats locaux du code produit par \`npm ci\` sont conservés. Le code
+Markdown dérivés depuis le principal lorsque le certificat du producteur est valide dans les deux
+arbres. La copie vérifie la constance de chaque HEAD et la concordance de l’outillage des arbres
+avec le lanceur. Chaque générateur porte son certificat local dans \`docs/.cache/docs-fraicheur.json\`
+avec les fichiers réellement lus, les listings réellement parcourus, les requêtes Git, les sondes
+de présence et les sorties. Un certificat absent ou incomplet laisse les autres docs frais
+copiables. Les certificats locaux du code produit par \`npm ci\` sont conservés. Le code
 n'est jamais copié. La finalisation \`docs:build --perimes\` examine la
 fraîcheur au rang, y compris après une copie impossible ou interrompue, avec sa raison. Les modes
 sélectifs conservent les autres mesures et certificats. Un générateur rouge perd son seul certificat
