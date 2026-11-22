@@ -150,17 +150,18 @@ describe('piecesDuGroupe — saillance et facettes (#4471)', () => {
     expect(piecesDuGroupe('g', deuxPans(-1, -1), 2)).toEqual([]);
   });
 
-  it('un versant plus étroit que la pose (une demi-case) ne porte pas de faîtière : la noue qui le borde passe au-dessus', () => {
+  it.each([2, 3])('à %s m par case, un versant plus étroit que la demi-largeur de pose ne porte pas de faîtière : la noue qui le borde passe au-dessus', (metresParCase) => {
     const [nord] = deuxPans(1, 1);
+    const demi = DEMI_LARGEUR_DE_POSE_M / metresParCase;
     const pan = (ys: [number, number], h: (y: number) => number, gy: number): PanDuGroupe => ({
       ...nord, gy, poly: [[-0.5, ys[0]], [1.5, ys[0]], [1.5, ys[1]], [-0.5, ys[1]]].map(([x, y]) => ({ x, y, h: h(y) })),
     });
-    const etroit = pan([0.5, 0.8], (y) => 5 - (y - 0.5), -1);
-    const remonte = pan([0.8, 1.5], (y) => 4.7 + 0.5 * (y - 0.8), 0.5);
-    expect(piecesDuGroupe('g', [nord, etroit, remonte], 2)).toEqual([]);
-    const large = pan([0.5, 1.2], (y) => 5 - (y - 0.5), -1);
-    const auDela = pan([1.2, 1.5], (y) => 4.3 + 0.5 * (y - 1.2), 0.5);
-    expect(piecesDuGroupe('g', [nord, large, auDela], 2)).toHaveLength(2);
+    const versant = (largeur: number): PanDuGroupe[] => {
+      const bord = 0.5 + largeur;
+      return [nord, pan([0.5, bord], (y) => 5 - (y - 0.5), -1), pan([bord, 1.5], (y) => 5 - largeur + 0.5 * (y - bord), 0.5)];
+    };
+    expect(piecesDuGroupe('g', versant(demi * 0.8), metresParCase)).toEqual([]);
+    expect(piecesDuGroupe('g', versant(demi * 1.2), metresParCase)).toHaveLength(2);
   });
 
   it('un faîte qui borde une facette (pan au gradient diagonal) n’a pas de faîtière', () => {
