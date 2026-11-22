@@ -359,6 +359,16 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const sousTitre = ({ texte, cle = '' }) => `<div class="sous-titre" data-primitive="sousTitre"${cle ? ` data-texte="${cle}"` : ''}>${texte}</div>`;
   /* l'intertitre d'un bloc, sa note et ce qui se pose à sa fin ; nu : un trait voulu est un `filet()` posé au-dessus */
   const rubrique = ({ texte, note = '', fin = '' }) => `<div class="rub" data-primitive="rubrique">${texte}${note ? ` ${glose({ texte: note })}` : ''}${fin}</div>`;
+  /* la ligne libellé-valeur, son libellé en rubrique : `courante`, la valeur à droite ; `empilee`, la valeur dessous ;
+     `mesure`, la valeur « x / y » à droite et sa jauge dessous (`dessous`) ; `tabulaire`, la rangée d'un tableau, son
+     libellé en entrée. `format` : `texte`, ou `nombre` en chiffres ; `etat` : `somme`, `tombee`, `seuil` ou `grise` ;
+     `cle` : le rôle de la valeur au relevé */
+  const ligne = ({ libelle, valeur, variante = 'courante', format = 'texte', dessous = '', etat = '', cle = '' }) => {
+    const texte = cle ? ` data-texte="${cle}"` : '';
+    return variante === 'tabulaire'
+      ? `<tr class="libelle-valeur tabulaire${etat ? ` ${etat}` : ''}" data-primitive="ligne"><td>${libelle}</td><td class="valeur ${format}"${texte}>${valeur}</td></tr>`
+      : `<div class="libelle-valeur ${variante}${etat ? ` ${etat}` : ''}" data-primitive="ligne">${rubrique({ texte: libelle })}<div class="valeur ${format}"${texte}>${valeur}</div>${dessous}</div>`;
+  };
   /* la note : une précision, une aide ; `variante` courante, consigne (ce que le joueur a à faire) ou avertissement (un
      coût, un refus) ; `cle` : son rôle au relevé ; `secondaire` : une raison de refus peut prendre sa place (`poserLesBulles`) */
   const glose = ({ texte, variante = 'courante', cle = '', secondaire = false }) => `<span class="glose ${variante}" data-primitive="glose"${cle ? ` data-texte="${cle}"` : ''}${secondaire ? ' data-secondaire' : ''}>${texte}</span>`;
@@ -446,7 +456,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, reserves, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, reserves, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, ligne, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
     puce, separateur, filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

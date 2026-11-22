@@ -15,27 +15,16 @@ Règle 1 du plan `docs/plans/2026-11-21-maquettes-en-donnees.md` (#4585). Cette 
 
 #### Ligne libellé-valeur : `ligne`
 
-Signature : `ligne({ libelle, valeur, format, unite, variante, marque })`. `valeur` est typée, `format` vient de la liste fermée des formats (`dispositions.md`, « Ce que la grammaire refuse »).
+Signature : `ligne({ libelle, valeur, variante, format, dessous, etat, cle })`, `S/gestes.js:366`, `S/gestes.css:131-147`. Le libellé est une `rubrique` 13 / 16 ; `format` : `texte` (Fell 15 / 20) ou `nombre` (Chiffres 600 14) ; `dessous` est un emplacement (la jauge d'une mesure) ; `etat` : `somme` (filet au-dessus, gras), `tombee` (au sang), `seuil`, `grise` ; `cle` nomme la valeur au relevé. La classe émise est `.libelle-valeur`, `.ligne` gardant d'autres sens.
 
-| Variante | Écrans, source | Ce qui la distingue | Portée |
-|---|---|---|---|
-| `regle` | fenêtre du bas, options, voyage, nuit ; `R:194` | libellé en rubrique, corps libre à droite | C |
-| `courante` | voyage, poursuite, bord ; `R:885` | rubrique à gauche, valeur à droite | C |
-| `porteur` | commerce ; `R:1197` | 12 px, valeur en chiffres | P |
-| `propriete` | les deux éditeurs ; `R:813` | 14,5 et 13,5 px, grisée possible | C |
-| `preference` | options ; `R:544` | nom en gras, aide dessous en 13 px | P |
-| `empilee` (fait) | création, fiche ; `R:1469` | rubrique dessus, valeur en gras 15 px dessous | C |
-| `acquis` | création ; `R:1490` | italique, étiquette de PX, valeur en gras | P |
-| `mesure-combat` | combat ; `S/combat/socle.js:21`, `S/combat/combat.css:28` | rubrique, « x / y », jauge | C |
-| `mesure-navire` | dossier ; `R:1288` | même structure, feuille `navale.css` | P |
-| `mesure-identite` | fiche, création, dossier ; `R:1619` | rubrique, chiffres, jauge forte dessous | C |
-| `compte` | commerce ; `R:1224` | rangée de tableau, détail en chiffres | P |
-| `apercu` | aperçus au survol ; `S/gestes.js:348` | rangée de tableau dans la bulle | C |
-| `carac` | fiche lue du combat ; `R:492` | case de caractéristique | P |
-| `enjeu` | fenêtre du bas (points, enjeu) ; carte § 9.1 | libellé 12 à 12,5 px, feuille `suite.css` | C |
-| `jeton-valeur` | barre de l'actif ; `R:451`, `S/combat/combat.css:32` | sceau, rubrique, valeur en italique | P |
+| Variante | Forme | Portée |
+|---|---|---|
+| `courante` | la valeur à droite, sur la ligne du libellé ; voyage, poursuite, bord, réglages de la fenêtre du bas (`regle`, `R:194`), inspecteur des éditeurs | C |
+| `empilee` | la valeur dessous, à gauche ; création, fiche, acquis, physique, équipage | C |
+| `mesure` | « x / y » en chiffres à droite, sa jauge dessous à 6 px ; combat (`S/combat/socle.js:21`), dossier d'un navire, identité (`mesureDe`, `R:1287`) | C |
+| `tabulaire` | la rangée d'un tableau, 24 de haut : l'entrée en Spectral 13,5 `--encre` (`--ivoire` sur bois), la valeur à droite ; aperçus, enjeu, points, comptes du commerce, tests du verdict | C |
 
-Variantes : **15 aujourd'hui** (7 propres), 0 surcharge. **Cible : 4** (`courante`, `empilee`, `mesure`, `tabulaire`).
+Variantes : **4**, celles du kit. Restent hors de la ligne : la préférence des options et la règle maison (liste « hors des natures »), la case de caractéristique `.carac` et le jeton de la barre de l'actif.
 
 #### Rubrique : `rubrique`
 
@@ -43,7 +32,7 @@ Signature : `rubrique({ texte, note, fin })`, `S/gestes.js:356`. `note` : la not
 
 | Variante | Écrans, source | Ce qui la distingue | Portée |
 |---|---|---|---|
-| `rubrique` | création, fiche, progression, dossier, journal du combat ; `R:1469`, `R:512`, `R:1298` | la forme du kit | C |
+| `rubrique` | création, fiche, progression, dossier, journal du combat ; `R:1468`, `R:512`, `R:1297` | la forme du kit | C |
 | `bande` | clôture d'un chapitre ; `R:644`, `S/accueil-et-systeme/ouverture.css:28` | 13 px, filet d'or dessous ; à trancher avec le titre libre | P |
 | `panneau-12`, `panneau-12,5`, `panneau-13`, `panneau-13,5` | rubrique `.t` des panneaux ; carte § 9.3 | quatre tailles, quatre couleurs | C |
 | `recit` | récit d'un lieu ; `R:884` | rubrique ombrée sur le décor | C |
@@ -60,8 +49,8 @@ Signature : `sousTitre({ texte })`, ou une suite de fragments (D7).
 | `12` | page de lieu, fiche, rendu ; carte § 9.3 | 12 px, trois feuilles | C |
 | `12,5` | jet, inspecteur ; carte § 9.3 | 12,5 px | C |
 | `13` | options ; `S/accueil-et-systeme/options.css:29` | 13 px, `#5a2a12` | P |
-| `13,5` | annonce du combat ; `S/combat/combat.css:112` | 13,5 px, `#4a3420` | P |
-| `14` | fiche du Compendium ; `S/outils/outils.css:153` | 14 px, `#6b1c10` | P |
+| `13,5` | annonce du combat ; `S/combat/combat.css:109` | 13,5 px, `#4a3420` | P |
+| `14` | fiche du Compendium ; `S/outils/outils.css:152` | 14 px, `#6b1c10` | P |
 
 Variantes : **6 aujourd'hui** (3 propres). **Cible : 1.**
 
@@ -71,17 +60,17 @@ Signature : `note({ texte, variante })`.
 
 | Variante | Écrans, source | Ce qui la distingue | Portée |
 |---|---|---|---|
-| `consigne` | fenêtre du bas ; `R:344`, `S/combat/combat.css:192` | 17 px, filet à gauche | C |
+| `consigne` | fenêtre du bas ; `R:344`, `S/combat/combat.css:186` | 17 px, filet à gauche | C |
 | `phrase-du-jet` | fenêtre du bas ; `S/combat/jet.css:53` | 12,5 px, centrée, italique | C |
 | `reglage` | fenêtre du bas ; `R:323`, `S/combat-suite/suite.css:26` | 14 px, italique | C |
-| `page` | commerce ; `S/commerce/commerce.css:28` | 12,5 px, droite, centrée | P |
-| `pied-d-apercu` | aperçus ; `S/combat/combat.css:64` | 13 px, filet au-dessus | C |
+| `page` | commerce ; `S/commerce/commerce.css:24` | 12,5 px, droite, centrée | P |
+| `pied-d-apercu` | aperçus ; `S/combat/combat.css:61` | 13 px, filet au-dessus | C |
 | `aide` | options ; `S/accueil-et-systeme/options.css:36` | 13,5 px, italique | P |
 | `document` | exploration ; `S/exploration-et-recit/recit.css:53` | 13,5 px, au pied du document | P |
 | `ecrit-seance` | fin de séance, chapitre ; `S/accueil-et-systeme/seance.css:32` | 14 px, italique | C |
-| `ecrit-fiche` | création ; `S/heros/heros.css:201` | 17 px, filet dessous | P |
+| `ecrit-fiche` | création ; `S/heros/heros.css:197` | 17 px, filet dessous | P |
 | `de-rubrique` | création, fiche ; `S/heros/heros.css:29` | Spectral italique 12,5 px | C |
-| `prose-note` | changement de carrière ; `S/heros/heros.css:361` | italique, centrée | P |
+| `prose-note` | changement de carrière ; `S/heros/heros.css:356` | italique, centrée | P |
 | `avis` | nouvelle partie ; `R:687`, `S/accueil-et-systeme/nouvelle-partie.css:30` | titre 18 px, cloué | P |
 | `de-colonne` | rail d'un lieu ; `S/gestes.js:332` | la place `note` de `colonne` | C |
 
@@ -94,17 +83,17 @@ Signature : `etiquette({ texte, valeur, format, teinte, marque, variante })`. `t
 | Variante | Écrans, source | Ce qui la distingue | Portée | Surcharges |
 |---|---|---|---|---|
 | `modif` | fenêtre du bas, commerce ; `R:185`, `S/combat/jet.css:35` | rectangle, rayon 2, 12,5 px | C | 5 |
-| `chip` | carnet ; `R:1444`, `S/exploration-et-recit/recit.css:92` | Fell SC 12 px, rayon 2 | P | 0 |
-| `carac` | création, progression ; `R:1462`, `S/heros/heros.css:48` | 32 px de large, 11 px | C | 0 |
-| `pastille` | création, progression ; `R:1470`, `S/heros/heros.css:93` | hauteur 22, rayon 11, 11 px | C | 6 |
-| `compte` | création, progression ; `R:1465`, `S/heros/heros.css:50` | pastille 21 px, teintes or, cire, fer | C | 4 |
-| `puce` | Compendium ; `R:746`, `S/outils/outils.css:152` | rayon 2, 14,5 px | P | 0 |
-| `etat-porte` | combat ; `R:414`, `S/combat/combat.css:155` | sceau et rubrique 11,5 px | P | 0 |
-| `marque` | cartouche ; `S/gestes.css:162` | dans le cartouche | C | 0 |
+| `chip` | carnet ; `R:1443`, `S/exploration-et-recit/recit.css:92` | Fell SC 12 px, rayon 2 | P | 0 |
+| `carac` | création, progression ; `R:1461`, `S/heros/heros.css:48` | 32 px de large, 11 px | C | 0 |
+| `pastille` | création, progression ; `R:1469`, `S/heros/heros.css:90` | hauteur 22, rayon 11, 11 px | C | 6 |
+| `compte` | création, progression ; `R:1464`, `S/heros/heros.css:50` | pastille 21 px, teintes or, cire, fer | C | 4 |
+| `puce` | Compendium ; `R:746`, `S/outils/outils.css:151` | rayon 2, 14,5 px | P | 0 |
+| `etat-porte` | combat ; `R:414`, `S/combat/combat.css:150` | sceau et rubrique 11,5 px | P | 0 |
+| `marque` | cartouche ; `S/gestes.css:182` | dans le cartouche | C | 0 |
 
 Variantes : **8 aujourd'hui** (3 propres), **15 surcharges** (carte § 9.5 ; comptées, pas encore nommées une à une). **Cible : 3** (`rectangle`, `pastille`, `compte`).
 
-Le mot « jeton » nomme aujourd'hui trois choses : cette étiquette `compte` (`R:1465`), la ligne `jeton-valeur` (`R:451`) et le jeton de réserve (`R:397`). Le catalogue ne garde pas de nature « jeton ».
+Le mot « jeton » nomme aujourd'hui trois choses : cette étiquette `compte` (`R:1464`), la ligne `jeton-valeur` (`R:451`) et le jeton de réserve (`R:397`). Le catalogue ne garde pas de nature « jeton ».
 
 #### Puce et liste : `ligneDeListe`, `puce`, `separateur`
 
@@ -113,19 +102,19 @@ Signature : `ligneDeListe({ puce, marque, nom, precision, fin, choisie, refusee 
 | Variante | Écrans, source | Ce qui la distingue | Portée |
 |---|---|---|---|
 | ligne `fiche` | création, fiche, progression ; `S/heros/heros.css:38` | 28 px, Fell 15 px, filet dessous | C |
-| ligne `commerce` | commerce ; `S/commerce/commerce.css:91` | grille à quatre colonnes, 27 px | P |
+| ligne `commerce` | commerce ; `S/commerce/commerce.css:84` | grille à quatre colonnes, 27 px | P |
 | ligne `outils` | Compendium, coop, éditeurs ; `S/outils/outils.js:5`, `S/outils/outils.css:7` | choisie en doré | C |
-| ligne `butin` | combat ; `S/combat/combat.css:207` | 28 px, 14,5 px | P |
-| ligne `rangee` | Compendium ; `S/outils/outils.css:134` | 23 px | P |
+| ligne `butin` | combat ; `S/combat/combat.css:201` | 28 px, 14,5 px | P |
+| ligne `rangee` | Compendium ; `S/outils/outils.css:133` | 23 px | P |
 | ligne `index` | Compendium ; `R:757` | nom et compte | P |
-| ligne `plaque` | liste du combat ; `S/combat/combat.css:73` | une plaque par ligne | P |
-| ligne `cartes` | choix en liste ; `S/gestes.css:224` | plaques de 36 ou 44 px, paginées | C |
-| puce `losange` | création ; `R:1469`, `S/heros/heros.css:47` | losange, ou coche quand la ligne est choisie | C |
-| puce `coche` | création, progression ; `R:1469` | coche en trait, ou rond armé | C |
+| ligne `plaque` | liste du combat ; `S/combat/combat.css:70` | une plaque par ligne | P |
+| ligne `cartes` | choix en liste ; `S/gestes.css:239` | plaques de 36 ou 44 px, paginées | C |
+| puce `losange` | création ; `R:1467`, `S/heros/heros.css:47` | losange, ou coche quand la ligne est choisie | C |
+| puce `coche` | création, progression ; `R:1467` | coche en trait, ou rond armé | C |
 | puce `point` | coop ; `S/outils/outils.css:42` | rond d'or 8 px | P |
 | puce `pastille-entite` | combat ; `R:518` | pastille sur une entité | P |
 | séparateur `barre` | barre des éditeurs ; `R:798`, `S/outils/outils.css:65` | trait vertical 1 × 30 px | C |
-| séparateur `median` | cartes de choix, textes composés ; `S/gestes.js:371`, `S/gestes.css:324` | « · » entre deux espaces, sans boîte (`display:contents`) ; les « · » écrits en texte dans `rendu.js` passent tous par lui, sauf le texte SVG de la frise (`R:911`) | C |
+| séparateur `median` | cartes de choix, textes composés ; `S/gestes.js:381`, `S/gestes.css:339` | « · » entre deux espaces, sans boîte (`display:contents`) ; les « · » écrits en texte dans `rendu.js` passent tous par lui, sauf le texte SVG de la frise (`R:910`) | C |
 
 Variantes : **14 aujourd'hui** (7 propres). **Cible : 5** (deux lignes, deux puces, un séparateur). `.point` (`S/rendu.css:15`) n'est émis par aucun script : à retirer.
 
@@ -136,7 +125,7 @@ Variantes : **14 aujourd'hui** (7 propres). **Cible : 5** (deux lignes, deux puc
 | Primitive, signature | Variantes d'aujourd'hui | Portée | Cible |
 |---|---|---|---|
 | `ruban(libelle, { style })` ; `S/gestes.js:235` | une forme : gothique 18, inter-lettre 0,6 (`S/gestes.css:74`) ; les onglets la gardent (`.onglets .ruban`) | C | 1 |
-| `cartouche({ icone, nom, sous, marque, taille })` ; `S/gestes.js:315` | `titre` 31 / 44, marge −6 0 −5 (`S/gestes.css:70`), seule taille variable : la réduction par script d'un nom long (`R:1815`) ; `ligne` 22 px (`S/gestes.css:119`), `ouvert` 20 px (`S/heros/heros.css:293`) | C, C, P | 2 |
+| `cartouche({ icone, nom, sous, marque, taille })` ; `S/gestes.js:315` | `titre` 31 / 44, marge −6 0 −5 (`S/gestes.css:70`), seule taille variable : la réduction par script d'un nom long (`R:1813`) ; `ligne` 22 px (`S/gestes.css:119`), `ouvert` 20 px (`S/heros/heros.css:288`) | C, C, P | 2 |
 | `titre({ texte, cle, ecran })` ; `S/gestes.js:354` | le titre d'un panneau : gothique 28 / 40, marge −7 0 −5 (`S/gestes.css:111`), `--ivoire` ombré sur bois, `--sepia` sans ombre sur parchemin ; `ecran` : la forme du cartouche de titre, pour un titre de barre (Compendium, éditeurs) ; `cle` : le `data-texte` du relevé | C | 2 |
 | `titreLibre` ; `R:621` | 80 px (`S/accueil-et-systeme/ouverture.css:5`) | C | 1 |
 | `nom({ texte, taille })` : le nom gothique d'un acteur | six tailles : 19, 20, 21, 26, 28, 30 px (carte § 9.2) | C | 3 |
@@ -145,11 +134,11 @@ Variantes : **13 aujourd'hui** (1 propre : `ouvert`). **Cible : 10.** Aucune feu
 
 #### Filets : `filet`
 
-Signature : `filet({ fondu, losange, or })`, `S/gestes.js:373`. `filet()` nu se pose au-dessus d'une `rubrique` qui veut un trait. Le filet n'a pas de marge : l'écart à ses voisins et son retrait latéral sont posés par sa disposition (`#affaire>.fond>.filet`, `.affiche .filet`, `#rail .filet`…).
+Signature : `filet({ fondu, losange, or })`, `S/gestes.js:383`. `filet()` nu se pose au-dessus d'une `rubrique` qui veut un trait. Le filet n'a pas de marge : l'écart à ses voisins et son retrait latéral sont posés par sa disposition (`#affaire>.fond>.filet`, `.affiche .filet`, `#rail .filet`…).
 
 | Variante | Écrans, source | Portée |
 |---|---|---|
-| `nu`, `fondu`, `losange`, `fondu-losange` | partout ; 15, 5, 8 et 18 appels hors du kit, `or` 2 (accueil, menu de la partie) ; `S/gestes.css:313` | C |
+| `nu`, `fondu`, `losange`, `fondu-losange` | partout ; 15, 5, 8 et 18 appels hors du kit, `or` 2 (accueil, menu de la partie) ; `S/gestes.css:328` | C |
 
 Variantes : **4**, celles du kit. Le trait de l'inspecteur, des options et de la nouvelle partie est un `filet()`, celui des entrées du menu un `filet({ fondu, or })`, la borne d'un round dans l'ordre du combat un `filet({ fondu })`. Les filets de bloc (bordure d'une rubrique ou d'une ligne) appartiennent à leur nature.
 
@@ -157,19 +146,19 @@ Variantes : **4**, celles du kit. Le trait de l'inspecteur, des options et de la
 
 | Primitive, signature | Forme | Portée |
 |---|---|---|
-| `raison(texte, { survolee })` ; `S/gestes.js:430`, `S/gestes.css:380` | une ligne jusqu'à 320 px, puis à la ligne ; Spectral italique 13 / 17 ; `survolee: false` : cachée, sans `data-dessus`. En ligne (`.raison-de-refus`, `S/gestes.css:388`), elle garde la taille de la ligne secondaire qu'elle remplace | C |
-| `apercu({ nom, sous, corps, vers, style })` ; `S/gestes.js:350`, `S/gestes.css:169` ; `corps` est un emplacement | le corps au kit : table (`td` de droite en Fell SC 14), `tr.somme`, `p` en italique 13 / 17, `.pied` | C |
+| `raison(texte, { survolee })` ; `S/gestes.js:440`, `S/gestes.css:395` | une ligne jusqu'à 320 px, puis à la ligne ; Spectral italique 13 / 17 ; `survolee: false` : cachée, sans `data-dessus`. En ligne (`.raison-de-refus`, `S/gestes.css:403`), elle garde la taille de la ligne secondaire qu'elle remplace | C |
+| `apercu({ nom, sous, corps, vers, style })` ; `S/gestes.js:350`, `S/gestes.css:189` ; `corps` est un emplacement | le corps au kit : `tableDApercu`, des lignes `tabulaire` à hauteur fixe de 125 qui défile, `p` en italique 13 / 17, `.pied` | C |
 
 Variantes : **2**, celles du kit. Toute infobulle native (`title`) est devenue une `raison` cachée tant que son élément n'est pas survolé (`carte({ detail })`, `bourse`, conséquences, cases du profil…) ; les surcharges de famille de la bulle ne gardent que leur position, celles de l'aperçu sont parties.
 
 #### Plaques et boutons : `plaque`, `rond`, `outil`, `medaillon`
 
-Signature : `plaque({ libelle, taille, armee, fermee, refus, survol, icone, iconeDeFin, numero, prix, vers })`, `S/gestes.js:212`. Elle perd `classe` et `style`, et pose elle-même sa bulle de refus. Libellé du kit à quatre tailles : `petite` 13, `moyenne` 15, `appel` 18, `geste` (la rangée des gestes de la fenêtre du bas, au centre, trois lignes au plus, 13 / 12) ; un nombre seul va dans `prix` (Chiffres 12,5, `.prix.seul` sans marge), `S/gestes.css:221-236`. Le médaillon a l'état `vise` (`S/gestes.css:280`), à la place des halos écrits à la main.
+Signature : `plaque({ libelle, taille, armee, fermee, refus, survol, icone, iconeDeFin, numero, prix, vers })`, `S/gestes.js:212`. Elle perd `classe` et `style`, et pose elle-même sa bulle de refus. Libellé du kit à quatre tailles : `petite` 13, `moyenne` 15, `appel` 18, `geste` (la rangée des gestes de la fenêtre du bas, au centre, trois lignes au plus, 13 / 12) ; un nombre seul va dans `prix` (Chiffres 12,5, `.prix.seul` sans marge), `S/gestes.css:236-251`. Le médaillon a l'état `vise` (`S/gestes.css:295`), à la place des halos écrits à la main.
 
 | Variante | Écrans, source | Portée |
 |---|---|---|
-| `petite` 28, `moyenne` 40, `appel` 52 | partout ; `S/gestes.css:190`, `:180` | C |
-| `geste-de-scene` | exploration ; `R:1344` | P |
+| `petite` 28, `moyenne` 40, `appel` 52 | partout ; `S/gestes.css:205`, `:180` | C |
+| `geste-de-scene` | exploration ; `R:1343` | P |
 | `geste-d-inspecteur` | éditeurs ; `R:815` | C |
 | `case-rapide` | combat ; `R:444` | P |
 
@@ -181,12 +170,12 @@ Signature : `carte({ nom, lignes, portrait, marque, armee, fermee, refus, survol
 
 | Variante | Écrans, source | Portée |
 |---|---|---|
-| `carte` 92 px | fenêtre du bas ; `S/gestes.css:206` | C |
-| `courte` 26 px | réglage d'un jet ; `S/gestes.css:244` | C |
-| `liste` | choix en liste ; `S/gestes.css:224` | C |
-| `evenement` 76 px | arrêt du voyage ; `S/voyage/voyage.css:34` | P |
-| `paie` | arrêt à parts ; `S/voyage/voyage.css:39` | P |
-| `navale` 70 px | dossier ; `S/voyage/navale.css:26` | P |
+| `carte` 92 px | fenêtre du bas ; `S/gestes.css:221` | C |
+| `courte` 26 px | réglage d'un jet ; `S/gestes.css:259` | C |
+| `liste` | choix en liste ; `S/gestes.css:239` | C |
+| `evenement` 76 px | arrêt du voyage ; `S/voyage/voyage.css:31` | P |
+| `paie` | arrêt à parts ; `S/voyage/voyage.css:36` | P |
+| `navale` 70 px | dossier ; `S/voyage/navale.css:24` | P |
 
 Variantes : **6 aujourd'hui** (3 propres). **Cible : 3.**
 
@@ -194,9 +183,9 @@ Variantes : **6 aujourd'hui** (3 propres). **Cible : 3.**
 
 | Primitive | Forme | Portée |
 |---|---|---|
-| `jauge(part, { teinte, taille, ajout })` | `fine` 6, `forte` 8 ; teintes `cire`, `or` ; `S/gestes.js:380`, `S/gestes.css:198` | C |
-| `reglette(part, largeur)` | options ; `S/gestes.js:378`, `S/gestes.css:337` | P |
-| `rangDePas({ pleins, total, taille, teinte, forme })` | `losanges` (défaut) : écart 8, `moyen` ou `petit` 11, teinte `cire` ; bois par défaut, parchemin sous `.parchemin` ; `clous` : ronds d'or de 9, écart 3, un écart de plus après le cinquième ; `S/gestes.js:384`, `S/gestes.css:208-218` | C |
+| `jauge(part, { teinte, taille, ajout })` | `fine` 6, `forte` 8 ; teintes `cire`, `or` ; `S/gestes.js:390`, `S/gestes.css:213` | C |
+| `reglette(part, largeur)` | options ; `S/gestes.js:388`, `S/gestes.css:352` | P |
+| `rangDePas({ pleins, total, taille, teinte, forme })` | `losanges` (défaut) : écart 8, `moyen` ou `petit` 11, teinte `cire` ; bois par défaut, parchemin sous `.parchemin` ; `clous` : ronds d'or de 9, écart 3, un écart de plus après le cinquième ; `S/gestes.js:394`, `S/gestes.css:223-233` | C |
 
 Variantes : **5**, celles du kit ; les deux `pas-petit` et les `clous` de la création n'ont plus de règle propre.
 
@@ -204,15 +193,15 @@ Variantes : **5**, celles du kit ; les deux `pas-petit` et les `clous` de la cr�
 
 | Nature, primitive | Signature cible | Variantes d'aujourd'hui | Portée | Cible |
 |---|---|---|---|---|
-| Bourse : `bourse`, `rangeeDeBourses` ; `S/gestes.js:417`, `:413` | `bourse({ heros, avoir, parts, total, reglable })`, sans mot écrit | `seule`, `a-parts`, `rangee` | C | 3 |
-| Réserve : `reserves` ; `S/gestes.js:227`, `S/gestes.css:292` | `reserves(jetons, taille)`, au kit | `petit`, `grand` ; le compteur nommé est parti (fiche du combat en `grand`, nom au survol) | C | 2 |
+| Bourse : `bourse`, `rangeeDeBourses` ; `S/gestes.js:427`, `:413` | `bourse({ heros, avoir, parts, total, reglable })`, sans mot écrit | `seule`, `a-parts`, `rangee` | C | 3 |
+| Réserve : `reserves` ; `S/gestes.js:227`, `S/gestes.css:307` | `reserves(jetons, taille)`, au kit | `petit`, `grand` ; le compteur nommé est parti (fiche du combat en `grand`, nom au survol) | C | 2 |
 | Conséquence : `consequences` ; `S/combat/jet.js:40` | `consequences({ liste })` | `avec-icone`, `sans-icone` | C | 2 |
 | Issue : `issue`, `verdict` ; `S/gestes.js:352`, `S/combat/jet.js:29` | `issue({ titre, suite, action })`, `verdict({ … })` | `banniere`, `mot-du-jet`, `issue-de-camp` (`S/combat/jet.js:13`), `issue-subie` (`R:233`, `R:246`) | C | 3 |
 | Colonne : `colonne` ; `S/gestes.js:332` | `colonne({ tete, corps, pied, geste, note })`, cinq emplacements | `tete-et-corps`, `plein` | C | 2 |
-| Défilement : `defile` ; `S/gestes.js:373` | `defile({ contenu, variante })` | `contenu`, `liste`, `au-pied`, `pages` | C | 4 |
+| Défilement : `defile` ; `S/gestes.js:383` | `defile({ contenu, variante })` | `contenu`, `liste`, `au-pied`, `pages` | C | 4 |
 | Onglets : `onglets`, `signets` ; `S/gestes.js:337`, `:336` | `onglets({ noms, ouvert })` | `places`, `en-flux`, `signets` | C | 3 |
 
-Variantes : **22 aujourd'hui** (1 propre). **Cible : 19.** `.consequence` est aussi le nom d'une ligne de la fiche (`S/heros/heros.css:299`, `R:1642`) : elle devient une `ligne`.
+Variantes : **22 aujourd'hui** (1 propre). **Cible : 19.** `.consequence` est aussi le nom d'une ligne de la fiche (`S/heros/heros.css:294`, `R:1640`) : elle devient une `ligne`.
 
 Les primitives hors kit entrent au kit avec le lot qui les migre : `S/combat/jet.js` (camp, fiche, verdict, réglage, conséquences, testeurs, options, bascule, réserves, silhouette), `S/lieux-et-nuit/commun.js` (bandeau, hôte, rail, poste), `S/outils/outils.js` (ligne de liste, table du salon).
 
@@ -222,15 +211,15 @@ Lues dans `voyage`, la fiche du héros et la création seulement (`docs/plans/20
 
 | Nature, primitive à créer | Variantes d'aujourd'hui, source | Cible |
 |---|---|---|
-| Identité : `identite({ portrait, nom, lignes })` | tête de fiche `R:1616`, tête de présentation `R:1593` | 1 |
-| Profil : `profil`, `caseDeProfil({ abreviation, valeur, designee, porte })` | création `R:1514`, fiche `R:1627`, progression `R:1671`, fiche lue du combat `R:492` | 2 |
-| Niche : `niche({ figure })` | `R:1492`, `R:1625` | 1 |
-| Chemin : `chemin({ etapes, rang })` | étapes de création `R:1477`, stations de carrière `R:1691` | 1 |
-| Tirage : `tirage({ sceau, rubrique, valeur })` | `R:1519`, `R:1573` | 1 |
-| Objet : `objet({ illustration, nom, note, choisi })` | `R:1572` | 1 |
-| Saisie : `saisie({ libelle, texte, enSaisie })` | ligne écrite `R:1583`, `champ` du kit `S/gestes.js:445` | 1 |
-| Prose : `prose({ texte, variante })` | `prose`, `pied`, `nature` (`R:1517`, `R:1563`, `R:1641`) | 1 |
-| Fond : `fond({ matiere })` | le mur, `R:1650` | 1 |
+| Identité : `identite({ portrait, nom, lignes })` | tête de fiche `R:1615`, tête de présentation `R:1592` | 1 |
+| Profil : `profil`, `caseDeProfil({ abreviation, valeur, designee, porte })` | création `R:1513`, fiche `R:1625`, progression `R:1669`, fiche lue du combat `R:492` | 2 |
+| Niche : `niche({ figure })` | `R:1491`, `R:1623` | 1 |
+| Chemin : `chemin({ etapes, rang })` | étapes de création `R:1476`, stations de carrière `R:1689` | 1 |
+| Tirage : `tirage({ sceau, rubrique, valeur })` | `R:1518`, `R:1572` | 1 |
+| Objet : `objet({ illustration, nom, note, choisi })` | `R:1571` | 1 |
+| Saisie : `saisie({ libelle, texte, enSaisie })` | ligne écrite `R:1582`, `champ` du kit `S/gestes.js:455` | 1 |
+| Prose : `prose({ texte, variante })` | `prose`, `pied`, `nature` (`R:1516`, `R:1562`, `R:1639`) | 1 |
+| Fond : `fond({ matiere })` | le mur, `R:1648` | 1 |
 | Récit : `recit({ rubrique, texte })` | `R:884` | 1 |
 
 Variantes : **21 aujourd'hui**. **Cible : 11.**

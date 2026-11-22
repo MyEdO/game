@@ -68,7 +68,6 @@
 #volets .gestes{display:flex;flex-direction:column;gap:6px}
 #volets .gestes .plaque{flex:none}
 #volets .ligne{height:auto;min-height:32px;padding:5px 10px;box-sizing:border-box;white-space:normal;line-height:18px;font-size:14px}
-.prop.sens{flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px}
 .outils{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .outils .o{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.18)}
 .outils .o span{font-family:"Fell SC";font-size:10.5px;letter-spacing:.5px;color:#e6dabd;white-space:nowrap}
@@ -86,12 +85,12 @@
 #inspecteur .defile.corps{gap:0}
 #inspecteur .sous-titre{white-space:nowrap}
 #inspecteur .filet{margin:9px 0 3px}
-.prop{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:38px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12}
-.prop>span{white-space:nowrap}
-.prop.gris>span{color:#7a6548}
-.prop .v{font-style:italic;font-size:13.5px;color:#4a3420;white-space:nowrap}
-.prop .pas-a-pas b{min-width:0;font-size:11.5px;letter-spacing:.3px}
-#inspecteur .rub{margin:0;padding:11px 0 4px}
+/* les propriétés de l'inspecteur, une par rangée, au centre de sa hauteur ; la grisée n'a pas cours ici */
+#inspecteur div.libelle-valeur{align-items:center;min-height:38px;border-bottom:1px solid rgba(60,40,20,.22)}
+#inspecteur div.libelle-valeur.empilee{padding:6px 0 8px;row-gap:5px}
+#inspecteur div.libelle-valeur.grise>.rub{color:#7a6548}
+#inspecteur .pas-a-pas b{min-width:0;font-size:11.5px;letter-spacing:.3px}
+#inspecteur .rub:not(.libelle-valeur>.rub){margin:0;padding:11px 0 4px}
 #inspecteur .place>.rub:first-child{padding-top:0}
 .renvoi{display:flex;align-items:center;gap:8px;height:32px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12;white-space:nowrap}
 .renvoi svg:last-child{margin-left:auto}

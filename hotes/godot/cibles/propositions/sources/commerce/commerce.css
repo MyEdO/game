@@ -4,17 +4,13 @@
 
 /* l'hôte d'offre : un marchand, sa denrée, ses mesures, son geste */
 .offre>.fond{padding:10px 14px 12px 12px}
-.offre table{width:100%;border-collapse:collapse;margin-top:8px}
-.offre td{padding:1.5px 0;font-size:13px;line-height:17px;color:#e6dabd;white-space:nowrap}
-.offre td:first-child{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--creme-2)}
-.offre td:last-child{text-align:right;font-weight:600;color:#f4e8ca}
+.offre table{margin-top:8px}
 .offre .gestes{display:flex;gap:8px;margin-top:9px}
 .offre.choisie{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.38)}
 .hote:is(.enseigne,.charge)>.fond{padding:8px 14px 9px 10px}
 
 /* un porteur : sa ligne d'Encombrement */
-.porteur-ligne{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;font-size:12px;color:#e6dabd;white-space:nowrap}
-.porteur-ligne b{font-weight:600;color:#f4e8ca}
+.offre div.libelle-valeur{margin-top:7px}
 .offre .jauge{margin-top:5px}
 .lot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:5px 8px;border-radius:2px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(226,192,106,.22);font-size:13px;color:#f4e8ca;white-space:nowrap}
 .lot span:last-child{margin-left:auto;font-weight:600}
@@ -35,13 +31,10 @@
 .quantite{display:flex;align-items:center;gap:12px}
 .quantite .val{flex:none;width:86px;text-align:right;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;white-space:nowrap}
 .quantite .bornes{display:flex;justify-content:space-between;font-size:11px;color:#5a4530;margin-top:1px}
-#page .compte td:first-child span{font-size:11.5px;color:#5a4530;margin-left:6px}
 .voies{display:flex;flex-direction:column;gap:7px}
 .voies .soin{margin-top:0}
-.faits{width:100%;border-collapse:collapse;font-size:13.5px;color:#2a1d12}
-.faits td{padding:2px 0;vertical-align:baseline}
-.faits td:last-child{text-align:right;font-weight:600;white-space:nowrap}
-.faits td span{font-size:11.5px;color:#5a4530;margin-left:6px;font-weight:400}
+/* le détail d'une ligne de compte, en chiffres après son libellé */
+:is(.compte,.faits) td:first-child>span{font-size:11.5px;color:#5a4530;margin-left:6px}
 
 /* le billet de rumeur, sous le rail */
 #rumeur{position:absolute;padding:12px 16px 13px;box-shadow:0 8px 18px rgba(0,0,0,.65),0 0 0 1px rgba(40,25,10,.9),inset 0 0 18px rgba(90,60,20,.45);border-radius:2px}

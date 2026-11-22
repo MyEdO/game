@@ -75,9 +75,6 @@
 .faits.trois{grid-template-columns:repeat(3,auto);justify-content:space-between}
 .faits.quatre{grid-template-columns:repeat(4,auto);justify-content:space-between}
 .faits.pied{margin-top:auto}
-.fait{min-width:0}
-.fait .rub{display:block}
-.fait b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--encre)}
 .attributs{display:flex;gap:5px;margin-top:2px}
 .pills{display:flex;flex-wrap:wrap;gap:5px}
 .pills>.etiquette{position:relative}
@@ -176,7 +173,7 @@
 .plaques .plaque{flex:1}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
 .physique .mesure{display:flex;align-items:center;gap:11px}
-.physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.physique .mesure>.libelle-valeur{flex:1;min-width:0}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -189,8 +186,7 @@
 .ident .tete>.q{flex:1;min-width:0}
 .ident .l{font-family:"Fell SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
 .ident .tete .faits{margin-top:10px}
-.ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
-.ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.ident .libelle-valeur.mesure{margin-top:14px}
 .ident [data-place="identite/reserves"]{display:flex;flex-direction:column}
 .ident [data-place="identite/reserves"]>.reserves{flex:1;align-content:start}
 .ident .reserve .rub{white-space:normal}
@@ -237,13 +233,12 @@
 #heros-neuf>.fond{display:flex;gap:12px}
 #heros-neuf .niche{width:104px}
 .acquis{flex:1;min-width:0;display:flex;flex-direction:column}
-.acquis>.nom-propre{white-space:nowrap;overflow:hidden;margin-bottom:4px}
-.acquis .a{margin-bottom:7px;min-width:0}
-.acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
+.acquis>.nom-propre{flex:none;white-space:nowrap;overflow:hidden;margin-bottom:4px}
+.acquis>.libelle-valeur{margin-bottom:4px}
+/* un libellé d'acquis passe à la ligne au séparateur, sa marque de PX avec lui */
+.acquis .libelle-valeur>.rub{white-space:normal}
 /* le compte des PX déborde la ligne de sa rubrique, sans la grandir */
-.acquis .a i>.etiquette{margin:-3px 0}
-.acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
-.acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
+.acquis .rub>.etiquette{margin:-3px 0 -3px 6px}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .acquis .gestes .plaque{flex:none}
 .acquis .gestes .bulle-refus{left:auto;right:0;transform:none}

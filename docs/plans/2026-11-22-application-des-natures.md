@@ -31,6 +31,7 @@ Ce document porte l'application des natures d'interface aux maquettes. Il sert d
 | jauge | `rangDePas({ pleins, total, taille, teinte, forme })` : losanges écart 8, `petit` 11, `cire` ; forme `clous` | `cc4f7cfeb` | passe 0 rouge ; voir la preuve du lot 3 |
 | plaque | `plaque(libelle, { taille })` : `petite` 13, `moyenne` 15, `appel` 18, `geste` ; un nombre seul dans `prix` ; outil au kit ; `medaillon({ vise })` | `cfff50879` | idem |
 | bulle | `raison(texte, { survolee })` : une ligne jusqu'à 320, puis à la ligne ; corps de l'`apercu` au kit ; `reserves` au kit, `compteur` supprimé ; 0 `title=` | `8e63cbab7` | idem |
+| ligne libellé-valeur | `ligne({ libelle, valeur, variante, format, dessous, etat, cle })`, `.libelle-valeur` (`courante`, `empilee`, `mesure`, `tabulaire`) | lot 4a | voir la preuve du lot 4a |
 
 Teintes d'étiquette hors des quatre prévues, choisies sans question (révisables, un argument chacune) :
 - `pill.fermee`, `palier.ferme` et `attend.autre` → `fer` ;
@@ -41,7 +42,7 @@ Le cartouche ouvert de la fiche du héros prend le cran `grand` du cartouche (22
 
 ## Reste, dans l'ordre
 
-1. **Lot 4** : `ligne` (libellé-valeur : `courante`, `empilee`, `mesure`, `tabulaire` ; libellé = `rubrique()`, sauf la ligne de tableau en Spectral 13,5) et `ligneDeListe` (28 px, 44 avec une précision dessous ; puce losange ou coche). Elles se composent des primitives déjà posées et passent donc en dernier.
+1. **Lot 4b** : `ligneDeListe` (28 px, 44 avec une précision dessous ; puce losange ou coche). Elle se compose des primitives déjà posées et passe donc en dernier.
 2. **Nettoyage des groupes `textes` et `listes-et-noms`**, une fois leurs natures posées (le groupe `pieces-et-jauges` est nettoyé) :
    - `sources/kit/proposition-<groupe>.js` et son CSS local partent ;
    - la planche montre les primitives et sa feuille passe dans `kit/planche.js`, sans contournement de `data-etat` ;
@@ -101,6 +102,22 @@ Autres choix du lot 3, révisables :
 - le séparateur prend des espaces ordinaires plutôt que fines, parce que Fell et Chiffres n'ont pas l'espace fine et que Grenze la dessine à 0,6 em ;
 - les règles de famille qui stylaient tout `span` descendant visent désormais leur cible.
 - dans la barre des éditeurs, la plaque à pictogramme seul garde sa marge de 9 : la barre est une disposition dense, et la marge du kit la rognait en bureau.
+
+Preuve du lot 4a (ligne libellé-valeur), contre la référence `0f1c7705f` :
+- passe : 57 écrans, 170 états, 8 planches, 0 rouge ;
+- pixels : 82 états changés, aucun hors attendu ; l'attendu compte les 81 états à site de ligne ; les trois états de l'arrivée, changés hors attendu à la première comparaison, y sont ajoutés : leur hôte prend la hauteur des offres (disposition du gabarit) ; `options` et `verrou` restent inchangés, leurs lignes étant la préférence et la règle maison, hors de la ligne ;
+- un relevé neuf en 16:10 (`bataille-de-masse`) : l'aperçu d'une Scène et le billet d'un poste se plaçaient par `bottom` sur une hauteur de 720 et couvraient en 16:10 les portraits de leur Scène. Ils se placent désormais par `top`, à 0 relevé ;
+- typecheck complet, `oxlint`, `docs:check` et `test:perimetre` au vert.
+
+Choix du lot 4a, révisables :
+- la ligne émet `.libelle-valeur` : `.ligne` porte déjà la ligne de liste ;
+- l'hôte du commerce passe de 196 à 204 de haut, 170 pour un porteur (156) : la table de l'offre et la jauge du porteur tiennent sans masque ;
+- la colonne basse de droite des poursuites : `plein` sur 120, le geste à 140 ; la page du lieu : corps 256, pied à 328 ;
+- dans la fenêtre du jet, le libellé d'une ligne de réglage passe à la ligne serré (13 d'interligne), et les plaques d'options ont une marge de 6 ;
+- l'effet d'une issue (enjeu de la Focalisation) passe à la ligne serré, sur 17 ;
+- le libellé d'un acquis de la création passe à la ligne au séparateur, son étiquette de PX avec lui ; le physique est en lignes `empilee` ;
+- la rangée de total d'un compte devient `somme` (filet au-dessus, gras) ; la valeur en chiffres d'une rangée a 20 d'interligne, pour que la rangée garde 24 ;
+- l'entrée d'une rangée ne passe jamais à la ligne ; seule la valeur des aperçus (sort, Scène, poste) et de l'enjeu le peut.
 
 ## Outils
 
