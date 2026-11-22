@@ -5,9 +5,6 @@ import type { Pt } from './monde/path';
 import type { PendingFall, TombantParticipant } from './pendings';
 import { rule } from '../engine/policy';
 import { climbMovementCost } from '../engine/movement';
-import { t } from '../i18n';
-import { actorIn } from './monde/combatants';
-import type { Jeu } from './etat';
 
 /**
  * FRANCHISSEMENT d'une arête par un GESTE — planificateur UNIQUE de la chute VOLONTAIRE « à dessein »
@@ -128,14 +125,3 @@ const doitDeclarer = (p: PendingFall, x: TombantParticipant): boolean => x.attem
  *  qui tentent le Test sans l'avoir jeté. */
 export const rangeesDuesDeChute = (p: PendingFall): TombantParticipant[] =>
   p.participants.filter((x) => (phaseDeChute(p) === 'choix' ? doitDeclarer(p, x) : x.attempt === true && !x.result));
-
-/** Les tombants `rangees`, chacun nommé avec l'id que prennent les verbes de la chute : « Nom (id), … ». */
-export const tombantsNommes = (s: Jeu, rangees: readonly TombantParticipant[]): string =>
-  rangees.map((x) => `${actorIn(s, x.id)?.label ?? x.id} (${x.id})`).join(', ');
-
-/** Le refus d'un jet de chute en phase de choix : ce qui reste à déclarer (et s'il se suspend d'abord, quand la
- *  croisée l'offre). */
-export function refusDesDeclarationsDues(s: Jeu, p: PendingFall): string {
-  const tombants = tombantsNommes(s, rangeesDuesDeChute(p));
-  return t(p.suspendu === undefined ? 'fall.refus.declarationsDues' : 'fall.refus.declarationsDuesSuspendu', { tombants });
-}

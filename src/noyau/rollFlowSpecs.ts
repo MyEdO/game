@@ -121,7 +121,8 @@ import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile, type Scene } from './monde/scene';
-import { metresRetenus, phaseDeChute, rangeesDuesDeChute, refusDesDeclarationsDues, tombantsNommes } from './fallMove';
+import { metresRetenus, phaseDeChute, rangeesDuesDeChute } from './fallMove';
+import { refusDesDeclarationsDues, tombantsNommes } from './refusDeChute';
 import {
   REDERIVATIONS,
   attackTestOf,
