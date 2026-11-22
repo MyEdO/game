@@ -2007,6 +2007,7 @@ export const fr = {
   'cs.refusCourseNonArmee': 'Trop loin pour marcher — armez la Course pour aller jusque-là.',
   'cs.refusApprocheNonArmee': '{name} est hors de portée — armez la Charge pour l’atteindre.',
   'cs.refusCibleGratuite': '{attaque} : {name} n’est pas une cible valide.',
+  'cs.refusFrappeEnAttente': 'Une frappe est déjà en attente.',
   'cs.refusSansSortDissipable': 'Aucun Sort à dissiper sur cette cible.',
   'cs.refus.dejaDissipe': 'Déjà dissipé par {name}',
   'cs.refus.neLancePas': 'Jet refusé : {name} ne lance pas le Contre-sort.',

@@ -1,6 +1,6 @@
 """Données de `humanoide--vetement--bottines` (le Soldat, #4318), lues par `modele.py` : la variante `bottines` de la
-pièce `bottes` de la garde-robe, que le preset `soldat` porte (le Sorcier et l'Apothicaire gardent la pièce `bottes`, le
-Gladiateur sa variante `bottes-a-revers`).
+pièce `bottes` de la garde-robe, que le preset `soldat` porte (le Sorcier, l'Apothicaire et le Gladiateur gardent la pièce
+`bottes`).
 
 Illustration directrice : « Soldat | soldat | `carrieres/soldat.png` | Livre de Base | 76 | certaine » (`INDEX.md` du
 recueil `illustrations-wfrp.zip` ; page du PDF, folio imprimé 74), hors dépôt.

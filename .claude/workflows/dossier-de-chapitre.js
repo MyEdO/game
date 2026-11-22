@@ -27,48 +27,39 @@ const NOMS_DE_FAMILLE = Object.keys(FAMILLES)
 const projetee = (p) => estObjet(p) && typeof p.prefixe === 'string' && p.prefixe !== '' && Number.isInteger(p.minimum)
   && estObjet(p.entree) && estObjet(p.entree.properties) && Array.isArray(p.entree.required)
 
-// ── Appels d'agent : un échec se NOMME, une sortie anomale se RENVOIE (#2721) ─────────────────────
-/** L'appel `lancer()`, qui ne lève jamais : `{ rendu, cause: null }`, ou `{ rendu: null, cause }` — l'erreur
- *  levée (schéma non tenu après les essais du harnais, erreur d'API) ou l'absence de rendu. */
-const capturer = async (lancer) => {
-  try {
-    const rendu = await lancer()
-    return rendu ? { rendu, cause: null } : { rendu: null, cause: 'rien rendu' }
-  } catch (erreur) {
-    return { rendu: null, cause: `échec : ${erreur?.message ?? String(erreur)}` }
-  }
-}
-/** Renvois d'une sortie anomale à son agent, au plus. */
-const ESSAIS_DE_CORRECTION = 2
-/** Le prompt d'un renvoi : le prompt d'origine, la sortie fautive, chaque anomalie précise. */
-const renvoiDeCorrection = (prompt, rendu, anomalies) => `${prompt}
-
-SORTIE À CORRIGER — ta sortie précédente à ce même message :
-${JSON.stringify(rendu, null, 1)}
-
-ANOMALIES (chacune se corrige ; le reste de la sortie se garde) :
-${anomalies.map((a) => `- ${a}`).join('\n')}
-Rends la sortie ENTIÈRE, corrigée.`
-/** `lancer(prompt, essai)` (essai 0 = l'appel, puis chaque renvoi), validé par `anomaliesDe(rendu)` : une
- *  sortie anomale est renvoyée `ESSAIS_DE_CORRECTION` fois au plus. Rend le dernier rendu, ses anomalies
- *  restantes, la cause d'un premier appel sans rendu, et le nombre de renvois joués ; un renvoi sans rendu
- *  garde le rendu précédent et nomme sa cause parmi les anomalies. */
-const appelValide = async (prompt, lancer, anomaliesDe) => {
-  const premier = await capturer(() => lancer(prompt, 0))
-  let { rendu } = premier
-  let anomalies = rendu ? anomaliesDe(rendu) : []
-  let renvois = 0
-  while (rendu && anomalies.length && renvois < ESSAIS_DE_CORRECTION) {
-    renvois += 1
-    const corrige = await capturer(() => lancer(renvoiDeCorrection(prompt, rendu, anomalies), renvois))
-    if (!corrige.rendu) {
-      anomalies = [...anomalies, `renvoi ${renvois} sans rendu — ${corrige.cause}`]
-      break
+// Deux appels au plus par site. Si le harnais rejette le schéma, il ne livre que son diagnostic.
+const labelDAppel = (label, renvois) => renvois ? `${label}:renvoi${renvois}` : label
+const diagnosticBorne = (texte) => texte.length <= 240 ? texte : `${texte.slice(0, 239)}…`
+const appelValide = async (prompt, lancer, anomaliesDe = () => []) => {
+  const lire = async (texte, renvois) => {
+    let rendu, cause
+    try {
+      rendu = await lancer(texte, renvois)
+      cause = rendu ? null : 'rien rendu'
+    } catch (erreur) {
+      cause = `échec : ${diagnosticBorne(String(erreur?.message ?? erreur))}`
     }
-    rendu = corrige.rendu
-    anomalies = anomaliesDe(rendu)
+    return { rendu: rendu ?? null, cause, anomalies: rendu ? anomaliesDe(rendu) : [], renvois }
   }
-  return { rendu, cause: premier.cause, anomalies, renvois }
+  const premier = await lire(prompt, 0)
+  if (!premier.cause && !premier.anomalies.length) return premier
+  const sortie = premier.rendu
+    ? `SORTIE À CORRIGER — ta sortie précédente à ce même message :
+${JSON.stringify(premier.rendu, null, 1)}
+
+`
+    : ''
+  const erreurs = premier.cause ? [premier.cause] : premier.anomalies
+  const second = await lire(`${prompt}
+
+${sortie}ANOMALIES (chacune se corrige ; le reste de la sortie se garde) :
+${erreurs.map((a) => `- ${a}`).join('\n')}
+Rends la sortie ENTIÈRE, corrigée.`, 1)
+  if (!second.cause) return second
+  if (premier.rendu) {
+    return { ...premier, anomalies: [...premier.anomalies, `renvoi 1 sans rendu — ${second.cause}`], renvois: 1 }
+  }
+  return premier.cause === second.cause ? second : { ...second, cause: `appel initial : ${premier.cause} · renvoi : ${second.cause}` }
 }
 
 // ── Lentilles ────────────────────────────────────────────────────────────────────────────────
@@ -182,21 +173,21 @@ const promptDeLecture = (l) => `${l.consigne}\n\n${CADRE}\n${CHAPITRE_LU}\n\nTu 
 /** Les lentilles qui JOUENT, chacune avec son site `agent(` : son schéma se lit à la forme, son rendu se
  *  keye au label de SA lentille, jamais au rang. Celle des compagnons ne joue que s'il y en a. */
 const lecteurs = [
-  [LENTILLE_IMPERATIFS_ET_BEATS, () => agent(promptDeLecture(LENTILLE_IMPERATIFS_ET_BEATS),
-    { label: LENTILLE_IMPERATIFS_ET_BEATS.label, phase: 'Lecture', schema: IMPERATIFS_ET_BEATS, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
-  [LENTILLE_PNJ_LIEUX_TEXTES, () => agent(promptDeLecture(LENTILLE_PNJ_LIEUX_TEXTES),
-    { label: LENTILLE_PNJ_LIEUX_TEXTES.label, phase: 'Lecture', schema: PNJ_LIEUX_TEXTES, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
-  [LENTILLE_MECANIQUE, () => agent(promptDeLecture(LENTILLE_MECANIQUE),
-    { label: LENTILLE_MECANIQUE.label, phase: 'Lecture', schema: MECANIQUE, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
+  [LENTILLE_IMPERATIFS_ET_BEATS, (prompt, essai) => agent(prompt,
+    { label: labelDAppel(LENTILLE_IMPERATIFS_ET_BEATS.label, essai), phase: 'Lecture', schema: IMPERATIFS_ET_BEATS, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
+  [LENTILLE_PNJ_LIEUX_TEXTES, (prompt, essai) => agent(prompt,
+    { label: labelDAppel(LENTILLE_PNJ_LIEUX_TEXTES.label, essai), phase: 'Lecture', schema: PNJ_LIEUX_TEXTES, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
+  [LENTILLE_MECANIQUE, (prompt, essai) => agent(prompt,
+    { label: labelDAppel(LENTILLE_MECANIQUE.label, essai), phase: 'Lecture', schema: MECANIQUE, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })],
 ]
 if (COMPAGNONS.length) {
-  lecteurs.push([LENTILLE_MATIERE_COMPAGNONS, () => agent(promptDeLecture(LENTILLE_MATIERE_COMPAGNONS),
-    { label: LENTILLE_MATIERE_COMPAGNONS.label, phase: 'Lecture', schema: MATIERE_COMPAGNONS, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })])
+  lecteurs.push([LENTILLE_MATIERE_COMPAGNONS, (prompt, essai) => agent(prompt,
+    { label: labelDAppel(LENTILLE_MATIERE_COMPAGNONS.label, essai), phase: 'Lecture', schema: MATIERE_COMPAGNONS, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })])
 }
 const LENTILLES = lecteurs.map(([l]) => l)
 log(`Lecture : ${LENTILLES.length} lentilles (${LENTILLES.map((l) => l.label).join(', ')})${COMPAGNONS.length ? '' : ' — aucun compagnon fourni, la lentille des compagnons ne joue pas'}.`)
 
-const lectures = await parallel(lecteurs.map(([l, lancer]) => () => capturer(lancer).then((appel) => ({ label: l.label, ...appel }))))
+const lectures = await parallel(lecteurs.map(([l, lancer]) => () => appelValide(promptDeLecture(l), lancer).then((appel) => ({ label: l.label, ...appel }))))
 const parLentille = Object.fromEntries(lectures.filter((l) => l.rendu).map((l) => [l.label, l.rendu]))
 const mortes = lectures.filter((l) => !l.rendu)
 if (mortes.length) log(`Lecture : ${mortes.length} lentille(s) sans rendu — ${mortes.map((l) => `${l.label} (${l.cause})`).join(', ')} ; leurs familles MANQUENT à la fiche et le juge de complétude le sait.`)
@@ -292,7 +283,7 @@ Une cible (une réf, ou un attribut d'une entrée) ne se corrige qu'UNE fois.
 Rends \`synthese.markdown\` : la fiche en une page — impératifs, beats et leurs médias candidats, états produits et lus, corrections.`
 
 const completude = await appelValide(PROMPT_DE_COMPLETUDE, (prompt, essai) => agent(prompt,
-  { label: essai ? `completude:renvoi${essai}` : 'completude', phase: 'Complétude', schema: COMPLETUDE, agentType: 'juge-de-source', model: 'opus', effort: 'high' }),
+  { label: labelDAppel('completude', essai), phase: 'Complétude', schema: COMPLETUDE, agentType: 'juge-de-source', model: 'opus', effort: 'high' }),
 anomaliesDeCompletude)
 
 // ── Application des corrections ──────────────────────────────────────────────────────────────
@@ -327,7 +318,8 @@ if (completude.rendu) {
   }
 }
 
-const agents = { lecture: LENTILLES.length, completude: 1 + completude.renvois, total: LENTILLES.length + 1 + completude.renvois }
+const appelsLecture = lectures.reduce((n, l) => n + 1 + l.renvois, 0)
+const agents = { lecture: appelsLecture, completude: 1 + completude.renvois, total: appelsLecture + 1 + completude.renvois }
 if (!completude.rendu) log(`Complétude : le juge n’a rien rendu (${completude.cause}) — la fiche est rendue SANS relecture de complétude.`)
 if (completude.renvois) log(`Complétude : ${completude.renvois} renvoi(s) au juge pour correction(s) inapplicable(s) ; ${completude.anomalies.length} restée(s).`)
 if (completude.anomalies.length) log(`Complétude : ${completude.anomalies.length} correction(s) INAPPLICABLE(S) — ${completude.anomalies.join(' · ')}.`)

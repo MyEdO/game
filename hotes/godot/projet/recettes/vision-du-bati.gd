@@ -5,7 +5,9 @@ extends SceneTree
 ## cases qu'elle sépare, la vision posée (`VolumeDeScene.voir`) se lie à la matière de chaque nappe, qui ne lie jamais le
 ## masque du retrait, et chaque sommet de la nappe porte en `UV2` le texel de sa case au plan `sol` de sa couche ; chaque
 ## instance vue d'une arête a, à son rang (les montrées puis les cachées, `cacher`), la teinte de la meilleure de ses
-## cases (méta `couleurs` de son groupe), encore après `cacher`, blanche sans vision. Puis le monde, la vision et les
+## cases (méta `couleurs` de son groupe), encore après `cacher`, blanche sans vision : un mur d'étage vu par l'air de sa
+## couche, une pièce posée sur une nappe (`nappe`) lue au plan `toit`, vue, quand le plancher qu'elle coiffe reste
+## inconnu au plan `sol`. Puis le monde, la vision et les
 ## arêtes d'une autre scène, plus petite et d'une couche, dans l'ordre du combat (`combat.gd`, `_suivre`) : aucune erreur,
 ## et les arêtes neuves teintes par la vision neuve. Les arêtes se teignent juste avant qu'une image se dessine
 ## (`frame_pre_draw`), que le rendu sans écran (`--headless`) n'émet pas : la recette l'émet ; le rendu réel du voile :
@@ -16,6 +18,9 @@ const METRES_PAR_CASE := 2.0
 ## Les teintes de `src/data/ambiance.json` (`fogTint`).
 const TEINTES := {visible = 1.0, explored = 0.42, unknown = 0.15}
 const VUE := 255
+## Le plan `toit` de la vision : la case (1, 2) de la couche d'indice 1, sous la nappe, vue, quand son plancher, au plan
+## `sol`, reste inconnu.
+const TOITS := {Vector3i(1, 2, 1): 255}
 const EXPLOREE := 128
 const INCONNUE := 0
 ## La première scène : 6 × 4 cases, deux couches ; la seconde : 3 × 3, une couche.
@@ -47,19 +52,23 @@ func _recetter() -> void:
 		_arete("b", Noyau.Piece.MUR, Vector2(2.0, 1.5), [Vector3i(2, 2, 1), Vector3i(2, 1, 1)]),
 		_arete("c", Noyau.Piece.MUR, Vector2(3.0, 3.5), [Vector3i(3, 3, 0)]),
 		_arete("p", Noyau.Piece.PORTE_FERMEE, Vector2(4.0, 1.5), [Vector3i(4, 2, 0), Vector3i(4, 1, 0)]),
+		_arete("e", Noyau.Piece.MUR, Vector2(1.0, 0.5), [Vector3i(1, 0, 1), Vector3i(1, 1, 1)]),
+		_arete("f", Noyau.Piece.MUR, Vector2(2.0, 2.0), [Vector3i(1, 2, 1)]).merged({nappe = "maison"}),
 	]
-	var etats := {Vector3i(1, 1, 0): VUE, Vector3i(2, 2, 1): EXPLOREE, Vector3i(2, 1, 1): INCONNUE, Vector3i(4, 1, 0): EXPLOREE, Vector3i(4, 2, 0): INCONNUE}
+	var etats := {Vector3i(1, 1, 0): VUE, Vector3i(2, 2, 1): EXPLOREE, Vector3i(2, 1, 1): INCONNUE, Vector3i(4, 1, 0): EXPLOREE, Vector3i(4, 2, 0): INCONNUE, Vector3i(1, 0, 1): VUE}
 	volume.poser_les_aretes(aretes, [], [])
-	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats))
+	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats, TOITS))
+	if volume.etat_de_la_case(Vector2i(1, 2), 1) != INCONNUE:
+		_fautes.append("le plancher coiffé (1, 2) de la couche 1 lit %d au plan sol, attendu inconnu" % volume.etat_de_la_case(Vector2i(1, 2), 1))
 	RenderingServer.frame_pre_draw.emit()
 	_nappes(monde)
 	for etape: Array in [["posées", []], ["cachées", ["a", "b"]], ["rendues", []]]:
 		volume.cacher(etape[1], [], [])
 		RenderingServer.frame_pre_draw.emit()
-		_teintes(monde, etape[0], etape[1], etats)
+		_teintes(monde, etape[0], etape[1], etats, TOITS)
 	volume.voir(null)
 	RenderingServer.frame_pre_draw.emit()
-	_teintes(monde, "sans vision", [], {})
+	_teintes(monde, "sans vision", [], {}, {})
 	## La scène change pendant un fondu : une vision de même taille, aux états différents ailleurs que sous les arêtes,
 	## se fond depuis la précédente quand le monde neuf, sans la couche de `b`, se pose.
 	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats))
@@ -74,7 +83,7 @@ func _recetter() -> void:
 	volume.voir(_vision(PETITE, PETITE, 1, etats_neufs))
 	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])], [], [])
 	RenderingServer.frame_pre_draw.emit()
-	_teintes(monde, "autre scène", [], etats_neufs)
+	_teintes(monde, "autre scène", [], etats_neufs, {})
 	for faute in _fautes:
 		push_error("[vision-du-bati] " + faute)
 	print("[vision-du-bati] erreurs=", _fautes.size())
@@ -110,15 +119,16 @@ func _nappes(monde: Monde) -> void:
 
 
 ## Chaque instance vue de chaque groupe d'arêtes de `monde`, à son rang (les montrées puis les cachées `cachees`), de la
-## teinte de la meilleure de ses cases sous les états `etats` (absente : inconnue), blanche sans état.
-func _teintes(monde: Monde, etape: String, cachees: Array, etats: Dictionary) -> void:
+## teinte de la meilleure de ses cases sous les états `etats` (absente : inconnue), ceux du plan `toit` (`toits`) pour une
+## pièce posée sur une nappe, blanche sans état.
+func _teintes(monde: Monde, etape: String, cachees: Array, etats: Dictionary, toits: Dictionary) -> void:
 	for groupe: Node3D in monde.get_node("VolumeDeScene/Aretes").get_children():
 		var aretes: Array = groupe.get_meta("aretes")
 		var ordre := aretes.filter(func(a: Dictionary) -> bool: return not cachees.has(a.cle))
 		ordre.append_array(aretes.filter(func(a: Dictionary) -> bool: return cachees.has(a.cle)))
 		var couleurs: Array = groupe.get_meta("couleurs")
 		for rang in ordre.size():
-			var attendue := _teinte_attendue(ordre[rang], etats)
+			var attendue := _teinte_attendue(ordre[rang], etats.merged(toits, true) if ordre[rang].has("nappe") else etats)
 			if not (couleurs[rang] is Color) or not (couleurs[rang] as Color).is_equal_approx(attendue):
 				_fautes.append("%s, %s rang %d : teinte %s, attendu %s" % [etape, ordre[rang].cle, rang, couleurs[rang], attendue])
 
@@ -153,15 +163,17 @@ func _plat(z: int, largeur: int, hauteur: int) -> Dictionary:
 	return {z = z, rangees = rangees}
 
 
-## La vision (`VisionDuMonde`) d'une scène de `largeur` × `hauteur` cases et de `couches` couches, chaque case à l'état
-## que `etats` lui donne (par `Vector3i(x, y, indice de couche)`), inconnue sinon.
-func _vision(largeur: int, hauteur: int, couches: int, etats: Dictionary) -> Dictionary:
+## La vision (`VisionDuMonde`) d'une scène de `largeur` × `hauteur` cases et de `couches` couches : au plan `sol`, chaque
+## case à l'état que `etats` lui donne (par `Vector3i(x, y, indice de couche)`), inconnue sinon ; au plan `toit`, celui
+## que `toits` lui donne, sinon celui du plan `sol`.
+func _vision(largeur: int, hauteur: int, couches: int, etats: Dictionary, toits: Dictionary = {}) -> Dictionary:
 	var octets := PackedByteArray()
-	for z in couches:
-		for y in hauteur:
-			for x in largeur:
-				octets.append(etats.get(Vector3i(x, y, z), INCONNUE))
-	return {masque = Marshalls.raw_to_base64(octets), largeur = largeur, rangees = hauteur * couches, rangeesParPlan = hauteur, teintes = TEINTES}
+	for plan: Dictionary in [etats, etats.merged(toits, true)]:
+		for z in couches:
+			for y in hauteur:
+				for x in largeur:
+					octets.append(plan.get(Vector3i(x, y, z), INCONNUE))
+	return {masque = Marshalls.raw_to_base64(octets), largeur = largeur, rangees = 2 * hauteur * couches, rangeesParPlan = hauteur, teintes = TEINTES}
 
 
 ## La géométrie du monde `cle` : les dalles des cases `cases` à `hauteur` mètres, chaque triangle à sa case de la couche

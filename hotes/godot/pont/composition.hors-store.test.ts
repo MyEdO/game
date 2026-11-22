@@ -71,15 +71,16 @@ describe('composerSurLaBase', () => {
   });
 
   it('une variante monte à la ligne de sa pièce (#3446) : l’atelier l’y sert, liste avec la pièce, et la composition l’y choisit', () => {
-    const chausses = { ...plastron, categorie: 'vetement', cle: { piece: 'haut-de-chausses' }, couche: 'tenue' };
-    const ample = { ...chausses, cle: { piece: 'haut-de-chausses-ample' } };
-    const manifestes = { humanoide, chausses, ample };
+    const bottes = { ...plastron, categorie: 'vetement', cle: { piece: 'bottes' }, couche: 'tenue' };
+    const bottines = { ...bottes, cle: { piece: 'bottines' } };
+    const manifestes = { humanoide, bottes, bottines };
     const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
-    expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', variantes: true, id: 'haut-de-chausses', elements: ['chausses', 'ample'] }));
-    expect(modeles.libelles.ample).toBe('Haut-de-chausses ample');
-    expect(composer(manifestes, soldat).montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'chausses' });
-    const varie = composer(manifestes, { ...soldat, variantesPieces: { 'haut-de-chausses': { id: 'haut-de-chausses-ample' } } });
-    expect(varie.montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'ample' });
+    expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', variantes: true, id: 'bottes', elements: ['bottes', 'bottines'] }));
+    expect(modeles.libelles.bottines).toBe('Bottines');
+    const { variantesPieces: _variantes, ...sansVariantes } = soldat;
+    expect(composer(manifestes, sansVariantes).montes).toContainEqual({ ligne: 'ligne/piece/bottes', element: 'bottes' });
+    const varie = composer(manifestes, { ...sansVariantes, variantesPieces: { bottes: { id: 'bottines' } } });
+    expect(varie.montes).toContainEqual({ ligne: 'ligne/piece/bottes', element: 'bottines' });
   });
 
   it('le sexe pose `feminin`, `build` absent vaut le corps neutre, un gabarit non neutre change l’échelle de la racine, les pieds sont ceux des appuis', () => {

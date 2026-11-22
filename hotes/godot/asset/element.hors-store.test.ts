@@ -178,7 +178,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-mal-formee', 'arête à la clé d’un décor', manifeste('arete', { cle: { prop: 'tonneau' } })],
   ['champ-hors-categorie', '`selon` sur une arête', manifeste('arete', { selon: {} })],
   ['piece-hors-categorie', 'armure qui vise un vêtement', manifeste('armure', { cle: { piece: 'pourpoint' } })],
-  ['piece-hors-categorie', 'vêtement qui vise la variante d’une armure', manifeste('vetement', { cle: { piece: 'casque-a-cornes' } })],
+  ['piece-hors-categorie', 'vêtement qui vise la variante d’une armure', manifeste('vetement', { cle: { piece: 'brassards-d-acier' } })],
   ['base-differente', 'élément construit pour une autre base', manifeste('rigide', { base: 'quadrupede' })],
   ['liaison-hors-categorie', 'vêtement en surface', manifeste('vetement', { liaison: { mode: 'surface' } })],
   ['liaison-hors-categorie', 'mode inconnu', manifeste('accessoire', { liaison: { mode: 'colle' } })],

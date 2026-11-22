@@ -1,6 +1,5 @@
 """Données de `humanoide--vetement--haut-de-chausses` (le Soldat, #4318), lues par `modele.py` : la pièce
-`haut-de-chausses` de la garde-robe, de l'ensemble `tenue-uniforme-de-soldat`, seul à la porter (le Gladiateur porte sa
-variante `haut-de-chausses-ample`).
+`haut-de-chausses` de la garde-robe, de l'ensemble `tenue-uniforme-de-soldat`, que porte aussi le preset `gladiateur`.
 
 Illustration directrice : « Soldat | soldat | `carrieres/soldat.png` | Livre de Base | 76 | certaine » (`INDEX.md` du
 recueil `illustrations-wfrp.zip` ; page du PDF, folio imprimé 74), hors dépôt.

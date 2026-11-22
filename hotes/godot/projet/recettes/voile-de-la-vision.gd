@@ -139,14 +139,16 @@ func _mesurer(monde: Monde, regard: String, nom: String, temoin: Image, voilee: 
 
 
 
-## La vision (`VisionDuMonde`) des états `colonnes` : par couche, l'état de chaque colonne sur toutes ses rangées.
+## La vision (`VisionDuMonde`) des états `colonnes` : par couche, l'état de chaque colonne sur toutes ses rangées, au plan
+## `sol` comme au plan `toit`.
 func _vision(colonnes: Array) -> Dictionary:
 	var octets := PackedByteArray()
-	for couche: Array in colonnes:
-		for y in HAUTEUR:
-			for etat: int in couche:
-				octets.append(etat)
-	return {masque = Marshalls.raw_to_base64(octets), largeur = LARGEUR, rangees = HAUTEUR * colonnes.size(), rangeesParPlan = HAUTEUR, teintes = TEINTES}
+	for _plan in 2:
+		for couche: Array in colonnes:
+			for y in HAUTEUR:
+				for etat: int in couche:
+					octets.append(etat)
+	return {masque = Marshalls.raw_to_base64(octets), largeur = LARGEUR, rangees = 2 * HAUTEUR * colonnes.size(), rangeesParPlan = HAUTEUR, teintes = TEINTES}
 
 
 ## Le morceau `cle` (`MorceauDuMonde`) du plan de première rangée `rangee` : les dalles grises des colonnes `x0` à `x1`

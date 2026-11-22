@@ -46,7 +46,7 @@ export interface ProprietaireDuJeu {
 export function ouvrirLeProprietaire(
   etatInitial: EtatDeJeu,
   entrees: EntreesDeLaPartie,
-  surProgramme: (jeton: Jeton, delai: number) => void,
+  surProgramme: (jeton: Jeton, delai: number, apresDeplacement?: readonly string[]) => void,
 ): ProprietaireDuJeu {
   const enVol = new Map<Jeton, () => void>();
   const abonnes = new Set<(etat: Jeu, prev: Jeu) => void>();
@@ -76,10 +76,10 @@ export function ouvrirLeProprietaire(
   setCadence(entrees.cadence);
   setDesFixes(entrees.desFixes);
   poserLaPlateforme({
-    programmer: (suite, delai) => {
+    programmer: (suite, delai, apresDeplacement) => {
       const jeton = Object.freeze({}) as Jeton;
       enVol.set(jeton, suite);
-      surProgramme(jeton, delai);
+      surProgramme(jeton, delai, apresDeplacement);
       return jeton;
     },
     enAttente: (jeton) => enVol.has(jeton),

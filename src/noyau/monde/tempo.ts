@@ -6,9 +6,7 @@
  * fort (critique / mise à mort / Peur) pour qu'on ait le temps de le lire. Valeurs recentrées vers une
  * lecture humaine (un combat doit être lisible : chaque beat visible et annoncé).
  *
- * NB : le déplacement animé NE se cale PAS sur un délai fixe mais sur la durée RÉELLE de marche
- * (`walkMs(path)` de `geometry/walk`) — c'est ce qui supprime la « téléportation » perçue
- * (la modale de défense ne s'ouvre qu'une fois l'ennemi arrivé).
+ * Pour une suite liée à une approche, l’hôte compte ce délai après les déplacements qu’il présente.
  */
 export const TEMPO = {
   /** Réticule de tir/sort/mêlée ennemi affiché AVANT l'action (télégraphe d'intention — lire « qui vise qui »). */
