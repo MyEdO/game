@@ -29,7 +29,7 @@ leur ourlet (0,86 m), où s'arrête le mesh `hanches` de la jupe (0,86 à 1,08 m
 jupe, ce mesh passait devant la bande qui joint le corsage aux basques, là où elle se plie quand la cuisse monte
 (`couche-traversee` de 6 à 18 mm sous `corpulence` et `carrure_plus`, ClimbUp_1m, Melee_Hook, Sword_Heavy_Combo).
 `chaines` : ses basques pendent sur le filet `jupe`, comme la jupe dessous."""
-MATERIAUX = {'robe': ('vet2', 'drap-terne')}   # l'emplacement du pourpoint publié ; gris de construction
+MATERIAUX = {'robe': ('vet2', 'drap-terne')}   # l'emplacement du pourpoint publié
 
 # --- Maillage ---
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce

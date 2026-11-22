@@ -26,7 +26,7 @@ MANIFESTE = {
 # devant, ne cache aucune zone entière. `chaines` : le filet de la base qui porte la cape sous `HAUT`.
 MATERIAUX = {'cape': ('accent', 'laine')}
 """Illustration : drap vert-noir, de la teinte de la capuche en plus sombre ; `SLOTS` (`src/lib/palette.ts`) n'a que deux
-emplacements de vêtement, pris par la robe : `accent`, celui de la capuche (HYPOTHÈSE). Gris de construction."""
+emplacements de vêtement, pris par la robe : `accent`, celui de la capuche (HYPOTHÈSE)."""
 
 CONTOURNE = {'robe': 'humanoide--vetement--robe', 'bandouliere': 'humanoide--accessoire--bandouliere-a-parchemins'}
 MATIERES = {'robe': ['robe', 'dessous'], 'bandouliere': ['sangle']}

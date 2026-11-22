@@ -1,4 +1,4 @@
-"""Les ouvrages dressés sur un poteau ou une hampe (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe
+"""Les ouvrages dressés sur un poteau ou une hampe (#4335, #4471) : un GLB par décor de `DECORS`, bâti dans l'enveloppe
 convexe des primitives de sa recette (`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où
 `Gabarit.rentrer` ramène le sommet qui en sortirait. Chaque pièce est une coque close : un poteau équarri dressé dans
 sa boîte (`poteau`) ; une pièce droite d'un point à un autre, ses bouts enfoncés dans ce qu'elle joint
@@ -11,13 +11,14 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, autour, barre, bosselee, cap, cercle, chaine, cheville,
-                       clou, coque, courbee, lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond,
-                       tournee)
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, apotheme, autour, barre, bosselee, cap, cercle, chaine,
+                       cheville, clou, coque, courbee, decoupee, lisse, normales, partage, pave, planche, profilee,
+                       rampant, rampante, rond, tourne, tournee)
 from gabarit import VERSANTS
 from maille import lineaire, tore
 
-DECORS = ("gibet", "pilori", "cage", "enseigne", "panneau", "pieu", "etendard", "banniere-chaos")
+DECORS = ("gibet", "pilori", "cage", "enseigne", "ecu", "epi-de-faite", "girouette", "panneau", "pieu", "etendard",
+          "banniere-chaos")
 
 
 def poteau(D, m, primitive, P, sol):
@@ -296,6 +297,95 @@ def enseigne(D, G, pieces, a):
                 (z1 - z0) / 2 - tz * Ca["jour"], tx * D["ARETE"])
 
 
+def ecu(D, G, pieces, a):
+    """Un écu d'enseigne d'après `ECU` : planche au contour de l'enveloppe de ses boîtes, cerclage de fers plats
+    rivé aux angles, deux pitons à œil. Il pend dans le plan normal à x."""
+    E, bois, fer = D["ECU"], pieces[MAT], pieces["fer"]
+    boites = [pave(G.primitives[rang]) for rang in E["planche"]]
+    (c, (px, large, _)), dehors = boites[0], Y.cross(HAUT)
+    rives = [(c.y, large / 2, c.z + boites[0][1][2] / 2)]
+    rives += [(cb.y, by / 2, cb.z - bz / 2) for cb, (_, by, bz) in boites]
+    contour = ([Vector((c.x, y + demi, z)) for y, demi, z in rives[::-1]]
+               + [Vector((c.x, y - demi, z)) for y, demi, z in rives])
+    e = px / 2 * E["epaisseur"]
+    decoupee(bois, contour, dehors, (-e, e), 2 * e * E["arete"], MAT)
+
+    Ce = E["cerclage"]
+    demi = large * Ce["largeur"]
+    rayon, saillie = demi * Ce["rivet"][0], px / 2 * Ce["rivet"][1]
+    coins = []
+    for p, q in zip(contour, contour[1:] + contour[:1]):
+        rive = (q - p).normalized()
+        dedans = dehors.cross(rive)
+        coins.append(dedans)
+        planche(fer, p + dedans * demi, q + dedans * demi, dedans, dehors, demi, px / 2, demi * Ce["chanfrein"], "fer")
+    for p, avant, apres in zip(contour, coins[-1:] + coins[:-1], coins):
+        centre = p + (avant + apres).normalized() * (demi * 2)
+        tournee(fer, centre - dehors * saillie, centre + dehors * saillie, Y, HAUT, rayon, CYLINDRE, Ce["cotes"], "fer")
+
+    P = E["piton"]
+    for rang in E["pitons"]:
+        cp, (ox, oy, oz) = pave(G.primitives[rang])
+        grand = oy / 2 * P["grand"]
+        tore(fer, "x", (cp.x, cp.y, cp.z - oz / 2 + grand * P["prise"]), grand, ox / 2 * P["petit"], *P["segments"],
+             "fer")
+
+
+def epi(D, G, pieces, a):
+    """Un épi de faîtage d'après `EPI` : embase en jupe, hampe effilée, bulbe, boule dorée, tournés chacun dans son
+    cylindre de la recette."""
+    E, fer = D["EPI"], pieces["fer"]
+    for rang, profil in ((E["embase"], E["jupe"]), (E["hampe"], E["fut"]), (E["bulbe"], E["oignon"])):
+        tourne(fer, G.primitives[rang], profil, E["cotes"], "fer")
+    tourne(pieces["ferrure"], G.primitives[E["boule"]], D["SPHERE"], E["cotes"], "ferrure")
+
+
+def girouette(D, G, pieces, a):
+    """Une girouette d'après `GIROUETTE` : embase, hampe effilée, croix des points cardinaux à losanges, flèche à
+    pointe et banderole à deux queues dans le plan de sa boîte, douille, boule dorée."""
+    Gi, fer = D["GIROUETTE"], pieces["fer"]
+    tourne(fer, G.primitives[Gi["embase"]], Gi["pied"], Gi["cotes"], "fer")
+    tourne(fer, G.primitives[Gi["hampe"]], Gi["fut"], Gi["cotes"], "fer")
+    tourne(pieces["ferrure"], G.primitives[Gi["boule"]], D["SPHERE"], Gi["cotes"], "ferrure")
+
+    diagonale, recul, part = Gi["losange"]
+    for rang in Gi["croix"]:
+        c, (lx, ly, lz) = pave(G.primitives[rang])
+        file, long, epais = (X, lx, ly) if lx > ly else (Y, ly, lx)
+        profilee(fer, c - file * (long / 2), c + file * (long / 2), (epais / 2, lz / 2), Gi["bras"], "fer",
+                 HAUT.cross(file), HAUT)
+        d = long * diagonale
+        for s in COTES:
+            centre = c + file * (s * (long / 2 - long * recul))
+            decoupee(fer, [centre + file * d, centre + HAUT * d, centre - file * d, centre - HAUT * d],
+                     file.cross(HAUT), (-epais / 2 * part, epais / 2 * part), epais / 2 * part * Gi["bras"][0][3],
+                     "fer")
+
+    A = Gi["aile"]
+    c, (lx, ly, lz) = pave(G.primitives[Gi["fleche"]])
+    file, long, epais = (X, lx, ly) if lx > ly else (Y, ly, lx)
+    face, e = file.cross(HAUT), epais / 2 * A["epaisseur"]
+    demi_h, queue, tete = A["fer"]
+    planche(fer, c - file * (long / 2 * queue), c + file * (long / 2 * tete), HAUT.cross(file), HAUT, e, lz * demi_h,
+            long * A["arete"], "fer")
+
+    def plan(x, z):
+        """Le point du plan de la flèche à `x` demi-longueurs de son axe vers la pointe, `z` demi-hauteurs au-dessus."""
+        return c + file * (long / 2 * x) + HAUT * (lz / 2 * z)
+    pointe, large = A["pointe"]
+    naissance, petit, grand, entaille = A["banderole"]
+    for contour in ([plan(1, 0), plan(1 - pointe, large), plan(1 - pointe, -large)],
+                    [plan(-naissance, 0), plan(-naissance, petit), plan(-1, grand), plan(entaille - 1, 0)],
+                    [plan(-naissance, 0), plan(entaille - 1, 0), plan(-1, -grand), plan(-naissance, -petit)]):
+        decoupee(fer, contour, face, (-e, e), long * A["arete"], "fer")
+
+    rayon, demi = Gi["douille"]
+    hampe = G.primitives[Gi["hampe"]]
+    axe = Vector((pave(hampe)[0].x, pave(hampe)[0].y, c.z))
+    tournee(fer, axe - HAUT * (lz * demi), axe + HAUT * (lz * demi), X, Y, apotheme(hampe) * rayon, CYLINDRE,
+            Gi["cotes"], "fer")
+
+
 def panneau(D, G, pieces, a):
     """Un panneau d'après `PANNEAU` : poteau, flèche de deux planches entaillée en queue et taillée en pointe,
     traverses chevillées."""
@@ -443,8 +533,8 @@ def banniere(D, G, pieces, a):
     tournee(toile, ourlet, ourlet + long * large, *normales(long), r_t, fronces, T["cotes"], "toile")
 
 
-BATIR = {"gibet": gibet, "pilori": pilori, "cage": cage, "enseigne": enseigne, "panneau": panneau, "pieu": pieu,
-         "etendard": banniere, "banniere-chaos": banniere}
+BATIR = {"gibet": gibet, "pilori": pilori, "cage": cage, "enseigne": enseigne, "ecu": ecu, "epi-de-faite": epi,
+         "girouette": girouette, "panneau": panneau, "pieu": pieu, "etendard": banniere, "banniere-chaos": banniere}
 
 
 def construire(D, id_):

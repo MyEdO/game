@@ -30,7 +30,7 @@ import type { RecapLine } from './recapLine';
 import type { FaitApplique } from '../engine/faits';
 import type { RollLineParts } from './ligneDeJet';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
-import type { PlayerText } from '../i18n/playerText';
+import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -90,7 +90,8 @@ export interface PendingVictory {
   /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/teinte
    *  conservées), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
   gear?: LootGear[];
-  defeated: { label: string; count: number; creatureId?: string }[];
+  /** Les vaincus par fiche et par vue du groupe (`porteurEnVue`) : un groupe hors de vue porte le nom neutre (#4017). */
+  defeated: { nom: PlayerText; count: number; creatureId?: string; enVue: boolean }[];
   /** Créatures déjà récoltées (« Précieuses Entrailles », ZI) sur cet écran — grise le bouton (par id). */
   harvested?: string[];
   /** Messages de journal de la victoire (Effets `journal` de onVictory) — affichés DANS l'écran (#9). */
@@ -314,7 +315,7 @@ export type ContrepartieDeMarchandage = { titre: PlayerText } & (
 /** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
  *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
 export interface OpposantDeMarchandage {
-  label: string;
+  label: SansMarqueNonAffichable;
   valeur: number;
   portrait?: Combatant;
 }
@@ -323,7 +324,7 @@ export interface OpposantDeMarchandage {
  *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
-  playerName: string;
+  playerName: PlayerText;
   contrepartie: ContrepartieDeMarchandage;
   opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)

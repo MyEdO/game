@@ -138,6 +138,7 @@ import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, deElide, type MsgKey } from '../i18n';
 import { applyActiveEffect } from './effetsActifs';
 import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
+import { nomDe } from './nom';
 
 export { applyActiveEffect } from './effetsActifs';
 export { resolveFormula } from './formule';
@@ -927,38 +928,38 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
   switch (o.op) {
     case 'removeCondition': {
       const id = o.id?.id ?? c.conditions[0]?.id;
-      if (!id) return t('op.sansEtatARetirer', { name: c.label });
-      return pionsRetirables(c, id) > 0 ? null : t('op.sansPionDEtatARetirer', { name: c.label, cond: conditionLabel(id) });
+      if (!id) return t('op.sansEtatARetirer', { name: nomDe(c) });
+      return pionsRetirables(c, id) > 0 ? null : t('op.sansPionDEtatARetirer', { name: nomDe(c), cond: conditionLabel(id) });
     }
     case 'removeTrait':
-      return traitsAccordesPar(c, o.trait.id, ctx.source).length ? null : t('op.sansTraitARetirer', { name: c.label, trait: refLabel('traits', o.trait) });
+      return traitsAccordesPar(c, o.trait.id, ctx.source).length ? null : t('op.sansTraitARetirer', { name: nomDe(c), trait: refLabel('traits', o.trait) });
     case 'endPsych': {
       if (afflictionsFinies(c, o, ctx).length) return null;
       const type = typeDeFin(o, ctx);
-      return type ? t('op.sansPsychologieAFinir', { name: c.label, psych: psychologyLabel(type) }) : t('op.sansInstanceDePsychologie', { name: c.label });
+      return type ? t('op.sansPsychologieAFinir', { name: nomDe(c), psych: psychologyLabel(type) }) : t('op.sansInstanceDePsychologie', { name: nomDe(c) });
     }
-    case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.sansPsychologieARetirer', { name: c.label }) : null;
-    case 'sinMod': return o.amount === 0 || (o.amount < 0 && !(c.sinPoints ?? 0)) ? t('op.sansPecheARetirer', { name: c.label }) : null;
+    case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.sansPsychologieARetirer', { name: nomDe(c) }) : null;
+    case 'sinMod': return o.amount === 0 || (o.amount < 0 && !(c.sinPoints ?? 0)) ? t('op.sansPecheARetirer', { name: nomDe(c) }) : null;
     case 'cureDisease':
-      return c.diseases?.length && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.sansMaladieAGuerir', { name: c.label });
+      return c.diseases?.length && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.sansMaladieAGuerir', { name: nomDe(c) });
     case 'cureCriticalWound':
-      return (c.traumas ?? []).some((tr) => tr.kind != null) && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.sansCritiqueAGuerir', { name: c.label });
+      return (c.traumas ?? []).some((tr) => tr.kind != null) && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.sansCritiqueAGuerir', { name: nomDe(c) });
     case 'reduceDiseaseDays': {
       const opts = { disease: o.disease?.id, once: o.oncePerDisease };
       const dz = maladieABenir(c, opts);
       if (!dz) return aucuneMaladieABenir(c, opts);
       const raccourcit = dz.minutesLeft > MINUTES_PER_DAY && (!!o.dice || comptePositif(o.days ?? 1, o.daysPerSL, ctx));
-      return o.oncePerDisease || raccourcit ? null : t('rest.diseaseUnchanged', { name: c.label, disease: diseaseLabel(dz.id) });
+      return o.oncePerDisease || raccourcit ? null : t('rest.diseaseUnchanged', { name: nomDe(c), disease: diseaseLabel(dz.id) });
     }
     case 'aideMedicale':
-      return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: c.label });
+      return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: nomDe(c) });
     default: return null;
   }
 }
 
 /** La ligne de journal d'un Test d'Exposition dû par `c`, niveau libellé. LDB 19 l.29 */
 export function ligneDExposition(c: Combatant, level: ExposureLevel): string {
-  return t('op.expositionALaCorruption', { name: c.label, level: libelleDeValeur(exposureLevelSchema, level) });
+  return t('op.expositionALaCorruption', { name: nomDe(c), level: libelleDeValeur(exposureLevelSchema, level) });
 }
 
 /** La raison pour laquelle les ops de RÉUSSITE `ops` d'un geste délibéré (Activité, consommable) n'auraient
@@ -1034,7 +1035,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
     const dur = charRounds != null ? t('op.frag.rounds', { n: charRounds })
       : charClockMin != null ? (charClockMin >= 60 ? t('op.frag.heures', { n: Math.round(charClockMin / 60), s: charClockMin >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: charClockMin }))
       : t('op.frag.horsCombat');
-    lines.push(t('op.ligneDeCaracteristique', { name: target.label, label: nomDeSource(ctx), parts: charParts.join(', '), dur }));
+    lines.push(t('op.ligneDeCaracteristique', { name: nomDe(target), label: nomDeSource(ctx), parts: charParts.join(', '), dur }));
     charParts.length = 0;
   };
   // Filtre par Groupe de la CIBLE (engine/groups) : `only` = doit appartenir à l'un (« les
@@ -1238,7 +1239,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const finies = afflictionsFinies(target, o, ctx); // `opSansObjet` : au moins une
         for (const p of finies) if (estCibleType(p.type)) p.active = false;
         target.psychState = (target.psychState ?? []).filter((p) => estCibleType(p.type) || !finies.includes(p));
-        lines.push(t('op.finDePsychologie', { name: target.label, psych: psychologyLabel(finies[0].type) }));
+        lines.push(t('op.finDePsychologie', { name: nomDe(target), psych: psychologyLabel(finies[0].type) }));
         break;
       }
       case 'beginPsych': {
@@ -1268,7 +1269,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (at >= 0) list[at] = next; else list.push(next);
         target.psychState = list;
         // `active:false` = marqueur d'affliction RÉSISTÉE (empêche le re-déclenchement) : rien n'est subi.
-        if (o.active !== false) lines.push(t('op.debutDePsychologie', { name: target.label, psych: psychologyLabel(type) }));
+        if (o.active !== false) lines.push(t('op.debutDePsychologie', { name: nomDe(target), psych: psychologyLabel(type) }));
         break;
       }
       case 'grantPsychTrait': {
@@ -1282,7 +1283,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromOp(o, ctx, ref), grantedPsychTrait: pose });
         }
-        lines.push(t('op.traitPsychologiqueAccorde', { name: target.label, psych: psychologyLabel(type), src: nomDeSource(ctx) }));
+        lines.push(t('op.traitPsychologiqueAccorde', { name: nomDe(target), psych: psychologyLabel(type), src: nomDeSource(ctx) }));
         break;
       }
       case 'removePsychTrait': {
@@ -1295,7 +1296,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const porteur = (target.activeEffects ?? [])[dernierIndex(target.activeEffects ?? [], (e) => !!e.grantedPsychTrait && memeTraitPsy(removed)(e.grantedPsychTrait))];
         if (porteur) removeActiveEffects(target, (e) => e === porteur, sortie);
         else target.psychTraits = target.psychTraits!.filter((_, i) => i !== rang);
-        lines.push(t('op.traitPsychologiqueRetire', { name: target.label, psych: psychologyLabel(removed.type) }));
+        lines.push(t('op.traitPsychologiqueRetire', { name: nomDe(target), psych: psychologyLabel(removed.type) }));
         break;
       }
       case 'charMod': {
@@ -1322,7 +1323,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // de touche, rien n'est posé — jamais un repli silencieux sur « toutes les Localisations ».
         const loc = o.atHitLocation ? ctx.location : o.loc;
         if (o.atHitLocation && loc == null) {
-          lines.push(t('op.paSansLocalisation', { name: target.label }));
+          lines.push(t('op.paSansLocalisation', { name: nomDe(target) }));
           break;
         }
         const dur = durationFromCtx(ctx);
@@ -1331,7 +1332,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           label: nomDeSource(ctx), bonus: 0, duration: dur, ...(loc ? { apAt: { [loc]: n } } : { apAll: n }),
           ...(o.noDeviation ? { noDeviation: true } : {}),
         });
-        lines.push(t(n < 0 ? 'op.perteDePa' : 'op.pa', { name: target.label, n: Math.abs(n), src: nomDeSource(ctx), durTxt: dur.scale === 'rounds' ? `, ${t('op.frag.rounds', { n: dur.left })}` : '' }));
+        lines.push(t(n < 0 ? 'op.perteDePa' : 'op.pa', { name: nomDe(target), n: Math.abs(n), src: nomDeSource(ctx), durTxt: dur.scale === 'rounds' ? `, ${t('op.frag.rounds', { n: dur.left })}` : '' }));
         break;
       }
       case 'corruption': {
@@ -1357,7 +1358,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const before = target.sinPoints ?? 0;
         target.sinPoints = Math.max(0, before + o.amount);
         const delta = target.sinPoints - before;
-        lines.push(t(delta > 0 ? 'op.pecheAjoute' : 'op.pecheRetire', { name: target.label, amount: Math.abs(delta), total: target.sinPoints }));
+        lines.push(t(delta > 0 ? 'op.pecheAjoute' : 'op.pecheRetire', { name: nomDe(target), amount: Math.abs(delta), total: target.sinPoints }));
         break;
       }
       case 'corruptionExposure': {
@@ -1365,13 +1366,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (o.easeSteps != null) {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx), corruptionEase: o.easeSteps });
-          lines.push(t('op.corruptionAllegee', { name: target.label, n: o.easeSteps, src: nomDeSource(ctx) }));
+          lines.push(t('op.corruptionAllegee', { name: nomDe(target), n: o.easeSteps, src: nomDeSource(ctx) }));
           break;
         }
         // LDB 19 l.29 ; VDM 05 (abri). Moteur pur sans hook : journalisé inerte, rien de tiré en silence.
         const level = easeExposure(o.level ?? 'mineure', corruptionEaseSteps(target));
         if (level == null) {
-          lines.push(t('op.corruptionConjuree', { name: target.label }));
+          lines.push(t('op.corruptionConjuree', { name: nomDe(target) }));
           break;
         }
         if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature, o.difficulty));
@@ -1398,8 +1399,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const moved = Math.abs(target[key] - before);
         // Le journal dit ce qui a BOUGÉ : compteur déjà à 0, rien n'est retiré, rien ne se journalise
         // (« −0 Point » serait un événement inventé).
-        if (n > 0) lines.push(t('op.ressourceGagnee', { name: target.label, n, s: n > 1 ? 's' : '', res: t(fate ? 'op.ressourceDestin' : 'op.ressourceFortune'), temp: o.temporary ? t('op.fragmentDeDureeDeSort') : '', total: target[key] }));
-        else if (moved > 0) lines.push(t('op.ressourcePerdue', { name: target.label, n: moved, s: moved > 1 ? 's' : '', res: t(fate ? 'op.ressourceDestin' : 'op.ressourceFortune'), total: target[key] }));
+        if (n > 0) lines.push(t('op.ressourceGagnee', { name: nomDe(target), n, s: n > 1 ? 's' : '', res: t(fate ? 'op.ressourceDestin' : 'op.ressourceFortune'), temp: o.temporary ? t('op.fragmentDeDureeDeSort') : '', total: target[key] }));
+        else if (moved > 0) lines.push(t('op.ressourcePerdue', { name: nomDe(target), n: moved, s: moved > 1 ? 's' : '', res: t(fate ? 'op.ressourceDestin' : 'op.ressourceFortune'), total: target[key] }));
         break;
       }
       case 'castPenalty': {
@@ -1429,7 +1430,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           dureeTxt = t('op.frag.jours', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];
-        lines.push(t('op.penaliteDIncantation', { name: target.label, what: effetDePenaliteDIncantation(cp), duree: dureeTxt ? t('op.frag.pendant', { dureeTxt }) : '', label: cp.label }));
+        lines.push(t('op.penaliteDIncantation', { name: nomDe(target), what: effetDePenaliteDIncantation(cp), duree: dureeTxt ? t('op.frag.pendant', { dureeTxt }) : '', label: cp.label }));
         break;
       }
       case 'statusMod': {
@@ -1437,14 +1438,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (n === 0) break;
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, statusMod: n });
-        lines.push(t('op.modificateurDeStatut', { name: target.label, sign: n >= 0 ? '+' : '', n }));
+        lines.push(t('op.modificateurDeStatut', { name: nomDe(target), sign: n >= 0 ? '+' : '', n }));
         break;
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill ? structuredClone(o.skill) : undefined, ...(o.characteristic ? { characteristic: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
         lines.push(t('op.jetonDInversionAccorde', {
-          name: target.label,
+          name: nomDe(target),
           skill: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('op.inversionDeTestDeCaracteristique', { char: deElide(CHAR_LABELS[o.characteristic]) }) : t('op.inversionDeToutTest'),
           contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
           fois: t(o.illimite ? 'op.inversionIllimitee' : 'op.inversionUneFois'),
@@ -1463,7 +1464,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
             duration: { ...duree },
             grantedTrait: structuredClone(accorde),
           });
-          lines.push(t('op.traitAccorde', { name: target.label, trait: traitLisible(inst), src: nomDeSource(ctx) }));
+          lines.push(t('op.traitAccorde', { name: nomDe(target), trait: traitLisible(inst), src: nomDeSource(ctx) }));
         }
         break;
       }
@@ -1480,7 +1481,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         });
         removeActiveEffects(target, (e) => porteurs.includes(e), sortie);
         for (const g of permanents) removeGrantedTrait(target, g);
-        lines.push(t('op.traitRetire', { name: target.label, trait: traitLisible(accordes[0]) }));
+        lines.push(t('op.traitRetire', { name: nomDe(target), trait: traitLisible(accordes[0]) }));
         break;
       }
       case 'augmentWeapon': {
@@ -1492,7 +1493,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
         const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.some((id) => id === i.shape?.id));
         if (!item) {
-          lines.push(t('op.sansArmeAEnchanter', { name: target.label, src: nomDeSource(ctx) }));
+          lines.push(t('op.sansArmeAEnchanter', { name: nomDe(target), src: nomDeSource(ctx) }));
           break;
         }
         const enchantId = ctx.idNeuf('it');
@@ -1525,7 +1526,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...(o.suppressEnchants ? [t('op.frag.enchantementsSuspendus')] : []),
           ...(o.passive?.length ? [t('op.frag.passifDArme')] : []),
         ];
-        lines.push(t('op.armeEnchantee', { name: target.label, item: item.label, parts: parts.join(', '), src: nomDeSource(ctx) }));
+        lines.push(t('op.armeEnchantee', { name: nomDe(target), item: item.label, parts: parts.join(', '), src: nomDeSource(ctx) }));
         break;
       }
       case 'cureDisease': {
@@ -1543,7 +1544,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'preventInfection': {
         target.woundDressed = true; // LDB 09 l.260
-        lines.push(t('op.infectionPrevenue', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.infectionPrevenue', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'aideMedicale': {
@@ -1563,7 +1564,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         break;
       }
       case 'kill': {
-        lines.push(fateSaveOrDie(target) ? t('op.mort.sauveParLeDestin', { name: target.label }) : t('op.mort', { name: target.label }));
+        lines.push(fateSaveOrDie(target) ? t('op.mort.sauveParLeDestin', { name: nomDe(target) }) : t('op.mort', { name: nomDe(target) }));
         break;
       }
       case 'cureCriticalWound': {
@@ -1584,7 +1585,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...permanentAmputations(o.sequels, loc, units),
         ];
         target.traumas = avecSequelles(target.traumas, poses);
-        for (const p of poses) lines.push(t('op.amputer', { name: target.label, label: p.label, loc: locationLabel(loc, target.bodyShape) }));
+        for (const p of poses) lines.push(t('op.amputer', { name: nomDe(target), label: p.label, loc: locationLabel(loc, target.bodyShape) }));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
         lines.push(...consolidateAmputations(target));
         break;
@@ -1595,7 +1596,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // Octroi SANS échéance (VDM 02 l.238) : acquisition structurelle, `acquerirTalent` (engine/careerSlots.ts).
         if (dur.scale === 'permanent') {
           const acquis = acquerirTalent(target, o.talent);
-          lines.push(t(acquis ? 'op.talentAccorde' : 'op.talentAccorde.maximum', { name: target.label, talent, src: nomDeSource(ctx) }));
+          lines.push(t(acquis ? 'op.talentAccorde' : 'op.talentAccorde.maximum', { name: nomDe(target), talent, src: nomDeSource(ctx) }));
           break;
         }
         target.activeEffects = target.activeEffects ?? [];
@@ -1604,14 +1605,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: dur,
           grantedTalent: { talentId: o.talent.id, ...(o.talent.spec ? { spec: o.talent.spec } : {}) },
         });
-        lines.push(t('op.talentAccorde', { name: target.label, talent, src: nomDeSource(ctx) }));
+        lines.push(t('op.talentAccorde', { name: nomDe(target), talent, src: nomDeSource(ctx) }));
         break;
       }
       case 'suppressTalents': {
         const duree = durationFromOp(o, ctx, ref);
         for (const talent of o.talents) suspendSource(target, { category: 'talents', id: talent.id }, duree, nomDeSource(ctx));
         lines.push(t('op.talentsSuspendus', {
-          name: target.label,
+          name: nomDe(target),
           talents: o.talents.map((x) => refLabel('talents', x)).join(', '),
           duree: libelleDHorloge(duree, ctx),
           src: nomDeSource(ctx),
@@ -1621,13 +1622,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       case 'deityBan': {
         const dieu = priestCult(ref);
         if (!dieu) {
-          lines.push(t('op.interditDivin.sansDivinite', { name: target.label, src: nomDeSource(ctx) }));
+          lines.push(t('op.interditDivin.sansDivinite', { name: nomDe(target), src: nomDeSource(ctx) }));
           break;
         }
         const duree = durationFromOp(o, ctx, ref);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, deityBan: dieu });
-        lines.push(t('op.interditDivin', { name: target.label, dieu: refLabel('gods', { id: dieu }), duree: libelleDHorloge(duree, ctx), src: nomDeSource(ctx) }));
+        lines.push(t('op.interditDivin', { name: nomDe(target), dieu: refLabel('gods', { id: dieu }), duree: libelleDHorloge(duree, ctx), src: nomDeSource(ctx) }));
         break;
       }
       case 'prayerForAction': {
@@ -1635,7 +1636,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
         const n = duree.scale === 'rounds' ? duree.left : 0;
-        lines.push(t('op.prierePourAgir', { name: target.label, duree: t('op.frag.plafondDeRounds', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
+        lines.push(t('op.prierePourAgir', { name: nomDe(target), duree: t('op.frag.plafondDeRounds', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
         break;
       }
       case 'forbidFlee': {
@@ -1644,14 +1645,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const label = nomDeSource(ctx);
         target.activeEffects ??= [];
         target.activeEffects.push({ label, bonus: 0, duration, fleeForbidden: true });
-        lines.push(t('op.fuiteInterdite', { name: target.label, src: label }));
+        lines.push(t('op.fuiteInterdite', { name: nomDe(target), src: label }));
         break;
       }
       case 'reduceToZero': {
         // PB à 0 SEUL ; l'Inconscient ou l'Enflammé est posé par une op `condition` séparée
         // dans l'entrée appelante (ex. Châtiment ajoute inconscient, Tonnerre ajoute en-flammes).
         target.wounds.current = 0;
-        lines.push(t('op.reduitAZero', { name: target.label }));
+        lines.push(t('op.reduitAZero', { name: nomDe(target) }));
         break;
       }
       case 'banish': {
@@ -1660,7 +1661,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // déjà `dead` d'un Critique létal : le retrait est l'issue NARRÉE de SA mort). L'unicité est garantie
         // en amont (déclencheur `onSlain` pour le Démoniaque, `if woundsCurrent<=0` pour l'Instable).
         target.dead = true;
-        lines.push(t(o.narration === 'unravel' ? 'op.bannissement.dissolution' : 'op.bannissement', { name: target.label }));
+        lines.push(t(o.narration === 'unravel' ? 'op.bannissement.dissolution' : 'op.bannissement', { name: nomDe(target) }));
         break;
       }
       case 'removeShipPoste': {
@@ -1688,7 +1689,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           // les N pires États ; absent = TOUTES les pénalités d'État (Endurance de l'anachorète, LDB 42).
           ...(o.count != null ? { ignoreStatesCount: o.count } : { ignoreStatePenalties: true }),
         });
-        lines.push(t('op.penalitesDEtatIgnorees', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.penalitesDEtatIgnorees', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'freeReroll': {
@@ -1698,7 +1699,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           freeReroll: true,
         });
-        lines.push(t('op.relanceGratuite', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.relanceGratuite', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'critTwice': {
@@ -1708,24 +1709,24 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           critRollTwice: true,
         });
-        lines.push(t('op.critiqueDouble', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.critiqueDouble', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'damageArmour': {
         const loc = damageLeatherArmour(target);
         lines.push(loc
-          ? t('op.cuirRetreci', { name: target.label, loc: HIT_LOCATION_LABELS[loc] })
-          : t('op.sansCuirAPourrir', { name: target.label }));
+          ? t('op.cuirRetreci', { name: nomDe(target), loc: HIT_LOCATION_LABELS[loc] })
+          : t('op.sansCuirAPourrir', { name: nomDe(target) }));
         break;
       }
       case 'damageWornGear': {
         const { localisations, armes } = endommagerLEquipementPorte(target);
-        lines.push(t('op.equipementAbime', { name: target.label, localisations, armes }));
+        lines.push(t('op.equipementAbime', { name: nomDe(target), localisations, armes }));
         break;
       }
       case 'suppressPsych': {
         if (!target.psychTraits?.length && !effectivePsychTraits(target).length && !isFrenzyCapable(target)) {
-          lines.push(t('op.sansPsychologieASuspendre', { name: target.label }));
+          lines.push(t('op.sansPsychologieASuspendre', { name: nomDe(target) }));
           break;
         }
         target.activeEffects = target.activeEffects ?? [];
@@ -1734,7 +1735,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           suppressedPsych: suppressPsychTraits(target),
         });
-        lines.push(t('op.psychologieSuspendue', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.psychologieSuspendue', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'suffocate': {
@@ -1744,7 +1745,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           suffocates: true,
         });
-        lines.push(t('op.suffocation', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.suffocation', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'noHunger': {
@@ -1754,7 +1755,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           noHunger: true,
         });
-        lines.push(t('op.sansFaim', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.sansFaim', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'testMod': {
@@ -1770,7 +1771,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...(o.weaponHand ? { testModHand: o.weaponHand } : {}),
           ...(o.movementOnly ? { testModMovementOnly: true } : {}),
         });
-        lines.push(t('op.modificateurDeTest', { name: target.label, mod: `${o.amount >= 0 ? '+' : ''}${o.amount}${o.characteristic ? ` (${CHAR_LABELS[o.characteristic]})` : ''}`, src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDeTest', { name: nomDe(target), mod: `${o.amount >= 0 ? '+' : ''}${o.amount}${o.characteristic ? ` (${CHAR_LABELS[o.characteristic]})` : ''}`, src: nomDeSource(ctx) }));
         break;
       }
       case 'attrMod': {
@@ -1780,7 +1781,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const n = formuleDuCtx(o.mod, ref, ctx);
         if (!n) break;
         applyActiveEffect(target, { label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx), attrMods: { [o.attr]: n } });
-        lines.push(t('op.modificateurDAttribut', { name: target.label, mod: `${n >= 0 ? '+' : ''}${n}`, attr: t(ATTR_KEY[o.attr]), src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDAttribut', { name: nomDe(target), mod: `${n >= 0 ? '+' : ''}${n}`, attr: t(ATTR_KEY[o.attr]), src: nomDeSource(ctx) }));
         break;
       }
       case 'diseaseTestMod': {
@@ -1792,14 +1793,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           diseaseTestMod: { amount: o.amount, ...(o.diseases?.length ? { diseases: o.diseases } : {}) },
         });
-        lines.push(t('op.modificateurDeTestDeMaladie', { name: target.label, mod: `${o.amount >= 0 ? '+' : ''}${o.amount}`, what: o.diseases?.length ? o.diseases.map((d) => refLabel('maladies', { id: d })).join(', ') : t('op.frag.toutesMaladies'), src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDeTestDeMaladie', { name: nomDe(target), mod: `${o.amount >= 0 ? '+' : ''}${o.amount}`, what: o.diseases?.length ? o.diseases.map((d) => refLabel('maladies', { id: d })).join(', ') : t('op.frag.toutesMaladies'), src: nomDeSource(ctx) }));
         break;
       }
       case 'suppressSymptom': {
         // Suspension d'un symptôme par id (Racine de terre → bubons) — les canaux passive/onTick du
         // symptôme sont ignorés tant que l'effet dure (`symptomSuppressed`), restitués à l'expiration.
         suspendSymptom(target, o.symptom.id, durationFromCtx(ctx), nomDeSource(ctx));
-        lines.push(t('op.symptomeSuspendu', { name: target.label, symptom: refLabel('symptoms', o.symptom), src: nomDeSource(ctx) }));
+        lines.push(t('op.symptomeSuspendu', { name: nomDe(target), symptom: refLabel('symptoms', o.symptom), src: nomDeSource(ctx) }));
         break;
       }
       case 'aggravateSymptom': {
@@ -1832,7 +1833,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           testDAgir: { characteristic: o.characteristic },
         });
-        lines.push(t('op.testDAgir', { name: target.label, char: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
+        lines.push(t('op.testDAgir', { name: nomDe(target), char: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
         break;
       }
       case 'noBreath': {
@@ -1842,7 +1843,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           noBreath: true,
         });
-        lines.push(t('op.sansSouffle', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.sansSouffle', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'weatherWard': {
@@ -1852,7 +1853,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           weatherImmune: true,
         });
-        lines.push(t('op.protectionMeteo', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.protectionMeteo', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'giveTrapping': {
@@ -1863,7 +1864,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
-        lines.push(t('op.objetDonne', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o, ctx.resolveTrapping), src: nomDeSource(ctx) }));
+        lines.push(t('op.objetDonne', { name: nomDe(target), count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o, ctx.resolveTrapping), src: nomDeSource(ctx) }));
         break;
       }
       case 'money': {
@@ -1907,7 +1908,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // Libellé FIDÈLE à la durée RÉELLE (jamais « permanente » en dur pour un octroi temporisé,
         // même vocabulaire que les autres effets à durée, cf. `op.psychologieSuspendue`/`op.symptomeSuspendu`
         // « pour la durée »).
-        lines.push(t('op.tirageDeMutation', { name: target.label, mutation: m.label, durability: dur.scale === 'permanent' ? t('op.mutationPermanente') : t('op.mutationTemporaire') }));
+        lines.push(t('op.tirageDeMutation', { name: nomDe(target), mutation: m.label, durability: dur.scale === 'permanent' ? t('op.mutationPermanente') : t('op.mutationTemporaire') }));
         break;
       }
       case 'charDamage': {
@@ -1916,7 +1917,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (n > 0) {
           const before = target.characteristics[o.characteristic];
           target.characteristics[o.characteristic] = Math.max(0, before - n);
-          lines.push(t('op.degatsDeCaracteristique', { name: target.label, n: before - target.characteristics[o.characteristic], char: CHAR_LABELS[o.characteristic] }));
+          lines.push(t('op.degatsDeCaracteristique', { name: nomDe(target), n: before - target.characteristics[o.characteristic], char: CHAR_LABELS[o.characteristic] }));
         }
         break;
       }
@@ -1932,7 +1933,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         });
         recomputeLoadout(target);
         const natQuals = weapon.qualities.map(qualityRefLabel).join(', ');
-        lines.push(t('op.armeNaturelleAccordee', { name: target.label, weapon: o.label, dmg: damageString(weapon.damage), quals: weapon.qualities.length ? `, ${natQuals}` : '', src: nomDeSource(ctx) }));
+        lines.push(t('op.armeNaturelleAccordee', { name: nomDe(target), weapon: o.label, dmg: damageString(weapon.damage), quals: weapon.qualities.length ? `, ${natQuals}` : '', src: nomDeSource(ctx) }));
         break;
       }
       case 'grantWeapon': {
@@ -1954,7 +1955,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           conjuredSet,
         });
         const conjQuals = item.qualities.map(qualityRefLabel).join(', ');
-        lines.push(t('op.armeAccordee', { name: target.label, item: item.label, dmg: item.damage ? damageString(item.damage) : '—', quals: item.qualities.length ? `, ${conjQuals}` : '', src: nomDeSource(ctx) }));
+        lines.push(t('op.armeAccordee', { name: nomDe(target), item: item.label, dmg: item.damage ? damageString(item.damage) : '—', quals: item.qualities.length ? `, ${conjQuals}` : '', src: nomDeSource(ctx) }));
         break;
       }
       case 'castWard': {
@@ -1969,7 +1970,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           castWard: { radiusMeters: radius, mod: o.mod },
         });
-        lines.push(t('op.protectionDIncantation', { name: target.label, radius, sign: o.mod >= 0 ? '+' : '−', n: Math.abs(o.mod), src: nomDeSource(ctx) }));
+        lines.push(t('op.protectionDIncantation', { name: nomDe(target), radius, sign: o.mod >= 0 ? '+' : '−', n: Math.abs(o.mod), src: nomDeSource(ctx) }));
         break;
       }
       case 'arrowWard': {
@@ -1980,7 +1981,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           arrowWard: { radiusMeters: zone.rayonM },
         });
-        lines.push(t(zone.porteur ? 'op.bouclierAntiFleches' : 'op.bouclierAntiFlechesCouvert', { name: target.label, diametre: zone.diametreM, src: nomDeSource(ctx) }));
+        lines.push(t(zone.porteur ? 'op.bouclierAntiFleches' : 'op.bouclierAntiFlechesCouvert', { name: nomDe(target), diametre: zone.diametreM, src: nomDeSource(ctx) }));
         break;
       }
       case 'domeWard': {
@@ -1994,7 +1995,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           domeWard: { radiusMeters: zone.rayonM, ward },
         });
         lines.push(t(zone.porteur ? 'op.dome' : 'op.domeCouvert', {
-          name: target.label, diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, ward.value), src: nomDeSource(ctx),
+          name: nomDe(target), diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, ward.value), src: nomDeSource(ctx),
         }));
         break;
       }
@@ -2005,12 +2006,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           attackWardFM: true,
         });
-        lines.push(t('op.protectionDAttaqueFm', { name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.protectionDAttaqueFm', { name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'martyr': {
         if (!ctx.caster) {
-          lines.push(t('op.martyrSansPretre', { name: target.label }));
+          lines.push(t('op.martyrSansPretre', { name: nomDe(target) }));
           break;
         }
         target.activeEffects = target.activeEffects ?? [];
@@ -2019,7 +2020,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           martyrGuard: ctx.caster.id,
         });
-        lines.push(t('op.martyr', { caster: ctx.caster.label, name: target.label, src: nomDeSource(ctx) }));
+        lines.push(t('op.martyr', { caster: nomDe(ctx.caster), name: nomDe(target), src: nomDeSource(ctx) }));
         break;
       }
       case 'fall': {
@@ -2041,7 +2042,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         applyFall(target, metres, d10Chute);
         const poses = (target.conditions ?? []).filter((c) => !etatsAvant.has(c.id)).map((c) => conditionLabel(c.id));
         lines.push(t('op.chute', {
-          name: target.label,
+          name: nomDe(target),
           table,
           m: metres,
           n: avant - target.wounds.current,
@@ -2106,13 +2107,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const inner: OpsCtx = imbrique({ label: o.tag, effectId: o.tag, defaultDurationRounds: undefined, defaultUntilTime: undefined });
         absorber(applyOps(target, o.ops, inner));
         if (o.creature) applyActiveEffect(target, { label: o.tag, effectId: o.tag, morphRef: o.creature.id, bonus: 0, duration: { scale: 'permanent' } });
-        lines.push(t('op.metamorphose', { name: target.label, tag: o.tag }));
+        lines.push(t('op.metamorphose', { name: nomDe(target), tag: o.tag }));
         break;
       }
       case 'endTransform': {
         const portes: Applique = { lignes: [], faits: [] };
         if (!removeActiveEffects(target, (e) => e.effectId === o.tag, portes).length) break; // pas dans cette forme → no-op
-        lines.push(t('op.finDeMetamorphose', { name: target.label, tag: o.tag }));
+        lines.push(t('op.finDeMetamorphose', { name: nomDe(target), tag: o.tag }));
         absorber(portes);
         break;
       }
@@ -2134,13 +2135,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           passive: [o],
         });
-        lines.push(t('op.modificateurDeCompetence', { name: target.label, mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, skill: o.skill.id, src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDeCompetence', { name: nomDe(target), mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, skill: o.skill.id, src: nomDeSource(ctx) }));
         break;
       }
       case 'deitySkillMod': {
         const associees = deitySkills(target);
         if (!associees.length) {
-          lines.push(t('op.modificateurDeCompetenceDivine.sansListe', { name: target.label, src: nomDeSource(ctx) }));
+          lines.push(t('op.modificateurDeCompetenceDivine.sansListe', { name: nomDe(target), src: nomDeSource(ctx) }));
           break;
         }
         const frappees = o.pick === 'all' ? associees : [associees[rng.int(0, associees.length - 1)]];
@@ -2151,7 +2152,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           passive: frappees.map((id) => ({ op: 'skillMod', skill: { id }, mod: o.mod })),
         });
         lines.push(t('op.modificateurDeCompetenceDivine', {
-          name: target.label,
+          name: nomDe(target),
           mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`,
           skills: frappees.map((id) => refLabel('skills', { id })).join(', '),
           duree: libelleDHorloge(duree, ctx),
@@ -2167,7 +2168,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
           drBonus: [{ skill: o.skill ? structuredClone(o.skill) : undefined, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
-        lines.push(t('op.bonusDeDr', { name: target.label, what: o.skill?.id ?? o.testType?.id ?? '', src: nomDeSource(ctx) }));
+        lines.push(t('op.bonusDeDr', { name: nomDe(target), what: o.skill?.id ?? o.testType?.id ?? '', src: nomDeSource(ctx) }));
         break;
       }
       case 'charDRBonus': {
@@ -2176,7 +2177,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
           drBonus: [{ characteristic: o.characteristic, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
-        lines.push(t('op.bonusDeDr', { name: target.label, what: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
+        lines.push(t('op.bonusDeDr', { name: nomDe(target), what: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
         break;
       }
       // Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (« Naviguons tous ensemble », MDG 09 l.224).
@@ -2186,7 +2187,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
           crewTestMod: o.mod,
         });
-        lines.push(t('op.modificateurDeTestDEquipage', { name: target.label, mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDeTestDEquipage', { name: nomDe(target), mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, src: nomDeSource(ctx) }));
         break;
       }
       case 'light': {
@@ -2195,7 +2196,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // exécuté par applyOps → l'op est naturellement inerte là-bas.)
         const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone.id } : { radiusM: o.radiusM };
         applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: durationFromCtx(ctx) });
-        lines.push(t('op.lumiere', { name: target.label, n: o.radiusM, src: nomDeSource(ctx) }));
+        lines.push(t('op.lumiere', { name: nomDe(target), n: o.radiusM, src: nomDeSource(ctx) }));
         break;
       }
       case 'moveScale': {
@@ -2205,7 +2206,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromOp(o, ctx, ref),
           passive: [sansDuree(o)],
         });
-        lines.push(t('op.echelleDeMouvement', { name: target.label, num: o.num, den: o.den, src: nomDeSource(ctx) }));
+        lines.push(t('op.echelleDeMouvement', { name: nomDe(target), num: o.num, den: o.den, src: nomDeSource(ctx) }));
         break;
       }
       case 'moveMod': {
@@ -2215,7 +2216,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromCtx(ctx),
           passive: [o],
         });
-        lines.push(t('op.modificateurDeMouvement', { name: target.label, mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, src: nomDeSource(ctx) }));
+        lines.push(t('op.modificateurDeMouvement', { name: nomDe(target), mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, src: nomDeSource(ctx) }));
         break;
       }
       case 'maxWeaponHands': {
@@ -2225,7 +2226,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           duration: durationFromOp(o, ctx, ref),
           passive: [sansDuree(o)],
         });
-        lines.push(t('op.mainsDArmeMaximum', { name: target.label, hands: o.hands, src: nomDeSource(ctx) }));
+        lines.push(t('op.mainsDArmeMaximum', { name: nomDe(target), hands: o.hands, src: nomDeSource(ctx) }));
         break;
       }
       case 'disarm': {
@@ -2238,16 +2239,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ?? ficheDObjetPorte(tenue, ctx.resolveTrapping ?? findTrappingById));
         if (objet && itemCapability(objet, 'disarmImmune')) {
           // ADE II 02 l.695.
-          lines.push(t('op.desarmementImmunise', { name: target.label, item: objet.label }));
+          lines.push(t('op.desarmementImmunise', { name: nomDe(target), item: objet.label }));
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);
           else {
             const tombe = laisserTomber(target, tenue, ctx.idNeuf);
             if (tombe) ctx.onLacher(target, tombe);
           }
-          lines.push(t('op.desarmement', { name: target.label, item: tenue.label }));
+          lines.push(t('op.desarmement', { name: nomDe(target), item: tenue.label }));
         } else {
-          lines.push(t('op.desarmementVain', { name: target.label }));
+          lines.push(t('op.desarmementVain', { name: nomDe(target) }));
         }
         break;
       }
@@ -2256,18 +2257,18 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // un Critique Main ensanglantée frappe toujours un bras (`brasG`/`brasD`) ; `corps`/absente → au hasard.
         const hand: Main = ctx.location === 'brasG' ? 'secondaire' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'secondaire';
         target.handGates = [...(target.handGates ?? []).filter((h) => h !== hand), hand];
-        lines.push(t('op.testDeMain', { name: target.label }));
+        lines.push(t('op.testDeMain', { name: nomDe(target) }));
         break;
       }
       case 'senseLoss': {
-        lines.push(t('op.perteDeSens', { name: target.label, sense: t(o.sense === 'vue' ? 'op.sensVue' : 'op.sensOuie'), src: nomDeSource(ctx, 'sequelle') }));
+        lines.push(t('op.perteDeSens', { name: nomDe(target), sense: t(o.sense === 'vue' ? 'op.sensVue' : 'op.sensOuie'), src: nomDeSource(ctx, 'sequelle') }));
         break;
       }
       case 'loseTurn':
         // `what` cible UNE des deux ressources (issue du choix du gate de Mandragore) ; absent = les deux.
         if (o.what !== 'movement') target.loseNextAction = true;
         if (o.what !== 'action') target.loseNextMovement = true;
-        lines.push(t(o.what === 'action' ? 'op.actionPerdue' : o.what === 'movement' ? 'op.mouvementPerdu' : 'op.tourPerdu', { name: target.label }));
+        lines.push(t(o.what === 'action' ? 'op.actionPerdue' : o.what === 'movement' ? 'op.mouvementPerdu' : 'op.tourPerdu', { name: nomDe(target) }));
         break;
       case 'teamCommander':
         // Commandant d'équipe (AA) : pose le lien chef→commandant. La substitution effective du score est

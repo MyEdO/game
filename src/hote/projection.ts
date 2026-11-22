@@ -195,7 +195,7 @@ function combattant(etat: Jeu, c: Combatant, actif: Combatant | undefined): Comb
   const d = actif ? distanceDeCombat(etat.scene, actif, c) : Infinity;
   return {
     id: c.id,
-    nom: c.label,
+    nom: garanti(nomEnVue(etat, c.id), c.id, 'nom du combattant projeté'),
     camp: c.kind,
     pb: [c.wounds.current, c.wounds.max],
     avantage: c.advantage,

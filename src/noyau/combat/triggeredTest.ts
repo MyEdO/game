@@ -998,7 +998,7 @@ export const TABLES = {
       if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const choisie = step.options?.find((o) => o.key === step.chosen)?.key;
       const cible = choisie === undefined ? undefined : ciblePsyLue(choisie);
-      const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: hero.label });
+      const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: nomDe(hero) });
       set(touchActors(get()));
       return { consequences: freeCons([ligne]) };
     },
@@ -1011,7 +1011,7 @@ export const TABLES = {
     traitDeTraumatisme: (get, set, step, hero) => {
       if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const type = TRAITS_DE_TRAUMA.find((p) => p === step.chosen);
-      if (!type) return { consequences: freeCons([t('op.traumatismeSansTrait', { name: hero.label })]) };
+      if (!type) return { consequences: freeCons([t('op.traumatismeSansTrait', { name: nomDe(hero) })]) };
       acquerirLeTrait(get, set, hero, type, ciblesDeTrauma());
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

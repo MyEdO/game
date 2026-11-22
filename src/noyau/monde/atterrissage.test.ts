@@ -3,8 +3,8 @@ import { emptyScene, setTileCollapsed, surfaceDAtterrissage, type Scene } from '
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 
 /**
- * `surfaceDAtterrissage` (LDB 15 l.82) : la plus haute surface MARCHABLE, toutes couches, dont la
- * hauteur ne dépasse pas le départ d'un pas — l'unique réponse à « où atterrit-on ? ».
+ * `surfaceDAtterrissage` (LDB 15 l.82) : la surface du premier plancher présent, toutes couches, dont la hauteur ne
+ * dépasse pas le départ d'un pas, si on peut s'y tenir — l'unique réponse à « où atterrit-on ? ».
  */
 
 /** 3×3 ; couche 0 au sol (0 m) ; couche 1 = un tablier de pont à 3 m sur la seule case (1,1). */
@@ -34,6 +34,13 @@ describe('surfaceDAtterrissage', () => {
   it('tuile de tablier EFFONDRÉE : exclue, on atterrit au sol', () => {
     const s = setTileCollapsed(pontScene(), 1, 1, 1);
     expect(surfaceDAtterrissage(s, 1, 1, 8)).toEqual({ kind: 'surface', to: { x: 1, y: 1, z: 0 }, hauteur: 0 });
+  });
+
+  it('décor solide sur le tablier : la chute s’y arrête sans surface, jamais au sol à travers le plancher (#4576)', () => {
+    const s = pontScene();
+    s.entities = [{ id: 'brasero', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 1, y: 1 }, z: 1 }];
+    expect(surfaceDAtterrissage(s, 1, 1, 8)).toEqual({ kind: 'aucune-surface' });
+    expect(surfaceDAtterrissage(s, 1, 1, 0), 'sous le tablier, le sol porte').toEqual({ kind: 'surface', to: { x: 1, y: 1, z: 0 }, hauteur: 0 });
   });
 
   it('aucune surface marchable → refus nommé', () => {

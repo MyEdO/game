@@ -11,7 +11,8 @@
   "surfaces": [
     {
       "nom": "parchemin",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--papier"
     },
     {
       "nom": "cuir",
@@ -25,7 +26,7 @@
     }
   ],
   "glb": {
-    "sha256": "f61582e3c43a8f64b03c9d506dca44c488ed72ccc52140746241ecb11f4affbe",
-    "octets": 100092
+    "sha256": "da5b50d5e0e93cb76fdf9245e76a714bfb79fa55b05a52c9a2c0aac94f575f8f",
+    "octets": 100168
   }
 }

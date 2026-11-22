@@ -32,6 +32,7 @@ import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PatchDeFlux } from './flowTypes';
 import { estBateauFluvial } from './worldMap';
+import { nomDe } from '../engine/nom';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
 export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'possessions' | 'lieu'>;
@@ -95,7 +96,7 @@ export function partyCarriers(s: CarrierStateSlice): CargoCarrier[] {
   for (const h of s.party) {
     if (!heroInParty(h)) continue;
     // Le héros lui-même : contenu = objets DISCRETS (transfert d'objet = giveTrapping, hors canal vrac).
-    out.push({ id: h.id, label: h.label, hull: 'jambes', capacity: maxEncumbrance(h), discreteEnc: totalEncumbrance(h), cargo: [], location: AVEC_LE_GROUPE });
+    out.push({ id: h.id, label: nomDe(h), hull: 'jambes', capacity: maxEncumbrance(h), discreteEnc: totalEncumbrance(h), cargo: [], location: AVEC_LE_GROUPE });
   }
   const { vehicles, beasts } = landCarriers(s);
   out.push(...vehicles, ...beasts);

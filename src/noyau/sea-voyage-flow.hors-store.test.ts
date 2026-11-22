@@ -39,7 +39,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { applyVesselCrewLoss, navigationDuNavire, shipboardSouls } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, startCascade, stepInteraction, tableSpec, toutResoudre } from './cascade';
-import { feedFromMeal, noterLeRepas } from '../engine/provisions';
+import { feedFromMeal, noterLeRepas, rationCount } from '../engine/provisions';
 import { dayIndex, duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
@@ -1807,27 +1807,29 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    // 15 PNJ × 7 jours = 105 : les 30 frais, puis 75 des 100 préservées ; les biscuits restent entiers.
-    expect(quantitesDeCale(v.provisions)).toEqual({ [PRESERVEE]: 25, [BISCUITS]: 70 });
+    // 15 PNJ et 3 héros × 7 jours = 126 : les 30 frais, puis 96 des 100 préservées ; les biscuits restent entiers.
+    expect(quantitesDeCale(v.provisions)).toEqual({ [PRESERVEE]: 4, [BISCUITS]: 70 });
     expect(v.morale.factors).not.toContain('nourriture-insuffisante');
   });
 
-  // 15 PNJ × 7 jours = 105 rations ; le dernier jour de la traversée (15 rations) fait la nourriture du recalcul.
+  // 15 PNJ × 7 jours et 3 héros × 7 jours = 126 rations ; le dernier repas de l'équipage (15 rations, avant les 3 des
+  // héros du jour d'arrivée) fait la nourriture du recalcul. #4453
   it('#1652 — dernier jour couvert par les seuls biscuits de mer → facteur « nourriture-biscuits-de-mer » (MDG 14 l.166)', () => {
     set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 50, [BISCUITS]: 100 }) } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 45 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 24 });
     expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
   });
 
   it('#1652 — dernier jour mêlé (nourriture préservée puis biscuits) → aucun facteur de nourriture (MDG 14 l.166)', () => {
-    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 100, [BISCUITS]: 70 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
+    // Avant le dernier repas de l'équipage, 108 rations mangées : il prend les 7 dernières préservées et 8 biscuits.
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 115, [BISCUITS]: 70 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 65 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 59 });
     expect(v.morale.factors).toEqual([]);
   });
 
@@ -1841,7 +1843,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   });
 
   it('#4058 — frais pour tout l’effectif chaque jour → « nourriture-au-dessus-des-rations » (MDG 14 l.156)', () => {
-    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 120, [BISCUITS]: 50 }) } });
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 130, [BISCUITS]: 50 }) } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     expect(get().vessel!.morale.factors).toEqual(['nourriture-au-dessus-des-rations']);
@@ -1873,8 +1875,8 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       get().partirEnVoyage('r1', 'mer', { fast: true });
       driveFast();
       const v = get().vessel!;
-      // 15 PNJ : 2 jours de frais (30), 5 jours de biscuits (75) ; le reste du frais est jeté à l'arrivée.
-      expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 25 });
+      // 15 PNJ : 2 jours de frais (30), 5 jours de biscuits (75) ; 3 héros : 1 jour de frais (3), 6 de biscuits (18).
+      expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 7 });
       expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
     });
 
@@ -1883,9 +1885,10 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 200, [PRESERVEE]: 10, [BISCUITS]: 10 }) } });
       get().partirEnVoyage('r1', 'mer', { fast: true });
       driveFast();
-      // 3 jours de frais (45) mangés, puis 10 préservées et 10 biscuits, le reste à court ; à l'arrivée les 155 frais pourris partent.
+      // 3 jours de frais pour l'équipage (45) et 2 pour les héros (6), puis 10 préservées et 10 biscuits, le reste à court ;
+      // au 3e jour, les 149 frais pourris partent.
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({});
-      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 155, vivre: 'Nourriture, courses/journée', total: 0 }));
+      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 149, vivre: 'Nourriture, courses/journée', total: 20 }));
     });
 
     it('à quai, la durée suit la règle : posée à 1 jour, le frais de la veille est jeté, la préservée et les biscuits restent', () => {
@@ -1900,8 +1903,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('scorbut : une traversée de 40 jours aux biscuits teste chaque porteur au 30e jour, une fois, avant l’accostage (MDG 14 l.230 ; MDG 15 l.25 ; #4454)', () => {
     const debut = get().gameTime;
     const milles = 40 * millesDeCroisiere(mDeCroisiere({ vehicleId: get().vessel!.vehicleId }));
-    const biscuits = () => Array.from({ length: 40 }, () => itemFromTrappingById(BISCUITS, idsDeTest)!);
-    set({ party: get().party.map((h) => ({ ...h, items: biscuits() })), worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] }, vessel: { ...get().vessel!, ...benign, provisions: cale({ [BISCUITS]: 15 * 40 }) } });
+    set({ worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] }, vessel: { ...get().vessel!, ...benign, provisions: cale({ [BISCUITS]: (15 + get().party.length) * 40 }) } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     expect(get().travelPlan!.sea!.fast!.days).toBe(40);
     driveFast();
@@ -1921,12 +1923,11 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('scorbut : des comptes décalés font arrêter la traversée au multiple de 30 de chaque porteur, jusqu’au jour de l’accostage (MDG 14 l.230 ; #4454)', () => {
     const debut = get().gameTime;
     const milles = 65 * millesDeCroisiere(mDeCroisiere({ vehicleId: get().vessel!.vehicleId }));
-    const biscuits = () => Array.from({ length: 70 }, () => itemFromTrappingById(BISCUITS, idsDeTest)!);
     const [premier, ...autres] = get().party;
     set({
-      party: [{ ...premier, items: biscuits(), regimeDeBord: { joursSansVivreFrais: 25, joursDeSoupe: 0 } }, ...autres.map((h) => ({ ...h, items: biscuits() }))],
+      party: [{ ...premier, regimeDeBord: { joursSansVivreFrais: 25, joursDeSoupe: 0 } }, ...autres],
       worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] },
-      vessel: { ...get().vessel!, ...benign, porteurDeLEquipage: { regimeDeBord: { joursSansVivreFrais: 10, joursDeSoupe: 0 } }, provisions: cale({ [BISCUITS]: 15 * 65 }) },
+      vessel: { ...get().vessel!, ...benign, porteurDeLEquipage: { regimeDeBord: { joursSansVivreFrais: 10, joursDeSoupe: 0 } }, provisions: cale({ [BISCUITS]: (15 + get().party.length) * 65 }) },
     });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     expect(get().travelPlan!.sea!.fast!.days).toBe(65);
@@ -1943,6 +1944,192 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       [WORLD_STEP_OWNER]: [20, 50],
     });
     expect(get().travelPlan).toBeNull();
+  });
+
+  it('scorbut : sans cale suivie, les héros mangent leurs biscuits portés et la traversée s’arrête à leur 30e jour (MDG 14 l.230 ; #4454 ; #4453)', () => {
+    const debut = get().gameTime;
+    const milles = 40 * millesDeCroisiere(mDeCroisiere({ vehicleId: get().vessel!.vehicleId }));
+    const biscuits = () => Array.from({ length: 40 }, () => itemFromTrappingById(BISCUITS, idsDeTest)!);
+    set({ party: get().party.map((h) => ({ ...h, items: biscuits() })), worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: milles }] }, vessel: { ...get().vessel!, ...benign } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const joursParPorteur: Record<string, number[]> = {};
+    draineEtapes(get, 200, (etape, rangee) => {
+      if (etape.kind !== 'mer-scorbut') return undefined;
+      (joursParPorteur[rangee!.id] ??= []).push(dayIndex(get().gameTime) - dayIndex(debut));
+      return 1;
+    });
+    expect(joursParPorteur).toEqual(Object.fromEntries(get().party.map((h) => [h.id, [30]])));
+    expect(get().party.map(rationCount)).toEqual(get().party.map(() => 0));
+    expect(get().travelPlan).toBeNull();
+  });
+
+  describe('#4453 — à bord en mer, un Personnage mange à la cale (arbitrage 2026-11-22 ; MDG 14 l.238 ; LDB 18 l.342)', () => {
+    afterEach(() => resetRule('mer-vivres-frais-peremption-jours'));
+    const rations = (n: number) => Array.from({ length: n }, () => itemFromTrappingById('ration', idsDeTest)!);
+    const sacs = () => get().party.map(rationCount);
+    const regimes = () => get().party.map((h) => h.regimeDeBord?.joursSansVivreFrais);
+
+    /** Les Tests de scorbut joués, par rangée et jour depuis le départ : ratés par les héros (d100 100), réussis par
+     *  l'équipage (d100 1), qui reste ainsi appelable si son compte repassait à un multiple. */
+    let scorbuts: Record<string, number[]> = {};
+    let debutDuVoyage = 0;
+    const de: PoseDe = (e, rangee) => {
+      if (e.kind === 'mer-scorbut') {
+        (scorbuts[rangee!.id] ??= []).push(dayIndex(get().gameTime) - dayIndex(debutDuVoyage));
+        return rangee!.id === WORLD_STEP_OWNER ? 1 : 100;
+      }
+      return e.kind.startsWith('equipage-') || e.kind === 'merExposition' ? 1 : undefined;
+    };
+    beforeEach(() => { scorbuts = {}; debutDuVoyage = get().gameTime; });
+
+    /** Joue la traversée jour par jour comme le joueur, haltes comprises, jusqu'à l'accostage. */
+    function jusquAuPort(): void {
+      for (let i = 0; i < 3000 && get().travelPlan; i++) {
+        if (get().battle) break;
+        if (get().pendingCascade) avanceEtapeCascade(get, de);
+        else if (get().pendingSeaActivities) get().fenetreValider('activitesEnMer');
+        else if (get().pendingRest) get().fenetreValider('repos');
+        else if (get().travelPlan!.interrupted) get().reprendreLeVoyage();
+        else break;
+        banc.reprendreTout();
+      }
+    }
+
+    /** La traversée de `r1` dans la cadence donnée, jusqu'à l'accostage. */
+    function traverser(cadence: 'rapide' | 'jourParJour'): void {
+      if (cadence === 'rapide') {
+        get().partirEnVoyage('r1', 'mer', { fast: true });
+        driveFast();
+        draineEtapes(get, 200, de);
+      } else {
+        get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+        jusquAuPort();
+      }
+      expect(get().travelPlan).toBeNull();
+    }
+
+    it('sac plein et cale pleine : le sac reste intact, la cale perd le besoin du jour de chaque héros', () => {
+      set({ party: get().party.map((h) => ({ ...h, items: rations(5) })), vessel: { ...get().vessel!, ...benign, provisions: cale({ [BISCUITS]: 500 }) } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      draineEtapes(get);
+      expect(get().travelPlan).toBeNull();
+      expect(sacs()).toEqual([5, 5, 5]);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 500 - 18 * 7 });
+      expect(get().journal).toContain(t('upkeep.holdUsed', { n: 3, left: 500 - 18 * 7, s: 's' }));
+      expect(get().journal.some((l) => l === t('upkeep.rationsUsed', { n: 3, s: 's' }))).toBe(false);
+    });
+
+    it('un vivre frais de la cale remet à zéro le compte des jours sans vivre frais', () => {
+      setRule('mer-vivres-frais-peremption-jours', 30);
+      set({
+        party: get().party.map((h) => ({ ...h, items: rations(5), regimeDeBord: { joursSansVivreFrais: 12, joursDeSoupe: 3 } })),
+        vessel: { ...get().vessel!, ...benign, provisions: cale({ [FRAIS]: 500 }) },
+      });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      draineEtapes(get);
+      expect(regimes()).toEqual([0, 0, 0]);
+      expect(sacs()).toEqual([5, 5, 5]);
+    });
+
+    it('cale vide en mer : la Faim s’installe, même sac plein', () => {
+      set({ party: get().party.map((h) => ({ ...h, items: rations(10) })), vessel: { ...get().vessel!, ...benign, provisions: cale({}) } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      draineEtapes(get, 200);
+      expect(get().travelPlan).toBeNull();
+      expect(sacs()).toEqual([10, 10, 10]);
+      expect(get().party.map((h) => h.hunger?.days)).toEqual([7, 7, 7]);
+    });
+
+    it('à terre, le navire à quai : le héros mange son sac, la cale ne bouge pas', () => {
+      set({ party: get().party.map((h) => ({ ...h, items: rations(2) })), vessel: { ...get().vessel!, provisions: cale({ [BISCUITS]: 50 }) } });
+      get().avancerLeTemps(MINUTES_PER_DAY);
+      expect(sacs()).toEqual([1, 1, 1]);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 50 });
+      expect(get().journal).toContain(t('upkeep.rationsUsed', { n: 3, s: 's' }));
+    });
+
+    it('à terre après une arrivée tonneaux à sec : l’eau du pays désaltère, aucune Soif (LDB 18 l.340)', () => {
+      set({ party: get().party.map((h) => ({ ...h, items: rations(2) })), vessel: { ...get().vessel!, waterLitres: 0 } });
+      get().avancerLeTemps(MINUTES_PER_DAY);
+      expect(get().party.map((h) => h.thirst)).toEqual([undefined, undefined, undefined]);
+    });
+
+    it('jour par jour, le jour d’arrivée se mange à la cale, avant l’accostage', () => {
+      set({
+        party: get().party.map((h) => ({ ...h, items: rations(5) })),
+        worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] },
+        vessel: { ...get().vessel!, ...benign, daysToEvent: 99, provisions: cale({ [BISCUITS]: 100 }) },
+      });
+      get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+      jusquAuPort();
+      expect(get().travelPlan).toBeNull();
+      expect(get().pendingShoreLeave).toBeTruthy();
+      expect(get().lastUpkeepDay).toBe(1);
+      expect(sacs()).toEqual([5, 5, 5]);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 100 - 18 });
+    });
+
+    // 54 frais : l'équipage (15) en mange les jours 0 à 2, les héros (3) les jours 1 à 3, le soir pour l'un, après minuit
+    // pour les autres ; ensuite les biscuits. Sur N jours, chacun compte N − 3 jours sans frais, quelle que soit la cadence.
+    it.each(['rapide', 'jourParJour'] as const)('la cadence (%s) ne change ni le vivre mangé ni le compte des jours sans frais', (cadence) => {
+      setRule('mer-vivres-frais-peremption-jours', 30);
+      const debut = get().gameTime;
+      set({
+        party: get().party.map((h) => ({ ...h, items: rations(5), regimeDeBord: { joursSansVivreFrais: 0, joursDeSoupe: 0 } })),
+        vessel: { ...get().vessel!, ...benign, daysToEvent: 99, porteurDeLEquipage: { regimeDeBord: { joursSansVivreFrais: 0, joursDeSoupe: 0 } }, provisions: cale({ [FRAIS]: 54, [BISCUITS]: 500 }) },
+      });
+      traverser(cadence);
+      const jours = dayIndex(get().gameTime) - dayIndex(debut);
+      expect(jours).toBeGreaterThan(3);
+      expect(regimes()).toEqual([jours - 3, jours - 3, jours - 3]);
+      expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursSansVivreFrais).toBe(jours - 3);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 500 - (18 * jours - 54) });
+      expect(sacs()).toEqual([5, 5, 5]);
+      expect(scorbuts).toEqual({});
+    });
+
+    // Une journée aux biscuits, chaque porteur à 29 jours sans frais : l'équipage atteint 30 au repas du soir, les héros
+    // au repas du jour d'arrivée ; chacun fait son Test une fois, ce jour-là, avant l'accostage. MDG 14 l.230
+    it.each(['rapide', 'jourParJour'] as const)('la cadence (%s) ne change pas le Test de scorbut du jour d’arrivée, ni n’en double un', (cadence) => {
+      const mois = { joursSansVivreFrais: 29, joursDeSoupe: 0 };
+      set({
+        party: get().party.map((h) => ({ ...h, regimeDeBord: mois })),
+        worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] },
+        vessel: { ...get().vessel!, ...benign, daysToEvent: 99, porteurDeLEquipage: { regimeDeBord: mois }, provisions: cale({ [BISCUITS]: 100 }) },
+      });
+      traverser(cadence);
+      expect(dayIndex(get().gameTime) - dayIndex(debutDuVoyage)).toBe(1);
+      expect(scorbuts).toEqual(Object.fromEntries([...get().party.map((h) => [h.id, [1]]), [WORLD_STEP_OWNER, [cadence === 'rapide' ? 1 : 0]]]));
+      expect(get().party.map((h) => (h.diseases ?? []).some((d) => d.id === 'scorbut'))).toEqual([true, true, true]);
+      expect((get().vessel!.porteurDeLEquipage!.diseases ?? []).some((d) => d.id === 'scorbut')).toBe(false);
+      expect(get().pendingShoreLeave).toBeTruthy();
+    });
+
+    it('jour par jour, un départ de nuit ne joue pas l’entretien en route : la halte le joue, soins du soignant compris (LDB 09 ; #4453)', () => {
+      const [malade, soignant, ...autres] = get().party;
+      const maladie = contractDisease('pneumonie', makeRNG(3), { incubation: 0, duration: 40 })!;
+      const reste = maladie.minutesLeft;
+      set({
+        gameTime: 22 * 60,
+        party: [{ ...malade, diseases: [maladie] }, { ...soignant, skills: [...(soignant.skills ?? []), { id: 'guerison', advances: 10, characteristic: 'intelligence' }] }, ...autres] as never,
+        vessel: { ...get().vessel!, ...benign, daysToEvent: 99 },
+      });
+      get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+      for (let i = 0; i < 200 && !get().pendingRest; i++) {
+        if (!get().pendingCascade) break;
+        avanceEtapeCascade(get, de);
+      }
+      expect(get().pendingRest, 'la halte du premier crépuscule').toBeTruthy();
+      expect(dayIndex(get().gameTime), 'minuit passé en route').toBe(1);
+      expect(get().lastUpkeepDay, 'aucun entretien en route').toBe(0);
+      get().fenetreValider('repos');
+      expect(get().lastUpkeepDay).toBe(2);
+      expect(get().party[0].diseases![0].minutesLeft, 'deux jours de maladie, chacun soigné').toBe(reste - 4 * MINUTES_PER_DAY);
+    });
   });
 
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {

@@ -24,6 +24,7 @@ import { scenario as embuscadeFluviale } from '../scenes/test-scenarios/16-embus
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { lancerLeScenario } from './lancementDeScenario';
 import { capEnCombat, naviresDeLaScene, provenanceDesNavires } from './planDeNavire';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -358,7 +359,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
       expect(res.refus).toBe(attendu);
       applyShipManeuver(() => banc.getState(), banc.setState, 'ship', res, 2);
       expect(banc.getState().journal).toContain(attendu);
-      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? sansVoile.label : t('shipManv.crewFallback'), ship: ship2().label, dr: res.dr }));
+      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? nomDe(sansVoile) : t('shipManv.crewFallback'), ship: nomDe(ship2()), dr: res.dr }));
     }
   });
 

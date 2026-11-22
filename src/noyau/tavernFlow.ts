@@ -24,7 +24,7 @@
  * Réservé aux tables qui activent l'option `jeux-de-taverne`.
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { FlowTest, JetFixe } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
@@ -105,6 +105,7 @@ import {
 import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { pnjAuProfil, sceneNpc } from './monde/sceneNpc';
 import type { TrappingResolver } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
@@ -114,7 +115,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel, TAVERN_GAMES } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
-import type { PlayerText } from '../i18n/playerText';
+import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -193,7 +194,7 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
       const fiche = sceneNpc(scene, e.id, presetDe, resolveTrapping);
       return fiche ? [{
         id: e.id,
-        label: fiche.label,
+        label: nomDe(fiche),
         gameId: e.tavernGame!.id,
         ...(e.tavernGame!.stakeBrass != null ? { stakeBrass: e.tavernGame!.stakeBrass } : {}),
       }] : [];
@@ -290,7 +291,7 @@ export interface TavernPayload {
    *  PNJ de scène, l.34) — les héros portent le leur sur leur fiche (ops de manche). */
   advantage?: Record<CampDeTaverne, number>;
   /** TORCHON : l'ORDRE de passage des lanceurs (un tour = un lanceur, l.111), figé à l'ouverture. */
-  throwers?: { id: string; label: string; camp: CampDeTaverne; value?: number }[];
+  throwers?: { id: string; label: SansMarqueNonAffichable; camp: CampDeTaverne; value?: number }[];
   /** MISE : les joueurs assis à la table, dans l'ORDRE du tour (Al-zahr l.17). */
   seats?: TavernSeat[];
   /** MISE : joueurs SORTIS de la manche en cours (éliminés ou ayant abandonné) — ils ne roulent plus. */
@@ -392,9 +393,9 @@ export function tavernParams(jeu: TavernGame, joueurs = 0): SequenceParams {
  * NOMBRE de joueurs est une grandeur de TABLE (la source décrit un cercle sans en fixer l'effectif) :
  * il est fourni par l'appelant, éditable à la modale, jamais figé au code.
  */
-function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, opponentName: string, joueurs: number): TavernSeat[] {
-  const seats: TavernSeat[] = [{ id: challenger.id, label: challenger.label, hero: true }];
-  if (opponentHero) seats.push({ id: opponentHero.id, label: opponentHero.label, hero: true });
+function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, opponentName: PlayerText, joueurs: number): TavernSeat[] {
+  const seats: TavernSeat[] = [{ id: challenger.id, label: nomDe(challenger), hero: true }];
+  if (opponentHero) seats.push({ id: opponentHero.id, label: nomDe(opponentHero), hero: true });
   else seats.push({ id: 'habitue-1', label: opponentName, hero: false });
   for (let i = seats.length; i < Math.max(2, joueurs); i++) {
     seats.push({ id: `habitue-${i}`, label: t('tavern.potHabitue', { rang: i }), hero: false });
@@ -458,7 +459,7 @@ function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): Partie
   const wantStake = game.pot ? Math.max(0, Math.floor(opts.stakeBrass ?? 0)) : 0;
   const stakeBrass = Math.min(wantStake, toBrass(bourseOf(challenger)));
   // « on ne mise que ce qu'on a » (arbitrage en tête du bloc AL-ZAHR).
-  if (game.pot && stakeBrass <= 0) return { refus: t('tavern.potSansMise', { who: challenger.label }) };
+  if (game.pot && stakeBrass <= 0) return { refus: t('tavern.potSansMise', { who: nomDe(challenger) }) };
   return { game, challenger, opponentActor, allie, stakeBrass };
 }
 
@@ -627,7 +628,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
   const steps = porteurs.map((h) => choiceStep({
     id: `${TAVERN_CHOICE_KIND}-${seq.manche}-${h.id}`,
     kind: TAVERN_CHOICE_KIND,
-    label: t('tavern.optionChoix', { who: h.label }),
+    label: t('tavern.optionChoix', { who: nomDe(h) }),
     icon: 'navigation/des',
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
@@ -732,7 +733,7 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
 function torchonThrowers(get: Get, p: TavernPayload, game: TavernGame): TavernPayload['throwers'] {
   const taille = game.team?.size ?? 1;
   const heros = equipiers(get);
-  const mien: NonNullable<TavernPayload['throwers']> = heros.map((h) => ({ id: h.id, label: h.label, camp: 'joueur' as const }));
+  const mien: NonNullable<TavernPayload['throwers']> = heros.map((h) => ({ id: h.id, label: nomDe(h), camp: 'joueur' as const }));
   for (let i = heros.length; i < taille; i++) {
     mien.push({ id: `figurant-p-${i}`, label: t('tavern.equipier', { rang: i + 1 }), camp: 'joueur', value: valeurDesCoequipiers(p) });
   }
@@ -991,7 +992,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const opponentHero = p.opponentId
     ? p.ficheAdverseDeLaPartie ?? tavernActor(get, p.opponentId)
     : undefined;
-  const title = stepDetail(dataLabel(game.label), t('tavern.contre', { who: challenger.label, adversaire: p.opponentName }));
+  const title = stepDetail(dataLabel(game.label), t('tavern.contre', { who: nomDe(challenger), adversaire: p.opponentName }));
   const stake = combatStakeRef('taverne-partie', {
     values: {
       jeu: game.label, adversaire: p.opponentName,
@@ -1274,7 +1275,7 @@ const TAVERN_TARGET_KIND = 'tavernePotCible';
  *  siège. Les autres sont les habitués de la salle, dont la table fixe le nombre. */
 export interface TavernSeat {
   id: string;
-  label: string;
+  label: PlayerText;
   hero: boolean;
 }
 
@@ -1873,6 +1874,7 @@ function tavernSettle(get: Get, set: Set, seq: SequenceState<TavernPayload>, out
 function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard | undefined {
   const p = seq.chargeUtile;
   const { game, challenger } = partieEnCours(get, p, 'tableau de taverne');
+  const joueur = dataLabel(garanti(nomEnVue(get(), challenger.id), challenger.id, 'joueur de taverne'));
   const ph = sequencePhaseOf(seq.parametres, seq.manche);
   const phase = ph.total > 0 ? { manches: ph.total, phase: stepFraction(ph.phase, ph.count) } : {};
   if (game.roundShape === 'pot') return potBoard(game, p);
@@ -1886,7 +1888,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: volleyScore(seq, CAMP_PLAYER), ...jauge, ...(st?.seat === 0 && note ? { note } : {}) },
+        { id: CAMP_PLAYER, label: joueur, score: volleyScore(seq, CAMP_PLAYER), ...jauge, ...(st?.seat === 0 && note ? { note } : {}) },
         { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: volleyScore(seq, CAMP_OPPONENT), ...jauge, ...(st?.seat === 1 && note ? { note } : {}) },
       ],
       manche: st?.manche ?? 1,
@@ -1902,7 +1904,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: seq.cumuls[CAMP_PLAYER] ?? 0, note: t('tavern.cerevisNote') },
+        { id: CAMP_PLAYER, label: joueur, score: seq.cumuls[CAMP_PLAYER] ?? 0, note: t('tavern.cerevisNote') },
         { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: seq.cumuls[CAMP_OPPONENT] ?? 0 },
       ],
       manche: (etat?.tour ?? 1) - (tourAvecEcheance ? 1 : 0),
@@ -1917,7 +1919,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: stepPrecision(dataLabel(challenger.label), dataLabel(camps.mien.label)), score: seq.cumuls[CAMP_PLAYER] ?? 0, target: Math.floor(camps.sien.pieces / 2) + 1 },
+        { id: CAMP_PLAYER, label: stepPrecision(joueur, dataLabel(camps.mien.label)), score: seq.cumuls[CAMP_PLAYER] ?? 0, target: Math.floor(camps.sien.pieces / 2) + 1 },
         { id: CAMP_OPPONENT, label: stepPrecision(dataLabel(p.opponentName), dataLabel(camps.sien.label)), score: seq.cumuls[CAMP_OPPONENT] ?? 0, target: Math.floor(camps.mien.pieces / 2) + 1 },
       ],
       manche: seq.manche,
@@ -1952,7 +1954,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
   return {
     title: dataLabel(game.label),
     camps: [
-      { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: seq.cumuls[CAMP_PLAYER] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
+      { id: CAMP_PLAYER, label: joueur, score: seq.cumuls[CAMP_PLAYER] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
       { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: seq.cumuls[CAMP_OPPONENT] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
     ],
     manche: seq.manche,
@@ -2017,7 +2019,7 @@ export interface TavernVolleyState {
  *  la donnée déclare — TIRÉ AU SORT quand elle le dit (`NADJ 16 l.97` : « jetez une pièce de monnaie
  *  pour déterminer qui joue en premier »). */
 function volleyThrowers(get: Get, p: TavernPayload, ordre: SequenceVolleyRules['ordre'], rng: RNG): NonNullable<TavernPayload['throwers']> {
-  const mien = { id: p.challengerId, label: actorIn(get(), p.challengerId)?.label ?? p.challengerId, camp: 'joueur' as const };
+  const mien = { id: p.challengerId, label: nomOuAbsence(actorIn(get(), p.challengerId), 'combattant', p.challengerId), camp: 'joueur' as const };
   const sien = {
     id: idAdverse(p), label: p.opponentName, camp: 'adversaire' as const,
     ...(p.opponentId ? {} : { value: p.opponentValue }),
@@ -2291,7 +2293,7 @@ function sideRound(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame
   if (!cadenceAuto() && jetSurfaced(get(), challenger)) {
     const etape = choiceStep({
       id, kind: TAVERN_SIDE_KIND, icon: 'navigation/des',
-      label: t('tavern.sideChoix', { who: challenger.label }),
+      label: t('tavern.sideChoix', { who: nomDe(challenger) }),
       actorId: challenger.id,
       options: sides.map((s) => ({ key: s.id, label: dataLabel(s.label), detail: t('tavern.sidePieces', { pieces: s.pieces }) })),
       defaultChoice: sides[0].id,
@@ -2301,7 +2303,7 @@ function sideRound(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame
   const tire = sides[rng.int(1, sides.length) - 1];
   const etape = displayStep({
     id, kind: TAVERN_SIDE_KIND, icon: 'navigation/des',
-    label: t('tavern.side', { who: challenger.label, camp: tire.label }),
+    label: t('tavern.side', { who: nomDe(challenger), camp: tire.label }),
     actorId: challenger.id,
     meta: { side: tire.id },
   });
@@ -2330,7 +2332,7 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
     return {
       suite: 'poursuivre',
       chargeUtile: { ...p, side: elu.id },
-      log: [t('tavern.side', { who: garanti(actorIn(ctx.get(), p.challengerId), p.challengerId, 'choix de camp').label, camp: elu.label })],
+      log: [t('tavern.side', { who: nomDe(garanti(actorIn(ctx.get(), p.challengerId), p.challengerId, 'choix de camp')), camp: elu.label })],
     };
   }
   const jets = tavernSides(ctx);
@@ -2473,7 +2475,7 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
     const etape = choiceStep({
       id: `${TAVERN_ERASE_KIND}-${seq.manche}-${camp}`,
       kind: TAVERN_ERASE_KIND,
-      label: t('tavern.cerevisEffaceChoix', { who: acteur.label, marques, s: pluriel(marques) }),
+      label: t('tavern.cerevisEffaceChoix', { who: nomDe(acteur), marques, s: pluriel(marques) }),
       icon: 'navigation/des',
       actorId: acteur.id,
       options: [
@@ -2542,7 +2544,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
   const noterEcheance = (camp: CampDeTaverne, acteur: Combatant, nombre: number, intervalle: number | undefined): void => {
     if (!sanction || !combinedEcheance(nombre, intervalle)) return;
     echeances.push(camp);
-    log.push(t('tavern.cerevisAlcool', { who: acteur.label }));
+    log.push(t('tavern.cerevisAlcool', { who: nomDe(acteur) }));
   };
 
   const effacementsJoues = mancheClose.participants.filter((s) => s.kind === TAVERN_ERASE_KIND);
@@ -2553,7 +2555,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
       if (!acteur || !effacementsJoues.some((s) => s.actorId === acteur.id && s.chosen === 'efface')) continue;
       marques[camp] = Math.max(0, (marques[camp] ?? 0) - 1);
       effacements[camp] += 1;
-      log.push(t('tavern.cerevisEffacee', { who: acteur.label }));
+      log.push(t('tavern.cerevisEffacee', { who: nomDe(acteur) }));
       noterEcheance(camp, acteur, effacements[camp], regles.effacementsParEcheance);
     }
     return combinedVerdict(get, p, regles, { ...etat, effacements, efface: true, echeances }, marques, log);
@@ -2567,7 +2569,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
   const perdant = !regles.markLoser || drMien === drSien ? undefined : drMien < drSien ? CAMP_PLAYER : CAMP_OPPONENT;
   if (perdant) {
     marques[perdant] = (marques[perdant] ?? 0) + 1;
-    const qui = perdant === CAMP_PLAYER ? garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis').label : p.opponentName;
+    const qui = perdant === CAMP_PLAYER ? nomDe(garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis')) : p.opponentName;
     log.push(t('tavern.cerevisChouette', { who: qui, dr: perdant === CAMP_PLAYER ? drMien : drSien }));
   }
 
@@ -2580,7 +2582,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
     const cible2 = combinedSecondTarget(regles, acteur, difficulty, p.opponentValue);
     if (evaluateCombinedTest(jet.roll, jet.target, cible2).b.success) continue;
     echecs[camp] += 1;
-    log.push(t('tavern.cerevisGorgee', { who: acteur?.label ?? p.opponentName }));
+    log.push(t('tavern.cerevisGorgee', { who: acteur ? nomDe(acteur) : p.opponentName }));
     if (acteur) noterEcheance(camp, acteur, echecs[camp], regles.echecsParEcheance);
   }
 
@@ -2619,11 +2621,11 @@ function finalizeTavernGame(
   else if (fin.verse && netBrass < 0) payWithAllocation(get, set, { debits: soloPayer(challenger.id, fromBrass(-netBrass)), purpose: 'jeu de taverne' });
   // LE texte de la partie, lu par la modale (`detail`) ET par le journal : l'abandon y est dit une fois.
   const texte = !fin.abandon ? fin.detail
-    : rounds > 0 ? t('tavern.abandonDetail', { who: challenger.label, detail: fin.detail }) : t('tavern.abandonSeul', { who: challenger.label });
+    : rounds > 0 ? t('tavern.abandonDetail', { who: nomDe(challenger), detail: fin.detail }) : t('tavern.abandonSeul', { who: nomDe(challenger) });
   const result: TavernGamesResult = {
     winner, dr, rounds,
     gameLabel: game.label,
-    challengerName: challenger.label,
+    challengerName: nomDe(challenger),
     opponentName,
     stakeBrass,
     netBrass,
@@ -2632,7 +2634,7 @@ function finalizeTavernGame(
   set({ tavernGames: { result } });
   const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
   const issue = t(winner === 'joueur' ? 'tavern.issueWon' : winner === 'adversaire' ? 'tavern.issueLost' : 'tavern.issueTie');
-  get().ecrireAuJournal(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
+  get().ecrireAuJournal(t('tavern.finDePartie', { jeu: game.label, who: nomDe(challenger), adversaire: opponentName, issue, texte, enjeu }));
 }
 
 export function creerActionsDeTaverne(get: Get, set: Set) {
@@ -2667,7 +2669,8 @@ export const TABLES = {
           // retombait alors sur `row.label`, qui est le libellé de son TEST. Le journal disait « Force :
           // −4 DR. » là où l'écran disait « Négociant : 0/10 » : deux surfaces, deux noms, un joueur qui
           // attribue le score au mauvais camp.
-          const who = tavernActor(get, row.id)?.label ?? row.label ?? row.id;
+          const acteur = tavernActor(get, row.id);
+          const who = acteur ? nomDe(acteur) : row.label ?? row.id;
           return `${who} : ${dr(row.result?.sl ?? 0)}.`;
         });
         lines.push(...torchonRate(get, set, step.participants));
@@ -2679,7 +2682,8 @@ export const TABLES = {
       // unique). Sans elle, la manche se racontait par un libellé nu (« Force : +4 DR. ») où ni le
       // joueur, ni son vis-à-vis, ni ce que chacun a obtenu n'étaient lisibles.
       const opp = step.meta?.opposed;
-      const mien = step.actorId ? actorIn(get(), step.actorId)?.label : undefined;
+      const acteur = step.actorId ? actorIn(get(), step.actorId) : undefined;
+      const mien = acteur && nomDe(acteur);
       const lignes = [`${mien ? `${mien} — ` : ''}${step.rollLabel ?? 'Jeu'} : ${dr(step.result.sl)}.`];
       if (opp?.aT) {
         const sien = opposedAttackerLabel(opp);
@@ -2769,7 +2773,7 @@ export const TABLES = {
       const jet = step.participants?.[0];
       if (!lu || !jet) return {};
       const heros = actorIn(get(), jet.id);
-      const qui = heros?.label ?? jet.label ?? jet.id;
+      const qui = heros ? nomDe(heros) : jet.label ?? jet.id;
       const tranche = heros && !cadenceAuto() && jetSurfaced(get(), heros);
       const id = `${TAVERN_GAIN_KIND}-${seq.manche}`;
       const libre = lu.outcome.libre;

@@ -6,7 +6,8 @@
  * — une journée n'est jamais comptée deux fois, quel que soit le chemin emprunté.
  *
  * Par journée écoulée et par héros (#T3 — cascade RAW) :
- *  1. consommation d'une Ration (LDB 66 l.20) sinon faim (LDB 18 l.337-343) — cf. `engine/provisions` ;
+ *  1. repas sur le garde-manger du jour, la cale du navire à bord en mer, le sac (LDB 66 l.20) sinon, ou faim
+ *     (LDB 18 l.337-343) — cf. `engine/provisions` ;
  *  2. progression des MALADIES (LDB 20 : incubation/durée en jours CALENDAIRES, repos ou pas) —
  *     `dailyDiseaseUpkeep` (+ soins d'un soignant au repos via `opts.caredFor`) ;
  *  3. CONVALESCENCE des Blessures critiques (LDB 18 l.222 : « un nombre de jours égal à 30 – votre Bonus d'Endurance »,
@@ -31,8 +32,8 @@ import { porteursABord, tickCampaignVesselWeek } from './shipCrew';
 import { WORLD_STEP_OWNER } from './pendings';
 import { estBateauFluvial } from './worldMap';
 import { avancerLesMaladies } from '../engine/disease';
-import { dayIndex } from '../engine/clock';
-import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepas, rationsDeCale } from '../engine/provisions';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
+import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepas, rationsDeCale, rationsDeLaCale, rationsDuSac } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
@@ -208,10 +209,14 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   const party = get().party;
   const lines: LigneDEntretien[] = [];
   let rations = 0;
-  // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `penurie-d-eau` ; en mer, suit les
-  // tonneaux du navire (`vessel.waterLitres`) — stable sur l'entretien, calculé une fois.
-  const waterLitres = get().vessel?.waterLitres;
+  // À bord en mer, l'eau vient des tonneaux du navire (`vessel.waterLitres`) et les vivres de sa cale
+  // (`vessel.provisions`), quand il les suit ; sinon l'eau du pays (règle `penurie-d-eau`) et le sac.
+  // LDB 18 l.340 ; MDG 14 l.238, l.242 ; #4453
+  const aBord = get().travelPlan?.sea != null;
+  const waterLitres = aBord ? get().vessel?.waterLitres : undefined;
   const hasWater = waterLitres != null ? waterLitres > 0 : rule('penurie-d-eau') !== true;
+  const provisions = aBord ? get().vessel?.provisions : undefined;
+  const cale = provisions && { lots: provisions };
   const incubation = incubationPendantLeVoyage(get);
   for (let d = last + 1; d <= today; d++) {
     for (const h of party) {
@@ -243,8 +248,9 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
           });
         };
       // 1. Nourriture (LDB 18 l.337-343).
-      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
-      if (r.rationConsumed) rations++;
+      const gardeManger = cale ? rationsDeLaCale(cale, d * MINUTES_PER_DAY) : rationsDuSac(h);
+      const r = dailyFoodUpkeep(h, gardeManger, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      if (r.rationConsumed && !cale) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
       lines.push(...lignesDEntretien(r.log, h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
@@ -289,6 +295,13 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     }
   }
   if (rations > 0) lines.unshift({ text: t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }) });
+  const vessel = get().vessel;
+  const prises = cale ? rationsDeCale(provisions) - rationsDeCale(cale.lots) : 0;
+  if (cale && vessel && prises > 0) {
+    set({ vessel: { ...vessel, provisions: cale.lots } });
+    const left = rationsDeCale(cale.lots);
+    lines.unshift({ text: t('upkeep.holdUsed', { n: prises, left, s: left > 1 ? 's' : '' }) });
+  }
   // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
   // CHAQUE semaine franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages

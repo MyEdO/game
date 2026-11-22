@@ -13,6 +13,7 @@ import { troquer } from './marchand.testkit';
 import { marchandEnVue } from './marchandEnVue';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { emptyScene } from './monde/scene';
+import { nomDe } from '../engine/nom';
 
 const bien = objetDeCampagne({ id: 'lame-du-relais', label: 'Lame du relais', availability: 'commune', price: fromBrass(480) });
 const relique = objetDeCampagne({ ...bien, id: 'relique-du-relais', label: 'Relique du relais', availability: null });
@@ -102,7 +103,7 @@ it('une prothèse du narratif acquiert ses paliers et annonce son entraînement 
   const { uid } = item(prothese.id);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(300);
-  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisNotTrainable', { name: hero.label }));
+  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisNotTrainable', { name: nomDe(hero) }));
   get().equiperLObjet(uid);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(200);
@@ -112,5 +113,5 @@ it('une prothèse du narratif acquiert ses paliers et annonce son entraînement 
   expect(item(prothese.id).prosthesisTrained).toBe(true);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(0);
-  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisTrained', { name: hero.label, item: prothese.label }));
+  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisTrained', { name: nomDe(hero), item: prothese.label }));
 });

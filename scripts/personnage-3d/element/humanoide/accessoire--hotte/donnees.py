@@ -26,10 +26,10 @@ MANIFESTE = {
 (`manteau`), comme la bandoulière du Sorcier sous l'écharpe de sa capuche."""
 
 MATERIAUX = {
-    'osier': ('bois', ((0.55, 0.55, 0.55), 0.0, 0.9)),
+    'osier': ('bois', 'osier'),
     'cuir': ('cuir', 'cuir-tanne'),
 }
-"""Illustration : l'osier brun du panier (`bois`), le cuir sombre des bretelles (`cuir`). Gris de construction."""
+"""Illustration : l'`osier` brun du panier (`bois`), le cuir sombre des bretelles (`cuir`)."""
 
 BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 

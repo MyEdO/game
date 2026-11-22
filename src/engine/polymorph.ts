@@ -14,6 +14,8 @@ import type { Combatant } from './types';
 import type { GameOp } from './ops';
 import { findCreatureById, findTraitById } from '../data';
 import { baseWithTraits } from './characteristics';
+import { nomDe } from './nom';
+import { t } from '../i18n';
 
 /** id de créature de la forme actuelle (op `polymorph` ou `transform` en cours), sinon `undefined`
  *  (forme de base). Le DERNIER effet `morphRef` actif l'emporte ; restitué seul à l'expiration de l'effet. */
@@ -42,7 +44,7 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
   }
   ops.push({
     op: 'narrative',
-    text: `${target.label} prend la forme d'un(e) ${cr.label} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme.`,
+    text: t('op.polymorphie', { name: nomDe(target), creature: cr.label }),
   });
   return ops;
 }

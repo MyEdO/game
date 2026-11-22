@@ -4,7 +4,7 @@
 /* ───────── les pièces ───────── */
 const mesures = (lignes) => `<table>${lignes.map(([k, v, c]) => `<tr><td>${k}</td><td class="${c ?? ''}">${v}</td></tr>`).join('')}</table>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
-const page = (piece, intitule, corps) => `<div id="page" class="page cadre bois" data-piece="${piece}"><div class="fond parchemin">${corps}</div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
+const page = (piece, intitule, corps) => `<div id="page" class="page cadre bois" data-piece="${piece}"><div class="fond parchemin">${corps}</div>${ruban(intitule)}${ferrures}</div>`;
 const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 'petit')}<div style="flex:1">${reglette((v - min) / (max - min), null)}<div class="bornes chiffres"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 'petit')}<span class="val">${v} ${unite}</span></div>`;
 
 /* le fragment de carte du port de Salzenmund : la côte du Nordland, la route de mer qui part d'ici */

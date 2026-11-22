@@ -75,7 +75,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
         ...etat,
         pendingRoundStart: null,
         battle: { ...etat.battle!, over: 'victoire' },
-        pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }, { label: 'Pillard', count: 2 }], harvested: [] },
+        pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ nom: fixtureText('Griffon'), count: 1, creatureId: 'griffon', enVue: true }, { nom: fixtureText('Humain'), count: 1, creatureId: 'humain', enVue: true }, { nom: fixtureText('Pillard'), count: 2, enVue: true }], harvested: [] },
       };
       const depecer = argumentDe(victoire, 'fenetreChoisir@victoire#depecer', 'valeur');
       expect(depecer.saisie).toBe('choix');

@@ -17,6 +17,7 @@ import {
 import { advantageTransferWeight } from '../../engine/combatFeatures/dispatch';
 import { t } from '../../i18n';
 import type { EncounterDef } from '../monde/scene';
+import { nomDe } from '../../engine/nom';
 
 /** Réserve courante de la bataille (créée à la volée si absente). */
 function poolsOf(battle: { advantagePools?: AdvantagePools }): AdvantagePools {
@@ -168,7 +169,7 @@ export function creditOpposingAdvantage(get: Get, c: Combatant, n: number): stri
   const opposing: AdvantageCamp = own === 'allies' ? 'adversaires' : 'allies';
   addToPool(pools, opposing, n);
   mirrorPools(pools, battle.combatants);
-  return [t('turn.redoutableOpposingFeed', { name: c.label, n })];
+  return [t('turn.redoutableOpposingFeed', { name: nomDe(c), n })];
 }
 
 /**

@@ -6,6 +6,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import { mountMovement } from './mount';
 import type { Combatant } from '../engine/types';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -76,7 +77,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     const lignes = b.log.slice(avant).map((e) => e.text);
     const arrivee = b.combatants.find((c) => c.id === H.id)!.pos!;
     const court = arrivee.x !== 16 || arrivee.y !== 10;
-    expect(lignes).toEqual([t('cs.run', { name: H.label, cost: (b.movementUsed ?? 0) - parcouru, short: court ? t('cs.fragRunShort') : '' })]);
+    expect(lignes).toEqual([t('cs.run', { name: nomDe(H), cost: (b.movementUsed ?? 0) - parcouru, short: court ? t('cs.fragRunShort') : '' })]);
   });
 
   it('Engagé → ouvrirLaCourse n’ouvre rien (il faut se désengager d’abord)', () => {

@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { reluDans } from './combatDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -294,7 +295,7 @@ describe('#1031 — renoncer à une incantation LANCÉE est refusé (plus de Con
     banc.getState().jetAnnuler('incantation');
     expect(banc.getState().pendingCast, 'l’incantation lancée reste en place').toBeTruthy();
     expect(banc.getState().pendingCounterspell, 'la fenêtre garde son incantation (jamais orpheline)').toBeTruthy();
-    expect(banc.getState().refus?.texte, 'le refus est DIT au joueur, jamais silencieux').toBe(t('cs.castCancelLocked', { name: H.label }));
+    expect(banc.getState().refus?.texte, 'le refus est DIT au joueur, jamais silencieux').toBe(t('cs.castCancelLocked', { name: nomDe(H) }));
   });
 
   it('PRÉ-JET : jetAnnuler@incantation passe et purge toute fenêtre de Contre-sort liée', () => {

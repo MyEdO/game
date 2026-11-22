@@ -13,7 +13,7 @@ import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { applierDe } from './cascade';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
-import { rule } from '../engine/policy';
+import { resetRule, rule, setRule } from '../engine/policy';
 import { lignesDe, renvoieA } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -171,10 +171,11 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
       traumas: [{ kind: 'fracture', label: 'Fracture du bras', location: 'brasD', severity: 'mineur', recoveryDays: 1 }],
     } as never);
     fresh([eprouve]);
-    // Tonneaux à sec → Test de Soif (LDB 18 l.340) ; `lastMoraleWeek` haute neutralise la paie hebdo.
-    set({ lastUpkeepDay: dayIndex(get().gameTime) - 1, vessel: { waterLitres: 0, crew: [], morale: { lastMoraleWeek: 99 } } } as never);
+    // Pénurie d'eau à terre → Test de Soif (LDB 18 l.340).
+    set({ lastUpkeepDay: dayIndex(get().gameTime) - 1 });
     const deferred: DeferredUpkeepTest[] = [];
-    runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
+    setRule('penurie-d-eau', true);
+    try { runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) }); } finally { resetRule('penurie-d-eau'); }
 
     const kinds = deferred.map((t) => t.kind).sort();
     expect(kinds, 'la journée doit bien produire les 4 familles visées').toEqual(['convalescence-fracture', 'dessoulage', 'faim', 'soif']);

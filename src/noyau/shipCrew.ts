@@ -67,6 +67,7 @@ import { WORLD_STEP_OWNER, type BatchParticipant, type CascadeStepMeta } from '.
 import type { BandPorteur } from './rollSeam';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { Applique } from '../engine/faits';
+import { nomDe } from '../engine/nom';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -201,8 +202,8 @@ export function shipMoraleScore(get: Get, ship: Combatant): number {
  * PNJ NOMINAL encore présent (`ship.crew − crewLost`, MÊME agrégat que le Manque de bras / la désertion /
  * l'Embrigadement). Le roster salarié (`vessel.crew`, #216) REMPLIT ces postes nominaux — jamais des corps EN
  * SUS (la caractéristique Équipage du type EST le complément entier, MDG 12 l.85) → jamais additionné, sous
- * peine de double compte. `heroes`/`crew` séparés pour le manifeste (les héros mangent leurs rations, l'équipage
- * ses vivres de cale). PUR. */
+ * peine de double compte. `heroes`/`crew` séparés : l'équipage mange la cale le jour (`consumeCrewProvisions`),
+ * les héros à leur entretien (`runDailyUpkeep`). PUR. */
 export function shipboardSouls(s: Pick<Jeu, 'party' | 'vessel'>): { heroes: number; crew: number; total: number } {
   const heroes = s.party.filter((h) => !h.dead).length;
   const vessel = s.vessel;
@@ -370,7 +371,7 @@ export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, 
   const until = get().gameTime + minutes;
   const combatants = get().battle?.combatants ?? get().party;
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c));
-  const lines: string[] = [t('crew.shantyStart', { name: singer.label, shanty: shanty.label, min: minutes })];
+  const lines: string[] = [t('crew.shantyStart', { name: nomDe(singer), shanty: shanty.label, min: minutes })];
   for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes);
   if (shanty.captainOps?.length) {
     const roles = shipDefaultRoles(crew, 'manoeuvre', navigationDuNavire(get, ship));
@@ -394,7 +395,7 @@ export function endShanty(get: Get, singer: Combatant): string[] {
   const combatants = get().battle?.combatants ?? get().party;
   const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par la chanson (#1695) : ils partent avec elle, et ça se dit
   for (const c of combatants) removeActiveEffects(c, (e) => e.effectId === song.shantyId, porte);
-  return [t('crew.shantyEnd', { name: singer.label }), ...porte.lignes];
+  return [t('crew.shantyEnd', { name: nomDe(singer) }), ...porte.lignes];
 }
 
 /**
@@ -428,13 +429,13 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
       const aboard = exposedCrew(crew).filter((c) => !isOutOfAction(c));
       if (aboard.length) {
         for (const c of aboard) { c.outOfRencontre = true; c.exitReason = 'naufrage'; } // #237 : éjecté vivant, lu « hors-combat »
-        lines.push(t('crew.sinks', { ship: hull.label, crew: aboard.map((c) => c.label).join(', ') }));
+        lines.push(t('crew.sinks', { ship: nomDe(hull), crew: aboard.map(nomDe).join(', ') }));
       }
     } else if (crew.length && crew.every((c) => isOutOfAction(c))) {
       // Plus personne à bord : la coque, sans équipage pour la défendre ni la manœuvrer, quitte le combat.
       hull.outOfRencontre = true;
       hull.exitReason = 'prise'; // #237 : coque amenée, lue « rendu » (pavillon baissé) au token de coque
-      lines.push(t('crew.taken', { ship: hull.label }));
+      lines.push(t('crew.taken', { ship: nomDe(hull) }));
     }
   }
   return lines;
@@ -462,7 +463,7 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
     for (const c of montes) inscrireEnBataille(battle, c, hull.id);
     hull.crewIds = [...hull.crewIds, ...montes.map((c) => c.id)];
     hull.reserveDAbordage = { ...r, restant: r.restant - montes.length };
-    lines.push(t('crew.vagueDAbordage', { ship: hull.label, n: montes.length, restant: r.restant - montes.length }));
+    lines.push(t('crew.vagueDAbordage', { ship: nomDe(hull), n: montes.length, restant: r.restant - montes.length }));
   }
   return lines;
 }

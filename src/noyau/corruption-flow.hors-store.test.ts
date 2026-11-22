@@ -152,7 +152,7 @@ describe('gainCorruption rend son fait de Corruption (#4574)', () => {
   it('dans la Protection de Phâ : le gain est écarté, son fait le dit et rien n’est appliqué', () => {
     const { a, party } = party2();
     a.pos = { x: 5, y: 5 };
-    banc.setState({ party, battle: { zones: [{ label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, noCorruption: true }] } as unknown as Jeu['battle'] });
+    banc.setState({ party, battle: { combatants: party, zones: [{ label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, noCorruption: true }] } as unknown as Jeu['battle'] });
     expect(gainCorruption(banc.getState, banc.setState, a, 2)).toEqual({
       lignes: ['Sigmund : la lumière sacrée de Phâ écarte la Corruption (aucun gain).'],
       faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 0, contre: 'protection' }],

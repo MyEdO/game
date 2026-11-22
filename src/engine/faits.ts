@@ -8,6 +8,7 @@
 import { conditionLabel, refLabel } from '../data';
 import { t, pluriel } from '../i18n';
 import { formatMoney, fromBrass } from './money';
+import { nomDe } from './nom';
 import type { Camp } from './relations';
 import type { CodexTarget } from './ruleRefs';
 import type { Combatant, ConditionId } from './types';
@@ -130,7 +131,7 @@ function texteDesBlessures(f: FaitDeBlessures, name: string): string {
   return t('op.blessures', { name, n: -f.valeur, mitig });
 }
 
-/** LA ligne de journal d'un fait appliqué : `name`, libellé de sa cible ; `source`, libellé du lot qui l'applique
+/** LA ligne de journal d'un fait appliqué : `name`, nom de sa cible (`nomDe`) ; `source`, libellé du lot qui l'applique
  *  (`OpsCtx.label`, lu par `nomDeSource`). Libellés d'affichage, jamais portés par le fait. */
 export function texteDuFait(f: FaitApplique, name: string, source?: string): string {
   switch (f.genre) {
@@ -150,7 +151,7 @@ export function texteDuFait(f: FaitApplique, name: string, source?: string): str
 }
 
 /** Pousse `f` et sa ligne dans `a` : LA seule émission d'un fait appliqué. */
-export function emettreDans(a: Applique, cible: Pick<Combatant, 'label'>, f: FaitApplique, source?: string): void {
+export function emettreDans(a: Applique, cible: Pick<Combatant, 'id' | 'label'>, f: FaitApplique, source?: string): void {
   a.faits.push(f);
-  a.lignes.push(texteDuFait(f, cible.label, source));
+  a.lignes.push(texteDuFait(f, nomDe(cible), source));
 }

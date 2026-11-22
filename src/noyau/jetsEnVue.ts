@@ -702,7 +702,7 @@ function faitsPublies(s: Jeu, step: CascadeStep, faits: FaitApplique[] | undefin
 /** La ligne d'une rangée de bande (`BatchParticipant`), avec les faits appliqués que son étape publie. */
 function ligneDeBande(s: Jeu, step: CascadeStep, part: BatchParticipant): LigneLue {
   const r = jete(part.result);
-  const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label ?? pool(s).find((c) => c.id === part.id)?.label : nomEnVue(s, part.id));
+  const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label : undefined) ?? nomEnVue(s, part.id);
   return { ...ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee }), ...faitsPublies(s, step, part.faits) };
 }
 

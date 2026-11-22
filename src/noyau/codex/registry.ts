@@ -306,7 +306,7 @@ const facts = (...xs: (CodexFact | null)[]): CodexFact[] => xs.filter((x): x is 
 
 /** Valeur d'un champ de charge rendue LISIBLE sans rien inventer : un booléen se lit « oui », une
  *  valeur simple s'imprime telle quelle. Un champ COMPOSITE (recette de détail) n'a PAS de fait :
- *  ses sous-clés (`seedScope`, `speckle`…) sont des noms de moteur qu'aucune méta ne nomme en
+ *  ses sous-clés (`courses`, `timber`…) sont des noms de moteur qu'aucune méta ne nomme en
  *  français — au régime `profondeur`, `libelleDuChamp` ne nomme que les sous-champs d'un nœud passé
  *  par `nommerChamps`, et rend la clé nue des autres — et le Codex est un
  *  écran de RÉFÉRENCE joueur (règle stricte 4). Le champ reste ÉDITABLE à l'atelier, sous-formulaire

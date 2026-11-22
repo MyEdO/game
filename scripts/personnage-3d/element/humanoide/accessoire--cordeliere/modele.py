@@ -22,14 +22,15 @@ from tissu import direction_spatiale, emprunter, lisser, porteur_de, sur_le_port
 
 def tube(sections, cotes, boucle):
     """Sommets et faces d'un tube aux `sections` `(centre, e1, e2, rayon)` ; `boucle` : fermé sur lui-même, sinon bouché
-    aux deux bouts."""
+    aux deux bouts d'un éventail de triangles (l'export glTF ne calcule aucune tangente d'un mesh à n-gone)."""
     sommets = [c + r * (math.cos(2 * math.pi * k / cotes) * e1 + math.sin(2 * math.pi * k / cotes) * e2)
                for c, e1, e2, r in sections for k in range(cotes)]
     n = len(sections)
     faces = [[i * cotes + k, i * cotes + (k + 1) % cotes, ((i + 1) % n) * cotes + (k + 1) % cotes,
               ((i + 1) % n) * cotes + k] for i in range(n if boucle else n - 1) for k in range(cotes)]
     if not boucle:
-        faces += [list(range(cotes))[::-1], [(n - 1) * cotes + k for k in range(cotes)]]
+        fin = (n - 1) * cotes
+        faces += [[0, k + 1, k] for k in range(1, cotes - 1)] + [[fin, fin + k, fin + k + 1] for k in range(1, cotes - 1)]
     return sommets, faces
 
 

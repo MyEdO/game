@@ -66,8 +66,10 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
 // AA 07 l.117
 describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au journal', () => {
   it('Échec du Test de Dextérité : la ligne de disarm suit la ligne du Test', () => {
-    const orque = mk({ id: 'o', label: 'Orque', characteristics: { ...CHARS, dexterite: 0 }, handGates: ['main'], weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
-    banc.setState({ battle: { combatants: [orque], log: [] } as never });
+    const orque = mk({ id: 'o', label: 'Orque', pos: { x: 2, y: 1 }, characteristics: { ...CHARS, dexterite: 0 }, handGates: ['main'], weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
+    // Le groupe voit l'Orque, comme dans tout combat du jeu (`lancerLeCombat`) : le journal le nomme (#4017).
+    const temoin = mk({ id: 'h', label: 'Témoin', kind: 'heros', pos: { x: 1, y: 1 } });
+    banc.setState({ scene: emptyScene('scene-test'), battle: { combatants: [orque, temoin], log: [] } as never });
     let seed = 1;
     for (;;) {
       seedBattleRng(seed);

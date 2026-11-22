@@ -7,8 +7,8 @@ extends SceneTree
 ## au repère de la pièce dans l'os. La pièce fondue n'est plus sur aucun calque ; restent seules, sur leur calque, la
 ## pièce cachée, la pièce portée par un nœud `top_level` et la pièce rigide à matériau projeté dans son repère. Une
 ## pièce d'élément monté peinte (`MontageDeComposition.peindre`) d'une matière que la palette colore porte sa texture
-## neutre lue aux UV du mesh, sans projection, et se fond (#4313). Une pièce démasquée se fond à la refonte suivante, et
-## des liaisons égales ne s'ajoutent qu'une fois.
+## neutre lue aux UV du mesh, sans projection, teinte de la couleur de palette, et se fond (#4313). Une pièce démasquée
+## se fond à la refonte suivante, et des liaisons égales ne s'ajoutent qu'une fois.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
@@ -61,6 +61,8 @@ func _recetter() -> void:
 	var neutre: Texture2D = textures.get(VolumeDeScene.texture_neutre_de(matiere))
 	if neutre == null or peinte.albedo_texture != neutre or peinte.uv1_triplanar:
 		_fautes.append("tunique : texture %s (triplanaire %s), %s aux UV attendue" % [peinte.albedo_texture, peinte.uv1_triplanar, VolumeDeScene.texture_neutre_de(matiere)])
+	if not peinte.albedo_color.is_equal_approx(Color("#a03020")):
+		_fautes.append("tunique : albédo %s, attendu la couleur de palette #a03020 sur sa texture neutre" % peinte.albedo_color)
 	squelette.set_bone_pose_rotation(squelette.find_bone("torse"), Quaternion.from_euler(Vector3(0.4, -0.2, 0.1)))
 	squelette.set_bone_pose_rotation(squelette.find_bone("main"), Quaternion.from_euler(Vector3(-0.7, 0.5, 0.3)))
 	squelette.force_update_all_bone_transforms()

@@ -11,7 +11,8 @@
   "surfaces": [
     {
       "nom": "parchemin",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--papier"
     },
     {
       "nom": "lien",
@@ -20,7 +21,7 @@
     }
   ],
   "glb": {
-    "sha256": "deefe2331076e8b38791e3aec6cca263d81a1c36ab3fbb33f9c4262ba3998000",
-    "octets": 75328
+    "sha256": "fea2bd9b1d2f802a6f4a7a660050c157e4bea35efc8d29f67dbf0cdeaaa0547f",
+    "octets": 75332
   }
 }

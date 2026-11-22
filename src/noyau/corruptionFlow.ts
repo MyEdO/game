@@ -133,7 +133,7 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
  *  LDB 19 l.48 ; LDB 19 l.58 */
 function denouementDExposition(get: Get, set: Set, hero: Combatant, level: ExposureLevel, success: boolean, sl: number, align?: ChaosAlign): string[] {
   const gain = corruptionGain(level, success, sl);
-  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: hero.label })]))];
+  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: nomDe(hero) })]))];
   return gainCorruption(get, set, hero, gain, align).lignes;
 }
 
@@ -166,7 +166,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // résolu dans `resolveCorruptionPending` (succès = contenu ; échec = « Je te renie ! »/mutation —
   // les DEUX fenêtres partent de là).
   if (tenuParUnHumain(get(), hero.id)) {
-    lines.push(t('cor.threshold', { name: hero.label, de: deElide(refLabel('skills', test.skill)) }));
+    lines.push(t('cor.threshold', { name: nomDe(hero), de: deElide(refLabel('skills', test.skill)) }));
     // `menace: 'mutation'` : l'échec du Test de seuil fait MUTER (LDB 19 l.70) → c'est le Test qui « résiste
     // à la Mutation » du talent Résistance (Menace), LDB 10 l.1016-1020.
     const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', test, align, menace: 'mutation' };
@@ -178,7 +178,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
   const tst = rollSansPilote(get, hero, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
-    lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
+    lines.push(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
     return sortie;
   }
   lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align));
@@ -306,7 +306,7 @@ function finishMutation(
   // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).
   lines.push(resultLine(freeCons([
-    t('cor.mutates', { name: hero.label, label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),
+    t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),
   ])));
   if (m.note) lines.push(t('cor.mutationNote', { label: m.label, note: m.note }));
 
@@ -315,7 +315,7 @@ function finishMutation(
   if (mutationLimitExceeded(hero)) {
     hero.damned = true;
     hero.dead = true;
-    lines.push(t('cor.damned', { name: hero.label }));
+    lines.push(t('cor.damned', { name: nomDe(hero) }));
   }
   if (tenuParUnHumain(get(), hero.id))
     pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id });
@@ -334,7 +334,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const lines: string[] = [];
   if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
-    lines.push(t('cor.renounced', { name: hero.label }));
+    lines.push(t('cor.renounced', { name: nomDe(hero) }));
     pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
@@ -378,9 +378,9 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
     } else if ((hero.resilience ?? 0) > 0) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: nomDe(hero) })])));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
       for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);

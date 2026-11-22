@@ -532,13 +532,13 @@ func _poser_l_echantillon() -> void:
 		_echantillon_en_vol = null
 		return
 	var recus := {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes}
-	var _textures_gardees := await TexturesDeMatiere.preparer(self, VolumeDeScene.matieres_des_morceaux(recus))
+	var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(self, VolumeDeScene.textures_des_morceaux(recus))
 	if charge != _echantillon_en_vol:
 		return
 	_echantillon_en_vol = null
 	var scene := _scene_de_l_echantillon
 	scene.poser(reponse, recus)
-	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches, reponse.faitieres)
+	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches, reponse.piecesDeToit)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
