@@ -5,10 +5,12 @@ voiture du Vieux Monde, 4,4 m du train arrière à la pointe du timon, 1,9 m de 
 Repère de `maille.py` : le timon vers l'avant (-y) ; l'emprise est recentrée en x et y, z = 0 reste le sol.
 
 Ses parties. La voiture, modelée ici : châssis de deux longerons et trois traverses, un essieu par train sur ses cales,
-quatre roues à rais cerclées de fer, les grandes à l'arrière ; caisse close à membrure, une baie vitrée de chaque
-côté de la portière et dans celle-ci, poignée et marchepied ; toit de cuir débordant et sa galerie de fer ; coffre et
-siège du cocher, garde-corps, marchepied sur consoles ; plateau à bagages à l'arrière ; timon et palonnier. Hors du GLB :
-l'attelage (créatures), les bagages et les lanternes (décors de `src/data/props.json`), le cocher (un personnage).
+quatre roues à rais tournés cerclées de fer, les grandes à l'arrière ; caisse close à membrure, une baie vitrée de
+chaque côté de la portière et dans celle-ci, poignée et marchepied ; toit de cuir débordant et sa galerie de fer ;
+coffre et siège du cocher, garde-corps, marchepied sur consoles ; plateau à bagages à l'arrière ; timon et palonnier ;
+et ses accessoires fixes, une coque sans ponts n'ayant aucun plan qui pose des décors : deux malles sanglées de fer
+dans la galerie, deux lanternes de laiton aux coins de la caisse. Hors du GLB : l'attelage (créatures), le cocher (un
+personnage).
 Aucun poste : un poste monte une pièce de siège à un bord (`postesMontes`, `hotes/godot/pont/atelier.ts`), ce que le
 siège du cocher n'est pas.
 
@@ -59,6 +61,23 @@ TOIT = {
     "galerie": (0.65, -0.40, 1.50, 0.22),                  # demi-largeur, y avant, y arrière, hauteur de la lisse sur le toit
     "fer": (0.011, 5),                                     # rayon des fers de la galerie, côtés
     "montants": (5, 3),                                    # par long côté, par petit côté, coins compris
+}
+
+# Les bagages arrimés au toit (EDOC p.26), dans la galerie : par malle, son matériau, (x, y) de son centre, ses
+# demi-côtés en x et en y, sa hauteur ; `arete` : chanfrein de ses arêtes ; `sangles` : leur place le long de la malle
+# (parts de sa demi-longueur), leur demi-largeur, leur saillie sur la malle.
+BAGAGES = {
+    "malles": [("cuir", (-0.18, 0.10), (0.36, 0.42), 0.36), ("bois", (0.22, 1.02), (0.30, 0.34), 0.26)],
+    "arete": 0.012,
+    "sangles": ((-0.5, 0.5), 0.022, 0.006),
+}
+
+# Les lanternes : x de chaque côté, y et z de leur pied, au coin de la caisse devant le cocher ; rayon, hauteur et
+# côtés de leur corps tourné ; son profil (part de la hauteur, part du rayon).
+LANTERNES = {
+    "pied": (0.655, -0.545, 1.73),
+    "corps": (0.045, 0.16, 6),
+    "profil": ((0.0, 0.3), (0.1, 0.8), (0.2, 1.0), (0.7, 1.0), (0.8, 0.6), (1.0, 0.2)),
 }
 
 COCHER = {

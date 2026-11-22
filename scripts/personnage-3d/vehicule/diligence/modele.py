@@ -1,11 +1,13 @@
-"""La diligence (#4471) : les nœuds `voiture` (châssis, caisse, toit, siège, plateau, timon),
+"""La diligence (#4471) : les nœuds `voiture` (châssis, caisse, toit et ses bagages, siège, lanternes, plateau, timon),
 `roue_avg`, `roue_avd`, `roue_arg` et `roue_ard` (chacune à son essieu, `roulant.py` ; meshes sans skin ni armature),
 l'emprise recentrée, et ses clips (`clips.py`) : repos, roulage ; un GLB pour les clés des `definitions` de la
 caisse."""
+from mathutils import Vector
+
 import habillage
 from clips import REPOS, animer, rouler
 from maille import Maille, boite, cylindre, monter, poutre, tube
-from roulant import roulement, trains
+from roulant import geometrie, roulement, trains
 
 COTES = (1, -1)
 
@@ -103,6 +105,32 @@ def plateau(D, m):
         boite(m, (x - dl, y0, z0), (x + dl, y1 + saillie, z1 + saillie), "fer")
 
 
+def bagages(D, m):
+    """Les malles sanglées de fer sur le toit, dans la galerie."""
+    B = D["BAGAGES"]
+    toit_ = D["TOIT"]["boite"][4]
+    places, bande, saillie = B["sangles"]
+    for mat, (x, y), (dx, dy), haut in B["malles"]:
+        centre = Vector((x, y, toit_ + haut / 2))
+        geometrie.planche(m, centre - geometrie.Y * dy, centre + geometrie.Y * dy, geometrie.X, geometrie.HAUT, dx,
+                          haut / 2, B["arete"], mat)
+        for part in places:
+            c = centre + geometrie.Y * (dy * part)
+            geometrie.planche(m, c - geometrie.X * (dx + saillie), c + geometrie.X * (dx + saillie), geometrie.Y,
+                              geometrie.HAUT, bande, haut / 2 + saillie, saillie, "fer")
+
+
+def lanternes(D, m):
+    """Les deux lanternes de laiton tournées, aux coins de la caisse, devant le cocher."""
+    L = D["LANTERNES"]
+    x, y, z = L["pied"]
+    rayon, haut, cotes = L["corps"]
+    for s in COTES:
+        pied = Vector((s * x, y, z))
+        geometrie.tournee(m, pied, pied + geometrie.HAUT * haut, geometrie.X, geometrie.Y, rayon, L["profil"], cotes,
+                          "laiton")
+
+
 def timon(D, m):
     """Le timon, du dessus de l'essieu avant à sa pointe, et son palonnier posé sur lui."""
     Ti, avant = D["TIMON"], D["TRAINS"]["av"]
@@ -116,13 +144,13 @@ def timon(D, m):
 
 
 def construire(D, materiaux, piece):
-    """La caisse `piece(D, maille)` sur le châssis et ses deux trains (`roulant.trains`), l'emprise recentrée en x et y
-    (le sol reste z = 0)."""
+    """La caisse `piece(D, maille)` sur le châssis et ses deux trains (`roulant.trains`), avec ce qu'elle porte,
+    l'emprise recentrée en x et y (le sol reste z = 0)."""
     mats = habillage.materiaux(materiaux)
     voiture = Maille([mats[nom] for nom in materiaux])
     chassis(D, voiture)
     roues = trains(D["TRAINS"], voiture, mats["bois"], mats["fer"])
-    for batir in (piece, toit, cocher, plateau, timon):
+    for batir in (piece, toit, bagages, cocher, lanternes, plateau, timon):
         batir(D, voiture)
     monter({"voiture": (voiture, None), **roues}, D["ANGLE_LISSE"])
     return animer([REPOS, rouler(roulement(D["TRAINS"]))])
