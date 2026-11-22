@@ -15693,6 +15693,100 @@
      },
      "z": 1,
      "facing": "N"
+    },
+    {
+     "id": "diligence-cour-cheval-1",
+     "kind": "personnage",
+     "pos": {
+      "x": 24,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-2",
+     "kind": "personnage",
+     "pos": {
+      "x": 26,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-3",
+     "kind": "personnage",
+     "pos": {
+      "x": 29,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-4",
+     "kind": "personnage",
+     "pos": {
+      "x": 31,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-palefrenier-1",
+     "kind": "personnage",
+     "pos": {
+      "x": 28,
+      "y": 32
+     },
+     "facing": "O",
+     "appearance": {
+      "species": "humains-reiklander",
+      "tenue": "serviteur",
+      "sex": "M"
+     },
+     "creature": {
+      "id": "humain"
+     }
+    },
+    {
+     "id": "diligence-cour-palefrenier-2",
+     "kind": "personnage",
+     "pos": {
+      "x": 24,
+      "y": 34
+     },
+     "facing": "N",
+     "appearance": {
+      "species": "humains-reiklander",
+      "tenue": "serviteur",
+      "sex": "M"
+     },
+     "creature": {
+      "id": "humain"
+     }
+    },
+    {
+     "id": "diligence-cour-abreuvoir",
+     "kind": "prop",
+     "decor": {
+      "id": "abreuvoir"
+     },
+     "pos": {
+      "x": 29,
+      "y": 30
+     },
+     "facing": "S"
     }
    ],
    "dialogues": [],
