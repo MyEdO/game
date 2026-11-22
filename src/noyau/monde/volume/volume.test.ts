@@ -113,11 +113,17 @@ describe('volumeDuMonde (#3476)', () => {
     const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles = Array(9).fill('herbe');
     const parSommet = new Map<string, Set<string>>();
-    for (const m of volumeDuMonde(s).morceaux) {
-      for (let i = 0; i < m.positions.length / 3; i++) {
-        const cle = m.positions.slice(i * 3, i * 3 + 3).join(',');
-        (parSommet.get(cle) ?? parSommet.set(cle, new Set()).get(cle)!).add(m.couleurs.slice(i * 4, i * 4 + 4).join(','));
+    const avant = [...datasetArray('terrains')];
+    try {
+      setDataset('terrains', avant.map((t) => (t.id === 'herbe' ? { ...t, detail: { tintVar: 0.2 } } : t)));
+      for (const m of volumeDuMonde(s).morceaux) {
+        for (let i = 0; i < m.positions.length / 3; i++) {
+          const cle = m.positions.slice(i * 3, i * 3 + 3).join(',');
+          (parSommet.get(cle) ?? parSommet.set(cle, new Set()).get(cle)!).add(m.couleurs.slice(i * 4, i * 4 + 4).join(','));
+        }
       }
+    } finally {
+      setDataset('terrains', avant);
     }
     const partages = [...parSommet.values()];
     expect(new Set(partages.flatMap((c) => [...c])).size, 'la variance de teinte varie d’un sommet à l’autre').toBeGreaterThan(1);

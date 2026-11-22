@@ -28,7 +28,7 @@ const LUMIERE := {
 	ambiante = {couleur = "#ffffff", energie = 0.5}, blanc = 1.0,
 	ciel = null,
 	brume = {couleur = PENOMBRE, debutCases = 1000.0, finCases = 2000.0, courbe = 1.0, depuisLOeil = false},
-	horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = FONDU_CASES},
+	horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#7b8a43"}, fonduCases = FONDU_CASES},
 	sources = [],
 }
 var _fautes: Array[String] = []

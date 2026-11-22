@@ -29,9 +29,6 @@
     "stops": {
       "0%": "#5a4a32",
       "100%": "#332a1a"
-    },
-    "detail": {
-      "tintVar": 0.07
     }
   },
   {
@@ -58,7 +55,7 @@
     "walkable": true,
     "priority": 4,
     "built": true,
-    "swatch": "#8d8a86",
+    "swatch": "#cec8b8",
     "stops": {
       "0%": "#a7a39d",
       "100%": "#7c7872"
@@ -106,13 +103,10 @@
     "maison": "l’herbe rase d’une prairie ou d’une cour enherbée ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 1,
-    "swatch": "#3d6630",
+    "swatch": "#7b8a43",
     "stops": {
       "0%": "#4a7536",
       "100%": "#3a5c28"
-    },
-    "detail": {
-      "tintVar": 0.07
     }
   },
   {
@@ -179,9 +173,6 @@
     "stops": {
       "0%": "#eef2f8",
       "100%": "#b8c2d2"
-    },
-    "detail": {
-      "tintVar": 0.03
     }
   },
   {
@@ -223,7 +214,7 @@
     "walkable": true,
     "priority": 2,
     "built": true,
-    "swatch": "#4c505a",
+    "swatch": "#b9ad8a",
     "stops": {
       "0%": "#5c606a",
       "100%": "#3c4049"
@@ -238,7 +229,7 @@
     "walkable": true,
     "priority": 4,
     "built": true,
-    "swatch": "#7a5a30",
+    "swatch": "#886b52",
     "stops": {
       "0%": "#8a6638",
       "100%": "#6a4d28"
@@ -289,9 +280,6 @@
     "stops": {
       "0%": "#6e6a62",
       "100%": "#4a463e"
-    },
-    "detail": {
-      "tintVar": 0.05
     }
   },
   {
@@ -301,13 +289,10 @@
     "maison": "un chemin de terre battue tracé par le passage ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 3,
-    "swatch": "#8a744c",
+    "swatch": "#cac37b",
     "stops": {
       "0%": "#9a8358",
       "100%": "#7d6a45"
-    },
-    "detail": {
-      "tintVar": 0.05
     }
   },
   {
@@ -321,9 +306,6 @@
     "stops": {
       "0%": "#cdb37a",
       "100%": "#a88a4e"
-    },
-    "detail": {
-      "tintVar": 0.04
     }
   },
   {
@@ -353,9 +335,6 @@
     "stops": {
       "0%": "#6b5d4f",
       "100%": "#52463a"
-    },
-    "detail": {
-      "tintVar": 0.05
     }
   },
   {
@@ -365,13 +344,10 @@
     "maison": "la terre battue d’une cour ou d’un sol d’intérieur pauvre ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 2,
-    "swatch": "#6b5436",
+    "swatch": "#ac906c",
     "stops": {
       "0%": "#7a5f3c",
       "100%": "#57452b"
-    },
-    "detail": {
-      "tintVar": 0.06
     }
   },
   {
@@ -385,9 +361,6 @@
     "stops": {
       "0%": "#5b4a2c",
       "100%": "#332916"
-    },
-    "detail": {
-      "tintVar": 0.06
     }
   },
   {
