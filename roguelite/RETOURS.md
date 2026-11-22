@@ -74,6 +74,35 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   pendant le combat (« Meurs un autre jour ») : l'hôte compare le Destin d'avant et d'après pour ne pas le
   faire payer deux fois, faute d'une trace de cette dépense sur le héros rendu.
 
+## Hors combat : équipement, carrière, repos
+
+- **Constat — les verbes de fiche marchent dans une partie d'exploration générée.** `acheterLaCaracteristique`,
+  `acheterLaCompetence`, `acheterLeTalent`, `acheterLeSort`, `changerDeCarriere`, `utiliserLObjet`, `incanterLeSort`
+  se jouent sur une arène sans rencontre, et leurs refus s'écrivent au journal. L'hôte n'a rien recodé de l'avancement
+  (`roguelite/src/combat.ts`, `auHameau`).
+- **Piège — `equiperLObjet` bascule.** Un objet né `equipped: true` (pièce d'armure fabriquée par l'hôte) est
+  *déséquipé* par le verbe, et l'armure dérivée tombe à 0 PA sans un mot. Une arme, elle, ne se « porte » pas : elle va
+  en main par `garnirLaPanoplie(héros, panoplie, main, uid)`, que rien ne relie à `equiperLObjet` côté hôte. Idée : un
+  verbe idempotent (`porterLObjet(uid, porte)`) à côté de la bascule.
+- **Trou — aucun achat d'objet sans scène de marchand.** Le noyau vend par `merchantFlow`, qui suppose un marchand en
+  scène. Un hôte qui tient une boutique hors scène (forge, relais) donne l'objet par `doterLePorteur` et tient la bourse
+  lui-même.
+- **Friction — une spécialisation ouverte n'apparaît pas dans les créneaux de carrière.** `talentSlots` rend
+  « Magie des Arcanes » et « Invocation » comme option sans `spec` (le domaine, le dieu sont au choix) : un lecteur
+  qui ne garde que les options achetables les perd. L'hôte doit savoir que le créneau attend une spécialisation et la
+  fournir (`aSpecifier`, `offresDeCarriere`).
+- **Friction — utiliser un objet : le verdict est hors surface.** Savoir avant le clic que des Bandages ne servent à rien
+  (« n'attend aucune Aide Médicale ») demande `refusDeConsommer` (`src/noyau/consumableFlow.ts`) et `consommableDe`
+  (`src/engine/consumables.ts`) : ni l'un ni l'autre n'est dans `src/noyau/index.ts`. `gestesDeLObjet` les compose, mais
+  rend des gestes de fiche, pas un verdict par objet.
+- **Trou — le repos du noyau ne récupère rien sur une arène.** `ouvrirLeRepos` sur une scène générée (`restPlaces`
+  `maison`) fait passer la nuit (« Le groupe dort jusqu'à l'aube »), mais aucun Point de Blessure ne revient et aucune
+  ligne ne dit pourquoi (pitance, privation ?). L'hôte joue donc le repos par les primitives du moteur, `restRecovery` et
+  `tickTraumaRecovery` (`reposer`).
+- **Friction — la fin de convalescence d'une fracture exige une porte.** `tickTraumaRecovery` diffère le Test de fin
+  (`UpkeepDeferTest`) ; hors de la cascade de nuit, l'hôte lance lui-même le jet (`testValue`, `rollTest`) et applique
+  `applyFractureEnd`. Un résolveur « immédiat » public éviterait cette recopie.
+
 ## Bundle navigateur
 
 - **Friction — 9 Mo minifiés pour un combat.** Le graphe d'import tire tout le corpus : `creatures.json`

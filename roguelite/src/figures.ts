@@ -19,12 +19,11 @@ export interface Gabarit {
 }
 
 const TENUES: Record<string, Partial<Gabarit>> = {
-  soldat: { tenue: 'f-rouge', coiffe: 'casque' }, milicien: { tenue: 'f-cuir', coiffe: 'casque' }, chasseur: { tenue: 'f-vert', coiffe: 'capuche' },
-  'hors-la-loi': { tenue: 'f-vert', coiffe: 'capuche' }, ratier: { tenue: 'f-cuir', coiffe: 'bonnet' }, repurgateur: { tenue: 'f-noir', coiffe: 'chapeau' },
-  tueur: { tenue: 'f-cuir', coiffe: 'crete' }, spadassin: { tenue: 'f-robe', coiffe: 'chapeau' }, 'pretre-guerrier': { tenue: 'f-acier', coiffe: 'casque' },
-  gladiateur: { tenue: 'f-cuir' }, hallebardier: { tenue: 'f-rouge', coiffe: 'casque' }, 'chevalier-errant': { tenue: 'f-acier', coiffe: 'heaume' },
-  flagellant: { tenue: 'f-os' }, 'joueur-d-epee': { tenue: 'f-rouge', coiffe: 'casque' }, 'chasseur-de-primes': { tenue: 'f-noir', coiffe: 'chapeau' },
-  garde: { tenue: 'f-rouge', coiffe: 'casque' },
+  soldat: { tenue: 'f-rouge', coiffe: 'casque' }, chasseur: { tenue: 'f-vert', coiffe: 'capuche' }, 'hors-la-loi': { tenue: 'f-cuir', coiffe: 'capuche' },
+  pretre: { tenue: 'f-os', corps: 'robe', coiffe: 'capuche' }, sorcier: { tenue: 'f-rouge', corps: 'robe', coiffe: 'chapeau' },
+  tueur: { tenue: 'f-cuir', coiffe: 'crete' }, repurgateur: { tenue: 'f-noir', coiffe: 'chapeau' }, 'pretre-guerrier': { tenue: 'f-acier', coiffe: 'casque' },
+  duelliste: { tenue: 'f-robe', coiffe: 'chapeau' }, medecin: { tenue: 'f-noir', corps: 'robe', coiffe: 'bonnet' },
+  'joueur-d-epee': { tenue: 'f-rouge', coiffe: 'casque' }, flagellant: { tenue: 'f-os' }, 'chasseur-de-primes': { tenue: 'f-noir', coiffe: 'chapeau' },
 };
 
 function armeDuLibelle(libelle = ''): Gabarit['arme'] {
@@ -154,6 +153,15 @@ export function figurine(g: Gabarit, camp: 'heros' | 'ennemi'): string {
     <ellipse class="socle" cx="0" cy="0" rx="24" ry="11" fill="#201915" stroke="${anneau}" stroke-width="2"/>
     <g class="corps"><g transform="${camp === 'ennemi' ? 'scale(-1,1) ' : ''}scale(${g.taille})">${corps}</g></g>
   </svg>`;
+}
+
+/** Le buste d'une figurine : la même figure, cadrée sur sa tête, pour les portraits. */
+export function buste(g: Gabarit, camp: 'heros' | 'ennemi'): string {
+  const t = g.taille;
+  const sens = camp === 'ennemi' ? -1 : 1;
+  const voute = g.corps === 'voute';
+  const [cx, cy, r] = g.bete ? [27 * sens * t, -32 * t, 20 * t] : [(voute ? 8 : 0) * sens * t, ((voute ? -50 : -59) + 9) * t, 19 * t];
+  return `<svg class="buste-fig" viewBox="${cx - r} ${cy - r * 1.1} ${2 * r} ${2.3 * r}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g transform="${camp === 'ennemi' ? 'scale(-1,1) ' : ''}scale(${t})">${g.bete ? bete(g) : humanoide(g)}</g></svg>`;
 }
 
 /** Les dégradés de tenue (`teinte` de `cour.js` : clair, sombre, sombre assombri), posés une fois dans la page. */

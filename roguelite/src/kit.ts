@@ -1,24 +1,8 @@
 /**
  * Pièces graphiques reprises du kit des maquettes (branche `chantier/4585-catalogue`, commit cfff50879,
- * `hotes/godot/cibles/propositions/sources/gestes.js`) : bustes en silhouette, pictogrammes, textures de matière.
+ * `hotes/godot/cibles/propositions/sources/gestes.js`) : cadres, pictogrammes, textures de matière.
  */
 const NS = 'http://www.w3.org/2000/svg';
-
-/** Bustes, `viewBox` 0 0 78 90 : silhouette à la teinte du camp, détails sombres `.s`, clairs `.c`. */
-export const BUSTES: Record<string, string> = {
-  "berta": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M24 31c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z\" class=\"s\"/><path d=\"M52 33c7 9 7 22 2 33l-6-3c4-10 4-19-1-27z\" class=\"s\"/>",
-  "gobelin": "<path d=\"M18 90c0-14 8-20 17-22l-1-5c-8-4-11-13-8-21 3-8 23-8 26 0 3 8 0 17-8 21l-1 5c9 2 17 8 17 22z\"/><path d=\"M27 45L5 34l20 21zM51 45l22-11-20 21z\"/><path d=\"M24 47c-2-16 5-27 15-31 10 4 17 15 15 31-10-6-20-6-30 0z\" class=\"s\"/>",
-  "orc": "<path d=\"M4 90c0-22 11-30 25-32l-1-6c-8-5-11-17-7-26 4-9 32-9 36 0 4 9 1 21-7 26l-1 6c14 2 25 10 25 32z\"/><path d=\"M21 33c7-6 29-6 36 0l-3 5c-9-4-21-4-30 0z\" class=\"s\"/><path d=\"M29 54l-2-11 6 8zM49 54l2-11-6 8z\" class=\"c\"/>",
-  "bjorn": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M24 31c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z\" class=\"s\"/>",
-  "mira": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M22 40c-3-17 5-29 17-29s20 12 17 29c4 10 4 22 2 33l-8-6c2-10 1-20-3-27-4-5-12-5-16 0-4 7-5 17-3 27l-8 6c-2-11-2-23 2-33z\" class=\"s\"/>",
-  "aldric": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M25 30c0-11 6-18 14-18s14 7 14 18c-9-4-19-4-28 0z\" class=\"s\"/><path d=\"M25 27c9-4 19-4 28 0v5c-9-4-19-4-28 0z\" class=\"c\"/>",
-  "greta": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><circle cx=\"39\" cy=\"8\" r=\"6.500\" class=\"s\"/><path d=\"M24 33c-1-13 6-21 15-21s16 8 15 21c-4-7-9-10-15-10s-11 3-15 10z\" class=\"s\"/>",
-  "astrid": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z\" class=\"s\"/><path d=\"M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z\" class=\"s\"/>",
-  "kirsten": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M23 36c-3-15 5-25 16-25s19 10 16 25l-3 8c1-9-1-17-4-20-5-4-13-4-18 0-3 3-5 11-4 20z\" class=\"s\"/>",
-  "harbull": "<path d=\"M16 90c0-15 8-21 19-23l-1-6c-8-4-11-14-7-22 4-8 20-8 24 0 4 8 1 18-7 22l-1 6c11 2 19 8 19 23z\"/><path d=\"M24 40c-3-13 4-22 15-22s18 9 15 22c-2-7-8-10-15-10s-13 3-15 10z\" class=\"s\"/>",
-  "sigrid": "<path d=\"M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z\"/><path d=\"M22 34c-2-14 6-23 17-23s19 9 17 23c-3-8-9-12-17-12s-14 4-17 12z\" class=\"s\"/><path d=\"M36 13h6v12h-6zM31 17h16v4H31z\" class=\"c\"/>",
-  "ilyanwe": "<path d=\"M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z\"/><path d=\"M25 37l-10-10 10 3zM53 37l10-10-10 3z\"/><path d=\"M21 41c-3-17 5-30 18-30s21 13 18 30c4 10 5 23 3 36l-9-7c2-10 1-21-3-28-4-5-14-5-18 0-4 7-5 18-3 28l-9 7c-2-13-1-26 3-36z\" class=\"s\"/>"
-};
 
 /** Pictogrammes au trait, `viewBox` 0 0 24 24. */
 export const PICTOS: Record<string, string> = {
@@ -49,8 +33,9 @@ export const PICTOS: Record<string, string> = {
 export const picto = (nom: string, taille = 22, trait = 1.6): string =>
   `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PICTOS[nom] ?? ''}</svg>`;
 
+/** Le cadre de portrait du kit autour d'un buste (un `<svg>` complet). */
 export const portrait = (buste: string, camp: 'heros' | 'ennemi', taille: 'petit' | 'moyen' | 'grand' = 'moyen', classe = ''): string =>
-  `<div class="portrait ${camp === 'heros' ? 'laiton' : 'fer'} ${camp} ${taille} ${classe}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${BUSTES[buste] ?? BUSTES.bjorn}</svg></div></div>`;
+  `<div class="portrait ${camp === 'heros' ? 'laiton' : 'fer'} ${camp} ${taille} ${classe}"><div>${buste}</div></div>`;
 
 /** Les textures de bois et de parchemin, posées en variables CSS (`--tex-bois`, `--tex-parchemin`). */
 export function poserLesTextures(): void {

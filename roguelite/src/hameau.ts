@@ -3,14 +3,14 @@
  * au crépuscule, fenêtres qui luisent ; `lieux-et-nuit/commun.js` de `chantier/4585-catalogue` pour le sapin). Chaque
  * bâtiment se dessine à son palier : en ruine, puis relevé, de plus en plus éclairé.
  */
-import type { IdBatiment } from './jeu';
+import { enRuine, type IdBatiment } from './jeu';
 
-export const LARGEUR = 1600;
+export const LARGEUR = 1800;
 export const HAUTEUR = 720;
 
 /** Où poser l'enseigne de chaque bâtiment, en coordonnées de scène. */
 export const ANCRES: Record<IdBatiment, [number, number]> = {
-  memorial: [150, 452], temple: [392, 318], relais: [668, 330], salle: [962, 420], cartographe: [1150, 262], peage: [1418, 400],
+  memorial: [150, 452], temple: [392, 318], relais: [668, 330], forge: [962, 420], salle: [1176, 392], cartographe: [1350, 262], peage: [1618, 400],
 };
 
 const alea = (graine: number) => () => {
@@ -98,22 +98,35 @@ function relais(n: number): string {
   return s;
 }
 
-function salleDArmes(n: number): string {
+/** La forge, ouverte dès le premier jour : le feu, le forgeron à l'enclume. */
+function forge(n: number): string {
   let s = '';
-  if (n === 0) {
-    s += p('M872,586V506L912,486L930,500L952,480L1000,500L1030,506V586Z', MUR);
-    s += r(1000, 452, 20, 40, MUR) + p('M1000,452l6,-8 6,6 8,-4v6z', MUR);
-    s += p('M900,586v-40q20,-18 40,0v40z', '#0c0910');
-    return s + p('M860,590l20,-12 14,8 20,-4 10,8z', '#1a1322');
-  }
   s += p('M872,586V506L951,470L1030,506V586Z', MUR) + p('M862,508L951,464L1040,508L1030,512L951,476L872,512Z', TOIT);
   s += r(1000, 424, 22, 64, MUR_PROCHE);
   s += `<path d="M1011,420c-6,-14 8,-22 2,-36c-4,-10 6,-16 4,-26" stroke="#5a5070" stroke-width="7" fill="none" opacity=".35" stroke-linecap="round"/>`;
   s += lueur(920, 560, 90, 0.9) + p('M896,586v-44q24,-22 48,0v44z', '#ffb65a') + p('M904,586v-34q16,-14 32,0v34z', '#ffe2a0');
   s += silhouette(966, 586, 54, '#0a0708') + `<path d="M978,540l18,-16" stroke="#0a0708" stroke-width="5" stroke-linecap="round"/>`;
   s += p('M948,586h26v-8h6v-6h-38v6h6z', '#0a0708');
-  if (n >= 2) s += `<path d="M1052,586v-52M1040,546h24M1052,534a7,7 0 1 0 .1,0" stroke="#2a1c12" stroke-width="5" fill="#2a1c12"/>`;
-  if (n >= 3) s += `<path d="M872,506v-40" stroke="#2a2132" stroke-width="3"/>${p('M872,468l-24,6 24,8z', '#7c1f14')}`;
+  if (n >= 1) s += `<path d="M1052,586v-52M1040,546h24M1052,534a7,7 0 1 0 .1,0" stroke="#2a1c12" stroke-width="5" fill="#2a1c12"/>`;
+  if (n >= 2) s += `<path d="M872,506v-40" stroke="#2a2132" stroke-width="3"/>${p('M872,468l-24,6 24,8z', '#7c1f14')}`;
+  return s;
+}
+
+/** La salle d'armes : une longue halle de bois, la quintaine dans la cour, les épées croisées à l'enseigne. */
+function salleDArmes(n: number): string {
+  let s = '';
+  if (n === 0) {
+    s += p('M1086,586V512L1110,500L1128,516L1160,494L1190,510L1214,498L1262,520V586Z', MUR);
+    s += `<path d="M1100,586l40,-58M1180,586l30,-46" stroke="${BOIS}" stroke-width="6" stroke-linecap="round"/>`;
+    return s + p('M1080,590l24,-10 18,6 26,-6 14,10z', '#1a1322');
+  }
+  s += p('M1086,586V474H1262V586Z', MUR) + p('M1072,478L1174,420L1276,478L1262,482L1174,432L1086,482Z', TOIT) + p('M1086,474L1174,424L1262,474Z', MUR_PROCHE);
+  for (const x of [1086, 1130, 1174, 1218, 1262]) s += `<path d="M${x},474V586" stroke="${BOIS}" stroke-width="5"/>`;
+  [1108, 1196, 1240].forEach((x, k) => { s += fenetre(x - 10, 496, 20, 26, k < n); });
+  s += p('M1158,586v-46q16,-14 32,0v46z', '#0c0910') + (n >= 2 ? lueur(1174, 560, 50, 0.6) + p('M1164,586v-38q10,-9 20,0v38z', '#a8692c') : '');
+  s += `<path d="M1150,452l48,30M1198,452l-48,30" stroke="#c9ccd2" stroke-width="4" stroke-linecap="round"/><circle cx="1174" cy="467" r="8" fill="#7c1f14" stroke="#0c0910" stroke-width="2"/>`;
+  s += `<path d="M1292,586v-62M1276,540h32" stroke="${BOIS}" stroke-width="6" stroke-linecap="round"/>` + `<circle cx="1292" cy="516" r="9" fill="${BOIS}"/>`;
+  if (n >= 3) s += `<path d="M1086,474v-40" stroke="#2a2132" stroke-width="3"/>${p('M1086,436l-24,6 24,8z', '#7c1f14')}`;
   return s;
 }
 
@@ -154,14 +167,14 @@ export function sceneDuHameau(paliers: Record<IdBatiment, number>): string {
   let foret = '';
   for (let k = 0; k < 120; k++) { const x = al() * LARGEUR; foret += sapin(x, 512 + al() * 12, 50 + al() * 70, k % 2 ? '#1a1330' : '#160f28'); }
   let maisons = '';
-  for (let k = 0; k < 16; k++) {
+  for (let k = 0; k < 18; k++) {
     const x = 20 + k * 100 + al() * 40, w = 40 + al() * 30, h = 30 + al() * 26, y = 548;
     maisons += p(`M${x},${y}V${y - h}L${x + w / 2},${y - h - 22}L${x + w},${y - h}V${y}Z`, '#1f1730');
     if (al() > 0.45) maisons += r(x + w * 0.35, y - h * 0.6, 7, 9, '#d79a4c', 'opacity=".75"');
   }
   let herbes = '';
   for (let k = 0; k < 160; k++) { const x = al() * LARGEUR, y = 612 + al() * 100; herbes += `<path d="M${x.toFixed(0)},${y.toFixed(0)}q2,-${(5 + al() * 7).toFixed(0)} 4,0" stroke="#08060b" stroke-width="1.2" fill="none"/>`; }
-  const bat = (id: IdBatiment, dessin: string) => `<g class="bat${paliers[id] === 0 && id !== 'relais' && id !== 'cartographe' ? ' ruine' : ''}" data-a="batiment" data-id="${id}">${dessin}</g>`;
+  const bat = (id: IdBatiment, dessin: string) => `<g class="bat${enRuine(paliers, id) ? ' ruine' : ''}" data-a="batiment" data-id="${id}">${dessin}</g>`;
   return `<svg class="scene" viewBox="0 0 ${LARGEUR} ${HAUTEUR}" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Le hameau de Grisefosse">
   <defs>
     <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0b1e"/><stop offset=".38" stop-color="#241a3e"/><stop offset=".62" stop-color="#5a3a5e"/><stop offset=".78" stop-color="#b0664a"/><stop offset=".86" stop-color="#e3a25c"/></linearGradient>
@@ -172,20 +185,20 @@ export function sceneDuHameau(paliers: Record<IdBatiment, number>): string {
   </defs>
   <rect width="${LARGEUR}" height="${HAUTEUR}" fill="url(#ciel)"/>
   ${ciel}
-  <circle cx="820" cy="520" r="260" fill="url(#soleil)"/>
-  <path d="M1280,96A34,34 0 1 0 1314,130A26,26 0 0 1 1280,96Z" fill="#f3ecd4" opacity=".9"/>
+  <circle cx="900" cy="520" r="260" fill="url(#soleil)"/>
+  <path d="M1440,96A34,34 0 1 0 1474,130A26,26 0 0 1 1440,96Z" fill="#f3ecd4" opacity=".9"/>
   ${p(crete(470, 110, 120, 3), '#3a2c52')}${p(crete(492, 50, 160, 8), '#2a2040')}
   <rect y="470" width="${LARGEUR}" height="70" fill="#d08a5a" opacity=".18" filter="url(#flou)"/>
   ${foret}${maisons}
   <rect y="584" width="${LARGEUR}" height="${HAUTEUR - 584}" fill="url(#sol)"/>
-  ${p('M0,612C300,596 520,590 800,592C1080,594 1300,600 1600,612V646C1300,634 1080,628 800,626C520,624 300,630 0,646Z', '#2a2130', 'opacity=".75"')}
+  ${p('M0,612C300,596 520,590 800,592C1080,594 1400,600 1800,612V646C1400,634 1080,628 800,626C520,624 300,630 0,646Z', '#2a2130', 'opacity=".75"')}
   ${bat('memorial', jardinDeMorr(paliers.memorial))}
   ${bat('temple', chapelle(paliers.temple))}
   ${bat('relais', relais(paliers.relais))}
+  ${bat('forge', forge(paliers.forge))}
   ${bat('salle', salleDArmes(paliers.salle))}
-  ${bat('cartographe', cartographe(paliers.cartographe))}
-  ${bat('peage', peage(paliers.peage))}
+  <g transform="translate(200,0)">${bat('cartographe', cartographe(paliers.cartographe))}${bat('peage', peage(paliers.peage))}</g>
   ${herbes}
-  ${sapin(-30, 760, 420, '#040306')}${sapin(1630, 770, 380, '#040306')}
+  ${sapin(-30, 760, 420, '#040306')}${sapin(LARGEUR + 30, 770, 380, '#040306')}
 </svg>`;
 }
