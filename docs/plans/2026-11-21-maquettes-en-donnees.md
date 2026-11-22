@@ -139,7 +139,8 @@ Le détail et les sources sont dans la carte.
    - *Réponses de l'utilisateur du 2026-11-21* : Q1 « Harmoniser d'abord », Q2 avis rendu (règle 3), Q3 « Oui, dans l'état », Q4 « Emplacements et pluriel ». Le détail est sur #4585.
 3. **Lots de nature (règle 7)**, de la plus dispersée à la moins dispersée (carte, § variantes) : lignes libellé-valeur, titres, sous-titres et rubriques, notes, étiquettes, puces et listes, filets, bulles, plaques, jauges.
    - **Le premier va de bout en bout avant les autres** : planche, validation, primitive, application, preuve. Ce sont les titres de cadre et de panneau, l'exemple que l'utilisateur a cité.
-   - Chaque nature : planche des variantes réelles et de la forme proposée sur la page de jugement, **point d'arrêt utilisateur**, primitive au kit, sites tirés du relevé `brut`, application en une passe, puis la preuve de la règle 7.
+   - Chaque nature : planche des variantes réelles et de la forme proposée, primitive au kit, sites tirés du relevé `brut`, application en une passe, puis la preuve de la règle 7.
+   - **Les titres faits, les neuf autres natures et l'échelle des noms passent par un seul point d'arrêt.** Choix de l'utilisateur du 2026-11-22 : « Un seul arrêt (Recommandé) ». Elles sont relevées et proposées ensemble, l'utilisateur les tranche en une fois, l'application suit, puis il juge les maquettes finales écran par écran.
 4. **Pilote des tables : `fenetre-du-bas` (49 états) et `edition` (4 états, deux types, illustration `#plan`).**
    - Les primitives utilisées passent à l'émission marquée (règle 2).
    - Les gabarits deviennent des tables (règle 3), les mots sont keyés (règle 4), l'illustration suit la règle 5.
