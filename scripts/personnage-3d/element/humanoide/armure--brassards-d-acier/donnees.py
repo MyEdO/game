@@ -35,7 +35,7 @@ MATERIAUX = {
 """Illustration : acier poli (`metal`), liserés dorés (`metal2`, le laiton au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1100
-"""Sous les 2 000 d'une armure (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000) ; le canon
+"""Sous les 2 000 d'une armure (procédure, section 7) ; le canon
 cache les meshes `avant_bras_*` du corps, de la chemise, du pourpoint et des gants, qui sortent du compte."""
 
 CONTOURNE = {'chemise': 'humanoide--vetement--chemise', 'pourpoint': 'humanoide--vetement--pourpoint'}

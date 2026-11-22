@@ -183,12 +183,23 @@ offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS
 mètres glTF, sa proue vers +Z et tribord vers -X, où se montent dans l'ordre les pièces des postes de ce bord, chacune
 tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
-**`faceFlip`** : chaque tête porte la shape key `visage_inverse`. C'est une clé de la tête, pas de
-la base : elle ne se déclare pas parmi les silhouettes (`silhouette-absente`). Le design la fait
-générer par la chaîne, refuser à l'import quand elle manque, et poser par l'hôte quand le noyau
-publie `faceFlip` résolu. Aucun de ces trois gestes n'est livré, et ni le validateur ni l'import
-n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON VÉRIFIÉE tant que
-l'import ne la refuse pas.
+**Clés de forme propres (`formesDeTete`, #4413)** : une pièce skinnée peut porter des shape keys qui ne sont
+ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
+déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
+`element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
+propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
+de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
+la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
+traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
+cibles de MakeHuman lues sommet à sommet), et leur clé `feminin` ajoute à celle du corps l'écart de MakeHuman
+entre ses deux sexes. Les noms admis sont la liste fermée
+`NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
+un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
+validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
+exactement les silhouettes et les `formesDeTete` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
+la base (`shape-key-non-declaree`, `shape-key-absente`). L'hôte pose leurs poids : le preset
+(`formesDeTete`) ou les Mutations du combattant (`formesDeTete` de `mutations.json`) les donnent, le pont les
+verse dans `morphes` (`hotes/godot/pont/composition.ts`).
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
 **localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.
@@ -298,8 +309,11 @@ robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un 
 Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
 `anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
 ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
-`element/tete.py` pour une tête de race sur la couture du cou (un dossier ne porte que son `donnees.py` et
-`from tete import construire`) et
+`element/tete.py` pour une tête de race bâtie de volumes sur la couture du cou (orc, gobelin : un dossier ne porte que
+son `donnees.py` et `from tete import construire`), `element/tete_makehuman.py` pour une tête humanoïde tirée de la
+tête de MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées (humain, nain, haut-elfe, halfling : le
+dossier ne porte que son `donnees.py`, dont `CUITES` nomme les cibles qui font la race, et
+`from tete_makehuman import construire` ; le pack `mpfb` de la base se tire seul, `production.pack_source`),
 `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
@@ -562,15 +576,24 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 |---|---|---|
 | base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
+| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 6 600 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
 | armure par pièce | 2 000 | 512² |
 | rigide tenu | 1 200 | 256² |
 | accessoire ou trait | 800 | 256² |
 | prop d'art | 1 500 | 512² |
-| personnage assemblé, base visible comprise | 16 000 | — |
+| personnage assemblé, base visible comprise, au niveau de détail 0 | 24 000 | — |
 
 Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+La tête humanoïde MakeHuman garde le maillage `body` de MakeHuman (#4413) : ses cibles fines (joues, oreilles, bouche)
+ne s'expriment que sur lui, et sa pleine définition sert aux portraits ; ce n'est pas une décimation ni une retopologie
+à la construction. Plafond assemblé à 24 000 au niveau de détail 0 : décision utilisateur du 2026-11-19 (#4413). Les
+modèles de `modeles/` se lisent à l'exécution (`GLTFDocument`), sans import (`export_presets.cfg` exclut `modeles/*`) :
+Godot n'en tire aucun niveau de détail ; il les génère à l'exécution, par `MontageDeComposition.poser_les_niveaux`
+(`ImporterMesh.generate_lods`, `hotes/godot/projet/scripts/montage_de_composition.gd`), sur chaque mesh d'un GLB lu, sur
+chaque mesh cuit et sur le mesh fondu du personnage ; le rendu simplifie le personnage qui s'éloigne.
 
 Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
 les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
@@ -625,7 +648,10 @@ Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et mod
 licences que dépose l'import sous `hotes/godot/projet/modeles/`, puis le GLB à la Release (section « Importer une base et
 ses éléments ») ; `npm run personnage-3d:tests` (`test_element.py`) reconstruit chaque élément d'`element/` et compare son
 manifeste, empreinte comprise, au publié, et l'import refuse `[construction-absente]` un élément sur base dont le dossier
-manque. Garder un rapport lié aux empreintes exactes. Garder hors dépôt
+manque. Le même test exige d'une peau qui remplace des zones de la base (couche `peau`, `couvre` non vide : une tête)
+qu'elle suive la base à leur couture, au repos et sous chaque silhouette et chaque clé `gabarit_*`, la reconstruite comme
+la publiée à chaque course : une base republiée se livre avec ses têtes reconstruites et republiées (#4413). Garder un
+rapport lié aux empreintes exactes. Garder hors dépôt
 illustration, contrat, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
 un nouvel export. Les voisins restent identiques, signatures à l'appui.
 

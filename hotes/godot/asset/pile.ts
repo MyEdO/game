@@ -15,7 +15,8 @@
  *
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
- * tout entiers ne se dessine plus.
+ * tout entiers ne se dessine plus si une même couverture les retient tous trois hors de son bord (`bordsDe`), ou si l'une
+ * couvre son centre ; sinon, cousu à une couverture ou à cheval sur deux, il reste dehors.
  *
  * Qui couvre qui se lit aux couches déclarées, et se mesure entre deux pièces de même couche (`ordreDesCouches`).
  */
@@ -308,11 +309,14 @@ export function ordreDesCouches<E extends CoucheDePile>(peaux: readonly Float32A
   };
 }
 
-/** Une pièce résolue qui en couvre d'autres : la surface d'un de ses maillages, ses poids résolus et ceux de son auteur. */
+/** Une pièce résolue qui en couvre d'autres : la surface d'un de ses maillages, ses poids résolus et ceux de son auteur,
+ *  la clé de soudure de chacun de ses sommets (`cleDeSoudure`) et les bords de la pièce (`bordsDe`). */
 interface Couvrant {
   readonly surface: Couverture;
   readonly resolus: Poids;
   readonly auteur: Poids;
+  readonly cles: readonly string[];
+  readonly bords: Bords;
 }
 
 /** Un point de la surface d'une pièce : ses sommets confondus, de tous ses maillages. */
@@ -326,13 +330,64 @@ interface Point {
   nz: number;
 }
 
+/** La clé du sommet `s` des positions `p` : deux sommets à moins de `SOUDURE_M` l'un de l'autre la partagent. */
+const cleDeSoudure = (p: Float32Array, s: number): string => `${Math.round(p[s * 3] / SOUDURE_M)}|${Math.round(p[s * 3 + 1] / SOUDURE_M)}|${Math.round(p[s * 3 + 2] / SOUDURE_M)}`;
+/** La clé d'une arête entre deux clés de soudure, quel que soit son sens. */
+const cleDArete = (a: string, b: string): string => (a < b ? `${a}/${b}` : `${b}/${a}`);
+
+/** Les bords d'une pièce : ses arêtes qu'un seul de ses triangles porte (`cleDArete`), et leurs sommets. */
+interface Bords {
+  readonly aretes: ReadonlySet<string>;
+  readonly sommets: ReadonlySet<string>;
+}
+
+/** Les bords des surfaces `surfaces` d'une pièce, soudées entre elles (`cleDeSoudure`). */
+function bordsDe(surfaces: readonly SurfaceDePile[]): Bords {
+  const portees = new Map<string, number>(), sommets = new Set<string>();
+  for (const { positions, indices } of surfaces) for (let t = 0; t + 2 < indices.length; t += 3) {
+    const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]].map((s) => cleDeSoudure(positions, s));
+    for (const [u, v] of [[a, b], [b, c], [c, a]]) if (u !== v) portees.set(cleDArete(u, v), (portees.get(cleDArete(u, v)) ?? 0) + 1);
+  }
+  const aretes = new Set([...portees].flatMap(([k, n]) => (n === 1 ? [k] : [])));
+  for (const k of aretes) for (const s of k.split('/')) sommets.add(s);
+  return { aretes, sommets };
+}
+
+/** Dit si le point de `touche` est au bord de sa couverture : à `SOUDURE_M` au plus d'une arête de bord de son triangle
+ *  ou d'un de ses sommets de bord. */
+function auBord({ de, coins }: Touche): boolean {
+  const p = de.surface.positions;
+  const [x, y, z] = [0, 1, 2].map((k) => coins.reduce((t, [s, c]) => t + c * p[s * 3 + k], 0));
+  const loinDe = (a: number, b: number): number => {
+    const [ux, uy, uz] = [p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]];
+    const [wx, wy, wz] = [x - p[a * 3], y - p[a * 3 + 1], z - p[a * 3 + 2]];
+    const l2 = ux * ux + uy * uy + uz * uz;
+    const t = l2 > 0 ? Math.min(1, Math.max(0, (wx * ux + wy * uy + wz * uz) / l2)) : 0;
+    return Math.hypot(wx - t * ux, wy - t * uy, wz - t * uz);
+  };
+  return coins.some(([a], i) => {
+    const b = coins[(i + 1) % 3][0];
+    return (de.bords.sommets.has(de.cles[a]) && loinDe(a, a) <= SOUDURE_M) || (de.bords.aretes.has(cleDArete(de.cles[a], de.cles[b])) && loinDe(a, b) <= SOUDURE_M);
+  });
+}
+
+/** Dit si l'une des `couvertures` couvre le centre du triangle des points `coins` (`toucher`), le long de la somme de
+ *  leurs dehors. */
+function centreCouvert(coins: readonly Point[], couvertures: readonly (readonly Couvrant[])[]): boolean {
+  const somme = (f: (q: Point) => number): number => coins.reduce((t, q) => t + f(q), 0);
+  const [nx, ny, nz] = [somme((q) => q.nx), somme((q) => q.ny), somme((q) => q.nz)];
+  const l = Math.hypot(nx, ny, nz);
+  const centre = { x: somme((q) => q.x) / 3, y: somme((q) => q.y) / 3, z: somme((q) => q.z) / 3 };
+  return l > 0 && couvertures.some((couvrants) => toucher(centre, nx / l, ny / l, nz / l, couvrants) !== null);
+}
+
 function souder(piece: PieceDePile, endroits: ReadonlyMap<MaillageDePile, Uint32Array>): Point[] {
   const parCle = new Map<string, Point>();
   for (const m of piece.maillages) {
     const points: Point[] = [];
     const p = m.positions;
     for (let s = 0; s < p.length / 3; s++) {
-      const k = `${Math.round(p[s * 3] / SOUDURE_M)}|${Math.round(p[s * 3 + 1] / SOUDURE_M)}|${Math.round(p[s * 3 + 2] / SOUDURE_M)}`;
+      const k = cleDeSoudure(p, s);
       let point = parCle.get(k);
       if (!point) { point = { membres: [], x: p[s * 3], y: p[s * 3 + 1], z: p[s * 3 + 2], nx: 0, ny: 0, nz: 0 }; parCle.set(k, point); }
       point.membres.push([m, s]);
@@ -358,7 +413,7 @@ interface Touche {
 /** Le triangle de `couvrants` qui couvre le point `q`, de normale (nx, ny, nz), au plus près, à `PERCEE_M` devant lui au
  *  plus ; `null` sans lui. Un triangle couvrant dont l'écart égale celui du retenu à `SOUDURE_M` près ne le remplace pas
  *  et ajoute sa normale à la sienne ; un triangle plus près de plus de `SOUDURE_M` le remplace (#3842). */
-function toucher(q: Point, nx: number, ny: number, nz: number, couvrants: readonly Couvrant[]): Touche | null {
+function toucher(q: Pick<Point, 'x' | 'y' | 'z'>, nx: number, ny: number, nz: number, couvrants: readonly Couvrant[]): Touche | null {
   let touche = null as Omit<Touche, 'n'> | null, normales = 0;
   const somme: Vecteur = [0, 0, 0];
   for (const de of couvrants) {
@@ -649,7 +704,11 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     return piece.maillages.map((m) => [m, nue ? m.indices : endroitDe(m, peaux)] as const);
   }));
   const retenir = (piece: PieceDePile): void => {
-    couvrantsDe.set(piece, piece.maillages.map((m) => ({ surface: couvertureDe(m.positions, endroits.get(m) as Uint32Array), resolus: m, auteur: origines.get(m) as Poids })));
+    const bords = bordsDe(piece.maillages.map((m) => ({ positions: m.positions, indices: endroits.get(m) as Uint32Array })));
+    couvrantsDe.set(piece, piece.maillages.map((m) => ({
+      surface: couvertureDe(m.positions, endroits.get(m) as Uint32Array), resolus: m, auteur: origines.get(m) as Poids,
+      cles: Array.from({ length: m.positions.length / 3 }, (_, s) => cleDeSoudure(m.positions, s)), bords,
+    })));
   };
   let couverts = 0, suiveurs = 0, recules = 0, flottants = 0, masques = 0;
   for (const piece of ordre) {
@@ -659,11 +718,11 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     const points = souder(piece, endroits);
     const propres = new Map(points.map((q) => [q, poidsParNom(...q.membres[0])]));
     const repris = new Map<Point, Map<string, number>>(), restes = new Map<Point, number>(), reculs = new Map<Point, Vecteur>();
-    const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>();
+    const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>(), dedans = couvertures.map(() => new Set<Point>());
     const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
     for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
     const voisins = voisinsDe(piece, pointDe);
-    for (const couvrants of couvertures) {
+    for (const [k, couvrants] of couvertures.entries()) {
       const tenues = new Map<Point, Reprise>();
       for (const q of points) {
         const tenue = tenir(q, propres.get(q) as Map<string, number>, couvrants, squelette);
@@ -673,6 +732,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
         tenues.set(q, { poids, part });
         tenus.add(q);
         if (part >= 1) pleins.add(q);
+        if (part >= 1 && !auBord(tenue.touche)) dedans[k].add(q);
         const pas = part * Math.min(0, e - JEU_M), deja = reculs.get(q);
         if (pas < 0 && (!deja || -pas > Math.hypot(...deja))) reculs.set(q, [pas * n[0], pas * n[1], pas * n[2]]);
       }
@@ -712,7 +772,8 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
       const de = pointDe.get(m) as Point[];
       const gardes: number[] = [];
       for (let t = 0; t + 2 < m.indices.length; t += 3) {
-        if (pleins.has(de[m.indices[t]]) && pleins.has(de[m.indices[t + 1]]) && pleins.has(de[m.indices[t + 2]])) masques++;
+        const coins = [de[m.indices[t]], de[m.indices[t + 1]], de[m.indices[t + 2]]];
+        if (coins.every((q) => pleins.has(q)) && (dedans.some((d) => coins.every((q) => d.has(q))) || centreCouvert(coins, couvertures))) masques++;
         else gardes.push(m.indices[t], m.indices[t + 1], m.indices[t + 2]);
       }
       m.indices = Uint32Array.from(gardes);

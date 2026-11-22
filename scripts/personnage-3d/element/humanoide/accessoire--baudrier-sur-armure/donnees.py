@@ -32,7 +32,7 @@ MATERIAUX = {
 """Illustration : cuir fauve (`cuir`), boucle de métal clair (`metal`)."""
 
 BUDGET_TRIANGLES = 500
-"""Sous les 800 d'un accessoire (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 800 d'un accessoire (procédure, section 7)."""
 
 ZONES = ['torse', 'hanches']      # zones du tronc que la sangle ceint
 
