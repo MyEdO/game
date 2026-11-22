@@ -398,9 +398,9 @@
     }
   },
   {
-    "id": "casque-a-cornes",
+    "id": "masque-de-cuir",
     "type": "garde-robe",
-    "label": "Casque à cornes",
+    "label": "Masque de cuir rapiécé",
     "kind": "variante",
     "piece": {
       "id": "casque"
