@@ -38,10 +38,9 @@
  * ambiant ne lie rien) n'en est pas un. Un receveur qui n'y remonte pas (`suite.test`) n'en déclare aucun.
  * Un bloc de test ouvre son contexte nommé ; un hook garde le contexte qui l'englobe.
  *
- * Une EXEMPTION se pose AU SITE (`EXEMPTIONS`, patron de `cylindreHorsSocle.mjs`) : `fichier`, `motif`
- * ANCRÉ `^…$` sur le `ref` du site, `raison`. Elle couvre EXACTEMENT un site de son fichier : un motif qui
- * en touche plusieurs n'en couvre aucun, et la garde exige un site par exemption. L'identité d'un site au
- * stock est `{ fichier, ref, occurrence }`, jamais son numéro de ligne.
+ * Une EXEMPTION se pose AU SITE : dans le fichier, l'ancre est le `ref` exact du contexte nommé.
+ * Elle couvre une seule itération de ce contexte. Le stock identifie ses autres sites par
+ * `{ fichier, ref, occurrence }`.
  *
  * Lu sur l'ARBRE SYNTAXIQUE (`dialecte.mjs`), jamais sur le texte : un nom cité en commentaire ou en
  * chaîne ne compte pas. Le `ref` d'un site est son CONTEXTE nommé le plus proche — le titre du `it`/
@@ -100,7 +99,7 @@ import type * as TS from 'typescript/unstable/ast';
 import { analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript, type FichierSource } from './dialecte.mjs';
 import { estKitDeTest, estSuiteVitest } from './fichierVitest.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
-import type { Site } from './stock.mjs';
+import { positionsDesAncres, type Site } from './stock.mjs';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Les fichiers mesurés : les suites et les kits de test (`fichierVitest.mjs`), tous dialectes, hors le kit de la
@@ -124,16 +123,16 @@ const BLOCS_DE_TEST = new Set(['it', 'test', 'describe']);
 /** Les appels dont les callbacks s'exécutent APRÈS l'itération qui les déclare : blocs de test et hooks. */
 const DIFFERES = new Set([...BLOCS_DE_TEST, 'beforeEach', 'afterEach', 'beforeAll', 'afterAll']);
 
-/** Une exemption AU SITE : la suite, le motif ANCRÉ du `ref` du site, la raison. */
-export interface ExemptionPilote { fichier: string; motif: RegExp; raison: string }
+/** Une exemption AU SITE : la suite, le `ref` du site et sa raison datée. */
+export interface ExemptionPilote { fichier: string; ancre: string; raison: string; date: string }
 
 const RAISON_ABANDON_REFUSE = 'le verbe joué est l’abandon que le titre teste (`jetRegler(\'cascade\', \'abandon\', true)`), refusé : il ne pilote pas la cascade';
 const RAISON_GESTE_TESTE = 'la boucle porte sur des GRAINES ; le verbe joué est le geste que le titre teste, le confier au kit détruirait le test';
 export const EXEMPTIONS: readonly ExemptionPilote[] = [
-  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`jetValider('cascade')\`)` },
-  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade')\`)` },
-  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade', id)\`)` },
-  { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', motif: /^it:ABANDON en cours de manche \(l\.17\) : FERMÉ « entre deux manches »/, raison: RAISON_ABANDON_REFUSE },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', ancre: "it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue", raison: `${RAISON_GESTE_TESTE} (\`jetValider('cascade')\`)`, date: '2026-11-07' },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', ancre: "it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon", raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade')\`)`, date: '2026-11-07' },
+  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', ancre: "it:HÉROS MANUEL : nue haute + États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient", raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade', id)\`)`, date: '2026-11-07' },
+  { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', ancre: 'it:ABANDON en cours de manche (l.17) : FERMÉ « entre deux manches » — tour du héros, pli dû, fenêtre d’un autre héros ; on n’en sort que par le pli', raison: RAISON_ABANDON_REFUSE, date: '2026-11-06' },
 ];
 
 /** Une itération-site repérée : son fichier, sa ligne (1-based), son contexte nommé, l'exemption qui la couvre. */
@@ -340,7 +339,7 @@ function sitesDuFichier(ts: typeof TS, sourceFile: TS.SourceFile): ReadonlySet<T
 }
 
 /** Les itérations-sites de `fichiers`, dans l'ordre du balayage, chacune avec l'exemption qui la couvre —
- *  celle dont le motif ne touche, dans son fichier, qu'elle. */
+ *  celle dont l'ancre ne désigne, dans son fichier, qu'elle. */
 export function bouclesPilotes(fichiers: Iterable<FichierSource> = corpusMesure(), exemptions: readonly ExemptionPilote[] = EXEMPTIONS): BouclePilote[] {
   const ts = typescript();
   const boucles: BouclePilote[] = [];
@@ -354,8 +353,14 @@ export function bouclesPilotes(fichiers: Iterable<FichierSource> = corpusMesure(
       n.forEachChild((c) => visite(c, ici));
     };
     visite(sourceFile, 'module');
-    const touches = (e: ExemptionPilote): BouclePilote[] => trouves.filter((b) => e.fichier === b.rel && e.motif.test(b.ref));
-    for (const b of trouves) boucles.push({ ...b, exemption: exemptions.find((e) => touches(e).length === 1 && touches(e)[0] === b) });
+    const entrees = new Map(exemptions.filter((e) => e.fichier === fichier.rel)
+      .map((e) => [JSON.stringify(e.ancre), e]));
+    const projection = trouves.map((b) => JSON.stringify(b.ref)).join('\n');
+    const ancres = positionsDesAncres(fichier.rel, projection, entrees.keys());
+    trouves.forEach((b, i) => {
+      const ancre = ancres.get(i + 1);
+      boucles.push({ ...b, exemption: ancre === undefined ? undefined : entrees.get(ancre) });
+    });
   }
   return boucles;
 }

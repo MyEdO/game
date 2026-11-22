@@ -116,8 +116,8 @@ for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.
 // Signaux non bloquants, en OBJETS `{ file, line, detail }` : ils passent par la baseline nominative
 // (`decisions-baseline.json`) avant impression, qui les range en NOUVEAU / BASELINE.
 const warnings = [];
-// Fichiers réellement scannés — périmètre sur lequel la péremption d'une entrée se juge.
-const scannedTs = [];
+// Les blobs scannés portent les ancres des décisions.
+const textesScannes = new Map();
 
 for (const rel of staged) {
   // MÊME périmètre que la suite Vitest et le hook au stylo : `estFichierScanne` (`commentPoison.mjs`).
@@ -129,7 +129,7 @@ for (const rel of staged) {
   const isTestFile = estFichierVitest(rel);
   const text = texteAJuger(rel);
   if (text === null) continue;
-  scannedTs.push(rel);
+  textesScannes.set(rel, text);
   for (const x of scanTombstones(rel, text)) avertir('pierre tombale', `${rel}:${x.line} ${x.detail}`);
   for (const x of scanExcuses(rel, text)) avertir('excuse sans tag', `${rel}:${x.line} ${x.detail}`);
   for (const x of scanLegacyVocabHorsStock(rel, text)) avertir("vocabulaire de l'ancien état", `${rel}:${x.line} ${x.detail}`);
@@ -138,7 +138,7 @@ for (const rel of staged) {
   for (const x of scanDecisionClaims(rel, text))
     warnings.push({ file: rel, line: x.line, detail: `[revendication d'autorité sans trace] ${x.detail}` });
   if (!isTestFile && hardcodeRe.test(rel))
-    for (const x of scanHardcode(rel, text)) warnings.push({ file: rel, line: x.line, detail: `[hardcode réactif par-nom] ${x.detail}` });
+    for (const x of scanHardcode(rel, text)) warnings.push({ file: rel, line: x.line, detail: `[hardcode réactif par-nom] ${x.detail}`, horsBaseline: true });
   if (!isTestFile && /^src\/(ui|state|gameIso)\//.test(rel))
     for (const emoji of emojisIn(text)) avertir("emoji d'affordance", `${rel} ${emoji}`);
   // #274 — whitelist : SOURCE UNIQUE `rollSeamWhitelist.mjs`.
@@ -197,7 +197,7 @@ if (lint.saut) process.stderr.write(`pre-commit — lint SAUTÉ : ${lint.saut} ;
 
 // Canal non bloquant : la baseline nominative sépare le DÉJÀ TRANCHÉ (une ligne par site) de ce qui
 // arrive avec ce commit ; une entrée sans site dans les fichiers scannés est signalée pour purge.
-const rapport = formatBaselineReport(partitionBaseline(warnings, decisionsBaselineDe(texteAJuger(BASELINE)), scannedTs));
+const rapport = formatBaselineReport(partitionBaseline(warnings, decisionsBaselineDe(texteAJuger(BASELINE)), textesScannes));
 if (rapport.length) {
   process.stderr.write(`pre-commit — signaux de commentaires (non bloquant) :\n${rapport.map((l) => `  ${l}`).join('\n')}\n`);
 }

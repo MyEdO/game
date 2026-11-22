@@ -1,7 +1,8 @@
 export interface ExemptionCylindre {
   fichier: string;
-  motif: RegExp;
+  ancre: string;
   raison: string;
+  date: string;
 }
 
 export const SOCLE: string[];

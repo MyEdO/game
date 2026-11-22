@@ -62,19 +62,23 @@ export interface PlacedFinding {
   file: string;
   line: number;
   detail: string;
+  horsBaseline?: true;
 }
-export interface BaselineVerdict {
+export interface BaselineVerdict<E = BaselineEntry> {
   nouveaux: PlacedFinding[];
-  connus: { finding: PlacedFinding; entry: BaselineEntry }[];
-  perimees: BaselineEntry[];
+  connus: { finding: PlacedFinding; entry: E }[];
+  perimees: E[];
 }
 export const DECISIONS_BASELINE_PATH: string;
 export function loadDecisionsBaseline(path?: string): BaselineEntry[];
 export function decisionsBaselineDe(texte: string | null): BaselineEntry[];
-export function matchesBaselineEntry(finding: PlacedFinding, entry: BaselineEntry): boolean;
 export function partitionBaseline(
   findings: PlacedFinding[],
   baseline: BaselineEntry[],
-  scannedFiles?: Iterable<string>,
+  textesScannes: ReadonlyMap<string, string>,
 ): BaselineVerdict;
+export function partitionVocabulaire(
+  findings: PlacedFinding[],
+  textesScannes: ReadonlyMap<string, string>,
+): BaselineVerdict<import('./legacyVocabStock.mjs').SiteVocab>;
 export function formatBaselineReport(verdict: BaselineVerdict): string[];

@@ -9,12 +9,6 @@ export interface BlindRef extends Site {
   hi: number;
 }
 
-export interface SiteExemption extends Site {
-  row: number;
-  raison: string;
-  date: string;
-}
-
 export interface EmptyLineRef {
   ref: string;
   sites: number;
@@ -26,7 +20,6 @@ export const WINDOW: number;
 export const MIN_WORD_LEN: number;
 export const STEM_LEN: number;
 export const SELF_FILES: string[];
-export const SITE_EXEMPTIONS: SiteExemption[];
 export const STOCK_NOM: string;
 export const STOCK_PATH: URL;
 

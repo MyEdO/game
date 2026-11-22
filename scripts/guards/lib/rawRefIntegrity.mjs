@@ -45,12 +45,6 @@ export const STEM_LEN = 5
 /** Fichiers de la garde elle-même : ses fixtures citent des réfs À DESSEIN (preuve de morsure). */
 export const SELF_FILES = ['src/raw-ref-integrity.test.ts']
 
-/** Exemptions AU SITE (jamais au fichier) : `{ fichier, row, ref, raison, date }`. Une exemption
- *  nomme la ligne EXACTE du code citant + la réf — un déplacement de site la périme (fail-closed).
- * @type {import('./rawRefIntegrity.mjs').SiteExemption[]}
- */
-export const SITE_EXEMPTIONS = []
-
 /** Stock NOMINATIF des sites aveugles : `{ quoi, entrees: [{ fichier, ref, occurrence, lot, date }] }`,
  *  clé `fichier src :: réf :: occurrence` (écart `ecartDuVolet` de `scripts/guards/lib/stock.mjs`).
  *  Les deux sens échouent : un site NEUF est une régression à corriger ou à déclarer, une entrée dont
@@ -64,9 +58,7 @@ export const SITE_EXEMPTIONS = []
 export const STOCK_NOM = 'raw-blind-refs-stock.json'
 export const STOCK_PATH = new URL(`../${STOCK_NOM}`, import.meta.url)
 
-/** Sites aveugles observés → sites du stock : le fichier citant et la réf citée. Jamais `row` :
- *  la ligne du code citant dérive à chaque édition du fichier (c'est l'affaire des exemptions AU
- *  SITE, qui la nomment à dessein pour périmer au déplacement).
+/** Sites aveugles observés → sites du stock : le fichier citant et la réf citée.
  * @param {import('./rawRefIntegrity.mjs').BlindRef[]} blind
  * @returns {import('./stock.mjs').Site[]}
  */
@@ -160,8 +152,6 @@ function chapterLinesOf(path) {
   return _chapterLines.get(path)
 }
 
-const isExempt = (hit) => SITE_EXEMPTIONS.some((e) => e.fichier === hit.fichier && e.row === hit.row && e.ref === hit.ref)
-
 /** Scanne `racines` et retourne les réfs AVEUGLES.
  * @returns {import('./rawRefIntegrity.mjs').BlindRef[]}
  */
@@ -177,8 +167,7 @@ export function scanBlindRefs(racines = RACINES_CITANTES, chapitreDe = chapterFi
         if (!cf) continue // chapitre introuvable = domaine de check-code-refs
         const context = windowText(src, i + 1, i + 1)
         if (!isBlindRef(chapterLinesOf(cf.path), lo, hi, context)) continue
-        const hit = { fichier: rel, row: i + 1, ref, abbr, nn, lo, hi }
-        if (!isExempt(hit)) blind.push(hit)
+        blind.push({ fichier: rel, row: i + 1, ref, abbr, nn, lo, hi })
       }
     })
   }

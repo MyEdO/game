@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -13,6 +13,7 @@ import {
   scanExcuses,
   legacyVocabIn,
   scanLegacyVocab,
+  scanLegacyVocabHorsStock,
   scanRawClaims,
   scanDecisionClaims,
   extractComments,
@@ -20,8 +21,8 @@ import {
   matchLine,
   excerptAt,
   loadDecisionsBaseline,
-  matchesBaselineEntry,
   partitionBaseline,
+  partitionVocabulaire,
   formatBaselineReport,
   DECISIONS_BASELINE_PATH,
   type BaselineEntry,
@@ -917,44 +918,39 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
 
   it('tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée', () => {
     const findings: { file: string; line: number; detail: string }[] = [];
-    const scanned: string[] = [];
+    const textesScannes = new Map<string, string>();
     for (const { rel, text } of CORPUS) {
-      scanned.push(rel);
+      textesScannes.set(rel, text);
       for (const x of scanLegacyVocab(rel, text)) findings.push({ file: rel, line: x.line, detail: x.detail });
     }
-    const stock: BaselineEntry[] = LEGACY_VOCAB_SITES.map(({ fichier, motif, ancre, lot, date }) => ({
-      fichier,
-      motif,
-      ancre,
-      raison: lot,
-      date,
-    }));
-    // Clé = fichier + ancre + MOTIF : le rangement se fait motif par motif, sinon une entrée couvre
-    // les DEUX findings d'un commentaire à deux motifs et tuer l'un des deux laisse la garde verte.
-    const motifDe = (detail: string) => /^\[([^\]]+)\]/.exec(detail)?.[1] ?? '';
-    const motifs = new Set([...findings.map((f) => motifDe(f.detail)), ...stock.map((s) => s.motif)]);
-    const nouveaux: string[] = [];
-    const perimees: string[] = [];
-    for (const motif of motifs) {
-      const v = partitionBaseline(
-        findings.filter((f) => motifDe(f.detail) === motif),
-        stock.filter((s) => s.motif === motif),
-        scanned,
-      );
-      nouveaux.push(...v.nouveaux.map((f) => `${f.file}:${f.line} ${f.detail}`));
-      perimees.push(...v.perimees.map((e) => `${e.fichier} — ${e.motif} : ${e.ancre}`));
-    }
+    const { nouveaux, perimees } = partitionVocabulaire(findings, textesScannes);
     expect(
-      nouveaux,
+      nouveaux.map((f) => `${f.file}:${f.line} ${f.detail}`),
       'Vocabulaire de l’ancien état hors stock : tuer le site (credo règle 1), ou le faire couvrir par un tag `[entériné AAAA-MM-JJ]` de l’utilisateur. Le stock ne s’allonge JAMAIS (#1486).',
     ).toEqual([]);
     expect(
-      perimees,
+      perimees.map((e) => `${e.fichier} — ${e.motif} : ${e.ancre}`),
       'Ligne(s) du stock sans site correspondant : purger `scripts/guards/lib/legacyVocabStock.mjs` dans le MÊME commit.',
     ).toEqual([]);
     expect(LEGACY_VOCAB_SITES.length, 'une ligne de stock par finding : un commentaire à 2 motifs = 2 lignes.').toBe(
       findings.length,
     );
+  });
+
+  it('refuse le doublon d’un fragment lexical dans le même bloc de commentaire', () => {
+    const fichier = 'src/noyau/combatEndBands.ts';
+    const texte = readFileSync(join(ROOT, fichier), 'utf8');
+    const entree = LEGACY_VOCAB_SITES.find((e) => e.fichier === fichier)!;
+    const lignes = texte.split('\n');
+    const index = lignes.findIndex((ligne) => ligne.includes(entree.ancre));
+    const signal = scanLegacyVocab(fichier, texte).find((f) => f.line === index + 1);
+    expect(signal).toBeDefined();
+    expect(scanLegacyVocabHorsStock(fichier, texte)).toEqual([]);
+    expect(scanLegacyVocabHorsStock(fichier, `\n${texte}`)).toEqual([]);
+
+    const double = [...lignes.slice(0, index + 1), lignes[index], ...lignes.slice(index + 1)].join('\n');
+    expect(scanLegacyVocab(fichier, double).filter((f) => f.detail === signal?.detail)).toEqual([signal]);
+    expect(scanLegacyVocabHorsStock(fichier, double)).toEqual([signal]);
   });
 
   it('chaque ligne du stock est bien formée : fichier existant, ancre, LOT de l’ensemble fermé de #1486, date ISO', () => {
@@ -982,61 +978,91 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
 
 describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', () => {
   const ENTREE = {
-    fichier: 'src/engine/magic.ts',
-    motif: 'cumul RaM plus-fort-seul',
-    ancre: 'Cumul TRAIT↔TALENT : le plus FORT seul',
-    raison: 'option « pas de tag à poser » choisie par l’utilisateur au revirement du 2026-08-03 (#1040)',
+    fichier: 'src/fixture.ts',
+    motif: 'citation justifiée',
+    ancre: '// Cumul le plus fort seul',
+    raison: 'citation du titre du passage',
     date: '2026-08-03',
   };
-  const SIGNAL_CONNU = {
-    file: 'src/engine/magic.ts',
-    line: 754,
-    detail: '[arbitrage X] *  Cumul TRAIT↔TALENT : le plus FORT seul (arbitrage utilisateur 2026-08-03, verbatim au ticket',
-  };
-  const SIGNAL_NEUF = {
-    file: 'src/engine/magic.ts',
-    line: 900,
-    detail: '[arbitrage X] notre arbitrage : la Ram double le DR',
-  };
+  const AUTRE_LIGNE = '// notre arbitrage : double le DR';
+  const SCANNE = new Map([[ENTREE.fichier, `${ENTREE.ancre}\n${AUTRE_LIGNE}`]]);
+  const SIGNAL_CONNU = { file: ENTREE.fichier, line: 1, detail: `[arbitrage X] ${ENTREE.ancre}` };
+  const SIGNAL_NEUF = { file: ENTREE.fichier, line: 2, detail: `[arbitrage X] ${AUTRE_LIGNE}` };
 
-  it('cas planté : un signal déclaré par fichier + ancre est classé INTENTIONNEL (preuve TDD)', () => {
-    expect(matchesBaselineEntry(SIGNAL_CONNU, ENTREE)).toBe(true);
-    const v = partitionBaseline([SIGNAL_CONNU], [ENTREE], ['src/engine/magic.ts']);
-    expect(v.nouveaux).toEqual([]);
-    expect(v.connus.map((c) => c.entry.motif)).toEqual(['cumul RaM plus-fort-seul']);
-    expect(v.perimees).toEqual([]);
-  });
-
-  it('cas planté : la ligne du MÊME fichier hors ancre sort en NOUVEAU (preuve TDD)', () => {
-    const v = partitionBaseline([SIGNAL_CONNU, SIGNAL_NEUF], [ENTREE], ['src/engine/magic.ts']);
+  it('range le signal qui porte l’ancre et conserve le diagnostic du signal voisin', () => {
+    const v = partitionBaseline([SIGNAL_CONNU, SIGNAL_NEUF], [ENTREE], SCANNE);
     expect(v.nouveaux).toEqual([SIGNAL_NEUF]);
-    expect(v.connus).toHaveLength(1);
-  });
-
-  it('cas planté : une entrée FANTÔME (site corrigé) est signalée pour purge (preuve TDD)', () => {
-    const v = partitionBaseline([SIGNAL_NEUF], [ENTREE], ['src/engine/magic.ts']);
-    expect(v.perimees).toEqual([ENTREE]);
-    expect(formatBaselineReport(v).join('\n')).toContain("baseline périmée — purger l'entrée");
-  });
-
-  it('la péremption ne se conclut QUE sur les fichiers scannés (hook diff-scopé)', () => {
-    const v = partitionBaseline([], [ENTREE], ['src/noyau/partie.ts']);
+    expect(v.connus).toEqual([{ finding: SIGNAL_CONNU, entry: ENTREE }]);
     expect(v.perimees).toEqual([]);
+    expect(formatBaselineReport(v)).toEqual([
+      'NOUVEAU : 1 signal(aux) hors baseline — traiter ou justifier :',
+      `  ${SIGNAL_NEUF.file}:${SIGNAL_NEUF.line} ${SIGNAL_NEUF.detail}`,
+      'BASELINE (intentionnel) : 1 site(s)',
+      `  ${ENTREE.fichier} — ${ENTREE.motif} (${ENTREE.date}) : ${ENTREE.raison}`,
+    ]);
   });
 
-  it('rendu : NOUVEAU en tête, BASELINE compacte ; zéro nouveau = section absente', () => {
-    const rapport = formatBaselineReport(partitionBaseline([SIGNAL_CONNU], [ENTREE], ['src/engine/magic.ts']));
-    expect(rapport.some((l) => l.startsWith('NOUVEAU'))).toBe(false);
-    expect(rapport[0]).toBe('BASELINE (intentionnel) : 1 site(s)');
-    expect(rapport).toHaveLength(2);
-
-    const avecNeuf = formatBaselineReport(partitionBaseline([SIGNAL_CONNU, SIGNAL_NEUF], [ENTREE], ['src/engine/magic.ts']));
-    expect(avecNeuf[0]).toContain('NOUVEAU');
-    expect(avecNeuf[1]).toContain('src/engine/magic.ts:900');
+  it('refuse les admissions qui se recouvrent et maintient le hardcode hors baseline', () => {
+    const hardcode = { ...SIGNAL_CONNU, detail: '[hardcode réactif par-nom]', horsBaseline: true } as const;
+    const v = partitionBaseline([hardcode, SIGNAL_CONNU], [ENTREE], SCANNE);
+    expect(v.nouveaux).toEqual([hardcode]);
+    expect(v.connus).toEqual([{ finding: SIGNAL_CONNU, entry: ENTREE }]);
+    const recouvrement = { ...ENTREE, motif: 'recouvrement' };
+    const ambigu = partitionBaseline([SIGNAL_CONNU], [ENTREE, recouvrement], SCANNE);
+    expect(ambigu).toEqual({ nouveaux: [SIGNAL_CONNU], connus: [], perimees: [ENTREE, recouvrement] });
   });
 
-  it('rien à dire = aucune ligne imprimée (contrôle négatif)', () => {
-    expect(formatBaselineReport(partitionBaseline([], [], []))).toEqual([]);
+  it('la péremption ne se conclut que sur les fichiers scannés', () => {
+    const v = partitionBaseline([], [ENTREE], new Map([['src/noyau/partie.ts', '']]));
+    expect(v.perimees).toEqual([]);
+    expect(formatBaselineReport(v)).toEqual([]);
+  });
+
+  it('les sept signaux réels ont chacun leur ancre et le rappel conserve ses groupes', () => {
+    const entrees = loadDecisionsBaseline();
+    const textes = new Map(entrees.map(({ fichier }) => [fichier, readFileSync(join(ROOT, fichier), 'utf8')]));
+    const signaler = (fichier: string, texte: string) => [...scanRawClaims(fichier, texte), ...scanDecisionClaims(fichier, texte)]
+      .map((f) => ({ ...f, file: fichier }));
+    const signaux = [...textes].flatMap(([fichier, texte]) => signaler(fichier, texte));
+    const verdict = partitionBaseline(signaux, entrees, textes);
+    expect(verdict.nouveaux).toEqual([]);
+    expect(verdict.perimees).toEqual([]);
+    expect(verdict.connus).toHaveLength(7);
+    expect(formatBaselineReport(verdict)).toHaveLength(1 + 5);
+
+    const fichier = 'src/engine/magic.ts';
+    const texte = textes.get(fichier)!;
+    const entree = entrees.find((e) => e.fichier === fichier)!;
+    const porte = verdict.connus.find(({ entry }) => entry === entree)!.finding;
+    const lignes = texte.split('\n');
+    const juger = (source: string) => partitionBaseline(signaler(fichier, source), entrees, new Map([[fichier, source]]));
+    const insere = juger(`\n${texte}`);
+    expect(insere).toEqual({ nouveaux: [], connus: [{ finding: { ...porte, line: porte.line + 1 }, entry: entree }], perimees: [] });
+
+    const index = porte.line - 1;
+    const double = [...lignes.slice(0, porte.line), lignes[index], ...lignes.slice(porte.line)].join('\n');
+    expect(signaler(fichier, double)).toEqual([porte]);
+    expect(juger(double)).toEqual({ nouveaux: [porte], connus: [], perimees: [entree] });
+
+    const reecrit = lignes.map((ligne, i) => i === index ? `${ligne} éditée` : ligne).join('\n');
+    const perime = juger(reecrit);
+    expect(perime.nouveaux).toHaveLength(1);
+    expect(perime.connus).toEqual([]);
+    expect(perime.perimees).toEqual([entree]);
+    expect(formatBaselineReport(perime)).toContain(
+      `baseline périmée — purger l'entrée : ${fichier} — ${entree.motif} (${entree.date}) — ancre « ${entree.ancre} »`,
+    );
+
+    expect(juger(lignes.filter((_, i) => i !== index).join('\n'))).toEqual({ nouveaux: [], connus: [], perimees: [entree] });
+  });
+
+  it('nomme chaque ancre périmée lorsque le fichier et le motif sont communs', () => {
+    const fichier = 'scripts/docs/lib/structures-lexique.mts';
+    const entrees = loadDecisionsBaseline().filter((e) => e.fichier === fichier);
+    const verdict = partitionBaseline([], entrees, new Map([[fichier, '']]));
+    const rapport = formatBaselineReport(verdict);
+    expect(new Set(rapport).size).toBe(3);
+    for (const e of entrees) expect(rapport.some((ligne) => ligne.endsWith(`« ${e.ancre} »`))).toBe(true);
   });
 
   it('la baseline LIVRÉE est bien formée : 5 champs, date ISO, fichier existant', () => {
@@ -1055,12 +1081,8 @@ describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', (
 });
 
 // ---------------------------------------------------------------------------------------------
-// CLIQUET famille 4 dans les FICHIERS DE TEST. Les deux portes existantes (pre-commit `pre-commit.mjs`,
-// hook au stylo `poison-postcheck.mjs`) écartent `*.test.*` de leur périmètre : une revendication
-// d'autorité écrite dans un test leur échappe. Ici elle BLOQUE dès qu'elle sort de la liste
-// nominative ci-dessous — et l'entrée dont le site a disparu est signalée pour purge (les listes
-// décroissent). Même mécanique que la baseline (`partitionBaseline`), donnée locale : ces sites-là
-// vivent dans les tests, pas dans le code de production.
+// CLIQUET famille 4 dans les FICHIERS DE TEST. La suite refuse les signaux hors des sites
+// déclarés ci-dessous et les entrées sans signal propre (`partitionBaseline`).
 // ---------------------------------------------------------------------------------------------
 
 /** Sites de test tolérés, PAR FICHIER + ANCRE : tout autre signal famille 4 dans un test bloque, et
@@ -1070,7 +1092,7 @@ const TEST_DECISION_SITES: BaselineEntry[] = [
   {
     fichier: 'src/data/schemas/defs-scenes/projet-schema.test.ts',
     motif: 'identité requise d’un projet (#1552)',
-    ancre: 'arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi)',
+    ancre: "// #1552 — arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi) : « Un projet se NOMME",
     raison:
       'verbatim utilisateur du 2026-08-31 (AskUserQuestion, option choisie) cité en toutes lettres dans le MÊME commentaire (« Un projet se NOMME avant d’être enregistré (Recommandé) »), consigné au ticket #1552 : c’est lui qui rend `id`/`label`/`versionContenu` REQUIS. Site UNIQUE de cette citation dans les tests — les autres sites du lot (migration, bibliothèque, éditeur) y RENVOIENT au lieu de la recopier.',
     date: '2026-08-31',
@@ -1080,12 +1102,12 @@ const TEST_DECISION_SITES: BaselineEntry[] = [
 describe('cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4)', () => {
   it('aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée', () => {
     const findings: { file: string; line: number; detail: string }[] = [];
-    const scanned: string[] = [];
+    const textesScannes = new Map<string, string>();
     for (const { rel, text } of TESTS_SRC()) {
-      scanned.push(rel);
+      textesScannes.set(rel, text);
       for (const x of scanDecisionClaims(rel, text)) findings.push({ file: rel, line: x.line, detail: x.detail });
     }
-    const v = partitionBaseline(findings, TEST_DECISION_SITES, scanned);
+    const v = partitionBaseline(findings, TEST_DECISION_SITES, textesScannes);
     expect(
       v.nouveaux.map((f) => `${f.file}:${f.line} ${f.detail}`),
       'Revendication(s) d’autorité dans un test, hors liste nominative : reformuler en constat d’ingénierie (comportement + réf nue), ou faire valider le verbatim par l’utilisateur.',

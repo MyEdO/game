@@ -14,7 +14,7 @@
 // le vocabulaire RAW derrière lui, et un commit qui ne ferme rien n'a aucune raison de le payer. Les
 // tickets fermés lui sont PASSÉS : il n'importe pas la porte.
 import { commentairesDe, estFichierScanne } from '../guards/lib/commentPoison.mjs'
-import { cleDeContenu } from '../guards/lib/stock.mjs'
+import { positionsDesAncres } from '../guards/lib/stock.mjs'
 
 /** Motifs de DETTE : les tournures par lesquelles un commentaire annonce un travail NON FAIT.
  *  La borne de mot est en TÊTE seulement (« vedette » n'est pas une dette) : `\b` est ASCII et ne se
@@ -37,9 +37,13 @@ const TICKET_RE = /#(\d+)/g
  * dont le texte change sort du stock et se rejuge.
  */
 export const EXEMPTIONS_TOMBALE = [
-  { site: 'scripts/ui/audit-i18n.mjs :: // catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE', raison: '« 2e chasse aux dettes » est le NOM du lot du ticket, pas une dette qu\'il laisserait ouverte' },
+  {
+    fichier: 'scripts/ui/audit-i18n.mjs',
+    ancre: '// catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE',
+    raison: '« 2e chasse aux dettes » est le NOM du lot du ticket, pas une dette qu\'il laisserait ouverte',
+    date: '2026-09-02',
+  },
 ]
-const SITES_EXEMPTES = new Set(EXEMPTIONS_TOMBALE.map((e) => e.site))
 
 /**
  * Lignes de commentaire qui portent À LA FOIS un motif de dette et la citation d'un des `numeros`.
@@ -62,20 +66,22 @@ export function tombalesDansSource(numeros, { fichiers = [], lire = () => null }
     const chemin = fichier.replace(/\\/g, '/')
     const src = lire(fichier)
     if (!src) continue
+    const ancres = EXEMPTIONS_TOMBALE.filter((e) => e.fichier === chemin).map((e) => e.ancre)
+    const exemptions = positionsDesAncres(chemin, src, ancres)
     for (const commentaire of commentairesDe(fichier, src)) {
       commentaire.text.split('\n').forEach((texte, rang) => {
         if (!MOTIF_DETTE_RE.test(texte) || DETTE_ETEINTE_RE.test(texte)) return
+        const ligne = commentaire.line + rang
+        if (exemptions.has(ligne)) return
         const vus = new Set()
         for (const m of texte.matchAll(TICKET_RE)) {
           const n = Number(m[1])
           if (!cibles.has(n) || vus.has(n)) continue
-          const site = cleDeContenu(chemin, src, commentaire.line + rang)
-          if (SITES_EXEMPTES.has(site)) continue
           vus.add(n)
           trouvailles.push({
             n,
             fichier: chemin,
-            ligne: commentaire.line + rang,
+            ligne,
             extrait: texte.replace(/\s+/g, ' ').trim().slice(0, 160),
           })
         }
