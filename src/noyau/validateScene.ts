@@ -555,7 +555,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         if (!membre) continue;
         // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
         // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à
-        // l'authoring, pas au jeu. L'ancre seule ne suffit donc pas à juger la pose.
+        // l'authoring, pas au jeu. L'ancre seule ne suffit donc pas à juger la pose. Le sol se juge sans le corps du
+        // membre (`aUnCorpsSolide`) : une entité ne barre pas ses propres cases.
         const n = coteDeLEmpreinte(membre);
         const z = membre.z ?? 0;
         const tuiles = footprintTiles(membre.pos, n);
@@ -563,7 +564,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const dehors = tuiles.filter((t) => !within(t.x, t.y));
         if (dehors.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);
-        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !solPraticable(vue, t.x, t.y, z)) : [];
+        const sansLui = { ...vue, entities: vue.entities.filter((x) => x.id !== membre.id) };
+        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !solPraticable(sansLui, t.x, t.y, z)) : [];
         if (barrees.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
       }

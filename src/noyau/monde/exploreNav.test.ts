@@ -341,7 +341,7 @@ describe('aPorteeDe — la portée d’un geste d’exploration, étage COMPRIS'
   });
 });
 
-describe('marche du groupe : une coque posée tient ses cases, une créature non (#4471)', () => {
+describe('marche du groupe : une coque terrestre posée tient ses cases, une créature ou une coque de mer non (#4471)', () => {
   const depart = { x: 0, y: 2 };
   const marche = (sc: Scene, but: Pt) => pathTo(sc, depart, but, optionsDeCheminDuGroupe([]));
 
@@ -353,6 +353,11 @@ describe('marche du groupe : une coque posée tient ses cases, une créature non
     expect(chemin).not.toBeNull();
     expect(chemin!.filter((p) => cases.some((c) => c.x === p.x && c.y === p.y))).toEqual([]);
     expect(cases.map((c) => marche(sc, c))).toEqual([null, null, null, null]);
+  });
+
+  it('une cogue posée sans ses ponts : ses cases restent marchables, son équipage s’y tient à bord', () => {
+    const cogue: SceneEntity = { id: 'cogue', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 3, y: 1 } };
+    expect(footprintTiles(cogue.pos, 3).map((c) => marche(sceneWith([cogue]), c) !== null)).toEqual(Array(9).fill(true));
   });
 
   it('un humain posé : sa case reste marchable, le groupe la traverse', () => {

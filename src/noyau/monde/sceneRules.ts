@@ -8,7 +8,7 @@ import { isIndoor, sceneMetresPerTile } from './scene';
 import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import type { ModLine } from '../../engine/types';
-import { findPropById } from '../../data';
+import { findPropById, findVehicleById } from '../../data';
 import { entiteFootTiles } from './footprint';
 import { rectangleDesPontsPoses } from '../../data/poseDesPonts';
 import { memoByRefDeps } from './sceneMemo';
@@ -53,14 +53,14 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
 export const propIsSolid = (ref: string | undefined): boolean => !!ref && !!findPropById(ref)?.solid;
 
 /** L'entité a-t-elle un CORPS SOLIDE, dont toutes les cases (`entiteFootTiles`) bloquent ? Un décor interactif ou solide
- *  par son type, ou une coque (`vehicule`) que la scène ne pose pas par ses ponts (`rectangleDesPontsPoses`) : ses ponts
- *  se marchent. Une créature n'en a pas.
+ *  par son type, ou une coque terrestre (`hull.propulsion`) que la scène ne pose pas par ses ponts
+ *  (`rectangleDesPontsPoses`). Une créature n'en a pas, ni une coque de mer ou de rivière (#4471).
  *  Décor : la porte est l'interaction ou la solidité, l'empreinte dérivée ne fournit que l'ÉTENDUE des cases (une
  *  cheminée, une enseigne NON solides ne murent pas leur case). « Interactif » = les actions AUTHORÉES de l'instance,
  *  sans drapeau d'épuisement : un coffre vidé bloque toujours sa case. */
 function aUnCorpsSolide(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean {
   if (e.kind === 'prop') return actionsAuthorees(e).length > 0 || propIsSolid(e.decor?.id);
-  return e.vehicule !== undefined && rectangleDesPontsPoses(scene, e) === null;
+  return e.vehicule !== undefined && findVehicleById(e.vehicule.id)?.hull?.propulsion === 'terrestre' && rectangleDesPontsPoses(scene, e) === null;
 }
 
 /** Index O(1) des cases des entités à corps solide (`aUnCorpsSolide`, `entityBlockedAt`), bâti UNE fois par identité de
@@ -84,7 +84,7 @@ function buildEntityBlockIndex(scene: SceneDuVolume, mpt: number): Set<string> {
 const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
 
 /** La case (x,y) est-elle tenue par le corps solide d'une entité (`aUnCorpsSolide`) ? Pour la walkability.
- *  Une coque hors de ses ponts bloque toutes ses cases. Un décor ne bloque PAS — SAUF s'il est :
+ *  Une coque terrestre hors de ses ponts bloque toutes ses cases. Un décor ne bloque PAS — SAUF s'il est :
  *   • INTERACTIF (coffre, stèle, dépouille fouillable…) : on ne se tient pas SUR lui, on l'aborde en
  *     case adjacente (exploration P5 comme combat « Ramasser », `ramassage` de `actions.json`) ; ou
  *   • SOLIDE par son TYPE (`props.json` `solid` : feu de camp, brasero, statue, tonneau…) : objet

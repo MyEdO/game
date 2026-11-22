@@ -871,3 +871,23 @@ describe('validateScene — l’offre de repos d’un lieu à hébergement a un 
     expect(erreurs({ ...base(), rest: { auberge: true, quality: 'grande' }, restZones: zones }, [{ id: 'temple', kind: { id: 'temple' } }])).toEqual([]);
   });
 });
+
+describe('validateScene — l’empreinte d’un membre se juge hors de son propre corps (#4471)', () => {
+  const avisDEmpreinte = (s: Scene) => validateScene([s]).filter((w) => w.refId === 'dil' && w.message.includes('empreinte'));
+  const cour = (...decors: Scene['entities']): Scene => {
+    const s = emptyScene('cour', 12, 10);
+    s.entities = [{ id: 'dil', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { x: 4, y: 4 } }, ...decors];
+    s.encounters = [{ id: 'enc', members: [{ entityId: 'dil' }] }];
+    return s;
+  };
+
+  it('une diligence membre sur un sol libre : aucun avertissement, ses cases ne la barrent pas', () => {
+    expect(avisDEmpreinte(cour())).toEqual([]);
+  });
+
+  it('un brasero sous la diligence : sa case seule est signalée', () => {
+    const [avis] = avisDEmpreinte(cour({ id: 'feu', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 5, y: 5 } }));
+    expect(avis?.message).toContain('1 case(s) non marchable(s)');
+    expect(avis?.message).toContain('(5,5)');
+  });
+});
