@@ -5,12 +5,22 @@
  * le Test FIXE (`testFixeSchema`) n'en porte aucun champ.
  */
 import { describe, expect, it } from 'vitest';
-import { decisionDuTestSchema, extendedTestSchema, flowTestSchema, jetSchema, testDeSceneSchema, testFixeSchema } from './mecanique';
+import {
+  decisionDuTestSchema,
+  extendedTestSchema,
+  flowTestSchema,
+  gameOpSchema,
+  jetSchema,
+  testDeSceneSchema,
+  testFixeDEquipageSchema,
+  testFixeSchema,
+} from './mecanique';
 import { coDescendre, enfantsDe } from './descente';
 import { CHAMPS_DE_DECISION, type ChampDeDecision } from '../../../engine/flowCore';
 import { DEFS_DE_DOCUMENT, noeudDeLEntree, noeudObjet, validateDataset } from '../validate';
 import { etats } from '../../index';
 import tavernGames from '../../tavernGames.json';
+import evenementsDeMer from '../../sea-events.json';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -38,6 +48,14 @@ describe('jetSchema — une forme, trois porteurs', () => {
 describe('decisionDuTestSchema — une décision, deux porteurs', () => {
   it('la décision porte exactement `CHAMPS_DE_DECISION`', () => {
     expect(Object.keys(decisionDuTestSchema.shape).sort()).toEqual([...CHAMPS_DE_DECISION].sort());
+  });
+
+  it('le Test étendu exige le même sujet que le Test de flux (LDB 12 l.7, l.172-174)', () => {
+    const effet = { type: 'extendedTest', label: 'Test étendu', difficulty: 'intermediaire', drCible: 5 };
+    expect(extendedTestSchema.safeParse({ ...effet, skill: { id: 'crochetage' } }).success).toBe(true);
+    expect(extendedTestSchema.safeParse(effet).error?.issues).toContainEqual(
+      expect.objectContaining({ code: 'custom', path: ['skill'] }),
+    );
   });
 
   it('le Test de flux et le Test étendu composent la décision et le jet', () => {
@@ -95,6 +113,34 @@ describe('testFixeSchema — aucun champ de décision', () => {
       Reflect.set(Object(auChemin(copie, chemin)), cle, DECISION_VALIDE[cle]);
       expect(validateDataset(fichier, copie) ?? '', `${fichier} + ${cle}`).toContain(`"${cle}"`);
     }
+  });
+});
+
+describe('Test fixe d’équipage (MDG 14 l.98-104, MDG 15 l.159-164, l.174-178)', () => {
+  it('le type d’équipage et la difficulté reprennent les nœuds du Test fixe et du Flow', () => {
+    for (const cle of ['crewTestType', 'difficulty'] as const) {
+      expect(testFixeDEquipageSchema.shape[cle]).toBe(testFixeSchema.shape[cle].unwrap());
+      expect(testFixeDEquipageSchema.shape[cle]).toBe(flowTestSchema.shape[cle].unwrap());
+    }
+  });
+
+  it.each([
+    ['infestation-de-rats-geants', 'complexe', 25],
+    ['infestation-de-rats', 'intermediaire', 10],
+  ])('%s compose le Test fixe et garde ses Flows', (id, difficulty, drCible) => {
+    const evenement = evenementsDeMer.boardEvents.entries.find((e) => e.id === id);
+    const op = gameOpSchema.parse(evenement?.consequence?.effet?.ops?.find((o) => o.op === 'infestation'));
+    if (op.op !== 'infestation') throw new Error('opération d’infestation introuvable');
+    expect(op).toMatchObject({
+      test: { crewTestType: 'extermination-nuisibles', difficulty }, drCible, chaqueNuit: {}, surDRNegatif: {},
+    });
+
+    const { test, ...charge } = op;
+    expect(gameOpSchema.safeParse({ ...charge, crewTestType: { id: test.crewTestType }, difficulty }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ ...op, test: { ...test, crewTestType: { id: test.crewTestType } } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ ...op, test: { crewTestType: test.crewTestType } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ ...op, test: { ...test, crewTestType: 'inconnu' } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ ...op, test: { ...test, gate: DECISION_VALIDE.gate } }).success).toBe(false);
   });
 });
 

@@ -12,7 +12,7 @@ import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import { OP_DEFS, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
+import { OP_DEFS, OPS_NON_TYPEES, testFixeDEquipageSchema } from '../data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../data/schemas/grammaire/produits';
 import { declarationDEnfants, ouverts } from '../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
@@ -256,7 +256,14 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'commission': return { op: 'commission', montant: { brass: 48000 } };
     case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
     case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
-    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', drCible: 10, chaqueNuit: { kind: 'sequence', etapes: [] } };
+    case 'infestation': {
+      return sansReferenceElue(OP_DEFS.infestation, {
+        op: 'infestation',
+        test: { ...(valeurNeuveDe(testFixeDEquipageSchema) as object), difficulty: 'intermediaire' },
+        drCible: 10,
+        chaqueNuit: { kind: 'sequence', etapes: [] },
+      }) as GameOp;
+    }
     default: {
       const payload = OP_DEFS[op];
       if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;

@@ -89,6 +89,16 @@ export const STRUCTURES_CIBLES = [
   { concept: "test", signature: "characteristic,difficulty+…", pose: "test", date: "2026-11-05" },
   { concept: "test", signature: "characteristic,difficulty,skill+…", pose: "test", date: "2026-11-05" },
   { concept: "test", signature: "characteristic,difficulty,skill", pose: "test", date: "2026-11-05" },
+  // #1657 — cibles posées sur les schémas du Test de flux d’équipage, du Test fixe d’équipage et de l’effet Test étendu.
+  { concept: "test", signature: "crewTestType,difficulty+…", pose: "test", date: "2026-11-22" },
+  { concept: "test", signature: "crewTestType+…", pose: "test", date: "2026-11-22" },
+  { concept: "test", signature: "crewTestType,difficulty", pose: "test-fixe-d-equipage", date: "2026-11-22" },
+  { concept: "test", signature: "skill+…", pose: "test-etendu", date: "2026-11-22" },
+  { concept: "test", signature: "characteristic+…", pose: "test-etendu", date: "2026-11-22" },
+  { concept: "test", signature: "characteristic,skill+…", pose: "test-etendu", date: "2026-11-22" },
+  { concept: "test", signature: "difficulty,skill+…", pose: "test-etendu", date: "2026-11-22" },
+  { concept: "test", signature: "characteristic,difficulty+…", pose: "test-etendu", date: "2026-11-22" },
+  { concept: "test", signature: "characteristic,difficulty,skill+…", pose: "test-etendu", date: "2026-11-22" },
   // #2662 (2026-10-17) — la forme d'un état passe à ses clés RÉELLES, au seul site des projets.
   { concept: "forme-d-etat", signature: "kind", date: "2026-10-17" },
   { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },

@@ -1964,7 +1964,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('valeur/onCross/0/retirer');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Infestation du navire');
-    e = editionDe(appel('editer', valeursDeLInspecteur(e, 'valeur/onCross/0/crewTestType/id')[0].jeu));
+    e = editionDe(appel('editer', valeursDeLInspecteur(e, 'valeur/onCross/0/test/crewTestType')[0].jeu));
     ecrireLeFlux('valeur/onCross/0/chaqueNuit', (pas) => {
       presser(`${pas}/ops/ajouter`);
       choisir(`${pas}/ops/0/op`, 'Points de Corruption');

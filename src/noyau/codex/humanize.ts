@@ -654,8 +654,8 @@ export function humanizeOp(o: GameOp): string {
       + `${o.grandsCanons ? t('codex.op.navireHostile.canons', { n: o.grandsCanons }) : ''}`
       + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
     case 'infestation': return t('codex.op.infestation', {
-      test: testSkillLabel({ crewTestType: o.crewTestType.id }) ?? o.crewTestType.id,
-      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.drCible,
+      test: testSkillLabel(o.test) ?? o.test.crewTestType,
+      difficulte: DIFFICULTY_LABELS[o.test.difficulty], dr: o.drCible,
       nuit: humanizeFlow(o.chaqueNuit, []),
     }) + `${o.surDRNegatif ? t('codex.op.infestation.attaques', { assaut: humanizeFlow(o.surDRNegatif, []) }) : ''}`;
     case 'combatEnMer': return t('codex.op.combatEnMer', { nombre: o.adversaire.nombre, adversaire: creatureLabel(o.adversaire.id) })
