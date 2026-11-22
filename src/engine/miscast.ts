@@ -319,7 +319,7 @@ function pick(table: Row[], roll: number): Row {
  * tradition du lanceur ne déclare pas → relance sur le Tableau Majeur (`VDM 02 l.238`). Aucune
  * table n'est nommée ici.
  */
-function domainRowTable(row: Row, domainId?: string): string | null | undefined {
+function domainRowTable(row: Row, domainId?: string) {
   if (!row.domainTable) return undefined;
   return findDomainById(domainId)?.tables?.[row.domainTable] ?? null;
 }
@@ -329,7 +329,7 @@ function domainRowTable(row: Row, domainId?: string): string | null | undefined 
 function rowOps(row: Row, sin: number, domainId?: string): GameOp[] {
   const ops = row.ops ? row.ops(sin) : [];
   const tableId = domainRowTable(row, domainId);
-  return tableId ? [...ops, { op: 'rollTable', tableId }] : ops;
+  return tableId ? [...ops, { op: 'rollTable', table: { id: tableId } }] : ops;
 }
 
 /** Ops d'une rangée destinés aux cibles de l'incantation. */

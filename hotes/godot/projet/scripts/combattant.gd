@@ -144,6 +144,11 @@ func se_deplace() -> bool:
 	return _deplacement != null
 
 
+## Le tween commencé par le dernier déplacement, tant qu’il est en cours.
+func trajet_en_cours() -> Tween:
+	return _deplacement
+
+
 ## Tourné vers `cible` (une position du plateau), il frappe : l'état de son rôle d'attaque, `tir` si sa table en
 ## porte un clip (une pièce de tir), `melee` sinon ; l'arbre revient au repos en fin de clip.
 func agir_vers(cible: Vector3) -> void:

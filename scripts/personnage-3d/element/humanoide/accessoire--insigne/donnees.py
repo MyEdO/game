@@ -35,7 +35,7 @@ BLASONS = ('champ',)
 """Le champ reçoit l'emblème du porteur (`embleme` du preset), ses UV sur le carré [0,1]²."""
 
 BUDGET_TRIANGLES = 200
-"""Sous les 800 d'un accessoire (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 800 d'un accessoire (procédure, section 7)."""
 
 EMPLACEMENT = 'poitrine'
 """L'emplacement de la garde-robe où se pose la pièce (`insigne`, `src/data/garde-robe.json`)."""

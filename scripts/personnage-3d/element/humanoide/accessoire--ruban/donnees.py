@@ -27,7 +27,7 @@ MATERIAUX = {'ruban': ('vet1', 'drap-terne')}
 (`hotes/godot/projet/textures/`) : le drap, teint par la palette."""
 
 BUDGET_TRIANGLES = 400
-"""Sous les 800 d'un accessoire (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 800 d'un accessoire (procédure, section 7)."""
 
 CONTOURNE = {'bas': 'humanoide--vetement--bas-de-chausses'}
 """Le bas du preset `soldat`, sur lequel le ruban se pose, au `JEU`, et dont il emprunte les poids."""

@@ -353,17 +353,17 @@ describe('Op `manann` sur la cible `navire` (#213, #1652 — MDG 15 l.83-125)', 
 
   it('sans navire de campagne → no-op journalisé', () => {
     banc.setState({ vessel: undefined, journal: [] });
-    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', facteur: { id: 'petit-sacrifice' } })]);
     expect(banc.getState().vessel).toBeUndefined();
     expect(banc.getState().journal.some((l) => /sans effet/i.test(l))).toBe(true);
   });
 
   it('facteur du tableau (petit sacrifice) applique son delta, une seule fois par navire (l.85)', () => {
-    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', facteur: { id: 'petit-sacrifice' } })]);
     const scoreAfterFirst = banc.getState().vessel!.manann!.score;
     expect(scoreAfterFirst).toBeGreaterThan(0); // Petit sacrifice à Manann → +5
     expect(banc.getState().vessel!.manann!.applied).toContain('petit-sacrifice');
-    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', facteur: { id: 'petit-sacrifice' } })]);
     expect(banc.getState().vessel!.manann!.score).toBe(scoreAfterFirst); // déjà appliqué → sans effet
   });
 

@@ -21,6 +21,7 @@ import { castLandProbability } from '../engine/magic';
 import { spellFlowFor } from '../engine/flowCore';
 import { learnableSpells } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
+import { estObjet } from '../lib/objet.mjs';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const RULE = 'magie-vdm-incantation';
@@ -178,9 +179,9 @@ function ruleTextOf(node: unknown): string {
     if (Array.isArray(n)) { n.forEach(walk); return; }
     if (!n || typeof n !== 'object') return;
     const rec = n as Record<string, unknown>;
-    if (rec.kind === 'has' && rec.what === 'trait' && typeof rec.value === 'string') {
-      const label = TRAIT_LABEL.get(rec.value);
-      expect(label, `has → Trait « ${rec.value} »`).toBeDefined();
+    if (rec.kind === 'has' && rec.what === 'trait' && estObjet(rec.ref) && typeof rec.ref.id === 'string') {
+      const label = TRAIT_LABEL.get(rec.ref.id);
+      expect(label, `has → Trait « ${rec.ref.id} »`).toBeDefined();
       out += ` ${label}`;
     }
     if (rec.kind === 'compare' && (rec.subject as { field?: string } | undefined)?.field === 'size')

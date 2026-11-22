@@ -139,7 +139,7 @@ const HAS_CATEGORY: Partial<Record<string, string>> = { talent: 'talents', trait
  * talent ») — quand une branche ne peut RIEN promettre parce qu'un `si` d'APPARTENANCE (Condition
  * `has` talent/trait, la famille STABLE de `stableCondVerdict`) donne la main à un second jet, ce
  * n'est pas un inconnu : c'est CET objet mécanique qui prend le relais, et sa fiche dit lequel.
- * On rend donc son identité (`{category, id}`, dérivée de `cond.what`/`cond.value` — aucun talent
+ * On rend donc son identité (`{category, id}`, dérivée de `cond.what`/`cond.ref.id` — aucun talent
  * nommé en code) pour que la surface affiche SA chip au lieu de se taire.
  *
  * Fail-closed conservé pour tout le reste : une branche indécidable pour une AUTRE raison (seuil de
@@ -155,12 +155,12 @@ export function branchBlockingEntity(
   const cond = branch.condition;
   if (cond.kind !== 'has') return undefined;
   const category = HAS_CATEGORY[cond.what];
-  if (!category || typeof cond.value !== 'string') return undefined;
+  if (!category) return undefined;
   const cc = combatConditionCtx(target, { caster });
   const verdict = stableCondVerdict(cond, cc);
   if (verdict === undefined) return undefined; // appartenance elle-même indécidable → silence
   // La branche EFFECTIVEMENT prise doit être celle qui rend la main à un second jet : c'est le Test
   // qui suspend la promesse, pas l'appartenance. Sans lui, l'indécidabilité vient d'ailleurs.
   const taken = verdict ? branch.alors : branch.sinon;
-  return taken && flowHasTest(taken) ? { category, id: cond.value } : undefined;
+  return taken && flowHasTest(taken) ? { category, id: cond.ref.id } : undefined;
 }

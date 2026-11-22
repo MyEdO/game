@@ -38,7 +38,7 @@ import { jouerLEntretienDesRoundsEcoules, preparerLEntretienQuotidien } from './
 import { calculerLePasDExposition } from './expositionAMaladie';
 import { bandesDeContagion } from './contagion';
 import { arriverAuLieu } from './lieuFlow';
-import { lieuDuGroupe, placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
+import { caleSecheDuLieu, estBateauFluvial, lieuDuGroupe, placeById, type CaleSecheFluviale, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { noteEvent, rangerLesEvenements } from './evenementDuJour';
@@ -74,6 +74,7 @@ import {
   type StakeRef,
   type VoyageStakeId,
   voyageStakeRef,
+  riverNavigation,
   conditionLabel,
   findVehicleById,
   findCrewRoleById,
@@ -111,7 +112,7 @@ import { findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
+import { testValue, partyAssisted, partyBest, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon, consommerLaCapacite, encDeLaCapacite } from '../engine/items';
 import { maxBy } from '../engine/pick';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
@@ -171,8 +172,8 @@ import {
   SUCCES_MINIME_CAP,
 } from '../engine/crewMorale';
 import { mangerLaCale, noterLeRepas, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
-import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
+import { toMoney, toBrass, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
+import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import {
@@ -197,7 +198,7 @@ import {
   type NavalTraitRef,
   type ContexteDeTest,
 } from '../engine/types';
-import type { PendingSteamSave, PendingCascade, CascadeStep } from './pendings';
+import type { PendingSteamSave, PendingCascade, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
@@ -2672,25 +2673,47 @@ function plafondDeLaReparationDuGroupe(vessel: CampaignVessel, party: readonly C
   return Math.min(blessuresDeCoqueARestaurer(vessel).missing, blessuresPayeesParLesPieces(encDePiecesDetachees(vessel, party), lissage));
 }
 
-/** Les voies du réparateur d'un navire, par ids STABLES de spécialisation (`skills.json`) : Métier (Constructeur de
- *  navires), ou Métier (Charpentier) sous son malus. MDG 13 l.641 */
-const VOIES_DU_REPARATEUR = [
-  { spec: 'constructeur-de-navires', malus: 0 },
-  { spec: 'charpentier', malus: REPARATION.charpentierMalus },
-] as const;
+const CONSTRUCTION_DE_BATEAUX = 'construction-de-bateaux';
 
-/** Le réparateur du groupe au chantier : sur chaque voie le meilleur soutenu (LDB 12), puis la voie à la meilleure cible,
- *  malus compris ; sa ligne de jet nomme le malus du Charpentier. `null` : personne ne peut tenter. MDG 13 l.641 */
-export function reparateurDuGroupe(party: Combatant[]): { actor: Combatant; test: RollRequest['test']; ligne: RollLineDecl } | null {
-  const r = maxBy(VOIES_DU_REPARATEUR.flatMap((voie) => {
+/** LDB 12 l.187-200 ; MDG 13 l.641 ; MSRC 7 l.109 */
+export function reparateurDuGroupe(party: Combatant[], fluvial = false): { actor: Combatant; ligne: RollLineDecl } | null {
+  const voies = [
+    { spec: fluvial ? CONSTRUCTION_DE_BATEAUX : 'constructeur-de-navires', malus: 0 },
+    { spec: 'charpentier', malus: fluvial ? riverNavigation.permanentRepairCarpenterPenalty : REPARATION.charpentierMalus },
+  ];
+  const r = maxBy(voies.flatMap((voie) => {
     const test = { skill: { id: 'metier', spec: voie.spec } };
     const a = partyAssisted(party, test);
     return a ? [{ voie, test, a }] : [];
   }), (x) => x.a.value + x.voie.malus);
   if (!r) return null;
   const { voie, test, a } = r.item;
-  const malus: ModLine[] = voie.malus ? [{ label: t('sv.malusDuCharpentier'), famille: 'circonstance', value: voie.malus, ref: RULE_REF['reparer-les-navires'] }] : [];
-  return { actor: a.actor, test, ligne: { test, valeur: a.value, soutien: a.support, ...(malus.length ? { surLaCible: malus } : {}) } };
+  const malus: ModLine[] = voie.malus ? [{
+    label: t(fluvial ? 'fleuve.malusDuCharpentier' : 'sv.malusDuCharpentier'), famille: 'circonstance', value: voie.malus,
+    ref: RULE_REF[fluvial ? 'reparer-des-bateaux' : 'reparer-les-navires'],
+  }] : [];
+  return { actor: a.actor, ligne: { test, valeur: a.value, soutien: a.support, ...(malus.length ? { surLaCible: malus } : {}) } };
+}
+
+type PorteurDeReparation =
+  | { actor: Combatant; monde?: never; ligne: RollLineDecl }
+  | { monde: true; actor?: never; ligne: { test: RollRequest['test']; valeur: number } };
+
+function ouvrirUneReparation(
+  get: Get, set: Set, titre: PlayerText, kind: GenreDEtape, porteur: PorteurDeReparation,
+  stake: StakeRef, meta?: CascadeStepMeta,
+): void {
+  const icon = 'voyage/reparer' as const;
+  const st = monoStep({
+    ...porteur, id: idDansLaSequence(get, kind, 'test'), kind, icon,
+    label: composeRollLabel(porteur.actor, titre, porteur.ligne.test ?? {}),
+    difficulty: DIFFICULTE_PAR_DEFAUT, stake, meta,
+  });
+  if (!st) return;
+  const sequence = { title: titre, icon, purpose: 'test' as const, steps: [st] };
+  // Le curseur résout le Test d'un artisan IA et les dés qu'insère sa réussite reviennent au siège du monde.
+  if (kind === TEST_DE_REPARATION_FLUVIALE) startCascade(get, set, sequence);
+  else openSequence(get, set, sequence);
 }
 
 /** RÉPARATION par le groupe au chantier : UN Test de Métier de son réparateur (`reparateurDuGroupe`), sous le refus du
@@ -2698,29 +2721,28 @@ export function reparateurDuGroupe(party: Combatant[]): { actor: Combatant; test
 export function reparerParLeGroupe(get: Get, set: Set): void {
   const vessel = get().vessel;
   if (!vessel || !findVehicleById(vessel.vehicleId)?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return; }
+  if (estBateauFluvial(vessel)) return reparerEnCaleSeche(get, set, 'groupe');
   const party = get().party;
   const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), party);
   if (devis.refusReparationParLeGroupe) { refuserGeste(get, set, devis.refusReparationParLeGroupe); return; }
-  const { actor, test, ligne } = garanti(reparateurDuGroupe(party), 'groupe', 'réparateur du navire');
+  const reparateur = garanti(reparateurDuGroupe(party), 'groupe', 'réparateur du navire');
   const plafond = plafondDeLaReparationDuGroupe(vessel, party);
-  const titre = t('sv.reparationDuGroupe');
-  const st = monoStep({
-    id: idDansLaSequence(get, 'mer-reparation-du-groupe', 'test'), kind: 'mer-reparation-du-groupe', actor, icon: 'voyage/reparer',
-    label: composeRollLabel(actor, titre, test), difficulty: DIFFICULTE_PAR_DEFAUT,
-    ligne, stake: devis.missing > 0 ? voyageStakeRef('mer-reparation-du-groupe', { plafond }) : voyageStakeRef('mer-reparation-du-groupe-permanente'),
-  });
-  if (st) openSequence(get, set, { title: titre, icon: 'voyage/reparer', purpose: 'test', steps: [st] });
+  const stake = devis.missing > 0 ? voyageStakeRef('mer-reparation-du-groupe', { plafond }) : voyageStakeRef('mer-reparation-du-groupe-permanente');
+  ouvrirUneReparation(get, set, t('sv.reparationDuGroupe'), 'mer-reparation-du-groupe', reparateur, stake);
 }
 
-/** Les dés de l'issue de la réparation par le groupe, sur `step` : la réussite tire ses Blessures si la coque en a perdu
- *  (`blessures`), puis sa durée ; l'échec sa seule durée. MDG 13 l.643 */
-function desDeLaReparationDuGroupe(step: CascadeStep, blessures: boolean): BuiltCascadeStep[] {
-  const de = (kind: 'mer-reparation-du-groupe-blessures' | 'mer-reparation-du-groupe-duree', label: PlayerText, tirage: Tirage, unite?: string) => dieStep({
-    id: `${step.id}-${kind}`, kind, worldOwner: true, icon: 'voyage/reparer', label, spec: tirage.dice, ...(unite ? { unite } : {}),
+type DeDeReparation = { kind: GenreDEtape; tirage: Tirage };
+
+/** MDG 13 l.643 ; MSRC 7 l.111 */
+function desDeReparation(
+  step: CascadeStep, duree: DeDeReparation, degats?: DeDeReparation & { label: PlayerText },
+): BuiltCascadeStep[] {
+  const de = ({ kind, tirage }: DeDeReparation, label: PlayerText, unite?: string) => dieStep({
+    id: `${step.id}-${kind}`, kind, worldOwner: true, icon: 'voyage/reparer', label, spec: { ...tirage.dice }, unite, meta: step.meta,
   });
   return [
-    ...(blessures ? [de('mer-reparation-du-groupe-blessures', t('sv.reparationDuGroupeBlessures'), REPARATION.woundsPerTest)] : []),
-    de('mer-reparation-du-groupe-duree', t('sv.reparationDuGroupeDuree'), REPARATION.testHours, 'h'),
+    ...(degats ? [de(degats, degats.label)] : []),
+    de(duree, t('sv.reparationDuGroupeDuree'), 'h'),
   ].filter((x): x is BuiltCascadeStep => !!x);
 }
 
@@ -2740,6 +2762,126 @@ function reparerLaCoqueParLeGroupe(get: Get, set: Set, tirees: number): string {
   setVesselHull(get, set, current + n, max);
   return t('sv.reparationDuGroupeReussie', { n, enc });
 }
+
+type VoieDeReparationFluviale = 'constructeur' | 'groupe';
+interface ChantierFluvial { vessel: CampaignVessel; escale: string; cale: CaleSecheFluviale }
+
+function chantierFluvial(s: Jeu): ChantierFluvial | undefined {
+  const { vessel } = s;
+  if (!vessel || !estBateauFluvial(vessel) || refusAQuai(s)) return undefined;
+  const lieu = lieuDuGroupe(s);
+  const cale = caleSecheDuLieu(lieu);
+  return lieu && cale ? { vessel, escale: lieu.id, cale } : undefined;
+}
+
+/** MSRC 7 l.109-111 */
+function devisDeReparationFluviale(
+  s: Jeu, { vessel, cale }: ChantierFluvial, voie: VoieDeReparationFluviale,
+  accord?: { plafond: number; tarif: number },
+) {
+  const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
+  const tarif = accord?.tarif ?? (voie === 'constructeur' ? riverNavigation.permanentRepairGoldPerDamage : 0);
+  const limite = Math.max(0, Math.min(missing, accord?.plafond ?? missing));
+  const plafond = tarif > 0 && limite > 0
+    ? Math.min(limite, Math.floor(toBrass(totalDesBourses(s.party)) / toBrass(toMoney({ gold: tarif }))))
+    : limite;
+  const valeur = cale.constructeur;
+  const porteur: PorteurDeReparation | null = voie === 'constructeur'
+    ? valeur === undefined ? null : { monde: true, ligne: { test: { skill: { id: 'metier', spec: CONSTRUCTION_DE_BATEAUX } }, valeur } }
+    : cale.materiauxPourLeGroupe ? reparateurDuGroupe(s.party, true) : null;
+  const refus = refusDeGesteSurLeGroupe(s) ?? (!porteur
+    ? t(voie === 'constructeur' ? 'fleuve.sansConstructeur' : cale.materiauxPourLeGroupe ? 'fleuve.sansReparateur' : 'fleuve.sansMateriaux')
+    : !accord && missing <= 0 && !vessel.reparationTemporaire ? t('sv.aucuneBlessureARestaurer')
+    : !accord && limite > 0 && plafond <= 0 ? t('sv.yardTooExpensive', { cost: tarif })
+    : null);
+  return { max, current, missing, plafond, tarif, porteur, refus };
+}
+
+export function offresDeLaCaleSeche(s: Jeu): { voie: VoieDeReparationFluviale; refus: string | null }[] {
+  const chantier = chantierFluvial(s);
+  if (!chantier) return [];
+  const offres: VoieDeReparationFluviale[] = [];
+  if (chantier.cale.constructeur !== undefined) offres.push('constructeur');
+  if (chantier.cale.materiauxPourLeGroupe) offres.push('groupe');
+  return offres.map((voie) => ({ voie, refus: devisDeReparationFluviale(s, chantier, voie).refus }));
+}
+
+const TEST_DE_REPARATION_FLUVIALE = 'fleuve-reparation-permanente';
+const DEGATS_DE_REPARATION_FLUVIALE = 'fleuve-reparation-permanente-degats';
+const DUREE_DE_REPARATION_FLUVIALE = 'fleuve-reparation-permanente-duree';
+
+/** MSRC 7 l.109-111 */
+function reparerEnCaleSeche(get: Get, set: Set, voie: VoieDeReparationFluviale): void {
+  const s = get();
+  const chantier = chantierFluvial(s);
+  if (!chantier) { refuserGeste(get, set, refusAQuai(s) ?? t('fleuve.sansCaleSeche')); return; }
+  if ([s.pendingCascade, ...s.suspendedCascades].some((p) => p?.participants.slice(p.cursor).some(
+    (st) => st.kind === TEST_DE_REPARATION_FLUVIALE || st.kind === DUREE_DE_REPARATION_FLUVIALE,
+  ))) {
+    refuserGeste(get, set, t('fleuve.reparationEnCours'));
+    return;
+  }
+  const devis = devisDeReparationFluviale(s, chantier, voie);
+  if (devis.refus) { refuserGeste(get, set, devis.refus); return; }
+  const porteur = garanti(devis.porteur, voie, 'réparateur à la cale sèche');
+  const { vessel, escale } = chantier;
+  const vesselUid = vessel.uid ?? s.forgerUnId('navire');
+  if (!vessel.uid) set({ vessel: { ...vessel, uid: vesselUid } });
+  const { permanentRepairWounds, permanentRepairHours } = riverNavigation;
+  const valeurs = { degats: formatDice(permanentRepairWounds.dice), heures: formatDice(permanentRepairHours.dice), plafond: devis.plafond };
+  const stake = devis.missing <= 0 ? voyageStakeRef('fleuve-reparation-permanente', { heures: valeurs.heures })
+    : voie === 'constructeur' ? voyageStakeRef('fleuve-reparation-par-le-constructeur', { ...valeurs, tarif: devis.tarif })
+    : voyageStakeRef('fleuve-reparation-par-le-groupe', valeurs);
+  ouvrirUneReparation(get, set, t('fleuve.caleSeche'), TEST_DE_REPARATION_FLUVIALE, porteur, stake, {
+    vesselUid, escale, plafondReparation: devis.plafond, tarifReparation: devis.tarif,
+    ...(porteur.monde ? { constructeur: porteur.ligne.valeur } : {
+      artisanId: porteur.actor.id, specialiteReparation: porteur.ligne.test?.skill?.spec,
+    }),
+  });
+}
+
+function chantierDeLaReparation(s: Jeu, step: CascadeStep): ChantierFluvial | undefined {
+  const chantier = chantierFluvial(s);
+  if (!chantier?.vessel.uid || chantier.vessel.uid !== step.meta?.vesselUid || chantier.escale !== step.meta.escale) return undefined;
+  const { constructeur, artisanId, specialiteReparation } = step.meta;
+  if (constructeur !== undefined) return chantier.cale.constructeur === constructeur ? chantier : undefined;
+  if (!chantier.cale.materiauxPourLeGroupe || typeof specialiteReparation !== 'string') return undefined;
+  const artisan = s.party.find((hero) => hero.id === artisanId);
+  return artisan && peutTenter(artisan, { skill: { id: 'metier', spec: specialiteReparation } }) ? chantier : undefined;
+}
+
+/** MSRC 7 l.109-111 */
+const acheverLaReparationFluviale: CascadeApplier = (get, set, step, _hero, { steps, index }) => {
+  const s = get();
+  const chantier = chantierDeLaReparation(s, step);
+  const degats = steps[index - 1];
+  const tirees = degats?.kind === DEGATS_DE_REPARATION_FLUVIALE ? degats.de?.result?.total : undefined;
+  const heures = step.de?.result?.total;
+  const { constructeur, plafondReparation, tarifReparation } = step.meta ?? {};
+  if (!chantier || tirees === undefined || heures === undefined
+      || typeof plafondReparation !== 'number' || typeof tarifReparation !== 'number') {
+    return { consequences: freeCons([t('fleuve.reparationInterrompue')]) };
+  }
+  const voie = constructeur === undefined ? 'groupe' : 'constructeur';
+  const devis = devisDeReparationFluviale(s, chantier, voie, { plafond: plafondReparation, tarif: tarifReparation });
+  if (devis.refus) return { consequences: freeCons([devis.refus]) };
+  const n = Math.max(0, Math.min(tirees, devis.plafond));
+  const prix = toMoney({ gold: n * devis.tarif });
+  if (prix.gold > 0 && !payFromGroup(get, set, prix)) {
+    return { consequences: freeCons([t('sv.yardTooExpensive', { cost: prix.gold })]) };
+  }
+  const permanente = n > 0 || plafondReparation === 0 || devis.tarif === 0;
+  if (n > 0) setVesselHull(get, set, devis.current + n, devis.max);
+  if (permanente) set({ vessel: { ...garanti(get().vessel, chantier.escale, 'bateau de la cale sèche'), reparationTemporaire: undefined } });
+  get().avancerLeTemps(heures * 60);
+  const ligne = permanente ? t('fleuve.reparationAchevee', { n })
+    : devis.missing > 0 ? t('sv.yardTooExpensive', { cost: devis.tarif }) : t('sv.hullIntact');
+  return { consequences: freeCons([
+    ligne,
+    ...(prix.gold > 0 ? [t('fleuve.reparationPayee', { prix: formatMoney(prix) })] : []),
+    t('sv.dureeHeures', { n: heures }),
+  ]) };
+};
 
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
  *  plus, il doit être emmené dans une cale sèche » — coût = % du coût de base par NIVEAU (colonne
@@ -2796,8 +2938,11 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
  *  `vessel.upgrades` (recopiée sur la coque à chaque départ), et les jours de la pose passent. `units` = cabines
  *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
 export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
-  const vessel = get().vessel;
-  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteAQuai(get()), lieuDuGroupe(get())?.port?.ref);
+  const s = get();
+  const { vessel } = s;
+  const port = lieuDuGroupe(s)?.port;
+  const refusDuQuai = port ? (refusDeGesteSurLeGroupe(s) ?? refusAQuai(s)) : refusDeGesteAQuai(s);
+  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDuQuai, port?.ref);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
   const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
   const { gold, enc, label } = devis;
@@ -2944,7 +3089,11 @@ export function choixDuVoyageEnMer(get: Get, set: Set) {
 
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
-    reparerLeNavire: () => portRepairVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
+    reparerLeNavire: () => {
+      const vessel = get().vessel;
+      if (vessel && estBateauFluvial(vessel)) reparerEnCaleSeche(get, set, 'constructeur');
+      else portRepairVessel(get, set).forEach((l) => get().ecrireAuJournal(l));
+    },
     reparerParLeGroupe: () => reparerParLeGroupe(get, set),
     carenerLeNavire: () => portCareenVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
     installerLAmelioration: (traitId, units) => installerLAmelioration(get, set, traitId, units).forEach((l) => get().ecrireAuJournal(l)),
@@ -2954,6 +3103,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
   SEA_BOARD_EVENT_KIND, 'mer-forcer-le-rythme', 'mer-scorbut', 'mer-mal-de-mer',
+  TEST_DE_REPARATION_FLUVIALE, DEGATS_DE_REPARATION_FLUVIALE, DUREE_DE_REPARATION_FLUVIALE,
   'mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-epuisement', 'equipage-progression', 'mer-survitesse',
   'mer-salissures', 'mer-reparation-du-groupe', 'mer-reparation-du-groupe-blessures', 'mer-reparation-du-groupe-duree', 'mer-reparation-temporaire', 'reparation-temporaire-degats', 'equipage-affaler', 'testDEquipage', 'equipage-orientation', 'equipage-phare', 'equipage-embuscade',
   'merProgressionChoix', 'merProgressionNavigation', 'equipage-poursuite', 'equipage-tourbillon', 'equipage-extermination',
@@ -3130,34 +3280,49 @@ export const TABLES = {
       noteSeaLine(get, set, [line]);
       return { consequences: freeCons([line]) };
     },
-    /** Réparation par le groupe au chantier, navire à quai (`refusAQuai`) : l'issue du Test ouvre ses dés, celui des
+    /** Réparation par le groupe au chantier, navire à quai (`refusDeGesteAQuai`) : l'issue du Test ouvre ses dés, celui des
      *  Blessures si les pièces du groupe en paient (`plafondDeLaReparationDuGroupe`) ; une réussite sur une coque sans
      *  Blessure perdue lève le seul marqueur de réparation temporaire. MDG 13 l.641-643 */
     'mer-reparation-du-groupe': (get, set, step) => {
       if (!step.result) return;
-      const horsQuai = refusAQuai(get());
+      const horsQuai = refusDeGesteAQuai(get());
       if (horsQuai) return { consequences: freeCons([horsQuai]) };
       const vessel = garanti(get().vessel, 'navire', 'navire réparé au chantier');
       const blessures = step.result.success && plafondDeLaReparationDuGroupe(vessel, get().party) > 0;
       if (step.result.success && blessuresDeCoqueARestaurer(vessel).missing <= 0) set({ vessel: { ...vessel, reparationTemporaire: undefined } });
       const line = t(step.result.success ? 'sv.reparationDuGroupeTient' : 'sv.reparationDuGroupeRatee');
-      return { consequences: freeCons([line]), insert: desDeLaReparationDuGroupe(step, blessures) };
+      return { consequences: freeCons([line]), insert: desDeReparation(
+        step, { kind: 'mer-reparation-du-groupe-duree', tirage: REPARATION.testHours },
+        blessures ? { kind: 'mer-reparation-du-groupe-blessures', tirage: REPARATION.woundsPerTest, label: t('sv.reparationDuGroupeBlessures') } : undefined,
+      ) };
     },
     'mer-reparation-du-groupe-blessures': (get, set, step) => {
       if (!step.de?.result) return;
-      const horsQuai = refusAQuai(get());
+      const horsQuai = refusDeGesteAQuai(get());
       return { consequences: freeCons([horsQuai ?? reparerLaCoqueParLeGroupe(get, set, step.de.result.total)]) };
     },
     /** Durée d'un Test de réparation au chantier : MDG 13 l.643 pour un Test réussi ; un Test raté, valeur maison
      *  (`sea-navigation.json`, `reparation.maison`). */
     'mer-reparation-du-groupe-duree': (get, _set, step) => {
       if (!step.de?.result) return;
-      const horsQuai = refusAQuai(get());
+      const horsQuai = refusDeGesteAQuai(get());
       if (horsQuai) return { consequences: freeCons([horsQuai]) };
       const heures = step.de.result.total;
       get().avancerLeTemps(heures * 60);
       return { consequences: freeCons([t('sv.dureeHeures', { n: heures })]) };
     },
+    [TEST_DE_REPARATION_FLUVIALE]: (get, _set, step) => {
+      if (!step.result) return;
+      if (!chantierDeLaReparation(get(), step)) return { consequences: freeCons([t('fleuve.reparationInterrompue')]) };
+      if (!step.result.success) return { consequences: freeCons([t('sv.reparationDuGroupeRatee')]) };
+      const { permanentRepairWounds, permanentRepairHours } = riverNavigation;
+      return { insert: desDeReparation(
+        step, { kind: DUREE_DE_REPARATION_FLUVIALE, tirage: permanentRepairHours },
+        { kind: DEGATS_DE_REPARATION_FLUVIALE, tirage: permanentRepairWounds, label: t('fleuve.reparationDegats') },
+      ) };
+    },
+    [DEGATS_DE_REPARATION_FLUVIALE]: () => {},
+    [DUREE_DE_REPARATION_FLUVIALE]: acheverLaReparationFluviale,
     'mer-reparation-temporaire': (get, set, step) => appliquerLaReparationTemporaire(get, set, step, REPARATION.temporaire.failDamage),
     /** Dégâts de la réparation temporaire qui cède, à la coque qui a joué le Test, planchés à 0. MDG 13 l.651 ; MSRC 7 l.117 */
     'reparation-temporaire-degats': (get, set, step) => {

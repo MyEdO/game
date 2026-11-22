@@ -1141,6 +1141,8 @@ Réparation permanente : **Test de Métier (Constructeur de navires)** (ou **Mé
 
 > « Des Dégâts subis par un bateau peuvent être réparés définitivement avec un Test de **Métier (Construction de bateaux)**. Il est possible de remplacer ce Test par un Test de **Métier (Charpentier)**, mais avec un malus de –10 à tous les lancers de dés. » — `MSRC 7 l.109`
 
+> « Bien sûr, il faut pour cela avoir accès aux outils et matériaux appropriés, comme du bois de construction, de la chaux, de la toile, etc. » — `MSRC 7 l.109`
+
 > « Les dégâts à la coque ne peuvent être réparés de façon permanente que si le bateau est tiré hors de l'eau et placé sur une cale sèche, par exemple. » — `MSRC 7 l.109`
 
 Un constructeur de bateaux PNJ (Artisan, Métier (Construction de bateaux)) installé sur les cours d'eau fréquentés répare pour **1 CO par point de Dégât** restauré ; chaque Test réussi prend **1d10 heures** et restaure **1d10 Dégâts**. `MSRC 7 l.111`

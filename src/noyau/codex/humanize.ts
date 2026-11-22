@@ -325,11 +325,11 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'relation': return t(neg ? 'codex.c.relation.non' : 'codex.c.relation', { qui: who(c.who), rel: REL_PLAYER[c.is] });
     case 'has': {
       const qui = who(c.who);
-      if (c.what === 'talent') return t(neg ? 'codex.c.has.talent.non' : 'codex.c.has.talent', { qui, nom: refLabel('talents', { id: c.value, spec: c.spec }) });
-      if (c.what === 'trait') return t(neg ? 'codex.c.has.trait.non' : 'codex.c.has.trait', { qui, nom: traitLabelById(c.value) });
-      if (c.what === 'psych') return t(neg ? 'codex.c.has.psych.non' : 'codex.c.has.psych', { qui, nom: psychologyLabel(c.value) });
-      if (c.what === 'immunity') return t(neg ? 'codex.c.has.immunity.non' : 'codex.c.has.immunity', { qui, nom: refLabel('damageTypes', { id: c.value }) });
-      return t(neg ? 'codex.c.has.group.non' : 'codex.c.has.group', { qui, nom: groupLabel(c.value) });
+      if (c.what === 'talent') return t(neg ? 'codex.c.has.talent.non' : 'codex.c.has.talent', { qui, nom: refLabel('talents', c.ref) });
+      if (c.what === 'trait') return t(neg ? 'codex.c.has.trait.non' : 'codex.c.has.trait', { qui, nom: traitLabelById(c.ref.id) });
+      if (c.what === 'psych') return t(neg ? 'codex.c.has.psych.non' : 'codex.c.has.psych', { qui, nom: psychologyLabel(c.ref.id) });
+      if (c.what === 'immunity') return t(neg ? 'codex.c.has.immunity.non' : 'codex.c.has.immunity', { qui, nom: refLabel('damageTypes', c.ref) });
+      return t(neg ? 'codex.c.has.group.non' : 'codex.c.has.group', { qui, nom: groupLabel(c.ref.id) });
     }
     case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: libelleDeValeur(domaineDuChaosSchema, c.is) });
     case 'visiblePassive': return t(neg ? 'codex.c.visiblePassive.non' : 'codex.c.visiblePassive', { qui: who(c.who) });
@@ -464,7 +464,7 @@ export function humanizeOp(o: GameOp): string {
       });
     }
     case 'removeCondition': return t('codex.op.perd', { quoi: `${o.id ? t('codex.op.etat', { etat: stateItal(o.id.id) }) : t('codex.op.etatAuChoix')}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}` });
-    case 'endPsych': return 'instance' in o ? t('codex.op.finDePsychologie.instance') : t('codex.op.finDePsychologie', { nom: psychologyLabel(o.type.id) });
+    case 'endPsych': return o.type ? t('codex.op.finDePsychologie', { nom: psychologyLabel(o.type.id) }) : t('codex.op.finDePsychologie.instance');
     case 'beginPsych': return t('codex.op.debutDePsychologie', { psy: libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible)), indice: o.indice != null ? ` ${humanizeFormula(o.indice)}` : '' });
     case 'charMod': return `${[t(o.mod >= 0 ? 'codex.op.modificateur.gagneEn' : 'codex.op.modificateur.subitEn', { mod: signe(o.mod), nom: CHAR_LABELS[o.characteristic] }), plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return o.loc ? t('codex.op.pa.localisation', { n: humanizeFormula(o.amount), loc: HIT_LOCATION_LABELS[o.loc] }) : t('codex.op.pa', { n: humanizeFormula(o.amount) });
@@ -473,7 +473,7 @@ export function humanizeOp(o: GameOp): string {
     case 'corruptionExposure': return t('codex.op.expositionALaCorruption');
     case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainDeRessource.gagne' : 'codex.op.gainDeRessource.perd', { n: Math.abs(o.amount), res: libelleDeValeur(ressourceDeDestinSchema, o.resource) })}${o.temporary ? t('codex.op.gainDeRessource.temporaire') : ''}`;
     case 'gainAdvantage': return t('codex.op.gainDAvantage', { n: humanizeFormula(o.amount) });
-    case 'topUpAdvantage': return t('codex.op.avantagePlancher', { n: humanizeFormula(o.amount) });
+    case 'topUpAdvantage': return t('codex.op.avantagePlancher', { n: o.amount === INDICE_TEMPLATE ? t('codex.f.indice') : humanizeFormula(o.amount) });
     case 'castPenalty': return effetDeContrecoup(o);
     case 'money': {
       const debit = estDebit(o.montant.brass);
@@ -505,11 +505,11 @@ export function humanizeOp(o: GameOp): string {
       degats: o.damageBonus != null ? t('codex.op.armeAugmentee.degats', { n: humanizeFormula(o.damageBonus) }) : '',
     });
     case 'cureDisease': return t('codex.op.guerisonDeMaladie', { n: o.count ?? 1 });
-    case 'reduceDiseaseDays': return t('codex.op.maladieAbregee', { maladie: o.disease ? diseaseLabel(o.disease) : t('codex.op.uneMaladie'), n: o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1) });
+    case 'reduceDiseaseDays': return t('codex.op.maladieAbregee', { maladie: o.disease ? diseaseLabel(o.disease.id) : t('codex.op.uneMaladie'), n: o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1) });
     case 'preventInfection': return t('codex.op.preventionDInfection');
     case 'aideMedicale': return t('codex.op.aideMedicale');
-    case 'exposeDisease': return t('codex.op.expositionAUneMaladie', { nom: diseaseLabel(o.disease) });
-    case 'contractDisease': return t('codex.op.maladieContractee', { nom: diseaseLabel(o.disease) });
+    case 'exposeDisease': return t('codex.op.expositionAUneMaladie', { nom: diseaseLabel(o.disease.id) });
+    case 'contractDisease': return t('codex.op.maladieContractee', { nom: diseaseLabel(o.disease.id) });
     case 'kill': return t('codex.op.mort');
     case 'cureCriticalWound': return t('codex.op.guerisonDeCritique', { n: o.count ?? 1 });
     case 'amputer': {
@@ -554,18 +554,18 @@ export function humanizeOp(o: GameOp): string {
     case 'perRound': return t('codex.op.parRound', { ops: o.ops.map(humanizeOp).join(' ; ') });
     case 'rollThreshold': return t('codex.op.seuilDeJet', { faces: o.sides });
     case 'rollTable': return t('codex.op.jetSurTable', {
-      table: 'tableId' in o ? t('codex.op.jetSurTable.table', { table: findEffectTableById(o.tableId).label }) : t('codex.op.jetSurTable.uneTable'),
-      de: formatDice('tableId' in o ? effectTableDie(o.tableId) : o.die),
+      table: o.table ? t('codex.op.jetSurTable.table', { table: findEffectTableById(o.table.id).label }) : t('codex.op.jetSurTable.uneTable'),
+      de: formatDice(o.table ? effectTableDie(o.table.id) : o.die),
       negatifs: o.addNegativeSL ? t('codex.op.jetSurTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.jetSurTable.supplement', { n: o.extraRollsPerStep }) : '',
-    }) + ('entries' in o ? rangeesLisibles(o) : '');
+    }) + (o.entries ? rangeesLisibles(o) : '');
     case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.jetDeMutation.permanente' : 'codex.op.jetDeMutation', { table: o.table.id });
     case 'charDamage': return t('codex.op.degatsDeCaracteristique', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.characteristic] });
-    case 'summon': return `${t('codex.op.invocation', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.invocation.hostile') : ''}`;
-    case 'scheduleRespawn': return t('codex.op.reapparition', { nom: creatureLabel(o.ref), n: humanizeFormula(o.delayDays) });
+    case 'summon': return `${t('codex.op.invocation', { n: humanizeFormula(o.count), nom: creatureLabel(o.creature.id) })}${o.allyOfCaster === false ? t('codex.op.invocation.hostile') : ''}`;
+    case 'scheduleRespawn': return t('codex.op.reapparition', { nom: creatureLabel(o.creature.id), n: humanizeFormula(o.delayDays) });
     case 'zone': return t('codex.op.zone', { forme: libelleDeValeur(zoneShapeSchema, o.shape), taille: deFormule((o.shape === 'wall' ? o.lengthMeters : o.radiusMeters) ?? 2) });
-    case 'polymorph': return t('codex.op.polymorphie', { nom: creatureLabel(o.ref) });
-    case 'transform': return t('codex.op.transformation', { nom: creatureLabel(o.morphRef ?? o.tag) });
+    case 'polymorph': return t('codex.op.polymorphie', { nom: creatureLabel(o.creature.id) });
+    case 'transform': return t('codex.op.transformation', { nom: creatureLabel(o.creature?.id ?? o.tag) });
     case 'endTransform': return t('codex.op.finDeTransformation');
     case 'lifeSteal': return t('codex.op.volDeVie', { num: o.num, den: o.den });
     case 'skillMod': return t(o.mod >= 0 ? 'codex.op.modificateur.gagneEn' : 'codex.op.modificateur.subitEn', { mod: signe(o.mod), nom: refLabel('skills', o.skill) });
@@ -594,10 +594,10 @@ export function humanizeOp(o: GameOp): string {
     case 'loseTurn': return t('codex.op.perd', { quoi: o.what ? libelleDeValeur(loseTurnWhatSchema, o.what) : t('codex.op.tourPerdu.tout') });
     case 'testDAgir': return t('codex.op.testDAgir', { car: CHAR_LABELS[o.characteristic] });
     case 'diseaseTestMod': return t(o.amount >= 0 ? 'codex.op.modificateurDeTestDeMaladie.gagne' : 'codex.op.modificateurDeTestDeMaladie.subit', { mod: signe(o.amount) });
-    case 'suppressSymptom': return t('codex.op.suppressionDeSymptome', { nom: symptomLabel(o.symptomId) });
-    case 'aggravateSymptom': return t('codex.op.symptomeAggrave', { nom: symptomLabel(o.symptomId) });
-    case 'attenuateSymptom': return t('codex.op.symptomeAttenue', { nom: symptomLabel(o.symptomId) });
-    case 'grantSymptom': return t('codex.op.octroiDeSymptome', { nom: symptomLabel(o.symptomId) });
+    case 'suppressSymptom': return t('codex.op.suppressionDeSymptome', { nom: symptomLabel(o.symptom.id) });
+    case 'aggravateSymptom': return t('codex.op.symptomeAggrave', { nom: symptomLabel(o.symptom.id) });
+    case 'attenuateSymptom': return t('codex.op.symptomeAttenue', { nom: symptomLabel(o.symptom.id) });
+    case 'grantSymptom': return t('codex.op.octroiDeSymptome', { nom: symptomLabel(o.symptom.id) });
     case 'delayed': return t('codex.op.differe', { ops: o.ops.map(humanizeOp).join(' ; ') });
     case 'removeShipPoste': return t('codex.op.retraitDePoste');
     case 'teamCommander': return t('codex.op.commandantDEquipe');
@@ -610,8 +610,8 @@ export function humanizeOp(o: GameOp): string {
     case 'intoxicate': return o.tantQuIvre?.length ? t('codex.op.ivresse.effet', { ops: o.tantQuIvre.map(humanizeOp).join(' ; ') }) : t('codex.op.ivresse');
     case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.nombreNarratif', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.moralDEquipage', { delta: formatEffetSigne(o.delta) });
-    case 'manann': return o.factorId !== undefined
-      ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', { id: o.factorId }) })
+    case 'manann': return 'facteur' in o && o.facteur !== undefined
+      ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', o.facteur) })
       : t('codex.op.manann', { delta: formatEffetSigne(o.delta) });
     case 'shipCritical': return t('codex.op.critiqueDeNavire', {
       n: humanizeFormula(o.count),

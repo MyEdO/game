@@ -960,7 +960,7 @@ describe('Rencontre d’Étape dont l’applier ouvre un nœud sous la journée 
     { ouvreur: 'test', etape: 'jetDeTestDeScene', flow: { kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') } },
     { ouvreur: 'choix', etape: 'choixDeFlux', flow: { kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') } },
     { ouvreur: 'volontaires', etape: 'volontaireDeFlux', flow: { kind: 'effet', effet: { type: 'ops', on: { volontaires: 'Qui monte la garde ?' }, ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }] } } },
-    { ouvreur: 'contagion', etape: 'maladieDeFinDeCombat', flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: 'blessure-purulente' }] } } },
+    { ouvreur: 'contagion', etape: 'maladieDeFinDeCombat', flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: { id: 'blessure-purulente' } }] } } },
   ];
   const volontaire: ChoisitCle = (etape) => (etape.kind === 'volontaireDeFlux' ? 'oui' : undefined);
   const jours = () => get().travelPlan?.log?.length ?? 0;

@@ -341,13 +341,10 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .sort();
     expect(dansLaGrammaire).toEqual([
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillMod|skill',
-      // `summon` est une op TYPÉE (#1882) : la créature invoquée se nomme par le champ `ref` du moteur
-      // (`engine/ops.ts`), tenu par `idDe('creature')`.
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
+      // Les cinq variantes de `has` partagent la clé canonique `ref`, chacune avec son catalogue.
+      ...Array<string>(5).fill('src/data/schemas/grammaire/mecanique.ts:hasConditionSchema|ref'),
       'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',
       'src/data/schemas/grammaire/reference.ts:jokerDeDotationSchema|wildcard',
     ]);

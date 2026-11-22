@@ -69,7 +69,7 @@
     "docs:donnees": "node scripts/docs/build-donnees.mjs",
     "docs:sources-vf": "node scripts/docs/build-sources-vf.mjs",
     "docs:effects": "node scripts/docs/build-effects.mjs",
-    "docs:vocabulaire": "node scripts/docs/build-vocabulaire.mjs",
+    "docs:vocabulaire": "node scripts/lancer-local.mjs tsx -- tsx scripts/docs/build-vocabulaire.mjs",
     "docs:index-moteur": "node scripts/docs/build-index-moteur.mjs",
     "docs:registre-jets": "node scripts/docs/build-registre-jets.mjs",
     "docs:test-scenarios": "node scripts/docs/build-test-scenarios.mjs",

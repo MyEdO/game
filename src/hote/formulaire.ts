@@ -250,8 +250,8 @@ const CLE_AJOUTEE = 'cle';
  *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union
- *  choisie sous le même chemin, ses champs offerts, les éléments de sa liste (`elementsDeLaListe`), la saisie de sa valeur hors objet (le nombre d'une formule), ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
- *  JSON de l'op entière. */
+ *  choisie sous le même chemin, ses champs offerts, les éléments de sa liste (`elementsDeLaListe`) ou la saisie
+ *  de sa valeur hors objet (le nombre d'une formule). */
 function elementsDeLUnion(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): ElementDuFormulaire[] {
   const id = `valeur/${ici.join('/')}`;
   const u = unionDuNoeud(f.noeud)!;
@@ -263,9 +263,6 @@ function elementsDeLUnion(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: 
   const choisis = [...tenus, u.discriminant];
   const suite = (): ElementDuFormulaire[] => {
     if (!courante) return [];
-    if (courante.noeud === undefined) {
-      return [ligne(`${id}/motif`, t('ecran.formulaire.valeur.motif.opNonTypee')), elementDeValeur(id, ecrivain, ici, f, { ...a, saisie: 'json', valeurs: null })];
-    }
     if (unionDuNoeud(courante.noeud)) return elementsDeLUnion(ecrivain, { ...f, label: courante.libelle, nullable: false, noeud: courante.noeud }, valeur, ici, choisis);
     if (elementDuNoeud(courante.noeud) !== undefined) return elementsDeLaListe(ecrivain, { ...f, label: courante.libelle, noeud: courante.noeud }, valeur, ici, []);
     if (!champsDeclares(courante.noeud)) {

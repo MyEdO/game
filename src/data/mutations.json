@@ -190,6 +190,9 @@
         "characteristic": "sociabilite"
       }
     ],
+    "formesDeTete": {
+      "visage_inverse": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 184

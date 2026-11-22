@@ -481,6 +481,57 @@
     }
   },
   {
+    "id": "fleuve-reparation-par-le-constructeur",
+    "type": "stakes",
+    "label": "Réparation par le constructeur de bateaux",
+    "cascade": "voyage",
+    "template": "Réussite : {degats} Dégâts restaurés, au plus {plafond}, pour {tarif} CO par Dégât restauré. Durée : {heures} heures.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparer-des-bateaux",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.109-111"
+    }
+  },
+  {
+    "id": "fleuve-reparation-par-le-groupe",
+    "type": "stakes",
+    "label": "Réparation par le groupe en cale sèche",
+    "cascade": "voyage",
+    "template": "Réussite : {degats} Dégâts restaurés, au plus {plafond}. Durée : {heures} heures.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparer-des-bateaux",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.109-111"
+    }
+  },
+  {
+    "id": "fleuve-reparation-permanente",
+    "type": "stakes",
+    "label": "Réparation permanente en cale sèche",
+    "cascade": "voyage",
+    "template": "Réussite : la réparation temporaire devient permanente au bout de {heures} heures.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparer-des-bateaux",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.109-111"
+    }
+  },
+  {
     "id": "mer-reparation-temporaire",
     "type": "stakes",
     "label": "Réparation temporaire",
@@ -2147,16 +2198,33 @@
     "type": "stakes",
     "label": "Escalade d’une paroi",
     "cascade": "combat",
-    "template": "Réussite : vous franchissez la paroi. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
+    "template": "Une réussite permet de franchir la paroi. Un échec à −4 DR ou moins ou une Maladresse entraîne {metres} m de chute, jusqu’au premier appui libre sous votre point de départ. Sur les autres échecs, vous restez à votre point de départ.",
     "form": "descripteur",
     "rule": {
-      "id": "chute",
-      "type": "regle"
+      "id": "escalade",
+      "type": "skill"
     },
     "source": {
       "book": "livre-de-base",
       "page": 165,
-      "note": "LDB 15 l.53-57 (Escalade), l.80-84 (Chute)"
+      "note": "LDB 15 l.53-57 (Escalade) · LDB 15 l.80-84 (dégâts de chute) · arbitrage #4188 du 2026-11-22 (règle maison)"
+    }
+  },
+  {
+    "id": "escalade-test-sans-chute",
+    "type": "stakes",
+    "label": "Escalade d’une paroi",
+    "cascade": "combat",
+    "template": "Réussite : vous franchissez la paroi. Échec : vous restez à votre point de départ.",
+    "form": "descripteur",
+    "rule": {
+      "id": "escalade",
+      "type": "skill"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 165,
+      "note": "LDB 15 l.53-57 (Escalade) · arbitrage #4188 du 2026-11-22 (règle maison)"
     }
   },
   {

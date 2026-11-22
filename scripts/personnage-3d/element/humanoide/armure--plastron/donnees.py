@@ -34,7 +34,7 @@ MATERIAUX = {
 """Illustration : acier poli (`metal`), bordures dorées (`metal2`, le laiton au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1000
-"""Sous les 2 000 d'une armure (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 000 d'une armure (procédure, section 7)."""
 
 # --- Maillage : anneaux horizontaux autour du tronc, `COLONNES` colonnes, la première devant (azimut 0, l'arête) ---
 COLONNES = 24                      # HYPOTHÈSE de maillage : une colonne tous les 15°, l'arête sur la colonne 0

@@ -21,6 +21,11 @@
  * plus proche qui lui fait face (`FACE_COUVRANTE`) : `couche-percee-au-repos`, un écart par (sujet, couverture), avec
  * le compte et le pire écart. Une couche qui longe sa couverture sans la traverser, comme un col sous une écharpe, ne
  * la perce pas ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe, non plus.
+ *
+ * Le bout d'une telle arête qui reste derrière la couverture s'y enfonce, et avec lui les sommets que des arêtes sans
+ * traversée relient à ce bout, tant qu'ils restent derrière un triangle couvrant ; l'enfoncement d'un sommet est son
+ * écart au triangle couvrant le plus proche dont il est derrière : `enfoncements`, par (sujet, couverture), les sommets
+ * enfoncés de plus de `ECART_DE_SUIVI_M`, que mesure un objet posé devant ce qu'il traverse (`rigideRange.ts`, #4746).
  */
 import { Triangle, Vector3, type Mesh, type SkinnedMesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
@@ -47,7 +52,8 @@ export interface LiaisonDeCouches {
   readonly endroit: ArrayLike<number>;
 }
 
-/** Les sommets d'un sujet percés au repos par sa couverture : leur nombre et l'écart signé le plus négatif. */
+/** Les sommets d'un sujet percés au repos par sa couverture, ou enfoncés derrière elle : leur nombre et le pire écart
+ *  signé, le plus négatif devant pour un percement, le plus grand derrière pour un enfoncement. */
 export interface PercementAuRepos {
   readonly sujet: Mesh;
   readonly couverture: SkinnedMesh;
@@ -55,10 +61,11 @@ export interface PercementAuRepos {
   readonly pire: number;
 }
 
-/** Ce que la couverture fait des sommets d'un sujet au repos : la liaison et le percement. */
+/** Ce que la couverture fait des sommets d'un sujet au repos : la liaison, le percement et l'enfoncement. */
 interface ReleveSous {
   readonly liaison: LiaisonDeCouches | null;
   readonly percement: PercementAuRepos | null;
+  readonly enfoncement: PercementAuRepos | null;
 }
 
 export interface TraverseeDUnEchantillon {
@@ -116,7 +123,7 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
   const ps = positionsDe(repos, sujet), n = ps.length / 3;
   const pc = surface.positions, nc = normalesDesSommets(surface);
   const sommets: number[] = [], triangles: number[] = [], barycentres: number[] = [], lisses: number[] = [];
-  const devant = new Float32Array(n).fill(-Infinity);
+  const devant = new Float32Array(n).fill(-Infinity), derriere = new Float32Array(n).fill(Infinity);
   for (let s = 0; s < n; s++) {
     let retenu = -1, auPlusPresDerriere = Infinity, bx = 0, by = 0, bz = 0;
     const face = FACE_COUVRANTE * Math.hypot(ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2]);
@@ -125,13 +132,14 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
       if (e < 0 && e > devant[s] && tx * ns[s * 3] + ty * ns[s * 3 + 1] + tz * ns[s * 3 + 2] >= face) devant[s] = e;
     });
     if (retenu < 0) continue;
+    derriere[s] = auPlusPresDerriere;
     const [a, b, c] = [surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]];
     sommets.push(s);
     triangles.push(a, b, c);
     barycentres.push(bx, by, bz);
     lisses.push(poserTriangle(pc, a, b, c) && normaleFondue(nc, a, b, c, bx, by, bz).dot(normale) >= SURFACE_LISSE ? 1 : 0);
   }
-  const sortis = new Set<number>(), vues = new Set<number>();
+  const sortis = new Set<number>(), vues = new Set<number>(), enfonces = new Set<number>(), voisins = new Map<number, number[]>();
   const ind = indicesDe(sujet, n);
   for (let t = 0; t + 2 < ind.length; t += 3) for (const [a, b] of [[ind[t], ind[t + 1]], [ind[t + 1], ind[t + 2]], [ind[t + 2], ind[t]]]) {
     const arete = Math.min(a, b) * n + Math.max(a, b);
@@ -144,13 +152,27 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
       if (traversees.every((autre) => part < autre)) aSorti = ea < 0;
       traversees.push(part);
     });
-    if (traversees.length % 2) sortis.add(aSorti ? a : b);
+    if (!traversees.length) {
+      voisins.set(a, [...(voisins.get(a) ?? []), b]);
+      voisins.set(b, [...(voisins.get(b) ?? []), a]);
+    }
+    if (traversees.length % 2 === 0) continue;
+    sortis.add(aSorti ? a : b);
+    if (derriere[aSorti ? b : a] < Infinity) enfonces.add(aSorti ? b : a);
   }
+  const file = [...enfonces];
+  for (let i = 0; i < file.length; i++) for (const u of voisins.get(file[i]) ?? []) {
+    if (enfonces.has(u) || derriere[u] === Infinity) continue;
+    enfonces.add(u);
+    file.push(u);
+  }
+  const profonds = file.map((s) => derriere[s]).filter((e) => e > ECART_DE_SUIVI_M);
   let perces = 0, pire = 0;
   for (const s of sortis) if (devant[s] < -ECART_DE_SUIVI_M && devant[s] > -Infinity) { perces++; pire = Math.min(pire, devant[s]); }
   return {
     liaison: sommets.length ? { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres), lisses: Uint8Array.from(lisses), endroit: surface.indices } : null,
     percement: perces ? { sujet, couverture, sommets: perces, pire } : null,
+    enfoncement: profonds.length ? { sujet, couverture, sommets: profonds.length, pire: Math.max(...profonds) } : null,
   };
 }
 
@@ -166,10 +188,11 @@ export function sansLesZonesMasquees(elements: readonly { readonly rang: number;
 }
 
 /** Les couches liées au repos : les liaisons du corps sous chaque élément, et de chaque élément sous ceux qui le
- *  couvrent ; les percements des mêmes paires. */
+ *  couvrent ; les percements et les enfoncements des mêmes paires. */
 export interface CouchesAuRepos {
   readonly liaisons: readonly LiaisonDeCouches[];
   readonly percements: readonly PercementAuRepos[];
+  readonly enfoncements: readonly PercementAuRepos[];
 }
 
 /** Les relevés de la pose `pose`, chacun fait une fois ; `endroit` : celui d'un mesh d'élément (`endroitDe`), le corps
@@ -211,6 +234,7 @@ export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh
   return {
     liaisons: parPaire.flatMap((r) => r.liaison ?? []),
     percements: parPaire.flatMap((r) => r.percement ?? []),
+    enfoncements: parPaire.flatMap((r) => r.enfoncement ?? []),
   };
 }
 

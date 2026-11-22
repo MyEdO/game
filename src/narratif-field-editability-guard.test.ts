@@ -11,7 +11,9 @@ import { cheminsCreditesJoues } from '../scripts/guards/lib/editabiliteDesChamps
 describe('#4234 — chaque champ du narratif a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
   // 360 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
   // type, `Parmi.pick`, `JokerDeDotation.wildcard`, `ApparenceDObjet.onHitEffects.on.pick`).
-  const { ecritures } = garderLaRacine('narratif', ecrituresDuNarratif, { plancher: 360, delai: 190_000 });
+  // 1 209 = mesure #1468 avec Condition, Flow et GameOp, leurs déclarations récursives partagées.
+  // Le premier audit a pris 190,044 s en CI de file. Même borne que la garde de scène.
+  const { ecritures } = garderLaRacine('narratif', ecrituresDuNarratif, { plancher: 1_209, delai: 250_000 });
 
   it('prouve le changement du repère sur la même valeur par un renommage offert', { timeout: 190_000 }, () => {
     const renommes = ecritures().filter((e) => e.renommage && e.chemin[e.chemin.length - 3] === 'reperes');

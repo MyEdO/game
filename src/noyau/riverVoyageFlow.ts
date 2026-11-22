@@ -27,7 +27,7 @@ import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
-import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { estBateauFluvial, placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
 import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { bandesDeContagion } from './contagion';
@@ -203,11 +203,13 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
 }
 
 /** Coque de la descente jouable avec le pilote de sa Compétence (MSRC 07 l.11-17, l.74, l.90). */
-export function coqueDeDescente(s: Pick<Jeu, 'party' | 'vessel'>, route: MapRoute, mode: TravelMode): Combatant | null {
+export function coqueDeDescente(s: Pick<Jeu, 'party' | 'vessel' | 'lieu'>, route: MapRoute, mode: TravelMode): Combatant | null {
   if (!route.river || !route.modes.includes(mode) || mode === 'pied' || mode === 'monture' || mode === 'mer') return null;
   const fiche = findVehicleById(mode);
   if (!fiche?.ship || !fiche.hull) return null;
-  const coque = riverHull(s.vessel, fiche);
+  const { vessel } = s;
+  const amarreAilleurs = vessel?.escale !== undefined && vessel.escale !== s.lieu && estBateauFluvial(vessel);
+  const coque = riverHull(amarreAilleurs ? null : vessel, fiche);
   return coque && hasBatelier(s.party, riverNavSkill(coque)) ? coque : null;
 }
 
@@ -245,7 +247,9 @@ export function runRiverDays(get: Get, set: Set): void {
 }
 
 function arriveRiver(get: Get, set: Set, to: MapPlace): void {
-  set({ travelPlan: null });
+  const { travelPlan, vessel } = get();
+  const accoste = vessel && estBateauFluvial(vessel) && estLeNavireDeCampagne(travelPlan?.vehicle, vessel);
+  set({ travelPlan: null, ...(accoste ? { vessel: { ...vessel, escale: to.id } } : {}) });
   log(get, set, [t('fleuve.accostage', { to: to.label })]);
   arriverAuLieu(set, to);
 }

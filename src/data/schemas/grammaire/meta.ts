@@ -41,6 +41,8 @@ export interface NomDeNoeud {
   readonly label?: string;
   readonly nom?: string;
   readonly element?: string;
+  /** Type de la forme canonique, lu par le rapport des consommateurs de la grammaire. */
+  readonly typeNomme?: string;
   readonly opacite?: { nature: 'dispatch-op'; raison: string };
 }
 

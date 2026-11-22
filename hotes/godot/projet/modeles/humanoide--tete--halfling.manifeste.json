@@ -1,0 +1,46 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "tete",
+  "cle": {
+    "tete": "halfling"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "peau"
+    },
+    {
+      "nom": "yeux",
+      "palette": "yeux"
+    }
+  ],
+  "glb": {
+    "sha256": "2bc4d969bc75dd94b13eea1af2b95e203743a4c61a30a55b90424327508538fc",
+    "octets": 1433976
+  }
+}

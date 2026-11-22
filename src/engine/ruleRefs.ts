@@ -93,7 +93,9 @@ export type RuleId =
   | 'navigation-echouage'
   | 'lieu-de-l-entretien-du-navire'
   /** Métier (Charpentier) au lieu de Métier (Constructeur de navires) pour réparer un navire (`MDG 13 l.641`). */
-  | 'reparer-les-navires';
+  | 'reparer-les-navires'
+  /** MSRC 7 l.109-111 */
+  | 'reparer-des-bateaux';
 
 /**
  * Les règles CHIFFRÉES et les rangées que le moteur lit de leur fiche (`regles.json`, champ `rangees`) :
@@ -185,4 +187,5 @@ export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gel
   'echouer-en-mer': { category: 'seaPerils', id: 'seaPerils' },
   'navigation-echouage': { category: 'regles', id: 'navigation-echouage' },
   'reparer-les-navires': { category: 'regles', id: 'reparer-les-navires' },
+  'reparer-des-bateaux': { category: 'regles', id: 'reparer-des-bateaux' },
 } satisfies Record<Exclude<RuleId, RegleChiffree>, RenvoiCodex | RenvoiCodexSansEspace>); // #2097

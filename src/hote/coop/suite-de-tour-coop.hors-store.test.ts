@@ -1,5 +1,5 @@
 /**
- * Suite du tour d'IA et frappe pilotée en coop (#3058, #3059, #3157).
+ * Suite du tour d'IA et frappe pilotée en coop (#3058, #3059, #3157, #3839).
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
@@ -10,7 +10,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
 import { controlsActive, withActingSeat } from '../../noyau/netOwnership';
-import { creerPartie } from '../../noyau/partie';
+import { creerPartie, type ResultatDeLAppel } from '../../noyau/partie';
 import { horlogeVirtuelle } from '../../noyau/horlogeVirtuelle';
 import { cadence, resetCadence, setCadence, type Cadence } from '../../engine/cadence';
 import { gesteDuVerbe, SANS_PISTE } from '../geste';
@@ -39,10 +39,7 @@ const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   connection: 'connecte', hoteAbsent: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
-function poserLaCharge(banc: Banc, chargeur: Combatant, charge: Combatant, cadenceHote: Cadence) {
-  setCadence(cadenceHote);
-  clearAiTurnLog();
-  seedBattleRng(2);
+function etatDeCharge(chargeur: Combatant, charge: Combatant) {
   chargeur.pos = { x: 4, y: 0 };
   charge.pos = { x: 0, y: 0 };
   // LDB 10 l.500
@@ -55,10 +52,19 @@ function poserLaCharge(banc: Banc, chargeur: Combatant, charge: Combatant, caden
     combatants, order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), net: NET('hote', 0) } as never);
+  return {
+    battle, mode: 'battle' as const, scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), net: NET('hote', 0),
+  };
 }
 
-function relierLeBanc(banc: Banc) {
+function poserLaCharge(banc: Banc, chargeur: Combatant, charge: Combatant, cadenceHote: Cadence) {
+  setCadence(cadenceHote);
+  clearAiTurnLog();
+  seedBattleRng(2);
+  banc.setState(etatDeCharge(chargeur, charge));
+}
+
+function relierLeBanc(banc: Pick<Banc, 'getState'>) {
   const recus: Record<string, unknown>[] = [];
   const intentions: string[] = [];
   const refus: string[] = [];
@@ -225,6 +231,56 @@ describe('#3157 — l’hôte seul exécute le tour automatique', () => {
     expect({ controles: miroir.controles, preference: miroir.pref, programmes: miroir.programmes }).toEqual({
       controles: [controle], preference: invite, programmes: 0,
     });
+  });
+});
+
+describe('#3839 — la suite du déplacement de combat appartient à l’hôte', () => {
+  it.each([
+    { chargeur: 'h2', genre: 'heros', charge: 'e' },
+    { chargeur: 'e', genre: 'ennemi', charge: 'h2' },
+  ] as const)('charge de $chargeur : le jeton passe dans l’horloge d’un hôte sans rendu', ({ chargeur, genre, charge }) => {
+    clearAiTurnLog();
+    const etat = etatDeCharge(mk(chargeur, genre, { x: 0, y: 0 }), mk(charge, genre === 'heros' ? 'ennemi' : 'heros', { x: 0, y: 0 }));
+    const hote = creerPartie({ ...etatInitialDuJeu(), screen: 'campaign', ...etat }, { ...ENTREES_DU_BANC, graine: 2, cadence: 'auto' });
+    const liaison = relierLeBanc({ getState: hote.etat });
+    const jetons = tenueDesJetons(hote);
+    const jetonsDeMarche: number[] = [];
+    const reprisesDeMarche: number[] = [];
+    const traiter = (resultat: ResultatDeLAppel) => {
+      const programmes = jetons.programmes(resultat);
+      for (const e of resultat.evenements) {
+        if (e.type !== 'emis' || e.evt !== 'anim_move' || e.payload.id !== chargeur) continue;
+        expect(e.payload.path.length).toBeGreaterThan(1);
+        expect(hote.etat().battle!.tourEnCours?.suite?.geste.kind).toBe('frappe');
+        expect(frappesDuTour(chargeur, hote.etat().battle!.log)).toBe(0);
+        const lies = programmes.filter((p) => 'apresDeplacement' in p);
+        expect(lies).toEqual([expect.objectContaining({ apresDeplacement: [chargeur] })]);
+        jetonsDeMarche.push(lies[0].id);
+      }
+      liaison.host.broadcastSnapshot();
+      return programmes;
+    };
+    const horloge = horlogeVirtuelle((id) => {
+      if (jetonsDeMarche.includes(id)) reprisesDeMarche.push(id);
+      return traiter(jetons.reprendre(id));
+    });
+    try {
+      horloge.armer(traiter(hote.reprendreLaCadence()));
+      for (let i = 0; i < 50 && hote.etat().battle!.turn === 0 && horloge.enAttente(); i++) horloge.jusquALaProchaine();
+      expect(jetonsDeMarche).toHaveLength(1);
+      expect(reprisesDeMarche).toEqual(jetonsDeMarche);
+      expect(() => jetons.reprendre(jetonsDeMarche[0])).toThrow(/jeton inconnu/);
+      expect([hote.etat().battle!.turn, decisionsDuTour(chargeur), frappesDuTour(chargeur, hote.etat().battle!.log)]).toEqual([1, 1, 1]);
+    } finally {
+      liaison.cloreLeBancHote();
+      hote.fermer();
+    }
+
+    const miroir = rejouerChezLInvite(liaison, 'auto');
+    expect([miroir.programmes, miroir.reprises, miroir.ecritures, decisionsDuTour(chargeur)]).toEqual([0, 0, 0, 1]);
+    expect(liaison.intentions).toEqual([]);
+    expect(miroir.instantanesStables).toBe(true);
+    expect([miroir.etat.battle?.turn, frappesDuTour(chargeur, miroir.etat.battle!.log)]).toEqual([1, 1]);
   });
 });
 

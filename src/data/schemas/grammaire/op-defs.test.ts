@@ -1,11 +1,11 @@
 /**
- * `OP_DEFS` (`grammaire/mecanique.ts`) — payload strict par op, repli nominatif, rouge au SITE.
+ * `OP_DEFS` (`grammaire/mecanique.ts`) — payload strict par op, refus au site.
  */
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
-import { resolve } from 'node:path';
-import { entreeDe } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { describe, it, expect } from 'vitest';
-import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
+import { conditionSchema, gameOpSchema, OP_DEFS, mecaniqueDe } from './mecanique';
+import { defDe, enfantsDe, ouverts, valeursAdmises } from './descente';
+import { unionDuNoeud } from '../../../noyau/codex/editFields';
 import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
@@ -23,11 +23,11 @@ const premiereCondition = (doc: typeof MISCAST_TABLES) => {
 };
 import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 
-describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
+describe('OP_DEFS — payload strict par op, refus au site', () => {
   it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
     for (const famille of [mecaniqueDe({}), mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' })]) {
       const champs = champsDOpASlot(famille.opDefs);
-      expect(champs.has('rollTable.tableId')).toBe(true);
+      expect(champs.has('rollTable.table')).toBe(true);
       expect(champs.has('removeTrait.trait')).toBe(true);
       expect(champs.has('rollTable.entries')).toBe(false);
       expect(champs.has('transform.ops')).toBe(false);
@@ -43,13 +43,26 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(gameOpSchema.safeParse({ op: 'kill', cible: 'x' }).success).toBe(false);
   });
 
-  it('une op NON TYPÉE garde la forme loose', () => {
-    expect(OPS_NON_TYPEES).toContain('statusMod');
-    expect(gameOpSchema.safeParse({ op: 'statusMod', amount: 1, quoiQueCeSoit: 3 }).success).toBe(true);
+  it('statusMod exige une formule et refuse un champ étranger', () => {
+    const op = { op: 'statusMod', amount: 1 };
+    expect(gameOpSchema.parse(op)).toEqual(op);
+    const champEtranger = gameOpSchema.safeParse({ ...op, quoiQueCeSoit: 3 });
+    expect(champEtranger.error?.issues).toContainEqual(expect.objectContaining({
+      code: 'unrecognized_keys', keys: ['quoiQueCeSoit'],
+    }));
+    const formuleInvalide = gameOpSchema.safeParse({ ...op, amount: 'beaucoup' });
+    expect(formuleInvalide.error?.issues).toContainEqual(expect.objectContaining({ path: ['amount'] }));
+  });
+
+  it('arrowWard n’admet que son discriminant', () => {
+    const op = { op: 'arrowWard' };
+    expect(gameOpSchema.parse(op)).toEqual(op);
+    expect(gameOpSchema.safeParse({ ...op, zzz: 1 }).error?.issues).toContainEqual(expect.objectContaining({
+      code: 'unrecognized_keys', keys: ['zzz'],
+    }));
   });
 
   it('narrative est typée : texte et provenance locaux, aucun champ étranger', () => {
-    expect(OPS_NON_TYPEES).not.toContain('narrative');
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit' }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', source: { book: 'ennemi-dans-l-ombre', page: 12 } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } }).success).toBe(true);
@@ -124,10 +137,12 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(validateDataset('miscast.json', doc)).toMatch(/GameOp « condition » .*id/s);
   });
 
-  it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
+  it('une op inconnue est nommée au discriminant', () => {
     const res = gameOpSchema.safeParse({ op: 'nImporteQuoi' });
     expect(res.success).toBe(false);
-    expect(JSON.stringify(res.error?.issues)).toMatch(/GameOp « nImporteQuoi » : op inconnue de OP_DEFS et de OPS_NON_TYPEES/);
+    expect(res.error?.issues).toContainEqual(expect.objectContaining({
+      path: ['op'], message: 'GameOp « nImporteQuoi » : op inconnue de OP_DEFS.',
+    }));
   });
 
   it('une op TYPÉE au payload FAUX est refusée AU CHAMP (le gate ne s’arrête pas au nom de l’op)', () => {
@@ -165,29 +180,31 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(fantome.error!.issues.map((i) => i.path.join('.'))).toEqual(['skill.id']);
   });
 
-  it('`rollTable` : table EXCLUSIVE — `entries` OU `tableId`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
+  it('`rollTable` : table EXCLUSIVE — `entries` OU `table`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     const entries = [{ min: 1, max: 10, ops: [{ op: 'kill' }] }];
     expect(gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'rollTable', tableId: 'mendier-ennuis' }).success).toBe(true);
-    for (const table of [{ die: { n: 1, sides: 10 }, entries, tableId: 'mendier-ennuis' }, {}]) {
+    expect(gameOpSchema.safeParse({ op: 'rollTable', table: { id: 'mendier-ennuis' } }).success).toBe(true);
+    for (const table of [{ die: { n: 1, sides: 10 }, entries, table: { id: 'mendier-ennuis' } }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'rollTable', ...table });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
-      expect(res.error!.issues[0].message).toMatch(/GameOp « rollTable » : table EXCLUSIVE : « entries » .* OU « tableId »/);
+      expect(res.error!.issues[0].message).toMatch(/GameOp « rollTable » : table EXCLUSIVE : « entries » .* OU « table »/);
     }
-    const fantome = gameOpSchema.safeParse({ op: 'rollTable', tableId: 'table-fantome' });
+    const fantome = gameOpSchema.safeParse({ op: 'rollTable', table: { id: 'table-fantome' } });
     expect(fantome.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
-      ['tableId', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
+      ['table.id', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
     ]);
-    // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
-    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
-    expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
+    // Le diagnostic de la référence d’une op de rangée garde son chemin complet.
+    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: { id: 'maladie-fantome' } }] }] });
+    expect(imbriquee.error!.issues.map((i) => [i.code, i.path.join('.'), i.message])).toEqual([
+      ['custom', 'entries.0.ops.0.disease.id', 'GameOp « rollTable » : GameOp « contractDisease » : « maladie-fantome » est absent du catalogue des maladies (maladies.json).'],
+    ]);
   });
 
-  // VDM 12 l.920 ; #4095 : sous `tableId`, le dé est celui de la table.
-  it('`rollTable` à `tableId` ne porte pas de `die`, au type comme au schéma', () => {
-    // @ts-expect-error -- `die?: never` sur la variante `tableId`.
-    const op: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, tableId: 'vdm-maladie-coups-de-poing-maudits' };
+  // VDM 12 l.920.
+  it('`rollTable` à `table` ne porte pas de `die`, au type comme au schéma', () => {
+    // @ts-expect-error -- `die?: never` sur la variante `table`.
+    const op: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, table: { id: 'vdm-maladie-coups-de-poing-maudits' } };
     const res = gameOpSchema.safeParse(op);
     expect(res.success).toBe(false);
     expect(JSON.stringify(res.error!.issues)).toMatch(/die/);
@@ -200,8 +217,13 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     for (const [op, def] of Object.entries(OP_DEFS)) {
       const shape = (def as { shape?: Record<string, { safeParse: (v: unknown) => { success: boolean } }> }).shape ?? {};
       for (const [champ, schema] of Object.entries(shape)) {
-        const reserve = [ARG_TEMPLATE, INDICE_TEMPLATE].some((g) => schema.safeParse(g).success) && !schema.safeParse('$non-reserve').success;
-        if (!reserve) continue;
+        const formeReservee = [
+          (id: string) => id,
+          (id: string) => ({ id }),
+        ].some((forme) =>
+          [ARG_TEMPLATE, INDICE_TEMPLATE].some((g) => schema.safeParse(forme(g)).success) &&
+          !schema.safeParse(forme('$non-reserve')).success);
+        if (!formeReservee) continue;
         porteurs.push(`${op}.${champ}`);
         expect(schema.safeParse(undefined).success, `${op}.${champ}`).toBe(false);
       }
@@ -210,22 +232,42 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
   });
 
   it('valeur RÉSERVÉE au même nœud que la feuille : acceptée sur SON champ seul, et le refus garde le message nommé d’`idDe`', () => {
-    expect(gameOpSchema.safeParse({ op: 'exposeDisease', disease: ARG_TEMPLATE }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'scheduleRespawn', ref: SELF_REF, delayDays: 1 }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'exposeDisease', disease: { id: ARG_TEMPLATE } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'scheduleRespawn', creature: { id: SELF_REF }, delayDays: 1 }).success).toBe(true);
     // Hors du champ qui la déclare, la valeur réservée est un id comme un autre : refusé.
-    expect(gameOpSchema.safeParse({ op: 'contractDisease', disease: ARG_TEMPLATE }).success).toBe(false);
-    expect(gameOpSchema.safeParse({ op: 'summon', ref: SELF_REF, count: 1 }).success).toBe(false);
-    expect(gameOpSchema.safeParse({ op: 'exposeDisease', disease: INDICE_TEMPLATE }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'contractDisease', disease: { id: ARG_TEMPLATE } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'summon', creature: { id: SELF_REF }, count: 1 }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'exposeDisease', disease: { id: INDICE_TEMPLATE } }).success).toBe(false);
     for (const [op, champ, catalogue, dataset, reste] of [
       ['exposeDisease', 'disease', 'maladies', 'maladies.json', {}],
-      ['scheduleRespawn', 'ref', 'créatures', 'creatures.json', { delayDays: 1 }],
+      ['scheduleRespawn', 'creature', 'créatures', 'creatures.json', { delayDays: 1 }],
     ] as const) {
-      const res = gameOpSchema.safeParse({ op, [champ]: 'entite-fantome', ...reste });
+      const res = gameOpSchema.safeParse({ op, [champ]: { id: 'entite-fantome' }, ...reste });
       expect(res.success, `${op}.${champ}`).toBe(false);
       expect(res.error!.issues.map((i) => [i.path.join('.'), i.message]), `${op}.${champ}`).toEqual([
-        [champ, `GameOp « ${op} » : « entite-fantome » est absent du catalogue des ${catalogue} (${dataset}).`],
+        [`${champ}.id`, `GameOp « ${op} » : « entite-fantome » est absent du catalogue des ${catalogue} (${dataset}).`],
       ]);
     }
+  });
+
+  it('le facteur de Manann est jugé dans le catalogue au chemin facteur.id', () => {
+    const op = { op: 'manann', facteur: { id: 'vaincre-stromfels' } };
+    expect(gameOpSchema.parse(op)).toEqual(op);
+    const fantome = gameOpSchema.safeParse({ ...op, facteur: { id: 'facteur-fantome-1468' } });
+    expect(fantome.error?.issues).toContainEqual(expect.objectContaining({
+      path: ['facteur', 'id'],
+      message: 'GameOp « manann » : « facteur-fantome-1468 » est absent du catalogue des facteurs de l’humeur de Manann (sea-events.json#manann.factors).',
+    }));
+  });
+
+  it('la table de hauteur de chute est jugée dans le catalogue au chemin hauteur.table.id', () => {
+    const op = { op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } };
+    expect(gameOpSchema.parse(op)).toEqual(op);
+    const fantome = gameOpSchema.safeParse({ ...op, hauteur: { table: { id: 'table-fantome-1468' } } });
+    expect(fantome.error?.issues).toContainEqual(expect.objectContaining({
+      path: ['hauteur', 'table', 'id'],
+      message: 'GameOp « fall » : « table-fantome-1468 » est absent du catalogue des tables de hauteur de chute (ship-criticals.json#tablesDeChute).',
+    }));
   });
 
   it('`testMod.exceptSkills` exempte des Compétences ENTIÈRES (LDB 16 l.52) : `{ id }` strict, une spécialisation est refusée', () => {
@@ -237,7 +279,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     const champs = champsDOpASlot();
     // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')` ; `summon.addTraits`
     // des `traitInstanceSchema`, dont l'`id` est la feuille `idDe('trait')`.
-    for (const k of ['grantTrait.trait', 'removeTrait.trait', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
+    for (const k of ['grantTrait.trait', 'removeTrait.trait', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.table', 'transform.creature', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
       expect(champs.has(k), k).toBe(true);
     }
     // `entries`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
@@ -253,17 +295,20 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
-  it('les deux registres sont DISJOINTS et couvrent EXACTEMENT les ops du moteur, sans compte magique', () => {
-    const typees = Object.keys(OP_DEFS);
-    expect(typees.filter((o) => OPS_NON_TYPEES.includes(o))).toEqual([]);
-    // La référence est la SOURCE `src/engine/ops.ts` : chaque branche littérale de l'union `GameOp`
-    // (`rollTable` en porte 2, dédoublonnées par l'ensemble). Égalité d'ensembles BIDIRECTIONNELLE :
-    // une op moteur non couverte comme une entrée orpheline sont NOMMÉES.
-    const source = entreeDe(resolve(__dirname, '../../../engine/ops.ts')).text;
-    const opsDuMoteur = new Set([...source.matchAll(/^\s*\|\s*\{\s*op:\s*'([^']+)'/gm)].map((m) => m[1]));
-    expect(opsDuMoteur.size).toBeGreaterThan(0);
-    const couvertes = new Set([...typees, ...OPS_NON_TYPEES]);
-    expect([...opsDuMoteur].filter((o) => !couvertes.has(o)).sort()).toEqual([]);
-    expect([...couvertes].filter((o) => !opsDuMoteur.has(o)).sort()).toEqual([]);
+  it('le parse expose chaque charge stricte du registre sous son discriminant', () => {
+    const catalogue = unionDuNoeud(gameOpSchema);
+    expect(catalogue?.discriminant).toBe('op');
+    const charges = Object.entries(OP_DEFS);
+    expect(catalogue?.variantes).toHaveLength(charges.length);
+    expect(new Map(catalogue?.variantes.map(({ cle, noeud }) => [cle, noeud]))).toEqual(new Map(charges));
+    for (const [op, noeud] of charges) {
+      const formes = ouverts([noeud]).filter((forme) => defDe(forme)?.type === 'object');
+      expect(formes.length, op).toBeGreaterThan(0);
+      for (const forme of formes) {
+        expect(valeursAdmises(forme).op, op).toEqual(new Set([op]));
+        const horsForme = enfantsDe(forme).find(({ segment }) => segment === '.*');
+        expect(defDe(horsForme?.noeud)?.type, op).toBe('never');
+      }
+    }
   });
 });

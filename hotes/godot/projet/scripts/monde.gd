@@ -8,7 +8,9 @@
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
 ## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
-## des cases que le masque du volume retire sauf les cases jouables qui s'y voient (`poser_les_cases_jouables`), et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
+## des cases que le masque du volume retire sauf les cases jouables qui s'y voient (`poser_les_cases_jouables`), en
+## priorité les plaques des cibles du clic (`case_sous`), et le point de la carte touché, et le point de l'écran d'un lieu ;
+## il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
 ## la caméra (`cacher_le_bati`), la météo par son nœud `Meteo` (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
@@ -213,9 +215,7 @@ func poser_les_stations(navires: Dictionary) -> void:
 
 
 ## Les cases `cases` (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables (un corps dessiné,
-## une plaque de cible), à la place des précédentes : le rayon s'arrête sur chacune même retirée (`_toucher`). De
-## deux cases jouables d'une même colonne, la plus haute retirée, il rend celle qu'il touche la première, celle qui se
-## dessine par-dessus ; la case d'en dessous garde son point sous un regard qui ne retire pas l'autre.
+## une plaque de cible), à la place des précédentes : le rayon s'arrête sur chacune même retirée (`_toucher`).
 func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
 	_cases_jouables = {}
 	for case in cases:
@@ -322,10 +322,11 @@ func a_l_ecran(lieu: Vector3) -> Variant:
 	return null if camera.is_position_behind(lieu) else camera.unproject_position(lieu)
 
 
-## Ce que le rayon de la caméra du regard par `point` touche le premier (`_toucher`), `null` hors du monde.
-func touche_sous(point: Vector2) -> Variant:
+## Ce que le rayon de la caméra du regard par `point` touche le premier, les plaques des cases de `cibles` en
+## priorité (`_toucher`), `null` hors du monde.
+func touche_sous(point: Vector2, cibles: Dictionary = {}) -> Variant:
 	var camera := get_viewport().get_camera_3d()
-	return _toucher(camera.project_ray_origin(point), camera.project_position(point, camera.far), camera.project_ray_normal(point))
+	return _toucher(camera.project_ray_origin(point), camera.project_position(point, camera.far), camera.project_ray_normal(point), cibles)
 
 
 ## Le sol que touche le premier un rayon tombé à la verticale de `lieu` (`_toucher`), `null` hors du monde.
@@ -333,17 +334,20 @@ func sol_sous(lieu: Vector3) -> Variant:
 	return _toucher(lieu, Vector3(lieu.x, SOUS_LE_MONDE, lieu.z), Vector3.DOWN)
 
 
-## Ce que le rayon de `origine` à `fin`, de sens unitaire `sens`, touche le premier hors des cases que le masque du
-## volume retire (`VolumeDeScene.retiree`), sauf les cases jouables (`poser_les_cases_jouables`) : lancé entier, puis, touchant une case retirée, repris au-delà
-## (`MiseEnPage.point_au_dela`) par tronçons bornés (`MiseEnPage.bout_du_troncon`), dont chacun qui ne touche rien
-## avant `fin` est suivi du prochain, qui recouvre sa fin (`MiseEnPage.point_en_deca`) ; au plus
-## `LANCERS_DU_RAYON` lancers. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
-## lue à la forme de son morceau, `_forme_de`), le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`) et le
-## lieu touché ; `null` hors du monde.
-func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
-	var requete := PhysicsRayQueryParameters3D.create(origine, fin)
+## Ce que le rayon de `origine` à `fin`, de sens unitaire `sens`, touche le premier : une plaque d'une case de
+## `cibles` si le rayon en rencontre (`_toucher_une_cible`), sinon la première case jouable (`poser_les_cases_jouables`)
+## ou conservée (`VolumeDeScene.retiree`). Au-delà d'une case retirée, il reprend (`MiseEnPage.point_au_dela`) par
+## tronçons bornés (`MiseEnPage.bout_du_troncon`), dont chacun qui ne touche rien avant `fin` est suivi du prochain,
+## qui recouvre sa fin (`MiseEnPage.point_en_deca`) ; au plus `LANCERS_DU_RAYON` lancers. Rend `{ case, f, lieu }`, la
+## case touchée et sa couche (`Vector3i(x, y, z)`), le point de la carte touché et le lieu touché ; `null` hors du monde.
+func _toucher(origine: Vector3, fin: Vector3, sens: Vector3, cibles: Dictionary = {}) -> Variant:
 	var rayon := Basis(Quaternion(Vector3.FORWARD, sens))
 	var depart := MiseEnPage.abscisse(origine, rayon, 0.0)
+	if not cibles.is_empty():
+		var cible: Variant = _toucher_une_cible(origine, fin, rayon, depart, cibles)
+		if cible != null:
+			return cible
+	var requete := PhysicsRayQueryParameters3D.create(origine, fin)
 	var longueur := MiseEnPage.abscisse(fin, rayon, depart)
 	var bout := longueur
 	for _lancer in LANCERS_DU_RAYON:
@@ -356,17 +360,41 @@ func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
 			var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
 			var case := Vector3i(forme.get_meta("cases")[touche.face_index])
 			if _cases_jouables.has(case) or not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
-				return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
+				return _contact(case, touche.position)
 			requete.from = MiseEnPage.point_au_dela(touche.position, rayon, volume.metres_par_case)
 		bout = MiseEnPage.bout_du_troncon(requete.from, rayon, depart, longueur, volume.metres_par_case)
 		requete.to = MiseEnPage.point_a_l_abscisse(requete.from, rayon, depart, bout)
 	return null
 
 
-## La case du triangle du monde et sa couche (`Vector3i(x, y, z)`) que le rayon de la caméra par `point` touche le premier,
-## `null` hors du monde.
-func case_sous(point: Vector2) -> Variant:
-	var touche: Variant = touche_sous(point)
+## La première plaque offerte que traverse le même segment, à partir de son maillage posé (`peindre`).
+func _toucher_une_cible(origine: Vector3, fin: Vector3, rayon: Basis, depart: float, cibles: Dictionary) -> Variant:
+	var contact: Variant = null
+	var profondeur := INF
+	for plaque: MeshInstance3D in _surbrillance.get_children():
+		var case: Vector3i = plaque.get_meta("case")
+		if not cibles.has(case):
+			continue
+		var touche := plaque.mesh.generate_triangle_mesh().intersect_segment(plaque.to_local(origine), plaque.to_local(fin))
+		if touche.is_empty():
+			continue
+		var lieu := plaque.to_global(touche.position)
+		var distance := MiseEnPage.abscisse(lieu, rayon, depart)
+		if profondeur == MiseEnPage.plus_bas(profondeur, distance):
+			continue
+		contact = _contact(case, lieu)
+		profondeur = distance
+	return contact
+
+
+func _contact(case: Vector3i, lieu: Vector3) -> Dictionary:
+	return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(lieu)), lieu = lieu}
+
+
+## La case et sa couche (`Vector3i(x, y, z)`) sous le rayon de la caméra par `point`. Il rend d'abord la case d'une
+## plaque rencontrée parmi `cibles`, sinon la case du triangle du monde qu'il touche ; `null` hors du monde.
+func case_sous(point: Vector2, cibles: Dictionary = {}) -> Variant:
+	var touche: Variant = touche_sous(point, cibles)
 	return null if touche == null else touche.case
 
 
@@ -630,9 +658,10 @@ func _zoomer(sens: float) -> void:
 ## son ombre (recette `projet/recettes/ombres-du-regard.gd`). Le rayon du pointeur, et celui qui cherche le sol sous un
 ## lieu, traverse une case retirée, puis reprend par tronçons bornés, sans sauter une face sous le biais coplanaire du
 ## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`), sauf une case jouable qui s'y voit (la case
-## d'un corps dessiné, celle d'une plaque de cible, `Monde.poser_les_cases_jouables`), où il s'arrête : de deux cases
-## jouables d'une même colonne, la plus haute retirée, le clic rend la plus haute, qui se dessine par-dessus (recette
-## `projet/recettes/jouable-sur-couche-retiree.gd`).
+## d'un corps dessiné, celle d'une plaque de cible, `Monde.poser_les_cases_jouables`). Au clic gauche du plateau, le
+## même rayon donne priorité à la première plaque offerte qu'il rencontre, même sous une surface conservée ou sur
+## une flottaison sans collision du monde. Sans plaque offerte rencontrée, le rayon touche le volume comme à
+## l'ordinaire (recette `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
 ## Le shader de monde rend chaque surface vue de sa texture neutre, `projet/textures/<matiere>.neutre.jpg`, teinte par la
 ## couleur de ses sommets, ou à défaut de sa texture, `<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg` : ceux

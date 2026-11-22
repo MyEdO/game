@@ -3171,7 +3171,9 @@
             "ops": [
               {
                 "op": "polymorph",
-                "ref": "ours"
+                "creature": {
+                  "id": "ours"
+                }
               }
             ]
           }
@@ -3499,7 +3501,9 @@
                     "kind": "has",
                     "who": "target",
                     "what": "trait",
-                    "value": "bestial"
+                    "ref": {
+                      "id": "bestial"
+                    }
                   },
                   {
                     "kind": "compare",
@@ -4062,8 +4066,10 @@
               "kind": "has",
               "who": "target",
               "what": "talent",
-              "value": "magie-des-arcanes",
-              "spec": "cieux"
+              "ref": {
+                "id": "magie-des-arcanes",
+                "spec": "cieux"
+              }
             }
           }
         ]
@@ -7190,7 +7196,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "cheval",
+                "creature": {
+                  "id": "cheval"
+                },
                 "count": 1,
                 "addTraits": [
                   {
@@ -8031,8 +8039,10 @@
                       "kind": "has",
                       "who": "target",
                       "what": "talent",
-                      "value": "magie-des-arcanes",
-                      "spec": "vie"
+                      "ref": {
+                        "id": "magie-des-arcanes",
+                        "spec": "vie"
+                      }
                     }
                   }
                 }
@@ -8897,7 +8907,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "rat-geant",
+                "creature": {
+                  "id": "rat-geant"
+                },
                 "count": 1,
                 "addTraits": [
                   {
@@ -9081,7 +9093,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "sanguinaire-de-khorne",
+                "creature": {
+                  "id": "sanguinaire-de-khorne"
+                },
                 "count": 1,
                 "allyOfCaster": true,
                 "despawnIfCasterDown": true
@@ -9328,7 +9342,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "zombie",
+                "creature": {
+                  "id": "zombie"
+                },
                 "count": {
                   "bonusOf": "force-mentale"
                 },
@@ -9402,7 +9418,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "squelette",
+                "creature": {
+                  "id": "squelette"
+                },
                 "count": 1,
                 "countPerSL": {
                   "every": 1,
@@ -9463,7 +9481,9 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "tableId": "allure-demoniaque-nurgle",
+                  "table": {
+                    "id": "allure-demoniaque-nurgle"
+                  },
                   "extraRollsPerStep": 1
                 }
               ]
@@ -9484,7 +9504,9 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "tableId": "allure-demoniaque-slaanesh",
+                  "table": {
+                    "id": "allure-demoniaque-slaanesh"
+                  },
                   "extraRollsPerStep": 1
                 }
               ]
@@ -9505,7 +9527,9 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "tableId": "allure-demoniaque-tzeentch",
+                  "table": {
+                    "id": "allure-demoniaque-tzeentch"
+                  },
                   "extraRollsPerStep": 1
                 }
               ]
@@ -9526,7 +9550,9 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "tableId": "allure-demoniaque-indivisible",
+                  "table": {
+                    "id": "allure-demoniaque-indivisible"
+                  },
                   "extraRollsPerStep": 1
                 }
               ]
@@ -9698,7 +9724,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "sanguinaire-de-khorne",
+                "creature": {
+                  "id": "sanguinaire-de-khorne"
+                },
                 "count": 1,
                 "allyOfCaster": false
               }
@@ -13840,7 +13868,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "loup",
+                "creature": {
+                  "id": "loup"
+                },
                 "count": 1,
                 "allyOfCaster": true
               }
@@ -14052,7 +14082,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "loup",
+                "creature": {
+                  "id": "loup"
+                },
                 "count": 1,
                 "addTraits": [
                   {
@@ -14657,7 +14689,9 @@
               "kind": "has",
               "who": "target",
               "what": "immunity",
-              "value": "poison"
+              "ref": {
+                "id": "poison"
+              }
             }
           },
           "alors": {
@@ -15409,7 +15443,9 @@
             "ops": [
               {
                 "op": "contractDisease",
-                "disease": "mal-de-mer"
+                "disease": {
+                  "id": "mal-de-mer"
+                }
               }
             ]
           }
@@ -16617,8 +16653,10 @@
               "kind": "has",
               "who": "target",
               "what": "talent",
-              "value": "magie-des-arcanes",
-              "spec": "lumiere"
+              "ref": {
+                "id": "magie-des-arcanes",
+                "spec": "lumiere"
+              }
             }
           },
           "alors": {
@@ -21510,13 +21548,17 @@
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "mort-vivant"
+                  "ref": {
+                    "id": "mort-vivant"
+                  }
                 },
                 {
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "ethere"
+                  "ref": {
+                    "id": "ethere"
+                  }
                 }
               ]
             },
@@ -21558,7 +21600,9 @@
                   "ops": [
                     {
                       "op": "summon",
-                      "ref": "fantome",
+                      "creature": {
+                        "id": "fantome"
+                      },
                       "count": 0,
                       "countPerSL": {
                         "every": 1,
@@ -22042,13 +22086,17 @@
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "mort-vivant"
+                  "ref": {
+                    "id": "mort-vivant"
+                  }
                 },
                 {
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "ethere"
+                  "ref": {
+                    "id": "ethere"
+                  }
                 }
               ]
             }
@@ -23828,7 +23876,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "sanglier",
+                "creature": {
+                  "id": "sanglier"
+                },
                 "count": 1,
                 "allyOfCaster": true
               },
@@ -24624,7 +24674,9 @@
             "ops": [
               {
                 "op": "polymorph",
-                "ref": "griffon"
+                "creature": {
+                  "id": "griffon"
+                }
               },
               {
                 "op": "narrative",
@@ -25982,7 +26034,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "fabrique-par-magie",
+                "creature": {
+                  "id": "fabrique-par-magie"
+                },
                 "count": 1,
                 "allyOfCaster": true
               }
@@ -26292,7 +26346,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "elementaire-incarne-de-la-mort",
+                "creature": {
+                  "id": "elementaire-incarne-de-la-mort"
+                },
                 "count": 1,
                 "allyOfCaster": false
               }
@@ -26344,7 +26400,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "elementaire-incarne-du-feu",
+                "creature": {
+                  "id": "elementaire-incarne-du-feu"
+                },
                 "count": 1,
                 "allyOfCaster": false
               }
@@ -26396,7 +26454,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "predateur-sanglant",
+                "creature": {
+                  "id": "predateur-sanglant"
+                },
                 "count": 1,
                 "allyOfCaster": false
               }
@@ -26556,7 +26616,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "bete-des-marais",
+                "creature": {
+                  "id": "bete-des-marais"
+                },
                 "count": 1,
                 "allyOfCaster": true
               }
@@ -28386,7 +28448,9 @@
             "ops": [
               {
                 "op": "summon",
-                "ref": "colosse-necrofex",
+                "creature": {
+                  "id": "colosse-necrofex"
+                },
                 "count": 1,
                 "allyOfCaster": true
               }

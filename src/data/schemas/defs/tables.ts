@@ -1,8 +1,8 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /**
  * Schéma de `tables.json` — Tables d'EFFETS référençables (`EffectTable`, `src/data/effectTables.ts`).
- * Rangées `[min,max] → GameOp[]` tirées par l'op `rollTable` variante `tableId`. Miroir de `mutationTables`
- * mais la rangée porte des `GameOp` (forme LOOSE `gameOpSchema`) au lieu d'un id de mutation.
+ * Rangées `[min,max] → GameOp[]` tirées par l'op `rollTable` variante `table: { id }`. Miroir de `mutationTables`
+ * mais la rangée porte des `GameOp` validées par leur charge stricte au lieu d'un id de mutation.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

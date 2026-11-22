@@ -22,6 +22,9 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "peau",
@@ -42,7 +45,7 @@
     }
   ],
   "glb": {
-    "sha256": "e8ff797367e1b9abe9b07f51f79c648406519a399a99b0e9464fa2d0f6cabb49",
-    "octets": 706404
+    "sha256": "b23244f14eed10fcc12115e2165583689df2eca16ad0fb791cf9491b8769e2bb",
+    "octets": 706452
   }
 }

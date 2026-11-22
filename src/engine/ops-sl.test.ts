@@ -1,6 +1,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { applyOps } from './ops';
+import { applyOps, type GameOp } from './ops';
+import { groupMatch } from './groups';
 import { slBonus } from './formule';
 import { stacks } from './conditions';
 import type { Combatant } from './types';
@@ -111,9 +112,9 @@ describe('onlyGroups — ops gatées par Groupe de la cible (Feu de l’âme, LD
   it('un Mort-vivant gagne l’État, un Humain non ; les wounds non gatées touchent les deux', () => {
     const zombie = dummy({ groups: ['mort-vivant'] });
     const villageois = dummy({ groups: ['humain'] });
-    const ops = [
-      { op: 'wounds' as const, amount: 3 },
-      { op: 'condition' as const, id: { id: 'en-flammes' }, onlyGroups: ['mort-vivant', 'demon'] },
+    const ops: GameOp[] = [
+      { op: 'wounds', amount: 3 },
+      { op: 'condition', id: { id: 'en-flammes' }, onlyGroups: ['mort-vivant', 'demon'] },
     ];
     applyOps(zombie, ops, { idNeuf: idsDeTest, rng: desDuTest, sl: 0 });
     applyOps(villageois, ops, { idNeuf: idsDeTest, rng: desDuTest, sl: 0 });
@@ -124,8 +125,6 @@ describe('onlyGroups — ops gatées par Groupe de la cible (Feu de l’âme, LD
   });
 
   it('groupMatch : appartenance STRICTE par id — plus de tolérance de pluriel (« Morts-vivants » ne matche PAS l’id « mort-vivant »)', () => {
-    const zombie = dummy({ groups: ['mort-vivant'] });
-    applyOps(zombie, [{ op: 'condition', id: { id: 'en-flammes' }, onlyGroups: ['Morts-vivants'] }], { idNeuf: idsDeTest, rng: desDuTest });
-    expect(stacks(zombie, 'en-flammes')).toBe(0);
+    expect(groupMatch('Morts-vivants', ['mort-vivant'])).toBe(false);
   });
 });

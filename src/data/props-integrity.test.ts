@@ -497,6 +497,7 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
       'laine', 'fourrure', 'acier-battu', 'mailles', 'verre', 'papier', 'cire', 'cire-a-cacheter', 'terre-cuite',
       'chitine', 'petale', 'toile-peinte', 'crin', 'corne', 'chevelure', 'chair-champignon', 'massette',
       'ecorce', 'ecorce-hetre', 'ecorce-pin',
+      'cuivre', 'bronze-patine', 'or-fin', 'plume', 'osier', 'emaille', 'velours',
     ]);
     for (const m of matieresDe('prop')) {
       expect(m.color, m.id).toMatch(/^#[0-9a-f]{6}$/);
