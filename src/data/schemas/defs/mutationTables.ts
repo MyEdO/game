@@ -1,17 +1,20 @@
-import { nommerChamps, metaDesChamps } from '../grammaire/meta';
-/** LDB 19 ; EDOC */
-import { z } from 'zod';
+import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
+/** LDB 19 ; EDOC 12 */
+import type { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, plageSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
+import type { DiceSpec } from '../../../engine/dice';
 
 export const file = 'mutationTables.json';
 export const famille = 'entite';
 
-export const rangee = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
-  /** id d'une entrée de `mutations.json` (résolu par `rollMutation`/`BY_ID`). */
-  mutation: z.string(),
-}), { ...metaDesChamps(plageSchema, { exigees: true }), mutation: { label: 'Mutation' } });
+const plage = metaDesChamps(plageSchema, { exigees: true });
+
+export const rangee = ref('mutation', {
+  min: nommerNoeud(plageSchema.shape.min.int(), { nom: plage.min.label }),
+  max: nommerNoeud(plageSchema.shape.max.int(), { nom: plage.max.label }),
+});
 
 const doc = document(
   'mutationTables',
@@ -22,7 +25,11 @@ const doc = document(
     codex: { keys: ['mutationTables'] },
     edit: { dataset: 'mutationTables' },
   },
-  { rangee, deDeTirage: true },
+  {
+    rangee,
+    deDeTirage: true,
+    affinerDataset: couvertureDuDeParDocument<{ id: string; die: DiceSpec; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} »`),
+  },
 );
 
 export const schema = doc.schema;

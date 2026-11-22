@@ -23,11 +23,11 @@ const item = (over: Partial<ItemInstance> = {}): ItemInstance =>
   ({ uid: 'i', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
 
 describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', () => {
-  it('isConsumable = Flow du CATALOGUE (lu par `trappingId`) présent et non vide', () => {
-    expect(isConsumable(garanti(itemFromTrappingById('potion-de-guerison', idsDeTest), 'potion-de-guerison', 'objet'))).toBe(true);
-    expect(isConsumable(garanti(itemFromTrappingById('belladone', idsDeTest), 'belladone', 'objet'))).toBe(true); // Flow à nœud `test`
-    expect(isConsumable(garanti(itemFromTrappingById('corde', idsDeTest), 'corde', 'objet'))).toBe(false);
-    expect(isConsumable(item())).toBe(false); // objet hors catalogue
+  it('isConsumable = Flow de la fiche résolue présent et non vide', () => {
+    expect(isConsumable(garanti(itemFromTrappingById('potion-de-guerison', idsDeTest), 'potion-de-guerison', 'objet'), findTrappingById)).toBe(true);
+    expect(isConsumable(garanti(itemFromTrappingById('belladone', idsDeTest), 'belladone', 'objet'), findTrappingById)).toBe(true); // Flow à nœud `test`
+    expect(isConsumable(garanti(itemFromTrappingById('corde', idsDeTest), 'corde', 'objet'), findTrappingById)).toBe(false);
+    expect(isConsumable(item(), findTrappingById)).toBe(false); // objet hors catalogue
   });
 
   it('consumableUntilTime : « Durée : 2d10 minutes » résolue AU BOIRE depuis now (dés tirés une fois)', () => {
@@ -83,7 +83,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     const g = f as Extract<Flow, { kind: 'si' }>;
     expect(g.condition).toEqual({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 });
     expect(consumableOps(f)).toEqual([{ op: 'heal', amount: { bonusOf: 'endurance' } }]);
-    expect(isConsumable(itemFromTrappingById('potion-de-guerison', idsDeTest)!)).toBe(true);
+    expect(isConsumable(itemFromTrappingById('potion-de-guerison', idsDeTest)!, findTrappingById)).toBe(true);
   });
   it('necessaire-antipoison : « Un Test de Guérison réussi … retire tous les États Empoisonné » (LDB 67 l.13)', () => {
     const f = findTrappingById('necessaire-antipoison')!.consumable! as Extract<Flow, { kind: 'test' }>;

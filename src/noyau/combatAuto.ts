@@ -41,7 +41,7 @@ import {
   type SurfaceHorsPendingDef,
   type VerbesDeFenetre,
 } from './modalArbiter';
-import { maladresseCourante, stepInteraction } from './cascade';
+import { fermetureHoteDeToutResoudre, maladresseCourante, stepInteraction } from './cascade';
 import type { HostJet } from './slotsDeJet';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
 import { influencesLocally, ownsLocal } from './netOwnership';
@@ -257,7 +257,16 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     if (etape?.jet) {
       const { flux, rangees, reactives = [] } = FENETRE_DU_JET[etape.jet];
       const reactive = reactives.find((w) => w.rangees(s));
-      return { cle, proprietaire, gestes: gestesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), flux], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? gestesDuDrive(JET_AUTO[etape.jet]), etape };
+      const gestes = gestesDuJet(etape.jet, reactive);
+      return {
+        cle,
+        proprietaire,
+        gestes: fermetureHoteDeToutResoudre(s, etape) ? [...gestes, TOUT_RESOUDRE] : gestes,
+        flux: [...(reactive ? [reactive.flux] : []), flux],
+        ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))),
+        drive: reactive?.drive ?? gestesDuDrive(JET_AUTO[etape.jet]),
+        etape,
+      };
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
     const flux = parInteraction?.flux;

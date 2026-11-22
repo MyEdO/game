@@ -6,17 +6,11 @@ offert sur la face du plastron (`Base.offrir`)."""
 import math
 
 import numpy as np
-from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
 from robe import COU, TRONC, Nappe, piece_de
-from tissu import anneau, centre_de, direction, emprunter, porteur_de
+from tissu import anneau, centre_de, direction, emprunter, porteur_de, toucher, unitaire, viser
 
 ZONES = TRONC + COU + ['bras_haut_g', 'bras_haut_d']
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
 
 
 def construire(D, materiaux, b):
@@ -74,7 +68,6 @@ def construire(D, materiaux, b):
 
     # Bretelles : de chaque colonne de `BRETELLE` de l'encolure du plastron (et son symétrique à gauche) à sa symétrique
     # de la dossière, des rangées posées sur l'épaule au `JEU_DE_BRETELLE`.
-    epaule = BVHTree.FromPolygons([tuple(p) for p in tronc['P']], tronc['T'].tolist(), all_triangles=True)
     haut = grille[-1]
     for signe in (1, -1):
         colonnes = []
@@ -84,7 +77,7 @@ def construire(D, materiaux, b):
             ligne = [haut[devant]]
             for f in D['TRAVERSE_DE_BRETELLE']:
                 p = a + f * (bb - a)
-                touche = epaule.ray_cast(Vector((p[0], p[1], p[2] + 0.5)), Vector((0.0, 0.0, -1.0)), 1.0)[0]
+                touche = viser(tronc, np.array([p[0], p[1], p[2] - 0.5]), np.array([0.0, 0.0, 1.0]), 1.0)[0]
                 if touche is None:
                     raise ValueError(f'bretelle : aucune épaule sous {tuple(p)}')
                 q = np.array([p[0], p[1], max(p[2], touche.z + D['JEU_DE_BRETELLE'])])
@@ -110,15 +103,13 @@ def construire(D, materiaux, b):
 def poitrine(D, b, M):
     """Offre l'emplacement `poitrine` sur la face extérieure du plastron, au point (x, z) de `POITRINE` : son +Z glTF sur
     la normale sortante, son +Y vers le haut, ses poids ceux du plastron sous le point."""
-    X, T = np.array(M.sommets), np.array(M.triangles)
+    plastron = porteur_de(np.array(M.sommets), np.array(M.triangles), np.array(M.poids))
     x, z = D['POITRINE']
-    arbre = BVHTree.FromPolygons([tuple(p) for p in X], T.tolist(), all_triangles=True)
-    touche, normale, _, _ = arbre.ray_cast(Vector((x, -1.0, z)), Vector((0.0, 1.0, 0.0)), 2.0)
+    touche = toucher(plastron, np.array([x, 1.0, z]), np.array([0.0, -1.0, 0.0]), 2.0)
     if touche is None:
         raise ValueError(f'poitrine : aucun plastron en ({x}, {z})')
-    p = np.array(touche)
-    nz = unitaire(np.array(normale) * (1 if normale.y < 0 else -1))
+    p, nz = touche[0], unitaire(touche[1])
     ny = unitaire(np.array([0.0, 0.0, 1.0]) - nz[2] * nz)
     nx = np.cross(ny, nz)
-    w = emprunter(p, porteur_de(X, T, np.array(M.poids)))[0]
+    w = emprunter(p, plastron)[0]
     b.offrir('poitrine', w, p, (nx, ny, nz))

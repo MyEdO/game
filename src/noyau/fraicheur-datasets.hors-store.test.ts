@@ -28,7 +28,7 @@ import { stageWeatherRows } from './travelFlow';
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from './corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from '../data/overrides';
-import { marchandisesDe, findCargoById, rollSeasonalCargo, type CargoDef } from '../engine/cargo';
+import { marchandisesDe, findCargoById, rollSeasonalCargo, cargoBasePrice, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
@@ -38,7 +38,7 @@ import {
 import { tickWindForce, tickWindForceDay, windEffect } from '../engine/seaWeather';
 import { schema as seaWeatherSchema } from '../data/schemas/defs/sea-weather';
 import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
-import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
+import { minCargoEnc, partialSurchargePct, rollMerchantSkill, rollWineQuality } from '../engine/landCargo';
 import { rollAvailability, barterRatio, colonneDeLaTaille } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from './seaVoyageFlow';
@@ -384,6 +384,31 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
     setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max! - 1 } : e)));
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max! - 1);
+  });
+
+  it('le prix par point d’Enc des cargaisons terrestres suit l’unité éditée, y compris pour le vin', () => {
+    const rng = deFixe(6);
+    const metal = findCargoById('metal')!;
+    const lireLesPrix = () => [cargoBasePrice(metal, 'automne', rng), rollWineQuality(rng).price];
+    const avant = lireLesPrix();
+    const fiche = structuredClone(datasetObject('landCargo'));
+    setObjectDataset('landCargo', {
+      ...fiche, prixDuLivre: { ...fiche.prixDuLivre, encParPrix: fiche.prixDuLivre.encParPrix / 2 },
+    });
+    expect(lireLesPrix()).toEqual(avant.map((prix) => prix * 2));
+  });
+
+  it('le prix par point d’Enc des cargaisons maritimes suit l’unité éditée, y compris pour le vin', () => {
+    const rng = deFixe(6);
+    const bois = findCargoById('bois-mer')!;
+    const vin = findCargoById('vin')!;
+    const lireLesPrix = () => [cargoBasePrice(bois, 'ete', rng), cargoBasePrice(vin, 'ete', rng)];
+    const avant = lireLesPrix();
+    const fiche = structuredClone(datasetObject('seaCargo'));
+    setObjectDataset('seaCargo', {
+      ...fiche, prixDuLivre: { ...fiche.prixDuLivre, encParPrix: fiche.prixDuLivre.encParPrix * 2 },
+    });
+    expect(lireLesPrix()).toEqual(avant.map((prix) => prix / 2));
   });
 
   it('les règles de négoce maritime ÉDITÉES (#3433) : plafond de surcharge et bandes du Prix d’offre servis NEUFS', () => {

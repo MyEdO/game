@@ -67,7 +67,7 @@ function fichiers(tr = trauma(), sources = { 'src/engine/source.ts': PRODUCTEUR 
       [`src/data/${nom}.json`, JSON.stringify([{ id: nom, passive: [{ op: 'skillMod' }] }])],
     ])),
     'src/data/mutations.json': JSON.stringify([{ id: 'mutation', kind: 'mental' }]),
-    'src/data/mutationTables.json': JSON.stringify([{ entries: [{ mutation: 'mutation' }] }]),
+    'src/data/mutationTables.json': JSON.stringify([{ entries: [{ id: 'mutation' }] }]),
   }
 }
 

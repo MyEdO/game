@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -173,10 +174,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     e.pos = { x: 6, y: 5 }; // adjacents (mêlée)
 
     // Sans contact : l'arme Longue garde son profil.
-    expect(firedWeapon(banc.getState().scene, h, e).damage).toEqual(longWeapon.damage);
+    expect(firedWeapon(findTrappingById, banc.getState().scene, h, e).damage).toEqual(longWeapon.damage);
 
     setContact(h, e);
-    const fired = firedWeapon(banc.getState().scene, h, e);
+    const fired = firedWeapon(findTrappingById, banc.getState().scene, h, e);
     expect(fired.damage).toEqual({ plusBF: true, flat: 1 }); // improvisée
     expect(fired.qualities).toEqual([{ id: 'inoffensive' }]);
   });

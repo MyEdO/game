@@ -38,7 +38,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { ensureBourse, bourseInstanceOf, withBourseMoney } from '../engine/bourse';
-import { talentConcrete } from '../data';
+import { findTrappingById, talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
 import { t } from '../i18n';
@@ -1626,7 +1626,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
       kind: 'prop',
       pos: { x: 1, y: 0 },
       label: 'Cadavre du cocher',
-      usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveTrapping', trappingId: 'dague' }]) }] },
+      usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveTrapping', objet: { id: 'dague' } }]) }] },
     });
     banc.setState({ party: [heroWithBag()] });
     banc.getState().lancerLaScene(scene);
@@ -1882,7 +1882,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('giveTrapping AVEC heroId (don d’auteur ciblé) : direct sur le héros, pas de fenêtre', () => {
     lootScene();
-    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague', heroId: 'a' }], 'Test');
+    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: 'dague' }, heroId: 'a' }], 'Test');
     const st = banc.getState();
     expect(st.pendingLoot).toBeNull();
     expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
@@ -1891,7 +1891,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('en combat : applyEffectsLoot passe en direct (pas de fenêtre — Ramasser/victoire ont leurs flux)', () => {
     lootScene();
     banc.setState({ battle: { combatants: [] } as unknown as BattleState });
-    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Test');
+    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: 'dague' } }], 'Test');
     expect(banc.getState().pendingLoot).toBeNull();
     expect((banc.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
   });
@@ -1954,7 +1954,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('Détection sur un objet NON magique : « aucune aura », tentative du détecteur consommée', () => {
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
-    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
+    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: 'dague' } }], 'Sac');
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detection');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
@@ -1964,7 +1964,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(line.effect.magicKnown).toBeUndefined();
   });
 
-  it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
+  it('Évaluation du contenu du coffre : un échec à DR négatif ouvre un nouvel essai le lendemain avec le délai par défaut', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
@@ -1985,7 +1985,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('fenêtres successives : le butin s’AJOUTE à la fenêtre ouverte (pas d’écrasement)', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
-    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac oublié');
+    applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: 'dague' } }], 'Sac oublié');
     const pl = banc.getState().pendingLoot!;
     expect(pl.title).toBe('Coffre de la garnison'); // la 1re fenêtre garde son titre
     expect(pl.gear.map((g) => g.label)).toEqual(['Épée', 'Dague']);
@@ -2248,8 +2248,8 @@ describe('Ramasser un objet au sol en combat (un à la fois, `ramassage` de `act
           unique: true,
           flow: flowFromEffects([
             { type: 'journal', desc: 'Son tromblon repose à côté.' }, // index 0 (non ramassable)
-            { type: 'giveTrapping', trappingId: 'dague' }, // index 1
-            { type: 'giveTrapping', trappingId: 'tromblon' }, // index 2
+            { type: 'giveTrapping', objet: { id: 'dague' } }, // index 1
+            { type: 'giveTrapping', objet: { id: 'tromblon' } }, // index 2
           ]),
         }],
       },
@@ -2276,8 +2276,8 @@ describe('Ramasser un objet au sol en combat (un à la fois, `ramassage` de `act
     // la partie : le drapeau de la feuille prise, que le pool comme la fouille en exploration lisent.
     const corps = st.scene!.entities.find((e) => e.id === 'corps')!;
     const feuilles = flowEffects(corps.usable!.actions![0].flow);
-    expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'tromblon')).toBe(true);
-    expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'dague')).toBe(true);
+    expect(feuilles.some((e) => e.type === 'giveTrapping' && e.objet?.id === 'tromblon')).toBe(true);
+    expect(feuilles.some((e) => e.type === 'giveTrapping' && e.objet?.id === 'dague')).toBe(true);
     expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif), st.objetsAuSol).map((p) => p.key)).toEqual(['fouiller:eff:1']);
   });
 
@@ -2774,7 +2774,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
 
     // (1) Set PISTOLET : on le charge (Test étendu abouti) — il porte SA munition.
     let h = swap('pist');
-    loadWeapon(h, h.weapons.find((w) => w.uid === 'w-pist')!);
+    loadWeapon(findTrappingById, h, h.weapons.find((w) => w.uid === 'w-pist')!);
     expect(loadRegister(h, h.weapons.find((w) => w.uid === 'w-pist')!).loadedAmmoUid).toBe('am-balles');
     // (2) Set ARBALÈTE : elle a tiré, son Test étendu est à 1 DR.
     h = swap('arb');
@@ -2811,8 +2811,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     recomputeLoadout(H);
     const of = (uid: string) => banc.getState().battle!.combatants.find((c) => c.id === H.id)!.weapons.find((w) => w.uid === uid)!;
     const hero = () => banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    loadWeapon(H, H.weapons.find((w) => w.uid === 'p1')!);
-    loadWeapon(H, H.weapons.find((w) => w.uid === 'p2')!);
+    loadWeapon(findTrappingById, H, H.weapons.find((w) => w.uid === 'p1')!);
+    loadWeapon(findTrappingById, H, H.weapons.find((w) => w.uid === 'p2')!);
 
     // (1) La munition se choisit ARME PAR ARME : le gauche passe aux balles fines, le droit n'y touche pas.
     banc.getState().approvisionnerLArme('balles-fines', 'p2');

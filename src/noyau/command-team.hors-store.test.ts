@@ -5,7 +5,7 @@ import { setRule } from '../engine/policy';
 import { voiceCommandRangeM, teamCommandTargets, canAidTeam } from './monde/commandTeam';
 import { applyShipPostes } from './monde/shipPostes';
 import { attackEnv, previewAttack } from './combatFlow';
-import { itemFromTrappingById } from '../engine/items';
+import { hydratePoste } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -59,7 +59,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
+  hydratePoste({ engin: { id: engineId }, crewIds }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,

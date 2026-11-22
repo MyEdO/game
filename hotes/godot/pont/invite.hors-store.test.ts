@@ -18,12 +18,18 @@ import {
   ruleOverrides,
   type LigneDuJournal,
 } from '../../../src/noyau/index';
-import { appliquerLInstantane } from '../../../src/noyau/coop';
+import { appliquerLInstantane, instantaneDeLaCoop } from '../../../src/noyau/coop';
+import { surUnBancHorsTest } from '../../../src/noyau/banc.testkit';
+import { appliquerLIntentionDUnSiege } from '../../../src/noyau/intentionsDeSiege';
+import { armerLeCarreau, lancerLeCarreau, repondantDuContreSort } from '../../../src/noyau/contre-sort.testkit';
 import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import type { ZonesDuSalon } from '../../../src/hote/salon';
 import type { Bouton, Element, Entite, Ligne } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
+import { testScene } from '../../../src/scenes/test-fixture';
+import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 
 type Appel = ReturnType<typeof table>['appel'];
 
@@ -199,6 +205,59 @@ const offre = (s: { vue: { zones: { 'combat.offres': Element[] } } }, id: string
   s.vue.zones['combat.offres'].flatMap((c) => (c.type === 'choix' ? c.valeurs : [])).find((v) => v.id === id);
 
 describe('le pont rejoint un salon', () => {
+  it('Contre-sort : nouvelles filtre le lancer du MJ avant la réponse dans la Suite JSON', async () => {
+    const declarer = ['contreSort', 'declaration', 'solo', repondantDuContreSort];
+    const lancer = ['contreSort', repondantDuContreSort];
+    const trames = surUnBancHorsTest((banc) => {
+      const get = banc.getState;
+      const instantane = () => serializeMessage({ kind: 'snapshot', data: instantaneDeLaCoop(get()) });
+      armerLeCarreau(banc, testScene(), () => herosDeScenario(idsDeTest, 'sorcier'));
+      lancerLeCarreau(banc);
+      try {
+        expect(get().pendingCast!.result).toMatchObject({ roll: 30, target: 75, sl: 4 });
+        expect(get().pendingCounterspell!.participants[0]).toMatchObject({ id: repondantDuContreSort, result: null });
+        const avant = instantane();
+        appliquerLIntentionDUnSiege(get, 1, 'jetRegler', declarer);
+        const declare = instantane();
+        appliquerLIntentionDUnSiege(get, 1, 'jetLancer', lancer);
+        expect(get().pendingCounterspell!.participants[0].result).toBeTruthy();
+        return { avant, declare, apres: instantane() };
+      } finally {
+        vi.restoreAllMocks();
+      }
+    });
+
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    await recevoir(ws, trames.avant);
+    const avant = suiteDe(appel('nouvelles'));
+    expect(avant.vue.projection.jets.find((j) => j.flux === 'incantation')?.lignes[0])
+      .toMatchObject({ etat: 'masque', cible: null, jet: null });
+    expect(avant.vue.zones['fenetre.corps'].find((e) => e.id === 'jet'))
+      .toMatchObject({ resultat: t('ecran.jet.cache'), cible: null, dr: null, verdict: null, detail: null });
+    expect(avant.vue.zones['fenetre.corps'].map((e) => e.id)).not.toContain('surincantation');
+    const fenetre = avant.vue.projection.fenetre!;
+    expect(fenetre.gestes.map((g) => g.flux)).not.toContain('incantation');
+    expect(fenetre.gestes).toContainEqual(expect.objectContaining({ flux: 'contreSort', verbe: 'jetLancer' }));
+    expect(Object.keys(fenetre.fermes).every((id) => !id.includes('@incantation'))).toBe(true);
+    const reglages = avant.vue.zones['fenetre.reglages'];
+    expect(reglages.some((e) => e.id.includes('@incantation'))).toBe(false);
+    expect(reglages.some((e) => e.id.includes('@contreSort'))).toBe(true);
+    expect(JSON.stringify(avant)).not.toMatch(/"≤ 75"|"d100":30|"resultat":"30"|"DR \+4"|"1 pas sur 1"/);
+
+    expect(appel('jouer', { type: 'jetRegler', args: declarer })).toMatchObject({ ok: true });
+    await recevoir(ws, trames.declare);
+    suiteDe(appel('nouvelles'));
+    expect(appel('jouer', { type: 'jetLancer', args: lancer })).toMatchObject({ ok: true });
+    expect(await intentionsParties(ws)).toEqual([['jetRegler', declarer], ['jetLancer', lancer]]);
+    await recevoir(ws, trames.apres);
+    const apres = suiteDe(appel('nouvelles'));
+    expect(apres.vue.projection.jets.find((j) => j.flux === 'incantation')?.lignes[0])
+      .toMatchObject({ etat: 'revele', cible: 75, jet: { d100: 30, dr: 4, verdict: 'reussite' } });
+    expect(apres.vue.zones['fenetre.corps'].find((e) => e.id === 'jet')).toMatchObject({ resultat: '30', cible: '≤ 75', dr: 'DR +4' });
+  });
+
   it('M1, M2 — assis, après chaque instantané sa vue est celle de l’hôte, ses gestes émettent des intentions ; le journal de l’hôte arrive une fois', async () => {
     const { instantanes, vues } = await tramesDeLHote();
     const { appel } = invite();
@@ -219,6 +278,33 @@ describe('le pont rejoint un salon', () => {
     expect(textesDuJournal(suiteDe(appel('nouvelles')).journal), 'le même instantané redit le journal').toEqual([]);
   });
 
+  it('nouvelles dit deux refus identiques dans l’ordre, même avec un instantané avant chaque relève', async () => {
+    const { instantanes, vues } = await tramesDeLHote();
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    const texte = t('cs.refusCourseNonArmee');
+    const autre = t('coop.intentRefused');
+    const verdicts = [texte, autre, texte];
+    for (const verdict of verdicts) {
+      await recevoir(ws, serializeMessage({ kind: 'intent-refused', texte: verdict }));
+    }
+    await recevoir(ws, instantanes[0]);
+    const suites = [suiteDe(appel('nouvelles'))];
+    for (const [i, message] of verdicts.entries()) {
+      const instantane = instantanes[i + 1];
+      await recevoir(ws, instantane);
+      expect(erreurDe(appel('nouvelles'))).toEqual({ categorie: 'regle', message });
+      await recevoir(ws, instantane);
+      suites.push(suiteDe(appel('nouvelles')));
+    }
+    expect(suites.map(({ vue: { projection } }) => [projection.scene?.id, projection.exploration?.groupe])).toEqual(vues);
+    const journaux = suites.map(({ journal }) => textesDuJournal(journal));
+    expect(journaux.map((lignes) => lignes.length)).toEqual([0, 0, 0, 1]);
+    for (const verdict of verdicts) expect(journaux.flat()).not.toContain(verdict);
+    expect(appel('nouvelles')).toEqual(RIEN);
+  });
+
   it('M3 (a, b, c) — en combat, au tour du héros de son siège : l’attaque armée chez lui puis le clic du champ partent, un verbe `local` ne part pas, un verbe de l’hôte en `regle`', async () => {
     const instantane = await combatDeLHote();
     const { battle, net } = JSON.parse(instantane).data as { battle: { combatants: { id: string; pos: { x: number; y: number } }[] }; net: { ownership: Record<string, number> } };
@@ -234,7 +320,7 @@ describe('le pont rejoint un salon', () => {
     expect(await intentionsParties(ws), '(a)').toEqual(partiesEnA);
     expect(offre(suiteDe(appel('jouer', { type: 'armerLIntention', args: ['course'] })), 'course'), 'la course ne s’est pas armée chez l’invité').toMatchObject({ presse: true });
     expect(await intentionsParties(ws), '(b) le verbe `local` est parti').toEqual(partiesEnA);
-    expect(erreurDe(appel('jouer', { type: 'ouvrirLaCarte', args: [] }))).toEqual({ categorie: 'regle', message: `ouvrirLaCarte : ${t('coop.hoteSeul')}` });
+    expect(erreurDe(appel('jouer', { type: 'ouvrirLaCarte', args: [] }))).toEqual({ categorie: 'regle', message: t('coop.hoteSeul') });
     expect(await intentionsParties(ws), '(c) le verbe de l’hôte est parti').toEqual(partiesEnA);
   });
 
@@ -245,8 +331,8 @@ describe('le pont rejoint un salon', () => {
     await recevoir(ws, instantane);
     suiteDe(appel('nouvelles'));
     const avant = [...stockage.contenu];
-    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: `lancer : ${t('party.guest.waiting')}` });
-    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: `reglages : ${t('houseRules.lockedForGuest')}` });
+    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: t('party.guest.waiting') });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: t('houseRules.lockedForGuest') });
     expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte ont changé').toBe(12);
     expect([...stockage.contenu], 'le stockage du joueur a changé').toEqual(avant);
   });

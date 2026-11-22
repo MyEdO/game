@@ -197,7 +197,7 @@ scenes.push(scene({
                 // embarque Kramer à bord. Levé au démasquage (nuit du chat) via `adjustVessel { saboteurDR: 0 }`.
                 // crew : roster SALARIÉ d'un petit caboteur (paie hebdo `tickCampaignVesselWeek`, `crew-roles.json`). #216
                 {
-                  type: 'setVessel', vehicleId: 'loup-imperial', label: 'Le Grimm',
+                  type: 'setVessel', navire: { id: 'loup-imperial' }, label: 'Le Grimm',
                   morale: 75, hullCurrent: 180, hullMax: 180, saboteurDR: -2, waterLitres: GRIMM_WATER_LITRES,
                   crew: [
                     { roleId: 'navigateur', count: 1 },
@@ -419,7 +419,7 @@ scenes.push(scene({
       // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: { id: 'cogue' }, atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm', side: 'allie' },
+        { entityId: 'grimm', side: 'allie', navireDeCampagne: true },
         { entityId: 'aldo-crew', side: 'allie' },
         { entityId: 'griet-crew', side: 'allie' },
         { entityId: 'cogue', side: 'ennemi' },
@@ -597,7 +597,7 @@ scenes.push(scene({
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
       victoryCondition: { type: 'woundsThreshold', targetId: { id: 'serpent-de-sel' }, atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm2', side: 'allie' },
+        { entityId: 'grimm2', side: 'allie', navireDeCampagne: true },
         { entityId: 'aldo-crew-2', side: 'allie' },
         { entityId: 'griet-crew-2', side: 'allie' },
         { entityId: 'serpent-de-sel', side: 'ennemi' },

@@ -91,16 +91,12 @@ export function rollSeasonalCargo(voie: Voie, saison: Season, rng: RNG): CargoDe
   return garanti(findCargoById(id), id, 'marchandise du Tableau des cargaisons');
 }
 
-/** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
-const ENC_PAR_PRIX: Readonly<Record<Voie, number>> = {
-  mer: seaCargo.prixDuLivre.encParPrix,
-  terre: landCargo.prixDuLivre.encParPrix,
-};
+const commerceParVoie = { mer: seaCargo, terre: landCargo };
 
 /** SEULE conversion d'un prix du livre de la voie en CO par point d'Enc, l'unité de `CargoLot.basePriceGold`.
  *  PUR. MSRC 13 l.91, MDG 15 l.436 */
 export function prixParPointDEnc(prixDuLivre: number, voie: Voie): number {
-  return prixDuLivre / ENC_PAR_PRIX[voie];
+  return prixDuLivre / commerceParVoie[voie].prixDuLivre.encParPrix;
 }
 
 /** Prix de BASE d'une cargaison pour la saison, en CO par point d'Enc (`prixParPointDEnc`). Prix « à dés » tiré
@@ -124,9 +120,12 @@ export function valeurDeLaCargaison(lots: CargoLot[]): number {
   return Math.round(lots.reduce((s, l) => s + Math.max(0, l.enc) * l.basePriceGold, 0) * PA_PER_CO);
 }
 
-/** Enc TOTAL embarqué (pénalités de Contenance, avaries « gâtent 1d10 Enc »…). PUR. */
-export function cargoTotalEnc(lots: CargoLot[]): number {
-  return lots.reduce((s, l) => s + Math.max(0, l.enc), 0);
+/** Enc embarqué sur l'ensemble des lots ou pour une marchandise donnée. PUR. */
+export function cargoTotalEnc(lots: readonly CargoLot[], cargoId?: string): number {
+  return lots.reduce((enc, lot) => {
+    if (cargoId !== undefined && lot.cargoId !== cargoId) return enc;
+    return enc + Math.max(0, lot.enc);
+  }, 0);
 }
 
 /** SÉPARE jusqu'à `enc` points d'une cargaison (au fil des lots de cet id) en deux parts qui conservent

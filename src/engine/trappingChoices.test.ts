@@ -13,11 +13,16 @@ import {
   valeursDeLEmplacement,
   type ChoixDeDotation,
 } from './trappingChoices';
+import { desDuTest } from './dice.testkit';
+import { possessionGrantsFromRefs } from './possessionGrants';
+import { possessionLabel } from './possession';
 import { craftAtoutCount } from './qualities/craftEconomy';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 import {
   careerLevels,
+  findSiegeEngineById,
+  siegeEngines,
   findTrappingById,
   groupeDeLArme,
   trappingRefLabel,
@@ -70,7 +75,18 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
       'Baliste', 'Catapulte (petite)', 'Catapulte (moyenne)', 'Catapulte (grande)', 'Batterie tonnerre de feu', 'Canon à répétition',
       'Canon à répétition feu d\'enfer', 'Canon (petit)', 'Canon (moyen)', 'Canon (grand)', 'Mortier', 'Pierrier',
     ]);
-    expect(resolveTrappingChoices(dotations, { [piece.adresse]: 7 })).toContainEqual({ id: 'canon-petit', type: 'engin' });
+    const choixAA = siegeEngines().filter((engin) => engin.source.book === 'aux-armes').map((engin) => engin.id);
+    const octroyes = valeursDeLEmplacement(piece, { size: 'moyenne' }).map((index) => {
+      const resolues = resolveTrappingChoices(dotations, { [piece.adresse]: index });
+      expect(resolues).toContainEqual({ label: 'Affût', nature: 'vehicule' });
+      const possessions = possessionGrantsFromRefs(resolues, 'artilleur', desDuTest).filter((p) => p.nature === 'engin');
+      expect(possessions).toHaveLength(1);
+      const [p] = possessions;
+      expect(p).toMatchObject({ ownerId: 'artilleur', items: [] });
+      expect(possessionLabel({ ...p, uid: 'piece' })).toBe(findSiegeEngineById(p.trappingId)?.label);
+      return p.trappingId;
+    });
+    expect(octroyes).toEqual(choixAA);
   });
 });
 

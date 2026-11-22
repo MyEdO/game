@@ -76,7 +76,6 @@ le bord du mancheron coude plié (`couche-traversee`, 12 à 15 mm, Lourde_Attaqu
 la manche bouffe sur l'avant-bras (~16 cm de large, 4 cm d'aisance) et se fronce au poignet sous le revers du gant
 (dernier anneau à 1,82, 1,7 cm sous le bord du gant, à 6 mm)."""
 COUPE_MIN = 0.06                   # pourpoint-matelasse
-CREUX_DE_LA_RACINE = 0.0           # pourpoint-matelasse
 RAYON_DE_COUPE_MAX = 0.12          # pourpoint-matelasse
 ANGLE_DU_PAN = 170.0               # pourpoint-matelasse (aucun pan : sans effet)
 INCLINAISON_DU_PAN = 20.0          # pourpoint-matelasse (aucun pan : sans effet)

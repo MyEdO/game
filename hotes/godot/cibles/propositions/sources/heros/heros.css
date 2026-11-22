@@ -96,9 +96,20 @@
 .pills{display:flex;flex-wrap:wrap;gap:5px}
 .pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--encre);background:var(--voile);white-space:nowrap}
 .pill.prise{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:0 1px 3px var(--brou)}
-.pill.fermee{color:rgba(42,29,18,.45);border-color:var(--filet-encre);background:none}
+.pill.fermee{color:rgba(42,29,18,.68);border-color:var(--filet-encre);background:none}
 .pill b{font-size:10.5px}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
+
+/* ───────── création : la colonne du choix, ses places (`choix/*`, `../rendu.js`) ───────── */
+#choix .place{display:flex;flex-direction:column}
+#choix .place>.filet:first-child{margin:4px 26px 5px}
+#choix .tete-l{flex:none;height:28px;margin:0 0 4px}
+#choix .tete-l>.plaques{margin-top:0}
+#choix .place>.defile{flex:1}
+#choix .defile>*{flex:none}
+#choix .tirage{flex:none;height:72px}
+#choix .comptes:first-child{margin-top:0}
+#choix .ligne-ecrite{margin-top:0}
 
 /* ───────── création : les Caractéristiques ───────── */
 .methodes .jeton{margin-left:auto}
@@ -164,7 +175,7 @@
 .tire .plaque>div{font-size:12px;padding:0 10px}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
-.mineurs .pill{height:21px;padding:0 8px;font-size:10.5px}
+.mineurs .pill{height:23px;padding:0 8px;font-size:12px}
 .mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
 .mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
 
@@ -190,9 +201,9 @@
 .plaques{display:flex;gap:8px;margin-top:5px}
 .plaques .plaque{flex:1}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
-.mesure{display:flex;align-items:center;gap:11px}
-.mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
-.mesure .rub .note{font-size:11.5px}
+.physique .mesure{display:flex;align-items:center;gap:11px}
+.physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.physique .mesure .rub .note{font-size:11.5px}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -208,6 +219,9 @@
 .ident .tete .faits{margin-top:10px}
 .ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
 .ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.ident [data-place="identite/reserves"]{display:flex;flex-direction:column}
+.ident [data-place="identite/reserves"]>.reserves{flex:1;align-content:start}
+.ident .reserve .rub{white-space:normal}
 .reserves{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
 .reserve{display:flex;align-items:center;gap:9px}
 .motivation{margin-top:2px;font-family:"Fell";font-style:italic;font-size:16px;line-height:21px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
@@ -216,7 +230,7 @@
 .presentation .competences .ligne{height:24px;padding:0 2px;font-size:13.5px}
 .presentation .competences .ligne small{font-size:12px}
 .presentation .page-c>.rub{margin:8px 0 3px}
-.presentation .reserves{row-gap:6px}
+.ident .en-reserve{justify-content:space-between}
 .presentation .filet{margin:6px 26px}
 .bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
 .bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}
@@ -226,20 +240,24 @@
 .exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
-.ident .pied{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
 .ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
 /* ───────── la fiche : le profil, la figure, les sections ───────── */
-.bande>.fond{display:grid;grid-template-columns:repeat(12,1fr);padding:0 6px}
+.bande>.fond{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));padding:0 6px}
 .bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
 .bande .c+.c{border-left:1px solid var(--filet-encre)}
 .bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
-.bande .c .v{font-family:"Chiffres";font-size:23px;line-height:29px;color:var(--encre)}
+.bande .c .v{font-family:"Chiffres";font-size:23px;line-height:27px;color:var(--encre)}
 .bande .c .aug{font-family:"Chiffres";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
-.bande .c .jeton{margin-top:3px;height:19px;font-size:10.5px;padding:0 6px}
+.bande .c .jeton{margin-top:1px;height:19px;font-size:10.5px;padding:0 6px}
 .bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
 .bande .c>*{position:relative}
+/* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur, la valeur décalée d'autant pour
+   que les deux tiennent dans le cadre de laiton d'une case de carrière */
+.bande .c .v{margin-right:16px}
+.bande .c .aug{position:absolute;top:32px;left:calc(50% + 9px);height:auto}
 .niche{flex:none;width:100%;height:100%;padding:4px;border-radius:2px;box-shadow:0 4px 10px var(--ombre),0 0 0 1px var(--contour)}
 .niche>div{width:100%;height:100%;background:radial-gradient(90% 70% at 50% 34%,#eadbb4,#d3bf90 60%,#b9a070);box-shadow:inset 0 0 0 1px var(--ombre),inset 0 0 22px var(--brou)}
 .niche svg{display:block;width:100%;height:100%}
@@ -255,7 +273,8 @@
 .acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
 .acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
-.acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
+.acquis .gestes .plaque{flex:none}
+.acquis .gestes .bulle-refus{left:auto;right:0;transform:none;box-sizing:border-box;width:100%;white-space:normal;text-align:center}
 .acquis .gestes .bulle-refus::before{left:auto;right:60px}
 
 /* ───────── la fiche : les possessions ───────── */
@@ -312,6 +331,8 @@
 .achat.hors{border-bottom:0;color:var(--encre-2)}
 .achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
+#competences>.fond{display:flex;flex-direction:column}
+#competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
 .depli .pill{height:19px;padding:0 7px;font-size:10px}
@@ -339,17 +360,15 @@
 /* ───────── progression : le changement de carrière ───────── */
 .chemin>.fond{padding:0 30px}
 .chemin .suite{position:relative;height:100%;display:flex;justify-content:space-between}
-.chemin .rail{position:absolute;top:29px;height:2px;background:var(--filet-encre)}
-.chemin .rail.fait{height:3px;top:28px;background:linear-gradient(180deg,var(--or-moyen),var(--laiton-ombre))}
-.station{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:12px}
+.chemin .rail{position:absolute;top:21px;height:2px;background:var(--filet-encre)}
+.chemin .rail.fait{height:3px;top:20px;background:linear-gradient(180deg,var(--or-moyen),var(--laiton-ombre))}
+.station{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:4px}
 .station .pt{position:relative;width:34px;height:34px;display:grid;place-items:center}
 .station .pt>.jeton{position:absolute;left:40px;top:7px;height:19px;font-size:10.5px;padding:0 7px}
 .station .clou-fer{position:relative;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,var(--fer-clair) 60%,var(--noir));box-shadow:0 1px 2px var(--ombre)}
 .station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
 .station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
-.station .clou-fer .bulle-refus{left:auto;right:-30px;transform:none}
-.station .clou-fer .bulle-refus::before{left:auto;right:32px}
-.station .et{margin-top:6px;text-align:center;white-space:nowrap}
+.station .et{margin-top:4px;text-align:center;white-space:nowrap}
 .station .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
 .station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:13px;letter-spacing:.8px;color:var(--rouille)}
 .station.loin .et b{color:rgba(42,29,18,.5)}
@@ -361,6 +380,6 @@
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
-#autre .plaques{margin:0 0 8px}
+#autre .plaques{height:28px;margin:0 0 8px}
 #autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}

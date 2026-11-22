@@ -18,7 +18,9 @@ const focaliser = (nom: string, jet: JetTombe | null, cumul: number, phrase: str
   fenetre: {
     titre: 'Focalisation',
     heros: { role: 'testeur', qui: 'ilyanwe', test: 'Focalisation', seuil: 62, ...(jet ? { jet } : {}) },
-    centre: { role: 'etendu', ni: 7, sort: 'Dôme', cumul, phrase, enjeu: { libelle: 'Ce que la Focalisation ouvre', issues: OUVRE, tombee } },
+    centre: jet
+      ? { role: 'issue', sorte: 'etendu', sur: 'Dôme · Niveau d’incantation 7', verdict: jet.critique ? 'critique' : jet.reussite ? 'reussite' : 'echec', dr: jet.dr, cumul: { dr: cumul, vise: 7 }, consequences: [], phrase, enjeu: { libelle: 'Ce que la Focalisation ouvre', issues: OUVRE, tombee } }
+      : { role: 'etendu', ni: 7, sort: 'Dôme', cumul, phrase, enjeu: { libelle: 'Ce que la Focalisation ouvre', issues: OUVRE, tombee } },
     gestes: jet ? apresLeDe(RESERVES.ilyanwe) : avantLeDe(RESERVES.ilyanwe, { annuler: true }), reserves: reserves(RESERVES.ilyanwe),
   },
 });

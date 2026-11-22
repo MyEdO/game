@@ -24,7 +24,7 @@ import { deFixe } from '../engine/dice.testkit';
 import { t } from '../i18n';
 import { diseaseLabel } from '../data';
 import type { CampaignVessel } from './etat';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade, draineEtapes } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -77,7 +77,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     attendQueLEcheanceTire(t0);
   });
 
-  it('voyage fluvial (`riverVoyageFlow`) : la journée en barge tire l’échéance', () => {
+  it('voyage fluvial : le jour en barge tire l’échéance et les Tests de Contraction de sa durée (LDB 20 l.206)', () => {
     const gunnar = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     for (const [id, advances, spec] of [['ramer', 50, undefined], ['voile', 45, 'chaland']] as const) {
       const sk = gunnar.skills.find((x) => x.id === id && (x.spec ?? null) === (spec ?? null));
@@ -90,18 +90,23 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
         { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
         { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
       ],
-      routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
+      routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 }],
     };
     const quai = (id: string) => buildScene({ id, label: id, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
     seedBattleRng(7);
-    get().fixerLeGroupe([gunnar]);
+    const passager = tousLesHerosDeScenario(idsDeTest)[0];
+    gunnar.diseases = [contractDisease('verole-urticante', deFixe(1), { incubation: 0, duration: 5 })!];
+    get().fixerLeGroupe([gunnar, passager]);
     get().chargerLeProjet({ scenes: [quai('quai-a'), quai('quai-b')], entryId: 'quai-a', worldMap: reik, projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
-    draineCascade(get, 30);
+    get().partirEnVoyage('r-reik', 'barge-fluviale', { cadence: 'jourParJour' });
+    const exposes = draineEtapes(get, 80, (etape) => (etape.kind === 'contagion' ? 1 : undefined))
+      .filter((etape) => etape.kind === 'contagion').flatMap((etape) => etape.participants!.map((r) => r.id));
     attendQueLEcheanceTire(t0);
+    expect(get().pendingCascade).toBeNull();
+    expect(exposes).toEqual(Array(Math.ceil((get().gameTime - t0) / 60)).fill(passager.id));
   });
 
   it('journée de mer (`seaVoyageFlow`) : la traversée jusqu’au crépuscule tire l’échéance', () => {

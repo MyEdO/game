@@ -22,7 +22,7 @@ const marchand = (): MerchantState => ({
   pendingDistribution: null, bargainBuy: null, bargainSell: null, bargainLocked: false,
 });
 const donner = (heroId: string, apparence?: { id: string }) =>
-  applyEffects(() => banc.getState(), banc.setState, [giveTrappingSchema.parse({ type: 'giveTrapping', trappingId: 'arme-simple', heroId, ...(apparence ? { apparence } : {}) })]);
+  applyEffects(() => banc.getState(), banc.setState, [giveTrappingSchema.parse({ type: 'giveTrapping', objet: { id: 'arme-simple' }, heroId, ...(apparence ? { apparence } : {}) })]);
 
 beforeEach(() => {
   poserVariantesDeNaissance(varianteDeNaissance(), varianteDeNaissance({ id: 'naissance-humaine', especes: ['humains-reiklander'] }));

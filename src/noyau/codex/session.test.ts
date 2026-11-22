@@ -20,8 +20,10 @@ import { CODEX_GROUPS, categoryByKey } from './registry';
 import { reverseGroups } from './relations';
 import { datasetArray, datasetObject, entreesDuDataset, deDeLaTable } from '../../data/overrides';
 import { noeudDeLEntree, noeudsDesEntrees } from '../../data/schemas/validate';
+import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { champsDeclares, choixDuNoeud } from './editFields';
 import { cleDuChapitre } from '../edition/adresseDeProse';
+import { valeurNeuveDe } from '../valeursNeuves';
 import { apparencesChoisissablesDObjet, findTrappingById, objetsAApparenceChoisie } from '../../data/apparencesObjets';
 import { armesDEntite } from '../equipementDessine';
 
@@ -105,6 +107,48 @@ describe('atelier', () => {
     expect(entree.kind).toBe(choixDuNoeud(discriminant)![0].valeur);
     expect(() => noeudDeLEntree('weaponGroups', entree)).not.toThrow();
     expect(formulaireDeLAtelier(s)!.champs.map((c) => c.key)).toContain('label');
+  });
+
+  it('une règle optionnelle change de provenance par retrait puis saisie, dans les deux sens', () => {
+    const regle = datasetArray('reglesOptionnelles').find((r) => r.source)!;
+    const s = jouer(ouvert('reglesOptionnelles', regle.id), { geste: 'modifier' });
+    const provenances = (atelier: SessionDuCompendium) =>
+      formulaireDeLAtelier(atelier)!.champs.map((c) => c.key).filter((k) => k === 'source' || k === 'maison').sort();
+    expect(provenances(s)).toEqual(['source']);
+    expect(compendium(s, { geste: 'valeur', chemin: ['maison'], valeur: 'Raison d’arbitrage.' }).refus)
+      .toEqual({ chemin: ['maison'], refus: 'nonOffert' });
+
+    const sansSource = compendium(s, { geste: 'valeur', chemin: ['source'] });
+    expect(sansSource.refus).toBeNull();
+    expect(sansSource.atelier!.entree.source).toBeUndefined();
+    expect(provenances(sansSource)).toEqual(['maison', 'source']);
+    const demande = transactionDemandee(compendium(sansSource, { geste: 'enregistrer' }))!;
+    expect(demande.sorte).toBe('enregistrer');
+    if (demande.sorte === 'enregistrer') {
+      const issue = enregistrerEntree(demande.categorie, demande.entree, demande.index, demande.enTete);
+      if (issue.ok) issue.reprendre();
+      expect(issue).toMatchObject({ ok: false, erreurs: expect.arrayContaining([expect.stringContaining('provenance manquante')]) });
+    }
+
+    const maison = compendium(sansSource, { geste: 'valeur', chemin: ['maison'], valeur: 'Raison d’arbitrage.' });
+    expect(maison.refus).toBeNull();
+    expect(provenances(maison)).toEqual(['maison']);
+    expect(compendium(maison, { geste: 'valeur', chemin: ['source'], valeur: regle.source }).refus)
+      .toEqual({ chemin: ['source'], refus: 'nonOffert' });
+    const sansMaison = compendium(maison, { geste: 'valeur', chemin: ['maison'] });
+    expect(sansMaison.refus).toBeNull();
+    expect(sansMaison.atelier!.entree.maison).toBeUndefined();
+    expect(provenances(sansMaison)).toEqual(['maison', 'source']);
+    const champSource = formulaireDeLAtelier(sansMaison)!.champs.find((c) => c.key === 'source')!;
+    const amorceSource = valeurNeuveDe(champSource.noeud);
+    const ajoutee = compendium(sansMaison, { geste: 'valeur', chemin: ['source'], valeur: amorceSource });
+    expect(ajoutee.refus).toBeNull();
+    expect(provenances(ajoutee)).toEqual(['source']);
+    const livre = compendium(ajoutee, { geste: 'valeur', chemin: ['source', 'book'], valeur: regle.source!.book });
+    expect(livre.refus).toBeNull();
+    const source = compendium(livre, { geste: 'valeur', chemin: ['source', 'page'], valeur: regle.source!.page });
+    expect(source.refus).toBeNull();
+    expect(source.atelier!.entree.source).toEqual(regle.source);
   });
 
   it('l’identité de l’entrée ne s’écrit pas au formulaire : seul `identifier` la change', () => {

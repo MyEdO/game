@@ -12,9 +12,8 @@ zones de la tête et du cou, au plus près. Toute cote vient de `donnees.py`.
 """
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lisser, porteur_de, selon, voisinage
+from tissu import Maillage, arbre_de, direction_spatiale, emprunter, joindre_les_surfaces, lisser, porteur_de, selon, voisinage
 
 
 def construire(D, materiaux, b):
@@ -23,7 +22,7 @@ def construire(D, materiaux, b):
     tete = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
     coiffure = b.matieres_publiees(D['CONTOURNE']['coiffure'], D['MATIERES_DE_LA_COIFFURE'])
     P, T, _ = joindre_les_surfaces([tete, coiffure])
-    arbre = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+    arbre = arbre_de(P, T)
     C = np.array(b.tete(c['os_du_centre'])) + np.asarray(c['centre'], float)
 
     def rayon(d, jeu):

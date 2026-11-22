@@ -12,16 +12,16 @@
  *  - les GARDES : chemin ancré + intitulé de leur `describe(...)`.
  * La part ÉDITORIALE (étapes de la recette, interdits) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-flux-de-jet.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-flux-de-jet'
   const VERBS = 'src/noyau/flowVerbs.ts'
@@ -197,7 +197,8 @@ function rendu() {
     DRIFT,
     'src/noyau/maneuver-defense-cascade.hors-store.test.ts',
     'src/noyau/jet-owner-vs-spec.test.ts',
-    'src/ui/active-modal.test.ts',
+    'src/roll-action-label-guard.test.ts',
+    'hotes/godot/pont/cascade.hors-store.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
 
@@ -219,14 +220,12 @@ registre des modales (\`${ARBITER}\`, ${MODAL_KEYS.size} clés déclarées), les
 fabriques/lentilles partagées et les ${ATOMES.length} atomes obligatoires (lus dans la garde
 anti-dérive, jamais recopiés), et les ${GARDES_MESUREES.length} gardes avec l'intitulé de leur
 \`describe(...)\`. **Angles morts** : ce doc dit COMMENT poser un flux, pas d'où partent les jets
-existants (\`docs/registre-jets.md\`) ni comment chaque consommateur remplit la coquille
-(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetValider(flux)\` applique) n'est
+existants (\`docs/registre-jets.md\`). Le contenu d’un résolveur métier (ce que \`jetValider(flux)\` applique) n'est
 dérivable d'aucun registre — c'est la règle du jeu ; les interdits et l'ordre des étapes sont de
 l'ÉDITORIAL fixé dans le script.
 
-Tout jet différé suit le MÊME cycle de vie et passe par la MÊME fabrique. **Aucun flux ne recode la
-mécanique (RNG / Chance / Résilience / Résistance) dans son propre closure** — il ne déclare que sa
-FORME.
+Tout jet différé passe par les verbes du noyau. **La fabrique commune porte la mécanique d'influence**
+(Chance, Pacte, Résilience, Résistance) ; chaque flux déclare la forme et la résolution de ses jets.
 
 ## 0. Le cycle de vie
 
@@ -264,30 +263,46 @@ Un flux multi déclare \`pidIsActor\` (à qui appartient la rangée \`pid\` que 
 
 ${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Verbes', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.verbes.map((v) => `\`${v}\``).join(', ')} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
 
-${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MODALE.map((k) => `\`${k}\``).join(', ')} — normal quand le flux est une ÉTAPE d'une cascade (l'entrée de cascade porte déjà la fenêtre), fautif sinon.` : 'Tous les flux ont une entrée dans `MODAL_DEFS`.'}
+${SANS_MODALE.length ? `Flux sans clé du même nom dans \`MODAL_DEFS\` : ${SANS_MODALE.map((k) => `\`${k}\``).join(', ')}. Cette comparaison de clés ne dit pas quelle fenêtre héberge un flux.` : 'Tous les flux ont une clé du même nom dans `MODAL_DEFS`.'}
 
-## 2. La recette — 1 spec + 1 corps de clôture
+## 2. Réutiliser le flux de la situation
+
+Commencer par la fenêtre et la cascade qui portent la situation. Pour ajouter un Test ou sa conséquence :
+
+1. Monter la ligne avec \`rollLine\` (\`src/noyau/ligneDeJet.ts\`) ou \`rollStep\`, qui en projette les champs
+   sur l'étape. Dans \`src/noyau/rollSeam.ts\`, utiliser \`monoStep\` pour une étape mono, et les rangées avec
+   \`surfaceRow\` et \`bandStep\` pour une étape en bande. \`surfaceOf\` décide si le porteur a une surface
+   selon le siège qui le tient et la cadence.
+2. Poser l'étape dans la séquence avec \`pushStep\` ou \`startCascade\` selon le site. Déclarer son effet
+   dans la table des appliers du module, appelée par genre (\`applierDe\` dans \`src/noyau/cascade.ts\`).
+3. \`cascade\` porte le jet mono et la validation de l'étape. Les flux \`cascadeEnBande\` et
+   \`cascadeTirage\` portent les gestes des rangées et des tirages, respectivement. Ils se valident eux aussi
+   par \`jetValider('cascade')\`. Si l'étape héberge déjà un flux dédié, sa clôture passe par
+   \`sortirDeLHote\` pour libérer le pending et jouer la suite.
+
+### Déclarer un flux dédié
+
+Réserver cette recette à un jet qui demande son propre état d'attente et son cycle de résolution.
 
 1. **Type du pending** : \`Pending<X> extends PendingBase\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site.split(':')[0]}\` porte
    \`PendingBase\` et ses champs hérités). Déclarer le slot dans \`EtatDeJeu\` (\`src/noyau/etat.ts\`).
 2. **Entrée dans \`FLOWS\`** (\`${SPECS}\`) : \`makeRollFlow({ key, rolled, actor, resolve, outcome, … })\`.
    **Réutiliser les fabriques partagées** (§3) plutôt que réécrire les branches à la main.
-3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes (\`confirm\` compris), et le porteur
+3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, sous-ensemble des verbes existants (dont \`valider\` si le flux valide lui-même), et le porteur
    (\`jetOwner\`) ou \`pidIsActor\`. Une entrée de \`FLOWS\` sans flux, ou l'inverse,
    ne compile pas.
-4. **Le corps de la clôture écrit à la main**, entrée du flux dans la table \`cloturesDe…(get, set)\` de son module
+4. **Le corps de la clôture, si le flux expose \`valider\`**, dans la table \`cloturesDe…(get, set)\` de son module
    (\`satisfies Partial<CloturesDuJet>\`), composée dans \`src/noyau/fabriquesDuNoyau.ts\` (\`satisfies CloturesDuJet\` :
-   un flux sans clôture ne compile pas) — \`jetValider(flux)\` en est le seul appelant : lire le résultat, appliquer
+   chaque flux de \`FluxDuVerbe<'valider'>\` a un corps) — \`jetValider(flux)\` en est le seul appelant : lire le résultat, appliquer
    les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des dégâts), nuller le pending, et
    faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
    le verbe de jet \`jetAnnuler(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
    \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
-   la coquille, les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
+   les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
    déclare à \`ReglagesDuJet\` / \`REGLAGES_DU_JET\` (\`src/noyau/reglagesDuJet.ts\` : forme de la valeur, phase, portée),
    son corps à la table \`CorpsDesReglages\` de son flux ; il se joue par le seul verbe \`jetRegler(flux, reglage, valeur)\`,
    que sa phase ferme (\`fermetureDeLaPhase\`).
-5. **Ouvrir le pending** depuis le site d'origine ; si le jet est une étape de combat, l'ouvrir comme
-   une étape de cascade, pas comme une fenêtre isolée.
+5. **Ouvrir le pending** depuis le site d'origine, dans une étape hôte si le jet appartient à une cascade.
 6. **Registre des modales** (\`${ARBITER}\`) — SEULEMENT si le flux n'est pas une étape d'une cascade
    déjà déclarée. La politique de Cadence (\`auto\`) est REQUISE.
 
@@ -303,16 +318,32 @@ La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est 
 jet du flux tombe d'abord puis il est forcé ; aucune modale ne compose ce geste. Un Test opposé déclare
 \`perdu\` : sa Résilience reste ouverte sur un jet propre réussi dont l'opposition est perdue.
 
-## 4. La modale = \`RollShell\` paramétrée
+Un Test opposé résout l'opposition entre les deux jets. Vérifier au Source quelles influences sont ouvertes,
+puis laisser le flux exposer les côtés surfaçables. Dans un flux à opposant préjeté, conserver son jet figé
+et réévaluer l'opposition après chaque influence sur le jet actif : \`opposedBinaryFlow\` pour le flux
+dédié, \`opposedCascadeRoll\` et \`evaluerRangeeBatch\` (\`src/noyau/cascade.ts\`) pour la cascade.
 
-\`RollShell\` est LA coquille unique : contrôles en PROPS, métier en SLOTS. Écrire un hook
-\`use<Jet>JetProps\` (\`src/ui/jetProps/\`) qui lit le store et rend les props ; la modale ne fait que
-l'appeler. Quelles zones chaque consommateur remplit aujourd'hui : \`docs/usages-jets.md\` (généré).
-**Ne jamais réécrire un bouton « Lancer »/« Relancer » à la main** dans une modale. Une action de la
-barre qui joue un verbe du cycle le NOMME (\`RollAction.verbe\`, et \`flux\`/\`pid\` quand ce n'est pas
-le flux de la coquille) : elle ne se montre que tant que le noyau le laisse ouvert (\`fermeturesDuFlux\`,
-\`src/noyau/verbesOuverts.ts\`), comme les gestes d'un hôte (\`fermeturesDeLaFenetre\`) — jamais un
-« avant / après le jet » écrit au site.
+## 4. Projection et gestes des hôtes
+
+Le noyau fournit l'ouverture et le refus des gestes par \`fermeturesDeLaFenetre\`
+(\`src/noyau/verbesOuverts.ts\`). \`fenetreADessiner\` (\`src/hote/gestes.ts\`) projette les gestes que
+transmet le pont Godot. \`hotes/godot/projet/cadres/fenetre_de_jet.tscn\` rend \`fenetre.gestes\` :
+la disponibilité des verbes reste dans le noyau. Pour une évolution du contrat, vérifier le parcours
+par les gestes du pont. Pour une recette d'écran, suivre la
+[règle des étalons Godot](../.claude/rules/ecrans-godot.md).
+
+### Libellés
+
+- Le titre donne le nom de l’action. \`composeRollLabel\` compose « Acteur — Action (Compétence) »
+  lorsque le contexte le demande, avec la compétence issue des données du jet. Le nom d’action
+  reste un groupe nominal capitalisé, sans tiret long ni parenthèse réservés à la composition.
+- La ligne nomme la compétence lancée et affiche la difficulté, choisie ou composée par le noyau.
+  \`RollBreakdown.decided\` porte la raison du départage si les DR affichés des deux camps sont
+  égaux. Le résolveur fournit la raison avec le verdict.
+- Une bande de table précède les bornes par le libellé du dé \`bandeAuDe\`. Le tiret
+  demi-cadratin « – » sépare les bornes de table.
+- Les références au livre restent dans la source structurée. Le libellé et la consigne du joueur
+  ne portent aucune marque de livre.
 
 ## 5. Les atomes OBLIGATOIRES
 
@@ -323,9 +354,9 @@ ${table(ATOMES, ['Atome', 'Site', 'Rôle (JSDoc)'], (a) => `| \`${a.nom}\` | \`$
 
 ## 6. Interdits
 
-- **Aucun \`rollTest\` inline sur le chemin JOUEUR.** Un Test qui affecte un combattant piloté par un
-  humain DOIT ouvrir un pending influençable — jamais résolu en silence dans un résolveur métier. Le
-  choke-point est le PRÉDICAT DE CONTRÔLEUR, jamais le \`kind\` de l'entité.
+- **Aucun \`rollTest\` inline pour un jet que \`surfaceOf\` ouvre au joueur.** Passer par les verbes et
+  leurs influences. La cadence automatique ou un porteur sans siège humain suivent la voie automatique
+  de la même couture.
 - **Aucune 2ᵉ fenêtre de conséquences.** Un jet et sa conséquence immédiate (Coup Critique,
   Maladresse…) vivent dans LA MÊME modale, par la cascade — jamais une fenêtre « Résultat » qui
   s'ouvre après la fermeture de la modale de jet.
@@ -356,4 +387,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

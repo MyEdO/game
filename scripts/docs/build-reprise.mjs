@@ -11,14 +11,15 @@
  * « éditorial en donnée » (build-donnees.mjs) — il n'existe aucun manifeste de reprise à froid, et
  * en fabriquer un pour six phrases de motivation créerait une source de vérité de plus.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-reprise.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
-import { repartitionWorkers } from '../test/partition.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
+import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
@@ -41,7 +42,7 @@ function chemin(p) {
   return p
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
@@ -168,16 +169,10 @@ function rendu() {
     return m
   }
 
-  // Seuil de partage de la suite — DÉRIVÉ de la logique pure du lanceur, jamais recopié.
-  function seuilPartage() {
-    for (let n = 1; n <= 256; n += 1) if (repartitionWorkers(n).split) return n
-    abandon('scripts/test/partition.mjs ne partage jamais la suite — seuil indérivable')
-  }
-
-  const SEUIL = seuilPartage()
+  const WORKERS = maxWorkersMono(Infinity)
 
   // Comptes d'inventaire du clone.
-  const NB_GUARD_LIBS = listerDossier(chemin('scripts/guards/lib')).filter((f) => f.endsWith('.mjs')).length
+  const NB_GUARD_LIBS = listerDossier(chemin('scripts/guards/lib')).filter(estModule).length
   const NB_HOOKS_SESSION = listerDossier(chemin('scripts/hooks')).filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs')).length
   /** Scripts de `scripts/hooks/` que la surface Claude DÉCLARE. Le dossier en porte davantage : une
    *  lib importée par un hook n'est pas un hook, et un hook propre à Codex n'est déclaré que là-bas
@@ -374,8 +369,8 @@ leur contenu (\`package.json\`), clés \`git config\` posées par \`postinstall\
 \`scripts/git-hooks/\`, hooks de session déclarés dans \`.claude/settings.json\`, workflows de
 \`.github/workflows/\` (nom, déclencheurs, portes \`npm\` exécutées — lues aux corps \`run:\`, forme
 inline ET blocs \`run: |\`, \`--prefix\` et \`audit\`/\`ci\` compris ; une forme d'invocation npm inconnue
-y fait ÉCHOUER le script plutôt que sous-compter), motifs de \`.gitignore\`, seuil de
-partage de la suite calculé sur \`repartitionWorkers\` (\`scripts/test/partition.mjs\`). Un renommage
+y fait ÉCHOUER le script plutôt que sous-compter), motifs de \`.gitignore\`, plafond de
+workers calculé par \`maxWorkersMono\` (\`scripts/test/partition.mjs\`). Un renommage
 casse ce script au lieu de laisser le \`.md\` mentir. **Angles morts** : ce runbook ne mesure PAS
 l'état de la machine (auth \`gh\`, PDFs présents, compte Cloudflare) — il dit où ça vit, pas si c'est
 là ; une invocation \`npm\` posée AILLEURS que dans un corps \`run:\` (action composite \`uses:\`, script
@@ -391,8 +386,8 @@ longue pause. Chaque chemin/symbole cité existe dans le repo — vérifié via 
 \`\`\`bash
 git clone <url> && cd Game
 npm install     # vérifie le contrat TypeScript, pose ${CONFIGS.length} réglages git et produit les cibles de code (script "postinstall" de package.json)
-npm test        # suite du moteur — deux processus Vitest (node + jsdom) si ≥ ${SEUIL} cœurs, sinon un seul
-npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
+npm test        # suite du noyau et des hôtes, processus Vitest Node
+npm run godot:ouvrir # jeu Godot local
 \`\`\`
 
 **Chantier et publication.** \`npm run ops:chantier -- <N>\` (\`${script('ops:chantier')}\`) ouvre le
@@ -445,7 +440,7 @@ ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un 
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
-**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR armée est observée sans alerte ; seule une PR verte du train non armée et hors file est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL ; une entrée \`AWAITING_CHECKS\` âgée de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe est nommée après relecture de la même entrée. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR armée est observée sans alerte ; seule une PR verte du train non armée et hors file est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL. Le refus terminal du cas #2499 vise uniquement une entrée \`AWAITING_CHECKS\` enfilée par \`github-actions\` qui a atteint le seuil de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe et dont l’identité est confirmée à la relecture. Une entrée capable de déclencher une course reste observée au-delà de ce seuil, même si sa CI apparaît plus tard. La veille locale poursuit l’observation dans la borne \`--file-timeout-min\`. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
 
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
 \`.git/suivi/<N>.json\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
@@ -464,9 +459,8 @@ annonces portent début, fin et durée sur stderr ; la sortie des équipements r
 Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
 le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.
 
-Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
-autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent
-jamais. \`npm run dev\` imprime celui qu'il sert.
+L’outil de chantier affiche le port historique dérivé du worktree (5174–5272 pour un arbre lié).
+Le serveur de l’export Godot choisit un port libre et affiche son URL au démarrage.
 
 \`npm install\` déclenche le script \`postinstall\`, qui joue d'abord \`${CONTRAT_TYPESCRIPT}\` :
 version exacte, application de \`${PATCH_TYPESCRIPT}\`, puis vérification du contrat UTF-16 natif
@@ -479,17 +473,15 @@ cibles de CODE, jamais commitées (\`npm run gen\`, #2203) — les docs dérivé
 
 ${lignesFamilles}
 
-Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWorkers\` : en dessous de
-${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
+La suite (\`${script('test')}\`) lance un processus Vitest Node avec jusqu’à ${WORKERS} workers. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
 la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
 \`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs et les fichiers nommés (\`fichiersNommes\`) le permettent ; une réserve
 (\`PARENT_MO\`) déduite par processus Vitest. Les variables
-d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
-de jouer l'autre chemin sur une machine quelconque).
+d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures pour éprouver les limites d’admission.
 
 Le périmètre Node utilise \`paquetsDeLancement\` : chemins triés, durées séquentielles estimées sous le budget
-local plafonné à trente minutes, puis limite d'argv. Une durée inconnue, nulle ou trop longue reste seule.
+local plafonné à ${PLAFOND_PAQUET_NODE_MS / 60_000} minutes, puis limite d'argv. Une durée inconnue, nulle ou trop longue reste seule.
 Plan et exécution partagent ces paquets ; leurs parents s'enchaînent, chacun avec son surcoût. Les profils
 de \`profilsDuLancement\` identifient les acquisitions estimées sur un worker ; l'admission mémoire fraîche
 reste souveraine. \`lancerNodeMesure\` rend la concurrence réellement servie pour apprendre le surcoût.
@@ -520,7 +512,7 @@ C'est le signal qu'un geste manuel a dévié de ce que \`npm install\` pose seul
 
 - \`${chemin('Source')}/\` — texte des livres en \`.md\`, **citable** (réfs \`LDB <chap> l.<ligne>\`).
 - \`src/data/\` — données app-owned (${NB_DATA_JSON} fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : ${NB_GUARD_LIBS} modules
+- Les gardes de données : ${NB_GUARD_LIBS} fichiers de script (déclarations de types comprises)
   sous \`scripts/guards/lib/\` (dont \`scripts/guards/lib/commentPoison.mjs\`,
   \`scripts/guards/lib/emojiAffordance.mjs\`, \`scripts/guards/lib/hardcode.mjs\`,
   \`scripts/guards/lib/labelLogic.mjs\`).
@@ -590,12 +582,13 @@ MESURÉ sur le YAML (garde \`scripts/gates/workflowsDuDepot.test.mjs\`) :
 ${lignesEtatsPorte}
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou \`gh run list --workflow=canari.yml\`. LA
-PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}) : elle joue les
-gates sur CHAQUE branche \`chantier/**\` et sur chaque commit de la file de fusion, et c'est son verdict —
-jamais un artefact local — qui autorise une PR à entrer dans \`main\`. Elle CLASSE d'abord le push
-(\`scripts/gates/classerPush.mjs\`) : un push dont tous les fichiers changés tombent sous
-${listeCode(Object.keys(DOCUMENTAIRE))} ne joue que les ${NB_GATES_TOUJOURS} gates qui LISENT un de
-ces chemins (${listeCode(GATES_TOUJOURS)}) ; les ${NB_GATES_SAUTABLES} autres sont sautées.
+PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}). Elle exécute
+les courses de branche et de file décrites ci-dessous. Le verdict de la course de file autorise
+l'intégration dans \`main\`. Le prologue classe le push (\`scripts/gates/classerPush.mjs\`) : il est
+documentaire si le diff est non vide, si tous les chemins changés sont couverts par
+${listeCode(Object.keys(DOCUMENTAIRE))} et si aucun ne tombe sous une racine de mod.
+Dans la course de file, pour tout push documentaire, les ${NB_GATES_TOUJOURS} gates dont le \`lit\`
+chevauche ce périmètre jouent (${listeCode(GATES_TOUJOURS)}) et les ${NB_GATES_SAUTABLES} autres sont sautées.
 
 \`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,
@@ -662,4 +655,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

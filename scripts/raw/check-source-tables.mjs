@@ -35,6 +35,7 @@ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
 import { SEPARATEUR_DE_REMEDE, ecartDuVolet, sitesEnEntrees, cleDeSite, phraseDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-tables-stock.json')
 
@@ -111,11 +112,11 @@ export const refDeTable = (sec, occ, headers) =>
 export const cleDeLigne = (row) => normText(row.find((c) => c.trim()) ?? '')
 
 /**
- * Sites de défaut d'UN chapitre (PUR : aucun accès disque). `file` est le chemin du chapitre tel que
+ * Sites de défaut d'UN chapitre (PUR : aucun accès disque). `fichier` est le chemin du chapitre tel que
  * le stock le nomme ; `texte` son markdown (déjà passé par `readText`).
- * @param {string} texte @param {string} file @returns {{ famille: string, file: string, ref: string }[]}
+ * @param {string} texte @param {string} fichier @returns {(import('../guards/lib/stock.mjs').Site & { famille: string })[]}
  */
-export function sitesDuChapitre(texte, file) {
+export function sitesDuChapitre(texte, fichier) {
   const out = []
   const chapitre = parseChapitre(texte)
   // Ligne BRUTE du heading (`section.line`) : le run gras y est encore lisible, là où `title` l'a
@@ -123,14 +124,14 @@ export function sitesDuChapitre(texte, file) {
   const lignes = texte.replace(/\r\n?/g, '\n').split('\n')
   for (const section of chapitre.sections) {
     const avalee = section.level > 0 ? titreAvalantUneTable(lignes[section.line - 1] ?? '') : null
-    if (avalee) out.push({ famille: 'table-avalee-par-titre', file, ref: avalee })
+    if (avalee) out.push({ famille: 'table-avalee-par-titre', fichier, ref: avalee })
     const tables = tablesOf(section)
     for (const { table } of tables) {
       const ref = refDeTable(section.slug, section.occ, table.headers)
       const cellules = [...table.headers, ...table.rows.flat()]
-      if (cellules.some((c) => /<br\s*\/?>/i.test(c))) out.push({ famille: 'br-litteral', file, ref })
-      if (estCleDePlage(table.headers[0] ?? '')) out.push({ famille: 'donnee-en-tete', file, ref })
-      if (table.banniereRefusee != null) out.push({ famille: 'banniere-suspecte', file, ref })
+      if (cellules.some((c) => /<br\s*\/?>/i.test(c))) out.push({ famille: 'br-litteral', fichier, ref })
+      if (estCleDePlage(table.headers[0] ?? '')) out.push({ famille: 'donnee-en-tete', fichier, ref })
+      if (table.banniereRefusee != null) out.push({ famille: 'banniere-suspecte', fichier, ref })
     }
     // Clés de ligne PARTAGÉES : une clé présente dans DEUX tables de la même section rend
     // `ligne-ambigue` à la résolution (`celluleBrute` cherche dans toute la section), sauf si l'adresse
@@ -156,7 +157,7 @@ export function sitesDuChapitre(texte, file) {
       for (const [cle, dansTables] of parCle) {
         if (dansTables.size < 2) continue
         if ([...dansTables].every((i) => lignesDesignees(section, cle, tables[i].cle) === 1)) continue
-        out.push({ famille: 'cle-de-ligne-ambigue', file, ref: `${section.slug}#${section.occ} :: ${cle}` })
+        out.push({ famille: 'cle-de-ligne-ambigue', fichier, ref: `${section.slug}#${section.occ} :: ${cle}` })
       }
     }
   }
@@ -315,7 +316,9 @@ const QUOI = (comptes) =>
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
  *  mesure de tous les livres). Son `quoi` ne lit que les comptes À LA NAISSANCE (par défaut, ceux du
- *  stock en place), ceux du run pour un stock qui naît. */
+ *  stock en place), ceux du run pour un stock qui naît.
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (sites = scanAllBooks(), naissance = naissanceEnPlace(STOCK_PATH, FAMILLES)) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -330,7 +333,7 @@ function main() {
 
   const tri = comptesDeTri(stock)
   console.log(
-    `tables cassées du Source/ : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.file)).size} chapitre(s), ` +
+    `tables cassées du Source/ : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.fichier)).size} chapitre(s), ` +
       `${BOOKS.length} livre(s) — ${FAMILLES.map((f) => `${f} ${comptes[f]}`).join(', ')}`,
   )
   console.log(`stock : ${tri.aTrier} à trier (aucune preuve), ${tri.verifies} vérifié(s) au PDF.`)
@@ -357,4 +360,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

@@ -1,25 +1,22 @@
-// COURSES CI — l'unique lecture `gh run list` de ce dépôt (hors sondes), et celles des jobs et du
-// journal d'une course (`journalDe`).
+// COURSES CI — lecture REST des courses d'un workflow, et lecture des jobs et du journal d'une course.
 //
 // Une COURSE est une exécution de workflow. Deux QUESTIONS, une seule lecture : « les courses de tel
 // COMMIT » (l'étape `file` du train, qui juge la tête de sa PR ; le closer, qui situe sa plage) et
 // « les courses de tel ÉVÉNEMENT » (`merge_group` : les commits de file, dont la ref nomme la PR,
-// `headBranch`). `gh run list --commit <sha>` ne dépend d'aucune branche.
-//
-// COÛT MESURÉ (2026-09-05, ce dépôt, médiane de trois passes) : `--limit 1` = 985 ms,
-// `--limit 30` = 1 583 ms, `--limit 300` = 10 732 ms. La limite EST la fenêtre : `gh run list` n'a
-// pas de fenêtre de dates.
+// `headBranch`). Les deux filtres se combinent. La limite borne la fenêtre en nombre de courses.
 //
 // La sortie est TRIÉE par `createdAt` décroissant ICI : un consommateur qui prend `courses[0]` prend
 // la plus récente sans avoir à le savoir, et deux consommateurs ne trient pas différemment.
 import { spawnSync } from 'node:child_process'
+import { estObjet } from '../../../src/lib/objet.mjs'
 import { classer, fait, indisponible } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 import { PORTE } from '../../gates/workflowsDuDepot.mjs'
-import { DEPOT } from './ticketsGh.mjs'
+import { DEPOT, PAR_PAGE, pagesRest } from './ticketsGh.mjs'
+import { BORNE_JOURNAL, ETAPE_INCONNUE, projeterJournal } from './journauxCi.mjs'
 
-/** Champs demandés à `gh` : l'union de ce que les consommateurs lisent, une seule fois. */
-export const CHAMPS = 'attempt,conclusion,createdAt,databaseId,headBranch,headSha,status,workflowName'
+/** Nombre maximal de courses consultables sur une liste REST GitHub Actions filtrée. */
+const PLAFOND_DE_COURSES = 1000
 
 /** Les conclusions qui disent une course ÉCHOUÉE. `failure` n'est pas la seule : GitHub rend aussi
  *  `timed_out` (le job a dépassé sa borne) et `startup_failure` (le runner n'a pas démarré). Les
@@ -44,25 +41,119 @@ export function triees(courses) {
     .map(({ c }) => c)
 }
 
+/** Les noms d'affichage se résolvent parmi les workflows actifs. */
+function resoudreWorkflow(chemin, workflow, appel) {
+  const selecteur = String(workflow ?? '')
+  if (!selecteur) return { ok: false, raison: 'sélecteur de workflow vide' }
+  if (/^\d+$|\.ya?ml$/i.test(selecteur)) return { ok: true, valeur: selecteur }
+  const pages = pagesRest(chemin, appel, {
+    lirePage(stdout) {
+      const page = JSON.parse(stdout)
+      if (!Array.isArray(page?.workflows)
+        || page.workflows.some((w) => typeof w?.name !== 'string' || typeof w?.state !== 'string'))
+        throw new Error('réponse REST de workflows hors schéma')
+      return page.workflows
+    },
+  })
+  if (!pages.ok) return { ok: false, raison: `workflows illisibles : ${pages.raison}` }
+  const nom = selecteur.toLowerCase()
+  const actifs = pages.entrees.filter((w) => w.state === 'active' && w.name.toLowerCase() === nom)
+  if (!actifs.length) return { ok: false, raison: `workflow actif « ${selecteur} » introuvable` }
+  if (actifs.length > 1) return { ok: false, raison: `nom de workflow « ${selecteur} » ambigu` }
+  const { id } = actifs[0]
+  if (!Number.isSafeInteger(id) || id < 1) return { ok: false, raison: `workflow « ${selecteur} » hors schéma : id invalide` }
+  return { ok: true, valeur: id }
+}
+
 /**
- * Les courses CI du workflow `workflow` pour un `commit` ou un `evenement` (`gh run list --event`),
- * en union à trois issues (jamais `absent` : une liste vide EST un fait).
+ * Les courses REST d'un workflow (fichier, id ou nom). `limite` sélectionne les premières courses
+ * servies ; sans limite, la liste est exhaustive. Le total de l'enveloppe distingue une réponse vide d'une
+ * page incomplète, et le plafond GitHub ne gêne que les lectures qui doivent l'atteindre.
+ */
+export function lireCoursesRest({ depot = DEPOT, workflow = PORTE, commit, evenement, branche, limite = null, appel }) {
+  const filtres = new URLSearchParams()
+  if (commit) filtres.set('head_sha', commit)
+  if (evenement) filtres.set('event', evenement)
+  if (branche) filtres.set('branch', branche)
+  if (limite !== null) filtres.set('exclude_pull_requests', 'true')
+  const workflows = `repos/${depot}/actions/workflows`
+  const selection = resoudreWorkflow(workflows, workflow, appel)
+  if (!selection.ok) return selection
+  const chemin = `${workflows}/${encodeURIComponent(selection.valeur)}/runs?${filtres}`
+  const taillePage = limite === null ? PAR_PAGE : Math.min(limite, PAR_PAGE)
+  let total = null
+  let attendues = null
+  const courses = pagesRest(chemin, appel, {
+    taillePage,
+    assezLu: (entrees) => entrees.length >= attendues,
+    lirePage(stdout) {
+      const page = JSON.parse(stdout)
+      if (!Number.isSafeInteger(page?.total_count) || page.total_count < 0 || !Array.isArray(page.workflow_runs))
+        throw new Error('réponse REST de courses CI hors schéma (total_count ou workflow_runs)')
+      if (total !== null && total !== page.total_count)
+        throw new Error(`courses CI non exhaustives : total passé de ${total} à ${page.total_count}`)
+      total = page.total_count
+      attendues = limite === null ? total : Math.min(total, limite)
+      if (attendues > PLAFOND_DE_COURSES)
+        throw new Error(`courses CI non exhaustives : ${attendues} attendues, plafond REST ${PLAFOND_DE_COURSES}`)
+      if (page.workflow_runs.length > taillePage || page.workflow_runs.some((course) => !estObjet(course)))
+        throw new Error('réponse REST de courses CI hors schéma (page de courses)')
+      return page.workflow_runs
+    },
+  })
+  if (!courses.ok) return courses
+  if (courses.entrees.length < attendues || courses.entrees.length > total)
+    return { ok: false, raison: `courses CI non exhaustives : ${courses.entrees.length} lues pour ${attendues} attendues` }
+  const entrees = courses.entrees.slice(0, attendues)
+  const ids = entrees.map((course) => course.id)
+  if (ids.some((id) => !Number.isSafeInteger(id) || id < 1))
+    return { ok: false, raison: 'course CI hors schéma : id invalide' }
+  if (new Set(ids).size !== ids.length)
+    return { ok: false, raison: 'courses CI non exhaustives : identifiant de run répété dans la liste REST' }
+  return { ok: true, entrees }
+}
+
+/** La projection d'une course identifiée par `lireCoursesRest`. PURE. */
+export function projeterCourseRest(course) {
+  if (!Number.isSafeInteger(course.run_attempt) || course.run_attempt < 1)
+    throw new Error(`course CI ${course.id} hors schéma : run_attempt invalide`)
+  if (typeof course.created_at !== 'string' || !Number.isFinite(Date.parse(course.created_at)))
+    throw new Error(`course CI ${course.id} hors schéma : created_at invalide`)
+  for (const champ of ['head_sha', 'status', 'name']) {
+    if (typeof course[champ] !== 'string' || !course[champ])
+      throw new Error(`course CI ${course.id} hors schéma : ${champ} invalide`)
+  }
+  for (const champ of ['head_branch', 'conclusion']) {
+    if (course[champ] !== null && typeof course[champ] !== 'string')
+      throw new Error(`course CI ${course.id} hors schéma : ${champ} invalide`)
+  }
+  return {
+    databaseId: course.id, attempt: course.run_attempt, conclusion: course.conclusion ?? '',
+    createdAt: course.created_at, headBranch: course.head_branch ?? '', headSha: course.head_sha,
+    status: course.status, workflowName: course.name,
+  }
+}
+
+/**
+ * Les courses du workflow `workflow` (fichier, id ou nom) filtrées par `commit` ou `evenement`.
+ * Une liste vide est un fait. Une lecture refusée est indisponible.
  * @param {{cwd?:string, limit?:number, workflow?:string, commit?:string|null, evenement?:string|null, spawn?:Function}} p
  * @returns {{disponible:true, valeur:object[]}|{disponible:false, raison:string}}
  * @throws {TypeError} ni `commit` ni `evenement` : la question n'est pas posée.
  */
 export function coursesCi({ cwd = process.cwd(), limit = 30, workflow = PORTE, commit = null, evenement = null, spawn = spawnSync } = {}) {
   if (!commit && !evenement) throw new TypeError('coursesCi : un `commit` ou un `evenement` est la question')
-  const args = [
-    'run', 'list',
-    ...(commit ? ['--commit', commit] : []),
-    ...(evenement ? ['--event', evenement] : []),
-    '--workflow', workflow,
-    '--limit', String(limit), '--json', CHAMPS,
-  ]
-  const lu = lectureGh(spawn, args, cwd)
-  if (!lu.disponible) return lu
-  return Array.isArray(lu.valeur) ? fait(triees(lu.valeur)) : indisponible('gh n’a pas rendu un tableau de courses')
+  if (!Number.isSafeInteger(limit) || limit < 1) return indisponible(`coursesCi : limite invalide (${limit})`)
+  const lu = lireCoursesRest({ workflow, commit, evenement, limite: limit, appel(args) {
+    const vu = sortieGh(spawn, args, cwd)
+    return vu.disponible ? { ok: true, stdout: vu.valeur } : { ok: false, raison: vu.raison }
+  } })
+  if (!lu.ok) return indisponible(lu.raison)
+  try {
+    return fait(triees(lu.entrees.map(projeterCourseRest)))
+  } catch (e) {
+    return indisponible(e.message)
+  }
 }
 
 /** Les noms des jobs ROUGES (`ROUGES`) et ANNULÉS (`ANNULEE`) d'une liste de jobs (forme `gh run view --json jobs`). PUR. */
@@ -98,16 +189,24 @@ export function jobsEnEchecDe({ cwd = process.cwd(), id, attempt = null, spawn =
   return fait({ ...juges, motif: annotations.disponible ? motifDAnnulation(annotations.valeur) : `motif illisible : ${annotations.raison}` })
 }
 
-/** La sortie JSON d'un `gh <args>`, en union à trois issues. */
-function lectureGh(spawn, args, cwd) {
+/** La sortie d'un `gh <args>`, en union à trois issues. */
+function sortieGh(spawn, args, cwd, { binaire = false } = {}) {
   const vu = classer(spawn('gh', args, {
-    cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
+    cwd, encoding: binaire ? 'buffer' : 'utf8', maxBuffer: binaire ? BORNE_JOURNAL : 32 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
   }))
   if (!vu.disponible) return vu
   if (vu.absent) return indisponible('gh n’a rendu aucune sortie exploitable')
   if (vu.valeur.status !== 0) return indisponible(`gh a rendu ${vu.valeur.status}`)
+  return fait(vu.valeur.stdout)
+}
+
+/** La sortie JSON d'un `gh <args>`. */
+function lectureGh(spawn, args, cwd) {
+  const vu = sortieGh(spawn, args, cwd)
+  if (!vu.disponible) return vu
   try {
-    return fait(JSON.parse(vu.valeur.stdout))
+    return fait(JSON.parse(vu.valeur))
   } catch (e) {
     return indisponible(e.message)
   }
@@ -202,11 +301,8 @@ const ETAPE_DU_GROUPE = /^##\[group\](Run .*)$/
 /** Une directive d'Actions (`##[group]`, `##[endgroup]`, `##[error]`…) : jamais une ligne de contexte. */
 const DIRECTIVE = /^##\[/
 
-/** La colonne ÉTAPE d'un journal que GitHub n'a pas su attribuer. */
-const ETAPE_INCONNUE = 'UNKNOWN STEP'
-
 /**
- * Les lignes d'un journal `gh run view <id> --log` ou `--log-failed` (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
+ * Les lignes d'un journal de tentative (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
  * horodatage retiré (`HORODATAGE`) ; une ligne sans ces trois colonnes est écartée. PUR.
  * @param {string} journal @returns {{job: string, etape: string, texte: string}[]}
  */
@@ -220,9 +316,9 @@ export function lignesDuJournal(journal) {
 }
 
 /**
- * Les ÉCHECS d'un journal `gh run view <id> --log-failed` (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
+ * Les ÉCHECS d'un journal de tentative filtré (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
  * par job dans l'ordre du journal. `etape` : l'étape fautive, celle de la PREMIÈRE erreur du job — sa
- * colonne d'étape, ou, quand GitHub l'écrit `UNKNOWN STEP`, le dernier `##[group]Run …` ouvert avant elle.
+ * colonne d'étape, ou, quand le projecteur l'écrit `UNKNOWN STEP`, le dernier `##[group]Run …` ouvert avant elle.
  * `lignes` : ses lignes de test en échec, dédoublonnées et bornées à `borne`, puis sa PREMIÈRE ligne
  * `##[error]` qui n'est pas GÉNÉRIQUE (`ERREUR_GENERIQUE`) ; À DÉFAUT de toute ligne reconnue, les
  * `contexte` dernières lignes non vides (hors directives) de son étape avant la première erreur. `tues` compte les
@@ -259,20 +355,65 @@ export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = 
   })
 }
 
+const cheminDeCourse = (id) => `repos/${DEPOT}/actions/runs/${id}`
+const identifiantPositif = (id) => Number.isSafeInteger(id) && id > 0
+
+/** Conclusions de `IsFailureState` pour le journal filtré de GitHub CLI. */
+const CONCLUSIONS_DU_JOURNAL_D_ECHEC = new Set(['action_required', 'failure', 'startup_failure', 'timed_out'])
+const estEchecDuJournal = (conclusion) => CONCLUSIONS_DU_JOURNAL_D_ECHEC.has(conclusion)
+
+/** Épingle le dernier essai avant les lectures qui doivent décrire la même exécution. */
+export function derniereTentativeDe({ cwd = process.cwd(), id, spawn = spawnSync }) {
+  if (!identifiantPositif(id)) return indisponible('identifiant de course invalide')
+  const run = lectureGh(spawn, ['api', cheminDeCourse(id)], cwd)
+  if (!run.disponible) return run
+  if (run.valeur?.id !== id || !identifiantPositif(run.valeur?.run_attempt))
+    return indisponible(`course ${id} : identité ou tentative REST illisible`)
+  return fait(run.valeur.run_attempt)
+}
+
 /**
- * Le journal de la course `id`, de l'essai `attempt` s'il est nommé : ses jobs en ÉCHEC seuls (`echecsSeuls`,
- * `gh run view <id> --log-failed`) ou tous (`--log`), en union à trois issues.
+ * Le journal REST de la course `id` et de l'essai `attempt`, ou du dernier essai épinglé.
+ * En mode `echecsSeuls`, projette les étapes en échec ou le journal du job rouge.
  * @param {{cwd?:string, id:number, attempt?:number|null, echecsSeuls:boolean, spawn?:Function}} p
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  * @throws {TypeError} `echecsSeuls` n'est pas un booléen : la question n'est pas posée.
  */
-export function journalDe({ cwd = process.cwd(), id, attempt = null, echecsSeuls, spawn = spawnSync }) {
+export function journalDe({ echecsSeuls, ...parametres }) {
   if (typeof echecsSeuls !== 'boolean') throw new TypeError('journalDe : `echecsSeuls` est la question')
-  const vu = classer(spawn('gh', [...vueDeCourse(id, attempt), echecsSeuls ? '--log-failed' : '--log'], {
-    cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
-  }))
-  if (!vu.disponible) return vu
-  if (vu.absent) return indisponible('gh n’a rendu aucune sortie exploitable')
-  if (vu.valeur.status !== 0) return indisponible(`gh a rendu ${vu.valeur.status}`)
-  return fait(String(vu.valeur.stdout))
+  const essai = essaiDe(parametres)
+  return essai.disponible ? essai.valeur.journal({ echecsSeuls }) : essai
+}
+
+/** Les jobs d'un essai terminé et son journal à la demande, épinglés au même essai. */
+export function essaiDe({ cwd = process.cwd(), id, attempt = null, spawn = spawnSync }) {
+  if (!identifiantPositif(id)) return indisponible('identifiant de course invalide')
+  const essai = attempt === null ? derniereTentativeDe({ cwd, id, spawn }) : fait(attempt)
+  if (!essai.disponible) return essai
+  if (!identifiantPositif(essai.valeur)) return indisponible(`course ${id} : tentative invalide`)
+
+  const libelle = `course ${id}, essai ${essai.valeur}`
+  const vue = lectureGh(spawn, [...vueDeCourse(id, essai.valeur), '--json', 'jobs,startedAt,status'], cwd)
+  if (!vue.disponible) return vue
+  const { jobs, startedAt, status } = vue.valeur ?? {}
+  if (status !== 'completed' || !Array.isArray(jobs))
+    return indisponible(`${libelle} : jobs illisibles ou tentative non terminée`)
+
+  function journal({ echecsSeuls }) {
+    if (echecsSeuls && !jobs.some((job) => estEchecDuJournal(job?.conclusion))) return fait('')
+
+    const chemin = `${cheminDeCourse(id)}/attempts/${essai.valeur}/logs`
+    const archive = sortieGh(spawn, ['api', chemin], cwd, { binaire: true })
+    if (!archive.disponible) {
+      const raison = archive.raison.replace(/(https?:\/\/[^\s"'?]+)\?[^\s"']+/g, '$1?[masqué]')
+      return indisponible(raison, { issue: archive.issue })
+    }
+    try {
+      const debutEssai = essai.valeur > 1 ? Date.parse(startedAt) : NaN
+      return fait(projeterJournal(archive.valeur, jobs, { echecsSeuls, estRouge: estEchecDuJournal, debutEssai }))
+    } catch (e) {
+      return indisponible(`${libelle} : journal illisible — ${e.message}`)
+    }
+  }
+  return fait({ jobs, journal })
 }

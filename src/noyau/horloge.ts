@@ -1,10 +1,8 @@
 /** Horloge de jeu : l'avance du temps et ce qui la suit hors combat (#668, #T2, #T3). */
-import { pushReveal } from './combatEffects';
-import { fireScheduledEffects } from './combatEffects';
+import { comptePasDifferes, confierLaSuite, fireScheduledEffects, OPS_DIFFEREES, pushReveal, type Applique } from './combatEffects';
 import { purgeSurAvanceDHorloge } from './upkeep';
 import { TIME_COST } from '../engine/timeCost';
-import { outOfCombatUpkeep } from './outOfCombatUpkeep';
-import { battleRng } from './battleRng';
+import { outOfCombatUpkeep, reprendreEntretienDesRounds } from './outOfCombatUpkeep';
 import { releaseSeatsOfDowned } from './combatFlow';
 import { type DeferredUpkeepTest, runDailyUpkeep } from './upkeep';
 import { nightBands } from './nightBands';
@@ -27,54 +25,48 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
   } satisfies FabriqueDuNoyau;
 }
 
+export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: number): Applique {
+  const rounds = Math.floor(minutes / TIME_COST.combatRound);
+  if (!get().battle && rounds > 0) return outOfCombatUpkeep(get, set, rounds);
+  return undefined;
+}
+
+/** Prépare l'entretien quotidien du pas d'horloge après les Rounds. */
+export function preparerLEntretienQuotidien(get: Get, set: Set, minutes: number) {
+  if (!get().battle && minutes >= TIME_COST.combatRound) releaseSeatsOfDowned(get, set);
+  const deferred: DeferredUpkeepTest[] = [];
+  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
+  return { steps: nightBands(restFlow.deferredUpkeepSteps(get().party, deferred)), log };
+}
+
+function reprendreEntretienDeLHorloge(get: Get, set: Set, minutes: number, apresLesRounds?: true): void {
+  if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+    confierLaSuite(set, [{ verbe: 'reprendreEntretienDeLHorloge', minutes, apresLesRounds: true }]);
+    return;
+  }
+  const { steps, log } = preparerLEntretienQuotidien(get, set, minutes);
+  if (get().battle) {
+    // #253
+    if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log });
+    if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
+  } else {
+    if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps, log });
+    else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log }, { purpose: 'upkeep' });
+  }
+  checkPartyWiped(get, set);
+}
+
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
     avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
+      const avant = comptePasDifferes(get());
       get().avancerLHorloge(minutes);
-
-      // HORS COMBAT : faire progresser les États qui tickent (Hémorragique/Poison/Flammes) et l'agonie au
-      // prorata du temps écoulé (1 Round ≈ TIME_COST.combatRound min). En combat, la frontière de Round le fait.
-      if (!get().battle) {
-        const rounds = Math.floor(minutes / TIME_COST.combatRound);
-        if (rounds > 0) {
-          const party = get().party;
-          const log = outOfCombatUpkeep(party, rounds, battleRng(), get().forgerUnId);
-          if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
-          // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
-          // la couture unique de libération y est appelée (no-op si personne n'est assis).
-          releaseSeatsOfDowned(get, set);
-        }
+      if (comptePasDifferes(get()) > avant) {
+        confierLaSuite(set, [{ verbe: 'reprendreEntretienDeLHorloge', minutes }]);
+        return;
       }
-      // Entretien quotidien (#T2/#T3 — rations/faim, maladies, convalescence) + purge des effets à
-      // durée d'horloge (contrecoups LDB 46/40) : traite les éventuels franchissements de jour.
-      // VISIBLE (le journal seul ne suffit pas). HORS COMBAT, tout Test de Résistance d'entretien est
-      // DIFFÉRÉ dans la MÊME cascade influençable que le repos (LDB 17 : Chance sur tout Test raté ; « aucun
-      // jet silencieux ») via `deferredUpkeepSteps` ; les lignes SANS jet (rations, dissipations…) restent
-      // le témoin groupé. En combat, le slot de cascade appartient à l'arène → jets roulés (témoin pré-résolu).
-      if (get().battle) {
-        // EN COMBAT (#253) : le slot de cascade appartient à l'arène → les Tests de Résistance d'entretien ne
-        // s'ouvrent pas ici. On les DIFFÈRE dans `pendingUpkeepSteps` (consommé par `openCombatEndCascade` à la
-        // fin du combat) au lieu de les rouler en SILENCE ; les lignes SANS jet (rations, dissipations) restent
-        // le témoin. `lastUpkeepDay` (posé par `runDailyUpkeep`) garde l'anti-double-résolution.
-        const deferred: DeferredUpkeepTest[] = [];
-        const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines });
-        // La file porte des BANDES comme tout le reste de la nuit (#1117 L3) : la fenêtre est formée
-        // ICI, à l'émission — `openCombatEndCascade` a seulement à trier ses rangées par pilote.
-        const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
-        if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
-      } else {
-        const deferred: DeferredUpkeepTest[] = [];
-        const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        // 2ᵉ des TROIS bâtisseurs à passer par la fabrique de bandes (#1117 L3).
-        const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
-        if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps, log: upkeepLines });
-        // Même `purpose:'upkeep'` que la branche à jets ci-dessus : les deux issues du MÊME entretien
-        // quotidien ouvrent la MÊME séquence (le témoin groupé est le cas « zéro jet à influencer »).
-        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines }, { purpose: 'upkeep' });
-      }
-      checkPartyWiped(get, set); // faim/agonie/maladie a-t-elle anéanti tout le groupe hors combat ? → défaite (recheck à la clôture de cascade)
+      reprendreEntretienDeLHorloge(get, set, minutes);
     },
   } satisfies FabriqueDuNoyau;
 }
@@ -84,5 +76,7 @@ export const TABLES = {
   clotures: {
     /** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
     avancerHorloge: (get, _set, c) => get().avancerLeTemps(c.minutes),
+    reprendreEntretienDesRounds: (get, set, { reprise }) => { reprendreEntretienDesRounds(get, set, reprise); },
+    reprendreEntretienDeLHorloge: (get, set, { minutes, apresLesRounds }) => reprendreEntretienDeLHorloge(get, set, minutes, apresLesRounds),
   },
 } satisfies FragmentDeTables;

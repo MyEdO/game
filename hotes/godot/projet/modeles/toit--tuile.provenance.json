@@ -1,0 +1,13 @@
+{
+  "model": "toit--tuile.glb",
+  "model_sha256": "1f6b36cc7cf75fbc4ae8b6cadd2b1cef17530fcfa292592b17cbfb40a838f687",
+  "importe_le": "2026-11-21",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

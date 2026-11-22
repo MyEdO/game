@@ -6,17 +6,17 @@
  * Migration #5 : les métadonnées de résolution (durée, ZdE, etc.) vivent désormais
  * dans SpellData (spells.json) — plus de src/data/spellspecs/.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   npx tsx scripts/gen-sorts-doc.mts
  */
 import { spells } from '../src/data';
 import { spellSupportOf } from '../src/engine/spellspec';
 import { spellEffectOps } from '../src/engine/flowCore';
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs';
 import { parLibelle } from './guards/lib/lister.mjs';
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const ICON = { mecanique: '✅', partiel: '🟡', narratif: '📜' } as const;
 
@@ -95,4 +95,8 @@ export function rendre() {
   return new Map([[path, out]]);
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') });
+export function* produire() {
+  yield rendu();
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire);

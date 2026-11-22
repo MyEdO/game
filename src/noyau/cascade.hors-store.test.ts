@@ -28,7 +28,7 @@ import { cleDuGeste } from './modalArbiter';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { journaliser } from './combatLog';
-import { jouerLesClotures } from './combatEffects';
+import { jouerLesClotures, pushReveal } from './combatEffects';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
 
@@ -230,12 +230,14 @@ describe('Cascade séquentielle influençable', () => {
       return [annonce, JSON.stringify(banc.getState().pendingCascade) !== JSON.stringify(avant.pendingCascade)];
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id), choix] });
+    pushReveal(banc.setState, { kind: 'effet', title: 'Révélation', lines: ['Une conséquence'] });
     expect(annonceEtEffet(), 'une étape-jet : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'arrêté sur le choix').toBe(1);
     expect(annonceEtEffet(), 'un choix non tranché : fermé, refusé').toEqual(['choixDu', false]);
     banc.getState().jetRegler('cascade', 'choix', 'a', 'c');
     expect(annonceEtEffet(), 'le choix tranché : ouvert, joué').toEqual([null, true]);
-    expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(2);
+    expect(banc.getState().pendingCascade?.cursor, 'bilan après la révélation prête').toBe(3);
+    expect(banc.getState().pendingCascade?.participants[2].committed).toBe(true);
     expect(annonceEtEffet(), 'au bilan : fermé, refusé').toEqual(['etapesJouees', false]);
   });
 

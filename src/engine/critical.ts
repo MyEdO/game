@@ -15,12 +15,12 @@ import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDie, critiqueDoc, critiqueTable,
-  type Amputation, type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
+  type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
 import { rule } from './policy';
-import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
+import { poserEnjeu, reecrireFlow, type Flow, type FlowTestNode } from './flowCore';
 import { categorieDeLaNiche, combatStakeRef, type StakeRef } from '../data';
 import type * as criticalsDef from '../data/schemas/defs/criticals';
 import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
@@ -45,68 +45,30 @@ function enjeuDeRangee(jeu: JeuDeCritique, location: HitLocation, entryId: strin
  * une fabrique PURE, séparée du résolveur, qui ne tire AUCUN dé. Les branches `echec`/`reussite` sont
  * déjà en donnée ; il n'y a rien à composer, seulement l'enjeu à nommer.
  */
-function noeudDeRangee(entry: CritEntry, jeu: JeuDeCritique, location: HitLocation): FlowTestNode | undefined {
+function noeudDeRangee(entry: CritEntry, enjeu: StakeRef): FlowTestNode | undefined {
   if (!entry.test) return undefined;
-  const noeud: FlowTestNode = { ...entry.test, test: poserEnjeu(entry.test.test, enjeuDeRangee(jeu, location, entry.id)) };
+  const noeud: FlowTestNode = { ...entry.test, test: poserEnjeu(entry.test.test, enjeu) };
   return noeud;
 }
 
-/** Feuille `effet` d'une liste d'ops — la forme Flow d'un effet, écrite une fois pour ce module. */
-const feuille = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', ops } });
-
-/**
- * Le(s) Test(s) d'une Amputation (LDB 18 l.237), ENJEU POSÉ, prêts à partir par la porte — fabrique
- * PURE jumelle de `noeudDeRangee` : aucun dé n'est tiré ici, la porte les roule (avec les États du
- * porteur, sa Chance et sa Résilience). Les branches sont COMPOSÉES du vocabulaire existant
- * (`condition`, Condition `slThreshold`, op `amputer`) — rien n'est spécial à l'amputation.
- *
- * Trois formes, toutes PARAMÉTRIQUES (la DONNÉE décide, le code ne branche sur aucun cas nommé) :
- *  - `loss.difficulty` (l.171) — Test ENGLOBANT dont la réussite annule tout ; son échec joue le reste ;
- *  - `loss` sans gate (l.180) — le Test l.237 détermine LUI-MÊME la perte : `amputer` dans sa `echec` ;
- *  - sans `loss` (l.124, l.237) — la ligne fait perdre le membre quoi qu'il arrive : `amputer` suit le
- *    Test en séquence, et le Test ne décide que des États.
- * `loss.perDR` (l.180) devient `unitesPerSL {every:1, amount:1, onFailure:true}` : `ctx.sl` de la
- * branche `echec` porte le DR, `slBonus` en tire « un orteil par DR en dessous de 0 ».
- *
- * Le LIBELLÉ sépare les deux Tests d'une même ligne (`entry.label` pour le gate, la plaie pour l.237) :
- * `triggeredTestStepId` keye par (porteur, libellé, Compétence) — deux « Résistance » homonymes
- * rendraient la seconde étape injoignable.
- */
-export function noeudAmputation(entry: CritEntry, amp: Amputation, jeu: JeuDeCritique, location: HitLocation): Flow {
-  const enjeu = enjeuDeRangee(jeu, location, entry.id);
-  const perteGateeParCeTest = !!amp.loss && !amp.loss.difficulty;
-  const amputer = feuille([{
-    op: 'amputer', sequels: amp.sequels, loc: location,
-    ...(amp.unites != null ? { unites: amp.unites } : {}),
-    ...(amp.loss?.perDR ? { unitesPerSL: { every: 1, amount: 1, onFailure: true } } : {}),
-  }]);
-  const etats: Flow[] = [
-    feuille([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]),
-    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -2 }, alors: feuille([{ op: 'condition', id: { id: 'sonne' }, value: 1 }]) },
-    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -4 }, alors: feuille([{ op: 'condition', id: { id: 'inconscient' }, value: 1 }]) },
-  ];
-  const noeud: FlowTestNode = {
-    kind: 'test',
-    test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.difficulty, label: traumaFicheById('amputation-plaie').label }, enjeu),
-    reussite: EMPTY_FLOW,
-    echec: { kind: 'sequence', etapes: perteGateeParCeTest ? [...etats, amputer] : etats },
-  };
-  if (perteGateeParCeTest) return noeud;
-  const avecPerte: Flow = { kind: 'sequence', etapes: [noeud, amputer] };
-  if (!amp.loss?.difficulty) return avecPerte;
-  return {
-    kind: 'test',
-    test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.loss.difficulty, label: entry.label }, enjeu),
-    reussite: EMPTY_FLOW,
-    echec: avecPerte,
-  };
+function situerAmputation(flow: Flow, enjeu: StakeRef, location: HitLocation): Flow {
+  return reecrireFlow(flow, (n) => {
+    if (n.kind === 'test') return { ...n, test: poserEnjeu(n.test, enjeu) };
+    if (n.kind !== 'effet') return n;
+    return {
+      ...n,
+      effet: {
+        ...n.effet,
+        ops: n.effet.ops.map((op) => op.op === 'amputer' ? { ...op, loc: location } : op),
+      },
+    };
+  });
 }
 
 /**
  * Amputations DIFFÉRÉES à la fin de la rencontre (LDB 18 l.171) — CONSOMME les marqueurs
  * `Trauma.pendingAmputation` armés par `resolveCritique` et rend les Flows à ouvrir par la porte
- * canonique. PUR au sens du jet : aucun dé n'est tiré ici (le nœud a été fabriqué au critique, enjeu
- * posé) ; seule la liste des séquelles de `c` est mutée, comme le faisait le retrait de marqueur.
+ * canonique. Seule la liste des séquelles de `c` est mutée.
  */
 export function prendreAmputationsDifferees(c: Combatant): { label: string; flow: Flow }[] {
   const pending = (c.traumas ?? []).filter((t) => t.pendingAmputation);
@@ -121,7 +83,7 @@ export interface CriticalResolved {
    *  par `applyCriticalToTarget` pour l'historique d'occurrence (escalade `onRepeat`). */
   entryId: string;
   label: string;
-  /** Effet IMMÉDIAT RÉSOLU (PB ignorant BE+PA + États immédiats + Amputation), appliqué par `applyOps`
+  /** Effet IMMÉDIAT RÉSOLU (PB ignorant BE+PA + États immédiats), appliqué par `applyOps`
    *  chez l'appelant — valeurs littérales (RNG déjà consommé ici). */
   ops: GameOp[];
   /** Le(s) Test(s) que la Blessure impose, à OUVRIR PAR LA PORTE canonique — le nœud `test` de la
@@ -457,8 +419,8 @@ export function resolveCritique(
   const roll = Math.max(1, raw + regime.severite(target, overkill));
   const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
-  // Nœud `test` de la rangée : FABRIQUÉ à part (enjeu à la LIGNE), jamais roulé — il part par la porte.
-  const rangee = noeudDeRangee(entry, jeu, location);
+  const enjeu = enjeuDeRangee(jeu, location, entry.id);
+  const rangee = noeudDeRangee(entry, enjeu);
   const tests: Flow[] = rangee ? [rangee] : [];
   // Occurrence-count PAR ID D'ENTRÉE (LDB 18 l.71 : « Si vous tombez une seconde fois sur cette blessure… » ;
   // AA 07 l.96) : la MÊME entrée déjà subie → effet ALTERNATIF `escalation.onRepeat` (séquelles REMPLACÉES,
@@ -472,20 +434,17 @@ export function resolveCritique(
   // portent leur `kind` → on instancie à la localisation du coup.
   const traumas = traumaRefs.map((id) =>
     traumaById(id, { be, d10: traumaFicheById(id).kind === 'fracture' ? d10(rng) : undefined }, location));
-  // Amputation (LDB 18 l.237 ; AA 07 « voir Amputation en page 180 de WFJDR ») : DÉCLARÉE STRUCTURELLEMENT
-  // (`entry.amputation`, jamais lue par regex sur le texte). Son/ses Test(s) sont FABRIQUÉS ici et rejoignent
-  // le `testFlow` APRÈS le nœud de la rangée (ordre RAW : la rangée, puis l'amputation qu'elle prononce) —
-  // aucun dé n'est tiré. `timing: 'postEncounter'` (l.171 : « Une fois la rencontre terminée… ») → le nœud
-  // est ARMÉ sur le marqueur `pendingAmputation`, ouvert par la porte au foyer de fin de combat.
+  // LDB 18 l.124,171,180,237 ; AA 07 l.129,171,180.
   if (!entry.lethal && entry.amputation) {
-    const noeud = noeudAmputation(entry, entry.amputation, jeu, location);
-    if (entry.amputation.timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: noeud });
-    else tests.push(noeud);
+    const { flow, timing } = entry.amputation;
+    const amputation = situerAmputation(flow, enjeu, location);
+    if (timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: amputation });
+    else tests.push(amputation);
   }
   // Escalade GATÉE par les soins (« Main ouverte » : doigt/Round ; « Pied écrasé » : perte du pied sans
   // Chirurgie sous 1d10 jours ; « Épaule luxée »/« Genou démis » : membre désactivé jusqu'au Test étendu de
   // Guérison) — placée en DERNIER (ne décale que les critiques à escalade).
-  stampCriticalEscalation(traumas, entry.escalation, location, target, rng, target.traumas ?? [], enjeuDeRangee(jeu, location, entry.id));
+  stampCriticalEscalation(traumas, entry.escalation, location, target, rng, target.traumas ?? [], enjeu);
   // Déclencheurs armés par un critique ANTÉRIEUR (« Commotion cérébrale » : autre critique tête pendant
   // Exténué, LDB 18 l.74) — lus sur `target.traumas` (jamais la séquelle stampée à l'instant : elle n'est pas
   // encore sur la cible), et kind-agnostiques (un critique LDB peut avoir armé ce qu'un critique AA fait

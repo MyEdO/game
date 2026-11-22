@@ -21,7 +21,7 @@ const RACINE_PAR_CHAMP: readonly { racine: RacineDeCatalogue; champ: RegExp; fic
   { racine: 'maladie', champ: /\.(onTick|dailyTest)\.test[.[]/ },
   { racine: 'consommable', champ: /^\.consumable[.[]/ },
   { racine: 'sort', champ: /^(\.variants\[\d+\])?\.effects[.[]/, fichier: 'spells.json' },
-  { racine: 'critique', champ: /^\.entries\[\d+\]\.(test|escalation\.onNextCritWhileCondition\.test)[.[]/, fichier: 'criticals.json' },
+  { racine: 'critique', champ: /^\.entries\[\d+\]\.(test|amputation\.flow|escalation\.onNextCritWhileCondition\.test)[.[]/, fichier: 'criticals.json' },
   { racine: 'declenche', champ: /^\.(effects|onHitEffects)\[\d+\]\.flow[.[]/ },
   { racine: 'evenementDeMer', champ: /^\.(boardEvents|portEvents|fastVoyage)\.entries\[\d+\]\.consequence[.[]/, fichier: 'sea-events.json' },
 ];

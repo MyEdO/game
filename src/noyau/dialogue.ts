@@ -71,9 +71,6 @@ export function conversationRepond(s: Jeu): s is Jeu & { dialogue: EtatDialogue 
   return !!s.dialogue && ownsGroupDecision(s) && !surfaceTientLaMain(s);
 }
 
-/** `kind` de la couche que la fenêtre de conversation pose sur la pile de CE siège (`ui/DialogueBox`). */
-export const COUCHE_CONVERSATION = 'dialogue';
-
 /** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `drCible` n'est porté que par un Test
  *  ÉTENDU (le DR CUMULÉ à atteindre, donnée du flux). */
 export interface TestAnnonce {
@@ -165,6 +162,8 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
     }
     case 'choix':
       return undefined;
+    default:
+      return flow satisfies never;
   }
 }
 

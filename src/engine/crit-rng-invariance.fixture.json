@@ -64,13 +64,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "oreille-perdue"
+                ],
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "accessible",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -147,21 +161,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "oreille-perdue"
-                ],
-                "loc": "tete"
               }
             ]
           }
@@ -1436,13 +1435,33 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "dents-perdues"
+                ],
+                "unites": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "facile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -1517,27 +1536,6 @@
                         "value": 1
                       }
                     ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "dents-perdues"
-                ],
-                "loc": "tete",
-                "unites": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
                   }
                 }
               }
@@ -2756,13 +2754,33 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "dents-perdues"
+                ],
+                "unites": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "facile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -2837,27 +2855,6 @@
                         "value": 1
                       }
                     ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "dents-perdues"
-                ],
-                "loc": "tete",
-                "unites": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
                   }
                 }
               }
@@ -3504,13 +3501,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasG"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -3587,21 +3599,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasG"
                   }
                 ]
               }
@@ -3722,13 +3719,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasD"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -3805,21 +3817,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasD"
                   }
                 ]
               }
@@ -4540,13 +4537,34 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "langue-amputee",
+                  "dents-perdues"
+                ],
+                "unites": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "difficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -4621,28 +4639,6 @@
                         "value": 1
                       }
                     ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "langue-amputee",
-                  "dents-perdues"
-                ],
-                "loc": "tete",
-                "unites": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
                   }
                 }
               }
@@ -5734,13 +5730,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasG"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -5817,21 +5828,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasG"
                   }
                 ]
               }
@@ -5952,13 +5948,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasD"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -6035,21 +6046,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasD"
                   }
                 ]
               }
@@ -7221,7 +7217,7 @@
           "id": "resistance"
         },
         "difficulty": "accessible",
-        "label": "Amputation",
+        "label": "Perte de l’orteil",
         "stake": {
           "key": {
             "dataset": "combat",
@@ -7249,71 +7245,105 @@
                     "id": "a-terre"
                   },
                   "value": 1
-                }
-              ]
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -2
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "sonne"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -4
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "inconscient"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
+                },
                 {
                   "op": "amputer",
                   "sequels": [
                     "orteil-ampute"
                   ],
-                  "loc": "jambeG",
                   "unitesPerSL": {
                     "every": 1,
                     "amount": 1,
                     "onFailure": true
+                  },
+                  "loc": "jambeG"
+                }
+              ]
+            }
+          },
+          {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Plaie d’amputation",
+              "stake": {
+                "key": {
+                  "dataset": "combat",
+                  "kind": "critique-ligne-test",
+                  "entryId": "aa-jambe-106",
+                  "entryCategory": "aaCriticalsJambe"
+                }
+              }
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -2
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "sonne"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -4
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "inconscient"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
                   }
                 }
               ]
@@ -7417,7 +7447,7 @@
           "id": "resistance"
         },
         "difficulty": "accessible",
-        "label": "Amputation",
+        "label": "Perte de l’orteil",
         "stake": {
           "key": {
             "dataset": "combat",
@@ -7445,71 +7475,105 @@
                     "id": "a-terre"
                   },
                   "value": 1
-                }
-              ]
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -2
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "sonne"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -4
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "inconscient"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
+                },
                 {
                   "op": "amputer",
                   "sequels": [
                     "orteil-ampute"
                   ],
-                  "loc": "jambeD",
                   "unitesPerSL": {
                     "every": 1,
                     "amount": 1,
                     "onFailure": true
+                  },
+                  "loc": "jambeD"
+                }
+              ]
+            }
+          },
+          {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Plaie d’amputation",
+              "stake": {
+                "key": {
+                  "dataset": "combat",
+                  "kind": "critique-ligne-test",
+                  "entryId": "aa-jambe-106",
+                  "entryCategory": "aaCriticalsJambe"
+                }
+              }
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -2
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "sonne"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -4
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "inconscient"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
                   }
                 }
               ]
@@ -7906,7 +7970,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -7924,13 +7988,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeG"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -8007,21 +8086,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeG"
                     }
                   ]
                 }
@@ -8109,7 +8173,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -8127,13 +8191,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeD"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -8210,21 +8289,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeD"
                     }
                   ]
                 }
@@ -8552,13 +8616,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "tresDifficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -8635,21 +8713,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeG"
               }
             ]
           }
@@ -8724,13 +8787,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "tresDifficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -8807,21 +8884,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeD"
               }
             ]
           }
@@ -9563,13 +9625,33 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "dents-perdues"
+                ],
+                "unites": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "facile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -9644,27 +9726,6 @@
                         "value": 1
                       }
                     ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "dents-perdues"
-                ],
-                "loc": "tete",
-                "unites": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
                   }
                 }
               }
@@ -10260,13 +10321,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "complexe",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -10343,21 +10418,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasG"
               }
             ]
           }
@@ -10436,13 +10496,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "complexe",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -10519,21 +10593,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasD"
               }
             ]
           }
@@ -10696,13 +10755,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "difficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -10779,21 +10852,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeG"
               }
             ]
           }
@@ -10872,13 +10930,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "difficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -10955,21 +11027,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeD"
               }
             ]
           }
@@ -12871,13 +12928,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "accessible",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -12954,21 +13025,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasG"
               }
             ]
           }
@@ -13029,13 +13085,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "accessible",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -13112,21 +13182,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasD"
               }
             ]
           }
@@ -13282,7 +13337,7 @@
           "id": "resistance"
         },
         "difficulty": "accessible",
-        "label": "Amputation",
+        "label": "Perte de l’orteil",
         "stake": {
           "key": {
             "dataset": "combat",
@@ -13310,71 +13365,105 @@
                     "id": "a-terre"
                   },
                   "value": 1
-                }
-              ]
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -2
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "sonne"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -4
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "inconscient"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
+                },
                 {
                   "op": "amputer",
                   "sequels": [
                     "orteil-ampute"
                   ],
-                  "loc": "jambeG",
                   "unitesPerSL": {
                     "every": 1,
                     "amount": 1,
                     "onFailure": true
+                  },
+                  "loc": "jambeG"
+                }
+              ]
+            }
+          },
+          {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Plaie d’amputation",
+              "stake": {
+                "key": {
+                  "dataset": "combat",
+                  "kind": "critique-ligne-test",
+                  "entryId": "aa-jambe-106",
+                  "entryCategory": "aaCriticalsJambe"
+                }
+              }
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -2
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "sonne"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -4
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "inconscient"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
                   }
                 }
               ]
@@ -13453,7 +13542,7 @@
           "id": "resistance"
         },
         "difficulty": "accessible",
-        "label": "Amputation",
+        "label": "Perte de l’orteil",
         "stake": {
           "key": {
             "dataset": "combat",
@@ -13481,71 +13570,105 @@
                     "id": "a-terre"
                   },
                   "value": 1
-                }
-              ]
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -2
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "sonne"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "si",
-            "condition": {
-              "kind": "slThreshold",
-              "op": "<=",
-              "value": -4
-            },
-            "alors": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "inconscient"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
+                },
                 {
                   "op": "amputer",
                   "sequels": [
                     "orteil-ampute"
                   ],
-                  "loc": "jambeD",
                   "unitesPerSL": {
                     "every": 1,
                     "amount": 1,
                     "onFailure": true
+                  },
+                  "loc": "jambeD"
+                }
+              ]
+            }
+          },
+          {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Plaie d’amputation",
+              "stake": {
+                "key": {
+                  "dataset": "combat",
+                  "kind": "critique-ligne-test",
+                  "entryId": "aa-jambe-106",
+                  "entryCategory": "aaCriticalsJambe"
+                }
+              }
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -2
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "sonne"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "si",
+                  "condition": {
+                    "kind": "slThreshold",
+                    "op": "<=",
+                    "value": -4
+                  },
+                  "alors": {
+                    "kind": "effet",
+                    "effet": {
+                      "type": "ops",
+                      "ops": [
+                        {
+                          "op": "condition",
+                          "id": {
+                            "id": "inconscient"
+                          },
+                          "value": 1
+                        }
+                      ]
+                    }
                   }
                 }
               ]
@@ -13942,7 +14065,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -13960,13 +14083,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeG"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -14043,21 +14181,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeG"
                     }
                   ]
                 }
@@ -14145,7 +14268,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -14163,13 +14286,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeD"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -14246,21 +14384,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeD"
                     }
                   ]
                 }
@@ -14416,13 +14539,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasG"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -14499,21 +14637,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasG"
                   }
                 ]
               }
@@ -14634,13 +14757,28 @@
           "kind": "sequence",
           "etapes": [
             {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "ops": [
+                  {
+                    "op": "amputer",
+                    "sequels": [
+                      "main-bras-ampute"
+                    ],
+                    "loc": "brasD"
+                  }
+                ]
+              }
+            },
+            {
               "kind": "test",
               "test": {
                 "skill": {
                   "id": "resistance"
                 },
                 "difficulty": "tresDifficile",
-                "label": "Amputation",
+                "label": "Plaie d’amputation",
                 "stake": {
                   "key": {
                     "dataset": "combat",
@@ -14717,21 +14855,6 @@
                         ]
                       }
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "amputer",
-                    "sequels": [
-                      "main-bras-ampute"
-                    ],
-                    "loc": "brasD"
                   }
                 ]
               }
@@ -15733,13 +15856,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "tresDifficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -15816,21 +15953,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeG"
               }
             ]
           }
@@ -15905,13 +16027,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "tresDifficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -15988,21 +16124,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeD"
               }
             ]
           }
@@ -16869,13 +16990,33 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "dents-perdues"
+                ],
+                "unites": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "loc": "tete"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "facile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -16950,27 +17091,6 @@
                         "value": 1
                       }
                     ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "dents-perdues"
-                ],
-                "loc": "tete",
-                "unites": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
                   }
                 }
               }
@@ -17566,13 +17686,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "complexe",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -17649,21 +17783,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasG"
               }
             ]
           }
@@ -17742,13 +17861,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "doigt-ampute"
+                ],
+                "loc": "brasD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "complexe",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -17825,21 +17958,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "doigt-ampute"
-                ],
-                "loc": "brasD"
               }
             ]
           }
@@ -18002,13 +18120,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeG"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "difficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -18085,21 +18217,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeG"
               }
             ]
           }
@@ -18178,13 +18295,27 @@
       "kind": "sequence",
       "etapes": [
         {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "amputer",
+                "sequels": [
+                  "membre-inferieur-ampute"
+                ],
+                "loc": "jambeD"
+              }
+            ]
+          }
+        },
+        {
           "kind": "test",
           "test": {
             "skill": {
               "id": "resistance"
             },
             "difficulty": "difficile",
-            "label": "Amputation",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -18261,21 +18392,6 @@
                     ]
                   }
                 }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "amputer",
-                "sequels": [
-                  "membre-inferieur-ampute"
-                ],
-                "loc": "jambeD"
               }
             ]
           }
@@ -18661,7 +18777,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -18679,13 +18795,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeG"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -18762,21 +18893,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeG"
                     }
                   ]
                 }
@@ -18864,7 +18980,7 @@
               "id": "resistance"
             },
             "difficulty": "intermediaire",
-            "label": "Coupure à l'orteil",
+            "label": "Perte de l’orteil",
             "stake": {
               "key": {
                 "dataset": "combat",
@@ -18882,13 +18998,28 @@
             "kind": "sequence",
             "etapes": [
               {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "orteil-ampute"
+                      ],
+                      "loc": "jambeD"
+                    }
+                  ]
+                }
+              },
+              {
                 "kind": "test",
                 "test": {
                   "skill": {
                     "id": "resistance"
                   },
                   "difficulty": "accessible",
-                  "label": "Amputation",
+                  "label": "Plaie d’amputation",
                   "stake": {
                     "key": {
                       "dataset": "combat",
@@ -18965,21 +19096,6 @@
                           ]
                         }
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "ops": [
-                    {
-                      "op": "amputer",
-                      "sequels": [
-                        "orteil-ampute"
-                      ],
-                      "loc": "jambeD"
                     }
                   ]
                 }

@@ -13,7 +13,7 @@ import { removeEntity } from './combatPlacement';
 import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan } from './monde/exploreNav';
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 import { entityBlockedAt } from './monde/sceneRules';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
@@ -143,7 +143,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
     return plan ? { kind: 'rejoindre', plan, pending: { id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest } } : null;
   }
   if (ent?.kind === 'personnage') {
-    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe).label }) };
+    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe, objetDuNarratif(s.campaignNarratif)).label }) };
     return marcherOu(sansChemin);
   }
   // DÉCOR qui OCCUPE sa case (`entityBlockedAt`, la règle d'`isWalkable`) : on s'en approche, sinon on le dit. Un décor
@@ -206,7 +206,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   // UN SEUL message par situation : la place visée est partie (course perdue) ou toutes sont
   // prises → « occupé » ; il en reste une, mais pas sous les pieds → « rejoindre la place ».
   const apres = get().scene;
-  get().ecrireAuJournal(t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
+  refuserGeste(get, set, t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
 }
 
 /** La fouille de la pièce : la scène et la pièce où le groupe se tient, ou le refus nommé. Le verbe `fouillerLaPiece`,

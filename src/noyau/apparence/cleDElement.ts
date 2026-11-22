@@ -4,7 +4,7 @@
  * jamais par catégorie.
  */
 import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findPropById, findTeteById, libelleDAuteur } from '../../data';
-import { kitSchema } from '../../data/schemas/defs/structureAppearance';
+import { kitDEscalierSchema, kitDeToitSchema, kitSchema } from '../../data/schemas/defs/structureAppearance';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { pieceOuVariante } from './gardeRobe';
 
@@ -29,15 +29,19 @@ const CHAMPS = {
   coiffure: { find: findCoiffureById, quoi: 'coiffure de `garde-robe.json`' },
   piece: { find: pieceOuVariante, quoi: 'pièce ni variante de `garde-robe.json`' },
   apparence: { find: findApparenceById, quoi: 'apparence de `apparences.json`' },
-  definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
+  definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin de `siege-engines.json`' },
   amelioration: { find: (id: string) => { const t = findNavalTrait(id); return t?.kind === 'amelioration' ? t : undefined; }, quoi: 'Amélioration de `naval-traits.json`' },
   prop: { find: findPropById, quoi: 'décor de `props.json`' },
   kit: {
     find: (id: string) => {
-      const label = valeursDe(kitSchema)?.[id];
-      return label === undefined ? undefined : { label };
+      const familles = [['arete', kitSchema], ['escalier', kitDEscalierSchema], ['toit', kitDeToitSchema]] as const;
+      for (const [categorie, schema] of familles) {
+        const label = valeursDe(schema)?.[id];
+        if (label !== undefined) return { label, categorie };
+      }
+      return undefined;
     },
-    quoi: 'famille de kit de `structureAppearance.json`',
+    quoi: 'famille de kit d’arête (`kitSchema`), d’escalier (`kitDEscalierSchema`) ni de toit (`kitDeToitSchema`)',
   },
 } as const satisfies Readonly<Record<string, ChampDeCle>>;
 

@@ -14,12 +14,12 @@
 import { tableTotale } from '../lib/tableTotale';
 import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
-  characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
+  catalogueDesEngins, characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
-  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
+  massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts, STEAM_BREAKDOWNS,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
@@ -44,7 +44,7 @@ import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
-import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
+import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, renvoiDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
 import { estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, suiteAvecPas } from './schemas/grammaire/cle-d-espace';
 import { lectureDuVocabulaire } from './schemas/grammaire/vocabulaires';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
@@ -90,11 +90,7 @@ import { estObjet } from '../lib/objet.mjs';
  *  Péché non lié (`opsAuPecheSchema`), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`). */
 export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
 
-/** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
- *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`
- *  (`src/data/criticals.ts`), la SEULE déclaration de la forme : une redéclaration structurelle en
- *  amputait `source`, `escalation` et les champs d'`Amputation` (`timing`/`loss`/`unites`), si bien que
- *  le Codex ne pouvait pas voir ce que le moteur joue. */
+/** Entrée de table de Blessures critiques (LDB 18 ; AA 07), partagée avec le moteur. */
 export type CritTableEntry = CritEntry;
 // Les 8 documents-tables de `criticals.json` (4 Localisations × 2 jeux) — rangées LIVE par id de
 // DOCUMENT (`critiqueEntries`, même référence que le moteur, patron `rangeesDe`).
@@ -115,6 +111,7 @@ const rencontresDangereuses = encounterTable('dangereuses');
 
 /** Datasets-tableaux mutables (clé éditeur → MÊME référence d'array que l'export de la façade). */
 const ARRAYS = {
+  siegeEngines: catalogueDesEngins,
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
@@ -145,7 +142,7 @@ const ARRAYS = {
   // Presets de personnage entier (#3086) : édités au fichier.
   presetsDePersonnage,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
-  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
+  massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —
   // MÊME référence d'array que le moteur (`ACTIVITIES`, singleton JSON) → l'édition
   // Codex (splice en place) reste visible en jeu. Fichier `activities.json` (défaut), racine = le tableau.
@@ -365,6 +362,11 @@ function lectureVivante(cle: string): LectureVivante {
   return lire();
 }
 
+/** Le renvoi d'un espace vivant vers son univers, tel que le résout le registre d'ids. */
+export function renvoiDeLEspaceVivant(cle: string): string | undefined {
+  return renvoiDeLEspace(cle, accesVivant);
+}
+
 /** Lecture d'un VOCABULAIRE du moteur (`grammaire/vocabulaires.ts`), ids en ensemble : le code le fige,
  *  aucune racine ne le porte. */
 const LECTURES_DE_VOCABULAIRE = new Map<string, LectureVivante>();
@@ -548,6 +550,33 @@ function poserEnPlace(target: Record<string, unknown>, k: string, v: unknown): v
 export function setObjectDataset<K extends ObjectDatasetKey>(key: K, next: (typeof OBJECTS)[K]): void {
   mergeInPlace(OBJECTS[key] as Record<string, unknown>, next as Record<string, unknown>);
   bumperDataset(key);
+}
+
+function capturerLaReprise(objet: Record<string, unknown>): () => void {
+  const contenu = { ...objet };
+  const reprises: (() => void)[] = [];
+  for (const valeur of Object.values(contenu)) {
+    if (Array.isArray(valeur)) {
+      const elements = valeur.slice();
+      reprises.push(() => { valeur.splice(0, valeur.length, ...elements); });
+    } else if (estObjet(valeur)) {
+      reprises.push(capturerLaReprise(valeur));
+    }
+  }
+  return () => {
+    for (const cle of Object.keys(objet)) if (!Object.prototype.hasOwnProperty.call(contenu, cle)) delete objet[cle];
+    Object.assign(objet, contenu);
+    for (const reprendre of reprises) reprendre();
+  };
+}
+
+/** Capture une reprise du dataset-objet qui rattache aussi les références conservées par ses lecteurs. */
+export function repriseDuDatasetObjet(cle: ObjectDatasetKey): () => void {
+  const reprendre = capturerLaReprise(OBJECTS[cle]);
+  return () => {
+    reprendre();
+    bumperDataset(cle);
+  };
 }
 
 /** Réinitialise tous les datasets (tableaux ET objets) au seed d'origine (JSON app-owned). */

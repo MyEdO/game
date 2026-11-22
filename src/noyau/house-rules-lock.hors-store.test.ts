@@ -10,10 +10,13 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { reglesMaisonMutables, surchargerUneRegleMaison } from './reglesMaison';
+import { reglesMaisonMutables, retablirUneRegleMaison, surchargerUneRegleMaison } from './reglesMaison';
 import { resetRule, setRule, OPTIONAL_RULES } from '../engine/policy';
 import { resolveRoundBoundary } from './combatFlow';
 import { createHero } from '../engine/character';
+import { findTrappingById } from '../data';
+import { itemFromTrappingById, itemFromTrappingRef, loadedAmmo, loadWeapon, recomputeLoadout, weaponFromItem, weaponWithAmmo } from '../engine/items';
+import { patchDeLArmement } from './monde/carrier';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -100,5 +103,47 @@ describe('#564 — le bug, sans la porte (écriture directe du registre moteur)'
     setRule('combat-aa-avantage-groupe', true); // primitive PURE du moteur : ne connaît pas la partie
     resolveRoundBoundary(banc.getState, banc.setState);
     expect(banc.getState().battle!.combatants.find((c) => c.id === hero.id)!.advantage).toBe(0);
+  });
+});
+
+/** AA 02 l.17, l.21 ; AA 08 l.65, l.377, l.466 ; LDB 62 l.97, l.116, l.123 */
+const ARMEMENT_AA = 'combat-aa-armement';
+
+describe('L’armement du groupe suit l’option Aux Armes', () => {
+  afterEach(() => resetRule(ARMEMENT_AA));
+
+  it('reprojette le Tromblon déjà porté et la Flèche elfique sans toucher au chargement ni aux qualités attachées', () => {
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const tromblon = itemFromTrappingRef({ id: 'tromblon', qualities: [{ id: 'a-poudre-noire' }, { id: 'precise' }] }, idsDeTest)!;
+    const poudre = itemFromTrappingById('petites-munitions-et-poudre', idsDeTest)!;
+    const fleche = itemFromTrappingById('fleche-elfique', idsDeTest)!;
+    const arc = weaponFromItem(itemFromTrappingById('arc', idsDeTest)!);
+    hero.items = [tromblon, poudre, fleche];
+    hero.loadouts = undefined;
+    recomputeLoadout(hero);
+    loadWeapon(findTrappingById, hero, hero.weapons[0]);
+    banc.getState().fixerLeGroupe([hero]);
+    const porteur = () => banc.getState().party[0];
+    const tir = () => weaponWithAmmo(porteur().weapons[0], loadedAmmo(findTrappingById, porteur(), porteur().weapons[0])!);
+    const reprojeter = () => banc.setState(patchDeLArmement(banc.getState()) ?? {});
+    const ajout = { id: 'a-poudre-noire' };
+    expect(tir().qualities).toContainEqual({ id: 'a-explosion', value: 4 });
+    expect(tir().qualities.filter((q) => q.id === ajout.id)).toEqual([ajout, ajout]);
+    expect(weaponWithAmmo(arc, fleche).qualities).toContainEqual({ id: 'precise' });
+
+    expect(surchargerUneRegleMaison(banc.getState(), ARMEMENT_AA, true, reprojeter)).toBe(true);
+    expect(porteur().items).toBe(hero.items);
+    expect(loadedAmmo(findTrappingById, porteur(), porteur().weapons[0])).toBe(poudre);
+    expect(tir().qualities).toEqual(expect.arrayContaining([{ id: 'tir-de-zone', value: 3 }, { id: 'a-explosion', value: 1 }, { id: 'precise' }]));
+    expect(tir().qualities.filter((q) => q.id === ajout.id)).toEqual([ajout]);
+    expect(weaponWithAmmo(arc, fleche).qualities.map((q) => q.id)).toEqual(expect.arrayContaining(['pointue', 'empaleuse', 'perforante']));
+    expect(weaponWithAmmo(arc, fleche).qualities).not.toContainEqual({ id: 'precise' });
+    expect(itemFromTrappingById('fleche-elfique', idsDeTest, findTrappingById)!.qualities).toContainEqual({ id: 'precise' });
+    expect(fleche.qualities).toContainEqual({ id: 'precise' });
+
+    expect(retablirUneRegleMaison(banc.getState(), ARMEMENT_AA, reprojeter)).toBe(true);
+    expect(tir().qualities).toContainEqual({ id: 'a-explosion', value: 4 });
+    expect(tir().qualities.filter((q) => q.id === ajout.id)).toEqual([ajout, ajout]);
+    expect(weaponWithAmmo(arc, fleche).qualities).toContainEqual({ id: 'precise' });
   });
 });

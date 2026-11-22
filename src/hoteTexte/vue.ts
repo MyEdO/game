@@ -6,12 +6,13 @@
  */
 import {
   effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
-  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
-  type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
+  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis,
+  CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet,
+  type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
-import { signature, type ParametreDeVerbe } from '../hote/formes';
+import { formeEcrite, signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
 import { parametresDuGeste } from '../hote/gestes';
 import {
@@ -169,7 +170,13 @@ const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 function texteDeLigneDeJet(l: LigneDeJet): string {
   const qui = l.qui ? `${l.qui} ` : '';
   switch (l.genre) {
-    case 'test': return `${qui}${l.test} ${l.jet ? `${l.jet.d100}/${l.cible ?? '—'} DR ${signe(l.jet.dr)} ${l.jet.reussi ? 'réussi' : 'raté'}` : `à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`}`;
+    case 'test': {
+      const sujet = `${qui}${l.test}`;
+      if (l.etat === 'masque') return `${sujet} ${t('ecran.jet.cache')}`;
+      if (!l.jet) return `${sujet} à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`;
+      const dr = l.jet.dr === null ? '' : ` DR ${signe(l.jet.dr)}`;
+      return `${sujet} ${l.jet.d100}/${l.cible ?? '—'}${dr} ${l.jet.verdict === 'reussite' ? 'réussi' : 'raté'}`;
+    }
     case 'table': return `${qui}${l.table} ${l.jet ? `${l.jet.d100} (${l.jet.effectif}) : ${l.jet.ligne}` : 'à tirer'}`;
     case 'de': return `${qui}${l.de} ${l.jet ? `${l.jet.naturel} → ${l.jet.total}${l.jet.lecture ? ` : ${l.jet.lecture}` : ''}` : 'à jeter'}`;
   }
@@ -288,10 +295,20 @@ export function rendreLaSuite(issue: readonly string[], lignes: readonly LigneNu
   return borner([...sortie, ...vue], 'jouer');
 }
 
+/** La signature de lecture, avec la forme complète des options de départ. */
+function signatureLue(verbe: string, parametres: readonly ParametreDeVerbe[]): string[] {
+  const lignes = replier(signature(verbe, parametres));
+  if (parametres === VERBES.partirEnVoyage) {
+    const [, , options] = VERBES.partirEnVoyage;
+    lignes.push(...replier(`${options.nom} : ${formeEcrite(options.forme)}`));
+  }
+  return lignes;
+}
+
 /** `verbes` (`BORNES.lignes.verbes`) : la signature du verbe `id` ; sinon les verbes dont le nom contient `id` (tous sans
  *  `id`), par page de `BORNES.verbesParPage` (`depuis`). */
 export function rendreLesVerbes(verbes: Readonly<Record<string, readonly ParametreDeVerbe[]>>, id?: string, depuis?: number): string[] {
-  if (id && Object.prototype.hasOwnProperty.call(verbes, id)) return borner(replier(signature(id, verbes[id])), 'verbes');
+  if (id && Object.prototype.hasOwnProperty.call(verbes, id)) return borner(signatureLue(id, verbes[id]), 'verbes');
   const noms = Object.keys(verbes).filter((v) => !id || v.toLowerCase().includes(id.toLowerCase()));
   if (!noms.length) return [`aucun verbe ne contient « ${id} » (${appelEcrit('lire', { quoi: 'verbes' })} les liste)`];
   const debut = Math.max(0, depuis ?? 0);
@@ -299,7 +316,7 @@ export function rendreLesVerbes(verbes: Readonly<Record<string, readonly Paramet
   const k = debut + pageDeNoms.length;
   const suite = k < noms.length ? [`+${noms.length - k} : ${appelEcrit('lire', { quoi: 'verbes', id, depuis: k })}`] : [];
   const tete = noms.length === 1 ? [] : [`${noms.length} verbes ; la signature d’un verbe : ${appelEcrit('lire', { quoi: 'verbes', id: pageDeNoms[0] })}`];
-  const corps = noms.length === 1 ? replier(signature(noms[0], verbes[noms[0]])) : replier(pageDeNoms.join(', '));
+  const corps = noms.length === 1 ? signatureLue(noms[0], verbes[noms[0]]) : replier(pageDeNoms.join(', '));
   return borner([...tete, ...corps, ...suite], 'verbes');
 }
 
@@ -360,17 +377,46 @@ export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: Combat
   return { combattants: elements, suite };
 }
 
-/** La carte (`BORNES.lignes.carte`) : en combat, les combattants en vue (`combattantsTries`) ; en exploration, le
- *  groupe et ses héros (leur id), puis les entités de la scène que le groupe connaît (`entiteConnue`) ; par page
- *  (`depuis`). */
+/** Un trajet, puis ses modes avec le devis et le geste ou le refus de départ. */
+function lignesDuTrajet(trajet: TrajetEnVue): string[] {
+  return [
+    `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${trajet.distance}`,
+    ...trajet.modes.flatMap((mode) => {
+      const libelle = mode.jours === null ? mode.libelle : t('ecran.carte.mode', { mode: mode.libelle, jours: mode.jours });
+      const ligne = `  ${mode.mode} · ${libelle}`;
+      return mode.refus === null
+        ? [ligne, `  ${appelEcrit('jouer', { gestes: [mode.geste] })}`]
+        : [`${ligne} · refus : ${mode.refus}`];
+    }),
+  ];
+}
+
+/** La carte (`BORNES.lignes.carte`) : les combattants en vue en combat, les trajets depuis le lieu du groupe et
+ *  les entités connues hors combat, par page (`depuis`). */
 export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string[] {
   if (!p.combat) {
     const entites = (etat.scene?.entities ?? []).filter((e) => entiteConnue(etat, e));
-    const { elements, suite } = page(entites, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
     const tete = p.exploration
       ? [`groupe ${pos(p.exploration.groupe)} · ${etat.party.length} héros · ${entites.length} entité(s)`, ...etat.party.map((h) => `  ${h.id} · ${h.kind} · ${h.label}`)]
       : ['aucune scène'];
-    return borner([...tete, ...elements.map((e) => `  ${e.id} · ${e.kind}${e.label ? ` · ${e.label}` : ''} · ${pos([e.pos.x, e.pos.y])}`), ...suite], 'carte');
+    const scene = entites.map((e) => `  ${e.id} · ${e.kind}${e.label ? ` · ${e.label}` : ''} · ${pos([e.pos.x, e.pos.y])}`);
+    const suiteDeLaCarte = (k: number) => appelEcrit('lire', { quoi: 'carte', depuis: k });
+    const ici = lieuDuGroupe(etat);
+    if (etat.worldMap && ici) {
+      const trajets = trajetsDepuis(etat, etat.worldMap, ici);
+      const depart = [`Trajets depuis ${ici.label} (${ici.id}) · devis et refus aux réglages par défaut`];
+      if (cadenceAUnEffet(etat)) {
+        const cadences = CADENCES_AU_CHOIX.map((id) => `${t(`ecran.cadence.${id}`)} (${id}${id === DEFAULT_VOYAGE_ORDERS.cadence ? ', par défaut' : ''})`);
+        depart.push(`Cadence de voyage (champ cadence du 3ᵉ argument) : ${cadences.join(' · ')}`);
+      }
+      const lignes = [...depart, ...(trajets.length ? trajets.flatMap(lignesDuTrajet) : ['aucun trajet']), ...tete, ...scene]
+        .flatMap((ligne) => ligne.split('\n'))
+        .flatMap((ligne) => ligne.length > BORNES.largeur ? replier(ligne) : [ligne]);
+      const { elements, suite } = page(lignes, depuis, 'debut', suiteDeLaCarte);
+      return borner([...elements, ...suite], 'carte');
+    }
+    const { elements, suite } = page(scene, depuis, 'debut', suiteDeLaCarte);
+    return borner([...tete, ...elements, ...suite], 'carte');
   }
   const { combattants, suite } = pageDeLaCarte(etat, depuis);
   return borner([...combattants.map((c) => `${c.id === p.combat!.actif?.id ? '> ' : '  '}${ligneDeCombattant(c)}`), ...suite], 'carte');

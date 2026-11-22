@@ -5,7 +5,14 @@
  */
 import { defDe, enfantsDe } from './descente';
 import { z } from 'zod';
+import type { TypeEntite } from './ref';
 import '../../../lib/zodEnFrancais';
+
+type InverseCodex =
+  | true
+  | { type?: TypeEntite; portee?: 'directe'; detail?: string }
+  | { cle: 'characteristic' }
+  | { operations: Readonly<Partial<Record<string, TypeEntite>>> };
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {
@@ -23,6 +30,8 @@ export interface MetaChamp {
   widget?: string;
   /** Rang d'affichage dans le formulaire ; à défaut, l'ordre de déclaration des `champs`. */
   ordre?: number;
+  /** Références de ce champ publiées dans les sections inverses du Codex. */
+  inverseCodex?: InverseCodex;
 }
 
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */
@@ -132,13 +141,4 @@ export function optionsDuNoeud(noeud: unknown): [string, string][] {
  */
 export function libelleDeValeur(noeud: unknown, valeur: string): string {
   return valeursDe(noeud)?.[valeur] ?? valeur;
-}
-
-/**
- * HINT MÉCANIQUE d'une VALEUR d'un nœud énuméré — ce que la règle FAIT quand cette valeur est choisie,
- * tel que `enumNomme` l'a posé SUR LE NŒUD ; `undefined` quand la valeur n'en porte pas (une option
- * sans conséquence mécanique n'invente pas d'infobulle).
- */
-export function hintDeValeur(noeud: unknown, valeur: string): string | undefined {
-  return (noyauEnum(noeud)?.meta?.() as { hints?: Readonly<Record<string, string>> } | undefined)?.hints?.[valeur];
 }

@@ -1,0 +1,13 @@
+{
+  "model": "arete--porterie.glb",
+  "model_sha256": "6033d0ab2369f413a07d4ee3a53c37bea3bc7fb7d95cab5067b8cc8fddf52794",
+  "importe_le": "2026-11-21",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

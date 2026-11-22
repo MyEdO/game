@@ -30,6 +30,11 @@ if (JSON.stringify(data, null, 2) !== brut) {
 }
 
 const machines = data.warMachines;
+if (Array.isArray(machines) && machines.every((m) => typeof m === 'string')
+    && fs.existsSync(new URL('../../src/data/siege-engines.json', import.meta.url))) {
+  console.log(`RIEN À FAIRE — ${FICHIER} porte ses références au catalogue des engins.`);
+  process.exit(0);
+}
 assert.equal(Array.isArray(machines), true, 'warMachines absent de mass-battle.json');
 // FORME, jamais cardinal (#1812) : la liste des machines de guerre est app-owned et peut grandir.
 assert.ok(machines.length > 0, 'warMachines VIDE dans mass-battle.json');

@@ -45,7 +45,7 @@ import { emptyWorldMap, type MapPlace, type WorldMap } from '../worldMap';
 import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
-import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
+import { entree as entreeDePossession } from '../../data/schemas/defs/trappings';
 import {
   bornesAuPoint,
   champDeLElement,
@@ -669,12 +669,36 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
     expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
       ['allEnemiesDead', 'Tous les ennemis hors d’action', { type: 'allEnemiesDead' }],
       ['destroyStructure', 'Détruire une structure', { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } }],
-      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 0 }],
+      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 1 }],
       ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } }],
       ['woundsThreshold', 'Sortie à seuil de dommage', { type: 'woundsThreshold', atOrBelowPercent: 0 }],
       ['firstBlood', 'Duel judiciaire — premier sang', { type: 'firstBlood' }],
     ]);
     for (const v of variantes) expect(encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition: v.valeur }).success, v.cle).toBe(true);
+  });
+
+  it.each([
+    { type: 'surviveRounds', rounds: 1 },
+    { type: 'woundsThreshold', atOrBelowPercent: 0 },
+    { type: 'woundsThreshold', atOrBelowPercent: 50.5 },
+    { type: 'woundsThreshold', atOrBelowPercent: 100 },
+    { type: 'firstBlood' },
+    { type: 'firstBlood', threshold: 0 },
+    { type: 'firstBlood', threshold: 5 },
+  ] as const)('conserve l’objectif valide %j après le parse', (victoryCondition) => {
+    expect(encounterDefSchema.parse({ ...RENCONTRE, victoryCondition }).victoryCondition).toEqual(victoryCondition);
+  });
+
+  it.each([
+    [{ type: 'surviveRounds', rounds: 0 }, 'rounds'],
+    [{ type: 'surviveRounds', rounds: 0.01 }, 'rounds'],
+    [{ type: 'woundsThreshold', atOrBelowPercent: -0.01 }, 'atOrBelowPercent'],
+    [{ type: 'woundsThreshold', atOrBelowPercent: 100.01 }, 'atOrBelowPercent'],
+    [{ type: 'firstBlood', threshold: -1 }, 'threshold'],
+    [{ type: 'firstBlood', threshold: 0.01 }, 'threshold'],
+  ] as const)('refuse la valeur de l’objectif %j au champ %s', (victoryCondition, champ) => {
+    const resultat = encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition });
+    expect(resultat.error?.issues.map((i) => i.path)).toEqual([['victoryCondition', champ]]);
   });
 
   it('la sélection d’une rencontre désigne son porteur', () => {
@@ -832,7 +856,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       'objets/derivedWeapon/reach': 'choix',
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
-    expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
+    expect(unionDuNoeud(new Map(champsDeclares(entreeDePossession)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
   });
 
   it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune désignée comme la rencontre d’un `startCombat` (#4234)', () => {
@@ -845,9 +869,8 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
-    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
+    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'sceneDeBataille' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
     expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
-    expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
   });
 
   it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {
@@ -986,6 +1009,14 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     expect(cles(formulaireDe('narratif', NARRATIF, cadre))).toEqual(['ouverture', 'cloture']);
     expect([['stades', 1, 'prose'], ['stades', 1, 'documentId'], ['stades', 1, 'id'], ['stades']].map((c) => avecLaValeurDuPorteur('indices', lettre, c as Segment[], c[2] === 'documentId' ? 'doc-affiche' : 'z', cadre).ok))
       .toEqual([true, true, false, false]);
+  });
+
+  it('un objet de campagne offre son profil fixe, avec les champs réservés au catalogue absents', () => {
+    const objet = objetDeCampagne();
+    const champs = cles(formulaireDe('objets', objet, cadre));
+    expect(champs).toEqual(expect.arrayContaining(['source', 'qualities', 'damage']));
+    expect(champs).not.toContain('variants');
+    expect(champs).not.toContain('qualitesAuChoix');
   });
 
   it('les références du narratif reçoivent leurs choix : l’affaire d’un indice, le document d’un stade, par le registre ; ses renvois, les autres indices hors des renvoyés', () => {

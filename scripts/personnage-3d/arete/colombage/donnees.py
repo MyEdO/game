@@ -17,8 +17,9 @@ de part en part, entre les deux entretoises : un dormant, un meneau et un croisi
 volets de planches s'ouvrent à plat sur le dehors ou se ferment devant elle. La brèche garde la sablière et les bouts
 du pan autour d'une déchirure du torchis, ses bois rompus, les éclisses de son clayonnage à nu et ses gravats au pied.
 
-Matières : le bois d'ossature et de menuiserie prend `bois-chene`, les ferrures `fer-noirci`, le torchis
-`terre-battue`.
+Matières : le bois d'ossature et de menuiserie prend `bois-chene`, les ferrures `fer-noirci`, la vitre `verre`,
+le torchis et les gravats `terre-battue`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -45,12 +46,16 @@ MATERIAUX = {
     "torchis": ("corps", "terre-battue"),
     "ossature": ("bois", "bois-chene"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
     "croisee": ("vet1", "bois-chene"),
+    "vitre": ("vitre", "verre"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
+    "gravats": ("gravats", "terre-battue"),
 }
 
 BUDGET_TRIANGLES = {"mur": 300, "porte-fermee": 450, "porte-ouverte": 450, "fenetre": 620, "fenetre-close": 620,
-                    "breche": 700}
+                    "breche": 700, "echelle": 400}
 
 ANGLE_LISSE = 30
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : une pièce équarrie garde ses arêtes."""
@@ -88,7 +93,7 @@ FENETRE = {"largeur": 0.45, "recouvrement": 0.03}
 # `places` (abscisse, 1 pendue à la déchirure de tête, -1 dressée sur celle du pied), leur `longueur` à nu (m, tirée),
 # leur `ancrage` dans le torchis (m), leur écart à l'axe du mur (m, tiré jusqu'à cette borne) ; `gravats` : leur
 # `nombre`, leur `etendue` (abscisse, puis mètres de part et d'autre du mur), leur `cote` (m, tiré), ce dont chaque
-# coin s'écarte (fraction du côté, tirée jusqu'à cette borne), la part de bois ; `debris` : les deux bouts (abscisse,
+# coin s'écarte (fraction du côté, tirée jusqu'à cette borne) ; `debris` : les deux bouts (abscisse,
 # mètres en travers du mur) de chaque bois tombé.
 BRECHE = {
     "contour": ((-0.96, 0.40, 0.40), (-0.70, 0.27, 0.58), (-0.45, 0.09, 0.76), (-0.15, 0.0, 0.83), (0.20, 0.0, 0.72),
@@ -101,6 +106,6 @@ BRECHE = {
     "eclisses": {"section": 0.022, "longueur": (0.10, 0.32), "ancrage": 0.08, "ecart": 0.035,
                  "places": ((-0.55, 1), (-0.36, 1), (-0.08, 1), (0.10, 1), (0.31, 1), (0.55, 1), (-0.58, -1),
                             (0.60, -1))},
-    "gravats": {"nombre": 9, "etendue": (0.62, 0.45), "cote": (0.08, 0.22), "ecart": 0.3, "bois": 0.25},
+    "gravats": {"nombre": 9, "etendue": (0.62, 0.45), "cote": (0.08, 0.22), "ecart": 0.3},
     "debris": (((-0.35, -0.30), (0.25, -0.42)), ((0.05, 0.22), (0.50, 0.40))),
 }

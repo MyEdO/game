@@ -15,6 +15,7 @@ import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
 import { bonus, effectiveChar, blessuresPosees, forceDuPorteur } from '../../engine/characteristics';
+import { armourPhysiqueAt } from '../../engine/armourBypass';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type AttackModOpts } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
@@ -66,11 +67,8 @@ export function expectedDamage(attacker: Combatant, target: Combatant, weapon: W
   return p * safeWounds(weapon, target, totalDamage, attacker.size);
 }
 
-/** `woundsFromHit` défensif : un combattant de test minimal peut ne pas porter `armour`. On lui prête
- *  une armure NULLE le cas échéant ; renvoie 0 si NaN. */
 export function safeWounds(weapon: Weapon, target: Combatant, totalDamage: number, attackerSize?: SizeCategory): number {
-  const safe = target.armour ? target : ({ ...target, armour: {} as Combatant['armour'] });
-  return finite(woundsFromHit(weapon, safe, 'corps', totalDamage, 0, 1, attackerSize), 0);
+  return finite(woundsFromHit(weapon, target, 'corps', totalDamage, 0, 1, attackerSize), 0);
 }
 
 // Dangerosité d'un ÉTAT infligé (« Blessures espérées ») : lue en DONNÉE sur `etats.json` (`aiThreat`,
@@ -109,7 +107,7 @@ export type SpellPlacement =
   | { kind: 'area'; covered: Combatant[] };
 
 /** PA « corps » statiques de la cible (≥0) — calque la mitigation de l'op `wounds` (ops.ts). */
-const bodyPA = (target: Combatant): number => Math.max(0, target.armour?.corps ?? 0);
+const bodyPA = (target: Combatant): number => Math.max(0, armourPhysiqueAt(target, 'corps'));
 /** Blessures réellement RÉCUPÉRABLES par un soin (PB manquants, ≥0). */
 const missingWounds = (c: Combatant): number => Math.max(0, c.wounds.max - c.wounds.current);
 

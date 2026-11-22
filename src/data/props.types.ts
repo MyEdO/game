@@ -44,7 +44,6 @@
  */
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
 import type { z } from 'zod';
-import type { PropMaterialData } from './materials.types';
 import type { EntreeDe } from './datasets';
 import type * as propsDef from './schemas/defs/props';
 
@@ -112,8 +111,7 @@ export type PropPoint3 = z.output<typeof propsDef.propPoint3Schema>;
 export type PropSize3 = z.output<typeof propsDef.propSize3Schema>;
 
 /** Côtés admis d'un cylindre. 12 est EXCLU : ses faces latérales tombent sur l'arête de couteau du
- *  modelé de forme (4 normales à ±45°, `noyau/monde/volume/worldTris:shadeFamily` départage alors des
- *  familles de 4/3/3/2 au lieu de 3/3/3/3) — un fût de la même recette y prend deux tons de trop. */
+ *  modelé de forme (quatre normales à ±45°). Un cylindre à 8 ou 16 côtés évite ces directions. */
 export type PropCylinderSides = 8 | 16;
 export const PROP_CYLINDER_SIDES: readonly PropCylinderSides[] = [8, 16];
 
@@ -134,8 +132,6 @@ export const PROP_CYLINDER_AXES = Object.keys(REPERE_D_AXE) as readonly PropCyli
 /** Volume élémentaire d'une recette : caisse droite, cylindre à N faces, ou prisme en pente ; `emet` en fait le FOYER
  *  d'un décor qui éclaire (une primitive au plus par recette, `validatePropCatalog`). */
 export type PropPrimitive = z.output<typeof propsDef.propPrimitiveSchema>;
-/** Id d'une matière de décor — une entrée de `materials.json` de domaine `prop`. */
-export type PropMaterialId = PropPrimitive['material'];
 
 /** Recette volumique d'un prop : ses primitives dans le repère local, et le cap (`CAP_IDENTITE_PROP`) auquel elle sort
  *  telle qu'écrite. */
@@ -334,9 +330,6 @@ export function aretesNonAppariees(polys: readonly (readonly Sommet3[])[]): { ar
  *  puis la divise par le `metresPerTile` de la scène). `approach`, lui, est un offset de CASE voisine —
  *  un pas de grille, pas une longueur : il ne se divise par rien. */
 export type PropSeatSlot = NonNullable<PropData['seatSlots']>[number];
-
-/** Matière de rendu d'une primitive : une entrée de `materials.json` de domaine `prop`. */
-export type { PropMaterialData };
 
 /**
  * Type de PROP/décor app-owned : couche SÉMANTIQUE (physique `solid`, opacité `opaque`, classe de

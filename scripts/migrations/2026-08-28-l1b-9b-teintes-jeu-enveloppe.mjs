@@ -24,7 +24,14 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/teintesJeu.json');
 const IDENTITE = { id: 'teintes-jeu', type: 'teintesJeu', label: 'Teintes de jeu' };
 
-const brut = fs.readFileSync(CIBLE, 'utf8');
+let brut;
+try {
+  brut = fs.readFileSync(CIBLE, 'utf8');
+} catch (erreur) {
+  if (erreur?.code !== 'ENOENT') throw erreur;
+  console.log('no-op : dataset absent');
+  process.exit(0);
+}
 const data = JSON.parse(brut);
 const echecs = [];
 

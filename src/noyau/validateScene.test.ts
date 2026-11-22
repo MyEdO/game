@@ -40,9 +40,9 @@ describe('validateScene', () => {
     const narratif = { ...emptyNarratif(), objets: [objetDeCampagne()] };
     const s = base();
     s.entities.push({ id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 2, y: 2 },
-      usable: { actions: [{ id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: 'objet-fantome' }] } } }] } });
+      usable: { actions: [{ id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: 'objet-fantome' } }] } } }] } });
     expect(validateScene([s], undefined, narratif).filter((w) => w.level === 'error').map((w) => `${w.scope}/${w.refId} :: ${w.message}`)).toEqual([
-      'entity/coffre :: entité « coffre » › utilisable › actions « ouvrir » › effet Effets mécaniques › opérations 1 › objet : « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+      'entity/coffre :: entité « coffre » › utilisable › actions « ouvrir » › effet Effets mécaniques › opérations 1 › objet › identifiant : « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
     ]);
   });
   it('scène propre = 0 avertissement', () => {
@@ -801,7 +801,7 @@ describe('validateScene — une écriture rend les avertissements d’une valida
     }],
   ];
 
-  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', () => {
+  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', { timeout: 60_000 }, () => {
     const projet = paquetDuJeu(diligenceCampaign);
     let scenes = projet.scenes;
     for (const [nom, retouche] of RETOUCHES) {

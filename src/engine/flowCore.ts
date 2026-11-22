@@ -36,10 +36,9 @@ import {
   estOpDuMarche,
   estOpDuNavire,
   opDemandeUnDe,
-  valeurNonLiee,
-  type Formula,
-  type GameOp,
-} from './ops';
+} from './faitsDOp';
+import { valeurNonLiee } from './formule';
+import type { Formula, GameOp } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -50,6 +49,8 @@ import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import type { Status } from './money';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { estObjet } from '../lib/objet.mjs';
+
+export { poserEnjeu } from './enjeuDuTest';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -171,9 +172,7 @@ export type Condition =
   | { kind: 'flag'; expr: string }
   /** Fenêtre horaire (heure-du-jour, `before` exclusif) — sémantique `temporalConditionMet`. */
   | { kind: 'time'; window: TemporalCondition }
-  /** Le GROUPE possède au moins `count` (défaut 1) exemplaire(s) de l'objet d'`id` `trappingId` (réf de
-   *  catalogue stable). Repli sur le NOM pour les objets CUSTOM (hors-base, sans `trappingId`). */
-  | { kind: 'hasItem'; trappingId: string; count?: number }
+  | { kind: 'hasItem'; objet: { id: string }; count?: number }
   /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre) : un montant, ou une
    *  valeur LIÉE du Flow en sous de cuivre (`{brass: {tire}}`, substituée par `lierLesTirages`) — « la bourse
    *  couvre la rançon tirée » (MDG 15 l.245-247). */
@@ -290,7 +289,7 @@ export type Condition =
 export interface ConditionCtx {
   flags: Record<string, boolean>;
   gameTime: number;
-  party?: { id?: string; dead?: boolean; items?: { label: string; trappingId?: string }[];
+  party?: { id?: string; dead?: boolean; items?: { trappingId?: string }[];
     /** Compétences possédées (#711 `skill`) — instances brutes, comme `Combatant.skills`. */
     skills?: { id: string; spec?: string; advances?: number }[];
     /** Talents possédés (`talent`) — instances brutes, comme `Combatant.talents`. */
@@ -388,11 +387,8 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'hasItem': {
       const need = Math.max(1, cond.count ?? 1);
-      // Objet catalogué → match par `trappingId` stable ; objet CUSTOM (sans trappingId) → repli sur le nom.
-      // Carve-out doctrine (#318) : ce repli n'est PAS une comparaison par-label déguisée — un objet
-      // CUSTOM n'a structurellement AUCUN id de catalogue à comparer (il n'existe dans aucune source
-      // data), donc son nom EST son seul identifiant stable côté ItemInstance. Rien à migrer.
-      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => (it.trappingId ?? it.label) === cond.trappingId).length, 0);
+      const id = cond.objet.id;
+      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => it.trappingId === id).length, 0);
       return have >= need;
     }
     case 'money': {
@@ -528,7 +524,6 @@ export type IndiceTemplate = typeof INDICE_TEMPLATE;
  *  `exposeDisease{disease: ARG_TEMPLATE}`), substitué par `withArg` (`noyau/triggeredEffects`) avant
  *  exécution. Même mécanisme qu'`INDICE_TEMPLATE`, pour l'arg au lieu de l'Indice. */
 export const ARG_TEMPLATE = '$arg';
-export type ArgTemplate = typeof ARG_TEMPLATE;
 
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
@@ -644,23 +639,28 @@ export function certainFlowOps<E = EffectOp>(
   evalCond?: (cond: Condition) => boolean | undefined,
 ): GameOp[] | undefined {
   if (!flow) return undefined;
-  if (flow.kind === 'sequence') {
-    const out: GameOp[] = [];
-    for (const s of flow.etapes) {
-      const ops = certainFlowOps(s, evalCond);
-      if (!ops) return undefined;
-      out.push(...ops);
+  const out: GameOp[] = [];
+  const complet = walkFlow(flow, (noeud) => {
+    switch (noeud.kind) {
+      case 'sequence': return;
+      case 'effet':
+        if (!isEffectOp(noeud.effet)) return 'stop';
+        out.push(...noeud.effet.ops);
+        return;
+      case 'si': {
+        const verdict = evalCond?.(noeud.condition);
+        if (verdict === undefined) return 'stop';
+        return verdict ? 'alors' : 'sinon';
+      }
+      case 'test':
+      case 'choix':
+        return 'stop';
+      default:
+        noeud satisfies never;
+        return 'stop';
     }
-    return out;
-  }
-  if (flow.kind === 'effet') return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
-  if (flow.kind === 'si' && evalCond) {
-    const verdict = evalCond(flow.condition);
-    if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
-    const branch = verdict ? flow.alors : flow.sinon;
-    return branch ? certainFlowOps(branch, evalCond) : [];
-  }
-  return undefined;
+  });
+  return complet ? out : undefined;
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer
@@ -753,7 +753,7 @@ const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' &&
  *  `inTestBranch` (interne, propagé par la récursion) reste vrai tant qu'on n'est pas ressorti d'un nœud
  *  `test` — vérité utilisée par la garde de bien-formation des données (`effects` déclenchés). */
 /**
- * Le Flow porte-t-il une op qui DEMANDE UN DÉ À LA PORTE (#1508, `ops.opDemandeUnDe`) ? Calque exact de
+ * Le Flow porte-t-il une op qui DEMANDE UN DÉ À LA PORTE (#1508, `opDemandeUnDe`) ? Calque exact de
  * `flowHasImpureOp` : la même question, posée d'un autre canal.
  *
  * Ce que ça décide : une branche de Test qui en porte une NE PEUT PAS se jouer par le chemin PUR
@@ -801,28 +801,6 @@ export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
  *  saut…) : un jet se POSE en nœud de Flow, jamais poussé dans une liste d'effets. */
 export function testFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(test: T, success: Flow<E, T, C>, fail: Flow<E, T, C>): Flow<E, T, C> {
   return { kind: 'test', test, reussite: success, echec: fail };
-}
-
-/**
- * Pose l'ENJEU (#1117) d'un `FlowTest` — RÈGLE UNIQUE des deux étages d'enjeu : un enjeu DÉJÀ
- * déclaré (dataset nommé par le producteur, `AuthoredStake` écrit par un document) PRIME toujours ;
- * à défaut, `stake` s'applique. Aucun enjeu à poser, ou enjeu déjà là : le `FlowTest` ressort
- * IDENTIQUE.
- *
- * Deux provenances de `stake` composent cette règle, et elles seules :
- *  - le PRODUCTEUR moteur nomme son dataset au moment où il fabrique le nœud — un nœud venu d'un
- *    `.json` porte ses branches mais ignore la rangée à laquelle il appartient (`miscast.ts` `mkTest`) ;
- *  - la couche `state` le DÉRIVE du porteur qui exige le jet (`withDerivedStake`,
- *    `src/noyau/combat/triggeredTest.ts`).
- * PUR. Les six porteurs de nœud `test` du moteur passent par ici pour nommer ce qui se joue :
- * rangée d'Imparfaite (`miscast.json`), rangée de Critique (`criticals.json`), coup à l'équipage
- * (`river-criticals.json`, `ship-criticals.json`), cycle de maladie (`symptoms.json`,
- * `maladies.json`) et escalade de séquelle (`Trauma.critTrigger`, nœud de RUNTIME — porté par
- * l'instance de Trauma, hors cardinal authoré).
- */
-export function poserEnjeu<T extends FlowTest>(test: T, stake: StakeRef | undefined): T {
-  if (test.stake || !stake) return test;
-  return { ...test, stake };
 }
 
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :
@@ -968,24 +946,35 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
 
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `si`/`test` comprises) — pour la validation
  *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
- *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
-export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, chemin: CheminDeFlow) => void, chemin: CheminDeFlow = []): void {
-  visit(flow, chemin);
+ *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif.
+ *  Le visiteur peut ignorer les enfants, arrêter tout le parcours, ou retenir une branche d'un `si`.
+ *  Le résultat dit si le parcours est allé au bout. */
+export function walkFlow<E = EffectOp>(
+  flow: Flow<E>,
+  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'stop' | 'alors' | 'sinon',
+  chemin: CheminDeFlow = [],
+): boolean {
+  const suite = visit(flow, chemin);
+  if (suite === 'stop') return false;
+  if (suite === 'ignorer') return true;
   switch (flow.kind) {
-    case 'sequence': flow.etapes.forEach((s, i) => walkFlow(s, visit, [...chemin, 'etapes', i])); break;
-    case 'si': walkFlow(flow.alors, visit, [...chemin, 'alors']); if (flow.sinon) walkFlow(flow.sinon, visit, [...chemin, 'sinon']); break;
-    case 'test': walkFlow(flow.reussite, visit, [...chemin, 'reussite']); walkFlow(flow.echec, visit, [...chemin, 'echec']); break;
-    case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
-    case 'effet': break;
+    case 'sequence':
+      for (const [i, etape] of flow.etapes.entries()) {
+        if (!walkFlow(etape, visit, [...chemin, 'etapes', i])) return false;
+      }
+      return true;
+    case 'si':
+      if (suite !== 'sinon' && !walkFlow(flow.alors, visit, [...chemin, 'alors'])) return false;
+      return suite === 'alors' || !flow.sinon || walkFlow(flow.sinon, visit, [...chemin, 'sinon']);
+    case 'test':
+      return walkFlow(flow.reussite, visit, [...chemin, 'reussite']) && walkFlow(flow.echec, visit, [...chemin, 'echec']);
+    case 'choix':
+      return walkFlow(flow.oui, visit, [...chemin, 'oui']) && (!flow.non || walkFlow(flow.non, visit, [...chemin, 'non']));
+    case 'effet': return true;
+    default:
+      flow satisfies never;
+      return true;
   }
-}
-
-/** `flow` ne porte-t-il QUE des feuilles `F` ? Rétrécit le Flow de scène qu'écrit l'éditeur au Flow d'un porteur à
- *  feuilles restreintes (effet déclenché : `EffectOp`). */
-export function flowDeFeuilles<E, F extends E>(flow: Flow<E>, estFeuille: (e: E) => e is F): flow is Flow<F> {
-  let toutes = true;
-  walkFlow(flow, (n) => { if (n.kind === 'effet' && !estFeuille(n.effet)) toutes = false; });
-  return toutes;
 }
 
 /** Arrêt d'une exécution de Flow : `executerFlow` rend `arret` sans jouer le reste de sa pile. */
@@ -1022,6 +1011,7 @@ export function executerFlow<E, R>(flow: Flow<E>, hote: HoteDeFlow<E, R>): R {
       case 'si': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.condition, hote.conditions()) ? noeud.alors : noeud.sinon); break;
       case 'test': pas = hote.avantDecision?.(noeud, reste) ?? hote.test(noeud, reste); break;
       case 'choix': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
+      default: return noeud satisfies never;
     }
     if (pas && 'arret' in pas) return pas.arret;
     if (pas) pile.unshift(pas);

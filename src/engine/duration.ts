@@ -24,18 +24,6 @@ export type Duration =
   | { scale: 'permanent' }
   | { scale: 'adventure' };
 
-/** Libellé CANONIQUE d'un compte de Rounds — vocabulaire UNIQUE de l'échelle tactique, posé auprès du
- *  modèle pour qu'aucun affichage ne réinvente l'unité (le Round contient le tour de chaque combattant :
- *  un suffixe « t »/« tour » y serait faux). « Round » capitalisé comme terme RAW, accord réel.
- *
- *  `short` : forme ABRÉGÉE « N R » (arbitrage user 2026-07-18) des surfaces COMPACTES — pastilles de
- *  la colonne aside, où « N Rounds » renvoie la pastille à la ligne. Même unité (R = Round), même
- *  source : une seule fonction porte les deux formes pour qu'aucune abréviation divergente n'apparaisse. */
-export function roundsLabel(n: number, opts?: { short?: boolean }): string {
-  if (opts?.short) return `${n} R`;
-  return `${n} Round${n > 1 ? 's' : ''}`;
-}
-
 /** Libellé CANONIQUE d'un RESTE de durée d'HORLOGE, en minutes de `gameTime` — vocabulaire UNIQUE de
  *  l'échelle `clock`, posé auprès du modèle comme `roundsLabel` l'est pour l'échelle tactique. L'unité
  *  suit la grandeur (minutes < 1 h, heures < 1 j, sinon jours), arrondie au cran SUPÉRIEUR : une

@@ -152,7 +152,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 
 ## Test d'incantation
 
-**Sources RAW :** `LDB 46 l.22-24`
+**Sources RAW :** `LDB 46 l.14`, `LDB 46 l.22-24`, `LDB 47 l.5-11`, `LDB 51 l.5`, `LDB 85 l.205-207`, `EDOC 13 l.245`, `EDOC 13 l.262-266`, `EDOC 13 l.272-276`, `ADE II 02 l.731-733`
 
 Pour lancer un sort : effectuer un **Test de Langue (Magick)** (compétence avancée, Caractéristique = Intelligence).
 
@@ -163,6 +163,14 @@ Pour lancer un sort : effectuer un **Test de Langue (Magick)** (compétence avan
 La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **compétences avancées** : sans au moins 1 Augmentation, le Test est impossible (pas de repli sur la Caractéristique seule). Exception : le Trait de créature **Lanceur de Sorts** (LDB 85 l.206-207) autorise l'incantation sans la compétence — Test sur la Caractéristique seule.
 
 > **Verbatim** (l.24) : « Pour lancer un Sort, effectuez un Test de Langue (Magick). Sur un succès, comparez votre DR au Niveau d'Incantation (NI) du Sort (indiqué dans sa description). Si votre DR est égal ou supérieur au NI du Sort, il est lancé comme dans la description du Sort. Sur un échec, la tentative échoue et rien ne se produit. »
+
+Avec **Allure démoniaque**, un 10 dans la colonne de Tzeentch accorde le Trait **Lanceur de Sorts (au choix)**. Le lanceur désigne un seul Domaine avant de recevoir le Trait. Il peut lancer les sorts de ce Domaine pendant la durée de l'Allure. Les listes communes de Sorts mineurs, d'Arcane et d'Arcanes du Chaos sont distinctes des Domaines. Le Domaine de la Gueule est réservé aux ogres.
+
+> **Verbatim** (`EDOC 13 l.245`) : « Lanceur de sorts (au choix) »
+>
+> **Verbatim** (`EDOC 13 l.276`) : « Lancez 1d10 sur le Tableau de la page 78, et appliquez le Trait pertinent pour toute la durée du Sort. »
+>
+> **Verbatim** (`LDB 85 l.207`) : « La créature peut lancer des Sorts : le type de magie spécifique est indiqué entre parenthèses. »
 
 **Implémente :** [État calculé](../implemente.generated.md#4emagietest-d-incantation)
 

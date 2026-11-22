@@ -10,19 +10,23 @@
  *    borné) ;
  *  - `pick(type, [tirage])` — « n parmi » (`{ pick, of: [...] }`), dont une branche peut être un
  *    tirage ;
- *  - `tirage` — `{ random: n }`.
+ *  - `tirageSurTable(ref(…))` — `{ pick, table }`, pour les Talents d'espèce.
  */
-import { z } from 'zod';
-import { nommerChamps } from './meta';
-import { pick, refOuSpec, unionDeFormes, type TypeEntite } from './ref';
+import type { z } from 'zod';
+import { idDe, pick, ref, refOuSpec, tirageSurTable, unionDeFormes, type TypeEntite } from './ref';
 
-/** « n Talents aléatoires » — la seule graphie d'avancement encore hors des fabriques (cf. en-tête). */
-const tirage = nommerChamps(z.strictObject({ random: z.number().int().positive() }), { random: { label: 'nombre de tirages' } });
+/** LDB 05 l.484, l.514-531 */
+const tirage = tirageSurTable(ref(idDe('talentsAleatoires', undefined, { nue: true })));
+export type TirageDeTalents = z.output<typeof tirage>;
 
-/** Emplacement d'avancement de `type` — composition FERMÉE, écrite UNE fois pour les deux defs. */
-export function avancement<T extends TypeEntite>(type: T) {
-  return unionDeFormes([refOuSpec<T>(type, undefined, 'specOuChoixFacultatifs'), pick(type, [tirage]), tirage]);
+/** Emplacement d'avancement de `type`. */
+export function avancement<T extends TypeEntite>(type: T, options: readonly z.ZodType<TirageDeTalents>[] = []) {
+  const reference = refOuSpec<T>(type, undefined, 'specOuChoixFacultatifs');
+  return unionDeFormes([reference, pick(type, options), ...options]);
 }
+
+/** LDB 05 l.484, l.514-531 */
+export const talentDEspece = avancement('talent', [tirage]);
 
 /** Un emplacement d'avancement de `type`, à la sortie du parse (`avancement`). */
 export type Avancement<T extends TypeEntite> = z.output<ReturnType<typeof avancement<T>>>;

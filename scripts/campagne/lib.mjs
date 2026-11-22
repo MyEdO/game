@@ -19,11 +19,11 @@ import { idDuCorps } from '../../src/noyau/monde/scene.ts';
 import {
   findCreatureById,
   byId,
+  findSiegeEngineById,
   findSpellById,
   findTraitById,
   findTrappingById,
   findVehicleById,
-  siegeEngines,
   species as SPECIES_CATALOG,
 } from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
@@ -39,7 +39,8 @@ import { estObjet } from '../../src/lib/objet.mjs';
  *  posés en `enemies[]` terse comme en `entities`. Valide → passe ; inconnu → throw (chercher au Compendium). */
 const CORPS = {
   creature: { trouve: (id) => findCreatureById(id), catalogue: 'Bestiaire' },
-  vehicule: { trouve: (id) => findVehicleById(id), catalogue: 'Véhicules' },
+  vehicule: { trouve: findVehicleById, catalogue: 'Véhicules' },
+  engin: { trouve: findSiegeEngineById, catalogue: 'Engins de siège' },
 };
 function corpsValide(e) {
   for (const [cle, { trouve, catalogue }] of Object.entries(CORPS))
@@ -131,14 +132,13 @@ function validateAppearance(app) {
 }
 
 /** Valide EN PLACE les ids nichés dans les flows d'une scène : `FlowTest.skill`
- *  (et l'`attackerSkill` d'un test opposé), `learnSpell.spell`. Ne touche
- *  QUE les valeurs STRING (une réf déjà emboîtée `skill: {id}` reste intacte). Balayage récursif unique. */
+ *  (et l'`attackerSkill` d'un test opposé), `sort` des effets qui l’enseignent ou l’incantent. Balayage récursif unique. */
 function validateFlowRefs(node) {
   if (Array.isArray(node)) { node.forEach(validateFlowRefs); return; }
   if (!node || typeof node !== 'object') return;
   if (typeof node.skill === 'string') node.skill = skillId(node.skill);
   if (typeof node.attackerSkill === 'string') node.attackerSkill = skillId(node.attackerSkill);
-  if (node.type === 'learnSpell' && typeof node.spell === 'string') node.spell = spellId(node.spell);
+  if (node.type === 'learnSpell' || node.type === 'castSpell') spellId(node.sort.id);
   for (const v of Object.values(node)) validateFlowRefs(v);
 }
 
@@ -229,15 +229,15 @@ export function hero(x, y) {
   return { id: 'start', kind: 'heroStart', pos: { x, y } };
 }
 
-/** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }`, l'uid
+/** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ engin: { id }, side, crewIds }`, l'uid
  *  d'instance dérivé de sa place au spawn (#2907)
  *  — la base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée, elle est HYDRATÉE au spawn depuis
- *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). VALIDE `trappingId` : doit être une pièce POSABLE
- *  du sous-type `armes-de-siege`, sélectionné par `siegeEngines` — sinon throw. `crewIds`
+ *  `engin.id` (`hydratePoste`, `src/engine/items.ts`). Cette référence désigne le catalogue des engins.
+ *  `crewIds`
  *  vide par défaut : aucun id de héros n'est connu à l'authoring, le poste est servable en jeu (`serveAtPoste`). */
 export function poste(trappingId, side, crewIds = []) {
-  if (!siegeEngines().some((t) => t.id === trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId du sous-type armes-de-siege (Compendium → Objets, armes de siège).`);
-  return { trappingId, side, crewIds };
+  if (!findSiegeEngineById(trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un engin du catalogue (Compendium → Engins de siège).`);
+  return { engin: { id: trappingId }, side, crewIds };
 }
 
 /** Flow PLAT (séquence de `effet`) à partir d'une liste d'Effets — forme attendue par `Trigger.flow`. */

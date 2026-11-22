@@ -4,9 +4,9 @@
  *
  * Une forme écrite dans `schemas/grammaire/` (référence, source, dé, quantité, apparence…) est la
  * SEULE graphie de son concept. Un littéral `z.object`/`z.strictObject`/`z.looseObject` qui en
- * recouvre la signature ailleurs est une seconde graphie — c'est exactement ce que le dénominateur
- * L0 du chantier (`STRUCTURES_REDECLARATIONS`) mesure côté donnée. Et un `.extend(` posé sur une
- * porte de la grammaire lui fait PERDRE son registre et sa `.meta()` (zod 4.4.3, cf. en-tête de
+ * recouvre la signature ailleurs peut constituer une seconde graphie. Le volet `STRUCTURES_REDECLARATIONS`
+ * mesure les recopies dans l’AST des defs. Un `.extend(` posé sur une porte de la grammaire lui fait
+ * perdre son registre et sa `.meta()` (zod 4.4.3, cf. en-tête de
  * `grammaire/ref.ts`) : la porte étendue n'est plus la porte.
  *
  * Le VOCABULAIRE n'est pas recopié ici : il est DÉRIVÉ par introspection des schémas eux-mêmes
@@ -22,7 +22,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { envDeDepotForge } from '../../scripts/guards/lib/depotGabarit.mjs';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
@@ -52,8 +52,8 @@ const GARDE = {
   angleMort: [
     'le volet `redeclaration` exige l’ÉGALITÉ des jeux de clés : un littéral qui ne recopie qu’une PARTIE ' +
       'd’une forme (`{n, sides}` sans `plus`), ou qui la recopie CHARGÉE d’une charge utile (un document ' +
-      'porteur de `id` + `type`), n’est pas vu — ces deux cas sont mesurés côté DONNÉE par ' +
-      '`STRUCTURES_REDECLARATIONS` (signature projetée, `+…`), pas ici.',
+      'porteur de `id` + `type`), n’est pas vu. Le volet `STRUCTURES_REDECLARATIONS` mesure ' +
+      'les signatures projetées (`+…`) par le lexique dans l’AST des defs.',
     'les signatures à UNE seule clé (`{fixed}`, `{roll}`, `{dice}`, `{wildcard}`) sont écartées du volet ' +
       '`redeclaration` : elles collisionneraient avec tout champ homonyme. Les graphies de référence à une ' +
       'clé sont tenues par le volet `alias` à la place.',
@@ -91,7 +91,7 @@ const GARDE = {
 } as const;
 
 /** Périmètre des DEUX volets (redéclaration + `.extend`). */
-const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', ...porteeDeGarde(['noyau'], ['state'])];
+const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', ...porteeDeGarde(['noyau'])];
 /** Périmètre du seul volet `.extend` — les littéraux de la grammaire SONT le canon. */
 const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
 
@@ -205,7 +205,7 @@ describe('liaison lexicale des extensions de grammaire', () => {
 function trouvailles(): { cle: string; ligne: number }[] {
   const regles = { signatures: signaturesDeLaGrammaire(), alias: ALIAS };
   const out: { cle: string; ligne: number }[] = [];
-  const relever = (fichiers: readonly { rel: string; text: string }[], sansRedeclaration: boolean) => {
+  const relever = (fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[], sansRedeclaration: boolean) => {
     for (const { fichier: f, sourceFile, checker } of analyserCorpus(fichiers))
       for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }, sourceFile!, checker))
         out.push({ cle: `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.motif}|${t.detail}`, ligne: t.ligne });
@@ -341,9 +341,6 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .sort();
     expect(dansLaGrammaire).toEqual([
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
-      // `giveTrapping` est une op TYPÉE (#1903) : l'objet se nomme par `trappingId`, la graphie de
-      // `GameOp` (`src/engine/ops.ts`) et de `conditionSchema`.
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.giveTrapping|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
@@ -351,7 +348,6 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // `summon` est une op TYPÉE (#1882) : la créature invoquée se nomme par le champ `ref` du moteur
       // (`engine/ops.ts`), tenu par `idDe('creature')`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
-      'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',
       'src/data/schemas/grammaire/reference.ts:jokerDeDotationSchema|wildcard',
     ]);

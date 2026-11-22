@@ -14,8 +14,8 @@ import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
-  qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  qualities, trappingsEffectifs, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
+  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
   allAxes,
@@ -23,14 +23,14 @@ import {
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
-  charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
+  charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie, massBattleWarMachines,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel, TAVERN_GAMES,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
+import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, plageDeCouleur, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import { reliefDefaultsSchema } from '../../data/schemas/defs-scenes/scene';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
@@ -82,10 +82,9 @@ import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
-import { spellOps, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
-import { estCausePersistante, type GameOp } from '../../engine/ops';
-import { noeudAmputation } from '../../engine/critical';
-import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
+import { spellOps, walkFlow, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
+import { estCausePersistante } from '../../engine/ops';
+import { critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
@@ -102,7 +101,7 @@ import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
 import { STEAM_BREAKDOWNS, steamBreakdownDie, type AdvancementRef, type TrappingRef, type WaterExposureModifier, type SpellData } from '../../data';
-import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
+import { POWER_ESTIMATE, MIGHT_MODIFIERS, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
 import { testsDeLActivite } from '../../engine/activities';
 import { ACTIVITIES } from '../../data';
@@ -114,26 +113,28 @@ import {
   CHAR_LABELS,
   HIT_LOCATION_LABELS,
   DIFFICULTY_LABELS,
+  DIFFICULTE_PAR_DEFAUT,
   LOCALISATIONS_DE_COUP,
   type Combatant,
   type CharKey,
   type HitLocation,
   type Difficulty,
 } from '../../engine/types';
-import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
-import type { Porteur, PorteurDeRangee } from './porteur';
+import type { PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
+import { armourPhysiqueAt } from '../../engine/armourBypass';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
-import { formatDiseaseTime } from '../../engine/disease';
+import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
+import { dureeEnJours } from '../../engine/clock';
+import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
-import { reverseGroups, bookContents } from './relations';
+import { humanizeCastBonus, humanizeCondition, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
+import { libelleDUnEnginAuCodex, reverseGroups, bookContents } from './relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
 import { libelleDuChamp } from './editFields';
@@ -197,9 +198,9 @@ export type CodexRow =
    *  verdict juge vision : une Possession rendue en PARAGRAPHE inversait la hiérarchie de la section
    *  et fondait « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
   | { t: 'chip'; label: string; badge?: string }
-  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick}`), rendu par `EntityChoice` sur
+  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick, of}`), rendu par `EntityChoice` sur
    *  la STRUCTURE : une option référence = un lien cross-réf par son `id`, une option sans id = une pastille. */
-  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { pick: number }> }
+  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { of: unknown }> }
   /** Mini sous-en-tête à l'intérieur d'une section (« Compétences », « Talents »…). */
   | { t: 'sub'; label: string }
   /** Bloc REPLIABLE (`<details class="fold">`) : `summary` visible, `text` (Markdown) dévoilé au clic.
@@ -271,10 +272,6 @@ export interface CodexCategory {
   items: CodexItem[];
   /** Facettes de filtre — DÉRIVÉES des items dans la même re-projection (livre partout, groupe là où porté). */
   facets?: CodexFacet[];
-  /** La prose de cette catégorie suit la convention d'ÉPIGRAPHE WFRP (`careers`, LDB 2 : citation
-   *  `« … »` + attribution) — `<Prose exergues>` les rend en carte-parchemin à leur place. DONNÉE de
-   *  catégorie, jamais un test de catégorie au rendu. */
-  exergues?: boolean;
 }
 
 const src = (s: { book?: string; page?: number } | null | undefined): CodexSource | null =>
@@ -369,7 +366,7 @@ const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
 /** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
-  const label = refLabel(category, { id, spec });
+  const label = category === 'siegeEngines' ? libelleDUnEnginAuCodex(id) : refLabel(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
 /** Rangée du FOYER d'une règle (`{ id, type }`) : sa fiche Codex (`cibleCodex`). */
@@ -382,9 +379,9 @@ const regleChips = (foyer: FoyerDeRegle | undefined) => chips(tr('codex.fiche.re
 /** Rangées d'une `TraitList` par id, libellé joueur (`traitLisible`, l'individu nommé par `nomDIndividu`). */
 const traitRefRows = (traits?: readonly TraitPose[] | null, nomDIndividu?: NomDIndividu): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, traitLisible(t, nomDIndividu)));
-/** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
+/** Rangée d'un `AdvancementRef` : choix en liste, référence par id, tirage en pastille. */
 const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
-  if ('pick' in a) return { t: 'choice', category, advancement: a };
+  if ('of' in a) return { t: 'choice', category, advancement: a };
   if ('id' in a) return idRefRow(category, a.id, a.spec, advancementLabel(category, a));
   return { t: 'chip', label: advancementLabel(category, a) };
 };
@@ -409,7 +406,7 @@ const trappingRefRow = (ref: TrappingRef): CodexRow => {
       case 'vehicle':
         return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
       case 'engin':
-        return { t: 'ref', category: 'siegeEngines', id: ref.id, label: refLabel('trappings', ref), show };
+        return idRefRow('siegeEngines', ref.id, undefined, show);
     }
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
@@ -686,8 +683,6 @@ interface CodexCategorySpec {
   cluster?: MsgKey;
   /** Réf de source de la table (« LDB 18 ») — hors du libellé, cf. `CodexCategory.sourceRef`. */
   sourceRef?: string;
-  /** cf. `CodexCategory.exergues`. */
-  exergues?: boolean;
   build: () => CodexItem[];
 }
 
@@ -703,47 +698,55 @@ function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
     group: spec.group,
     get cluster() { return spec.cluster && tr(spec.cluster); },
     sourceRef: spec.sourceRef,
-    exergues: spec.exergues,
     get items() { return projection().items; },
     get facets() { return projection().facets; },
   };
 }
 
-/** Les nœuds `test` d'un Flow, dans l'ordre de jeu — le joueur doit voir AUTANT de jets que le moteur
- *  en joue (doctrine de la forme canonique des jets). Marche récursive, aucune forme n'est supposée. */
-function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
-  if (!f) return [];
-  switch (f.kind) {
-    case 'test': return [f, ...noeudsDeTest(f.reussite), ...noeudsDeTest(f.echec)];
-    case 'sequence': return f.etapes.flatMap(noeudsDeTest);
-    case 'si': return [...noeudsDeTest(f.alors), ...noeudsDeTest(f.sinon)];
-    case 'choix': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
-    default: return [];
-  }
+function noeudsDeTest(flow: Flow | undefined): FlowTestNode[] {
+  const tests: FlowTestNode[] = [];
+  if (flow) walkFlow(flow, (noeud) => {
+    if (noeud.kind === 'test') tests.push(noeud);
+  });
+  return tests;
 }
 
-/**
- * Ops d'un Flow SANS FRANCHIR un jet — la conséquence de CE niveau, les sous-jets exclus. C'est ce qui
- * distingue « ce que ce jet applique » de « ce que le jet suivant appliquera » : `spellOps` descend dans
- * les branches d'un `test` imbriqué et ferait promettre à un jet les États du suivant (« Coupure à
- * l'orteil » : le gate l.171 annoncerait les États du Test l.237). Les `si` sont TRAVERSÉS (leurs deux
- * branches font partie de la conséquence de ce niveau — l'échelle de DR de l.237), les `test` NON.
- * Sur le Flow entier, la même marche rend l'amputation que la ligne PRONONCE hors de tout jet
- * (« Vous perdez votre main – Amputation (Difficile) », LDB 18 l.124). Question DISTINCTE de
- * `certainFlowOps` (« que promet CETTE branche », fail-closed sur tout nœud incertain).
- */
-function opsHorsJet(f: Flow | undefined): GameOp[] {
-  if (!f) return [];
-  if (f.kind === 'sequence') return f.etapes.flatMap(opsHorsJet);
-  if (f.kind === 'si') return [...opsHorsJet(f.alors), ...opsHorsJet(f.sinon)];
-  if (f.kind === 'effet' && f.effet.type === 'ops') return f.effet.ops;
-  return [];
+/** Les conséquences immédiates d'une branche, avec ses conditions et ses Tests suivants. */
+function lignesDeConsequences(flow: Flow, afficherSuite: boolean): CodexRow[] {
+  const rows: CodexRow[] = [];
+  walkFlow(flow, (noeud) => {
+    switch (noeud.kind) {
+      case 'sequence': return;
+      case 'effet':
+        rows.push(...opRows(noeud.effet.ops));
+        return;
+      case 'si': {
+        const alors = lignesDeConsequences(noeud.alors, afficherSuite);
+        const sinon = noeud.sinon ? lignesDeConsequences(noeud.sinon, afficherSuite) : [];
+        if (alors.length) rows.push({ t: 'sub', label: tr('codex.describe.si', { v: humanizeCondition(noeud.condition, ETATS_DU_CODEX) }) }, ...alors);
+        if (sinon.length) rows.push({ t: 'sub', label: tr('codex.describe.sinon') }, ...sinon);
+        return 'ignorer';
+      }
+      case 'test':
+        if (afficherSuite) rows.push({ t: 'text', text: tr('codex.fiche.suiteDuJet', { v: libelleDeJet(noeud) }) });
+        return 'ignorer';
+      case 'choix':
+        return 'ignorer';
+    }
+  });
+  return rows;
 }
 
-/** Libellé d'un nœud `test` : « Compétence Difficulté », la Compétence résolue PAR ID. */
-function libelleDeJet(n: FlowTestNode): string {
+function consequencesDeCritique(flow: Flow | undefined, title: string, afficherSuite = false): CodexSection | null {
+  const rows = flow ? lignesDeConsequences(flow, afficherSuite) : [];
+  return rows.length ? { title, layout: 'list', rows } : null;
+}
+
+function libelleDeJet({ test }: FlowTestNode): string {
+  const sujet = testSkillLabel(test) ?? tr('codex.fiche.jet');
   // lecture déclarée : la fiche décrit le Test tel que la donnée l'authore
-  return `${refLabel('skills', n.test.skill ?? { id: 'resistance' })} ${DIFFICULTY_LABELS[n.test.difficulty!]}`;
+  const jet = `${sujet} ${DIFFICULTY_LABELS[test.difficulty ?? DIFFICULTE_PAR_DEFAUT]}`;
+  return test.label ? tr('codex.fiche.jetAvecRole', { role: test.label, jet }) : jet;
 }
 
 /** Item Codex d'une entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET
@@ -751,13 +754,10 @@ function libelleDeJet(n: FlowTestNode): string {
  *  d100 → nom, effet immédiat (`ops`, même vocabulaire GameOp que passifs/sorts), le JET de la rangée
  *  (Difficulté + conséquence de l'échec, #1682) et les Traumatismes engendrés en cross-réf (résolus par
  *  id → libellé, comme les Tables de Corruption pour les mutations). La trivialité (« T », AA 07
- *  l.79) est DÉRIVÉE de la rangée, jamais relue d'un champ.
- *
- *  Le/les Test(s) d'AMPUTATION (LDB 18 l.237) sont DÉRIVÉS du nœud que le moteur fabrique
- *  (`noeudAmputation`) — jamais re-décrits ici : la vue et le jeu ne peuvent pas diverger. */
+ *  l.79) est DÉRIVÉE de la rangée, jamais relue d'un champ. */
 function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKey): CodexItem {
   const jet = e.test;
-  const amputation = e.amputation && noeudAmputation(e, e.amputation, jeu, CRIT_TABLE_LOCATION[table]);
+  const amputation = e.amputation?.flow;
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
     sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
@@ -770,12 +770,16 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
     ),
     sections: sections(
       passiveSection(e.ops, tr('codex.fiche.effetImmediat')),
-      jet ? passiveSection(opsHorsJet(jet.echec), tr('codex.fiche.siLeJetEchoue')) : null,
-      jet ? passiveSection(opsHorsJet(jet.reussite), tr('codex.fiche.siLeJetReussit')) : null,
-      ...jetsAmp.map((n) => passiveSection(opsHorsJet(n.echec), tr('codex.fiche.siLeJetEchoue2', { v: libelleDeJet(n) }))),
-      // L'amputation que la ligne PRONONCE (22 rangées sur 26 : « Vous perdez votre main ») vit HORS des
-      // branches — sans cette section, le Codex ne montrerait que le jet et tairait la perte elle-même.
-      passiveSection(opsHorsJet(amputation), tr('codex.fiche.amputationQuoiQueDonneLeJet')),
+      consequencesDeCritique(jet?.echec, tr('codex.fiche.siLeJetEchoue')),
+      consequencesDeCritique(jet?.reussite, tr('codex.fiche.siLeJetReussit')),
+      consequencesDeCritique(amputation, tr('codex.fiche.amputationQuoiQueDonneLeJet')),
+      ...jetsAmp.flatMap((noeud) => {
+        const v = libelleDeJet(noeud);
+        return [
+          consequencesDeCritique(noeud.echec, tr('codex.fiche.siLeJetEchoue2', { v }), true),
+          consequencesDeCritique(noeud.reussite, tr('codex.fiche.siLeJetReussit2', { v }), true),
+        ];
+      }),
       e.traumas?.length
         ? {
             title: tr('codex.fiche.traumatismesEngendres'), layout: 'chips',
@@ -1421,7 +1425,7 @@ const CODEX_SPECS = {
   careers: {
     // Les desc de Carrière (LDB 2) suivent la convention d'épigraphe WFRP : leurs couples
     // citation+attribution se rendent en carte-parchemin, à LEUR place dans le corps.
-    label: 'codex.fiche.carrieres', group: 'personnage', exergues: true,
+    label: 'codex.fiche.carrieres', group: 'personnage',
     build: () => careers.map((c) => {
       const levels = levelsForCareer(c.id);
       const className = libelleDeClasse(c.class.id);
@@ -1524,7 +1528,7 @@ const CODEX_SPECS = {
   },
   trappings: {
     label: 'codex.fiche.possessions', group: 'equipement',
-    build: () => trappings.map((t) => {
+    build: () => trappingsEffectifs().map((t) => {
       // Capacités FONCTIONNELLES (canal `capabilities`, lu PAR ID — ≠ nom FR) + arme dérivée tant qu'équipée.
       const caps = t.capabilities;
       const props = [
@@ -1540,11 +1544,15 @@ const CODEX_SPECS = {
       const reachFact = (t.categorie === 'distance' || t.categorie === 'ammunition')
         ? fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod))
         : fact(tr('codex.fiche.allonge'), t.reach);
+      const auChoix = t.qualitesAuChoix ?? [];
+      const fixes = resolveQualities({ qualities: t.qualities.filter((q) => !auChoix.includes(q.id)), subType: t.subType?.id });
       return depuisEnveloppe(t, {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
         meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel(r.instance)))),
+          chips(tr('codex.fiche.qualites'), fixes.map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel(r.instance)))),
+          chips(tr('codex.fiche.atoutsAuChoix'), auChoix.map((id) =>
+            idRefRow('qualities', id, undefined, qualityRefLabel(t.qualities.find((q) => q.id === id)!)))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           passiveSection(t.passifDArme),
           effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
@@ -1555,23 +1563,25 @@ const CODEX_SPECS = {
   },
   siegeEngines: {
     label: 'codex.fiche.enginsDeSiege', group: 'equipement',
-    // Trappings d'un Groupe d'engins de siège, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
-      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
+      label: libelleDUnEnginAuCodex(t.id),
+      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.weaponGroup?.id) || undefined),
       meta: facts(
         fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)),
-        fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa),
-        fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod)),
+        fact(tr('codex.fiche.degats'), damageFact(t)),
+        t.categorie === 'melee'
+          ? fact(tr('codex.fiche.allonge'), t.reach)
+          : fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range)),
       ),
       sections: sections(
         chips(tr('codex.fiche.qualites'), t.qualities.map((q) => idRefRow('qualities', q.id, undefined, qualityRefLabel(q)))),
-        ...reverseSections('trappings', t.id),
+        ...reverseSections('siegeEngines', t.id),
       ),
     })),
   },
   weaponGroups: {
     label: 'codex.fiche.groupesDObjet', group: 'equipement',
-    build: () => weaponGroups.map((g) => depuisEnveloppe(g, { sub: valeurFR('weaponGroups.json', 'kind', g.kind), sections: sections(...reverseSections('weaponGroups', g.id)) })),
+    build: () => weaponGroups.map((g) => depuisEnveloppe(effectiveEntry(g), { sub: valeurFR('weaponGroups.json', 'kind', g.kind), sections: sections(...reverseSections('weaponGroups', g.id)) })),
   },
   qualities: {
     label: 'codex.fiche.qualites', group: 'equipement',
@@ -1591,7 +1601,7 @@ const CODEX_SPECS = {
     build: () => maladies.map((m) => depuisEnveloppe(m, {
       sub: m.symptoms.map((s) => symptomLabel(s.symptomId)).join(', '),
       meta: facts(
-        fact(tr('codex.fiche.contraction'), DIFFICULTY_LABELS[m.contractDifficulty]),
+        fact(tr('codex.fiche.contraction'), [testSkillLabel(sujetDeContraction(m.id)), DIFFICULTY_LABELS[m.contractDifficulty]].join(' ')),
         fact(tr('codex.fiche.incubation'), formatDiseaseTime(m.incubation)),
         fact(tr('codex.fiche.duree'), formatDiseaseTime(m.duration)),
       ),
@@ -1616,7 +1626,7 @@ const CODEX_SPECS = {
               title: tr('codex.fiche.cycleQuotidien'), layout: 'list',
               rows: [
                 { t: 'kv', k: tr('codex.fiche.difficulte'), v: s.onTick.test?.test.difficulty ? DIFFICULTY_LABELS[s.onTick.test.test.difficulty] : tr('codex.fiche.inconditionnel') } as CodexRow,
-                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: s.onTick.afterDays }) } as CodexRow) : null,
+                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: dureeEnJours(s.onTick.afterDays) }) } as CodexRow) : null,
                 // Conséquence : branche `echec` du nœud `test`, ou ops CERTAINES d'un cycle sans jet (ops
                 // directes ou `rollTable` : table EXPANSÉE en rangées lisibles).
                 ...opRows(s.onTick.test ? spellOps(s.onTick.test.echec, 'target') : (s.onTick.ops ?? [])),
@@ -1647,8 +1657,8 @@ const CODEX_SPECS = {
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
         rows: t.entries.map((r) => {
-          const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))) } as CodexRow;
+          const label = refLabel('mutations', r);
+          return { t: 'ref', category: 'mutations', id: r.id, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))) } as CodexRow;
         }),
       }),
     })),
@@ -1931,13 +1941,7 @@ const CODEX_SPECS = {
       ),
     })),
   },
-  // ── Combat de masse / Puissance de Bataille (ADE II 8, #148) — 5 tables verbatim NICHÉES dans
-  // UN seul fichier (`mass-battle.json`, moteur `engine/massBattle.ts`). Champs déjà imprimés en
-  // STRINGS par la source (prix/portée/dégâts/atouts) → faits bruts (`fact`), pas de cross-réf chips :
-  // les libellés d'Atouts imprimés ici (« Explosion 15 », « Impénétrable »…) ne correspondent PAS
-  // toujours tels quels aux libellés canoniques de `qualities`/`traits` (ex. qualité « À Explosion » vs
-  // « Explosion » ici, trait « Impénétrable (structure) » vs « Impénétrable » ici) — une décomposition
-  // par id resterait à faire côté donnée (hors périmètre #148, ne pas inventer un rapprochement flou). ──
+  // ADE II 08
   massBattlePowerEstimate: {
     label: 'codex.fiche.batailleDeMasseEstimationDePuissance', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => POWER_ESTIMATE.map((p) => depuisEnveloppe(p, {
@@ -1953,13 +1957,12 @@ const CODEX_SPECS = {
     })),
   },
   massBattleWarMachines: {
-    label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
-    build: () => WAR_MACHINES.map((w) => depuisEnveloppe(w, {
-      meta: facts(
-        fact(tr('codex.fiche.prix'), formatMoney(w.price)), fact(tr('codex.fiche.equipe'), w.crew), fact(tr('codex.fiche.disponibilite'), libelleDeValeur(availabilitySchema, w.availability)),
-        fact(tr('codex.fiche.portee'), w.range), fact(tr('codex.fiche.degats'), w.damage), fact(tr('codex.fiche.atouts'), w.traits),
-      ),
-    })),
+    label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse', sourceRef: 'ADE II 08',
+    build: () => [{
+      id: 'mass-battle',
+      label: tr('codex.fiche.batailleDeMasseMachinesDeGuerre'),
+      sections: sections(chips(tr('codex.fiche.enginsDeSiege'), massBattleWarMachines.map((id) => idRefRow('siegeEngines', id)))),
+    }],
   },
   massBattleStructures: {
     label: 'codex.fiche.batailleDeMasseStructures', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
@@ -2028,7 +2031,9 @@ const CODEX_SPECS = {
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
       id: pool.id, label: pool.label,
-      sub: tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
+      sub: pool.firstNamePrefixes && pool.firstNameSuffixes
+        ? tr('codex.fiche.composantesDePrenoms', { racines: pool.firstNamePrefixes.length, terminaisons: pool.firstNameSuffixes.length })
+        : tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
       sections: sections(
         // RESTE ASSUMÉ : une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille
         // elle ferait une pastille géante. Éclater la donnée en une pastille par nom est un chantier
@@ -2036,6 +2041,8 @@ const CODEX_SPECS = {
         pool.maleFirstNames.length ? { title: tr('codex.fiche.prenomsMasculins'), layout: 'chips', rows: [{ t: 'text', text: pool.maleFirstNames.join(', ') }] } : null,
         pool.femaleFirstNames.length ? { title: tr('codex.fiche.prenomsFeminins'), layout: 'chips', rows: [{ t: 'text', text: pool.femaleFirstNames.join(', ') }] } : null,
         pool.lastNames.length ? { title: tr('codex.fiche.nomsDeFamille'), layout: 'chips', rows: [{ t: 'text', text: pool.lastNames.join(', ') }] } : null,
+        pool.firstNamePrefixes ? { title: tr('codex.fiche.racinesDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNamePrefixes.join(', ') }] } : null,
+        pool.firstNameSuffixes ? { title: tr('codex.fiche.terminaisonsDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNameSuffixes.join(', ') }] } : null,
       ),
     })),
   },
@@ -2143,7 +2150,7 @@ const CODEX_SPECS = {
   celestialHouses: {
     label: 'codex.fiche.demeuresAstrologiques', group: 'personnage',
     // ADE II 03 l.504-512, l.514
-    build: () => celestialHouses.map((h, i) => depuisEnveloppe(h, { sub: fourchette((celestialHouses[i - 1]?.rand ?? 0) + 1, h.rand) })),
+    build: () => celestialHouses.map((h) => depuisEnveloppe(h, { sub: fourchette(h.min, h.max) })),
   },
   groups: {
     label: 'codex.fiche.groupesCible', group: 'monde',
@@ -2812,31 +2819,20 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
- *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
- *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
 function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
-  const rangee = (e: (typeof eyes)[number]) => e.rand;
-  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
-  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
-  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
-    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
-    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
-  };
   return table.entries.map((e) => {
-    const sub = bande(rangee, e);
-    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
+    const sub = bandeAuDe(de, e.min, e.max);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, de)) });
   });
 }
 
-/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
- *  quand elle diffère de `sub`, la bande de la rangée. */
-function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
+function colorTableSection(c: (typeof eyes)[number], sub: string, de: DeDeTable): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
-      const bandeSp = bandeDeColonne(sp);
-      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    rows: (Object.entries(c.color) as [RaceKey, string][]).map(([sp, v]) => {
+      const { min, max } = plageDeCouleur(c, sp);
+      const bandeSp = bandeAuDe(de, min, max);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v : `${v} · ${bandeSp}` };
     }),
   };
 }
@@ -2866,11 +2862,6 @@ export const clustersIn = (group: CodexGroup): { flat: CodexCategory[]; clusters
 
 /** Catégorie par clé. */
 export const categoryByKey = (key: string): CodexCategory | undefined => CODEX.find((c) => c.key === key);
-
-/** Identité STABLE d'une entrée de Codex = sérialisation canonique du couple `{category, id}` —
- *  `CodexItem.id` est unique par catégorie, la clé de navigation qualifie donc la catégorie. C'est
- *  la clé de sélection du navigateur (jamais un `.label ===` nu). */
-export const codexItemKey = (category: string, id: string): string => `${category}␞${id}`;
 
 // ── Index de lookup PARESSEUX (par catégorie) ────────────────────────────────────────────────────
 // `codexLookupById` est appelé par CHAQUE `CodexRef` à CHAQUE rendu → un `items.find` linéaire ne scale
@@ -2936,56 +2927,20 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
   const weaponRows: CodexRow[] = (c.weapons ?? []).map((w) => {
     const badge = damageString(w.damage);
     const id = w.trappingId ?? w.builtinId;
-    return id ? { ...idRefRow('trappings', id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
+    const category = groupeDeSiege(w.subType) ? 'siegeEngines' : 'trappings';
+    return id ? { ...idRefRow(category, id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
   });
-  const worn = ARMOUR_LOCS.filter((l) => (c.armour?.[l] ?? 0) > 0);
+  const worn = ARMOUR_LOCS.flatMap((loc) => {
+    const pa = armourPhysiqueAt(c, loc);
+    return pa > 0 ? [`${HIT_LOCATION_LABELS[loc]} ${pa}`] : [];
+  });
   return sections(
     { title: tr('codex.fiche.caracteristiques'), layout: 'grid', rows: charRows },
     weaponRows.length ? { title: tr('codex.fiche.armes'), layout: 'chips', rows: weaponRows } : null,
-    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.map((l) => `${HIT_LOCATION_LABELS[l]} ${c.armour![l]}`).join(' · ') }] } : null,
+    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.join(' · ') }] } : null,
     chips(tr('codex.fiche.traits'), traitRefRows(c.traits, nomDIndividu)),
     skillRows.length ? { title: tr('codex.fiche.competences'), layout: 'chips', rows: skillRows } : null,
     chips(tr('codex.fiche.talents'), (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
     chips(tr('codex.fiche.sorts'), (c.spells ?? []).map((id) => idRefRow('spells', id))),
   );
-}
-
-/** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
-const CATEGORIE_DES_CREATURES = 'creatures';
-
-const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined): CodexSection =>
-  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur }] });
-
-/**
- * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
- * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
- * (celui d'un preset sans base est l'id du preset) ; lit `desc`, jamais `maison`.
- * - réf : la `desc` de la créature du catalogue ;
- * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
- *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet
- *   (`porteurDuNarratif`, injecté : `undefined` hors projet) ; quand elle est la `desc` de sa base,
- *   la base la porte ; sinon (fiche figée, `sceneNpc.ts`) elle est nue ;
- * - statbloc (`defs-scenes/communs.ts`, aucun champ de prose), héros : `null`.
- */
-export function proseDeFiche(
-  c: Combatant,
-  presetDe: ResolveurDePreset,
-  porteurDuNarratif: (cle: 'presetsPnj', id: string, suite: string) => Porteur | undefined,
-): { section: CodexSection; entree?: { type: string; id: string } } | null {
-  const p = c.porteurDeFiche;
-  if (p?.presetCreature) {
-    const text = p.presetCreature.desc;
-    if (!text) return null;
-    const preset = presetDe(p.presetId);
-    if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
-    const base = preset?.base?.id;
-    return base && findCreatureById(base)?.desc === text
-      ? { section: sectionDescription(text, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
-      : { section: sectionDescription(text, undefined) };
-  }
-  if (p?.ref !== undefined) {
-    const desc = findCreatureById(p.ref)?.desc;
-    return desc ? { section: sectionDescription(desc, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
-  }
-  return null;
 }

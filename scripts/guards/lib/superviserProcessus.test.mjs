@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, openSync, closeSync, existsSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn, spawnSync, ChildProcess } from 'node:child_process'
@@ -28,6 +28,8 @@ test('une erreur de supervision refuse la sortie même après un enfant réussi'
   assert.equal(diagnostic, '[supervision] sans code\n')
   assert.equal(sortieDeSupervision({ status: 0 }, journal), 0)
   assert.equal(sortieDeSupervision({ status: 3 }, journal), 3)
+  assert.equal(sortieDeSupervision({ status: 0, signal: 'SIGTERM' }, journal), 1)
+  assert.equal(sortieDeSupervision({ status: null, signal: null }, journal), 1)
 })
 
 test('superviserProcessus : le rendu porte l’arrêt certifié de l’unique fin native', { timeout: 20000 }, async () => {
@@ -81,6 +83,11 @@ test('supervision : sortie volumineuse drainée et stdio explicite sans pipe', {
   assert.equal(ignore.error, undefined)
 })
 
+function publicationDuPid(chemin) {
+  return `import { ecrireTexteAtomique } from ${JSON.stringify(new URL('./ecritureJsonAtomique.mjs', import.meta.url).href)}
+ecrireTexteAtomique(${JSON.stringify(chemin)}, String(process.pid))`
+}
+
 test('supervision : le plafond tue aussi le petit-fils détaché persistant', { timeout: 30000 }, async () => {
   const racine = mkdtempSync(join(tmpdir(), '2626-supervision-'))
   try {
@@ -88,7 +95,9 @@ test('supervision : le plafond tue aussi le petit-fils détaché persistant', { 
     const parent = join(racine, 'parent.mjs')
     const preuve = join(racine, 'preuve')
     const pid = join(racine, 'pid')
-    writeFileSync(feuille, `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>writeFileSync(${JSON.stringify(preuve)},String(Date.now())),20)`)
+    writeFileSync(feuille, `import { writeFileSync } from 'node:fs'
+${publicationDuPid(pid)}
+setInterval(() => writeFileSync(${JSON.stringify(preuve)}, String(Date.now())), 20)`)
     writeFileSync(parent, `import {spawn} from 'node:child_process';spawn(process.execPath,[${JSON.stringify(feuille)}],{detached:true,stdio:['ignore',1,2]}).unref();setInterval(()=>{},1000)`)
     const supervision = superviserProcessus({ commande: process.execPath, args: [parent], timeout: 3500 })
     const petitFils = identiteMesureeDe(Number(await attendreFichier(pid)))
@@ -292,11 +301,50 @@ function identiteMesureeDe(pid) {
   return identite
 }
 
-function bancSupervision(t) {
+function bancSupervision(t, confirmerNettoyage) {
   const dossier = mkdtempSync(join(tmpdir(), '2626-confinement-'))
-  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const nettoyer = () => rmSync(dossier, { recursive: true, force: true })
+  t.after(confirmerNettoyage ? async () => {
+    if (await confirmerNettoyage()) nettoyer()
+  } : nettoyer)
   const script = (nom, code) => { const chemin = join(dossier, nom + '.mjs'); writeFileSync(chemin, code); return chemin }
   return { dossier, script }
+}
+
+function surveillerFermetureEcrivains(node) {
+  const stderr = node.stderr
+  let diagnostic = ''
+  let erreur
+  stderr.setEncoding('utf8').on('data', (texte) => { diagnostic += texte })
+  stderr.on('error', (cause) => { erreur = cause })
+  node.on('error', (cause) => { erreur = cause })
+  const fermeture = new Promise((r) => node.once('close', (code, signal) => {
+    r({ code, signal, eof: stderr.readableEnded && !erreur, erreur })
+  }))
+  let arret
+  return {
+    diagnostic: () => diagnostic,
+    arreter: () => arret ??= (async () => {
+      let minuterie
+      let etat
+      try {
+        node.kill('SIGKILL')
+        const borne = new Promise((r) => {
+          minuterie = setTimeout(() => r({ eof: false, erreur: new Error('échéance de fermeture de stderr (5 s)') }), 5000)
+        })
+        etat = await Promise.race([fermeture, borne])
+      } catch (erreur) {
+        etat = { eof: false, erreur }
+      } finally {
+        clearTimeout(minuterie)
+      }
+      if (!etat.eof) {
+        stderr.destroy()
+        node.unref()
+      }
+      return etat
+    })(),
+  }
 }
 
 /** Joue le script `pilote` dans un Node à part ; son code de sortie nul fait le verdict, sa sortie le diagnostic (#2586). */
@@ -378,10 +426,43 @@ async function attendreFichier(chemin, essais = 200) {
   assert.fail('fixture non démarrée : ' + chemin)
 }
 
+test('#3986 le témoin PID devient lisible avec le PID complet', { timeout: 10000 }, async (t) => {
+  const b = bancSupervision(t)
+  const pid = join(b.dossier, 'pid')
+  const pilote = b.script('publication-pid', `
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
+const pid = ${JSON.stringify(pid)}
+const ecrire = fs.writeFileSync
+let ecritures = 0
+fs.writeFileSync = (cible, texte) => {
+  const dejaOuvert = typeof cible === 'number'
+  const fd = dejaOuvert ? cible : fs.openSync(cible, 'w')
+  try {
+    ecritures++
+    assert.equal(fs.fstatSync(fd).size, 0)
+    assert.throws(() => fs.readFileSync(pid, 'utf8'), { code: 'ENOENT' }, 'le nom final est lisible pendant que le fichier est vide')
+    assert.equal(fs.writeSync(fd, texte[0], 0, 'utf8'), 1)
+    assert.throws(() => fs.readFileSync(pid, 'utf8'), { code: 'ENOENT' }, 'le nom final est lisible après le premier chiffre')
+    ecrire(fd, texte)
+  } finally {
+    if (!dejaOuvert) fs.closeSync(fd)
+  }
+}
+syncBuiltinESMExports()
+${publicationDuPid(pid)}
+assert.equal(ecritures, 1)
+assert.equal(fs.readFileSync(pid, 'utf8'), String(process.pid))
+`)
+  await jouerPilote(b, pilote)
+})
+
 test('confinement : parent bref, feuille détachée et processus étranger préservé', { timeout: 30000 }, async (t) => {
   const b = bancSupervision(t)
   const pid = join(b.dossier, 'pid')
-  const feuille = b.script('feuille', `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>{},1000)`)
+  const feuille = b.script('feuille', `${publicationDuPid(pid)}
+setInterval(() => {}, 1000)`)
   const parent = b.script('bref', `import {spawn} from 'node:child_process';import {existsSync} from 'node:fs';spawn(process.execPath,[${JSON.stringify(feuille)}],{detached:true,stdio:'ignore'}).unref();const i=setInterval(()=>{if(existsSync(${JSON.stringify(pid)})){clearInterval(i);process.exit(0)}},10)`)
   const etranger = spawn(process.execPath, [b.script('etranger', 'setInterval(()=>{},1000)')], { stdio: 'ignore' })
   const finEtranger = new Promise((r) => etranger.once('close', r))
@@ -433,7 +514,8 @@ test('confinement : argv exact, environnement cible et absence exécutable', { t
 test('confinement : interruption par signal du processus refuse le succès et nettoie la cible', { timeout: 30000 }, async (t) => {
   const b = bancSupervision(t)
   const pid = join(b.dossier, 'pid')
-  const cible = b.script('signal', `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>{},1000)`)
+  const cible = b.script('signal', `${publicationDuPid(pid)}
+setInterval(() => {}, 1000)`)
   const supervision = superviserProcessus({ commande: process.execPath, args: [cible], timeout: 15000 })
   const lancee = identiteMesureeDe(Number(await attendreFichier(pid)))
   // SIGINT et SIGTERM de ce processus relaient aussi depotGabarit.mjs:32-33, chargé par gitDeBanc.mjs.
@@ -443,37 +525,89 @@ test('confinement : interruption par signal du processus refuse le succès et ne
   assert.ok(gardienDisparu(lancee, mesurerArbreProcessus()))
 })
 
+test('#2960 le banc attend le dernier écrivain après le SIGKILL de l’appelant', { timeout: 15000 }, async (t) => {
+  let fermeture = null
+  const b = bancSupervision(t, async () => fermeture === null || (await fermeture.arreter()).eof)
+  const pret = join(b.dossier, 'pret')
+  const liberation = join(b.dossier, 'liberation')
+  const resultat = join(b.dossier, 'certificat.json')
+  const ecrivain = b.script('ecrivain', `
+import { existsSync, writeFileSync } from 'node:fs'
+const borne = setTimeout(() => process.exit(1), 10000)
+const attente = setInterval(() => {
+  if (!existsSync(${JSON.stringify(liberation)})) return
+  writeFileSync(${JSON.stringify(resultat)}, 'publié')
+  clearInterval(attente)
+  clearTimeout(borne)
+}, 10)
+writeFileSync(${JSON.stringify(pret)}, 'prêt')
+`)
+  const appelant = b.script('appelant', `
+import { spawn } from 'node:child_process'
+spawn(process.execPath, [${JSON.stringify(ecrivain)}], { stdio: ['ignore', 'ignore', 'inherit'] })
+setInterval(() => {}, 1000)
+`)
+  const node = spawn(process.execPath, [appelant], { stdio: ['ignore', 'ignore', 'pipe'] })
+  fermeture = surveillerFermetureEcrivains(node)
+  const sortie = new Promise((r) => node.once('exit', (_code, signal) => r(signal)))
+  try {
+    await attendreFichier(pret)
+    let termine = false
+    const arret = fermeture.arreter().then((etat) => { termine = true; return etat })
+    assert.equal(await Promise.race([sortie, arret]), 'SIGKILL')
+    await new Promise((r) => setImmediate(r))
+    assert.equal(termine, false, 'le banc rend la main alors que l’écrivain est encore bloqué')
+    assert.equal(existsSync(resultat), false)
+    writeFileSync(liberation, '')
+    const etat = await arret
+    assert.equal(etat.eof, true, String(etat.erreur))
+    assert.equal(readFileSync(resultat, 'utf8'), 'publié')
+  } finally {
+    writeFileSync(liberation, '')
+  }
+})
+
 test('confinement : mort du Node appelant nettoie une feuille déjà orpheline', { timeout: 30000 }, async (t) => {
-  const b = bancSupervision(t)
+  let fermeture = null
+  const b = bancSupervision(t, async () => fermeture === null || (await fermeture.arreter()).eof)
   const pid = join(b.dossier, 'pid')
-  const feuille = b.script('orpheline', `import {writeFileSync} from 'node:fs';if(process.env.SECRET_2626!=='memoire-2626-privee')process.exit(43);writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>{},1000)`)
+  const feuille = b.script('orpheline', `if (process.env.SECRET_2626 !== 'memoire-2626-privee') process.exit(43)
+${publicationDuPid(pid)}
+setInterval(() => {}, 1000)`)
   const bref = b.script('bref', `import {spawn} from 'node:child_process';spawn(process.execPath,[${JSON.stringify(feuille)}],{detached:true,stdio:'ignore'}).unref()`)
   const parent = b.script('parent', `import {spawn} from 'node:child_process';spawn(process.execPath,[${JSON.stringify(bref)}],{stdio:'ignore'});setInterval(()=>{},1000)`)
   const appelant = b.script('appelant', `import {superviserProcessus} from ${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)};const vu=await superviserProcessus({commande:process.execPath,args:[${JSON.stringify(parent)}],heriter:true,env:{...process.env,SECRET_2626:'memoire-2626-privee'}});process.stderr.write(JSON.stringify(vu))`)
-  const diagnostic = join(b.dossier, 'hote.log')
-  const fd = openSync(diagnostic, 'w')
-  const node = spawn(process.execPath, [appelant], { stdio: ['ignore', 'ignore', fd], env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier } })
-  closeSync(fd)
-  const fin = new Promise((r) => node.once('close', r))
-  try {
-    const cible = identiteMesureeDe(Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + readFileSync(diagnostic, 'utf8')))))
-    const hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
-    assert.ok(hote, 'hôte natif propriétaire présent')
-    node.kill('SIGKILL'); await fin
-    for (let i = 0; i < 50; i++) {
-      if (gardienDisparu(cible, mesurerArbreProcessus())) break
-      await new Promise((r) => setTimeout(r, 30))
-    }
-    assert.ok(gardienDisparu(cible, mesurerArbreProcessus()), 'la feuille survit à la mort de Node')
-    const prives = listerDossier(b.dossier).filter((n) => n.startsWith('wfrp-supervision-'))
-    assert.ok(prives.length, 'le contrôle du canal privé doit porter sur le dossier du Node mort')
-    for (const prive of prives) {
-      const fichiers = listerEntrees(join(b.dossier, prive)).entrees.filter((e) => e.nature === 'file')
-      assert.ok(fichiers.every((f) => !/options|resultat/.test(f.nom)), 'aucune option ni résultat dans le privé')
-      for (const fichier of fichiers) assert.ok(!readFileSync(join(b.dossier, prive, fichier.nom), 'utf8').includes('memoire-2626-privee'))
-    }
-  } finally {
-    node.kill(); await fin
+  const node = spawn(process.execPath, [appelant], {
+    stdio: ['ignore', 'ignore', 'pipe'],
+    env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier },
+  })
+  fermeture = surveillerFermetureEcrivains(node)
+  const cible = identiteMesureeDe(Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + fermeture.diagnostic()))))
+  const hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
+  assert.ok(hote, 'hôte natif propriétaire présent')
+  const arret = await fermeture.arreter()
+  assert.ok(arret.eof, `écrivains encore indéterminés pour ${b.dossier} : ${arret.erreur ?? fermeture.diagnostic()}`)
+  assert.equal(arret.signal, 'SIGKILL', JSON.stringify(arret))
+  assert.ok(gardienDisparu(cible, mesurerArbreProcessus()), 'la feuille survit à la mort de Node')
+
+  const prives = listerDossier(b.dossier).filter((n) => n.startsWith('wfrp-supervision-'))
+  assert.ok(prives.length, 'le contrôle du canal privé doit porter sur le dossier du Node mort')
+  for (const prive of prives) {
+    const dossier = join(b.dossier, prive)
+    const configuration = JSON.parse(readFileSync(join(dossier, 'configuration.json'), 'utf8'))
+    const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
+    const certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8'))
+    assert.equal(certificat.version, 1)
+    assert.equal(certificat.methode, process.platform === 'win32' ? 'job-windows' : 'subreaper-linux')
+    assert.equal(cloture.generation, configuration.generation)
+    assert.equal(certificat.generation, configuration.generation)
+    assert.ok(Number.isSafeInteger(certificat.echeance) && certificat.echeance > 0)
+    assert.equal(certificat.echeance, cloture.echeance)
+    assert.equal(certificat.zero, true, JSON.stringify(certificat))
+
+    const fichiers = listerEntrees(dossier).entrees.filter((e) => e.nature === 'file')
+    assert.ok(fichiers.every((f) => !/options|resultat/.test(f.nom)), 'aucune option ni résultat dans le privé')
+    for (const fichier of fichiers) assert.ok(!readFileSync(join(dossier, fichier.nom), 'utf8').includes('memoire-2626-privee'))
   }
 })
 

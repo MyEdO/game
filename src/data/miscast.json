@@ -1611,7 +1611,7 @@
               "id": "priere"
             },
             "maxZeroDR": true,
-            "days": 7
+            "weeks": 1
           }
         ],
         "source": {

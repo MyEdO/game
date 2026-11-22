@@ -225,7 +225,9 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           },
           {
             "maxLengthM": null,
@@ -281,7 +283,9 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           },
           {
             "maxLengthM": null,
@@ -479,11 +483,15 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 8
+            "value": {
+              "semaines": 1
+            }
           },
           {
             "maxLengthM": null,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           }
         ]
       }
@@ -698,19 +706,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 8
+            "value": 8,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 30
+            "value": 30,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 60
+            "value": 60,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 120,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -719,19 +740,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 35
+            "value": 35,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 55
+            "value": 55,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 95,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -771,19 +805,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 15
+            "value": 15,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 60
+            "value": 60,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 120
+            "value": 120,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 300,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -792,19 +839,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 15
+            "value": 15,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 40
+            "value": 40,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 80
+            "value": 80,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 160,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -836,6 +896,7 @@
       }
     ],
     "install": {
+      "milieu": "fluvial",
       "installation": {
         "per": "10m",
         "bands": [
@@ -871,19 +932,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 25
+            "value": 25,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 50
+            "value": 50,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 120,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -892,19 +966,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 20
+            "value": 20,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 40
+            "value": 40,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 80,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -928,19 +1015,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 15
+            "value": 15,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 30
+            "value": 30,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 45,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -949,19 +1049,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 20
+            "value": 20,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 35
+            "value": 35,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 60,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -983,19 +1096,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 20
+            "value": 20,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 50
+            "value": 50,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 150
+            "value": 150,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 250,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -1004,19 +1130,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": -10
+            "value": -10,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": -15
+            "value": -15,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": -45
+            "value": -45,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": -80,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -1039,19 +1178,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 8
+            "value": 8,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 30
+            "value": 30,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 60
+            "value": 60,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 120,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]
@@ -1060,19 +1212,32 @@
         "bands": [
           {
             "maxLengthM": 5,
-            "value": 5
+            "value": 5,
+            "vehicules": [
+              "barque-fluviale"
+            ]
           },
           {
             "maxLengthM": 10,
-            "value": 15
+            "value": 15,
+            "vehicules": [
+              "esquif"
+            ]
           },
           {
             "maxLengthM": 20,
-            "value": 25
+            "value": 25,
+            "vehicules": [
+              "barge-fluviale",
+              "bateau-de-patrouille"
+            ]
           },
           {
             "maxLengthM": null,
             "value": 50,
+            "vehicules": [
+              "grande-barge"
+            ],
             "maison": "Bande ouverte au-delà de la grande barge (~25 m) : RAW muet passé ce point (MSRC 12 l.54-135) — extrapolation MAISON du dernier palier."
           }
         ]

@@ -172,8 +172,7 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
  *  au-delà d'une borne tombe dans la bande suivante. PUR. */
 export function lighthouseSpotDifficulty(milles: number, clocher: boolean): Difficulty | null {
   const d = Math.ceil(clocher ? milles * seaNavigation.phares.clocher.distanceDiviseur : milles);
-  const row = findTableEntry(tables().voirLaLumiere, d);
-  return d > row.max ? null : row.difficulty;
+  return d > 15 ? null : findTableEntry(tables().voirLaLumiere, d).difficulty;
 }
 
 /** Bonus d'ORIENTATION une fois le repère perçu : phare → « premier chiffre » de Savoir (Océans)
@@ -188,10 +187,10 @@ export function lighthouseOrientationDR(navigator: Combatant, clocher: boolean):
  *  « voguer de nuit » impossible → ÷2 (MDG 15 l.76) ; `progressionDR` = total du Test d'équipage de
  *  Progression, ±10 %/DR (MDG 15 l.78). Plancher 0. PUR. */
 export function seaMilesPerDay(m: number, nightSailing: boolean, progressionDR = 0): number {
-  let miles = Math.max(0, m) * seaNavigation.longsVoyages.millesParJourParM;
-  if (!nightSailing) miles /= seaNavigation.longsVoyages.sansVoguerDeNuitDiviseur;
-  miles *= 1 + (seaNavigation.longsVoyages.progressionPctParDR / 100) * progressionDR;
-  return Math.max(0, miles);
+  const { millesParJourParM, sansVoguerDeNuitDiviseur, progressionPctParDR } = seaNavigation.longsVoyages;
+  // Produit entier, une seule division : 31,5 milles et non 31,499999999999996, que l'arrondi des appelants ferait tomber à 31.
+  const centiemes = Math.max(0, m) * millesParJourParM * (100 + progressionPctParDR * progressionDR);
+  return Math.max(0, centiemes / (100 * (nightSailing ? 1 : sansVoguerDeNuitDiviseur)));
 }
 
 // ── Course-poursuite (MDG 13 l.354-420) ─────────────────────────────────────────────────────────────────

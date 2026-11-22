@@ -2,14 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { API } from 'typescript/unstable/sync';
 import { readFileSync } from 'node:fs';
 import { computeOwnerSystems, scanAllPrimitives, scanGenericDomainImport } from '../../scripts/guards/lib/genericDomainImport.mjs';
-import { directImportsOf } from '../../scripts/guards/lib/importGraph.mjs';
-import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 
 // #329
 
-/** `scanAllPrimitives` lit les fichiers via des chemins relatifs à la racine repo (cwd du runner), sur
- *  l'arbre RÉEL. ABSOLUE : un ORGANISME de domaine (panneau, plateau) se DÉCLARE au manifeste
- *  (`nature: 'organisme'`) et sort du corpus mesuré, jamais en dette chiffrée (#1806). */
+/** Le manifeste réel des primitives génériques est mesuré avec les fermetures d’import des systèmes. */
 function loadFindings() {
   const primitives = JSON.parse(readFileSync('src/data/primitives.manifest.json', 'utf8'));
   const systemes = JSON.parse(readFileSync('src/data/systemes.manifest.json', 'utf8'));
@@ -25,55 +21,27 @@ describe('garde-fou « le générique n’importe pas le domanial » (#329)', ()
     ).toEqual([]);
   });
 
-  /** BORNE de la déclaration `nature: 'organisme'` : sans elle, n'importe quelle entrée s'auto-
-   *  déclarerait organisme pour sortir du corpus mesuré. Un organisme n'existe au manifeste QUE pour le
-   *  module CSS qu'il POSSÈDE : il porte donc `css`, et AUCUNE autre entrée du manifeste n'importe son
-   *  `fichier` — une primitive que d'autres primitives COMPOSENT est générique, et le reste. Le SENS
-   *  compte : c'est d'être importé qui disqualifie, pas d'importer (`InspectPanel` importe `ShipSheet`,
-   *  et cela ne lui retire pas sa nature d'organisme). */
-  it('un `organisme` possède un module CSS et n’est composé par AUCUNE autre entrée du manifeste', () => {
-    const primitives: { id: string; fichier: string; css?: string; nature?: string }[] = JSON.parse(
-      readFileSync('src/data/primitives.manifest.json', 'utf8'),
-    );
-    const organismes = primitives.filter((p) => p.nature === 'organisme');
-    expect(organismes.length, 'la déclaration doit rester rare et mesurée').toBeGreaterThan(0);
-    const fautes: string[] = [];
-    const imports = new Map<string, string[]>();
-    const fichiers = [...new Set(primitives.map((p) => p.fichier))].map((rel) => ({ rel, text: readFileSync(rel, 'utf8') }));
-    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(fichiers))
-      imports.set(fichier.rel, directImportsOf(fichier.rel, sourceFile!, { diagnostics }));
-    for (const o of organismes) {
-      if (!o.css) fautes.push(`${o.id} : « organisme » sans champ css — il n’a alors aucune raison d’être au manifeste`);
-      const composeurs = primitives
-        .filter((p) => p.fichier !== o.fichier)
-        .filter((p) => imports.get(p.fichier)!.includes(o.fichier))
-        .map((p) => p.id);
-      if (composeurs.length) {
-        fautes.push(`${o.id} : composé par ${composeurs.join(', ')} — une primitive que d'autres composent est GÉNÉRIQUE, elle assainit ses imports au lieu de se déclarer organisme`);
-      }
-    }
-    expect(fautes, fautes.join('\n')).toEqual([]);
-  });
-
   it('FAIL-CLOSED : une primitive fictive important un module single-système est DÉTECTÉE', () => {
     const ownerSystems = new Map<string, string[]>([['src/noyau/shipManeuver.ts', ['combat-naval']]]);
     const contenu = "import { rollCrewRole } from '../noyau/shipManeuver';\n";
-    const found = scanGenericDomainImport('src/ui/FakePrimitive.tsx', contenu, ownerSystems);
+    const found = scanGenericDomainImport('src/lib/FakePrimitive.ts', contenu, ownerSystems);
     expect(found).toEqual([{ target: 'src/noyau/shipManeuver.ts', systemId: 'combat-naval' }]);
   });
 
-  it('un propriétaire unique HÉRITÉ de la primitive (seul son système la pose) n’est PAS domanial', { timeout: 75_000 }, () => {
-    const primitives = [{ id: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx' }];
-    const systemes = [{ id: 'editeur', modules: ['src/ui/editor/Editor.tsx'] }];
-    expect(computeOwnerSystems(systemes).get('src/ui/errorCollector.ts')).toEqual(['editeur']);
-    expect(scanAllPrimitives(primitives, systemes)).toEqual([]);
+  const stockage = 'src/lib/stockage.ts';
+  const objet = 'src/lib/objet.mjs';
+  const primitivesDeLaSonde = [{ id: 'stockage', fichier: stockage }];
+
+  it('un propriétaire unique HÉRITÉ de la primitive (seul son système la pose) n’est PAS domanial', () => {
+    const systemes = [{ id: 'banc', modules: ['src/lib/stockage.testkit.ts'] }];
+    expect(computeOwnerSystems(systemes).get(objet)).toEqual(['banc']);
+    expect(scanAllPrimitives(primitivesDeLaSonde, systemes)).toEqual([]);
   });
 
   it('FAIL-CLOSED : un système qui atteint la cible SANS la primitive la rend domaniale', () => {
-    const primitives = [{ id: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx' }];
-    const systemes = [{ id: 'bandeau', modules: ['src/ui/ErrorCollectorBanner.tsx'] }];
-    expect(scanAllPrimitives(primitives, systemes)).toEqual([
-      { primitiveId: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx', target: 'src/ui/errorCollector.ts', systemId: 'bandeau' },
+    const systemes = [{ id: 'objets', modules: [objet] }];
+    expect(scanAllPrimitives(primitivesDeLaSonde, systemes)).toEqual([
+      { primitiveId: 'stockage', fichier: stockage, target: objet, systemId: 'objets' },
     ]);
   });
 
@@ -102,11 +70,10 @@ describe('garde-fou « le générique n’importe pas le domanial » (#329)', ()
 
   it('le batch des primitives conserve lectures, findings et chemins répétés dans leur ordre ; une cible qui est elle-même une primitive n’est pas domaniale', () => {
     const primitives = [
-      { id: 'premier', fichier: 'src/ui/BatchA.tsx' },
-      { id: 'second', fichier: 'src/ui/BatchB.tsx' },
-      { id: 'organisme', fichier: 'src/ui/Ignore.tsx', nature: 'organisme' },
-      { id: 'alias', fichier: 'src/ui/../ui/BatchA.tsx' },
-      { id: 'dernier', fichier: 'src/ui/BatchA.tsx' },
+      { id: 'premier', fichier: 'src/lib/BatchA.ts' },
+      { id: 'second', fichier: 'src/lib/BatchB.ts' },
+      { id: 'alias', fichier: 'src/lib/../lib/BatchA.ts' },
+      { id: 'dernier', fichier: 'src/lib/BatchA.ts' },
       { id: 'composee', fichier: 'src/lib/ordre.mjs' },
     ];
     const systemes = [
@@ -120,20 +87,20 @@ describe('garde-fou « le générique n’importe pas le domanial » (#329)', ()
       const findings = scanAllPrimitives(primitives, systemes, (fichier) => {
         lectures.push(fichier);
         if (fichier.endsWith('ordre.mjs')) return 'export const ordre = 1;';
-        return fichier.endsWith('BatchB.tsx') ? "import '../lib/ordre.mjs';" : "import '../lib/coupeAuMot.mjs';";
+        return fichier.endsWith('BatchB.ts') ? "import './ordre.mjs';" : "import './coupeAuMot.mjs';";
       });
-      expect(lectures).toEqual(['src/ui/BatchA.tsx', 'src/ui/BatchB.tsx', 'src/ui/../ui/BatchA.tsx', 'src/ui/BatchA.tsx', 'src/lib/ordre.mjs']);
+      expect(lectures).toEqual(['src/lib/BatchA.ts', 'src/lib/BatchB.ts', 'src/lib/../lib/BatchA.ts', 'src/lib/BatchA.ts', 'src/lib/ordre.mjs']);
       expect(findings).toEqual([
-        { primitiveId: 'premier', fichier: 'src/ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
-        { primitiveId: 'alias', fichier: 'src/ui/../ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
-        { primitiveId: 'dernier', fichier: 'src/ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
+        { primitiveId: 'premier', fichier: 'src/lib/BatchA.ts', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
+        { primitiveId: 'alias', fichier: 'src/lib/../lib/BatchA.ts', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
+        { primitiveId: 'dernier', fichier: 'src/lib/BatchA.ts', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
       ]);
       expect(fermetures).toHaveBeenCalledTimes(2);
     } finally { fermetures.mockRestore(); }
   });
 
   it('deux lectures différentes d’un même chemin sont refusées avant le batch des primitives', () => {
-    const primitives = [{ id: 'a', fichier: 'src/ui/BatchA.tsx' }, { id: 'alias', fichier: 'src/ui/../ui/BatchA.tsx' }];
+    const primitives = [{ id: 'a', fichier: 'src/lib/BatchA.ts' }, { id: 'alias', fichier: 'src/lib/../lib/BatchA.ts' }];
     const lectures: string[] = [];
     expect(() => scanAllPrimitives(primitives, [], (fichier) => {
       lectures.push(fichier);

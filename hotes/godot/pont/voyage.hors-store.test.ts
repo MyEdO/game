@@ -127,6 +127,7 @@ describe('le voyage par le pont', () => {
 
   it('une embuscade en chemin : le récit l’annonce, chaque journée et ce qui s’y est passé, puis il faut faire face', () => {
     const p = partie();
+    expect(p.appel('reglages', { type: 'regle', args: ['maladie-mode', 'off'] }).ok).toBe(true);
     let suite = p.jouer(carte(p.suite), 'carteDuMonde');
     suite = p.jouer(mode(suite, 'r-piste', 'pied'), 'recitDeVoyage');
     const corps = parId(suite.vue.zones['fenetre.corps']);

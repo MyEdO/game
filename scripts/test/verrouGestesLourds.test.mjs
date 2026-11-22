@@ -1,14 +1,19 @@
 // Contrat du verrou machine des gestes lourds (#2603) : identité mesurée, preneur `build-all`.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
+import fs from 'node:fs'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { prendreVerrou } from './verrou.mjs'
+import { prendreVerrou, prendreVerrouAsync, tenantDe } from './verrou.mjs'
 import { estGesteLourd, lanceUnGesteLourd, verrouGestesLourds } from './verrouGestesLourds.mjs'
-import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { SOURCES_LUES, sousGestesLourds } from '../docs/build-all.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { estPidVivantDepuis, NAISSANCE_ABSENTE } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 const BUILD_ALL = new URL('../docs/build-all.mjs', import.meta.url)
 
@@ -43,4 +48,138 @@ test('#2603 — `sousGestesLourds` RÉEL, verrou tenu jusqu’à l’échéance 
   } finally {
     prise.liberer()
   }
+})
+
+async function avecZombie(agir) {
+  const enfant = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' })
+  const fin = once(enfant, 'close')
+  try {
+    const echeance = performance.now() + 5_000
+    let etat
+    // La boucle Node ne récolte l'enfant qu'après cette observation et la tentative de prise.
+    do {
+      const stat = fs.readFileSync('/proc/' + enfant.pid + '/stat', 'utf8')
+      etat = stat[stat.lastIndexOf(')') + 2]
+      if (etat === 'Z') break
+      attendreSync(5)
+    } while (performance.now() < echeance)
+    assert.equal(etat, 'Z')
+    assert.equal(estPidVivantDepuis(enfant.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true)
+    return await agir(enfant.pid)
+  } finally {
+    assert.deepEqual(await fin, [0, null])
+  }
+}
+
+function verrouDeBanc(t) {
+  const { racine: depot } = instanceDeDepot({ commit: false })
+  t.after(() => rmSync(depot, { recursive: true, force: true }))
+  return { depot, verrou: verrouGestesLourds(depot) }
+}
+
+test('#4614 — build-all reprend un verrou tenu par un vrai zombie Linux dès le premier essai', { skip: process.platform !== 'linux' }, async (t) => {
+  const { depot, verrou } = verrouDeBanc(t)
+  const alertes = t.mock.method(console, 'error', () => {})
+  await avecZombie(async (pid) => {
+    const ancien = prendreVerrou({ ...verrou, pid, commande: 'tenant zombie du banc' })
+    assert.equal(ancien.etat, 'pris')
+    assert.ok(Number.isFinite(tenantDe(verrou.chemin).creation), 'le verrou porte la naissance mesurée')
+    const debut = performance.now()
+    const code = await sousGestesLourds({
+      cwd: depot,
+      env: {},
+      argv: ['--perimes'],
+      attente: { echeanceMs: 250, pasMs: 250 },
+      geste: () => {
+        assert.equal(estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true, 'le PID du zombie existe encore lors de la reprise')
+        const courant = tenantDe(verrou.chemin)
+        assert.equal(courant.pid, process.pid)
+        assert.notEqual(courant.generation, ancien.generation)
+        return 0
+      },
+    })
+    const signaux = alertes.mock.calls.map(({ arguments: args }) => args[0])
+    t.diagnostic(JSON.stringify({ pid, etat: 'Z', presence: true, code, ms: Math.round(performance.now() - debut), signaux }))
+    assert.equal(code, 0)
+    assert.deepEqual(signaux, [])
+    assert.equal(existsSync(verrou.chemin), false)
+  })
+})
+
+test('#4614 — une génération concurrente vivante reste intacte pendant la reprise du zombie', { skip: process.platform !== 'linux' }, async (t) => {
+  const { verrou } = verrouDeBanc(t)
+  await avecZombie((pid) => {
+    const ancien = prendreVerrou({ ...verrou, pid })
+    assert.equal(ancien.etat, 'pris')
+    const concurrent = { pid: process.pid, creation: performance.timeOrigin, generation: 'concurrente' }
+    const brut = JSON.stringify(concurrent)
+    const provisoire = verrou.chemin + '.concurrent'
+    fs.writeFileSync(provisoire, brut)
+    let reprises = 0
+    const debut = performance.now()
+    const vu = prendreVerrou({
+      ...verrou,
+      attente: undefined,
+      fs: { ...fs, linkSync(source, cible) {
+        if (cible === verrou.chemin + '.reprise') {
+          reprises += 1
+          fs.renameSync(provisoire, verrou.chemin)
+        }
+        return fs.linkSync(source, cible)
+      } },
+    })
+    t.diagnostic(JSON.stringify({ reprises, etat: vu.etat, generation: vu.tenant?.generation, ms: Math.round(performance.now() - debut) }))
+    assert.equal(reprises, 1)
+    assert.equal(vu.etat, 'refus')
+    assert.equal(vu.tenant.generation, concurrent.generation)
+    assert.equal(fs.readFileSync(verrou.chemin, 'utf8'), brut)
+  })
+})
+
+test('#4614 — la prise asynchrone distingue un tenant vivant d’une ancienne naissance du même PID', { skip: process.platform !== 'linux' }, async (t) => {
+  const { verrou } = verrouDeBanc(t)
+  const creation = verrou.identite.lireCreation(process.pid)
+  assert.ok(Number.isFinite(creation))
+  const tenant = { pid: process.pid, creation, generation: 'ancienne' }
+  const options = { ...verrou, attente: undefined }
+  fs.writeFileSync(verrou.chemin, JSON.stringify(tenant))
+  const debut = performance.now()
+  const vivant = await prendreVerrouAsync(options)
+  const vivantMs = Math.round(performance.now() - debut)
+  assert.equal(vivant.etat, 'refus')
+  assert.deepEqual(tenantDe(verrou.chemin), tenant)
+  fs.writeFileSync(verrou.chemin, JSON.stringify({ ...tenant, creation: creation - 3_600_000 }))
+  const debutReprise = performance.now()
+  const reprise = await prendreVerrouAsync(options)
+  t.diagnostic(JSON.stringify({ vivant: vivant.etat, vivantMs, reutilise: reprise.etat, reutiliseMs: Math.round(performance.now() - debutReprise) }))
+  assert.equal(reprise.etat, 'pris')
+  assert.notEqual(reprise.generation, tenant.generation)
+  assert.equal(tenantDe(verrou.chemin).generation, reprise.generation)
+  reprise.liberer()
+})
+
+test('#4614 — preuve Linux indéterminée, identité illisible et accès refusé conservent le tenant présent', (t) => {
+  const { depot, verrou } = verrouDeBanc(t)
+  const brut = JSON.stringify({ pid: process.pid, generation: 'presente' })
+  fs.writeFileSync(verrou.chemin, brut)
+  const refuse = t.mock.method(process, 'kill', () => {
+    throw Object.assign(new Error('signal zéro refusé'), { code: 'EPERM' })
+  })
+  const zombie = { pid: process.pid, etat: 'Z', erreurs: [] }
+  const lectures = [
+    ['mesure indéterminée', () => ({ indeterminee: 'échéance', processus: [zombie] })],
+    ['identité illisible', () => ({ processus: [{ ...zombie, erreurs: ['identite illisible : [instable] identité modifiée'] }] })],
+    ['accès refusé', () => { throw Object.assign(new Error('lecture refusée'), { code: 'EACCES' }) }],
+    ['autre plateforme', () => ({ processus: [zombie] })],
+  ]
+  for (const [cas, lire] of lectures) {
+    const plateforme = cas === 'autre plateforme' ? 'darwin' : 'linux'
+    const mesurer = t.mock.fn(lire)
+    const options = verrouGestesLourds(depot, { plateforme, mesurer })
+    const vu = prendreVerrou({ ...options, attente: undefined })
+    assert.equal(vu.etat, 'refus', cas)
+    assert.equal(fs.readFileSync(verrou.chemin, 'utf8'), brut, cas)
+    assert.equal(mesurer.mock.callCount(), plateforme === 'linux' ? 1 : 0, cas)
+  }
+  assert.deepEqual(refuse.mock.calls.map(({ arguments: args }) => args), lectures.map(() => [process.pid, 0]))
 })

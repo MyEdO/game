@@ -1,11 +1,11 @@
-# AGENTS.md — RPG Warhammer Fantasy v4 (web)
+# AGENTS.md — RPG Warhammer Fantasy v4 sous Godot
 
 Le credo `.claude/credo.md` prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
 geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
 
-Un **jeu de rôle vidéoludique web d'abord, en français**, type *Neverwinter Nights / Baldur's Gate*
+Un **jeu de rôle vidéoludique Godot, web d’abord et en français**, type *Neverwinter Nights / Baldur's Gate*
 (tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay** 4e ou 5e (au
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
@@ -29,23 +29,21 @@ script au nom différent du doc est entre parenthèses.
 | « Le moteur sait-il faire X ? » (op, Condition, Trigger) | `docs/vocabulaire-mecanique.md` (`docs:vocabulaire`) |
 | « Quelle couture fait X ? » (exports de `src/engine`) | `docs/index-moteur.md` |
 | « Par où passe CE jet ? » | `docs/registre-jets.md` |
-| « Qui remplit quelles zones de `RollShell` ? » | `docs/usages-jets.md` |
 | Question RAW | `docs/raw/00-index.md`, puis `Source/` pour **citer** |
 | Détail d'un livre source | `docs/sources-vf.md` |
-| Valider une UI au navigateur (suspendu : migration Godot) | fiche `user-doctrine-recette-web-suspendue-migration-godot` |
+| Valider un écran Godot | `.claude/rules/ecrans-godot.md` et `.claude/rules/hote-godot.md` |
 | Jouer le noyau sans navigateur | `docs/hote-texte.md` (`docs:hote-texte`) |
 | Passif, corruption | `docs/systeme-passifs.md` (`docs:passifs`) |
 | Triggers / événements de combat | `docs/combat-events-coherence.md` |
 | Ajouter/curer une donnée | `docs/donnees.md`, `docs/ajouter-une-donnee.md` (`docs:ajouter-donnee`) |
 | Authoring de map | `docs/map-authoring.md` |
 | Créer/modifier une campagne | `docs/campagne-authoring.md`, skill `creer-une-campagne` |
-| Écran UI (CSS, densité, responsive) | `docs/charte-ui.md`, règle 4 |
 | Flux de jet différé (1 situation = 1 modale) | `docs/ajouter-un-flux-de-jet.md` (`docs:flux-de-jet`) |
 | Intégrer un livre source (VF, ou VO autorisé) | `docs/ajouter-un-livre-source.md` |
 | Sort, Prière, Bénédiction, Miracle, Rituel | `docs/ajouter-un-sort.md` (`docs:sort`) |
 | Ajouter une icône, remplacer un emoji | `docs/ajouter-une-icone.md` (`docs:icones`) |
 | Mécanique d'une entité (trait, talent, qualité…) | `docs/ajouter-une-mecanique.md` (`docs:mecanique`) |
-| Rendu du monde (builders, peintres, ambiance) | `docs/rendu-pipeline.md` |
+| Rendu du monde, ambiance et modèles | `.claude/rules/rendus-godot.md` et `docs/architecture.md` |
 | Relation inverse / index / auto-liage du Codex | `docs/codex-relations.md` |
 | Qui lit ce champ JSON avant de le renommer ? | `docs/consommateurs-de-champs.md` (`docs:field-consumers`) |
 | Forme d'un concept dans chaque dataset | `docs/structures-donnees.md` (`docs:structures`) |
@@ -62,14 +60,11 @@ script au nom différent du doc est entre parenthèses.
    SANS entrée = CI rouge). Gardes : `scripts/raw/coverage.mjs`, `scripts/raw/reconcile.mjs`,
    `npm run docs:check`.
 2. **Tout le contenu de campagne est éditable** (schéma de Scène unique) : aucune scène « en dur ».
-3. **Le moteur (`src/engine`) reste pur et testé.** Store, UI et rendu en dépendent, jamais l'inverse.
-4. **UI en français, et qui scale** : au-delà de ~2 sections → onglets ; tout écran neuf est
-   responsive dès sa création — en LARGEUR et en HAUTEUR aux vues de
-   `scripts/recette/vues-recette.json` (aucun défilement de PAGE) —, composé des primitives de
-   `src/ui/styles.css`. Gardes : `docs/charte-ui.md`, `src/ui/ui-ratchets.test.ts`,
-   `scripts/recette/hauteur-reelle.mjs`.
+3. **Le moteur (`src/engine`) reste pur et testé.** Le noyau et les hôtes en dépendent.
+4. **Interface Godot en français.** Suivre la maquette validée, les primitives et le thème partagés.
+   Vérifier les écrans avec les parcours et étalons Godot (`.claude/rules/ecrans-godot.md`).
 5. **Aucune retranscription des textes sources dans les `.json`** : toute prose est un copié/collé
-   VERBATIM, en Markdown, jamais en HTML ni reformulée ; rendue par l'unique primitive `Prose`. Garde :
+   VERBATIM, en Markdown, jamais en HTML ni reformulée ; rendue par l’hôte Godot. Garde :
    `src/data/no-html-in-prose.test.ts`. Campagne : fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
 6. **Un commentaire porte une réf nue** — jamais une paraphrase de règle, une excuse ni une pierre
    tombale (voir le credo). Garde : `src/comment-poison-guard.test.ts`.
@@ -102,22 +97,20 @@ Compendium Godot, chaque entrée taguée à sa `source`.
 
 ## Pile et commandes
 
-**Vite + TypeScript + React** ; monde rendu en volumique **three.js** (`src/gameIso/backends/webgl/`),
-grille/murs/pions/chrome en surcouches SVG React. **Zustand** (store), **Vitest**, RNG seedable
-(`makeRNG`).
+**Godot** rend le jeu, en export Web et au bureau. Le noyau **TypeScript** joue les règles,
+les scénarios et la coop avec un RNG à graine. **Vitest** en joue les suites.
 
 ```bash
 npm install            # pose les hooks git et les pilotes de fusion
 echo '{}' | node scripts/hooks/bootstrap-conteneur.mjs  # fil de projet claude.ai (hooks absents) : avant le 1er commit
-timeout <N> npm run dev # port dérivé en worktree lié, imprimé au lancement
+timeout <N> npm run godot:ouvrir # jeu Godot local
 npm test               # tests Vitest
 npm run typecheck      # tsc --noEmit
 npm run typecheck:fast # typecheck incrémental (~7-10 s)
 npm run gates          # rejeu local de gates de ci.yml (--gates a,b, --serie)
-npm run galleries      # galeries QC -> public/galeries.html
 npm run ops:chantier -- <N> · ops:publier -- --detache · ops:worktrees · ops:board [-- --liste|--creer] · ops:suivi -- <N>   # .wt-<N>, train détaché, inventaire, Project GitHub, .git/suivi/<N>.json
 npm run relay:dev      # relay coop local ; relay:deploy pour publier
-gh workflow run deploy.yml -f cible=jeu # prod — sur demande explicite SEULEMENT
+# Export Web Godot et cibles /dev/ et /jeu/ : skill deployer
 ```
 
 Régime de push, `package-lock` : `docs/reprise-apres-pause.md`.
@@ -127,23 +120,17 @@ Régime de push, `package-lock` : `docs/reprise-apres-pause.md`.
 ```
 src/engine/   règles WFRP4 PURES + testées (types, tests/DR, combat, ops.ts = GameOp, magic…)
 src/noyau/    orchestration sans hôte (cascade, combatFlow, rollFlow…) ; monde/ (scene.ts = SCHÉMA)
-src/hote/     commun aux hôtes du noyau (arguments, scénario, jetons, projection)
+src/hote/     commun aux hôtes du noyau (projection, sauvegardes, coop, réglages)
 hotes/godot/  hôte Godot : pont JSON vers le noyau (CONTRAT.md)
-src/state/    store Zustand, adaptateur web (saves, netFlow…)
-src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, fx/
-src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
 server/       Worker Cloudflare du relay
-src/web/      services du navigateur (minuteries, stockage, fichiers)
 ```
 
 Détail : `docs/architecture.md`.
 
 ## Pièges connus
 
-- **Closure synchrone en test Playwright** : jamais lire le DOM dans le même `evaluate` que l'action
-  qui change l'état React (`docs/recette-navigateur.md`).
 - Aucun inventaire de GROUPE : tout objet va sur un héros (`Combatant.items`) via `giveTrapping`.
-- Conventions propres à un chemin (`src/data`, `src/engine`, `src/state`, `src/ui`, `src/scenes`…) :
+- Conventions propres à un chemin (`src/data`, `src/engine`, `src/scenes`…) :
   `.claude/rules/`, chargées à la lecture ou l'écriture d'un fichier qui correspond.

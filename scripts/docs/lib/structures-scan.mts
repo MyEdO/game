@@ -1,4 +1,6 @@
 import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
+import { estModule } from '../../guards/lib/importGraph.mjs';
+import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs';
 // SONDE des structures OBSERVÉES dans la donnée — moteur de mesure partagé par le générateur
 // `scripts/docs/build-structures.mts` et la garde `src/data/structures-contrat.test.ts`.
 // Aucun rendu ici : uniquement des mesures (l'affichage vit dans le générateur, le stock dans
@@ -15,8 +17,8 @@ import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 //   2. SITES          — pour chaque site `(dataset, champ, clé)`, combien de ses valeurs résolvent
 //      et vers QUELS datasets. Cible(s) MAJORITAIRE(S) = celles qui couvrent ≥ 50 % des valeurs
 //      résolvantes du site ; une valeur qui ne résout que hors d'elles est AMBIGUË.
-//   3. DOCUMENTS EMBARQUÉS — objet à clé d'identité, sans `op`, sans `kind` de Condition, qui ne
-//      porte pas les TELLS d'un document et dont le SITE porte majoritairement des références.
+//   3. DOCUMENTS EMBARQUÉS — objet à clé d'identité, hors des sites GameOp et Condition et des porteurs d'op.
+//      Le scan distingue le document de la référence par les TELLS et par la résolution majoritaire du SITE.
 //      Leurs ids complètent l'index. C'est le SITE qui tranche, jamais la seule valeur : un id de
 //      spécialisation qui collisionne avec l'id d'une carrière ne fait pas d'un `{id,label}` une
 //      référence — et les tells (`label` + `source`, ou `label` + charge utile) passent avant lui.
@@ -25,21 +27,30 @@ import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 //   5. MESURE — occurrences de référence, formes de valeur, ops, enveloppe, orphelines, ambiguës.
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
+import { z } from 'zod';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
 import { REGISTRIES } from './cibles-registres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
-import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord, lireCleDEspace } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
-import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
+import {
+  auPlusProcheAncetre,
+  coDescendre,
+  declarationDEnfants,
+  defDe,
+  descendre,
+  enfantsDe,
+  valeursAdmises,
+} from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
-import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
+import { declarationProseNommee, sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { TYPES, declarationDeRefTypee, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
@@ -112,11 +123,11 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-const regimeEntrees = (racineJson: string, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';
-  return racineJson === 'array' ? 'elements' : 'racine';
+  return Array.isArray(brut) ? 'elements' : 'racine';
 };
 
 /** Liste les documents des deux `RACINES`, chemins POSIX relatifs à la racine du dépôt. */
@@ -134,6 +145,15 @@ export function listerDocuments(root: string): Document[] {
     }
   }
   return out.filter((d, i, xs) => xs.findIndex((x) => x.chemin === d.chemin) === i);
+}
+
+export function lireDocuments(root: string) {
+  const docs = listerDocuments(root);
+  const brutParDocument = new Map<string, unknown>(
+    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
+  );
+  const brutParNom: ReadonlyMap<string, unknown> = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)]));
+  return { docs, brutParDocument, brutParNom };
 }
 
 const inc = <K,>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
@@ -212,6 +232,7 @@ export type Classement = {
  * qui dérive de la STRATE parce qu'elle sert un autre usage (la charge utile de `tellsDeDocument`).
  */
 const CONCEPTS_CLASSABLES = CONCEPTS.filter((c) => !c.resolvables && !c.listeIdsNus);
+const CONCEPT_PROSE_NOMMEE = CONCEPTS_CLASSABLES.find((c) => c.reconnaitProseNommee);
 
 /** Concepts que seul le SITE peut proposer (`exigeCandidatureStructurelle`) — la liste se DÉDUIT du
  *  lexique, elle ne se nomme pas au call-site : ajouter un concept structurel au lexique suffit. */
@@ -369,6 +390,18 @@ export type SignatureOrpheline = {
   occurrences: number;
 };
 export type OpObservee = { op: string; signature: string; dataset: string; occurrences: number };
+
+type RefusDOp = 'op inconnue' | 'charge refusée';
+type MecaniqueDuSite = 'op' | RefusDOp | 'condition' | 'condition refusée';
+type AutrePorteurDOp = {
+  motif: RefusDOp | 'hors site GameOp';
+  op: string | undefined;
+  kind: string;
+  signature: string;
+  dataset: string;
+  champ: string;
+  occurrences: number;
+};
 /** Valeur qui résout, mais SEULEMENT vers un dataset hors des cibles majoritaires de son site. */
 export type ResolutionAmbigue = {
   dataset: string;
@@ -583,6 +616,40 @@ export function posesDesObjets(defs: readonly SchemaDef[], brutParNom: ReadonlyM
   return poses;
 }
 
+/** Le nœud local ouvert par coDescendre porte la famille et juge son propre régime. */
+function mecaniquesDesObjets(defs: readonly SchemaDef[], brutParNom: ReadonlyMap<string, unknown>) {
+  const mecaniques = new WeakMap<object, MecaniqueDuSite>();
+  const corpsDesConditions = new Set(
+    famillesConstruites().flatMap(({ condition }) => enfantsDe(condition).map(({ noeud }) => noeud)),
+  );
+  for (const { file, schema } of defs) {
+    if (!brutParNom.has(file)) continue;
+    coDescendre(schema, brutParNom.get(file), ({ noeuds, valeur }) => {
+      if (!estObjet(valeur)) return;
+      let refus: RefusDOp | undefined;
+      let condition: 'condition' | 'condition refusée' | undefined;
+      for (const noeud of noeuds) {
+        if (!(noeud instanceof z.ZodType)) continue;
+        const declaration = declarationDEnfants(noeud);
+        if (declaration?.nature === 'payloads-op') {
+          if (noeud.safeParse(valeur).success) {
+            mecaniques.set(valeur, 'op');
+            return;
+          }
+          if (typeof valeur.op !== 'string' || declaration.choisir(valeur).length) refus = 'charge refusée';
+          else refus ??= 'op inconnue';
+        } else if (defDe(noeud)?.type === 'lazy' && enfantsDe(noeud).some((enfant) => corpsDesConditions.has(enfant.noeud))) {
+          if (noeud.safeParse(valeur).success) condition = 'condition';
+          else condition ??= 'condition refusée';
+        }
+      }
+      const mecanique = condition === 'condition' ? condition : refus ?? condition;
+      if (mecanique) mecaniques.set(valeur, mecanique);
+    });
+  }
+  return mecaniques;
+}
+
 /**
  * Mesure OBSERVÉE sur les deux racines.
  * @param root racine absolue du dépôt
@@ -603,15 +670,33 @@ export function scannerDonnees(
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
   choixDesOps: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
-  const docs = listerDocuments(root);
-  const brutParDocument = new Map<string, unknown>(
-    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
-  );
-  const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const { docs, brutParDocument, brutParNom } = lireDocuments(root);
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
   const poses = posesDesObjets(defs, brutParNom);
+  const mecaniques = mecaniquesDesObjets(defs, brutParNom);
+  // La co-descente rapproche la déclaration PROSES_NOMMEES du même objet que parcourirDocument.
+  const prosesNommees = new WeakSet<object>();
+  if (CONCEPT_PROSE_NOMMEE) {
+    const schemasDeProjet = new Map(defs.filter((d) => d.root === PROJETS_LIVRES.dossier).map((d) => [d.file, d.schema]));
+    for (const d of docs) {
+      if (d.racine !== PROJETS_LIVRES.dossier) continue;
+      const schema = schemasDeProjet.get(d.nom);
+      if (!schema) continue;
+      coDescendre(schema, brutParDocument.get(d.chemin), ({ noeuds, valeur }) => {
+        if (!estObjet(valeur)) return;
+        for (const noeud of noeuds) {
+          const declaration = declarationProseNommee(noeud);
+          if (!declaration || !(noeud instanceof z.ZodType)) continue;
+          if (declaration.presence === 'optionnel' && !Object.prototype.hasOwnProperty.call(valeur, declaration.champ)) continue;
+          if (!noeud.safeParse(valeur).success) continue;
+          prosesNommees.add(valeur);
+          break;
+        }
+      });
+    }
+  }
   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
    *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
   const cartesDeRecord = new Set<object>(
@@ -649,7 +734,7 @@ export function scannerDonnees(
     const brut = brutParDocument.get(doc.chemin);
     const racineJson = Array.isArray(brut) ? 'array' : estObjet(brut) ? 'object' : classeDeType(brut);
     const familleDeclaree = famillesDeclarees.get(doc.nom) ?? '';
-    const regime = regimeEntrees(racineJson, familleDeclaree || undefined);
+    const regime = regimeEntrees(brut, familleDeclaree || undefined);
     /** En régime `valeurs`, la carte clé→valeur vit sous `entries` dès que le record est enveloppé. */
     const charge = regime === 'valeurs' ? chargeRecord(brut) : brut;
     const brutes: unknown[] =
@@ -702,11 +787,6 @@ export function scannerDonnees(
       if (!libelles.has(k)) libelles.set(k, new Set());
       libelles.get(k)!.add(p.nom);
     });
-
-  const kindsCondition = kindsDeCondition(root);
-  /** Un objet dont le `kind` est un kind de Condition n'est pas un document : son `id` est un
-   *  paramètre de comparaison, il n'entre pas à l'index (même exclusion que les objets à `op`). */
-  const estCondition = (o: Obj) => typeof o.kind === 'string' && kindsCondition.has(o.kind);
 
   /**
    * La clé OUVRE-T-ELLE une référence ? Non pour une clé de PROSE, non pour une clé de
@@ -816,7 +896,8 @@ export function scannerDonnees(
   for (const p of prepares)
     parcourirDocument(p, (o, champ) => {
       if (p.racineEntrees.has(o)) return;
-      if (typeof o.op === 'string' || estCondition(o)) return;
+      // La politique de l'index d'identités est indépendante de la validation des opérations.
+      if (mecaniques.has(o) || typeof o.op === 'string') return;
       const ident = identiteDe(o);
       if (!ident) return;
       if (!tellsDeDocument(o) && siteDeReference(p.nom, champ, ident.cle)) return;
@@ -918,7 +999,7 @@ export function scannerDonnees(
   const docsAvecSource = new Set<string>();
   const conditionsAvecOp = new Map<string, number>();
   const conditionsSansOp = new Map<string, number>();
-  const opsComparateurs = new Map<string, number>();
+  const autresPorteursDOp = new Map<string, AutrePorteurDOp>();
   const parametres = new Map<string, { occurrences: number; racines: Set<string>; datasets: Set<string> }>();
   const regimesPrix = new Map<string, number>();
   const clesParDocument = new Map<string, string[]>();
@@ -928,8 +1009,8 @@ export function scannerDonnees(
   let totalOps = 0;
   let objetsVus = 0;
   let objetsClasses = 0;
-  /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée, ni
-   *  collection à clé déclarée. */
+  let documentsEmbarquesAvecForme = 0;
+  /** Objets sans document, forme, orpheline, collection à clé ou GameOp validée à son site. */
   let objetsInvisibles = 0;
   /** Cartes de record que le schéma déclare collection à clé (`TERMES_COLLECTION_A_CLE`). */
   let objetsCollectionsACle = 0;
@@ -1064,16 +1145,24 @@ export function scannerDonnees(
       if (estCollectionACle) objetsCollectionsACle += 1;
 
       // ---- Ops et Conditions
-      const kind = typeof o.kind === 'string' ? o.kind : '';
-      const condition = estCondition(o);
-      if (typeof o.op === 'string') {
-        if (condition) inc(conditionsAvecOp, kind);
-        else {
-          totalOps += 1;
-          inc(ops, `${o.op} | ${sig} | ${p.nom}`);
-          if (!/^[A-Za-z]/.test(o.op)) inc(opsComparateurs, `${o.op} | ${kind || '—'} | ${p.nom}`);
-        }
-      } else if (condition) inc(conditionsSansOp, kind);
+      const kind = typeof o.kind === 'string' ? o.kind : '—';
+      const mecanique = mecaniques.get(o);
+      const estOp = mecanique === 'op';
+      const porteOp = Object.prototype.hasOwnProperty.call(o, 'op');
+      if (estOp) {
+        totalOps += 1;
+        inc(ops, `${o.op} | ${sig} | ${p.nom}`);
+      } else if (mecanique === 'condition') {
+        inc(porteOp ? conditionsAvecOp : conditionsSansOp, kind);
+      } else if (porteOp || mecanique === 'charge refusée') {
+        const motif = mecanique === 'charge refusée' || mecanique === 'op inconnue' ? mecanique : 'hors site GameOp';
+        const op = porteOp ? (typeof o.op === 'string' ? o.op : '(non textuel)') : undefined;
+        const ligne = { motif, op, kind, signature: sig, dataset: p.nom, champ: champ || '(racine)' } as const;
+        const cle = JSON.stringify(ligne);
+        const entree = autresPorteursDOp.get(cle) ?? { ...ligne, occurrences: 0 };
+        entree.occurrences += 1;
+        autresPorteursDOp.set(cle, entree);
+      }
 
       // ---- Résolution vers l'index
       const identite = estDocument ? identiteDe(o)?.cle : undefined;
@@ -1153,11 +1242,21 @@ export function scannerDonnees(
         classe = true;
       }
 
-      if (classe) objetsClasses += 1;
+      // La prose déclarée prend les porteurs sans forme après les concepts et les références.
+      if (!classe && CONCEPT_PROSE_NOMMEE && prosesNommees.has(o)) {
+        const forme = statutDe(CONCEPT_PROSE_NOMMEE, cles.length === 1 ? 'texte' : 'texte+…');
+        ligneForme(CONCEPT_PROSE_NOMMEE, p, champ, forme, o).occurrences += 1;
+        classe = true;
+      }
+
+      if (classe) {
+        objetsClasses += 1;
+        if (estEmbarque) documentsEmbarquesAvecForme += 1;
+      }
 
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
-      if (!estDocument && !estCollectionACle && !classe && typeof o.op !== 'string') {
+      if (!estDocument && !estCollectionACle && !classe && !estOp) {
         const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k) && !estCleScopee(k));
         const cleReservee = cles.find((k) => (CLES_RESERVEES as readonly string[]).includes(k));
         const cleIdentite = cles.find((k) => (CLES_IDENTITE as readonly string[]).includes(k));
@@ -1176,7 +1275,7 @@ export function scannerDonnees(
           orpheline = true;
         }
       }
-      if (!estDocument && !estCollectionACle && !classe && !orpheline) objetsInvisibles += 1;
+      if (!estDocument && !estCollectionACle && !classe && !estOp && !orpheline) objetsInvisibles += 1;
 
       if (estEmbarque) noteGroupe(chemin || '(racine)', o);
 
@@ -1311,12 +1410,12 @@ export function scannerDonnees(
       .sort((a, b) => b.avecOp + b.sansOp - (a.avecOp + a.sansOp) || parUnitesDeCode(a.kind, b.kind)),
     totalConditionsAvecOp: [...conditionsAvecOp.values()].reduce((a, b) => a + b, 0),
     totalConditionsSansOp: [...conditionsSansOp.values()].reduce((a, b) => a + b, 0),
-    opsComparateurs: [...opsComparateurs]
-      .map(([k, occurrences]) => {
-        const [op, kind, dataset] = k.split(' | ');
-        return { op, kind, dataset, occurrences };
-      })
-      .sort((a, b) => b.occurrences - a.occurrences || parUnitesDeCode(a.op, b.op)),
+    autresPorteursDOp: [...autresPorteursDOp.values()].sort(
+      (a, b) =>
+        parUnitesDeCode(a.motif, b.motif) || parUnitesDeCode(a.dataset, b.dataset) ||
+        parUnitesDeCode(a.champ, b.champ) || parUnitesDeCode(a.op ?? '', b.op ?? '') ||
+        parUnitesDeCode(a.signature, b.signature) || parUnitesDeCode(a.kind, b.kind),
+    ),
     textes: [...textes]
       .map(([sig, t]) => ({ signature: sig, ...t }))
       .sort((a, b) => b.occurrences - a.occurrences || parUnitesDeCode(a.signature, b.signature)),
@@ -1338,6 +1437,7 @@ export function scannerDonnees(
       racinesSansValeur,
       racinesDisqualifiees: [...racinesDisqualifiees].map(([dataset, entrees]) => ({ dataset, entrees })).sort((a, b) => b.entrees - a.entrees || parUnitesDeCode(a.dataset, b.dataset)),
       documentsEmbarques: documentsEmbarques.size,
+      documentsEmbarquesAvecForme,
       entreesDeRacine: prepares.reduce((a, p) => a + p.entrees.length, 0),
     },
     graphiesBrutes: Object.fromEntries(graphiesBrutes),
@@ -1434,64 +1534,41 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
-  listerDossier(join(root, 'src/data/schemas/grammaire')).filter((f) => f.endsWith('.ts') && !f.includes('.test.'));
+  listerDossier(join(root, 'src/data/schemas/grammaire')).filter((f) => estModule(f) && !f.includes('.test.'));
 const sourcesGrammaire = (root: string) =>
   [...analyserCorpus(fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
     return { rel: fichier, text: readFileSync(fichier, 'utf8') };
   }))].map(({ sourceFile }) => sourceFile!);
 
-/** `kind` reconnus par `conditionSchema` (`src/data/schemas/grammaire/mecanique.ts`) — lus par AST,
- *  jamais listés à la main : une Condition en donnée porte un `op` (comparateur) qui n'est PAS une
- *  op de jeu. */
-function kindsDeCondition(root: string): Set<string> {
-  const out = new Set<string>();
-  const collecte = (n: ts.Node) => {
-    if (
-      ts.isPropertyAssignment(n) &&
-      ts.isIdentifier(n.name) &&
-      n.name.text === 'kind' &&
-      ts.isCallExpression(n.initializer) &&
-      ts.isPropertyAccessExpression(n.initializer.expression) &&
-      n.initializer.expression.name.text === 'literal' &&
-      n.initializer.arguments.length &&
-      ts.isStringLiteral(n.initializer.arguments[0])
-    )
-      out.add((n.initializer.arguments[0] as ts.StringLiteral).text);
-    n.forEachChild(collecte);
-  };
-  const visite = (n: ts.Node) => {
-    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === 'conditionSchema' && n.initializer)
-      collecte(n.initializer);
-    n.forEachChild(visite);
-  };
-  for (const sf of sourcesGrammaire(root)) visite(sf);
-  return out;
-}
-
 /**
  * Schémas COMMUNS candidats, par signature de clés (lus dans la grammaire par AST). Le schéma dont la
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
  * (un schéma écrit en racine plutôt que le même littéral niché dans un autre) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
- * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
+ * Les littéraux s'apparient par leur FORME (`formeDuLitteral`) et par compatibilité du `kind` littéral.
  */
-function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur): Map<string, string> {
-  const racines = new Map<string, string>();
-  const niches = new Map<string, string>();
+function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur) {
+  type Candidat = { nom: string; kind: string | undefined };
+  const parForme = new Map<string, { racines: Candidat[]; niches: Candidat[] }>();
   const visite = (node: ts.Node, sf: ts.SourceFile) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       for (const lit of litterauxZod(node.initializer, sf, resoudre)) {
         if (!lit.resolu.forme || lit.resolu.partiel) continue;
-        const cible = lit.champ === '' ? racines : niches;
-        if (!cible.has(lit.resolu.forme)) cible.set(lit.resolu.forme, node.name.text);
+        const candidats = parForme.get(lit.resolu.forme) ?? { racines: [], niches: [] };
+        (lit.champ === '' ? candidats.racines : candidats.niches).push({ nom: node.name.text, kind: lit.kindLitteral });
+        parForme.set(lit.resolu.forme, candidats);
       }
     }
     node.forEachChild((n) => visite(n, sf));
   };
   for (const sf of grammaire) visite(sf, sf);
-  for (const [sig, nom] of niches) if (!racines.has(sig)) racines.set(sig, nom);
-  return racines;
+  return (lit: LitteralZod): string | undefined => {
+    const candidats = parForme.get(lit.forme);
+    if (!candidats) return undefined;
+    const compatible = ({ kind }: Candidat) => kind === undefined || lit.kindLitteral === undefined || kind === lit.kindLitteral;
+    return (candidats.racines.find(compatible) ?? candidats.niches.find(compatible))?.nom;
+  };
 }
 
 /** Nom de la propriété qui PORTE ce littéral (le champ, quand il y en a un). */
@@ -1504,16 +1581,27 @@ const champDuLitteral = (lit: ts.Node): string => {
 };
 
 /** Les ÉTIQUETTES d'un littéral : ses clés `clé: z.literal(v)`, avec leur valeur. Une étiquette NOMME une variante. */
-const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile): ReadonlyMap<string, string> => {
+const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile) => {
   const etiquettes = new Map<string, string>();
+  let kindLitteral: string | undefined;
   for (const p of lit.properties) {
-    if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
+    const nom = 'name' in p ? p.name : undefined;
+    if (ts.isSpreadAssignment(p) || (nom && ts.isComputedPropertyName(nom))) {
+      kindLitteral = undefined;
+      continue;
+    }
+    if (!nom || !(ts.isIdentifier(nom) || ts.isStringLiteral(nom))) continue;
+    if (nom.text === 'kind') kindLitteral = undefined;
+    if (!ts.isPropertyAssignment(p)) continue;
     const v = p.initializer;
     if (!ts.isCallExpression(v) || !ts.isPropertyAccessExpression(v.expression) || v.expression.name.text !== 'literal') continue;
     const arg = v.arguments[0];
-    if (arg) etiquettes.set(p.name.text, ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : arg.getText(sf));
+    if (!arg) continue;
+    const texte = ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : undefined;
+    etiquettes.set(nom.text, texte ?? arg.getText(sf));
+    if (nom.text === 'kind') kindLitteral = texte;
   }
-  return etiquettes;
+  return { etiquettes, kindLitteral };
 };
 
 /**
@@ -1609,6 +1697,7 @@ type LitteralZod = {
   aSpread: boolean;
   forme: string;
   etiquettes: ReadonlyMap<string, string>;
+  kindLitteral: string | undefined;
   resolu: { cles: string[]; partiel: boolean; forme: string };
 };
 
@@ -1633,7 +1722,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     const cles = lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : []));
     const resolu = clesDuLitteral(lit, sf, resoudre);
-    const etiquettes = etiquettesDuLitteral(lit, sf);
+    const { etiquettes, kindLitteral } = etiquettesDuLitteral(lit, sf);
     out.push({
       ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
       champ,
@@ -1641,6 +1730,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
       aSpread: lit.properties.some(ts.isSpreadAssignment),
       forme: formeDuLitteral(cles, etiquettes),
       etiquettes,
+      kindLitteral,
       resolu: { ...resolu, forme: formeDuLitteral(resolu.cles, etiquettes) },
     });
   };
@@ -1671,7 +1761,7 @@ function litterauxDefs(root: string, resoudre: Resolveur = resolveurDe(sourcesGr
   const dossierDu = new Map<string, string>();
   for (const dossier of DOSSIERS_DE_DEFS) {
     const dir = join(root, dossier);
-    const modules = listerDossier(dir, { absent: 'vide' }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+    const modules = listerDossier(dir, { absent: 'vide' }).filter((f) => estModule(f) && !estSuiteVitest(f));
     for (const { fichier, sourceFile: sf } of analyserCorpus(modules.map((f) => ({ rel: join(dir, f), text: readFileSync(join(dir, f), 'utf8') })))) {
       const f = basename(fichier.rel);
       const deja = dossierDu.get(f);
@@ -1781,7 +1871,7 @@ export function scannerRedeclarations(root: string): {
 } {
   const grammaire = sourcesGrammaire(root);
   const resoudre = resolveurDe(grammaire);
-  const communs = schemasCommuns(grammaire, resoudre);
+  const communPour = schemasCommuns(grammaire, resoudre);
   const lits = litterauxDefs(root, resoudre);
   const litsGrammaire = grammaire.flatMap((sf) => litterauxZod(sf, sf, resoudre));
   const admises = etiquettesDesPoses();
@@ -1800,7 +1890,7 @@ export function scannerRedeclarations(root: string): {
     if (!sig) return;
     const classe = classements[i];
     const cl = classe && admisAuConcept(classe, lit.etiquettes, admises, declarations) ? classe : null;
-    const commun = communs.get(lit.forme);
+    const commun = communPour(lit);
     if (!cl && !commun) return;
     out.push({
       def: lit.def,

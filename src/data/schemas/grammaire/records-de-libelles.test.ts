@@ -29,7 +29,7 @@
  * `HARVEST_SIZE_BY_CATEGORY`, `CATEGORY_BY_SOURCE_KIND`).
  *
  * COUVERTURE DU DÉTECTEUR (dite, pas devinée) : littéraux à valeurs de chaîne écrits en clair dans
- * `src/ui`, `src/engine`, `src/state`, `src/data` (hors tests). Un Record bâti par calcul, ou dont
+ * `src/engine`, `src/noyau` et `src/data` (hors tests). Un Record bâti par calcul, ou dont
  * toutes les valeurs sont des mots FR minuscules sans accent, lui échappe.
  *
  * CE QUE CETTE GARDE NE VOIT PAS, mesuré : la même seconde vérité écrite en JSX plutôt qu'en littéral
@@ -141,7 +141,7 @@ export function recordsDeLibelles(fichiers: readonly Fichier[], vocabulaires: re
 }
 
 const sourcesDuDepot = (): Fichier[] =>
-  readCorpus(['src/ui', 'src/engine', 'src/state', 'src/noyau', 'src/data', 'src/web']).map(({ rel, text }) => ({ chemin: rel, source: text }));
+  readCorpus(['src/engine', 'src/noyau', 'src/data']).map(({ rel, text }) => ({ chemin: rel, source: text }));
 
 /**
  * STOCK NOMINATIF GELÉ, par `fichier:symbole` — les Records de libellés de valeurs qui vivaient déjà
@@ -150,8 +150,6 @@ const sourcesDuDepot = (): Fichier[] =>
  */
 const STOCK: readonly string[] = [
   'src/engine/size.ts:SIZE_LABEL',
-  'src/ui/CarrierInventory.tsx:LOC_SHORT',
-  'src/ui/EquipmentPanel.tsx:ZONE_OF_LOC',
   'src/noyau/codex/humanize.ts:FIELD',
   'src/noyau/codex/humanize.ts:REL_PLAYER',
   'src/noyau/codex/humanize.ts:negTable',
@@ -163,7 +161,7 @@ describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Rec
   const fichiers = detenteur(() => sourcesDuDepot());
   const detectes = recordsDeLibelles(fichiers(), vocabulaires);
 
-  it('le détecteur voit les vocabulaires du registre et les sources des quatre racines', () => {
+  it('le détecteur voit les vocabulaires du registre et les sources des trois racines', () => {
     expect(vocabulaires.length).toBeGreaterThan(100);
     expect(fichiers().length).toBeGreaterThan(300);
   });
@@ -185,29 +183,29 @@ describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Rec
   it('contrôle positif : un Record injecté dans une COPIE de source est VU', () => {
     const copie: Fichier[] = [
       {
-        chemin: 'src/ui/CopieDeControle.tsx',
+        chemin: 'src/noyau/CopieDeControle.ts',
         source: "const KIND_INJECTE = { physique: 'Physique', mentale: 'Mentale' };\n",
       },
     ];
-    expect(recordsDeLibelles(copie, vocabulaires)).toEqual(['src/ui/CopieDeControle.tsx:KIND_INJECTE']);
+    expect(recordsDeLibelles(copie, vocabulaires)).toEqual(['src/noyau/CopieDeControle.ts:KIND_INJECTE']);
   });
 
   it('contrôle positif : la FORME TABLE `[{id,label}]` injectée dans une COPIE est VUE', () => {
     const copie: Fichier[] = [
       {
-        chemin: 'src/ui/CopieDeControle.tsx',
+        chemin: 'src/noyau/CopieDeControle.ts',
         source:
           "const NATURE_TABLE: { id: 'physique' | 'mentale'; label: string }[] = [\n" +
           "  { id: 'physique', label: 'Physique' }, { id: 'mentale', label: 'Mentale' },\n];\n",
       },
     ];
-    expect(recordsDeLibelles(copie, vocabulaires)).toEqual(['src/ui/CopieDeControle.tsx:NATURE_TABLE']);
+    expect(recordsDeLibelles(copie, vocabulaires)).toEqual(['src/noyau/CopieDeControle.ts:NATURE_TABLE']);
   });
 
   it('une rangée d’action poussée une à une n’est pas une table de libellés', () => {
     const copie: Fichier[] = [
       {
-        chemin: 'src/state/CopieDeControle.ts',
+        chemin: 'src/noyau/CopieDeControle.ts',
         source:
           "out.push({ id: 'physique', label: 'Physique', icon: 'a/b' });\n" +
           "out.push({ id: 'mentale', label: 'Mentale', icon: 'a/c' });\n",

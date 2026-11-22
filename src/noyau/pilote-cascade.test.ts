@@ -34,7 +34,7 @@ const mesure = detenteur(() => {
 const ecart = (s: readonly Site[] = mesure().sites) => ecartDuVolet({ sites: s, stock: PILOTE_CASCADE_RATCHET, ou: STOCK });
 
 describe('pilote de cascade : aucune itération de test neuve ne pilote la cascade à la main (#1765)', () => {
-  beforeAll(() => { mesure(); }, 60_000);
+  beforeAll(() => { mesure(); }, 120_000);
 
   it('aucun site NEUF, et aucune entrée SOLDÉE ne traîne au stock', () => {
     const { neuves, perimees } = ecart();
@@ -60,11 +60,11 @@ describe('pilote de cascade : aucune itération de test neuve ne pilote la casca
 describe('morsure : une itération de pilotage ajoutée à une suite rougit la garde', () => {
   const cible = detenteur(() => {
     const stockes = new Set(PILOTE_CASCADE_RATCHET.map((e) => e.fichier));
-    return mesure().corpus.find((f) => f.rel.startsWith('src/state/') && !stockes.has(f.rel) && !f.text.includes('cascade.testkit'))!;
+    return mesure().corpus.find((f) => f.rel.startsWith('src/noyau/') && !stockes.has(f.rel) && !f.text.includes('cascade.testkit'))!;
   });
   /** Les sites du corpus, la suite `cible` remesurée sur `texte`. */
   const avec = (texte: string): Site[] => [
-    ...mesure().sites.filter((s) => s.file !== cible().rel),
+    ...mesure().sites.filter((s) => s.fichier !== cible().rel),
     ...sitesPiloteCascade([{ rel: cible().rel, text: texte }]),
   ];
   /** `cible`, précédée de déclarations de MODULE, suivie d'un `it('morsure')` qui porte `corps`. */

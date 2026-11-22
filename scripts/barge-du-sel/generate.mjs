@@ -117,7 +117,7 @@ scenes.push(scene({
       id: 'barge-du-sel-depart', rect: { x: 0, y: 0, w: 12, h: 8 }, once: true,
       flow: flowOf([
         {
-          type: 'setVessel', vehicleId: 'loup-imperial', label: 'La Louve grise',
+          type: 'setVessel', navire: { id: 'loup-imperial' }, label: 'La Louve grise',
           morale: 70, hullCurrent: 120, hullMax: 120,
           crew: [{ roleId: 'mousse', count: 2 }],
         },
@@ -194,7 +194,7 @@ scenes.push(scene({
       // son pavillon avant le naufrage complet.
       victoryCondition: { type: 'woundsThreshold', targetId: { id: 'cogue-pirate' }, atOrBelowPercent: 40 },
       members: [
-        { entityId: 'louve-grise', side: 'allie' },
+        { entityId: 'louve-grise', side: 'allie', navireDeCampagne: true },
         { entityId: 'cogue-pirate', side: 'ennemi' },
         { entityId: 'pirate-1', side: 'ennemi' },
         { entityId: 'pirate-2', side: 'ennemi' },

@@ -25,6 +25,7 @@ import { document } from '../grammaire/document';
 import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
 import { estObjet } from '../../../lib/objet.mjs';
+import { kitDeToitSchema } from './structureAppearance';
 
 export const file = 'materials.json';
 export const famille = 'entite';
@@ -53,8 +54,7 @@ const chargeParDiscriminant = {
   prop: ['color', 'roughness', 'metalness'],
   roof: [
     'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
-    'planBody', 'planEdge', 'planInner', 'planText',
-    'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap',
+    'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap', 'kit',
   ],
   relief: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'],
 } as const satisfies Record<MaterialDomain, readonly string[]>;
@@ -84,16 +84,13 @@ const doc = document(
     S: z.string().optional(),
     O: z.string().optional(),
     line: z.string().optional(),
-    planBody: z.string().optional(),
-    planEdge: z.string().optional(),
-    planInner: z.string().optional(),
-    planText: z.string().optional(),
     eaveOverhangM: z.number().optional(),
     soffite: z.string().optional(),
     fasciaDropM: z.number().optional(),
     fasciaThickM: z.number().optional(),
     fascia: z.string().optional(),
     ridgeCap: z.string().optional(),
+    kit: kitDeToitSchema.optional(),
     // ── domaine `relief`
     built: z.boolean().optional(),
     face: z.string().optional(),
@@ -125,19 +122,19 @@ const doc = document(
     S: { label: 'Couleur face sud' },
     O: { label: 'Couleur face ouest' },
     line: { label: 'Couleur de liseré de structure', hint: 'Liseré de structure : faîte, arêtiers et égouts' },
-    planBody: { label: 'Couleur du plan (corps)', hint: 'Vue de dessus, toit en plan' },
-    planEdge: { label: 'Couleur du plan (bord)', hint: 'Vue de dessus : liseré du contour' },
-    planInner: { label: 'Couleur du plan (intérieur)', hint: 'Vue de dessus : cadre intérieur' },
-    planText: { label: 'Couleur du plan (texte)', hint: 'Vue de dessus : texte du nom' },
     eaveOverhangM: {
       label: 'Débord d’avant-toit',
-      hint: 'Débord du soffite au-delà de l’égout, en CASES (le suffixe M du nom ne dit pas l’unité) — absent, aucun débord',
+      hint: 'Débord horizontal du soffite au-delà de l’égout, en mètres ; sa chute suit la pente du pan — absent, aucun débord',
     },
     soffite: { label: 'Couleur de soffite', hint: 'Sous-face de l’avant-toit' },
     fasciaDropM: { label: 'Hauteur de planche de rive', hint: 'En mètres' },
     fasciaThickM: { label: 'Épaisseur de planche de rive', hint: 'En mètres' },
     fascia: { label: 'Couleur de planche de rive' },
     ridgeCap: { label: 'Couleur de faîtière' },
+    kit: {
+      label: 'Famille du kit de toit',
+      hint: 'Les pièces 3D (faîtière) que l’hôte Godot pose sur les faîtes d’une nappe de cette couverture',
+    },
     built: { label: 'Relief bâti', hint: 'Ouvrage maçonné (vs relief naturel type talus)' },
     face: { label: 'Couleur de face', hint: 'Teinte de la face principale du relief' },
     foot: { label: 'Couleur de pied', hint: 'Falaise : ombre de pied' },
@@ -158,8 +155,9 @@ const doc = document(
         path: ['vueDeDessus'],
         error: (iss) => `materials : « ${String(estObjet(iss.input) ? iss.input.id : iss.input)} » ne peut pas être à la fois une couverture de pan et le plan vu du dessus.`,
       }),
-    // Le PLAN vu du dessus est une entrée NOMMÉE par sa donnée, pas par un id littéral au call-site
-    // (lue via `matierePlan()`) : le dataset en porte EXACTEMENT une.
+    // Le PLAN vu du dessus est une entrée NOMMÉE par sa donnée, pas par un id littéral : son marqueur est celui que
+    // la migration #1691 pose et relit (`scripts/migrations/2026-09-07-1691-relief-en-donnee.mjs`), et le dataset en
+    // porte EXACTEMENT une.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const plans = (v as { id: string; vueDeDessus?: true }[]).filter((e) => e.vueDeDessus);
@@ -169,7 +167,7 @@ const doc = document(
           path: [],
           message:
             `materials.json : ${plans.length} entrée(s) marquée(s) « plan vu du dessus » ` +
-            `(${plans.map((e) => e.id).join(', ') || 'aucune'}) — il en faut EXACTEMENT une, celle que le rendu du plan résout.`,
+            `(${plans.map((e) => e.id).join(', ') || 'aucune'}) — il en faut EXACTEMENT une.`,
         });
       }),
   },

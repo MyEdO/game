@@ -66,8 +66,12 @@ const RACINE_NUE = [
  *  272 le 2026-11-05 : les 22 cargaisons de `sea-cargo.json` et `land-cargo.json` forment le dataset-liste
  *  `cargoes.json` (#1684), cité par entrée sous `citation-coverage-guard.test.ts` (forme `array`) ;
  *  `sea-cargo.json`, sans liste, SORT de la classe et porte la citation de son chapitre à la racine
- *  (MDG 15 l.309), comme `river-navigation.json`. */
-const SOUS_ENTREES_MESUREES = 272;
+ *  (MDG 15 l.309), comme `river-navigation.json`.
+ *
+ *  262 le 2026-11-19 (#4381) : les 10 lignes de `mass-battle.json › warMachines` deviennent des références aux
+ *  engins d'ADE II. Le catalogue `siege-engines.json` relève de la garde `citation-coverage-guard.test.ts`
+ *  (forme `array`, 22/22 cités). */
+const SOUS_ENTREES_MESUREES = 262;
 
 const lire = (f: string): unknown => JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'));
 

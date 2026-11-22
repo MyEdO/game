@@ -11,6 +11,7 @@ import { applyCast, applyFocusInterruption, applyMiscast, useSpellComponent } fr
 import { refusDeDesignation } from './partyFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { buildEncounter } from './monde/encounterAuthoring';
 import { creatureToCombatant, spawnEnemy } from './monde/spawn';
 import { findCreatureById, findSpellById } from '../data';
 import { pretire } from '../data/pregens';
@@ -169,9 +170,23 @@ describe('liaison d’un PNJ au spawn : ses Sorts connus dans l’ordre, en cycl
     expect(composants(c).map((it) => it.sortLie)).toEqual(Array.from({ length: 10 }, (_, i) => sorts[i % sorts.length]));
   });
 
-  it('Kanker Flett : son premier Sort à composant, après sa Magie mineure', () => {
-    const c = spawnEnemy({ ref: 'kanker-flett' }, 'e1', { x: 0, y: 0 }, { inventaire: { 'composant-d-incantation': false } });
-    expect(composants(c).map((it) => it.sortLie)).toEqual(['flot-de-corruption']);
+  it('Middenheim 02 l.2566-70 : Kanker Flett apparaît avec ses composants et son équipement de fiche', () => {
+    const { entities, encounter } = buildEncounter({
+      id: 'kanker', enemies: [{ creature: { id: 'kanker-flett' }, pos: { x: 16, y: 11 } }],
+    });
+    const scene = testScene();
+    banc.setState({ party: [mage()] });
+    banc.getState().lancerLaScene({ ...scene, entities: [...scene.entities.filter((e) => e.kind === 'heroStart'), ...entities], encounters: [encounter] });
+    banc.getState().lancerLeCombat(encounter.id);
+    const c = banc.getState().battle!.combatants.find((personnage) => personnage.id === entities[0].id)!;
+    expect(composants(c).map((it) => it.sortLie)).toEqual([
+      'flot-de-corruption', 'malediction-de-douleur-paralysante', 'menace-rampante', 'infecte-benediction',
+    ]);
+    expect(c.items?.filter((it) => it.trappingId === 'bequille')).toHaveLength(2);
+    expect(new Set(c.items?.map((it) => it.uid)).size).toBe(7);
+    const epee = c.items?.find((it) => it.trappingId === 'arme-simple');
+    expect(epee).toBeDefined();
+    expect(c.weapons).toEqual([expect.objectContaining({ uid: epee?.uid, damage: expect.objectContaining({ flat: 7 }) })]);
   });
 });
 

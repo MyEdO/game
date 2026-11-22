@@ -13,11 +13,12 @@ import {
 } from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
-import { isEditableCategory } from '../../data/atelierDuCodex';
-import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
+import { enregistrerEntree, isEditableCategory } from '../../data/atelierDuCodex';
+import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE, massBattleWarMachines } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
-import { datasetObject, setDataset } from '../../data/overrides';
-import { sousLeDe } from '../../data/deDeLaTable.testkit';
+import { datasetArray, datasetObject, deDeLaTable, setDataset, setEnTete } from '../../data/overrides';
+import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
+import { tableTotale } from '../../lib/tableTotale';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import type { DiceSpec } from '../../engine/dice';
@@ -117,7 +118,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
   });
 
   it('un emplacement « A ou B » de race devient une rangée de choix qui porte SA structure, jamais un texte re-parsé (#1988)', () => {
-    const picks = species.flatMap((s) => s.talents.filter((a) => 'pick' in a).map((a) => ({ s, a })));
+    const picks = species.flatMap((s) => s.talents.filter((a) => 'of' in a).map((a) => ({ s, a })));
     expect(picks.length, 'la donnée ne porte plus aucun `{pick}` de race : choisir un autre gisement').toBeGreaterThan(0);
     for (const { s, a } of picks) {
       const choix = raceTalentSection(s)!.rows.filter((r) => r.t === 'choice');
@@ -163,15 +164,10 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
 });
 
 describe('Codex registry — dégâts CONDITIONNELS d’une arme à capacité de qualité (#135)', () => {
-  it('une pièce à Atout Siège (RÉELLE, ex. Catapulte) affiche le fait « Dégâts » + la note ×2 structure — pas juste le total imprimé', () => {
-    // Requête sur la DONNÉE (zéro id en dur) : toute Possession du catalogue portant la qualité `siege`
-    // fait foi — dégâts effectifs contre une structure = double du total imprimé (ADE II 8 l.292),
-    // le Codex ne doit plus l'occulter.
-    const siegeTrapping = trappings.find((t) => t.qualities.some((q) => q.id === 'siege'))!;
-    expect(siegeTrapping, 'aucune pièce à Atout Siège dans le catalogue').toBeTruthy();
-    const item = categoryByKey('trappings')!.items.find((i) => i.id === siegeTrapping.id)!;
+  it('le Canon à Atout Siège affiche le fait « Dégâts » + la note ×2 structure — pas juste le total imprimé', () => {
+    const item = codexLookupById('siegeEngines', 'canon-ade2')!;
     const damageFact = item.meta?.find((f) => f.label === 'Dégâts');
-    expect(damageFact, `${siegeTrapping.label} : fait Dégâts`).toBeTruthy();
+    expect(damageFact).toBeTruthy();
     expect(damageFact!.value).toContain('×2 contre une structure');
   });
 
@@ -213,8 +209,8 @@ describe('Codex registry — statbloc bestiaire compact', () => {
 });
 
 describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
-  it('les 5 sections de mass-battle.json sont exposées, peuplées et ÉDITABLES au Codex', () => {
-    const keys = ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards'];
+  it('les quatre tables de bataille et les fiches d’engin sont éditables au Codex', () => {
+    const keys = ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleStructures', 'massBattleHazards', 'siegeEngines'];
     for (const key of keys) {
       const cat = categoryByKey(key);
       expect(cat, key).toBeTruthy();
@@ -223,12 +219,37 @@ describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
     }
   });
 
-  it('les machines de guerre (dont le Bélier, déjà présent en donnée — pas dupliqué) apparaissent au catalogue', () => {
-    const items = categoryByKey('massBattleWarMachines')!.items;
-    expect(items.map((i) => i.id)).toContain('belier');
-    const belier = items.find((i) => i.id === 'belier')!;
-    expect(belier.meta?.find((f) => f.label === 'Équipe')?.value).toBe('6');
-    expect(belier.meta?.find((f) => f.label === 'Atouts')?.value).toBe('Siège');
+  it('la bataille de masse ouvre les fiches ADE II dans l’ordre du tableau', () => {
+    expect(isEditableCategory('massBattleWarMachines')).toBe(false);
+    const [vue] = categoryByKey('massBattleWarMachines')!.items;
+    const refs = vue.sections!.flatMap((s) => s.rows).filter((r) => r.t === 'ref');
+    expect(refs.map((r) => r.id)).toEqual(massBattleWarMachines);
+    expect(refs).toHaveLength(10);
+    expect(refs[0]).toMatchObject({ category: 'siegeEngines', id: 'baliste-ade2' });
+    expect(refs[1]).toMatchObject({ category: 'siegeEngines', id: 'belier-ade2' });
+    for (const ref of refs) expect(codexLookupById(ref.category, ref.id)?.source?.book).toBe('ADE II');
+
+    const belier = codexLookupById('siegeEngines', 'belier-ade2')!;
+    expect(belier.meta).toContainEqual({ label: 'Allonge', value: 'Moyenne' });
+    expect(belier.sections?.flatMap((s) => s.rows)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ t: 'ref', category: 'qualities', id: 'equipe', show: 'Équipe 6' }),
+      expect.objectContaining({ t: 'ref', category: 'qualities', id: 'siege' }),
+    ]));
+  });
+
+  it('les deux balistes ouvrent les profils distincts de leurs livres', () => {
+    const aa = codexLookupById('siegeEngines', 'baliste')!;
+    const ade = codexLookupById('siegeEngines', 'baliste-ade2')!;
+    expect(aa).toMatchObject({ label: 'Baliste (AA)', source: { book: 'AA', page: 122 } });
+    expect(ade).toMatchObject({ label: 'Baliste (ADE II)', source: { book: 'ADE II', page: 88 } });
+    expect(aa.meta).toEqual(expect.arrayContaining([
+      { label: 'Prix', value: '30 CO' }, { label: 'Dégâts', value: '+12' },
+    ]));
+    expect(ade.meta).toEqual(expect.arrayContaining([
+      { label: 'Prix', value: '75 CO' }, { label: 'Dégâts', value: '+14' },
+    ]));
+    expect(codexLookupById('trappings', 'baliste')).toBeUndefined();
+    expect(codexLookupById('trappings', 'baliste-ade2')).toBeUndefined();
   });
 
   it('les structures (cibles de siège) et les aléas de bataille sont peuplés avec leurs faits', () => {
@@ -698,9 +719,43 @@ describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => 
     expect(gnome('brun-clair')).toMatchObject({ v: 'Auburn · 2d10 11' });
     expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
   });
-  it('la bande suit le dé posé sur la table par le seam', () => {
-    sousLeDe('eyes', { n: 1, sides: 10 }, () => {
-      expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
-    });
+  it('la transaction d’atelier enregistre ensemble le dé et la bande, puis restitue les deux en cas de refus du disque', () => {
+    const imprimees = [...datasetArray('eyes')];
+    const deImprime = deDeLaTable('eyes');
+    const enTete = (sides: number) => [{ ancetre: '', champ: 'die', valeur: { n: 2, sides } }];
+    const couleur = { id: 'couleur-test', label: 'Une couleur', min: 2, max: 6, color: tableTotale(raceKeySchema.options, () => 'Gris') };
+    setDataset('eyes', [couleur]);
+    setEnTete('eyes', enTete(3));
+    try {
+      const trouve = () => codexLookupById('eyes', couleur.id)?.sub;
+      expect(trouve()).toBe('2d3 2–6');
+      const ecrit = enregistrerEntree('eyes', { ...couleur, max: 8 }, 0, enTete(4));
+      expect(ecrit.ok, JSON.stringify(ecrit)).toBe(true);
+      if (!ecrit.ok) return;
+      expect(JSON.parse(ecrit.texte)).toMatchObject({ die: { n: 2, sides: 4 }, entries: [{ id: couleur.id, min: 2, max: 8 }] });
+      expect(trouve()).toBe('2d4 2–8');
+
+      ecrit.reprendre();
+      expect(trouve()).toBe('2d3 2–6');
+    } finally {
+      setDataset('eyes', imprimees);
+      setEnTete('eyes', [{ ancetre: '', champ: 'die', valeur: deImprime }]);
+    }
+  });
+});
+
+describe('Codex — Demeures célestes', () => {
+  it('la bande authorée reste attachée à sa demeure lors d’une permutation', () => {
+    const imprimees = [...datasetArray('celestialHouses')];
+    const source = { book: 'archives-de-l-empire-2', page: 51 };
+    const premiere = { id: 'premiere', type: 'astrology', label: 'Première', desc: 'Une demeure.', source, min: 1, max: 3 } as const;
+    const suivante = { ...premiere, id: 'suivante', label: 'Suivante', min: 4, max: 10 };
+    setDataset('celestialHouses', [suivante, premiere]);
+    try {
+      expect(codexLookupById('celestialHouses', 'premiere')?.sub).toBe('1–3');
+      expect(codexLookupById('celestialHouses', 'suivante')?.sub).toBe('4–10');
+    } finally {
+      setDataset('celestialHouses', imprimees);
+    }
   });
 });

@@ -972,6 +972,9 @@
     "arcane": {
       "id": "corrosif"
     },
+    "onlyGroups": [
+      "ogre"
+    ],
     "desc": "Parfois appelé Gastromancie ou simplement Magie des Entrailles, le Domaine de la Gueule n’est disponible que pour les ogres (voir la Carrière Boucher Ogre). Cette magie met en avant une faim intense, des festins sanglants et une énergie effrénée. Chaque fois qu’un boucher ogre réussit à lancer un sort du Domaine de la Gueule, l’offrande qu’il consomme peut lui permettre de restaurer sa propre santé. Lancez 1d10. Si le résultat est un 10, ou s’il est égal ou supérieur au NI du sort lancé, sans modification de Focalisation et sans utiliser un Grimoire, le Boucher récupère un nombre de Blessures égal au NI non modifié du sort.\n\n**Composants :** les ogres se servent de restes ensanglantés pour alimenter leur magie. Elles sont généralement issues d’animaux et plus elles sont fraîches, mieux la magie opère. Il peut s’agir de morceaux de viande saignants, de bile provenant de l’estomac de créatures étranges, de la moelle de bêtes imposantes ou de la graisse séchée d’animaux domestiques, comme des cochons ou des vaches.",
     "source": {
       "book": "archives-de-l-empire-2",

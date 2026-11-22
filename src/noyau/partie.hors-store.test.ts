@@ -1,6 +1,6 @@
 /**
  * LA PARTIE, sans store (#2817 D9) : un hôte qui n'a que la surface du noyau (`./index`) joue une attaque
- * jusqu'à la clôture du combat, puis une intention de siège sans verdict. Les dés viennent des entrées
+ * jusqu'à la clôture du combat, puis une intention de siège sans armement. Les dés viennent des entrées
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -24,6 +24,8 @@ import { portesDuMobile } from './marcheDuGroupe';
 import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
+import { reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
+import { unpackHouseRules } from './persistance/save';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -87,7 +89,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
     }
   });
 
-  it('une intention de siège sans verdict ne court pas et laisse l’intention armée du propriétaire', () => {
+  it('une intention de siège sans armement rend son verdict et laisse l’intention du propriétaire', () => {
     const { H, partie: armee } = duel((etat, { H }) => ({ ...etat, net: { ...etat.net, mode: 'hote', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } }));
     armee.envoyer({ type: 'armerLIntention', args: ['course'] });
     expect(armee.etat().localIntent, 'témoin : le propriétaire a armé SA Course').toEqual({ actionId: 'course' });
@@ -98,9 +100,13 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       const loin = { x: H.pos!.x - 6, y: H.pos!.y };
       const horsPossession = partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 2 });
       expect(horsPossession.issue, 'un siège qui ne possède pas l’acteur a passé la possession').toBe('refusee');
-      expect(horsPossession.journal.map((l) => l.de), 'le refus n’a rien écrit au journal').toEqual(['journal']);
-      expect(partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 1 }).issue).toBe('appliquee');
-      expect(partie.etat().refus?.texte ?? '', 'témoin : le geste du siège a passé la possession, puis été refusé faute de verdict').toContain('Course');
+      expect(horsPossession.refus).toBe(t('coop.intentRefused'));
+      expect(horsPossession.journal).toEqual([]);
+      const sansArmement = partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 1 });
+      expect(sansArmement.issue).toBe('appliquee');
+      expect(sansArmement.refus).toBe(t('cs.refusCourseNonArmee'));
+      expect(sansArmement.journal).toEqual([]);
+      expect(partie.etat().refus).toBeNull();
       expect(partie.etat().localIntent, 'le clic du siège a dissous l’intention du propriétaire').toEqual({ actionId: 'course' });
       expect(partie.etat().pendingRun ?? partie.etat().pendingCascade, 'le siège a couru sur la case du propriétaire').toBeFalsy();
       expect(combattant(partie, H.id).pos).toEqual({ x: 10, y: 10 });
@@ -516,6 +522,30 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
       partie.recevoir(avantLeCoup);
       expect(etatsGagnesDe(partie.recevoir(apresLeCoup))).toEqual(expect.arrayContaining([inconscient]));
     });
+  });
+
+  it('publie chaque bascule effective de l’armement à la coop, même sans porteur à reprojeter', () => {
+    const initial = etatInitialDuJeu();
+    const partie = creerPartie({ ...initial, net: { ...initial.net, mode: 'hote' } }, ENTREES);
+    const regle = 'combat-aa-armement';
+    const publications: unknown[] = [];
+    const arreter = partie.abonner((etat) => {
+      publications.push(unpackHouseRules(instantaneDeLaCoop(etat)).rules);
+    });
+    try {
+      expect(partie.etat().party).toEqual([]);
+      reglerUneRegleMaison(null, partie.etat(), 'test-bandes-auto', 'off', partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), 'test-bandes-auto', partie.reprojeterLArmement);
+      expect(publications).toEqual([]);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
+      expect(publications).toEqual([{ [regle]: true }, {}]);
+    } finally {
+      arreter();
+      partie.fermer();
+    }
   });
 
   it('R8 : `relever` rend une fois l’écrit hors appel, `abonner` suit chaque écriture, un appel qui lève ne jette que le sien', () => {

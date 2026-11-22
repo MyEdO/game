@@ -25,6 +25,28 @@ Pièces neuves : rangée de dix clous d'Augmentation, pastilles de palier 0 / +3
 vignette d'objet, champ manuscrit, jeton de PX en grand, ligne d'exigence, station du chemin de carrière, jeton de
 prix en fer, figure dont la sanguine descend d'étape en étape.
 
+## Grille du choix
+La colonne du choix (`choix`) porte sept places fixes (`choix/*`, `PLACES` de `sources/rendu.js`), le même rect
+dans les douze états : quatre rangées, chacune sa rubrique (ou sa tête de liste de 28 px) et sa liste, les rangées 3 et
+4 sous un filet (`rangee-1` 104 px, `rangee-2` 48, `rangee-3` 149, `rangee-4` 112) ; `rangees-2-3`, la haute des
+rangées 2 et 3 ; `corps` (352) et `pied` (53), la liste et son compte. Une place n'en couvre d'autres que si aucune
+étape ne les porte ensemble ; une liste plus longue que sa place défile (`defile`), sans pousser ses voisines.
+- Caractéristiques : la méthode, le tirage, les deux répartitions (rangées 1 à 4). Talents : race, au choix, les
+  tirages, la carrière (rangées 1 à 4, un groupe par rangée : les quatre tiennent, ni regroupement ni onglet).
+  Signe : le tirage, les signes qui défilent (`rangees-2-3`), la variante. Possessions : la bourse, l'option au choix,
+  une dotation par rangée 3 et 4, chacune défile. Identité : sexe, nom tiré et ligne écrite (rangée 1), le physique
+  (rangée 3). Compétences de race et de carrière : la liste qui défile (`corps`) et ses comptes (`pied`).
+  Présentation : la carte du héros (`corps`) et sa Motivation (`pied`).
+- À valider : la rangée haute garde la hauteur de la méthode (trois lignes) ; aux Talents, la race acquise y laisse
+  un vide sous sa ligne, et la rangée 2 des Talents est vide à l'Identité. La rangée 1 de l'Identité passe le sexe et
+  le nom en têtes de liste (rubrique à gauche, plaques à droite) au lieu de deux colonnes.
+- À valider : à la présentation comme à la fiche, les réserves sont la primitive `reserves` de la fenêtre du bas
+  (pictogramme et disque dans une case fixe, nom et valeur au survol, fiche
+  `user-doctrine-icone-identifie-survol-detaille`). Le nom écrit ne reste pas au premier contact : « Détermination »
+  écrit (≈ 98 px en Fell SC 13) et son disque (44 px) ne tiennent pas dans le quart de colonne (107 px) : il rendrait deux rangs de deux et
+  repousserait la Motivation ; Destin et Résilience sont déjà nommés en toutes lettres à l'étape des Caractéristiques,
+  qui les répartit, et le pictogramme est le même partout ensuite.
+
 ## creation-caracteristiques (3/10)
 - `creation-caracteristiques` : la méthode en trois plaques avec leur gain (`geste('methode', m)` : « Garder les
   jets +50 PX », « Réassigner les jets +25 PX », « Répartir 100 points » ; LDB 05 l.337-341), « Relancer les dix
@@ -107,6 +129,9 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
   mineure 50 PX par tranche de Bonus de FM, Arcanes 100 PX par tranche de Bonus d'Int, LDB 10 l.680-696, l.714-722 ;
   `src/engine/grimoire.ts:176-193`) ; un Sort connu offre son composant (`acheterLaComposante(heroId, spellId)`, payé de
   la bourse du héros, NI en pistoles d'argent, LDB 46 l.107-113).
+- À valider (#4585) : la rangée des valeurs d'arrivée de « Autre carrière » garde sa hauteur, vide sans elles ; les
+  Compétences à augmenter défilent sous leur tête ; le pied de l'identité qui progresse prend toute sa place ; les
+  mesures du dossier d'une possession tiennent un bloc de deux mesures, vide en partie pour une seule.
 - À valider : onglet de la fiche ou écran à part ; Compétences hors carrière repliées ; achat immédiat sans panier ;
   « Désigner » séparé de l'achat ; nombres d'exemple (PX, niveaux, bourse).
 
@@ -127,11 +152,16 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
 Section « Possessions » de la fiche jugée (`../maquettes/fiche-du-heros.jpg`), écran `fiche-du-heros` ; quatre états du
 cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObjet.ts`
 (« Porter », « Main principale », « Main secondaire », « Ranger dans », « Donner à », « Poser au sol »).
+- À valider (#4585) : le profil en douze colonnes fixes, chacune l'abréviation de LDB (M, CC, CT, F, E, I, Ag, Dex,
+  Int, FM, Soc, B ; `docs/raw/4e/combat.md:2707`), le nom entier au survol, le même pour les dossiers des possessions
+  (`voyage.md`) ; l'identité pose sa tête, ses mesures (Blessures) et ses réserves aux mêmes places que celle d'un
+  dossier, les réserves sous un filet à hauteur fixe : celles du héros en jetons de la primitive `reserves` (pictogramme et
+  disque, nom au survol, comme la fenêtre du bas), les compteurs d'un dossier nommés en toutes lettres.
 - `fiche-possessions` (état `arme`) : la rangée des sets d'armes, celui en main cerné ; « + » crée un set
   (`creerLaPanoplie(heroId)`), une main pressée se garnit (`garnirLaPanoplie(heroId, loadoutId, slot, uid)`), la croix
   le supprime (`supprimerLaPanoplie(heroId, loadoutId)`), presser un set le prend (`prendreLaPanoplie`). Refus au
-  survol, textes du noyau : « Arme à deux mains — pas de seconde main. », « Dernier set d’armes — un héros en garde
-  toujours un. » (`src/noyau/partyFlow.ts:264-309` ; LDB 14 l.138). Listes « Porté », « En vrac et rangé ».
+  survol : « Arme à deux mains — pas de seconde main. » (texte du noyau), « Dernière panoplie — un héros en garde
+  toujours une. » (`src/noyau/partyFlow.ts:264-309` ; LDB 14 l.138). Listes « Porté », « En vrac et rangé ».
 - `fiche-possessions-composant` : un composant « À lier » ouvre les Sorts connus ; en presser un le lie
   (`designerLeComposant(uid, spellId)`, `partyFlow.ts:580-647` ; LDB 46 l.107-113).
 - `fiche-possessions-prothese` (Berta) : la Fausse jambe et ses paliers d'entraînement avec leur prix en PX
@@ -141,7 +171,8 @@ cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObje
   solde, et offre « Rompre la Faveur » (`rompreLaFaveur(heroId, favorId)`), sa conséquence dite au-dessus de la
   plaque (LDB 23 l.141-151 ; `src/noyau/favorFlow.ts` ; règle maison `faveur-rumeur-se-repand`). Le solde se joue à
   l'interlude (`solderLaFaveur`, `src/noyau/interludeEnVue.ts:92`), pas sur la fiche.
-- À valider : « Sets d'armes » à l'écran, « panoplies » au code ; figure générique pour les deux héros ; noms,
+- À valider : « Panoplies » à l'écran comme au code (le noyau dit encore « set d’armes », `src/i18n/messages/fr.ts`
+  `pf.loadoutLast`, que le refus de la maquette ne recopie plus) ; figure générique pour les deux héros ; noms,
   objets et prix d'exemple ; l'échoppe (troc, réparation) revient à la famille `commerce`.
 
 ## Choix de la migration en maquettes JSON (#4411), à valider

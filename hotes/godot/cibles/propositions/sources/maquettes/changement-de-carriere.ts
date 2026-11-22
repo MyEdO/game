@@ -29,7 +29,7 @@ export default {
       nom: 'progression-changement-de-carriere', gabarit: 'fiche', identite: IDENTITE,
       chemin: { carriere: 'Sorcier', classe: 'Lettrés', stations: [...PASSEES,
         { nom: 'Maîtresse Sorcière', niveau: 3, statut: 'Or 1', etat: 'visee', px: 100 },
-        { nom: 'Dame sorcière', niveau: 4, statut: 'Or 2', etat: 'loin', refus: 'saut de niveau impossible (option MJ requise)', survol: true }] },
+        { nom: 'Dame sorcière', niveau: 4, statut: 'Or 2', etat: 'loin', refus: 'Un niveau à la fois : devenir d’abord Maîtresse Sorcière', survol: true }] },
       vise: {
         ruban: 'Niveau suivant', nom: 'Maîtresse Sorcière', carriere: 'Sorcier', niveau: 3, statut: 'Or 1',
         ouvre: [{ rubrique: 'Caractéristique', noms: ['Initiative'] }, { rubrique: 'Compétences', noms: ['Chevaucher (Cheval)', 'Évaluation', 'Savoir (Guerre)', 'Soin aux animaux'] },

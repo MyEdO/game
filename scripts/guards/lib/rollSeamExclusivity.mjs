@@ -41,6 +41,8 @@ import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
 import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs'
 
+/** @typedef {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} FichierLu */
+
 // #1801
 const ts = tsModule;
 
@@ -322,7 +324,7 @@ function estAppelDeDe(node) {
  * lot (#1508 T2, `OpsCtx.des`), qui le fera sortir d'ici en une ligne.
  * Rend la TABLE `{ module: [noms exportés] }` de ces exports et des primitives de `AMORCE_DES`
  * (`src/engine/dice.ts`, `src/engine/tests.ts`), lue par `estAppelDeclare`.
- * @param {{ rel: string, text: string }[]} engineFiles @returns {Record<string, string[]>}
+ * @param {FichierLu[]} engineFiles @returns {Record<string, string[]>}
  */
 export function engineDiceRollers(engineFiles) {
   const amorce = new Set(AMORCE_DES);
@@ -407,7 +409,7 @@ export function scanDesHorsPorte(relPath, contenu, table, sourceFile, checker) {
  * transitivité n'est pas un luxe : `resolveClash` ne roule qu'à travers `rollMightTest` — s'arrêter
  * au direct rate exactement le site fondateur du ticket. `rollTest`/`d100` eux-mêmes sont RETIRÉS de
  * la liste : leurs call-sites de `src/state` sont déjà la population du garde d'exclusivité.
- * @param {{ rel: string, text: string }[]} engineFiles
+ * @param {FichierLu[]} engineFiles
  * @returns {Map<string, { file: string, line: number }>} nom exporté → site de déclaration
  */
 export function engineRollerExports(engineFiles, amorce = AMORCE_TEST) {
@@ -450,7 +452,7 @@ export function engineRollerExports(engineFiles, amorce = AMORCE_TEST) {
  * vrai rouleur de la liste — et avec lui toute sa clôture transitive. Le drapeau `rollsDirectly` est
  * donc lu sur CHAQUE déclaration, pas sur l'index collapsé : sinon la surveillance est aveugle au cas
  * même qu'elle prétend couvrir.
- * @param {{ rel: string, text: string }[]} engineFiles
+ * @param {FichierLu[]} engineFiles
  * @returns {Map<string, { files: string[], rollsDirectly: boolean }>} nom déclaré 2+ fois → sites
  */
 export function engineHomonyms(engineFiles) {

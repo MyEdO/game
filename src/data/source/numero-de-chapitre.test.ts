@@ -20,11 +20,9 @@ import {
 } from './decoupe.ts';
 import { descRefSchema } from '../schemas/grammaire/valeurs';
 import { poserRegimeVivant } from '../schemas/grammaire/idsVivants';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { proseSource } from '../../../scripts/source/prose-source-plugin.mjs';
-// @ts-expect-error - garde ESM JS (pas de types) — même convention que `vite.config.ts`
 import { sitesDuDossier } from '../../../scripts/raw/check-source-format.mjs';
-import type { Site } from '../../../scripts/guards/lib/stock.mjs';
 
 const LIVRE = 'livre-forge';
 /** Un livre plus gros que tout livre réel (max 85 chapitres) : sa largeur de graphie est TROIS. */
@@ -173,8 +171,7 @@ describe('livre FORGÉ à 120 chapitres — la chaîne entière porte le numéro
 describe('garde `largeur-de-numero` — une largeur par dossier, celle du plus grand numéro', () => {
   /** Les seuls sites de la famille jugée, sur un dossier réduit à ses NOMS de fichier. */
   const largeurs = (noms: string[]) =>
-    (sitesDuDossier('Source/Livre', noms.map((nom) => ({ nom, texte: texteDe(1) }))) as
-      (Site & { famille: string })[])
+    sitesDuDossier('Source/Livre', noms.map((nom) => ({ nom, texte: texteDe(1) })))
       .filter((s) => s.famille === 'largeur-de-numero');
 
   it('un dossier à largeur UNE ne rend aucun écart, à deux comme à trois chiffres', () => {
@@ -186,9 +183,9 @@ describe('garde `largeur-de-numero` — une largeur par dossier, celle du plus g
   it('un dossier MÊLÉ rougit, et NOMME chaque fichier hors largeur', () => {
     const court = largeurs(['99 - A.md', '100 - B.md']);
     expect(court.map((s) => s.ref)).toEqual(['hors largeur 3']);
-    expect(court[0].file).toBe('Source/Livre/99 - A.md');
+    expect(court[0].fichier).toBe('Source/Livre/99 - A.md');
     expect(largeurs(['07 - A.md', '100 - B.md']).map((s) => s.ref)).toEqual(['hors largeur 3']);
-    expect(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.file)).toEqual(['Source/Livre/07 - A.md', 'Source/Livre/08 - B.md']);
+    expect(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.fichier)).toEqual(['Source/Livre/07 - A.md', 'Source/Livre/08 - B.md']);
   });
 });
 

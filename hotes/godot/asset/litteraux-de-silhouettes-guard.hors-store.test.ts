@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { entreeDe } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { corpusDesSilhouettes, litterauxDe, SOCLE } from '../../../scripts/guards/lib/litterauxDeSilhouettes.mjs';
 import { NOMS_DES_SILHOUETTES } from './silhouettes.ts';
 
@@ -13,7 +14,7 @@ describe('garde — aucun identifiant de silhouette écrit hors du socle', () =>
   });
 
   it('le socle écrit chaque identifiant une fois', () => {
-    const ecrits = litterauxDe(readFileSync(new URL('./silhouettes.ts', import.meta.url), 'utf8'), NOMS_DES_SILHOUETTES).map((l) => l.texte.slice(1, -1));
+    const ecrits = litterauxDe(entreeDe(resolve(__dirname, 'silhouettes.ts')).text, NOMS_DES_SILHOUETTES).map((l) => l.texte.slice(1, -1));
     expect(ecrits.sort()).toEqual([...NOMS_DES_SILHOUETTES].sort());
   });
 

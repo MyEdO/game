@@ -15,10 +15,10 @@ import type * as tablesDEffets from './schemas/defs/tables';
 
 /** Une rangée d'une table d'effets TELLE QUE LA DONNÉE LA PORTE : fourchette `[min,max]` du jet (borne non
  *  imprimée `null`, VDM 12 l.435) → `ops` appliquées (même ctx), `label` d'affichage RAW optionnel. */
-export type EffectTableRow = RangeeDe<typeof tablesDEffets>;
+type EffectTableRow = RangeeDe<typeof tablesDEffets>;
 
 /** Une TABLE d'effets (`tables.json`) : `id` STABLE + `die` (dé de tirage) + rangées. */
-export type EffectTable = EntreeDe<typeof tablesDEffets>;
+type EffectTable = EntreeDe<typeof tablesDEffets>;
 
 /** Une table d'effets telle que `findTableEntry` la lit : ses bandes ouvertes le sont à l'infini
  *  (`tableOuverte`). */

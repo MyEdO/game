@@ -1,3 +1,4 @@
+import { findTrappingById } from '../../data';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { groupeVitrineDeScenario, idDuHerosDeScenario } from './_heros';
 import { loadWeapon } from '../../engine/items';
@@ -17,7 +18,7 @@ const GUNNERS = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')]
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
 function pierrierPoste(chefId: string): AuthoredShipPoste {
-  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
+  return { engin: { id: 'pierrier' }, side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
 }
 
 /**
@@ -30,7 +31,7 @@ function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).
-    if (g) for (const w of g.weapons.filter((x) => x.type === 'distance')) loadWeapon(g, w);
+    if (g) for (const w of g.weapons.filter((x) => x.type === 'distance')) loadWeapon(findTrappingById, g, w);
   }
   return party;
 }

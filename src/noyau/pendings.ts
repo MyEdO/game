@@ -15,7 +15,7 @@ import type { Dialogue } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
-import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
+import type { AttackComposition, AttackResult, DefenseMode, ModLine, RollBreakdown } from '../engine/combat';
 import type { AttackKind, ManoeuvreComposee } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
@@ -37,7 +37,7 @@ import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
 import type { RegistreDuBord } from './etat';
-import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
+import type { IdDeChoixDeCibles, IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -381,6 +381,8 @@ export interface PendingAttack {
   location: HitLocation | null;
   /** Arme choisie pour cette attaque (uid d'ItemInstance du loadout actif) ; absent = auto-choix. */
   weaponUid?: string;
+  /** AA 08 l.69-77 */
+  atoutChoisi?: { weaponUid: string; id: string };
   /** Arme RÉELLEMENT tirée, figée AU JET (#1153) — comme `PendingDefense.weapon` fige celle de
    *  l'attaquant. Un uid ne suffit pas : `Combatant.weapons` ne porte que le loadout ACTIF
    *  (`recomputeLoadout`), donc un uid désignant une arme possédée mais non tenue est INTROUVABLE et
@@ -662,8 +664,9 @@ export interface PendingShipBattery extends MultiPending<ShipBatteryParticipant>
   moraleScore: number;
   /** Manque de bras global (MDG 14 l.55) : −2 DR/tranche de 10 % manquant + plafond Succès Minime. */
   undercrew?: { dr: number; capSuccesMinime: boolean };
-  /** Sabotage (MDG 14 l.45-47) : −1..−5 DR plats au total du Test d'équipage (`shipSaboteurDR`). */
+  /** DR plats du Test d’équipage, dont les lignes nommées `modsDR`. */
   extraDR?: number;
+  modsDR?: ModLine[];
 }
 /** Manœuvre navale en TEST D'ÉQUIPAGE (MDG 13-14) : chaque rôle tenu lance son Test, les DR sont sommés (rôle
  *  essentiel ×2) + la bande de Moral ; le total tient lieu de DR de Navigation. La direction (`turnSteps`, choisie
@@ -1243,7 +1246,7 @@ export interface PendingDefense {
    *  (flanc/dos, distance) que la fenêtre ne rejoue pas — `flankRear` n'est même pas un champ du
    *  pending. Sans elle, la ligne d'attaque affichée après la défense annoncerait une autre
    *  Difficulté que celle qui a fait sa cible. */
-  atkCompo?: DifficultyComposition;
+  atkCompo?: AttackComposition;
   /** Localisation relancée du jet d'attaque piloté (`openSurfacedDefense`). LDB 18 l.53 ; AA 07 l.32 */
   critLocation?: HitLocation;
   def: TestResult | null; // null = pas encore défendu ; écrasé par Chance
@@ -1382,6 +1385,8 @@ export interface PendingCast {
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
    *  (absent) : sa meilleure Spé de Corps à corps. */
   conjureForm?: ConjureForm;
+  /** Option de ciblage retenue pour toute la Zone d'Effet. */
+  choixDeCibles?: IdDeChoixDeCibles;
   /** Surincantation : nombre de PAS alloués à chaque axe (chaque pas = +2 DR du surplus). L'effet
    *  d'UN pas est SOURCE-AWARE (`engine/overcast.ts`) — Sort/Miracle : +valeur initiale (×initial,
    *  LDB 47 l.13-17 / 42 l.7-13) ; Bénédiction : +6 m Portée / +1 Cible / +6 Rounds (FIXE, LDB 41
@@ -1677,6 +1682,10 @@ export type Cloture =
   | { verbe: 'testRateDeLActeur'; actorId: string; sl: number }
   /** Effets PROGRAMMÉS dus au même pas d'horloge et pas encore joués (`fireScheduledEffects`). */
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
+  | { verbe: 'reprendreEntretienDesRounds'; reprise: import('./outOfCombatUpkeep').RepriseEntretienDesRounds }
+  | { verbe: 'reprendreEntretienDeLHorloge'; minutes: number; apresLesRounds?: true }
+  /** Suite du pas maritime déjà écoulé. */
+  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
@@ -1718,7 +1727,7 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
 }
 
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
    *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
    *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
@@ -1745,6 +1754,10 @@ export interface CascadeStepMeta {
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;
+  /** MDG 13 l.148 */
+  foulingDay?: number;
+  /** Lignes nommées appliquées en DR au total de la bande avant plafond. */
+  aggregateDRMods?: ModLine[];
   /** Plafond CHIFFRÉ du total sommé, versé par le flux propriétaire (naval : « jamais mieux qu'un
    *  Succès Minime », Manque de bras MDG 14 l.55 — `capToSuccesMinime`). Absent = aucun plafond. */
   aggregateCapTo?: number;
@@ -2281,7 +2294,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
 export type CascadeStepBase = CascadeStepCore & LectureDuDe;
 
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
- *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */
+ *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/ajouter-un-flux-de-jet.md`). */
 export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
 
 /** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */
@@ -2347,9 +2360,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  MDG 13 l.109-111) — une rangée par héros appelé, surfacée dès qu'un siège humain tient l'un d'eux
    *  (`rollSeam.surfaceDesEtapes`, #1479) ; à la clôture, le store enchaîne la phase suivante de la
    *  journée (`continueSeaDayAfterScorbut`/`continueSeaDayAfterExhaustion`) ;
-   *  'seaActivities' (#273 Étape 2 : Activités en mer hebdomadaires, MDG 15 l.266-306)
-   *  — à la clôture, le store enchaîne `continueSeaActivitiesAfterCascade` (Commerce d'opportunité
-   *  séquencé puis halte de nuit, `seaActivities.ts`) ; 'riverExposure' (MSRC 16 : Exposition hydrique de
+   *  'seaActivities' (MDG 15 l.268) — `continueSeaActivitiesAfterCascade` enchaîne les Activités.
+   *  En mer, la halte de nuit reprend après la dernière. Au port, la fenêtre se ferme.
+   *  'riverExposure' (MSRC 16 : Exposition hydrique de
    *  la descente fluviale surfacée APRÈS le jour, avant la halte — la clôture enchaîne
    *  `continueRiverDayAfterExposure`, `riverVoyageFlow.ts`, pour DIFFÉRER la halte de nuit le temps du
    *  Test de Résistance, cf. #344). 'upkeep' (entretien quotidien d'une AVANCE D'HORLOGE hors repos/voyage
@@ -2360,8 +2373,10 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  suite propre, le dénouement vit dans l'applier de sa dernière étape). 'affichage' (#942 L8 :
    *  séquence d'AFFICHAGE PUR — étapes sans jet ni choix, poussées hors combat par `pushReveal` quand
    *  aucune séquence n'est en vol ; clôture sans AUCUNE suite propre, `dispatchCascadeDone` n'a qu'à
-   *  reprendre une éventuelle séquence parquée). */
-  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
+   *  reprendre une éventuelle séquence parquée) ;
+   *  'seaHealth' : Contraction avant le pas d'horloge en mer, puis entretien avant le pas rapide suivant
+   *  (`continuerLeTempsEnMer`). */
+  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaHealth' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
   /** HALTE de voyage : la finalisation REPREND la route (continueTravelAfterNight). */
   travelHalt?: boolean;
   /** Cascade de PEUR de FIN de Round (combat) : à sa fermeture, le store ré-appelle `resolveRoundBoundary`

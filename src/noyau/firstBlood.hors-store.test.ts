@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -112,7 +113,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, banRanged: true } });
-    const r = resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
+    const r = resolveAttack(banc.getState, H, E, firedWeapon(findTrappingById, banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
     expect(r).toBeNull();
   });
 
@@ -140,7 +141,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.weapons = [RANGED];
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
-    const r = resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
+    const r = resolveAttack(banc.getState, H, E, firedWeapon(findTrappingById, banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
     expect(r).not.toBeNull();
   });
 
@@ -150,7 +151,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
-    expect(resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).toBeNull();
+    expect(resolveAttack(banc.getState, H, E, firedWeapon(findTrappingById, banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).toBeNull();
     expect(firedAttackBlock(banc.getState, H, E)).toMatchObject({ reason: 'armeBannie' });
   });
 
@@ -160,7 +161,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' }, banRanged: false } });
-    expect(resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).not.toBeNull();
+    expect(resolveAttack(banc.getState, H, E, firedWeapon(findTrappingById, banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).not.toBeNull();
     expect(firedAttackBlock(banc.getState, H, E)).toBeNull();
   });
 });

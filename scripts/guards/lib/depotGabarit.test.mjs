@@ -96,6 +96,15 @@ test('`core.hooksPath` pointe hors de tout hook, DANS l’instance : aucun hook 
   }
 })
 
+test('la maintenance automatique est désactivée dans le dépôt copié (#4162)', () => {
+  const { racine } = instanceDeDepot(PARAMS)
+  try {
+    assert.equal(git(racine)(['config', '--local', '--bool', '--get', 'maintenance.auto']), 'false')
+  } finally {
+    jeter(racine)
+  }
+})
+
 test('`commit: false` : un dépôt initialisé, fichiers sur le disque, HORS index et sans HEAD', () => {
   const { racine, sha } = instanceDeDepot({ ...PARAMS, refs: {}, commit: false })
   try {
@@ -275,7 +284,7 @@ const IMPORTE_L_ENV = /import\s*\{[^}]*\benvDeDepotForge\b[^}]*\}\s*from\s*['"][
 
 /** Fichiers du corpus qui forgent un dépôt, hors la primitive. */
 function forgeurs() {
-  const corpus = readCorpus(['scripts', 'src'], { exts: ['.mjs', '.mts', '.js', '.ts', '.tsx'], tests: true })
+  const corpus = readCorpus(['scripts', 'src'], { tests: true })
   return corpus.filter((f) => f.rel !== PRIMITIVE && FORGE_UN_DEPOT.test(f.text) && SITE_GIT.test(f.text))
 }
 

@@ -151,6 +151,9 @@ export function exportDeMeta(sf) {
   return null
 }
 
+/** Les dialectes JavaScript présentés au harnais de workflows. */
+export const estDialecteDeWorkflow = (chemin) => /\.(c|m)?js$/.test(chemin)
+
 /** Préfiltre LÂCHE : un texte qui ne nomme ni `agent` ni `meta` n'est pas parsé. */
 export const PREFILTRE_DE_WORKFLOW = /\bagent\b|\bmeta\b/
 

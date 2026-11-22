@@ -1,12 +1,11 @@
 /**
- * ÉVALUATION d'une `Formula` (`FormuleDe`, `engine/ops.ts`) contre son référent, et l'échelle « par +N DR »
- * (`PerSL`), que `resolveFormula` et `traitsOctroyes` (`engine/traitOctroye.ts`) partagent. Dans la
- * composante fortement connexe d'`ops.ts` par `characteristics.ts` : #3044.
+ * Évaluation d'une formule contre son référent et calcul de l'échelle `PerSL`.
  */
 import { bonus, bonusDe, effectiveChar } from './characteristics';
 import { rule } from './policy';
+import { rollDice, type RNG } from './dice';
 import type { CharKey, Combatant } from './types';
-import type { FormuleDe, FormuleSansTirage, PerSL } from './ops';
+import type { Formula, FormuleDe, FormuleSansTirage, PerSL, TermeDeJet, TermeLie } from './ops';
 
 /** Lecture d'une valeur par Caractéristique : le profil d'un porteur au statbloc (`traitsDuPorteur`). */
 export type LectureDeCarac = (k: CharKey) => number;
@@ -47,6 +46,18 @@ export function evaluer<J>(f: FormuleDe<J>, ref: Referent, jet: (t: J) => number
   if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + sous(term), 0);
   if ('times' in f) return sous(f.times.of) * sous(f.times.factor);
   return jet(f as J);
+}
+
+/** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
+ *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
+ *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
+export function resolveFormula(f: Formula, ref: Combatant | Referent, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
+  return evaluer<TermeDeJet>(f, 'bonusDe' in ref ? ref : caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : 'tire' in t ? valeurNonLiee(t) : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+}
+
+/** Une valeur liée atteint l'évaluation sans avoir été tirée : anomalie de portée, jamais un 0 muet. */
+export function valeurNonLiee(t: TermeLie): never {
+  throw new Error(`#1652 — valeur liée « ${t.tire} » évaluée hors de la portée d'un Flow qui la tire (lierLesTirages).`);
 }
 
 /** Valeur d'une quantité lue avant tout jet, contre son référent : aucun RNG, aucun terme de jet. */

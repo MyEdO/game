@@ -13,8 +13,7 @@ l'autre en ligne droite : la lame plie dans sa hauteur, jamais en travers ; la d
 qu'elle borde. Clés reprises du corps.
 """
 import numpy as np
-from mathutils import Vector
-from tissu import Maillage, direction_spatiale, emprunter, joindre, porteur_de
+from tissu import Maillage, direction_spatiale, emprunter, joindre, porteur_de, viser
 
 
 def nappe(b, nom, noeuds, W, quads, triangles, derriere, mat, epaisseur, relief):
@@ -53,8 +52,7 @@ def tassette(D, b, porteur, cote, signe, materiaux):
                 for uv in np.linspace((u + us[max(c - 1, 0)]) / 2, (u + us[min(c + 1, len(us) - 1)]) / 2, D['VISEES']):
                     for zv in np.linspace((z + zs[max(r - 1, 0)]) / 2, (z + zs[min(r + 1, len(zs) - 1)]) / 2, D['VISEES']):
                         d = rayon(uv)
-                        depart = np.array([hanche[0], hanche[1], zv]) + D['PORTEE'] * d
-                        touche = porteur['arbre'].ray_cast(Vector(depart.tolist()), Vector((-d).tolist()), D['PORTEE'])
+                        touche = viser(porteur, np.array([hanche[0], hanche[1], zv]), d, D['PORTEE'])
                         if touche[0] is not None:
                             # L'avancée du point touché le long de la direction du nœud : la lame passe devant tous les
                             # points de son voisinage, sans s'écarter de la culotte qui fuit en biais de sa direction.

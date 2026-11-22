@@ -85,7 +85,23 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 96,
+          "note": "AA 08 l.302"
+        },
+        "qualitesAuChoix": [
+          "taille",
+          "empaleuse"
+        ]
+      }
+    ]
   },
   {
     "id": "lance",
@@ -255,7 +271,27 @@
     },
     "shape": {
       "id": "improvisee"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 91,
+          "note": "AA 08 l.135"
+        },
+        "qualities": [
+          {
+            "id": "desequilibree"
+          },
+          {
+            "id": "inoffensive"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "arme-simple",
@@ -721,7 +757,6 @@
         "id": "percutante"
       }
     ],
-    "desc": "Les Lances de cavalerie sont considérées comme des Armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -739,7 +774,48 @@
     },
     "capabilities": {
       "improvisedWithoutCharge": true
-    }
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "62",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armes-de-corps-a-corps",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "955c02c436d74c07"
+        }
+      ]
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 93,
+          "note": "AA 08 l.208"
+        },
+        "availability": "limitee",
+        "descRef": {
+          "book": "aux-armes",
+          "ch": "08",
+          "parts": [
+            {
+              "kind": "blocs",
+              "sec": "tableau-des-armes-de-cavalerie",
+              "secOcc": 1,
+              "b0": 1,
+              "b1": 1,
+              "sum": "0fd27deae0b89165"
+            }
+          ]
+        }
+      }
+    ]
   },
   {
     "id": "marteau-a-bec-de-corbin",
@@ -827,19 +903,31 @@
       "id": "dos"
     },
     "bladed": true,
-    "manieAussi": {
-      "base": {
-        "qualites": [
-          {
-            "id": "epuisante"
-          },
-          {
-            "id": "lente"
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 97,
+          "note": "AA 08 l.343"
+        },
+        "manieAussi": {
+          "base": {
+            "qualites": [
+              {
+                "id": "epuisante"
+              },
+              {
+                "id": "lente"
+              }
+            ],
+            "mains": 1
           }
-        ],
-        "mains": 1
+        }
       }
-    }
+    ]
   },
   {
     "id": "grande-hache",
@@ -885,7 +973,20 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 98,
+          "note": "AA 08 l.360"
+        },
+        "availability": "commune"
+      }
+    ]
   },
   {
     "id": "marteau-de-guerre",
@@ -1060,7 +1161,27 @@
     "rangement": {
       "id": "ceinture_g"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 93,
+          "note": "AA 08 l.220"
+        },
+        "qualities": [
+          {
+            "id": "precise"
+          },
+          {
+            "id": "inoffensive"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "rapiere",
@@ -1248,7 +1369,23 @@
     "rangement": {
       "id": "ceinture_d"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 95,
+          "note": "AA 08 l.288"
+        },
+        "damage": {
+          "plusBF": true,
+          "flat": 1
+        }
+      }
+    ]
   },
   {
     "id": "main-gauche",
@@ -1284,13 +1421,25 @@
       "id": "ceinture_d"
     },
     "bladed": true,
-    "manieAussi": {
-      "base": {
-        "retire": [
-          "defensive"
-        ]
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 96,
+          "note": "AA 08 l.314"
+        },
+        "manieAussi": {
+          "base": {
+            "retire": [
+              "defensive"
+            ]
+          }
+        }
       }
-    }
+    ]
   },
   {
     "id": "arbalete",
@@ -2151,7 +2300,32 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.451"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 5
+          },
+          {
+            "id": "a-repetition",
+            "value": 4
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "pistolet-a-repetition",
@@ -2207,7 +2381,35 @@
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.454"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "pistolet"
+          },
+          {
+            "id": "recharge",
+            "value": 4
+          },
+          {
+            "id": "a-repetition",
+            "value": 4
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "arquebuse",
@@ -2257,7 +2459,28 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.457"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 3
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "long-fusil-d-hochland",
@@ -2310,7 +2533,36 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.463"
+        },
+        "qualities": [
+          {
+            "id": "pointue"
+          },
+          {
+            "id": "precise"
+          },
+          {
+            "id": "recharge",
+            "value": 4
+          }
+        ],
+        "price": {
+          "gold": 50,
+          "silver": 0,
+          "brass": 0
+        }
+      }
+    ]
   },
   {
     "id": "pistolet",
@@ -2359,7 +2611,28 @@
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.464"
+        },
+        "qualities": [
+          {
+            "id": "pistolet"
+          },
+          {
+            "id": "recharge",
+            "value": 1
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "tromblon",
@@ -2413,7 +2686,37 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "petites-munitions-et-poudre",
+      "ferraille-et-poudre",
+      "munitions-improvisees-et-poudre"
+    ],
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.466"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 2
+          },
+          {
+            "id": "tir-de-zone",
+            "value": 3
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "carreau",
@@ -2443,7 +2746,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Carreau (12)"
+      }
+    ]
   },
   {
     "id": "fleche",
@@ -2473,7 +2783,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Flèche (12)"
+      }
+    ]
   },
   {
     "id": "fleche-elfique",
@@ -2514,43 +2831,44 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
-  },
-  {
-    "id": "balle-de-plomb",
-    "type": "trappings",
-    "label": "Balle de plomb",
-    "packSize": 12,
-    "categorie": "ammunition",
-    "subType": {
-      "id": "fronde"
     },
-    "enc": 0,
-    "availability": "commune",
-    "reach": null,
-    "ammoRangeMod": {
-      "add": -10
-    },
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 1
-    },
-    "qualities": [
+    "alsoIn": [
       {
-        "id": "assommante"
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Flèche elfique"
       }
     ],
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 4
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 98,
+          "note": "AA 08 l.377"
+        },
+        "alsoIn": [
+          {
+            "book": "livre-de-base",
+            "page": 296,
+            "quote": "Flèche elfe"
+          }
+        ],
+        "qualities": [
+          {
+            "id": "pointue"
+          },
+          {
+            "id": "empaleuse"
+          },
+          {
+            "id": "perforante"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "projectile-de-pierre",
@@ -2580,7 +2898,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Projectile de pierre (12)"
+      }
+    ]
   },
   {
     "id": "balle-et-poudre",
@@ -2614,9 +2939,35 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
+      "book": "aux-armes",
+      "page": 103
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "928a192956f9acd6"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Balle et Poudre (12)"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Balle et poudre (12)"
+      }
+    ]
   },
   {
     "id": "munitions-improvisees-et-poudre",
@@ -2642,9 +2993,35 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
+      "book": "aux-armes",
+      "page": 104
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 10,
+          "b1": 10,
+          "sum": "b15ce063fbf67bd2"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Munitions improvisées et Poudre"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Munitions improvisées et poudre"
+      }
+    ]
   },
   {
     "id": "petites-munitions-et-poudre",
@@ -2673,10 +3050,38 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296,
-      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
-    }
+      "book": "aux-armes",
+      "page": 104,
+      "note": "AA 08 l.540"
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 11,
+          "b1": 11,
+          "sum": "449a4cff72dfcd38"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "note": "LDB 62 l.123",
+        "quote": "Petites munitions et Poudre"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "note": "AA 08 l.499 (lot de 12).",
+        "quote": "Petites munitions et poudre (12)"
+      }
+    ]
   },
   {
     "id": "calotte-de-cuir",
@@ -4264,7 +4669,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 302
-    }
+    },
+    "groups": [
+      "figures-symboles-religieux"
+    ]
   },
   {
     "id": "tatouage",
@@ -4435,7 +4843,10 @@
       "book": "livre-de-base",
       "page": 59,
       "note": "LDB 08 l.541"
-    }
+    },
+    "groups": [
+      "figures-symboles-d-autorite"
+    ]
   },
   {
     "id": "symbole-de-grade",
@@ -4619,6 +5030,7 @@
       "silver": 0,
       "brass": 3
     },
+    "maison": "Difficulté de consommation Intermédiaire retenue comme repère pour la bière ordinaire (LDB 09 l.475).",
     "source": {
       "book": "livre-de-base",
       "page": 302
@@ -4629,7 +5041,8 @@
         "skill": {
           "id": "resistance-a-l-alcool"
         },
-        "label": "Bière — Résistance à l'alcool"
+        "label": "Bière — Résistance à l'alcool",
+        "difficulty": "intermediaire"
       },
       "reussite": {
         "kind": "sequence",
@@ -4900,6 +5313,7 @@
       "silver": 0,
       "brass": 4
     },
+    "maison": "Difficulté de consommation Difficile conservée pour le verre de vin ou de spiritueux (LDB 09 l.475).",
     "source": {
       "book": "livre-de-base",
       "page": 302
@@ -5020,7 +5434,7 @@
     "damage": null,
     "qualities": [],
     "price": null,
-    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ». Difficulté de consommation Intermédiaire retenue pour le Test unique (LDB 09 l.475, MDG 16 l.411).",
     "source": {
       "book": "mer-des-griffes",
       "page": 152,
@@ -5046,7 +5460,8 @@
         "skill": {
           "id": "resistance-a-l-alcool"
         },
-        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+        "label": "Rhum tord-boyaux — Résistance à l'alcool",
+        "difficulty": "intermediaire"
       },
       "reussite": {
         "kind": "sequence",
@@ -11136,660 +11551,6 @@
     }
   },
   {
-    "id": "baliste",
-    "type": "trappings",
-    "label": "Baliste",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "arbalete"
-    },
-    "rendu": {
-      "id": "baliste"
-    },
-    "munitions": [
-      "carreau-de-baliste",
-      "carreau-nain-norse"
-    ],
-    "perteSansEquipe": {
-      "removeType": "atout"
-    },
-    "enc": 20,
-    "availability": "limitee",
-    "reach": null,
-    "range": 150,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 12
-    },
-    "qualities": [
-      {
-        "id": "pointue"
-      },
-      {
-        "id": "recharge",
-        "value": 3
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 2
-      }
-    ],
-    "desc": "Les balistes sont des arbalètes géantes projetant des carreaux à pointe de fer qui ressemblent à des piquets de clôture. Elles peuvent fendre une personne en deux comme un poulet ou percer un joli trou bien propre dans du bois massif.\n\nLes balistes sont relativement simples à utiliser. Vous pouvez tenter un Test de Projectiles (Arbalète) en utilisant votre Capacité de Tir, mais dans ce cas, l'arme perd tous ses Atouts tout en conservant ses Défauts.",
-    "price": {
-      "gold": 30,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 122
-    }
-  },
-  {
-    "id": "catapulte-petite",
-    "type": "trappings",
-    "label": "Catapulte (petite)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "catapulte"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "munitions": [
-      "bombe-incendiaire-mortier"
-    ],
-    "indirect": true,
-    "enc": 25,
-    "availability": "limitee",
-    "reach": null,
-    "range": 75,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 10
-    },
-    "qualities": [
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 3
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 2
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les catapultes sont des armes à tir indirect qui lancent des rochers, des bombes ou des bombes incendiaires en suivant un arc élevé, pour que les munitions s'écrasent ensuite sur les têtes des cibles.",
-    "price": {
-      "gold": 20,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 122
-    }
-  },
-  {
-    "id": "catapulte-moyenne",
-    "type": "trappings",
-    "label": "Catapulte (moyenne)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "catapulte"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "munitions": [
-      "bombe-incendiaire-mortier"
-    ],
-    "indirect": true,
-    "enc": 40,
-    "availability": "limitee",
-    "reach": null,
-    "range": 100,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 15
-    },
-    "qualities": [
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 3
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 3
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les catapultes sont des armes à tir indirect qui lancent des rochers, des bombes ou des bombes incendiaires en suivant un arc élevé, pour que les munitions s'écrasent ensuite sur les têtes des cibles.",
-    "price": {
-      "gold": 40,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 122
-    }
-  },
-  {
-    "id": "catapulte-grande",
-    "type": "trappings",
-    "label": "Catapulte (grande)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "catapulte"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "munitions": [
-      "bombe-incendiaire-mortier"
-    ],
-    "indirect": true,
-    "enc": 65,
-    "availability": "limitee",
-    "reach": null,
-    "range": 175,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 18
-    },
-    "qualities": [
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 4
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les catapultes sont des armes à tir indirect qui lancent des rochers, des bombes ou des bombes incendiaires en suivant un arc élevé, pour que les munitions s'écrasent ensuite sur les têtes des cibles.",
-    "price": {
-      "gold": 60,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 122
-    }
-  },
-  {
-    "id": "batterie-tonnerre-de-feu",
-    "type": "trappings",
-    "label": "Batterie tonnerre de feu",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "ingenierie"
-    },
-    "rendu": {
-      "id": "canon-a-repetition"
-    },
-    "enc": 75,
-    "availability": "exotique",
-    "reach": null,
-    "range": 185,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 12
-    },
-    "qualities": [
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 6
-      },
-      {
-        "id": "salve",
-        "value": 9
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 3
-      }
-    ],
-    "desc": "C'est le maître ingénieur Herman Faulkstein qui a inventé cette arme expérimentale, inspiré par un spectacle de feux d'artifice de Cathay à Altdorf. Elle est composée d'un affût d'artillerie sur roues avec neuf missiles chargés de poudre posés sur un cadre. L'élévation peut être ajustée pour tirer sur des cibles au sol ou dans les airs. L'arme n'est pas particulièrement précise et sert davantage à tirer sur de grands régiments que sur de petits groupes au sol.",
-    "price": {
-      "gold": 500,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 122
-    },
-    "alsoIn": [
-      {
-        "book": "aux-armes",
-        "page": 123,
-        "quote": "Batterie tonnerre"
-      }
-    ]
-  },
-  {
-    "id": "canon-a-repetition",
-    "type": "trappings",
-    "label": "Canon à répétition",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "ingenierie"
-    },
-    "rendu": {
-      "id": "canon-a-repetition"
-    },
-    "enc": 5,
-    "availability": "exotique",
-    "reach": null,
-    "range": 50,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 9
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "salve",
-        "value": 7
-      }
-    ],
-    "desc": "Le canon à répétition ressemble à une arquebuse à répétition, avec une manivelle circulaire complexe et des leviers. C'est en réalité un barillet comprenant sept canons, un au milieu et six autres regroupés autour en une forme hexagonale. Cette arme est mortelle pour ceux qui se trouvent devant, mais peut aussi se révéler dangereuse pour un utilisateur inexpérimenté.\n\nChaque fois qu'elle tire, celui qui la manie doit effectuer un Test de Résistance Accessible (+20) et subit 1 Blessure par Degré d'échec car l'arme s'enfonce violemment dans son épaule. En cas d'Échec Stupéfiant, l'utilisateur subit un Coup Critique à l'épaule ; utilisez le tableau Blessures Critiques au bras en ajustant les détails si nécessaire pour représenter une blessure à l'épaule.\n\nLes canons à répétition emploient des balles du même calibre qu'une arme à Poudre noire normale, mais 1 balle et sa charge de poudre sont consommées pour chaque tir d'une salve.\n\nQuand quelqu'un tourne la manivelle, un ingénieux système de cames allume chaque charge à tour de rôle, propulsant une volée de projectiles mortels depuis le canon.",
-    "price": {
-      "gold": 10,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    }
-  },
-  {
-    "id": "canon-a-repetition-feu-d-enfer",
-    "type": "trappings",
-    "label": "Canon à répétition feu d'enfer",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "ingenierie"
-    },
-    "rendu": {
-      "id": "canon-a-repetition"
-    },
-    "enc": 85,
-    "availability": "exotique",
-    "reach": null,
-    "range": 100,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 10
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "salve",
-        "value": 9
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 3
-      }
-    ],
-    "desc": "Le canon à répétition feu d'enfer est un barillet doté de neuf canons distincts divisés en trois rangées de trois canons fixés sur une manivelle circulaire.",
-    "price": {
-      "gold": 500,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    }
-  },
-  {
-    "id": "canon-petit",
-    "type": "trappings",
-    "label": "Canon (petit)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "poudre-noire"
-    },
-    "rendu": {
-      "id": "canon"
-    },
-    "munitions": [
-      "boulet-et-poudre",
-      "mitraille-et-poudre"
-    ],
-    "enc": 30,
-    "availability": "limitee",
-    "reach": null,
-    "range": 50,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 10
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 2
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les plus gros canons ne sont employés que dans les forteresses ou les positions de champ de bataille bien préparées, mais les versions petites et moyennes de cette arme peuvent être montées sur un navire ou un chariot. Sur un champ de bataille, les boulets de canon infligent des dommages dans plusieurs rangs de troupes en rebondissant entre eux. Comme la plupart des situations de combat sont de petites escarmouches, cette propriété est limitée à l'Atout Explosion 2 pour représenter les dommages infligés à ceux à proximité, mais si les cibles sont en ligne, le MJ doit réfléchir au fait que le boulet pourrait en toucher plusieurs.",
-    "price": {
-      "gold": 40,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    },
-    "siegeFootprint": 2
-  },
-  {
-    "id": "canon-moyen",
-    "type": "trappings",
-    "label": "Canon (moyen)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "poudre-noire"
-    },
-    "rendu": {
-      "id": "canon"
-    },
-    "munitions": [
-      "boulet-et-poudre",
-      "mitraille-et-poudre"
-    ],
-    "enc": 50,
-    "availability": "exotique",
-    "reach": null,
-    "range": 75,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 14
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 6
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 3
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les plus gros canons ne sont employés que dans les forteresses ou les positions de champ de bataille bien préparées, mais les versions petites et moyennes de cette arme peuvent être montées sur un navire ou un chariot. Sur un champ de bataille, les boulets de canon infligent des dommages dans plusieurs rangs de troupes en rebondissant entre eux. Comme la plupart des situations de combat sont de petites escarmouches, cette propriété est limitée à l'Atout Explosion 2 pour représenter les dommages infligés à ceux à proximité, mais si les cibles sont en ligne, le MJ doit réfléchir au fait que le boulet pourrait en toucher plusieurs.",
-    "price": {
-      "gold": 100,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    },
-    "siegeFootprint": 2
-  },
-  {
-    "id": "canon-grand",
-    "type": "trappings",
-    "label": "Canon (grand)",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "poudre-noire"
-    },
-    "rendu": {
-      "id": "canon"
-    },
-    "munitions": [
-      "boulet-et-poudre",
-      "mitraille-et-poudre"
-    ],
-    "enc": 75,
-    "availability": "exotique",
-    "reach": null,
-    "range": 150,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 16
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 8
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 4
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Les plus gros canons ne sont employés que dans les forteresses ou les positions de champ de bataille bien préparées, mais les versions petites et moyennes de cette arme peuvent être montées sur un navire ou un chariot. Sur un champ de bataille, les boulets de canon infligent des dommages dans plusieurs rangs de troupes en rebondissant entre eux. Comme la plupart des situations de combat sont de petites escarmouches, cette propriété est limitée à l'Atout Explosion 2 pour représenter les dommages infligés à ceux à proximité, mais si les cibles sont en ligne, le MJ doit réfléchir au fait que le boulet pourrait en toucher plusieurs.",
-    "price": {
-      "gold": 250,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    },
-    "siegeFootprint": 2
-  },
-  {
-    "id": "mortier",
-    "type": "trappings",
-    "label": "Mortier",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "poudre-noire"
-    },
-    "rendu": {
-      "id": "mortier"
-    },
-    "munitions": [
-      "bombe-de-mortier",
-      "bombe-incendiaire-mortier"
-    ],
-    "indirect": true,
-    "enc": 50,
-    "availability": "exotique",
-    "reach": null,
-    "range": 100,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "aucun": true
-    },
-    "qualities": [
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "arme-d-equipe",
-        "value": 3
-      },
-      {
-        "id": "siege"
-      }
-    ],
-    "desc": "Un mortier est l'équivalent à Poudre noire d'une catapulte, qui tire un lourd boulet ou une bombe en suivant un arc élevé. Sur le champ de bataille, ils sont surtout utilisés lors des sièges pour projeter des explosifs par-dessus les murs d'un château.",
-    "price": {
-      "gold": 50,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    }
-  },
-  {
-    "id": "pierrier",
-    "type": "trappings",
-    "label": "Pierrier",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "poudre-noire"
-    },
-    "rendu": {
-      "id": "canon"
-    },
-    "munitions": [
-      "balles-et-poudre-pierrier",
-      "petites-munitions-et-poudre-pierrier"
-    ],
-    "enc": 5,
-    "availability": "rare",
-    "reach": null,
-    "range": 30,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 14
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      }
-    ],
-    "desc": "Un pierrier est l'équivalent d'un tromblon en plus massif. En raison de son poids, il est normalement monté sur un pivot ou sur un trépied.",
-    "price": {
-      "gold": 20,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "aux-armes",
-      "page": 123
-    }
-  },
-  {
     "id": "demi-lance-de-cavalerie",
     "type": "trappings",
     "label": "Demi-lance de cavalerie",
@@ -12354,7 +12115,12 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "taille",
+      "empaleuse",
+      "assommante"
+    ]
   },
   {
     "id": "pertuisane-fauchard",
@@ -12406,10 +12172,18 @@
     "shape": {
       "id": "pertuisane"
     },
+    "formChoices": [
+      "pertuisane_lance",
+      "fauchard"
+    ],
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "empaleuse",
+      "taillade"
+    ]
   },
   {
     "id": "serpe-de-guerre",
@@ -12463,7 +12237,11 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "taille",
+      "destabilisante"
+    ]
   },
   {
     "id": "zweihander-flamberge",
@@ -12544,7 +12322,7 @@
         "id": "inoffensive"
       }
     ],
-    "desc": "Les bâtons pointus peuvent être utilisés comme munitions par un archer à court de munitions spéciales. Un Personnage qui se trouve dans un lieu boisé peut se procurer un bâton pointu droit en réussissant un Test étendu de Survie en extérieur Intermédiaire (+0) qui nécessite un total de 10 DR. Cependant, méfiance, car comme elles n'ont pas été taillées par un fabricant de flèches professionnel, les flèches improvisées ont tendance à provoquer des Maladresses.",
+    "desc": "Les bâtons pointus et les cailloux peuvent être utilisés comme munitions par un archer ou un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de **Survie en extérieur Facile (+40)** ou un Test étendu de **Perception Intermédiaire (+0)** qui nécessite un total de 5 DR.\n\nUn Personnage qui se trouve dans un lieu boisé peut se procurer un bâton pointu droit en réussissant un Test étendu de **Survie en extérieur Intermédiaire (+0)** qui nécessite un total de 10 DR. Cependant, méfiance, car comme elles n'ont pas été taillées par un fabricant de flèches professionnel, les flèches improvisées ont tendance à provoquer des Maladresses.",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12552,7 +12330,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12580,7 +12358,7 @@
         "value": 1
       }
     ],
-    "desc": "La flèche barbelée inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement.",
+    "desc": "Au fil des années, beaucoup de modèles de tête de flèche différents ont été conçus, mais les variantes les plus répandues sont la flèche barbelée, qui inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement, et la flèche bodkin, qui est dotée d'une robuste pointe en pic pour perforer les armures.",
     "price": {
       "gold": 0,
       "silver": 8,
@@ -12588,7 +12366,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12615,7 +12393,7 @@
         "id": "perforante"
       }
     ],
-    "desc": "La flèche bodkin est dotée d'une robuste pointe en pic pour perforer les armures.",
+    "desc": "Au fil des années, beaucoup de modèles de tête de flèche différents ont été conçus, mais les variantes les plus répandues sont la flèche barbelée, qui inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement, et la flèche bodkin, qui est dotée d'une robuste pointe en pic pour perforer les armures.",
     "price": {
       "gold": 0,
       "silver": 8,
@@ -12623,7 +12401,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12660,8 +12438,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
-    }
+      "page": 98
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Balle de plomb (12)"
+      }
+    ]
   },
   {
     "id": "caillou",
@@ -12691,7 +12476,7 @@
         "id": "inoffensive"
       }
     ],
-    "desc": "Les cailloux peuvent être utilisés comme munitions par un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de Survie en extérieur Facile (+40) ou un Test étendu de Perception Intermédiaire (+0) qui nécessite un total de 5 DR.",
+    "desc": "Les bâtons pointus et les cailloux peuvent être utilisés comme munitions par un archer ou un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de **Survie en extérieur Facile (+40)** ou un Test étendu de **Perception Intermédiaire (+0)** qui nécessite un total de 5 DR.",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12699,7 +12484,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     }
   },
   {
@@ -12742,7 +12527,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "arquebuse_double"
@@ -12787,7 +12572,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "arquebuse_meche"
@@ -12835,7 +12620,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "hache_arquebuse"
@@ -12883,14 +12668,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "hallebarde_arquebuse"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Hallebarde-arquebuse"
+      }
+    ]
   },
   {
     "id": "haquebute",
@@ -12931,14 +12723,24 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "haquebute"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "balle-de-gros-calibre-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Haquebute"
+      }
+    ]
   },
   {
     "id": "pistolet-patte-de-griffon",
@@ -12979,14 +12781,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "pistolet_griffon"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Pistolet patte de griffon"
+      }
+    ]
   },
   {
     "id": "tromblon-a-meche",
@@ -13020,7 +12829,7 @@
         "value": 3
       }
     ],
-    "desc": "L'un des premiers modèles de tromblon. Cette arme comporte les mêmes inconvénients que l'arquebuse à mèche.",
+    "desc": "L'un des premiers modèles de tromblon. Cette arme comporte les mêmes inconvénients que l'arquebuse à mèche ci-dessus.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -13028,14 +12837,26 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "tromblon_meche"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "petites-munitions-et-poudre",
+      "ferraille-et-poudre",
+      "munitions-improvisees-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Tromblon à mèche"
+      }
+    ]
   },
   {
     "id": "canne-pistolet",
@@ -13067,7 +12888,7 @@
         "value": 6
       }
     ],
-    "desc": "Un pistolet à canon court dissimulé dans un bâton de marche ou dans une canne. Cette arme n'est pas des plus pratiques, mais est très difficile à repérer. Ceux qui cherchent des armes dissimulées doivent réussir un Test de Perception Difficile (–20) pour identifier la canne ou le bâton comme une arme, ou un Test de Perception Très Difficile (–30) s'ils connaissent mal les armes à poudre noire.",
+    "desc": "Un pistolet à canon court dissimulé dans un bâton de marche ou dans une canne. Cette arme n'est pas des plus pratiques, mais est très difficile à repérer. Ceux qui cherchent des armes dissimulées doivent réussir un Test de **Perception Difficile (–20)** pour identifier la canne ou le bâton comme une arme, ou un Test de **Perception Très Difficile (–30)** s'ils connaissent mal les armes à poudre noire.",
     "price": {
       "gold": 15,
       "silver": 0,
@@ -13075,14 +12896,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "canne_pistolet"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Canne-pistolet"
+      }
+    ]
   },
   {
     "id": "mortier-a-main",
@@ -13123,14 +12951,27 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "mortier_main"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "bombe-explosive",
+      "bombe-incendiaire-munition",
+      "grappin-munition",
+      "balle-de-gros-calibre-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Mortier à main"
+      }
+    ]
   },
   {
     "id": "poivriere",
@@ -13166,7 +13007,7 @@
         "value": 4
       }
     ],
-    "desc": "Cette arme est une forme plus simple du pistolet à répétition, une série de quatre canons préchargés placés devant un unique mécanisme de tir. Chaque fois que l'arme est déchargée, elle doit être tournée, réamorcée à la manivelle ou préparée manuellement d'une autre façon pour tirer de nouveau. Cela prend très peu de temps par rapport au fait de recharger une arme, mais l'utilisateur doit avoir sa deuxième main libre pour manier la poivrière sinon elle perd l'Atout À répétition.",
+    "desc": "Cette arme est une forme plus simple du pistolet à répétition, une série de quatre canons préchargés placés devant un unique mécanisme de tir. Chaque fois que l'arme est déchargée, elle doit être tournée, réamorcée à la manivelle ou préparée manuellement d'une autre façon pour tirer de nouveau. Cela prend très peu de temps par rapport au fait de recharger une arme, mais l'utilisateur doit avoir sa deuxième main libre pour manier la poivrière sinon elle perd l'Atout *À répétition*.",
     "price": {
       "gold": 12,
       "silver": 0,
@@ -13174,14 +13015,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "poivriere"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Poivrière"
+      }
+    ]
   },
   {
     "id": "balle-de-gros-calibre-et-poudre",
@@ -13212,7 +13060,7 @@
         "id": "perforante"
       }
     ],
-    "desc": "Ces munitions sont techniquement de petits boulets de canon et sont chargées dans les armes à grand canon comme l'haquebute ou le mortier à main. Ceux qui tirent avec ces munitions ou se tiennent à 2 mètres ou moins de l'utilisateur doivent réussir un Test de Résistance Intermédiaire (+0) sous peine de recevoir un État Assourdi.",
+    "desc": "Ces munitions sont techniquement de petits boulets de canon et sont chargées dans les armes à grand canon comme l'haquebute ou le mortier à main. Ceux qui tirent avec ces munitions ou se tiennent à 2 mètres ou moins de l'utilisateur doivent réussir un Test de **Résistance Intermédiaire (+0)** sous peine de recevoir un État *Assourdi*.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -13220,8 +13068,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Balle de gros calibre et poudre (12)"
+      }
+    ]
   },
   {
     "id": "bombe-explosive",
@@ -13252,7 +13107,20 @@
         "id": "percutante"
       }
     ],
-    "desc": "Ces munitions sont souvent lancées à la main. Beaucoup de gens ont tenté de projeter des engins explosifs remplis de poudre noire, de poix ou de goudron plus loin que la distance atteignable simplement à la main. Ces engins peuvent être chargés dans un mortier à main et ainsi lancés très loin.\n\nMais ces munitions ne peuvent pas être chargées très à l'avance car leur mèche doit être allumée avant de les introduire dans le mortier à main. Quand vous chargez la bombe explosive ou la bombe incendiaire, vous devez décider combien de Rounds dure la mèche que vous avez utilisée pour la munition.\n\nAvec une mèche de la durée d'un Round, elle explose à la fin du Round actuel, avec une mèche de la durée de deux Rounds, elle explose à la fin du Round suivant. La munition explose au moment déterminé que vous ayez ou non tiré avec l'arme. Vous devez le garder en tête car le MJ n'est pas obligé de vous le rappeler avant que l'instant fatidique n'arrive.",
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 4,
+          "sum": "c53d8dd5f5adcb70"
+        }
+      ]
+    },
     "price": {
       "gold": 3,
       "silver": 0,
@@ -13260,8 +13128,69 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Bombe explosive"
+      }
+    ]
+  },
+  {
+    "id": "bombe-incendiaire-munition",
+    "type": "trappings",
+    "label": "Bombe incendiaire (munition)",
+    "categorie": "ammunition",
+    "subType": {
+      "id": "poudre-noire-et-ingenierie"
+    },
+    "enc": 0,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 4
+      }
+    ],
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 4,
+          "sum": "c53d8dd5f5adcb70"
+        }
+      ]
+    },
+    "price": {
+      "gold": 1,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Bombe incendiaire"
+      }
+    ]
   },
   {
     "id": "cartouche-en-papier",
@@ -13297,8 +13226,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Cartouche en papier (12)"
+      }
+    ]
   },
   {
     "id": "cartouche-et-poudre-de-precision",
@@ -13336,8 +13272,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Cartouche et poudre de précision"
+      }
+    ]
   },
   {
     "id": "ferraille-et-poudre",
@@ -13368,7 +13311,7 @@
         "majoration": 3
       }
     ],
-    "desc": "« Ferraille » est un terme général pour désigner les vieux clous de toiture, les morceaux de fer à cheval rouillés, les têtes de flèche et les autres bouts de matériau tranchants et pointus récupérés dans les tas de rouille ou de rebuts accessibles. Les attaques portées en utilisant ces munitions bénéficient du Trait de créature Infecté.",
+    "desc": "« Ferraille » est un terme général pour désigner les vieux clous de toiture, les morceaux de fer à cheval rouillés, les têtes de flèche et les autres bouts de matériau tranchants et pointus récupérés dans les tas de rouille ou de rebuts accessibles. Les attaques portées en utilisant ces munitions bénéficient du Trait de créature Infecté (voir page 340 de **WFJDR**).",
     "price": {
       "gold": 0,
       "silver": 2,
@@ -13376,8 +13319,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Ferraille et poudre"
+      }
+    ]
   },
   {
     "id": "grappin-munition",
@@ -13408,7 +13358,7 @@
         "majoration": 2
       }
     ],
-    "desc": "Recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ 20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État Empêtré si le coup touche.\n\nSi vous envisagez d'avoir recours à un grappin pour vous faufiler discrètement quelque part, n'oubliez pas que le tir fait énormément de bruit.",
+    "desc": "Recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ 20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État *Empêtré* si le coup touche.\n\nSi vous envisagez d'avoir recours à un grappin pour vous faufiler discrètement quelque part, n'oubliez pas que le tir fait énormément de bruit.",
     "price": {
       "gold": 2,
       "silver": 0,
@@ -13416,8 +13366,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Grappin"
+      }
+    ]
   },
   {
     "id": "poudre-impregnee-d-aqshy",
@@ -13451,7 +13408,7 @@
         "id": "poudre-impregnee-d-aqshy"
       }
     ],
-    "desc": "Destinée aux aventuriers très braves ou très stupides, cette poudre est fabriquée à partir de sable du désert de Néhékhara, imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf. Elle a davantage de puissance explosive que la poudre normale, mais use les canons bien plus rapidement que la poudre ordinaire. Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre.",
+    "desc": "Destinée aux aventuriers très braves ou très stupides, cette poudre est fabriquée à partir de sable du désert de Néhékhara, imprégné d'une quantité supplémentaire d'*Aqshy* par des moyens connus uniquement du Collège Flamboyant d'Altdorf. Elle a davantage de puissance explosive que la poudre normale, mais use les canons bien plus rapidement que la poudre ordinaire. Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -13459,7 +13416,137 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Poudre imprégnée d'Aqshy (12)"
+      }
+    ]
+  },
+  {
+    "id": "lance-de-fortune",
+    "type": "trappings",
+    "label": "Lance de fortune",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 15,
+      "note": "ZI 01 l.153"
+    }
+  },
+  {
+    "id": "baton-de-la-deesse-araignee",
+    "type": "trappings",
+    "label": "Bâton de la Déesse-araignée",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 15,
+      "note": "ZI 01 l.167"
+    }
+  },
+  {
+    "id": "merlin-grossier",
+    "type": "trappings",
+    "label": "Merlin grossier",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 49,
+      "note": "ZI 05 l.122"
+    }
+  },
+  {
+    "id": "baton-en-bois-mort",
+    "type": "trappings",
+    "label": "Bâton en bois mort",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 49,
+      "note": "ZI 05 l.138"
+    }
+  },
+  {
+    "id": "enorme-epieu",
+    "type": "trappings",
+    "label": "Énorme épieu",
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "sizeFor": "enorme",
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 174,
+      "note": "VDM 13 l.24, l.26"
+    }
+  },
+  {
+    "id": "grosse-chope",
+    "type": "trappings",
+    "label": "Grosse chope lourdement renforcée",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "sizeFor": "enorme",
+    "availability": null,
+    "reach": "Moyenne",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 4
+    },
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 35,
+      "note": "ZI 04 l.46, l.48 ; LDB 62 l.32, l.127"
     }
   },
   {
@@ -14478,6 +14565,53 @@
     },
     "capabilities": {
       "detruitAuLancer": true
+    }
+  },
+  {
+    "id": "griffes-de-poing",
+    "type": "trappings",
+    "label": "Griffes de Poing",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "defensive"
+      },
+      {
+        "id": "rapide"
+      }
+    ],
+    "manieAussi": {
+      "bagarre": {}
+    },
+    "passive": [
+      {
+        "op": "skillMod",
+        "skill": {
+          "id": "escalade"
+        },
+        "mod": 10
+      }
+    ],
+    "price": null,
+    "reserveeA": {
+      "id": "clan-eshin"
+    },
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 32,
+      "note": "The Horned Rat Companion 04 l.40, l.43, l.77"
     }
   },
   {
@@ -16101,7 +16235,10 @@
     "rangement": {
       "id": "dos"
     },
-    "organicProjectile": true
+    "organicProjectile": true,
+    "munitions": [
+      "harpon"
+    ]
   },
   {
     "id": "piege-a-chaines",
@@ -16234,7 +16371,11 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "balle-crache-plomb",
+      "boulet-crache-plomb"
+    ]
   },
   {
     "id": "pistolet-ogre",
@@ -16643,15 +16784,6 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "passive": [
-      {
-        "op": "skillDRBonus",
-        "skill": {
-          "id": "orientation"
-        },
-        "bonus": 2
-      }
-    ],
     "desc": "Vous dessinez une carte qui peut être reproduite et vendue pour faire un bénéfice, mais aussi servir d'outil pour s'orienter. En cas de succès, vous produisez une carte ayant une valeur en CO égale au nombre de DR obtenus sur le Test. Quand vous voyagez entre les deux ports désignés, la carte fournit +2 DR sur les Tests d'Orientation.",
     "price": null,
     "source": {
@@ -16715,658 +16847,6 @@
     "source": {
       "book": "mer-des-griffes",
       "page": 127
-    }
-  },
-  {
-    "id": "baliste-ade2",
-    "type": "trappings",
-    "label": "Baliste",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "baliste"
-    },
-    "munitions": [
-      "carreau-de-baliste",
-      "carreau-nain-norse"
-    ],
-    "minRangeBand": "courte",
-    "availability": "rare",
-    "reach": null,
-    "range": 150,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 14
-    },
-    "qualities": [
-      {
-        "id": "empaleuse"
-      },
-      {
-        "id": "perforante"
-      },
-      {
-        "id": "recharge",
-        "value": 2
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 4
-      }
-    ],
-    "desc": "Similaire à une arbalète, mais bien plus grande, une baliste peut tirer de grands carreaux sur de longues distances. Elle est bien trop lourde pour être transportée, et est donc attachée à une surface fixe ou est dotée de roues pour se déplacer sur le champ de bataille.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 75,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "belier-ade2",
-    "type": "trappings",
-    "label": "Bélier",
-    "categorie": "melee",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "siegeFootprint": 2,
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "belier"
-    },
-    "availability": "limitee",
-    "reach": "Moyenne",
-    "range": null,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": true,
-      "flat": 10
-    },
-    "qualities": [
-      {
-        "id": "siege"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 6
-      }
-    ],
-    "desc": "Utilisé pour enfoncer les portes, le bélier est constitué d'un tronc d'arbre massif suspendu par des chaînes ou des cordes à une structure en bois avec des roues. Certains ont un bout métallique pointu ou sont forgés pour ressembler à une tête de bélier.\n\n*Les béliers n'infligent des dégâts qu'aux portes. Sinon, ils sont considérés comme une Arme improvisée.*",
-    "price": {
-      "gold": 10,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "batterie-tonnerre-de-feu-ade2",
-    "type": "trappings",
-    "label": "Batterie tonnerre de feu",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "canon-a-repetition"
-    },
-    "minRangeBand": "courte",
-    "availability": "exotique",
-    "reach": null,
-    "range": 200,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 12
-    },
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "a-explosion",
-        "value": 15
-      },
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 5
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 4
-      },
-      {
-        "id": "a-poudre-noire"
-      }
-    ],
-    "desc": "L'école impériale des ingénieurs a créé ces projectiles incroyablement dangereux et imprécis en s'inspirant des feux d'artifice. Ils sont réputés pour le bruit aigu qu'ils produisent en virevoltant dans les airs, et les conséquences dévastatrices de leurs explosions.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 200,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    },
-    "alsoIn": [
-      {
-        "book": "aux-armes",
-        "page": 122
-      }
-    ]
-  },
-  {
-    "id": "canon-a-repetition-feu-d-enfer-ade2",
-    "type": "trappings",
-    "label": "Canon à répétition feu d'enfer",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "canon-a-repetition"
-    },
-    "minRangeBand": "courte",
-    "availability": "exotique",
-    "reach": null,
-    "range": 100,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 14
-    },
-    "qualities": [
-      {
-        "id": "a-poudre-noire"
-      },
-      {
-        "id": "a-repetition",
-        "value": 3
-      },
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "recharge",
-        "value": 5
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 4
-      }
-    ],
-    "desc": "Cette arme possède neuf canons divisés par groupes de trois et rattachés à un axe. Chaque groupe de canons peut tirer séparément, ou en succession rapide, ce qui permet de décimer facilement la plupart des troupes ennemies.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 300,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "canon-ade2",
-    "type": "trappings",
-    "label": "Canon",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "canon"
-    },
-    "munitions": [
-      "boulet-et-poudre",
-      "mitraille-et-poudre"
-    ],
-    "minRangeBand": "courte",
-    "availability": "exotique",
-    "reach": null,
-    "range": 120,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 20
-    },
-    "qualities": [
-      {
-        "id": "a-poudre-noire"
-      },
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "a-explosion",
-        "value": 3
-      },
-      {
-        "id": "recharge",
-        "value": 3
-      },
-      {
-        "id": "siege"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 4
-      }
-    ],
-    "desc": "Selon les mêmes principes appliqués aux armes à Poudre noire, les canons sont chargés avec de la poudre et un grand boulet de canon à l'avant, et tirés depuis l'arrière. La force de frappe d'un boulet de canon suffit à abattre la plupart des murs et à anéantir les troupes sur un champ de bataille.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 120,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "canon-a-flammes-nain-ade2",
-    "type": "trappings",
-    "label": "Canon à flammes nain",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "canon-a-flammes"
-    },
-    "minRangeBand": "courte",
-    "availability": "exotique",
-    "reach": null,
-    "range": 60,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "literal": "Spéciaux"
-    },
-    "onHitEffects": [
-      {
-        "trigger": "onHit",
-        "on": "victime",
-        "flow": {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "condition",
-                "id": {
-                  "id": "en-flammes"
-                },
-                "value": 2,
-                "valuePerSL": {
-                  "every": 1,
-                  "amount": 1
-                }
-              }
-            ]
-          }
-        }
-      }
-    ],
-    "qualities": [
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 3
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 4
-      }
-    ],
-    "desc": "Équipée d'une concoction alchimique à l'intérieur du canon, cette arme utilise la pression pour libérer une gerbe d'huile bouillante qui se répand dans les rangs ennemis. Les canons à flammes nain infligent 2 + DR États *En flammes* à chaque cible affectée.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 200,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "mangonneau-ade2",
-    "type": "trappings",
-    "label": "Mangonneau",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "indirect": true,
-    "minRangeBand": "courte",
-    "availability": "rare",
-    "reach": null,
-    "range": 60,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 10
-    },
-    "qualities": [
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "siege"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 6
-      }
-    ],
-    "desc": "Un mangonneau emploie de gros projectiles comme des rochers ou des débris rassemblés dans une grande poche. Il les lance en ramenant le bras tenant la poche en arrière, puis en la relâchant.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 60,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "onagre-ade2",
-    "type": "trappings",
-    "label": "Onagre",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "indirect": true,
-    "minRangeBand": "courte",
-    "availability": "rare",
-    "reach": null,
-    "range": 100,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 12
-    },
-    "qualities": [
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "recharge",
-        "value": 4
-      },
-      {
-        "id": "siege"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 6
-      }
-    ],
-    "desc": "Similaire au mangonneau, cette arme de siège utilise une fronde pour augmenter sa portée effective.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 80,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "trebuchet-ade2",
-    "type": "trappings",
-    "label": "Trébuchet",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "catapulte"
-    },
-    "indirect": true,
-    "minRangeBand": "moyenne",
-    "availability": "limitee",
-    "reach": null,
-    "range": 150,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 14
-    },
-    "qualities": [
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "recharge",
-        "value": 5
-      },
-      {
-        "id": "siege"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 8
-      }
-    ],
-    "desc": "Le trébuchet bretonnien est une version améliorée de l'onagre et utilise un contrepoids au lieu d'une torsion pour relâcher sa fronde, ce qui augmente grandement sa portée.\n\n*Les trébuchets et les mortiers ne peuvent pas être utilisés si la distance jusqu'à la cible est inférieure à leur Portée Courte.*\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 40,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
-    }
-  },
-  {
-    "id": "mortier-ade2",
-    "type": "trappings",
-    "label": "Mortier",
-    "categorie": "distance",
-    "subType": {
-      "id": "armes-de-siege"
-    },
-    "weaponGroup": {
-      "id": "machine-de-guerre"
-    },
-    "rendu": {
-      "id": "mortier"
-    },
-    "munitions": [
-      "bombe-de-mortier",
-      "bombe-incendiaire-mortier"
-    ],
-    "indirect": true,
-    "minRangeBand": "moyenne",
-    "availability": "exotique",
-    "reach": null,
-    "range": 200,
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 20
-    },
-    "qualities": [
-      {
-        "id": "a-poudre-noire"
-      },
-      {
-        "id": "dangereuse"
-      },
-      {
-        "id": "a-explosion",
-        "value": 5
-      },
-      {
-        "id": "imprecise"
-      },
-      {
-        "id": "recharge",
-        "value": 2
-      },
-      {
-        "id": "siege"
-      },
-      {
-        "id": "devastatrice"
-      },
-      {
-        "id": "percutante"
-      },
-      {
-        "id": "equipe",
-        "value": 6
-      }
-    ],
-    "desc": "Conçus spécifiquement pour le tir indirect, les mortiers sont utilisés pour les tirs en cloche qui passent au-dessus des murs de châteaux et touchent les troupes à l'intérieur dans une explosion de mitraille.\n\n*Les trébuchets et les mortiers ne peuvent pas être utilisés si la distance jusqu'à la cible est inférieure à leur Portée Courte.*\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
-    "price": {
-      "gold": 100,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 88
     }
   },
   {

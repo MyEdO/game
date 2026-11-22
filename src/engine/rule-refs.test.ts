@@ -5,9 +5,8 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * (la liste DÉCROÎT) ; en pousser une nouvelle SANS `ref` échoue immédiatement. L'INTÉGRITÉ des
  * renvois au Codex : `src/noyau/codex/codex-rule-refs.test.ts`.
  *
- * PÉRIMÈTRE (#1117 L5a) — TOUT `src/**` hors `*.test.*`, jamais une liste de fichiers producteurs :
- * une `ModLine` naît aussi bien dans une modale que dans le moteur, et un
- * périmètre par fichiers ne mesurait qu'une PART du stock (13 sur 30 au moment de l'élargissement).
+ * PÉRIMÈTRE (#1117 L5a) — tout `src/**` hors outils de test. Le scan inclut les fichiers qui ne
+ * produisent encore aucune `ModLine`, pour détecter une première émission dans n'importe quel module.
  * MÉCANIQUE — parseur AST réel (`typescript`, même patron que `src/name-field-guard.test.ts`), pas
  * une regex de texte : les libellés en gabarit (`` `Météo : ${…}` ``) et les littéraux multi-lignes
  * échappaient à la forme textuelle. Un littéral compte comme `ModLine` quand :
@@ -99,19 +98,26 @@ interface ModSite {
   valeurLitterale: boolean;
 }
 
-let sitesMemo: ModSite[] | undefined;
-function modLineSites(): ModSite[] {
-  return (sitesMemo ??= scanModLineSites());
+let mesureMemo: ReturnType<typeof scanModLineSites> | undefined;
+function mesureModLineSites() {
+  return (mesureMemo ??= scanModLineSites());
 }
 
-function scanModLineSites(): ModSite[] {
-  const out: ModSite[] = [];
+function modLineSites(): ModSite[] {
+  return mesureModLineSites().sites;
+}
+
+function scanModLineSites(): { sites: ModSite[]; fichiersParcourus: number } {
+  const sites: ModSite[] = [];
+  let fichiersParcourus = 0;
   for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src']))) {
-    for (const m of modLineLiterals(rel, text, sourceFile!)) {
-      out.push({ at: `${rel} · ${m.label}`, where: `${rel}:${m.line} · ${m.label}`, hasRef: m.hasRef, famille: m.famille, valeurLitterale: m.valeurLitterale });
+    const litteraux = modLineLiterals(rel, text, sourceFile!);
+    fichiersParcourus += 1;
+    for (const m of litteraux) {
+      sites.push({ at: `${rel} · ${m.label}`, where: `${rel}:${m.line} · ${m.label}`, hasRef: m.hasRef, famille: m.famille, valeurLitterale: m.valeurLitterale });
     }
   }
-  return out;
+  return { sites, fichiersParcourus };
 }
 
 /** Le stock MESURÉ des producteurs SANS `ref`, un par `fichier:label` (source de vérité du cliquet). */
@@ -124,11 +130,8 @@ function refLessProducers(): string[] {
  * `PassiveMod` porte l'identité Codex de sa source (`src`), et chaque site rend UNE ligne par
  * composante réelle, à son nom — pénalités d'État (`combatTestPenaltyParts`), bonus à l'attaquant
  * (`meleeAttackerBonusLines`), aura anti-Sort (`castWardLine`). Ce qui reste est MESURÉ, par famille :
- *  - lignes dont la RÈGLE n'a pas encore de fiche au catalogue (`regles.json`) : « Rounds tenus »
- *    de la bataille de masse, écrêtage de la cible. Leur dotation attend
- *    la fiche, elle ne s'invente pas au site.
  *  - lignes AGRÉGÉES qui doivent d'abord se DÉPLIER par source, comme les pools de L4 : « Contrecoup »
- *    (somme de `castPenalties`), « autres » (résidu de réconciliation), le modificateur d'Activité
+ *    (somme de `castPenalties`) et le modificateur d'Activité
  *    (`activityModLines`, porté par la donnée de flux — SOURCE UNIQUE depuis #1153 : le calcul de
  *    cible et son rendu lisent la MÊME ligne). Les lignes d'un Test de scène — météo maritime
  *    (`RULE_REF['meteo-maritime']`), malus psy DÉPLIÉ par source (`socialPsychLines`, fiche
@@ -138,9 +141,6 @@ function refLessProducers(): string[] {
 const RATCHET = [
   "src/noyau/combatFlow.ts · 'Contrecoup'",
   "src/engine/activities.ts · modLabel ?? 'Modificateur'",
-  "src/ui/ActivityModal.tsx · 'Rounds tenus'",
-  "src/ui/RollLine.tsx · `${cut < 0 ? 'plafond' : 'plancher'} ${target}`",
-  "src/ui/RollLine.tsx · 'autres'",
 ].sort();
 
 describe('Cliquet — les ModLine SANS règle liée sont ÉNUMÉRÉES et décroissent (#1078)', () => {
@@ -156,9 +156,11 @@ describe('Cliquet — les ModLine SANS règle liée sont ÉNUMÉRÉES et décroi
     expect(refLessProducers().length).toBeLessThanOrEqual(RATCHET.length);
   });
 
-  it('le périmètre est TOUT src/** : des sites d’UI (.tsx) sont mesurés, pas seulement moteur/état', () => {
-    const sites = modLineSites().map((s) => s.at);
-    expect(sites.some((at) => at.startsWith('src/ui/') && at.includes('.tsx')), 'aucun site .tsx mesuré : le scan est retombé sur une liste de producteurs').toBe(true);
+  it('le scan parcourt tout src/** et mesure des producteurs du moteur et du noyau', () => {
+    const { sites, fichiersParcourus } = mesureModLineSites();
+    expect(fichiersParcourus, 'le scan doit parcourir chaque source, y compris les fichiers sans ModLine').toBe(readCorpus(['src']).length);
+    expect(sites.some((s) => s.at.startsWith('src/engine/')), 'aucun producteur moteur mesuré').toBe(true);
+    expect(sites.some((s) => s.at.startsWith('src/noyau/')), 'aucun producteur noyau mesuré').toBe(true);
   });
 
   it('cas planté : un libellé en GABARIT est DÉTECTÉ (preuve TDD — la forme textuelle des `${…}` était aveugle)', () => {

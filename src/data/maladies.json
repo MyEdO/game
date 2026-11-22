@@ -122,6 +122,9 @@
     "label": "Courante Galopante",
     "desc": "On raconte que la nourriture des halflings ne peut pas donner de Courante galopante, une maladie peu ragoûtante et malheureusement trop répandue au sein de l’Empire à cause du manque de soins apportés à la préparation de la nourriture. Même si ceux souffrant de « Vengeance des Rumsters » après avoir ingurgité des tourtes bon marché des halflings vendues à Altdorf vous diront le contraire, s’ils peuvent quitter les toilettes assez longtemps…",
     "contractDifficulty": "facile",
+    "testDeContraction": {
+      "characteristic": "endurance"
+    },
     "contaminatesWaterBarrel": true,
     "incubation": {
       "dice": {
@@ -210,6 +213,9 @@
     "label": "Flux Sanglant",
     "desc": "Le Flux sanglant est un problème récurrent au sein de l’Empire et d’une manière générale, est considéré comme une malédiction infligée par les dieux aux impies. Cette maladie infâme oblige la pauvre victime à se vider sans cesse. Le Flux sanglant est endémique au sein des Armées de l’État, où il tue bien plus de soldats que les forces ennemies. Parmi les remèdes les plus fréquents, il y a l’ingurgitation de boudin pour remplacer les humeurs perdues, le « bouchonnage », et le massage des parties avec des substances grasses afin d’atténuer la douleur aigüe.",
     "contractDifficulty": "facile",
+    "testDeContraction": {
+      "characteristic": "endurance"
+    },
     "contaminatesWaterBarrel": true,
     "incubation": {
       "dice": {
@@ -507,9 +513,9 @@
       "dice": {
         "n": 0,
         "sides": 1,
-        "plus": 7
+        "plus": 1
       },
-      "unit": "days"
+      "unit": "weeks"
     },
     "symptoms": [
       {

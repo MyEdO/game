@@ -10,13 +10,13 @@
 import type { Jeu } from './etat';
 import type { FermeturesDuJet } from './rollFlowFactory';
 import { REGLAGE_DE_L_AXE, type ReglageDu } from './reglagesDuJet';
-import type { IdDeFormeConjuree } from './designations';
+import type { IdDeChoixDeCibles, IdDeFormeConjuree } from './designations';
+import { choixDeCiblesEnAttente, choixDeCiblesRetenu } from './reglagesDIncantation';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
-import { ventsAnnonces } from './combatOrParty';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { fermetureDuReglage } from './rollFlowSpecs';
-import { castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
+import { ancreDeLaZdE, castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
 import { resultLine, freeCons } from './rollSeam';
 import { libelleDeLaFermeture, libelleDuReglage } from './libelles';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
@@ -25,7 +25,7 @@ import { findSpellById, findTrappingById, weaponGroupLabel } from '../data/index
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { evaluateTest } from '../engine/tests';
 import {
-  castAfterCrit, castInfoIsPrayer, castingNumberOf, castOvercastBudget, focusValueOf, sortInfligeDesDegats, spellTargetCount,
+  castAfterCrit, castInfoIsPrayer, castingNumberOf, castOvercastBudget, sortInfligeDesDegats, spellTargetCount,
   type CritChoice,
 } from '../engine/magic';
 import { extraTargetCapacity, missileOvercastDamageBonus, overcastSourceOf, overcastStepCost, type OvercastAxis } from '../engine/overcast';
@@ -80,6 +80,7 @@ export interface FenetreDIncantation {
   ligne: LigneDIncantation;
   ton: ChoixNomme<boolean> | null;
   forme: ChoixNomme | null;
+  cibles: ChoixNomme | null;
   critique: ChoixNomme<CritChoice> | null;
   surincantation: SurincantationEnVue | null;
   /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
@@ -121,6 +122,12 @@ export function refusDeLaForme(s: Jeu, arme: IdDeFormeConjuree): string | null {
   return lanceur && conjureFormOptions(lanceur).some((f) => f.weapon === arme) ? null : t('incantation.refus.formeNonOfferte');
 }
 
+/** Refus du choix de cibles dans la phase ou hors des options déclarées par le sort. */
+export function refusDuChoixDeCibles(s: Jeu, id: IdDeChoixDeCibles): string | null {
+  return refusDuReglage(s, 'choixDeCibles')
+    ?? (choixDeCiblesEnAttente(s).some((option) => option.id === id) ? null : t('incantation.refus.choixDeCibles'));
+}
+
 /** Ce que permet maintenant la Surincantation du jet en attente : `null` sans jet, sans lanceur ou sans Sort. */
 function etatDeLaSurincantation(s: Jeu) {
   const pc = s.pendingCast;
@@ -152,6 +159,8 @@ export function refusDeLaPose(s: Jeu, on: boolean): string | null {
   const pc = s.pendingCast;
   if (!pc?.zone || pc.zone.center || !s.battle) return libelleDeLaFermeture('nonOffert');
   if (!on) return pc.zone.placing ? null : libelleDeLaFermeture('nonOffert');
+  const spell = effectiveSpellOf(pc);
+  if (!spell || ancreDeLaZdE(spell) !== 'point') return libelleDeLaFermeture('nonOffert');
   if (!pc.result) return libelleDeLaFermeture('jetNonLance');
   if (!castAfterCrit(pc.result, pc.critChoice)) return t('incantation.refus.sortNonLance');
   return influencesLocally(s, pc.casterId) ? null : libelleDeLaFermeture('rangeeTemoin');
@@ -211,9 +220,13 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   const montre = (reglage: ReglageDu<'incantation'>): boolean => seMontre(s, reglage);
   const choix = <V extends string | number | boolean>(reglage: ReglageDu<'incantation'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
     ({ geste: gesteDuReglage('incantation', reglage), libelle: libelleDuReglage('incantation', reglage), choisie, options });
-  const zoneAPoser = !!pc.zone && !pc.zone.center;
-  const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneAPoser } });
+  const zoneNonResolue = !!pc.zone && !pc.zone.center;
+  const zoneAPoser = zoneNonResolue && ancreDeLaZdE(sort) === 'point';
+  const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneNonResolue } });
   const formes = conjureFormOptions(lanceur);
+  const optionsDeCibles = choixDeCiblesEnAttente(s);
+  const valeurDeCibles = choixDeCiblesRetenu(optionsDeCibles, pc.choixDeCibles)?.id ?? null;
+  const refusDesCibles = refusDuReglage(s, 'choixDeCibles');
   const refusDeForme = refusDuReglage(s, 'formeConjuree');
   const fermetures = fermeturesDuFlux(s, 'incantation');
   const surincantation = surincantationEnVue(s);
@@ -248,6 +261,11 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
           valeur: f.weapon, libelle: t('incantation.forme', { arme: findTrappingById(f.weapon)?.label ?? f.weapon, groupe: weaponGroupLabel(f.group) }), refus: refusDeForme,
         })))
       : null,
+    cibles: montre('choixDeCibles')
+      ? choix('choixDeCibles', valeurDeCibles, optionsDeCibles.map((option) => ({
+          valeur: option.id, libelle: option.label, refus: refusDesCibles,
+        })))
+      : null,
     // LDB 46 l.26-32 : aucun effet n'est retenu tant que le lanceur n'a pas choisi.
     critique: montre('effetCritique')
       ? choix('effetCritique', pc.critChoice ?? null, EFFETS_CRITIQUES.map((c) => ({
@@ -263,19 +281,6 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     annulation: fermetures.annuler ? libelleDeLaFermeture(fermetures.annuler) : null,
     issue: issueDeLIncantation(s),
   };
-}
-
-/** La ligne du jet de Focalisation en attente (`pendingFocus`) : le NI que la Focalisation vise (`castingNumberOf`), la
- *  valeur du Test que le résolveur jette (`focusValueOf`), les Vents qu'elle annonce (`ventsAnnonces`) et la cible.
- *  `null` sans Focalisation. LDB 46 l.128-132, l.179-190 */
-export function ligneDeFocalisation(s: Jeu): { ni: number; base: number; mods: ModLine[]; target: number } | null {
-  const pf = s.pendingFocus;
-  const lanceur = pf && actorIn(s, pf.casterId);
-  const sort = pf && findSpellById(pf.spellId);
-  if (!pf || !lanceur || !sort) return null;
-  const base = focusValueOf(lanceur, sort) ?? 0;
-  const vents = ventsAnnonces(s.battle, !!pf.result);
-  return { ni: castingNumberOf(sort, false, {}, [], lanceur), base, mods: vents ? [vents] : [], target: base + (vents?.value ?? 0) };
 }
 
 /** Issue de l'incantation : le Sort lancé (la ligne de touche du moteur pour un Projectile qui touche), la Maladresse, la

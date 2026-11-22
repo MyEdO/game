@@ -106,7 +106,7 @@ test('ECRITURE_DE_STOCK_JSON : une recopie neuve hors du foyer est un site, la m
 // ── Entrées régénérées, comptes par famille ────────────────────────────────────────────────────────
 
 test('entreesRegenerees : les entrées sont RANGÉES par clé, quel que soit l’ordre du balayage', () => {
-  const sites = [{ file: 'src/b.ts', ref: 'r' }, { file: 'src/a.ts', ref: 'r' }, { file: 'src/a.ts', ref: 'q' }]
+  const sites = [{ fichier: 'src/b.ts', ref: 'r' }, { fichier: 'src/a.ts', ref: 'r' }, { fichier: 'src/a.ts', ref: 'q' }]
   assert.deepEqual(entreesRegenerees(sites).map((e) => `${e.fichier}|${e.ref}`), ['src/a.ts|q', 'src/a.ts|r', 'src/b.ts|r'])
 })
 
@@ -116,7 +116,7 @@ test('comptesParFamille : toutes les familles présentes, même à zéro, dans l
 })
 
 test('sitesEnEntrees : le reste d’un site (`line`, `pdfChars`) suit l’entrée, après l’occurrence', () => {
-  const [e] = sitesEnEntrees([{ famille: 'f', file: 'src/a.ts', ref: 'r', line: 12, pdfChars: 40 }])
+  const [e] = sitesEnEntrees([{ famille: 'f', fichier: 'src/a.ts', ref: 'r', line: 12, pdfChars: 40 }])
   assert.deepEqual(Object.keys(e), [...CHAMPS_DE_CLE, 'line', 'pdfChars'])
 })
 
@@ -128,7 +128,7 @@ const CONNUE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurren
 
 const NEUVE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'b', occurrence: 1 }
 
-const site = (e, reste = {}) => ({ famille: e.famille, file: e.fichier, ref: e.ref, ...reste })
+const site = (e, reste = {}) => ({ famille: e.famille, fichier: e.fichier, ref: e.ref, ...reste })
 
 const regenerer = (args, sites, { ancien = ANCIEN, date = '2026-09-23' } = {}) => texteRegenere(
   decl('x-stock.json', SOUS_LOT, sites),
@@ -184,7 +184,7 @@ const B1 = { fichier: 'src/b.ts', ref: 'r2', occurrence: 1 }
 
 const Z1 = { fichier: 'src/z.ts', ref: 'r9', occurrence: 1 }
 
-const s = (e, reste = {}) => ({ file: e.fichier, ref: e.ref, ...reste })
+const s = (e, reste = {}) => ({ fichier: e.fichier, ref: e.ref, ...reste })
 
 test('DECROISSANT : un échange à somme nulle est refusé ; le même sous l’amorce est écrit', () => {
   const r = decl('x.mjs', DECROISSANT, [s(A1), s(B1)], { motif: 'Corriger.' })

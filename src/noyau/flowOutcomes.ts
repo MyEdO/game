@@ -1,45 +1,22 @@
 /**
- * NARRATION d'issue des jets — SOURCE UNIQUE par flux (popin ET journal).
- *
- * Motif unifié : chaque flux expose une fonction PURE `describeX(pending) → string` qui produit LA
- * ligne d'issue du jet. La modale la FOURNIT en donnée (`outcome={[recapLineOfEvent(ev(kind, describeX(p), …))]}`,
- * rendue par la coquille) et le
- * store la journalise au même endroit — fini les `outcomeText` recalculés dans chaque modale (et
- * re-recalculés à la validation). Pour le combat, l'équivalent est `result.log`, déjà posé par le
- * moteur ; ces fonctions étendent le même principe aux flux non-combat.
+ * Narration des issues de jet envoyées au journal ou reprises dans les vues du jeu.
  */
 import type {
   PendingTest,
   PendingHeal,
-  PendingCorruption,
-  PendingRun,
-  PendingApproach,
-  PendingWard,
   PendingFrenzy,
   PendingReload,
   PendingStateRecovery,
   PendingBargain,
-  PendingAppraise,
-  PendingDisengage,
-  PendingBattement,
-  PendingDistraire,
 } from './pendings';
-import { garanti } from '../lib/garanti';
-import { progresDActivite } from './progresEtendu';
-import { battementRemoval } from './combatManeuvers';
-import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
-import type { PendingActivity } from './interludeFlow';
 import { estCibleType } from '../engine/psych/ciblage';
 import { PSY } from '../engine/psychology';
 import { psychologyLabel } from '../data';
-import { activityById, matchOutcomes } from '../engine/activities';
-import { isFumble } from '../engine/oups';
-import { isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
+import { SL_ASTOUNDING } from '../engine/tests';
 import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount, arretDHemorragie } from '../engine/healing';
 import { parametresDuSoin } from './soin';
-import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
@@ -101,71 +78,6 @@ export function describeHeal(ph: PendingHeal, target: Combatant, name: string): 
     : t('out.healNone', { name });
 }
 
-/** Exposition à une Influence corruptrice (LDB 19) ou Test de seuil : issue de la popin. La VALIDATION
- *  applique la conséquence par un autre mécanisme (gainCorruption / « Je te renie ! » / mutation) →
- *  cette fonction n'unifie que la popin. */
-export function describeCorruption(pc: PendingCorruption, name: string): string {
-  if (pc.roll == null) return '';
-  if (pc.kind === 'seuil') {
-    return pc.success
-      ? t('out.corruptHold', { name })
-      : t('out.corruptThreatens', { name });
-  }
-  const gain = corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
-  return gain === 0
-    ? t('out.corruptRepel', { name })
-    : t('out.corruptGain', { name, gain, s: gain > 1 ? 's' : '' });
-}
-
-/** Jet d'Activité d'interlude (LDB 23) : issue de la popin (Revenus / Artisanat / Apprentissage /
- *  Identification). La VALIDATION applique la conséquence chiffrée (somme, objet, PX) à part. */
-export function describeActivity(pa: PendingActivity): string {
-  if (pa.roll == null || !pa.activityId) return '';
-  const def = garanti(activityById(pa.activityId), pa.activityId, 'activité d’interlude');
-  // Activité/Scène de BATAILLE (ADE II 8) : l'issue chiffrée (Puissance) est journalisée par
-  // `confirmBattleActivity` ; la popin résume Succès/Échec (Test combiné : les deux compétences).
-  if (pa.battle) {
-    if (pa.combinedLevel) {
-      return pa.combinedLevel === 'full'
-        ? t('out.testSuccess', { name: def.label })
-        : t('out.testFail', { name: def.label });
-    }
-    return pa.success ? t('out.testSuccess', { name: def.label }) : t('out.testFail', { name: def.label });
-  }
-  // Les 4 Activités « socle » n'ont pas de table d'issues : leur narration est propre au résolveur
-  // (source unique, même règle RAW que `runActivityResolver`). Les autres dérivent des bandes.
-  switch (def.resolver) {
-    case 'craftExtended': {
-      const { total: after, done } = garanti(progresDActivite(pa), pa.activityId, 'cible d’Artisanat');
-      return done ? t('out.craftDone') : t('out.craftProgress', { after, target: String(pa.drTarget) });
-    }
-    case 'identify':
-      return pa.success
-        ? isImpressiveSuccess(pa.success, pa.sl)
-          ? t('out.identifyFull')
-          : t('out.identifyPartial')
-        : isImpressiveFailure(pa.success, pa.sl)
-          ? t('out.identifyMisread')
-          : t('out.identifyNone');
-    case 'learnTalent':
-      return pa.success ? t('out.learnDone') : t('out.learnFail');
-    case 'income':
-      return pa.success
-        ? t('out.incomeGood')
-        : isAstoundingFailure(pa.success, pa.sl)
-          ? t('out.incomeNone')
-          : t('out.incomeHalf');
-    default: {
-      // Catalogue data-driven à table : l'issue EST la (les) bande(s) matchée(s) — notes VERBATIM de
-      // la table source (même matching que la validation, source unique).
-      const bands = def ? matchOutcomes(def, { success: !!pa.success, sl: pa.sl, fumble: isFumble(pa.roll, !!pa.success) }) : [];
-      const notes = bands.map((b) => b.note).filter((n): n is string => !!n);
-      if (notes.length) return notes.join(' ');
-      return pa.success ? t('out.catalogOk') : t('out.catalogFail');
-    }
-  }
-}
-
 /** Marchandage (LDB 59 l.43) : VERDICT du Test opposé (source unique popin ↔ journal). */
 export function describeBargain(pb: PendingBargain): string {
   const won = pb.result?.attackerWins ?? false;
@@ -183,45 +95,6 @@ export function verdictDeVente(o: BargainOutcome): string {
   if (!o.won) return t('out.bargainLostSell');
   const hausse = bargainSellBonusPct(o.won, o.drNet, o.negotiator);
   return t('out.bargainWonSell', { hausse: hausse ? t('out.fragHausse', { pct: hausse }) : '' });
-}
-
-/** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION
- *  applique la révélation + l'estimation chiffrée à part (jetValider('evaluation')). `name` = l'évaluateur. */
-export function describeAppraise(pa: PendingAppraise, name: string): string {
-  if (pa.roll == null) return '';
-  const detect = pa.mode === 'detection';
-  if (detect) {
-    return pa.success
-      ? t('out.detectSomething', { name, item: pa.itemName })
-      : t('out.detectNothing', { name });
-  }
-  return pa.success
-    ? t('out.appraiseRevealed', { name, item: pa.itemName })
-    : t('out.appraiseNone', { name, item: pa.itemName });
-}
-
-/** Approche d'une source de Peur (LDB 21 l.27) : issue du Test `calme-d-approche` (popin). Le fil journalise la
- *  conséquence (gate d'approche du Tour) à part. */
-export function describeApproach(pa: PendingApproach): string {
-  if (!pa.result) return '';
-  return pa.result.success ? t('out.approachYes') : t('out.approachNo');
-}
-
-/** Bénédiction de Protection (LDB 41 l.142) : issue du Test de FM (popin). Le fil journalise la
- *  conséquence (attaque relancée / refusée) à part. `targetName` = la cible bénie. */
-export function describeWard(pw: PendingWard, targetName: string): string {
-  if (!pw.result) return '';
-  return pw.result.success
-    ? t('out.wardOvercome', { target: targetName })
-    : t('out.wardBlocked', { target: targetName });
-}
-
-/** Course (LDB 15 l.41) : issue du Test `course` (popin). Le fil journalise le
- *  déplacement réel (cases parcourues) à part. */
-export function describeRun(pr: PendingRun): string {
-  const r = pr.result;
-  if (!r) return '';
-  return t('out.run', { label: r.success ? t('out.runYes') : t('out.runNo'), cases: r.bonusCases });
 }
 
 /** « Se libérer » (Empêtré) / « se rouler » (En flammes) — LDB 16 l.66/84 : issue du Test (source unique
@@ -242,14 +115,6 @@ export function describeReload(pr: PendingReload, name: string, after: number, w
   return after >= pr.reload ? t('out.reloadDone', { weapon: weaponName }) : t('out.reload', { name, weapon: weaponName, after, reload: pr.reload });
 }
 
-/** Focalisation = Test étendu (LDB 46) : issue de la fenêtre de jet. La PROGRESSION (DR du Round,
- *  cumul vers le NI) vit dans SES zones — ✓/✗ ±DR sur la ligne de jet, cumul/cible sur la barre de DR
- *  (#1078 LOT B2, patron Dissipation/Test étendu) : ne reste à l'issue que ce qu'aucune autre zone
- *  n'énonce, le NI ATTEINT. Chaîne vide sinon — donc aucun cadre d'issue. */
-export function describeFocus(step: { done: boolean } | null): string {
-  return step?.done ? t('out.focusDone') : '';
-}
-
 /** Entrée en Frénésie (LDB 21 l.31) : issue (source unique popin ↔ journal). `name` = le combattant. */
 export function describeFrenzy(pf: PendingFrenzy, name: string): string {
   const r = pf.result;
@@ -257,49 +122,4 @@ export function describeFrenzy(pf: PendingFrenzy, name: string): string {
   return r.success
     ? t('out.frenzyEnter', { name })
     : t('out.frenzyNo', { name });
-}
-
-/** Battement (LDB 10 l.103) : succès → −(1 + DR) Avantage adverse (barème `battementRemoval`), échec →
- *  rien. Popin = MÊME phrase que la ligne de journal (`manv.battement`/`manv.battementFail`). */
-export function describeBattement(pb: PendingBattement, attackerName: string, foeName: string): string {
-  const r = pb.result;
-  if (!r) return '';
-  return r.success
-    ? t('manv.battement', { name: attackerName, foe: foeName, n: battementRemoval(r.sl) })
-    : t('manv.battementFail', { name: attackerName, foe: foeName });
-}
-
-/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`reussite`) → le foe
- *  est distrait ; `egalite`/`echec` → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
-export function describeDistraire(pd: PendingDistraire, moverName: string, foeName: string): string {
-  if (pd.result == null) return '';
-  return pd.result === 'reussite'
-    ? t('manv.distraire', { name: moverName, foe: foeName })
-    : t('manv.distraireFail', { name: moverName, foe: foeName });
-}
-
-/** Désengagement (LDB 15-Dépl) — phase 'esquive' : verdict du Test opposé d'Esquive (popin). Le fil
- *  journalise la conséquence (Avantage, libération des Engagements) à part. */
-export function describeDisengage(pd: PendingDisengage): string {
-  return pd.result === 'reussite'
-    ? t('out.disengageSuccess')
-    : pd.result === 'egalite'
-      ? t('out.disengageTie')
-      : t('out.disengageFail');
-}
-
-/** Désengagement — phase 'fuir' : issue du coup dans le dos + Test `fuite`, montrée INLINE (popin).
- *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`touche`) ; l'État Brisé (LDB 15 l.66) est
- *  calculé ici pour la narration, appliqué par `jetValider('fuite')`. Jet manquant → issue
- *  indéterminée à ce stade (chaîne vide). */
-export function describeDisengageFlee(pd: PendingDisengage): string {
-  const res = fleeBackstab(pd)?.result;
-  if (!res) return ''; // coup dans le dos pas encore lancé
-  const wounds = res.woundsLost ?? 0;
-  if (!res.hit || wounds <= 0) return t('out.disengageFlee', { hit: t('out.fleeDodge') });
-  const jet = fleeTouche(pd)?.jet;
-  if (!jet) return ''; // coup qui touche : Test `fuite` pas encore lancé
-  const broken = jet.success ? 0 : 1 + Math.max(0, -jet.sl);
-  const hit = t('out.fleeHit', { wounds, s: wounds > 1 ? 's' : '', broken: broken ? t('out.fleeBroken', { broken, s: broken > 1 ? 's' : '' }) : '' });
-  return t('out.disengageFlee', { hit });
 }

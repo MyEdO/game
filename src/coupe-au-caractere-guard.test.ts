@@ -52,6 +52,11 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(vus("const E = '…';\nfunction f() { return s.slice(0, 20) + E; }"), 'constante du module vue d’une portée interne').toEqual(['temoin.tsx:2']);
     expect(vus('const p = s.slice(0, 20);\nfunction g(p) { return `${p}…`; }'), 'paramètre homonyme').toEqual([]);
     expect(vus('const p = s.slice(0, 20);\nfunction g() { return `${p}…`; }'), 'la coupe ellipsée d’une portée interne').toEqual(['temoin.tsx:1']);
+    const corpus = [
+      { rel: 'porte.ts', text: "const E = '…'; const a = s.sli\\u0063e(0, 20) + E;" },
+      { rel: 'voisin.ts', text: 'const a = s.slice(0, 20) + E;' },
+    ];
+    expect(coupesAuCaractere(corpus), 'le parseur partagé ne prête pas une constante à un autre fichier').toEqual(['porte.ts:1']);
   });
 
   it('un attribut JSX sans ellipse reste muet ; son voisin ne fournit pas une ellipse à sa valeur', () => {
@@ -123,7 +128,7 @@ describe('coupe au caractère suivie d’une ellipse', () => {
   });
 
   it('aucun site sous `src/` ni `scripts/`', { timeout: 120_000 }, () => {
-    const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
+    const corpus = readCorpus(['src', 'scripts'], { tests: true });
     expect(coupesAuCaractere(corpus)).toEqual([]);
   });
 });

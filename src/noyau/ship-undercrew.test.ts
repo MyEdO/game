@@ -10,12 +10,13 @@ const crewman = (id: string): Combatant =>
 const crew = Array.from({ length: 15 }, (_, i) => crewman(`m${i}`));
 const cogue = {
   id: 'ship', name: 'Cogue', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'cogue',
+  navireDeCampagneUid: 'navire-1',
   pos: { x: 5, y: 5 }, crewIds: crew.map((c) => c.id),
 } as unknown as Combatant;
 const combatants = [cogue, ...crew];
 // `get` mock minimal : `shipUndercrew` ne lit que `get().vessel` (comme `shipMoraleScore`).
 const getVessel = (crewLost?: number): Get =>
-  (() => ({ vessel: crewLost == null ? undefined : { vehicleId: 'cogue', crewLost } })) as unknown as Get;
+  (() => ({ vessel: crewLost == null ? undefined : { uid: 'navire-1', vehicleId: 'cogue', crewLost } })) as unknown as Get;
 
 describe('shipUndercrew — Embrigadement (crewLost) consommé par le Manque de bras (#155, MDG 15 l.245)', () => {
   it('équipage complet, aucune perte de campagne → aucune pénalité', () => {
@@ -33,8 +34,8 @@ describe('shipUndercrew — Embrigadement (crewLost) consommé par le Manque de 
     expect(shipUndercrew(getVessel(3), cogue, wounded)).toEqual({ tranches: 3, dr: -6, capSuccesMinime: true });
   });
 
-  it('crewLost n’affecte QUE le vaisseau de campagne (creatureId === vehicleId) : un navire d’un AUTRE type est épargné', () => {
-    const getOther = (() => ({ vessel: { vehicleId: 'fregate', crewLost: 9 } })) as unknown as Get;
+  it('crewLost épargne une autre instance de même type', () => {
+    const getOther = (() => ({ vessel: { uid: 'navire-2', vehicleId: 'cogue', crewLost: 9 } })) as unknown as Get;
     expect(shipUndercrew(getOther, cogue, combatants)).toEqual({ tranches: 0, dr: 0, capSuccesMinime: false });
   });
 });

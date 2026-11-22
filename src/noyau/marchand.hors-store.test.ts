@@ -4,6 +4,7 @@
  * ≤ Statut du groupe coûte 0 au débit ET au devis. La réparation débite `coutDeReparation`, le Troc
  * refusé dit le refus de `devisDeTroc`. LDB 59 l.9-11 ; LDB 59 l.43 ; LDB 59 l.64-76 ; LDB 62 l.135.
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
@@ -16,7 +17,8 @@ import type { ItemInstance } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { t } from '../i18n';
 import { choixDuTroc } from './marchand.testkit';
-import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, devisDeTroc, devisDeVente, sellGain } from './merchantFlow';
+import { reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
+import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, objetsAReparer, devisDeTroc, devisDeVente, sellGain } from './merchantFlow';
 
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
 
@@ -105,11 +107,39 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       const abimee = heros.items!.find((i) => i.uid === 'abimee')!;
       // LDB 62 l.135 : 10 % du coût de l'arme par point de Dégâts — hallebarde 2 CO = 480 sous, 2 Dégâts → 96 sous.
       const cout = 96;
-      expect(toBrass(coutDeReparation(abimee))).toBe(cout);
+      expect(toBrass(coutDeReparation(abimee, findTrappingById))).toBe(cout);
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', 'abimee'] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
       expect(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(0);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+
+  it('le Brise-épée abîmé suit le profil actif pour le devis et le geste de réparation', () => {
+    const briseEpee = { ...itemFromTrappingById('brise-epee', idsDeTest)!, damageTaken: 1 };
+    const { partie } = ouvrir(false, [briseEpee]);
+    try {
+      const ligne = () => objetsAReparer(partie.etat().party, findTrappingById).find(({ item }) => item.uid === briseEpee.uid)!;
+      expect(ligne().refus).toBeNull();
+      const cout = toBrass(coutDeReparation(ligne().item, findTrappingById));
+      expect(cout).toBeGreaterThan(0);
+
+      reglerUneRegleMaison(null, partie.etat(), 'combat-aa-armement', true, partie.reprojeterLArmement);
+      expect(ligne().refus).toBe(t('mf.irreparable', { label: briseEpee.label }));
+      expect(toBrass(coutDeReparation(ligne().item, findTrappingById))).toBe(0);
+      const avant = bourseDuGroupe(partie);
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
+      expect(bourseDuGroupe(partie)).toBe(avant);
+      expect(ligne().item.damageTaken).toBe(1);
+
+      remettreUneRegleMaison(null, partie.etat(), 'combat-aa-armement', partie.reprojeterLArmement);
+      expect(ligne().refus).toBeNull();
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
+      expect(avant - bourseDuGroupe(partie)).toBe(cout);
+      expect(partie.etat().party[0].items?.find((i) => i.uid === briseEpee.uid)?.damageTaken).toBe(0);
     } finally {
       partie.fermer();
     }
@@ -128,7 +158,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
     try {
       const demande = { giveHeroId: etat.party[0].id, giveTrappingId: 'corde', getStockId: 'hallebarde', getCount: 1 };
       const texte = 'Troc : il faut 5 × Corde à céder (1 disponible(s)).';
-      expect(devisDeTroc(etat.merchant, etat.party, demande).refus).toBe(texte);
+      expect(devisDeTroc(etat.merchant, etat.party, demande, findTrappingById).refus).toBe(texte);
       for (const args of choixDuTroc(etat, demande)) partie.envoyer({ type: 'fenetreChoisir', args });
       expect(partie.etat().merchant!.stock).toEqual([{ id: 'hallebarde', qty: 3 }]);
       expect(partie.etat().journal.some((l) => l.includes(texte))).toBe(true);
@@ -148,8 +178,8 @@ describe('#3059 — vente au panier : le crédit est le total du devis de l’é
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'v1'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'v2'] });
       const s = partie.etat();
-      const devis = devisDeVente(s.merchant!, s.party);
-      const somme = s.party[0].items!.filter((i) => i.uid === 'v1' || i.uid === 'v2').reduce((n, i) => n + toBrass(sellGain(i, s.merchant!)), 0);
+      const devis = devisDeVente(s.merchant!, s.party, findTrappingById);
+      const somme = s.party[0].items!.filter((i) => i.uid === 'v1' || i.uid === 'v2').reduce((n, i) => n + toBrass(sellGain(i, s.merchant!, findTrappingById)), 0);
       expect(toBrass(devis.total)).toBe(somme);
       expect(somme).toBeGreaterThan(0);
       const avant = bourseDuGroupe(partie);

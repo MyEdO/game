@@ -103,7 +103,7 @@ export function corpsDeLaPage(stdout) {
 
 /**
  * Toutes les entrées d'une liste REST, page par page. JAMAIS `--paginate`.
- * C'est la LISTE qui dit où elle s'arrête : une page qui rend moins de `PAR_PAGE` entrées est la
+ * C'est la LISTE qui dit où elle s'arrête : une page qui rend moins de `taillePage` entrées est la
  * dernière. Aucun compteur EXTERNE ne borne la boucle — un compteur lu dans un appel ANTÉRIEUR peut
  * être faux (une entrée arrivée entre les deux appels) et faire manquer la dernière page.
  * Un refus sur une page quelconque rend `ok:false`, jamais une liste partielle.
@@ -116,26 +116,26 @@ export function corpsDeLaPage(stdout) {
  * ramène au cas exhaustif, plafond compris.
  * @param {string} chemin route REST, query de tête comprise (`repos/o/r/issues?state=closed`)
  * @param {(args: string[]) => {ok:boolean, stdout?:string, raison?:string}} appel
- * @param {{assezLu?: (entrees: object[]) => boolean}} [options] arrêt anticipé, évalué après chaque page
+ * @param {{assezLu?: (entrees: object[]) => boolean, taillePage?:number, lirePage?:(stdout:string)=>object[]}} [options]
  * @returns {{ok:true, entrees:object[]} | {ok:false, raison:string}}
  */
-export function pagesRest(chemin, appel, { assezLu } = {}) {
+export function pagesRest(chemin, appel, { assezLu, taillePage = PAR_PAGE, lirePage = corpsDeLaPage } = {}) {
   const jointeur = chemin.includes('?') ? '&' : '?'
   const entrees = []
   for (let page = 1; page <= PLAFOND_PAGES; page += 1) {
-    const vue = appel(['api', `${chemin}${jointeur}per_page=${PAR_PAGE}&page=${page}`])
+    const vue = appel(['api', `${chemin}${jointeur}per_page=${taillePage}&page=${page}`])
     if (!vue.ok) return { ok: false, raison: vue.raison }
     let lues
     try {
-      lues = corpsDeLaPage(vue.stdout)
+      lues = lirePage(vue.stdout)
     } catch (e) {
       return { ok: false, raison: e.message }
     }
     entrees.push(...lues)
-    if (lues.length < PAR_PAGE) return { ok: true, entrees }
+    if (lues.length < taillePage) return { ok: true, entrees }
     if (assezLu?.(entrees)) return { ok: true, entrees }
   }
-  return { ok: false, raison: `${chemin} : plus de ${PLAFOND_PAGES} pages de ${PAR_PAGE} entrées` }
+  return { ok: false, raison: `${chemin} : plus de ${PLAFOND_PAGES} pages de ${taillePage} entrées` }
 }
 
 /**

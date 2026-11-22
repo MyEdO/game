@@ -1,10 +1,11 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { applyShipPostes, serveAtPoste } from './monde/shipPostes';
 import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
-import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
+import { hydratePoste, mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -54,7 +55,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
+  hydratePoste({ engin: { id: engineId }, crewIds, side }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case) — PAS de merScale/metresPerTile « Mer ». */
 const groundScene = (): Scene =>
@@ -68,7 +69,7 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).
 describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est servi (mannedPoste)', () => {
   it('SceneEntity NON-navire portant `postes` → `Combatant.postes` au spawn (comme la voie navale)', () => {
-    const poste = { trappingId: 'baliste', crewIds: ['gunner', 's1'] }; // PAS de `side` → exige `side` optionnel
+    const poste = { engin: { id: 'baliste' }, crewIds: ['gunner', 's1'] }; // PAS de `side` → exige `side` optionnel
     const emplacement = spawnEnemy({ statblock: { name: 'Affût de baliste', char: { B: 20 } } as never }, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
     expect(emplacement.postes).toBeTruthy();
     expect(emplacement.bodyShape).not.toBe('vehicule'); // AUCUN couplage navire (pas une coque)
@@ -93,22 +94,44 @@ describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est
 // (B) TIR — le chef tire la baliste sur la cible via le chemin `firedWeapon` → `resolveAttack` ; une touche se
 //     résout (Blessures appliquées), seed fixe.
 describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, seed fixe)', () => {
-  it('une touche se résout via la pièce servie → Blessures infligées', () => {
+  it.each([
+    { id: 'baliste', spec: 'arbalete', equipe: 'arme-d-equipe', effectif: 2, degats: 12, recharge: 3 },
+    { id: 'baliste-ade2', spec: 'machine-de-guerre', equipe: 'equipe', effectif: 4, degats: 14, recharge: 2 },
+  ])('$id : le chef tire avec le profil et les munitions de son poste (AA 10 l.179 ; ADE II 08 l.238)', ({ id, spec, equipe, effectif, degats, recharge }) => {
     seedBattleRng(1);
-    const poste = mkPoste('baliste', ['gunner', 's1']);
-    const gunner = mkGunner('gunner', 'heros', { x: 5, y: 5 }, 80);
-    gunner.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never;
-    const s1 = mkCrewman('s1');
-    s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never; // équipe COMPLÈTE et qualifiée (2/2)
-    const cible = mkEnemy('cible', 8, 5, 30, 60);
-    const all = [mkEmplacement(poste), gunner, s1, cible];
+    const artilleurs = Array.from({ length: effectif }, (_, i) => {
+      const c = mkGunner(`servant-${i}`, i === 0 ? 'heros' : 'pnj', { x: 5 + i, y: 5 }, 80);
+      c.skills = [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 0 }];
+      return c;
+    });
+    const [chef] = artilleurs;
+    const affut = spawnEnemy({ engin: id }, 'emplacement', { x: 5, y: 5 }, { postes: [{
+      engin: { id: id },
+      crewIds: artilleurs.map((c) => c.id),
+      ammo: { 'carreau-de-baliste': 2 },
+      selectedAmmo: { id: 'carreau-de-baliste' },
+    }] });
+    const poste = affut.postes![0];
+    expect(poste.item.trappingId).toBe(id);
+    const cible = mkEnemy('cible', 20, 5, 30, 60);
+    const all = [affut, ...artilleurs, cible];
+    const scene = groundScene();
+    const get = mkGet(scene, all);
     applyShipPostes(all);
-    const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all), undefined, false, false, false);
-    expect(r).not.toBeNull();
-    expect(r!.weapon.uid).toBe(poste.item.uid); // c'est bien la baliste du poste qui a tiré
-    expect(r!.res.hit).toBe(true);
-    expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0);
+
+    expect(chef.mannedPoste).toBe(poste);
+    expect(chef.items?.some((it) => it.trappingId === id)).toBeFalsy();
+    expect(chef.weapons).toContainEqual(expect.objectContaining({
+      trappingId: id, weaponGroup: spec, qualities: expect.arrayContaining([{ id: equipe, value: effectif }]),
+    }));
+    expect(poste.loadedAmmoUid).toBe('emplacement-poste-0-carreau-de-baliste');
+    expect(firedAttackBlock(get, chef, cible, poste.item.uid)).toBeNull();
+
+    const tiree = firedWeapon(findTrappingById, scene, chef, cible, poste.item.uid, all);
+    expect(tiree).toMatchObject({ uid: poste.item.uid, trappingId: id, damage: { plusBF: false, flat: degats }, reload: recharge });
+    const r = resolveAttack(get, chef, cible, tiree, undefined, false, false, false);
+    expect(r?.res.hit).toBe(true);
+    expect(r?.res.woundsLost ?? 0).toBeGreaterThan(0);
   });
 });
 
@@ -125,7 +148,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     chef.skills = arb();
     const all = [mkEmplacement(poste), chef, mkCrewman('s1', false), mkEnemy('cible', 12, 5)]; // s1 à terre → présent 1, déficit 1
     applyShipPostes(all);
-    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
     expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
   });
@@ -138,7 +161,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     s1.skills = arb();
     const all = [mkEmplacement(poste), chef, s1, mkEnemy('cible', 12, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet (présent 2 ≥ Indice 2) → pas de ×2
   });
 
@@ -146,7 +169,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     // crewedFireWeapon est la SOURCE UNIQUE de la dégradation (réutilisée par firedWeapon) — éprouvée sur
     // l'arme dérivée du poste (le mortier n'a PAS le Défaut Imprécise de base → la pénalité l'AJOUTE).
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
-    const w0 = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] } as ShipPoste)!;
+    const w0 = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
     const w = crewedFireWeapon(w0, 1); // présent 1, Indice 3 → déficit 2
     expect(w.reload).toBe(8); // Recharge 4 ×2
     expect(w.qualities.some((q) => q.id === 'imprecise')).toBe(true); // Défaut AJOUTÉ par le sous-effectif
@@ -157,8 +180,8 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 //     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
 describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@rechargement)', () => {
   const setup = (order = ['chef', 'emplacement', 's1']) => {
-    const item = itemFromTrappingById('baliste', idsDeTest)!; // Recharge 3, Indice 2
-    const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
+    const poste = hydratePoste({ engin: { id: 'baliste' }, crewIds: [], loaded: false, reloadProgress: 2 }, idsDeTest('it'));
+    const { item } = poste;
     const chef = mkGunner('chef', 'heros', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
     const s1 = mkGunner('s1', 'pnj', { x: 6, y: 6 }, 40);
@@ -208,7 +231,7 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
   it('toutes les cibles dans le rayon Indice subissent DR+Dégâts ; hors rayon = épargné', () => {
     seedBattleRng(7);
     const chef = mkGunner('chef', 'heros', { x: 0, y: 0 });
-    const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] })!;
+    const mortier = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
     const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!; // Explosion Indice 5, Dégâts 12
     const w: Weapon = weaponWithAmmo(mortier, bomb); // arme effective : la qualité a-explosion est fusionnée
     expect(w.qualities.some((q) => q.id === 'a-explosion')).toBe(true);
@@ -235,41 +258,43 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
 // (F) ARC — la garde d'arc de `firedAttackBlock` au sol : SANS `side` → omni ; AVEC `side` → relative à
 //     l'orientation-monde DU CHEF (pas d'une coque). C'est le test du fallback orienté-monde.
 describe('(F) Arc — emplacement au sol : omni sans side, sinon arc relatif au facing du CHEF', () => {
-  /** Chef-héros au sol servant une pièce, SANS coque dans le combat (→ `shipOfCrew` rate → fallback chef). */
-  const groundGunner = (side?: FireArc): { gunner: Combatant; uid: string } => {
-    const item = itemFromTrappingById('pierrier', idsDeTest)!;
-    const w = mannedPosteWeapon(mkGunner('g', 'heros', { x: 5, y: 5 }), { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste)!;
-    delete (w as { reload?: number }).reload; // isole la garde d'ARC (pas le gate Recharge/munition)
-    delete (w as { subType?: string }).subType; // pas de famille de munition → pas de gate 'noammo'
+  const groundGunner = (side?: FireArc, facing = 'N') => {
+    const poste: ShipPoste = {
+      item: {
+        uid: 'piece', label: 'Artillerie de banc', kind: 'distance', subType: 'armes-de-siege',
+        range: 30, damage: { plusBF: false, flat: 14 }, qualities: [{ id: 'recharge', value: 4 }],
+        enc: 0, equipped: false,
+      },
+      crewIds: ['g'],
+      ammo: [{
+        uid: 'projectile', label: 'Projectile de banc', kind: 'ammo', subType: 'munition-de-siege',
+        qty: 1, qualities: [], enc: 0, equipped: false,
+      }],
+      ...(side ? { side } : {}),
+    };
     const gunner = mkGunner('g', 'heros', { x: 5, y: 5 });
-    gunner.weapons = [w];
-    gunner.mannedPoste = { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste;
-    return { gunner, uid: w.uid! };
+    const east = mkEnemy('east', 9, 5);
+    const west = mkEnemy('west', 1, 5);
+    const combatants = [mkEmplacement(poste), gunner, east, west];
+    applyShipPostes(combatants);
+    expect(poste.loadedAmmoUid).toBe('projectile');
+    return { get: mkGet(groundScene(), combatants, { g: facing }), gunner, uid: poste.item.uid, east, west };
   };
 
   it('SANS `side` → tir omni : la cible est valide dans N’IMPORTE quelle direction', () => {
-    const { gunner, uid } = groundGunner();
-    const east = mkEnemy('east', 9, 5);
-    const west = mkEnemy('west', 1, 5);
-    const get = mkGet(groundScene(), [gunner, east, west], { g: 'N' });
+    const { get, gunner, uid, east, west } = groundGunner();
     expect(firedAttackBlock(get, gunner, east, uid)).toBeNull();
     expect(firedAttackBlock(get, gunner, west, uid)).toBeNull();
   });
 
   it('AVEC `side` (tribord) → l’arc suit le facing du CHEF : cible hors arc bloquée (raison `arc`)', () => {
-    const { gunner, uid } = groundGunner('tribord');
-    const east = mkEnemy('east', 9, 5); // tribord d’un cap Nord
-    const west = mkEnemy('west', 1, 5); // bâbord → hors arc tribord
-    const get = mkGet(groundScene(), [gunner, east, west], { g: 'N' });
+    const { get, gunner, uid, east, west } = groundGunner('tribord');
     expect(firedAttackBlock(get, gunner, east, uid)).toBeNull();
     expect(firedAttackBlock(get, gunner, west, uid)).toMatchObject({ reason: 'arc' });
   });
 
   it('pivoter le CHEF au Sud inverse l’arc (preuve qu’il suit le chef, pas une coque)', () => {
-    const { gunner, uid } = groundGunner('tribord');
-    const east = mkEnemy('east', 9, 5);
-    const west = mkEnemy('west', 1, 5);
-    const get = mkGet(groundScene(), [gunner, east, west], { g: 'S' });
+    const { get, gunner, uid, east, west } = groundGunner('tribord', 'S');
     expect(firedAttackBlock(get, gunner, east, uid)).toMatchObject({ reason: 'arc' });
     expect(firedAttackBlock(get, gunner, west, uid)).toBeNull();
   });

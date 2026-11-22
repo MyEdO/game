@@ -10,7 +10,7 @@ import {
   diseaseBlesseCount,
   diseasePassiveOps,
   diseasePsychTraits,
-  rollContraction,
+  applyContraction,
   applyDiseasePersist,
   symptomOnTick,
 } from './disease';
@@ -272,26 +272,27 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     });
   });
 
-  describe('rollContraction (post-critique +60, Chirurgie +20)', () => {
+  describe('applyContraction', () => {
     it('Test de Résistance réussi → aucune maladie', () => {
       const c = sick();
-      // resVal 80, Très Facile (+60) → cible plafonnée ; d100=5 réussit.
-      const log = rollContraction(c, 'infection-mineure', 80, 'tresFacile', seq([5]));
+      const log = applyContraction(c, 'infection-mineure', true, seq([]));
       expect(c.diseases ?? []).toHaveLength(0);
       expect(log).toHaveLength(0);
     });
 
     it('Test raté → contracte la maladie (incubation/durée tirées ensuite)', () => {
       const c = sick();
-      // resVal 1, Très Facile (+60) → cible 61 ; d100=99 échoue → contractDisease tire incubation=3, durée=5.
-      const log = rollContraction(c, 'infection-mineure', 1, 'tresFacile', seq([99, 3, 5]));
-      expect(c.diseases!.map((d) => d.id)).toEqual(['infection-mineure']);
+      const log = applyContraction(c, 'infection-mineure', false, seq([3, 5]));
+      expect(c.diseases).toMatchObject([{
+        id: 'infection-mineure', phase: 'incubation',
+        minutesLeft: 3 * MINUTES_PER_DAY, durationMinutes: 5 * MINUTES_PER_DAY,
+      }]);
       expect(log.some((l) => /contracte/.test(l))).toBe(true);
     });
 
-    it('déjà porteur de la maladie → ne relance rien (dédoublonnage)', () => {
+    it('déjà porteur de la maladie → une seule instance', () => {
       const c = sick({ diseases: [contractDisease('infection-mineure', seq([]), { incubation: 0, duration: 5 })!] });
-      const log = rollContraction(c, 'infection-mineure', 1, 'tresFacile', seq([])); // aucun jet
+      const log = applyContraction(c, 'infection-mineure', false, seq([]));
       expect(c.diseases!).toHaveLength(1);
       expect(log).toHaveLength(0);
     });
@@ -331,23 +332,23 @@ describe('MSRC 16 — Crampes abdominales : pénalité GLOBALE de Test (testMod,
 });
 
 describe('MSRC 16 — Vers de carie : phase active PERSISTANTE (dégénérescence quotidienne jusqu’à la Mort, l.90-103)', () => {
-  it('DONNÉE RÉELLE : « Durée : 1 semaine » n’END PAS la maladie — elle reste active et dégénère chaque jour ≥ J+7', () => {
+  it('DONNÉE RÉELLE : « Durée : 1 semaine » n’END PAS la maladie — elle reste active et dégénère chaque jour à partir de J+8', () => {
     const c = fullSick({ diseases: [contractDisease('vers-de-carie', seq([]), { incubation: 0 })!] });
-    expect(c.diseases![0].durationMinutes).toBe(7 * MINUTES_PER_DAY); // installation = 1 semaine
+    expect(c.diseases![0].durationMinutes).toBe(8 * MINUTES_PER_DAY); // MSRC 16 l.88
     const steps: { kind: string }[] = [];
     const defer = (s: { kind: string }) => steps.push(s);
-    for (let d = 0; d < 6; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien').length).toBe(0); // < J+7 : aucun Test de cycle
-    for (let d = 0; d < 5; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer); // J+7 → J+11
+    for (let d = 0; d < 7; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
+    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien')).toHaveLength(0);
+    for (let d = 0; d < 5; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     expect(c.diseases?.length).toBe(1); // TOUJOURS active (persistentActive — pas de guérison à l'épuisement de la Durée)
-    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien').length).toBeGreaterThanOrEqual(5); // dégénérescence CHAQUE jour ≥ J+7
+    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien')).toHaveLength(5);
   });
 
   it('rollTable du symptôme (échec + DR négatif) : Initiative rongée … jusqu’à la Mort', () => {
     const c = fullSick({ diseases: [contractDisease('vers-de-carie', seq([]), { incubation: 0 })!] });
     const steps: { meta?: Record<string, unknown> }[] = [];
     const defer = (s: { meta?: Record<string, unknown> }) => steps.push(s);
-    for (let d = 0; d < 7; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
+    for (let d = 0; d < 8; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     const table = steps.map((s) => s.meta?.opsEchec).find((o): o is import('./ops').GameOp[] => Array.isArray(o) && o[0]?.op === 'rollTable')!;
     const dead = fullSick();
     applyOps(dead, table, { idNeuf: idsDeTest, rng: deFixe(10), sl: -3 }); // d10=10 + |DR −3| = 13 → Mort

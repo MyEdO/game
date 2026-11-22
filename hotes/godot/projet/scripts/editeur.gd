@@ -70,6 +70,9 @@ const CALQUES := "user://calques"
 var _zones: Array[Zone] = []
 ## La dernière réponse montrée : sa vue et sa surcouche.
 var _vue: Dictionary = {}
+## Les réponses lues dans l'état courant du pont et montrées à leur tour.
+var _file_des_vues: Array[Dictionary] = []
+var _pose_des_vues: RefCounted
 var _surcouche: Dictionary = {cases = [], arete = null, reperes = [], zones = [], poignee = null, zoneJouable = []}
 ## Le calque de la dernière réponse, `null` sans lui.
 var _calque: Variant = null
@@ -121,22 +124,27 @@ func _ready() -> void:
 				_suivre(_pont.appeler("editer", ouvrir))))
 
 
-## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
-## nappe de toit ni couronne, la géométrie des seuls morceaux dont l'empreinte posée diffère demandée à `morceaux`
-## (`VolumeDeScene.manquants`), puis son masque (`reponse.retrait`, `VolumeDeScene.retirer`).
-func _poser_le_monde(reponse: Dictionary) -> void:
-	var monde := {monde = reponse.monde, toits = [], couronnes = []}
-	var manquants := _monde.volume.manquants(monde)
-	var recus := {volume = [], toits = [], couronnes = []}
-	if not manquants.volume.is_empty():
-		recus = _pont.appeler("morceaux", manquants.merged({source = "edition"}))
-		if recus.get("ok") != true:
-			return
-	_monde.poser(monde, recus)
-	_monde.volume.retirer(reponse.retrait)
+## Les morceaux associés au manifeste de cette réponse, sans nappe ni couronne. En cas de pose en cours,
+## le volume complet permettra de la suivre même si elle change une empreinte déjà identique au présent posé.
+func _lire_les_morceaux(monde: Dictionary) -> Dictionary:
+	var manquants := _monde.volume.manquants(monde) if _pose_des_vues == null else {
+		volume = monde.monde.morceaux.map(func(morceau: Dictionary) -> String: return morceau.cle),
+		toits = [],
+		couronnes = [],
+	}
+	if manquants.volume.is_empty():
+		return {volume = [], toits = [], couronnes = []}
+	var recus := _pont.appeler("morceaux", manquants.merged({source = "edition"}))
+	return recus if recus.get("ok") == true else {}
 
 
+## Les gestes de l'interface se jouent sur la vue posée. Le poste rend ses réponses même pendant la lecture.
 func _jouer(jeu: Dictionary) -> void:
+	if _pose_des_vues == null:
+		_transmettre(jeu)
+
+
+func _transmettre(jeu: Dictionary) -> void:
 	_suivre(_pont.appeler("editer", jeu))
 
 
@@ -145,16 +153,41 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 	_jouer({edition = {geste = geste, point = {case = {x = touche.case.x, y = touche.case.y}, f = {x = touche.f.x, y = touche.f.y}}}})
 
 
-## Une réponse de `editer` : le monde, ses arêtes, ses navires et ses décors servis posés s'il y en a un, la surcouche peinte, le calque posé, les zones
-## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, la planche demandée choisie, et le chapitre
-## demandé chargé ; la scène mise à l'essai se joue au combat.
+## Une réponse de `editer` et ses morceaux, lus avant toute attente, puis montrés dans l'ordre de lecture.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
-	_refus.text = ""
+	var monde := {}
+	var recus := {}
 	if reponse.has("monde"):
-		_poser_le_monde(reponse)
-		_monde.volume.poser_les_aretes(reponse.aretes)
+		# Le pont publie le monde après la fin du geste du pointeur (editer).
+		_tenu = null
+		monde = {monde = reponse.monde, toits = [], couronnes = []}
+		recus = _lire_les_morceaux(monde)
+	_file_des_vues.append({reponse = reponse, monde = monde, recus = recus})
+	if _pose_des_vues != null:
+		return
+	var pose := RefCounted.new()
+	_pose_des_vues = pose
+	while not _file_des_vues.is_empty():
+		var plan: Dictionary = _file_des_vues.front()
+		var _textures_gardees := await TexturesDeMatiere.preparer(self, VolumeDeScene.matieres_des_morceaux(plan.recus))
+		if pose != _pose_des_vues:
+			return
+		_file_des_vues.pop_front()
+		_poser_la_reponse(plan)
+	_pose_des_vues = null
+
+
+## Le monde et l'écran du plan, puis les actions au poste et l'éventuel passage à l'essai.
+func _poser_la_reponse(plan: Dictionary) -> void:
+	var reponse: Dictionary = plan.reponse
+	_refus.text = ""
+	if not plan.monde.is_empty():
+		if not plan.recus.is_empty():
+			_monde.poser(plan.monde, plan.recus)
+			_monde.volume.retirer(reponse.retrait)
+		_monde.volume.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches, [])
 		_modeles.poser(reponse.navires, reponse.decors, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
@@ -205,6 +238,8 @@ func _suivre(reponse: Dictionary) -> void:
 
 ## Sorti de l'arbre (l'essai, `_suivre`), il n'y revient pas (#4195) : ses attentes au poste sont abandonnées.
 func _exit_tree() -> void:
+	_pose_des_vues = null
+	_file_des_vues.clear()
 	_poste.abandonner()
 
 
@@ -260,26 +295,28 @@ func _lire_la_planche(choisie: Dictionary, image: String) -> void:
 		DirAccess.make_dir_recursive_absolute(chemin.get_base_dir())
 		lue.save_png(chemin)
 		_planches.erase(image)
-	_jouer({edition = {geste = "chargement", image = {largeur = lue.get_width(), hauteur = lue.get_height()} if issue == OK else null}})
+	_transmettre({edition = {geste = "chargement", image = {largeur = lue.get_width(), hauteur = lue.get_height()} if issue == OK else null}})
 
 
 ## Le texte du chapitre `chapitre` du `Source/` que sert le poste (`GET source/<book>/<ch>.md`), rendu au pont, ou `null`
 ## s'il ne se charge pas.
 func _charger_le_chapitre(chapitre: Dictionary) -> void:
 	_poste.charger_le_chapitre(chapitre, func(texte: Variant) -> void:
-		_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = texte}}))
+		_transmettre({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = texte}}))
 
 
 ## Le texte `depot.texte` écrit au dépôt à la place du projet `depot.id`, puis l'issue de l'écriture rendue au pont ; une
 ## écriture qui échoue dit pourquoi.
 func _deposer(depot: Dictionary) -> void:
 	_poste.ecrire("depot/%s" % depot.id, depot.texte, PackedStringArray(), func(recueil: Array[String]) -> void:
-		_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
+		_transmettre({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
 		if not recueil.is_empty():
 			_refus.text = "\n".join(recueil))
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _pose_des_vues != null:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var touche: Variant = _monde.touche_sous(event.position)
 		if event.pressed and touche != null:
@@ -315,7 +352,9 @@ func _publier_l_ecran() -> void:
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue, et le cadre du plan montré
 ## (`_cadre_du_plan`).
-func _ecran_publie() -> Dictionary:
+func _ecran_publie() -> Variant:
+	if _vue.is_empty():
+		return null
 	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), panneaux = PontDuNoyau.panneaux_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose(), plan = _cadre_du_plan()}}
 
 

@@ -39,7 +39,7 @@ const doc = document(
     gatedByRule: ref('regleOptionnelle').optional(),
   },
   {
-    class: { label: 'Classe' },
+    class: { label: 'Classe', inverseCodex: true },
     grantGroups: { label: 'Groupes accordés' },
     races: { label: 'Races', hint: 'Présentes : seules ces races tirent cette carrière au Tableau des Classes et Carrières aléatoires' },
     aLaPlaceDe: { label: 'À la place de', hint: 'Présente : qui tire cette carrière au Tableau peut choisir celle-ci à la place' },

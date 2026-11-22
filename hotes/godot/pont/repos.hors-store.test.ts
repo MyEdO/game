@@ -21,6 +21,7 @@ const valeurDuChoix = (b: Bouton): unknown => ('args' in b.jeu ? b.jeu.args[2] :
 describe('le repos par le pont', () => {
   it('la nuit à l’auberge du relais : chaque dormeur règle son couchage et sa pitance, la note suit, puis le groupe dort', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite;
+    expect(appel('reglages', { type: 'regle', args: ['maladie-mode', 'off'] }).ok).toBe(true);
     while (suite.vue.projection.fenetre) suite = jouer(focus(suite).jeu);
     suite = jouer(suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
     const route = departDeLaCarte(suite.vue, 'r-grandroute');

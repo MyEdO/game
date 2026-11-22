@@ -16,9 +16,8 @@ import { createHero } from '../../engine/character';
 import { withBourseMoney } from '../../engine/bourse';
 import type { Combatant } from '../../engine/types';
 import type { NetState } from '../../noyau/etat';
+import { t } from '../../i18n';
 
-/** Texte FIGÉ du refus de possession que l'hôte pose au journal. */
-const REFUS_DE_SIEGE = 'Action refusée : elle ne revient pas au joueur qui l’a demandée.';
 /** Texte FIGÉ du refus d'un geste de groupe chez l'invité. */
 const HOTE_SEUL = 'L’hôte seul ouvre la table de jeu.';
 
@@ -35,7 +34,7 @@ const NET_DE_L_HOTE = (invite: string): NetState => ({
 });
 
 /** L'hôte (banc du noyau) d'un interlude ouvert, ses Activités ouvertes, et l'invité du siège 1 qui possède `invite`. */
-function table(): { banc: Banc; guest: GuestSession; hote: Combatant; invite: Combatant } {
+function table() {
   const hote = heros('Hôtelier', 1601);
   const invite = heros('Invitée', 1602);
   const banc = ouvrirLeBanc({
@@ -48,16 +47,23 @@ function table(): { banc: Banc; guest: GuestSession; hote: Combatant; invite: Co
   banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : les Activités sont ouvertes').toBe('activities');
+  const refusRecus: string[] = [];
   const host = new HostSession({
     build: 'test',
-    applyIntent: (action, args, seat) => { appliquerLIntentionDUnSiege(banc.getState, seat, action, args); },
+    applyIntent: (action, args, seat) => {
+      let refus: string | undefined;
+      appliquerLIntentionDUnSiege(banc.getState, seat, action, args, (texte) => { refus = texte; });
+      return refus;
+    },
     getSnapshot: () => ({}),
   });
   const [a, b] = FakeTransport.pair();
-  const guest = new GuestSession({ build: 'test', label: 'Antoine', applySnapshot: vi.fn() });
+  const guest = new GuestSession({
+    build: 'test', label: 'Antoine', applySnapshot: vi.fn(), onIntentRefused: (texte) => { refusRecus.push(texte); },
+  });
   host.addGuest(a, 1);
   guest.connect(b);
-  return { banc, guest, hote, invite };
+  return { banc, guest, hote, invite, refusRecus };
 }
 
 const left = (banc: Banc, heroId: string) => banc.getState().interlude!.perHero[heroId].left;
@@ -94,7 +100,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 
 describe('Interlude en coop : l’invité est refusé sur le héros d’un autre siège', () => {
   it('Entraînement, Faveur, préparation de bataille du héros de l’hôte : rien ne bouge, le refus se dit', () => {
-    const { banc, guest, hote } = table();
+    const { banc, guest, hote, refusRecus } = table();
     banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity]);
     const journal = banc.getState().journal.length;
@@ -102,7 +108,8 @@ describe('Interlude en coop : l’invité est refusé sur le héros d’un autre
     guest.sendIntent('solderLaFaveur', [hote.id, `faveur-${hote.id}`]);
     guest.sendIntent('menerLActionDeBataille', [hote.id, prepaDe(hote)]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity])).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual(Array(5).fill(REFUS_DE_SIEGE));
+    expect(banc.getState().journal.slice(journal)).toEqual([]);
+    expect(refusRecus).toEqual(Array(5).fill(t('coop.intentRefused')));
   });
 });
 

@@ -2,7 +2,6 @@
 // garde-robe (`src/data/garde-robe.json`, `kind: emplacement`), les objets (`src/data/trappings.json`) qui s'y
 // rangent (`rangement`), puis les objets portés (arme, ou objet à `shape`) sans rangement, chacun sous le
 // premier trait de sa donnée qu'aucun objet rangé ne porte ; sans tel trait, « indiscernable d'un oubli ».
-// Patron : `scripts/data/prose-field-usage-report.mjs`.
 // Usage : node scripts/data/rangement-report.mjs [--json]
 
 import { readFileSync } from 'node:fs';

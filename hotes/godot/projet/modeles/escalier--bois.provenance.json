@@ -1,0 +1,13 @@
+{
+  "model": "escalier--bois.glb",
+  "model_sha256": "e9bcc2ce945fbd8aeedc489b65e41189cca335cbbf76bff831d68a54a7c2d56f",
+  "importe_le": "2026-11-21",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

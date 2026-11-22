@@ -21,7 +21,8 @@
     {
       "id": "wymund-l-anachorete",
       "label": "Wymund l'Anachorète",
-      "rand": 5,
+      "min": 1,
+      "max": 5,
       "signe": "Signe de l'Endurance",
       "classique": "Wymenos",
       "ascendant": "cœur de l'hiver",
@@ -54,7 +55,8 @@
     {
       "id": "la-grande-croix",
       "label": "La Grande Croix",
-      "rand": 10,
+      "min": 6,
+      "max": 10,
       "signe": "Signe de la Clairvoyance",
       "classique": "Azurios",
       "ascendant": "cœur de l'hiver",
@@ -87,7 +89,8 @@
     {
       "id": "le-trait-du-peintre",
       "label": "Le Trait du Peintre",
-      "rand": 15,
+      "min": 11,
+      "max": 15,
       "signe": "Signe de la Précision",
       "classique": "Verros",
       "ascendant": "fin de l'hiver/début du printemps",
@@ -120,7 +123,8 @@
     {
       "id": "gnuthus-le-buffle",
       "label": "Gnuthus le Buffle",
-      "rand": 20,
+      "min": 16,
+      "max": 20,
       "signe": "Signe du Dévouement et de la Loyauté",
       "classique": "Nuthlos",
       "ascendant": "début du printemps",
@@ -153,7 +157,8 @@
     {
       "id": "dragomas-le-dragon",
       "label": "Dragomas le Dragon",
-      "rand": 25,
+      "min": 21,
+      "max": 25,
       "signe": "Signe de la Bravoure",
       "classique": "Drakonos",
       "ascendant": "printemps",
@@ -186,7 +191,8 @@
     {
       "id": "le-crepuscule",
       "label": "Le Crépuscule",
-      "rand": 30,
+      "min": 26,
+      "max": 30,
       "signe": "Signe de l'Illusion et du Mystère",
       "classique": "Tartotes",
       "ascendant": "printemps",
@@ -219,7 +225,8 @@
     {
       "id": "le-fourreau-de-grungni",
       "label": "Le Fourreau de Grungni",
-      "rand": 35,
+      "min": 31,
+      "max": 35,
       "signe": "Signe des Ambitions Martiales",
       "classique": "Gileon",
       "ascendant": "fin du printemps/début de l'été",
@@ -252,7 +259,8 @@
     {
       "id": "mammit-le-sage",
       "label": "Mammit le Sage",
-      "rand": 40,
+      "min": 36,
+      "max": 40,
       "signe": "Signe de la Sagesse",
       "classique": "Mammius",
       "ascendant": "début de l'été",
@@ -285,7 +293,8 @@
     {
       "id": "mummit-le-fou",
       "label": "Mummit le Fou",
-      "rand": 45,
+      "min": 41,
+      "max": 45,
       "signe": "Signe de l'Incertitude",
       "classique": "le Fou",
       "ascendant": "été",
@@ -314,7 +323,8 @@
     {
       "id": "les-deux-boeufs",
       "label": "Les Deux Bœufs",
-      "rand": 50,
+      "min": 46,
+      "max": 50,
       "signe": "Signe de la Fertilité et du Bel Ouvrage",
       "classique": "Hashoor",
       "ascendant": "cœur de l'été",
@@ -344,7 +354,8 @@
     {
       "id": "le-danseur",
       "label": "Le Danseur",
-      "rand": 55,
+      "min": 51,
+      "max": 55,
       "signe": "Signe de l'Amour et de l'Attirance",
       "classique": "Adamnos",
       "ascendant": "fin de l'été",
@@ -373,7 +384,8 @@
     {
       "id": "le-tambour",
       "label": "Le Tambour",
-      "rand": 60,
+      "min": 56,
+      "max": 60,
       "signe": "Signe de l'Hédonisme et de l'Excès",
       "classique": "Lupios",
       "ascendant": "fin de l'été/début de l'automne",
@@ -402,7 +414,8 @@
     {
       "id": "le-flutiste",
       "label": "Le Flûtiste",
-      "rand": 65,
+      "min": 61,
+      "max": 65,
       "signe": "Signe du Roublard",
       "classique": "Sangist",
       "ascendant": "automne",
@@ -435,7 +448,8 @@
     {
       "id": "vobist-le-pale",
       "label": "Vobist le Pâle",
-      "rand": 70,
+      "min": 66,
+      "max": 70,
       "signe": "Signe des Ténèbres et de l'Incertitude",
       "classique": "Vobist",
       "ascendant": "automne",
@@ -464,7 +478,8 @@
     {
       "id": "la-charrette-brisee",
       "label": "La Charrette Brisée",
-      "rand": 75,
+      "min": 71,
+      "max": 75,
       "signe": "Signe de l'Orgueil",
       "classique": "Kharnos",
       "ascendant": "automne",
@@ -494,7 +509,8 @@
     {
       "id": "la-chevre-sauvage",
       "label": "La Chèvre Sauvage",
-      "rand": 80,
+      "min": 76,
+      "max": 80,
       "signe": "Signe des Passions refoulées",
       "classique": "Talios",
       "ascendant": "fin de l'automne",
@@ -523,7 +539,8 @@
     {
       "id": "le-chaudron-de-rhya",
       "label": "Le Chaudron de Rhya",
-      "rand": 85,
+      "min": 81,
+      "max": 85,
       "signe": "Signe de la Miséricorde, de la Mort et de la Création",
       "classique": "Rionyes",
       "ascendant": "début de l'hiver",
@@ -552,7 +569,8 @@
     {
       "id": "cackelfax-le-coq",
       "label": "Cackelfax le Coq",
-      "rand": 90,
+      "min": 86,
+      "max": 90,
       "signe": "Signe de la Richesse et du Négoce",
       "classique": "Kakeros",
       "ascendant": "hiver",
@@ -581,7 +599,8 @@
     {
       "id": "la-scie-a-os",
       "label": "La Scie à Os",
-      "rand": 95,
+      "min": 91,
+      "max": 95,
       "signe": "Signe de la Compétence et de l'Apprentissage",
       "classique": "Alyoi",
       "ascendant": "hiver",
@@ -614,7 +633,8 @@
     {
       "id": "l-etoile-du-sorcier-sixieme-sens",
       "label": "L'Étoile du Sorcier (Sixième sens)",
-      "rand": 100,
+      "min": 96,
+      "max": 100,
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
@@ -642,7 +662,8 @@
     {
       "id": "l-etoile-du-sorcier-seconde-vue",
       "label": "L'Étoile du Sorcier (Seconde vue)",
-      "rand": 100,
+      "min": 96,
+      "max": 100,
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
@@ -675,7 +696,8 @@
     {
       "id": "l-etoile-du-sorcier-magie-mineure",
       "label": "L'Étoile du Sorcier (Magie mineure)",
-      "rand": 100,
+      "min": 96,
+      "max": 100,
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
@@ -708,7 +730,8 @@
     {
       "id": "l-etoile-du-sorcier-sorcier",
       "label": "L'Étoile du Sorcier (Sorcier !)",
-      "rand": 100,
+      "min": 96,
+      "max": 100,
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",

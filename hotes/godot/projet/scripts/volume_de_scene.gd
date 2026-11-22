@@ -12,7 +12,8 @@
 ## (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
 ## murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de même par clé et
 ## empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce que l'arête nomme du modèle d'arête servi
-## de sa famille (`modele_d_arete`, #4471), sinon du kit des arêtes (`KIT`), sinon sa boîte, en groupes d'instances
+## de sa famille (`modele_servi`, #4471), sinon sa boîte, et les côtés de ses cases de marches, chacun les pièces qu'il
+## nomme du modèle d'escalier servi de sa famille, cisaillées à sa pente, en groupes d'instances
 ## (`poser_les_aretes`), chaque instance vue teinte par l'état de la meilleure des cases qu'elle sépare ; et ce que qui
 ## l'instancie en cache à la caméra (`cacher`) ou en retire
 ## (`retirer_les_couronnes`).
@@ -23,11 +24,15 @@ extends Node3D
 signal fondu_fini
 ## Ce que le regard retire a changé : le masque du retrait (`retirer`) ou les nappes de toit cachées (`cacher`).
 signal retire
+## Les nouvelles empreintes des morceaux rétablis par `retablir_le_decor`, par clé, pour les formes du rayon.
+signal empreintes_retablies(empreintes: Dictionary)
 ## Chaque modèle d'arête en lecture lu (`_lire_le_modele_d_arete`), ses arêtes posées (`aretes_en_lecture`).
 signal aretes_posees
 ## Plus aucun modèle d'arête en lecture : chacun lu, ou sa lecture périmée à la sortie de l'arbre
 ## (`attendre_les_aretes`).
 signal _lectures_closes
+## Le repli en cours a fini de préparer et de poser sa réponse.
+signal _secours_libre
 
 ## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
 ## foyer exclut de son ombre (`Foyer`).
@@ -36,8 +41,6 @@ const COUCHE_DES_LUMINAIRES := 2
 const COUCHE_DU_MONDE := 1
 ## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`, `_matiere`).
 const NETTETE_DU_MOTIF := 4.0
-## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
-const KIT := "res://kit/kit.glb"
 ## La durée, en secondes, du fondu d'une vision posée à la suivante (`voir`).
 const DUREE_DU_FONDU_S := 0.3
 ## Le voile de la vision sur un navire (`voile`), et le sol, dans sa texture (`_batir_les_sols`), d'une couche d'une
@@ -45,8 +48,19 @@ const DUREE_DU_FONDU_S := 0.3
 const VOILE := preload("res://art/voile.gdshader")
 const SANS_CASE := INF
 
-## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
-## d'une porte ouverte ou d'une brèche.
+## Les sortes de ce que le volume pose sur les arêtes, par catalogue des modèles servis (`MontageDeComposition.modeles`) :
+## les arêtes (`aretes`, méthode `aretes`), étirées à la hauteur de leur mur, en boîte sans modèle lu qui ait leur pièce ;
+## les côtés de marches (`escaliers`, `cotesDeMarches` de la méthode `aretes`), à la hauteur de leur modèle, rien sans
+## modèle lu qui ait leur pièce ; les faîtières (`toits`, `faitieres` de la méthode `aretes`), leur V ouvert à l'écart des
+## pentes de leurs deux pans, rien sans modèle lu qui ait leur pièce.
+const SORTES := {
+	aretes = {echelle = "mur", repli = true},
+	escaliers = {echelle = "modele", repli = false},
+	toits = {echelle = "pente", repli = false},
+}
+
+## Ce qui se pose sur une arête sans modèle d'arête lu qui ait sa pièce : un mur, une porte fermée, le seuil d'une
+## porte ouverte ou d'une brèche.
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
@@ -71,8 +85,11 @@ var metres_par_case := 1.0
 var _coques := {}
 ## Les ids des types de décor dont le modèle montre les surfaces, chacun à `true` (`peindre_sans`).
 var _decors_montres := {}
-## Par nom de matière, la matière de rendu des surfaces des morceaux, que le masque lie (`retirer`), et celle des
-## nappes et des couronnes, qu'il ne lie jamais : le retrait d'une nappe est par nœud (`cacher`).
+## La source et la révision du volume posé dont le pont peut rendre les recettes de décor.
+var _secours_des_decors := {}
+var _secours_en_cours := false
+## Par nom de matière, une référence faible à la matière des morceaux ou des nappes et couronnes qui la portent.
+## Le retrait lie les matières des morceaux (`retirer`) et écarte chaque nappe par nœud (`cacher`).
 var _matieres_masquees := {}
 var _matieres_des_nappes := {}
 ## L'indice de chaque couche du volume posé (`poser`, dans l'ordre de `hauteurs`), par son `z`, et les rangées d'une
@@ -106,27 +123,26 @@ var _liees: Array[ShaderMaterial] = []
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
 var _a_teindre := {}
 var _du_fondu := {}
-## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
-var _kit: Node3D
-## Le chargeur des modèles servis, celui des décors (`MontageDesModeles`) : d'où se lit le modèle d'arête de chaque
-## famille servie (`modele_d_arete`, `MontageDeComposition.scene_du_modele`).
+## Le chargeur des modèles servis, celui des décors (`MontageDesModeles`) : d'où se lit le modèle d'arête ou d'escalier
+## de chaque famille servie (`modele_servi`, `MontageDeComposition.scene_du_modele`).
 var chargeur: MontageDeComposition
 ## Par id d'élément `arete` lu, sa scène hors de l'arbre et la taille de sa boîte en mètres (`_taille_du_modele`) ;
 ## ceux en lecture, chacun à son jeton (`_lire_le_modele_d_arete`, jetés à la sortie de l'arbre) ; ceux dont la
-## lecture a échoué, dite une fois ; et les arêtes reçues au dernier `poser_les_aretes`, reposées à chaque modèle lu.
+## lecture a échoué, dite une fois ; et les poses reçues au dernier `poser_les_aretes` (`_poses_de`), reposées à chaque
+## modèle lu.
 var _modeles_d_arete := {}
 var _en_lecture := {}
 var _illisibles := {}
-var _aretes_recues: Array = []
-## Par pièce d'un modèle d'arête et palette, `<id>|<pièce>|<palette>`, la pièce peinte hors de l'arbre
-## (`piece_peinte`).
+var _poses_recues: Array = []
+## Par pièce d'un modèle d'arête, palette et étirement, `<id>|<pièce>|<palette>|<étirement>`, la pièce peinte hors
+## de l'arbre (`piece_peinte`).
 var _pieces_peintes := {}
 ## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
 ## de toit et des couronnes cachées, en tableaux (`toits`, `couronnes`).
 var _cachees := {aretes = {}, toits = [], couronnes = []}
 ## Les clés des couronnes retirées (`retirer_les_couronnes`).
 var _retirees: Array = []
-## Par maillage d'une pièce du kit, d'un modèle d'arête ou d'une boîte, sa copie que voient les instances vues de ses
+## Par maillage d'une pièce d'un modèle d'arête ou d'une boîte, sa copie que voient les instances vues de ses
 ## arêtes, et par matière, sa copie qui prend pour albédo la couleur de l'instance (`_maillage_teint`) ; oubliés avec
 ## les modèles d'arête (`_oublier_les_modeles_d_arete`).
 var _maillages_teints := {}
@@ -134,8 +150,6 @@ var _matieres_teintes := {}
 
 
 func _ready() -> void:
-	if ResourceLoader.exists(KIT):
-		_kit = (load(KIT) as PackedScene).instantiate()
 	RenderingServer.frame_pre_draw.connect(_teindre_le_pose)
 
 
@@ -160,8 +174,6 @@ func _exit_tree() -> void:
 func _notification(quoi: int) -> void:
 	if quoi != NOTIFICATION_PREDELETE:
 		return
-	if _kit != null:
-		_kit.free()
 	_oublier_les_modeles_d_arete()
 
 
@@ -175,6 +187,22 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
+## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor, chacune
+## à vrai si une nappe ou une couronne la porte : sa texture neutre sert (`_matiere`).
+static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
+	var matieres := {}
+	for famille in ["volume", "toits", "couronnes"]:
+		for geometrie: Dictionary in recus.get(famille, []):
+			_relever_les_matieres(geometrie, matieres, famille != "volume")
+	return matieres
+
+
+static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary, neutre: bool) -> void:
+	for surface: Dictionary in geometrie.surfaces:
+		if not surface.get("priseSeulement", false) and not surface.has("navire"):
+			matieres[surface.matiere] = matieres.get(surface.matiere, false) or neutre
+
+
 ## Le volume du manifeste `monde` (`{ monde, toits, couronnes }`) à l'échelle d'une unité par case, sa case (0, 0) sur
 ## la case (0, 0) du plateau, ses morceaux, ses nappes de toit et ses couronnes réconciliés par clé (`reconcilier`) : un
 ## posé dont l'empreinte n'a pas bougé reste, un reçu (`recus`, la réponse de `morceaux` : `{ volume, toits, couronnes }`)
@@ -182,6 +210,7 @@ func manquants(monde: Dictionary) -> Dictionary:
 ## (`_nappe`) cachés si `cacher` les nomme, chaque couronne retirée si `retirer_les_couronnes` la nomme ; la vision posée
 ## (`voir`) liée à l'échelle du volume.
 func poser(monde: Dictionary, recus: Dictionary) -> void:
+	_secours_des_decors = monde.monde.get("secoursDecors", {})
 	metres_par_case = monde.monde.metresParCase
 	_couches = {}
 	for indice in monde.monde.hauteurs.size():
@@ -204,7 +233,7 @@ func poser(monde: Dictionary, recus: Dictionary) -> void:
 func retirer(retrait: Variant) -> void:
 	_masque = null if retrait == null else Image.create_from_data(int(retrait.largeur), int(retrait.rangees), false, Image.FORMAT_R8, Marshalls.base64_to_raw(retrait.masque))
 	_retrait = null if _masque == null else ImageTexture.create_from_image(_masque)
-	for matiere: ShaderMaterial in _matieres_masquees.values():
+	for matiere in _matieres_vivantes(_matieres_masquees):
 		matiere.set_shader_parameter("retrait", _retrait)
 	retire.emit()
 
@@ -315,9 +344,21 @@ func _lier_la_vision() -> void:
 ## (`lier_a_la_vision`).
 func _matieres_de_la_vision() -> Array[ShaderMaterial]:
 	var matieres: Array[ShaderMaterial] = []
-	for parmi: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
-		matieres.append_array(parmi.values())
+	matieres.append_array(_matieres_vivantes(_matieres_masquees))
+	matieres.append_array(_matieres_vivantes(_matieres_des_nappes))
+	matieres.append_array(_voiles.values())
 	matieres.append_array(_liees)
+	return matieres
+
+
+static func _matieres_vivantes(references: Dictionary) -> Array[ShaderMaterial]:
+	var matieres: Array[ShaderMaterial] = []
+	for nom: String in references.keys():
+		var matiere := (references[nom] as WeakRef).get_ref() as ShaderMaterial
+		if matiere == null:
+			references.erase(nom)
+		else:
+			matieres.append(matiere)
 	return matieres
 
 
@@ -402,10 +443,25 @@ func _batir_les_sols(hauteurs: Array) -> void:
 ## Rien de posé : ni morceau, ni nappe, ni arête ; les modèles d'arête lus, leurs pièces peintes et leurs échecs
 ## oubliés (`_oublier_les_modeles_d_arete`), relus à la prochaine pose.
 func vider() -> void:
-	_aretes_recues = []
-	_oublier_les_modeles_d_arete()
-	for parent: Node3D in [_morceaux, _toits, _couronnes, _aretes]:
+	_secours_des_decors = {}
+	oublier_les_aretes()
+	for parent: Node3D in [_morceaux, _toits, _couronnes]:
 		reconcilier(parent, [], {}, Callable())
+	_matieres_masquees.clear()
+	_matieres_des_nappes.clear()
+
+
+## Les arêtes de la scène quittée et les ressources de ses pièces, dont les lectures encore en vol.
+func oublier_les_aretes() -> void:
+	var lectures_en_cours := aretes_en_lecture()
+	_en_lecture.clear()
+	_poses_recues = []
+	reconcilier(_aretes, [], {}, Callable())
+	_a_teindre.clear()
+	_du_fondu.clear()
+	_oublier_les_modeles_d_arete()
+	if lectures_en_cours:
+		_lectures_closes.emit()
 
 
 ## Les surfaces des décors `decors` (ids de `props.json`, `decor` d'une surface, `CONTRAT.md`, section « Monde ») ni
@@ -428,6 +484,79 @@ func peindre_sans(decors: Array) -> void:
 		for noeud: Node3D in parent.get_children():
 			if noeud.get_meta("decors").any(func(decor: String) -> bool: return changes.has(decor)):
 				(_mailler if parent == _morceaux else _mailler_la_nappe).call(noeud, noeud.get_meta("geometrie"))
+
+
+## Le décor `decor` dont le modèle est illisible, peint par ses recettes, dans le volume intégral ou par
+## `retablirDecors` sur le manifeste posé. Seuls ses morceaux et nappes changés sont remaillés. Les empreintes
+## des morceaux sont signalées à `Monde` pour les formes du rayon, dont les triangles gardent leur ordre et leur case.
+func retablir_le_decor(decor: String) -> bool:
+	if not _decors_montres.has(decor):
+		return false
+	if _secours_des_decors.is_empty():
+		for parent: Node3D in [_morceaux, _toits]:
+			for noeud: Node3D in parent.get_children():
+				if noeud.get_meta("decors").has(decor):
+					var montres := _decors_montres.keys()
+					montres.erase(decor)
+					peindre_sans(montres)
+					return true
+		return false
+	var secours := _secours_des_decors
+	while _secours_en_cours:
+		await _secours_libre
+	if not is_inside_tree() or secours != _secours_des_decors or not _decors_montres.has(decor):
+		return false
+	_secours_en_cours = true
+	var retabli := await _preparer_le_repli(decor, secours)
+	_secours_en_cours = false
+	_secours_libre.emit()
+	return retabli
+
+
+## La préparation et la pose d'une même réponse de secours précèdent la demande suivante sur le pont.
+func _preparer_le_repli(decor: String, secours: Dictionary) -> bool:
+	var pont := get_node("/root/Pont") as PontDuNoyau
+	var recus := pont.appeler("retablirDecors", secours.merged({prop = decor}))
+	if recus.get("ok") != true:
+		return false
+	var textures := await TexturesDeMatiere.preparer(self, matieres_des_morceaux(recus))
+	if not is_inside_tree() or secours != _secours_des_decors:
+		return false
+	_poser_le_repli(decor, recus)
+	textures.clear()
+	return true
+
+
+func _poser_le_repli(decor: String, recus: Dictionary) -> void:
+	_decors_montres.erase(decor)
+	_retablir_sous(_morceaux, recus.volume)
+	_retablir_sous(_toits, recus.toits)
+	_cacher_sous(_toits, _cachees.toits)
+	var empreintes := {}
+	for morceau: Dictionary in recus.volume:
+		empreintes[morceau.cle] = morceau.empreinte
+	if not empreintes.is_empty():
+		empreintes_retablies.emit(empreintes)
+
+
+func _retablir_sous(parent: Node3D, recus: Array) -> void:
+	if recus.is_empty():
+		return
+	var noeuds := {}
+	for noeud: Node3D in parent.get_children():
+		noeuds[noeud.get_meta("cle")] = noeud
+	for geometrie: Dictionary in recus:
+		var noeud: Node3D = noeuds.get(geometrie.cle)
+		if parent == _morceaux:
+			_poser_le_morceau(noeud, geometrie)
+		elif noeud == null:
+			noeud = _nappe(geometrie)
+			noeud.name = geometrie.cle
+			noeud.set_meta("cle", geometrie.cle)
+			parent.add_child(noeud)
+		else:
+			_poser_la_nappe(noeud, geometrie)
+		noeud.set_meta("empreinte", geometrie.empreinte)
 
 
 ## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
@@ -497,7 +626,16 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 ## remaillent.
 func _morceau(morceau: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
-	if morceau.surfaces.any(_est_d_un_luminaire):
+	var cases := {}
+	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
+		cases[Vector3i(c)] = true
+	noeud.set_meta("cases", cases.keys())
+	_poser_le_morceau(noeud, morceau)
+	return noeud
+
+
+func _poser_le_morceau(noeud: Node3D, morceau: Dictionary) -> void:
+	if not noeud.has_node("OmbreDesLuminaires") and morceau.surfaces.any(_est_d_un_luminaire):
 		var des_luminaires := _en_ombre_seule("OmbreDesLuminaires")
 		des_luminaires.layers = COUCHE_DES_LUMINAIRES
 		noeud.add_child(des_luminaires)
@@ -505,21 +643,20 @@ func _morceau(morceau: Dictionary) -> Node3D:
 	noeud.set_meta("flottaisons", flottaisons)
 	var decors := _decors_de(morceau)
 	noeud.set_meta("decors", decors)
-	var cases := {}
-	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
-		cases[Vector3i(c)] = true
-	noeud.set_meta("cases", cases.keys())
 	if not flottaisons.is_empty() or not decors.is_empty():
 		noeud.set_meta("geometrie", morceau)
+		_retenir_les_textures_du_remaillage(noeud, morceau, true)
+	else:
+		noeud.remove_meta("geometrie")
+		noeud.remove_meta("textures_du_remaillage")
 	_mailler(noeud, morceau)
-	return noeud
 
 
-## Les ids des décors dont la géométrie `geometrie` porte des surfaces (`decor`).
+## Les ids des décors dont la géométrie `geometrie` porte des surfaces à peindre (`decor`).
 static func _decors_de(geometrie: Dictionary) -> Array:
 	var decors := {}
 	for surface: Dictionary in geometrie.surfaces:
-		if surface.has("decor"):
+		if surface.has("decor") and not surface.get("priseSeulement", false):
 			decors[surface.decor] = true
 	return decors.keys()
 
@@ -547,7 +684,7 @@ func _en_ombre_seule(nom: String) -> MeshInstance3D:
 
 ## Si `surface` est d'un décor qui éclaire (`luminaire`, `CONTRAT.md`, section « Monde »).
 static func _est_d_un_luminaire(surface: Dictionary) -> bool:
-	return surface.has("luminaire")
+	return surface.has("luminaire") and not surface.get("priseSeulement", false)
 
 
 ## Le maillage de la géométrie `morceau` (`_maillage_de`, chaque case sur la `rangee` du morceau, dans les matières que
@@ -570,10 +707,33 @@ func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
 ## surfaces (`decor`, ornements du bâti qu'une nappe porte), et sa géométrie, que `peindre_sans` remaille.
 func _nappe(nappe: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
-	noeud.set_meta("decors", _decors_de(nappe))
-	noeud.set_meta("geometrie", nappe)
-	_mailler_la_nappe(noeud, nappe)
+	_poser_la_nappe(noeud, nappe)
 	return noeud
+
+
+func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
+	var decors := _decors_de(nappe)
+	noeud.set_meta("decors", decors)
+	if not decors.is_empty():
+		noeud.set_meta("geometrie", nappe)
+		_retenir_les_textures_du_remaillage(noeud, nappe, false)
+	else:
+		noeud.remove_meta("geometrie")
+		noeud.remove_meta("textures_du_remaillage")
+	_mailler_la_nappe(noeud, nappe)
+
+
+## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud, un morceau si `masquee`, peut faire revenir.
+static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary, masquee: bool) -> void:
+	var matieres := {}
+	_relever_les_matieres(geometrie, matieres, not masquee)
+	var textures: Array[Texture2D] = []
+	for nom: String in matieres:
+		for chemin: String in [_albedo_de(nom, masquee), relief_de(nom)]:
+			var texture := TexturesDeMatiere.retenue(chemin)
+			if texture != null:
+				textures.append(texture)
+	noeud.set_meta("textures_du_remaillage", textures)
 
 
 ## Le maillage de la nappe `nappe` (`_maillage_de`, chaque case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`,
@@ -584,50 +744,104 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
-## d'instances : les arêtes de même `bloc`, `famille`, `piece`, `sens`, `hauteurM` et `palette`, dans l'ordre reçu, une
-## instance chacune de chaque maillage de leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont
-## réconciliés par clé (`reconcilier`) : un groupe dont les arêtes n'ont pas changé à la même échelle reste, un groupe
-## changé (une porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti quitte l'arbre. Une
-## arête dont la famille a un modèle servi (`modele_d_arete`) ne se pose qu'une fois ce modèle lu : il se lit une fois
-## les autres posées (`_lire_le_modele_d_arete`), et les arêtes reçues se reposent à sa lecture ; celle d'un modèle
-## illisible ne se pose pas.
-func poser_les_aretes(aretes: Array) -> void:
-	_aretes_recues = aretes
+## Les arêtes `aretes`, les côtés de marches `cotes` et les faîtières `faitieres` (`CONTRAT.md`, méthode `aretes`),
+## chacun sur le côté de sa case ou sur son faîte, debout à son pied (`_poses_de`), en groupes d'instances : les poses
+## de même catalogue, `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM`, `ecart` et `palette`, dans l'ordre reçu, une instance chacune de chaque maillage de
+## leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont réconciliés par clé (`reconcilier`) : un
+## groupe dont les poses n'ont pas changé à la même échelle reste, un groupe changé (une porte ouverte quitte un groupe
+## et en rejoint un autre) est refait, un groupe parti quitte l'arbre. Une pose dont la famille a un modèle servi
+## (`modele_servi`) ne se pose qu'une fois ce modèle lu : il se lit une fois les autres posées
+## (`_lire_le_modele_d_arete`), et les poses reçues se reposent à sa lecture ; celle d'un modèle illisible se pose en
+## boîte, sans relire le modèle, si sa sorte se replie (`SORTES`), sinon pas du tout.
+func poser_les_aretes(aretes: Array, cotes: Array, faitieres: Array) -> void:
+	_poser(_poses_de(aretes, cotes, faitieres))
+
+
+## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
+## deux à son pied), celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
+## `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son `entree` à
+## sa `sortie` le long de son `sens`, toutes deux sans écart ; et celles des faîtières `faitieres`, chacune elle-même,
+## de son catalogue `toits`, son V ouvert de son `ecart`.
+static func _poses_de(aretes: Array, cotes: Array, faitieres: Array) -> Array:
+	var a_plat := {ecart = 0.0}
+	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged(a_plat.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied})))
+	for c: Dictionary in cotes:
+		for piece: String in c.pieces:
+			poses.append(c.merged(a_plat.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0})))
+	for f: Dictionary in faitieres:
+		poses.append(f.merged({catalogue = "toits", hauteurM = 0.0}))
+	return poses
+
+
+## Les poses `poses` (`_poses_de`) posées en groupes d'instances (`poser_les_aretes`), retenues pour être reposées à la
+## lecture d'un modèle.
+func _poser(poses: Array) -> void:
+	_poses_recues = poses
 	var groupes := {}
 	var a_lire := {}
-	for a: Dictionary in aretes:
-		var modele := modele_d_arete(a.famille)
-		if not modele.is_empty() and not _modeles_d_arete.has(modele):
-			if not _illisibles.has(modele):
+	var demandes := {}
+	for a: Dictionary in poses:
+		var modele := modele_servi(a.catalogue, a.famille)
+		if not modele.is_empty():
+			demandes[modele] = true
+			if not _modeles_d_arete.has(modele) and not _illisibles.has(modele):
 				a_lire[modele] = true
+				continue
+		elif not SORTES[a.catalogue].repli:
 			continue
-		var cle := "%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.sens.x, a.sens.y, a.hauteurM, a.palette]
+		var cle := "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s" % [a.catalogue, a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y,
+			a.hauteurM, a.ecart, a.palette]
 		groupes.get_or_add(cle, []).append(a)
 	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
+	var lectures_ecartees := _ecarter_les_modeles_d_arete(demandes)
 	for modele: String in a_lire:
 		_lire_le_modele_d_arete(modele)
+	if lectures_ecartees and a_lire.is_empty() and not aretes_en_lecture():
+		_lectures_closes.emit()
 
 
-## L'id de l'élément `arete` servi pour la famille de kit `famille` (`aretes` de la réponse de `modeles` retenue,
-## `MontageDeComposition.modeles`), vide sans lui.
-static func modele_d_arete(famille: Variant) -> String:
-	return MontageDeComposition.modeles.get("aretes", {}).get(famille, "")
+## Les ressources de pièces dont aucune arête reçue ne demande le modèle, libérées avec leurs lectures.
+func _ecarter_les_modeles_d_arete(demandes: Dictionary) -> bool:
+	var lectures_ecartees := false
+	for modele: String in _en_lecture.keys():
+		if not demandes.has(modele):
+			_en_lecture.erase(modele)
+			lectures_ecartees = true
+	var lus_ecartes := false
+	for modele: String in _modeles_d_arete.keys():
+		if not demandes.has(modele):
+			_modeles_d_arete[modele].scene.free()
+			_modeles_d_arete.erase(modele)
+			lus_ecartes = true
+	if lus_ecartes:
+		for cle: String in _pieces_peintes.keys():
+			if not demandes.has(cle.get_slice("|", 0)):
+				_pieces_peintes[cle].free()
+				_pieces_peintes.erase(cle)
+		_maillages_teints.clear()
+		_matieres_teintes.clear()
+	return lectures_ecartees
 
 
-## Le modèle d'arête `modele` lu une fois par le chargeur (`MontageDeComposition.scene_du_modele`) sous un jeton, ses
-## erreurs dites à la console ; repris au jeton périmé (le volume sorti de l'arbre, #4195), la scène reçue est libérée
-## et rien d'autre ne bouge ; lu, il est retenu avec sa taille (`_taille_du_modele`) et les arêtes reçues se reposent
-## (`poser_les_aretes`), le retrait et la teinte courants repris (`_montrer_le_pose`) ; illisible, il est retenu
-## illisible ; `_lectures_closes` puis `aretes_posees` sont émis quand plus aucun modèle n'est en lecture.
+## L'id de l'élément servi au catalogue `catalogue` (`SORTES` : `aretes`, `escaliers` ou `toits` de la réponse de `modeles`
+## retenue, `MontageDeComposition.modeles`) pour la famille de kit `famille`, vide sans lui.
+static func modele_servi(catalogue: String, famille: Variant) -> String:
+	return MontageDeComposition.modeles.get(catalogue, {}).get(famille, "")
+
+
+## Le modèle d'arête ou d'escalier `modele` lu une fois par le chargeur (`MontageDeComposition.scene_du_modele`) sous
+## un jeton, ses erreurs dites à la console ; repris au jeton périmé (le volume sorti de l'arbre, #4195), la scène reçue est libérée
+## et rien d'autre ne bouge ; lu, il est retenu avec sa taille (`_taille_du_modele`), illisible, il est retenu
+## illisible, et les poses reçues se reposent (`_poser`), le retrait et la teinte courants repris
+## (`_montrer_le_pose`) ; `_lectures_closes` puis `aretes_posees` sont émis quand plus aucun modèle n'est en lecture.
 func _lire_le_modele_d_arete(modele: String) -> void:
 	if _en_lecture.has(modele):
 		return
 	var jeton := RefCounted.new()
 	_en_lecture[modele] = jeton
 	var recueil: Array[String] = []
-	var scene: Node3D = await chargeur.scene_du_modele(modele, recueil)
+	var scene: Node3D = await chargeur.scene_du_modele(modele, recueil, true)
 	if _en_lecture.get(modele) != jeton:
 		if scene != null:
 			scene.free()
@@ -639,7 +853,7 @@ func _lire_le_modele_d_arete(modele: String) -> void:
 		_illisibles[modele] = true
 	else:
 		_modeles_d_arete[modele] = {scene = scene, taille = _taille_du_modele(scene)}
-		poser_les_aretes(_aretes_recues)
+	_poser(_poses_recues)
 	if _en_lecture.is_empty():
 		_lectures_closes.emit()
 		aretes_posees.emit()
@@ -655,6 +869,12 @@ func aretes_en_lecture() -> bool:
 func attendre_les_aretes() -> void:
 	while aretes_en_lecture():
 		await _lectures_closes
+
+
+## La taille, en mètres, du modèle d'arête ou d'escalier lu `modele` (`_taille_du_modele`), celle à laquelle ses pièces
+## s'étirent.
+func taille_du_modele_d_arete(modele: String) -> Vector3:
+	return _modeles_d_arete[modele].taille
 
 
 ## La taille, en mètres, de la scène `scene` d'un modèle : celle de sa boîte (`MontageDeVehicule.boite`), mesurée
@@ -711,18 +931,22 @@ func _montrer_le_pose() -> void:
 		couronne.visible = not _retirees.has(couronne.get_meta("cle"))
 
 
-## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées (celles de
-## chaque groupe), de nappes de toit posées, et de couronnes montrées.
+## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées et de pièces
+## de côtés de marches et de faîtières posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
+## couronnes montrées.
 func ce_qui_est_pose() -> Dictionary:
 	var triangles := 0
 	for morceau: Node3D in _morceaux.get_children():
 		triangles = int(MiseEnPage.triangles_de_plus(triangles, (morceau.get_node("Vu") as MeshInstance3D).mesh.get_faces().size()))
-	var aretes := []
+	var poses := {aretes = [], escaliers = [], toits = []}
 	for groupe: Node3D in _aretes.get_children():
-		aretes.append_array(groupe.get_meta("aretes"))
+		var de_groupe: Array = groupe.get_meta("aretes")
+		poses[de_groupe[0].catalogue].append_array(de_groupe)
 	return {
 		triangles = triangles,
-		aretes = aretes.size(),
+		aretes = poses.aretes.size(),
+		cotesDeMarches = poses.escaliers.size(),
+		faitieres = poses.toits.size(),
 		toits = _toits.get_child_count(),
 		couronnes = _couronnes.get_children().filter(func(couronne: Node3D) -> bool: return couronne.visible).size(),
 	}
@@ -735,34 +959,38 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 		(nappe.get_node("Vu") as Node3D).visible = not cles.has(nappe.get_meta("cle"))
 
 
-## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `cases`, `surfaces`) : une surface par
-## matière, texturée ou colorée par sommet (`_matiere`, liée au masque si `masquee`), chaque sommet portant en `UV2` le
-## texel au masque de la case de son triangle que `texel_de` rend (la case de chaque triangle lue en `x, y, z` à plat
-## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
-## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre, ni celles
-## d'un décor que son modèle montre (`decor`, `peindre_sans`), que le rayon touche de même ; la mer
-## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
-## n'est pas connu ; de ses seules surfaces que `retenue` retient, s'il est donné. Godot tient pour face avant le sens
-## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle.
+## Le maillage d'une géométrie du monde : positions et cases à l'ordre du rayon, normales et couleurs rangées
+## sur les seules surfaces à peindre (`priseSeulement` absent). `texel_de` donne l'UV2 de chaque sommet par la case
+## de son triangle. Les surfaces que montrent un navire ou un décor (`peindre_sans`), et celles que `retenue`
+## écarte, passent dans le rangement des attributs sans conversion. La mer est bordée par la coque (`border_la_mer`).
+## Godot tient pour face avant le sens horaire, le volume le sens trigonométrique (`_retournes`).
 func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, retenue := Callable()) -> ArrayMesh:
-	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
-	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
-	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
-	var texels := PackedVector2Array()
-	for c: Vector3 in PackedFloat32Array(geometrie.cases).to_byte_array().to_vector3_array():
-		var texel := Vector2(texel_de.call(c))
-		texels.append_array([texel, texel, texel])
+	var positions := PackedFloat32Array(geometrie.positions)
+	var normales := PackedFloat32Array(geometrie.normales)
+	var couleurs := PackedFloat32Array(geometrie.couleurs)
+	var cases := PackedFloat32Array(geometrie.cases)
 	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2]
 	var maillage := ArrayMesh.new()
+	var rang_d_attribut := 0
 	for surface: Dictionary in geometrie.surfaces:
+		if surface.get("priseSeulement", false):
+			continue
+		var plage := Vector2i(int(surface.debut), int(surface.fin))
+		var plage_d_attribut := MiseEnPage.plage_reportee(plage, rang_d_attribut)
+		rang_d_attribut = plage_d_attribut.y
 		if surface.has("navire") or _decors_montres.has(surface.get("decor")) or (retenue.is_valid() and not retenue.call(surface)):
 			continue
+		var texels := PackedVector2Array()
+		# Chaque triangle a trois sommets et trois coordonnées de case.
+		for c: Vector3 in cases.slice(plage.x, plage.y).to_byte_array().to_vector3_array():
+			var texel := Vector2(texel_de.call(c))
+			texels.append_array([texel, texel, texel])
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = sommets.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_TEX_UV2] = texels.slice(int(surface.debut), int(surface.fin))
+		tableaux[Mesh.ARRAY_VERTEX] = _octets_des_composantes(positions, plage, 3).to_vector3_array()
+		tableaux[Mesh.ARRAY_NORMAL] = _octets_des_composantes(normales, plage_d_attribut, 3).to_vector3_array()
+		tableaux[Mesh.ARRAY_COLOR] = _octets_des_composantes(couleurs, plage_d_attribut, 4).to_color_array()
+		tableaux[Mesh.ARRAY_TEX_UV2] = texels
 		if surface.has("flottaison") and _coques.has(surface.flottaison):
 			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
 		if tableaux[Mesh.ARRAY_VERTEX].is_empty():
@@ -773,6 +1001,12 @@ func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, rete
 		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
 		maillage.surface_set_material(indice, _matiere(surface.matiere, masquee))
 	return maillage
+
+
+## Les octets des composantes des rangs de `plage` dans `tableau`.
+static func _octets_des_composantes(tableau: PackedFloat32Array, plage: Vector2i, composantes: int) -> PackedByteArray:
+	var bornes := MiseEnPage.plage_des_composantes(plage, composantes)
+	return tableau.slice(bornes.x, bornes.y).to_byte_array()
 
 
 ## Les triangles horizontaux de `tableaux` (sommets, normales, couleurs, cases au masque en `UV2`) hors du contour
@@ -821,23 +1055,37 @@ func _retournes(tableau: Variant) -> Variant:
 
 ## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde »), du shader
 ## de monde : texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets, liée à la vision posée
-## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`) ; celle d'une nappe, jamais : sa texture
-## de retrait reste la noire par défaut, rien ne s'y replie.
+## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`), sa texture projetée sur les trois axes ;
+## celle d'une nappe ou d'une couronne, jamais : sa texture de retrait reste la noire par défaut, rien ne s'y replie ; sa
+## texture est la neutre (`texture_neutre_de`), projetée sur le plan de chaque face et teinte par la couleur de ses
+## sommets (`nappe`, `art/monde.gdshader`).
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
-	if not matieres.has(nom):
-		var matiere: ShaderMaterial = (matiere_texturee_masquee if ResourceLoader.exists(texture_de(nom)) else couleur_des_sommets_masquee).duplicate()
-		texturer(matiere, nom, texture_de(nom), true)
-		if masquee:
-			matiere.set_shader_parameter("retrait", _retrait)
-		_lier_la_vision_a(matiere)
-		matieres[nom] = matiere
-	return matieres[nom]
+	var reference := matieres.get(nom) as WeakRef
+	var matiere := reference.get_ref() as ShaderMaterial if reference != null else null
+	if matiere != null:
+		return matiere
+	var albedo := TexturesDeMatiere.retenue(_albedo_de(nom, masquee))
+	matiere = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
+	texturer(matiere, nom, albedo, true)
+	if masquee:
+		matiere.set_shader_parameter("retrait", _retrait)
+	elif albedo != null:
+		matiere.set_shader_parameter("nappe", 1.0)
+	_lier_la_vision_a(matiere)
+	matieres[nom] = weakref(matiere)
+	return matiere
 
 
 ## Le chemin de la texture de la matière `nom` au projet.
 static func texture_de(nom: String) -> String:
 	return "res://textures/%s.jpg" % nom
+
+
+## Le chemin de la texture que lit la matière `nom` d'un morceau (`masquee`), ou d'une nappe ou d'une couronne
+## (`_matiere`).
+static func _albedo_de(nom: String, masquee: bool) -> String:
+	return texture_de(nom) if masquee else texture_neutre_de(nom)
 
 
 ## Le chemin du relief de la texture de la matière `nom` au projet.
@@ -851,47 +1099,52 @@ static func texture_neutre_de(nom: String) -> String:
 
 
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
-## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
-## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
-## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
-static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool) -> void:
-	if not ResourceLoader.exists(albedo):
+## standard), habillé de la texture `albedo` et du relief de `nom` que porte le catalogue, projetés sur les trois axes
+## du repère du mesh si `projetee`, lus aux UV du mesh, en mètres, sinon (#4313). Le motif se répète à l'échelle
+## `motif`, un pour `MiseEnPage.METRES_PAR_MOTIF` par défaut.
+static func texturer(materiau: Material, nom: String, albedo: Texture2D, projetee: bool,
+		motif := MiseEnPage.echelle_de_motif()) -> void:
+	if albedo == null:
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
-	materiau.set(propriete + "albedo_texture", load(albedo))
+	materiau.set(propriete + "albedo_texture", albedo)
 	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
-	materiau.set(propriete + "uv1_scale", MiseEnPage.echelle_de_motif())
-	if ResourceLoader.exists(relief_de(nom)):
+	materiau.set(propriete + "uv1_scale", motif)
+	var relief := TexturesDeMatiere.retenue(relief_de(nom))
+	if relief != null:
 		materiau.set(propriete + "normal_enabled", true)
-		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
+		materiau.set(propriete + "normal_texture", relief)
 
 
-## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `sens`, `hauteurM` et `palette`), à
-## l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce : celle du modèle d'arête
-## lu de leur famille (`modele_d_arete`), peinte de leur palette (`piece_peinte`), le +Z de son repère vers le dehors
-## de l'arête, étirée sur leur longueur et mise à la hauteur de leur mur (`MiseEnPage.echelle_d_arete_servie`) ;
-## sinon celle du kit, `<famille>--<pièce>`, mise à la hauteur de leur mur (`MiseEnPage.echelle_de_piece`) ; sinon
-## leur boîte (`_boite`). Chaque maillage devient deux instances groupées de même place (`_instances`), une par
-## arête : `Vu_<maillage>`, que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et
-## `Ombre_<maillage>`, en ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les arêtes vont en méta (`aretes`), et
-## la couleur de chaque instance vue, aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans
-## l'arbre (`_ecrire_les_instances`).
+## Le nœud du groupe des poses `aretes` (même catalogue, `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM`
+## et `palette`, `_poser`), à l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur
+## pièce : celle du modèle lu de leur famille à leur catalogue (`modele_servi`) à leur position, s'il l'a
+## (`noeud_de_la_piece`), peinte de leur palette (`piece_peinte`), le +Z de son repère vers le dehors de l'arête,
+## étirée sur leur longueur et mise à la hauteur de leur mur, à celle du modèle, ou à l'écart des pentes d'un faîte selon
+## leur sorte (`SORTES`, `MiseEnPage.echelle_d_arete_servie`, `MiseEnPage.echelle_de_faitiere`) ; sinon leur boîte (`_boite`) si leur sorte se replie, aucun nœud
+## sinon. Chaque maillage devient deux instances groupées de même place (`_instances`), une par pose : `Vu_<maillage>`,
+## que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et `Ombre_<maillage>`, en
+## ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les poses vont en méta (`aretes`), et la couleur de chaque
+## instance vue, aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans l'arbre
+## (`_ecrire_les_instances`).
 func _groupe(aretes: Array) -> Node3D:
 	var a: Dictionary = aretes[0]
+	var sorte: Dictionary = SORTES[a.catalogue]
 	var sens := Vector2(a.sens.x, a.sens.y)
-	var nom := "%s--%s" % [a.famille, a.piece]
+	var modele := modele_servi(a.catalogue, a.famille)
+	var noeud := "" if not _modeles_d_arete.has(modele) else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
+	if noeud.is_empty() and not sorte.repli:
+		return null
 	var groupe := Node3D.new()
 	_etirer_sur(groupe, sens)
 	var socle := 0.0
-	var modele := modele_d_arete(a.famille)
-	if not modele.is_empty():
-		var taille: Vector3 = _modeles_d_arete[modele].taille
-		groupe.scale = MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
-		groupe.add_child(piece_peinte(modele, a.piece, a.palette).duplicate())
-	elif _kit != null and a.famille != null and _kit.has_node(nom):
-		groupe.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
-		groupe.add_child(_kit.get_node(nom).duplicate())
+	if not noeud.is_empty():
+		var taille := taille_du_modele_d_arete(modele)
+		var etirement := MiseEnPage.echelle_de_faitiere(sens, a.ecart, taille.x, metres_par_case) if sorte.echelle == "pente" \
+			else MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM if sorte.echelle == "mur" else taille.y, taille.x, taille.y, metres_par_case)
+		groupe.scale = etirement
+		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
 	else:
 		var boite := MeshInstance3D.new()
 		boite.name = "Boite"
@@ -913,17 +1166,30 @@ func _groupe(aretes: Array) -> Node3D:
 	return groupe
 
 
-## La pièce `piece` (`Noyau.Piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par palette :
-## ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi) dans la matière
-## de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées perdraient.
-func piece_peinte(modele: String, piece: String, palette: Dictionary) -> Node3D:
-	var cle := "%s|%s|%s" % [modele, piece, palette]
+## Le nœud de la pièce `piece` (`Noyau.Piece`) d'une arête à la position `position` de son ouverture
+## (`Noyau.Position`) dans la scène `scene` d'un modèle d'arête : `<pièce>--<position>` s'il en est un nœud racine,
+## sinon `<pièce>` s'il en est un, sinon aucun (`""`).
+static func noeud_de_la_piece(scene: Node, piece: String, position: String) -> String:
+	var place := "%s--%s" % [piece, position]
+	if scene.has_node(place):
+		return place
+	return piece if scene.has_node(piece) else ""
+
+
+## Le nœud `piece` (`noeud_de_la_piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par palette et
+## par étirement : ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi)
+## dans la matière de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées
+## perdraient ; la texture d'une matière projetée sur les trois axes de la pièce, à l'échelle qui garde son motif
+## métrique sur la pièce étirée de `etirement` (`MiseEnPage.echelle_de_motif_etire`).
+func piece_peinte(modele: String, piece: String, palette: Dictionary, etirement: Vector3) -> Node3D:
+	var cle := "%s|%s|%s|%s" % [modele, piece, palette, etirement]
 	if not _pieces_peintes.has(cle):
 		var peinte: Node3D = _modeles_d_arete[modele].scene.get_node(piece).duplicate()
 		var maillages := peinte.find_children("*", "MeshInstance3D", true, false)
 		if peinte is MeshInstance3D:
 			maillages.append(peinte)
-		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false)
+		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false,
+			{}, {}, MiseEnPage.echelle_de_motif_etire(etirement, metres_par_case))
 		for maillage: MeshInstance3D in maillages:
 			var mesh: Mesh = maillage.mesh.duplicate()
 			for rang in mesh.get_surface_count():
@@ -936,7 +1202,7 @@ func piece_peinte(modele: String, piece: String, palette: Dictionary) -> Node3D:
 
 ## Les instances groupées `nom` du maillage `mesh`, à la place de `maillage`, `nombre` instances chacune de sa couleur
 ## (`use_colors`, posé avant leur nombre), projetant l'ombre `ombre`, pour une pièce dont le centre est à `socle`
-## au-dessus de son pied (`translation_d_instance`).
+## au-dessus de son pied (`transform_d_instance`).
 func _instances(maillage: MeshInstance3D, mesh: Mesh, nom: String, ombre: GeometryInstance3D.ShadowCastingSetting, nombre: int, socle: float) -> MultiMeshInstance3D:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
@@ -960,17 +1226,17 @@ func _instances(maillage: MeshInstance3D, mesh: Mesh, nom: String, ombre: Geomet
 ## `cachees`, absente d'un groupe neuf).
 func _ecrire_les_instances(groupe: Node3D) -> void:
 	var aretes: Array = groupe.get_meta("aretes")
-	var cachees := aretes.filter(func(a: Dictionary) -> bool: return _cachees.aretes.has(a.cle))
+	var cachees := aretes.filter(_cachee)
 	var cles := cachees.map(func(a: Dictionary) -> String: return a.cle)
 	if groupe.has_meta("cachees") and groupe.get_meta("cachees") == cles:
 		return
-	var ordre := aretes.filter(func(a: Dictionary) -> bool: return not _cachees.aretes.has(a.cle))
+	var ordre := aretes.filter(func(a: Dictionary) -> bool: return not _cachee(a))
 	var montrees := ordre.size()
 	ordre.append_array(cachees)
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
 		var ombre: MultiMeshInstance3D = vu.get_meta("ombre")
 		for rang in ordre.size():
-			var instance := Transform3D(Basis.IDENTITY, translation_d_instance(vu, ordre[rang]))
+			var instance := transform_d_instance(vu, ordre[rang])
 			vu.multimesh.set_instance_transform(rang, instance)
 			ombre.multimesh.set_instance_transform(rang, instance)
 		vu.multimesh.visible_instance_count = montrees
@@ -979,6 +1245,11 @@ func _ecrire_les_instances(groupe: Node3D) -> void:
 	_a_teindre[groupe] = true
 	if _part_du_fondu != 1.0 and _change_d_etat(groupe):
 		_du_fondu[groupe] = true
+
+
+## Si la pose `a` est cachée à la caméra (`cacher`) : une faîtière avec sa nappe (`nappe`), toute autre par sa clé.
+func _cachee(a: Dictionary) -> bool:
+	return _cachees.toits.has(a.nappe) if a.has("nappe") else _cachees.aretes.has(a.cle)
 
 
 ## Chaque instance vue du groupe `groupe` (`Vu_<maillage>`) de la teinte de l'arête de son rang (méta `ordre`,
@@ -1030,17 +1301,32 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 	return _maillages_teints[mesh]
 
 
-## La translation, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
-## l'instance de l'arête `a` : là où ce maillage était quand sa pièce se posait au centre de l'arête
-## (`MiseEnPage.centre_d_arete`, à son socle), lu par un témoin sans rotation ni échelle posé à ce centre sous `Aretes`.
-func translation_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Vector3:
-	var temoin := Node3D.new()
-	_aretes.add_child(temoin)
-	temoin.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, instances.get_meta("socle"))
-	var translation := instances.to_local(temoin.to_global(_aretes.to_local(instances.global_position)))
-	_aretes.remove_child(temoin)
-	temoin.free()
-	return translation
+## Le repère, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
+## l'instance de la pose `a` : sa pièce posée au centre de l'arête (`MiseEnPage.centre_d_arete`, à son socle),
+## cisaillée autour de lui de sa pente le long de son sens (`MiseEnPage.pente_d_arete`), ses montants restant
+## verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
+## cisaillement au centre de l'arête sous `Aretes`, portant `posee` à cette place ; `lue`, sous les instances, à la place
+## de `posee`.
+func transform_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Transform3D:
+	var pente := MiseEnPage.pente_d_arete(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, metres_par_case)
+	var place := Node3D.new()
+	var cisaillee := Node3D.new()
+	var posee := Node3D.new()
+	var lue := Node3D.new()
+	_aretes.add_child(place)
+	place.global_transform = instances.global_transform
+	_aretes.add_child(cisaillee)
+	cisaillee.transform = Transform3D(Basis(Vector3(1.0, pente.x, 0.0), Vector3.UP, Vector3(0.0, pente.y, 1.0)),
+		MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, instances.get_meta("socle")))
+	cisaillee.add_child(posee)
+	posee.transform = place.transform
+	instances.add_child(lue)
+	lue.global_transform = posee.global_transform
+	var transformation := lue.transform
+	for temoin: Node3D in [place, cisaillee, lue]:
+		temoin.get_parent().remove_child(temoin)
+		temoin.free()
+	return transformation
 
 
 ## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un

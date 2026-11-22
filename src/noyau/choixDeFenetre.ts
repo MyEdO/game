@@ -39,7 +39,9 @@ import { interludeCatalog } from './interludeFlow';
 import {
   brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type CompositionDActivite,
 } from './verdictsDInterlude';
-import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
+import {
+  activitesDuNavireEnResolution, plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
+} from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros, IdDeRangee } from './designations';
@@ -50,7 +52,8 @@ import {
 } from './merchantFlow';
 import { findTrappingById } from '../data/index';
 import { couchagesDeLaNuit, dormeurDuRepos, foodOptions, nourrituresDeTroupe } from './restFlow';
-import { itemLabel } from '../engine/items';
+import { itemLabel, type TrappingResolver } from '../engine/items';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
 import { formatDice } from '../engine/dice';
@@ -101,7 +104,8 @@ const ouiNon = (ouvert: (s: Jeu, pid: IdDeHeros | undefined) => boolean, refus: 
   (ouvert(s, pid) ? [true, false].map((v) => ouverte(v, garanti(libelleDuLitteral(v), String(v), 'libellé du booléen'), refus(s, v))) : []);
 
 /** Le héros `pid` de la semaine en mer : un héros du groupe qui tient encore une Activité (MDG 15 l.268). */
-const herosDeLaSemaine = (s: Jeu, pid: IdDeHeros) => (s.pendingSeaActivities ? s.party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre) : undefined);
+const herosDeLaSemaine = (s: Jeu, pid: IdDeHeros) => (s.pendingSeaActivities && !activitesDuNavireEnResolution(s.pendingSeaActivities)
+  ? s.party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre) : undefined);
 /** Le choix du héros `pid` pour la semaine en mer, et l'Activité qu'il a choisie. */
 const choixDuHeros = (s: Jeu, pid: IdDeHeros | undefined) => (pid === undefined ? undefined : s.pendingSeaActivities?.picks[pid] ?? undefined);
 const activiteChoisie = (s: Jeu, pid: IdDeHeros) => {
@@ -121,11 +125,18 @@ const article = (id: string): ValeurDuReglage => ouverte(id, garanti(catalogEntr
 /** La seule valeur d'un geste qui vide (`axe`) tant que `plein` : `true`. */
 const vider = (axe: 'viderLePanier' | 'viderLaVente', plein: (m: MerchantState) => boolean) => reglage('marchand', axe, (s) => (s.merchant && plein(s.merchant) ? [ouverte(true, libelleDuChoix('marchand', axe))] : []));
 /** Chaque objet du groupe que `retenu` garde, l'échoppe ouverte, fermé par la raison de `refus`. */
-const objetsALEchoppe = (axe: AxeDe<'marchand'>, retenu: (it: ItemInstance, m: MerchantState) => boolean, refus: (it: ItemInstance) => string | null = () => null) =>
-  reglage('marchand', axe, (s) => {
-    const m = s.merchant;
-    return m ? s.party.flatMap((h) => (h.items ?? []).filter((it) => retenu(it, m)).map((it) => ouverte(it.uid, itemLabel(it), refus(it)))) : [];
-  });
+const objetsALEchoppe = (
+  axe: AxeDe<'marchand'>,
+  retenu: (it: ItemInstance, m: MerchantState, resolveTrapping: TrappingResolver) => boolean,
+  refus: (it: ItemInstance, resolveTrapping: TrappingResolver) => string | null = () => null,
+) => reglage('marchand', axe, (s) => {
+  const m = s.merchant;
+  if (!m) return [];
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+  return s.party.flatMap((h) => (h.items ?? [])
+    .filter((it) => retenu(it, m, resolveTrapping))
+    .map((it) => ouverte(it.uid, itemLabel(it), refus(it, resolveTrapping))));
+});
 /** Les valeurs du choix `axe` de l'échoppe ouverte `m` (`valeurs`), et sa valeur courante. */
 const aLEchoppe = (axe: AxeDe<'marchand'>, valeurs: (s: Jeu, m: MerchantState) => readonly ValeurDuReglage[], courant?: (s: Jeu) => ValeurDuReglage['valeur']) =>
   reglage('marchand', axe, (s) => (s.merchant ? valeurs(s, s.merchant) : []), courant);
@@ -188,33 +199,34 @@ const visee = (c: CompositionDActivite, q: string): boolean => c.atouts.includes
  *  porteur du groupe fermé par la raison du marché, l'Enc borné par le devis, la conclusion fermée par sa raison ; chaque
  *  lot des porteurs du groupe, sa vente et son bradage fermés par la raison du marché. */
 const choixDuMarche = (fenetre: FenetreDuMarche) => {
-  const f = FORMULES_DES_MARCHES[fenetre];
+  // La table de cargaison peut encore se charger quand le registre assemble ces lecteurs.
+  const formule = () => FORMULES_DES_MARCHES[fenetre];
   const ouvert = (s: Jeu): boolean => garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre de marché').ouverte(s);
-  const brouillon = (s: Jeu) => (ouvert(s) ? f.brouillon(s) : undefined);
+  const brouillon = (s: Jeu) => (ouvert(s) ? formule().brouillon(s) : undefined);
   const lots = (s: Jeu, refus: (porteur: string, cargoId: string) => string | null): ValeurDuReglage[] => (ouvert(s)
     ? bulkCarriers(s).flatMap((c) => c.cargo.map((l) => ouverte(l.uid, t('valeur.lot', { lot: findCargoById(l.cargoId)?.label ?? l.cargoId, enc: l.enc, porteur: c.label }), refus(c.id, l.cargoId))))
     : []);
   return {
-    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? f.offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
+    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? formule().offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
     porteur: reglage(fenetre, 'porteur', (s) => {
       const achat = brouillon(s);
-      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
+      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), formule().refusDuPorteur(s, c.id))) : [];
     }, (s) => brouillon(s)?.porteur ?? null),
     // De 1 à la borne du devis.
     encombrement: (s: Jeu): Reglage => {
       const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'encombrement' as const }, libelle: libelleDuChoix(fenetre, 'encombrement'), note: null };
       const achat = brouillon(s);
-      const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
+      const max = achat ? formule().devis(s, achat.porteur, achat.offre).max : 0;
       return achat && max >= 1
         ? { ...base, courant: achat.enc, valeurs: null, bornes: { min: 1, max, pas: 1 } }
         : { ...base, courant: null, valeurs: [], bornes: null };
     },
     acheter: reglage(fenetre, 'acheter', (s) => {
       const achat = brouillon(s);
-      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, f, achat).refus)] : [];
+      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, formule(), achat).refus)] : [];
     }),
-    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => f.refusDuPorteur(s, porteur))),
-    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => f.refusDuPorteur(s, porteur) ?? f.refusDeBradage(s, cargoId))),
+    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => formule().refusDuPorteur(s, porteur))),
+    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => formule().refusDuPorteur(s, porteur) ?? formule().refusDeBradage(s, cargoId))),
   };
 };
 
@@ -274,8 +286,8 @@ export const OUVERTS_DU_CHOIX = {
   activitesEnMer: {
     activite: reglage('activitesEnMer', 'activite', (s, pid) => {
       const hero = pid === undefined ? undefined : herosDeLaSemaine(s, pid);
-      if (!s.pendingSeaActivities || (pid !== undefined && !hero)) return [];
-      return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog().map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
+      if (!s.pendingSeaActivities || activitesDuNavireEnResolution(s.pendingSeaActivities) || (pid !== undefined && !hero)) return [];
+      return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog(s.pendingSeaActivities.escale).map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
     }, (s, pid) => choixDuHeros(s, pid)?.activityId ?? null),
     investir: quantite('activitesEnMer', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
     cacher: quantite('activitesEnMer', 'cacher', (s, pid) => {
@@ -292,32 +304,32 @@ export const OUVERTS_DU_CHOIX = {
     oterDuPanier: reglage('marchand', 'oterDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
     retirerDuPanier: reglage('marchand', 'retirerDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
     viderLePanier: vider('viderLePanier', (m) => m.cart.length > 0),
-    ajouterALaVente: objetsALEchoppe('ajouterALaVente', (it, m) => !enVente(m, it), (it) => {
-      const raison = sellRefusal(it);
+    ajouterALaVente: objetsALEchoppe('ajouterALaVente', (it, m) => !enVente(m, it), (it, resolveTrapping) => {
+      const raison = sellRefusal(it, resolveTrapping);
       return raison === null ? null : t('trade.sellRefused', { reason: raison });
     }),
     retirerDeLaVente: objetsALEchoppe('retirerDeLaVente', (it, m) => enVente(m, it)),
     viderLaVente: vider('viderLaVente', (m) => !!m.sellCart?.length),
-    baisserLePrix: objetsALEchoppe('baisserLePrix', (it, m) => sellRefusal(it) === null && baissesDe(m, it) < BAISSES_DE_PRIX_MAX),
+    baisserLePrix: objetsALEchoppe('baisserLePrix', (it, m, resolveTrapping) => sellRefusal(it, resolveTrapping) === null && baissesDe(m, it) < BAISSES_DE_PRIX_MAX),
     releverLePrix: objetsALEchoppe('releverLePrix', (it, m) => baissesDe(m, it) > 0),
     repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
     payer: aLEchoppe('payer', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'payer'), devisDuPanier(m, contexteDAchat(s, m)).refus)]),
-    vendre: aLEchoppe('vendre', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'vendre'), devisDeVente(m, s.party).refus)]),
+    vendre: aLEchoppe('vendre', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'vendre'), devisDeVente(m, s.party, objetDuNarratif(s.campaignNarratif)).refus)]),
     refuser: aLEchoppe('refuser', (_s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeRefusDuMarche(m, mode)))),
     marchander: aLEchoppe('marchander', (s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeMarchandage(s, m, mode)))),
     chercher: aLEchoppe('chercher', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'chercher'), refusDeRecherche(s, m))]),
-    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party).map((o) => ouverte(o.item.uid, `${o.item.label} · ${o.hero.label}`, o.refus))),
+    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party, objetDuNarratif(s.campaignNarratif)).map((o) => ouverte(o.item.uid, `${o.item.label} · ${o.hero.label}`, o.refus))),
     // LDB 59 l.64-76
-    trocCeder: aLEchoppe('trocCeder', (s) => optionsDeTroc(s.party).map((o) => {
+    trocCeder: aLEchoppe('trocCeder', (s) => optionsDeTroc(s.party, objetDuNarratif(s.campaignNarratif)).map((o) => {
       const hero = garanti(s.party.find((h) => h.id === o.heroId), o.heroId, 'héros cédant');
-      return ouverte(exemplaireCede(hero, o.trappingId), `${garanti(findTrappingById(o.trappingId), o.trappingId, 'bien cédé').label} ×${o.count} (${hero.label})`, o.refus);
+      return ouverte(exemplaireCede(hero, o.trappingId), `${o.label} ×${o.count} (${hero.label})`, o.refus);
     }), (s) => {
       const cede = s.merchant?.troc?.cede;
       const hero = cede && s.party.find((h) => h.id === cede.heroId);
       return hero && cede ? exemplaireCede(hero, cede.trappingId) : null;
     }),
     trocRecevoir: aLEchoppe('trocRecevoir', (_s, m) => m.stock.filter((l) => l.qty > 0).map((l) => {
-      const refus = barterRefusal(l.id);
+      const refus = barterRefusal(findTrappingById(l.id));
       return { ...article(l.id), refus: refus && t('trade.barterRefused', { reason: refus }) };
     }), (s) => s.merchant?.troc?.recu ?? null),
     // Les exemplaires acquis : de 1 au stock de l'article choisi.
@@ -331,7 +343,7 @@ export const OUVERTS_DU_CHOIX = {
     },
     troquer: aLEchoppe('troquer', (s, m) => {
       const demande = demandeDuTroc(m);
-      return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande).refus)] : [];
+      return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande, objetDuNarratif(s.campaignNarratif)).refus)] : [];
     }),
   },
   butin: { ligne: lignesDuButin('butin', (s) => s.pendingLoot?.gear) },

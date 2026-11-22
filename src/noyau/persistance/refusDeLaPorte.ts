@@ -80,9 +80,3 @@ export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): Re
   const message = `${verbe} : ${consequence}. Faute : ${lieuDAuteur(premiere.lieu)} — ${premiere.message}${suite}`;
   return autres.length > 0 ? { message, detail: erreur.message } : { message };
 }
-
-/** Refus d'un geste HORS de la porte (fichier qui n'est pas du JSON, groupe vide) : le verbe vient
- *  de la même table, le `motif` dit ce qui manque. */
-export function refusMotive(geste: GesteDePorte, motif: string): RefusRendu {
-  return { message: `${GESTES_DE_PORTE[geste].verbe} : ${motif}.` };
-}

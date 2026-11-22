@@ -4,7 +4,7 @@
  * aux réglages du joueur (`ouvrir`), et les entrées de l'accueil (`accueil`).
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { drainer, erreurDe, table } from './pont.testkit';
+import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { OPTIONAL_RULES, PREFERENCES, poserLesReglesMaisonPersistees, ruleOverrides, type OptionalRule } from '../../../src/noyau/index';
 import { REGLES_PAR_PAGE } from '../../../src/hote/reglages';
@@ -12,6 +12,8 @@ import type { Bouton, Choix, Curseur, Element, Entite, Ligne } from '../../../sr
 import type { ZonesDeLAccueil } from '../../../src/hote/accueil';
 import type { ZonesDesReglages } from '../../../src/hote/reglages';
 import type { Pont } from './pont';
+import { cleDEmplacement } from '../../../src/hote/sauvegardes';
+import { PRETIRE_DE_TEST, poserLesPretires } from '../../../src/noyau/creation/pretireDeTest.testkit';
 
 let ouvert: Pont | null = null;
 afterEach(() => {
@@ -148,6 +150,37 @@ describe('les réglages par le pont', () => {
     expect(appel('preferences')).toMatchObject({ preferences: { 'combat-cadence': 'auto' } });
   });
 
+  it('l’armement Aux Armes modifie une arme portée et se reconstitue depuis les règles de la sauvegarde', () => {
+    const id = 'combat-aa-armement';
+    poserLesPretires([{ ...PRETIRE_DE_TEST, trappings: [{ id: 'brise-epee' }] }]);
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    const { vue } = suiteDe(appel('ouvrir', { graine: 7 }));
+    const engager = vue.zones['groupe.pretires'][0].elements.find((e): e is Bouton => e.type === 'bouton')!;
+    const arrivee = suiteDe(appel('jouer', engager.jeu));
+    const ouvrirLaFiche = ficheDuHeros(arrivee.vue, 0).jeu;
+    const degats = () => {
+      appel('fiche', { fiche: null });
+      const fiche = suiteDe(appel('fiche', ouvrirLaFiche));
+      const arme = sectionDeLaFiche(fiche.vue, 'attaques').find((e): e is Entite => e.type === 'entite' && e.nom === 'Brise-épée');
+      return arme?.elements.find((e) => e.id === 'stat/0');
+    };
+    expect(degats()).toMatchObject({ libelle: expect.stringContaining('+BF+3') });
+    expect(appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
+    const base = JSON.parse(stockage.getItem(cleDEmplacement(1))!);
+    expect(base.data.party[0].weapons[0].damage.flat).toBe(3);
+
+    zones(appel, { type: 'regle', args: [id, true] });
+    expect(degats()).toMatchObject({ libelle: expect.stringContaining('+BF+1') });
+    zones(appel, { type: 'retablir', args: [id] });
+    expect(degats()).toMatchObject({ libelle: expect.stringContaining('+BF+3') });
+
+    appel('quitter');
+    stockage.setItem(cleDEmplacement(1), JSON.stringify({ ...base, rules: { ...base.rules, [id]: true } }));
+    expect(appel('charger', { charger: 1, graine: 7 }).ok).toBe(true);
+    expect(degats()).toMatchObject({ libelle: expect.stringContaining('+BF+1') });
+  });
+
   it('en combat, les règles maison sont verrouillées, au contrôle comme à la méthode ; une préférence se règle encore', () => {
     const { pont, appel } = table();
     ouvert = pont;
@@ -156,7 +189,10 @@ describe('les réglages par le pont', () => {
     expect(curseur(regle(zones(appel), PLAFOND.id)).refus).toBe(verrou);
     const malus = entiteDe(zones(appel), 'combat-plafond-malus-difficulte').elements.find((e) => e.id === 'valeur') as Ligne;
     expect(malus.ton, 'la valeur lue d’un contrôle refusé, fermée avec lui').toBe('ferme');
-    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: `reglages : ${verrou}` });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: verrou });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [] }))).toEqual({
+      categorie: 'validation', message: 'reglages : args, l’id du réglage d’abord',
+    });
     expect(pressee(preference(zones(appel, { type: 'preference', args: ['des-fixes', true] }), 'des-fixes'))).toBe(true);
   });
 });

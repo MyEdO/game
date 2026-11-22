@@ -3,9 +3,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { MAISON_SANS_SOURCE, MAISON_MASQUEES } from '../../scripts/guards/lib/integriteStock.mjs';
 import { SANS_LIVRE_DEFINITIF, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
+import { exigeProvenanceExclusive } from './schemas/grammaire/document';
+import { schemaForFile } from './schemas/validate';
 
 const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes', import.meta.url));
@@ -13,21 +15,22 @@ const lire = (dir: string, f: string): unknown => JSON.parse(readFileSync(join(d
 const jsons = (dir: string): string[] => listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') });
 
 function sitesMaison(f: string, data: unknown, masquee: boolean) {
-  const sites = [];
+  const sites: (Site & { famille: string })[] = [];
   for (const entree of Array.isArray(data) ? data : [data]) {
     if (!entree || typeof entree !== 'object') continue;
     const r = entree as Record<string, unknown>;
     if (typeof r.maison !== 'string' || !r.maison.length || r.source !== undefined) continue;
     if (Array.isArray(data) && typeof r.id !== 'string') throw new Error(f + ' : entrée maison sans id');
-    sites.push({ famille: masquee ? 'maison-masquee' : 'maison-sans-source', file: 'src/data/' + f, ref: JSON.stringify([r.id ?? '$racine', 'maison', '', '']) });
+    sites.push({ famille: masquee ? 'maison-masquee' : 'maison-sans-source', fichier: 'src/data/' + f, ref: JSON.stringify([r.id ?? '$racine', 'maison', '', '']) });
   }
   return sites;
 }
 
 function mesure(masquee: boolean) {
-  const sites = [];
+  const sites: (Site & { famille: string })[] = [];
   for (const f of jsons(DATA_DIR)) {
     if (Boolean(SANS_PROVENANCE_EXIGEE[f.replace(/\.json$/, '')]) !== masquee) continue;
+    if (!masquee && exigeProvenanceExclusive(schemaForFile(f))) continue;
     const data = lire(DATA_DIR, f);
     sites.push(...sitesMaison(f, data, masquee));
   }
@@ -44,7 +47,7 @@ describe('maison sans source — collections nominatives', () => {
   for (const masquee of [false, true]) {
     it(masquee ? 'les exemptions ne masquent que les identités déclarées' : 'les entrées maison sans source sont déclarées et soldées', () => {
       const ecart = ecartMaison(mesure(masquee), masquee ? MAISON_MASQUEES : MAISON_SANS_SOURCE);
-      expect(ecart.neuves, 'Entrées neuves : une entrée `maison` porte aussi sa `source` (#1463) — scripts/guards/lib/integriteStock.mjs ne fait que décroître :\n' + ecart.neuves.join('\n')).toEqual([]);
+      expect(ecart.neuves, 'Nouvelles entrées au cliquet — scripts/guards/lib/integriteStock.mjs ne fait que décroître :\n' + ecart.neuves.join('\n')).toEqual([]);
       expect(ecart.perimees, 'Entrées soldées : retirer de scripts/guards/lib/integriteStock.mjs :\n' + ecart.perimees.join('\n')).toEqual([]);
     });
   }
@@ -69,12 +72,12 @@ describe('maison sans source — collections nominatives', () => {
     ]);
     expect(Object.keys(SANS_LIVRE_DEFINITIF).sort()).toEqual([
       'actions', 'ambiance', 'apparences', 'books', 'buildings', 'calendarPhases',
-      'decorPalette', 'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
+      'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
       'lightTones', 'materials', 'merchantFamilies', 'merchants', 'names', 'planDeBestiaire',
       'primitives.manifest', 'progression-schemas.derived', 'props',
       'raceAppearance', 'raw.manifest', 'rendus',
       'semences-de-scene', 'speciesRace', 'structureAppearance',
-      'systemes.manifest', 'teintesJeu', 'terrains',
+      'systemes.manifest', 'terrains',
     ]);
 
     const communes = Object.keys(SANS_LIVRE_DEFINITIF).filter((k) => k in SOURCE_EN_PROFONDEUR);

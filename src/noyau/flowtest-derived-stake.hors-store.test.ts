@@ -36,7 +36,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
-import { resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
+import { findTrappingById, resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
 import { ACTIVITIES } from '../data';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
@@ -107,29 +107,8 @@ function enjeuxDesCoupsAEquipage(jeu: ShipCritSet): { entryId: string; stake: St
   return out;
 }
 
-/**
- * Nœuds `test` que le PRODUCTEUR fabrique EN PLUS de ceux écrits en donnée — cardinal MESURÉ au
- * 2026-09-03 (#1657 B3-1b) : les 26 rangées `amputation` de `criticals.json` imposent 28 Tests de
- * Résistance (LDB 18 l.237), les 2 rangées à gate `loss.difficulty` (« Coupure à l'orteil », l.171)
- * en portant DEUX. Sans ce cardinal, la sonde pourrait perdre un nœud fabriqué sans rougir.
- */
-const NOEUDS_FABRIQUES: Record<string, number> = { 'criticals.json': 28 };
-
 /** LOCALISATION représentative d'une table (`critTableKeyFor` la reprojette à l'identique). */
 const LOC_PAR_TABLE: Record<string, HitLocation> = { tete: 'tete', bras: 'brasD', corps: 'corps', jambe: 'jambeD' };
-
-/** Tous les nœuds `test` d'un Flow, dans l'ordre de jeu — le producteur en pose plusieurs (rangée,
- *  puis Test(s) d'Amputation) et le contrat les tient TOUS, jamais le premier seulement. */
-function noeudsDuFlow(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
-  if (!f) return [];
-  switch (f.kind) {
-    case 'test': return [f, ...noeudsDuFlow(f.reussite), ...noeudsDuFlow(f.echec)];
-    case 'sequence': return f.etapes.flatMap(noeudsDuFlow);
-    case 'si': return [...noeudsDuFlow(f.alors), ...noeudsDuFlow(f.sinon)];
-    case 'choix': return [...noeudsDuFlow(f.oui), ...noeudsDuFlow(f.non)];
-    default: return [];
-  }
-}
 
 /**
  * Les enjeux RÉELLEMENT posés par `resolveCritique` sur les nœuds `test` de `criticals.json` : ceux de
@@ -146,10 +125,8 @@ function enjeuxDesRangeesDeCritique(): { entryId: string; stake: StakeRef | unde
       if (!e.test && !e.amputation && !e.escalation?.onNextCritWhileCondition) continue;
       const crit = resolveCritique(doc.jeu, hero(), loc, makeRNG(1), { forcedRoll: e.min });
       const differee = crit.traumas.find((t) => t.pendingAmputation)?.pendingAmputation;
-      const noeuds = [...noeudsDuFlow(crit.testFlow), ...noeudsDuFlow(differee)];
-      // Cardinal ATTENDU, nommé : 1 par rangée à `test` + les Tests que l'Amputation impose (2 quand la
-      // ligne porte un gate `loss.difficulty`, 1 sinon) — un nœud PERDU en route ne peut pas se cacher.
-      const attendus = (e.test ? 1 : 0) + (e.amputation ? (e.amputation.loss?.difficulty ? 2 : 1) : 0);
+      const noeuds = [...noeudsTestDe(crit.testFlow), ...noeudsTestDe(differee)];
+      const attendus = (e.test ? 1 : 0) + noeudsTestDe(e.amputation?.flow).length;
       expect(noeuds.length, `${e.id} : ${noeuds.length} nœud(s) produits pour ${attendus} attendu(s)`).toBe(attendus);
       for (const n of noeuds) out.push({ entryId: e.id, stake: n.test.stake });
       const arme = crit.traumas.find((t) => t.critTrigger)?.critTrigger;
@@ -189,7 +166,7 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
     let mesures = 0;
     for (const [fichier, produire] of Object.entries(ENJEU_AU_PRODUCTEUR)) {
       const poses = produire();
-      const attendus = noeuds.filter((n) => n.fichier === fichier).length + (NOEUDS_FABRIQUES[fichier] ?? 0);
+      const attendus = noeuds.filter((n) => n.fichier === fichier).length;
       expect(poses.length, `${fichier} : ${poses.length} enjeu(x) pour ${attendus} nœud(s) — la sonde a glissé`).toBe(attendus);
       for (const { entryId, stake } of poses) {
         mesures++;
@@ -258,7 +235,7 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
       + 'sans que le joueur voie rien (ni enjeu, ni Chance, ni Résilience, et la valeur ne serait pas celle\n'
       + 'de la porte). Sites :\n' + rouleurs.join('\n'),
     ).toEqual([]);
-    expect(noeuds.length + Object.values(NOEUDS_FABRIQUES).reduce((s, n) => s + n, 0),
+    expect(noeuds.length,
       'la sonde doit couvrir une population RÉELLE de nœuds, sinon « aucun autre chemin » ne dit rien').toBeGreaterThanOrEqual(100);
   });
 
@@ -327,7 +304,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'sort', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
-    const src = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
+    const src = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
     const eff = src.effects[0];
     expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'sort', id: 'morsure-de-l-hiver' });
     const stake = withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!;
@@ -340,7 +317,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet FONDU par un POISON bu : l’enjeu nomme le poison (même règle, autre nature de source)', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lotus noir', source: { kind: 'objet', id: 'lotus-noir' }, defaultDurationRounds: 4 });
-    const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
     expect(texte).not.toContain('Épée');
@@ -349,7 +326,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet EN PROPRE de l’objet : l’enjeu nomme l’OBJET — c’est lui qui exige le jet', () => {
     const c = hero();
     const w = { label: 'Déchireur de sociabilité', trappingId: 'dechireur-de-sociabilite', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], onHitEffects: [testOnHit] } as unknown as Combatant['weapons'][number];
-    const eff = effectSourcesOf(c, w).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, w).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     expect(eff.source).toEqual({ kind: 'objet', id: 'dechireur-de-sociabilite' });
     expect(resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text)
       .toContain(findById('trappings', 'dechireur-de-sociabilite')!.label);
@@ -360,7 +337,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet fondu SANS provenance : la dérivation se tait plutôt que de nommer l’arme', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
-    const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     // Le dispatcher tague au porteur ce qui n'a pas de source : ici l'arme est SANS id de catalogue
     // (arme forgée pour la sonde) → aucune fiche à nommer, la dérivation rend `undefined`.
     expect(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake).toBeUndefined();

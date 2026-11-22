@@ -1,6 +1,8 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -39,8 +41,16 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
+function accepterMachoires(): void {
+  const cascade = get().pendingCascade;
+  const choix = cascade?.participants[cascade.cursor];
+  if (choix?.kind !== 'choixDeclenche') return;
+  get().jetRegler('cascade', 'choix', 'oui', choix.id);
+  get().jetValider('cascade');
+}
+
 // ── Volet (a) — statique minimal ────────────────────────────────────────────────────────────────
-const here = (f: string) => fileURLToPath(new URL(f, import.meta.url));
+const DOSSIER = dirname(fileURLToPath(import.meta.url));
 /** Retire commentaires de bloc et de ligne — un prédicat CITÉ en prose (« cf. `defenseSurfaced` ») n'est
  *  PAS un câblage : sans ce strip, la garde reste verte alors que le câblage a été débranché (mutation D
  *  du juge). */
@@ -51,7 +61,7 @@ function stripComments(src: string): string {
     .map((l) => { const i = l.indexOf('//'); return i >= 0 ? l.slice(0, i) : l; })
     .join('\n');
 }
-const readCode = (f: string) => stripComments(readFileSync(here(f), 'utf8'));
+const readCode = (f: string) => stripComments(readFileSync(join(DOSSIER, f), 'utf8'));
 const SRC: Record<string, string> = {
   combatFlow: readCode('../noyau/combatFlow.ts'),
   combatManeuvers: readCode('../noyau/combatManeuvers.ts'),
@@ -213,6 +223,7 @@ function behavioralFloor(): void {
     const { H } = freshCombat();
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
     addCondition(H, COND.sonne, 2);
+    accepterMachoires();
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === H.id), 'Test déclenché (Mâchoires) doit REMONTER').toBeTruthy();
   }
   // 5) Défense réactive de mêlée (LDB 13) — gaté `defenseSurfaced` (cadence-agnostique).
@@ -278,7 +289,8 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     addCondition(E, COND.sonne, 2); // onGainCondition → routeTriggeredTest → resolveFlowTest → humanControlled(E)=true
     const c = get().pendingCascade;
     expect(c, 'l’ennemi assigné doit ouvrir une cascade').toBeTruthy();
-    expect(c!.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
+    accepterMachoires();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
   });
 
   it('le même ennemi NON assigné → Test déclenché résolu INLINE (aucune cascade)', () => {
@@ -301,12 +313,12 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     let seed = 0;
     for (let sd = 1; sd <= 500 && !seed; sd++) {
       seedBattleRng(sd);
-      const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants));
+      const r = resolveAttack(get, E, H, firedWeapon(findTrappingById, get().scene, E, H, undefined, get().battle?.combatants));
       if (r && attackerFumbled(r.res, r.weapon)) seed = sd;
     }
     expect(seed, 'une graine de Maladresse existe').toBeGreaterThan(0);
     seedBattleRng(seed);
-    const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants))!; // résultat de Maladresse RÉEL (pas fabriqué)
+    const r = resolveAttack(get, E, H, firedWeapon(findTrappingById, get().scene, E, H, undefined, get().battle?.combatants))!; // résultat de Maladresse RÉEL (pas fabriqué)
     set({ pendingAttack: { attackerId: E.id, targetId: H.id, location: r.res.location ?? null, result: r.res, victimId: r.victim?.id, weaponUid: E.weapons[0].uid } });
     get().jetValider('attaque');
     // La défense du héros est SURFACÉE (#989) : `jetValider('attaque')` interpose SA fenêtre — le héros défend,

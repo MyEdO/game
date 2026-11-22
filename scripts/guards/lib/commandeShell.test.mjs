@@ -316,16 +316,16 @@ test('#2603 — secondesDeDuree : un nombre, suffixe `s`, `m`, `h` ou `d` ; `nul
 })
 
 test('#2603 — borneDeVie : le `timeout` de tête du segment ou de ses porteurs (`deploiePar`, `bloc`), `&` qui échappe', () => {
-  const bornes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0)
+  const bornes = (commande) => pipelinesDeJetons(commande, 0, { scripts: { demo: 'node scripts/demo.mjs' } }).flat().filter((s) => s.jetons.length > 0)
     .map((s) => [s.jetons.map((j) => j.text).join(' '), borneDeVie(s)])
-  assert.deepEqual(bornes('timeout 3000 npm run dev'), [['vite', 3000], ['npm run dev', 3000]])
+  assert.deepEqual(bornes('timeout 3000 npm run demo'), [['node scripts/demo.mjs', 3000], ['npm run demo', 3000]])
   assert.deepEqual(bornes('timeout -k 5 --signal KILL 2h bash -c "sleep 9"'), [['sleep 9', 7200], ['bash -c sleep 9', 7200]])
   assert.deepEqual(bornes('timeout 1.5m sleep 9'), [['sleep 9', 90]])
-  for (const commande of ['npm run dev', 'timeout 0 sleep 9', 'timeout soudain sleep 9', '(npm run dev &)', 'nohup npm run dev &']) {
+  for (const commande of ['npm run demo', 'timeout 0 sleep 9', 'timeout soudain sleep 9', '(npm run demo &)', 'nohup npm run demo &']) {
     assert.ok(bornes(commande).every(([, borne]) => borne === null), commande)
   }
   assert.deepEqual(bornes('timeout 60 bash -c "(sleep 9 &)"').map(([, b]) => b), [null, 60])
-  assert.deepEqual(bornes('timeout 60 npm run dev &').map(([, b]) => b), [60, 60])
+  assert.deepEqual(bornes('timeout 60 npm run demo &').map(([, b]) => b), [60, 60])
   assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f"').map(([, b]) => b), [60, 60])
   assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f &"').map(([, b]) => b), [null, 60])
   assert.deepEqual(bornes('f(){ sleep 9; }; timeout 5 bash -c "sleep 1"; f').map(([, b]) => b), [5, 5, null])

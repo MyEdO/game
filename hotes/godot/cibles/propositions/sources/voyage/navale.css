@@ -3,7 +3,7 @@
 .etats{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:22px;padding-top:16px;border-top:1px solid rgba(60,40,20,.45)}
 .etat-n{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420}
 .etat-n b{font-size:15px;color:#2a1d12;font-weight:600}
-.dossier .renommer{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11.5px;color:#4a3420}
+.ident .renommer{display:flex;align-items:center;gap:7px;margin-top:8px}
 /* la manœuvre en Test d'équipage : le virage au centre, une rangée par héros en rôle */
 #jet .reglages .l{font-size:12px;color:#4a3420;margin:5px 0 4px}
 #jet .reglages .enjeux{display:flex;justify-content:center;gap:7px;margin-top:3px}
@@ -16,7 +16,7 @@
 .rangee .q span{font-size:10.5px;line-height:12px;color:#4a3420}
 .rangee .seuil{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#2a1d12}
 /* le dossier jouable d'une possession : nom en saisie, cale, lieu et gestes */
-#f-identite.dossier .champ{margin:-2px 0 6px}
+.ident .nom .champ{margin:-2px 0 6px}
 #f-sections .mesure .tete{color:#4a3420}
 #f-sections .mesure .tete b{font-family:"Chiffres";font-size:13.5px;letter-spacing:0;color:#2a1d12}
 .bloc-t{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px;padding-top:12px;border-top:1px solid rgba(60,40,20,.45);font-size:12.5px;color:#4a3420}
@@ -37,9 +37,3 @@
 .ou .l b{font-family:"Spectral";font-weight:600;font-size:15px;color:#2a1d12}
 .ou .plaques.confirme .plaque{flex:0 0 210px}
 #f-sections p.livre{margin:0;font-size:15px;line-height:21px;color:#2a1d12}
-/* la Chanson de marin : ses chansons en cartes, à droite du Test */
-.rangees.chansons{max-width:330px}
-.rangees.chansons .plaque.carte{width:100%;max-width:none;height:auto;margin-bottom:6px}
-.rangees.chansons .plaque.carte>div{padding:5px 11px}
-.rangees.chansons .plaque.carte .n{font-size:15px;line-height:18px;white-space:normal}
-.rangees.chansons .plaque.carte .c{font-size:12px;line-height:15px;white-space:normal}

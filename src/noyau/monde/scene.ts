@@ -7,7 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { QualiteDeRepos, RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -20,7 +20,7 @@ import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
@@ -29,11 +29,12 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 // (`scripts/guards/lib/couches.mjs`), donc pas de cycle.
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
+import { sceneMetresPerTile as metresParCaseDeScene } from '../../geometry/grid';
 import type { Calage } from '../../data/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
-import { gradeBetween, metricToLift, STEP_MAX_M } from './relief';
+import { gradeBetween, STEP_MAX_M } from './relief';
 import type { Grade } from '../../data/materials.types';
 import { aretesA } from './wallIndex';
 
@@ -88,7 +89,7 @@ export interface SceneEntity {
   /** DÉCOR : son type au catalogue des décors (`props.json`). */
   decor?: { id: string };
   /** PERSONNAGE : son corps, un au plus — sa créature du bestiaire, sa coque (`vehicles.json`) ou son engin de siège
-   *  (`trappings.json`, `siegeEngines`). */
+   *  (`siege-engines.json`). */
   creature?: { id: string };
   vehicule?: { id: string };
   engin?: { id: string };
@@ -332,10 +333,10 @@ export interface Scene {
    *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5).
    *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
    *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
-  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: QualiteDeRepos };
+  rest?: z.output<typeof sceneSchema.shape.rest>;
   /** Offre de repos PAR ZONE (prioritaire sur `rest` là où le groupe se tient) — « paramétrable
    *  sur la zone » : le quartier de l'auberge offre des chambres, la place du marché non. */
-  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: QualiteDeRepos }[];
+  restZones?: z.output<typeof sceneSchema.shape.restZones>;
   /** ZONES D'EFFET posées sur la carte (éditeur) — PIÈGES / hasards / brasiers : tout combattant qui
    *  TRAVERSE (`onCross` : pic, flaque acide, glyphe) ou STATIONNE (`perRound` : nuage de poison,
    *  brasier) y subit l'effet (Dégâts/soin/États en `GameOp[]`). Converties en `BattleZone`
@@ -427,9 +428,9 @@ export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
-/** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
+/** Échelle métrique de la scène (LDB 15 l.12). */
 export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
-  return scene?.metresPerTile ?? 2;
+  return metresParCaseDeScene(scene);
 }
 
 /** Offre de repos EFFECTIVE de la scène entière : absente, le groupe peut camper. Source UNIQUE de l'offre
@@ -496,21 +497,10 @@ export function plafondDe(scene: SceneDuVolume, p: Pt): number {
  * `p.z`. DÉCOUPLÉE de l'index de couche, qui ne sert qu'au TRI : la couche 0 porte du relief comme
  * les autres, donc une absence de `z` vaut la couche 0, JAMAIS une hauteur nulle. Les coordonnées
  * sont ARRONDIES (une position en cours de marche tombe entre deux cases ; `heightAt` indexe une
- * case entière). C'est le sol que le monde volumique tend à ses passes de pose (`solM` de
- * `gameIso/stage`), et ce dont l'élévation d'affichage `liftDe` dérive. PUR.
+ * case entière). C'est la hauteur de la surface en mètres. PUR.
  */
 export function hauteurDe(scene: Scene, p: Pt): number {
   return heightAt(scene, Math.round(p.x), Math.round(p.y), p.z ?? 0);
-}
-
-/**
- * ÉLÉVATION D'AFFICHAGE d'un point de grille — SOURCE UNIQUE du lift, celle que consomment le trait de
- * mur (`gameIso/stage/layers.tsx`), le picking (`gameIso/stage/pickResolve.ts`), le curseur de
- * combat, les arêtes, les surlignages et les aperçus de déplacement. DÉRIVÉ de `hauteurDe` : la
- * hauteur métrique de la case rendue en unités de niveau. PUR.
- */
-export function liftDe(scene: Scene, p: Pt): number {
-  return metricToLift(hauteurDe(scene, p));
 }
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
@@ -701,6 +691,18 @@ export function climbEdgeBetween(
   return climbAt(scene, e.x, e.y, e.side, Math.min(a.z ?? 0, b.z ?? 0));
 }
 
+/** Les mètres que franchit l'escalade de `from` à `to` à travers leur arête (`climbEdgeBetween`) : l'écart de leurs sols
+ *  (`heightAt`), dans les deux sens. PUR. */
+export function metresDEscalade(scene: Pick<Scene, 'dimensions' | 'layers'>, from: { x: number; y: number; z?: number }, to: { x: number; y: number; z?: number }): number {
+  return Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
+}
+
+/** Le pied de l'escalade de `from` à `to` à travers leur arête (`climbEdgeBetween`) : celle des deux cases dont le sol
+ *  (`heightAt`) est le plus bas, `from` à égalité. PUR. */
+export function piedDEscalade<P extends { x: number; y: number; z?: number }>(scene: Pick<Scene, 'dimensions' | 'layers'>, from: P, to: P): P {
+  return heightAt(scene, to.x, to.y, to.z ?? 0) < heightAt(scene, from.x, from.y, from.z ?? 0) ? to : from;
+}
+
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
  *  de l'état authored `closed`). Absent du flag = défaut authored (`!closed`). */
 export function doorKey(x: number, y: number, side: WallSide, z = 0): string {
@@ -766,14 +768,6 @@ export function porteEnJeu(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
  *  plan : une porte secrète n'y est jamais une entrée). */
 export function porteNonSecrete(seg: WallSeg): boolean {
   return porteAuteur(seg) && !secretAuteur(seg);
-}
-
-/** Lecture d'une arête : `auteur` = le document authoré (éditeur), `jeu` = l'état runtime (partie, POV). */
-export type LectureDArete = 'auteur' | 'jeu';
-
-/** L'arête se lit-elle en PORTE sous cette lecture ? `auteur` : `porteAuteur` ; `jeu` : `porteEnJeu`. */
-export function porteSelon(scene: Pick<Scene, 'flags'>, seg: WallSeg, lecture: LectureDArete): boolean {
-  return lecture === 'auteur' ? porteAuteur(seg) : porteEnJeu(scene, seg);
 }
 
 /** Le segment de PORTE EN JEU sur l'arête (x,y,side,z), ou undefined (`porteEnJeu` : une porte secrète

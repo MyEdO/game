@@ -46,7 +46,7 @@ import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
 import { bourseOf } from '../engine/bourse';
-import { aubeApresNuits } from '../engine/clock';
+import { aubeApresNuits, joursParSemaine } from '../engine/clock';
 import { garanti } from '../lib/garanti';
 
 /** L'état que lisent les verdicts d'interlude. */
@@ -55,14 +55,6 @@ export type EtatDInterlude = Pick<Jeu, 'interlude' | 'party' | 'bank'>;
 /** Les Événements de la période sont-ils encore à tirer (phase `'tirage'`, #942 L7) ? LDB 22 l.5 */
 export function interludeDrawPending(s: Pick<Jeu, 'interlude'>): boolean {
   return s.interlude?.phase === 'tirage';
-}
-
-/** Les héros dont le dé d'Événement reste à poser pendant le tirage, dans l'ordre du groupe ; vide hors
- *  tirage. Le tirage peut rester ouvert sans dé en attente : le dénouement de groupe reste alors à valider. */
-export function desEnAttente(s: EtatDInterlude): Combatant[] {
-  const itl = s.interlude;
-  if (!itl || !interludeDrawPending(s)) return [];
-  return s.party.filter((h) => itl.perHero[h.id] && itl.perHero[h.id].eventRoll == null);
 }
 
 const nomDuHeros = (s: EtatDInterlude, heroId: string): string =>
@@ -638,7 +630,7 @@ export function devisDeCloture(s: EtatDeCloture): DevisDeCloture | null {
   const participants = s.party.filter((h) => itl.perHero[h.id] && !h.dead);
   const gaspillages = s.party.map((h) => ({ heroId: h.id, brass: toBrass(bourseOf(h)) })).filter((g) => g.brass > 0);
   const revenus = participants.map((h) => ({ heroId: h.id, brass: itl.perHero[h.id].revenueBrass })).filter((r) => r.brass > 0);
-  const jours = itl.weeks * 7;
+  const jours = itl.weeks * joursParSemaine();
   return {
     gaspillages,
     gaspille: gaspillages.reduce((n, g) => n + g.brass, 0),

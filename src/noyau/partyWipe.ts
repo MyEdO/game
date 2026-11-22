@@ -57,13 +57,11 @@ function groupeNonViable(get: Get): boolean {
 /**
  * CLÔTURE D'UNE SÉQUENCE HORS COMBAT par le pilote IMMÉDIAT (`runCascadeImmediate`) — pendant de
  * `dispatchCascadeDone`, qui constate au slot déjà rendu. Vrai = la séquence n'a PAS de dénouement
- * à enchaîner : un combat a pris la main, ou le slot n'est plus celui d'entrée (`slot !== slotALEntree`),
- * ou le groupe est anéanti. Cette branche du slot a deux usagers : le pilote sans contexte, qui ne parque
- * rien de ce que ses appliers ouvrent ; le pilote à contexte lancé sous un slot vivant que son applier a
- * réécrit ou remplacé sans le parquer (un append, une re-pose), où `commitStep` ne lève pas `aOuvert`. La
- * reprise appartient à la clôture de ce qui a pris la main. Sous un slot vivant, la défaite n'est pas
- * constatée ici : purger sous lui laisserait sa réconciliation le ressusciter sous l'écran de défaite —
- * sa clôture la constate (`dispatchCascadeDone`) ; le pilote, lui, n'enchaîne pas.
+ * à enchaîner : un combat a pris la main, un slot actif a changé, ou le groupe est anéanti.
+ * Hors combat, le pilote à contexte parque sa séquence dès qu'un applier ouvre ou étend celle du slot.
+ * La garde du slot reste pour le pilote sans contexte : la clôture de ce qui est au slot prend la suite.
+ * Sous un slot vivant, la défaite se constate à sa clôture (`dispatchCascadeDone`) : une purge ici
+ * laisserait sa réconciliation le ressusciter sous l'écran de défaite.
  */
 export function clotureHorsCombat(get: Get, set: Set, slotALEntree: PendingCascade | null): boolean {
   if (get().battle) return true;

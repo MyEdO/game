@@ -15,7 +15,8 @@ import {
   incantationArcane,
 } from './magic';
 import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './conditions';
-import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
+import { ouvrirLeBanc } from '../noyau/banc.testkit';
+import { TIME_COST } from './timeCost';
 import type { Flow } from './flowCore';
 import { desDuTest } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -386,14 +387,16 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('HORS COMBAT : l’entretien fait expirer la cause (elle ne gèle pas à PB > 0)', () => {
     const { c, cause } = palier(3);
     const n = cause.duration.scale === 'rounds' ? cause.duration.left : 0;
-    outOfCombatUpkeep([c], n + 2, makeRNG(5), idsDeTest);
-    expect((c.activeEffects ?? []).some((e) => e.opsPerRound)).toBe(false);
-    expect(hasCondition(c, 'inconscient')).toBe(true);
+    const banc = ouvrirLeBanc({ graine: 5, etat: { party: [c] } });
+    banc.getState().avancerLeTemps((n + 2) * TIME_COST.combatRound);
+    const porteur = banc.getState().party[0];
+    expect((porteur.activeEffects ?? []).some((e) => e.opsPerRound)).toBe(false);
+    expect(hasCondition(porteur, 'inconscient')).toBe(true);
   });
 });
 
 describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty\'].days: Formula`)', () => {
-  it('la donnée réelle à `days` nu traverse la résolution formulaire : « Pensez à vos actes » = 7 jours', () => {
+  it('LDB 40 l.57 — « Pensez à vos actes » dure la semaine suivante', () => {
     let ops: ReturnType<typeof rollMiscast>['ops'] | null = null;
     for (let seed = 0; seed < 600 && !ops; seed++) {
       const r = rollMiscast('colere', makeRNG(seed), 0);
@@ -402,7 +405,7 @@ describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty
     expect(ops, 'rangée « Pensez à vos actes » introuvable').toBeTruthy();
     const c = hero();
     applyOps(c, ops!, { idNeuf: idsDeTest, label: 'Pensez à vos actes', now: 0, rng: makeRNG(1) });
-    expect(c.castPenalties![0].untilTime).toBe(7 * 24 * 60);
+    expect(c.castPenalties![0].untilTime).toBe(8 * 24 * 60);
   });
 
   it('une formule à dés en jours est résolue sous RNG semé : untilTime = (1d10 + 3) × 24 × 60', () => {

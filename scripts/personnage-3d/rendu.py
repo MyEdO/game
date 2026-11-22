@@ -13,11 +13,15 @@ habille.
 Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
 voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
 que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
-son armature. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
+son armature. Sous `--preset`, un rigide que le jeu range (`rangementsObjets` du preset, `rangement` de son trapping) se
+pose là où le jeu le range, sur l'emplacement de la base ou la case de la pièce qui l'offre, au repos comme à l'image du
+clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`poses_des_ranges`,
+`hotes/godot/asset/posesDesRanges.mjs`, #4351) ; un élément porté plusieurs fois par le preset se donne autant de fois,
+chaque `--element` montant à son tour la ligne suivante du preset. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
 la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
 y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
-couleur ; `--clip`
+couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
 `--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
@@ -32,6 +36,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import sys
 import time
 from pathlib import Path
@@ -41,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from glb import lire_glb  # noqa: E402
 from habillage import couleur_lineaire  # noqa: E402
 from noms_silhouettes import CORPULENCE  # noqa: E402
+from script_node import lancer  # noqa: E402
 
 DEPOT = Path(__file__).resolve().parents[2]
 DONNEES = DEPOT / 'src' / 'data'
@@ -48,6 +54,8 @@ CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
 """Le catalogue des textures de matière du jeu."""
 METRES_PAR_MOTIF = 2.0
 """`MiseEnPage.METRES_PAR_MOTIF` du monde Godot."""
+NETTETE_DU_MOTIF = 4.0
+"""`VolumeDeScene.NETTETE_DU_MOTIF` du monde Godot."""
 ETENDUE_DU_STUDIO = 1.82
 """L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
 base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
@@ -228,6 +236,38 @@ def monter(bpy, base, rig, elements):
                         mod.object = rig
 
 
+VERS_BLENDER = ((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1))
+"""Du repère glTF (Y haut) à celui de Blender (Z haut), comme l'import glTF de Blender."""
+
+
+def poses_des_ranges(base, manifeste, elements, preset, silhouettes, clip=None, t=0):
+    """Par GLB d'`elements`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne
+    par colonne) où le jeu range ce mesh sous le `preset`, `None` s'il ne le montre pas rangé, au repos ou à l'instant
+    `t` du `clip` (`hotes/godot/asset/posesDesRanges.mjs`). Une ligne du preset sans GLB donné se dit sur la sortie
+    d'erreur."""
+    demande = {'base': str(base), 'manifeste': str(manifeste), 'elements': [str(e) for e in elements], 'preset': preset,
+               'silhouettes': silhouettes, **({'clip': clip, 't': t} if clip else {})}
+    reponse = json.loads(lancer(DEPOT / 'hotes' / 'godot' / 'asset' / 'posesDesRanges.mjs', [], json.dumps(demande)))
+    if reponse['sans']:
+        print(f"--preset {preset} : ligne(s) montée(s) par le jeu sans --element répété : {', '.join(reponse['sans'])}", file=sys.stderr)
+    return reponse['elements']
+
+
+def ranger(elements, poses):
+    """Pose chaque mesh rigide des `(objets importés, manifeste)` d'`elements` que `poses` range (`poses_des_ranges`) à sa
+    transformation, hors de son os : son nom est celui de son nœud glTF, au suffixe `.NNN` près que Blender ajoute à un
+    nom déjà pris."""
+    from mathutils import Matrix
+    vers_blender = Matrix(VERS_BLENDER)
+    for (objets, _), pose in zip(elements, poses):
+        for obj in objets if pose else []:
+            noeud = obj.name if obj.name in pose['meshes'] else re.sub(r'\.\d{3}$', '', obj.name)
+            if obj.type == 'MESH' and obj.parent_type == 'BONE' and pose['meshes'].get(noeud):
+                colonnes = pose['meshes'][noeud]
+                obj.parent = None
+                obj.matrix_world = vers_blender @ Matrix([colonnes[ligne::4] for ligne in range(4)]) @ vers_blender.inverted()
+
+
 def palette(preset, races, matieres):
     """La palette du `preset` de personnage, comme le noyau la compose (`porteeDeComposition`, #4379) :
     `{emplacement: couleur linéaire (r, g, b)}`, les couleurs de sa race de `races` (`raceAppearance.json`), chacune
@@ -265,13 +305,80 @@ def colorer(objets, surfaces, palette):
                 principled.inputs['Base Color'].default_value = (*couleur, 1)
 
 
+def noeud(nt, type_, entrees=(), **reglages):
+    """La première sortie active d'un nœud `type_` neuf de l'arbre `nt`, réglé de `reglages`, ses entrées actives
+    liées dans l'ordre aux sorties `entrees`, ou posées à leur valeur."""
+    n = nt.nodes.new(type_)
+    for nom, valeur in reglages.items():
+        setattr(n, nom, valeur)
+    for prise, entree in zip([p for p in n.inputs if p.enabled], entrees):
+        if isinstance(entree, (float, tuple)):
+            prise.default_value = entree
+        else:
+            nt.links.new(entree, prise)
+    return next(p for p in n.outputs if p.enabled)
+
+
+def vecteur(nt, operation, *entrees):
+    """La sortie d'un nœud Vector Math `operation` sur `entrees` (`noeud`)."""
+    return noeud(nt, "ShaderNodeVectorMath", entrees, operation=operation)
+
+
+def calcul(nt, operation, *entrees):
+    """La sortie d'un nœud Math `operation` sur `entrees` (`noeud`)."""
+    return noeud(nt, "ShaderNodeMath", entrees, operation=operation)
+
+
+def composantes(nt, v):
+    """Les sorties X, Y, Z de `v`."""
+    return noeud(nt, "ShaderNodeSeparateXYZ", (v,)).node.outputs
+
+
+def poids_triplanaires(nt, normale):
+    """Le poids de chaque axe du repère de l'objet sous la `normale` de surface de ce repère, comme le jeu le donne
+    (`uv1_power_normal`, `art/monde.gdshader`), à la netteté `NETTETE_DU_MOTIF`."""
+    puissance = vecteur(nt, "POWER", vecteur(nt, "ABSOLUTE", normale), (NETTETE_DU_MOTIF,) * 3)
+    return vecteur(nt, "SCALE", puissance, calcul(nt, "DIVIDE", 1.0, vecteur(nt, "DOT_PRODUCT", puissance, (1.0,) * 3)))
+
+
+def lire_en_triplanaire(nt, motif, poids, image):
+    """L'`image` lue au `motif` (le repère de l'objet à l'échelle du motif) sur le plan de chaque axe, mélangée de
+    `poids` (`poids_triplanaires`), comme le jeu la lit (`triplanar_texture`, `art/monde.gdshader`), ses plans ramenés
+    du repère glTF de Godot, Y haut, V vers le bas, à celui de Blender, Z haut, V vers le haut : X lu en (y, z), Y en
+    (x, z), Z en (x, y)."""
+    x, y, z = composantes(nt, motif)
+    lu = None
+    for (u, v), part in zip(((y, z), (x, z), (x, y)), composantes(nt, poids)):
+        texel = noeud(nt, "ShaderNodeTexImage", (noeud(nt, "ShaderNodeCombineXYZ", (u, v)),), image=image)
+        part = vecteur(nt, "SCALE", texel, part)
+        lu = part if lu is None else vecteur(nt, "ADD", lu, part)
+    return lu
+
+
+def relief_triplanaire(nt, lu, normale):
+    """La normale du monde que donne le relief `lu` (`lire_en_triplanaire`) à la `normale` de surface du repère de
+    l'objet, dans la base que le jeu lie aux axes de ce repère (`vertex()`, `art/monde.gdshader`), ramenée au repère de
+    Blender : tangente Y sous X, X sous Y et Z ; bitangente Z sous X et Y, Y sous Z ; la composante normale du relief
+    reconstruite de ses deux autres, comme Godot le fait de `NORMAL_MAP`."""
+    rx, ry, _ = composantes(nt, vecteur(nt, "MULTIPLY_ADD", lu, (2.0,) * 3, (-1.0,) * 3))
+    plan = noeud(nt, "ShaderNodeCombineXYZ", (rx, ry))
+    rz = calcul(nt, "SQRT", calcul(nt, "MAXIMUM", calcul(nt, "SUBTRACT", 1.0, vecteur(nt, "DOT_PRODUCT", plan, plan)), 0.0))
+    ax, ay, az = composantes(nt, vecteur(nt, "ABSOLUTE", normale))
+    tangente = vecteur(nt, "NORMALIZE", noeud(nt, "ShaderNodeCombineXYZ", (calcul(nt, "ADD", ay, az), ax)))
+    bitangente = vecteur(nt, "NORMALIZE", noeud(nt, "ShaderNodeCombineXYZ", (0.0, az, calcul(nt, "ADD", ax, ay))))
+    somme = vecteur(nt, "ADD", vecteur(nt, "SCALE", tangente, rx), vecteur(nt, "SCALE", bitangente, ry))
+    somme = vecteur(nt, "NORMALIZE", vecteur(nt, "ADD", somme, vecteur(nt, "SCALE", normale, rz)))
+    return noeud(nt, "ShaderNodeVectorTransform", (somme,), vector_type="NORMAL", convert_from="OBJECT", convert_to="WORLD")
+
+
 def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
     """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
     catalogue si le catalogue la porte, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le
-    catalogue la porte, teinte de `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas
-    `blason`, projetée sinon dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans
-    texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est
-    donné."""
+    catalogue la porte, teinte de `couleur` (linéaire), et son relief (`<matiere>.normale.jpg`) s'il y est
+    (`VolumeDeScene.texturer`) ; lus aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, sinon en
+    triplanaire dans le repère de l'objet, relief compris (`lire_en_triplanaire`, `relief_triplanaire`) ; un motif tous
+    les `METRES_PAR_MOTIF` ; sans texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV
+    `couche`) si `blason` et qu'il est donné."""
     nt = mat.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
     base = bsdf.inputs["Base Color"]
@@ -283,20 +390,35 @@ def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
                 nt.links.remove(lien)
         echelle = nt.nodes.new("ShaderNodeMapping")
         echelle.inputs["Scale"].default_value = (1 / METRES_PAR_MOTIF,) * 3
-        tex = nt.nodes.new("ShaderNodeTexImage")
+        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
+        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
+        image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
+        relief = CATALOGUE / f"{matiere}.normale.jpg"
+        if relief.exists():
+            relief = bpy.data.images.load(str(relief.resolve(strict=True)), check_existing=True)
+            relief.colorspace_settings.name = "Non-Color"
+        else:
+            relief = None
         if par_uv and not surface.get("blason"):
             coord = nt.nodes.new("ShaderNodeUVMap")
             coord.uv_map = couche
             nt.links.new(coord.outputs["UV"], echelle.inputs["Vector"])
+            sortie = noeud(nt, "ShaderNodeTexImage", (echelle.outputs["Vector"],), image=image)
+            if relief is not None:
+                carte = noeud(nt, "ShaderNodeTexImage", (echelle.outputs["Vector"],), image=relief)
+                normale = noeud(nt, "ShaderNodeNormalMap", (1.0, carte), uv_map=couche)
         else:
             coord = nt.nodes.new("ShaderNodeTexCoord")
             nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
-            tex.projection, tex.projection_blend = "BOX", 0.2
-        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
-        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
-        tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
-        nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
-        sortie = tex.outputs["Color"]
+            poids = poids_triplanaires(nt, coord.outputs["Normal"])
+            sortie = lire_en_triplanaire(nt, echelle.outputs["Vector"], poids, image)
+            if relief is not None:
+                lu = lire_en_triplanaire(nt, echelle.outputs["Vector"], poids, relief)
+                normale = relief_triplanaire(nt, lu, coord.outputs["Normal"])
+        if relief is not None:
+            for lien in list(bsdf.inputs["Normal"].links):
+                nt.links.remove(lien)
+            nt.links.new(normale, bsdf.inputs["Normal"])
         if couleur is not None:
             teinte = nt.nodes.new("ShaderNodeMix")
             teinte.data_type, teinte.blend_type = "RGBA", "MULTIPLY"
@@ -547,6 +669,13 @@ def main():
             if action.slots:
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
+        if args.preset and args.element:
+            # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
+            cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
+            instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
+            ranger(elements, poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
+                                              args.silhouettes, **instant))
+            bpy.context.view_layer.update()
     silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
     relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
     if relief is not None:

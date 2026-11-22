@@ -16,6 +16,7 @@ import { pagesDeLAtlasRendues, cataloguesRendus } from './build-catalogs.mjs'
 import { GENERATORS, rendreCible } from '../docs/build-all.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { tableDAncres } from './lib/ancres.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 
@@ -79,4 +80,7 @@ async function main(rawDir = RAWDIR) {
   console.log('OK — chaque renvoi d’ancre de l’Atlas désigne une ancre existante de la page qu’il vise.')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

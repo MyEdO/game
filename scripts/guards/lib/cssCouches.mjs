@@ -2,7 +2,7 @@
 // règles, des déclarations, deux prédicats, et les sites d'IDENTITÉ et d'ESPACEMENT d'une IMAGE
 // `{ fichiers, manifeste, partagees, reutilises }` — partitionnée en STOCK (modules d'écran et
 // `layout.css`) et zone EXEMPTE (`modulesExemptes`, #1806 L1), puis VENTILÉE d'un parent à son commit
-// (`ventiler`, #1806 D6″). Le VERDICT appartient aux gardes (`src/ui/ui-ratchets.test.ts`,
+// (`ventiler`, #1806 D6″). Le verdict de reclassement appartient aux lecteurs d’images Git (
 // `reclassementCss.mjs`) ; la LECTURE des images (disque, ref git, index) et des imports qui fixent
 // `reutilises` à `cssImages.mjs`. Pur `.mjs` parce que les hooks de commit et de push le chargent sous
 // `node` nu (#1806).
@@ -43,7 +43,9 @@ export function moduleHorsCouche(fichier, css) {
   if (!String(css).endsWith('.css')) return true;
   if (String(css).startsWith(RACINE_DES_MODULES)) return false;
   const z = zoneDe(String(fichier));
-  const zone = estZone(z) && z !== 'racine' ? `${dossierDe(z)}/` : null;
+  // Une image ancienne peut porter un dossier source absent de COUCHES aujourd’hui.
+  const zone = estZone(z) && z !== 'racine' ? `${dossierDe(z)}/`
+    : z?.startsWith('src/') ? `${z}/` : null;
   return zone === null || zone === 'src/ui/' || !String(css).startsWith(zone);
 }
 
@@ -167,7 +169,7 @@ export function declarations(corps) {
 
 /**
  * Corps INTERNE de la tranche `@media` dont le prélude est `requete`, accolades appariées.
- * Source UNIQUE des lectures par tranche (`src/ui/ui-ratchets.test.ts`, `src/ui/console/CombatConsole.test.tsx`).
+ * Source unique des lectures par tranche.
  * Une tranche ABSENTE lève : rendre `''` laissait passer au vert tout contrat qui l'interroge.
  * @param {string} css @param {string} requete @returns {string}
  */
@@ -203,7 +205,7 @@ export function baseSection(css) {
   }
 }
 
-/** Propriétés de PLACEMENT nommées une à une (docs/charte-ui.md § « Architecture CSS »), sous leur
+/** Propriétés de PLACEMENT nommées une à une, sous leur
  *  nom PHYSIQUE (`physique`) ; avec les familles à préfixe ci-dessous, elles forment TOUT le
  *  placement : elles PLACENT, bornent, ferrent ou retirent une puce — elles ne PEIGNENT pas. Tout le
  *  reste est de l'IDENTITÉ et appartient à une primitive. `cursor` est de l'identité : l'affordance est
@@ -335,7 +337,7 @@ export function valeurHorsEchelle(valeur) {
 }
 
 /** La couche LAYOUT : feuille partagée des primitives de PLACEMENT, mesurée comme un module d'écran —
- *  identité et espacement au stock (docs/charte-ui.md § « Architecture CSS »). */
+ *  identité et espacement au stock. */
 export const FEUILLE_LAYOUT = 'src/ui/styles/layout.css';
 
 /** Le manifeste des primitives, chemin UNIQUE : la frontière primitive / écran s'y lit. */
@@ -382,7 +384,7 @@ export const cleDeRegle = (selecteurs) => selecteurs.join(', ').replace(/\s+/g, 
 
 /**
  * Sites d'IDENTITÉ : une déclaration qui n'est pas du PLACEMENT.
- * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {import('./stock.mjs').Site[]}
  */
 export function sitesIdentiteEcran(fichiers) {
   const sites = [];
@@ -390,7 +392,7 @@ export function sitesIdentiteEcran(fichiers) {
     for (const { selecteurs, corps } of reglesCss(f.text)) {
       const sel = cleDeRegle(selecteurs);
       for (const { prop, valeur } of declarations(corps)) {
-        if (!estPlacement(prop, valeur)) sites.push({ file: f.rel, ref: `${sel} :: ${prop}` });
+        if (!estPlacement(prop, valeur)) sites.push({ fichier: f.rel, ref: `${sel} :: ${prop}` });
       }
     }
   }
@@ -399,7 +401,7 @@ export function sitesIdentiteEcran(fichiers) {
 
 /**
  * Sites d'ESPACEMENT hors échelle `--sp-*`.
- * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {import('./stock.mjs').Site[]}
  */
 export function sitesEspacementHorsEchelle(fichiers) {
   const sites = [];
@@ -408,7 +410,7 @@ export function sitesEspacementHorsEchelle(fichiers) {
       const sel = cleDeRegle(selecteurs);
       for (const { prop, valeur } of declarations(corps)) {
         if (PROPRIETES_A_ECHELLE.has(prop) && valeurHorsEchelle(valeur)) {
-          sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
+          sites.push({ fichier: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
         }
       }
     }
@@ -475,7 +477,7 @@ export function modulesExemptes({ manifeste, partagees, reutilises }) {
 /**
  * Les modules d'ÉCRAN d'une image : son stock (`modulesExemptes` en est le complément) moins
  * `FEUILLE_LAYOUT`.
- * @param {{ fichiers: readonly { rel: string, text: string }[], manifeste: readonly { id: string, fichier?: string, css?: string }[], partagees: readonly string[], reutilises: ReadonlySet<string> }} image
+ * @param {{ fichiers: readonly import('./cssCouches.mjs').Fichier[], manifeste: readonly { id: string, fichier?: string, css?: string }[], partagees: readonly string[], reutilises: ReadonlySet<string> }} image
  */
 export function modulesDEcran(image) {
   const exempts = modulesExemptes(image);
@@ -508,7 +510,7 @@ const SEP = '\u0000';
 const clesDe = (fichiers, mesure) => {
   const m = new Map();
   for (const s of mesure(fichiers)) {
-    const k = s.file + SEP + s.ref;
+    const k = s.fichier + SEP + s.ref;
     m.set(k, (m.get(k) ?? 0) + 1);
   }
   return m;
@@ -563,7 +565,7 @@ export function franchissements(parent, commit) {
  * parent, pour les seuls couples dont les deux chemins sont au stock (#1806 D5″).
  * @param {Parameters<typeof modulesDEcran>[0]} image @param {typeof image} commit
  * @param {{ renommages?: ReadonlyMap<string, string>,
- *   stockAvant?: Record<'identite' | 'espacement', Iterable<{ fichier: string, ref: string }>> }} [options]
+ *   stockAvant?: Record<'identite' | 'espacement', Iterable<import('./stock.mjs').Site>> }} [options]
  */
 export function ventiler(image, commit, { renommages = new Map(), stockAvant } = {}) {
   const exAvant = modulesExemptes(image);
@@ -594,7 +596,7 @@ export function ventiler(image, commit, { renommages = new Map(), stockAvant } =
     const sorti = moins(Sb, Sh);
     const SORTI = taille(sorti);
     const accru = moins(Sh, Sb);
-    /** @type {{ fichier: string, ref: string, n: number }[]} */
+    /** @type {import('./cssCouches.mjs').Retour[]} */
     const retournes = [];
     for (const [k, n] of accru) {
       const pris = Math.min(n, Eb.get(k) ?? 0);
@@ -661,9 +663,9 @@ export function ligneDeVentilation(nom, v) {
  * ne comptait pas et que `HEAD` portait déjà — les `retournes` d'une ventilation `HEAD` → arbre
  * faite sur `stockDeTete`. Par clé (fichier, réf), les occurrences au-delà du compte de `stockDeTete`,
  * dans la limite du retour : un site NEUF n'est jamais admis.
- * @template {{ fichier: string, ref: string, occurrence: number }} E
- * @param {readonly E[]} mesurees @param {Iterable<{ fichier: string, ref: string }>} stockDeTete
- * @param {readonly { fichier: string, ref: string, n: number }[]} retournes @returns {E[]}
+ * @template {import('./stock.mjs').EntreeDeSite} E
+ * @param {readonly E[]} mesurees @param {Iterable<import('./stock.mjs').Site>} stockDeTete
+ * @param {readonly import('./cssCouches.mjs').Retour[]} retournes @returns {E[]}
  */
 export function admisAuRetour(mesurees, stockDeTete, retournes) {
   const compte = clesDEntrees(stockDeTete, (f) => f);

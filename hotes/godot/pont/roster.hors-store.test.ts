@@ -53,7 +53,7 @@ describe('le roster par le pont', () => {
     expect(recrute.vue.projection.pas, 'le recrutement est un geste de la partie').toBe(s.vue.projection.pas + 1);
     expect(recrute.zones['journal.lignes'].some((l) => l.texte.includes('Alda')), 'sa bourse de départ au journal').toBe(true);
     expect(boutonDe(recrute, alda, 'recruter').refus, 'déjà au groupe').toBe(t('pf.partyDuplicate', { name: 'Alda' }));
-    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: `roster : ${t('pf.partyDuplicate', { name: 'Alda' })}` });
+    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: t('pf.partyDuplicate', { name: 'Alda' }) });
     expect(boutonDe(recrute, bruno, 'recruter').refus).toBeNull();
     expect(chargerLeRoster(stockage).map((e) => e.hero.id), 'le roster garde ses deux héros').toEqual([alda, bruno]);
   });
@@ -91,10 +91,13 @@ describe('le roster par le pont', () => {
     const { appel, entrees, stockage } = tableAuRoster('Alda');
     const alda = entrees[0].hero.id;
     const s = suiteDe(appel('ouvrir', { graine: 7 }));
-    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
+    const pretire = s.vue.zones['groupe.pretires'][0];
+    const recrutement = pretire.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('recruter/'))!;
+    expect(erreurDe(appel('jouer', { suite: [recrutement.jeu, { type: 'inconnu' }] })).categorie).toBe('validation');
     retirerDuRoster(stockage, alda);
     expect(erreurDe(appel('roster', boutonDe(s, alda, 'exporter').jeu)).categorie, 'le héros exporté n’est plus au stockage').toBe('interne');
-    expect(suiteDe(appel('regarder', { regard: 'tactique' })).journal.map((l) => ('texte' in l ? l.texte : null)), 'la ligne du refus').toEqual([t('coop.intentRefused')]);
+    expect(suiteDe(appel('regarder', { regard: 'tactique' })).journal.map((l) => ('texte' in l ? l.texte : null)))
+      .toEqual([expect.stringContaining(pretire.nom)]);
   });
 
   it('un fichier qui n’est pas un export de héros se refuse en avis, le roster intact ; un import réussi l’efface', () => {

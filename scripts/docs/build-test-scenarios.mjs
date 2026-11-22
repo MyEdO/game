@@ -1,8 +1,8 @@
 import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 /**
- * Génère `docs/test-scenarios.md` — catalogue des scénarios de test navigateur.
+ * Génère `docs/test-scenarios.md` — catalogue des scénarios de test Godot.
  * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  * Objet (#903 suite) — la table « Catalogue actuel » recopiait à la main un sous-ensemble du
  * registre réel (`_registry.generated.ts`, 34 scénarios) : mesuré 9 scénarios ABSENTS du .md
@@ -26,9 +26,9 @@ import { readFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { join } from 'node:path'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const DIR = 'src/scenes/test-scenarios'
   const SECTIONS = [
@@ -169,44 +169,25 @@ function rendu() {
     '**Périmètre mesuré / angles morts** — la section « Catalogue actuel » énumère chaque fichier',
     '`src/scenes/test-scenarios/<NN>-<slug>.ts` (hors `_*`, `*.test.ts`, `*.ascii.ts`, `index.ts` — même',
     "filtre que `scripts/gen-registry.mjs`), lu par AST (`id`/`order`/`category`/`title`/`tests`/`partyNote`",
-    "de la FICHE, le littéral `export const scenario`), groupé par section dans le MÊME ordre que `TestScenariosScreen`",
+    "de la FICHE, le littéral `export const scenario`), groupé par section dans l’ordre de `src/hote/scenarios.ts`",
     "(`SCENARIO_SECTIONS` filtré aux catégories présentes, tri `order` croissant dans chaque section) —",
-    "un miroir du menu en jeu. Angle mort : aucun `import` runtime n'est fait (voir en-tête du générateur,",
-    "cycle `store.ts` ⇄ `triggeredEffects.ts` sous Node ESM natif) — un scénario dont le champ `id`/`order`/",
+    "un miroir du menu en jeu. La lecture se fait par AST, sans charger le jeu. Un scénario dont le champ `id`/`order`/",
     "`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique fait échouer le générateur : la",
     "fiche ne lit aucun dataset, ce qui se construit vit dans la fabrique `construire`. Les sections",
-    "« Vérifier une feature », « Ajouter un scénario » et « Conventions »",
+    "« Vérifier une fonctionnalité dans Godot », « Ajouter un scénario » et « Conventions »",
     "ci-dessous sont de l'INTENTION ÉDITORIALE (comment écrire un scénario, pourquoi la densité) non",
     "dérivable d'aucune donnée — maintenue à la main DANS CE GÉNÉRATEUR, jamais dans le .md.",
     '',
-    '## Vérifier une feature au navigateur',
+    '## Vérifier une fonctionnalité dans Godot',
     '',
-    '1. Lance `npm run dev`, ouvre le menu → **Scénarios de test**.',
+    '1. Lance `npm run godot:ouvrir`, ouvre le menu **Scénarios de test**.',
     "2. **Passe par le scénario adapté.** S'il n'en existe pas pour ce que tu vérifies, **crée-en un**.",
     '',
-    "**Angle mort du catalogue, mesuré (recette #1852, 2026-09-21)** : AUCUN scénario n'isole « une",
-    "créature à attaque gratuite face à un héros ». Tant qu'il n'existe pas, la composition MINIMALE qui",
-    "la monte et OUVRE la fenêtre de Défense de la gratuite, au kit de recette (helpers de",
-    '`window.__wfrp`, vérifiés au code) :',
+    "Une recette automatisée peut lancer le scénario avec `node hotes/godot/recette.mjs --natif --scenario <id> --captures <dossier>`.",
+    "Pour la page, construis `npm run godot:web` puis utilise `--web dist/godot` dans la même commande à la place de `--natif`.",
     '',
-    '```js',
-    "await evaluate(session, `window.__wfrp.scenario('entrainement')`);        // terrain nu, groupe complet",
-    "await evaluate(session, `window.__wfrp.fight('enc-entrainement')`);       // l'affrontement du scénario",
-    "// ouvrir le Round et avoir la main d'un héros, puis :",
-    "// { x, y } = une case au contact du héros visé (positions : __wfrp.battle())",
-    "await evaluate(session, `window.__wfrp.spawn('ours', { x: 8, y: 5 }, { side: 'ennemi', id: 'ours' })`);",
-    "await evaluate(session, `window.__wfrp.quality('ours', null, 1)`);       // 1 Avantage = coût de la Morsure",
-    "await evaluate(session, `window.__wfrp.attaqueGratuite('ours', 'hero-1')`); // modale de Défense ouverte",
-    '```',
-    '',
-    "`attaqueGratuite(attaquantId, defenseurId, type?)` fait déclarer à l'ennemi une gratuite de créature",
-    "(`morsure`, `caudale`, `tentacules`, `cornes`, `pietinement` ; défaut = la première disponible) par la",
-    "file de production `aiCreatureFreeAttacks`, au tour de l'attaquant ; elle refuse en nommant ce qui",
-    "manque (aucune gratuite disponible, hors de portée, Avantage sous le coût…). La fenêtre se joue ensuite",
-    "aux clics. `spawn(creatureId, pos, { side, id })` prend un id de `src/data/creatures.json` (`'ours'`,",
-    "pas son libellé) ; `quality(id, label, advantage)` crédite les Avantages — son 2ᵉ argument RESTE une",
-    "qualité d'arme : `null` ou `undefined` (arrivé `null` par CDP) la laisse au défaut « Déstabilisante »,",
-    "ça n'annule rien. C'est du MONTAGE d'état : le geste TESTÉ, lui, se joue au clic et au clavier.",
+    "La file des attaques gratuites et l’ouverture de la défense sont vérifiées dans",
+    "`src/noyau/combat-gel-tour.hors-store.test.ts`. L’ancien montage de la Morsure (#1852) reste dans l’historique.",
     '',
     '## Ajouter un scénario = un fichier',
     '',
@@ -242,7 +223,7 @@ function rendu() {
     '',
     '`index.ts` le ramasse via le **registre généré** (`scripts/gen-registry.mjs` → `_registry.generated.ts`,',
     'auto en dev ; après ajout/suppression d\'un fichier, lance `npm run gen`). Les scénarios sont triés par',
-    '`order`, puis **groupés par `category`** en sections dans le menu (`TestScenariosScreen`). Les `*.test.ts`',
+    '`order`, puis **groupés par `category`** en sections dans le menu Godot (`src/hote/scenarios.ts`). Les `*.test.ts`',
     'et les fichiers `_*` sont exclus.',
     '',
     '## Conventions',
@@ -294,4 +275,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

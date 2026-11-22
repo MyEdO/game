@@ -3,7 +3,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ouvrirLeBanc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/45-breche-au-canon';
 import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
-import { findTrappingById } from '../../data';
+import { findSiegeEngineById, qualityInstance } from '../../data';
+import { crewedTeamIndice } from '../../engine/qualities/dispatch';
 import { idsDuJeu, resetRule } from '../../engine/policy';
 import { servingCrewPresent } from '../monde/shipPostes';
 import { areteDessinee } from '../monde/aretes';
@@ -19,7 +20,7 @@ const ROUNDS_MAX = 3;
 
 /** Effectif d'Équipe de la pièce `trappingId` (Qualité `arme-d-equipe`, AA 10 l.236-241). */
 const equipeDe = (trappingId: string): number =>
-  findTrappingById(trappingId)!.qualities!.find((q) => q.id === 'arme-d-equipe')!.value as number;
+  crewedTeamIndice({ qualities: findSiegeEngineById(trappingId)!.qualities.map(qualityInstance) });
 
 const herse = (walls: readonly WallSeg[] | undefined): WallSeg[] => (walls ?? []).filter((w) => w.structure === 'porte-de-ville');
 
@@ -59,10 +60,10 @@ describe('Brèche au canon (breche-au-canon)', () => {
     const b = banc.getState().battle!;
     for (const affut of affuts) {
       const poste = affut.postes![0];
-      const requis = equipeDe(poste.trappingId);
+      const requis = equipeDe(poste.engin.id);
       expect(poste.crewIds?.length, `${affut.id} : équipe déclarée`).toBe(requis);
       const chef = b.combatants.find((c) => c.id === poste.crewIds![0])!;
-      expect(chef.mannedPoste?.item.trappingId, `${chef.id} sert la pièce`).toBe(poste.trappingId);
+      expect(chef.mannedPoste?.item.trappingId, `${chef.id} sert la pièce`).toBe(poste.engin.id);
       expect(servingCrewPresent(chef, b.combatants), `${affut.id} : servants qualifiés présents`).toBe(requis);
     }
   });

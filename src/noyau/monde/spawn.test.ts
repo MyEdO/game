@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
-import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
+import { weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
-import { recomputeLoadout } from '../../engine/items';
-import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete } from '../../data';
+import { buildWeapon, laisserTomber, piecesPorteesA, recomputeLoadout, weaponFromItem } from '../../engine/items';
+import { harnacher } from '../mount';
+import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete, type CreatureData } from '../../data';
 import { porteeDuCombattant } from '../apparence/combattant';
 import { pettySpellQuotaFor } from '../../engine/creation';
-import { CHAR_KEYS } from '../../engine/types';
-import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { CHAR_KEYS, LOCALISATIONS_DE_COUP, type Combatant } from '../../engine/types';
+import { armourCastDRPenalty, knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { armourPhysiqueAt, sourcesDArmureA } from '../../engine/armourBypass';
+import { effectiveArmourAt } from '../../engine/characteristics';
+import { domainMissileMods } from '../../engine/domainAttributes';
+import { resetRule, setRule } from '../../engine/policy';
+import { woundsFromHit } from '../../engine/woundsCalc';
 import { ficheDEntite, nomDEntite } from './sceneNpc';
 import { actorStatus } from '../../engine/social';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
@@ -16,6 +22,9 @@ import { emptyScene, type SceneEntity } from './scene';
 import { poserUneTroupe } from '../sceneEdit';
 import { bourseOf } from '../../engine/bourse';
 import { toBrass } from '../../engine/money';
+import { tableTotale } from '../../lib/tableTotale';
+
+const paDuCombattant = (c: Combatant) => tableTotale(LOCALISATIONS_DE_COUP, (loc) => armourPhysiqueAt(c, loc));
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -65,13 +74,13 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('une cotte de mailles portée donne ses PA, et le Trait Armure cède', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-maille', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': true } });
-    expect(c.armour).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
+    expect(paDuCombattant(c)).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
     expect(c.traits?.some((t) => t.id === 'armure')).toBe(false);
   });
 
   it('une cotte de mailles NON portée ne fait pas céder le Trait Armure', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-sac', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': false } });
-    expect(c.armour).toEqual(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 }).armour);
+    expect(paDuCombattant(c)).toEqual(paDuCombattant(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 })));
   });
 
   it('une arme simple tenue remplace l’arme du Trait Arme', () => {
@@ -84,7 +93,7 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
     const sb: CustomStatblock = { type: 'statblock', label: 'Homme-bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7 }, { id: 'morsure', value: 6 }, { id: 'mutation', arg: 'cornes-asymetriques' }] };
     const c = spawnEnemy({ statblock: sb }, 'hb', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
     expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Morsure', 'Cornes']);
-    expect(c.armour.tete).toBe(1);
+    expect(armourPhysiqueAt(c, 'tete')).toBe(1);
   });
 
   it('un Trait Arme naturel (Crocs) reste devant une arme tenue', () => {
@@ -96,17 +105,18 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('recomposé (`recomputeLoadout`), un PNJ sans inventaire garde les armes et l’armure de ses Traits', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-recompose', { x: 0, y: 0 });
-    const { weapons, armour } = structuredClone(c);
+    const { weapons } = structuredClone(c);
+    const armour = paDuCombattant(c);
     recomputeLoadout(c);
     expect(c.weapons).toEqual(weapons);
-    expect(c.armour).toEqual(armour);
+    expect(paDuCombattant(c)).toEqual(armour);
   });
 
   it('un PNJ sans inventaire garde les armes et l’armure de ses Traits, sans objet', () => {
     const c = spawnEnemy({ statblock: tireur }, 'e-nu', { x: 0, y: 0 });
     expect(c.items).toBeUndefined();
     expect(c.weapons).toEqual(weaponsFromTraits(c.traits ?? []).map((w) => expect.objectContaining({ uid: w.uid, label: w.label })));
-    expect(c.armour).toEqual(armourFromTraits(c.traits ?? []));
+    expect(paDuCombattant(c)).toEqual({ tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
   });
 
   it('une arbalète d’inventaire fait céder le Trait À distance : UNE arme à distance, l’objet, avec Recharge', () => {
@@ -119,14 +129,192 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('une barde portée s’ajoute au Trait Armure du demigriffon : l’armure du demigriffon monté (AA 09 l.184 ; #4135)', () => {
     const c = spawnEnemy({ ref: 'demigriffon' }, 'dg-barde', { x: 0, y: 0 }, { inventaire: { barde: true } });
-    expect(c.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
-    expect(c.armour).toEqual(spawnEnemy({ ref: 'demigriffon-adulte' }, 'dg-adulte', { x: 0, y: 0 }).armour);
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(c)).toEqual(paDuCombattant(spawnEnemy({ ref: 'demigriffon-adulte' }, 'dg-adulte', { x: 0, y: 0 })));
     expect(c.traits?.some((t) => t.id === 'armure')).toBe(true);
   });
 
   it('un caparaçon porté s’ajoute au Trait Armure du blaireau, sur la tête et le torse (ADE I 07 l.66 ; #4135)', () => {
     const c = spawnEnemy({ ref: 'blaireau' }, 'bl-caparacon', { x: 0, y: 0 }, { inventaire: { 'caparacon-pour-blaireau': true } });
-    expect(c.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
+  });
+});
+
+describe('possessions de fiche à l’apparition (#4348)', () => {
+  const armePerforante = buildWeapon({
+    uid: 'perforante', label: 'Perforante', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }],
+  });
+
+  it('HCVM p.265 : le chef de guerre a une armure du Chaos à 6 PA à chaque Localisation', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    expect(c.items?.map((item) => item.trappingId)).toEqual(['grande-hache']);
+    expect(c.traits?.find((trait) => trait.id === 'armure')).toEqual({ id: 'armure', value: 6, matiere: 'chaos' });
+    for (const loc of LOCALISATIONS_DE_COUP) {
+      expect(effectiveArmourAt(c, loc)).toBe(6);
+      expect(sourcesDArmureA(c, loc)).toEqual([{ pa: 6, matiere: 'chaos', portee: true }]);
+    }
+  });
+
+  it('LDB 84 l.7 : une pièce d’auteur distincte s’ajoute, une pièce déjà décrite n’est pas comptée deux fois', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined, {
+      inventaire: { 'coiffe-de-mailles': true, plastron: true },
+    });
+    expect(c.items?.filter((item) => item.kind === 'armor').map((item) => item.trappingId)).toEqual(['coiffe-de-mailles']);
+    expect(sourcesDArmureA(c, 'tete')).toEqual([
+      { pa: 2, matiere: 'metal', portee: true },
+      { pa: 6, matiere: 'chaos', portee: true },
+    ]);
+    expect(effectiveArmourAt(c, 'tete')).toBe(8);
+    expect(effectiveArmourAt(c, 'corps')).toBe(6);
+  });
+
+  it('LDB 62 l.270 et LDB 48 l.106,399 : Perforante ignore les 6 PA du Chaos', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    const loc = 'corps';
+    const blessures = (perfore: boolean) => woundsFromHit(perfore ? armePerforante : undefined, c, loc, 30, 0, 1, undefined);
+    expect(blessures(true) - blessures(false)).toBe(6);
+    const pa = effectiveArmourAt(c, loc);
+    for (const id of ['cieux', 'metal']) {
+      expect(domainMissileMods(c, { domainId: { id } }, loc, pa)).toEqual({ apIgnored: 0, bonusDamage: 0 });
+    }
+  });
+
+  it('VDM 02 l.169 : les 6 PA du Chaos pénalisent l’incantation sauf avec Magie du Chaos', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    setRule('magie-vdm-incantation', true);
+    try {
+      expect(armourCastDRPenalty(c)).toBe(6);
+      c.talents.push({ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 });
+      expect(armourCastDRPenalty(c)).toBe(0);
+    } finally {
+      resetRule('magie-vdm-incantation');
+    }
+  });
+
+  it.each([
+    { loc: 'tete', pieces: ['heaume'], pa: 2 },
+    { loc: 'corps', pieces: ['cotte-de-mailles', 'plastron'], pa: 4 },
+  ] as const)('MDG 16 l.497,499,506 : les pièces de Vrisk donnent $pa PA métalliques à la Localisation $loc', ({
+    loc, pieces, pa,
+  }) => {
+    const vrisk = spawnEnemy({ ref: 'vrisk-gratte-le-fer' }, 'vrisk', undefined);
+    expect(piecesPorteesA(vrisk, loc).map((item) => item.trappingId)).toEqual(pieces);
+    expect(sourcesDArmureA(vrisk, loc)).toEqual(pieces.map(() => ({ pa: 2, matiere: 'metal', portee: true })));
+    expect(effectiveArmourAt(vrisk, loc)).toBe(pa);
+
+    const sansPerforante = woundsFromHit(undefined, vrisk, loc, 30, 0, 1, undefined);
+    const avecPerforante = woundsFromHit(armePerforante, vrisk, loc, 30, 0, 1, undefined);
+    expect(avecPerforante - sansPerforante).toBe(1);
+    expect(domainMissileMods(vrisk, { domainId: { id: 'cieux' } }, loc, pa)).toEqual({ apIgnored: pa, bonusDamage: 0 });
+    expect(domainMissileMods(vrisk, { domainId: { id: 'metal' } }, loc, pa)).toEqual({ apIgnored: pa, bonusDamage: pa });
+  });
+
+  it('MDG 16 l.464 : Wulfrik porte plates et mailles à 4 PA sur les zones couvertes', () => {
+    const wulfrik = spawnEnemy({ ref: 'wulfrik' }, 'wulfrik', undefined);
+    expect(sourcesDArmureA(wulfrik, 'tete')).toEqual([]);
+    for (const loc of LOCALISATIONS_DE_COUP.filter((loc) => loc !== 'tete')) {
+      expect(effectiveArmourAt(wulfrik, loc)).toBe(4);
+      expect(sourcesDArmureA(wulfrik, loc)).toEqual([
+        { pa: 2, matiere: 'metal', portee: true },
+        { pa: 2, matiere: 'metal', portee: true },
+      ]);
+    }
+  });
+
+  it('Middenheim 02 l.1326-1328 : Marta porte sa massue et sa veste sans cumuler le Trait Armure', () => {
+    const c = spawnEnemy({ ref: 'marta-gerbenshreiber' }, 'marta', undefined);
+    const veste = c.items?.find((it) => it.trappingId === 'veste-de-cuir');
+    const massue = c.items?.find((it) => it.trappingId === 'massue');
+    expect(c.items).toHaveLength(2);
+    expect(veste?.equipped).toBe(true);
+    expect(paDuCombattant(c)).toEqual({ tete: 0, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 });
+    const armes = c.weapons.filter((w) => w.trappingId === 'massue');
+    expect(armes).toHaveLength(1);
+    expect(armes[0]).toMatchObject({ uid: massue?.uid, damage: { flat: 7 } });
+    expect(c.mentions).toEqual([{ label: 'Grandes ambitions', nature: 'intangible', nombre: 1 }]);
+  });
+
+  it.each([false, true])('Middenheim 02 l.85-89 : Wolfgard conserve 2 PA à la tête et au torse (heaume d’auteur %s)', (heaume) => {
+    const opts = heaume ? { inventaire: { heaume: true } } : undefined;
+    const c = spawnEnemy({ ref: 'wolfgard-hohmann' }, 'wolfgard', undefined, opts);
+    expect(c.items?.filter((it) => it.equipped).map((it) => it.trappingId)).toEqual(
+      heaume ? expect.arrayContaining(['plastron', 'heaume']) : expect.arrayContaining(['plastron']),
+    );
+    expect(paDuCombattant(c)).toEqual({ tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 });
+  });
+
+  it('ZI 13 l.193 : le Technomage tient son jezaïl à l’apparition et garde la Malelame dans une autre panoplie', () => {
+    const c = spawnEnemy({ ref: 'technomage' }, 'technomage', undefined);
+    const jezail = c.items?.find((it) => it.trappingId === 'jezail-a-malepierre');
+    const malelame = c.items?.find((it) => it.trappingId === 'malelame-a-une-main');
+    expect(c.weapons).toEqual([
+      expect.objectContaining({ uid: jezail?.uid, trappingId: 'jezail-a-malepierre', bouclierDEquipe: { id: 'bouclier-de-jezail' } }),
+    ]);
+    expect(c.loadouts).toContainEqual(expect.objectContaining({ main: malelame?.uid }));
+  });
+
+  it('MDG 16 l.405-407 : le pistolet de Long Drong est chargé dans son set et son crochet n’arme qu’une fois', () => {
+    const c = spawnEnemy({ ref: 'long-drong-silver' }, 'drong', undefined);
+    const pistolet = c.items?.find((it) => it.trappingId === 'pistolet');
+    const munitions = c.items?.find((it) => it.trappingId === 'balle-et-poudre');
+    expect(pistolet).toMatchObject({ loaded: true, loadedAmmoUid: munitions?.uid });
+    expect(c.weapons.filter((w) => w.label === 'Crochet')).toEqual([
+      expect.objectContaining({ damage: expect.objectContaining({ flat: 8 }), derivedFromItem: expect.any(String) }),
+    ]);
+  });
+
+  it('MDG 16 l.305-307,325 : le Triton a +16 avec son trident, le trident lâché garde la valeur catalogue', () => {
+    const c = spawnEnemy({ ref: 'triton' }, 'triton', undefined);
+    const trident = c.weapons.find((w) => w.trappingId === 'trident-de-triton')!;
+    expect(trident.damage).toMatchObject({ plusBF: false, flat: 16 });
+    const armeLachee = laisserTomber(c, trident, () => 'aucun-nouvel-objet')!;
+    expect(armeLachee.uid).toBe(trident.uid);
+    expect(weaponFromItem(armeLachee).damage).toMatchObject({ plusBF: true, flat: 6 });
+    expect(c.weapons.some((w) => w.trappingId === 'trident-de-triton')).toBe(false);
+    expect(c.traits?.some((t) => t.arg === 'trident-de-triton')).toBe(false);
+  });
+
+  it('Middenheim 02 l.2568 : une béquille d’auteur remplace une occurrence sans effacer la seconde', () => {
+    const c = spawnEnemy({ ref: 'kanker-flett' }, 'kanker', undefined, { inventaire: { bequille: false, 'arme-simple': true } });
+    expect(c.items?.filter((it) => it.trappingId === 'bequille')).toHaveLength(2);
+    expect(c.items?.filter((it) => it.trappingId === 'arme-simple')).toHaveLength(1);
+    expect(c.weapons).toEqual([expect.objectContaining({ uid: 'kanker-objet-arme-simple', damage: expect.objectContaining({ flat: 7 }) })]);
+  });
+
+  it('la veste que l’auteur place au sac ne laisse pas de PA de Trait', () => {
+    const c = spawnEnemy({ ref: 'marta-gerbenshreiber' }, 'marta', undefined, { inventaire: { 'veste-de-cuir': false } });
+    expect(c.items?.filter((it) => it.trappingId === 'veste-de-cuir')).toEqual([
+      expect.objectContaining({ uid: 'marta-objet-veste-de-cuir', equipped: false }),
+    ]);
+    expect(armourPhysiqueAt(c, 'corps')).toBe(0);
+  });
+
+  it('seules les possessions de catalogue d’une fiche préréglée deviennent des objets', () => {
+    const base = findCreatureById('kanker-flett')!;
+    const presetCreature: CreatureData = { ...base, trappings: [
+      { id: 'bequille' },
+      { text: 'Une poignée de souvenirs' },
+      { monnaie: 'gold', count: { fixed: 1 } },
+      { id: 'cheval-de-monte', type: 'creature' },
+      { id: 'diligence', type: 'vehicle' },
+    ] };
+    const c = spawnEnemy({ presetCreature, presetId: 'alter-ego' }, 'alter-ego', undefined);
+    expect(c.items?.map((it) => it.trappingId)).toEqual(['bequille']);
+    expect(bourseOf(c).gold).toBe(0);
+    expect(presetCreature.trappings[1]).toEqual({ text: 'Une poignée de souvenirs' });
+  });
+
+  it('AA 09 l.184-188 : le demigriffon porte sa barde, même si le cavalier en apporte une autre', () => {
+    const c = spawnEnemy({ ref: 'demigriffon-adulte' }, 'monture', undefined);
+    const rider = spawnEnemy({ ref: 'humain' }, 'cavalier', undefined, { inventaire: { barde: false } });
+    expect(c.items).toEqual([expect.objectContaining({ trappingId: 'barde', equipped: true })]);
+    harnacher(rider, c);
+    expect(c.items?.filter((i) => i.trappingId === 'barde').map((i) => i.equipped)).toEqual([true, false]);
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+
+    const avecHeaume = spawnEnemy({ ref: 'demigriffon-adulte' }, 'monture', undefined, { inventaire: { heaume: true } });
+    expect(avecHeaume.items?.find((i) => i.trappingId === 'barde')?.equipped).toBe(false);
+    expect(paDuCombattant(avecHeaume)).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 });
   });
 });
 
@@ -291,7 +479,7 @@ describe('spawn — Taille d’un profil : Trait Taille, sinon Talent de Taille,
 describe('statbloc d’éditeur — l’Armure du Trait fait les PA du combattant, comme une créature', () => {
   it('Trait Armure 5 → 5 PA à chaque localisation', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Dragon des ténèbres', char: {}, traits: [{ id: 'armure', value: 5 }] }, 'e1', { x: 0, y: 0 });
-    expect(Object.values(c.armour)).toEqual([5, 5, 5, 5, 5, 5]);
+    expect(Object.values(paDuCombattant(c))).toEqual([5, 5, 5, 5, 5, 5]);
   });
 });
 
@@ -367,12 +555,12 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
   });
 
   // #614 — un PNJ/bête custom (`LivingRef.custom`) porte la MÊME overlay de spawn qu'une créature du bestiaire.
-  it('statblockToCombatant : extras.charsRolled REMPLACE le profil saisi ; deux projections = mêmes stats', () => {
+  it('statblockToCombatant : charsRolled prime sur le profil saisi et sur le tirage de la pose', () => {
     const sb = { label: 'Bête custom', char: { M: 4, 'capacite-de-combat': 30, force: 30, endurance: 30 } } as any;
     const rolled = { ...sb.char, force: 41, endurance: 37 } as any;
     for (const k of CHAR_KEYS) if (typeof rolled[k] !== 'number') rolled[k] = 0;
     const a = statblockToCombatant(sb, 'p1', at, undefined, { charsRolled: rolled });
-    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled });
+    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled, randomChars: true });
     expect(a.characteristics).toEqual(b.characteristics);
     expect(a.characteristics.force).toBe(41);
     expect(a.wounds.max).toBe(b.wounds.max);
@@ -450,7 +638,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
     const c = ficheDEntite(soldat, sansPreset);
     expect(c.weapons.map((w) => w.label)).toContain('Hallebarde');
     expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
-    expect(c.armour.corps).toBeGreaterThan(0);
+    expect(armourPhysiqueAt(c, 'corps')).toBeGreaterThan(0);
   });
 
   it('un objet d’inventaire porté par l’auteur ôte la dotation qu’il chevauche', () => {
@@ -507,6 +695,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
   });
 
+  it('la fiche de l’Ogre anonyme porte le nom traditionnel tiré par id et respecte le nom d’auteur', () => {
+    const ogre = humain('ogre-anonyme', { creature: { id: 'ogre' } });
+    expect(nomDEntite(ogre, sansPreset)).toBe('Gegtag');
+    expect(ficheDEntite(ogre, sansPreset).label).toBe('Gegtag');
+    expect(ficheDEntite({ ...ogre, label: 'Gustav Bauer' }, sansPreset).label).toBe('Gustav Bauer');
+  });
+
   it('le sexe que pose l’auteur fait le nom, le corps et le libellé de Carrière (#3724)', () => {
     const villageoise = ficheDEntite(humain('villageoise', { appearance: { sex: 'F' } }), sansPreset);
     expect(pool('humain').femaleFirstNames).toContain(villageoise.label.split(' ')[0]);
@@ -521,9 +716,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     expect(details?.age).toBeLessThanOrEqual(25);
     expect(details?.height).toBeGreaterThanOrEqual(150); // 145 + 5d10 cm, LDB 05 l.724
     expect(details?.height).toBeLessThanOrEqual(195);
-    expect(details?.eyes).toBeTruthy();
-    expect(details?.hair).toBeTruthy();
+    expect(details?.eyes).toMatchObject([{ colonne: 'humain' }]);
+    expect(details?.hair).toMatchObject({ colonne: 'humain' });
     expect(ficheDEntite(humain('garde-1'), sansPreset).details).toEqual(details);
+    expect(ficheDEntite(humain('garde-1', { appearance: { species: 'halflings' } }), sansPreset).details).toMatchObject({
+      eyes: [{ id: 'gris-pale', colonne: 'halfling' }],
+      hair: { id: 'noir', colonne: 'halfling' },
+    });
   });
 
   it('ce que l’auteur pose prime : son nom, un statbloc, un individu nommé du bestiaire', () => {

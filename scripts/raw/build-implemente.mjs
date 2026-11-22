@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
@@ -8,6 +8,7 @@ import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Manifests ÉDITORIAUX de `src/data/` : ils parlent DU dépôt (dette d'un topic, inventaire d'une
@@ -16,7 +17,7 @@ export const RAWDIR = 'docs/raw'
 export const MANIFEST_EDITORIAL_RE = /^src\/data\/[^/]+\.manifest\.json$/
 export const MANIFEST_PATH = 'src/data/raw.manifest.json'
 export const BOOKS_JSON_PATH = 'src/data/books.json'
-export const APP_ROOT_MODULE = 'src/main.tsx'
+export const APP_ROOT_MODULE = 'hotes/godot/pont/entree.ts'
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).
@@ -39,6 +40,7 @@ const RANG_DU_LIVRE = new Map(BOOKS.map(([abbr], i) => [abbr, i]))
 export const HEADING_RE = /^(#{1,6})\s+(.*)$/
 export const FIELD_START_RE = /^\*\*Impl[ée]ment[ée]?\s*[:.]?\*\*/
 export const FIELD_ANYWHERE_RE = /\*\*Impl[ée]ment[ée]?\s*[:.]?\*\*/
+const PREUVE_D_IMPLEMENTATION = '**Preuve d’implémentation'
 export const DECL_RE = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|const|let|var|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/
 const COMMENT_OR_BLANK = /^\s*(?:\/\/|\/\*|\*|$)/
 
@@ -57,7 +59,7 @@ export function slugify(s) {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Réfs `{ book, ch, lo, hi }` d'une ligne (spans dépliés par `span`). */
+/** Réfs `{ book, ch, lo, hi, ponctuelle }` d'une ligne (spans dépliés par `span`). */
 export function refsWithSpans(line) {
   const out = []
   const re = refRe()
@@ -67,7 +69,8 @@ export function refsWithSpans(line) {
     const book = bookOf(m[1].replace(/\s+/g, ' ').trim())
     if (!book) continue
     const [lo, hi] = span(m[3], m[4])
-    out.push({ book, ch: Number(m[2]), lo, hi })
+    const ponctuelle = !m[4] && !/^\s*[-–—]\s*\d/.test(line.slice(re.lastIndex))
+    out.push({ book, ch: Number(m[2]), lo, hi, ponctuelle })
   }
   return out
 }
@@ -226,7 +229,8 @@ export function fieldBlockMask(lines) {
   return { isHeader, inFieldBlock, endIdxOf }
 }
 
-/** Parse une fiche : champs Implémente (topic, bloc, réfs collectées) + anomalies non-début-de-ligne. */
+/** Parse les champs Implémente et les anomalies de début de ligne. Une preuve d’implémentation
+ *  peut désigner une référence ponctuelle de la section qui identifie sa règle. */
 export function parseFiche(relatif, content) {
   const lines = content.split('\n')
   const fields = []
@@ -238,10 +242,16 @@ export function parseFiche(relatif, content) {
 
   let nearestHeading = null
   let pending = []
+  let preuve = null
+  const erreurDePreuve = (row, message) => new Error(`${relatif}:${row} : preuve d’implémentation ${message}`)
+  const exigerChampPourLaPreuve = () => {
+    if (preuve) throw erreurDePreuve(preuve.row, 'sans champ « Implémente »')
+  }
   for (let i = 0; i < lines.length; i++) {
     const ln = lines[i]
     const h = HEADING_RE.exec(ln)
     if (h) {
+      exigerChampPourLaPreuve()
       nearestHeading = h[2].trim()
       if (h[1].length === 2) pending = []
       // Réfs portées par la ligne de heading (`### Racine des Tombes (MSRC 04 l.204-229)`) : rattachées
@@ -261,13 +271,31 @@ export function parseFiche(relatif, content) {
       const topic = `${stem}#${slug}${n > 1 ? '-' + n : ''}`
       // `heading` = le titre VERBATIM d'où le slug du topic est tiré, exposé ici pour que personne
       // n'ait à re-dériver l'appariement titre↔topic (cf. `libelleDe`).
-      fields.push({ topic, heading: nearestHeading || stem, headerIdx: i, endIdx: endIdxOf[i], refs: pending })
+      if (preuve && !pending.some((r) => refMatches(r, preuve.ref, 0))) {
+        throw erreurDePreuve(preuve.row, 'hors des références du sujet')
+      }
+      fields.push({ topic, heading: nearestHeading || stem, headerIdx: i, endIdx: endIdxOf[i], refs: pending, preuve: preuve?.ref })
       pending = []
+      preuve = null
+      continue
+    }
+    if (ln.startsWith(PREUVE_D_IMPLEMENTATION)) {
+      if (inFieldBlock[i]) throw erreurDePreuve(i + 1, 'dans le champ « Implémente »')
+      if (preuve) throw erreurDePreuve(i + 1, ': plusieurs preuves pour le même champ')
+      const prefixe = PREUVE_D_IMPLEMENTATION + ' :**'
+      const citation = ln.startsWith(prefixe) ? ln.slice(prefixe.length).trim() : ''
+      const match = refRe().exec(citation)
+      const [ref] = refsWithSpans(citation)
+      if (match?.[0] !== citation || !ref?.ponctuelle) {
+        throw erreurDePreuve(i + 1, ': une référence ponctuelle est attendue')
+      }
+      preuve = { row: i + 1, ref }
       continue
     }
     if (inFieldBlock[i]) continue
     for (const r of refsWithSpans(ln)) pending.push(r)
   }
+  exigerChampPourLaPreuve()
   return { fields, anomalies }
 }
 
@@ -356,7 +384,10 @@ export function etatDuTopic(field, ctx) {
   const { index, closure } = ctx
   const { impl, tests } = index
   const tol = ctx.tol ?? TOL
-  const refs = field.refs
+  const refs = field.preuve ? [field.preuve] : field.refs
+  const matchDuTopic = field.preuve
+    ? (ref, c) => !c.folio && c.ponctuelle && refMatches(ref, c, 0)
+    : (ref, c) => refMatches(ref, c, tol)
   const refGroups = new Map() // 'BOOK|CH' -> { book, ch, refs:[] }
   for (const ref of refs) {
     const key = ref.book + '|' + ref.ch
@@ -371,7 +402,7 @@ export function etatDuTopic(field, ctx) {
     const matchedSpans = []
     const citMap = new Map() // file:row -> cit
     for (const ref of g.refs) {
-      const matched = impl.filter((c) => c.book === g.book && c.ch === g.ch && refMatches(ref, c, tol))
+      const matched = impl.filter((c) => matchDuTopic(ref, c))
       if (matched.length) {
         matchedSpans.push([ref.lo, ref.hi])
         for (const c of matched) { citMap.set(c.file + ':' + c.row, c); fichiers.add(c.file) }
@@ -389,7 +420,7 @@ export function etatDuTopic(field, ctx) {
   // Fichiers de test : mesurés SEULEMENT quand aucune puce ne sort — « cité par tests seulement »
   // est l'état d'un topic sans implémentation.
   const testFiles = new Set()
-  if (!bullets.length) for (const ref of refs) for (const c of tests) if (refMatches(ref, c, tol)) testFiles.add(c.file)
+  if (!bullets.length) for (const ref of refs) for (const c of tests) if (matchDuTopic(ref, c)) testFiles.add(c.file)
 
   return {
     topic: field.topic,
@@ -700,20 +731,21 @@ export function rendre(ctx = buildContext()) {
   return new Map([[RAPPORT, lignes.join('\n')]])
 }
 
-function main() {
+export function* produire() {
+  exigerRacineAtlas()
   const ctx = buildContext()
   const all = etatsDesTopics(ctx)
   const orphans = orphelinsDeDette(ctx, all)
   const sansObjet = dettesDeFicheSansObjet(ctx, all)
-  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) ecrireOuVerifier({
-    path, out, check: process.argv.includes('--check'),
+  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) yield {
+    path, out,
     staleMsg: `raw:implemente — ${path} PÉRIMÉ`,
     rerunMsg: '→ npm run raw:implemente',
-  })
+  }
   printStats(ctx, all, 0)
   if (orphans.length) printOrphans(orphans)
   if (sansObjet.length) printSansObjet(sansObjet)
   if (orphans.length || sansObjet.length) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

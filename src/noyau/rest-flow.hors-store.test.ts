@@ -29,12 +29,14 @@ import { toBrass, type Money } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { stacks, addCondition } from '../engine/conditions';
 
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { dawnMinute, dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import { deFixe } from '../engine/dice.testkit';
 import { setCadence } from '../engine/cadence';
-import { cascadeDeTest, draineCascade } from './cascade.testkit';
+import { setRule } from '../engine/policy';
+import { cascadeDeTest, draineEtapes } from './cascade.testkit';
+import type { WorldMap } from './worldMap';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -228,7 +230,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     banc.setState({
       party: [solo], battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10),
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
-      gameTime: 6 * MINUTES_PER_DAY + 6 * 60, lastUpkeepDay: 6, // veille d'un franchissement de semaine (MDG 14)
+      gameTime: 7 * MINUTES_PER_DAY + 6 * 60, lastUpkeepDay: 7, // veille d'un franchissement de semaine (MDG 14)
     });
     creditBourse(banc.getState, banc.setState, 'h1', { gold: 10, silver: 0, brass: 0 }); // couvre largement le gage du Mousse (288 sc)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(1);
@@ -503,42 +505,114 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
   });
 });
 
-/** MDG 14 l.208 : la nuit à bord, l'équipage collectif (`porteursABord`) expose et est exposé comme un PJ. #4243 */
-describe('Contagion de nuit à bord — l’équipage collectif (MDG 14 l.208 ; #4243)', () => {
-  const verole = () => contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
+describe('Contagion de proximité (LDB 20 l.206 ; MDG 14 l.208)', () => {
+  const verole = () => contractDisease('verole-urticante', deFixe(1), { incubation: 0, duration: 5 })!;
 
-  /** Le groupe `party` dort `places` avec la cogue de campagne, dont l'équipage porte `equipage`. */
-  function dormir(party: Combatant[], places: { bord?: boolean; camp?: boolean }, equipage: { diseases?: ReturnType<typeof verole>[] } = {}): void {
+  const aube = () => (dayIndex(banc.getState().gameTime) + 1) * MINUTES_PER_DAY + dawnMinute();
+
+  function draineContagion(de = 1): string[] {
+    const etapes = draineEtapes(banc.getState, 80, (etape) => (etape.kind === 'contagion' ? de : undefined));
+    expect(banc.getState().pendingCascade).toBeNull();
+    return etapes.filter((etape) => etape.kind === 'contagion').flatMap((etape) => etape.participants!.map((r) => r.id));
+  }
+
+  function ouvrirLeCouchage(places: { auberge?: boolean; bord?: boolean; camp?: boolean }, minutes: number): void {
+    banc.setState({ gameTime: aube() - minutes });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places });
+    for (const h of banc.getState().party) banc.getState().fenetreChoisir('repos', 'pitance', 'rien', h.id);
+  }
+
+  it.each([[1, 1], [60, 1], [61, 2]])('%i min de campement donnent %i Tests au héros exposé', (minutes, tests) => {
+    banc.setState({ party: [hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1' })] });
+    ouvrirLeCouchage({ camp: true }, minutes);
+    const depart = banc.getState().gameTime;
+    banc.getState().fenetreValider('repos');
+    expect(draineContagion()).toEqual(Array(tests).fill('s1'));
+    expect(banc.getState().gameTime - depart).toBe(minutes);
+    expect(banc.getState().party.find((h) => h.id === 's1')!.diseases ?? []).toEqual([]);
+  });
+
+  it('deux porteurs de la même maladie exposent pendant les mêmes 61 min', () => {
+    banc.setState({
+      party: [hero({ id: 'm1', diseases: [verole()] }), hero({ id: 'm2', diseases: [verole()] }), hero({ id: 's1' })],
+    });
+    ouvrirLeCouchage({ camp: true }, 61);
+    banc.getState().fenetreValider('repos');
+    expect(draineContagion()).toEqual(['s1', 's1']);
+  });
+
+  it('un échec de Contraction met fin aux Tests de ce porteur pendant la nuit', () => {
+    banc.setState({ party: [hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1' })] });
+    ouvrirLeCouchage({ camp: true }, 181);
+    banc.getState().fenetreValider('repos');
+    expect(draineContagion(100)).toEqual(['s1']);
+    expect(banc.getState().party.find((h) => h.id === 's1')!.diseases?.map((d) => d.id)).toEqual(['verole-urticante']);
+  });
+
+  it('les occupants de deux chambres privatives passent la nuit séparés (LDB 66 l.12-13, l.28)', () => {
+    banc.setState({ party: [hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1' })] });
+    setGroupPurse({ gold: 2, silver: 0, brass: 0 });
+    ouvrirLeCouchage({ auberge: true }, 61);
+    banc.getState().fenetreChoisir('repos', 'couchage', 'chambre-2', 's1');
+    expect(banc.getState().pendingRest!.perHero.m1.lodging).toBe('chambre-1');
+    expect(banc.getState().pendingRest!.perHero.s1.lodging).toBe('chambre-2');
+    banc.getState().fenetreValider('repos');
+    expect(banc.getState().pendingRest).toBeNull();
+    expect(draineContagion()).toEqual([]);
+    expect(banc.getState().party.find((h) => h.id === 's1')!.diseases ?? []).toEqual([]);
+  });
+
+  it('90 min de marche, 330 min de halte et 30 min de reprise exposent huit heures entamées', () => {
+    const get = banc.getState;
+    setRule('voyage-heure-de-depart', false);
+    const carte: WorldMap = {
+      id: 'contagion', label: 'Contagion', places: [
+        { id: 'a', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'a' } },
+        { id: 'b', label: 'B', pos: { x: 100, y: 0 }, scene: { id: 'b' } },
+      ],
+      routes: [{ id: 'r', a: { id: 'a' }, b: { id: 'b' }, km: 8, modes: ['pied'], speed: { pied: 4 }, perilDie: 0 }],
+    };
+    banc.setState({ party: [hero({ id: 'm1', diseases: [verole()], items: [ration('r-m1')] }), hero({ id: 's1', items: [ration('r-s1')] })] });
+    get().chargerLeProjet({ scenes: [emptyScene('a', 10, 10), emptyScene('b', 10, 10)], entryId: 'a', worldMap: carte, projet: null });
+    const depart = aube() - 420;
+    banc.setState({ gameTime: depart });
+    get().partirEnVoyage('r', 'pied', { hoursPerDay: 1.5, cadence: 'jourParJour' });
+    const jour = draineContagion();
+    expect(get().pendingRest?.travelHalt).toBe(true);
+    expect(get().gameTime - depart).toBe(90);
+    get().fenetreValider('repos');
+    const halteEtReprise = draineContagion();
+    expect(get().travelPlan).toBeNull();
+    expect(get().lieu).toBe('b');
+    expect(get().gameTime - depart).toBe(450);
+    expect({ jour, halteEtReprise }).toEqual({ jour: ['s1', 's1'], halteEtReprise: Array(6).fill('s1') });
+    expect(get().party.find((h) => h.id === 's1')!.diseases ?? []).toEqual([]);
+  });
+
+  function dormirABord(party: Combatant[], places: { bord?: boolean; camp?: boolean }, equipage?: { diseases: ReturnType<typeof verole>[] }): void {
     banc.setState({
       party, scene: emptyScene('scene-test', 6, 6),
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...(equipage.diseases ? { porteurDeLEquipage: equipage } : {}) },
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, porteurDeLEquipage: equipage },
     } as never);
-    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places });
-    for (const h of party) banc.getState().fenetreChoisir('repos', 'pitance', 'rien', h.id);
+    ouvrirLeCouchage(places, 61);
     banc.getState().fenetreValider('repos');
   }
-  const rangeesDeContagion = () => banc.getState().pendingCascade!.participants
-    .filter((s) => s.kind === 'contagion').flatMap((s) => s.participants!.map((r) => r.id));
-  /** Déroule la nuit : les Tests de Contagion échouent (dé 100), les autres se lancent. */
-  function nuitAvecContagionRatee(): void {
-    draineCascade(banc.getState, 60, (etape) => (etape.kind === 'contagion' ? 100 : undefined));
-  }
 
-  it('un PJ contagieux à bord expose l’équipage : sa rangée de monde rejoint la bande, l’échec lui donne la maladie', () => {
-    dormir([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { bord: true });
-    expect(rangeesDeContagion()).toEqual(['s1', WORLD_STEP_OWNER]);
-    nuitAvecContagionRatee();
+  it('un PJ contagieux à bord expose le PJ sain et l’équipage, qui contractent sur échec', () => {
+    dormirABord([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { bord: true });
+    expect(draineContagion(100)).toEqual(['s1', WORLD_STEP_OWNER]);
     expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.map((d) => d.id)).toEqual(['verole-urticante']);
     expect(banc.getState().party.find((h) => h.id === 's1')!.diseases?.map((d) => d.id)).toEqual(['verole-urticante']);
   });
 
-  it('hors du bord, l’équipage n’est ni exposé ni source', () => {
-    dormir([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { camp: true });
-    expect(rangeesDeContagion()).toEqual(['s1']);
+  it('hors du bord, seul le groupe de campement est exposé', () => {
+    dormirABord([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { camp: true });
+    expect(draineContagion()).toEqual(['s1', 's1']);
   });
 
-  it('l’équipage contagieux à bord expose chaque PJ sain, une rangée chacun', () => {
-    dormir([hero({ id: 's1' }), hero({ id: 's2', label: 'Bruno' })], { bord: true }, { diseases: [verole()] });
-    expect(rangeesDeContagion()).toEqual(['s1', 's2']);
+  it('l’équipage contagieux expose chacun des PJ sains pour les deux heures entamées à bord', () => {
+    dormirABord([hero({ id: 's1' }), hero({ id: 's2', label: 'Bruno' })], { bord: true }, { diseases: [verole()] });
+    expect(draineContagion()).toEqual(['s1', 's2', 's1', 's2']);
+    expect(banc.getState().party.flatMap((h) => h.diseases ?? [])).toEqual([]);
   });
 });

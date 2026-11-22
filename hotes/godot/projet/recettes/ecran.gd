@@ -7,7 +7,7 @@
 ## un formulaire celle que la vue attend, un curseur glissé ou réglé par sa boîte à nombre sa valeur (#4081) ; le geste
 ## en focus le prend. Remontrée, une vue garde ses nœuds et ne joue rien (sa pose remet chaque curseur) ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
-## montrée par une vue.
+## montrée par une vue. Sur le pont vivant, un clic droit d'exploration sur la case de Gustav montre son statbloc (#3687).
 extends SceneTree
 
 const RECETTE_AUTONOME := true
@@ -18,6 +18,8 @@ const VUES := "res://recettes/vues/ecran.json"
 const DITS := ["texte", "libelle", "qui", "cible", "resultat", "dr", "verdict", "refus", "detail"]
 const ECRANS := "res://ecrans"
 const SCENE := "Interface/Ossature/Colonne/Milieu/Scene"
+const CASE_DE_GUSTAV := Vector3i(5, 3, 0)
+const ATTENTE_DE_L_EXPLORATION_MS := 45_000
 
 var _fautes: Array[String] = []
 var _joues: Array = []
@@ -25,6 +27,11 @@ var _presses: Array[String] = []
 var _posees := {}
 ## Le panneau du journal de l'écran (`Disposition.journal`), que la disposition posée cache quand elle le tient.
 var _journal: Control
+
+
+class PontDeLInspection extends PontEspion:
+	func parametre(cle: String) -> String:
+		return "dialogue-multi" if cle == "scenario" else super(cle)
 
 
 func _initialize() -> void:
@@ -50,10 +57,69 @@ func _recetter() -> void:
 		var restants := _dessines(zone).size()
 		_verifier(zone.ajout or restants == 0, "%s vidée : %d éléments restent" % [zone.source, restants])
 	_verifier(not _dessines(_zone_de(zones, "journal.lignes")).is_empty(), "le journal garde ses lignes")
+	ecran.queue_free()
+	await process_frame
+	await _recetter_l_inspection()
 	for faute in _fautes:
 		push_error("[ecran] ", faute)
 	print("[ecran] %d vues montrées, %d gestes joués, %d fautes" % [vues.size(), _presses.size(), _fautes.size()])
 	quit(1 if not _fautes.is_empty() else 0)
+
+
+## La case de Gustav pointée dans le monde, le clic droit ouvre ses zones de statbloc sans jouer de geste.
+func _recetter_l_inspection() -> void:
+	var pont := PontDeLInspection.new()
+	PontDuNoyau.remplacer(self, pont)
+	pont.panne.connect(func(message: String) -> void: _fautes.append("inspection : " + message))
+	pont.refus.connect(func(message: String) -> void: _fautes.append("inspection : " + message))
+	var combat: Node = (load("res://scenes/Combat.tscn") as PackedScene).instantiate()
+	root.add_child(combat)
+	var limite := Time.get_ticks_msec() + ATTENTE_DE_L_EXPLORATION_MS
+	while Time.get_ticks_msec() < limite:
+		var vue: Dictionary = combat.get("_vue")
+		if vue.get("champ") != null:
+			break
+		if vue.get("projection", {}).get("fenetre") != null:
+			for geste: Dictionary in vue.zones["fenetre.gestes"]:
+				if geste.focus:
+					combat.call("_jouer", geste.jeu)
+					break
+		await process_frame
+	var avant: Dictionary = combat.get("_vue")
+	if avant.get("champ") == null or avant.projection.exploration == null:
+		_verifier(false, "inspection : l'exploration de la tablée ne s'ouvre pas")
+	else:
+		await _cliquer_sur_gustav(combat, avant)
+	combat.queue_free()
+	await process_frame
+
+
+func _cliquer_sur_gustav(combat: Node, avant: Dictionary) -> void:
+	var case := CASE_DE_GUSTAV
+	var plateau := combat.get_node("Plateau") as Plateau
+	var monde := plateau.get_node("Monde") as Monde
+	var refus := plateau.cadrer({regard = monde.regard(), case = {x = case.x, y = case.y}, lacet = 0.0, zoom = 15.0})
+	_verifier(refus.is_empty(), "inspection : " + refus)
+	await physics_frame
+	await process_frame
+	var point: Array = plateau.points().get("%d,%d,%d" % [case.x, case.y, case.z], [])
+	if point.is_empty() or monde.case_sous(Vector2(point[0], point[1])) != case:
+		_verifier(false, "inspection : le pointeur doit désigner la case de Gustav")
+		return
+	for appuye in [true, false]:
+		var clic := InputEventMouseButton.new()
+		clic.button_index = MOUSE_BUTTON_RIGHT
+		clic.pressed = appuye
+		clic.position = Vector2(point[0], point[1])
+		clic.global_position = clic.position
+		root.push_input(clic, true)
+	await process_frame
+	var apres: Dictionary = combat.get("_vue")
+	var zones := Zone.racines(combat.get_node("Ecran"))
+	var porteurs := _dessines(_zone_de(zones, "fiche.porteur"))
+	_verifier(porteurs.size() == 1 and _se_lit(_textes(porteurs[0]), "Gustav"), "inspection : Gustav se lit sur sa fiche")
+	_verifier(not _dessines(_zone_de(zones, "fiche.profil")).is_empty(), "inspection : le profil du statbloc est montré")
+	_verifier(apres.projection.pas == avant.projection.pas, "inspection : le clic droit a joué un geste de la partie")
 
 
 ## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
@@ -199,7 +265,7 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == Noyau.TypeDElement.ENTITE or e.type == Noyau.TypeDElement.POINT) or champ == "valeur" and e.type == Noyau.TypeDElement.PUCE)):
 				dits.append(v)
 			elif v is Array:
-				dits.append_array(_dits(v, e.type == Noyau.TypeDElement.LISTE or e.type == Noyau.TypeDeSaisie.SAISIE_CHOIX or e.type == Noyau.TypeDeSaisie.SAISIE_COCHES))
+				dits.append_array(_dits(v, e.type == Noyau.TypeDElement.LISTE or e.type == Noyau.TypeDeSaisie.SAISIE_CHOIX))
 	return dits
 
 

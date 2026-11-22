@@ -13,20 +13,9 @@ Double nappe. Poids de la tête jusqu'à la mâchoire, fondus vers ceux du cou a
 transférées des zones de la base sous la pièce. Toute cote vient de `donnees.py`.
 """
 import numpy as np
-from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
-
-
-def vise(arbre, origine, d, portee):
-    """Le point et la normale sortante de la surface la plus extérieure touchée par la visée du dehors (`origine` +
-    `portee` · `d`) vers `origine` ; `None` si rien n'est touché."""
-    loc, n, _, _ = arbre.ray_cast(Vector((origine + portee * d).tolist()), Vector((-d).tolist()), portee)
-    if loc is None:
-        return None
-    n = np.array(n)
-    return np.array(loc), n if n @ d > 0 else -n
+from tissu import (Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon,
+                   toucher, voisinage)
 
 
 def construire(D, materiaux, b):
@@ -34,9 +23,7 @@ def construire(D, materiaux, b):
     tete = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
     cols = [b.matieres_publiees(D['CONTOURNE'][nom], matieres) for nom, matieres in D['MATIERES_DES_COLS'].items()]
     toutes = joindre_les_surfaces(cols + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    peau = BVHTree.FromPolygons([tuple(p) for p in tete[0]], tete[1].tolist(), all_triangles=True)
-    dessous = BVHTree.FromPolygons([tuple(p) for p in toutes[0]], toutes[1].tolist(), all_triangles=True)
-    porteur_tete, porteur_cou = porteur_de(*tete), b.porteur(D['ZONES_DES_POIDS'])
+    porteur_tete, dessous, porteur_cou = porteur_de(*tete), porteur_de(*toutes), b.porteur(D['ZONES_DES_POIDS'])
 
     C = np.array(b.tete(D['OS_DU_CENTRE'])) + np.asarray(D['CENTRE'], float)
     n, m, t = D['COLONNES'], D['RANGS'], D['TOMBEE']
@@ -46,7 +33,7 @@ def construire(D, materiaux, b):
 
     def sur_le_crane(phi, e, hauteur):
         d = direction_spatiale(phi, e)
-        touche = vise(peau, C, d, D['PORTEE'])
+        touche = toucher(porteur_tete, C, d, D['PORTEE'])
         if touche is None:
             raise ValueError(f'cheveux-longs : aucune peau à phi {phi}, élévation {e}')
         return touche[0] + hauteur * touche[1]
@@ -74,8 +61,8 @@ def construire(D, materiaux, b):
             def tenu(z):
                 """Le rayon qui tient la chevelure au jeu de ce qu'elle contourne à la hauteur `z`, 0 si rien."""
                 pied, r = np.array([axe[0], axe[1], z]), 0.0
-                for surfaces, jeu in zip((peau, dessous), t['jeu']):
-                    touche = vise(surfaces, pied, d, D['PORTEE'])
+                for surfaces, jeu in zip((porteur_tete, dessous), t['jeu']):
+                    touche = toucher(surfaces, pied, d, D['PORTEE'])
                     if touche is not None:
                         r = max(r, float(np.linalg.norm(touche[0] - pied)) + jeu)
                 return r

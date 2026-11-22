@@ -11,11 +11,11 @@ import {
   type Alignement, type ChapitreParse, type Section, type Unite,
   aligner, estDeContenu, estErreur, estSeparateur, fragmentBlocs, parseTable, unitesDe, unitesDuBloc, unitesDuTexte,
 } from './decoupe.ts';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { chapitresDe, lireChapitre } from '../../../scripts/source/lecteur-fs.mjs';
-// @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { PRESENTE_AU_LIVRE, contenueNonProposee, judge } from '../../../scripts/source/derive-decoupes.mjs';
-// @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { BOOKS, livreDuSigle } from '../../../scripts/raw/_lib.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));

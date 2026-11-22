@@ -44,15 +44,9 @@ import { analyserCorpus } from './dialecte.mjs';
 //  - un résolveur qui roule SES PROPRES dés (le d100 de sévérité de `resolveCritique`) sans lire de
 //    nœud reste vert : (L) est faux pour lui, et la donnée qu'il transporte n'est pas une lecture.
 //
-// ANGLE MORT STRUCTUREL, celui qui a coûté (#1657 B3-1b) : un rouleur qui lit une FORME PROPRIÉTAIRE.
-// `NODE_TYPES` nomme les types du NŒUD canonique ; une fonction qui roule un jet décrit par un type
-// PROPRE au domaine (`Amputation` : `{difficulty, sequels, loss}` — 28 Tests de Résistance, LDB 18
-// l.237) satisfait (R) mais jamais (L), et la garde rendait 7 sites là où le moteur en roulait 9. Le
-// remède n'est PAS d'élargir `NODE_TYPES` (une liste de formes propriétaires est un registre qui
-// grandit) : c'est de faire MOURIR la forme propriétaire — ce que B3-1b a fait, le type `Amputation`
-// cessant de décrire un jet au profit du nœud `test` canonique. L'angle mort reste ENTIER pour toute
-// forme propriétaire NEUVE : la garde ne peut pas voir un jet qui refuse le vocabulaire commun, et
-// c'est le contrat de forme (`flowtest-derived-stake.hors-store.test.ts`, `docs/registre-jets.md`) qui l'attrape.
+// ANGLE MORT STRUCTUREL : un rouleur qui lit une FORME PROPRIÉTAIRE satisfait (R) mais jamais (L).
+// Le contrat de forme impose le vocabulaire commun avant la détection de roulage
+// (`flowtest-derived-stake.hors-store.test.ts`, `docs/registre-jets.md`).
 //
 // ANGLES MORTS assumés (faux négatifs préférés au bruit — doctrine des gardes du dépôt) :
 //  - type ALIASÉ à l'import (`import type { FlowTestNode as N }`) : la comparaison est textuelle sur
@@ -69,6 +63,8 @@ import { analyserCorpus } from './dialecte.mjs';
 //    0 morsure perdue. Les couvrir se fait AU SOCLE, pour les trois gardes à la fois, jamais ici seul.
 import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
+
+/** @typedef {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} FichierLu */
 
 // Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `rollSeamExclusivity.mjs`
 // (2026-08-23) : sous Vitest, un `ts.x` de visiteur AST se relit sur l'objet d'import de vite-node.
@@ -171,7 +167,7 @@ function bodyReadsThroughTest(body) {
 /**
  * Déclarations de fonctions de `src/engine/**` : lecture de nœud, roulage direct, appels sortants,
  * et sites (roulages bruts + appels) pour le rapport.
- * @param {{ rel: string, text: string }[]} engineFiles
+ * @param {FichierLu[]} engineFiles
  */
 function collectDecls(engineFiles) {
   /** @type {{ name, file, line, reads, rollsDirectly, calls: Set<string>, rollSites, callSites }[]} */
@@ -249,7 +245,7 @@ function rollingNames(decls) {
  * `fnLine` = ligne de DÉCLARATION de `fn` : un doc généré qui NOMME le résolveur doit citer la ligne
  * où ce nom se lit (le symbole backtiqué se trouve à ±2 lignes du site cité), tandis que le CLIQUET reste sur
  * `line`, le site du dé. Les deux voyagent donc ensemble.
- * @param {{ rel: string, text: string }[]} engineFiles corpus `src/engine/**` (hors tests)
+ * @param {FichierLu[]} engineFiles corpus `src/engine/**` (hors tests)
  * @returns {{ file: string, line: number, fn: string, fnLine: number, famille: 'lecteur'|'appelant', name: string, detail: string }[]}
  */
 export function scanFlowTestEngineRoll(engineFiles) {

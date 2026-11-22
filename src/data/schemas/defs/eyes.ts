@@ -1,15 +1,10 @@
-/**
- * Schéma de `eyes.json` — Tableau de couleur des yeux (LDB 05 l.742-754), document mono-table : son dé
- * `die` (LDB 05 l.744) tire un seuil (`rand`, borne haute cumulée). Rangée partagée avec `hairs.json`
- * (`rangeeDeCouleurSchema`), vue TS `DetailColorData` (src/data/index.ts).
- */
+/** LDB 05 l.742-754 ; NADJ 15 l.82-104 ; ADE II 02 l.284-311. */
 import { document } from '../grammaire/document';
-import { rangeeDeCouleurSchema } from '../grammaire/valeurs';
+import { couvertureDeLaTableDeCouleur, rangeeDeCouleurSchema } from '../grammaire/valeurs';
 
 export const file = 'eyes.json';
 export const famille = 'config';
 
-/** Une couleur, à son seuil du dé de la table. */
 export const rangee = rangeeDeCouleurSchema;
 
 const doc = document(
@@ -20,7 +15,7 @@ const doc = document(
   {
     edit: { niche: { categories: { eyes: 'entries' } } },
   },
-  { rangee, deDeTirage: true },
+  { rangee, deDeTirage: true, affinerDataset: couvertureDeLaTableDeCouleur(file) },
 );
 
 export const schema = doc.schema;

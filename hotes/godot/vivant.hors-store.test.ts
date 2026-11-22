@@ -27,7 +27,7 @@ import type { EnteteDesMorceaux } from './pont/octets';
 import type { MondeDuPont } from './pont/pont';
 
 const VIVANT = fileURLToPath(new URL('./vivant.mjs', import.meta.url));
-/** Le lancement bâtit le bundle et charge les assets : ~10 s. */
+/** La borne des essais qui lancent un pont et jouent ses requêtes. */
 const LANCEMENT_MS = 120_000;
 
 let tuyau: ProcessusDuPont;
@@ -45,7 +45,7 @@ describe('vivant', () => {
   it('annonce l’URL d’un serveur qui sert le listage des modèles', async () => {
     expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
     expect((await fetch(`${url}modeles/${LISTAGE}`)).status).toBe(200);
-  });
+  }, LANCEMENT_MS);
 
   it('demarrer fenetre-ecuries rend ok: true avec sa vue', async () => {
     const r = await tuyau.appel('demarrer', { scenario: 'fenetre-ecuries' });
@@ -115,13 +115,51 @@ describe('pontDuBundle', () => {
     expect(String(flux.read())).toBe('du noyau\n');
   });
 
+  it('chaque pont a son état et ses intrinsèques, sans les globaux de Node', () => {
+    const bundle = `
+      let appels = 0;
+      globalThis.wfrpPont = {
+        appeler: () => JSON.stringify({
+          appels: ++appels,
+          globauxNode: [typeof process, typeof require, typeof Buffer, typeof module, typeof global],
+        }),
+        octets: () => new ArrayBuffer(0),
+      };
+    `;
+    const premier = pontDuBundle(bundle, console, stockageDuProcessus(null));
+    const second = pontDuBundle(bundle, console, stockageDuProcessus(null));
+    const globauxNode = Array<string>(5).fill('undefined');
+    expect(JSON.parse(premier.appeler('vue'))).toEqual({ appels: 1, globauxNode });
+    expect(JSON.parse(premier.appeler('vue'))).toEqual({ appels: 2, globauxNode });
+    expect(JSON.parse(second.appeler('vue'))).toEqual({ appels: 1, globauxNode });
+    const premierPrototype: unknown = Object.getPrototypeOf(premier.octets()!);
+    expect(premierPrototype).not.toBe(ArrayBuffer.prototype);
+    expect(premierPrototype).not.toBe(Object.getPrototypeOf(second.octets()!));
+  });
+
   it('C2 — `sessionStorage` est un stockage en mémoire neuf : relu, distinct de `localStorage`, jamais au fichier de `--stockage`', () => {
     const dossier = mkdtempSync(join(tmpdir(), 'session-3009-'));
     const fichier = join(dossier, 'stockage.json');
     try {
-      const bundle = "globalThis.wfrpPont = { appeler: () => (sessionStorage.setItem('jeton', 'J'), localStorage.setItem('sauve', 'S'), JSON.stringify([sessionStorage.getItem('jeton'), localStorage.getItem('jeton'), sessionStorage.getItem('sauve')])) }";
-      const pont = pontDuBundle(bundle, new Console(new PassThrough()), stockageDuProcessus(fichier));
-      expect(JSON.parse(pont.appeler('vue'))).toEqual(['J', null, null]);
+      const bundle = `
+        globalThis.wfrpPont = {
+          appeler(methode) {
+            if (methode === 'ecrire') {
+              sessionStorage.setItem('jeton', 'J');
+              localStorage.setItem('sauve', 'S');
+            }
+            return JSON.stringify([
+              sessionStorage.getItem('jeton'), localStorage.getItem('sauve'),
+              localStorage.getItem('jeton'), sessionStorage.getItem('sauve'),
+            ]);
+          },
+        };
+      `;
+      const stockage = stockageDuProcessus(fichier);
+      const pont = pontDuBundle(bundle, new Console(new PassThrough()), stockage);
+      expect(JSON.parse(pont.appeler('ecrire'))).toEqual(['J', 'S', null, null]);
+      const remplace = pontDuBundle(bundle, new Console(new PassThrough()), stockage);
+      expect(JSON.parse(remplace.appeler('vue'))).toEqual([null, 'S', null, null]);
       expect(JSON.parse(readFileSync(fichier, 'utf8'))).toEqual({ sauve: 'S' });
     } finally {
       rmSync(dossier, { recursive: true, force: true });

@@ -25,6 +25,7 @@ import { resolveBookOffset, porteUnMot } from '../anchor-fill.mjs'
 import { extractPages } from './pdf-extract.mjs'
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { REMESURE } from '../../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './entree-atlas.mjs'
 
 // Caractères utiles d'une page PDF : lignes portant un MOT réel (`porteUnMot` de `anchor-fill.mjs`,
 // qui écarte titre courant, numéro de folio, codes de chapitre et filigrane), espaces retirés.
@@ -84,7 +85,9 @@ export function mesurerAncresVides() {
 }
 
 /** Les RÉGÉNÉRATIONS des deux stocks (`RegenerationDeStock`, `stockDeSites.mjs`), sur une mesure (par
- *  défaut, celle de tous les livres) et un seuil. */
+ *  défaut, celle de tous les livres) et un seuil.
+ * @returns {import('../../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export function regenerations(ancres = mesurerAncresVides(), seuil = SEUIL_UTILE) {
   const { perdues, benignes } = trier(ancres.mesures, seuil)
   return [
@@ -110,4 +113,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

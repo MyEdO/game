@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CODE_SOURCE_MODIFIEE, executer } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { executer } from '../docs/build-all.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { argumentsDeGenerationCode, verdictDeGenerationCode } from './generationCode.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 
@@ -14,9 +14,13 @@ test('le démarrage test vérifie une cible manquante sans la produire ; le dém
     const git = gitDe(cwd)
     git('init', '-q')
     mkdirSync(join(cwd, 'src'))
-    const primitive = new URL('../docs/lib/ecriture-derives.mjs', import.meta.url).href
     writeFileSync(join(cwd, 'source.txt'), 'export const valeur = 1;\n')
-    writeFileSync(join(cwd, 'generateur.mjs'), `import {readFileSync} from 'node:fs'; import {ecrireOuVerifier} from ${JSON.stringify(primitive)}; ecrireOuVerifier({out:readFileSync('source.txt','utf8'),path:'src/cible.ts',check:process.argv.includes('--check'),staleMsg:'cible absente',rerunMsg:'generer'});`)
+    writeFileSync(join(cwd, 'generateur.mjs'), [
+      "import { readFileSync } from 'node:fs'",
+      'export function* produire() {',
+      "  yield { out: readFileSync('source.txt', 'utf8'), path: 'src/cible.ts', staleMsg: 'cible absente', rerunMsg: 'generer' }",
+      '}',
+    ].join('\n'))
     const generateurs = [{ runner: 'node', script: 'generateur.mjs', targets: ['src/cible.ts'] }]
     const jouer = (test) => executer({ cwd, argv: argumentsDeGenerationCode(test, generateurs), generateurs, verificateurs: [] })
     assert.equal(await jouer(true), 1)

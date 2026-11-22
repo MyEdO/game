@@ -5,8 +5,8 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, solPraticable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
-import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
+import { Scene, tileAt, tileCollapsed, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
+import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM, terrainWalkable } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { dessusDe, displayHeightAt, facesDuDessus, parois, presenteDansLaGrille, profilDArete, rejointAPied } from './pente';
@@ -47,9 +47,7 @@ export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): E
  *  (un tablier de pont / une loge AU-DESSUS d'une route praticable). Si oui, le bord donnant sur le vide
  *  ne descend PAS jusqu'au sol (dalle fine + piliers), la couche du dessous reste visible/passable. */
 export function isOverhang(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
-  if (z <= 0) return false;
-  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return true;
-  return false;
+  return overhangSupportZ(scene, x, y, z) !== null;
 }
 
 /** TOIT D'UN BLOC PLEIN : la case (x,y,z>0) coiffe-t-elle un terrain à BLOC PLEIN (mur) d'une couche
@@ -95,10 +93,16 @@ function cappedAbove(scene: SceneDuVolume, x: number, y: number, z: number): boo
   return scene.layers.some((l) => l.z > z && !estAbsent(tileAt(scene, x, y, l.z)) && displayHeightAt(scene, x, y, l.z) >= top - 0.01);
 }
 
-/** Hauteur d'AFFICHAGE de la surface INFÉRIEURE sous un surplomb (1ʳᵉ couche marchable en dessous), ou null. */
-function overhangLowerHeight(scene: SceneDuVolume, x: number, y: number, z: number): number | null {
-  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
-  return null;
+/** Couche de terrain marchable intacte la plus proche sous le surplomb (#3833). */
+function overhangSupportZ(scene: SceneDuVolume, x: number, y: number, z: number): number | null {
+  if (z <= 0) return null;
+  let supportZ: number | null = null;
+  for (const { z: lowerZ } of scene.layers) {
+    if (lowerZ < 0 || lowerZ >= z || (supportZ !== null && lowerZ <= supportZ)) continue;
+    if (lowerZ > 0 && tileCollapsed(scene, x, y, lowerZ)) continue;
+    if (terrainWalkable(tileAt(scene, x, y, lowerZ))) supportZ = lowerZ;
+  }
+  return supportZ;
 }
 
 /** Étage de SOL effectif sous (x,y) pour le BROUILLARD : à un trou (tuile ABSENTE) de l'étage actif, on retombe
@@ -139,7 +143,7 @@ function aUneCase(c: { x: number; y: number }, [a, b]: readonly [{ x: number; y:
 }
 
 /** MONTANTS des tabliers de la couche z (#3732), par case qui les porte (`x,y`). Un TABLIER est une case de surplomb
- *  (`overhangLowerHeight`) qui n'est pas le toit d'un bloc plein (`capsSolid` : la masse le porte, aucun montant dans le
+ *  (`overhangSupportZ`) qui n'est pas le toit d'un bloc plein (`capsSolid` : la masse le porte, aucun montant dans le
  *  tunnel d'une porte) ; une RIVE, une suite droite de ses arêtes donnant sur le vide. Un coin de rive est PORTÉ par un
  *  mur de la couche du dessous à une case au plus (façade sous le bord, encorbellement), par une case de la couche qui
  *  n'est pas un tablier (sa paroi descend pleine) ou par un sol inférieur qui touche ce coin et monte jusqu'au dessous de
@@ -153,9 +157,12 @@ export function montantsDeLaCouche(scene: SceneDuVolume, z: number): Map<string,
   const tabliers = new Map<string, { sousDalle: number; bas: number }>();
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
-      const bas = overhangLowerHeight(scene, x, y, z);
-      if (bas == null || estAbsent(tileAt(scene, x, y, z)) || capsSolid(scene, x, y, z)) continue;
-      tabliers.set(`${x},${y}`, { sousDalle: displayHeightAt(scene, x, y, z) - DECK_THICKNESS_M, bas });
+      const supportZ = overhangSupportZ(scene, x, y, z);
+      if (supportZ === null || estAbsent(tileAt(scene, x, y, z)) || capsSolid(scene, x, y, z)) continue;
+      tabliers.set(`${x},${y}`, {
+        sousDalle: displayHeightAt(scene, x, y, z) - DECK_THICKNESS_M,
+        bas: displayHeightAt(scene, x, y, supportZ),
+      });
     }
   const rive = (x: number, y: number, side: CellSide): boolean => {
     const [dx, dy] = NEIGHBOURS[side];
@@ -238,11 +245,12 @@ export function floorFaces(scene: SceneDuVolume, x: number, y: number, z: number
     const plancher = displayHeightAt(scene, x + dx, y + dy, z);
     const lien = voisine != null && rejointAPied(scene, x, y, x + dx, y + dy, z);
     // La matière vient de la DONNÉE (#1691) : le flanc d'un BLOC PLEIN est celui de SON terrain (`terrains.json ›
-    // matiere`), la contremarche d'un sol bâti vers une voisine qu'on rejoint est son terrain, toute autre paroi prend la
-    // matière que la SCÈNE pose pour cette partie. Aucun repli : ces sources sont exigées au parse.
+    // matiere`), la paroi d'un sol bâti, contremarche, falaise ou tranche de surplomb, est son terrain (#4471) ; toute
+    // autre paroi prend la matière que la SCÈNE pose pour cette partie. Aucun repli : ces sources sont exigées au
+    // parse.
     const material: Face['material'] = solidBlock
       ? { domain: 'relief', id: terrainMatiere(terrain)!, part: 'cliff' }
-      : lien && terrainBuilt(terrain)
+      : terrainBuilt(terrain)
         ? { domain: 'terrain', id: terrain }
         : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'].id, part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
     const [A, B] = edgeCorners(x, y, side);

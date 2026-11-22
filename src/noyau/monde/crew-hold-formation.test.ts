@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { crewPosteOf } from './shipPostes';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
-import { itemFromTrappingById } from '../../engine/items';
+import { hydratePoste } from '../../engine/items';
 import { emptyScene } from './scene';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -33,7 +33,7 @@ const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   }) as unknown as Combatant;
 
 const mkPoste = (crewIds: string[] = []): ShipPoste =>
-  ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
+  hydratePoste({ engin: { id: 'belier-ade2' }, crewIds }, idsDeTest('it'));
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   (blessuresSurLeProfil({

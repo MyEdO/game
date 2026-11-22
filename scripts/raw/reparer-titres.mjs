@@ -45,6 +45,7 @@ import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
 import { cle, enTete, sondeDuLivre } from './sonde-titres.mjs'
 import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const FORMES = new Set(['S', 'F', 'M', 'B', 'glyphe-fuite', "S'", 'O', 'doublon', 'L', 'legende-absente'])
 const LIGNE_DE_TABLE = /^\s*\|/
@@ -283,4 +284,7 @@ function main() {
   if (args.includes('--apply')) for (const [k, t] of changes) writeFileSync(`${dir}/${noms.get(k)}`, t)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

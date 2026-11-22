@@ -85,8 +85,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
   // PLANCHER de la dérivation : `IDS` vient du catalogue, le comparer à sa propre définition ne
   // rougirait jamais. Ce qui peut vraiment casser, c'est une jointure VIDE (dataset non chargé,
   // `volume` renommé) : les `it.each` ci-dessous passeraient alors sans rien mesurer. L'existence de
-  // la def d'ART de chaque id, elle, est gardée par la bijection `src/data/props-art-bijection.test.ts`,
-  // sur TOUTES les entrées de `props.json`.
+  // recette pour chaque décor authoré est vérifiée ci-dessous.
   it('la dérivation ne rend pas une liste VIDE (les contrats ci-dessous mesureraient du néant)', () => {
     expect(IDS.length).toBeGreaterThanOrEqual(11);
   });
@@ -406,9 +405,8 @@ describe('décor volumique — chaque face regarde le DEHORS, de la recette au m
   });
 
   /**
-   * ARÊTE DE COUTEAU du modelé de forme : `shadeFamily` (`noyau/monde/volume/worldTris.ts:155-158`)
-   * départage une normale par sa plus grande composante, et une égalité des DEUX plus grandes est
-   * indécidable — un fût y prend des tons de familles voisines sur des faces symétriques. C'est ce qui
+   * ARÊTE DE COUTEAU du modelé de forme : deux composantes maximales égales placent la normale à
+   * 45°. C'est ce qui
    * exclut `sides: 12` du type (`PropCylinderSides`). Une face LATÉRALE est une face dont la normale
    * est orthogonale à l'AXE, lu dans `REPERE_D_AXE` comme la géométrie : le critère ne suppose aucun
    * axe. Mesuré sur la géométrie CUITE, à chaque (côtés × axe), 12 compris.

@@ -12,12 +12,14 @@
 // `RACINES_DU_CODE` (présence à l'Atlas, champ `Implémente`). Une fiche de dossier de chapitre
 // (`docs/dossiers/`, #2290) cite le livre et n'implémente rien : citante, hors du code.
 import { join } from 'node:path'
+import { EXTENSIONS_DE_SCRIPT } from '../../guards/lib/dialecte.mjs'
 import { listerArbre } from '../../guards/lib/lister.mjs'
 
 /** Racine des fiches de dossier de chapitre commitées (#2290), lues par `scripts/raw/lib/dossiers.mjs`. */
 export const DOSSIERS_DIR = 'docs/dossiers'
 
-export const EXTS_CITANTES = ['.ts', '.tsx', '.mts', '.mjs', '.json', '.css', '.md']
+export const EXTS_CITANTES = [...EXTENSIONS_DE_SCRIPT, '.json', '.css', '.md']
+/** `indexCode` (`build-implemente.mjs`) indexe les symboles TS/TSX et les références de folio des documents JSON. */
 export const EXTS_IMPLEMENTANTES = ['.ts', '.tsx', '.json']
 
 /** Les racines du CODE : lues par `reconcile.mjs` et `build-implemente.mjs`. */

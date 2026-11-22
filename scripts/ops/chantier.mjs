@@ -18,14 +18,14 @@
 //
 // En conteneur cloud (`estConteneurDistant`), le worktree se pose sans hooks et ses `node_modules` se lient
 // en dur depuis le principal (`EQUIPEMENTS_DU_CONTENEUR`, #4339).
-//
-// Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { ECRIT_LU } from '../gates/toutes.mjs'
+import { codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
@@ -45,19 +45,35 @@ export const FORME_NOM = /^\d+(-[a-z0-9]+(-[a-z0-9]+)*)?$/
 /** Ce que le refus de forme AFFICHE : la règle, pas le regex. */
 export const FORME_DITE = '<numéro de ticket>[-slug-en-minuscules] (ex. « 1736 », « 1732-1734-outillage »)'
 
+const USAGE = `[chantier] usage : npm run ops:chantier -- <nom> [--sans-ci]\n` +
+  '             npm run ops:chantier -- [<nom>] --help\n' +
+  `  <nom> : ${FORME_DITE}\n`
+
 /** `true` si `nom` a la forme attendue. PURE. */
 export const nomValide = (nom) => typeof nom === 'string' && FORME_NOM.test(nom)
+
+const refusDeNom = (nom) => `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}`
 
 /**
  * Arguments de la ligne de commande. PURE.
  * @param {string[]} argv arguments APRÈS `node script.mjs`
- * @returns {{nom: string, sansCi: boolean}|null} `null` si aucun nom n'est donné.
+ * @returns {{nom: string, sansCi: boolean}|{aide: true}|{refus: string}|null}
  */
 export function argumentsDe(argv) {
-  const args = [...(argv ?? [])]
-  const sansCi = args.includes('--sans-ci')
-  const nom = args.filter((a) => !a.startsWith('--'))[0]
-  return nom === undefined ? null : { nom, sansCi }
+  const { positionals, tokens } = parseArgs({ args: argv, strict: false, tokens: true })
+  const options = new Set()
+  for (const { kind, index } of tokens) {
+    if (kind === 'positional') continue
+    const option = argv[index]
+    if (option !== '--help' && option !== '--sans-ci') return { refus: `option inconnue : « ${option} »` }
+    if (options.has(option)) return { refus: `option surnuméraire : « ${option} »` }
+    options.add(option)
+  }
+  const [nom, enTrop] = positionals
+  if (enTrop !== undefined) return { refus: `argument surnuméraire : « ${enTrop} »` }
+  if (nom !== undefined && !nomValide(nom)) return { refus: refusDeNom(nom) }
+  if (options.has('--help')) return { aide: true }
+  return nom === undefined ? null : { nom, sansCi: options.has('--sans-ci') }
 }
 
 /**
@@ -191,7 +207,7 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   const conteneur = estConteneurDistant(env)
   const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
-    return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
+    return { ok: false, refus: refusDeNom(nom) }
   }
   // L'ouverture se joue depuis N'IMPORTE QUEL worktree : la cible et tous les gestes git partent de
   // l'ARBRE PRINCIPAL, résolu par git (`arbrePrincipal`) — `.wt-<nom>` ne peut se poser que là.
@@ -299,7 +315,7 @@ export const argvDe = ({ nom, sansCi }) => [nom, ...(sansCi ? ['--sans-ci'] : []
  */
 export function relancerChantier(args, { npm = spawnSync, cwd = RACINE } = {}) {
   const vu = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'ops:chantier', '--', ...argvDe(args)], { cwd, stdio: 'inherit', shell: true })
-  return vu?.error ? 1 : vu?.status ?? 1
+  return vu?.error ? 1 : codeEnfant(vu?.status ?? null, vu?.signal ?? null)
 }
 
 /** La borne (ms) de l'attente du consommateur du post-merge (`attendreLeConsommateur`). */
@@ -366,13 +382,23 @@ export async function ouvrirChantier(args, {
   return 0
 }
 
-async function main() {
-  const args = argumentsDe(process.argv.slice(2))
-  if (!args) {
-    process.stderr.write(`[chantier] usage : npm run ops:chantier -- ${FORME_DITE} [--sans-ci]\n`)
+/** @param {string[]} argv @param {Parameters<typeof ouvrirChantier>[1]} portes */
+export async function main(argv = process.argv.slice(2), {
+  dire = (texte) => process.stderr.write(texte),
+  imprimer = (texte) => process.stdout.write(texte),
+  ...portes
+} = {}) {
+  const args = argumentsDe(argv)
+  if (!args || 'refus' in args) {
+    if (args) dire(`[chantier] ${args.refus}\n`)
+    dire(USAGE)
     return 1
   }
-  return ouvrirChantier(args)
+  if ('aide' in args) {
+    imprimer(USAGE)
+    return 0
+  }
+  return ouvrirChantier(args, { ...portes, dire, imprimer })
 }
 
 if (import.meta.main) process.exitCode = await main()

@@ -13,12 +13,14 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { OP_DEFS } from './mecanique';
-import { descendre } from './descente';
+import { capaciteDeCombatSchema, domaineDuChaosSchema, OP_DEFS } from './mecanique';
+import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { schema as schemaActivites } from '../defs/activities';
+import { ACTIVITY_RESOLVERS } from '../../../engine/activities';
 import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
@@ -26,11 +28,14 @@ import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, S
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
 const IDS_CONNUS: ReadonlySet<string> = new Set(Object.values(IDS_PAR_ESPACE).flat());
 
-/** Les vocabulaires d'ids des REGISTRES DE CODE que `actions.json` nomme (`defs/actions.ts`, #4056), par leurs options :
- *  chaque id désigne l'entrée d'un registre du noyau, qui porte son sens. */
-const VOCABULAIRES_DE_REGISTRES: ReadonlySet<string> = new Set(
+/** Les IDs des registres d’actions (#4056) gardent l’ordre de leurs options dans le schéma. */
+const VOCABULAIRES_DES_REGISTRES_D_ACTIONS: ReadonlySet<string> = new Set(
   [GATES_D_ACTION, SELECTEURS_D_ACTION, RUNS_D_ACTION, PORTEES_D_INTENTION, MODES_DE_CIBLAGE].map((ids) => ids.join('|')),
 );
+
+/** Les résolveurs d’Activité sont des IDs de registre dont l’ordre diffère entre moteur et schéma. */
+const cleDesResolveurs = (ids: readonly string[]): string => ids.slice().sort().join('|');
+const REGISTRE_DES_RESOLVEURS = cleDesResolveurs(ACTIVITY_RESOLVERS);
 
 /**
  * Un vocabulaire d'IDS ne se nomme JAMAIS : ses options sont les ids d'un dataset, dont le nom FR est
@@ -93,7 +98,11 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|pierre|moellons|pierres-seches|cloture',
+  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
+  'bois|pierre',
+  // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
+  'ardoise|tuile|chaume',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -111,6 +120,8 @@ const NOMMES = [
   'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
+  // Gabarit des barèmes de pose (MDG 12 l.195-364 ; MSRC 12 l.21-25).
+  'maritime|fluvial',
   // `voie` du catalogue des cargaisons (#1684) : la table du livre qui porte l'entrée (MDG 15, MSRC 13).
   'mer|terre',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
@@ -129,6 +140,7 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
+  'favorable|hostile',
   'repas|priere|tapi|debout|hurlement',
   'fixe|variable|tout',
   // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
@@ -141,7 +153,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal|planche|joint|gravats|barreau|traverse|vitre',
   'physique|mentale',
   // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
   'commune|chambre|grande|repas',
@@ -161,6 +173,7 @@ const NOMMES = [
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
+  'pied|monture|mer',
   'pietre|normale|grande',
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
@@ -211,6 +224,7 @@ const NOMMES = [
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
+  'weeks|days|hours|minutes',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
   'reussite|echec',
   'reussite|echec|maladresse',
@@ -270,6 +284,9 @@ const NOMMES = [
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
+  // Conditions de combat (#3067) : capacités admises par CombatFeature et Domaines du Chaos du lanceur.
+  capaciteDeCombatSchema.unwrap().options.join('|'),
+  domaineDuChaosSchema.options.join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
   // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
@@ -313,7 +330,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'complet|partiel',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
-  'days|hours|minutes',
   'dechirure|fracture',
   'dechirure|fracture|amputation',
   'declare|tirage',
@@ -333,7 +349,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
-  'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
   'inferieur|superieur',
   'interieur|exterieur',
@@ -359,7 +374,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'groupe|ennemis',
   'groupe|heros',
   'pas|trot|galop',
-  'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',
   'remplace|ajoute',
@@ -390,10 +404,23 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
 describe('libellés de VALEURS — stock nominatif décroissant des VOCABULAIRES', () => {
   it('le stock des vocabulaires SANS libellés est celui déclaré, et il DÉCROÎT', () => {
     const stock = [...vocabulairesDuRegistre()]
-      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')) && !VOCABULAIRES_DE_REGISTRES.has(cle))
+      .filter(([cle, c]) => {
+        const options = cle.split('|');
+        return c.nommes === 0 && !estVocabulaireDIds(options)
+          && !VOCABULAIRES_DES_REGISTRES_D_ACTIONS.has(cle) && cleDesResolveurs(options) !== REGISTRE_DES_RESOLVEURS;
+      })
       .map(([cle]) => cle)
       .sort();
     expect(stock).toEqual(VOCABULAIRES_SANS_LIBELLES.slice().sort());
+  });
+
+  it('les champs resolver des Activités désignent exactement les entrées du registre des résolveurs', () => {
+    for (const chemin of [[0, 'resolver'], [0, 'outcomes', 0, 'resolver']]) {
+      const registres = noeudsAuChemin(schemaActivites, undefined, chemin)
+        .filter((noeud) => noeud instanceof z.ZodEnum)
+        .map((noeud) => noeud.options.slice().sort());
+      expect(registres, chemin.join('.')).toEqual([ACTIVITY_RESOLVERS.slice().sort()]);
+    }
   });
 
   it('les vocabulaires NOMMÉS sont ceux des defs migrés, tous atteints depuis le registre', () => {

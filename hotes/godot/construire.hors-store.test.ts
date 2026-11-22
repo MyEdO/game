@@ -16,7 +16,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -151,11 +151,34 @@ describe('la copie importée du projet, mise à jour des seuls fichiers changés
   });
 });
 
+describe('les erreurs attendues d’une recette autonome (`ERREURS_ATTENDUES`)', () => {
+  const RECETTE = 'res://recettes/essai.gd';
+  const ATTENDUE = '[aretes] modele-absent : absent-du-listage';
+  const source = (attendues: string) => `extends SceneTree\n\nconst RECETTE_AUTONOME := true\nconst ERREURS_ATTENDUES := ${attendues}\n`;
+  const lignes = (...erreurs: string[]) => ['[essai] version=4.7', ...erreurs.map((e) => `ERROR: ${e}`), '   at: x (y.gd:1)', '[essai] erreurs=0'];
+  it('sans déclaration, chaque erreur reste', () => {
+    expect(erreursDeLaRecette(RECETTE, 'extends SceneTree\n', lignes(ATTENDUE))).toEqual([`ERROR: ${ATTENDUE}`]);
+  });
+  it('une attendue dite autant de fois que déclarée est retirée, les autres erreurs restent', () => {
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes(ATTENDUE))).toEqual([]);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE, ATTENDUE])), lignes(ATTENDUE, 'autre', ATTENDUE))).toEqual(['ERROR: autre']);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), [`SCRIPT ERROR: ${ATTENDUE}`])).toEqual([]);
+  });
+  it('une attendue absente ou dite trop souvent est une faute', () => {
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes())).toEqual([`${RECETTE} : erreur attendue 1 fois, dite 0 fois : ${ATTENDUE}`]);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes(ATTENDUE, ATTENDUE))).toEqual([`${RECETTE} : erreur attendue 1 fois, dite 2 fois : ${ATTENDUE}`]);
+  });
+  it('une déclaration illisible est une faute', () => {
+    expect(erreursDeLaRecette(RECETTE, source('["a", 2]'), lignes())).toEqual([`${RECETTE} : ERREURS_ATTENDUES illisible : ["a", 2]`]);
+    expect(erreursDeLaRecette(RECETTE, source("['a']"), lignes())).toEqual([`${RECETTE} : ERREURS_ATTENDUES illisible : ['a']`]);
+  });
+});
+
 describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub tient (#4402)', () => {
   it('nomme, à toute profondeur, chaque fichier de plus de 104 857 600 octets, et lui seul', () => {
     const d = join(dossier, `export-${Math.random().toString(36).slice(2)}`);
     mkdirSync(join(d, 'modeles'), { recursive: true });
-    for (const [rel, taille] of [['index.pck', 104_857_601], ['kit.pck', 104_857_600], [join('modeles', 'lourd.scn'), 200_000_000]] as const) {
+    for (const [rel, taille] of [['index.pck', 104_857_601], ['textures.pck', 104_857_600], [join('modeles', 'lourd.scn'), 200_000_000]] as const) {
       writeFileSync(join(d, rel), '');
       truncateSync(join(d, rel), taille);
     }

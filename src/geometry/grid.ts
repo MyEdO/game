@@ -16,6 +16,11 @@
  */
 import { tileCenter, type Dims } from './iso';
 
+/** Échelle métrique d'une case, en mètres (LDB 15 l.12). */
+export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
+  return scene?.metresPerTile ?? 2;
+}
+
 /** Un trait de grille, en coordonnées de PROJECTION (le repère du viewBox qui l'affiche). */
 export interface GridLine {
   x1: number;

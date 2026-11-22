@@ -1,86 +1,114 @@
-/**
- * Entretien de fin de Round HORS COMBAT (couture A de l'audit « combat-only »).
- *
- * LDB 13 l.45-47 : « En dehors d'un Combat, la mesure du temps […] est bien plus flexible. Mais
- * il est quelquefois utile d'utiliser les Rounds même en dehors d'un Combat. » Les États qui « tickent »
- * (Hémorragique l.105 / Empoisonné l.66 / En flammes l.77) et l'agonie (0 PB → Inconscient après BE
- * Rounds, LDB 18 l.15) ne doivent pas geler dès qu'on sort du combat : on les fait progresser au fil de
- * l'horloge (1 Round ≈ TIME_COST.combatRound minute). En combat, c'est la frontière de Round qui s'en charge.
- *
- * Échapper à l'agonie par Hémorragie hors combat : Test de Guérison réussi retire l'État (LDB 09
- * l.261, LDB 16 l.107-109) — infirmerie hors combat (`ouvrirLeMedecin`, acte `bleed`, `noyau/medicFlow.ts`,
- * bouton « Soins » de `CharacterSheet.tsx`), n'avance pas le temps. Sans soigneur au Talent ni Destin,
- * l'agonie ci-dessus va à son terme.
- */
-import type { FabriqueDId } from '../engine/fabriqueDId';
-import { Combatant } from '../engine/types';
-import { RNG } from '../engine/dice';
-import { endOfRound, bleedDeathRoll, tickDeath, hasCondition } from '../engine/conditions';
+/** LDB 13 l.45-47 */
+import type { Combatant } from '../engine/types';
+import type { TriggeredEffect } from '../engine/flowCore';
+import { flowHasTest, spellOps } from '../engine/flowCore';
+import { endOfRound, bleedDeathRoll, tickDeath } from '../engine/conditions';
 import { fateSaveOrDie } from '../engine/fortune';
-import { fireConditionEffects } from './triggeredEffects';
-import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
-import { spellOps } from '../engine/flowCore';
-import { findConditionById } from '../data';
 import { t } from '../i18n';
+import { battleRng } from './battleRng';
+import { journaliser } from './combatLog';
+import { touchActors } from './combatOrParty';
+import { comptePasDifferes, confierLaSuite, drainPendingLog, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { applyTriggeredEffects, sourcesDEtats } from './triggeredEffects';
+import { actorIn } from './monde/combatants';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import type { Get, Set } from './flowTypes';
 
-/** L'État `id` inflige-t-il des Dégâts à chaque fin de Round (un effet `onRoundEnd` porteur de `wounds`) ? */
-const degatsPeriodiques = (id: string): boolean =>
-  (findConditionById(id)?.effects ?? []).some((e) => e.trigger === 'onRoundEnd' && spellOps(e.flow, 'target').some((o) => o.op === 'wounds'));
-
-/** Porte-t-il un État à Dégâts périodiques dont il ne soit pas immunisé aux Dégâts (`degatsDeLEtatIgnores`,
- *  LDB 85 l.174) OU est-il à 0 PB (progression vers l'Inconscience) ? */
-function needsUpkeep(c: Combatant): boolean {
-  return c.wounds.current <= 0
-    || c.conditions.some((x) => hasCondition(c, x.id) && degatsPeriodiques(x.id) && !degatsDeLEtatIgnores(c.traits, x.id));
+interface EffetDEtatEnFinDeRound {
+  effet: TriggeredEffect;
+  stacks: number;
 }
 
-/** Porte-t-il quelque chose que la FRONTIÈRE DE ROUND fait avancer — ops récurrentes à rejouer, durées
- *  en Rounds à écouler (effets actifs, États de sort, contrecoups d'incantation) ? C'est exactement le
- *  périmètre d'`endOfRound` (`engine/conditions.ts`) et rien d'autre. Un contrecoup peut naître hors
- *  combat (`interludeFlow`) : sans ce tic, sa durée en Rounds ne s'écoulerait jamais. Un effet GELÉ en
- *  attente de prolongation (`awaitingExtension`, `LDB 47 l.311`) ne compte pas : ni sa durée ni ses ops
- *  n'avancent plus, il ferait tourner la boucle jusqu'à `rounds` pour rien. */
-function hasRoundTick(c: Combatant): boolean {
+interface EntretienDuPorteur {
+  avecAgonie: boolean;
+  effetsRestants?: EffetDEtatEnFinDeRound[];
+}
+
+export interface RepriseEntretienDesRounds {
+  rounds: number;
+  porteurs: string[];
+  index: number;
+  roundActif: boolean;
+  entretien?: EntretienDuPorteur;
+}
+
+function effetsDEtatEnFinDeRound(get: Get, c: Combatant): EffetDEtatEnFinDeRound[] {
+  return sourcesDEtats(c, objetDuNarratif(get().campaignNarratif)).flatMap(({ effects, stacks }) =>
+    effects.filter((effet) => effet.trigger === 'onRoundEnd').map((effet) => ({ effet, stacks: stacks ?? 1 })));
+}
+
+function infligeDesDegats({ effet }: EffetDEtatEnFinDeRound): boolean {
+  return spellOps(effet.flow, 'target').some((op) => op.op === 'wounds');
+}
+
+function faitPasserUnRound(c: Combatant): boolean {
   return (c.activeEffects ?? []).some((e) => !e.awaitingExtension && (e.opsPerRound != null || e.duration.scale === 'rounds'))
     || c.conditions.some((x) => x.roundsLeft != null)
     || (c.castPenalties ?? []).some((p) => p.roundsLeft != null);
 }
 
-/**
- * Rejoue jusqu'à `rounds` Rounds d'entretien sur les membres du groupe qui en ont besoin. Mute `party`.
- * S'arrête dès que plus personne n'a besoin d'entretien (évite les longues boucles sur de grands sauts de
- * temps). Un héros qui mourrait par hémorragie est sauvé par un Point de Destin s'il en a. Retourne le journal.
- */
-export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG, idNeuf: FabriqueDId): string[] {
-  const log: string[] = [];
-  for (let r = 0; r < rounds; r++) {
-    let active = false;
-    for (const c of party) {
-      if (c.dead) continue;
-      if (!needsUpkeep(c)) {
-        // TIC SEUL : la frontière de Round avance (ops récurrentes, durées), SANS l'entretien du porteur
-        // en péril (Test de récupération du Sonné, auto-dissipation d'États, agonie) — celui-ci reste
-        // réservé aux causes de `needsUpkeep`.
-        if (!hasRoundTick(c)) continue;
-        active = true;
-        endOfRound(c, rng, idNeuf).forEach((l) => log.push(l));
-        continue;
+function direLEntretien(get: Get, set: Set, c: Combatant, lignes: string[]): void {
+  journaliser(get, set, [...lignes, ...drainPendingLog(get, set).map((event) => event.text)], 'etat', { actorId: c.id });
+}
+
+/** LDB 16 l.105 ; LDB 18 l.15 */
+function traiterLAgonie(c: Combatant): string[] {
+  const { died, log } = bleedDeathRoll(c, battleRng());
+  if (!died) return [...log, ...tickDeath(c)];
+  const nom = fateSaveOrDie(c) ? 'upkeep.fateSaved' : 'upkeep.succumb';
+  return [...log, t(nom, { name: c.label })];
+}
+
+export function outOfCombatUpkeep(get: Get, set: Set, rounds: number): Applique {
+  return reprendreEntretienDesRounds(get, set, { rounds, porteurs: get().party.map((c) => c.id), index: 0, roundActif: false });
+}
+
+/** Les étapes reprennent après la dernière conséquence jouée, avec le lot d'effets du porteur déjà entamé. */
+export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: RepriseEntretienDesRounds): Applique {
+  const { porteurs } = reprise;
+  let { rounds, index, roundActif, entretien } = reprise;
+  while (rounds > 0) {
+    for (; index < porteurs.length; index++, entretien = undefined) {
+      const c = actorIn(get(), porteurs[index]);
+      if (!c || c.dead) continue;
+      if (!entretien) {
+        const effets = effetsDEtatEnFinDeRound(get, c);
+        const avecAgonie = c.wounds.current <= 0 || effets.some(infligeDesDegats);
+        const aUnTest = effets.some(({ effet }) => flowHasTest(effet.flow));
+        if (!avecAgonie && !aUnTest && !faitPasserUnRound(c)) continue;
+        entretien = { avecAgonie };
+        roundActif = true;
+        const avant = comptePasDifferes(get());
+        const { forgerUnId, campaignNarratif } = get();
+        direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, undefined, objetDuNarratif(campaignNarratif)));
+        if (comptePasDifferes(get()) > avant) {
+          set(touchActors(get()));
+          confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien } }]);
+          return OPS_DIFFEREES;
+        }
       }
-      active = true;
-      endOfRound(c, rng, idNeuf).forEach((l) => log.push(l)); // MÊME tic que ci-dessus (ops récurrentes + durées)
-      // Dégâts périodiques d'État (Empoisonné/En Flammes/Hémorragique) MIGRÉS en données (effects: onRoundEnd
-      // → wounds) : MÊME chemin qu'en combat, ils tickent AUSSI hors-combat. La cible 'self' ne touche pas
-      // `battle` (targetsFor) → `get` stub suffit ; pas de `set` (flow sans test interactif hors combat).
-      fireConditionEffects((() => ({ battle: undefined })) as never, c, 'onRoundEnd', { rng }).forEach((l) => log.push(l));
-      const bd = bleedDeathRoll(c, rng); // mort par Hémorragique (10 %/pion, double = coagule)
-      bd.log.forEach((l) => log.push(l));
-      if (bd.died) {
-        log.push(fateSaveOrDie(c) ? t('upkeep.fateSaved', { name: c.label }) : t('upkeep.succumb', { name: c.label }));
-        continue;
+
+      const { avecAgonie } = entretien;
+      const effets = entretien.effetsRestants ?? effetsDEtatEnFinDeRound(get, c)
+        .filter(({ effet }) => avecAgonie || flowHasTest(effet.flow));
+      for (const [position, { effet, stacks }] of effets.entries()) {
+        const avant = comptePasDifferes(get());
+        const lignes = applyTriggeredEffects(get, c, [effet], 'onRoundEnd', { set, rng: battleRng(), stacks });
+        direLEntretien(get, set, c, lignes);
+        if (comptePasDifferes(get()) > avant) {
+          set(touchActors(get()));
+          const enCours = { avecAgonie, effetsRestants: effets.slice(position + 1) };
+          confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien: enCours } }]);
+          return OPS_DIFFEREES;
+        }
       }
-      tickDeath(c).forEach((l) => log.push(l)); // LDB 18 l.15, en 'aa' aussi (#1595 c.6219559935)
+      if (avecAgonie) direLEntretien(get, set, c, traiterLAgonie(c));
+      set(touchActors(get()));
     }
-    if (!active) break;
+    if (!roundActif) break;
+    rounds--;
+    index = 0;
+    roundActif = false;
   }
-  return log;
+  return undefined;
 }

@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "herse"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "barreau",
+      "palette": "barreau",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "traverse",
+      "palette": "traverse",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    },
+    {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "c807e54ce0fc86e5c984a23e4639b2038d0854781245d10618b91487439e8dbe",
+    "octets": 696452
+  }
+}

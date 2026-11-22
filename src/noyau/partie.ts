@@ -20,6 +20,7 @@ import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenari
 import { bus, EVT, type ChargesDuBus } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
+import { patchDeLArmement } from './monde/carrier';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -61,10 +62,13 @@ export interface ResultatDeLAppel {
   issue: IssueDeLAppel;
   evenements: Evenement[];
   journal: LigneDuJournal[];
+  /** Verdict destiné au seul siège distant dont l'intention a été jugée. */
+  refus?: string;
 }
 
 export interface Partie {
   etat: Get;
+  reprojeterLArmement: () => void;
   /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
    *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`).
    *  Chez un invité, une intention qui porte un siège ou dont le verbe est de classe `hôte` ne se joue pas : elle se
@@ -179,17 +183,27 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
 
   return {
     etat: get,
-    envoyer: (intention) => appeler('envoyer', () => {
-      const refus = refusChezLInvite(get(), intention);
-      if (refus) {
-        refuserGeste(get, set, refus);
+    reprojeterLArmement: () => {
+      ouvertePour('reprojeterLArmement');
+      set(patchDeLArmement(get()) ?? {});
+    },
+    envoyer: (intention) => {
+      let refusDuSiege: string | undefined;
+      const resultat = appeler('envoyer', () => {
+        const refus = refusChezLInvite(get(), intention);
+        if (refus) {
+          refuserGeste(get, set, refus);
+          return 'appliquee';
+        }
+        if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
+        if (intention.siege !== undefined) {
+          return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args, (texte) => { refusDuSiege = texte; });
+        }
+        (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
         return 'appliquee';
-      }
-      if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
-      if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
-      (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
-      return 'appliquee';
-    }),
+      });
+      return refusDuSiege === undefined ? resultat : { ...resultat, refus: refusDuSiege };
+    },
     lancer: (lancement) => appeler('lancer', () => {
       lancerLeScenario(get, set, lancement);
       return 'appliquee';

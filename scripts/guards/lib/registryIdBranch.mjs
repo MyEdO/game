@@ -38,10 +38,7 @@ const ts = tsModule;
  *  `web` sont celles de l'hôte web (#3556) ; `scripts`, hors des zones, porte les compilateurs d'authoring, qui
  *  écrivent de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
 
-export const SCAN_DIRS = [...porteeDeGarde(['engine', 'noyau', 'data'], ['ui', 'state', 'gameIso', 'web']), 'scripts'];
-
-/** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
-export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
+export const SCAN_DIRS = [...porteeDeGarde(['engine', 'noyau', 'data']), 'scripts'];
 
 /** Arbre syntaxique d'un fichier, bâti à chaque appel : l'appelant qui passe les deux scans sur le
  *  même fichier le tient et le leur passe (`tsProgram.mjs`, en-tête, pour la durée de vie).

@@ -5,11 +5,12 @@
  * (#2995). La plage d'un dépôt jetable : `scripts/guards/comptes-plage.test.mjs`.
  */
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 import { z } from 'zod';
 import {
   baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, MARQUE_DE_CLASSEMENT, refsAPlat, refusDesComptes, sitesDeDetteDOps,
@@ -18,13 +19,15 @@ import {
 import { idDe, ref, refs } from './data/schemas/grammaire/ref';
 import { nommerNoeud } from './data/schemas/grammaire/meta';
 import type { SchemaDef } from './data/schemas/types';
-import { scanDuCorpus } from '../scripts/docs/lib/structures-scan.mjs';
+import { lireDocuments, regimeEntrees } from '../scripts/docs/lib/structures-scan.mjs';
+import { introspecterDefs } from '../scripts/docs/lib/zod-introspect.mjs';
 import { defsDeDocument } from '../scripts/docs/lib/slots-registre.mjs';
 import { envDeDepotForge, forgerDepot } from '../scripts/guards/lib/depotGabarit.mjs';
 import { cleDeSite, remedeNomme, sitesEnEntrees } from '../scripts/guards/lib/stock.mjs';
 import { renommagesDeStructure, SOUS_LA_PORTE, type EntreeDeStructure } from '../scripts/guards/lib/occurrencesStock.mjs';
 import { cheminsDeDocument } from '../scripts/guards/lib/structuresLocales.mts';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
+import { estModule } from '../scripts/guards/lib/importGraph.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { CHEMINS_EXPORTES } from '../scripts/migrations/replay-head.mjs';
 import { estObjet } from './lib/objet.mjs';
@@ -334,12 +337,16 @@ describe('jugerLesComptes — l’image d’une borne se pose HORS de tout dép�
 describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune plage', () => {
   const ROOT = fileURLToPath(new URL('..', import.meta.url));
   /** Les fichiers TEXTE d'une copie de l'arbre : ce que lisent la génération du code et la mesure. */
-  const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
+  const estTexte = (p: string) => estModule(p) || /\.(?:md|json|css|snap)$/.test(p);
   const env = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_')));
   /** Les comptes de la racine `cwd`, mesurés par le point d'entrée de la porte dans un processus `tsx`. */
-  const mesurer = (cwd: string): Comptes => new Map(JSON.parse(execFileSync(process.execPath,
-    [join(ROOT, 'node_modules/tsx/dist/cli.mjs'), join(cwd, 'scripts/guards/lib/corpusDesComptes.mts')],
-    { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28 })) as [string, never[]][]) as Comptes;
+  const executer = promisify(execFile);
+  const mesurer = async (cwd: string): Promise<Comptes> => {
+    const { stdout } = await executer(process.execPath,
+      [join(ROOT, 'node_modules/tsx/dist/cli.mjs'), join(cwd, 'scripts/guards/lib/corpusDesComptes.mts')],
+      { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28 });
+    return new Map(JSON.parse(stdout) as [string, never[]][]);
+  };
   /** Le nombre de chaque chaîne des `donnees` (valeur, clé, et chaque terme d'une liste `a, b`) et de chaque chaîne
    *  littérale du `code` authoré (un `.generated.` recopie chaque id). */
   const citations = (donnees: readonly unknown[], code: readonly string[]): Map<string, number> => {
@@ -354,7 +361,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     return n;
   };
   type Objet = Record<string, unknown>;
-  /** Les collections d'ENTRÉES d'un document selon son régime (`scanDuCorpus`) : sa liste racine, la carte d'un record
+  /** Les collections d'ENTRÉES d'un document selon son régime (`regimeEntrees`) : sa liste racine, la carte d'un record
    *  (sous `entries` quand il est enveloppé), ou chaque liste d'objets d'une config, projets de scène compris. */
   const entreesDe = (donnee: unknown, regime: string): (unknown[] | Objet)[] => {
     if (regime === 'elements') return Array.isArray(donnee) && donnee.length ? [donnee] : [];
@@ -378,10 +385,13 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   const FERMES_AU_GESTE: Readonly<Record<string, RegExp | null>> = {
     'src/data/advancementCosts.json': /ne couvrent pas/,
     'src/data/ambiance.json': /doivent croître STRICTEMENT/,
+    'src/data/astrology.json': /ne couvrent pas/,
     'src/data/calendarPhases.json': /portent le même seuil/,
     'src/data/cargaisons-aleatoires.json': /est déjà tirée par|ne couvrent pas/,
     'src/data/especes-aleatoires.json': /un seul document par jeu de races/,
     'src/data/dispersion.json': /ne couvrent pas/,
+    'src/data/eyes.json': /ne couvrent pas/,
+    'src/data/hairs.json': /ne couvrent pas/,
     'src/data/reaction-au-statut.json': /ne couvrent pas/,
     'src/data/tableau-capricieux.json': /ne couvrent pas/,
     'src/data/merchantFamilies.json': /est classée par/,
@@ -390,30 +400,31 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/naval-progression.json': /ne couvrent pas/,
     'src/data/obsessions.json': /est absent du catalogue des groupes/,
     'src/data/structure-criticals.json': /ne couvrent pas/,
-    'src/data/teintesJeu.json': /Clé non reconnue/,
     'src/data/defauts-de-compilation.json': null,
     'src/data/semences-de-scene.json': null,
     'src/data/speciesRace.json': null,
   };
 
-  it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, () => {
+  it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'comptes-2995-'));
     try {
       for (const rel of Object.keys(CHEMINS_EXPORTES))
         if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
-        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
-      const documents = scanDuCorpus(ROOT).scan.documents;
-      const lus = documents.map((d) => JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')) as unknown);
-      const code = readCorpus(['src'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);
-      const cite = citations(lus, code);
+        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || estTexte(p)) });
+      const { docs: documents, brutParDocument } = lireDocuments(ROOT);
+      const defs = defsDeDocument();
+      const familles = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
+      const code = readCorpus(['src'], { tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);
+      const cite = citations([...brutParDocument.values()], code);
       const touches = { ajouts: 0, retraits: 0 };
       /** Par document, ses gestes, ceux que son schéma a refusés (et le premier motif) et ceux appliqués. */
       const parDocument = new Map<string, { gestes: number; refuses: number; appliques: number; motif: string }>();
-      documents.forEach((d, i) => {
-        const def = defsDeDocument().find((x) => d.chemin.endsWith(`/${x.file}`));
+      documents.forEach((d) => {
+        const brut = brutParDocument.get(d.chemin);
+        const def = defs.find((x) => d.chemin.endsWith(`/${x.file}`));
         if (!def) throw new Error(`${d.chemin} : aucun def, la donnée mutée ne se validerait pas.`);
-        if (!def.schema.safeParse(lus[i]).success) throw new Error(`${d.chemin} : la donnée d’origine est invalide, un geste refusé ne prouverait rien.`);
-        const donnee = structuredClone(lus[i]);
+        if (!def.schema.safeParse(brut).success) throw new Error(`${d.chemin} : la donnée d’origine est invalide, un geste refusé ne prouverait rien.`);
+        const donnee = structuredClone(brut);
         const bilan = { gestes: 0, refuses: 0, appliques: 0, motif: '' };
         parDocument.set(d.chemin, bilan);
         /** Un geste n'est gardé que si le schéma du document admet encore la donnée : elle reste SAINE. */
@@ -423,7 +434,8 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
           const lu = def.schema.safeParse(donnee);
           if (lu.success) { bilan.appliques += 1; touches[sorte] += 1; } else { defaire(); bilan.refuses += 1; bilan.motif ||= lu.error.issues[0]?.message ?? ''; }
         };
-        for (const c of entreesDe(donnee, d.regime)) {
+        const regime = regimeEntrees(brut, familles.get(d.nom));
+        for (const c of entreesDe(donnee, regime)) {
           if (Array.isArray(c)) {
             const retiree = c.reduce<number>((r, e, j) => (j > 0 && typeof (e as { id?: unknown }).id === 'string' && cite.get((e as { id: string }).id) === 1 ? j : r), -1);
             if (retiree > 0) tenter(() => { const [e] = c.splice(retiree, 1); return () => c.splice(retiree, 0, e); }, 'retraits');
@@ -464,7 +476,10 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
       writeFileSync(join(dossier, 'src/data/schemas/defs-scenes/aaa-sonde-2995.ts'), module);
       execFileSync(process.execPath, ['--input-type=module', '-e', `const { preparerExport } = await import(${JSON.stringify(pathToFileURL(join(ROOT, 'scripts/migrations/replay-head.mjs')).href)}); preparerExport(process.argv[1]);`, dossier], { cwd: dossier, env, stdio: 'pipe' });
       expect(readFileSync(join(dossier, 'src/data/schemas/_registry-scenes.generated.ts'), 'utf8'), 'le projet neuf n’est pas au registre régénéré : la sonde ne prouverait rien.').toContain('aaa-sonde-2995');
-      const [original, copie] = [mesurer(ROOT), mesurer(dossier)];
+      const [mesureOriginale, mesureMutee] = await Promise.allSettled([mesurer(ROOT), mesurer(dossier)]);
+      if (mesureOriginale.status === 'rejected') throw mesureOriginale.reason;
+      if (mesureMutee.status === 'rejected') throw mesureMutee.reason;
+      const [original, copie] = [mesureOriginale.value, mesureMutee.value];
       expect([...original.keys()], 'la mesure ne rend pas chaque volet sous la porte').toEqual(SOUS_LA_PORTE.map((c) => c.nom));
       expect(refusDesComptes(original, copie), 'une donnée ajoutée ou retirée fait refuser la plage : un volet lit la donnée.').toEqual([]);
       expect(refusDesComptes(copie, original), 'retirer la donnée ajoutée fait refuser la plage : un volet lit la donnée.').toEqual([]);

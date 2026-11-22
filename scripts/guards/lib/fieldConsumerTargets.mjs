@@ -7,9 +7,9 @@ import { markSchema } from '../../../src/data/schemas/defs/progression-schemas-d
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente'
 import * as valeurs from '../../../src/data/schemas/grammaire/valeurs'
 import * as reference from '../../../src/data/schemas/grammaire/reference'
-import { avancement } from '../../../src/data/schemas/grammaire/avancement'
+import { talentDEspece } from '../../../src/data/schemas/grammaire/avancement'
 import * as mecanique from '../../../src/data/schemas/grammaire/mecanique'
-import { critEscalationSchema, amputationSchema } from '../../../src/data/schemas/defs/criticals'
+import { critEscalationSchema } from '../../../src/data/schemas/defs/criticals'
 import {
   propVolumeRecipeSchema, propPrimitiveSchema, propSeatSlotSchema, propPoint3Schema, propSize3Schema,
 } from '../../../src/data/schemas/defs/props'
@@ -28,7 +28,7 @@ export const CIBLES_DE_GRAMMAIRE = [
   { schema: valeurs.castingNumberModSchema, type: 'CastingNumberMod', home: 'src/engine/castingNumber.ts' },
   { schema: valeurs.countSpecSchema, type: 'CountSpec', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: reference.trappingRefSchema, type: 'TrappingRef', home: 'src/data/schemas/grammaire/reference.ts' },
-  { schema: avancement('skill'), type: 'AdvancementRef', home: 'src/data/index.ts' },
+  { schema: talentDEspece, type: 'AdvancementRef', home: 'src/data/index.ts' },
   { schema: valeurs.entityAppearanceSchema, type: 'EntityAppearance', home: 'src/engine/authoringAppearance.ts' },
   { schema: mecanique.flowTestSchema, type: 'FlowTest', home: 'src/engine/flowCore.ts' },
   { schema: mecanique.travelTableEntrySchema, type: 'TravelTableEntry', home: 'src/engine/travelTables.ts' },
@@ -40,7 +40,6 @@ export const CIBLES_DE_GRAMMAIRE = [
   { schema: propPoint3Schema, type: 'PropPoint3', home: 'src/data/props.types.ts' },
   { schema: propSize3Schema, type: 'PropSize3', home: 'src/data/props.types.ts' },
   { schema: critEscalationSchema, type: 'CritEscalation', home: 'src/data/criticals.ts' },
-  { schema: amputationSchema, type: 'Amputation', home: 'src/data/criticals.ts' },
 ]
 
 export const LIENS_SCHEMA_TYPES = [

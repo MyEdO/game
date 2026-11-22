@@ -5,7 +5,7 @@ import {
   talentConcrete,
   talents,
   talentsAleatoires,
-  rangeesDesTalentsAleatoires,
+  tableDeTalents,
   specPoolOf,
   firstLevel,
   careerLevels,
@@ -32,6 +32,7 @@ import { traitConsumptionFactor } from './provisions';
 import { traitEncumbranceFactor } from './combatFeatures/dispatch';
 
 const REIK = 'humains-reiklander';
+const TABLE = { id: 'talents-aleatoires' } as const;
 const sp = () => findSpeciesById(REIK)!;
 
 describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
@@ -46,12 +47,12 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
 describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
   // Le tirage vit à l'adresse `especeTirage(PREALABLES, 0)`, quels que soient les Talents possédés : les
   // emplacements préalables non tenus portent un Talent hors du Tableau.
-  const DU_TABLEAU = new Set<string>(rangeesDesTalentsAleatoires().map((r) => r.id));
+  const DU_TABLEAU = new Set<string>(tableDeTalents(TABLE).entries.map((r) => r.id));
   const PREALABLES = Math.max(1, ...talents.filter((t) => DU_TABLEAU.has(t.id)).map((t) => specPoolOf(t).length));
   const horsTableau = talents.find((t) => !DU_TABLEAU.has(t.id) && !specPoolOf(t).length)!;
   const tirage = (seed: number, possedes: RefDesignee[] = [], opts: { randomSpecPicks?: Record<string, string> } = {}) => {
     const prealables = [...possedes, ...Array.from({ length: PREALABLES - possedes.length }, () => ({ id: horsTableau.id }))];
-    const out = resolveSpeciesTalentsDetail({ ...sp(), talents: [...prealables, { random: 1 }] }, { seed, ...opts });
+    const out = resolveSpeciesTalentsDetail({ ...sp(), talents: [...prealables, { pick: 1, table: TABLE }] }, { seed, ...opts });
     const t = out[out.length - 1];
     return { ref: t.ref, doublon: t.tirage!.doublon };
   };
@@ -88,7 +89,7 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
     const imprimes = [...talentsAleatoires];
     setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: { n: 1, sides: 10 } })));
     try {
-      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(rangeesDesTalentsAleatoires(), i + 1).id));
+      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(tableDeTalents(TABLE).entries, i + 1).id));
       const tires = new Set(Array.from({ length: 200 }, (_, i) => tirage(i + 1).ref.id));
       expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
     } finally {
@@ -112,7 +113,7 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
       'doue-en-calcul tres-resistant affable maitre-artisan(alchimiste) guerrier-ne doue-en-calcul!',
       'ame-pure vision-nocturne doigts-de-fee sixieme-sens imperturbable attirant',
     ];
-    const suite = (seed: number) => resolveSpeciesTalentsDetail({ ...sp(), talents: [{ random: 6 }] }, { seed })
+    const suite = (seed: number) => resolveSpeciesTalentsDetail({ ...sp(), talents: [{ pick: 6, table: TABLE }] }, { seed })
       .map((t) => `${t.ref.id}${t.ref.spec ? `(${t.ref.spec})` : ''}${t.tirage!.doublon ? '!' : ''}`).join(' ');
     expect(TEMOIN.map((_, i) => suite(i + 1))).toEqual(TEMOIN);
   });
@@ -173,7 +174,7 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   });
 
   it('l\'option « A ou B » se garde par son identité (`cleDOption`), quel que soit l\'ordre de `of`', () => {
-    const inverse = { ...sp(), talents: sp().talents.map((t) => ('pick' in t ? { ...t, of: [...t.of].reverse() } : t)) };
+    const inverse = { ...sp(), talents: sp().talents.map((t) => ('of' in t ? { ...t, of: [...t.of].reverse() } : t)) };
     const fixes = (espece: typeof inverse) => resolveSpeciesTalents(espece, { seed: 1, talentsRolled: false, speciesTalentChoices: affable });
     expect(fixes(sp())).toEqual([{ id: 'affable' }, { id: 'destinee' }]);
     expect(fixes(inverse)).toEqual(fixes(sp()));
@@ -283,7 +284,10 @@ describe('createHero — applique compétences et talents raciaux', () => {
       label: 'T',
       seed: 3,
       xpBonus: 95,
-      details: { age: 22, height: 178, eyes: 'Bleu', hair: 'Brun clair', ambitionShort: 'X', ambitionLong: 'Y' },
+      details: {
+        age: 22, height: 178, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
+        ambitionShort: 'X', ambitionLong: 'Y',
+      },
     });
     expect(hero.xp).toBe(95);
     expect(hero.details?.age).toBe(22);
@@ -317,7 +321,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
     if (!middenland) return; // espèce ADE absente → rien à tester
     const out = resolveSpeciesTalents(middenland, {
       seed: 11,
-      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } }, // « Destinée ou Talent aléatoire » → la branche aléatoire
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { pick: 1, table: TABLE } }, // « Destinée ou Talent aléatoire » → la branche aléatoire
     });
     expect(out).not.toContainEqual({ id: 'destinee' });
     expect(out.length).toBeGreaterThanOrEqual(2);

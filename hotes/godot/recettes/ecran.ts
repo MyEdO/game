@@ -11,8 +11,8 @@
  * de Surincantation alloué, la création d'un héros ouverte dans `marche-equipement` (la race avant puis après son d100,
  * la carrière tirée, les Caractéristiques en 100 points, chacune en liste), la carte du monde, la journée de route arrêtée aux jets des héros puis ces jets tombés, et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
  * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
- * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`), d'une rangée
- * de cases et d'un curseur. Chaque vue porte
+ * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un
+ * geste refusé (`elementsDesGestes`) et d'un curseur. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`). Chaque vue qu'une partie montre
  * a sa planche (`Planche`, #3935), que `construire.mjs --export` dépose dans l'export (`deposerLesPlanches`).
@@ -27,7 +27,7 @@
  * `projet/ecrans/` est montrée par une vue.
  * @contrat L'écran de Godot
  */
-import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../pont/pont';
+import { clicDuCombattant, creerPontFige, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
@@ -88,8 +88,7 @@ export interface ReponsesDeLaPlanche {
   aretes: unknown;
 }
 
-/** Les réponses du pont que partagent les planches d'un scénario, par méthode, déposées une fois
- *  (`<export>/planches/communes/<scenario>.json`). */
+/** Les réponses du pont par méthode, dédupliquées entre planches qui les partagent. */
 export interface ReponsesCommunes {
   /** Le manifeste du monde de sa scène. */
   monde: unknown;
@@ -131,15 +130,6 @@ const FORMULAIRE: GesteDeLaFenetre = {
 };
 const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', 'deux\nlignes', { a: 1 }, { x: 2, y: 'z' }];
 
-/** Un formulaire d'une rangée de cases, une case cochée, une libre, une refusée : il joue la liste des cochées. */
-const CASES: Formulaire = {
-  type: 'formulaire', id: 'cases', libelle: 'Jouer les cases', verbe: 'verbeDeRecette', focus: false, refus: null,
-  champs: [{
-    type: 'saisieCoches', id: 'cases/c', ton: 'neutre', nom: 'c', optionnel: false, libelle: 'Saisie c',
-    valeurs: [{ libelle: 'Case A', valeur: 'a', presse: true, refus: null }, { libelle: 'Case B', valeur: 'b', presse: false, refus: null }, { libelle: 'Case C', valeur: 'c', presse: false, refus: 'Refusée' }],
-  }],
-};
-
 /** Un curseur réglable, à des bornes qu'une glissière neuve n'a pas : il joue son verbe, ses arguments et la valeur
  *  donnée. */
 const CURSEUR: Curseur = { type: 'curseur', id: 'curseur', ton: 'neutre', libelle: 'Curseur de recette', valeur: 4, min: 2, max: 10, pas: 2, verbe: 'verbeDeRecette', arguments: ['designe'], refus: null };
@@ -148,12 +138,11 @@ const CURSEUR: Curseur = { type: 'curseur', id: 'curseur', ton: 'neutre', libell
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
 
 /** Ce que la saisie `c` dit dessinée, comme Godot la lit (`Saisie.lire`, `saisie.gd`) : `[]` rien de saisi, sinon sa
- *  valeur posée ou pressée, la liste des valeurs pressées d'une rangée de cases, l'objet de ses champs. */
+ *  valeur posée ou pressée, ou l'objet de ses champs. */
 function lueDessinee(c: Saisie): unknown[] {
   switch (c.type) {
     case 'fixe': return [c.valeur];
     case 'saisieChoix': return c.valeurs.filter((v) => v.presse).map((v) => v.valeur);
-    case 'saisieCoches': return [c.valeurs.filter((v) => v.presse).map((v) => v.valeur)];
     case 'saisieNombre': return [c.valeur];
     case 'saisieTexte':
     case 'saisieMultiligne': return c.valeur ? [c.valeur] : [];
@@ -192,7 +181,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPont(null, null);
+    const pont = creerPontFige();
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
@@ -462,8 +451,8 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     nom: 'formulaire de chaque saisie',
     disposition: null,
     combat: false,
-    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
-    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
+    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': elementsDesGestes([FORMULAIRE, REFUSE]), 'journal.lignes': [...lignes] },
+    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE } },
   });
   return { vues, planches };
 }

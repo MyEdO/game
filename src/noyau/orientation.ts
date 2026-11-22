@@ -4,12 +4,20 @@ import { Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { Scene } from './monde/scene';
+import { estPoseParSesPonts } from './planDeNavire';
+
+/** Les orientations que le geste peut écrire dans l'état de combat, pour les seuls corps mobiles. */
+export function avecLesCapsDuGeste(etat: { scene: Scene | null; facing: Record<string, Dir8> }, caps: Record<string, Dir8>): { facing: Record<string, Dir8> } {
+  const mobiles = Object.entries(caps).filter(([id]) => !estPoseParSesPonts(etat.scene, id));
+  return { facing: mobiles.length ? { ...etat.facing, ...Object.fromEntries(mobiles) } : etat.facing };
+}
 
 export function creerActionsDOrientation(get: Get, set: Set) {
   return {
     orienterVers: (id, from, to) => {
       if (!from || !to) return;
-      set((s) => ({ facing: { ...s.facing, [id]: facingToward(from, to) } }));
+      set((s) => avecLesCapsDuGeste(s, { [id]: facingToward(from, to) }));
     },
     orienterSelonLeChemin: (id, path) => {
       if (!path || path.length < 2) return;
@@ -21,6 +29,10 @@ export function creerActionsDOrientation(get: Get, set: Set) {
       if (!battle) return;
       const next: Record<string, Dir8> = { ...facing };
       for (const c of battle.combatants) {
+        if (estPoseParSesPonts(scene, c.id)) {
+          delete next[c.id];
+          continue;
+        }
         if (!c.pos) continue;
         const authored = scene?.entities.find((e) => e.id === c.id)?.facing;
         if (authored) { next[c.id] = authored; continue; }

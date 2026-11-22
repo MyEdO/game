@@ -15,6 +15,7 @@ import type { Combatant, EffectSource } from '../../engine/types';
 import type { RNG } from '../../engine/dice';
 import { Formula, GameOp, resolveFormula, applyOps } from '../../engine/ops';
 import type { FlowTest } from '../../engine/flowCore';
+import type { TrappingResolver } from '../../engine/items';
 import { isDescriptiveZone, type ZoneArea, type SceneEffectZone } from './scene';
 import { isOutOfAction } from '../../engine/conditions';
 import { isProfane } from '../../engine/corruption';
@@ -203,6 +204,7 @@ export function crossZones(
   resolveCaster: (id?: string) => Combatant | undefined,
   rng: RNG,
   idNeuf: FabriqueDId,
+  resolveTrapping?: TrappingResolver,
 ): string[] {
   const lines: string[] = [];
   if (mover.dead || isOutOfAction(mover)) return lines;
@@ -211,7 +213,7 @@ export function crossZones(
     if (!path.some((p) => zoneCovers(z, p))) continue;
     if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
-    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
+    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }));
   }
   return lines;
 }
@@ -224,6 +226,7 @@ export function zonesRoundTick(
   combatants: Combatant[],
   rng: RNG,
   idNeuf: FabriqueDId,
+  resolveTrapping?: TrappingResolver,
 ): { line: string; combatant: Combatant }[] {
   const out: { line: string; combatant: Combatant }[] = [];
   for (const z of zones ?? []) {
@@ -232,7 +235,7 @@ export function zonesRoundTick(
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
       if (!zoneCovers(z, c.pos) || !zoneTargets(z, c) || zoneSansEffetSur(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
-      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label })) out.push({ line, combatant: c });
+      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label, resolveTrapping })) out.push({ line, combatant: c });
     }
   }
   return out;

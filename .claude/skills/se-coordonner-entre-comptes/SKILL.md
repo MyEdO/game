@@ -31,8 +31,7 @@ ouvert sans ces champs est libre, sauf PR ouverte sur une branche `chantier/<N>�
   cloud : `list_issues` (`state: OPEN`, `field_filters: [{ field_name: 'Statut', value: 'En cours' }]`,
   `fields: ['number', 'title', 'field_values']`) ; un ticket seul : `issue_read` `get`, clé `field_values`, après
   le corps. Les champs s'écrivent par `issue_write` `issue_fields` : `field_option_name` pour `Statut`, `value`
-  pour `Tenu par`, `delete: true` pour vider. Sur le poste, `gh issue view` ne rend pas les champs : sa lecture
-  ne dit rien de la tenue (#4083).
+  pour `Tenu par`, `delete: true` pour vider.
 - **Libre** : avant d'explorer, mets `Statut` à `En cours` et `Tenu par` à ta signature suivie de ta branche,
   puis relis le ticket. Si `Tenu par` nomme un autre fil, il l'a pris après toi : le lot est à lui. Ta branche
   se nomme `chantier/<N>…` : c'est par ce nom que les autres fils et le facteur trouvent ta PR.
@@ -45,6 +44,52 @@ ouvert sans ces champs est libre, sauf PR ouverte sur une branche `chantier/<N>�
   qui est prouvé et ce qui reste, dans l'ordre. Une PR fusionnée ne rend rien ; un ticket fermé est rendu.
 
 Dès que ta branche a une PR, abonne-toi à son activité : c'est sur elle qu'on t'écrit.
+
+### Sur le poste avec `gh`
+
+Dans le clone de `MyEdO/game`, renseigne `n` avec le numéro du ticket. Lis les valeurs du ticket, puis utilise
+le listing paginé pour voir les tickets ouverts dont le statut est `En cours`.
+
+```bash
+version='X-GitHub-Api-Version: 2026-03-10'
+champs="repos/MyEdO/game/issues/${n:?}/issue-field-values"
+gh api -H "$version" "$champs" --jq \
+  'map({champ: .issue_field_name, valeur: (.single_select_option.name // .value)})' &&
+(
+  set -o pipefail
+  gh api --paginate -H "$version" 'repos/MyEdO/game/issues?state=open&per_page=100' |
+    jq -s '.[][] | select(.pull_request == null and
+      any(.issue_field_values[]?; .issue_field_name == "Statut" and .single_select_option.name == "En cours")) |
+      {number, title, tenu_par: [.issue_field_values[] | select(.issue_field_name == "Tenu par").value][0]}'
+)
+```
+
+Pour prendre le lot après les vérifications ci-dessus, renseigne `signature` et `branche`. Dans ce dépôt,
+`49825487` désigne `Statut` et `49825509` désigne `Tenu par`. Le `PUT` remplace l'ensemble des valeurs.
+Reprends les autres champs présents et envoie les options par leur nom. Relis avec le premier appel.
+
+```bash
+actuels=$(gh api -H "$version" "$champs") &&
+  requete=$(printf '%s' "$actuels" | jq -e --arg tenu "${signature:?} · ${branche:?}" '
+    if any(.[]; .issue_field_id == 49825487 or .issue_field_id == 49825509) then
+      error("Statut ou Tenu par est déjà renseigné. Relis la tenue du ticket.")
+    else
+      map({field_id: .issue_field_id, value: (.single_select_option.name // .value)}) +
+      [{field_id: 49825487, value: "En cours"}, {field_id: 49825509, value: $tenu}]
+    end
+  ') &&
+  printf '%s' "$requete" | gh api -X PUT -H "$version" "$champs" --input -
+```
+
+Pour rendre ton lot, relis ta signature dans `Tenu par`, vide `Statut` puis `Tenu par`, et relis le ticket.
+
+```bash
+gh api -X DELETE -H "$version" "$champs/49825487" &&
+  gh api -X DELETE -H "$version" "$champs/49825509"
+```
+
+Si le second `DELETE` échoue, relis les deux champs. Rejoue seulement ce `DELETE` si `Statut` est vide et que
+`Tenu par` porte toujours ta signature.
 
 ## Le courrier
 

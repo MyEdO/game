@@ -53,12 +53,6 @@ export function identitesResolues(s: SourceDIdentites): Identites {
   return table.size ? identitesDe(table) : AUCUNE_IDENTITE;
 }
 
-/** Clé PRIMITIVE des couples figés (`etat:espece:sexe`, triés), et sa lecture inverse. */
-export const cleDesIdentites = (figees: Readonly<Record<string, CoupleDIdentite>>): string =>
-  JSON.stringify(Object.entries(figees).map(([etat, c]) => [etat, c.espece, c.sexe]).sort());
-export const couplesDeLaCle = (cle: string): Record<string, CoupleDIdentite> =>
-  Object.fromEntries((JSON.parse(cle) as [string, RaceKey, Sexe][]).map(([etat, espece, sexe]) => [etat, { espece, sexe }]));
-
 /** `md` où chaque repère, en mot entier, devient sa valeur — en UNE passe : une valeur insérée n'est jamais relue. */
 export function nommer(md: string, identites: Identites): string {
   if (identites.table.size === 0) return md;

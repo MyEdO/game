@@ -23,6 +23,10 @@ import { sansCorps } from './slotsDeJet';
 import { markFixedDie } from './fixedDieMark';
 import { testScene } from '../scenes/test-fixture';
 import { entreeEnRencontre } from '../engine/persistence';
+import { stacks } from '../engine/conditions';
+import { blessuresPosees } from '../engine/characteristics';
+import { resolveStake } from '../data';
+import { jetsEnVue } from './jetsEnVue';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { t } from '../i18n';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
@@ -217,7 +221,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const id = g().pendingCascade!.participants.find((x) => x.kind === 'deviation')!.id;
     g().jetImposerLeResultat('cascadeTirage', severite, id);
     const etape = g().pendingCascade!.participants.find((x) => x.id === id)!;
-    g().jetRegler('cascade', 'choix', choix, id);
+    if (etape.options?.length) g().jetRegler('cascade', 'choix', choix, id);
     g().jetValider('cascade');
     return etape;
   }
@@ -313,9 +317,16 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(test).toMatchObject({ kind: 'testDeclenche', actorId: H.id, difficulty: 'intermediaire', rollLabel: 'Résistance' });
     expect(s.pendingTest).toBeNull();
     expect(s.party[0].traumas?.some((t) => t.pendingAmputation)).toBe(false);
+    expect(s.party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toBeUndefined();
     lancerLEtape(banc, test.id, 99);
-    const amputation = banc.getState().pendingCascade!.participants.find((x) => x.kind === 'testDeclenche' && !x.committed)!;
-    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Amputation' });
+    const suite = banc.getState().pendingCascade!;
+    const amputations = suite.participants.filter((x) => x.kind === 'testDeclenche' && !x.committed && x.stake
+      && resolveStake(x.stake).rule?.id === etape.table?.result?.id);
+    expect(amputations).toHaveLength(1);
+    const [amputation] = amputations;
+    expect(suite.participants[suite.cursor]).toBe(amputation);
+    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Plaie d’amputation' });
+    expect(banc.getState().party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toMatchObject({ location: 'jambeG', count: 1 });
     lancerLEtape(banc, amputation.id, 5);
     s = banc.getState();
     expect(s.serieSubie).toBeNull();
@@ -343,6 +354,63 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     s = banc.getState();
     expect(s.serieSubie).toBeNull();
     expect(s.pendingDefense).toBeNull();
+  });
+
+  it('Nez cassé hors bataille : Mâchoires d’acier retire deux Sonné à DR +1 avant la Défense suivante (LDB 18 l.72 ; LDB 10 l.672)', () => {
+    const { banc, H } = horsBataille(testScene());
+    const g = banc.getState;
+    banc.setState({ party: [{ ...H, wounds: blessuresPosees(H, 20) }] });
+    applyEffects(g, banc.setState, [attaques('heros', H.id)]);
+    imposerLesD100(22, 23, 5);
+    g().jetImposerLeResultat('cascadeTirage', 2, g().pendingCascade!.participants[0].id);
+    g().jetValider('cascade');
+    applyEffects(g, banc.setState, [{
+      type: 'ops', on: 'heros', heroId: H.id, ops: [
+        gameOpSchema.parse({ op: 'condition', id: { id: 'sonne' } }),
+        gameOpSchema.parse({ op: 'grantTalent', talent: { id: 'machoires-d-acier' } }),
+      ],
+    }]);
+
+    expect(defendre(banc, 97).defenderDetail?.success).toBe(false);
+    const critique = trancherLeCritique(banc, 66, 'subir');
+    expect(critique.table?.result?.id).toBe('nez-casse');
+    const pc = g().pendingCascade!;
+    if (pc.participants[pc.cursor].kind === 'critique') g().jetValider('cascade');
+    const resistanceAuCritique = seuleEtapeOuverte(banc);
+    expect(resistanceAuCritique).toMatchObject({ actorId: H.id, rollLabel: 'Résistance', difficulty: 'intermediaire' });
+    expect(stacks(g().party[0], 'sonne')).toBe(1);
+    lancerLEtape(banc, resistanceAuCritique.id, 99);
+
+    expect(stacks(g().party[0], 'sonne')).toBe(2);
+    const choix = g().pendingCascade?.participants.filter((e) => !e.committed) ?? [];
+    expect(choix.map((e) => e.kind), 'Le gain du deuxième Sonné offre Mâchoires d’acier').toEqual(['choixDeclenche']);
+    expect(choix[0]).toMatchObject({ actorId: H.id, options: [{ key: 'oui' }, { key: 'non' }] });
+    expect(g().battle).toBeNull();
+    expect(g().serieSubie).toMatchObject({ cibleId: H.id, restantes: 2 });
+    expect(g().pendingDefense).toBeNull();
+    g().jetRegler('cascade', 'choix', 'oui', choix[0].id);
+    g().jetValider('cascade');
+
+    const machoires = seuleEtapeOuverte(banc);
+    expect(machoires).toMatchObject({ actorId: H.id, rollLabel: 'Résistance', difficulty: 'intermediaire' });
+    expect(resolveStake(machoires.stake!).rule).toEqual({ category: 'talents', id: 'machoires-d-acier' });
+    expect(g().pendingDefense).toBeNull();
+    expect(stacks(g().party[0], 'sonne')).toBe(2);
+    const lecture = () => jetsEnVue(g()).find((v) => v.flux === 'cascade')?.lignes;
+    expect(lecture()).toMatchObject([{ genre: 'test', qui: H.id, test: 'Résistance', etat: 'aJouer', jet: null }]);
+    const d100 = Math.floor(machoires.target! / 10) * 10 - 5;
+    imposerLesD100(d100, 20);
+    g().jetLancer('cascade', machoires.id);
+    expect(lecture()).toMatchObject([{ qui: H.id, etat: 'revele', jet: { d100, dr: 1, verdict: 'reussite' } }]);
+    g().jetValider('cascade');
+
+    expect(stacks(g().party[0], 'sonne')).toBe(0);
+    const retrait = t('op.etatRetire', { name: H.label, what: t('op.etatsCertains', { n: 2 }), cond: 'Sonné' });
+    expect(g().journal.filter((ligne) => ligne === retrait)).toEqual([retrait]);
+    expect(g().serieSubie).toMatchObject({ restantes: 1 });
+    expect(g().pendingDefense).toMatchObject({ defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    expect(g().serieSubie).toBeNull();
   });
 
   it('Crampes abdominales, Défense ratée à DR −5 : Sonné, le Test de Force Mentale est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme : MSRC 16 l.152-158 ; #4011', () => {

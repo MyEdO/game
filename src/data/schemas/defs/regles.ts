@@ -12,7 +12,8 @@
 import { z } from 'zod';
 import { nommerChamps } from '../grammaire/meta';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, maisonSchema, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
@@ -72,10 +73,14 @@ const doc = document(
   {
     rangees: listeCle(rangeeSchema, 'id').optional(),
     tests: listeCle(testDeRegleSchema, 'id').optional(),
+    exclusDeCorruption: refs('creature', { min: 1 }).optional(),
+    motifExclusionDeCorruption: maisonSchema.optional(),
   },
   {
     rangees: { label: 'Valeurs chiffrées', hint: 'Les rangées que le livre chiffre, lues par le moteur' },
     tests: { label: 'Tests nommés', hint: 'Les Tests que la règle nomme, lus par le moteur' },
+    exclusDeCorruption: { label: 'Profils exclus de la Corruption personnelle' },
+    motifExclusionDeCorruption: { label: 'Motif de l’exclusion maison', texte: { regime: 'technique' } },
   },
   {
     codex: { keys: ['regles'] },
@@ -83,6 +88,14 @@ const doc = document(
   },
   {
     exiges: ['desc', 'source'],
+    affinerEntree: (entree) => entree.superRefine((regle, ctx) => {
+      if ((regle.exclusDeCorruption === undefined) === (regle.motifExclusionDeCorruption === undefined)) return;
+      ctx.addIssue({
+        code: 'custom',
+        path: [regle.motifExclusionDeCorruption === undefined ? 'motifExclusionDeCorruption' : 'exclusDeCorruption'],
+        message: 'L’exclusion de Corruption personnelle exige les profils exclus et le motif maison.',
+      });
+    }),
     /** Une règle qui n'est qu'une ligne ou une case de table adresse le TABLEAU ENTIER : fiche
      *  `user-doctrine-regle-ligne-de-tableau-adresse-le-tableau-entier`, utilisateur, 2026-09-28 :
      *  « Le tableau entier (Recommandé) ». */

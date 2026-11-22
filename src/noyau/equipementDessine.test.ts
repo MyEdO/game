@@ -9,6 +9,7 @@ import {
   apparencesCandidates,
   deciderApparencesDesArmes,
   emptyArmour,
+  hydratePoste,
   itemFromGive,
   loadoutSetActive,
   loadoutSetSlot,
@@ -189,6 +190,7 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
 });
 
 describe('armes dessinées — armes rangées (#2948)', () => {
+  const baliste = () => ({ ...hydratePoste({ engin: { id: 'baliste' } }, 'baliste').item, equipped: true });
   const heros = (...ids: string[]): Combatant => {
     const c = porteur({ kind: 'heros', items: ids.map((id) => ({ ...porte(id), uid: id })) });
     recomputeLoadout(c);
@@ -218,16 +220,17 @@ describe('armes dessinées — armes rangées (#2948)', () => {
     expect(ranges.map((w) => [w.subType, armeDeDessin(w).hands])).toEqual([['base', 1]]);
   });
 
-  it('une machine à Équipe équipée (ADE II 8 l.233) n’entre dans aucun set : ni tenue, ni rangée', () => {
-    const c = heros('arme-simple', 'baliste');
+  it('une baliste équipée (AA 10 l.179) n’entre dans aucun set : ni tenue, ni rangée', () => {
+    const c = porteur({ kind: 'heros', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, baliste()] });
+    recomputeLoadout(c);
     expect(c.loadouts!.map((lo) => lo.main)).toEqual(['arme-simple', undefined]);
     expect(tenues(c)).toEqual([['base', false]]);
     expect(rangees(c)).toEqual([]);
   });
 
-  it('un set inactif qui désigne une machine à Équipe (état de sauvegarde, sans recalcul) : la machine n’est pas rangée', () => {
+  it('un set inactif qui désigne une baliste (état de sauvegarde, sans recalcul) : la pièce n’est pas rangée', () => {
     const c = porteur({
-      kind: 'heros', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, { ...porte('baliste'), uid: 'baliste' }],
+      kind: 'heros', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, baliste()],
       loadouts: [{ id: 'a', main: 'arme-simple' }, { id: 'b', main: 'baliste' }], activeLoadoutId: 'a',
     });
     expect(rangees(c)).toEqual([['base', false]]);

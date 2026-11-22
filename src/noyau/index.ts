@@ -28,6 +28,7 @@ export {
   findCareerById,
   findSpellById,
   levelsForCareer,
+  libelleDAuteur,
   lightLevels,
   lightTones,
   matieresCouvrantes,
@@ -38,7 +39,6 @@ export {
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
-  trappingsInstanciables,
 } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export {
@@ -98,8 +98,9 @@ export {
   type SurchargesDEmblemes,
 } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
+export { aLEchelleDesPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 export {
-  aLEchelleDesPonts,
+  capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
   naviresDeLaScene,
@@ -120,12 +121,13 @@ export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
-export type { ModLine, RollBreakdown } from '../engine/combat';
+export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
-export { quiTientLaMain } from './netOwnership';
+export { quiTientLaMain, withActingSeat } from './netOwnership';
 export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
+export { GUEST_INTENTS } from './intentionsDeSiege';
 export { DESIGNATIONS, type Designation } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
@@ -139,6 +141,7 @@ export {
   aretesDeLaCouche,
   aretesDeLaScene,
   masqueDuRegard,
+  paletteDeLApparence,
   plateauDeLaScene,
   regardDuJeu,
   REGARDS,
@@ -146,6 +149,8 @@ export {
   type PlateauDeLaScene,
   type Regard,
 } from './monde/aretes';
+export { cotesDeMarchesDeLaCouche, cotesDeMarchesDeLaScene, type CoteDeMarches } from './monde/cotesDeMarches';
+export { faitieresDeLaScene, type Faitiere } from './monde/faitieres';
 export type { Scene } from './monde/scene';
 export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
@@ -283,7 +288,7 @@ export { allMusicDefs } from '../data/sons/musique';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
 export { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 export { libelleDuBord } from './monde/fireArc';
-export { presetDuNarratif } from './monde/resolveursDuNarratif';
+export { objetDuNarratif, objetsInstanciablesDuProjet, presetDuNarratif } from './monde/resolveursDuNarratif';
 export { calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes } from './edition/calque';
 export { terrainIds, terrainLabel } from './monde/terrain';
 export { crenellatedAt, tileAt, heightAt, idDuCorps, porteAuteur, reposDeScene, sceneMetresPerTile, secretAuteur } from './monde/scene';
@@ -303,7 +308,7 @@ export {
   sameSel,
   segmentDeLaSelection,
   selRect,
-  structuresCrenelables,
+  apparencesCrenelables,
   structuresDeLArete,
   type Sel,
   type WallPaint,
@@ -323,11 +328,12 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
-export { carteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
+export { carteEnVue, trajetsDepuis, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue } from './voyageEnVue';
+export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
@@ -414,4 +420,4 @@ export {
   type EntreeListee,
   type SavedProject,
 } from './persistance/bibliotheque';
-export { ProjetRefuse, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
+export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';

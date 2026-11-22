@@ -15,11 +15,9 @@
  *  Traits de construction (l.167-193) : Peu maniable (−10 %/niveau), Renforcé (+10 E, −10 % Contenance,
  *  +10 %/niveau), Robuste (+10 %), Solide (+30 % B, −10 % Contenance, +20 %/niveau).
  *
- * Améliorations : coût / poids d'installation par PALIER DE LONGUEUR (`NavalInstall`, verbatim ch.12 ;
- * MSRC 12 l.54-135 pour les Améliorations propres au MSRC — le RAW y tarife par TYPE de navire à
- * longueurs explicites, pas par `ShipSize`, #277) — `per:'5m'` = par tranche de 5 m de Taille (Blindage
- * l.225, Lissage l.289) ; `per:'unite'` = par cabine (l.240) ; `'modele'` = ceux du modèle embarqué
- * (Embarcation de bord, l.268).
+ * Améliorations : les six barèmes MSRC 12 l.54-135 indexent le coût et le poids sur le type de bateau.
+ * MDG 12 l.195-364 porte les barèmes de longueur et les taux par tranche de 5 m ou par cabine.
+ * La Coque de course prend ses tranches de 10 m sur le gabarit fluvial (MSRC 12 l.21-25).
  *
  * Réparations (ch.13 l.639-651) : constructeur naval au port — « 1 CO par Blessure restaurée. Chaque
  * Test réussi prend 1d10 heures de travail et restaure 1d10 Blessures » ; Métier (Charpentier) à −10
@@ -28,23 +26,24 @@
  * échec inflige 1d10−4 Dégâts. Lissage : réparation +50 % sinon perte du bénéfice (ch.12 l.295).
  */
 import { shipConstruction, STEAM_BREAKDOWNS, steamBreakdownDie, type SteamBreakdownEntry } from '../data';
-import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
-import { memoParVersion } from '../data/versionDataset';
+import { findTableEntry } from './tables';
 import { rollDice, tirer, type RNG } from './dice';
 import { REPARATION } from './seaNavigation';
 import { rollTest } from './tests';
 import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
-import { profilNavalDe } from './coque';
 import type { ShipSize, NavalInstall, InstallBand, InstallBareme } from '../data';
 import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
-import type { Combatant, NavalTraitRef, VehicleData } from './types';
+import type { NavalTraitRef, VehicleData } from './types';
 import type { ShipRig } from './combat';
 import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
 import { COMPETENCE_DU_MODE, type PropulsionKind } from './propulsion';
+import { dureeEnJours } from './clock';
 
-/** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 10 l.255. */
+export { hullShipSize, shipSizeOfLength } from './coque';
+
+/** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 12 l.255. */
 export type MilieuDeNavigation = 'maritime' | 'fluvial';
 
 /** Milieu du voyage en cours : fluvial sous `river`, maritime sinon (MDG 13 l.13). PUR. */
@@ -52,7 +51,7 @@ export function milieuDuVoyage(plan: { river?: unknown } | null | undefined): Mi
   return plan?.river ? 'fluvial' : 'maritime';
 }
 
-/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32 ; MSRC 10 l.255). */
+/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32 ; MSRC 12 l.255). */
 export const STEAM_SKILL = { id: 'metier', spec: 'ingenieur' } as const;
 
 /** Propulsion d'un navire dans un milieu : mode, M, Compétence de Navigation, gréement (colonne de
@@ -82,58 +81,18 @@ function modeDeConception(vd: NonNullable<VehicleData['ship']>, mode: Propulsion
 
 /** Propulsion d'un navire, désigné par son couple (id de véhicule, améliorations) comme `navalTraitsDe`,
  *  dans le `milieu` du flux ; `mode` = le mode du jour d'un navire mixte. Vapeur : MDG 12 l.311
- *  (maritime), MSRC 10 l.255 (fluvial) ; voile, avirons : MDG 13 l.18-19. `null` = aucune. PUR. */
+ *  (maritime), MSRC 12 l.255 (fluvial) ; voile, avirons : MDG 13 l.18-19 ; MSRC 07 l.172-178.
+ *  `null` = aucune. PUR. */
 export function propulsionDuNavire(vehicleId: string | undefined, upgrades: NavalTraitRef[] | undefined, milieu: MilieuDeNavigation, mode?: PropulsionKind): PropulsionDuNavire | null {
   const vd = findVehicleById(vehicleId ?? '')?.ship;
   if (!vd) return null;
   const rig = rigDuNavire(vd);
   const conception = modeDeConception(vd, mode);
   if (!conception || !rig) return null;
+  const m = milieu === 'fluvial' ? (vd.fluvialMovement ?? conception.m) : conception.m;
   if (shipHasNavalTrait(navalTraitsDe(vehicleId, upgrades), 'propulsion-a-vapeur'))
-    return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : conception.m, competence: STEAM_SKILL, rig };
-  return { ...conception, rig };
-}
-
-/** La colonne « Taille » (ch.12 l.122-129) telle que `findTableEntry` la lit — `tableOuverte`
- *  (`./tables`) est le tronc commun des tables dont la bande FINALE est ouverte (ici « 81+ », l.129).
- *  Triée par borne basse : les DEUX bornes étant authorées, l'ordre des rangées au Codex ne décide
- *  plus du résultat. La contiguïté, elle, est tenue en donnée (`ecartsDeCouverture`,
- *  `src/data/schemas/defs/ship-construction.ts`). */
-const standardLookup = memoParVersion('shipHullSizes', () =>
-  tableOuverte(shipConstruction.standard.map((row) => ({ ...row.lengthM, size: row.size }))).sort((a, b) => a.min - b.min),
-);
-
-/**
- * Taille MDG d'un navire d'après sa LONGUEUR (tableau standard, ch.12 l.120-129 : 1-10 m Minuscule …
- * 81 m+ Monstrueuse) — SOURCE UNIQUE de la dérivation Taille ← longueur pour tout le moteur.
- *
- * Le livre imprime des bandes d'ENTIERS contiguës depuis 1 m, la dernière ouverte : le domaine de
- * cette fonction est donc l'entier ≥ 1, ce que le schéma exige du porteur
- * (`ship.lengthM: z.number().int().min(1)`, `src/data/schemas/defs/vehicles.ts`). Une longueur hors
- * de ce domaine — 0, négative, ou fractionnaire entre deux bandes — est une ANOMALIE NOMMÉE, jamais
- * un repli muet : `findTableEntry` rendrait « Monstrueuse » au dépassement, et retomber sur la
- * première bande rendrait « Minuscule » à un trois-mâts de 80,5 m.
- * PUR.
- */
-export function shipSizeOfLength(lengthM: number): ShipSize {
-  const lookup = standardLookup();
-  const i = findTableEntryIndex(lookup, lengthM);
-  if (i < 0) {
-    throw new Error(
-      `shipSizeOfLength : la longueur ${lengthM} m ne tombe dans aucune bande de la colonne « Taille » (MDG 12 l.122-129) — le tableau couvre les longueurs ENTIÈRES à partir de 1 m, sans plafond.`,
-    );
-  }
-  return lookup[i].size;
-}
-
-/**
- * Taille d'une COQUE EN JEU (`Combatant`), MDG 12 l.120-129 — sa longueur vit sur son profil naval
- * (`profilNavalDe`), jamais recopiée sur l'instance. `undefined` quand la coque n'a pas de profil naval
- * (véhicule non navire, ou type introuvable) — l'appelant NOMME ce cas. PUR.
- */
-export function hullShipSize(hull: Pick<Combatant, 'bodyShape' | 'creatureId'>): ShipSize | undefined {
-  const lengthM = profilNavalDe(hull)?.lengthM;
-  return lengthM === undefined ? undefined : shipSizeOfLength(lengthM);
+    return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : m, competence: STEAM_SKILL, rig };
+  return { ...conception, m, rig };
 }
 
 export interface ShipBuildSpec {
@@ -214,35 +173,43 @@ export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
 
 // ── Installation d'Améliorations (MDG 12 l.195-364, `NavalInstall`) ───────────────────────────
 
-/** Palier retenu pour `lengthM` : le PREMIER dont `maxLengthM` ≥ `lengthM` (triés croissants), sinon le
- *  DERNIER de la liste (bande ouverte, `maxLengthM: null`, #277). PUR. */
-function bandValue(bands: InstallBand[], lengthM: number): number {
-  for (const b of bands) if (b.maxLengthM != null && lengthM <= b.maxLengthM) return b.value;
-  return bands.length ? bands[bands.length - 1].value : 0;
+type CoqueAEquiper = { id: string; ship: Pick<NonNullable<VehicleData['ship']>, 'lengthM' | 'fluvialLengthM'> };
+
+/** MDG 12 l.195-364 ; MSRC 12 l.54-135 */
+function bandValue(bands: InstallBand[], lengthM: number, vehicleId: string | undefined): number {
+  const bande = bands.find((b) => b.vehicules?.some((id) => id === vehicleId))
+    ?? bands.find((b) => b.maxLengthM != null && lengthM <= b.maxLengthM)
+    ?? bands[bands.length - 1];
+  return dureeEnJours(bande?.value ?? 0);
 }
 
-/** Coût (CO), poids (Enc) ou durée de pose (jours) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
+/** Coût (CO), poids (Enc) ou durée de pose (jours) : bande du type ou de la longueur, × multiplicateur
  *  `per:'5m'` (« par tranche de 5 mètres de Taille », l.225/289 — tranches ENTAMÉES comptées) ou
  *  `per:'unite'` (× `units`). `'modele'` (Embarcation de bord) → `null` : le prix est celui du modèle
  *  embarqué, résolu par l'appelant ; sur la durée, l'appelant retombe sur `REPARATION.joursDePose`. PUR. */
 export function installAmount(
   part: InstallBareme,
-  lengthM: number,
+  coque: CoqueAEquiper | number,
   units = 1,
+  milieu?: MilieuDeNavigation,
 ): number | null {
   if (part === 'modele') return null;
-  const base = bandValue(part.bands, lengthM);
+  const { id, ship } = typeof coque === 'number'
+    ? { id: undefined, ship: { lengthM: coque, fluvialLengthM: undefined } }
+    : coque;
+  const lengthM = (milieu === 'fluvial' ? ship.fluvialLengthM : undefined) ?? ship.lengthM;
+  const base = bandValue(part.bands, lengthM, id);
   if (part.per === '5m') return base * Math.max(1, Math.ceil(lengthM / 5));
   if (part.per === '10m') return base * Math.max(1, Math.ceil(lengthM / 10)); // MSRC 12 « pour 10 mètres » (Coque de course l.23)
   if (part.per === 'unite') return base * Math.max(1, units);
   return base;
 }
 
-/** Coût + poids d'installation d'une Amélioration navale sur une coque de `lengthM` mètres. PUR. */
-export function installCost(install: NavalInstall, lengthM: number, units = 1): { gold: number | null; enc: number | null } {
+/** Coût et poids de pose d'une Amélioration navale. MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135. PUR. */
+export function installCost(install: NavalInstall, coque: CoqueAEquiper | number, units = 1): { gold: number | null; enc: number | null } {
   return {
-    gold: installAmount(install.installation, lengthM, units),
-    enc: install.weightEnc ? installAmount(install.weightEnc, lengthM, units) : 0,
+    gold: installAmount(install.installation, coque, units, install.milieu),
+    enc: install.weightEnc ? installAmount(install.weightEnc, coque, units, install.milieu) : 0,
   };
 }
 

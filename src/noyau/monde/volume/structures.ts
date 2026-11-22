@@ -42,18 +42,13 @@ export function facadeStructureAppearance(id?: string): EntreeVivante<StructureA
   return { ...structureAppearance(definition.wallAppearance), id: definition.id };
 }
 
-/** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : verre froid + ambre allumé) —
+/** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : teinte de la vitre) —
  *  jamais un littéral de couleur (garde-fou renderer). C'est un repli de PART absente sur une def
  *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `noyau/monde/volume/missing.ts` (#877). */
 const defaultWindow = () => structureAppearance('plain').window;
-/** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — la def sinon le repli `plain`. Source unique iso + POV. */
-export function windowLit(app: EntreeVivante<StructureAppearanceDef>): string {
-  return app.window?.lit ?? defaultWindow()?.lit ?? app.face;
-}
 
-/** Couleur de BASE d'une partie de mur du pivot — SOURCE UNIQUE des deux backends (écran-affine + POV),
- *  qui y appliquent ensuite chacun LEUR lumière (ombre d'orientation iso / tint + brume POV). Tout vient
- *  des CHAMPS de la def (replis `?? face` pour une def incomplète), jamais d'un littéral. */
+/** Couleur de base d’une partie de mur dans la palette servie à Godot. Elle vient des champs de
+ *  l’apparence et de leurs replis (`?? face` pour une apparence incomplète). */
 export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: WallPart): string {
   switch (part) {
     case 'face': case 'parapet': case 'linteau': return app.face;
@@ -64,12 +59,13 @@ export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: 
     case 'arase': case 'merlon': return app.cap ?? app.face;
     case 'bande': case 'herse-barreau': return app.band ?? app.face;
     case 'jambage': return app.door?.jamb ?? app.face;
-    case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? shade(app.face, 0.78);
+    case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? app.window?.frame ?? shade(app.face, 0.78);
     case 'vantail-planche': return app.door?.plank ?? app.wood?.skirt ?? app.post;
     case 'poignee': return app.door?.handle ?? app.cap ?? app.wood?.cap ?? app.face;
     case 'vitre': return app.window?.glass ?? defaultWindow()?.glass ?? app.face;
     case 'meneau': return app.window?.mullion ?? app.wood?.frame ?? app.post;
     case 'poteau': return app.post;
+    case 'joint': return app.detail?.courses?.joint ?? app.post;
     case 'herse-traverse': return app.door?.herse?.traverseColor ?? app.band ?? app.face;
     case 'gravats': case 'seuil': return app.rubble ?? app.wood?.rubble ?? app.face;
     case 'gravats-tas': return app.rubbleHi ?? app.wood?.rubbleHi ?? app.face;
@@ -88,8 +84,7 @@ export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: 
  *    opera 0,2118 · arene 0,1883 · siege-enceinte 0,1623 · diligence 0,1471 · vitrine-batiments 0,1142 ·
  *    pont-vitrine 0,0677.
  *  Un relief plus mince que ce décalage se noie dans sa propre ombre. Les saillies partent donc de
- *  0,26 m par côté — 22,7 % au-dessus du pire (5,9 px d'écran affine à 2 m/tuile, `pxPerM(2)` =
- *  22,63 px/m), sur un mur de 0,168 m d'épaisseur : relief FRANC, style épuré assumé. Une scène plus
+ *  0,26 m par côté — 22,7 % au-dessus du pire, sur un mur de 0,168 m d'épaisseur : relief FRANC, style épuré assumé. Une scène plus
  *  large que l'opéra rougit la garde par scène de `sceneMeshes.test.ts` au lieu de noyer le relief en
  *  silence. Chaque valeur reste éditable par apparence (`StructureAppearanceDef.relief`). */
 export type WallPartRelief =
@@ -100,7 +95,7 @@ export type WallPartRelief =
 export function wallPartRelief(part: WallPart): WallPartRelief {
   switch (part) {
     case 'face': case 'parapet': case 'arase': case 'merlon': case 'couronnement':
-    case 'poteau': case 'jambage':
+    case 'poteau': case 'jambage': case 'joint':
       return { famille: 'matiere' };
     case 'panneau': case 'plinthe': case 'bande':
       return { famille: 'saillie', jutM: 0.26 };

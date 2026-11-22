@@ -4,11 +4,26 @@
  * l'enchaînement de la Frappe mortelle (LDB 14 l.5-9), sur la cour (`../../combat.md`).
  */
 import { apresLeDe, COMBATTANTS, DIT, RESERVES, reserves, TOUR, TOUR_D_ILYANWE, TOUR_DE_BERTA } from './dome.ts';
-import type { Ecran, Testeur } from './maquette.ts';
+import type { Ecran, Etat, Testeur } from './maquette.ts';
 
 /** La Parade de l'Orc, tombée. */
 const PARADE: Testeur = { role: 'testeur', qui: 'orc', test: 'Parade', seuil: 35, jet: { des: [70, 0], dr: -4, reussite: false } };
 const AVANTAGE = [{ nom: 'Avantage', valeur: 10 }];
+const APRES_RELANCE = { ...RESERVES.ilyanwe, chance: RESERVES.ilyanwe.chance - 1 };
+
+/** Le jet relancé par la Chance ; `chanceSurvolee` : le jeton de Chance sous le curseur, sa bulle ouverte. */
+const relance = (nom: string, chanceSurvolee: boolean): Etat => ({
+  nom, gabarit: 'fenetre-du-bas', cour: { etat: 'jet' }, combattants: COMBATTANTS,
+  combat: TOUR_D_ILYANWE([DIT.charge, 'Ilyanwe la Voilée rate son attaque (98).', 'Ilyanwe la Voilée relance son Test (Chance).']),
+  fenetre: {
+    titre: 'Attaque',
+    heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 48, modificateurs: AVANTAGE, jet: { des: [20, 7], dr: 2, reussite: true } },
+    centre: { role: 'issue', sorte: 'oppose', sur: 'Bâton de combat', cible: 'orc', relance: 98, verdict: 'reussite', dr: 2, drNet: 6, consequences: [{ genre: 'localisation', valeur: 'corps', cible: 'orc', ton: 'gain' }], phrase: 'Ilyanwe la Voilée touche Orc au corps.' },
+    autre: PARADE,
+    gestes: apresLeDe(APRES_RELANCE, { relance: true, ...(chanceSurvolee ? {} : { survol: 'relancer' }) }),
+    reserves: reserves(APRES_RELANCE).map((r) => (chanceSurvolee && r.id === 'chance' ? { ...r, survol: true } : r)),
+  },
+});
 
 export default {
   etats: [
@@ -17,23 +32,13 @@ export default {
       fenetre: {
         titre: 'Attaque',
         heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 48, modificateurs: AVANTAGE, jet: { des: [90, 8], dr: -5, reussite: false } },
-        centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, drNet: 1, issue: 'Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.' },
+        centre: { role: 'issue', sorte: 'oppose', sur: 'Bâton de combat', cible: 'orc', verdict: 'echec', dr: -5, drNet: -1, consequences: [{ genre: 'avantage', valeur: 1, cible: 'orc', ton: 'perte' }], phrase: 'Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.' },
         autre: PARADE,
         gestes: apresLeDe(RESERVES.ilyanwe, { echec: true }), reserves: reserves(RESERVES.ilyanwe),
       },
     },
-    {
-      nom: 'relance-a-la-chance', gabarit: 'fenetre-du-bas', cour: { etat: 'jet' }, combattants: COMBATTANTS,
-      combat: TOUR_D_ILYANWE([DIT.charge, 'Ilyanwe la Voilée rate son attaque (98).', 'Ilyanwe la Voilée relance son Test (Chance).']),
-      fenetre: {
-        titre: 'Attaque',
-        heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 48, modificateurs: AVANTAGE, jet: { des: [20, 7], dr: 2, reussite: true } },
-        centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, relance: 98, drNet: 6, issue: 'Ilyanwe la Voilée touche Orc au corps.' },
-        autre: PARADE,
-        gestes: apresLeDe({ ...RESERVES.ilyanwe, chance: RESERVES.ilyanwe.chance - 1 }, { relance: true, survol: 'relancer' }),
-        reserves: reserves({ ...RESERVES.ilyanwe, chance: RESERVES.ilyanwe.chance - 1 }),
-      },
-    },
+    relance('relance-a-la-chance', false),
+    relance('relance-chance-survolee', true),
     {
       nom: 'seconde-frappe', gabarit: 'fenetre-du-bas', cour: { etat: 'seconde-frappe' }, combattants: { ...COMBATTANTS, orc: { ...COMBATTANTS.orc, blessures: 11 } },
       combat: TOUR_DE_BERTA([DIT.orc, 'Berta attaque Orc.', 'Berta touche Orc (Corps) : 10 dégâts − 7 (BE+PA) = 3 Blessures']),

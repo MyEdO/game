@@ -155,7 +155,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   });
 
   it('un réglage se joue dans sa phase (`REGLAGES_DU_JET`) : avant le dé, ou une fois le dé tombé', () => {
-    const avantLeJet = ['arme', 'deuxArmes', 'empoigner', 'localisation', 'retenirSesCoups', 'sansLaCorde'].map((r) => `jetRegler@attaque#${r}`);
+    const avantLeJet = ['arme', 'atoutOptionnel', 'deuxArmes', 'empoigner', 'localisation', 'retenirSesCoups', 'sansLaCorde'].map((r) => `jetRegler@attaque#${r}`);
     const avant = verbes(enEtape('attaque', { pendingAttack: attaque() }), true);
     expect(avant.ouverts).toEqual(avantLeJet);
     expect(avant.fermes).toEqual({ 'jetRegler@attaque#localisationDuCritique': 'jetNonLance' });

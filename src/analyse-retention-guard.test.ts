@@ -617,10 +617,7 @@ it('x', () => lire());
 
   it('aucun module chargé par la suite ne retient une structure d’analyse', { timeout: 1_200_000 }, () => {
     const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs), { racine: ROOT });
-    const duCorpus = readCorpus(['src', 'scripts', 'server/src'], {
-      exts: ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'],
-      tests: true,
-    }).filter(({ rel }) => charges.has(rel));
+    const duCorpus = readCorpus(['src', 'scripts', 'server/src'], { tests: true }).filter(({ rel }) => charges.has(rel));
     // Tout module de CODE de la clôture est lu : ceux que le corpus ne porte pas (`vite.config.ts`, à
     // la racine) sont lus au disque — un module chargé non lu échapperait à la garde en silence.
     const dansLeCorpus = new Set(duCorpus.map((f) => f.rel));

@@ -14,7 +14,7 @@
 // `false` pour un prédicat) À LA PLACE de l'objet demandé ; 3. `GitIndisponible` levée, ou confiée à
 // `enPanne`. La BORNE d'une question — la révision, l'arbre ou le commit SUR lequel elle se pose —
 // n'est pas l'objet demandé : une borne absente LÈVE `BorneAbsente` (faute de l'appelant), sauf pour
-// une question dont la signature porte `null` pour elle (`shaDe`, `shasDe`, `journalDe`, `combienDe`,
+// une question dont la signature porte `null` pour elle (`shaDe`, `journalDe`, `combienDe`,
 // `divergenceDe`, `baseCommune`, `estAncetre`). Une collection (`ceQuiChange`, `listerImage`,
 // `lireEnLot`, `ceQueFaitLeCommit`, `fichiersDuGrep` sur une ref) n'a pas de `null` : vide, elle dirait
 // « rien » d'un objet qui n'existe pas. Une borne NOMMÉE dont l'objet MANQUE n'est pas absente : le
@@ -690,17 +690,6 @@ const lectureDePlage = (options, revisions) =>
   [['rev-list', ...options, '--stdin', '--'], { entree: revisionsDe(revisions).map((r) => `${r}\n`).join('') }]
 
 /**
- * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent. `null` quand git ne rend pas la plage : une plage illisible n'est pas
- * une plage vide.
- * @param {Depot} depot @param {readonly string[]} revisions @returns {string[] | null}
- */
-export function shasDe(depot, revisions) {
-  const brut = lire(depot, ...lectureDePlage(['--reverse'], revisions))
-  return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
-}
-
-/**
  * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
  * pas ou si git ne la rend pas. Avec plusieurs `b`, celle de `a` et de leur fusion (celle d'un commit à venir de
  * parents `b…`, `git help merge-base`).
@@ -742,10 +731,10 @@ const commitsDuGraphe = (brut) => brut.split('\n').map((l) => l.trim()).filter(B
 })
 
 /**
- * Le GRAPHE des commits de la plage `revisions` (`shasDe`), du plus ancien au plus récent, en UNE
+ * Le GRAPHE des commits de la plage `revisions`, du plus ancien au plus récent, en UNE
  * lecture : chaque commit avec son ARBRE et ses PARENTS. L'ascendance, le compte d'une plage et la
  * base d'un commit (`ceQueFaitLeCommit`) s'en déduisent sans relancer git. `null` quand git ne rend
- * pas la plage (`shasDe`).
+ * pas la plage.
  * @param {Depot} depot @param {readonly string[]} revisions @returns {CommitDuGraphe[] | null}
  */
 export function grapheDe(depot, revisions) {
@@ -831,10 +820,10 @@ const FORMAT_DE_DATE = 'format:%Y-%m-%dT%H:%M:%S%z'
 const isoStricte = (date) => date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
 
 /**
- * Les commits de la plage `revisions` (`shasDe`), du plus ancien au plus récent, en `{ sha, date,
+ * Les commits de la plage `revisions`, du plus ancien au plus récent, en `{ sha, date,
  * message }` : `date` = la date de commit ISO 8601 stricte (`isoStricte`), `depuis` = `--since` (`git help
  * rev-list`). `rev-list` est la plomberie de `log`, et `--no-commit-header` retire la ligne
- * `commit <sha>` que `--format` lui fait écrire. `null` quand git ne rend pas la plage (`shasDe`).
+ * `commit <sha>` que `--format` lui fait écrire. `null` quand git ne rend pas la plage.
  * @param {Depot} depot @param {readonly string[]} revisions
  * @param {{ depuis?: string }} [opts]
  * @returns {{ sha: string, date: string, message: string }[] | null}

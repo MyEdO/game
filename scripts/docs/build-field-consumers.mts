@@ -1,7 +1,7 @@
 /**
  * Rapport des CONSOMMATEURS PAR CHAMP — GÉNÉRÉ. Sortie : docs/consommateurs-de-champs.md.
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  * Objet (#903) — « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
  * Question fondatrice : « qui lit le champ `spec` sur une référence de dotation (`TrappingRef`) ? » —
@@ -63,13 +63,13 @@
  *     ex. `difficultySchema`, `charKeySchema`) : aucun champ objet à consommer, hors du périmètre
  *     de la question « qui lit CE CHAMP ? ».
  */
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
-import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
+import { listProdFiles, programmeDesChamps, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
 import { CIBLES_DE_GRAMMAIRE, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 import { ciblesDeCatalogue } from '../guards/lib/schemaFieldConsumers.mjs'
-import { repoProgram, libererSessions, type SessionProgramme } from '../guards/lib/tsProgram.mjs'
+import { libererSessions, type SessionProgramme } from '../guards/lib/tsProgram.mjs'
 import { SCHEMA_DEFS } from '../../src/data/schemas/_registry.generated'
 import { CLES_ENVELOPPE } from '../../src/data/schemas/grammaire/document'
 
@@ -130,7 +130,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), 
   // Clés hétérogènes : le contexte de scan est clé par son Program (`fieldConsumers.mjs`).
   const cache = new Map<unknown, unknown>()
   const erreurs: unknown[] = []
-  const session = programme ?? repoProgram(racine, () => files.map((f) => resolve(f)))
+  const session = programme ?? programmeDesChamps(racine, files)
   let cibles: Cible[] = []
   let sorties: Sortie[] = []
 
@@ -312,17 +312,17 @@ export function rendre(files?: string[]): Map<string, string> {
   return new Map([[OUT, buildFieldConsumersMd(files).md]]);
 }
 
-/** CLI : écriture du `.md`, ou `--check` : `ecrireOuVerifier`, rejoué par `build-all.mjs`. */
-if (import.meta.main) {
+export function* produire() {
   const { md, totalFields, totalUnread, zeros, absents, cibles } = buildFieldConsumersMd()
   const cliquets = `${zeros.length} « 0 lecteur » et ${absents.length} absents hors enveloppe sous cliquet`
-  ecrireOuVerifier({
+  yield {
     out: md,
     path: OUT,
-    check: process.argv.includes('--check'),
     staleMsg: `docs:field-consumers — ${OUT} est PÉRIMÉ (les schémas/le code source ont changé).`,
     rerunMsg: '  → relancer `npm run docs:field-consumers` (dérivé jamais commité, #2203).',
     okMsg: `docs:field-consumers — OK (${OUT} à jour, ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES ; ${cliquets})`,
     writeMsg: `${OUT} — ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES sur ${cibles.length} types ; ${cliquets}.`,
-  })
+  }
 }
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

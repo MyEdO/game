@@ -144,7 +144,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    - Juge esprit : un `juge` (opus) par lot de textes maison, réplique comme narration reformulée ; il
      reçoit chaque texte, la réf du passage dont il dérive et le passage lu au `Source/`, et rend tient /
      ne tient pas avec motif. Un texte qui ne tient pas se réécrit.
-9. **Parties en jeu** — skill `recette-navigateur` : recetteur PREUVE puis JOUEUR-RPG. Chaque intention
+9. **Parties en jeu** — recette Godot, avec une preuve puis un parcours de joueur. Chaque intention
    de la table simulée se classe « offerte / refusée dans la fiction / porte fermée en silence (défaut) » ;
    sauvegarde-reprise aux frontières de beat ; coop ; retours en THÈMES.
 10. **Porte d'acte** (arbitrage 3) — l'utilisateur joue la tranche, valide le découpage de l'acte suivant,

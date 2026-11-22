@@ -70,4 +70,4 @@ export const libelleDeLaFenetre = (cle: CleDeRegistre): string | null => texte(`
 export const libelleDuJet = (jet: HostJet): string => t(`jet.${jet}`);
 
 /** Ce qui ferme un verbe du cycle de jet (`FermetureDuJet`), en mots du joueur. */
-export const libelleDeLaFermeture = (f: FermetureDuJet): string => t(`jet.ferme.${f}`);
+export const libelleDeLaFermeture = (f: FermetureDuJet): string => f === 'horsSiege' ? t('coop.intentRefused') : t(`jet.ferme.${f}`);

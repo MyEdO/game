@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { estObjet } from '../../../src/lib/objet.mjs';
 
+/** Le dossier des modèles du projet Godot : l'import y dépose, `recupererModeles` y tire les GLB. */
+export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
+
 /** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
 export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
 

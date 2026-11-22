@@ -30,6 +30,8 @@ import { touchActors } from './combatOrParty';
 import { journaliser } from './combatLog';
 import { surfaceOf } from './rollSeam';
 import { gainCorruption } from './corruptionFlow';
+import { recoitLaCorruption } from '../engine/corruption';
+import { estHerosJouable } from '../engine/relations';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { PORTEURS_D_ETAPE } from './slotsDeJet';
@@ -63,19 +65,21 @@ import { t } from '../i18n';
  */
 
 /** Ce qui ferme un verbe du cycle de jet, ou la sortie d'une fenêtre (`sortieFermee`, `modalArbiter.ts`), maintenant ;
- *  son libellé est `jet.ferme.<code>` (`libelleDeLaFermeture`). */
+ *  `libelleDeLaFermeture` donne son libellé. */
 export type FermetureDuJet =
   | 'sansJet' | 'nonOffert' | 'sansActeur' | 'rangeeTemoin' | 'jetImpose'
   | 'jetNonLance' | 'jetLance' | 'jetReussi' | 'dejaRelance'
   | 'sansChance' | 'sansResilience' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
-  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
+  | 'choixDu' | 'etapeHoteEnAttente' | 'horsSiege' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
   | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre'
   | 'preparationDeBataille' | 'batailleTerminee' | 'testSpectaculaireDu';
 
-/** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
-export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);
+/** Les fermetures dont la fenêtre affiche le geste refusé avec sa raison. */
+export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>([
+  'declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee', 'etapeHoteEnAttente', 'horsSiege',
+]);
 
 /** Ce qui ferme chaque verbe de jet (`null` : ouvert), clôture (`valider`) comprise, lu par `RollFlowHandlers.fermetures`. */
 export type FermeturesDuJet = Record<RollVerb, FermetureDuJet | null>;
@@ -83,7 +87,7 @@ export type FermeturesDuJet = Record<RollVerb, FermetureDuJet | null>;
 /** Ressources d'influence du jeteur — dérivées du `Combatant`, ou fournies en primitives par une
  *  vue pure (rangée sans objet `Combatant`). Construite par `actorInfluenceView`, jamais à la main. */
 export interface RollActorView {
-  kind?: Combatant['kind'];
+  peutPactiser: boolean;
   fortune: number;
   resilience: number;
   /** Relance GRATUITE armée (Bénédiction de Chance, `LDB 41`). */
@@ -114,7 +118,7 @@ export function actorInfluenceView(
   over?: { fortune?: number; resilience?: number },
 ): RollActorView {
   return {
-    ...(actor?.kind !== undefined ? { kind: actor.kind } : {}),
+    peutPactiser: !!actor && estHerosJouable(actor) && recoitLaCorruption(actor),
     fortune: over?.fortune ?? actor?.fortune ?? 0,
     resilience: over?.resilience ?? actor?.resilience ?? 0,
     freeReroll: freeRerollAvailable(actor),
@@ -137,7 +141,7 @@ export function fermetureDuBonus(a: RollActorView, v: RollInfluenceView): Fermet
 /** Sombre Pacte — `LDB 19 l.17`. Fenêtre de `opDarkPact`. */
 export function fermetureDuPacte(a: RollActorView, v: RollInfluenceView): FermetureDuJet | null {
   if (!v.rolled) return 'jetNonLance';
-  return a.kind === 'heros' ? null : 'reserveAuxHeros';
+  return a.peutPactiser ? null : 'reserveAuxHeros';
 }
 
 /** Résilience « Je ne faillirai pas ! » — `LDB 17 l.68` : avant le jet, ou après un échec. Composée par

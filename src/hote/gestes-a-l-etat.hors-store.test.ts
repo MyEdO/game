@@ -19,6 +19,7 @@ import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
 import { gameDay } from '../noyau/merchantFlow';
+import { joursParSemaine } from '../engine/clock';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
 
@@ -96,7 +97,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
 
 describe('un argument qui désigne une ligne se choisit parmi les lignes que sa fenêtre nomme', () => {
   const lignes = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
-  const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
+  const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', objet: { id: 'epee' } } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', objet: { id: 'bouclier' } } }] as never;
   const nommees = ['choix', [['L0', 'Épée'], ['L1', 'Bouclier']]];
 
   it('Victoire : attribuer et évaluer désignent une ligne du butin, l’évaluation porte sur la victoire', { timeout: 120_000 }, () => {
@@ -120,7 +121,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
   it('Butin : evaluerLObjet offre chaque ligne, fermée par le refus de l’Évaluation quand aucun mode ne l’évalue', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const jour = gameDay(etat);
-      const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
+      const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', objet: { id: 'epee' }, identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', objet: { id: 'bouclier' }, identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
       expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
@@ -162,7 +163,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Conseil de bord : la paie se choisit parmi les choix ouverts, chacun nommé par son facteur', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 7 } as never });
+      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: joursParSemaine() } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
         const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');

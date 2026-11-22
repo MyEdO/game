@@ -23,8 +23,7 @@
       "src/engine/miscast.ts",
       "src/engine/overcast.ts",
       "src/engine/grimoire.ts",
-      "src/engine/dispel.ts",
-      "src/ui/CastModal.tsx"
+      "src/engine/dispel.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -36,8 +35,7 @@
     "label": "Corruption & mutation",
     "modules": [
       "src/engine/corruption.ts",
-      "src/noyau/corruptionFlow.ts",
-      "src/ui/CorruptionModal.tsx"
+      "src/noyau/corruptionFlow.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -64,9 +62,7 @@
       "src/engine/travel.ts",
       "src/engine/travelStages.ts",
       "src/engine/travelTables.ts",
-      "src/engine/travelEncounter.ts",
-      "src/ui/TravelRecapModal.tsx",
-      "src/ui/TravelRolesPanel.tsx"
+      "src/engine/travelEncounter.ts"
     ],
     "etat": "partiel",
     "ticket": "#298 (openRoll TER : fourche forcedPaceDay dupliquée, travelFlow.ts:368-381)",
@@ -93,9 +89,7 @@
       "src/engine/seaVoyage.ts",
       "src/engine/seaNavigation.ts",
       "src/engine/seaWeather.ts",
-      "src/engine/seaPerils.ts",
-      "src/ui/SeaVoyageScreen.tsx",
-      "src/ui/SeaActivitiesModal.tsx"
+      "src/engine/seaPerils.ts"
     ],
     "etat": "partiel",
     "ticket": "#298 (openRoll MER : scorbut/épuisement forcés inline, seaVoyageFlow.ts:900-905,968-973)",
@@ -113,11 +107,7 @@
       "src/noyau/monde/shipBattery.ts",
       "src/noyau/monde/shipCollision.ts",
       "src/noyau/monde/shipDamage.ts",
-      "src/noyau/monde/shipPostes.ts",
-      "src/ui/ShipBatteryModal.tsx",
-      "src/ui/ShipManeuverModal.tsx",
-      "src/ui/ShipDossier.tsx",
-      "src/ui/console/ShipSheet.tsx"
+      "src/noyau/monde/shipPostes.ts"
     ],
     "etat": "partiel",
     "ticket": "#250, #267, #268 (Phase 8, gelé)",
@@ -130,8 +120,7 @@
     "modules": [
       "src/engine/massBattle.ts",
       "src/noyau/massBattleFlow.ts",
-      "src/engine/activities.ts",
-      "src/ui/MassBattleView.tsx"
+      "src/engine/activities.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -143,8 +132,7 @@
     "label": "Interlude / entre-deux",
     "modules": [
       "src/noyau/interludeFlow.ts",
-      "src/engine/activities.ts",
-      "src/ui/InterludeScreen.tsx"
+      "src/engine/activities.ts"
     ],
     "etat": "partiel",
     "ticket": null,
@@ -160,10 +148,7 @@
       "src/noyau/landMarketFlow.ts",
       "src/engine/bargain.ts",
       "src/engine/cargo.ts",
-      "src/engine/landCargo.ts",
-      "src/ui/MerchantPanel.tsx",
-      "src/ui/LandMarketView.tsx",
-      "src/ui/PortView.tsx"
+      "src/engine/landCargo.ts"
     ],
     "etat": "partiel",
     "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts acheterALaHalle / vendreALaHalle → bargainOpposed, opposedTest direct) — #2687",
@@ -177,12 +162,11 @@
       "src/noyau/shipCrew.ts",
       "src/engine/crewMorale.ts",
       "src/engine/warMachineCrew.ts",
-      "src/noyau/stations.ts",
-      "src/ui/ShipRolesPanel.tsx"
+      "src/noyau/stations.ts"
     ],
     "etat": "complet",
     "ticket": null,
-    "notes": "Station+AssignRow (stations.ts) — patron top-down slot+affectation."
+    "notes": "Affectation aux postes par le noyau."
   },
   {
     "id": "repos-survie",
@@ -194,29 +178,24 @@
       "src/engine/provisions.ts",
       "src/engine/suffocation.ts",
       "src/engine/exposure.ts",
-      "src/engine/waterExposure.ts",
-      "src/ui/RestModal.tsx"
+      "src/engine/waterExposure.ts"
     ],
     "etat": "complet",
     "ticket": null,
-    "notes": "MultiRollList/NightEntry — bilan nuit."
+    "notes": "Bilan de nuit porté par le flux de repos."
   },
   {
     "id": "coop",
     "type": "systemes.manifest",
     "label": "Coop en ligne (relay)",
     "modules": [
-      "src/state/netFlow.ts",
       "src/noyau/netOwnership.ts",
       "src/hote/coop/relay.ts",
       "src/hote/coop/salon.ts",
       "src/hote/coop/session.ts",
       "src/noyau/coop.ts",
       "src/noyau/reseau.ts",
-      "src/state/intents.ts",
-      "src/noyau/intentionsDeSiege.ts",
-      "src/ui/CoopLobby.tsx",
-      "src/ui/CoopPanels.tsx"
+      "src/noyau/intentionsDeSiege.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -229,8 +208,7 @@
     "modules": [
       "src/noyau/sceneEdit.ts",
       "src/noyau/validateScene.ts",
-      "src/noyau/mapSpec.ts",
-      "src/ui/editor/Editor.tsx"
+      "src/noyau/mapSpec.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -241,7 +219,9 @@
     "type": "systemes.manifest",
     "label": "Codex / Compendium",
     "modules": [
-      "src/ui/compendium/CompendiumScreen.tsx"
+      "src/noyau/codex/registry.ts",
+      "src/noyau/codex/session.ts",
+      "src/noyau/codex/search.ts"
     ],
     "etat": "complet",
     "ticket": null,

@@ -17,7 +17,6 @@ import {
   proprietesZod,
 } from './jsdocUnion.mjs'
 import { fileExports } from './engineExports.mjs'
-import { shellZones, rowZones } from './rollShellUsage.mjs'
 import { fileURLToPath } from 'node:url'
 import { API } from 'typescript/unstable/sync'
 
@@ -189,12 +188,6 @@ test('BOM : rôles alias, membres et exports gardent leurs positions originales 
       assert.equal(original.slice(fonction.getStart(sf), fonction.getEnd()), fonction.getText(sf))
       const declaration = sf.statements.find(ts.isVariableStatement).declarationList.declarations[0]
       assert.equal(declaration.initializer.text, '\uFEFFé😀')
-      assert.deepEqual(shellZones(bom + 'export function RollShell(p: { /** Z1 Titre é😀. */ titre: string }) {}', 'test'), [
-        { name: 'titre', optional: false, zone: 'Z1' },
-      ])
-      assert.deepEqual(rowZones(bom + 'export interface RollRowProps { /** Z9 Ligne é😀. */ ligne: string }', 'test'), [
-        { name: 'ligne', optional: false, zone: 'Z9' },
-      ])
     }
   } finally { rmSync(dossier, { recursive: true, force: true }) }
 })
@@ -231,18 +224,6 @@ test('optionalité native : membres de union requis, optionnels et union avec un
       ['requis', 'union', 'optionnel?', 'lecture?'],
     ])
   } finally { rmSync(dossier, { recursive: true, force: true }) }
-})
-
-test('optionalité native : zones shell et row distinguent propriété optionnelle et type undefined', () => {
-  const membres = '/** Z1 Requis. */ requis: string; /** Z2 Union. */ union: string | undefined; /** Z3 Optionnel. */ optionnel?: number; /** Z4 Lecture. */ readonly lecture?: boolean'
-  const attendu = [
-    { name: 'requis', optional: false, zone: 'Z1' },
-    { name: 'union', optional: false, zone: 'Z2' },
-    { name: 'optionnel', optional: true, zone: 'Z3' },
-    { name: 'lecture', optional: true, zone: 'Z4' },
-  ]
-  assert.deepEqual(shellZones(`export function RollShell(p: { ${membres} }) {}`, 'test'), attendu)
-  assert.deepEqual(rowZones(`export interface RollRowProps { ${membres} }`, 'test'), attendu)
 })
 
 test('décorateurs canoniques : formes, champs, optionalité et JSDoc préservés par imports nommés, renommés et namespace imbriqués', () => {

@@ -1,10 +1,14 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import {
+  closeSync, constants, copyFileSync, existsSync, fstatSync, lstatSync,
+  mkdirSync, mkdtempSync, openSync, readFileSync, rmSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { depotDe, dossierGitCommun } from './gitPorte.mjs'
-import { photoArbre } from './photoArbre.mjs'
 import { listerDossier } from './lister.mjs'
+import { photoArbre } from './photoArbre.mjs'
 
 const INTERCEPTEUR = new URL('./intercepterEcritures.mjs', import.meta.url).href
 const PRECHARGE = Symbol.for('wfrp.tests.perimetreSansEcriture')
@@ -126,6 +130,7 @@ export function ouvrirControleEcritures(racine, env = process.env) {
   const commun = dossierGitCommun(depotDe(racine))
   if (!commun.disponible) throw new Error(`répertoire git commun impossible : ${commun.raison}`)
   const dossier = mkdtempSync(join(tmpdir(), 'tests-sans-ecriture-'))
+  const identite = lstatSync(dossier, { bigint: true })
   let ferme = false
   return {
     env: { ...environnementDuControle(env),
@@ -135,10 +140,96 @@ export function ouvrirControleEcritures(racine, env = process.env) {
       ferme = true
       try {
         const apres = photoArbre(racine)
-        const refus = listerDossier(dossier).flatMap((f) => readFileSync(join(dossier, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))
-        if (apres.erreur || apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié ou photo impossible : ${apres.erreur ?? apres.texte}`)
+        const refus = lireFichiersPropres(dossier, identite).flatMap((texte) => texte.split('\n').filter(Boolean).map((l) => JSON.parse(l)))
+        if (apres.erreur) refus.push(`[tests] REFUS photo impossible : ${decrireCause(apres.erreur.trim())}`)
+        else if (apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié : ${decrireEcarts(avant.texte, apres.texte)}`)
         return refus
-      } finally { rmSync(dossier, { recursive: true, force: true }) }
+      } finally {
+        if (identiteDuDossier(dossier, identite)) rmSync(dossier, { recursive: true, force: true })
+      }
     },
   }
+}
+
+const memeEntree = (a, b) => a.dev === b.dev && a.ino === b.ino
+
+function identiteDuDossier(dossier, identite) {
+  const entree = lstatSync(dossier, { bigint: true, throwIfNoEntry: false })
+  return entree?.isDirectory() && memeEntree(entree, identite)
+}
+
+function lireFichiersPropres(dossier, identite) {
+  const verifierDossier = () => {
+    if (!identiteDuDossier(dossier, identite)) throw new Error('dossier de refus remplacé : ' + dossier)
+  }
+  const refuserEntree = (chemin) => { throw new Error('fichier de refus étranger : ' + chemin) }
+  verifierDossier()
+  const textes = []
+  for (const nom of listerDossier(dossier)) {
+    const chemin = join(dossier, nom)
+    const entree = lstatSync(chemin, { bigint: true })
+    if (!entree.isFile() || entree.nlink !== 1n) refuserEntree(chemin)
+    const fd = openSync(chemin, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0))
+    try {
+      const ouvert = fstatSync(fd, { bigint: true })
+      if (!ouvert.isFile() || ouvert.nlink !== 1n || !memeEntree(entree, ouvert)) refuserEntree(chemin)
+      verifierDossier()
+      textes.push(readFileSync(fd, 'utf8'))
+    } finally { closeSync(fd) }
+  }
+  verifierDossier()
+  return textes
+}
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: lireFichiersPropres, lectures: { dossierPropre: 0 } }]
+
+const MAX_CHEMINS = 8
+const extremites = (texte) => `début ${JSON.stringify(texte.slice(0, 12))}, fin ${JSON.stringify(texte.slice(-12))}`
+
+function decrireCause(texte) {
+  const rendu = coupeAuMot(texte, 240)
+  return rendu.length <= 240 ? rendu : `${texte.length} caractères, ${extremites(texte)}`
+}
+
+function decrireChemin(chemin) {
+  const nom = JSON.stringify(chemin)
+  return nom.length <= 160 ? nom : extremites(chemin)
+}
+
+function vueParChemin(texte) {
+  const { etat, empreintes } = JSON.parse(texte)
+  const vue = new Map(Object.entries(empreintes).map(([chemin, empreinte]) => [chemin, { empreinte, etats: [] }]))
+  for (const entree of etat) for (const chemin of entree.chemins) {
+    if (!vue.has(chemin)) vue.set(chemin, { etats: [] })
+    vue.get(chemin).etats.push(entree.etat)
+  }
+  return vue
+}
+
+function present(entree, autre) {
+  if (entree?.empreinte !== undefined) return true
+  if (entree) return entree.etats.some((etat) => etat[1] !== 'D' && etat !== 'D ')
+  // Une photo omet les fichiers suivis propres, même si l'autre les voit modifiés ou supprimés.
+  return autre.etats.some((etat) => etat !== '??' && etat !== '!!' && !etat.includes('A'))
+}
+
+function decrireEcarts(avant, apres) {
+  const anciens = vueParChemin(avant)
+  const nouveaux = vueParChemin(apres)
+  const groupes = { ajoutés: [], modifiés: [], retirés: [] }
+  for (const chemin of [...new Set([...anciens.keys(), ...nouveaux.keys()])].sort()) {
+    const ancien = anciens.get(chemin)
+    const nouveau = nouveaux.get(chemin)
+    if (ancien?.empreinte === nouveau?.empreinte && ancien?.etats.join() === nouveau?.etats.join()) continue
+    const existait = present(ancien, nouveau)
+    const existe = present(nouveau, ancien)
+    if (!existait && existe) groupes.ajoutés.push(chemin)
+    else if (existait && !existe) groupes.retirés.push(chemin)
+    else groupes.modifiés.push(chemin)
+  }
+  const descriptions = Object.entries(groupes).filter(([, chemins]) => chemins.length).map(([libelle, chemins]) => {
+    const exemples = chemins.slice(0, MAX_CHEMINS).map(decrireChemin).join(', ')
+    return `${libelle} (${chemins.length}) : ${exemples}${chemins.length > MAX_CHEMINS ? ', …' : ''}`
+  })
+  return descriptions.join(' ; ') || 'ordre des entrées différent'
 }

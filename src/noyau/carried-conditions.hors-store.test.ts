@@ -27,7 +27,7 @@ import { effectSourcesOf } from './triggeredEffects';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { findSpellById } from '../data';
+import { findTrappingById, findSpellById } from '../data';
 import { overcastDurationParts, overcastSourceOf } from '../engine/overcast';
 import { stacks, derivedStacks, addCondition, removeCondition, syncDerivedConditions, fenetreDetermination } from '../engine/conditions';
 import { dissipateSpell } from '../engine/dispel';
@@ -126,6 +126,20 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('gagne l’État Aveuglé');
   });
 
+  it('Mâchoires d’acier résolu automatiquement laisse le Sonné porté par Chamon', () => {
+    const porteur = vue(cible.id);
+    porteur.aiControlled = true;
+    porteur.characteristics.endurance = 90;
+    porteur.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+    seedBattleRng(8);
+
+    lancerChamon(mage, porteur);
+
+    expect(stacks(vue(cible.id), 'sonne')).toBe(1);
+    expect(derivedStacks(vue(cible.id), 'sonne')).toBe(1);
+    expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('Résistance');
+  });
+
   it('les trois tiennent Round après Round, puis partent TOUS le Round où le Sort expire', () => {
     lancerChamon(mage, cible);
     for (const tour of [1, 2]) {
@@ -204,9 +218,9 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     lancerChamon(mage, cible);
     // Sonné a un `effects: onRoundEnd` de type `test` (etats.json) : l'énumérateur UNIQUE des sources
     // d'effets déclenchés (`effectSourcesOf` — voie inline ET collecteur de cascade) ne le propose plus.
-    expect(effectSourcesOf(vue(cible.id)).some((s) => s.key === 'cond:sonne'), 'un Test de Résistance est proposé pour un Sonné PORTÉ').toBe(false);
+    expect(effectSourcesOf(vue(cible.id), findTrappingById).some((s) => s.key === 'cond:sonne'), 'un Test de Résistance est proposé pour un Sonné PORTÉ').toBe(false);
     addCondition(vue(cible.id), 'sonne', 2); // 2 pions NATIFS par-dessus le pion porté
-    const source = effectSourcesOf(vue(cible.id)).find((s) => s.key === 'cond:sonne');
+    const source = effectSourcesOf(vue(cible.id), findTrappingById).find((s) => s.key === 'cond:sonne');
     expect(source, 'le Sonné NATIF ne déclenche plus rien').toBeTruthy();
     expect(source!.stacks, 'le Test porte sur la part NATIVE seule (plancher = pions dérivés)').toBe(2);
   });

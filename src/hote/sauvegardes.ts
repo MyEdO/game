@@ -5,8 +5,9 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) : une save d'un autre format, ou
  * illisible, est REJETÉE et RETIRÉE du stockage à la lecture ; son retrait CUMULE son TÉMOIN dans le même `Stockage`
- * (`hote/temoin.ts`), que `prendreLesRetraitsDeSauvegardes` consomme. Aucune migration. Un stockage
- * absent (`null`) ou qui lève : aucune save, l'écriture rend `false`.
+ * (`hote/temoin.ts`), que `prendreLesRetraitsDeSauvegardes` consomme. `lireSave` convertit la forme
+ * précédant les références de création (#3917). Un stockage absent (`null`) ou qui lève : aucune save,
+ * l'écriture rend `false`.
  *
  * LES ZONES (#3009, `zonesDesSauvegardes`) : chaque emplacement en entité, avec le bouton qui le charge
  * (`{ charger }`) et celui qui y écrit la partie ouverte (`{ sauvegarder }`), que le noyau refuse (`refusDeSauvegarde`).

@@ -261,7 +261,7 @@ describe('applyOps — opérations unitaires', () => {
   it('giveTrapping : crée l’objet dans l’inventaire (réel → stats, échelle au DR)', () => {
     const c = hero({ items: [] });
     // Générosité de Manann : 1 Ration + 1 par +2 DR → à DR 4, 1 + floor(4/2) = 3 Rations.
-    applyOps(c, [{ op: 'giveTrapping', trappingId: 'ration', perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
+    applyOps(c, [{ op: 'giveTrapping', objet: { id: 'ration' }, perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
     const rations = (c.items ?? []).filter((it) => it.trappingId === 'ration');
     expect(rations.length).toBe(3);
   });
@@ -760,11 +760,18 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
     expect(c.dead).toBe(true);
   });
 
-  it('rangée « Mort » (kill) : au-delà de la table → repli dernière rangée (findTableEntry)', () => {
+  it('rangée « Mort » (kill) : le jet 10 atteint sa borne basse', () => {
     const c = hero(); // pas de Destin → mort sèche
     const rng: RNG = deFixe(10);
     applyOps(c, [table()], { idNeuf: idsDeTest, rng });
     expect(c.dead).toBe(true);
+  });
+
+  it('signale le jet modifié hors de la table sans appliquer la rangée « Mort »', () => {
+    const c = hero();
+    const ctx = { idNeuf: idsDeTest, rng: deFixe(10) };
+    expect(() => applyOps(c, [table({ mod: 90 })], ctx)).toThrow('[rangée de table] « 100 » introuvable');
+    expect(c.dead).not.toBe(true);
   });
 
   it('rangée « sonne » (État) : d10=5 → condition Sonné posée', () => {

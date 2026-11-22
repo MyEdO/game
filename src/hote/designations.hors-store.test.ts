@@ -111,6 +111,7 @@ describe('une désignation nomme ses ids sur ce qu’elle a lu une fois de l’�
       const relus: string[] = [];
       let nommes = 0;
       for (const [cle, designation] of Object.entries(DESIGNATIONS) as [string, Designation][]) {
+        expect(typeof designation.lire, `lecteur de ${cle}`).toBe('function');
         const nommer = designation.nom(espionne);
         lus.length = 0;
         for (const id of [...designation.lire(etat), 'id-absent']) if (nommer(id) !== null) nommes += 1;

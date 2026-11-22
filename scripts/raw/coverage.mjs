@@ -15,14 +15,15 @@
 // du LIVRE (teneur, niveau de section) vit dans son entrée de `src/data/books.json` ; ce qu'on sait de
 // ses CHAPITRES (hors-règle, catalogues) dans `scripts/raw/chapitres.json`. Les deux se lisent par les
 // accesseurs de `_lib.mjs` — zéro ligne ici.
-// Sortie : docs/raw/coverage.md  ·  `--check` : `ecrireOuVerifier`.
+// Sortie : docs/raw/coverage.md  ·  `--check` : comparaison au disque.
 import { existsSync } from 'node:fs'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, REGISTRE_LIVRES, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture (`pagesDeLAtlasRendues`) : tout sauf les rapports générés — l'épreuve
 // datée et les pages d'auteur CITENT des chapitres, et ce qu'elles citent est couvert.
@@ -435,16 +436,16 @@ export function rendre(rawDir = RAWDIR) {
   return new Map([[path, out]])
 }
 
-function main() {
+export function* produire() {
+  exigerRacineAtlas()
   const { path, out, journal } = rendu()
-  ecrireOuVerifier({
+  yield {
     out,
     path,
-    check: process.argv.includes('--check'),
     staleMsg: `raw:coverage — ${path} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
     rerunMsg: '  → relancer `npm run raw:coverage` (dérivé jamais commité, #2203).',
-  })
+  }
   for (const l of journal) console.log(l)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

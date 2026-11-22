@@ -17,6 +17,7 @@
 import { sectionsOf, catalogChaptersOf, cleanTitle, pagesLues } from './coverage.mjs'
 import { chapterFile, niveauDeSectionDe, readText } from './_lib.mjs'
 import { normalizeLoose } from './check-entity-in-chapter.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 // `## [ABBR NN] Titre` — patron STRUCTUREL des blocs catalogue (vérifié #604 : coïncide exactement,
 // chapitre pour chapitre, avec `catalogChaptersOf` — 112/112 des deux côtés sur le stock mesuré).
 const BLOCK_RE = /^## \[([^\]]+)\]/
@@ -99,4 +100,7 @@ function main() {
   console.log('OK — chaque chapitre crédité par un catalogue y est transcrit EN ENTIER (tolérance zéro, aucune baseline).')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

@@ -275,10 +275,13 @@ export interface CrewHire {
 }
 
 /** `n` de plus au rôle `roleId` d'un roster. PUR. */
-export const ajouterAuRoster = (roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] =>
-  (roster ?? []).some((h) => h.roleId === roleId)
-    ? (roster ?? []).map((h) => (h.roleId === roleId ? { ...h, count: h.count + n } : h))
-    : [...(roster ?? []), { roleId, count: n }];
+export function ajouterAuRoster(roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] {
+  const lignes = roster ?? [];
+  const premiere = lignes.findIndex((h) => h.roleId === roleId);
+  if (premiere < 0) return [...lignes, { roleId, count: n }];
+  const count = lignes.reduce((total, h) => total + (h.roleId === roleId ? h.count : 0), n);
+  return lignes.flatMap((h, i) => i === premiere ? [{ ...h, count }] : h.roleId === roleId ? [] : [h]);
+}
 
 /** Barème d'embauche du rôle : celui de son profil du bestiaire (`embauche`). MDG 14 l.293-302 #216 */
 export function soldeDuRole(role: CrewRoleData): CreatureData['embauche'] {
@@ -298,22 +301,10 @@ export function weeklyCrewWageBrass(crew: CrewHire[] | undefined): number {
 /** État de Moral PERSISTANT d'un navire (porté par l'instance de navire en campagne ; recalc hebdomadaire). */
 export interface ShipMoraleState {
   score: number;
-  /** Dernière semaine (jour ÷ 7) où le Moral a été recalculé — garde anti-double-comptage (cf. lastUpkeepDay). */
+  /** Dernière semaine d’entretien réglée depuis l’époque de l’horloge. */
   lastMoraleWeek: number;
   /** Facteurs de Moral ACTIFS cette semaine (ids), édités par le MJ / l'éditeur. */
   factors: string[];
-}
-
-/**
- * RECALCUL HEBDOMADAIRE gardé (MDG 14) : recalcule le Moral une seule fois par semaine calendaire
- * (jour ÷ 7), sur le modèle de `lastUpkeepDay`. PUR — prêt à être appelé par l'entretien quotidien quand
- * un navire vit dans l'état de campagne. Renvoie un nouvel état (jamais muté en place).
- */
-export function tickShipMorale(state: ShipMoraleState, currentDay: number, rng: RNG): { state: ShipMoraleState; recalced: boolean; lines: string[] } {
-  const week = Math.floor(currentDay / 7);
-  if (week <= state.lastMoraleWeek) return { state, recalced: false, lines: [] };
-  const r = recalcMorale(state.score, state.factors, rng);
-  return { state: { ...state, score: r.score, lastMoraleWeek: week }, recalced: true, lines: r.lines };
 }
 
 /** Delta de MORAL d'un Test d'équipage de RUDE ÉPREUVE (MDG 14 l.110 : « Si le total de ce Test donne

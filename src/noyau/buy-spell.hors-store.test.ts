@@ -82,7 +82,7 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
     w.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }); // spec = id de Domaine (domains.json:3) ; rend le sort d'Arcane apprenable
     w.xp = 0;
     banc.setState({ party: [other, w] as Combatant[] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'arme-aethyrique' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'arme-aethyrique' } }]);
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     expect(after.spells).toContain('arme-aethyrique'); // id de sort (runtime) ; pas le guerrier : le Talent guide la cible
     expect(after.xp).toBe(0);
@@ -105,21 +105,21 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
 
   it('héros NOMMÉ sans Talent de lanceur : rien d’appris, refus NOMMÉ au journal', () => {
     const s = soldatNomme();
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: s.id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' }, heroId: s.id }]);
     expect(banc.getState().party[0].spells).toEqual([]);
     expect(banc.getState().journal).toContain(refus(s));
   });
 
   it('héros NOMMÉ au Talent du Domaine : appris', () => {
     const s = soldatNomme({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }); // spec = id de Domaine (domains.json:3)
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: s.id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' }, heroId: s.id }]);
     expect(banc.getState().party[0].spells).toContain('cauteriser');
     expect(banc.getState().journal).toContain(t('eff.sortAppris', { name: s.label, spell: CAUTERISER.label }));
   });
 
   it('Sort de Domaine + Talent d’un AUTRE Domaine : refus nommé', () => {
     const s = soldatNomme({ talentId: 'magie-des-arcanes', spec: 'bete', times: 1 }); // domains.json:815
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: s.id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' }, heroId: s.id }]);
     expect(banc.getState().party[0].spells).toEqual([]);
     expect(banc.getState().journal).toContain(refus(s));
   });
@@ -128,7 +128,7 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
     const s = soldatNomme({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
     s.spells = ['cauteriser'];
     banc.setState({ party: [s] as Combatant[] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: s.id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' }, heroId: s.id }]);
     expect(banc.getState().party[0].spells).toEqual(['cauteriser']);
     expect(banc.getState().journal).toContain(t('pf.spellAlreadyKnown', { name: s.label, spell: CAUTERISER.label }));
     expect(banc.getState().journal).not.toContain(refus(s));
@@ -137,7 +137,7 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
 
   it('`heroId` authoré absent du groupe : le journal dit l’ID introuvable, pas le refus de GROUPE', () => {
     soldatNomme({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: 'heros-qui-nexiste-pas' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' }, heroId: 'heros-qui-nexiste-pas' }]);
     expect(banc.getState().party[0].spells).toEqual([]);
     expect(banc.getState().journal).toContain(t('eff.herosInconnu', { id: 'heros-qui-nexiste-pas' }));
     expect(banc.getState().journal).not.toContain(t('eff.sortSansApprenti', { spell: CAUTERISER.label }));
@@ -145,7 +145,7 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
 
   it('sans héros désigné et personne d’éligible : rien d’appris, refus de GROUPE au journal', () => {
     soldatNomme();
-    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', spell: 'cauteriser' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'learnSpell', sort: { id: 'cauteriser' } }]);
     expect(banc.getState().party[0].spells).toEqual([]);
     expect(banc.getState().journal).toContain(t('eff.sortSansApprenti', { spell: CAUTERISER.label }));
   });

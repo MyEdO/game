@@ -18,6 +18,78 @@ Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation �
 localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.json` ; malus de visée −20 (LDB 14 l.73,
 `src/engine/combat.ts:1047`).
 
+## Bandeau du jet : réserves et issue du camp (#4411)
+- Fiches `user-doctrine-icone-identifie-survol-detaille` et `user-doctrine-boites-fixes-d-un-ecran-a-l-autre`.
+- À valider : chaque réserve, un jeton dans une case de largeur fixe, son pictogramme à gauche du disque, sans nom
+  écrit ; le nom et la valeur (« Chance : 3 ») dans la bulle du jeton survolé (`reserves`, `sources/combat/jet.js`).
+  Pictogrammes (`PICTO_DE_LA_RESERVE`, `sources/rendu.js`) : Chance `etoile`, Résilience `coeur`, Détermination
+  `poing` (un poing fermé, quatre jointures et le pouce replié, qui ne se lit plus en main ouverte à 20 px), Destin
+  `noeud` (le nœud du fil du destin : le sablier se confondait à 20 px avec le `fin` de la fin du tour ; `roue` et
+  `couronne` sont déjà la diligence et les Courtisans),
+  Expérience `livre` (ce qui s'est appris ; aucun pictogramme de progression au kit). La Chance au pied d'un billet de jet : l'étoile une fois, puis un
+  jeton par lanceur, identifié par son portrait `menu`.
+- À valider : l'issue du camp est le verdict écrit suivi du DR, sur une ligne, de la couleur du verdict (« Réussite
+  DR +2 » vert, « Échec DR −3 » rouge sang, « Critique DR +5 » vert, le mot sur une marque d'or), du pied du portrait sur
+  la largeur du camp (place `issue`, 272 de large), à 10 px de la rangée des réserves (`camp`, `sources/combat/jet.js`).
+  Le sceau du total garde son état (vert la réussite, cerclé d'or le critique, rouge l'échec), mais la couleur seule ne
+  dit pas le verdict : le mot s'écrit, aucune bulle au survol du sceau. Le cercle d'or du critique est neuf et épais de
+  3 px pour se voir à la taille de jeu (`.sceau.critique`, `sources/gestes.css`).
+- À valider : un seul gabarit de centre pour tout jet tombé, quelle que soit la situation (verbatims du 2026-11-20 :
+  « Marchandage c'est un jet simple et/ou d'opposition, pourquoi il a un comportement différent ? » ; « -10%, 3
+  corruptions, touché, brisée, ect ... c'est des conséquences du jet, qui sont même sensé etre data driven » ;
+  « l'élément central doit indiquer l'echec ou la réussite »). La donnée est celle que le noyau devra projeter (#4574,
+  `IssueDuJet`, `sources/maquettes/maquette.ts`) : la sorte du Test (`simple`, `oppose`, `etendu`), le verdict en union
+  fermée (`reussite`, `echec`, `critique`), le DR, le DR net d'un Test opposé, le cumul d'un Test étendu sur le DR visé,
+  la liste des conséquences `{ genre, valeur?, cible?, icone?, ton?, detail? }`, la phrase d'issue. Cinq places fixes
+  (`PLACES_DE_L_ISSUE`, `sources/rendu.js`), les mêmes rects à chaque état : le sous-titre (14), la grande ligne (38),
+  la ligne des conséquences (22, vide quand le jet n'en porte pas), le DR (14), la phrase (34, deux lignes).
+- À valider : la grande ligne ne porte qu'un mot générique, Réussite, Échec ou Critique, de la couleur de l'issue (vert
+  la réussite, rouge sang l'échec, marque d'or le critique) ; un Test opposé se lit du point de vue de celui qui agit
+  (la Défense de Berta tombe en « Échec » quand l'Orc la touche). Les mots par situation du lot précédent (« Touche »,
+  « Manquée », « Parée », « Touché », « Contré », « Lancé », « Gagné ») disparaissent : ce qu'ils disaient devient une
+  conséquence. « Pour fuite je prefere "Echec" » (utilisateur, 2026-11-20) en est un cas.
+- À valider : les conséquences, une pièce chacune (`consequences`, `sources/combat/jet.js`) : le pictogramme et la
+  valeur signée, de la couleur de son ton pour celui qui agit (vert le gain, rouge sang la perte) ; le nom, la cible et
+  le détail au survol, dans la bulle (fiche `user-doctrine-icone-identifie-survol-detaille`). Un genre sans pictogramme
+  écrit son nom dans un filet pointillé, la pièce marquée `data-sans-icone` : « Car si un jour la fuite donne des etats
+  données sonnées et brisé on aura l'air con » (utilisateur, 2026-11-20). Les conséquences des maquettes :
+
+  | Jet | Sorte | Verdict | Conséquences |
+  |---|---|---|---|
+  | Attaque (`combat-jet-d-attaque`, `relance-*`) | opposé (LDB 13 l.122-123) | Réussite / Échec | `localisation` Corps sur l'Orc ; raté, `avantage` +1 à l'Orc |
+  | Défense (`jet-de-defense`) | opposé | Échec | `localisation` Bras droit sur Ilyanwe |
+  | Contre-sort (`contre-sort`) | opposé (LDB 46 l.156) | Réussite | `dissipation` du Sort de la Chamane |
+  | Fuite (`fuite`, Test de Calme) | simple (LDB 15 l.63-68) | Échec | `etat` Brisé +3 sur Ilyanwe |
+  | Corruption (`test-de-corruption-*`) | simple (LDB 19 l.44-54) | Échec / Réussite | `corruption` +2 sur Berta ; aucune à la Résilience |
+  | Marchandage (`marchandage`) | opposé (LDB 59 l.43) | Réussite | `prix` −10 %, le prix conclu au survol |
+  | Incantation (`incantation`) | simple (LDB 46 l.24) | Réussite | `sort` lancé sur l'Orc |
+  | Dissipation, Focalisation | étendu (LDB 46 l.160, LDB 46 l.128-151) | Réussite / Critique | aucune ; le cumul sur le DR visé |
+  | Test de compétence, péripétie de la route | simple (LDB 12 l.5-7) | Réussite / Échec | aucune ; échec de la route : `retard` +1 j, `etat` Exténué +1 |
+
+- À valider : les pictogrammes des conséquences (`PICTO_DE_LA_CONSEQUENCE`, `sources/rendu.js`), pris au kit :
+  `localisation` → `cible` (le point visé) ; `avantage` → `competence` (celui de l'action « Avantage » de la barre,
+  `PICTO_DE_L_ACTION`) ; `prix` → `pieces` (le montant ; `balance` dit le geste de marchander, `bourse` ce qu'on porte) ;
+  `sort` → `sort` ; `retard` → `sablier`. Une conséquence peut nommer son pictogramme (`icone`), comme un État qui en a
+  un (`aTerre`, `goutte` de l'Hémorragique). Manquent : `blessures` (`goutte` est déjà l'Hémorragique, `coeur` la
+  Résilience), `corruption`, `dissipation`, et les États sans pictogramme, Brisé et Exténué compris.
+- À valider : le DR net se signe du côté de celui qui agit (« DR net −4 » sous l'Échec de la Défense, « DR net −1 »
+  sous l'attaque ratée), quand le livre le dit du vainqueur (LDB 12 l.164) : il dit l'écart sans relire les camps, et
+  suit le verdict. Restent hors du gabarit, faute d'une issue d'un seul jet : la table de Tests (`tests`, une issue par
+  ligne), le carton de la bataille de masse, le Coup Critique et la table tirée (un nom de table), l'annonce d'un
+  choix, la nature d'une Influence, la Surincantation, la consigne et le dialogue.
+
+## Contenu fixe d'un état à l'autre (#4585)
+
+- À valider : le numéro du round dans une case de 96 px, « tour 1 sur 4 » ou « le round débute » toujours au même x
+  (`#round .n`, `sources/combat/combat.css`).
+- À valider : les lignes du journal dans une liste de hauteur fixe sous sa tête de 34 px, qui défile au pied
+  (`defile(…, 'au-pied')`, `sources/rendu.js`) ; la tête garde sa hauteur quand le journal est vide.
+- À valider : la liste d'un meuble a une seule largeur, 300 px, qu'elle porte des prix (pièces de bord) ou non (sorts)
+  (`#liste`, `sources/rendu.css`).
+- À valider : l'actif de l'ordre remplit sa place de 158 px, avec ou sans état porté (`#ordre .rang.actif`).
+- À valider : les rangées d'un Test d'équipage et l'enjeu remplissent la colonne de droite de la fenêtre, quel qu'en
+  soit le nombre de lignes (`#jet .rangees`, `#jet .enjeu`).
+
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
 - Plaques et fin du tour fermées.
@@ -36,16 +108,21 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 ## jet-de-defense (J1 à J8)
 - Ruban « Défense », camp du joueur à gauche.
 - À valider : réussite en sceau de cire verte et verdict vert sombre (le kit ne fixait que la cire rouge de l'échec) ;
-  DR net du vainqueur ; phrase d'issue avec la localisation (dé inversé 24 → 42, bras droit), sans dégâts.
+  DR net du côté du défenseur (« Bandeau du jet ») ; la localisation du coup reçu en conséquence (dé inversé 24 → 42,
+  bras droit), sans dégâts.
 - Le choix de la réaction avant le dé du défenseur (LDB 13 l.167) : `defense-avant-le-de`, plus bas.
 
 ## incantation (J10)
 - Bandeau à un seul camp lanceur ; le centre porte le sort en gothique et « Sort · Niveau d'incantation 0 ».
-- À valider : cible à droite en bloc sans dé (portrait de fer, « Cible du sort », Blessures) ; seuil « Langue
+- À valider : cible à droite sur les places du camp de droite (`fiche`, `sources/combat/jet.js`), le portrait au rect
+  de celui de l'adversaire (« pourquoi les portrait a droite explosent en taille sans raison ? », utilisateur,
+  2026-11-20), la jauge des Blessures à la rangée des dés ; seuil « Langue
   (Magick) ≤ 85 » d'exemple ; mêmes cinq gestes qu'à l'attaque.
 - Jet réussi (34 sous 85) : « Relancer » et « Résilience » fermés, la raison en bulle au survol (LDB 17 l.23, l.68) ;
   « Chance : +1 DR » reste ouverte (LDB 17 l.24). 34 n'est pas un double : pas d'Incantation Critique à choisir
   dans cet état (LDB 46 l.26-32).
+- À valider : la grande ligne dit « Réussite », le Sort lancé en conséquence, le Sort et son NI au sous-titre, le DR du
+  jet en petit dessous (« Bandeau du jet »).
 
 ## coup-critique (C1, C2, C3)
 - Le bandeau reste en place : à gauche la victime, sa silhouette, « Touché à la tête », sceau « 2 » Blessures
@@ -58,7 +135,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 
 ## debut-du-round (R1)
 - Le choix dans le bandeau, carte puis plaque : « Agir en premier », une carte par héros offert, la choisie en
-  laiton plein ; la plaque « Commencer le round » commet.
+  laiton plein ; la plaque « Commencer le round » commet. « Agir en premier » est la rubrique de la première carte,
+  avec ou sans la préemption du Tir rapide ; l'annonce dit « Round 2 · le round débute » dans les deux états.
 - Berta seule est offerte : Ilyanwe est déjà en tête de l'ordre (`src/noyau/turnEconomy.ts:43`).
 - La carte porte son coût, « 1 Chance » (LDB 17 l.25 ; une arme Rapide le rendrait gratuit, LDB 62 l.298-300,
   `turnEconomy.ts:61`) ; la Chance de Berta en médaillon à gauche de la plaque.
@@ -66,6 +144,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
   maquette au clic de la plaque (transversal §6 n° 4) ; le Tir rapide (LDB 11 l.97-103) : `debut-du-round-tir-rapide`, plus bas.
 - À valider : cartouche « Round 2 · le round débute » ; personne d'agrandi dans l'ordre ; fin du tour fermée ;
   aucune marque au sol.
+
+## fin-du-combat
+- À valider (#4585) : sous la bannière d'issue d'un combat, la sortie a une largeur (254) pour toutes les issues.
 
 ## fin-victoire (F1)
 - Le cartouche « Victoire » remonte ; le bandeau du bas, ruban « Butin », rend ce que porte `PendingVictory`
@@ -88,8 +169,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Verbes : `fenetreFermer('defaite')`, `fenetreFermer('repli')`, `fenetreFermer('aneantissement')`.
 - Réfs : le repli est la défaite d'une Scène de combat de bataille de masse, la bataille continue (ADE II 08 l.175,
   l.223 ; `src/noyau/issueDeCombat.ts:71-84`) ; l'anéantissement ramène au menu (`issueDeCombat.ts:67`).
-- À valider : la ligne de conséquence sous le cartouche (« Les héros sont soignés, la bataille continue. », « Aucun
-  héros ne tient debout. ») est une phrase d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
+- À valider : la ligne de conséquence sous le cartouche (« Le combat est perdu, la compagnie reprend pied sur les
+  lieux. », « Les héros sont soignés, la bataille continue. », « Aucun héros ne tient debout. ») est une phrase
+  d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
 
 ## journal-ouvert (T19)
 - Panneau de parchemin ouvert au-dessus de sa pastille, qui passe en laiton plein ; rangé par round, ruban
@@ -108,6 +190,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 ## cible-survolee (T14, T15, T16)
 - Case cernée de cire rouge, infobulle de parchemin, zone atteignable à liseré, trajet en pointillé, socles de camp,
   barre de vie fine ; « Attaque » armée ; barre des six emplacements rapides validée.
+- À valider (#4585) : l'aperçu d'une cible et celui d'un sort partagent une grille fixe (`corpsDuTour`) : la ligne
+  de jauge reste vide dans l'aperçu d'un sort, la table tient 125 de haut et défile au-delà.
 
 # Écrans neufs (2026-11-17, #4411)
 
@@ -129,7 +213,8 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 - À valider : deux images parce que le noyau n'offre jamais Porte-bouclier et Riposte ensemble (l'un veut un bouclier
   qui pare, l'autre une arme Rapide) ; la Rapière de `defense-riposte` est un exemple hors de la fiche de Berta ;
   colonnes inégales (330, centre, 384) pour loger le dé tombé de l'attaquant ; un réglage que le jet n'offre pas est
-  absent, jamais grisé ; la substitution sociale : `defense-sociale`, plus bas.
+  absent, jamais grisé ; la substitution sociale : `defense-sociale`, plus bas. Réactions en cartes 1-2 (la
+  sociale en carte 3), réglages en lignes 2-3 de la grille d'avant le dé (« Grille », plus haut, écran 4).
 
 ## meuble-engage-a-terre, meuble-tireur, meuble-chef-de-piece (écran 2)
 - Le meuble garde ses trois plaques ; un second rang de plaques sans pictogramme n'existe que s'il porte une offre
@@ -170,6 +255,25 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 - Les réglages manquants de `jet-avant-le-de`, en rangées à droite de la silhouette : « Arme » (Épée, « Bouclier
   (2nde −20) »), « Localisation » (« Au hasard » choisie, une zone de la silhouette sinon), bascules « Des deux
   armes » et « Retenir ses coups » ; à mains nues, « Empoigner » et sa note du jeu.
+- À valider : une seule grille du centre avant le dé pour toute la classe (« Chaque élément doit avoir sa place »,
+  utilisateur, 2026-11-20), primitive `reglage` (`sources/combat/jet.js`), places `PLACES_DU_REGLAGE`
+  (`sources/rendu.js`), le cadre du centre celui du jet tombé (`#verdict.grille`, 112). Inventaire (état : places) :
+  attaque ×4 et `localisation-du-critique` : sous, mot, figure, lignes 1-3 ; `defense-avant-le-de`, `defense-riposte` :
+  sous, mot, cartes 1-2, lignes 2-3 ; `defense-sociale` : sous, mot, cartes 1-3, ligne 3 ; `marchandage-avant-le-de` :
+  sous, mot, cartes 1-4 ; `combat-naval`, `combat-naval-bordee` : sous, mot, ligne 1, phrase ; `combat-naval-chanson` :
+  sous, mot, cartes 1-2, phrase ; `mer-fuite-de-vapeur`, `evenement-de-route` : sous, mot, phrase ;
+  `focalisation-avant-le-de`, `dissipation-avant-le-de` : sous, mot, cumul, phrase ; `test-de-corruption` : sous, mot,
+  cartes 1-2. Grille (x, y, l, h dans le fond de la fenêtre) : sous 308,14,326,14 (le rect du sous-titre du jet tombé) ;
+  mot 308,28,326,26 (la sorte du Test et sa difficulté, « Test opposé », « Test simple · Accessible +20 ») ; figure
+  300,55,54,84 ; lignes 362,55|83|111,280,28 ; cartes 308|473,55|84,161,26 ; cumul 308,88,326,14 et phrase
+  308,104,326,34 (les rects du DR et de la phrase du jet tombé). Un seul régime : la colonne de la figure reste
+  réservée, vide hors de l'attaque, et toute ligne a 280 de large, sinon une ligne aurait deux rects selon la présence
+  de la silhouette. Des places partagent une bande quand aucun état ne les porte ensemble (cartes 1-2 et ligne 1,
+  cartes 3-4, cumul et ligne 2, phrase et lignes 2-3). Écarts : la grande ligne d'avant le dé fait 26 de haut et non
+  les 38 du mot du jet tombé (l'attaque et la défense n'y logeraient pas leurs trois rangs) ; une carte du centre
+  montre son nom et la valeur qui décide (seuil, prix), le reste de son détail au survol (la chanson de marin ne
+  montre que son nom) ; la sorte se lit opposée quand l'autre camp teste aussi, simple sinon (le harpon contre une
+  cible qui ne teste pas).
 - Verbes : `jetRegler('attaque', 'arme' | 'localisation' | 'deuxArmes' | 'retenirSesCoups' | 'empoigner', valeur)`,
   `jetLancer('attaque')`, `jetForcerLaReussite('attaque')`, `jetAnnuler('attaque')`.
 - Réfs : LDB 10 l.767-773, LDB 14 l.78 (main secondaire, −20), LDB 14 l.159, AA 07 l.59-61 ; conditions de chaque
@@ -187,7 +291,7 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   `fenetreFermer('frappeMortelle')`.
 - Réfs : LDB 10 l.767-773 ; LDB 14 l.5-9 (option Frappe mortelle) ; `fenetre.secondeFrappe`, `fenetre.frappeMortelle`,
   `consigne.deuxArmes`, `consigne.frappeMortelle` (`src/i18n/messages/fr.ts:489-490`, `fr.ts:4451-4452`).
-- À valider : bandeau de 170 px au lieu de 212 ; aucune plaque de laiton plein (le clic du champ commet) ; les dés
+- À valider : aucune plaque de laiton plein (le clic du champ commet) ; les dés
   vides de l'enchaînement annoncent le jet à venir ; la cible montée et la visée de siège : `cible-montee` et
   `visee-de-siege`, plus bas.
 
@@ -257,3 +361,13 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   `verbe.viseeDeSiege.fermer` (`src/i18n/messages/fr.ts:484`, `fr.ts:4454`, `fr.ts:372`).
 - À valider : le gabarit de `seconde-frappe` (consigne et un geste de sortie, aucune plaque pleine) ; aire d'une case
   de rayon, exemple (le noyau la lit à l'arme, `siegeBlastRadiusTiles`) ; mortier dessiné pour l'image.
+
+## fuite-seuil-survole (camp d'un testeur)
+- L'état `fuite` (`combat-suite.md`), le seuil de l'Orc sous le curseur : la bulle à pointe des influences du jet,
+  une ligne par modificateur (« Avantage 2 », « Dos tourné +20 »), le libellé de `libelleDuModificateur`
+  (`sources/rendu.js`). Hors survol, aucune bulle : le seuil reste seul, le nom seul sur sa ligne.
+- Le camp d'un testeur a ses places (`PLACES`, `sources/rendu.js`) : le portrait, l'identité (nom, Test sur deux lignes
+  au plus), la rangée du seuil, des dés et du sceau à un y fixe, l'issue (verdict, DR) sous le portrait.
+- À valider : les influences du jet sont au survol du seuil, dans la bulle à pointe (`bulle.gd` côté Godot) ;
+  « Jet inversé 20 → 02 » et « Rôle essentiel ×2 » changent la lecture des dés ou des DR à l'écran sans signe visible
+  hors survol (aucun marqueur inventé, l'utilisateur décide) ; issue en deux lignes sous le portrait ; sceau `grand`.

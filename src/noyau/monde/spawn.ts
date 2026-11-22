@@ -5,7 +5,6 @@
 import {
   Combatant,
   Characteristics,
-  type Weapon,
   CHAR_KEYS,
   BodyShape,
   SkillInstance,
@@ -28,10 +27,13 @@ import {
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import {
   findCreatureById,
+  estDotationDObjet,
+  estMention,
   byId,
   findTalentById,
   tailleDuProfil,
   findVehicleById,
+  findSiegeEngineById,
   findTrappingById,
   specPoolOf,
   CreatureData,
@@ -56,12 +58,20 @@ import {
   contexteDeNaissanceDObjet,
   deciderApparencesDesArmes,
   equipConflicts,
+  emptyArmour,
+  ensureDefaultLoadout,
   hydratePoste,
+  loadoutSetActive,
   loadWeapon,
   objetsDeLInventaire,
+  objetDeSlot,
   recomputeLoadout,
+  type TrappingResolver,
+  weaponFromItem,
 } from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
+import { doterLePorteur } from '../../engine/bourse';
+import { itemCapability } from '../../engine/capabilities';
 import { lierLesComposants } from '../../engine/magic';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
@@ -74,7 +84,7 @@ import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
 import { groupsFor } from '../../engine/groups';
-import { weaponsFromTraits, armourFromTraits, traitsDevantLEquipement } from '../../engine/creatureEquip';
+import { weaponsFromTraits, ajusterTraitsDuProfil } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
@@ -183,13 +193,12 @@ function spawnMutations(traits: TraitList | undefined, rng: RNG): Mutation[] {
 
 /** Le porteur NÉ avec ses mutations les porte comme celui qui les a GAGNÉES en jeu : chaque instance est
  *  attachée par `attachMutation` (`engine/corruption.ts`), graine STABLE dérivée de l'id (déterministe,
- *  rejouable). Les armes se re-dérivent ensuite de `c.traits` par la dérivation `armes` du constructeur, et
- *  les Blessures se recalent (`blessuresReconciliees` : un porteur neuf reste à son maximum). LDB 85 l.245 ; #1853. */
-function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined, armes: (traits: TraitList) => Weapon[]): void {
+ *  rejouable). `weaponsFromTraits` et `blessuresReconciliees` lisent ce porteur. LDB 85 l.245 ; #1853. */
+function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined): void {
   const rng = makeRNG(hashSeed(`mut:${c.id}`));
   const mutations = spawnMutations(traits, rng);
   for (const m of mutations) attachMutation(c, m, rng);
-  c.weapons = armes(c.traits ?? []);
+  c.weapons = weaponsFromTraits(c.traits ?? []);
   c.wounds = blessuresReconciliees(c);
 }
 
@@ -256,7 +265,7 @@ export interface SpawnExtras {
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
   /** Override DIRECT des caractéristiques (tirage FIGÉ d'une Possession — `Possession.charsRolled`,
-   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`/`sb.randomChars`. */
+   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`. */
   charsRolled?: Characteristics;
   /** Traits APPRIS unis aux traits de base (dresse-* octroyés par un Test de Dressage réussi, LDB 23
    *  l.130 → LDB 85 l.100-118 — ex. « Dressé (Monture) » d'une bête possédée). Ids seuls (sans value/arg) :
@@ -370,7 +379,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos?: { 
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: armourFromTraits(traits),
+    armour: emptyArmour(),
     size,
     bodyShape: bodyShapeOf(creature.id), // Tableau de Localisation par forme du corps (LDB 76 l.15-29)
     ...(creature.followsCharacterRules ? { followsCharacterRules: true } : {}), // #152 : bestiaire HUMAIN rétro-flagué (CreatureData) — même prédicat unique que statblockToCombatant (#143)
@@ -390,7 +399,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos?: { 
   const imprime: Omit<Combatant, 'wounds'> = { ...sansBlessures, traits: imprimes, liveTraits: [] };
   const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees(imprime, livre) };
   const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
-  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
+  attacherMutationsDeSpawn(combattant, traits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }
@@ -402,7 +411,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
-  const aleatoire = !!sb.randomChars || !!extras?.randomChars;
+  const aleatoire = extras?.randomChars;
   const rolled = !!extras?.charsRolled || aleatoire;
   const livre = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, aleatoire);
@@ -426,7 +435,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: armourFromTraits(traits),
+    armour: emptyArmour(),
     size,
     bodyShape: swarm ? 'humanoide' : bodyShapeForSpecies(appearance?.species), // Tableau de Localisation (LDB 76 l.15-29) — espèce AUTHORÉE (id, jamais sb.label), Nuée force 'humanoide' (#814 : divergence possible avec `bodyShapeOf` sur un preset de campagne fusionnant Nuée hors registre global)
     ...(sb.inert ? { inert: true } : {}), // affût inerte servi (AA/MDG 12) : ciblable, sans réaction de combat ni tour
@@ -445,7 +454,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   const horsNuee = traits.filter((t) => !isSwarm([t]));
   const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees({ ...sansBlessures, traits: horsNuee, liveTraits: horsNuee }, livre) };
   const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
-  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
+  attacherMutationsDeSpawn(combattant, traits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }
@@ -471,7 +480,7 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   }
   if (porteur.engin !== undefined) {
     // AA 10 l.175-193
-    const t = findTrappingById(porteur.engin);
+    const t = findSiegeEngineById(porteur.engin);
     if (!t) throw new RefIrresoluble(porteur.engin, id);
     return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }
@@ -482,19 +491,48 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   return c;
 }
 
-/** Le personnage `c` porte, après ses objets de dotation, l'inventaire d'auteur `inventaire` (uid
- *  `<id>-objet-<trappingId>`), dont un objet porté ôte les dotations qu'il chevauche (`equipConflicts`) : ses Traits
- *  cèdent à l'équipement réel (`traitsDevantLEquipement`), puis il s'équipe comme un héros (`recomputeLoadout`).
- *  LDB 77 l.7 ; #3684 */
-function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur): void {
-  const dotations = c.items ?? [];
-  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexteDeNaissanceDObjet(c));
-  for (const o of auteur) if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
-  c.items = [...dotations, ...auteur];
-  const restent = traitsDevantLEquipement(c.traits ?? [], c.items);
-  const cedes = new Set((c.traits ?? []).filter((t) => !restent.includes(t)));
-  c.traits = restent;
-  if (c.liveTraits) c.liveTraits = c.liveTraits.filter((t) => !cedes.has(t));
+/** LDB 77 l.7 ; #3684 ; #4348. */
+function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, resolveTrapping: TrappingResolver, trappings: CreatureData['trappings'] = []): void {
+  const contexte = contexteDeNaissanceDObjet(c);
+  const armureDecriteParLeTrait = new Set<string>(trappings.flatMap((r) => 'decritLeTraitArmure' in r ? [r.id] : []));
+  const refs = trappings.filter((r) => (estDotationDObjet(r) && !('decritLeTraitArmure' in r)) || estMention(r));
+  let n = 0;
+  const fiche = doterLePorteur(refs, makeRNG(hashSeed(`dotations-de-fiche:${c.id}`)), () => `${c.id}-fiche-${n++}`, contexte, resolveTrapping);
+  if (fiche.mentions) c.mentions = [...c.mentions ?? [], ...fiche.mentions];
+  const carriere = c.items ?? [];
+  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), resolveTrapping, contexte)
+    .filter((o) => !armureDecriteParLeTrait.has(o.trappingId ?? ''));
+  if (!carriere.length && !fiche.items.length && !auteur.length) return;
+
+  for (const o of fiche.items) {
+    if (itemCapability(o, 'armureDeMonture')) o.equipped = !equipConflicts({ items: fiche.items }, o).length;
+    if (o.equipped && equipConflicts({ items: carriere }, o).length) o.equipped = false;
+  }
+  const auteurSeul = [];
+  const redefinis = [];
+  for (const o of auteur) {
+    const index = fiche.items.findIndex((i) => i.trappingId === o.trappingId);
+    if (index < 0) auteurSeul.push(o);
+    else {
+      const original = fiche.items[index];
+      const redefini = { ...original, uid: o.uid, equipped: o.equipped, apparence: o.apparence ?? original.apparence };
+      fiche.items[index] = redefini;
+      redefinis.push(redefini);
+    }
+  }
+  const dotations = [...carriere, ...fiche.items];
+  for (const o of [...auteurSeul, ...redefinis]) {
+    if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
+  }
+  c.items = [...dotations, ...auteurSeul];
+  ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul], { armureDecriteParLeTrait: armureDecriteParLeTrait.size > 0 });
+  const armeDEquipe = fiche.items.find((o) => o.bouclierDEquipe && objetDeSlot(c, o.uid));
+  if (armeDEquipe) {
+    ensureDefaultLoadout(c);
+    // ZI 13 l.193.
+    const panoplie = c.loadouts?.find((set) => set.main === armeDEquipe.uid);
+    if (panoplie) loadoutSetActive(c, panoplie.id);
+  }
   recomputeLoadout(c);
 }
 
@@ -502,7 +540,7 @@ export function spawnEnemy(
   porteur: PorteurDeFiche,
   id: string,
   pos: { x: number; y: number; z?: number } | undefined, // z (étage) conservé sur c.pos via les spreads/shorthands ; absente : un assaillant sans case (`serieSubie`)
-  opts?: { appearance?: EntityAppearance; inventaire?: InventaireDAuteur } & SpawnExtras,
+  opts?: { appearance?: EntityAppearance; inventaire?: InventaireDAuteur; resolveTrapping?: TrappingResolver } & SpawnExtras,
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
@@ -527,14 +565,28 @@ export function spawnEnemy(
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
-  if (c.items?.length || Object.keys(opts?.inventaire ?? {}).length) equiperDeLInventaire(c, opts?.inventaire ?? {});
+  const resolveTrapping = opts?.resolveTrapping ?? findTrappingById;
+  const trappings = (porteur.presetCreature ?? findCreatureById(porteur.ref))?.trappings;
+  if (trappings?.length || c.items?.length || Object.keys(opts?.inventaire ?? {}).length) {
+    equiperDeLInventaire(c, opts?.inventaire ?? {}, resolveTrapping, trappings);
+  }
   if (porteur.parcours) argentDuPnj(c);
   lierLesComposants(c);
-  deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
+  deciderApparencesDesArmes(resolveTrapping, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
   const spawnRanged = c.weapons.find((w) => w.type === 'distance');
-  if (spawnRanged) loadWeapon(c, spawnRanged);
+  if (spawnRanged) loadWeapon(resolveTrapping, c, spawnRanged);
+  if (trappings?.some(estDotationDObjet)) {
+    const chargees = new Set([spawnRanged?.uid]);
+    for (const set of c.loadouts ?? []) for (const uid of [set.main, set.secondaire]) {
+      if (chargees.has(uid)) continue;
+      const item = objetDeSlot(c, uid);
+      if (item?.kind !== 'distance') continue;
+      loadWeapon(resolveTrapping, c, weaponFromItem(item));
+      chargees.add(uid);
+    }
+  }
   return structuredClone(c); // #2097
 }

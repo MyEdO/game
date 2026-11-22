@@ -181,7 +181,7 @@ export default {
         etape: 'presentation', buste: 'astrid', nom: 'Astrid Altdorfer', espece: 'Humains (Reiklander)', carriere: 'Artiste Apprentie', classe: 'Courtisans',
         physique: [{ rubrique: 'Âge', valeur: '23 ans' }, { rubrique: 'Taille', valeur: '172 cm' }, { rubrique: 'Yeux', valeur: 'Marron' }, { rubrique: 'Cheveux', valeur: 'Brun foncé' }],
         blessures: { n: 10, sur: 10 },
-        reserves: [{ nom: 'Destin', valeur: 3 }, { nom: 'Chance', valeur: 4 }, { nom: 'Résilience', valeur: 3 }, { nom: 'Détermination', valeur: 3 }],
+        reserves: [{ id: 'destin', nom: 'Destin', valeur: 3 }, { id: 'chance', nom: 'Chance', valeur: 4 }, { id: 'resilience', nom: 'Résilience', valeur: 3 }, { id: 'determination', nom: 'Détermination', valeur: 3 }],
         signe: 'Le Trait du Peintre', statut: 'Argent 1', bourse: 84, motivation: 'Peindre ce que nul n’ose regarder',
         profil: ([['M', 4], ['CC', 28], ['CT', 30], ['F', 27], ['E', 33], ['I', 41], ['Ag', 32], ['Dex', 39], ['Int', 37], ['FM', 29], ['Soc', 35], ['B', 10]] as [Carac, number][]).map(([carac, valeur]) => ({ carac, valeur })),
         competences: [

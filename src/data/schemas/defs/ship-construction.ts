@@ -21,7 +21,7 @@ const champs = {
         sail: profilDePropulsionSchema.optional(),
         oars: profilDePropulsionSchema.optional(),
         /** Colonne « Taille » du tableau standard (l.122-129), en mètres : une FOURCHETTE `{min, max}`
-         *  que `findTableEntry` (`src/engine/tables.ts`) lit. La dernière bande est OUVERTE — le livre
+         *  que `shipSizeOfLength` (`src/engine/shipBuild.ts`) lit. La dernière bande est OUVERTE — le livre
          *  imprime « 81+ » (l.129) et aucun plafond (`plageOuverteSchema`). */
         lengthM: plageOuverteSchema,
         e: z.number(),
@@ -42,10 +42,7 @@ const champs = {
         source: { label: 'Source' },
       }),
     ).superRefine((rangees, ctx) => {
-      // CONTIGUÏTÉ des longueurs — invariant du TABLEAU, pas d'une rangée : une taille seule ne sait
-      // pas si sa voisine commence là où elle s'arrête. Sans ce verrou, un trou ouvert au Codex ne
-      // lèverait RIEN — `shipSizeOfLength` (`src/engine/shipBuild.ts`) lit la table par
-      // `findTableEntry`, qui REPLIE sur la dernière bande : une chaloupe de 12 m serait Monstrueuse.
+      // Les bandes couvrent chaque longueur entière depuis 1 m, sans trou ni chevauchement.
       const ecarts = ecartsDeCouverture(
         rangees.map((r) => ({ ...r.lengthM, size: r.size })),
         1,

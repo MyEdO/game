@@ -21,6 +21,8 @@ import { analyserCorpus, typescript } from './dialecte.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { attributDe, depotDe, listerImage, refusDeGit, SUIVI } from './gitPorte.mjs';
 import { estModule } from './importGraph.mjs';
+import type { CorpusFile } from './sourceCorpus.mjs';
+import type { Echeance, EcheanceNullable } from './stock.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -59,7 +61,7 @@ export function regenererStock(
 
 function regenererUn(
   r: RegenerationDeStock,
-  p: { check: boolean; amorce: boolean; lot: string | null; date: string; outil: string },
+  p: Pick<EcheanceNullable, 'lot'> & Pick<Echeance, 'date'> & { check: boolean; amorce: boolean; outil: string },
 ): number {
   const enPlace = texteEnPlace(r.chemin);
   if (p.check) {
@@ -121,7 +123,7 @@ function moduleDeLaLigne(args: readonly string[]): string | typeof TOUS | null {
  * déclaration de types (`.d.mts`), un instrument (`estFichierVitest`), un kit de test (`estKitDeTest`) ou un fichier hors `estModule`
  * n'en est pas un. PUR.
  */
-export function modulesQuiMesurent(fichiers: Iterable<{ rel: string; text: string }>): string[] {
+export function modulesQuiMesurent(fichiers: Iterable<Pick<CorpusFile, 'rel' | 'text'>>): string[] {
   const ts = typescript();
   const estExporte = (st: { modifiers?: readonly { kind: number }[] }) => Boolean(st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
   const candidats = [...fichiers].filter((f) => estModule(f.rel) && !/\.d\.[cm]?ts$/.test(f.rel) && !estFichierVitest(f.rel) && !estKitDeTest(f.rel));

@@ -34,13 +34,14 @@ import { REGISTRES_DU_BORD, type BattleState, type CampaignVessel, type Jeu, typ
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
-import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
-import { estNavire, profilNavalDe } from '../engine/coque';
+import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findTrappingById, findVehicleById, findSeaShantyById } from '../data';
+import { estNavire, milieuDeLaCoque, profilNavalDe } from '../engine/coque';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter, testValue } from '../engine/skills';
-import { rollLine, type RollLineParts } from './ligneDeJet';
 import { maxBy } from '../engine/pick';
+import { semainesCompletes } from '../engine/clock';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
@@ -49,7 +50,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
+import { propulsionDuNavire } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { choisirLaMunition } from '../engine/items';
@@ -59,7 +60,8 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { applyContraction, diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
+import { applyContraction, type PorteurDeMaladies } from '../engine/disease';
+import { ligneDeContraction } from './contraction';
 import { rule } from '../engine/policy';
 import { WORLD_STEP_OWNER, type BatchParticipant, type CascadeStepMeta } from './pendings';
 import type { BandPorteur } from './rollSeam';
@@ -133,10 +135,11 @@ export function equipageImplique(party: readonly Combatant[], manieurs: readonly
   return apte.filter((c) => manieurs.includes(c.id) || roleDePropulsion(postes.get(c.id)));
 }
 
-/** Compétence de Navigation de la coque `ship` dans le milieu du voyage en cours (`propulsionDuNavire`,
- *  MDG 13 l.18-19), que le schéma de véhicule garantit. */
+/** Compétence de Navigation de la coque `ship` dans le milieu de la rencontre ou du voyage (`propulsionDuNavire`).
+ *  MSRC 07 l.11–17 ; MDG 13 l.18–19. */
 export function navigationDuNavire(get: Get, ship: Combatant): RefDesignee {
-  return garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieuDuVoyage(get().travelPlan)), ship.creatureId, 'propulsion du navire').competence;
+  const milieu = milieuDeLaCoque(ship, get().travelPlan);
+  return garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieu), ship.creatureId, 'propulsion du navire').competence;
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string, navigation: RefDesignee): CrewAssignment[] {
@@ -188,7 +191,7 @@ export function withCrewActed(crewActed: Record<string, string[]> | undefined, s
  */
 export function shipMoraleScore(get: Get, ship: Combatant): number {
   const vessel = get().vessel;
-  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : moraleBase();
+  return vessel && estLeNavireDeCampagne(ship, vessel) ? vessel.morale.score : moraleBase();
 }
 
 /**
@@ -202,10 +205,11 @@ export function shipMoraleScore(get: Get, ship: Combatant): number {
 export function shipboardSouls(s: Pick<Jeu, 'party' | 'vessel'>): { heroes: number; crew: number; total: number } {
   const heroes = s.party.filter((h) => !h.dead).length;
   const vessel = s.vessel;
-  const nominal = vessel ? findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0 : 0;
-  const crew = Math.max(0, nominal - (vessel?.crewLost ?? 0));
+  const crew = Math.max(0, effectifNominal(vessel) - (vessel?.crewLost ?? 0));
   return { heroes, crew, total: heroes + crew };
 }
+
+const effectifNominal = (vessel: Jeu['vessel']): number => vessel ? findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0 : 0;
 
 /** Un porteur de maladies à bord (`porteursABord`). */
 export interface PorteurABord {
@@ -230,8 +234,17 @@ const enContraction = (r: BandPorteur): BandPorteur => ({ ...r, menace: 'maladie
 function avecLEquipage(vessel: CampaignVessel, equipage: CampaignVessel['porteurDeLEquipage']): CampaignVessel {
   const { porteurDeLEquipage: _ancien, ...reste } = vessel;
   const diseases = equipage?.diseases?.length ? equipage.diseases : undefined;
+  const diseaseImmunities = equipage?.diseaseImmunities?.length ? equipage.diseaseImmunities : undefined;
   const regimeDeBord = equipage?.regimeDeBord;
-  return diseases || regimeDeBord ? { ...reste, porteurDeLEquipage: { ...(diseases ? { diseases } : {}), ...(regimeDeBord ? { regimeDeBord } : {}) } } : reste;
+  if (!diseases && !diseaseImmunities && !regimeDeBord) return reste;
+  return {
+    ...reste,
+    porteurDeLEquipage: {
+      ...(diseases ? { diseases } : {}),
+      ...(diseaseImmunities ? { diseaseImmunities } : {}),
+      ...(regimeDeBord ? { regimeDeBord } : {}),
+    },
+  };
 }
 
 /**
@@ -250,7 +263,7 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     id: h.id,
     porteur: h,
     rangee: { actor: h, ligne: { test: RESISTANCE } },
-    contraction: (diseaseId) => enContraction({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
+    contraction: (diseaseId) => enContraction({ actor: h, ligne: ligneDeContraction(h, diseaseId) }),
     ecrire: ecrire(),
   }));
   if (!s.vessel || !shipboardSouls(s).crew) return pjs;
@@ -283,7 +296,7 @@ export function contracterABord(
  * du type (`vehicles.json` ship.crew) et le PRÉSENT = les `crewIds` encore EN ÉTAT (`exposedCrew`), MOINS les
  * marins déjà retirés de la campagne par Embrigadement (MDG 15 l.245, `CampaignVessel.crewLost`). Les
  * morts/inconscients de combat (Éclats, critiques « Équipage ») alimentent aussi le déficit. Lit l'état persistant
- * du vaisseau de campagne comme `shipMoraleScore` (keyé `creatureId === vehicleId`). */
+ * du vaisseau de campagne comme `shipMoraleScore`. */
 export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]): UndercrewPenalty {
   const nominal = profilNavalDe(ship)?.crew ?? 0;
   // Équipage ABSTRAIT (MDG 14 l.39 : « la performance des Personnages représente celle de tout l'équipage ») → le
@@ -294,7 +307,7 @@ export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]
   const named = (ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
   const deadNamed = named.length - exposedCrew(named).length;
   const vessel = get().vessel;
-  const lost = vessel && ship.creatureId === vessel.vehicleId ? (vessel.crewLost ?? 0) : 0;
+  const lost = vessel && estLeNavireDeCampagne(ship, vessel) ? (vessel.crewLost ?? 0) : 0;
   return undercrewPenalty(nominal, Math.max(0, nominal - lost - deadNamed));
 }
 
@@ -341,11 +354,6 @@ const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as co
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {
   return testValue(singer, TEST_DE_CHANSON);
-}
-
-/** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */
-export function ligneDeChanson(singer: Combatant): RollLineParts {
-  return rollLine({ actor: singer, test: TEST_DE_CHANSON, difficulty: 'intermediaire' });
 }
 
 /** Durée en minutes de l'effet d'une Chanson de marin au DR `sl` — MDG 09 l.38. */
@@ -466,7 +474,7 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
  */
 export function applyShipMoraleDelta(get: Get, set: SetFn, ship: Combatant, delta: number): string[] {
   const vessel = get().vessel;
-  if (!delta || !vessel || ship.creatureId !== vessel.vehicleId) return [];
+  if (!delta || !vessel || !estLeNavireDeCampagne(ship, vessel)) return [];
   const before = vessel.morale.score;
   const after = before + delta;
   set({ vessel: { ...vessel, morale: { ...vessel.morale, score: after } } });
@@ -577,7 +585,7 @@ function defaultPayDecision(wageBrass: number): string | null {
 
 /**
  * Entretien HEBDOMADAIRE du navire de campagne (MDG 14) — appelé par `upkeep.ts` (site UNIQUE) à chaque entretien,
- * règle les semaines calendaires franchies depuis `lastMoraleWeek`. CADENCE-AWARE (#229) : quand un humain est à la barre
+ * règle les semaines franchies depuis `lastMoraleWeek`. CADENCE-AWARE (#229) : quand un humain est à la barre
  * (cadence MANUELLE) et qu'un vrai choix de paie existe (équipage salarié), la décision REMONTE en CONSEIL DE
  * BORD (modale `pendingCouncil`) — aucune mutation ici, le recalcul se joue à la validation du joueur. Il n'y
  * a pas de combattant « navire » à piloter → le prédicat de contrôle canonique se réduit à la cadence
@@ -590,7 +598,7 @@ function defaultPayDecision(wageBrass: number): string | null {
 export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng: RNG): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
-  const week = semaineDuJour(today);
+  const week = semainesCompletes(today);
   if (week <= vessel.morale.lastMoraleWeek) return [];
   const conseil = get().pendingCouncil;
   if (conseil) {
@@ -605,15 +613,10 @@ export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng:
   return reglerLesSemaines(get, set, defaultPayDecision(wageBrass), week, rng).lines;
 }
 
-/** Semaine calendaire d'un jour de campagne (`lastMoraleWeek`, `PendingCouncil.today`). */
-export function semaineDuJour(jour: number): number {
-  return Math.floor(jour / 7);
-}
-
 /** Semaines que le Conseil de bord en phase `choix` règle d'une décision : de `lastMoraleWeek + 1` à sa semaine. */
 export function semainesDuConseil(s: Jeu): number {
   const p = s.pendingCouncil;
-  return p && s.vessel ? semaineDuJour(p.today) - s.vessel.morale.lastMoraleWeek : 0;
+  return p && s.vessel ? semainesCompletes(p.today) - s.vessel.morale.lastMoraleWeek : 0;
 }
 
 /** Règle chaque semaine franchie, de `lastMoraleWeek + 1` à `week` (MDG 14 l.143, l.293-302) : une solde et un
@@ -660,7 +663,7 @@ function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
   const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
   if (!get().vessel) return;
   const semaines = semainesDuConseil(get());
-  const bloc = reglerLesSemaines(get, set, decision, semaineDuJour(p.today), battleRng());
+  const bloc = reglerLesSemaines(get, set, decision, semainesCompletes(p.today), battleRng());
   set({ pendingCouncil: { ...p, phase: 'bilan', decision, semaines, results: factorLedger(bloc.factorRolls), delta: bloc.delta, before: bloc.before, after: bloc.after } });
   get().ecrireAuJournal(bloc.lines);
 }
@@ -689,24 +692,6 @@ export function chansonsDuChanteur(s: Jeu): string[] {
   return chanteur ? knownShanties(chanteur).flatMap((id) => findSeaShantyById(id)?.id ?? []) : [];
 }
 
-/**
- * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (op de navire `equipage`, MDG 15 l.245) :
- * PERSISTE sur `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même
- * source que `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement. Renvoie
- * le journal.
- */
-export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string[] {
-  const vessel = get().vessel;
-  if (!delta || !vessel) return [];
-  const nominal = findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0;
-  const before = vessel.crewLost ?? 0;
-  const after = Math.max(0, Math.min(nominal, before + delta));
-  if (after === before) return [];
-  const crewLost = { ...vessel, crewLost: after };
-  set({ vessel: after < nominal ? crewLost : avecLEquipage(crewLost, undefined) });
-  return [t('crew.crewDelta', { delta: `${after > before ? '−' : '+'}${Math.abs(after - before)}`, left: Math.max(0, nominal - after), nominal })];
-}
-
 /** Le rôle tenu par défaut par un membre de l'équipage sans autre poste. MDG 14 l.15 */
 const roleParDefaut = () => crewRoles.find((r) => r.parDefaut);
 
@@ -727,10 +712,12 @@ export function posteDeLEtape(meta: CascadeStepMeta | undefined): PosteDuBord | 
  *  rôle. MDG 14 l.293-302 */
 const inscritsDuBord = (s: Pick<Jeu, 'vessel'>) => REGISTRES_DU_BORD.flatMap((registre) => (s.vessel?.[registre] ?? []).map((h) => ({ ...h, registre })));
 
+const nombreDInscrits = (vessel: CampaignVessel): number => inscritsDuBord({ vessel }).reduce((n, h) => n + h.count, 0);
+
 /** Le nombre de postes sur lequel se tire un membre de l'équipage : les inscrits aux registres, ou l'effectif présent
  *  (`shipboardSouls`) s'il est plus nombreux ; au moins un. MDG 14 l.15 ; MDG 12 l.85 */
 export const postesDuTirage = (s: Pick<Jeu, 'party' | 'vessel'>): number =>
-  Math.max(1, shipboardSouls(s).crew, inscritsDuBord(s).reduce((n, h) => n + h.count, 0));
+  Math.max(1, shipboardSouls(s).crew, s.vessel ? nombreDInscrits(s.vessel) : 0);
 
 /** Le poste d'indice `i` parmi les `postesDuTirage` : les inscrits aux registres dans leur ordre, chaque inscrit un
  *  poste ; les postes au-delà tiennent le rôle par défaut (`roleParDefaut`). MDG 14 l.15 ; MDG 12 l.85 */
@@ -743,6 +730,71 @@ export function posteDuMembre(s: Pick<Jeu, 'vessel'>, i: number): PosteDuBord {
   return { roleId: garanti(roleParDefaut(), 'parDefaut', 'rôle d’équipage par défaut').id };
 }
 
+function modifierUnRegistre(vessel: CampaignVessel, { roleId, registre }: PosteDuBord, compte: number): CampaignVessel {
+  if (!registre) return vessel;
+  return { ...vessel, [registre]: ajouterAuRoster(vessel[registre], roleId, compte).filter((h) => h.count > 0) };
+}
+
+/** Borne les registres à l’effectif présent. Les inscriptions au début des registres sont conservées en priorité. */
+export function bornerLesRegistresDuBord(vessel: CampaignVessel): CampaignVessel {
+  let excedent = nombreDInscrits(vessel) - shipboardSouls({ vessel, party: [] }).crew;
+  if (excedent <= 0) return vessel;
+  let suivant = vessel;
+  for (const h of inscritsDuBord({ vessel }).reverse()) {
+    if (excedent <= 0) break;
+    const retrait = Math.min(excedent, h.count);
+    suivant = modifierUnRegistre(suivant, h, -retrait);
+    excedent -= retrait;
+  }
+  return suivant;
+}
+
+/** MDG 12 l.85 ; MDG 14 l.293-302 */
+function postesRecrutables(vessel: CampaignVessel): number {
+  return Math.max(0, effectifNominal(vessel) - nombreDInscrits(vessel));
+}
+
+/** MDG 14 l.293-302 */
+export function inscrireLesRecrues(vessel: CampaignVessel, roleId: string, demandes: number): { vessel: CampaignVessel; admis: number } {
+  const admis = Math.min(Math.floor(demandes), postesRecrutables(vessel));
+  if (admis <= 0) return { vessel, admis: 0 };
+  const placesVacantes = vessel.crewLost ?? 0;
+  const recrute = placesVacantes ? { ...vessel, crewLost: Math.max(0, placesVacantes - admis) } : vessel;
+  return { vessel: modifierUnRegistre(recrute, { roleId, registre: 'crew' }, admis), admis };
+}
+
+/** MDG 12 l.85 ; MDG 14 l.192-202, l.293-302 ; MDG 15 l.202-218, l.245, l.258 */
+export function applyVesselCrewLoss(
+  get: Get,
+  set: SetFn,
+  delta: number,
+  selection: ((postes: number) => number) | PosteDuBord | { postes: readonly PosteDuBord[] },
+): { lignes: string[]; variation: number } {
+  const vessel = get().vessel;
+  if (!delta || !vessel) return { lignes: [], variation: 0 };
+  const nominal = effectifNominal(vessel);
+  const before = vessel.crewLost ?? 0;
+  const after = Math.max(0, Math.min(nominal, before + delta));
+  const variation = after - before;
+  if (!variation) return { lignes: [], variation };
+
+  let suivant: CampaignVessel = { ...vessel, crewLost: after };
+  if (typeof selection === 'function') {
+    for (let n = 0; n < variation && nombreDInscrits(suivant); n++) {
+      const postes = Math.max(nominal - before - n, nombreDInscrits(suivant));
+      suivant = modifierUnRegistre(suivant, posteDuMembre({ vessel: suivant }, selection(postes)), -1);
+    }
+  } else if ('postes' in selection) {
+    for (const poste of selection.postes.slice(0, variation)) suivant = modifierUnRegistre(suivant, poste, -1);
+  } else {
+    suivant = modifierUnRegistre(suivant, selection, -variation);
+  }
+  if (variation > 0) suivant = bornerLesRegistresDuBord(suivant);
+  set({ vessel: after < nominal ? suivant : avecLEquipage(suivant, undefined) });
+  const lignes = [t('crew.crewDelta', { delta: `${variation > 0 ? '−' : '+'}${Math.abs(variation)}`, left: nominal - after, nominal })];
+  return { lignes, variation };
+}
+
 /** Le membre de l'équipage au `poste` comme combattant : le profil de son rôle (`CrewRoleData.profil`), nommé par son
  *  rôle, en camp `pnj`, sans case. MDG 14 l.305-380 */
 export function membreDuBord(poste: PosteDuBord, id: string): Combatant {
@@ -753,11 +805,7 @@ export function membreDuBord(poste: PosteDuBord, id: string): Combatant {
 /** Un membre de l'équipage au `poste` meurt : l'effectif perd une personne (`applyVesselCrewLoss`), et son registre une
  *  personne à son rôle. Rend le journal. LDB 18 l.34 ; MDG 14 l.293-302 */
 export function perdreUnMembreDuBord(get: Get, set: SetFn, poste: PosteDuBord): string[] {
-  const lignes = applyVesselCrewLoss(get, set, 1);
-  const vessel = get().vessel;
-  const { registre } = poste;
-  if (vessel && registre) set({ vessel: { ...vessel, [registre]: ajouterAuRoster(vessel[registre], poste.roleId, -1).filter((h) => h.count > 0) } });
-  return lignes;
+  return applyVesselCrewLoss(get, set, 1, poste).lignes;
 }
 
 /**
@@ -777,10 +825,10 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   const threshold = moraleBand(vessel.morale.score).desertionRoll;
   if (!threshold) return []; // Moral > 75 : bande sans seuil de désertion (MDG 14 l.187-191)
   const present = shipboardSouls(get()).crew;
-  let deserters = 0;
-  for (let i = 0; i < present; i++) if (deMonde(rng) <= threshold) deserters++;
-  if (!deserters) return [];
-  return [t('crew.desertion', { n: deserters }), ...applyVesselCrewLoss(get, set, deserters)];
+  const postes: PosteDuBord[] = [];
+  for (let i = 0; i < present; i++) if (deMonde(rng) <= threshold) postes.push(posteDuMembre({ vessel }, i));
+  if (!postes.length) return [];
+  return [t('crew.desertion', { n: postes.length }), ...applyVesselCrewLoss(get, set, postes.length, { postes }).lignes];
 }
 
 /** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */
@@ -807,7 +855,7 @@ export function creerActionsDeLEquipage(get: Get, set: SetFn) {
       // arme : la décharge lui ôte aussi son coup (`choisirLaMunition`).
       const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
       const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
-      choisirLaMunition(gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
+      choisirLaMunition(findTrappingById, gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
       set({ battle: { ...b } });
     },
   } satisfies FabriqueDuNoyau;

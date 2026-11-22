@@ -1,73 +1,35 @@
-# Warhammer Fantasy v4 — RPG tactique au tour par tour (web)
+# Warhammer Fantasy — RPG tactique au tour par tour
 
-Jeu de rôle vidéoludique **web d'abord, en français**, type *Neverwinter Nights*, basé sur les
-règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe de 4 aventuriers
-(créés un par un ou pré-tirés) à travers la campagne impériale **L'Ennemi Intérieur**.
+Jeu de rôle vidéoludique en français, web d’abord, basé sur Warhammer Fantasy Roleplay.
+Un groupe de quatre aventuriers traverse la campagne impériale *L’Ennemi Intérieur*.
+Godot porte le jeu en export Web et au bureau, avec la création de personnages,
+les sauvegardes, la coop en ligne, l’éditeur de campagne et le Compendium.
 
-> Les règles sont vérifiées dans les livres autorisés sous `Source/`, répertoriés dans
-> [les sources VF](docs/sources-vf.md). La base de jeu (`src/data/*.json`) est la source
-> app-owned, commitée, éditable dans le Compendium et curée à la main.
-
-## Fonctionnalités (PR1 — fondations + tranche jouable)
-
-- **Moteur de règles WFRP4** (`src/engine`) : Tests & Degrés de Réussite, Caractéristiques,
-  Blessures, combat (touche/localisation/dégâts), états, création de personnage. Testé avec Vitest.
-- **Créateur de personnage** : aléatoire complet ou manuel, espèces et carrières du Livre de base.
-- **Groupe de 4** : créés ou choisis parmi des pré-tirés.
-- **Mode campagne** : ouverture du Tome 1 (*L'Ennemi dans l'Ombre*) — l'auberge « La Diligence »
-  et l'embuscade des mutants, en combat tactique sur grille.
-- **Éditeur de niveau** : peinture de tuiles, placement d'entités, dialogues/triggers/combats.
-  La scène de campagne est un document au même format → **entièrement ré-éditable dans l'éditeur**.
-- **Coop hotseat** : les héros jouent tour à tour, le joueur actif est mis en avant.
-- **Art sans asset binaire** : le décor est peint en billboards depuis `src/gameIso/catalog/decor/` ;
-  sol, murs, toits et les props volumiques sont bâtis en géométrie par `src/gameIso/builders/`. Le jeu
-  web n'affiche plus les personnages : leur rendu passe à l'hôte Godot (`hotes/godot/`).
-
-## Pile technique
-
-- **three.js** — rendu volumique du monde : la géométrie et les matières sont montées par
-  `src/gameIso/backends/webgl/`, la scène elle-même (caméra, lumières, ambiance) par
-  `src/gameIso/stage/`.
-- **React + TypeScript** — interface (menus, créateur, fiches, dialogues, HUD, éditeur) et surcouches
-  SVG du plateau (grille, traits de mur, réticules, chrome des jetons).
-- **Zustand** — état partagé reliant React et le rendu du monde.
-- **Vite** — bundler · **Vitest** — tests, du moteur pur jusqu'à l'UI et au rendu.
+Les règles sont vérifiées dans les livres autorisés sous `Source/`. Le Compendium Godot
+édite la base de jeu dans `src/data/`. [Sources VF](docs/sources-vf.md)
 
 ## Démarrage
 
-Sous Linux, les commandes supervisées (push et publication) requièrent `python3` dans le PATH de l’appelant, avec sa bibliothèque standard. Sous Windows, elles utilisent Windows PowerShell et le Job Object natif ; Python n’est pas requis.
-
 ```bash
-npm install
-npm run dev          # serveur de développement
+npm ci
+npm run godot:ouvrir
 ```
 
-Autres scripts : `npm test` (suite complète), `npm run build` (build de production),
-`npm run typecheck`.
+`npm test` joue la suite de tests. `npm run typecheck` vérifie les types.
+`npm run docs:build` produit les références générées et `npm run docs:check` les vérifie.
+
+Sous Linux, les commandes supervisées de push et de publication s’appuient sur `python3`
+et sa bibliothèque standard. Sous Windows, elles utilisent Windows PowerShell.
 
 ## Architecture
 
-```
-src/engine/             Règles WFRP4 (pur TS, testé)
-src/data/               Base app-owned (JSON commité, éditable dans le Compendium)
-src/noyau/              Orchestration sans hôte : flux de jet, combat ; monde/ (schéma de Scène, IA, pathfinding)
-src/hote/               Commun aux hôtes du noyau ; coop/ porte le client du relay WS
-src/state/              Store Zustand, adaptateur web (sauvegardes, flux réseau)
-src/gameIso/            Rendu du monde : builders/ (géométrie pure) montée par stage/ sur le backend
-                        three.js (backends/webgl/) ; catalog/ porte l'art SVG du décor ; plus
-                        authoring/, detail/, fx/, pov/
-src/geometry/           Grille, projection isométrique, déplacement
-src/ui/                 Interface React (menus, créateur, HUD, éditeur, compendium)
-src/scenes/             Documents de scène et de campagne
-src/audio/              Lecture de la musique et des sons (registre : src/data/sons/)
-src/i18n/               Textes français de l'interface
-```
+| Chemin | Rôle |
+|---|---|
+| `hotes/godot/` | Jeu Godot et pont JSON du noyau |
+| `src/engine/` | Règles WFRP pures |
+| `src/noyau/` | Orchestration du jeu, modèle du monde et édition de campagne |
+| `src/hote/` | Projections et services communs, dont sauvegardes et coop |
+| `src/data/` et `src/scenes/` | Données du jeu et documents de campagne |
+| `server/` | Relais WebSocket de la coop |
 
-Le **schéma de Scène** (`src/noyau/monde/scene.ts`) est l'unique contrat partagé par l'éditeur, le
-runtime et la campagne : aucune scène n'est codée « en dur ».
-
-## Périmètre & suite
-
-PR1 pose les fondations et une tranche jouable. Les itérations suivantes ajouteront les Tomes
-1-3 complets, la coop en ligne, la magie/les prières en combat, l'économie entre aventures et un
-bestiaire étendu — la structure data-driven est prévue pour les accueillir sans refonte.
+[Architecture du dépôt](docs/architecture.md)

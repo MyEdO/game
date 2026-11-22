@@ -1,5 +1,4 @@
-/** Les stockages de test (#3041) : en mémoire, qui lève, posé en `localStorage` d'un environnement qui n'en a pas. */
-import { onTestFinished } from 'vitest';
+/** Les stockages de test (#3041) en mémoire ou qui lèvent. */
 import type { Stockage } from './stockage';
 
 /** Un `Storage` en mémoire, et son contenu ; `refuserEcriture(cle, valeur)` vrai : cette écriture lève (quota). */
@@ -27,16 +26,3 @@ export const stockageQuiLeve: Stockage = {
   setItem: () => { throw new Error('refusé'); },
   removeItem: () => { throw new Error('refusé'); },
 };
-
-/** Pose un `stockageEnMemoire(opts)` neuf en `globalThis.localStorage`, et le rend ; le `localStorage`
- *  d'avant revient à la fin du test (`isolate: false` : le worker sert les fichiers suivants). */
-export function poserLeLocalStorage(opts?: Parameters<typeof stockageEnMemoire>[0]): ReturnType<typeof stockageEnMemoire> {
-  const avant = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
-  onTestFinished(() => {
-    if (avant) Object.defineProperty(globalThis, 'localStorage', avant);
-    else Reflect.deleteProperty(globalThis, 'localStorage');
-  });
-  const s = stockageEnMemoire(opts);
-  Object.defineProperty(globalThis, 'localStorage', { value: s, writable: true, configurable: true, enumerable: true });
-  return s;
-}

@@ -35,5 +35,7 @@
     },
   };
   DECORS[etat.decor]();
+  /* le haut assombri sous le cartouche et le récit, comme le décor du voyage (`peindreLeVoyage`, `../rendu.js`) */
+  el(S, 'rect', { width: W, height: 520, fill: 'url(#haut)' });
   fermer();
 }

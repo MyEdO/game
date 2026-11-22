@@ -24,7 +24,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - À valider : verbes du survol dans l'infobulle ; chef du groupe seul déplacé ; aucune barre d'actions hors combat.
 
 ## dialogue
-- La fenêtre du bas de 266 : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
+- La fenêtre du bas : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
   de Charme en étiquette sur la réponse qui le demande, un prix sur celle qui coûte ; à droite le PNJ, son titre et
   sa réplique. Le testeur se change au bandeau du jet (`jetRegler('test','testeur', id)`).
 - À valider : le coût d'une réponse (« 4 sc ») dit sans payeur, le noyau le prend au total des bourses
@@ -34,7 +34,10 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - Le même bandeau que le jet d'attaque : le héros, son seuil, les dés, le sceau de réussite et ses DR ; le PNJ en
   face ; les réserves du héros, « Appliquer », « Relancer » et « Résilience » fermées sur une réussite (LDB 17 l.23,
   l.68), « Chance : +1 DR » (LDB 17 l.24), « Pacte ».
-- À valider : l'interlocuteur montré en face.
+- À valider : l'interlocuteur montré en face, sur les places du camp de droite (`fiche`, `sources/combat/jet.js`) : le
+  portrait au rect de celui de l'adversaire, le nom et son rôle à l'identité, la réplique à la rangée des dés.
+- À valider : la grande ligne dit « Réussite », aucune conséquence, le DR en petit (`combat.md`, « Bandeau du
+  jet »).
 
 ## butin
 - Le corps fouillé en titre, l'argent « réparti entre les bourses » (`src/noyau/bourseFlow.ts`), chaque objet sur
@@ -63,6 +66,8 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - RAW : LDB 12 l.200 ; LDB 15 l.55 ; LDB 18 l.296-298.
 - À valider : les gestes du groupe en pastilles empilées, absentes quand la situation les ferme ; le ramassage par
   le héros qui mène ; l'arête franchissable dite sur la scène, pas dans une liste.
+- À valider (#4585) : le poste d'une chose signalée a 148 px de large au moins et une tête de la hauteur d'un
+  portrait, comme les postes de la nuit et du bord (`lieux-et-nuit.md`, `voyage.md`).
 
 ## exploration-dessus (2026-11-17, #4411)
 - La salle de `exploration-gestes`, vue du dessus. Seule la caméra change : mêmes pions (anneau des héros, halo de
@@ -154,3 +159,5 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   pied) et « Prendre la route » ; bandeau des héros et leur bourse ; « Revenir à l'auberge ».
 - À valider : distances, durées et tarifs d'exemple, non relus au livre ; seuls les lieux connus du groupe montrés ;
   la carte ouverte depuis le lieu, pas depuis la route ; « Reprendre le voyage » (`carteEnVue.reprendre`) non dessiné.
+- À valider (#4585) : la destination sur la grille commune des colonnes : son nom et sa route en tête ; la prose, les
+  étapes et les moyens dans le corps qui défile ; « Partir » au pied fixe.

@@ -40,6 +40,8 @@ import {
   globsDe,
   grapheInverse,
   liaisonsDe,
+  LOT_D_ANALYSE,
+  pathspecsDeModules,
   resolveImport,
   sitesDeModule,
   specificateursDe,
@@ -409,6 +411,18 @@ test('L3 projections : compatibilité stricte des spécificateurs/arcs et arbre 
   assert.equal(resolveImport(entree, './x.mjs', (abs) => abs === source, []), source)
   const aucun = arcsDe(join(RACINE, 'src', 'noyau', 'music.ts'), "import './types';", { existe: () => false, alias: [] })
   assert.deepEqual(aucun, [])
+})
+
+test('un JSX est un module à parcourir et à chercher ; la résolution implicite conserve son ordre', () => {
+  const entree = resolve(RACINE, 'virtuel', 'a.ts').replaceAll('\\', '/')
+  const radical = resolve(RACINE, 'virtuel', 'vue').replaceAll('\\', '/')
+  const jsx = radical + '.jsx'
+  assert.equal(estModule(jsx), true)
+  assert.ok(pathspecsDeModules('src').includes('src/*.jsx'))
+  assert.equal(resolveImport(entree, './vue.jsx', (abs) => abs === jsx, []), jsx)
+  assert.equal(resolveImport(entree, './vue', (abs) => abs === jsx, []), null)
+  assert.equal(resolveImport(entree, './vue', (abs) => abs === radical + '/index.jsx', []), null)
+  assert.equal(resolveImport(entree, './vue', (abs) => [jsx, radical + '.tsx', radical + '.ts'].includes(abs), []), radical + '.ts')
 })
 
 test('L3 cohérence .cts : une source substituée de .cjs reste un module à parcourir', () => {
@@ -926,6 +940,35 @@ test('specificateurs : la marche lit le mémo par texte et n’écrit que ce qu�
   const autre = { ...arbre, existe: (a) => a !== abs('b.mjs') && arbre.existe(a) }
   assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, arbre: autre, specificateurs })], ['a.mjs'])
   assert.equal(ecrits.length, 2)
+})
+
+test('analyse et clôture : les lots par défaut séparent le module au-delà de LOT_D_ANALYSE', () => {
+  const fichiers = Object.fromEntries(Array.from({ length: LOT_D_ANALYSE + 1 }, (_, i) => [
+    `lot/r${i}.mjs`, 'export const n = 1',
+  ]))
+  const { racine, abs, arbre } = ensembleEnMemoire(fichiers)
+  const roots = Object.keys(fichiers)
+  const entrees = roots.map((rel) => ({ rel: abs(rel), text: fichiers[rel] }))
+  const tailles = (analyses) => {
+    const sessions = new Map()
+    for (const { checker } of analyses) sessions.set(checker, (sessions.get(checker) ?? 0) + 1)
+    return [...sessions.values()]
+  }
+  assert.deepEqual(tailles(analyserEnLots(entrees)), [LOT_D_ANALYSE, 1])
+
+  const taillesParSession = []
+  function* analyser(entrees, tailleLot) {
+    let checkerPrecedent
+    for (const analyse of analyserEnLots(entrees, tailleLot)) {
+      if (analyse.checker !== checkerPrecedent) taillesParSession.push(0)
+      taillesParSession[taillesParSession.length - 1] += 1
+      checkerPrecedent = analyse.checker
+      yield analyse
+    }
+  }
+  const fermeture = clotureDImports(roots, { racine, arbre, analyser })
+  assert.deepEqual(taillesParSession, [LOT_D_ANALYSE, 1])
+  assert.deepEqual([...fermeture].sort(), roots.sort())
 })
 
 test('clôture : lots positifs bornent les sessions sans changer ordre ni arcs ni cache', () => {

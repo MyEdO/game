@@ -28,6 +28,7 @@ import { TRAVAIL, depotDe, listerImage } from './lib/gitPorte.mjs'
 import { spawnBorne } from './lib/processusBorne.mjs'
 import { MARQUE_DE_VERDICT } from './lib/chargementDUnModule.mjs'
 import { estFichierVitest, estKitDeTest } from './lib/fichierVitest.mjs'
+import { estModule } from './lib/importGraph.mjs'
 
 /** Les zones dont chaque module se charge en premier (`COUCHES`, couches.mjs) : le noyau, le moteur, la donnée et les
  *  feuilles qu'il compose, ses hôtes (`hote`, `hoteTexte`, `hotes` hors de `src/`) et les scénarios qu'ils chargent. */
@@ -41,10 +42,15 @@ const bornesDuLot = (n) => 90_000 + 20_000 * n
 
 const TRAVAILLEUR = fileURLToPath(new URL('./lib/chargementDUnModule.mjs', import.meta.url))
 
-/** Le chemin POSIX relatif `rel` est-il un module à charger : source TypeScript, ni instrument ni kit de test
- *  (`fichierVitest.mjs`), ni déclaration. */
+const PREFIXE_DES_HOTES = `${dossierDe('hotes')}/`
+
+/** Le worker charge tous les scripts des zones de `src`. Hors de `src`, la zone des hôtes mêle
+ *  les modules TypeScript de l'hôte à des pilotes CLI et des maquettes JavaScript exécutés dans
+ *  leur propre environnement. Seuls ses modules TypeScript sont des entrées de ce worker.
+ *  Instruments, kits et déclarations sont hors du chargement. */
 export const estModuleACharger = (rel) =>
-  /\.(m?ts|tsx)$/.test(rel) && !/\.d\.m?ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
+  (rel.startsWith(PREFIXE_DES_HOTES) ? /\.(m?ts|tsx)$/.test(rel) : estModule(rel))
+  && !/\.d\.[cm]?ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
 
 /** Les modules de la zone `zone` (`dossierDe`, couches.mjs) sous `racine`, suivis ou non encore indexés, triés. */
 export const modulesDeZone = (racine, zone) =>

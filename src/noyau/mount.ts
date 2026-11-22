@@ -18,7 +18,7 @@ import { Scene, isWalkable, sceneMetresPerTile } from './monde/scene';
 import { occupiesTile, footprintN, distanceDeContact } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';
 import { isSkittishMount } from '../engine/traits/dispatch';
-import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
+import { meleeWarMachineHullOf } from './siegePush';
 import { structureImmune } from '../engine/structures';
 import type { Pt } from './monde/path';
 import type { BattleState, Jeu } from './etat';
@@ -28,7 +28,7 @@ import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { effectiveTalents } from '../engine/talentEffects';
 import { itemCapability } from '../engine/capabilities';
-import { recomputeLoadout } from '../engine/items';
+import { equipConflicts, recomputeLoadout } from '../engine/items';
 
 /** Ce combattant chevauche-t-il une monture (= cavalier) ? */
 export const isRider = (c: Combatant): boolean => !!c.mountId;
@@ -81,14 +81,14 @@ export const combatGeomOf = (battle: BattleState, c: Combatant): Combatant => co
 
 /** Géométrie D'ATTAQUE d'un combattant pour UNE arme donnée (#BUG-A, suite #210) : sa MONTURE s'il est
  *  cavalier (fondu avec elle quelle que soit l'arme tenue — LDB 14), la COQUE de la pièce de mêlée servie
- *  SEULEMENT si `weapon` EST cette pièce (`isMeleeWarMachine`) — une arme personnelle du chef (épée…) ne
+ *  SEULEMENT si `weapon` EST cette pièce (identité du poste) — une arme personnelle du chef (épée…) ne
  *  bénéficie JAMAIS de l'allonge de l'engin qu'il sert, et réciproquement. SOURCE UNIQUE pour un site
  *  d'ATTAQUE (aperçu/plan/résolution/tir/choix d'arme) : `combatGeomOf` (par-acteur) reste réservé au
  *  DÉFENSEUR/cible et aux usages hors attaque. */
 export const attackGeomOfList = (combatants: Combatant[], c: Combatant, weapon: Weapon | null | undefined): Combatant => {
   const mount = c.mountId ? combatants.find((x) => x.id === c.mountId) : undefined;
   if (mount) return mount;
-  if (weapon && isMeleeWarMachine(weapon)) {
+  if (weapon?.uid && weapon.uid === c.mannedPoste?.item.uid) {
     const hull = meleeWarMachineHullOf(c, combatants);
     if (hull) return hull;
   }
@@ -202,13 +202,14 @@ export function mountUp(rider: Combatant, mount: Combatant): void {
   if (mount.pos) rider.pos = { ...mount.pos };
 }
 
-/** Le cavalier `rider` d'une rencontre authorée harnache sa monture `mount` : ses objets `armureDeMonture` passent,
- *  portés, sur la bête. AA 09 l.184 ; #4135 */
+/** AA 09 l.184 ; #4135. */
 export function harnacher(rider: Combatant, mount: Combatant): void {
   const bardes = (rider.items ?? []).filter((it) => itemCapability(it, 'armureDeMonture'));
   if (!bardes.length) return;
   rider.items = (rider.items ?? []).filter((it) => !bardes.includes(it));
-  mount.items = [...(mount.items ?? []), ...bardes.map((it) => ({ ...it, equipped: true }))];
+  const items = [...mount.items ?? []];
+  for (const it of bardes) items.push({ ...it, equipped: !equipConflicts({ items }, it).length });
+  mount.items = items;
   recomputeLoadout(rider);
   recomputeLoadout(mount);
 }

@@ -32,7 +32,7 @@
  *    `CascadeStep.rollLabel`, `options[].detail` ;
  *  - `dataLabel(repli)` typé `string` et non `PlayerText` : un ID de dégradation doit y passer — c'est
  *    le cliquet 3 qui ferme ce trou, pas le type ;
- *  - les résolveurs de donnée encore `string` : `conditionLabel`, `damageTypeLabel`,
+ *  - les résolveurs de donnée encore `string` : `conditionLabel`,
  *    `SPEC_SOURCES[].label` (`data/index.ts`) ;
  *  - le nom `rawText` employé pour AUTRE CHOSE qu'un minteur (`noyau/codex/relations.ts` le prend comme
  *    nom de PARAMÈTRE) : le cliquet 1 compte des APPELS `rawText(`, donc un paramètre homonyme APPELÉ y
@@ -52,7 +52,7 @@ import { join, relative } from 'node:path';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
-/** GEL DU 2026-08-17 (`as CascadeStep` en TEST) — 35 casts dans 15 fichiers. Zéro en production. E7 en a
+/** GEL DU 2026-08-17 (`as CascadeStep` en TEST) — 21 casts dans 11 fichiers. Zéro en production. E7 en a
  *  éteint DEUX, dans des fichiers déjà ouverts pour la migration : leur cast ne servait qu'à blanchir un
  *  `label` écrit au call-site — minté en fixture, le littéral satisfait le type et le cast tombe. */
 export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
@@ -67,10 +67,6 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/noyau/miscast-step.hors-store.test.ts': 1,
   'src/noyau/rest-flow.hors-store.test.ts': 1,
   'src/noyau/zone-cross-test-gate.hors-store.test.ts': 1,
-  'src/ui/CascadeTableMode.test.tsx': 1,
-  'src/ui/VoyageScreen.test.tsx': 1,
-  'src/ui/cascade-rolled-phase.test.tsx': 1,
-  'src/ui/cascade-subtitle.test.tsx': 11,
 };
 
 /** Appels du fossile dans un texte source (le module fossile le DÉFINIT, il ne l'appelle pas). */
@@ -312,7 +308,7 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
   });
 
   it('MUTATION : un fichier qui DESCEND sous son gel ne rougit pas — la sémantique du cliquet 2', () => {
-    expect(violations({ 'src/state/un-harnais.test.ts': 3 }, { 'src/state/un-harnais.test.ts': 5 }, 'appel(s)')).toEqual([]);
+    expect(violations({ 'src/noyau/un-harnais.test.ts': 3 }, { 'src/noyau/un-harnais.test.ts': 5 }, 'appel(s)')).toEqual([]);
   });
 
   it('le compteur voit les formes réelles d’appel, et il verrait la RÉSURRECTION du module par ses appelants', () => {
@@ -336,7 +332,7 @@ describe('#1318 V8a₀ T2 — les `as CascadeStep` des TESTS sont GELÉS (la pro
 
   it('le gel est SERRÉ, et son TOTAL est dit (cible 0 — V8a₁ passe ces tests par les portes)', () => {
     expect(relachees(reel, GEL_AS_CASCADE_STEP)).toEqual([]);
-    expect(somme(GEL_AS_CASCADE_STEP)).toBe(35);
+    expect(somme(GEL_AS_CASCADE_STEP)).toBe(21);
   });
 
   it('MUTATION : un cast de PLUS dans un test gelé rougit', () => {
@@ -345,8 +341,8 @@ describe('#1318 V8a₀ T2 — les `as CascadeStep` des TESTS sont GELÉS (la pro
   });
 
   it('MUTATION : un test NEUF qui caste rougit', () => {
-    expect(violations({ 'src/state/neuf.test.ts': 1 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
-      .toEqual(['src/state/neuf.test.ts : 1 cast(s) `as CascadeStep` pour un gel de 0']);
+    expect(violations({ 'src/noyau/neuf.test.ts': 1 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
+      .toEqual(['src/noyau/neuf.test.ts : 1 cast(s) `as CascadeStep` pour un gel de 0']);
   });
 });
 

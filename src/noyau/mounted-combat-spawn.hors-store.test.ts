@@ -2,9 +2,14 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { checkBattleOver } from './combatFlow';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { armourPhysiqueAt } from '../engine/armourBypass';
+import { tableTotale } from '../lib/tableTotale';
 import { createHero } from '../engine/character';
+import { dotationsDuPnj } from '../engine/trappingChoices';
 import { testScene } from '../scenes/test-fixture';
 import { buildEncounter } from './monde/encounterAuthoring';
+import { inBattleId } from './monde/combatants';
 import { validateScene } from './validateScene';
 import type { Scene } from './monde/scene';
 import type { Possession } from '../engine/possession';
@@ -221,8 +226,61 @@ describe('Barde authorée au cavalier : le couple pré-monté la passe à sa mon
 
     const monture = battle.combatants.find((c) => c.id === enc.entities[0].id)!;
     const cavalier = battle.combatants.find((c) => c.id === enc.entities[1].id)!;
-    expect(monture.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(tableTotale(LOCALISATIONS_DE_COUP, (loc) => armourPhysiqueAt(monture, loc))).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
     expect(monture.items?.map((i) => [i.trappingId, i.equipped])).toEqual([['barde', true]]);
     expect(cavalier.items).toEqual([]);
+  });
+});
+
+describe('Montures du Chevalier commandeur (LDB 08 l.1130, l.1140, l.1148 ; #773, #4355)', () => {
+  const destrier = 'destrier-cheval-de-guerre-lourd';
+
+  it('la dotation cumulée de Chevalier 3 liste le cheval de monte et le destrier', () => {
+    const betes = dotationsDuPnj('chevalier', 3).filter((ref) => 'type' in ref && ref.type === 'creature');
+    expect(betes).toEqual([
+      { id: 'cheval-de-monte', type: 'creature' },
+      { id: destrier, type: 'creature' },
+    ]);
+  });
+
+  it.each([
+    { situation: 'sans monture posée', monturePosee: false, preMonte: false },
+    { situation: 'avec un destrier à côté', monturePosee: true, preMonte: false },
+    { situation: 'avec un destrier apparié', monturePosee: true, preMonte: true },
+  ])('fait apparaître le Chevalier $situation', ({ monturePosee, preMonte }) => {
+    const enc = buildEncounter({
+      id: ENC_CAVALERIE,
+      enemies: [
+        ...(monturePosee ? [{ creature: { id: destrier }, pos: { x: 16, y: 11 }, mount: true }] : []),
+        { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, ...(preMonte ? { rides: 0 } : {}) },
+      ],
+    });
+    const cavalierAuteur = enc.entities[enc.entities.length - 1]!;
+    cavalierAuteur.carrieres = { chevalier: 3 };
+    const decor = testScene();
+    const scene: Scene = {
+      ...decor,
+      entities: [...decor.entities.filter((entite) => entite.kind === 'heroStart'), ...enc.entities],
+      encounters: [enc.encounter],
+    };
+
+    const battle = startCavalerie(scene);
+    expect(battle.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id).sort()).toEqual(
+      enc.entities.map((entite) => entite.id).sort(),
+    );
+    const cavalier = inBattleId(battle, cavalierAuteur.id)!;
+    const monture = inBattleId(battle, monturePosee ? enc.entities[0].id : undefined);
+    expect(cavalier).toMatchObject({ career: 'chevalier', careerLevel: 3 });
+    expect(banc.getState().possessions.filter((possession) => possession.ownerId === cavalier.id)).toEqual([]);
+    expect(cavalier.mountId).toBe(preMonte ? monture?.id : undefined);
+    expect(monture?.riderId).toBe(preMonte ? cavalier.id : undefined);
+    expect(monture?.mountable).toBe(monturePosee ? true : undefined);
+    expect(cavalier.pos).toMatchObject(preMonte ? enc.entities[0].pos : cavalierAuteur.pos);
+    expect(cavalier.items?.filter((item) => item.trappingId === 'barde')).toEqual(
+      preMonte ? [] : [expect.objectContaining({ equipped: false })],
+    );
+    expect(monture?.items?.filter((item) => item.trappingId === 'barde') ?? []).toEqual(
+      preMonte ? [expect.objectContaining({ equipped: true })] : [],
+    );
   });
 });

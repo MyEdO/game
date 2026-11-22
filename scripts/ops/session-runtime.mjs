@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto'
-import { join, resolve, extname, isAbsolute } from 'node:path'
+import { join, resolve, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { z } from 'zod'
@@ -8,7 +8,8 @@ import { prendreVerrou } from '../test/verrou.mjs'
 import { depotDe, arbrePrincipal, brancheDe, shaDe } from '../guards/lib/gitPorte.mjs'
 import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
-import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart, ANNEXES_SESSION_START } from './session-start.mjs'
+import { preflightSessionStart, contexteRecu, validerRecuSessionStart, ANNEXES_SESSION_START } from './session-start.mjs'
+import { CarteSession, EXTENSION_CARTE, Identite, nomDeCarte, PRODUCTEUR } from './session-carte.mjs'
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
@@ -18,32 +19,10 @@ import { lireTransitions, ANNEXES_CLAUDE } from './session-transitions.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
 
-export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
 const erreur = (categorie, message, options) => new Error(`${prefixeDeRefus(categorie)} ${message}`, options)
 const ANNEXES = Object.freeze({ stop: 'stop', bootstrap: 'bootstrap', ...ANNEXES_SESSION_START, contexte: 'hook-context', terminal: 'terminal-close', journalHote: 'jobhost.log', journal: 'stderr', rapport: 'rapport', ...ANNEXES_CODEX, ...ANNEXES_CLAUDE })
 export const annexeDe = (dossier, id, cle) => join(dossier, `${id}.${ANNEXES[cle]}`)
-const EXTENSION_CARTE = '.json'
-/** Le nom de fichier de la carte `id` dans le registre. PURE. */
-const nomDeCarte = (id) => `${id}${EXTENSION_CARTE}`
-const Identite = z.object({ pid: z.number().int().positive(), creation: z.string().min(1) }).passthrough()
-const CarteSession = z.object({
-  sessionId: z.uuid(), producteur: z.literal(PRODUCTEUR), ticket: z.number().int().positive(), nom: z.string().min(1),
-  agent: z.enum(['claude', 'codex']), consigne: z.string().refine(isAbsolute), worktree: z.string().refine(isAbsolute), racine: z.string().refine(isAbsolute),
-  branche: z.string().min(1), head: z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/), date: z.iso.datetime(), reserveJusqua: z.number(),
-  lanceur: Identite, empreinteJeton: z.string().regex(/^[0-9a-f]{64}$/), empreinteNonce: z.string().regex(/^[0-9a-f]{64}$/).optional(),
-  empreinteNonceHook: z.string().regex(/^[0-9a-f]{64}$/), demarrageJusqua: z.number(),
-  hooks: z.object({ empreinteCanon: z.string().regex(/^[0-9a-f]{64}$/), empreinteCredo: z.string().regex(/^[0-9a-f]{64}$/).optional(), delaiMs: z.number().positive() }).strict(),
-  recuSessionStart: PreuveSessionStart.optional(),
-  etat: z.enum(['reservee', 'vivante', 'arret-demande', 'nettoyage', 'fermee', 'echec-reservation', 'echec-controle']),
-  controleur: Identite.optional(), jobHost: Identite.optional(), agentProcessus: Identite.optional(),
-  evenements: z.array(z.object({ ticket: z.number().int().positive(), nom: z.string(), sessionId: z.uuid(), date: z.iso.datetime(), type: z.enum(['lancement', 'clôture', 'échec']) })),
-}).passthrough().superRefine((c, ctx) => {
-  if (c.etat === 'reservee' && !c.empreinteNonce) ctx.addIssue({ code: 'custom', message: 'nonce requis' })
-  if (['vivante', 'arret-demande'].includes(c.etat) && (!c.controleur || !c.jobHost)) ctx.addIssue({ code: 'custom', message: 'identités de contrôle requises' })
-  if (['nettoyage', 'fermee'].includes(c.etat) && !['sortie', 'echec'].includes(c.issueSortie)) ctx.addIssue({ code: 'custom', message: 'issue de sortie requise' })
-  if (c.etat === 'echec-controle' && c.codeEnveloppe !== undefined) ctx.addIssue({ code: 'custom', message: 'sortie enveloppe inconnue' })
-})
 const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
 const validerPolitique = (brut) => {
   const vu = PolitiqueSession.safeParse(brut)
@@ -478,6 +457,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     },
     async superviser(id, { lancer, apresLancement, lireRapport, causeSortie, periodeMs = 500 }) {
       let child, timer, fini, veille, arret = false, termine = false
+      const inscription = Promise.withResolvers()
+      inscription.promise.catch(() => {})
       const registre = (geste) => rejouer(geste, { borneMs: BORNES_DE_REJEU.supervision, horloge, dormir })
       const arretDemande = () => {
         if (termine) return false
@@ -487,12 +468,17 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       }
       try {
         const initiale = await registre(() => lire(id))
-        child = lancer(initiale)
+        child = lancer(initiale, inscription.promise)
         fini = new Promise((ok, non) => { child.once('error', non); child.once('exit', (codeAgent, signal) => ok({ codeAgent, signal })) })
         fini.catch(() => {})
-        if (apresLancement) await registre(apresLancement)
-        const identite = await registre(() => processus(child.pid))
-        if (identite) await registre(() => api.agentDemarre(id, identite))
+        try {
+          const identite = await registre(() => processus(child.pid))
+          if (identite) {
+            await registre(() => api.agentDemarre(id, identite))
+            inscription.resolve()
+          } else inscription.reject(erreur('panne', 'IDENTITÉ AGENT NON MESURÉE'))
+        } catch (e) { inscription.reject(e); throw e }
+        finally { if (apresLancement) await registre(apresLancement) }
         timer = setInterval(() => {
           if (arret || veille) return
           veille = rejouer(arretDemande, { borneMs: BORNES_DE_REJEU.arret, horloge, dormir, pasMs: periodeMs })
@@ -521,6 +507,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         return { ...await registre(() => sortie(id, { ...fin, arret, rapport, raison, raisonOrigine })), codeEnveloppe: 0 }
       } catch (e) {
         termine = true
+        inscription.reject(e)
         if (child && child.exitCode === null && !arret) child.kill()
         if (fini) { try { await fini } catch {} }
         const cause = causeSortie && child ? await causeSortie() : ''
@@ -564,10 +551,10 @@ export async function piloterAgent({ sessions, dossier, carte, consigne, lancer,
     const contexte = await sous(() => lireJSON(contexteHook))
     const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
     return await sessions.superviser(id, {
-      lancer: () => {
+      lancer: (_carte, inscription) => {
         const env = envAgent({ ...process.env, WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') })
         agent = carte.agent === 'codex'
-          ? pont({ plan, carte, dossier, consigne: consigneAgent(carte, consigne), schema: SCHEMA_RAPPORT, env, lancer, notifier: (projection) => sessions.projectionCodex(id, projection) })
+          ? pont({ plan, carte, dossier, consigne: consigneAgent(carte, consigne), schema: SCHEMA_RAPPORT, env, lancer, inscription, notifier: (projection) => sessions.projectionCodex(id, projection) })
           : lancerAgent(plan, carte, { journal, lancer, env })
         return agent.child
       },

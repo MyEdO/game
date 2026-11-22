@@ -1,16 +1,10 @@
-/**
- * Schéma de `hairs.json` — Tableau de couleur des cheveux (LDB 05 l.756-768), document mono-table : son
- * dé `die` (LDB 05 l.758) tire un seuil (`rand`, borne haute cumulée, `randByRace` pour une colonne aux
- * bornes propres, #420). Rangée partagée avec `eyes.json` (`rangeeDeCouleurSchema`), vue TS
- * `DetailColorData` (src/data/index.ts).
- */
+/** LDB 05 l.756-768 ; NADJ 15 l.82-104 ; ADE II 02 l.284-311. */
 import { document } from '../grammaire/document';
-import { rangeeDeCouleurSchema } from '../grammaire/valeurs';
+import { couvertureDeLaTableDeCouleur, rangeeDeCouleurSchema } from '../grammaire/valeurs';
 
 export const file = 'hairs.json';
 export const famille = 'config';
 
-/** Une couleur, à son seuil du dé de la table. */
 export const rangee = rangeeDeCouleurSchema;
 
 const doc = document(
@@ -21,7 +15,7 @@ const doc = document(
   {
     edit: { niche: { categories: { hairs: 'entries' } } },
   },
-  { rangee, deDeTirage: true },
+  { rangee, deDeTirage: true, affinerDataset: couvertureDeLaTableDeCouleur(file) },
 );
 
 export const schema = doc.schema;

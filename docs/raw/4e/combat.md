@@ -409,6 +409,8 @@ Les Tests de Combat se modifient comme les autres Tests. Tableau des modificateu
 
 À **2 contre 1** : **+20** au toucher en Corps à corps. À **3 contre 1** : **+40**. De plus, à la fin de chaque Round, tout adversaire surpassé en nombre **perd 1 Avantage** (`LDB 14 l.110`).
 
+> « La supériorité numérique est en générale déterminée par le nombre de Personnages *Engagés* avec d'autres ; s'il y a le moindre doute, le MJ décide qui des deux camps est en supériorité numérique. » — `LDB 14 l.110`
+
 ### Application aux portes / objets résistants
 
 Enfoncer une porte (ou fenêtre…) se résout par un **Test de Corps à corps (Bagarre)** ou de Corps à corps avec une **arme appropriée** (hache, marteau). **Le DR obtenu est ajouté au Bonus de Force ; le total est infligé à l'objet. Si une arme est utilisée, on n'ajoute que la moitié des dégâts de l'arme.** L'objet est défini par son **Bonus d'Endurance (BE)** et ses **Blessures (B)**. Contre les objets inanimés, la règle du **minimum 1 Blessure ne s'applique pas** (`EDO 11 l.89-95`). Notation abrégée d'une porte verrouillée : **(D −10, DR 2 ; FT 6, B 15)** = serrure Complexe (−10) demandant 2 DR à crocheter, porte de Bonus d'Endurance 6 et 15 Blessures (`EDO 11 l.86-101`).
@@ -652,7 +654,7 @@ Règle **optionnelle** de combat héroïque, pour balayer les rangs d'adversaire
 
 Conditions et limites :
 - **Mêlée uniquement** ; il faut **tuer la cible en un seul coup**.
-- On se déplace **sur la case** de l'adversaire tué, puis on attaque **un autre** adversaire.
+- On se déplace **sur la case** de l'adversaire tué, puis on attaque **un autre** adversaire. L’attaque suit la portée ordinaire de mêlée depuis cette case. Avec une arme prête, l’Allonge **Très longue** permet d’Engager à 4 m et l’Allonge **Considérable** à 6 m (`LDB 13 l.114`, `LDB 62 l.163-164`).
 - Nombre maximum d'enchaînements = **Bonus de Capacité de Combat (BCC)** de l'attaquant.
 - **Exception « grandes créatures »** : certaines créatures de grande Taille activent Frappe Mortelle **sans avoir à tuer** — il leur suffit de **toucher** un adversaire sans le tuer pour se déplacer dans sa zone et frapper une autre cible le même Round. Confirmé par un statbloc :
 
@@ -699,7 +701,7 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 13 l.183` — déclenchement : tout succès CC/Projectiles dont le **dé est un double** génère un Critique ; possible aussi en **défense** sur un Test opposé. (CONSOLIDE avec `AA 07 l.29`.)
 - `LDB 13 l.137-145` — Tableau de Localisation humanoïde (1ᵉʳ d100) utilisé pour la localisation du Coup Critique.
 - `LDB 14 l.4` — effet immédiat : Blessure critique immédiate ; le **DR reste calculé normalement** (Dégâts + vainqueur du Test opposé).
-- `LDB 14 l.6-7` — Option **Frappe Mortelle** : tuer en un coup en mêlée → se déplacer sur la case + frapper un autre adversaire, **jusqu'à BCC fois** ; certaines **grandes créatures** l'activent sans tuer.
+- `LDB 14 l.9` — Option **Frappe Mortelle** : tuer en un coup en mêlée → se déplacer sur la case + frapper un autre adversaire, **jusqu'à BCC fois** ; certaines **grandes créatures** l'activent sans tuer.
 - `LDB 18 l.17` — overkill : **−20** au Tableau des Critiques (min 01) si le nombre de Points de Blessure passés en négatif est strictement inférieur au BE (#1595 c.6222318751).
 - `LDB 18 l.53-55` — résolution du Coup Critique : localisation par **2ᵉ d100**, PB perdus **en ignorant BE et PA**, Effets supplémentaires, **00 = mort** ; Dégâts non critiques recalculés sur la nouvelle localisation.
 - `LDB 18 l.56-187` — en-têtes et bornes des quatre Tableaux des Critiques LDB (Tête/Bras/Corps/Jambe), `01-10` → `00` (mort).
@@ -2133,7 +2135,9 @@ Colonnes : **Arme · Prix · Enc · Disponibilité · Allonge/Portée · Dégât
 
 ### Munitions traditionnelles (AA — variantes complémentaires)
 
-Aux Armes (*Up in Arms*) étend la liste de munitions Arc/Arbalète/Fronde avec des variantes spécialisées (têtes de flèche, projectiles de fronde, munitions improvisées). Même schéma de colonnes ; consolidées ici car elles complètent strictement la table du LDB sans la contredire.
+Le tableau d'*Aux Armes* reprend les munitions d'arc, d'arbalète et de fronde sous les mêmes colonnes que le LDB et ajoute des variantes spécialisées.
+La Flèche elfique porte « Empaleuse, Perforante, Pointue » (`AA 08 l.377`).
+La Flèche elfe porte « Précise, Empaleuse, Perforante » (`LDB 62 l.116`).
 
 | Munition | Prix | Enc | Disponibilité | Portée | Dégâts | Atouts et Défauts |
 |---|---|---|---|---|---|---|
@@ -3267,8 +3271,13 @@ Matière de l'Armure du Trait, lue par Perforante (« Les PA ne provenant pas de
 - Pièces de deux matières sous un seul Indice (« Armure (Veste de cuir et cotte de mailles) 2 » — `EDOC 10 l.130`) : de métal quand les PA des pièces de métal atteignent l'Indice à chaque Localisation protégée, sinon inconnue ; une matière par Localisation n'est lue d'aucun profil de la donnée — lecture recommandée, révisable (#1463).
 - Règles rapides : Légère en cuir, Moyenne en mailles, Lourde en plate (« Les Légères sont principalement en cuir, les Moyennes en maille et les Lourdes en plate » — `LDB 63 l.97`) ; Cuir en cuir ; Plate (Demi-plate, Plate complète) en métal — lecture recommandée, révisable (#1463).
 - Nature du corps (peau, écailles, fourrure, chitine) : ni métal ni cuir, ignorée par Perforante — lecture recommandée, révisable (#1463).
-- Ni pièce ni Aspect de matière (Indice seul, Divers, zones seules) : matière inconnue, qu'aucune règle ne contourne, sauf quand le profil la dit ailleurs, lue par les règles des pièces et des Aspects ci-dessus : une armure nommée (« Un familier de combat commence avec une armure de plates complète » — `VDM 13 l.497`) ; un Aspect des règles rapides en Possessions (armure lourde, `MDG 16 l.464`, en plate selon `LDB 63 l.97`) ; des pièces de métal dont les PA atteignent l'Indice à chaque Localisation (« pansière, cotte de mailles et chausses, coiffe de mailles » — `ADE II 01 l.229`). Des Possessions qui laissent une Localisation sous l'Indice en métal, mêlent les matières ou nomment une armure hors table laissent la matière inconnue — lecture recommandée, révisable (#1463).
+- Ni pièce ni Aspect de matière (Indice seul, Divers, zones seules) : matière inconnue, qu'aucune règle ne contourne par matière, sauf quand le profil la dit ailleurs, lue par les règles des pièces et des Aspects ci-dessus : une armure nommée (« Un familier de combat commence avec une armure de plates complète » — `VDM 13 l.497`) ; un Aspect des règles rapides en Possessions ; des pièces de métal dont les PA atteignent l'Indice à chaque Localisation (« pansière, cotte de mailles et chausses, coiffe de mailles » — `ADE II 01 l.229`). Des Possessions qui laissent une Localisation sous l'Indice en métal, mêlent les matières ou nomment une armure hors table laissent la matière inconnue si le livre n'identifie aucune matière — lecture recommandée, révisable (#1463).
+- Wulfrik (`MDG 16 l.464`) porte « armure lourde » : « **Alors plaque et maille** » (13 novembre 2026, #4053), plaques et mailles sans casque, 4 PA métalliques là où les pièces couvrent, selon #773.
+- Vrisk (`MDG 16 l.497,499,506`) porte la même combinaison avec un heaume. Les pièces portées donnent 2 PA à la tête et 4 ailleurs (#773). Arbitrage du 19 novembre 2026 (#4210) : « Métal enrichi de malepierre. Cieux et Métal ignorent les PA des plaques et de la maille. Perforante ignore 1 PA. »
+- Le chef de guerre du Chaos (`HCVM p.265`) porte l'armure du Chaos, qu'un guerrier s'oblige à ne jamais ôter (`LDB 84 l.7`). Le Trait joue son Indice 6 à toutes les Localisations (13 novembre 2026, #4053) avec la matière Chaos (`VDM 02 l.169`). Les références de pièces en Possessions décrivent cette armure unique.
 - « Tout Lanceur de Sorts portant une armure » (`LDB 46 l.150`) : le Trait Armure de métal ou de cuir est une armure portée et compte ; celui de matière Chaos aussi, que seuls les Sorciers du Chaos portent sans pénalité (`VDM 02 l.169`) ; la peau et la matière inconnue ne comptent pas — lecture recommandée, révisable (#1463).
+
+**Usure de l’Armure du Trait.** Lorsqu’un PA est sacrifié pour une Déviation Critique, l’usure réduit de 1 les PA à cette Localisation (`LDB 63 l.19, l.30`). La Putréfaction fait perdre 1 PA à une Localisation de l’Armure quand le Trait représente du cuir (`LDB 47 l.238`). La pénalité d’Incantation et de Focalisation se calcule sur les PA encore portés (`LDB 46 l.150-152`). La Forme hybride d’un Enfant d’Ulric octroie Armure (Peau) 2 pendant la forme (`MCLB 04 l.29, l.33`).
 
 **Protection (Indice).** « Parce qu'elles sont magiques, bénéficient d'un talisman particulier ou sont simplement chanceuses, certaines créatures semblent éviter les coups. Lancer **1d10 après chaque coup reçu**. En cas de résultat **supérieur ou égal à *Indice***, le coup est ignoré **même s'il s'agit d'un Critique**. » C'est une **sauvegarde** (ward save) post-touche : un seul jet par coup ; sur réussite, l'intégralité du coup (Dégâts ET Critique) est annulée. Le seuil s'écrit « N+ » (ex. *Protection 7+* = réussit sur 7, 8, 9, 10). — `LDB 85 l.277-278`
 
@@ -4238,6 +4247,8 @@ Les armes de base sont maniées à une main et nécessitent relativement peu d'e
 
 Notes : le **marteau de guerre** porte un Atout au CHOIX (*Assommante* — tête plate — OU *Perforante* — pointes) en plus de *Déséquilibrée* (`AA 08 l.140-142+245`). Le **cimeterre** a une Allonge Courte malgré une longueur comparable à l'épée (forme courbe → estoc réduit). Une **épée brisée** sert de dague mais reçoit le Défaut *Dangereuse* si elle n'a plus de garde complète. La **massue** peut être ramassée gratuitement en milieu boisé via un Test étendu de Survie en extérieur Intermédiaire (+0), total 7 DR. (`AA 08 l.130-153`)
 
+La **Pique d'armes** est une pioche du groupe des Armes de Base (`AA 08 l.145,153`). La **Pique** est une lance très longue et lourde du groupe des Armes d'Hast (`AA 08 l.305,335`).
+
 ### [AA 01] Règles du Pavois et Tableau des Boucliers
 
 Les boucliers s'utilisent avec la Compétence **Corps à Corps (Base)**. L'Atout *Protectrice (Indice)* a été révisé dans AA : chaque opposition avec Capacité de Combat / Corps à Corps ajoute un nombre de PA égal à l'Indice ; avec un Indice ≥ 2, le bouclier peut aussi s'opposer aux tirs de projectiles dans la ligne de vue. (`AA 08 l.100-104`)
@@ -4341,6 +4352,10 @@ Beaucoup d'armes de bagarre peuvent être bricolées à partir d'objets adéquat
 
 Notes : la **hache d'armes** choisit **Taille OU Empaleuse OU Assommante** (+ *Défensive*) ; **hallebarde**, **pertuisane/fauchard** et **serpe de guerre** offrent un choix d'Atout au moment de l'attaque ; le **bâton** peut être ramassé gratuitement en milieu boisé (Survie en extérieur Intermédiaire (+0), total 20 DR). **Attrape-coquin** : certains modèles à **mécanisme à ressort** coûtent **4 CO** et donnent **+20 sur tous les Tests de Force** pour empêtrer une cible. (`AA 08 l.294-306+406-433`)
 
+La ligne **Pertuisane/Fauchard** donne un profil commun. La pertuisane est une lance à lame épaisse en forme de feuille. Le fauchard est une arme d'hast à lame de coupe ou d'épée (`AA 08 l.304,333`).
+
+La **Hallebarde** a son propre profil et peut s'employer comme une lance ou comme une hache (`AA 08 l.302,329`).
+
 ### [AA 01] Tableau des Armes à Deux Mains
 
 | Arme | Prix | Enc | Disponibilité | Allonge | Dégâts | Atouts et Défauts |
@@ -4392,7 +4407,7 @@ Dans l'Empire, toutes les armes à poudre noire se chargent **par le canon** : o
 
 Des **matériaux de bourre** (coton, feutre, papier) garantissent que les gaz propulsent la balle avec un maximum de force. La bourre est généralement ajoutée **avant et après la balle** pour la précision ; certains vétérans portent un emporte-pièce à bourre pour tailler des tampons toujours identiques (meilleure précision). — `AA 08 l.431`
 
-Mécaniquement, le rechargement complet d'une de ces armes est régi par son Défaut **Recharge** (Indice = nombre de Tests/Actions requis ; sans Indice = 1). Les **mèches** (arquebuse à mèche, tromblon à mèche) doivent en outre être **allumées** : avant d'utiliser une arquebuse à mèche, le tireur dépense une Action pour allumer la mèche, qui brûle ensuite très longtemps sauf si elle est éteinte par la pluie ou le vent. — `AA 08 l.440`, `l.3195`
+Mécaniquement, le rechargement complet d'une de ces armes est régi par son Défaut **Recharge** (Indice = nombre de Tests/Actions requis ; sans Indice = 1). Les **mèches** (arquebuse à mèche, tromblon à mèche) doivent en outre être **allumées** : avant d'utiliser une arquebuse à mèche, le tireur dépense une Action pour allumer la mèche, qui brûle ensuite très longtemps sauf si elle est éteinte par la pluie ou le vent. — `AA 08 l.440`, `l.484`
 
 ### Tableau des Armes à Poudre à Canon — Ingénierie (table)
 
@@ -4404,7 +4419,7 @@ Mécaniquement, le rechargement complet d'une de ces armes est régi par son Dé
 | Pistolet à répétition | 15 CO | 1 | Rare | 10 | +8 | À répétition 4, Dangereuse, Pistolet, Recharge 4 |
 | Poivrière | 12 CO | 1 | Rare | 10 | +8 | À répétition 4\*, Dangereuse, Pistolet, Recharge 4 |
 
-\* Uniquement si l'arme est maniée à deux mains. — `AA 08 l.446-454`, `l.3179`
+\* Uniquement si l'arme est maniée à deux mains. — `AA 08 l.448-455`, `l.469`
 
 ### Tableau des Armes à Poudre à Canon — Poudre Noire (table)
 
@@ -4422,23 +4437,23 @@ Mécaniquement, le rechargement complet d'une de ces armes est régi par son Dé
 | Tromblon *(2M)* | 2 CO | 1 | Limitée | 20 | +8 | Dangereuse, Recharge 2, Tir de zone 3 |
 | Tromblon à mèche *(2M)* | 1 CO | 1 | Rare | 20 | +7 | Dangereuse, Recharge 3, Tir de zone 3 |
 
-— `AA 08 l.456-466`
+— `AA 08 l.456-467`
 
 **Cas particuliers d'armes (texte) :**
-- **Arquebuse à mèche / Tromblon à mèche** : avant usage, dépenser une Action pour **allumer la mèche** (brûle longtemps sauf pluie/vent) ; le tromblon à mèche partage les mêmes inconvénients que l'arquebuse à mèche. — `AA 08 l.440`, `l.3195`
+- **Arquebuse à mèche / Tromblon à mèche** : avant usage, dépenser une Action pour **allumer la mèche** (brûle longtemps sauf pluie/vent) ; le tromblon à mèche partage les mêmes inconvénients que l'arquebuse à mèche. — `AA 08 l.440`, `l.484`
 - **Hache-arquebuse** : utilisable en arquebuse ou en hache ; si maniée **comme hache alors qu'elle est chargée**, une Maladresse décharge l'arme **dans le corps de l'utilisateur**. — `AA 08 l.442`
 - **Hallebarde-arquebuse** : si maniée **comme hallebarde alors qu'elle est chargée**, une Maladresse décharge l'arme **sur quiconque se tient juste derrière l'utilisateur**. — `AA 08 l.472`
 - **Pistolet patte de griffon** : une seule gâchette décharge **les six canons** ; recharger exige **six munitions et autant de poudre** (d'où Recharge 6). — `AA 08 l.480`
 - **Mortier à main** : ressemble à un tromblon court et trapu, conçu pour lancer bombes et gros objets ; une **Maladresse en rechargeant** fait **exploser** l'arme. — `AA 08 l.509`
-- **Poivrière** : quatre canons préchargés ; doit être tournée/réamorcée entre les tirs (très rapide vs un rechargement complet), mais **perd l'Atout *À répétition* si la deuxième main n'est pas libre**. — `AA 08 l.506`
-- **Pistolet à répétition / Arquebuse à répétition** : mécanismes d'horlogerie / chambres rotatives plaçant une nouvelle munition après chaque tir ; entre des mains non entraînées, le pistolet à répétition « a tendance à exploser ». — `AA 08 l.505`, `l.3230`
+- **Poivrière** : quatre canons préchargés ; doit être tournée/réamorcée entre les tirs (très rapide vs un rechargement complet), mais **perd l'Atout *À répétition* si la deuxième main n'est pas libre**. — `AA 08 l.513`
+- **Pistolet à répétition / Arquebuse à répétition** : mécanismes d'horlogerie / chambres rotatives plaçant une nouvelle munition après chaque tir ; entre des mains non entraînées, le pistolet à répétition « a tendance à exploser ». — `AA 08 l.505`, `l.511`
 - **Canne-pistolet** : pistolet à canon court dissimulé dans une canne ; la repérer comme arme exige un Test de **Perception Difficile (–20)**, ou **Très Difficile (–30)** si l'on connaît mal les armes à poudre noire. — `AA 08 l.507`
 
 ### Munitions improvisées non-poudre (arcs / frondes)
 
 Le chapitre VIII traite aussi des munitions improvisées non-poudre : on peut se procurer un **caillou** pour fronde par un Test étendu de **Survie en extérieur Facile (+40)** ou de **Perception Intermédiaire (+0)** totalisant **5 DR** ; un **bâton pointu droit** (flèche improvisée) en lieu boisé par un Test étendu de **Survie en extérieur Intermédiaire (+0)** totalisant **10 DR**. Les flèches improvisées, non taillées par un professionnel, **ont tendance à provoquer des Maladresses**. — `AA 08 l.386-389`
 
-*(Le supplément ne présente pas de tableau chiffré distinct de « munitions traditionnelles » : seules ces deux entrées de fabrication improvisée figurent. Le seul tableau chiffré de munitions est celui des munitions à poudre noire ci-dessous.)*
+Le tableau des munitions traditionnelles (`AA 08 l.366-381`) est repris dans la section « Munitions traditionnelles (AA — variantes complémentaires) ».
 
 ### Tableau des Munitions à Poudre Noire (table)
 
@@ -4456,44 +4471,44 @@ Le chapitre VIII traite aussi des munitions improvisées non-poudre : on peut se
 | Petites munitions et poudre (12) | 3/3 | 0 | Commune | Comme l'arme | – | Tir de zone +3 |
 | Poudre imprégnée d'*Aqshy* (12) | 1 CO | 0 | Exotique | +10 | +2 | Empaleuse, Perforante |
 
-— `AA 08 l.485-500` (Prix « 3/3 » = 3 sous d'argent / 3 sous d'argent par lot selon variante ; « 5/– », « 3/– », « 2/– » suivent la même notation sous d'argent de la source. La munition à poudre noire/ingénierie ajoute son propre Indice à la qualité indiquée, p. ex. « Tir de zone **+3** » = +3 à l'Indice de Tir de zone, « Recharge **+2** » = +2 à l'Indice de Recharge de l'arme.)*
+— `AA 08 l.486-500`. La table indique des majorations de qualité pour la Ferraille (« Tir de zone +3 ») et le Grappin (« Recharge +2 »).
 
 **Règles de munitions (texte) :**
-- **Balle de gros calibre** (petits boulets de canon pour armes à grand canon, haquebute/mortier) : le tireur **et** quiconque se tient à **2 mètres ou moins** doit réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir l'État **Assourdi**. — `AA 08 l.488-488`, `l.3233`
-- **Cartouche en papier** (paquet pré-rempli de munition + poudre + bourre) : les **Tests de rechargement** d'une arme appropriée bénéficient d'un **bonus de +10**. — `AA 08 l.492`, `l.3245`
-- **Bombe explosive / incendiaire** : souvent lancées à la main, ou chargées dans un mortier à main ; mèche allumée avant chargement ; au chargement, on **fixe la durée de mèche** (1 Round → explose à la fin du Round actuel ; 2 Rounds → à la fin du Round suivant). La munition **explose à l'instant déterminé**, qu'on ait tiré ou non, et **le MJ n'est pas tenu de prévenir**. — `AA 08 l.490-491`, `l.3237-3243`
-- **Cartouche et poudre de précision** : poudre experte + balles polies arrondies → tirs plus fiables et précis (Atout Précise). — `AA 08 l.493-494`, `l.3247`
-- **Ferraille et poudre** : attaques avec le **Trait de créature Infecté** (réf. WFJDR p.340). — `AA 08 l.495`, `l.3249`
-- **Grappin** (tiré par mortier à main uniquement, ~20 m de corde) : peut fixer une corde, ou **piéger un ennemi en fuite** (inflige l'État **Empêtré** si le coup touche) ; tir très bruyant. — `AA 08 l.496`, `l.3251-3255`
-- **Munitions improvisées et poudre** : le coût ne fournit que la poudre ; le tireur doit **trouver son propre caillou**. — `AA 08 l.496`, `l.3257`
-- **Petites munitions et poudre** : utilisées pour chasser oiseaux/petites créatures rapides ; il en faut ~une douzaine par tir. — `AA 08 l.498`, `l.3259`
+- **Balle de gros calibre** (petits boulets de canon pour armes à grand canon, haquebute/mortier) : le tireur **et** quiconque se tient à **2 mètres ou moins** doit réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir l'État **Assourdi**. — `AA 08 l.490`, `l.517`
+- **Cartouche en papier** (paquet pré-rempli de munition + poudre + bourre) : les **Tests de rechargement** d'une arme appropriée bénéficient d'un **bonus de +10**. — `AA 08 l.494`, `l.528`
+- **Bombe explosive / incendiaire** : souvent lancées à la main, ou chargées dans un mortier à main ; mèche allumée avant chargement ; au chargement, on **fixe la durée de mèche** (1 Round → explose à la fin du Round actuel ; 2 Rounds → à la fin du Round suivant). La munition **explose à l'instant déterminé**, qu'on ait tiré ou non, et **le MJ n'est pas tenu de prévenir**. — `AA 08 l.492-493`, `l.521-526`
+- **Cartouche et poudre de précision** : poudre experte + balles polies arrondies → tirs plus fiables et précis (Atout Précise). — `AA 08 l.495`, `l.530`
+- **Ferraille et poudre** : attaques avec le **Trait de créature Infecté** (réf. WFJDR p.340). — `AA 08 l.496`, `l.532`
+- **Grappin** (tiré par mortier à main uniquement, ~20 m de corde) : peut fixer une corde, ou **piéger un ennemi en fuite** (inflige l'État **Empêtré** si le coup touche) ; tir très bruyant. — `AA 08 l.497`, `l.534-536`
+- **Munitions improvisées et poudre** : le coût ne fournit que la poudre ; le tireur doit **trouver son propre caillou**. — `AA 08 l.498`, `l.538`
+- **Petites munitions et poudre** : utilisées pour chasser oiseaux/petites créatures rapides ; il en faut ~une douzaine par tir. — `AA 08 l.499`, `l.540`
 
 ### Poudre imprégnée d'*Aqshy* — règle de maladresse étendue (règle)
 
 Cette poudre, fabriquée à partir de sable du désert de Néhékhara imprégné d'*Aqshy* par le Collège Flamboyant d'Altdorf, a **davantage de puissance explosive** que la poudre normale (Dégâts **+2**, Portée **+10**) mais **use les canons bien plus vite**. Sa contrepartie mécanique :
 
-> « Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre. » — `AA 08 l.544`
+> « Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre. » — `AA 08 l.542`
 
-C'est une **extension de la règle de Maladresse** : la Maladresse standard d'une arme **Dangereuse** ne survient que sur un jet raté incluant un **9** (dizaines ou unités) ; avec la poudre d'*Aqshy*, le seuil s'élargit à **8 OU 9** (dizaines ou unités) sur **tout** Test raté de tir avec l'arme ainsi chargée. — `AA 08 l.499-500`, `l.3261`
+C'est une **extension de la règle de Maladresse** : la Maladresse standard d'une arme **Dangereuse** ne survient que sur un jet raté incluant un **9** (dizaines ou unités) ; avec la poudre d'*Aqshy*, le seuil s'élargit à **8 OU 9** (dizaines ou unités) sur **tout** Test raté de tir avec l'arme ainsi chargée. — `AA 08 l.500`, `l.542`
 
 **Sources RAW** :
 - `AA 08 l.421-425` — Généralités : poudre versée par le canon (corne/récipient de dosage), balles de plomb en sac huilé, canon étroit (précision, ex. long fusil du Hochland) vs canon large (recharge/tir rapides) ; fusils de chasse à la guerre.
 - `AA 08 l.428-431` — Procédure de chargement par le canon (poudre → balle → bourre → baguette ; poudre d'amorçage ; bourre avant/après pour la précision ; emporte-pièce à bourre).
-- `AA 08 l.440`, `l.3195` — Mèche : Action pour l'allumer avant usage ; éteinte par pluie/vent ; le tromblon à mèche partage les inconvénients de l'arquebuse à mèche.
-- `AA 08 l.442`, `l.3183`, `l.3189`, `l.3222`, `l.3224`, `l.3226`, `l.3228`, `l.3230` — Cas particuliers d'armes : hache-/hallebarde-arquebuse (Maladresse décharge dans/derrière), patte de griffon (6 canons), arquebuse/pistolet à répétition, poivrière (4 canons, perd À répétition si 2e main occupée), canne-pistolet (Perception −20/−30 pour la repérer), mortier à main (Maladresse au rechargement = explosion).
-- `AA 08 l.445-468` — Tableaux des Armes à Poudre à Canon : section Ingénierie (l.3156-3164) + section Poudre Noire (l.3166-3177) + note « \* à deux mains » (l.3179) ; stats verbatim (Prix/Enc/Disponibilité/Portée/Dégâts/Atouts et Défauts). **Le format `Qualité — p. N` encode l'Indice N de la qualité (pas une page)** : Recharge — p. N = Recharge N ; Tir de zone — p. N = Tir de zone N.
-- `AA 08 l.485-500` — Tableau des Munitions à Poudre Noire : 11 munitions, stats verbatim (gros calibre, balle, bombes, cartouches, ferraille, grappin, improvisées, petites, *Aqshy*).
-- `AA 08 l.516`, `l.3245`, `l.3237-3243`, `l.3247`, `l.3249`, `l.3251-3255`, `l.3257`, `l.3259` — Règles de munitions : gros calibre → Assourdi (Résistance Intermédiaire, 2 m) ; cartouche en papier → +10 rechargement ; bombes (durée de mèche) ; précision → Précise ; ferraille → Infecté ; grappin → Empêtré ; improvisées → caillou à trouver ; petites → ~12 par tir.
-- `AA 08 l.545` — Poudre d'*Aqshy* : tout Test raté incluant un 8 ou 9 (dizaines/unités) = Maladresse (extension du seuil Dangereuse de 9 à 8/9).
+- `AA 08 l.440`, `l.484` — Mèche : Action pour l'allumer avant usage ; éteinte par pluie/vent ; le tromblon à mèche partage les inconvénients de l'arquebuse à mèche.
+- `AA 08 l.442`, `l.472`, `l.480`, `l.505`, `l.507`, `l.509`, `l.511`, `l.513` — Cas particuliers d'armes : hache-/hallebarde-arquebuse (Maladresse décharge dans/derrière), patte de griffon (6 canons), arquebuse/pistolet à répétition, poivrière (4 canons, perd À répétition si 2e main occupée), canne-pistolet (Perception −20/−30 pour la repérer), mortier à main (Maladresse au rechargement = explosion).
+- `AA 08 l.444-469` — Tableaux des Armes à Poudre à Canon, avec les sections Ingénierie (l.450-455) et Poudre Noire (l.456-467) et la note sur le maniement à deux mains (l.469).
+- `AA 08 l.486-500` — Tableau des Munitions à Poudre Noire : 11 munitions, stats verbatim (gros calibre, balle, bombes, cartouches, ferraille, grappin, improvisées, petites, *Aqshy*).
+- `AA 08 l.517`, `l.528`, `l.521-526`, `l.530`, `l.532`, `l.534-536`, `l.538`, `l.540` — Règles de munitions : gros calibre → Assourdi (Résistance Intermédiaire, 2 m) ; cartouche en papier → +10 rechargement ; bombes (durée de mèche) ; précision → Précise ; ferraille → Infecté ; grappin → Empêtré ; improvisées → caillou à trouver ; petites → ~12 par tir.
+- `AA 08 l.542` — Poudre d'*Aqshy* : tout Test raté incluant un 8 ou 9 (dizaines/unités) = Maladresse (extension du seuil Dangereuse de 9 à 8/9).
 - `AA 08 l.386-389` — Munitions improvisées non-poudre (caillou de fronde 5 DR ; bâton pointu 10 DR ; flèches improvisées → Maladresses).
 
 > « Une seule gâchette décharge les six canons et pour recharger, il faut six munitions et la même quantité de poudre. » — `AA 08 l.480` (Pistolet patte de griffon)
 
 > « Les Tests effectués pour recharger une arme du type approprié avec ces munitions bénéficient d'un bonus de +10. » — `AA 08 l.528` (Cartouche en papier)
 
-> « Dangereuse, Recharge 2, Tir de zone — p. 3 » — `AA 08 l.466` (Tromblon : preuve interne que « — p. N » est l'Indice de la qualité précédente, pas une page — la Recharge 2 y est déjà explicite.)
+> « Dangereuse, Recharge 2, Tir de zone 3 » — `AA 08 l.466` (Tromblon)
 
-**Voir aussi** : Armes à distance et munitions (table LDB) — *armes-distance-munitions-tables* (résolution identique du `— p. N` = Indice) ; Qualités/Défauts d'armes (Recharge, Dangereuse, À répétition/Salve, Tir de zone, Empaleuse, Percutante, Perforante, Imprécise, Précise, Pointue, Explosion) ; États Assourdi / Empêtré / Enflammé ; bandes de portée (LDB 62) ; Maladresse au combat (LDB 13/14) ; Trait Infecté (LDB 85) ; Armes d'équipe maniées en sous-effectif (AA 10 p.125).
+**Voir aussi** : Armes à distance et munitions (table LDB) — *armes-distance-munitions-tables* ; Qualités/Défauts d'armes (Recharge, Dangereuse, À répétition/Salve, Tir de zone, Empaleuse, Percutante, Perforante, Imprécise, Précise, Pointue, Explosion) ; États Assourdi / Empêtré / Enflammé ; bandes de portée (LDB 62) ; Maladresse au combat (LDB 13/14) ; Trait Infecté (LDB 85) ; Armes d'équipe maniées en sous-effectif (AA 10 p.125).
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecombatpoudre-impregnee-d-aqshy-regle-de-maladresse-etendue-regle)
 
@@ -5533,7 +5548,7 @@ Ces 9 Miracles forment trois familles : **buffs de groupe** (Dévotion de la Vie
 
 Sous-système **facultatif** d'*Archives de l'Empire : volume 2* (chapitre « Le théâtre de la guerre ») pour mener des batailles à grande échelle tout en gardant les Personnages au centre de l'action. C'est le système RAW vers lequel *Aux Armes* (AA) renvoie explicitement pour les affrontements de grande ampleur. Ces règles ne simulent pas l'intégralité d'une bataille (« si c'est ce que vous cherchez, essayez le *Warhammer Fantasy Battle, le jeu de figurines* ») : elles offrent des **scènes de jeu de rôle** dont l'issue modifie le score abstrait de **Puissance** de chaque camp [ADE II 08 l.13-15].
 
-> ⚠️ Les valeurs des machines de guerre ci-dessous sont celles d'**ADE II** (système de combat de masse, abstrait), distinctes des armes de siège **maniables** d'*Aux Armes* (`trappings.json`, source AA 10 p.122 — ex. Baliste **+12** Recharge 3 en AA contre Baliste **+14** Recharge 2 ici). Ne pas confondre les deux jeux de stats.
+Les profils du tableau d'**ADE II** et ceux d'**AA** (AA 10 p.122) ont chacun leur fiche dans `siege-engines.json`. La bataille de masse référence les profils d'ADE II. La baliste `baliste-ade2` inflige **+14** et porte Recharge 2. La baliste d'AA `baliste` inflige **+12** et porte Recharge 3.
 
 ### Puissance — le score d'armée
 
@@ -6312,8 +6327,8 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - La ref l.2902 pour les armes de cavalerie pointe sur le titre de section ("## Les Armes de Cavalerie") ; le texte commence à l.2903. Décalage mineur identique.
 
 ### AA : armes à poudre à canon et munitions — tables ⚠
-- MINEUR — Balle de gros calibre / règle Assourdi : le topic écrit « le tireur **et** quiconque se tient à 2 mètres ou moins » mais la source (l.3233) dit « Ceux qui tirent avec ces munitions **ou** se tiennent à 2 mètres ou moins de l'utilisateur » — la conjonction est OU (deux groupes distincts), pas ET. Effet pratique similaire, mais la formulation est inexacte.
-- MINEUR — Description de la poudre imprégnée d'Aqshy (section règle, pas la citation verbatim) : le topic simplifie « par des moyens connus uniquement du Collège Flamboyant » en « par le Collège Flamboyant » et omet « quantité supplémentaire » (source AA 8 l.544 : « imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf »). La citation verbatim en bas de la section est exacte. Acceptable comme paraphrase mais l'imprecision mérite d'être signalée.
+- MINEUR — Balle de gros calibre / règle Assourdi : le topic écrit « le tireur **et** quiconque se tient à 2 mètres ou moins » mais la source (AA 08 l.517) dit « Ceux qui tirent avec ces munitions **ou** se tiennent à 2 mètres ou moins de l'utilisateur » — la conjonction est OU (deux groupes distincts), pas ET. Effet pratique similaire, mais la formulation est inexacte.
+- MINEUR — Description de la poudre imprégnée d'Aqshy (section règle, pas la citation verbatim) : le topic simplifie « par des moyens connus uniquement du Collège Flamboyant » en « par le Collège Flamboyant » et omet « quantité supplémentaire » (source AA 8 l.542 : « imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf »). La citation verbatim en bas de la section est exacte. Acceptable comme paraphrase mais l'imprecision mérite d'être signalée.
 
 ### AA : Combat Monté étendu et dressage ⚠
 - [STRUCTURAL] La règle 'passer outre' (Charge traversante, l.3347-3349) apparaît dans la source sous le titre 'Les Attaques Contre les Quadrupèdes' (l.3334), séparée du trait 'Dressé (Cavalerie de Choc)' par la table de localisation. Le markdown la déplace à l'intérieur de la section Cavalerie de Choc. L'attribution est correcte (l.3347 dit bien 'ce Trait'), mais la structure éditoriale est réorganisée par rapport à la source.

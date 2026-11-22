@@ -4,9 +4,9 @@ import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { aiDriven } from '../netOwnership';
 import { structureCombatant, structureAimCell } from '../../engine/structures';
 import { applyShipPostes } from './shipPostes';
-import { itemFromTrappingById, unloadWeapon } from '../../engine/items';
+import { hydratePoste, unloadWeapon } from '../../engine/items';
 import { findStructureById } from '../../data';
-import type { Combatant, ShipPoste, Weapon } from '../../engine/types';
+import type { Combatant, Weapon } from '../../engine/types';
 import type { Scene } from './scene';
 import type { Jeu } from '../etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -44,7 +44,7 @@ const mkGate = (): Combatant => {
  *  = 72 m, dans la bande Longue de la portée 50 m. Un héros est tapi DERRIÈRE le mur (cour) → hors LdV. */
 const mkGunner = (): Combatant => {
   const g = mkActor('gunner', 'ennemi', { x: 14, y: 2 });
-  g.postes = [{ item: itemFromTrappingById('canon-petit', idsDeTest)!, crewIds: ['gunner'] } as ShipPoste];
+  g.postes = [hydratePoste({ engin: { id: 'canon-petit' }, crewIds: ['gunner'] }, idsDeTest('it'))];
   applyShipPostes([g]); // sert le canon au chef → g.weapons porte la pièce dérivée (ranged, Atout Siège)
   return g;
 };

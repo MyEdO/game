@@ -18,9 +18,10 @@ export const LUS_PAR_LES_GENERATEURS = Object.freeze(['hotes/godot/pont', 'hotes
 
 /** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
- *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
- *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
- *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
+ *  Les fichiers simplement mis à jour dans un bloc se déclarent dans `injecte`.
+ *  Un générateur exporte `rendre()` (cible → texte) et `produire()` (les rendus et leurs messages).
+ *  Le lanceur applique les rendus à `targets` ou `injecte`, ou les compare en `--check`.
+ *  Un lecteur du texte d'une cible passe par `rendreCible`.
  *  Ordre = ordre d'exécution. Gelée à sa déclaration (`Object.freeze` du tableau et de chaque générateur, que Node
  *  nu évalue : les hooks lisent ce module) : `chargerGenerateur` y lit le module qu'il charge, et le mur de clôture le
  *  suit (`valeursDAcquisition`). */
@@ -41,14 +42,12 @@ export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/docs/build-vocabulaire.mjs', targets: ['docs/vocabulaire-mecanique.md'] },
   { runner: 'node', script: 'scripts/docs/build-index-moteur.mjs', targets: ['docs/index-moteur.md'] },
   { runner: 'node', script: 'scripts/docs/build-registre-jets.mjs', targets: ['docs/registre-jets.md'] },
-  { runner: 'node', script: 'scripts/docs/build-usages-jets.mjs', targets: ['docs/usages-jets.md'] },
   { runner: 'node', script: 'scripts/docs/build-test-scenarios.mjs', targets: ['docs/test-scenarios.md'] },
   { runner: 'node', script: 'scripts/docs/build-reprise.mjs', targets: ['docs/reprise-apres-pause.md'] },
   { runner: 'node', script: 'scripts/docs/build-icones.mjs', targets: ['docs/ajouter-une-icone.md'] },
   { runner: 'node', script: 'scripts/docs/build-codex-relations.mjs', targets: ['docs/codex-relations.md'] },
   { runner: 'node', script: 'scripts/docs/build-map-authoring.mjs', targets: ['docs/map-authoring.md'] },
   { runner: 'node', script: 'scripts/docs/build-passifs.mjs', targets: ['docs/systeme-passifs.md'] },
-  { runner: 'node', script: 'scripts/docs/build-rendu-pipeline.mjs', targets: ['docs/rendu-pipeline.md'] },
   { runner: 'node', script: 'scripts/docs/build-flux-de-jet.mjs', targets: ['docs/ajouter-un-flux-de-jet.md'] },
   { runner: 'node', script: 'scripts/docs/build-mecanique.mjs', targets: ['docs/ajouter-une-mecanique.md'] },
   { runner: 'node', script: 'scripts/docs/build-sort.mjs', targets: ['docs/ajouter-un-sort.md'] },

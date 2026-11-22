@@ -2,22 +2,13 @@
 // déclaré UNE fois ici — le nom d'un volet, l'identité d'un site, son compte, la CIBLE qui solde une naissance ou une
 // hausse, et le juge propre d'un PLANCHER (`refus`). Chaque volet se mesure sur le CODE seul (defs, grammaire, `OP_DEFS`,
 // `Source/`) : ajouter ou retirer une donnée n'en fait bouger aucun (#2995). La dette que seule la donnée révèle n'est pas
-// ici : elle est INVENTORIÉE (`scripts/guards/lib/inventaireDeDette.mts`). Les COLLECTIONS À COMPTE sont les volets dont un
-// stock porte le compte ; leur contrat est `src/data/structures-contrat.test.ts`, l'écrivain de leurs baisses
-// `scripts/guards/occurrences-structures.mts`.
+// ici : elle s'inventorie dans `scripts/guards/lib/inventaireDeDette.mts`.
 import { analyserTexte, typescript } from './dialecte.mjs'
-import { CHAMP_D_OCCURRENCE, SEPARATEUR_DE_REMEDE, cleDeSite, ecartsDeStock, refusDeCroissance } from './stock.mjs'
-import { MOTIF_DECROISSANT } from './stockDeSites.mjs'
+import { SEPARATEUR_DE_REMEDE, cleDeSite } from './stock.mjs'
 import { SOURCE_FORMAT } from '../../raw/check-source-format.mjs'
 import { PORTEURS } from './porteursDesComptes.mjs'
 
 const siteDeRedeclaration = (r) => `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`
-
-/** Le compte d'une entrée de collection à compte. */
-export const occurrencesDe = (e) => e.occurrences
-
-/** La commande qui écrit les BAISSES mesurées. */
-export const COMMANDE_D_ECRITURE = 'node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write'
 
 /** Les redéclarations de l'AST des defs (`scannerRedeclarations`), comptées par identité. */
 function redeclarationsComptees(redeclarations) {
@@ -30,16 +21,15 @@ function redeclarationsComptees(redeclarations) {
   return [...parSite.values()]
 }
 
-/**
- * Les collections à compte. `mesure` lit le CORPUS `{ redeclarations }` (`corpusDesComptes`,
- * `scripts/guards/lib/corpusDesComptes.mts`) ; `site` est l'identité d'une entrée hors compte et hors pilotage ;
- * `cible` la phrase de la voie qui solde une hausse de ce site.
- */
-export const COLLECTIONS_A_COMPTE = Object.freeze([
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
-    cible: (_cle, r) => `Migrer : composer ${r.commun ? `\`${r.commun}\`` : 'le nœud commun'} de la grammaire (src/data/schemas/grammaire/) au lieu de le re-taper.`,
-    mesure: ({ redeclarations }) => redeclarationsComptees(redeclarations) },
-].map((c) => Object.freeze(c)))
+/** Redéclarations de formes partagées, mesurées par site sur l'AST des defs. */
+export const STRUCTURES_REDECLARATIONS = Object.freeze({
+  porteur: PORTEURS.STRUCTURES,
+  nom: 'STRUCTURES_REDECLARATIONS',
+  site: siteDeRedeclaration,
+  nombre: (e) => e.occurrences,
+  cible: (_cle, r) => `Migrer : composer ${r.commun ? `\`${r.commun}\`` : 'le nœud commun'} de la grammaire (src/data/schemas/grammaire/) au lieu de le re-taper.`,
+  mesure: redeclarationsComptees,
+})
 
 /** Le motif d'un site de `DETTE_OPS` dont le payload n'est pas typé (`OPS_NON_TYPEES`). */
 export const MOTIF_NON_TYPEE = 'non typée'
@@ -145,32 +135,10 @@ export const STRUCTURES_LOCALES = Object.freeze({
   renommages: renommagesDeStructure,
 })
 
-/**
- * Tout ce que juge la PORTE DES COMPTES (`jugerLesComptes`, `scripts/guards/lib/corpusDesComptes.mts`) : les collections
- * à compte, comptées par `occurrencesDe`, le volet `DETTE_OPS`, le plancher `FEUILLES_D_ID`, le
- * volet `STRUCTURES_LOCALES` et le volet `SOURCE_FORMAT` (`scripts/raw/check-source-format.mjs`). Un volet à stock nomme
- * son porteur, l'un de `PORTEURS_SOUS_LA_PORTE` (`porteursDesComptes.mjs`).
- */
+/** Volets jugés par `jugerLesComptes` dans `scripts/guards/lib/corpusDesComptes.mts`. */
 export const SOUS_LA_PORTE = Object.freeze([
-  ...COLLECTIONS_A_COMPTE.map((c) => Object.freeze({ ...c, nombre: occurrencesDe })),
-  DETTE_OPS, FEUILLES_D_ID, STRUCTURES_LOCALES, SOURCE_FORMAT,
+  STRUCTURES_REDECLARATIONS, DETTE_OPS, FEUILLES_D_ID, STRUCTURES_LOCALES, SOURCE_FORMAT,
 ])
-
-/** Les collections à compte par nom. */
-export const COLLECTIONS_A_COMPTE_PAR_NOM = Object.freeze(Object.fromEntries(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c])))
-
-/**
- * Les collections des `modules` de stock dont les entrées portent un COMPTE : un champ numérique autre
- * que l'ordinal `CHAMP_D_OCCURRENCE`. Chacune doit être déclarée dans `COLLECTIONS_A_COMPTE`. PURE.
- * @param {readonly { fichier: string, module: Record<string, unknown> }[]} modules
- * @returns {string[]} `fichier : nom`, dans l'ordre des modules puis de leurs exports.
- */
-export function collectionsACompteDe(modules) {
-  return modules.flatMap(({ fichier, module }) => Object.entries(module).flatMap(([nom, valeur]) =>
-    Array.isArray(valeur) && valeur.some((e) => e && typeof e === 'object' && Object.entries(e).some(([k, v]) => k !== CHAMP_D_OCCURRENCE && typeof v === 'number'))
-      ? [`${fichier} : ${nom}`]
-      : []))
-}
 
 /** Une HISTOIRE de compte écrite en commentaire d'un stock, transition (`a → b`) ou delta signé (`+N :`,
  *  `+N (#M) :`) : le compte vit dans l'entrée, son histoire dans git. */
@@ -194,95 +162,4 @@ export function histoiresDeCompte(texte, nom, rel) {
   for (const [pos, commentaire] of [...vus].sort(([a], [b]) => a - b))
     if (HISTOIRE_DE_COMPTE.test(commentaire)) out.push({ ligne: sf.getLineAndCharacterOfPosition(pos).line + 1, commentaire })
   return out
-}
-
-/**
- * L'écart d'une collection à compte à son stock (`ecartsDeStock`) : le compte sort de la clé, une hausse
- * porte la `cible` de la collection, une baisse la commande qui l'écrit.
- */
-export function ecartsDeCollection({ nom, observe, stock, cle, remede = {} }) {
-  return ecartsDeStock({
-    observe, stock, cle, nombre: occurrencesDe, cible: COLLECTIONS_A_COMPTE_PAR_NOM[nom].cible,
-    remede: { ...remede, baisse: () => `écrire la mesure : ${COMMANDE_D_ECRITURE}.` },
-  })
-}
-
-/**
- * L'écriture des BAISSES mesurées dans les fichiers de stock, PURE. Chaque collection est jugée par son
- * `site` : une identité neuve, disparue ou dupliquée lève ; une HAUSSE refuse TOUT, aucune baisse du même
- * run n'est écrite (`refusDeCroissance`, motif `MOTIF_DECROISSANT`, puis la ligne de chaque site accru et
- * sa `cible`). Les collections d'un même fichier s'écrivent sur un seul texte.
- * @returns {{ refus: string } | { ecritures: { rel: string, texte: string, changements: string[] }[] }}
- */
-export function actualiserOccurrences(collections) {
-  const refus = collections.flatMap(({ nom, rel, observe, stock, site, cible }) => {
-    const ecarts = ecartsDeStock({ observe, stock, cle: site })
-    if (ecarts.taille !== stock.length || new Set(observe.map(site)).size !== observe.length)
-      throw new Error(`${nom} : identités dupliquées`)
-    if (ecarts.neuves.length || ecarts.perimees.length)
-      throw new Error(`${nom} : identités inconnues ${ecarts.neuves.join('; ')} ; disparues ${ecarts.perimees.join('; ')}`)
-    const r = refusDeCroissance(observe, stock, { cle: site, nombre: occurrencesDe, nom: `${rel} : ${nom}`, motif: MOTIF_DECROISSANT })
-    if (r === null) return []
-    const { accrues } = ecartsDeStock({ observe, stock, cle: site, nombre: occurrencesDe, cible })
-    return [`${r}\n${accrues.map((l) => `  ${l}`).join('\n')}`]
-  })
-  if (refus.length) return { refus: `${refus.join('\n\n')}\nRien n’est écrit.` }
-  const textes = new Map()
-  const changements = new Map()
-  for (const c of collections) {
-    const { texte, sites } = comptesEcrits({ ...c, texte: textes.get(c.rel) ?? c.texte })
-    textes.set(c.rel, texte)
-    changements.set(c.rel, [...(changements.get(c.rel) ?? []), ...sites])
-  }
-  return { ecritures: [...textes].map(([rel, texte]) => ({ rel, texte, changements: changements.get(rel) })) }
-}
-
-/** Le texte d'une collection à compte réécrit à ses comptes mesurés, et les sites changés. */
-function comptesEcrits({ texte, rel, nom, observe, stock, site }) {
-  const ts = typescript()
-  const { sourceFile: sf, diagnostics } = analyserTexte({ rel, text: texte })
-  if (!sf || diagnostics.length) throw new Error(`${nom} : AST invalide`)
-  const declarations = sf.statements.filter((s) => ts.isVariableStatement(s)
-    && s.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
-    && (s.declarationList.flags & ts.NodeFlags.Const)).flatMap((s) => [...s.declarationList.declarations])
-    .filter((d) => ts.isIdentifier(d.name) && d.name.text === nom)
-  if (declarations.length !== 1 || !declarations[0].initializer || !ts.isArrayLiteralExpression(declarations[0].initializer))
-    throw new Error(`${nom} : export const tableau littéral requis`)
-  const mesures = new Map(observe.map((e) => [site(e), e.occurrences]))
-  const attendus = new Map(stock.map((e) => [site(e), e]))
-  const vus = new Set()
-  const remplacements = []
-  for (const objet of declarations[0].initializer.elements) {
-    if (!ts.isObjectLiteralExpression(objet)) throw new Error(`${nom} : entrée AST non reconnue`)
-    const valeurs = {}
-    const proprietes = new Map()
-    for (const p of objet.properties) {
-      if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)))
-        throw new Error(`${nom} : propriété AST non reconnue`)
-      const cle = p.name.text
-      if (proprietes.has(cle)) throw new Error(`${nom} : propriété ambiguë ${cle}`)
-      proprietes.set(cle, p.initializer)
-      if (ts.isStringLiteral(p.initializer)) valeurs[cle] = p.initializer.text
-    }
-    const cle = site(valeurs)
-    const entree = attendus.get(cle)
-    if (!entree || vus.has(cle)) throw new Error(`${nom} : identité AST inconnue ou dupliquée ${cle}`)
-    vus.add(cle)
-    const n = proprietes.get('occurrences')
-    const mesure = mesures.get(cle)
-    if (!n || !ts.isNumericLiteral(n) || !Number.isSafeInteger(Number(n.text)) || Number(n.text) < 0
-      || Number(n.text) !== entree.occurrences || !Number.isSafeInteger(mesure) || mesure < 0)
-      throw new Error(`${nom} : occurrences entières littérales requises pour ${cle}`)
-    if (Number(n.text) !== mesure) remplacements.push({ debut: n.getStart(sf), fin: n.end, valeur: String(mesure), site: cle })
-  }
-  if (vus.size !== stock.length) throw new Error(`${nom} : identité AST disparue`)
-  remplacements.sort((a, b) => b.debut - a.debut)
-  let resultat = texte
-  let borne = texte.length
-  for (const r of remplacements) {
-    if (r.fin > borne) throw new Error(`${nom} : spans recouvrants`)
-    resultat = resultat.slice(0, r.debut) + r.valeur + resultat.slice(r.fin)
-    borne = r.debut
-  }
-  return { texte: resultat, sites: remplacements.map((r) => r.site) }
 }

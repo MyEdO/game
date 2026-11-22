@@ -37,7 +37,6 @@ const TICKET_RE = /#(\d+)/g
  * dont le texte change sort du stock et se rejuge.
  */
 export const EXEMPTIONS_TOMBALE = [
-  { site: "src/ui/shipStatus.tsx :: /** Résumé de l'équipage SALARIÉ (#216) : roster (rôle × compte), solde hebdomadaire due, dette cumulée.", raison: 'la « dette cumulée » y est une RESSOURCE DU JEU (solde dû à l\'équipage), pas un travail non fait' },
   { site: 'scripts/ui/audit-i18n.mjs :: // catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE', raison: '« 2e chasse aux dettes » est le NOM du lot du ticket, pas une dette qu\'il laisserait ouverte' },
 ]
 const SITES_EXEMPTES = new Set(EXEMPTIONS_TOMBALE.map((e) => e.site))

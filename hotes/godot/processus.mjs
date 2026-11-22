@@ -3,7 +3,7 @@
 // de Node, de `tableTotale` et de `stockage.mjs` : `embarque.mjs` s'empaquette en un fichier.
 import { Console } from 'node:console'
 import { parseArgs } from 'node:util'
-import { createContext, runInContext } from 'node:vm'
+import { constants, createContext, runInContext } from 'node:vm'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { stockageDuProcessus } from './stockage.mjs'
 
@@ -37,20 +37,33 @@ export function ecartsDesLectures(lectures, api, horsDuProcessus) {
   })
 }
 
-/** Le pont du bundle `code` évalué comme dans la page de Godot : dans un contexte qui ne porte que `API_DU_NAVIGATEUR`,
- *  chacune prise au global de Node sauf `console` et `localStorage`, ceux donnés (`stockage` : `stockageDuProcessus`,
- *  `stockage.mjs`), et `sessionStorage`, un stockage en mémoire neuf (`stockageDuProcessus(null)`). Lève si
- *  l'évaluation lève. */
-export function pontDuBundle(code, console, stockage) {
+/** Les API que la page de Godot fournit au bundle : celles de Node, la console et le stockage donnés,
+ *  et un stockage de session neuf. */
+function apiDeLaPage(console, stockage) {
   const donnees = { console, localStorage: stockage, sessionStorage: stockageDuProcessus(null) }
-  const page = createContext(tableTotale(API_DU_NAVIGATEUR, (nom) => (nom in donnees ? donnees[nom] : globalThis[nom])))
+  return tableTotale(API_DU_NAVIGATEUR, (nom) => (nom in donnees ? donnees[nom] : globalThis[nom]))
+}
+
+function evaluerLePont(code, page) {
   runInContext(code, page, { filename: PONT })
   return page.wfrpPont
 }
 
+/** Le pont natif tiré de `code` dans un contexte neuf. Le global ordinaire de ce contexte conserve ses propres
+ *  intrinsèques et évite le coût d'interception de la résolution des noms globaux (#4032). */
+export function pontDuBundle(code, console, stockage) {
+  const page = Object.assign(createContext(constants.DONT_CONTEXTIFY), apiDeLaPage(console, stockage))
+  return evaluerLePont(code, page)
+}
+
+/** Le contexte de référence de `pont:godot` pour vérifier les API de navigateur déclarées. */
+export function pontDuBundleDeReference(code, console, stockage) {
+  return evaluerLePont(code, createContext(apiDeLaPage(console, stockage)))
+}
+
 /**
  * @contrat Transport
- * - Le processus du pont (`tenirLeTuyau`, `hotes/godot/processus.mjs`) tire le pont de son bundle comme la page
+ * - Le processus du pont (`tenirLeTuyau`, `hotes/godot/processus.mjs`) tire le pont de son bundle dans un contexte neuf
  *   (`pontDuBundle`), sa `console` sur la sortie d'erreur : sa sortie standard ne porte que le protocole, lignes et
  *   octets.
  * - Son stockage, où vivent les sauvegardes, est le fichier de son option `--stockage=<fichier>` (`stockageDuProcessus`,
@@ -75,13 +88,17 @@ export function pontDuBundle(code, console, stockage) {
 /** Le délai après lequel un processus dont l'entrée a fini sort, quoi que le retienne. */
 export const BORNE_DE_SORTIE_MS = 1_000
 
+function fichierDeStockage() {
+  const { values: options } = parseArgs({ options: { stockage: { type: 'string' } } })
+  return options.stockage ?? null
+}
+
 /** Tient le tuyau du pont du bundle `code` sur l'entrée et la sortie standard du processus (`servirLeCanal`), sa
  *  `console` sur la sortie d'erreur, son stockage au fichier de son option `--stockage=<fichier>` ; l'entrée finie, au
  *  rappel de sa dernière écriture, la sortie standard vidée, une minuterie qui ne le retient pas le fait sortir en 0 à
  *  `BORNE_DE_SORTIE_MS`. */
 export async function tenirLeTuyau(code, serveur) {
-  const { values: options } = parseArgs({ options: { stockage: { type: 'string' } } })
-  await servirLeCanal(pontDuBundle(code, new Console(process.stderr), stockageDuProcessus(options.stockage ?? null)), serveur, { entree: process.stdin, sortie: process.stdout })
+  await servirLeCanal(pontDuBundle(code, new Console(process.stderr), stockageDuProcessus(fichierDeStockage())), serveur, { entree: process.stdin, sortie: process.stdout })
   process.stdout.write('', () => setTimeout(() => process.exit(0), BORNE_DE_SORTIE_MS).unref())
 }
 
@@ -114,3 +131,11 @@ export async function servirLeCanal(pont, { url, fermer }, { entree, sortie }, m
   }
   fermer()
 }
+
+/** Le chemin de stockage choisi en CLI peut désigner un fichier du dépôt.
+ *  Lu par la dérivation des balayages.
+ *  @public
+ */
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: fichierDeStockage, retour: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } },
+]

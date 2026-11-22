@@ -39,19 +39,17 @@ import { availableParallelism, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { enFileBornee } from '../../guards/lib/fileBornee.mjs'
+import { estModule } from '../../guards/lib/importGraph.mjs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../../guards/lib/manualDocsStock.mjs'
 import { spawnBorne } from '../../guards/lib/processusBorne.mjs'
 import { ecartsDeStock } from '../../guards/lib/stock.mjs'
 import { GENERATORS, generateurDe } from '../../docs/build-all.mjs'
 import { estUnDocMarkdown } from '../../docs/lib/ecriture-derives.mjs'
-import { ecartsDeRendu, fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
+import { ecartsDeRendu, fautesDeCitations, HOTE_WIN32, IMPORT_WIN32 } from '../../test/lib/bancGenerateurs.mjs'
 import { coeurs } from '../../test/partition.mjs'
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
-
-/** Le module qui rend sous win32, en `--import` ; il se pose AVANT `tsx/esm`. */
-const SOUS_WIN32 = ['--import', new URL('../../docs/lib/plateforme-win32.mjs', import.meta.url).href]
 
 const RENDRE_SEUL = fileURLToPath(new URL('../../docs/lib/rendre-seul.mjs', import.meta.url))
 
@@ -99,7 +97,7 @@ let rendus
  *  (`coeurs`), lancés par `spawnBorne` (#2586). */
 function rendusParCote() {
   rendus ??= (async () => {
-    const cotes = process.platform === 'win32' ? [[]] : [[], SOUS_WIN32]
+    const cotes = HOTE_WIN32 ? [[]] : [[], IMPORT_WIN32]
     const dossier = mkdtempSync(join(tmpdir(), 'rendus-des-generateurs-'))
     try {
       const parTache = await enFileBornee(
@@ -200,14 +198,14 @@ test('aucun doc MANUSCRIT ne se déclare `GÉNÉRÉ par` — le marqueur n’est
  * (« GÉNÉRÉ par `node scripts/docs/build-systemes.mjs` » vs « GÉNÉRÉ par `npx tsx
  * scripts/gen-sorts-doc.mts` ») : le motif capture tout le contenu entre backticks après
  * « GÉNÉRÉ par », puis retient le PREMIER token qui ressemble à un chemin de script exécutable
- * (`.mjs`/`.mts`/`.cjs`/`.ts`/`.js`) — insensible au lanceur (`node`, `npx tsx`…) qui le précède.
+ * — insensible au lanceur (`node`, `npx tsx`…) qui le précède.
  */
 const GENERATOR_QUOTE = /GÉNÉRÉ par\s+`([^`]+)`/
 
 function extractGeneratorScript(head) {
   const m = head.match(GENERATOR_QUOTE)
   if (!m) return null
-  return m[1].split(/\s+/).find((t) => /\.(?:mjs|mts|cjs|ts|js)$/.test(t)) ?? null
+  return m[1].split(/\s+/).find(estModule) ?? null
 }
 
 test('tout doc GÉNÉRÉ qui porte le marqueur `GÉNÉRÉ par` y cite SON générateur de GENERATORS', async () => {
@@ -345,7 +343,7 @@ test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole 
 })
 
 test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', {
-  skip: process.platform === 'win32' && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
+  skip: HOTE_WIN32 && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
 }, async () => {
   const { hote, win32 } = await rendusParCote()
   assert.deepEqual(GENERATORS.flatMap((g) => ecartsDeRendu(g.script, hote.get(g.script), win32.get(g.script))), [])

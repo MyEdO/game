@@ -2,7 +2,8 @@
  * `OP_DEFS` (`grammaire/mecanique.ts`) — payload strict par op, repli nominatif, rouge au SITE.
  */
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
-import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { entreeDe } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
 import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
@@ -258,7 +259,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     // La référence est la SOURCE `src/engine/ops.ts` : chaque branche littérale de l'union `GameOp`
     // (`rollTable` en porte 2, dédoublonnées par l'ensemble). Égalité d'ensembles BIDIRECTIONNELLE :
     // une op moteur non couverte comme une entrée orpheline sont NOMMÉES.
-    const source = readFileSync(new URL('../../../engine/ops.ts', import.meta.url), 'utf8');
+    const source = entreeDe(resolve(__dirname, '../../../engine/ops.ts')).text;
     const opsDuMoteur = new Set([...source.matchAll(/^\s*\|\s*\{\s*op:\s*'([^']+)'/gm)].map((m) => m[1]));
     expect(opsDuMoteur.size).toBeGreaterThan(0);
     const couvertes = new Set([...typees, ...OPS_NON_TYPEES]);

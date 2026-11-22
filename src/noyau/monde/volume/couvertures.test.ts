@@ -22,42 +22,31 @@ describe('apparence de toit (JSON pur iso/plan)', () => {
     expect(roofMaterial('plan').couverture).toBeUndefined();
   });
 
-  it('les matériaux de couverture portent liseré + recette de rangs (consommés par builder + backend)', () => {
-    for (const id of ['tuile', 'chaume', 'toit-ardoise']) {
-      const m = roofMaterial(id);
-      expect(m.line, id).toBeTruthy();
-      expect(m.detail?.courses?.hM ?? 0, id).toBeGreaterThan(0); // pas métrique des rangs (source unique)
-      expect(m.detail?.courses?.joint, id).toBeTruthy(); // couleur des rangs
-    }
-    // Bardeaux (blocs décalés nuancés) sur les couvertures rigides ; rangs ORGANIQUES sur le chaume.
-    expect(roofMaterial('tuile').detail?.courses?.blockWM).toBeDefined();
-    expect(roofMaterial('toit-ardoise').detail?.courses?.blockWM).toBeDefined();
-    expect(roofMaterial('chaume').detail?.courses?.blockWM).toBeUndefined();
-    expect(roofMaterial('chaume').detail?.courses?.edgeWobble ?? 0).toBeGreaterThan(0);
-    expect(roofMaterial('chaume').detail?.tufts).toBeDefined(); // balayage de paille
+  it('les matériaux de couverture portent leur liseré (repli de la planche de rive)', () => {
+    for (const id of ['tuile', 'chaume', 'toit-ardoise']) expect(roofMaterial(id).line, id).toBeTruthy();
   });
 
-  it('avant-toit (VOLUME) : débord + soffite sur les 3 couvertures ; fascia dure sauf chaume ; couronnement tuile/ardoise', () => {
+  it('avant-toit (VOLUME) : débord + soffite et faîtière sur les 3 couvertures ; fascia dure sauf chaume', () => {
     for (const id of ['tuile', 'chaume', 'toit-ardoise']) {
       const m = roofMaterial(id);
       expect(m.eaveOverhangM ?? 0, id).toBeGreaterThan(0); // le toit déborde des murs
       expect(m.soffite, id).toBeTruthy(); // ton du dessous ombré
     }
-    // Chaume = bord arrondi : PAS de fascia dure ni de couronnement de faîte (crête molle).
+    // Chaume = bord arrondi : PAS de fascia dure.
     expect(roofMaterial('chaume').fasciaDropM).toBeUndefined();
     expect(roofMaterial('chaume').fascia).toBeUndefined();
-    expect(roofMaterial('chaume').ridgeCap).toBeUndefined();
-    // Tuile & ardoise : fascia dure (planche de rive) + couronnement de faîte.
+    // Tuile & ardoise : fascia dure (planche de rive).
     for (const id of ['tuile', 'toit-ardoise']) {
       expect(roofMaterial(id).fasciaDropM ?? 0, id).toBeGreaterThan(0);
       expect(roofMaterial(id).fascia, id).toBeTruthy();
-      expect(roofMaterial(id).ridgeCap, id).toBeTruthy();
     }
   });
 
-  it('plan vu du dessus (vue carrée)', () => {
-    expect(roofMaterial('plan').planBody).toBe('#6e4f3a');
-    expect(roofMaterial('plan').planEdge).toBe('#241a12');
+  it('chaque couverture nomme la famille du kit de sa faîtière et sa teinte (#4471)', () => {
+    for (const m of matieresDe('roof').filter((x) => x.couverture)) {
+      expect(m.kit, m.id).toBeTruthy();
+      expect(m.ridgeCap, m.id).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 
   it('id absent du registre → entrée de REPLI VISIBLE au ton d’alarme (#877)', () => {

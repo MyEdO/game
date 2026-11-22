@@ -18,9 +18,10 @@ import type { SceneMutation } from './monde/sceneInstance';
 import type { ClueState } from './monde/clues';
 import type { CombatEvent, ActorAim } from './combatLog';
 import { campaignStart, dayIndex } from '../engine/clock';
-import type { Possession } from '../engine/possession';
+import type { NavalPossessionState, Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
+import type { PendingShoreLeave } from './seaVoyageFlow';
 import type * as tavernFlow from './tavernFlow';
 import type {
   PendingVictory,
@@ -79,6 +80,7 @@ import { initialFields } from './stateFields';
 import type { NarratifBlock, OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { EtatDeContagion } from './expositionAMaladie';
 
 /** Source unique des écrans valides — `Ecran` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -130,7 +132,7 @@ export interface MembreDuBord { combattant: Combatant; poste: PosteDuBord }
 export interface CritiqueSuspendu { etapeId: string; porteurId: string; avantLeCoup: Combatant }
 
 export interface BattleState {
-  combatants: Combatant[];
+  combatants: import('./monde/coqueDeCampagne').CombattantDeRencontreOuTrajet[];
   order: string[];
   /** Ordre d'initiative CANONIQUE (immuable) ; `order` en est dérivé chaque Round (Maladresse
    *  « agir en dernier » / pré-emption Chance = effets d'UN Round, non permanents). */
@@ -286,27 +288,30 @@ export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisf
 export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
 
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
- *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
- *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
- *  défaut (coque intacte, humeur neutre, cale vide) — migration par défauts, jamais de corruption. */
+ *  transitoire d'un combat). Son Moral est recalculé hebdomadairement. */
 export interface CampaignVessel {
+  /** Identité de l'instance, distincte de la fiche de véhicule. */
+  uid?: string;
   vehicleId: string;
-  /** #230 — Nom d'INSTANCE authoré (« Le Cormoran »…). Affichage pur (jamais une clé de logique/rendu) ;
-   *  absent = le label du TYPE (`findVehicleById(vehicleId).label`). Migration par défaut. */
+  /** #230 — Nom d'instance authoré. Sans nom, l'affichage reprend le libellé du type. */
   label?: string;
   morale: ShipMoraleState;
   /** #30 — Blessures de COQUE persistantes (absent = coque intacte). Synchronisées par le voyage
    *  maritime (`persistHullWounds`) et les réparations ; la coque de trajet en repart. */
   wounds?: { current: number; max: number };
+  /** MDG 15 l.200 */
+  usure?: number;
   /** Améliorations d'INSTANCE posées au chantier (MDG 12 — Clinfoc, Blindage, Ancre…), recopiées
    *  sur la coque au départ (`voyageShip`). */
   upgrades?: import('../engine/types').NavalTraitRef[];
   /** Salissures (MDG 13 l.144-159) : niveau 0-5 + garde hebdomadaire du Test. */
-  fouling?: { level: number; lastWeek: number };
+  fouling?: NavalPossessionState['fouling'];
   /** Coque tenue par une réparation temporaire, jusqu'à la réparation au port (`portRepairVessel`). MDG 13 l.651 */
   reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
   manann?: import('../engine/seaVoyage').ManannMood;
+  /** MDG 15 l.15, l.19 */
+  daysToEvent?: number;
   /** SABOTAGE authoré sur cette coque (MDG 14 l.45-47) — clampé [-5,0] par `shipSaboteurDR`,
    *  recopié sur la coque de trajet (`voyageShip`) comme `upgrades`/`wounds`. */
   saboteurDR?: number;
@@ -332,9 +337,9 @@ export interface CampaignVessel {
    *  plafonné au complément nominal du type (`vehicles.json` ship.crew — `applyVesselCrewLoss`). Absent
    *  = aucune perte. #150. */
   crewLost?: number;
-  /** L'équipage PNJ, UN porteur de maladies collectif sans fiche ; lu et écrit par `porteursABord` (`shipCrew.ts`), vidé
-   *  quand l'effectif PNJ tombe à 0 (`applyVesselCrewLoss`). MDG 14 l.172, l.208-209, l.230-232. Absent = équipage sain. #4243 */
-  porteurDeLEquipage?: Pick<import('../engine/disease').PorteurDeMaladies, 'diseases' | 'regimeDeBord'>;
+  /** L'équipage PNJ, un porteur de maladies collectif lu et écrit par `porteursABord`.
+   *  LDB 20 l.127-129 ; MDG 14 l.172, l.208-209, l.230-232 */
+  porteurDeLEquipage?: Omit<import('../engine/disease').PorteurDeMaladies, 'label'>;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];
@@ -742,6 +747,8 @@ export interface EtatDeJeu {
   travelRecap: import('./travelFlow').TravelRecap | null;
   /** Dernier jour (index d'horloge) traité par l'entretien quotidien (rations/faim) — anti-double-comptage. */
   lastUpkeepDay: number;
+  /** Fenêtres ouvertes et repères de phase observés chez leurs sources. LDB 20 l.12-13, l.206 */
+  etatDeContagion: EtatDeContagion;
   /** Budget d'heures de voyage CONSOMMÉ le jour calendaire courant (#340) — SOURCE UNIQUE keyée sur
    *  `dayIndex(gameTime)`, remise à zéro au franchissement de jour. `foot`/`mount` = heures à pied / en
    *  selle déjà parcourues aujourd'hui (le budget RAW de 6 h se compte PAR JOUR, pas par trajet) ;
@@ -754,7 +761,7 @@ export interface EtatDeJeu {
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
   pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** Navire de campagne PERSISTANT (MDG 13-14) — porte son `vehicleId` et son MORAL (recalculé chaque
-   *  semaine par l'entretien quotidien via `tickShipMorale`). `null` hors campagne navale. */
+   *  semaine par l'entretien quotidien via `tickCampaignVesselWeek`). `null` hors campagne navale. */
   vessel: CampaignVessel | null;
   /** Registre UNIQUE des Possessions (#615, SOCLE POSSESSIONS §6) — bêtes/serviteurs/véhicules/navires/
    *  immeubles, hors héros de `party`. Aucun mirroir par kind ; `possessionsFlow.ts` en est la plomberie. */
@@ -778,11 +785,11 @@ export interface EtatDeJeu {
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
   landMarket: import('./landMarketFlow').LandMarketState | null;
-  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
+  /** MDG 15 l.268 */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
-  pendingShoreLeave: import('./seaVoyageFlow').PendingShoreLeave | null;
+  pendingShoreLeave: PendingShoreLeave | null;
 }
 
 /** L'état et les actions du jeu (#2817 D5) : ce que reçoivent les flux du noyau. */
@@ -794,6 +801,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     screen: 'menu',
     gameTime: campaignStart(),
     lastUpkeepDay: dayIndex(campaignStart()),
+    etatDeContagion: { fenetres: [], sources: [] },
     travelDayHours: { day: dayIndex(campaignStart()), foot: 0, mount: 0, marched: false },
     lastNightDay: dayIndex(campaignStart()),
     vessel: null,

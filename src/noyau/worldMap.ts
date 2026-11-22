@@ -15,26 +15,38 @@ import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { placeServiceSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type {
+  landMarketProfileSchema,
+  mapPlaceSchema,
+  mapRouteSchema,
+  placePoiSchema,
+  placeServiceSchema,
+  portProfileSchema,
+  routePerilSchema,
+  worldMapParamsSchema,
+} from '../data/schemas/defs-scenes/worldmap';
 import type { refusDAccesSchema } from '../data/schemas/grammaire/acces';
 import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
-import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
+import type { routeBilletSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
+import { tableTotale } from '../lib/tableTotale';
 import { normalizeScene } from './monde/scene';
-import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
+import { findNavalPortById, findLieuServiceById, semencesDeScene } from '../data';
 import { colonneDeLaTaille } from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 
 /** Le marché qu'un auteur pose sur un lieu : le profil du moteur sans sa Taille, que porte le lieu (`tailleDuLieu`). */
-export type MarcheDAuteur = Omit<LandMarketProfile, 'taille'>;
+export type MarcheDAuteur = z.output<typeof landMarketProfileSchema>;
+
+type PortSansReference = PortProfile & { ref?: undefined };
+type PortDuDocument = PortSansReference | (Omit<z.input<typeof portProfileSchema>, 'ref'> & { ref: string });
 
 /** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
 export interface MapPlace {
@@ -54,7 +66,7 @@ export interface MapPlace {
    *  par-dessus le catalogue (sparse en authoring JSON, résolues/complétées au chargement du projet
    *  par `resolvePortRef`, `parseProject`) ; le type reste NON-partiel car tout consommateur aval lit
    *  `place.port` APRÈS résolution (jamais la forme sparse brute). */
-  port?: { ref?: string } & import('../engine/seaVoyage').PortProfile;
+  port?: PortSansReference | (PortProfile & { ref: string });
   /** Taille d'un lieu SANS port (`tailleDuLieu`), MSRC 13 l.44-50 ; absente : le lieu n'est pas une agglomération. */
   taille?: number;
   /** Indices de COMMERCE TERRESTRE/FLUVIAL (Index géographique, MSRC 13 l.183-278) — présent = ce Lieu
@@ -73,7 +85,7 @@ export interface MapPlace {
   poi?: PlacePoi[];
   /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
-  backdrop?: { id: string };
+  backdrop?: z.output<typeof mapPlaceSchema>['backdrop'];
   /** Ce que le groupe voit et sait du lieu en y arrivant, lu à l'écran du lieu. */
   prose?: string;
   source?: SourceRef;
@@ -90,14 +102,11 @@ export interface MapPlace {
  *  `quitterLaScene`), nommée par son `label`, OU `service` (id d'un service que le lieu RÉSOUT — `placeServices`, dont
  *  le port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services), nommé par ce
  *  service (`nomDuPoi`). `id` STABLE (référencé par l'éditeur et les tests, `validateScene`). */
-export type PlacePoi = {
-  id: string;
-  pos: { x: number; y: number };
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
-  icon?: IconId;
-} & (
-  | { label: string; sceneId: { id: string }; service?: undefined }
-  | { label?: undefined; sceneId?: undefined; service: { id: string } }
+type PoiDuSchema = z.output<typeof placePoiSchema>;
+
+export type PlacePoi = Omit<PoiDuSchema, 'label' | 'sceneId' | 'service'> & (
+  | { label: string; sceneId: NonNullable<PoiDuSchema['sceneId']>; service?: undefined }
+  | { label?: undefined; sceneId?: undefined; service: NonNullable<PoiDuSchema['service']> }
 );
 
 /** Un ÉTABLISSEMENT attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui portent leur propre
@@ -143,19 +152,7 @@ export function refusDAcces(acces: Acces, ctx: ConditionCtx): string | null {
 
 /** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
  *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
-export interface RouteBillet extends ProvenanceDeValeur {
-  /** Sous par passager, par classe du véhicule, pour le trajet entier. */
-  prix: Partial<Record<string, number>>;
-  /** Routes suivantes couvertes, dans l'ordre du trajet, chacune partant du lieu d'arrivée de la précédente. */
-  suite?: string[];
-  /** Lieu de départ du billet — exigé sur une route sans `from` (à double sens). */
-  depuis?: { id: string };
-  /** Le billet se marchande : Test opposé contre le PNJ `presetId` du narratif (EDO 01 l.142). */
-  marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
-}
-
-/** Provenance d'une valeur d'auteur de route : `source` ou `maison`. */
-export type ProvenanceDeValeur = z.infer<typeof provenanceDeValeurSchema>;
+export type RouteBillet = z.output<typeof routeBilletSchema>;
 
 /** Clé d'un billet : sa première route, son véhicule et son lieu de départ — un billet se marchande
  *  UNE fois (EDO 01 l.142). */
@@ -164,61 +161,8 @@ export function cleDeBillet(routeId: string, vehicule: string, depuis: string): 
 }
 
 /** Le tracé d'une route, hors praticabilité. */
-export interface MapRouteTrace {
-  id: string;
-  a: { id: string };
-  b: { id: string };
-  /** Route À SENS UNIQUE d'INITIATION : présent = elle ne s'emprunte QUE depuis ce lieu (`a` ou `b`) — le
-   *  trajet retour se fait par une AUTRE route. Absent = bidirectionnelle (historique). Sert à rendre
-   *  DISCERNABLES deux routes reliant les mêmes ports (aller/retour, chacune avec son embuscade) : depuis
-   *  un port, seule la route de ce sens est offerte au clic (`routesFrom`), l'embuscade est donc déterministe. */
-  from?: { id: string };
-  /** Distance en kilomètres (LDB 51 l.178 : les coûts sont « par kilomètre parcouru »). */
-  km: number;
-  /** Modes de voyage offerts sur cette route. */
-  modes: TravelMode[];
-  /** Billet d'auteur par véhicule (`id` de `vehicles.json`), posé sur la PREMIÈRE route du trajet
-   *  qu'il couvre (EDO 01 l.142). Absent pour un véhicule : billet implicite (`billetImplicite`). */
-  billets?: Partial<Record<Exclude<TravelMode, 'pied'>, RouteBillet>>;
-  /** Déplacement d'auteur par mode (modèle rapide/lent : M ±1, LDB 51 l.178). À pied : force la vitesse. */
-  speed?: Partial<Record<TravelMode, number>>;
-  /** Seuil du d10 quotidien de péripétie RAW (LDB 51 l.208 « sur un résultat de 8 ») ; 0 = désactivé.
-   *  Absent = défaut de la carte (sinon TRAVEL_DEFAULTS.perilDie). */
-  perilDie?: number;
-  /** Provenance de chaque valeur d'auteur (`provenanceDeValeurSchema`) ; exigée pour `perilDie` et `speed` posés. */
-  provenances?: Partial<Record<'perilDie' | 'speed' | 'km', ProvenanceDeValeur>>;
-  /** Péripéties d'auteur (en PLUS de la table d10 RAW). */
-  perils?: RoutePeril[];
-  /** Cible du « Attaqués ! » (péripétie 10) : scène d'embuscade + rencontre. Absent = narratif.
-   *  `at` (fraction 0-1, défaut 0.5) : en MER, ancrage DÉTERMINISTE de l'embuscade authorée — elle se
-   *  déclenche quand `kmDone` franchit `at × km`, une fois par traversée, indépendamment du RNG (#212). */
-  ambush?: { scene: { id: string }; entry?: string; encounter: string; at?: number };
-  /** Relais d'auberges en bord de route (section Voyage : « Les auberges en bord de route sont
-   *  souvent placées à la convenance des relais de diligences ») : la halte de NUIT propose
-   *  l'auberge (chambres/repas payants, modale de Repos) en plus du campement. Absent = belle
-   *  étoile seulement. */
-  inns?: boolean;
-  /** Route MARITIME (MDG 13-15) : se voyage sur le NAVIRE DE CAMPAGNE (`state.vessel`) ; `km` est
-   *  alors en MILLES (les tables RAW — 18 milles/jour par M, distances ch.15 l.40-47 — sont en milles). */
-  sea?: boolean;
-  /** Cap DOMINANT du trajet (vent relatif, MDG 13 l.262-270) — défaut 'ouest'. */
-  seaHeading?: import('../engine/seaWeather').WindDirection;
-  /** Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : en mode `barge`, la descente se joue jour par
-   *  jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport payant. Repli
-   *  payant si aucun batelier/embarcation. Absent = barge en transport payant (comportement historique). */
-  river?: boolean;
-  /** Périls de rivière tirés chaque jour sur une route fluviale JOUÉE (MSRC 7 l.119-166, `river-perils.json`) :
-   *  `perilId` (débris/rochers/eaux-peu-profondes/barrage) tiré à `chancePct` %. Data-driven, éditable. */
-  riverPerils?: { perilId: string; chancePct: number }[];
-  /** Exposition HYDRIQUE de la descente (MSRC 16 « Maladies transmises par l'eau », l.5-13) : à chaque
-   *  étape à flot, un tirage à `chancePct` % pose le Test d'Exposition de la descente
-   *  (`riverVoyageFlow.openRiverExposureChance`). `source` = id du tableau 1 « Source d'eau » (choix d'auteur de la
-   *  portion de fleuve : `grande-ville-marais`, `aval-grande-ville-8km`…), `mode` = `ingestion` (boire l'eau
-   *  du fleuve non bouillie, l.5) / `immersion` (chute\nage, blessures ouvertes, l.7-9). Data-driven, éditable. */
-  riverExposure?: { source?: string; mode: import('../data').WaterExposureMode; chancePct: number };
-  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
-  couvre?: string[];
-}
+export type MapRouteTrace = Omit<z.output<typeof mapRouteSchema>, 'when' | 'refus' | 'billets'>
+  & Pick<z.input<typeof mapRouteSchema>, 'billets'>;
 
 /** Réglages RAW de voyage au niveau de la carte. */
 export type WorldMapParams = z.infer<typeof worldMapParamsSchema>;
@@ -251,10 +195,8 @@ export function emptyWorldMap(id: string): WorldMap {
  * le profil par celui du catalogue).
  * Inverse : `portVersDepot`.
  */
-export function resolvePortRef(
-  port: ({ ref?: string } & Partial<PortProfile>) | undefined,
-): MapPlace['port'] {
-  if (!port?.ref) return port as MapPlace['port'];
+export function resolvePortRef(port: PortDuDocument | undefined): MapPlace['port'] {
+  if (!port || port.ref === undefined) return port;
   const trouve = findNavalPortById(port.ref);
   if (!trouve) {
     throw new Error(`Lieu-port : réf de port inconnue "${port.ref}" (absente de naval-ports.json).`);
@@ -287,14 +229,14 @@ function egalJson(a: unknown, b: unknown): boolean {
  * est rendu tel quel (même référence). Avec `ref`, il ne garde que `ref` et chaque champ qui DIFFÈRE du défaut que `resolvePortRef({ ref })` en tire — source UNIQUE des défauts
  * comme de l'erreur de `ref` inconnue.
  */
-export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
-  if (!port?.ref) return port;
+export function portVersDepot(port: MapPlace['port']): PortDuDocument | undefined {
+  if (!port || port.ref === undefined) return port;
   const { ref: _ref, ...defauts } = resolvePortRef({ ref: port.ref })!;
   const clesSurchargees = (Object.keys(defauts) as (keyof typeof defauts)[]).filter(
     (k) => port[k] !== undefined && !egalJson(port[k], defauts[k]),
   );
-  const surcharges = tableTotale(clesSurchargees, (k) => port[k]);
-  return { ref: port.ref, ...surcharges } as MapPlace['port'];
+  const surcharges = tableTotale(clesSurchargees, (k) => port[k]) as Partial<typeof defauts>;
+  return { ref: port.ref, ...surcharges };
 }
 
 /** Le lieu dont `sceneId` est la scène. */
@@ -411,21 +353,6 @@ export function serviceIcon(s: ResolvedPlaceService): IconId {
   return s.icon ?? 'navigation/point-d-entree';
 }
 
-/** Résolution GÉNÉRALE de l'icône d'un marqueur de plan (#371) : l'`icon` authoré du POI PRIME (surcharge
- *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `service` → icône du service résolu (`serviceIcon`),
- *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
- *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
-export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): IconId {
-  if (poi.icon) return poi.icon;
-  const service = poi.service;
-  if (service) {
-    const svc = services.find((s) => s.id === service.id);
-    if (svc) return serviceIcon(svc);
-  }
-  if (poi.sceneId) return 'outil-de-carte/porte';
-  return 'navigation/point-d-entree';
-}
-
 /** Le nom d'un point d'intérêt : son `label` s'il mène à une scène, le nom du service résolu qu'il vise sinon
  *  (`services`, sortie de `placeServices`), son id à défaut. PUR, source unique du nom d'un point d'intérêt. */
 export function nomDuPoi(poi: PlacePoi, services: readonly ResolvedPlaceService[]): string {
@@ -504,11 +431,6 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
     }
   }
   return out;
-}
-
-/** Le lieu a-t-il un plan à montrer : au moins un POI (#345 phase 5). PUR. */
-export function lieuAUnPlan(place: MapPlace): boolean {
-  return (place.poi ?? []).length > 0;
 }
 
 /** Colonne Produits/Production d'un profil commercial, TERRESTRE ou MARITIME (MSRC 13 ; MDG 15 l.321) :
@@ -665,7 +587,6 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { versDisque } from '../data/schemas/grammaire/prose';
-import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
  *  L1b, posée par l'enveloppe de `document()` depuis #1552. Le trio `id`/`label`/`versionContenu`
@@ -690,20 +611,12 @@ export interface ProjectIdentite {
 export interface ProjectDoc extends ProjectIdentite {
   scenes: Scene[];
   worldMap?: WorldMap;
-  /** Axes de forces/faiblesses ACTIFS de la campagne (#409, ids de `src/data/axes.json`) — un
-   *  scénario marchand active `negoce`, un siège `ingenierie`. Absent = socle de base (`coreAxisIds`,
-   *  cf. `resolveActiveAxes`). Placement en jeu (rail de composition, mini-radar) hors périmètre de
-   *  ce lot (#417). */
+  /** Axes de forces et faiblesses déclarés par le projet (#409, ids de `src/data/axes.json`).
+   *  La lecture de projets existants garde le champ facultatif. */
   activeAxes?: string[];
   /** Bloc NARRATIF embarqué (#765) : affaires, indices, presets de PNJ, objets de la campagne —
    *  référence la règle globale PAR ID, jamais réinjecté dans `src/data` (`data/schemas/defs-scenes/narratif.ts`). */
   narratif: NarratifBlock;
-}
-
-/** Axes RÉELLEMENT actifs d'un projet — `activeAxes` déclaré (validé) sinon le socle de base. SOURCE
- *  UNIQUE de ce défaut (jamais un `?? []` dispersé côté consommateur, cf. #417). */
-export function resolveActiveAxes(doc: { activeAxes?: string[] }): string[] {
-  return doc.activeAxes && doc.activeAxes.length > 0 ? doc.activeAxes : coreAxisIds();
 }
 
 /**
@@ -742,7 +655,11 @@ export function documentDeProjet(
 /** Vue TS du document PROUVÉ par `projetSchema`. Le type se dérive par `DatasetDe`/`EntreeDe`
  *  (`data/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
  *  elle et le dérivé (`layers` optionnel au schéma, requis dans `Scene` ; `effectZones` divergent). */
-type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
+type CarteDuDocument = Omit<WorldMap, 'places'> & {
+  places: (Omit<MapPlace, 'port'> & { port?: PortDuDocument })[];
+};
+
+type ProjetProuve = Omit<ProjectDoc, 'worldMap'> & { worldMap?: CarteDuDocument };
 
 /** Étape de la porte qui a refusé : document d'un autre format ou mal formé (`projetSchema`), prose
  *  adressée non matérialisée (la FORME DISQUE d'un projet livré, `proseNonMaterialisee`), ou entrée de
@@ -857,7 +774,10 @@ export function parseProject(data: unknown): ProjectDoc {
   const { scenes, worldMap: carteRecue, activeAxes, narratif, ...identite } = doc;
   const worldMap = carteRecue && {
     ...carteRecue,
-    places: carteRecue.places.map((p) => (p.port ? { ...p, port: resolvePortRef(p.port) } : p)),
+    places: carteRecue.places.map((p) => {
+      const { port, ...lieu } = p;
+      return port ? { ...p, port: resolvePortRef(port) } : lieu;
+    }),
   };
   return { ...identite, scenes: scenes.map(normalizeScene), worldMap, activeAxes, narratif };
 }
@@ -867,7 +787,7 @@ export function parseProject(data: unknown): ProjectDoc {
  * TOUTES les matérialisations du chargement, la prose adressée (`versDisque`) et les ports par
  * référence (`portVersDepot`). Fonction PURE, elle rend une copie.
  */
-export function projetVersDepot<T extends { worldMap?: WorldMap }>(doc: T): T {
+export function projetVersDepot<T extends { worldMap?: WorldMap }>(doc: T): Omit<T, 'worldMap'> & { worldMap?: CarteDuDocument } {
   const disque = versDisque(doc);
   const carte = disque.worldMap;
   if (!carte) return disque;

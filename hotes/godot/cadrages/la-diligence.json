@@ -1,0 +1,14 @@
+[
+  { "nom": "portail-dehors", "regard": "immersion", "case": { "x": 24, "y": 2 }, "lacet": 180, "tangage": -5 },
+  { "nom": "facade-depuis-la-route", "regard": "tactique", "case": { "x": 24, "y": 10 }, "lacet": 180, "zoom": 30 },
+  { "nom": "porte-double-pres", "regard": "immersion", "case": { "x": 24, "y": 14 }, "lacet": 255, "tangage": -10 },
+  { "nom": "porte-double-dedans", "regard": "immersion", "case": { "x": 20, "y": 15 }, "lacet": 80, "tangage": -10 },
+  { "nom": "cloture-de-la-cour", "regard": "immersion", "case": { "x": 30, "y": 9 }, "lacet": 270, "tangage": -10 },
+  { "nom": "cloture-du-potager", "regard": "immersion", "case": { "x": 13, "y": 46 }, "lacet": 0, "tangage": -10 },
+  { "nom": "volee-de-l-est-trois-quarts", "regard": "immersion", "case": { "x": 30, "y": 23 }, "lacet": 215, "tangage": 0 },
+  { "nom": "volee-de-l-est-de-face", "regard": "immersion", "case": { "x": 30, "y": 26 }, "lacet": 270, "tangage": 10 },
+  { "nom": "volee-de-l-est-depuis-le-palier", "regard": "immersion", "case": { "x": 28, "y": 28 }, "lacet": 330, "tangage": -40 },
+  { "nom": "volee-de-l-ouest-trois-quarts", "regard": "immersion", "case": { "x": 19, "y": 27 }, "lacet": 135, "tangage": 0 },
+  { "nom": "volee-de-l-ouest-de-face", "regard": "immersion", "case": { "x": 20, "y": 29 }, "lacet": 90, "tangage": 10 },
+  { "nom": "volee-de-l-ouest-depuis-le-palier", "regard": "immersion", "case": { "x": 21, "y": 31 }, "lacet": 20, "tangage": -40 }
+]

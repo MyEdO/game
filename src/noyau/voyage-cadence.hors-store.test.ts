@@ -70,7 +70,7 @@ describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, 
       get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
       set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
       creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
-      return () => get().partirEnVoyage('r-reik', 'barge', { cadence });
+      return () => get().partirEnVoyage('r-reik', 'barge-fluviale', { cadence });
     },
     mer: (cadence: VoyageCadence) => {
       freshSea();
@@ -224,7 +224,7 @@ function riverMap(km: number): WorldMap {
       { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
       { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
     ],
-    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
+    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 }],
   };
 }
 
@@ -238,7 +238,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
   });
 
   it('une journée de routine s’auto-résout d’un bloc (aucun pendingCascade) et enchaîne la halte', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'commande' })!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale', { cadence: 'commande' })!;
     expect(plan.orders!.cadence).toBe('commande');
     set({ travelPlan: plan } as never);
     runRiverDays(get, set);
@@ -248,7 +248,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
   });
 
   it('en JOUR-PAR-JOUR la même journée ouvre la cascade influençable (comportement historique)', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale', { cadence: 'jourParJour' })!;
     set({ travelPlan: plan } as never);
     runRiverDays(get, set);
     expect(get().pendingCascade).toBeTruthy();
@@ -257,7 +257,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
 
   it('#351 : un péril-à-choix (Barrage) injecté en cadence COMMANDÉE bascule le jour en INTERACTIF (pas de résolution silencieuse)', () => {
     const routeWithPeril = { ...get().worldMap!.routes[0], riverPerils: [{ perilId: 'barrage', chancePct: 100 }] };
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeWithPeril, { cadence: 'commande' })!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeWithPeril, 'barge-fluviale', { cadence: 'commande' })!;
     set({ travelPlan: plan, worldMap: { ...get().worldMap!, routes: [routeWithPeril] } } as never);
     runRiverDays(get, set);
     // Le pilote du jour s'arrête sur le choix sans défaut (`cascade.runCascadeImmediate`) : la fenêtre
@@ -282,12 +282,12 @@ describe('DEFAULT_VOYAGE_ORDERS — source unique du défaut de cadence (mer ⇄
   });
 
   it('buildRiverPlan sans cadence → DEFAULT_VOYAGE_ORDERS (aucun littéral en dur)', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')!;
     expect(plan.orders).toEqual(DEFAULT_VOYAGE_ORDERS);
   });
 
   it('fixerLaCadence rebâtit les ordres depuis DEFAULT_VOYAGE_ORDERS quand le plan n’en portait pas', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')!;
     set({ travelPlan: { ...plan, orders: undefined } } as never);
     get().fixerLaCadence('commande');
     expect(get().travelPlan!.orders).toEqual({ ...DEFAULT_VOYAGE_ORDERS, cadence: 'commande' });

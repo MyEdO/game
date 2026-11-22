@@ -34,8 +34,8 @@ afterEach(() => setDataset('trappings', LIVRES));
 const idsDeLaVue = (): string[] => trappingsInstanciables().map((t) => t.id);
 const horsDeLaVue = (): string[] => trappings.filter((t) => !idsDeLaVue().includes(t.id)).map((t) => t.id);
 const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }): string => (r.error?.issues ?? []).map((i) => i.message).join('\n');
-const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId });
-const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', trappingId });
+const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', objet: { id: trappingId } });
+const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', objet: { id: trappingId } });
 const forme = (id: string) => gameOpSchema.safeParse({ op: 'grantWeapon', label: 'Arme', damage: 1, form: { id } });
 
 describe('vue `trappingsInstanciables`', () => {
@@ -106,9 +106,10 @@ describe('objet de campagne — jugé sur l’entrée résolue', () => {
     expect(() => itemFromTrappingById(OBJET.id, idsDeTest, resoudre([{ ...OBJET, service: true }]))).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
-  it('l’Effet et l’op qui le citent passent le parse hors de tout document : la feuille sous portée admet l’id absent du catalogue sans le juger', () => {
+  it('le don et la forme d’invocation confient au projet l’identifiant absent du catalogue', () => {
     expect(effet(OBJET.id).success).toBe(true);
     expect(op(OBJET.id).success).toBe(true);
+    expect(forme(OBJET.id).success).toBe(true);
   });
 });
 
@@ -116,10 +117,6 @@ describe('Effet `giveTrapping` — la feuille sous portée juge un id PRÉSENT',
   it('un tarif de service est refusé au parse, message de la sous-liste', () => {
     const service = trappings.find((t) => t.service)!;
     expect(messages(effet(service.id))).toBe(`« ${service.id} » porte le marqueur « service » : cette référence l'exclut du catalogue des objets (trappings.json).`);
-  });
-
-  it('la forme de `grantWeapon` refuse un id absent (feuille sans portée)', () => {
-    expect(forme('campagne-sceau-du-comte').success).toBe(false);
   });
 });
 

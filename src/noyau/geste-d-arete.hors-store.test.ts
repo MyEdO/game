@@ -10,8 +10,8 @@ import { testScene } from '../scenes/test-fixture';
 import { engage, disengageFrom } from '../engine/engagement';
 import { mountUp } from './mount';
 import { computeMoveReach, resolveMovement } from './combatFlow';
-import { intentAllowedFor, withActingSeat } from './netOwnership';
-import { GUEST_INTENTS } from './intentionsDeSiege';
+import { intentAllowedFor } from './netOwnership';
+import { appliquerLIntentionDUnSiege, GUEST_INTENTS } from './intentionsDeSiege';
 import { planFranchissement, phaseDeChute } from './fallMove';
 import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from './gesteDArete';
 import { climbMovementCost } from '../engine/movement';
@@ -144,19 +144,27 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
     }
   });
 
-  it('intent COOP : l’allowlist le laisse passer, le store le refuse loin de l’arête — et depuis la case de l’arête il passe', () => {
+  it('intent COOP : le siège reçoit le refus loin de l’arête et franchit ensuite l’arête depuis la case de départ', () => {
     const c = CAS[2];
     const { H } = combat(c.scene(), ailleurs);
     banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     expect(GUEST_INTENTS.has('franchirLArete')).toBe(true);
     expect(intentAllowedFor(g(), 1, 'franchirLArete', [c.vers])).toBe(true);
-    withActingSeat(1, () => g().franchirLArete(c.vers));
+    const recus: string[] = [];
+    const recevoirLeRefus = (texte: string): void => { recus.push(texte); };
+    const raison = t(refusDuPas(c));
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'franchirLArete', [c.vers], recevoirLeRefus)).toBe('appliquee');
     expect(aAgi(H.id, ailleurs)).toBe(false);
-    dit(refusDuPas(c));
+    expect(recus).toEqual([raison]);
+    expect(g().refus).toBeNull();
+    expect(g().journal).toEqual([]);
     const b = g().battle!;
     placeCombatant(b.combatants.find((x) => x.id === H.id)!, g().scene!, c.de);
-    withActingSeat(1, () => g().franchirLArete(c.vers));
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'franchirLArete', [c.vers], recevoirLeRefus)).toBe('appliquee');
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(c.vers);
+    expect(recus).toEqual([raison]);
+    expect(g().refus).toBeNull();
+    expect(g().journal).not.toContain(raison);
   });
 });
 

@@ -1,16 +1,21 @@
 # Propositions : hors partie et outils (2026-11-17, #3935)
 
-Compte rendu des neuf états dessinés (six d'origine, trois ajoutés par l'audit des verbes, #4411) pour la coop, l'éditeur
+Compte rendu des onze états dessinés (six d'origine, trois ajoutés par l'audit des verbes, deux par l'audit des
+dispositions, #4411) pour la coop, l'éditeur
 de campagne et le Compendium, des écrans sans image d'intention ni cible écrite. Contenu lu au code (`src/hote/`,
 `src/noyau/`, `server/`, `src/i18n/messages/fr.ts`), jamais le design d'un écran existant. Sources au dépôt : quatre
 écrans de `sources/maquettes/` et un état de la halle, chacun la liste de ses états au format de
 `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png>
 --format 16:9 [--etat <état>]`) : `coop` (`ouvrir`, `salon`), `halle` (`la-main`), `editeur-de-scene` (`porte`,
-`outil-terrain`, `supprimer`), `editeur-carte-du-monde` et `compendium` (`consultation`, `atelier`) ;
+`outil-terrain`, `supprimer`), `editeur-carte-du-monde` et `compendium` (`consultation`, `atelier`, `index`, `recherche`) ;
 `maquettes/editeur.ts` porte le projet, les documents et la barre que les deux éditeurs partagent. Le plan de la scène,
 la carte de l'éditeur, la ligne de liste et la tablée vivent dans `sources/outils/` (`editeur.js`, `outils.js`,
 `outils.css`).
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : les deux éditeurs sur la grille des colonnes (`dispositions.md`, « La grille intérieure ») : aux
+  volets, la liste au plein et les gestes de la scène au pied fixe du volet ; à l'inspecteur, ce qui est choisi en
+  tête, les propriétés au corps à écarts uniformes, la validation ou « Supprimer » au pied fixe ; la palette des
+  terrains de l'outil « Terrain » défile au corps (liste longue par nature) au lieu de descendre jusqu'au bas.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1419-1441, `ecran.salon.*` l.1484-1495,
 `party.slot.invite` l.1286, `groupe.hoteSeul` l.2600, `ecran.editeur.*`, `ecran.compendium.*` l.892-932) ; talent
@@ -92,34 +97,60 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   une flèche sur son étiquette.
 
 ## compendium
-- État `consultation` de l'écran `compendium`.
-- Un registre relié, repris de celui des règles maison. Un signet par famille (les sept du jeu), « Compétences »
-  ouverte ; volet « Catégories » : Compétences (48), Talents (187), Axes de forces (9), « Rechercher », filtre
-  « Livre » et ses comptes, « Nouvelle entrée » (`src/hote/compendium.ts:43-68`).
-- Page de gauche : en tête la catégorie, sous-titrée de sa famille et de son compte (« Famille Compétences · 187
-  entrées ») ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
-- Posée sur le registre, sa croix propre (gabarit 2 à 1280 de `dispositions.md`) : la fiche (Max, Test, source, description verbatim, lien « Compétence Marchandage »), ses renvois
-  (Races 2, Carrières (par rang) 24, Créatures 19), « Modifier ».
-- À valider : le Compendium en registre relié, familles en signets ; la fiche posée sur le registre plutôt qu'en page
-  de droite ; la description coupée à la hauteur de son champ dans l'atelier ; la liste paginée en feuillets plutôt qu'en longue
-  liste défilante ; les renvois en liens soulignés, tronqués avec leur reste (« et 14 autres ») ; « Modifier » et «
-  Nouvelle entrée » visibles à la consultation ; le filtre « Livre » en puces à comptes.
+- État `consultation` de l'écran `compendium`, gabarit 9 « Consultation » de `dispositions.md` : un plein écran à part,
+  trois cadres fixes dans les quatre états (`barre-du-compendium`, `liste-du-compendium`, `fiche-du-compendium`), parts
+  de la vue : fiche 65,4 %, liste 21,0 %, barre 6,0 % (avant : fiche posée 29,6 %).
+- Barre : le titre, retour et suivant (suivant fermé : aucune fiche après), une seule recherche « dans tout le
+  Compendium », le fil Compétences › Talents › Négociateur, la bascule « Atelier » éteinte, la croix, seule de l'écran.
+- Liste : « Talents » et son compte (187), qui ouvre l'Index ; le filtre de livre (LDB 168, VDM 8, « +6 ») ; les
+  talents de `src/data/talents.json` dans l'ordre alphabétique, 24 rangées visibles qui défilent, la source à droite,
+  « Négociateur » pointé ; le rail de lettres, N armé.
+- Fiche : nom, genre, source, « Épingler pour comparer » ; Max, Test (« Marchandage » en lien), la description
+  verbatim, « Marchandage » en lien ; les renvois en onglets comptés (Carrières 24, Créatures 19, Races 2 : les entrées
+  de `careerLevels.json`, `creatures.json`, `species.json` qui désignent `negociateur`), toutes, la colonne défile ;
+  « Colporteur » survolé ouvre son aperçu (genre, rang, première phrase verbatim de `careers.json`, source).
+- À valider : la liste en défilement et son rail de lettres plutôt qu'en feuillets ; le filtre « Livre » réduit aux
+  deux livres les plus fournis, les autres derrière « +6 » (liste déroulée, non dessinée) ; les renvois tous visibles
+  en onglets comptés, une colonne qui défile, la note de rang (N1 à N4) et de livre hors du LDB ; l'aperçu du renvoi
+  survolé ; « Modifier » et « Nouvelle entrée » absents de la consultation, au pied de la fiche en mode Atelier
+  seulement ; la recherche au centre de la barre, curseur dedans à l'ouverture.
+- Besoins du noyau que la disposition suppose (`src/noyau/codex/`) : la recherche sur tout le Compendium (elle porte sur
+  la catégorie ouverte, `filterItems(cat.items…)`, `search.ts`) ; un geste de retour après `suivre` (et suivant), absent
+  de `GesteDuCompendium` (`session.ts:101-119`) ; l'épingle pour comparer (la fiche épinglée sur la moitié gauche du
+  rect de la fiche).
+
+## compendium-index
+- État `index` : l'Index posé par-dessus la liste et la fiche, sur leur rect commun (`index-du-compendium`, surcouche) :
+  « Filtrer les 140 catégories… », les sept familles du Codex et leur nombre de catégories, « Tables » ouverte, ses
+  63 catégories sur trois colonnes, sous-groupes en intertitres, compte par ligne (le registre du Codex,
+  `src/noyau/codex/registry`).
+- À valider : l'Index sur toute la largeur de la liste et de la fiche (la proposition de l'audit : 820 de large ; à
+  cette largeur neuf libellés de « Tables » se coupent) ; les libellés longs sur deux lignes ; 14 catégories de
+  « Tables » d'une seule entrée y pèsent autant que « Niveaux de carrière » (432).
+
+## compendium-recherche
+- État `recherche` : « marchand » dans la barre, « 10 résultats dans 5 catégories » à la place du fil ; la liste
+  devient « Résultats » (10), groupés par catégorie avec leur compte (Compétences, Carrières, Niveaux de carrière,
+  Créatures, Possessions : les noms qui portent « marchand » dans `skills.json`, `careers.json`, `careerLevels.json`,
+  `creatures.json`, `trappings.json`) ; la fiche lue reste.
+- À valider : les résultats à la place de la liste, même rect ; la recherche sur les noms seulement (pas la prose) ;
+  la fiche lue avant la recherche reste jusqu'au choix d'un résultat.
 
 ## compendium-atelier
-- État `atelier` de l'écran `compendium` : « Modifier » a ouvert l'atelier, la fiche posée porte le formulaire de
-  l'entrée, sous-titrée « Atelier : Talents ». Champs tirés du schéma du Talent (`src/data/schemas/defs/talents.ts:89-90` :
-  « Maximum » et son aide, « Test associé » et ses correspondances), « Nom », « Identifiant », « Description » (le
-  Markdown de la donnée, verbatim), livre et page ; « Champs que l'entrée ne porte pas » : une puce « Ajouter :
-  {libellé} » par champ facultatif absent (`ecran.formulaire.valeur.ajouter`).
+- État `atelier` de l'écran `compendium` : la bascule « Atelier » armée, les mêmes rects ; le corps de la fiche porte
+  le formulaire de l'entrée, sous-titrée « Atelier · Talents ». Champs tirés du schéma du Talent
+  (`src/data/schemas/defs/talents.ts:89-90` : « Maximum » et son aide, « Test associé » et ses correspondances),
+  « Nom », « Identifiant », « Description » (le Markdown de la donnée, verbatim) sur la hauteur qui reste, livre et
+  page ; « Champs que l'entrée ne porte pas » : une puce par champ facultatif absent (`ecran.formulaire.valeur.ajouter`).
+- À droite, les renvois sous « Désignent cette entrée : « Supprimer » est fermé », en liens.
 - Gestes de l'atelier (`GesteDuCompendium`, `src/noyau/codex/session.ts:94-111` ; `atelierDe`,
   `src/hote/compendium.ts:162-181`) : `valeur { chemin, valeur }` par champ, `identifier { id }`, `enregistrer`
   (plaque pleine, à gauche), `abandonner`, `supprimer`. « Supprimer » est fermée, sa raison au survol
-  (`ecran.compendium.refus.designee`, `fr.ts:912` ; la liste des désignations est un exemple). « Nouvelle entrée »
-  est fermée tant que l'atelier est ouvert (`ecran.compendium.refus.atelierOuvert`).
-- À valider : l'atelier sur la fiche posée, la liste restant dessous ; les champs absents en puces
-  « Ajouter » plutôt qu'en champs vides ; « Supprimer » ouvert se joue en deux pressions sur place (« Confirmer la
-  suppression », « Annuler »), comme l'abandon d'une possession : le compendium n'a pas d'« Annuler » d'historique.
-  Libellés « Nom », « Livre », « Page » : exemples, le schéma les fournit.
+  (`ecran.compendium.refus.designee`, `fr.ts:912`).
+- À valider : les désignations en liens dans la colonne des renvois, la raison au survol de « Supprimer » qui les
+  compte ; les champs absents en puces plutôt qu'en champs vides ; « Supprimer » ouvert se joue en deux pressions sur
+  place (« Confirmer la suppression », « Annuler »), comme l'abandon d'une possession : le compendium n'a pas
+  d'« Annuler » d'historique. Libellés « Nom », « Livre », « Page » : exemples, le schéma les fournit.
 
 ## editeur-outil-terrain
 - État `outil-terrain` de l'écran `editeur-de-scene` : l'outil « Terrain » armé dans la palette, rien de choisi. L'inspecteur
@@ -149,5 +180,5 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   hôte déconnecté.
 - Éditeur : document « Narratif », les options des outils autres que « Terrain » (même gabarit), l'architecture
   (`corps`, `batir`, `baie`), les calques (`planche`, `calque`, `caler`), validation avec défauts.
-- Compendium : la recherche active, une table et son dé (« Dé de la table », `enTete`), l'adresse d'un passage
+- Compendium : la comparaison de deux fiches épinglées, le filtre de livre déroulé, une table et son dé (« Dé de la table », `enTete`), l'adresse d'un passage
   (`resceller`).
