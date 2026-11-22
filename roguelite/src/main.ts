@@ -332,6 +332,14 @@ function planifier() {
   }, dureeDuPas(p, rejeu.issue.pas[rejeu.i - 1] ?? null));
 }
 
+/** Joue une animation de figurine : efface les autres, la pose, la retire à sa fin. */
+function animer(el: HTMLElement, classe: 'fente' | 'tire' | 'frappe' | 'esquive') {
+  el.classList.remove('fente', 'tire', 'frappe', 'esquive');
+  void el.offsetWidth;
+  el.classList.add(classe);
+  el.addEventListener('animationend', () => el.classList.remove(classe), { once: true });
+}
+
 const figureDe = (id: string) => document.querySelector<HTMLElement>(`#combat .fig[data-id="${CSS.escape(id)}"]`);
 
 function flotter(el: HTMLElement | null, texte: string, genre: string) {
@@ -352,6 +360,11 @@ function jouerLeCoup(c: Coup, vitesse: number) {
   const [x0, y0] = pos(de);
   const [x1, y1] = pos(vers);
   const impact = 300 / vitesse;
+  // LDB 21 l.19-20 (Animosité)
+  if (de.classList.contains('camp-ennemi') === vers.classList.contains('camp-ennemi')) {
+    flotter(de, 'Animosité !', 'querelle');
+    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.title)} cède à son Animosité contre ${esc(vers.title)}</span>`;
+  }
   vers.classList.add('cible');
   setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
   if (c.genre === 'distance' || c.genre === 'spell') {
@@ -360,22 +373,22 @@ function jouerLeCoup(c: Coup, vitesse: number) {
     t.style.cssText = `left:${x0}px;top:${y0 - 50}px;--dx:${x1 - x0}px;--dy:${y1 - y0}px;--duree:${impact}ms;--angle:${Math.atan2(y1 - y0, x1 - x0)}rad`;
     de.parentElement!.append(t);
     setTimeout(() => t.remove(), impact + 60);
-    de.classList.remove('tire'); void de.offsetWidth; de.classList.add('tire');
+    animer(de, 'tire');
   } else {
     const n = Math.hypot(x1 - x0, y1 - y0) || 1;
     de.style.setProperty('--fx', `${((x1 - x0) / n) * 26}px`);
     de.style.setProperty('--fy', `${((y1 - y0) / n) * 26}px`);
     de.style.setProperty('--duree', `${560 / vitesse}ms`);
-    de.classList.remove('fente'); void de.offsetWidth; de.classList.add('fente');
+    animer(de, 'fente');
   }
   setTimeout(() => {
     if (c.touche) {
-      vers.classList.remove('frappe'); void vers.offsetWidth; vers.classList.add('frappe');
+      animer(vers, 'frappe');
       flotter(vers, c.blessures ? `−${c.blessures}` : 'Touché', c.critique ? 'degat critique' : 'degat');
       if (c.critique) setTimeout(() => flotter(vers, 'Critique !', 'critique-mot'), 120);
     } else {
       flotter(vers, c.defense === 'parade' ? 'Paré' : c.defense === 'esquive' ? 'Esquivé' : 'Raté', 'evite');
-      vers.classList.remove('esquive'); void vers.offsetWidth; vers.classList.add('esquive');
+      animer(vers, 'esquive');
     }
   }, impact);
 }
