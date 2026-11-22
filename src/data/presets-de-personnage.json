@@ -162,6 +162,9 @@
       "metal": {
         "id": "bronze-terni"
       },
+      "accent": {
+        "id": "plume-rousse"
+      },
       "bois": {
         "id": "bois-brun"
       },

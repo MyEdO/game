@@ -17,6 +17,7 @@ import math
 
 import numpy as np
 from taille import axe_du_corps, ceindre
+from tente import HAUT
 from tissu import direction_spatiale, emprunter, lisser, porteur_de, sur_le_porteur, unitaire, voisinage
 
 
@@ -43,12 +44,11 @@ def construire(D, materiaux, b):
     b.exiger(D['ZONES'])
     bure = porteur_de(*b.matieres_publiees(D['CONTOURNE']['bure'], D['MATIERES_DE_LA_BURE']))
     axe = axe_du_corps(b, D['ZONES'], D['HAUTEUR'])
-    haut = np.array([0.0, 0.0, 1.0])
     R, s = D['RAYON'], D['SEGMENTS']
 
     def point(phi):
         d = direction_spatiale(phi)
-        o = axe + haut * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(math.radians(phi)))
+        o = axe + HAUT * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(math.radians(phi)))
         p, _ = sur_le_porteur(bure, o, d, D['PORTEE'])
         return p + d * (D['JEU'] + R), d
 
@@ -78,7 +78,7 @@ def construire(D, materiaux, b):
         centres = []
         for k in range(D['PAS_DES_BOUTS'] + 1):
             u = k / D['PAS_DES_BOUTS']
-            o = centre_du_noeud + t0 * (depart + (pointe - depart) * u) - haut * (N['rayon'] + D['LONGUEUR_DES_BOUTS'] * u)
+            o = centre_du_noeud + t0 * (depart + (pointe - depart) * u) - HAUT * (N['rayon'] + D['LONGUEUR_DES_BOUTS'] * u)
             p, n = sur_le_porteur(bure, o - d0 * D['PORTEE'] / 2, d0, D['PORTEE'])
             r = R * (1 + (D['EPAISSEUR_DU_BOUT'] - 1) * max(0.0, 2 * u - 1))
             centres.append((p + n * (D['JEU_DES_BOUTS'] + r), r))

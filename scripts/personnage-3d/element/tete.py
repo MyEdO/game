@@ -36,10 +36,11 @@ from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
 from formes import decalages, poser_la_cle
+from maille import revolution
 from noms_formes_de_tete import VISAGE_INVERSE
+from tente import HAUT
 from tissu import Maillage, direction_spatiale, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur
 
-POLE = np.array([0.0, 0.0, 1.0])
 PORTEE_M = 0.30
 """Départ des visées du crâne, au-delà de toute forme d'une tête."""
 PAS_M = 0.0008
@@ -298,21 +299,9 @@ def _repere(axe, normale):
 
 
 def sphere(M, centre, rayon, cotes, rangs, partie):
-    """Sphère UV ; rend ses sommets."""
-    haut = M.ajouter([centre + rayon * POLE], partie)[0]
-    anneaux = []
-    for k in range(1, rangs):
-        t = math.pi * k / rangs
-        anneaux.append(M.ajouter([centre + rayon * np.array([math.sin(t) * math.cos(2 * math.pi * j / cotes),
-                                                               math.sin(t) * math.sin(2 * math.pi * j / cotes),
-                                                               math.cos(t)]) for j in range(cotes)], partie))
-    bas = M.ajouter([centre - rayon * POLE], partie)[0]
-    for j in range(cotes):
-        M.triangle(haut, anneaux[0][j], anneaux[0][(j + 1) % cotes], centre)
-        M.triangle(bas, anneaux[-1][j], anneaux[-1][(j + 1) % cotes], centre)
-    for A, B in zip(anneaux[:-1], anneaux[1:]):
-        M.bande(A, B, centre)
-    return [haut, bas] + [i for A in anneaux for i in A]
+    """Sphère UV (`revolution`) ; rend ses sommets."""
+    profil = [(rayon * math.cos(math.pi * k / rangs), rayon * math.sin(math.pi * k / rangs)) for k in range(1, rangs)]
+    return M.ajouter_faces(*revolution([(rayon, 0), *profil, (-rayon, 0)], 'z', centre, cotes), partie, centre)
 
 
 def _section(centre, u, v, demi_u, demi_v, cotes, creux=0.0):
@@ -381,7 +370,7 @@ def dent(M, spec, H, partie):
     """Cône : sa pointe à `longueur` de `base` le long de `direction`, son pied, de rayon `rayon`, enfoncé d'une
     demi-longueur sous `base` ; rend ses sommets et son ancrage."""
     base = H + np.asarray(spec['base'], float)
-    a, u, v = _repere(spec['direction'], np.array([1.0, 0.0, 0.0]) if abs(spec['direction'][0]) < 0.9 else POLE)
+    a, u, v = _repere(spec['direction'], np.array([1.0, 0.0, 0.0]) if abs(spec['direction'][0]) < 0.9 else HAUT)
     return fuseau(M, [base - a * spec['longueur'] * 0.5], [(u, v, spec['rayon'], spec['rayon'], 0.0)],
                   base + a * spec['longueur'], spec['cotes'], partie), base
 
@@ -418,17 +407,10 @@ def anneau_d_oreille(M, spec, repere, partie):
     c = centre(spec['part'])
     bord = w if (c + w)[2] < (c - w)[2] else -w
     o = c + (demi_largeur(spec['part']) + spec['grand_rayon'] - spec['prise']) * bord
-    sommets = []
-    for i in range(spec['segments']):
-        u = 2 * math.pi * i / spec['segments']
-        axe = math.cos(u) * bord + math.sin(u) * n
-        anneau = M.ajouter([o + (spec['grand_rayon'] + spec['petit_rayon'] * math.cos(2 * math.pi * j / spec['cotes'])) * axe
-                            + spec['petit_rayon'] * math.sin(2 * math.pi * j / spec['cotes']) * a
-                            for j in range(spec['cotes'])], partie)
-        sommets.append((anneau, o + spec['grand_rayon'] * axe))
-    for (A, ref), (B, _) in zip(sommets, sommets[1:] + sommets[:1]):
-        M.bande(A, B, ref)
-    return [i for A, _ in sommets for i in A], o
+    R, r = spec['grand_rayon'], spec['petit_rayon']
+    section = [(r * math.sin(2 * math.pi * j / spec['cotes']), R + r * math.cos(2 * math.pi * j / spec['cotes']))
+               for j in range(spec['cotes'])]
+    return M.ajouter_faces(*revolution(section, (a, bord, n), o, spec['segments'], ferme=True), partie, o), o
 
 
 # --- clés ------------------------------------------------------------------------------------------------------------
@@ -502,7 +484,7 @@ def construire(D, materiaux, b):
     E = elevation_de_la_couture(S, C, phis)
     rangs = np.asarray(D['RANGS'], float)
 
-    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [POLE]])
+    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [HAUT]])
     r_forme = rayons_vises(C - H, dirs, vols)
     r_inverse = rayons_vises(C - H, dirs, vols_inverses)
     porteur = b.porteur(zones)

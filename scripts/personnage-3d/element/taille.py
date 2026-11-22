@@ -7,9 +7,8 @@ import math
 
 import numpy as np
 
+from tente import HAUT
 from tissu import direction_spatiale, sur_le_porteur
-
-HAUT = np.array([0.0, 0.0, 1.0])
 
 
 def axe_du_corps(b, zones, hauteur):

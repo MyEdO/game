@@ -13,7 +13,8 @@ clés `gabarit_*` transférées de la robe publiée sous la ceinture.
 """
 import numpy as np
 from maille import Maille, poutre, tore
-from taille import HAUT, Cuir, boucler, ceindre, raidir
+from taille import Cuir, boucler, ceindre, raidir
+from tente import HAUT
 from tissu import direction_spatiale, emprunter, porteur_de
 
 

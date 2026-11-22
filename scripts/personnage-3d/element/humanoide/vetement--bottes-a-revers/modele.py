@@ -6,9 +6,8 @@ redescend par-dehors : le revers. Poids empruntés au corps sommet par sommet pu
 import numpy as np
 
 from robe import Nappe, piece_de
+from tente import HAUT
 from tissu import anneau, centre_de, direction, emprunter, joindre
-
-HAUT = np.array([0.0, 0.0, 1.0])
 
 
 def construire(D, materiaux, b):

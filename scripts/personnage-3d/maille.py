@@ -97,39 +97,52 @@ def poutre(maille, a, b, largeur, epaisseur, normale, mat):
     maille.ajouter(sommets, faces, mat)
 
 
-def tour(maille, profil, axe, centre, segments, mats, ferme=False):
-    """Révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou 'z' passant par `centre` ; r = 0 ferme sur l'axe ; une
-    entrée (a, r, r_w) donne une section elliptique, `r` sur le premier axe du plan normal (`point`), `r_w` sur le second.
-    `mats` : un matériau, ou un par tronçon du profil. `ferme` : profil en boucle (anneau)."""
-    mats = mats if isinstance(mats, list) else [mats] * len(profil)
+def revolution(profil, axe, centre, segments, ferme=False):
+    """Les sommets et les faces (`segments` par tronçon du profil, dans son ordre) de la révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou
+    'z' passant par `centre`, ou du repère `axe` (`point`) ; r = 0 ferme sur l'axe ; une entrée (a, r, r_w) donne une
+    section elliptique, `r` sur le premier axe du plan normal, `r_w` sur le second ; `a`, `r` ou `r_w` peut être une
+    suite, une valeur par colonne. Chaque face, bouts compris, a son endroit du même côté du profil. `ferme` : profil en
+    boucle (anneau)."""
+    def colonne(valeur, k):
+        return valeur if np.ndim(valeur) == 0 else valeur[k]
+
     anneaux = []
     sommets = []
     for a, r, *aplati in profil:
         r_w = aplati[0] if aplati else r
-        if r == 0:
+        if np.ndim(r) == 0 and r == 0:
             anneaux.append([len(sommets)])
             sommets.append(point(axe, centre, a, 0, 0))
         else:
             debut = len(sommets)
             for k in range(segments):
                 t = 2 * math.pi * k / segments
-                sommets.append(point(axe, centre, a, r * math.cos(t), r_w * math.sin(t)))
+                sommets.append(point(axe, centre, colonne(a, k), colonne(r, k) * math.cos(t), colonne(r_w, k) * math.sin(t)))
             anneaux.append(list(range(debut, debut + segments)))
     paires = list(zip(range(len(profil) - 1), range(1, len(profil))))
     if ferme:
         paires.append((len(profil) - 1, 0))
-    faces_par_mat = {}
+    faces = []
     for i, j in paires:
         a, b = anneaux[i], anneaux[j]
-        faces = faces_par_mat.setdefault(mats[i], [])
         for k in range(segments):
             k2 = (k + 1) % segments
             if len(a) == 1:
-                faces.append([a[0], b[k], b[k2]])
+                faces.append([a[0], b[k2], b[k]])
             elif len(b) == 1:
-                faces.append([a[k], b[0], a[k2]])
+                faces.append([a[k], a[k2], b[0]])
             else:
                 faces.append([a[k], a[k2], b[k2], b[k]])
+    return sommets, faces
+
+
+def tour(maille, profil, axe, centre, segments, mats, ferme=False):
+    """La révolution du profil (`revolution`) ajoutée à `maille`. `mats` : un matériau, ou un par tronçon du profil."""
+    mats = mats if isinstance(mats, list) else [mats] * len(profil)
+    sommets, toutes = revolution(profil, axe, centre, segments, ferme)
+    faces_par_mat = {}
+    for rang, face in enumerate(toutes):
+        faces_par_mat.setdefault(mats[rang // segments], []).append(face)
     for mat, faces in faces_par_mat.items():
         utilises = sorted({i for face in faces for i in face})
         renum = {i: n for n, i in enumerate(utilises)}

@@ -519,6 +519,14 @@ class Maillage:
             self.parties.append(partie)
         return list(range(debut, len(self.sommets)))
 
+    def ajouter_faces(self, sommets, faces, partie, ref):
+        """Les `sommets` (de la `partie`) et leurs `faces` (triangles ou quads, indices dans `sommets`), chacune orientée à
+        l'opposé de `ref` ; rend les indices des sommets."""
+        indices = self.ajouter([np.asarray(p, dtype=float) for p in sommets], partie)
+        for face in faces:
+            (self.triangle if len(face) == 3 else self.quad)(*(indices[i] for i in face), ref)
+        return indices
+
     def triangle(self, a, b, c, ref):
         self.triangles.append((a, b, c))
         self.references.append(ref)

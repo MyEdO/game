@@ -14,7 +14,8 @@ import math
 
 import numpy as np
 
-from casque import HAUT, Coque, fleuron, offrir_le_cimier, radiale, rigide, solide
+from casque import Coque, fleuron, offrir_le_cimier, radiale, rigide, solide
+from tente import HAUT
 from tissu import Maillage, joindre, porteur_de, selon
 
 

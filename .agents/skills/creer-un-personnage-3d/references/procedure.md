@@ -220,7 +220,9 @@ NON VÉRIFIÉS tant que leurs gardes et le montage ne sont pas livrés.
 lisibles à taille de jeu ; éléments indépendants et dépendances ; interfaces risquées avec leur
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
-Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
+Le modèle se compare à l'illustration directrice : il lui ressemble sans la copier, respecte la physique là où le
+dessin l'ignore, et trace en écart au contrat l'exagération d'artiste qu'il ramène à la 3D (fiche
+`user-doctrine-modele-3d-ressemble-a-l-illustration-sans-la-copier`). Un grand revers et un foulard sont des formes ;
 coutures et usure restent du détail. Chaque surface nomme sa matière (drap, laine, toile, cuir, acier, mailles,
 fourrure, bois : section 3), jamais un aplat ; ombrage flat/smooth intentionnel.
 
@@ -304,7 +306,9 @@ un ourlet effiloché ; `Base.nappe` pour une double nappe, `Base.nappe_simple` p
 matériaux par `teintes` ; `porteur_de` et son `arbre_de` pour une surface porteuse, visée par `viser` (résultat brut),
 `toucher` (point et normale sortante, `None` sans surface) ou `sur_le_porteur` (erreur sans surface) ;
 `Base.offrir_sur` pour offrir un emplacement sur une surface), `maille.py` pour un solide rigide (cylindre, tour à
-sections rondes ou elliptiques, boîte, tube, tore…) et pour l'aléa semé d'un id (`tirage`), `element/lame.py` pour une
+sections rondes ou elliptiques, boîte, tube, tore…), pour toute révolution d'un profil (`revolution` : sommets et faces,
+à poser dans un `Maillage` par `Maillage.ajouter_faces` ou à passer à `Base.nappe_simple`) et pour l'aléa semé d'un id
+(`tirage`), `element/lame.py` pour une
 arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
 robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
@@ -315,7 +319,9 @@ la bande de cuir `Cuir`, `boucler`, `raidir`), `element/culotte.py` pour une cul
 du Soldat, haut-de-chausses ample : `table`, `coupe`, `colonnes_des_hanches`, `nappe_de_culotte`),
 `element/casque.py` pour un casque rigide sur la tête (casque du Soldat, casque à cornes : `Coque`, `rigide`, `solide`,
 `fleuron`, `offrir_le_cimier`), `element/plume.py` pour une plume rigide sur un cimier (plumet, plumet simple : `courbe`,
-`plume`, `construire`),
+`plume`, `construire`), `element/sceau.py` pour un sceau de cire et sa bande de parchemin écrite sur un porteur (sceau
+du Prêtre, du masque de cuir : le repère cylindrique `Cadre`, la nappe `Grille`, la bande en queue d'aronde `Ruban`,
+`sceau`, `encre`, `mots_d_une_ligne`, `trait`),
 `element/tete.py` pour une tête de race bâtie de volumes sur la couture du cou (orc, gobelin : un dossier ne porte que
 son `donnees.py` et `from tete import construire`), `element/tete_makehuman.py` pour une tête humanoïde tirée de la
 tête de MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées (humain, nain, haut-elfe, halfling : le

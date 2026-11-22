@@ -13,9 +13,9 @@ import math
 
 import numpy as np
 
+from maille import revolution
+from tente import HAUT
 from tissu import Maillage, direction, viser
-
-HAUT = np.array([0.0, 0.0, 1.0])
 
 
 def radiale(phi):
@@ -92,27 +92,19 @@ def fleuron(D, b, forme, metal, medaillon):
     u /= np.linalg.norm(u)
     v = np.cross(normale, u)
 
-    def cercle(rayon, saillie, cotes=f['cotes'], festons=0.0):
-        return [pied + saillie * normale + rayon * (1.0 - festons * (k % 2)) * (math.cos(a) * u + math.sin(a) * v)
-                for k, a in enumerate(np.linspace(0.0, 2 * math.pi, cotes, endpoint=False))]
-
+    repere = (normale, u, v)
     dedans = pied - f['rayon_du_chaton'] * normale
-    chaton = Maillage()
     n = 2 * f['petales']
-    anneaux = [chaton.ajouter(cercle(r, s, n, e), 'chaton') for r, s, e in (
-        (f['rayon_du_chaton'], -0.3 * f['saillie_du_chaton'], f['festons']),
-        (f['rayon_du_chaton'], f['saillie_du_chaton'], f['festons']),
-        (f['rayon_du_medaillon'], f['saillie_du_chaton'], 0.0))]
-    for A, B in zip(anneaux, anneaux[1:]):
-        chaton.bande(A, B, dedans)
-    pierre = Maillage()
-    bas = pierre.ajouter(cercle(f['rayon_du_medaillon'], f['saillie_du_chaton']), 'medaillon')
-    mi = pierre.ajouter(cercle(0.6 * f['rayon_du_medaillon'],
-                               f['saillie_du_chaton'] + 0.75 * (f['saillie_du_medaillon'] - f['saillie_du_chaton'])), 'medaillon')
-    pierre.bande(bas, mi, dedans)
-    sommet = pierre.ajouter([pied + f['saillie_du_medaillon'] * normale], 'medaillon')[0]
-    for k in range(f['cotes']):
-        pierre.triangle(mi[k], mi[(k + 1) % f['cotes']], sommet, dedans)
+    feston = [f['rayon_du_chaton'] * (1.0 - f['festons'] * (k % 2)) for k in range(n)]
+    chaton, pierre = Maillage(), Maillage()
+    for M, partie, profil, cotes in (
+            (chaton, 'chaton', [(-0.3 * f['saillie_du_chaton'], feston), (f['saillie_du_chaton'], feston),
+                                (f['saillie_du_chaton'], f['rayon_du_medaillon'])], n),
+            (pierre, 'medaillon', [(f['saillie_du_chaton'], f['rayon_du_medaillon']),
+                                   (f['saillie_du_chaton'] + 0.75 * (f['saillie_du_medaillon'] - f['saillie_du_chaton']),
+                                    0.6 * f['rayon_du_medaillon']),
+                                   (f['saillie_du_medaillon'], 0)], f['cotes'])):
+        M.ajouter_faces(*revolution(profil, repere, pied, cotes), partie, dedans)
     return [solide(D, b, 'chaton', chaton, metal), solide(D, b, 'medaillon', pierre, medaillon)]
 
 
