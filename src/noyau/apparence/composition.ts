@@ -25,7 +25,7 @@ import {
 } from '../../data';
 import type { HitLocation } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { entityAppearanceSchema, type Couleurs } from '../../data/schemas/grammaire/valeurs';
+import { entityAppearanceSchema, type Couleurs, type FormesDeTete } from '../../data/schemas/grammaire/valeurs';
 import { serializeDataset } from '../../data/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
@@ -110,9 +110,12 @@ export interface Portee {
   teinte?: string;
 }
 
-/** Ce que porte un corps, et ce corps : son sexe, sa corpulence (absente, le corps neutre) et sa palette. */
+/** Ce que porte un corps, et ce corps : son sexe, sa corpulence (absente, le corps neutre), sa palette et les formes de
+ *  sa tête. */
 export interface PorteeDeComposition extends Pick<Composition, 'sex' | 'build'> {
   couleurs?: Couleurs;
+  /** Par forme de la tête (`NOMS_DES_FORMES_DE_TETE`, #4413), son poids ; absente, 0. */
+  formesDeTete?: FormesDeTete;
   portees: Portee[];
   embleme?: EmblemeResolu;
   /** Les objets ni tenus ni rangés : ni ensemble, ni prise, ni `rangement` (D1). */
@@ -187,8 +190,8 @@ export function porteesDesObjets(objets: readonly ObjetPorte[], variantes?: Vari
 /** Ce que porte `composition` : sa tête, sa coiffure, les pièces de l'ensemble de sa tenue puis ses `pieces` (D6(b)), puis
  *  chaque objet, tenu puis porté (`porteesDesObjets`), son apparence choisie (`apparencesObjets`), à défaut sa forme, à son
  *  rangement choisi (`rangementsObjets`) s'il n'est pas tenu ; les pièces sous leurs variantes (`variantesPieces`) ; les
- *  facteurs de son gabarit, le corps qu'elle habille, et ses couleurs : celles de sa race de rendu, chacune remplacée par
- *  la sienne (#4379). */
+ *  facteurs de son gabarit, le corps qu'elle habille, ses couleurs : celles de sa race de rendu, chacune remplacée par
+ *  la sienne (#4379), et les formes de sa tête (#4413). */
 export function porteeDeComposition(composition: Composition): PorteeDeComposition {
   const race = raceAppearance.find((r) => r.id === composition.race.id);
   if (!race) throw new Error(`porteeDeComposition : « ${composition.race.id} » n'est aucune race de \`raceAppearance.json\`.`);
@@ -206,7 +209,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     [...Object.entries(composition.prises ?? {}).map(([main, tenu]) => objet(tenu.id, main)), ...(composition.objets ?? []).map((id) => objet(id))],
     variantesPieces,
   );
-  const { sex, build } = composition;
+  const { sex, build, formesDeTete } = composition;
   const couleurs = { ...race.couleurs, ...composition.couleurs };
   return {
     portees: [...liste, ...objets.portees],
@@ -216,6 +219,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     sex,
     ...(build === undefined ? {} : { build }),
     ...(Object.keys(couleurs).length ? { couleurs } : {}),
+    ...(formesDeTete ? { formesDeTete } : {}),
   };
 }
 

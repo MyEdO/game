@@ -166,6 +166,8 @@ const NOMMES = [
   // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
   // marché et le mode de marché d'un marchand de scène.
   'village|ville|cite',
+  // `formeDeTeteSchema` (#4413) : les formes de la tête d'un preset et d'une Mutation.
+  'visage_inverse|nez_fort|arcades_marquees|joues_creuses|visage_long',
   // La clé d'indice de Taille de lieu de `disponibilite.json` › `colonneParTaille` (MSRC 13 l.44-50, #4277).
   '1|2|3|4',
   'complet|sans-disponibilite|sans-marchandage|simplifie',

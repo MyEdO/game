@@ -3,7 +3,7 @@
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 
-export const PLAFOND_ASSEMBLE = 16000;
+export const PLAFOND_ASSEMBLE = 24000;
 
 /** Le nombre de triangles de `m`. */
 export const trianglesDe = (m: Mesh): number => (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3;
