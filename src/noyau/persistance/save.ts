@@ -55,6 +55,7 @@ export interface SaveGame extends SaveMeta {
  * exclusion qui n'est pas ici n'existe pas. La même couture sert l'instantané coop (`noyau/coop.ts`).
  */
 const HORS_SAVE = {
+  cadenceHote: 'cadence de table reçue dans la session coop',
   // #767 · #766
   campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, registreDesScenes.ts)',
 } as const satisfies Partial<Record<keyof EtatDeJeu, string>>;

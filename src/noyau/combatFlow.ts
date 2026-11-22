@@ -595,7 +595,7 @@ import {
 } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
-import { aiDriven, controlsCombatant, defenseSurfaced, refuserAuSiegeAgissant } from './netOwnership';
+import { aiDriven, controlsCombatant, defenseSurfaced, detientLAutoriteDuJeu, refuserAuSiegeAgissant } from './netOwnership';
 import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
 // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
@@ -8082,7 +8082,7 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
  *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
  *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
-  if (combatAdvanceBlocked(get())) return;
+  if (!detientLAutoriteDuJeu(get()) || combatAdvanceBlocked(get())) return;
   const active = activeCombatant(get().battle!);
   if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
@@ -8093,7 +8093,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
   // `resumeSuspendedAI` ne surveillait historiquement PAS `pendingCast` → `{ cast: false }` (iso A1).
-  if (combatAdvanceBlocked(s, { cast: false })) return;
+  if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false })) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
   if (!active || reprendreLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
@@ -8343,14 +8343,13 @@ export function lancerLeRound(get: Get, set: SetFn): void {
   jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
 }
 
-/** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
+/** IA : si le combattant actif est PILOTÉ par l'IA (ennemi sans MJ, allié IA ou héros en Auto-combat),
  *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
  *  rappelé par tout ce qui relance le combat (`reprendreLaCadence`, clôture d'une fenêtre, scrutation de recette), il
  *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
  *  décidé que sa suite PARQUÉE. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
-  // Seul l'hôte rejoue le tour (suite ou décision d'IA) ; l'invité n'applique que l'instantané.
-  if (get().net.mode === 'invite') return;
+  if (!detientLAutoriteDuJeu(get())) return;
   if (combatAdvanceBlocked(get(), { roundStart: true })) return;
   const battle = get().battle!;
   const active = activeCombatant(battle);
@@ -8420,8 +8419,9 @@ function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourEnC
  *  PARQUÉE dans `jouerLaSuite`, que `maybeRunEnemyTurn` réarme par ici. Un « avancer » n'écrase jamais un autre geste en attente : il est refusé (`false`), sans rien
  *  écrire ni programmer. Le geste de l'IA d'un acteur hors de combat devient « avancer ». */
 export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
-  const battle = get().battle;
-  if (!battle) return false;
+  const s = get();
+  if (!detientLAutoriteDuJeu(s) || !s.battle) return false;
+  const battle = s.battle;
   // L'acteur hors de combat ne joue plus le geste de l'IA : son tour finit, sans télégraphe.
   if (GENRES_DE_GESTE[geste.kind].decideParLIA && isOutOfAction(acteur)) geste = { kind: 'avancer' };
   const cle = cleDeTour(battle, acteur.id);
@@ -8453,7 +8453,9 @@ export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: Ges
  *  s'abandonne, et le tour du joueur reste le sien. Une frappe pilotée qui devançait un geste de l'IA le remet en
  *  suite PARQUÉE, numérotée, sans minuteur (`reprise`). */
 function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: number): void {
-  const battle = get().battle;
+  const s = get();
+  if (!detientLAutoriteDuJeu(s)) return;
+  const battle = s.battle;
   const tour = battle?.tourEnCours;
   const acteur = battle ? inBattleId(battle, acteurId) : undefined;
   if (!battle || battle.over || !acteur || !tour || tour.cle !== cle || cle !== cleDeTour(battle, acteurId) || tour.suite?.n !== n) {
@@ -9195,8 +9197,10 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
 }
 
 export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
-  const { battle, scene } = get();
-  if (!battle || !scene || battle.over) return;
+  const s = get();
+  const { battle, scene } = s;
+  if (!detientLAutoriteDuJeu(s) || !battle || !scene || battle.over) return;
+  if (battle.order[battle.turn] !== enemyId) return;
   const enemy = inBattleId(battle, enemyId);
   if (!enemy || isOutOfAction(enemy)) return advanceTurn(get, set);
   // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` l'a évalué AVANT de
@@ -9209,8 +9213,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   //  - une fenêtre ouverte tient la main (`combatAdvanceBlocked`) : l'IA n'a rien à décider par-dessus ;
   //  - un second appel pour le MÊME « round:turn:id » est un DOUBLON : le tour décidé se poursuit par SA suite.
   // Le refus est SILENCIEUX : c'est un appel qui arrive trop tard (ou deux fois).
-  if (activeCombatant(battle)?.id !== enemyId) return;
-  if (combatAdvanceBlocked(get())) return;
+  if (combatAdvanceBlocked(s)) return;
   const tour = tourEnCoursDe(battle, enemyId);
   if (tour?.decide) return;
   if (tour) tour.decide = true;

@@ -2,7 +2,7 @@
  * Pilote d'AUTO-CADENCE (« Cadence de combat » Rapide / Auto-combat) — brique FEUILLE.
  *
  * `tickCombatAuto` regarde la modale ACTIVE (`pickActiveModalKey`) et, si le mode l'autorise et qu'elle
- * est pilotée LOCALEMENT, la résout en enchaînant ses résolveurs de store — SANS jamais toucher aux
+ * relève de l'autorité, la résout en enchaînant ses résolveurs de store — SANS jamais toucher aux
  * actions d'influence (`relancer`/`forcerLaReussite`/`pactiser`/`ajouterUnDR`) → « zéro dépense » par construction.
  *
  * Deux couches de politique (cf. critique : la granularité réelle des jets de combat est l'étape de
@@ -44,9 +44,10 @@ import {
 import { fermetureHoteDeToutResoudre, maladresseCourante, stepInteraction } from './cascade';
 import type { HostJet } from './slotsDeJet';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
-import { influencesLocally, ownsLocal } from './netOwnership';
-import { seatOwns } from './sieges';
-import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
+import { decidingSeat, detientLAutoriteDuJeu, ownsLocal, seatInfluences, withActingSeat } from './netOwnership';
+import { siegeDe } from './sieges';
+import { porteurParId } from './monde/combatants';
+import { cadence, cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
@@ -298,7 +299,7 @@ const STEP_WINDOW_AUTO: readonly (FenetreReactive & { drive: readonly GesteDuJeu
 /**
  * Drive de la fenêtre réactive OUVERTE, ou `ATTENDRE` quand ce siège n'a pas à la résoudre.
  * GARDE DE POSSESSION (#1005) : l'owner de l'étape `cast` partagée est `'*'` — vrai pour TOUS les
- * sièges — donc `ownerLocal` ne dit RIEN de la fenêtre. Un siège qui « appliquerait » une fenêtre dont
+ * sièges — donc le propriétaire de l'étape ne désigne pas celui de chaque rangée. Un siège qui « appliquerait » une fenêtre dont
  * une rangée DUE appartient à un autre (le MJ, un autre joueur) la refermerait SANS son jet : sa
  * Dissipation/son Test opposé seraient forfaits. La fenêtre ne se drive donc que si TOUTE rangée
  * encore due est influençable ICI ; sinon elle ATTEND son siège, exactement comme en manuel — et le
@@ -306,12 +307,12 @@ const STEP_WINDOW_AUTO: readonly (FenetreReactive & { drive: readonly GesteDuJeu
  * change l'état et re-déclenche le tick (`planifierLeTickAuto`).
  */
 const ATTENDRE = 'attendre';
-function stepWindowDrive(s: Jeu): readonly GesteDuJeu[] | typeof ATTENDRE | null {
+function stepWindowDrive(s: Jeu, siege: number): readonly GesteDuJeu[] | typeof ATTENDRE | null {
   for (const w of STEP_WINDOW_AUTO) {
     const rows = w.rangees(s);
     if (!rows) continue;
     // Rangée RÉGLÉE = jetée, PASSÉE (déclaration terminale : elle ne jettera pas) ou non surfacée.
-    return rows.every((p) => p.result || p.declared === 'passer' || !p.interactive || influencesLocally(s, p.id)) ? w.drive : ATTENDRE;
+    return rows.every((p) => p.result || p.declared === 'passer' || !p.interactive || seatInfluences(s, siege, p.id)) ? w.drive : ATTENDRE;
   }
   return null; // aucune fenêtre ouverte : l'étape garde son propre drive
 }
@@ -320,56 +321,62 @@ function stepWindowDrive(s: Jeu): readonly GesteDuJeu[] | typeof ATTENDRE | null
  *  précédentes. */
 const sequenceCourante = new WeakMap<Get, object>();
 
-/**
- * Le SIÈGE LOCAL possède-t-il la modale active ? MÊME routage que la validation d'intent
- * (`seatOwns`/`intentAllowedFor`) : un ennemi/une étape MONDE appartient au siège MJ (`gmSeat`) quand il
- * existe, jamais « à l'hôte par défaut » — sinon l'hôte auto-résout en Rapide une fenêtre dont le MJ
- * tient la main. Solo (`net` par défaut : mySeat 0, aucun ownership, pas de MJ) : inchangé, tout est à
- * soi. `null`/`'*'` = aucun concerné / moment partagé → résolu localement, comme avant.
- */
-function ownerLocal(s: Jeu): boolean {
+/** Siège au nom duquel l'autorité résout la fenêtre, y compris celle d'un héros distant en Auto. */
+function siegeDeLaCadence(s: Jeu): number | null {
+  if (!detientLAutoriteDuJeu(s) || !cadenceAuto()) return null;
   const owner = modalOwnerOf(s);
-  if (owner == null || owner === '*') return true; // hôte / moment partagé (résolu par l'hôte)
-  return seatOwns(s, s.net.mySeat, owner);
+  if (owner == null || owner === '*') return s.net.mySeat;
+  const siege = siegeDe(s, owner);
+  if (siege === s.net.mySeat || (cadenceAutoCombat() && porteurParId(s, owner)?.kind === 'heros')) return siege;
+  return null;
+}
+
+/** Le contexte du siège ne couvre que le geste synchrone. */
+function jouerPourLeSiege(s: Jeu, siege: number, jouer: () => void): void {
+  if (decidingSeat(s) === siege) jouer();
+  else withActingSeat(siege, jouer);
 }
 
 /** Enchaîne les gestes `drive` (roll → confirm…) sur des ticks espacés, chacun sur son flux, puis re-tick pour la suite. */
-function driveSelf(get: Get, set: Set, drive: readonly GesteDuJeu[]): void {
+function driveSelf(get: Get, set: Set, siege: number, drive: readonly GesteDuJeu[], choix = false): void {
   const jeton = {};
+  const mode = cadence();
   sequenceCourante.set(get, jeton);
   let i = 0;
   const step = () => {
-    if (sequenceCourante.get(get) !== jeton) return;                 // supersédé par un tick plus récent
-    if (!ownerLocal(get())) return;
-    if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
-    jouerLeGeste(get, drive[i++]); // roll() idempotent, puis confirm() (ferme/avance)
+    const s = get();
+    if (sequenceCourante.get(get) !== jeton || cadence() !== mode || siegeDeLaCadence(s) !== siege) return;
+    if (i >= drive.length) { tickCombatAuto(get, set); return; }
+    const reactif = choix ? stepWindowDrive(s, siege) : null;
+    if (reactif !== null && reactif !== drive) return;
+    jouerPourLeSiege(s, siege, () => jouerLeGeste(get, drive[i++]));
     programmer(step, beatHold(get, 'autoResolve'));
   };
   step();
 }
 
 /** Auto-résout la cascade active : jet de COMBAT bespoke (JET_AUTO) ou jet générique nuit/voyage. */
-function autoResolveCascade(get: Get, set: Set): void {
+function autoResolveCascade(get: Get, set: Set, siege: number): void {
   const pc = get().pendingCascade;
   if (!pc) return;
   if (pc.cursor >= pc.participants.length) {
     // BILAN : combat → fermer ; voyage/nuit/test → laisser le RÉSUMÉ au joueur (« Terminer »).
-    if (pc.purpose === 'combat') get().fenetreFermer('cascade');
+    if (pc.purpose === 'combat') jouerPourLeSiege(get(), siege, () => get().fenetreFermer('cascade'));
     return;
   }
   const cur = pc.participants[pc.cursor];
   if (cur.jet) {
     const pol = JET_AUTO[cur.jet];
-    if (pol.mode === 'self') { driveSelf(get, set, pol.drive); return; }
+    if (pol.mode === 'self') { driveSelf(get, set, siege, pol.drive); return; }
     // 'choice' (cast/disengage/…) : en Auto-combat, l'IA résout via `autoDrive` (incantation) ; en Rapide,
     // on LAISSE la modale au joueur (surincantation = vrai choix). Une fenêtre RÉACTIVE ouverte dans
     // l'étape prend la main sur son drive, et `ATTENDRE` = fenêtre d'un AUTRE siège : on ne touche à
     // RIEN et on ne planifie aucun beat (`STEP_WINDOW_AUTO`/`stepWindowDrive` ci-dessus).
     if (pol.mode === 'choice' && cadenceAutoCombat()) {
-      const w = stepWindowDrive(get());
+      const w = stepWindowDrive(get(), siege);
       if (w === ATTENDRE) return;
       const drive = w ?? pol.autoDrive;
-      if (drive) driveSelf(get, set, drive);
+      if (drive) driveSelf(get, set, siege, drive, true);
     }
     return;
   }
@@ -380,23 +387,28 @@ function autoResolveCascade(get: Get, set: Set): void {
     if (!cadenceAutoCombat()) return;
     if (cur.chosen == null) {
       if (cur.defaultChoice == null) return; // pas de défaut → décision au joueur (la modale reste visible)
-      get().jetRegler('cascade', 'choix', cur.defaultChoice, cur.id);
+      const choix = cur.defaultChoice;
+      jouerPourLeSiege(get(), siege, () => get().jetRegler('cascade', 'choix', choix, cur.id));
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
     // driver bespoke au tick suivant, au lieu d'être écrasées par un « tout résoudre » global.
-    if (pc.purpose === 'combat') { get().jetValider('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
+    if (pc.purpose === 'combat') {
+      jouerPourLeSiege(get(), siege, () => get().jetValider('cascade'));
+      programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve'));
+      return;
+    }
   }
-  get().jetLancer('cascade');
+  jouerPourLeSiege(get(), siege, () => get().jetLancer('cascade'));
   programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
 }
 
 /** Une étape de cascade sera-t-elle auto-résolue ? (sert à MASQUER la modale, cf. `willAutoResolve`). */
-function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
+function stepAutoResolved(s: Jeu, step: CascadeStep, siege: number): boolean {
   if (step.jet) {
     const pol = JET_AUTO[step.jet];
     if (pol.mode === 'self') return true;
     if (pol.mode !== 'choice' || !cadenceAutoCombat()) return false;
-    const w = stepWindowDrive(s);
+    const w = stepWindowDrive(s, siege);
     if (w === ATTENDRE) return false; // fenêtre d'un AUTRE siège : elle RESTE visible (elle n'est pas résolue ici)
     return !!(w ?? pol.autoDrive); // incantation en Auto
   }
@@ -408,10 +420,11 @@ function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
  * La modale ACTIVE va-t-elle être auto-résolue par le driver ? PURE (zéro effet) — lue par `ActiveModal`
  * pour NE PAS la rendre du tout (fini le flash de quelques ms en Rapide/Auto). On NE masque PAS : le BILAN
  * d'une cascade voyage/nuit (le joueur veut voir le résumé), ni un vrai choix laissé au joueur (surincantation
- * ou Destin en Rapide), ni la modale d'un combattant non piloté localement (coop).
+ * ou Destin en Rapide), ni les fenêtres que l'autorité laisse au joueur.
  */
 export function willAutoResolve(s: Jeu): boolean {
-  if (!cadenceAuto() || !ownerLocal(s)) return false;
+  const siege = siegeDeLaCadence(s);
+  if (siege === null) return false;
   const pol = autoPolicyOf(s);
   if (!pol) return false;
   switch (pol.mode) {
@@ -422,7 +435,7 @@ export function willAutoResolve(s: Jeu): boolean {
       const pc = s.pendingCascade;
       if (!pc) return false;
       if (pc.cursor >= pc.participants.length) return pc.purpose === 'combat'; // bilan : combat masqué ; voyage/nuit MONTRÉ
-      return stepAutoResolved(s, pc.participants[pc.cursor]);
+      return stepAutoResolved(s, pc.participants[pc.cursor], siege);
     }
   }
 }
@@ -441,18 +454,17 @@ export function spectatorSeatOfModal(s: Jeu): number | null {
   if (willAutoResolve(s)) return null;
   const ownerId = modalOwnerOf(s);
   if (ownerId === '*' || ownerId === null || ownsLocal(s, ownerId)) return null;
-  return ownerId ? s.net.ownership[ownerId] ?? 0 : 0;
+  return siegeDe(s, ownerId);
 }
 
 /**
- * TICK du pilote d'auto-cadence. Appelé depuis la chaîne de reprise GARDÉE (C3/C4) — JAMAIS un pilote
- * async parallèle. No-op hors Rapide/Auto, sur une modale non pilotée localement, ou `hostOnly`/`choice`
- * (le `choice` en Auto-combat est tranché par `runActorAI` / la politique Destin — C4).
+ * TICK du pilote d'auto-cadence. L'autorité joue en Rapide ou en Auto les fenêtres que
+ * `siegeDeLaCadence` lui confie. Le Sauvetage par Destin fait partie des choix automatiques en Auto.
  */
 export function tickCombatAuto(get: Get, set: Set): void {
-  if (!cadenceAuto()) return;
   const s = get();
-  if (!ownerLocal(s)) return;
+  const siege = siegeDeLaCadence(s);
+  if (siege === null) return;
   const pol = autoPolicyOf(s);
   if (!pol) return;
   switch (pol.mode) {
@@ -463,26 +475,31 @@ export function tickCombatAuto(get: Get, set: Set): void {
       // `eviter` s'il est offert (`fateSaveOptions`), sinon `survivre`. En Rapide, on NE touche PAS (la
       // modale reste — vrai choix du joueur).
       if (cadenceAutoCombat() && pickActiveModalKey(s) === 'destin' && s.pendingFateSave) {
-        const eviter = fateSaveOptions(s.pendingFateSave.source).includes('eviter');
-        programmer(() => get().fenetreChoisir('destin', 'issue', eviter ? 'eviter' : 'survivre'), beatHold(get, 'autoResolve'));
+        const destin = s.pendingFateSave;
+        const eviter = fateSaveOptions(destin.source).includes('eviter');
+        programmer(() => {
+          const courant = get();
+          if (courant.pendingFateSave !== destin || pickActiveModalKey(courant) !== 'destin'
+            || siegeDeLaCadence(courant) !== siege || !cadenceAutoCombat()) return;
+          jouerPourLeSiege(courant, siege, () => courant.fenetreChoisir('destin', 'issue', eviter ? 'eviter' : 'survivre'));
+        }, beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':
-      autoResolveCascade(get, set);
+      autoResolveCascade(get, set, siege);
       return;
     case 'self':
-      driveSelf(get, set, pol.drive);
+      driveSelf(get, set, siege, pol.drive);
       return;
   }
 }
 
 /**
- * Planifie un tick d'auto-cadence après un changement d'état : rien en mode manuel (défaut, zéro
- * overhead), sinon UN tick hors du cycle de `set`, coalescé sur son jeton tant que la plateforme le dit
- * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture.
+ * Planifie un tick d'auto-cadence après une écriture de l'autorité en Rapide ou Auto. Le jeton
+ * coalesce les réveils hors du cycle de `set` tant que la plateforme le garde en attente.
  */
 let tickPlanifie: Jeton | null = null;
 export function planifierLeTickAuto(get: Get, set: Set): void {
-  if (!cadenceAuto() || (tickPlanifie !== null && enAttente(tickPlanifie))) return;
+  if (!detientLAutoriteDuJeu(get()) || !cadenceAuto() || (tickPlanifie !== null && enAttente(tickPlanifie))) return;
   tickPlanifie = programmer(() => tickCombatAuto(get, set), 0);
 }
