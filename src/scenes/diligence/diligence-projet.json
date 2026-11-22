@@ -14760,6 +14760,7 @@
      "y": 21,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -14860,6 +14861,7 @@
      "y": 26,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15131,6 +15133,7 @@
      "y": 14,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15321,6 +15324,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15328,6 +15332,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15335,6 +15340,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15646,6 +15652,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15701,6 +15708,7 @@
      "y": 37,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15708,6 +15716,7 @@
      "y": 36,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15715,6 +15724,7 @@
      "y": 35,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15860,6 +15870,7 @@
      "y": 39,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15867,6 +15878,7 @@
      "y": 40,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15906,6 +15918,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15913,6 +15926,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16053,6 +16067,7 @@
      "y": 32,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16060,6 +16075,7 @@
      "y": 30,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16067,6 +16083,7 @@
      "y": 30,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16128,6 +16145,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16716,6 +16734,7 @@
      "y": 10,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17536,6 +17555,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17544,6 +17564,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17552,6 +17573,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17785,6 +17807,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17793,6 +17816,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17801,6 +17825,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17809,6 +17834,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17880,6 +17906,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17958,6 +17985,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17966,6 +17994,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18023,6 +18052,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18031,6 +18061,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18066,6 +18097,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18073,6 +18105,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18080,6 +18113,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18165,6 +18199,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18285,6 +18320,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18349,6 +18385,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18484,6 +18521,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18492,6 +18530,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18500,6 +18539,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18599,6 +18639,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     }
    ],
