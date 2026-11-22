@@ -39,7 +39,7 @@
 .siege.vide .q b{font-weight:400;font-size:17px;color:var(--creme-2);font-family:"Fell";font-style:italic;letter-spacing:0}
 #invitation .fond{padding:30px 18px 18px;display:flex;flex-direction:column;gap:14px}
 #invitation .code{height:84px;display:grid;place-items:center;font-size:44px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
-#invitation .r{font-size:14px;color:var(--or);margin-top:4px}
+#invitation .rub{margin-top:4px}
 #invitation .joueur{display:flex;align-items:center;gap:10px;height:34px;font-size:16px;color:#f0e2c2;white-space:nowrap}
 #invitation .joueur.absent{color:#f0c8b4;font-style:italic}
 #invitation .joueur .pt{width:8px;height:8px;margin:0 6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dc93,#b8923a)}
@@ -55,9 +55,9 @@
 #attribution .segments b{padding:4px 9px 5px;font-size:13px}
 
 /* ───────── l'éditeur ───────── */
-#barre .fond{display:flex;align-items:center;gap:12px;padding:0 16px 0 12px}
+#barre .fond{display:flex;align-items:center;gap:8px;padding:0 16px 0 12px}
 #barre .medaillon{flex:none}
-#barre .s{font-size:10.5px;color:var(--creme-2);white-space:nowrap}
+#barre .sous-titre{white-space:nowrap}
 #barre .espace{flex:1}
 #barre .plaque{flex:none}
 #barre .plaque>div{font-size:13px;padding:0 11px;gap:6px}
@@ -89,15 +89,15 @@
 #pied .v{margin-left:auto;color:var(--creme-2)}
 #inspecteur .fond{height:100%;box-sizing:border-box}
 #inspecteur .defile.corps{gap:0}
-#inspecteur .sous{font-size:12.5px;color:#5a2a12;white-space:nowrap}
+#inspecteur .sous-titre{white-space:nowrap}
 #inspecteur .trait{margin:9px 0 3px}
 .prop{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:38px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12}
 .prop>span{white-space:nowrap}
 .prop.gris>span{color:#7a6548}
 .prop .v{font-style:italic;font-size:13.5px;color:#4a3420;white-space:nowrap}
 .prop .pas-a-pas b{min-width:0;font-size:11.5px;letter-spacing:.3px}
-#inspecteur .r{font-size:13px;color:#6b1c10;margin:0;padding:11px 0 4px}
-#inspecteur .place>.r:first-child{padding-top:0}
+#inspecteur .rub{margin:0;padding:11px 0 4px}
+#inspecteur .place>.rub:first-child{padding-top:0}
 .renvoi{display:flex;align-items:center;gap:8px;height:32px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12;white-space:nowrap}
 .renvoi svg:last-child{margin-left:auto}
 #inspecteur .champ>b{height:34px;font-size:15.5px}
@@ -146,7 +146,7 @@
 .rangee em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
 .rangee.pointee{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;font-weight:600}
 .rangee.pointee em{color:#3a2a12}
-.groupe{display:flex;align-items:baseline;height:23px;line-height:23px;padding:0 8px 0 12px;font-size:12px;color:var(--or);background:rgba(0,0,0,.35)}
+.groupe{display:flex;align-items:center;height:23px;padding:0 8px 0 12px;background:rgba(0,0,0,.35)}
 .groupe em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
 .rail{flex:none;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:4px 0 8px;font-size:10.5px;color:var(--creme-2)}
 .rail b{font-weight:400;line-height:12px}
@@ -154,7 +154,6 @@
 /* la fiche : la tête sur toute la largeur ; le corps à gauche, les renvois à droite ; le pied de l'atelier sous le corps */
 #fiche-du-compendium .fond{box-sizing:border-box}
 #fiche-du-compendium>.fond>.tete{position:absolute;left:22px;right:22px;top:14px;display:flex;align-items:baseline;gap:14px;white-space:nowrap}
-#fiche-du-compendium>.fond>.tete .sous{font-size:14px;color:#6b1c10}
 #fiche-du-compendium>.fond>.tete .source{font-size:13px;padding:1px 8px 2px;border:1px solid rgba(60,40,20,.55);border-radius:2px;color:#2a1d12}
 #fiche-du-compendium>.fond>.tete .epingle{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:13px;color:#5a130b}
 #fiche-du-compendium>.fond>.filet{position:absolute;left:22px;right:22px;top:56px;margin:0}
@@ -165,13 +164,13 @@
 .corps-de-fiche .puce span{font-size:12.5px;color:#6b1c10}
 .corps-de-fiche p{margin:0 0 10px;font-size:16px;line-height:22px;color:#2a1d12}
 #fiche-du-compendium .lien{color:#5a130b;border-bottom:1px solid rgba(107,28,16,.55)}
-.renvois{position:absolute;right:22px;top:78px;width:300px;bottom:14px;padding-left:16px;box-sizing:border-box;border-left:1px solid rgba(60,40,20,.3)}
+.renvois{position:absolute;right:22px;top:78px;width:300px;bottom:14px;padding-left:16px;box-sizing:border-box;border-left:1px solid rgba(60,40,20,.3);display:flex;flex-direction:column}
 .onglets-comptes{display:flex;gap:5px}
 .onglets-comptes b{display:flex;align-items:baseline;gap:5px;height:26px;line-height:26px;padding:0 8px;font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:.4px;color:#3a2a18;border-radius:2px;box-shadow:0 0 0 1px rgba(60,40,20,.55);white-space:nowrap}
 .onglets-comptes b em{font-family:"Chiffres";font-style:normal;font-size:11px}
 .onglets-comptes b.la{color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre))}
-.renvois>.r{margin:10px 0 0;height:16px;font-size:11.5px;color:#6b1c10;white-space:nowrap}
-.renvois>.defile{position:absolute;left:16px;right:0;top:60px;bottom:0}
+.renvois>.rub{margin:10px 0 0;white-space:normal}
+.renvois>.defile{flex:1;min-height:0;margin-top:8px}
 .nom-renvoi{display:flex;align-items:baseline;gap:4px;height:26px;line-height:26px;font-size:14px;white-space:nowrap;border-bottom:1px solid rgba(60,40,20,.18);overflow:hidden}
 .nom-renvoi .lien{border-bottom:none;overflow:hidden;text-overflow:ellipsis}
 .nom-renvoi em{margin-left:auto;flex:none;font-style:normal;font-size:10.5px;color:#5a4530}
@@ -190,9 +189,9 @@
 .formulaire .champ.long>b{flex:1;height:auto;overflow-y:auto;scrollbar-width:none;display:block;padding:8px 12px 0;white-space:normal;font-size:15px;line-height:21px}
 .formulaire .champ .curseur-texte{display:none}
 .formulaire .champ.saisi .curseur-texte{display:block}
-.formulaire .aide{margin-top:3px;font-style:italic;font-size:12.5px;line-height:16px;color:#4a3420}
-.formulaire .aide .lien{font-style:normal}
-.formulaire>.r{margin:0 0 -6px;font-size:13px;color:#6b1c10}
+.formulaire .glose{margin-top:3px}
+.formulaire .glose .lien{font-style:normal}
+.formulaire>.rub{margin:0 0 -6px}
 .formulaire .facettes b{color:#3a2a18;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.55)}
 #fiche-du-compendium>.fond>.pied{position:absolute;left:22px;bottom:14px;width:572px;display:flex;gap:10px}
 #fiche-du-compendium>.fond>.pied .plaque{flex:1 1 0;position:relative;z-index:2}
@@ -209,7 +208,7 @@
 #index-du-compendium .categories{position:absolute;left:256px;right:18px;top:64px;bottom:12px;columns:3;column-gap:24px}
 .ligne-d-index{display:flex;align-items:baseline;gap:8px;padding:1px 0 2px;font-size:13px;line-height:15px;color:#f0e2c2;border-bottom:1px solid rgba(226,192,106,.14);break-inside:avoid}
 .ligne-d-index em{margin-left:auto;flex:none;font-style:normal;font-size:11px;color:var(--creme-2)}
-.intertitre{padding:4px 0 1px;font-size:12px;line-height:14px;color:var(--or);break-after:avoid}
+.categories>.rub{padding:4px 0 1px;break-after:avoid}
 
 /* l'éditeur : les options d'un outil, la suppression de ce qui est choisi */
 #inspecteur .pinceau .segments{display:flex;margin-top:4px}

@@ -21,7 +21,7 @@
 .heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
 /* panneau de bord, à droite */
 .bord{position:absolute}
-.bord .t{font-size:12.5px;color:var(--or);margin-bottom:5px}
+.bord .rub{margin-bottom:5px}
 /* le lieu d'arrivée : le récit du trajet */
 #recit.lieu p{font-size:16px;line-height:23px}
 /* la cadence au pied du panneau : ses plaques côte à côte */

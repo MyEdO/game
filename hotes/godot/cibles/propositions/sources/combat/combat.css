@@ -4,7 +4,6 @@
 /* le round */
 #round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
 #round .titre{width:96px}
-#round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
 #ordre{position:absolute;display:flex;flex-direction:column-reverse;gap:8px}
@@ -49,7 +48,7 @@
 
 /* le journal : trois lignes dans un coin */
 #journal{position:absolute;text-align:right}
-#journal .tete{height:34px;display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal>.rub{height:34px;display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-bottom:7px}
 #journal .defile{height:115px;margin:-12px -24px;padding:12px 24px}
 #journal p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:#e6dabd}
 #journal p.vieux{color:#bdb096}
@@ -65,7 +64,7 @@
 .apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14.5px;white-space:nowrap}
 .apercu .seuil td{font-weight:600}
 .apercu .seuil td:last-child{font-family:"Grenze Gotisch";font-size:22px;line-height:20px;color:#3a1a10}
-.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
+.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
 
 /* le jet : un bandeau à la place de la barre */
 
@@ -73,7 +72,7 @@
 
 /* variantes : la liste ouverte d'une pastille, les emplacements rapides */
 #liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}
-#liste .t{font-size:13px;color:var(--creme-2);letter-spacing:1px;padding:0 2px 1px}
+#liste .rub{padding:0 2px 1px}
 #liste .plaque.ligne-l{flex:none}
 #liste .plaque.ligne-l>div{justify-content:flex-start;padding:0 12px;font-size:15px}
 .case-r{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -97,7 +96,6 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-#round .t{white-space:nowrap}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
@@ -105,13 +103,11 @@
 .visee .pv b{font-weight:400;font-size:13.5px;white-space:nowrap}
 
 /* le coup critique */
-.camp.touche .c{color:#7c1f14}
 #critique{height:104px;padding:0 0 0 28px;border-left:1px solid rgba(60,40,20,.4)}
 #critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
 
 /* le titre d'un choix, à la place du héros */
 .annonce{height:92px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
-.annonce .sous{font-size:13.5px;color:#4a3420}
 
 /* le journal entier */
 #journal-entier .filet{margin:0 0 6px}
@@ -123,7 +119,7 @@
 #f-identite .fond{padding:18px 17px 0}
 #f-identite .fond>.tete{display:flex;gap:13px}
 #f-identite .n{font-size:28px;line-height:30px;color:#3a1a10}
-#f-identite .c{font-size:12.5px;line-height:16px;color:#4a3420;margin-top:5px}
+#f-identite .sous-titre{margin-top:5px}
 #f-identite .mesure{margin-top:24px}
 #f-identite .mesure .tete{color:#4a3420}
 #f-identite .mesure .tete b{font-family:"Chiffres";font-weight:600;font-size:13.5px;letter-spacing:0;color:var(--encre)}
@@ -145,7 +141,7 @@
 .vignette svg{display:block;width:100%;height:100%}
 .arme .n{font-size:26px;line-height:28px;color:#3a1a10}
 .mesures{display:flex;align-items:center;gap:11px;margin-top:7px}
-.mesures .t{font-size:13px;color:#4a3420;margin-right:16px}
+.mesures .rub{margin-right:16px}
 .mesures .m{margin-right:20px}
 .mesures .m span{display:block;font-size:12px;line-height:14px;color:#5a4530}
 .mesures .m b{font-weight:600;font-size:16px;line-height:21px;color:#2a1d12;white-space:nowrap}
@@ -196,7 +192,7 @@
 #jet .place>.carte br+.modif{margin:1px 0 0}
 
 /* une suite de frappe : la consigne tient la place du meuble, le champ reste à cliquer */
-p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20,.4);height:70px;font-style:italic;font-size:17px;line-height:23px;color:#2a1d12}
+.glose.consigne{margin:14px 0 0;height:70px}
 
 /* la fin du combat : la conséquence sous le cartouche ; la victoire rend ses gains dans le bandeau du bas */
 .gains{display:flex;align-items:flex-start;gap:22px;padding-top:6px}
@@ -204,7 +200,7 @@ p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20
 .argent{display:flex;flex-direction:column;align-items:center}
 .argent b{height:46px;line-height:46px;font-size:30px;color:#3a1a10}
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}
-.vaincus .t,.lignes-b .t{font-size:12.5px;color:#5a2a12;margin-bottom:3px}
+.vaincus .rub,.lignes-b .rub{margin-bottom:3px}
 .vaincus .v{display:flex;align-items:center;justify-content:space-between;height:28px;font-size:14.5px;color:#2a1d12}
 #jet .vaincus .options .plaque{min-width:0}
 .ligne-b{display:flex;align-items:center;gap:9px;height:28px;font-size:14.5px;color:#2a1d12;border-bottom:1px solid rgba(60,40,20,.25)}

@@ -3,14 +3,13 @@
 /* le fond ne range rien : chaque place y a son rect (`PLACES`, `../rendu.js`), le contenu s'y adapte */
 #jet .place{min-width:0}
 #jet .place>.carte{width:100%;height:100%}
-#jet .place>.t{font-size:12.5px;line-height:16px;color:#4a3420;white-space:nowrap}
 .camp{position:relative;display:flex;gap:14px;align-items:flex-start}
 #jet .place>.camp{height:100%}
 .camp:is(.droite,.cible){flex-direction:row-reverse;text-align:right}
 /* ce que le choix vise : son nom sur deux lignes au plus, dans l'identité étroite du troisième emplacement */
 #jet .camp.cible .n{font-size:17px;line-height:18px}
 .camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
-.camp .c{font-size:12.5px;line-height:14px;color:#4a3420;margin-top:1px}
+.camp .sous-titre{margin-top:1px}
 .camp .des{display:flex;align-items:center;gap:10px;margin-top:5px}
 .camp.droite .des{flex-direction:row-reverse}
 .camp .seuil{font-family:"Grenze Gotisch";font-weight:600;font-size:30px;line-height:34px;color:#2a1d12;white-space:nowrap;position:relative}
@@ -32,16 +31,15 @@
 /* l'issue posée dans la rangée des dés (le tirage d'une table, les Blessures perdues) : deux lignes, le mot en rouge sang */
 .camp .des .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:var(--sang)}
 .camp .des .issue span{font-size:14px;color:#2a1d12;font-weight:600}
-.camp>.place>.c{max-height:28px;overflow:hidden}
+.camp>.place>.sous-titre{max-height:28px;overflow:hidden}
 .modif{display:inline-block;margin-top:5px;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
 #verdict{text-align:center;padding:2px 8px 0;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:104px}
-#verdict .sous{font-size:12.5px;color:#4a3420}
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
 /* le verdict d'un jet tombé (`verdict`) : le cadre du centre, vide ; chaque rang dans sa place fixe, le mot générique
    de la couleur de l'issue, les conséquences en pièces, le DR en petit, la phrase sur deux lignes au plus */
 #verdict.grille{height:112px}
-#jet .place>.sous{height:14px;line-height:14px;white-space:nowrap;text-align:center;font-size:12.5px;color:#4a3420}
+#jet :is([data-place="fenetre/issue-sous"],[data-place="fenetre/reglage-sous"])>.sous-titre{height:14px;white-space:nowrap;text-align:center}
 #jet .issue-du-jet{height:38px;line-height:38px;text-align:center;font-size:27px;white-space:nowrap;color:#3a1a10}
 #jet .issue-du-jet.reussite{color:#3d5a26}
 #jet .issue-du-jet.echec{color:var(--sang)}
@@ -55,7 +53,7 @@
 #jet .consequence[data-sans-icone] .nom{font-family:"Fell SC";font-size:14px;padding:0 4px;border:1px dashed currentColor;border-radius:2px;line-height:18px}
 #jet .dr-du-jet{height:14px;line-height:14px;font-size:12px;letter-spacing:.6px;color:#4a3420;display:flex;justify-content:center;align-items:center;gap:8px;white-space:nowrap}
 #jet .dr-du-jet b{font-weight:400;font-size:12px;color:#2a1d12}
-#jet .phrase-du-jet{margin:0;padding:0 6px;text-align:center;font-style:italic;font-size:12.5px;line-height:17px;color:#2a1d12}
+#jet :is([data-place="fenetre/issue-phrase"],[data-place="fenetre/reglage-phrase"])>.glose{padding:0 6px;text-align:center}
 #suites .place>.plaque{width:100%}
 #suites .place>.plaque>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 
@@ -73,7 +71,7 @@
 .plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}
 .plaque.carte.courte .n{font-size:13px;line-height:12px}
 .plaque.carte.courte .c{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:14px;line-height:15px;-webkit-line-clamp:1}
-#jet .place>p.phrase-du-jet .modif{margin:0 3px}
+#jet .place>.glose .modif{margin:0 3px}
 /* avant le dé : le testeur, désigné aux suites, les réglages */
 .testeurs{height:100%;display:flex;align-items:center;justify-content:flex-end;gap:7px;font-size:11.5px;color:#4a3420}
 .testeurs .t{opacity:.6}

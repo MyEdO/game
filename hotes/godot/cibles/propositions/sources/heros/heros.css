@@ -74,7 +74,7 @@
 .page-c{display:flex;flex-direction:column;align-items:center;height:100%}
 .page-c>*{flex:none}
 .page-c>.titre{text-align:center;max-width:100%;overflow:hidden}
-.page-c>.sous{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.page-c>.sous-titre{white-space:nowrap}
 .page-c>.filet{align-self:stretch;margin:7px 40px}
 .page-c>.rub{align-self:stretch;margin:10px 0 5px}
 .page-c>.pills,.page-c>.tete-l{align-self:stretch}
@@ -198,7 +198,6 @@
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
 .physique .mesure{display:flex;align-items:center;gap:11px}
 .physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
-.physique .mesure .rub .note{font-size:11.5px}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -236,7 +235,6 @@
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
 .ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
-.ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
 /* ───────── la fiche : le profil, la figure, les sections ───────── */
@@ -322,7 +320,7 @@
 .achat .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 4px}
 .achat .val span{font-weight:400}
 .achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
-.achat .designer{margin-left:auto;color:var(--sang)}
+.achat .avertissement{margin-left:auto}
 .achat.hors{border-bottom:0;color:var(--encre-2)}
 .achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
@@ -371,10 +369,11 @@
 .ouvre{align-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:start}
 .ouvre .rub{padding-top:3px}
 .ouvre .pill{height:21px;padding:0 8px;font-size:10.5px}
-.prose.note{font-style:italic;text-align:center}
+.page-c>.glose{margin:6px 0 0;align-self:stretch;text-align:center}
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
 #autre .plaques{height:28px;margin:0 0 8px}
 #autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}
+#autre>.fond>.glose{margin-top:9px}

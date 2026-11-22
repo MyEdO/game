@@ -308,13 +308,13 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      l'écran, dans son cadre au coin haut-gauche */
   const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne' }) => {
     const deTitre = taille === 'titre';
-    const corps = `${medaillon(icone, deTitre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => `<div class="s rubrique">${s}</div>`).join('')}</div>`;
+    const corps = `${medaillon(icone, deTitre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => sousTitre({ texte: s })).join('')}</div>`;
     return deTitre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche" data-primitive="cartouche">${corps}</div>`;
   };
   /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,
      `fin` au bout du rang */
   const rang = (genre, { camp, taille = 'moyen', choisi = false, nom, gothique = false, sous = '', corps = '', fin = '', classe = '' }) => `<div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}" data-primitive="rang">${portrait(genre, { camp, taille, choisi })}
-    <div class="qui"><div class="nom ${gothique ? 'gothique' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}${corps}</div>${fin}</div>`;
+    <div class="qui"><div class="nom ${gothique ? 'gothique' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>${sous ? sousTitre({ texte: sous }) : ''}${corps}</div>${fin}</div>`;
   /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
      place sans contenu n'est pas posée */
   const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-primitive="places" data-emplacement="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
@@ -340,14 +340,19 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      survolé (gauche, droite, haut, bas) ; `style` le place */
   /* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde */
   const tableDApercu = (lignes) => defile(`<table>${lignes}</table>`, 'table');
-  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-primitive="apercu" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
+  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-primitive="apercu" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? sousTitre({ texte: sous }) : ''}</div>${corps}</div>`;
   /* la bannière d'issue d'un combat, et sous elle, chacun à sa place (`issue/suite`, `issue/geste`), ce que l'issue
      laisse (`suite`) et sa sortie, une plaque d'appel */
   const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-primitive="issue" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${places('issue', { suite: suite && `<p class="ombre" data-texte="suite de l'issue">${suite}</p>`, geste: action && plaque(action, { armee: true, taille: 'appel' }) })}</div>`;
   /* le titre d'un panneau, ou d'un écran hors cartouche (`ecran`, la forme du cartouche de titre) ; `cle` : son rôle au relevé */
   const titre = ({ texte, cle = '', ecran = false }) => `<div class="titre${ecran ? ' ecran' : ''} gothique" data-primitive="titre"${cle ? ` data-texte="${cle}"` : ''}>${texte}</div>`;
+  /* ce qu'est ce que nomme le titre ou le nom au-dessus de lui ; `cle` : son rôle au relevé */
+  const sousTitre = ({ texte, cle = '' }) => `<div class="sous-titre" data-primitive="sousTitre"${cle ? ` data-texte="${cle}"` : ''}>${texte}</div>`;
   /* l'intertitre d'un bloc, sa note et ce qui se pose à sa fin ; nu : un trait voulu est un `filet()` posé au-dessus */
-  const rubrique = ({ texte, note = '', fin = '' }) => `<div class="rub" data-primitive="rubrique">${texte}${note ? ` <span class="note">${note}</span>` : ''}${fin}</div>`;
+  const rubrique = ({ texte, note = '', fin = '' }) => `<div class="rub" data-primitive="rubrique">${texte}${note ? ` ${glose({ texte: note })}` : ''}${fin}</div>`;
+  /* la note : une précision, une aide ; `variante` courante, consigne (ce que le joueur a à faire) ou avertissement (un
+     coût, un refus) ; `cle` : son rôle au relevé ; `secondaire` : une raison de refus peut prendre sa place (`poserLesBulles`) */
+  const glose = ({ texte, variante = 'courante', cle = '', secondaire = false }) => `<span class="glose ${variante}" data-primitive="glose"${cle ? ` data-texte="${cle}"` : ''}${secondaire ? ' data-secondaire' : ''}>${texte}</span>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
   const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}" data-primitive="filet">${losange ? '<i class="losange"></i>' : ''}</div>`;
   /* un choix parmi quelques valeurs nommées : la valeur tenue est dorée ; `egaux` : cases de même largeur */
@@ -422,7 +427,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, rubrique, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, sousTitre, rubrique, glose, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

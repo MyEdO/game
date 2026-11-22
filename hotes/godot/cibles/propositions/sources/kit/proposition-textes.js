@@ -1,13 +1,8 @@
 /* Proposition du groupe « textes » (#4585) : ligne libellé-valeur, rubrique, sous-titre, note. Pour chaque nature, les
    variantes d'aujourd'hui à gauche (valeurs relevées sur les 170 états, reproduites par du style local), la forme cible
-   sur bois et sur parchemin à droite. La cible est simulée par la feuille locale ci-dessous, rien n'est posé au kit.
+   sur bois et sur parchemin à droite. La cible d’une nature sans primitive au kit est simulée par la feuille locale ci-dessous.
    Chargée après `../gestes.js` et `planche.js`. Maquette hors du jeu. */
 document.head.insertAdjacentHTML('beforeend', `<style>
-.cible-sous{font-family:"Fell SC",serif;font-size:12.5px;line-height:14px;letter-spacing:1.1px;color:var(--encre-2);white-space:nowrap}
-.fond.bois .cible-sous{color:var(--creme-2)}
-.cible-note{font-family:"Spectral",serif;font-style:italic;font-size:12.5px;line-height:16px;color:var(--encre-2)}
-.fond.bois .cible-note{color:var(--creme-2)}
-.cible-consigne{font-family:"Spectral",serif;font-style:italic;font-size:17px;line-height:23px;color:var(--encre);border-left:2px solid var(--filet-encre);padding-left:10px}
 .cible-ligne{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .cible-ligne .rub{flex:none}
 .cible-val{font-family:"Fell",serif;font-size:15px;color:var(--encre)}
@@ -33,9 +28,9 @@ const cibleLigne = () => `
   <div style="margin-top:8px">${rubrique({ texte: 'Race' })}<div class="cible-val">Humains (Reikland)</div></div>${nom('ligne empilée')}`;
 const cibleRub = () => `${rubrique({ texte: 'Compétences de carrière' })}${nom('rubrique · 13/16')}
   <div style="margin-top:8px" class="cible-ligne">${rubrique({ texte: 'Armée' })}${rubrique({ texte: 'Bâbord' })}</div>${nom('libellé de ligne = rubrique')}`;
-const cibleSous = () => `<div class="n gothique" style="font-size:22px;line-height:24px">Aldric Haas</div><div class="cible-sous">Chasseur · Argent 1</div>${nom('nom + sousTitre · 12,5/14')}`;
-const cibleNote = (fond) => `${rubrique({ texte: 'Blessures' })}<div class="cible-note">Changer coûte 100 PX.</div>${nom('note courante · 12,5/16')}
-  ${fond === 'parchemin' ? `<div class="cible-consigne" style="margin-top:6px">Choisissez une cible.</div>${nom('note consigne · 17/23')}` : ''}`;
+const cibleSous = () => `<div class="n gothique" style="font-size:22px;line-height:24px">Aldric Haas</div>${sousTitre({ texte: 'Chasseur · Argent 1' })}${nom('nom + sousTitre · 12,5/14')}`;
+const cibleNote = (fond) => `${rubrique({ texte: 'Blessures' })}${glose({ texte: 'Changer coûte 100 PX.' })}${nom('note courante · 12,5/16')}
+  ${fond === 'parchemin' ? `${glose({ texte: 'Choisissez une cible.', variante: 'consigne' })}${nom('note consigne · 17/23')}` : ''}`;
 FEUILLES.textes = () => [
   ...bande(12, 244, 'ligne',
     ligne(

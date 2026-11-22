@@ -18,7 +18,7 @@ const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles =
 const fiche = ({ cote = '', portrait, nom, ligne, rangee = '', issue = '', classe = '' }) => `
   <div class="camp ${cote} ${classe}" data-primitive="fiche">${places('fenetre', {
     [`${cote || 'gauche'}-portrait`]: portrait,
-    [`${cote || 'gauche'}-identite`]: `<div class="n gothique" data-primitive="fiche">${nom}</div><div class="c rubrique" data-primitive="fiche" data-texte="Test">${ligne}</div>`,
+    [`${cote || 'gauche'}-identite`]: `<div class="n gothique" data-primitive="fiche">${nom}</div>${sousTitre({ texte: ligne, cle: 'Test' })}`,
     [`${cote || 'gauche'}-des`]: rangee,
     [`${cote || 'gauche'}-issue`]: issue,
   })}</div>`;
@@ -28,11 +28,11 @@ const fiche = ({ cote = '', portrait, nom, ligne, rangee = '', issue = '', class
    (`dr`) ; la phrase d'issue. Rend le contenu de chaque place de la fenêtre */
 const verdict = ({ sous, mot, sens, consequences, dr, phrase }) => ({
   centre: '<div id="verdict" class="grille" data-primitive="verdict"></div>',
-  'issue-sous': `<div class="sous rubrique" data-primitive="verdict" data-texte="sous-titre">${sous}</div>`,
+  'issue-sous': `${sousTitre({ texte: sous, cle: 'sous-titre' })}`,
   'issue-mot': `<div class="issue-du-jet gothique ${sens}" data-primitive="verdict" data-texte="issue"><span>${mot}</span></div>`,
   'issue-consequences': consequences,
   'issue-dr': `<div class="dr-du-jet rubrique" data-primitive="verdict" data-texte="DR">${dr}</div>`,
-  'issue-phrase': `<p class="phrase-du-jet" data-primitive="verdict" data-texte="phrase d'issue">${phrase}</p>`,
+  'issue-phrase': glose({ texte: phrase, cle: 'phrase d\'issue' }),
 });
 /* les conséquences d'un jet, une pièce chacune, de la couleur de son ton (`gain`, `perte`) : son pictogramme et sa
    valeur ; son nom, sa cible et son détail dans la bulle de son survol (fiche `user-doctrine-icone-identifie-survol-detaille`) ;
@@ -55,13 +55,13 @@ const testeurs = (genres, choisi = 0) => `<div class="testeurs" data-primitive="
    phrase. Une nature absente laisse sa place vide. Rend le contenu de chaque place de la fenêtre */
 const reglage = ({ sous, mot, figure = '', lignes = [], cartes = [], cumul = '', phrase = '' }) => ({
   centre: '<div id="verdict" class="grille" data-primitive="reglage"></div>',
-  'reglage-sous': `<div class="sous rubrique" data-primitive="reglage" data-texte="sous-titre">${sous}</div>`,
+  'reglage-sous': `${sousTitre({ texte: sous, cle: 'sous-titre' })}`,
   'reglage-mot': `<div class="sorte-du-jet gothique" data-primitive="reglage" data-texte="sorte">${mot}</div>`,
   'reglage-figure': figure,
   ...Object.fromEntries(lignes.map((l, k) => [`reglage-ligne-${k + 1}`, l])),
   ...Object.fromEntries(cartes.map((c, k) => [`reglage-carte-${k + 1}`, c])),
   'reglage-cumul': cumul,
-  'reglage-phrase': phrase && `<p class="phrase-du-jet" data-primitive="reglage" data-texte="phrase">${phrase}</p>`,
+  'reglage-phrase': phrase && glose({ texte: phrase, cle: 'phrase' }),
 });
 /* un choix exclusif court : une plaque par option, la choisie en laiton plein */
 const options = (liste) => `<div class="options" data-primitive="options">${liste.map(([libelle, o = {}]) => plaque(libelle, { taille: 'petite', ...o })).join('')}</div>`;

@@ -6,14 +6,11 @@
 #jet .place>.carte .c{-webkit-line-clamp:4}
 #verdict{padding:2px 4px 0}
 #verdict .dr{line-height:normal;margin:0}
-#verdict>.sous{font-size:11.5px;line-height:14px}
 #verdict>p{font-size:13px;line-height:17px}
 #jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
 #jet .camp.droite .n{justify-content:flex-end}
 #jet .camp .n .modif{margin-top:0}
-#verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
-#verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
-#verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
+#verdict .sous-titre{display:flex;justify-content:center;align-items:center;gap:7px}
 #jet .annonce{white-space:nowrap}
 /* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
 #jet .place>:is(#critique,#verdict.tests){height:100%;display:flex;flex-direction:column}
@@ -38,8 +35,7 @@
 #critique .tete-c .tirage{min-width:0}
 #critique .tirage .sceau b{font-size:14px}
 /* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
-#jet .rangees{max-width:272px;height:100%}
-#jet .rangees .t{letter-spacing:.5px}
+#jet .rangees{max-width:272px;height:calc(100% + 4px);margin-top:-4px}
 #jet .rangees .rangee{height:32px}
 /* une ligne de butin à la hauteur de ses portraits */
 #jet .ligne-b{height:34px}
@@ -62,7 +58,7 @@
 #registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;min-height:0;padding-top:6px;padding-bottom:6px}
 #registre .regle .t{flex:1 1 190px;min-width:0}
 #registre .regle .c{margin-left:auto}
-#registre .regle .aide,#registre .regle .action{flex:1 0 100%;margin-top:0}
+#registre .regle .glose,#registre .regle .action{flex:1 0 100%;margin-top:0}
 #registre .feuille .tete{gap:0 12px;height:auto;flex-wrap:wrap}
 #registre .regle .action .plaque{width:100%}
 #registre .regle .action .plaque>div{font-size:12.5px;letter-spacing:.3px;padding:0 8px;gap:8px}
@@ -142,7 +138,6 @@
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
 #panneau.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
-#panneau .t{font-size:12px;color:var(--creme-2)}
 #panneau .ligne.distance{align-items:center}
 #panneau .ligne.distance .jauge{flex:1}
 #panneau .issues{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
@@ -157,12 +152,11 @@
 .ost{display:flex;align-items:center;gap:14px;height:108px}
 .ost.droite{flex-direction:row-reverse;text-align:right}
 .ost .n{font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:24px;color:#3a1a10;white-space:nowrap}
-.ost .c{font-size:12px;color:var(--encre-2);white-space:nowrap}
+.ost .sous-titre{white-space:nowrap}
 .ost .issue{margin-top:5px;font-size:13px;color:#7c1f14;white-space:nowrap}
 .ost .issue.reussite{color:#2f5a26}
 .ost .issue b{font-family:"Fell SC";font-weight:400;letter-spacing:1px}
 #epreuve .milieu{text-align:center;padding:0 14px;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:108px}
-#epreuve .milieu .sous{font-size:12px;color:var(--encre-2)}
 #epreuve .milieu .dr{font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:32px;color:#3a1a10;white-space:nowrap}
 #epreuve .milieu p{margin:3px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12}
 #epreuve .gestes{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:9px}
@@ -180,7 +174,6 @@
 #lieu .activite-breve{position:relative}
 #lieu .activite{position:relative;gap:9px;padding:5px 10px}
 #lieu .activite b{font-size:16.5px;line-height:21px}
-#lieu .activite .c{font-size:10.5px;line-height:13px}
 #lieu .activite i{font-size:11.5px;line-height:15px}
 /* les activités défilent entre la tête du lieu et l'envoi, au pied */
 

@@ -23,9 +23,9 @@
 
 /* la page du chargement et du lot, sur parchemin */
 #page .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
-#page .tete .sous{white-space:nowrap}
+#page .tete .sous-titre{white-space:nowrap}
 #page .r{font-family:"Fell SC";font-size:12.5px;letter-spacing:1.1px;color:#6b1c10}
-#page .note{font-size:12.5px;line-height:16px;color:#4a3420;text-align:center}
+#page .note{text-align:center}
 .porteurs{display:flex;gap:8px}
 .porteur{flex:1;min-width:0;padding:7px 10px 9px;border-radius:3px;border:1px solid rgba(60,40,20,.4);background:rgba(255,245,215,.2)}
 .porteur.pris{border:2px solid #a8842f;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:6px 9px 8px}
@@ -74,7 +74,7 @@
 #jet .fond{grid-template-columns:1fr 340px 1fr}
 .camp .issue b{text-transform:none}
 .modif{margin-top:0;white-space:nowrap}
-#verdict .sous,#verdict .dr{white-space:nowrap}
+#verdict .sous-titre,#verdict .dr{white-space:nowrap}
 
 /* la halle vue d'un siège invité */
 #main .fond{display:flex;align-items:center;gap:12px;padding:8px 14px}
@@ -83,7 +83,7 @@
 .heros .joue{display:flex;align-items:center;gap:6px;margin-top:9px}
 .heros .joue .attend{margin-top:0}
 .heros .attend.autre{background:linear-gradient(180deg,#3a3630,#1e1c18);color:#cfc5ae;box-shadow:0 0 0 1px #000,0 2px 4px rgba(0,0,0,.6)}
-#page .note.refus{display:flex;align-items:center;gap:8px;color:#6b1c10}
+#page .note.refus{display:flex;align-items:center;gap:8px}
 /* les parts de l'achat, sous le compte */
 #page .qui-paie{padding-top:5px;border-top:1px solid rgba(60,40,20,.42);color:#2a1d12}
 #page .qui-paie .rubrique{font-size:12px;color:#6b1c10}

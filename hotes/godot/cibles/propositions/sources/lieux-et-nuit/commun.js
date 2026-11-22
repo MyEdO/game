@@ -56,7 +56,7 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', places('socle', Object.fromEntries(groupe.map((h, k) => { const d = dits[h.id ?? 'libre'] ?? {}; return [`case-${k + 1}`, `
   <div class="heros ${d.choisi ? 'choisi' : ''}" data-primitive="bandeau">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
-      <div class="l2"><span class="car rubrique">${h.car}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
+      <div class="l2">${sousTitre({ texte: h.car })}${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
       ${h.max ? vie(h.pv, h.max) : ''}${bourses ? `<div class="bourse"><span class="rubrique">Bourse</span><b class="chiffres">${h.bourse}</b></div>` : ''}
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
@@ -71,7 +71,7 @@ const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', 
    sur sa grille (`colonne`) : les services en plein, qui défilent, `pied` en note sous eux, quel qu'en soit le nombre ;
    `suite` : ce qui suit la note dans le même panneau, à sa place */
 const rail = (titre, services, pied, piece = 'colonne-gauche', suite = '') => cadre('rail', null, null, null, null, 'bois', `
-  ${colonne(piece, { corps: services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join(''), note: `<div class="pied rubrique" data-primitive="rail">${pied}</div>` })}${suite}
+  ${colonne(piece, { corps: services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join(''), note: glose({ texte: pied }) })}${suite}
 `, { tete: ruban(titre), piece });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */

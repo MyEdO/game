@@ -1,7 +1,7 @@
 @import url(../gestes.css);
 #recit{position:absolute}
 /* la rubrique du récit garde sa ligne, vide quand il n'en a pas : le texte part du même y */
-#recit .r{height:16px;font-size:12.5px;color:var(--or);margin-bottom:3px}
+#recit .rub{height:16px;margin-bottom:3px}
 #recit p{margin:0;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
 
 /* le bandeau des quatre héros */
@@ -10,7 +10,7 @@
 .heros .qui{flex:1;min-width:0}
 .heros .nom{font-size:20.5px;line-height:28px;margin:-3px 0 -3px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
 .heros .l2{display:flex;justify-content:space-between;align-items:baseline;margin-top:1px}
-.heros .car{font-size:12px;color:var(--creme-2);white-space:nowrap}
+.heros .sous-titre{white-space:nowrap}
 .heros .pv{font-size:10.5px;color:#e6dabd;white-space:nowrap}
 .heros .jauge{margin-top:5px}
 .heros .dit{display:flex;gap:8px;align-items:flex-start;margin-top:9px}
@@ -44,7 +44,7 @@
 .apercu table{border-collapse:collapse;width:100%;margin-top:5px}
 .apercu td{padding:1px 0;vertical-align:baseline}
 .apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
-.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
+.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
 
 /* l'hôte : son cartouche, son boniment, sa pointe */
 .hote{position:absolute}
@@ -58,13 +58,12 @@
 #rail .fond{padding:20px 12px 12px;display:flex;flex-direction:column;gap:7px}
 #rail .plaque{flex:none}
 #rail .plaque>div{justify-content:flex-start;gap:11px;font-size:14.5px}
-#rail .pied{font-size:11.5px;color:var(--creme-2);text-align:center;margin-top:3px}
+#rail .glose{text-align:center;margin-top:3px}
 
 /* panneau de parchemin encadré, à droite */
 .page{position:absolute}
 .page>.fond{display:flex;flex-direction:column;padding:24px 20px 13px}
 .page>.fond>.defile{flex:1 1 auto}
-.page .sous{font-size:12px;color:#5a2a12}
 .page p{margin:0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18}
 .onglets{display:flex;gap:8px}
 .onglet{flex:1;display:flex;align-items:center;gap:7px;padding:4px 6px 4px 4px;border-radius:3px;border:1px solid rgba(60,40,20,.45);background:rgba(255,245,215,.18);min-width:0}
