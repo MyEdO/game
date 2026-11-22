@@ -30,12 +30,11 @@ MANIFESTE = {
 MATERIAUX = {
     'metal': ('metal', 'acier-battu'),
     'cordon': ('vet1', 'corde'),
-    'fleuron': ('accent', ((0.3, 0.3, 0.3), 0.0, 0.5)),
+    'fleuron': ('accent', 'emaille'),
 }
 """Illustration : acier poli de la calotte et des joues ; le bandeau tord deux cordons, l'un d'acier (`acier-battu`,
 emplacement `metal`), l'autre noir, de corde teinte par `vet1` (noir au preset `soldat`, la couleur sombre de la tenue).
-Le médaillon du fleuron n'a aucune matière au catalogue (émail, pierre) : gris de construction, teinté par
-l'emplacement `accent`."""
+Le médaillon du fleuron est d'émail (`emaille`), teinté par l'emplacement `accent`."""
 
 BUDGET_TRIANGLES = 2000                 # procédure du skill, section 7 : armure par pièce
 

@@ -11,11 +11,12 @@
   "surfaces": [
     {
       "nom": "vegetal",
-      "palette": "vegetal"
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
     }
   ],
   "glb": {
-    "sha256": "bf9ecc4672b96339388850de4faf0d495f86935807d851b1bd0aab26ccf0b94d",
-    "octets": 118432
+    "sha256": "83302dab7c86ee12eb50bed879e9fbaa09bc7e75f7284c69fb7926c1d666c3d5",
+    "octets": 118512
   }
 }

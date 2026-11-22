@@ -20,12 +20,12 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'parchemin': ('vet2', ((0.75, 0.75, 0.75), 0.0, 0.9)),
+    'parchemin': ('vet2', 'papier'),
     'cuir': ('cuir', 'cuir-tanne'),
     'metal': ('metal', 'acier-battu'),
 }
-"""`SLOTS` n'a pas d'emplacement de parchemin : `vet2`, l'écru du dessous de la robe du preset `sorcier`, comme sur
-l'illustration."""
+"""Les rouleaux sont de `papier`. `SLOTS` n'a pas d'emplacement de parchemin : `vet2`, l'écru du dessous de la robe du
+preset `sorcier`, comme sur l'illustration."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire (brief du ticket)
 

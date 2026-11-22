@@ -16,11 +16,12 @@
     },
     {
       "nom": "os",
-      "palette": "corne"
+      "palette": "corne",
+      "matiere": "prop--os"
     }
   ],
   "glb": {
-    "sha256": "768c1fa6084bafc5d0261b4aa9077da89689cd45a9572396c2f258e8b0ab7268",
-    "octets": 125204
+    "sha256": "3577723a645f2792ed7aa6df84812012b22c585097d45fddffebcb8ad4ebc148",
+    "octets": 125276
   }
 }
