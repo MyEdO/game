@@ -35,7 +35,7 @@
     "group": "Tests",
     "kind": "flag",
     "default": false,
-    "hint": "Hors combat, un double affiche « Succès Stupéfiant » (✦) si le Test réussit ou « Échec Stupéfiant » s’il échoue. L’issue du Test reste la même."
+    "hint": "Pour un Test de compétence, un double réussi affiche « Succès Stupéfiant ». Un double raté affiche « Échec Stupéfiant » et constitue une Maladresse. En Escalade, cette Maladresse peut provoquer une chute selon la règle maison."
   },
   {
     "id": "test-dr-rapide",
@@ -351,6 +351,17 @@
       "tresDifficile"
     ],
     "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
+  },
+  {
+    "id": "escalade-chute-sur-echec",
+    "type": "reglesOptionnelles",
+    "label": "Chute sur un échec d’Escalade (maison)",
+    "ref": "LDB 15 l.53-57, l.80-84",
+    "maison": "Arbitrage utilisateur du 22 novembre 2026 (#4188) : « chute à −4 DR ou moins ou sur une Maladresse, depuis le dernier appui ».",
+    "group": "Combat",
+    "kind": "flag",
+    "default": true,
+    "hint": "Si une chute est déclenchée, elle part du dernier appui occupé jusqu’au premier appui libre en dessous. Désactivez cette règle pour rester à votre point de départ sur tout échec d’Escalade."
   },
   {
     "id": "frenesie-difficulte",
@@ -774,7 +785,7 @@
     "type": "reglesOptionnelles",
     "label": "Délai avant de retenter une Évaluation (jours)",
     "ref": "LDB 59 l.41",
-    "maison": "LDB 59 l.41 ne fixe aucun délai avant une nouvelle tentative d’Évaluation, et LDB 12 l.94 ne prévoit de nouvel essai que sur un échec à 0 DR. Ce réglage permet de retenter l’Évaluation d’un objet après un échec à DR négatif, une fois le délai écoulé. À 0 jour, la nouvelle tentative est possible immédiatement.",
+    "maison": "LDB 12 l.94 envisage un nouvel essai sur un résultat marginal et peu concluant. LDB 59 l.41 décrit l’Évaluation sans fixer de délai. Ce réglage fixe le nombre de jours avant de retenter l’Évaluation d’un objet après un échec à DR négatif. À 0 jour, la nouvelle tentative est possible immédiatement.",
     "group": "Marché",
     "kind": "param",
     "default": 1,
@@ -809,6 +820,40 @@
     "kind": "flag",
     "default": false,
     "hint": "Marché dans une ville à Guilde : les Défauts d’un objet réduisent sa Disponibilité (plus rare) et le premier Atout ne l’augmente pas."
+  },
+  {
+    "id": "marche-membres-de-guildes",
+    "type": "reglesOptionnelles",
+    "label": "Membres de Guildes",
+    "ref": "LDB 68 l.48",
+    "source": {
+      "book": "livre-de-base",
+      "page": 305
+    },
+    "group": "Marché",
+    "kind": "flag",
+    "default": false,
+    "hint": "Après un échec de Disponibilité à l’achat, une licence de Guilde appropriée permet de consulter ses contacts. Un Test de Ragot réussi permet de relancer la Disponibilité de cet article."
+  },
+  {
+    "id": "marche-ragot-de-guilde-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Membres de Guildes : Difficulté du Test de Ragot",
+    "ref": "LDB 12 l.135-151",
+    "maison": "LDB 68 l.48 demande un Test de Ragot sans fixer sa Difficulté. Le défaut Intermédiaire (+0) reprend la pratique du Ragot marchand. LDB 12 l.135-151 confie au MJ la Difficulté et donne son échelle.",
+    "group": "Marché",
+    "kind": "mode",
+    "default": "intermediaire",
+    "options": [
+      "tresFacile",
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "Difficulté du Test de Ragot pour consulter ses contacts de Guilde. Le réglage par défaut est Intermédiaire (+0)."
   },
   {
     "id": "marche-cite-stock",

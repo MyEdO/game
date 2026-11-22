@@ -7,7 +7,9 @@ publié, et une position d'emplacement au dernier chiffre arrondi près. Ses cl�
 silhouettes qu'elle déclare suivies de ses clés `gabarit_*`, et les clés propres du GLB publié (ni l'une ni l'autre), aux
 mêmes valeurs, qu'une reprise (`element/publie.py`) garde. Seul se reconstruit un élément dont une entrée a changé depuis
 la base du diff, tous sous `WFRP_3D_TOUT=1` (`entrees.py`, #3412), chacun ne lisant que ses entrées ; chaque élément a son
-manifeste publié à chaque course."""
+manifeste publié à chaque course. Une peau qui remplace des zones de la base (couche `peau`, `couvre` non vide : une tête)
+suit la base à leur couture, au repos et sous chaque clé de la base (`derives_de_la_couture`, #4413) : la reconstruite, et
+à chaque course la publiée contre la base épinglée, sans Blender."""
 import hashlib
 import json
 import os
@@ -30,6 +32,7 @@ ECART_DE_POSITION_MAX = 1e-4   # m, entre deux bornes de positions ou deux trans
 ECART_DE_ROTATION_MAX = 1e-4   # composante de quaternion
 ECART_DE_COMPTE_MAX = 0.02     # part des sommets ou des indices d'une primitive
 ECART_DE_VALEUR_MAX = 2e-4     # nombre d'un manifeste, arrondi au plus à 4 décimales (`poids` de `Base.offrir`)
+ECART_DE_COUTURE_MAX = 1e-6    # m, entre un sommet de couture et son jumeau : le flottant simple de l'export, position et clé sommées
 
 
 def lire(chemin):
@@ -109,6 +112,65 @@ def ecarts_des_cles(produites, publiees, silhouettes, de_gabarit):
     return fautes
 
 
+def etats(chemin, garde=lambda zone: True):
+    """Les sommets des meshes du GLB `chemin` dont la zone (`extras.zone` du nœud, `None` hors de la base) passe `garde`,
+    mis bout à bout : (positions au repos, `{clé: décalages}`), une clé qu'un mesh ne porte pas nulle sur ses sommets."""
+    doc, binaire = lire_glb(chemin)
+    positions, decalages = [], {}
+    for noeud in doc['nodes']:
+        if 'mesh' not in noeud or not garde(noeud.get('extras', {}).get('zone')):
+            continue
+        mesh = doc['meshes'][noeud['mesh']]
+        noms = mesh.get('extras', {}).get('targetNames', [])
+        for p in mesh['primitives']:
+            avant = sum(len(q) for q in positions)
+            positions.append(lire_accesseur(doc, binaire, p['attributes']['POSITION']))
+            for k, nom in enumerate(noms):
+                decalages.setdefault(nom, []).append((avant, lire_accesseur(doc, binaire, p['targets'][k]['POSITION'])))
+    repos = np.concatenate(positions) if positions else np.zeros((0, 3))
+    cles_ = {}
+    for nom, morceaux in decalages.items():
+        cles_[nom] = np.zeros_like(repos)
+        for avant, d in morceaux:
+            cles_[nom][avant:avant + len(d)] = d
+    return repos, cles_
+
+
+def derives_de_la_couture(element, base, couvre, de_base):
+    """#4413. Les dérives de la peau `element`, qui remplace les zones `couvre` de la base `base` (deux GLB), à leur
+    couture : les sommets des autres zones de la base confondus au repos avec un sommet d'une zone de `couvre`. Chacun a
+    dans l'élément ses jumeaux, confondus au repos, et sous chaque clé de `de_base` tous le suivent, à
+    `ECART_DE_COUTURE_MAX` près : rend `[(état, sommets de couture en défaut, pire écart)]`, l'état `'repos'` pour un
+    sommet sans jumeau, et `('couture', 0, 0.0)` si la base n'a pas de couture avec ces zones."""
+    proches = lambda P, Q: np.linalg.norm(P[:, None] - Q[None], axis=2)
+    remplace, _ = etats(base, lambda zone: zone in couvre)
+    voisins, cles_des_voisins = etats(base, lambda zone: zone not in couvre)
+    de_couture = ((voisins >= remplace.min(axis=0) - ECART_DE_COUTURE_MAX) & (voisins <= remplace.max(axis=0) + ECART_DE_COUTURE_MAX)).all(axis=1)
+    de_couture[de_couture] = proches(voisins[de_couture], remplace).min(axis=1) <= ECART_DE_COUTURE_MAX
+    if not de_couture.any():
+        return [('couture', 0, 0.0)]
+    S = voisins[de_couture]
+    X, cles_de_l_element = etats(element)
+    d = proches(S, X)
+    jumeaux = d <= ECART_DE_COUTURE_MAX
+    seuls = ~jumeaux.any(axis=1)
+    fautes = [('repos', int(seuls.sum()), float(d.min(axis=1)[seuls].max()))] if seuls.any() else []
+    for nom in de_base:
+        if nom not in cles_de_l_element:
+            fautes.append((nom, int(len(S)), float('inf')))
+            continue
+        du_cou = S + cles_des_voisins[nom][de_couture] if nom in cles_des_voisins else S
+        pire = np.where(jumeaux, proches(du_cou, X + cles_de_l_element[nom]), 0.0).max(axis=1)
+        if (pire > ECART_DE_COUTURE_MAX).any():
+            fautes.append((nom, int((pire > ECART_DE_COUTURE_MAX).sum()), float(pire.max())))
+    return fautes
+
+
+def remplace_la_base(manifeste):
+    """Les zones de la base que la peau `manifeste` remplace : son `couvre` si sa couche est `peau`, sinon rien."""
+    return manifeste.get('couvre', []) if manifeste.get('couche') == 'peau' else []
+
+
 def ecarts_du_manifeste(a, b, chemin='manifeste'):
     """Les écarts entre deux manifestes : chaque clé, chaque longueur et chaque valeur non numérique à l'identique, chaque
     nombre à `ECART_DE_VALEUR_MAX` près."""
@@ -158,14 +220,38 @@ class Reconstruction(unittest.TestCase):
                     self.assertEqual(lire(produit / 'manifest.json'), {'model': f'{id_}.glb', 'model_sha256': manifeste['glb']['sha256'], 'manifeste': manifeste})
                     licences = {l['fichier'] for l in lire(MODELES / f'{base}.provenance.json')['licences_de_pack']}
                     self.assertEqual({p.name for p in produit.glob('LICENSE*.txt')}, licences)
+                    de_la_base = lire(MODELES / f'{base}.manifeste.json')
+                    glb_de_base = CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb"
+                    if remplace_la_base(manifeste):
+                        self.assertEqual(derives_de_la_couture(produit / f'{id_}.glb', glb_de_base, remplace_la_base(manifeste),
+                                                               de_la_base['silhouettes'] + gabarits(glb_de_base)), [],
+                                         f'{id_} reconstruit ne suit pas la base à sa couture')
                     publie = MODELES / f'{id_}.manifeste.json'
                     self.assertTrue(publie.exists(), f'{id_} : aucun manifeste publié sous {MODELES}')
                     publie = lire(publie)
                     self.assertEqual(ecarts_du_manifeste({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'}), [])
                     self.assertEqual(ecarts(forme(produit / f'{id_}.glb'), forme(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb")), [])
-                    de_la_base = lire(MODELES / f'{base}.manifeste.json')
                     self.assertEqual(ecarts_des_cles(cles(produit / f'{id_}.glb'), cles(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"),
-                                                     de_la_base['silhouettes'], gabarits(CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb")), [])
+                                                     de_la_base['silhouettes'], gabarits(glb_de_base)), [])
+
+    def test_chaque_peau_publiee_suit_la_base_a_sa_couture(self):
+        """#4413. Chaque élément publié qui remplace des zones de la base (`remplace_la_base`) la suit à leur couture, sur
+        les GLB épinglés : une base republiée sans lui le laisse aux clés de l'ancienne."""
+        vus = 0
+        for s in sujets_des_elements():
+            for id_ in s['publie']:
+                publie = MODELES / f'{id_}.manifeste.json'
+                if not publie.exists() or not remplace_la_base(lire(publie)):
+                    continue
+                vus += 1
+                publie = lire(publie)
+                de_la_base = lire(MODELES / f"{publie['base']}.manifeste.json")
+                glb_de_base = CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb"
+                with self.subTest(id=id_):
+                    self.assertEqual(derives_de_la_couture(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb", glb_de_base, publie['couvre'],
+                                                           de_la_base['silhouettes'] + gabarits(glb_de_base)), [],
+                                     f"{id_} publié ne suit pas la base {de_la_base['glb']['sha256'][:12]} à sa couture : à reconstruire et republier")
+        self.assertTrue(vus, 'aucun élément publié ne remplace une zone de la base')
 
     def test_chaque_element_a_son_manifeste_publie(self):
         for s in sujets_des_elements():

@@ -235,8 +235,7 @@ export function noeudObjet(schema: unknown, accepte: (noeud: unknown) => boolean
 /**
  * PAYLOAD de l'op `op` dans la FAMILLE mécanique (`mecaniqueDe`) qui a construit la liste `liste` — ses
  * champs réservés y figurent au régime du porteur (`charMod.min`). La famille est le premier nœud marqué
- * (`regimesDuNoeud`) au-dessus de tout nœud objet ; `undefined` hors famille, ou pour une op encore loose
- * (`OPS_NON_TYPEES`).
+ * (`regimesDuNoeud`) au-dessus de tout nœud objet ; `undefined` hors famille ou si l’op est inconnue.
  */
 export function payloadDeFamille(liste: unknown, op: string): unknown {
   let regimes: Regimes | undefined;
@@ -245,7 +244,9 @@ export function payloadDeFamille(liste: unknown, op: string): unknown {
     if (regimes) return 'arreter';
     if (def.type === 'object') return 'elaguer';
   });
-  return regimes && mecaniqueDe(regimes).opDefs[op];
+  if (!regimes) return undefined;
+  const payloads = mecaniqueDe(regimes).opDefs;
+  return Object.prototype.hasOwnProperty.call(payloads, op) ? payloads[op] : undefined;
 }
 
 /** Les nœuds des entrées du dataset `dataset`, lus sur sa route DÉCLARÉE (`exposition.edit`, `exposition-derivee.ts`) :

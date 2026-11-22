@@ -20,7 +20,7 @@ import { inBattleId, porteurParId } from './monde/combatants';
 import { porteurDeLObjet } from './monde/carrier';
 import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
 import { targetingHolder } from './targetingHolder';
-import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
+import { CADENCE_DEFAULT, cadence } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import {
   FLOW_VERBS,
@@ -322,20 +322,18 @@ export const JET_FIGE = {
   }),
 };
 
-/**
- * Le combattant `c` est-il piloté par l'IA ? — base AGNOSTIQUE AU CAMP de l'orchestrateur de tour.
- * Un ENNEMI l'est SAUF si un siège porte le rôle MJ (`gmSeat`, bac-à-sable). Un HÉROS l'est en mode
- * Auto-combat ET contrôlé LOCALEMENT (coop : on ne joue jamais le héros d'un autre siège), ou s'il porte
- * le drapeau `aiControlled` (PNJ allié IA). Un PNJ neutre ne l'est jamais. NB : `aiDriven` ne change PAS
- * le `kind` du combattant. (Vit ICI, avec les primitives d'« qui pilote quoi » : `controlsActive`/
- * `controlsCombatant` en dépendent ; `combatGate` le ré-exporte pour ses consommateurs historiques.)
- */
+function cadenceDeTable(s: Pick<Jeu, 'net' | 'cadenceHote'>) {
+  return detientLAutoriteDuJeu(s) ? cadence() : (s.cadenceHote ?? CADENCE_DEFAULT);
+}
+
+export function detientLAutoriteDuJeu(s: Pick<Jeu, 'net'>): boolean {
+  return s.net.mode !== 'invite';
+}
+
+/** Pilotage partagé par l'hôte et ses miroirs. */
 export function aiDriven(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'ennemi') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
-  // PNJ allié IA (`Combatant.aiControlled`, ex. défenseur de siège) : agit SEUL même en jeu MANUEL — sans
-  // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocal`).
-  if (c.kind === 'heros' && c.aiControlled) return ownsLocal(s, c.id);
-  return c.kind === 'heros' && cadenceAutoCombat() && ownsLocal(s, c.id);
+  if (c.kind === 'ennemi') return s.net.gmSeat == null;
+  return c.kind === 'heros' && (!!c.aiControlled || cadenceDeTable(s) === 'auto');
 }
 
 /**
@@ -359,7 +357,7 @@ export function controlsCombatant(s: Jeu, c: Combatant): boolean {
  * seuls, sans influence, donc résolus inline comme un monstre).
  */
 export function humanControlled(s: Jeu, c: Combatant): boolean {
-  return !cadenceAuto() && pilotedByHuman(s, c);
+  return cadenceDeTable(s) === 'manuel' && pilotedByHuman(s, c);
 }
 
 /**

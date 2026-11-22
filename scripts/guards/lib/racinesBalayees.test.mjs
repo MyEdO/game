@@ -1859,6 +1859,17 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
       else delete prototype.toJSON
     }
   }
+  const precedent = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
+  const tardive = { objet: { get champ() {
+    Object.defineProperty(Array.prototype, 'toJSON', { configurable: true, value: () => undefined })
+    return 'élément'
+  } } }
+  try {
+    assert.throws(() => ferme.cleDe(tardive), /CLE_DOMAINE_JSON/)
+  } finally {
+    if (precedent) Object.defineProperty(Array.prototype, 'toJSON', precedent)
+    else delete Array.prototype.toJSON
+  }
   const profond = () => {
     let v = { texte: 'src/a' }
     for (let i = 0; i < 100000; i++) v = { objet: v }
@@ -2606,6 +2617,135 @@ test('tmpdir et mkdtemp : identité builtin aliasée, homonymes locaux et étran
   assert.deepEqual(racinesDe(modules, 'banc.mjs'), [[{ chemin: 'src' }], [{ chemin: 'Source' }]])
 })
 
+const lecteurDeDossierPropre = (extra = '') => `
+  import { openSync, readdirSync, readFileSync } from 'node:fs'
+  import { join } from 'node:path'
+  export function lire(dossier) {
+    for (const nom of readdirSync(dossier).sort()) {
+      const chemin = join(dossier, nom)
+      const fd = openSync(chemin, 'r')
+      readFileSync(fd)
+    }
+    ${extra}
+  }
+  export const CONTRATS_DE_DERIVATION = [{ fonction: lire, lectures: { dossierPropre: 0 } }]
+`
+
+const ENTETE_DOSSIER_PROPRE = `
+  import { lire } from './propre.mjs'
+  import { tmpdir as repertoire } from 'node:os'
+  import { join as joindre, dirname } from 'node:path'
+  import { mkdtempSync as creer, readdirSync, readFileSync } from 'node:fs'
+  function allocation(prefixe) { return creer(joindre(repertoire(), prefixe)) }
+  const dossier = allocation('essai-')
+`
+
+test('dossier propre : allocation indirecte, racine de contenu, et transformations qui perdent la provenance', () => {
+  const modules = { 'propre.mjs': lecteurDeDossierPropre(), 'banc.mjs': ENTETE_DOSSIER_PROPRE + `
+    lire(dossier)
+    lire('src/contenu')
+    lire(dirname(dossier))
+    lire(dossier.slice(0, 12))
+    function frais() { return dossier }
+    lire(String(frais().slice(1)))
+    function freeze(x) { return 'src/gel' }
+    function fileURLToPath(x) { return 'src/url' }
+    lire(freeze(dossier))
+    lire(fileURLToPath(dossier))
+    lire(joindre(dossier, '..'))
+    lire(allocation('../inconnu'))
+    lire(creer(joindre(choix ? repertoire() : 'src', 'essai-')))
+    lire(calculer())
+    readdirSync(dossier)
+    readFileSync(joindre(dossier, 'lien.jsonl'))
+  ` }
+  const attendus = [[{ hors: true }], [{ chemin: 'src/contenu' }],
+    [couvertureTemporaire], [couvertureTemporaire], [couvertureTemporaire], [{ chemin: 'src/gel' }], [{ chemin: 'src/url' }],
+    [couvertureTemporaire], [couvertureTemporaire], [couvertureTemporaire],
+    [couvert('propre.mjs#lire', 'appel calculer')], [couvertureTemporaire], [couvertureTemporaire]]
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), attendus)
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs').map(([, valeurs]) => valeurs), attendus)
+})
+
+test('dossier propre : le listeur canonique tient par sa liaison d’import et demeure un relais', () => {
+  const dossier = 'scripts/guards/lib/'
+  const lecteur = lecteurDeDossierPropre("ordonner('src/contenu')")
+    .replace('  export function lire(', "  import { listerDossier as ordonner } from './lister.mjs'\n  export function lire(")
+    .replace('readdirSync(dossier).sort()', 'ordonner(dossier)')
+  const listeur = "import { readdirSync } from 'node:fs'; export function listerDossier(dir) { return readdirSync(dir).sort() }"
+  const modules = {
+    [dossier + 'lister.mjs']: listeur,
+    [dossier + 'propre.mjs']: lecteur,
+    [dossier + 'banc.mjs']: ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+  }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, dossier + 'banc.mjs'), [['lire', [{ hors: true }, { chemin: 'src/contenu' }]]])
+  const homonyme = {
+    ...modules,
+    [dossier + 'propre.mjs']: lecteur.replace('./lister.mjs', './homonyme.mjs'),
+    [dossier + 'homonyme.mjs']: listeur,
+  }
+  const [[, racines]] = sitesDesDeuxRegimes(homonyme, dossier + 'banc.mjs')
+  assert.ok(racines.some((r) => r.sous === couvertureTemporaire.sous), JSON.stringify(racines))
+  assert.ok(racines.every((r) => !r.hors), JSON.stringify(racines))
+})
+
+test('sonde d’identité : un alias constant du builtin conserve la dépendance au chemin', () => {
+  const modules = { 'banc.mjs': `
+    import { statSync } from 'node:fs'
+    const inspecter = statSync
+    function ancetre(dossier) {
+      inspecter(dossier)
+      return dossier
+    }
+    export const CONTRATS_DE_DERIVATION = [{ fonction: ancetre, identite: 0 }]
+    ancetre('src/contenu')
+  ` }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs'), [['ancetre', [{ identite: 'src/contenu' }]]])
+})
+
+test('dossier propre : chaque autre lecture garde sa racine, même via un descripteur distinct', () => {
+  const modules = { 'propre.mjs': lecteurDeDossierPropre(`
+    readFileSync('src/temoin.json')
+    const autre = openSync('src/temoin-fd.json', 'r')
+    readFileSync(autre)
+    readdirSync(dossier, { recursive: true })
+  `), 'banc.mjs': ENTETE_DOSSIER_PROPRE + 'lire(dossier)' }
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), [
+    [{ hors: true }, { chemin: 'src/temoin.json' }, { chemin: 'src/temoin-fd.json' }, couvertureTemporaire],
+  ])
+  const remplace = { ...modules, 'propre.mjs': modules['propre.mjs'].replace('for (const nom', "dossier = 'src/contenu'; for (const nom") }
+  const [racines] = racinesDe(remplace, 'banc.mjs')
+  assert.ok(racines.some(({ chemin }) => chemin === 'src/contenu'), JSON.stringify(racines))
+  assert.ok(racines.every((v) => !v.hors), JSON.stringify(racines))
+})
+
+test('dossier propre : un contenu versionné et le module installé par le setup retiennent leur banc', async (t) => {
+  const fichiers = {
+    'scripts/propre.mjs': lecteurDeDossierPropre(),
+    'scripts/contenu.test.mjs': "import { lire } from './propre.mjs'; lire('src/contenu')",
+    'scripts/temporaire.test.mjs': ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+    'scripts/setup.ts': ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+    'vitest.config.ts': "export default { test: { setupFiles: ['scripts/setup.ts'] } }",
+    'src/setup.test.ts': "import { test } from 'vitest'; test('setup', () => {})",
+    'src/contenu/temoin.json': 'initial',
+    '.gitignore': 'node_modules/',
+  }
+  const { racine, sha } = instanceDeDepot({ fichiers })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  writeFileSync(join(racine, 'src/contenu/temoin.json'), 'modifié')
+  const derive = () => perimetreDuDepot(racine, { base: sha })
+  const contenu = (await derive()).retenus
+  assert.ok(contenu.has('scripts/contenu.test.mjs'))
+  assert.ok(!contenu.has('scripts/temporaire.test.mjs'))
+  assert.ok(!contenu.has('src/setup.test.ts'))
+  writeFileSync(join(racine, 'src/contenu/temoin.json'), fichiers['src/contenu/temoin.json'])
+  writeFileSync(join(racine, 'scripts/propre.mjs'), lecteurDeDossierPropre("readFileSync('src/contenu/temoin.json')"))
+  const script = await derive()
+  assert.deepEqual(script.touches, ['scripts/propre.mjs'])
+  assert.equal(script.retenus.get('scripts/temporaire.test.mjs')?.nature, 'import')
+  assert.equal(script.retenus.get('src/setup.test.ts')?.nature, 'setup')
+})
+
 test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoire', async () => {
   const { racine, sha } = instanceDeDepot({ fichiers: {
     'scripts/banc.test.mjs': "import {join} from 'node:path';import {mkdtempSync,readFileSync} from 'node:fs';const dir=mkdtempSync(join(process.cwd(),'fixture-'));readFileSync(join(dir,'x.md'))",
@@ -2616,6 +2756,120 @@ test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoir
     writeFileSync(posix.join(racine, 'fixture-ABC/x.md'), 'touché')
     assert.ok((await perimetreDuDepot(racine, { base: sha })).retenus.has('scripts/banc.test.mjs'))
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// #2586
+test('coupe de relais : une lecture de fichier exacte atteignable se replie au site coupé', () => {
+  const modules = {
+    'lectures.mjs': `
+      import { readFileSync } from 'node:fs'
+      function fichier(chemin) { readFileSync(chemin) }
+      export function imbrique(chemin) {
+        fichier(chemin)
+        imbrique('sous/' + chemin)
+      }
+      export function autre(chemin) {
+        readFileSync(chemin)
+        autre('sous/' + chemin)
+      }
+      export function calcul(texte) { return calcul('sous/' + texte) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: fichier, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { imbrique, autre, calcul } from './lectures.mjs'
+      imbrique('package.json')
+      autre('document.md')
+      calcul('donnée')
+    `,
+  }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs'), [
+    ['imbrique', [{ identite: 'package.json' }, { identite: 'sous/package.json' },
+      couvert('lectures.mjs#imbrique', "cycle d'appels imbrique")]],
+    ['autre', [{ chemin: 'document.md' }, { chemin: 'sous/document.md' }, { non: "cycle d'appels autre" }]],
+  ])
+})
+
+// #2586
+test('manifeste npm : la portée choisit le fichier lu, même absent, et respecte la table fournie', () => {
+  const modules = {
+    'portee.mjs': `
+      export function sousRacineNpm(dir, fn) { return portee.run(dir || null, fn) }
+      export function racineNpmCourante(repli = null) { return portee.getStore() ?? repli }
+      export const CONTRATS_DE_DERIVATION = [
+        { fonction: sousRacineNpm, portee: { nom: 'npm', valeur: 0, rappel: 1 } },
+        { fonction: racineNpmCourante, retour: { type: 'portee', nom: 'npm', repli: 0 } },
+      ]
+    `,
+    'shell.mjs': `
+      import { readFileSync } from 'node:fs'
+      import { resolve } from 'node:path'
+      import { racineNpmCourante } from './portee.mjs'
+      function lire(chemin) { return readFileSync(chemin, 'utf8') }
+      function scriptsNpm(dir = racineNpmCourante(import.meta.dirname)) { return lire(resolve(dir, 'package.json')) }
+      function scriptsDuFlux(scripts = scriptsNpm()) { return scripts }
+      export function pipelinesDeJetons(commande, profondeur, { scripts } = {}) { return scriptsDuFlux(scripts) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: lire, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { sousRacineNpm as sous } from './portee.mjs'
+      import { pipelinesDeJetons as lancer } from './shell.mjs'
+      lancer('npm run test', 0, {})
+      sous('un', () => lancer('npm run test', 0, {}))
+      sous('sous/absent', () => lancer('npm run test', 0, { scripts: undefined }))
+      sous('fourni', () => lancer('npm run test', 0, { scripts: {} }))
+      sous('nul', () => lancer('npm run test', 0, { scripts: null }))
+      sous('extérieur', () => {
+        sous('intérieur', () => lancer('npm run test', 0, {}))
+        lancer('npm run test', 0, {})
+      })
+      sous(lieuInconnu(), () => lancer('npm run test', 0, {}))
+      sous('scripts', () => garde.evaluer())
+      sous('étalé', () => lancer('npm run test', 0, { scripts: {}, ...{ scripts: undefined } }))
+      sous('écrasé', () => lancer('npm run test', 0, { scripts: undefined, ...{ scripts: {} } }))
+      sous('opaque', () => lancer('npm run test', 0, { scripts: {}, ...garde.options }))
+      function autre() { garde.evaluer() }
+      function transmettre() { autre() }
+      sous('nommé', transmettre)
+      sous('nommé enveloppé', () => transmettre())
+      sous('paramètre inutile', (_) => garde.evaluer())
+      sous('homonyme', () => garde.map())
+      sous('calculé', () => fabrique().evaluer())
+      const injecte = { evaluer: lancer }
+      sous('membre connu', () => injecte.evaluer('npm run test'))
+      function passer(f) { f('npm run test') }
+      sous('fonction liée', () => passer(lancer))
+      sous('fonction indéterminée', () => passer(garde.evaluer))
+      function passerEncore(f) { passer(f) }
+      sous('fonction transmise', () => passerEncore(garde.evaluer))
+      sous('itérateur', () => [1].map(() => lancer('npm run test')))
+      sous('calcul pur', () => [1].map(n => n + 1))
+    `,
+  }
+  const sites = sitesDesDeuxRegimes(modules, 'banc.mjs')
+  const chemin = (identite) => ({ identite })
+  assert.deepEqual(sites.slice(0, 4), [
+    ['pipelinesDeJetons', [chemin('package.json')]],
+    ['sousRacineNpm', [chemin('un/package.json')]],
+    ['sousRacineNpm', [chemin('sous/absent/package.json')]],
+    ['sousRacineNpm', [chemin('intérieur/package.json'), chemin('extérieur/package.json')]],
+  ])
+  const opaque = ['sousRacineNpm', [couvert('portee.mjs#sousRacineNpm', 'rappel de portée indéterminé')]]
+  assert.deepEqual(sites.slice(4), [
+    ['sousRacineNpm', [couvert('shell.mjs#lire', 'appel lieuInconnu')]],
+    opaque,
+    ['sousRacineNpm', [chemin('étalé/package.json')]],
+    ['sousRacineNpm', [chemin('opaque/package.json')]],
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('membre connu/package.json')]],
+    ['sousRacineNpm', [chemin('fonction liée/package.json')]],
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('itérateur/package.json')]],
+  ])
 })
 
 test('contrat sérialisé : la source est une dépendance des réponses mises en cache', () => {

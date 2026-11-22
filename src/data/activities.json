@@ -2327,7 +2327,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-catastrophes-de-brassage",
+            "table": {
+              "id": "vdm-catastrophes-de-brassage"
+            },
             "addNegativeSL": true
           }
         ]
@@ -2397,7 +2399,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-catastrophes-de-brassage",
+            "table": {
+              "id": "vdm-catastrophes-de-brassage"
+            },
             "addNegativeSL": true
           }
         ]
@@ -2438,7 +2442,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-catastrophes-de-brassage",
+            "table": {
+              "id": "vdm-catastrophes-de-brassage"
+            },
             "mod": 3,
             "addNegativeSL": true
           }
@@ -2481,11 +2487,15 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           },
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Choisissez deux symboles sur le Tableau des Symboles."
@@ -2497,11 +2507,15 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           },
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Effectuez deux lancers sur le Tableau des Symboles."
@@ -2513,7 +2527,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Choisissez un symbole sur le Tableau des Symboles."
@@ -2525,7 +2541,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Effectuez un lancer sur le Tableau des Symboles."
@@ -2537,7 +2555,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Effectuez un lancer sur le Tableau des Symboles. Le symbole est inversé."
@@ -2549,11 +2569,15 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           },
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Effectuez deux lancers sur le Tableau des Symboles. Les symboles sont inversés."
@@ -2564,15 +2588,21 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           },
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           },
           {
             "op": "rollTable",
-            "tableId": "vdm-symboles-augure"
+            "table": {
+              "id": "vdm-symboles-augure"
+            }
           }
         ],
         "note": "Effectuez trois lancers sur le Tableau des Symboles. Les symboles sont inversés."
@@ -2701,7 +2731,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "mendier-ennuis"
+            "table": {
+              "id": "mendier-ennuis"
+            }
           }
         ]
       }

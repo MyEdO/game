@@ -1,4 +1,4 @@
-// STOCK DES STRUCTURES LOCALES (#1463, #3012 N1) : la dette de STRUCTURE des documents authorés, mesurée sur le
+// STOCK DES STRUCTURES LOCALES (#1463) : la dette de STRUCTURE des documents authorés, mesurée sur le
 // SCHÉMA par `noeudsDeStructure` (`scripts/guards/lib/structuresLocales.mts`) et régénérée par
 // `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/structuresLocales.mts` (politique `DECROISSANT`).
 // Volet `STRUCTURES_LOCALES` sous la porte des comptes (`occurrencesStock.mjs`) : aucun `CLIQUET:` n'y admet une entrée.
@@ -59,7 +59,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#crew-test-types', ref: '.types[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].amputation', occurrence: 1 },
-  { fichier: 'src/data#criticals', ref: '[].entries[].amputation.loss', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation.apresDelai', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation.bleedOnReinjury', occurrence: 1 },

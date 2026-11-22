@@ -14,15 +14,21 @@
  * `luminaire` : l'échantillon de `LUMINEUX`, son volume et ses décors servis, dont chaque pose éclaire ; et
  * `paletteDesAretes` : la palette que les recettes des arêtes donnent à leurs arêtes servies (`paletteDeLApparence`) ;
  * et `volee` : la réponse de `echantillon` sur le sol `SOL_A_MARCHES`, dont la recette des côtés de marches pose les
- * côtés (`projet/recettes/cotes-de-marches.gd`, #4471). L'atelier garde aussi chaque élément `escalier` du dossier.
+ * côtés (`projet/recettes/cotes-de-marches.gd`, #4471) ; et `toit` : par plateau de `PLATEAUX_DU_TOIT` mètres par case,
+ * l'échantillon de la couverture `TOIT` à cette échelle (`echantillonDessine`), dont la recette des faîtières pose les
+ * faîtières sur les nappes (`projet/recettes/faitieres.gd`, #4471), et, sous la clé `diligence`, la scène
+ * `la-diligence` (`diligenceCampaign`) dessinée de même sans ses morceaux, dont des faîtes voisins se joignent bout à
+ * bout. L'atelier garde aussi chaque élément `escalier` et
+ * `toit` du dossier.
  */
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
 import {
-  paletteDeLApparence, posesDesDecors, retraitDuMonde, sceneDEchantillon, structureAppearances, volumeDuMonde, type Scene,
+  echantillonDessine, paletteDeLApparence, posesDesDecors, retraitDuMonde, sceneDEchantillon, structureAppearances, volumeDuMonde, type Scene,
 } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
 import { tableTotale } from '../../../src/lib/tableTotale';
+import { diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit et `MUR_CRENELE`, dont la brèche abat la couronne et dont la case crénelée
@@ -63,6 +69,11 @@ const LUMINEUX = 'lampadaire';
 /** Le sol bâti dont l'échantillon porte une volée (`sceneDuSol`, `src/noyau/monde/echantillons.ts`), que pose la
  *  recette des côtés de marches (`projet/recettes/cotes-de-marches.gd`, #4471). */
 const SOL_A_MARCHES = 'plancher';
+
+/** La couverture dont l'échantillon porte les faîtières que pose la recette des faîtières (`projet/recettes/faitieres.gd`,
+ *  #4471), et les échelles de plateau, en mètres par case, où elle les pose. */
+const TOIT = 'toit-ardoise';
+const PLATEAUX_DU_TOIT = [2, 3] as const;
 
 /** Les apparences de la palette des arêtes servies des recettes : la porte, et le mur qui la porte
  *  (`paletteDeLApparence`), choisies pour que chaque emplacement y ait sa couleur (`paletteDistincte`). */
@@ -109,16 +120,19 @@ function coiffeUnBloc(scene: Scene): Scene {
   };
 }
 
-/** Les échantillons figés : l'atelier figé sur la base humanoïde et les éléments `decor`, `arete` et `escalier` de
- *  `listage`, la
+/** L'échantillon dessiné `e` sans les morceaux de son volume : ses nappes et ses faîtières s'y posent seules. */
+const sansMorceaux = <E extends { monde: { morceaux: unknown[] } }>(e: E): E => ({ ...e, monde: { ...e.monde, morceaux: [] } });
+
+/** Les échantillons figés : l'atelier figé sur la base humanoïde et les éléments `decor`, `arete`, `escalier` et `toit`
+ *  de `listage`, la
  *  réponse de `echantillons` sous la clé de l'entrée absente, par clé d'entrée (`cleDEntree`), la réponse de
  *  `echantillon` à chacune de `entreesDeLaRecette`, par cap de `CAPS`, l'échantillon de `ASYMETRIQUE` tourné à ce
  *  cap (`caps`), cet échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`), et l'échantillon de
  *  `LUMINEUX` (`luminaire`), la palette des arêtes servies (`paletteDesAretes`), et l'échantillon de
- *  `SOL_A_MARCHES` (`volee`). */
+ *  `SOL_A_MARCHES` (`volee`), et celui de `TOIT` à chaque échelle de `PLATEAUX_DU_TOIT` (`toit`). */
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage,
-    (id, { categorie }) => id === 'humanoide' || categorie === 'decor' || categorie === 'arete' || categorie === 'escalier');
+    (id, { categorie }) => id === 'humanoide' || categorie === 'decor' || categorie === 'arete' || categorie === 'escalier' || categorie === 'toit');
   /** Le volume de `scene` et le décor `id` tel que l'échantillon le sert, aux poses de `scene`. */
   const figee = (id: string, scene: Scene) => {
     type Servis = { decors: Record<string, Record<string, unknown>> };
@@ -142,5 +156,9 @@ export function figerLeDecor(listage: Listage) {
     luminaire: figee(LUMINEUX, sceneDEchantillon('decor', LUMINEUX)),
     paletteDesAretes: paletteDistincte(),
     volee: appel('echantillon', { famille: 'sol', id: SOL_A_MARCHES }),
+    toit: {
+      ...tableTotale(PLATEAUX_DU_TOIT.map(String), (_, i) => echantillonDessine({ ...sceneDEchantillon('toit', TOIT), metresPerTile: PLATEAUX_DU_TOIT[i] })),
+      diligence: sansMorceaux(echantillonDessine(paquetDuJeu(diligenceCampaign).scenes.find((s) => s.id === 'la-diligence')!)),
+    },
   };
 }

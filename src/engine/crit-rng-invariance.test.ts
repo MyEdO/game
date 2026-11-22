@@ -24,11 +24,9 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  * fige : le d100 de SÉVÉRITÉ (`roll`), la RANGÉE atteinte (`entryId`/`label`/`lethal`/`desc`), les
  * effets immédiats, les séquelles, et les nœuds RENDUS eux-mêmes (branches + enjeu posé).
  *
- * La RÉFÉRENCE (`crit-rng-invariance.fixture.json`) a été RE-CAPTURÉE sous #1657. Mesure faite au
- * moment de la recapture, contre la référence précédente : les 480 cas rendent le MÊME `roll`, le MÊME
- * `entryId`, le MÊME `label`, le MÊME `lethal` et la MÊME `desc` — 0 divergence. Ce qui bouge est
- * NOMMÉ : 36 cas d'amputation (23 aux `ops`, 36 aux `traumas`, 30 au `testFlow`) — le résolveur cesse
- * d'y consommer 1 à 2 dés, et 6 d'entre eux portent leur nœud sur `pendingAmputation`.
+ * Référence #1675 : 444 cas identiques et 36 Flows d'amputation actualisés, dont 30 immédiats
+ * et 6 reportés. Les 480 cas gardent leurs autres champs, y compris les délais de Chirurgie tirés
+ * par l'escalade des rangées « Pied écrasé ».
  *
  * CE QUI NE DOIT PAS BOUGER, et que le contrat ci-dessous CHIFFRE : l'ESCALADE de la ligne, qui vit sur
  * la plaie chirurgicale et ne dépend d'aucun jet — `perRound` (« Main ouverte », LDB 18 l.122) 4 cas,

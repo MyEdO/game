@@ -178,17 +178,24 @@ describe('S3 — aucune levée du réseau hors appel ne se perd', () => {
     expect(textes(zonesDe(appel))[0]).toBe(t('ecran.salon.code', { code: 'ABC234' }));
   });
 
-  it('(d) l’intention d’un invité dont le verbe lève : le message suivant du même invité est appliqué', async () => {
+  it('(d) un argument surnuméraire est refusé au siège auteur et son geste suivant est joué', async () => {
     const { appel, ws } = await enSession();
     await asseoirAnna(ws);
     suiteDe(appel('nouvelles'));
-    ws.receive(intentionDuSiege1('marquerLesIndices', [[null]]));
-    ws.receive(intentionDuSiege1('terminerLeTour', []));
-    await vi.advanceTimersByTimeAsync(0);
-    const { erreurs } = appel('erreursGlobales') as unknown as { erreurs: { source: string }[] };
-    expect(erreurs.map((e) => e.source)).toEqual(['reseau']);
+    expect(appel('salon', { type: 'affecterLEmplacementAuSiege', args: [1, 1] })).toMatchObject({ ok: true });
+    suiteDe(appel('nouvelles'));
+
+    ws.receive(intentionDuSiege1('marquerLesIndices', [[], false]));
+    await vi.advanceTimersByTimeAsync(200);
     expect(refusEnvoyes(ws)).toEqual([[1, t('coop.intentRefused')]]);
+    expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
     expect(appel('nouvelles')).toEqual(RIEN);
+    expect(instantanesAuSiege1(ws).join('')).not.toContain(t('coop.intentRefused'));
+
+    ws.receive(intentionDuSiege1('recruterLeHeros', [{ pretire: 'harbull-piedvelu' }]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(textesDuJournal(suiteDe(appel('nouvelles')).journal)).toEqual([expect.stringContaining('Harbull')]);
+    expect(refusEnvoyes(ws)).toEqual([[1, t('coop.intentRefused')]]);
   });
 });
 

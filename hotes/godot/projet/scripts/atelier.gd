@@ -538,7 +538,7 @@ func _poser_l_echantillon() -> void:
 	_echantillon_en_vol = null
 	var scene := _scene_de_l_echantillon
 	scene.poser(reponse, recus)
-	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches)
+	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches, reponse.faitieres)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
@@ -1673,10 +1673,14 @@ func _poser_le_gabarit() -> void:
 
 
 ## L'orbite cadre le corps au gabarit mesuré au repos (`MiseEnPage.echelle_de_cadrage`, le sommet de ses os rapporté à
-## celui du corps neutre), le corps neutre sans mesure.
+## celui du corps neutre), ce sommet pour tête du zoom avant (`MarcheDeLAtelier.cadrer_le_corps`) ; le corps neutre sans
+## mesure.
 func _cadrer() -> void:
 	var mesures := _montage.gabarit.mesures()
-	_marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE if mesures.is_empty() else MiseEnPage.echelle_de_cadrage(mesures.repos.sommet, mesures.neutre.sommet))
+	if mesures.is_empty():
+		_marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE)
+	else:
+		_marche.cadrer_le_corps(MiseEnPage.echelle_de_cadrage(mesures.repos.sommet, mesures.neutre.sommet), mesures.repos.sommet)
 	_publier()
 
 

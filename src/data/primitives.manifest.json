@@ -76,7 +76,7 @@
     "type": "primitives.manifest",
     "label": "tirerLaTable",
     "fichier": "src/engine/ops.ts",
-    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `tableId`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
+    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `table: { id }`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
     "perimetre": "`applyOps` (rangée appliquée à la cible), `appliquerAuNavire` (rangées remises en file du navire), tout appelant sans fiche qui tire une table d'ops",
     "verrou": "src/engine/tirer-la-table.test.ts"
   },
@@ -200,9 +200,9 @@
   {
     "id": "sourcesEnVue",
     "type": "primitives.manifest",
-    "label": "sourcesEnVue/sourcesPsyEnVue/etiquetteDeScene",
+    "label": "sourcesEnVue/sourcesPsyEnVue/etiquetteDeScene/etiquettesDesObjetsPortes/sourcePsyAuCombat",
     "fichier": "src/noyau/monde/porteurs.ts",
-    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent ; `sourcesPsyEnVue` les enveloppe en sources psychologiques et y joint l'étiquette de la scène (`etiquetteDeScene`, ses `Scene.groups`, en vue partout dans la scène, #3045)",
+    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent ; `sourcesPsyEnVue` les enveloppe en sources psychologiques et y joint l'étiquette de la scène (`etiquetteDeScene`, ses `Scene.groups`, en vue partout dans la scène, #3045) et les étiquettes des objets portés ou tenus en vue (groupes de leur fiche de possession, `etiquettesDesObjetsPortes`) ; `sourcePsyAuCombat` résout le nom de la source sur le roster et l’ancre de position des approches, y compris pour une possession qui a quitté la vue",
     "perimetre": "toute collecte des combattants vus d'un porteur : Tests de Psychologie (Peur, Terreur, Traits ciblés, héros et IA), fin d'une affliction ciblée (`cibleEnVue`), Condition `foeInLoS`, cible imposée de Frénésie (`frenzyTarget`) ; la visée de tir, qui juge la case visée d'une structure, n'en est pas",
     "verrou": "src/noyau/monde/porteurs.test.ts"
   },
@@ -468,6 +468,15 @@
     "verrou": "src/engine/classementDeTrait.test.ts"
   },
   {
+    "id": "paDuTrait",
+    "type": "primitives.manifest",
+    "label": "armureDuTrait/sourceDuTraitA/sourcesDArmureA/armourPhysiqueAt/userLePADuTrait",
+    "fichier": "src/engine/armourBypass.ts",
+    "concept": "les PA de l’Armure de Trait à une Localisation sont l’Indice net de l’usure portée par l’instance ; le lecteur donne aussi la matière et la nature portée, le total physique les ajoute aux autres PA, et l’usure suit la même instance",
+    "perimetre": "mitigation, contournement selon la matière, Déviation et autres dégâts d’armure, pénalité d’incantation, IA, fiche de combattant et armure de statbloc dessinée",
+    "verrou": "src/engine/armourBypass.test.ts, src/noyau/self-maneuver-transform.hors-store.test.ts"
+  },
+  {
     "id": "memeSpecialisation",
     "type": "primitives.manifest",
     "label": "memeSpecialisation",
@@ -659,9 +668,9 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeLigne/cleDeContenu/lignesDuContenu/positionsDesAncres/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée), lignes qu'elle désigne et positions des ancres univoques (contenu trimé ou regex sur une projection de ligne, toute collision refusée), son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
     "verrou": "cle-de-site-guard.test.ts, stock.test.mjs, stock-primitive.test.ts"
   },
@@ -688,7 +697,7 @@
     "type": "primitives.manifest",
     "label": "noeudsDeStructure/sitesDeStructure/cheminsDeDocument/cheminsDeSchema/pointsConjoints/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
     "fichier": "scripts/guards/lib/structuresLocales.mts",
-    "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, au nom de son schéma de document (`nomDuDocument`, `‹racine›#‹type›`, indépendant du nombre de ses documents) et à son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité ; un point conjoint — intersection, et enfants de même clé de ses côtés — est un site, de la classe la plus lourde de ses nœuds, `pointsConjoints`), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
+    "concept": "La mesure de dette de structure classe les nœuds objets, records ou non validants en D5, G, C, G1 et L. Le nom du schéma de document (`‹racine›#‹type›`, `nomDuDocument`) et le plus court chemin forment la clé, indépendamment du nombre de documents. Les branches sont nommées (`|<lazy>` en particulier) et la clé est injective. Une intersection ou un pipe et les enfants de même clé de leurs côtés forment des points conjoints (`pointsConjoints`). Chaque point se classe par ses objets et ses nœuds non validants ou, en leur absence, par ses records. G et C sont hors stock. La porte de `STRUCTURES_LOCALES` apparie les renommages par empreinte (`renommagesDeStructure` et `empreinteDeChamps` dans `occurrencesStock.mjs`).",
     "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
     "verrou": "src/data/structures-locales.test.ts, src/comptes-plage.test.ts"
   },
@@ -911,9 +920,9 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/EXEMPTION_PAR_LIGNE/COMPARATEUR_D_ANCRE_EN_LIGNE/recopieDeCanon/cleEnLigne/englobanteDe/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, le refus d’une exemption indexée par une position ou comparée hors du contrat d’ancre, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection, de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence, et la chaîne des déclarations englobant un nœud ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
     "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts, ref-couvre.test.ts"
   },
@@ -931,7 +940,7 @@
     "type": "primitives.manifest",
     "label": "garde de la clé de site",
     "fichier": "src/cle-de-site-guard.test.ts",
-    "concept": "clé de site écrite en ligne ou recopiée hors de stock.mjs",
+    "concept": "clé de site écrite en ligne ou recopiée hors de stock.mjs, exemption identifiée par sa position",
     "perimetre": "périmètre des gardes",
     "verrou": "cle-de-site-guard.test.ts"
   },
@@ -1048,7 +1057,7 @@
     "type": "primitives.manifest",
     "label": "PorteeDeComposition/porteeDeComposition/porteeDuCombattant/porteesDesObjets/porteesDeLaTenue/teinteDeLObjet/piecesDeLObjet",
     "fichier": "src/noyau/apparence/composition.ts",
-    "concept": "ce que porte un corps, sans élément 3D : têtes, pièces et objets en `Portee` (clé de garde-robe ou d'apparence, une apparence variante avec sa `racine`, point, ce qui l'apporte, la teinte de l'objet qui l'apporte), le rapport des objets ni tenus ni rangés, l'emblème, les facteurs du gabarit et le corps habillé (`sex`, `build`, `couleurs`) ; deux producteurs, une composition de preset (`porteeDeComposition`) et un combattant (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts` : armes, objets, armure équipée ou de statbloc déclarée portée triée par couche, tenue de sa carrière), un seul assembleur d'objet (`porteesDesObjets`), une seule réponse aux pièces d'un objet (`piecesDeLObjet`, `src/data/index.ts` : l'ensemble de son trapping, sinon les pièces d'armure qui couvrent ses localisations), lue aussi par le refus de doublon des presets, une seule teinte d'objet (`teinteDeLObjet`) et un seul chemin de tenue (`porteesDeLaTenue`) ; l'hôte la résout en éléments de sa base",
+    "concept": "ce que porte un corps, sans élément 3D : têtes, pièces et objets en `Portee` (clé de garde-robe ou d'apparence, une apparence variante avec sa `racine`, point, ce qui l'apporte, la teinte de l'objet qui l'apporte), le rapport des objets ni tenus ni rangés, l'emblème, les facteurs du gabarit et le corps habillé (`sex`, `build`, `couleurs`, `formesDeTete`) ; deux producteurs, une composition de preset (`porteeDeComposition`) et un combattant (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts` : armes, objets, armure équipée ou de statbloc déclarée portée triée par couche, tenue de sa carrière, formes de la tête de ses Mutations lues au catalogue par id), un seul assembleur d'objet (`porteesDesObjets`), une seule réponse aux pièces d'un objet (`piecesDeLObjet`, `src/data/index.ts` : l'ensemble de son trapping, sinon les pièces d'armure qui couvrent ses localisations), lue aussi par le refus de doublon des presets, une seule teinte d'objet (`teinteDeLObjet`) et un seul chemin de tenue (`porteesDeLaTenue`) ; l'hôte la résout en éléments de sa base",
     "perimetre": "toute chose portée par un personnage dessiné sur une base modulaire (atelier, combat, projection)",
     "verrou": "src/noyau/apparence/composition.test.ts, src/noyau/apparence/combattant.test.ts, src/hote/projection.hors-store.test.ts"
   },
@@ -1165,7 +1174,7 @@
     "type": "primitives.manifest",
     "label": "vise/SourcePsy/sourceCombattant/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant, interlocuteur ou étiquette de lieu (`Scene.groups`, que ni joker ni Groupe relatif ni individu ne visent ; `sourceCombattant` enveloppe un combattant), et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant, interlocuteur ou étiquette (groupes du lieu ou de la possession visible, que ni joker ni Groupe relatif ni individu ne visent ; `sourceCombattant` enveloppe un combattant), et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
     "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },

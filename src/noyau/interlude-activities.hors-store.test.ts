@@ -20,6 +20,8 @@ import { preJetDActivite } from './verdictsDInterlude';
 import { activityById } from '../engine/activities';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
+import { setDesFixes } from '../engine/fixedDie';
+import { stacks } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import { pratiquer } from './interlude.testkit';
@@ -485,6 +487,52 @@ describe('Activités d’interlude (LDB 23)', () => {
     const h2 = banc.getState().party.find((c) => c.id === h.id)!;
     expect(h2.conditions.some((c) => c.id === 'sonne')).toBe(true); // palier 1 (Sonné) inline
     expect(h2.conditions.some((c) => c.id === 'a-terre')).toBe(false); // palier 2 DIFFÉRÉ en modale (pas encore résolu)
+  });
+
+  it('Crampes et Mâchoires rejouent les gains légitimes dans la cascade de l’Activité', () => {
+    setDesFixes(true);
+    const h = hero();
+    h.characteristics.endurance = 50;
+    h.characteristics['force-mentale'] = 80;
+    h.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+    h.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
+    const itl = banc.getState().interlude!;
+    itl.perHero[h.id] = { ...st(), fx: undefined, left: 2 };
+    banc.setState({ interlude: { ...itl } });
+    const get = banc.getState;
+    const etape = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
+
+    pratiquer(get, h.id, 'revenus');
+    get().jetLancer('activite');
+    const cible = get().pendingActivity!.target;
+    get().jetImposerLeResultat('activite', (Math.floor(cible / 10) + 4) * 10 + 1);
+    expect(get().pendingActivity!.sl).toBe(-4);
+    get().jetValider('activite');
+    expect(stacks(hero(), 'sonne')).toBe(1);
+    expect(etape()).toMatchObject({ kind: 'choixDeclenche', actorId: h.id });
+    expect(get().pendingTest).toBeNull();
+    get().jetRegler('cascade', 'choix', 'oui', etape().id);
+    get().jetValider('cascade');
+
+    const machoires = etape();
+    expect(machoires).toMatchObject({ kind: 'testDeclenche', rollLabel: 'Résistance' });
+    get().jetLancer('cascade', machoires.id);
+    get().jetImposerLeResultat('cascade', (Math.floor(machoires.target! / 10) + 2) * 10 + 1, machoires.id);
+    expect(etape().result?.sl).toBe(-2);
+    get().jetValider('cascade');
+    expect(stacks(hero(), 'sonne')).toBe(2);
+    expect(etape()).toMatchObject({ kind: 'choixDeclenche', actorId: h.id });
+    get().jetRegler('cascade', 'choix', 'non', etape().id);
+    get().jetValider('cascade');
+
+    const crampes = etape();
+    expect(crampes).toMatchObject({ kind: 'testDeclenche', rollLabel: 'Force Mentale', meta: { noOwnTestFailed: true } });
+    get().jetLancer('cascade', crampes.id);
+    get().jetImposerLeResultat('cascade', 1, crampes.id);
+    get().jetValider('cascade');
+    expect(stacks(hero(), 'sonne')).toBe(2);
+    expect(stacks(hero(), 'a-terre')).toBe(0);
+    expect(get().pendingLogQueue).toEqual([]);
   });
 
   // Bloquant 2 (`addNegativeSL` inerte, VDM 12 l.425 « ajoutez les degrés d'échec ») : le contexte

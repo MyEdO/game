@@ -94,12 +94,13 @@ func _poses_d_avant(scene: Node3D) -> void:
 	rangee.resize(COLONNES)
 	rangee.fill(0.0)
 	volume.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [rangee]}], morceaux = []}, toits = [], couronnes = []}, {volume = [], toits = [], couronnes = []})
-	volume.poser_les_aretes(aretes, [])
+	volume.poser_les_aretes(aretes, [], [])
 	await volume.attendre_les_aretes()
 	var octets := PackedByteArray()
 	for colonne in COLONNES:
 		octets.append(ETATS[colonne % ETATS.size()] if colonne < COLONNES - 1 else 255)
-	volume.voir({masque = Marshalls.raw_to_base64(octets), largeur = COLONNES, rangees = 1, rangeesParPlan = 1, teintes = TEINTES})
+	octets.append_array(octets)
+	volume.voir({masque = Marshalls.raw_to_base64(octets), largeur = COLONNES, rangees = 2, rangeesParPlan = 1, teintes = TEINTES})
 	var temoin := Node3D.new()
 	var noeud_des_aretes: Node3D = volume.get_node("Aretes")
 	temoin.transform = noeud_des_aretes.transform
@@ -277,7 +278,7 @@ func _foyers(scene: Node3D, camera: Camera3D) -> void:
 			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", _servie, Noyau.Piece.MUR,
 				Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
 		var volume := ARETE.volume_neuf(scene, 1.0)
-		volume.poser_les_aretes(murs, [])
+		volume.poser_les_aretes(murs, [], [])
 		await volume.attendre_les_aretes()
 		var image := await _image()
 		var lus := []

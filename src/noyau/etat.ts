@@ -1,4 +1,5 @@
 import type { Combatant, ItemInstance } from '../engine/types';
+import type { Cadence } from '../engine/cadence';
 import type { Formula } from '../engine/ops';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
@@ -349,8 +350,8 @@ export interface CampaignVessel {
   /** Recueillis à un rôle d'équipage qui servent SANS SOLDE jusqu'au prochain port, où ils rejoignent
    *  `crew` (op `equipage`, `sansSolde: 'jusquAuPort'`). MDG 15 l.213-218 */
   recueillisSansSolde?: import('../engine/crewMorale').CrewHire[];
-  /** Le lieu de la carte où le navire est à quai : posé à l'accostage, levé à l'appareillage ; absent en mer.
-   *  Le « port de l'escale » de l'op `marcheDuPort`. MDG 15 l.129 */
+  /** Lieu de la carte où stationne la coque, posé à l'accostage et levé à l'appareillage.
+   *  MDG 15 l.129 ; MSRC 7 l.109-111 */
   escale?: string;
   /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
    *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
@@ -718,6 +719,8 @@ export interface EtatDeJeu {
   /** Coop en ligne : état réseau sérialisable ; les objets réseau vivants (sessions, sockets du
    *  relay) restent dans la fermeture du salon (`hote/coop/salon.ts`). */
   net: NetState;
+  /** Cadence de table reçue par le miroir coop. */
+  cadenceHote?: Cadence;
   /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)
    *  et ses cases cochées ; `null` : fermée. */
   finDeSeance: FinDeSeance | null;

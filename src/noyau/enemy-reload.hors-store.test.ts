@@ -6,6 +6,7 @@ import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
 import { spawnEnemy } from './monde/spawn';
 import { findTrappingById } from '../data';
 import { qualityIndice } from '../engine/qualities/dispatch';
+import { weaponLoaded } from '../engine/weaponLoad';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
@@ -15,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-/** L'état de charge vit sur l'ARME — raccourci de FIXTURE vers l'arme à distance du combattant. */
+/** Arme à distance du combattant de test. */
 const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 
 /**
@@ -52,7 +53,6 @@ const hitResult: AttackResult = {
 };
 
 describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)', () => {
-  // (1) Résolution de l'Indice de Recharge par LIBELLÉ d'arme (creatureEquip) + (2) spawn chargé.
   it('(a) un ennemi fraîchement spawné avec une arme à Recharge démarre CHARGÉ (peut tirer au tour 1, pas de softlock)', () => {
     // L'armement de créature est en Traits (« À distance (Arbalète) +9 (60) », arg = id `arbalete` du
     // catalogue `trappings`) : l'Indice de Recharge est résolu par la Qualité du trapping au spawn.
@@ -60,8 +60,8 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     expect(qualityIndice({ qualities: arbalete.qualities, subType: arbalete.subType?.id }, 'recharge')).toBe(1);
     const e = spawnEnemy({ statblock: { name: 'Arbalétrier', char: { B: 10 }, traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }] } as never }, 'e1', { x: 5, y: 5 });
     const rw = e.weapons.find((w) => w.type === 'distance')!;
-    expect(rw.reload).toBe(1);   // Indice de Recharge résolu par libellé
-    expect(rw.loaded).toBe(true); // chargé au spawn → PAS de recharge à vide au 1er Round
+    expect(rw.reload).toBe(1);
+    expect(weaponLoaded(e, rw)).toBe(true);
     // Preuve « pas de softlock tour 1 » : l'IA choisit de TIRER (pas de reload), l'arme étant chargée.
     const scene = emptyScene('scene-test', 16, 16);
     const h = heroAt(1, 1);

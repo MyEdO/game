@@ -1,17 +1,20 @@
 /**
- * LA SUITE DU TOUR D'IA EN COOP (#3058) : l'hôte joue les tours d'IA qu'il possède — son IA ennemie, son héros en
- * Auto-combat — ; un invité est connecté. Le chargeur charge un porteur de Frappe réactive (LDB 10 l.498) : chez
- * l'hôte, une décision, une frappe, le tour avance ; l'instantané diffusé porte le tour d'IA (`battle.tourEnCours`), que
- * l'invité applique. La frappe pilotée d'un invité (#3059) ne se rejoue que chez l'hôte.
+ * Suite du tour d'IA et frappe pilotée en coop (#3058, #3059, #3157, #3839).
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
-import { ouvrirLeBanc } from '../../noyau/banc.testkit';
+import { ENTREES_DU_BANC, ouvrirLeBanc, surUnBancHorsTest, type Banc } from '../../noyau/banc.testkit';
 import { aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
+import { controlsActive, withActingSeat } from '../../noyau/netOwnership';
+import { creerPartie, type ResultatDeLAppel } from '../../noyau/partie';
+import { horlogeVirtuelle } from '../../noyau/horlogeVirtuelle';
+import { cadence, resetCadence, setCadence, type Cadence } from '../../engine/cadence';
+import { gesteDuVerbe, SANS_PISTE } from '../geste';
+import { tenueDesJetons } from '../partie';
 import { etatInitialDuJeu, type BattleState, type NetState, type TourEnCours } from '../../noyau/etat';
 import { creerActionsDuReseau } from '../../noyau/reseau';
 import type { Set } from '../../noyau/flowTypes';
@@ -20,6 +23,8 @@ import { t } from '../../i18n';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+
+afterEach(resetCadence);
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
@@ -34,40 +39,120 @@ const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   connection: 'connecte', hoteAbsent: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
-/** Le combat de l'hôte : `chargeur` (à 4 cases) charge `charge`, porteur de Frappe réactive ; `h2` est à l'invité. */
-function table(chargeur: Combatant, charge: Combatant) {
-  const banc = ouvrirLeBanc({ cadence: 'auto' });
-  clearAiTurnLog();
-  seedBattleRng(2);
+function etatDeCharge(chargeur: Combatant, charge: Combatant) {
   chargeur.pos = { x: 4, y: 0 };
   charge.pos = { x: 0, y: 0 };
+  // LDB 10 l.500
   charge.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   charge.characteristics.initiative = 99;
-  const h2 = mk('h2', 'heros', { x: 9, y: 9 });
-  const combatants = [chargeur, charge, h2];
+  const tiers = [chargeur, charge].some((c) => c.id === 'h2') ? 'allie' : 'h2';
+  const combatants = [chargeur, charge, mk(tiers, 'heros', { x: 9, y: 9 })];
   const ids = combatants.map((c) => c.id);
   const battle = {
     combatants, order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: NET('hote', 0) } as never);
+  return {
+    battle, mode: 'battle' as const, scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), net: NET('hote', 0),
+  };
+}
+
+function poserLaCharge(banc: Banc, chargeur: Combatant, charge: Combatant, cadenceHote: Cadence) {
+  setCadence(cadenceHote);
+  clearAiTurnLog();
+  seedBattleRng(2);
+  banc.setState(etatDeCharge(chargeur, charge));
+}
+
+function relierLeBanc(banc: Pick<Banc, 'getState'>) {
   const recus: Record<string, unknown>[] = [];
-  const host = new HostSession({ build: 'test', applyIntent: () => {}, getSnapshot: () => instantaneDeLaCoop(banc.getState()) });
+  const intentions: string[] = [];
+  const refus: string[] = [];
+  let hoteOuvert = true;
+  const host = new HostSession({
+    build: 'test',
+    applyIntent: (action, args, siege) => {
+      intentions.push(action);
+      if (!hoteOuvert) return;
+      const geste = withActingSeat(siege, () => gesteDuVerbe(banc.getState(), { type: action, args }, SANS_PISTE));
+      let texte: string | undefined;
+      appliquerLIntentionDUnSiege(banc.getState, siege, geste.type, geste.args, (message) => { texte = message; });
+      return texte;
+    },
+    getSnapshot: () => instantaneDeLaCoop(banc.getState()),
+  });
   const [a, b] = FakeTransport.pair();
-  const guest = new GuestSession({ build: 'test', label: 'Antoine', applySnapshot: (d) => { recus.push(d); } });
+  const guest = new GuestSession({
+    build: 'test', label: 'Antoine',
+    applySnapshot: (data) => { recus.push(data); },
+    onIntentRefused: (texte) => { refus.push(texte); },
+  });
   host.addGuest(a, 1);
   guest.connect(b);
 
-  maybeRunEnemyTurn(banc.getState, banc.setState);
-  let fenetre = false;
+  return { host, guest, recus, intentions, refus, cloreLeBancHote: () => { hoteOuvert = false; } };
+}
+
+function jouerUnTour(banc: Banc, liaison: ReturnType<typeof relierLeBanc>, contesterLaFin = false) {
+  const { host, guest } = liaison;
+  const tours = [banc.getState().battle!.turn];
+  const armements = new Set<number>();
+  let defense: string | undefined;
   let diffuse: TourEnCours | undefined;
-  for (let i = 0; i < 300 && banc.getState().battle!.turn === 0; i++) {
+  let contestation: { avant: number; apres: number } | undefined;
+  maybeRunEnemyTurn(banc.getState, banc.setState);
+  for (let i = 0; i < 50 && banc.getState().battle!.turn === 0; i++) {
     if (!banc.jusquALaProchaine()) break;
-    if (banc.getState().pendingDefense) fenetre = true;
+    const s = banc.getState();
+    const tour = s.battle!.tourEnCours;
+    const suite = tour?.suite;
+    defense ??= s.pendingDefense?.defenderId;
+    if (suite?.geste.kind === 'frappe') armements.add(suite.n);
+    diffuse ??= suite ? tour : undefined;
+    if (contesterLaFin && !contestation && s.battle!.acted && suite?.geste.kind === 'avancer') {
+      const avant = s.battle!.turn;
+      guest.sendIntent('terminerLeTour', []);
+      contestation = { avant, apres: banc.getState().battle!.turn };
+    }
+    const turn = banc.getState().battle!.turn;
+    if (turn !== tours[tours.length - 1]) tours.push(turn);
     host.broadcastSnapshot();
-    diffuse ??= banc.getState().battle!.tourEnCours?.suite ? banc.getState().battle!.tourEnCours : undefined;
   }
-  return { banc, recus, fenetre, diffuse };
+  return { defense, diffuse, armements: armements.size, tours, contestation };
+}
+
+const decisionsDuTour = (id: string) => aiTurnLog().filter((r) => r.id === id && r.round === 1).length;
+const frappesDuTour = (id: string, log: BattleState['log']) => log.filter((l) => l.kind === 'attaque' && l.actorId === id).length;
+
+function rejouerChezLInvite(liaison: ReturnType<typeof relierLeBanc>, cadenceInvite: Cadence) {
+  const { guest, recus } = liaison;
+  const miroir = creerPartie({ ...etatInitialDuJeu(), net: NET('invite', 1) }, { ...ENTREES_DU_BANC, cadence: cadenceInvite });
+  const jetons = tenueDesJetons(miroir);
+  const horloge = horlogeVirtuelle((id) => jetons.programmes(jetons.reprendre(id)));
+  let programmes = 0;
+  let reprises = 0;
+  let ecritures = 0;
+  let instantanesStables = true;
+  const controles = [];
+  try {
+    miroir.etat().transmettreLesIntentions((action, args) => guest.sendIntent(action, args));
+    for (const data of recus) {
+      const reception = miroir.recevoir(data);
+      const planifies = jetons.programmes(reception);
+      programmes += planifies.length;
+      horloge.armer(planifies);
+      const avant = JSON.stringify(miroir.etat());
+      controles.push(controlsActive(miroir.etat()));
+      const desabonner = miroir.abonner(() => { ecritures++; });
+      for (let i = 0; i < 50 && horloge.enAttente(); i++) reprises += horloge.jusquALaProchaine();
+      desabonner();
+      instantanesStables &&= JSON.stringify(miroir.etat()) === avant;
+    }
+    return { programmes, reprises, ecritures, instantanesStables, controles, pref: cadence(), etat: miroir.etat() };
+  } finally {
+    miroir.fermer();
+    guest.close();
+  }
 }
 
 describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frappe réactive', () => {
@@ -77,11 +162,16 @@ describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frap
   ] as const) {
     it(`${nom} (graine 2) : chez l’hôte, UNE décision, UNE frappe, le tour avance ; l’invité applique le tour d’IA diffusé`, () => {
       const c = chargeur();
-      const { banc, recus, fenetre, diffuse } = table(c, charge());
+      const banc = ouvrirLeBanc();
+      poserLaCharge(banc, c, charge(), 'auto');
+      const liaison = relierLeBanc(banc);
+      const { defense, diffuse } = jouerUnTour(banc, liaison);
+      const { recus, guest } = liaison;
+      guest.close();
       const log = banc.getState().battle!.log;
-      expect(fenetre, 'chemin : la riposte ouvre une fenêtre de défense').toBe(true);
-      expect(aiTurnLog().filter((r) => r.id === c.id && r.round === 1).length, 'une décision').toBe(1);
-      expect(log.filter((l) => l.kind === 'attaque' && l.actorId === c.id).length, 'une frappe').toBe(1);
+      expect(defense, 'LDB 10 l.500').toBeDefined();
+      expect(decisionsDuTour(c.id), 'une décision').toBe(1);
+      expect(frappesDuTour(c.id, log), 'une frappe').toBe(1);
       expect(banc.getState().battle!.turn, 'le tour a avancé').toBe(1);
 
       expect(diffuse?.cle, 'chemin : un tour d’IA à suite a été diffusé').toBe(`1:0:${c.id}`);
@@ -90,6 +180,108 @@ describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frap
       expect(chezLInvite.battle?.tourEnCours, 'l’invité porte le tour d’IA de l’hôte').toEqual(banc.getState().battle!.tourEnCours);
     });
   }
+});
+
+describe('#3157 — l’hôte seul exécute le tour automatique', () => {
+  it.each([
+    { chargeur: 'h2', genre: 'heros', charge: 'e' },
+    { chargeur: 'e', genre: 'ennemi', charge: 'h2' },
+  ] as const)('charge de $chargeur sur $charge (graine 2)', ({ chargeur, genre, charge }) => {
+    const { liaison, tour, decisions, frappes } = surUnBancHorsTest((banc) => {
+      poserLaCharge(banc, mk(chargeur, genre, { x: 0, y: 0 }), mk(charge, genre === 'heros' ? 'ennemi' : 'heros', { x: 0, y: 0 }), 'auto');
+      const liaison = relierLeBanc(banc);
+      const tour = jouerUnTour(banc, liaison, genre === 'heros');
+      liaison.cloreLeBancHote();
+      return { liaison, tour, decisions: decisionsDuTour(chargeur), frappes: frappesDuTour(chargeur, banc.getState().battle!.log) };
+    });
+    expect(liaison.guest.joined).toBe(true);
+    const miroir = rejouerChezLInvite(liaison, 'auto');
+    expect({ decisions, armements: tour.armements, frappes, tours: tour.tours }, 'tour autoritaire').toEqual({
+      decisions: 1, armements: 1, frappes: 1, tours: [0, 1],
+    });
+    expect(tour.defense, 'LDB 10 l.500').toBe('h2');
+    if (genre === 'heros') {
+      expect(tour.contestation, 'l’intention tardive ne termine pas le tour').toEqual({ avant: 0, apres: 0 });
+      expect(liaison.refus).toHaveLength(1);
+    }
+    expect({
+      programmes: miroir.programmes, reprises: miroir.reprises, ecritures: miroir.ecritures,
+      decisions: decisionsDuTour(chargeur) - decisions, intentions: liaison.intentions,
+      instantanesStables: miroir.instantanesStables,
+    }, 'exécution chez le miroir').toEqual({
+      programmes: 0, reprises: 0, ecritures: 0, decisions: 0,
+      intentions: tour.contestation ? ['terminerLeTour'] : [], instantanesStables: true,
+    });
+    expect(miroir.etat.battle?.turn).toBe(1);
+    expect(frappesDuTour(chargeur, miroir.etat.battle!.log)).toBe(1);
+  });
+
+  it.each([
+    { hote: 'auto', invite: 'manuel', controle: false },
+    { hote: 'manuel', invite: 'auto', controle: true },
+    { hote: 'rapide', invite: 'auto', controle: true },
+  ] as const)('hôte $hote, invité $invite : le premier instantané décide le contrôle du tour', ({ hote, invite, controle }) => {
+    const liaison = surUnBancHorsTest((banc) => {
+      poserLaCharge(banc, mk('h2', 'heros', { x: 0, y: 0 }), mk('e', 'ennemi', { x: 0, y: 0 }), hote);
+      const liaison = relierLeBanc(banc);
+      liaison.cloreLeBancHote();
+      return liaison;
+    });
+    const miroir = rejouerChezLInvite(liaison, invite);
+    expect({ controles: miroir.controles, preference: miroir.pref, programmes: miroir.programmes }).toEqual({
+      controles: [controle], preference: invite, programmes: 0,
+    });
+  });
+});
+
+describe('#3839 — la suite du déplacement de combat appartient à l’hôte', () => {
+  it.each([
+    { chargeur: 'h2', genre: 'heros', charge: 'e' },
+    { chargeur: 'e', genre: 'ennemi', charge: 'h2' },
+  ] as const)('charge de $chargeur : le jeton passe dans l’horloge d’un hôte sans rendu', ({ chargeur, genre, charge }) => {
+    clearAiTurnLog();
+    const etat = etatDeCharge(mk(chargeur, genre, { x: 0, y: 0 }), mk(charge, genre === 'heros' ? 'ennemi' : 'heros', { x: 0, y: 0 }));
+    const hote = creerPartie({ ...etatInitialDuJeu(), screen: 'campaign', ...etat }, { ...ENTREES_DU_BANC, graine: 2, cadence: 'auto' });
+    const liaison = relierLeBanc({ getState: hote.etat });
+    const jetons = tenueDesJetons(hote);
+    const jetonsDeMarche: number[] = [];
+    const reprisesDeMarche: number[] = [];
+    const traiter = (resultat: ResultatDeLAppel) => {
+      const programmes = jetons.programmes(resultat);
+      for (const e of resultat.evenements) {
+        if (e.type !== 'emis' || e.evt !== 'anim_move' || e.payload.id !== chargeur) continue;
+        expect(e.payload.path.length).toBeGreaterThan(1);
+        expect(hote.etat().battle!.tourEnCours?.suite?.geste.kind).toBe('frappe');
+        expect(frappesDuTour(chargeur, hote.etat().battle!.log)).toBe(0);
+        const lies = programmes.filter((p) => 'apresDeplacement' in p);
+        expect(lies).toEqual([expect.objectContaining({ apresDeplacement: [chargeur] })]);
+        jetonsDeMarche.push(lies[0].id);
+      }
+      liaison.host.broadcastSnapshot();
+      return programmes;
+    };
+    const horloge = horlogeVirtuelle((id) => {
+      if (jetonsDeMarche.includes(id)) reprisesDeMarche.push(id);
+      return traiter(jetons.reprendre(id));
+    });
+    try {
+      horloge.armer(traiter(hote.reprendreLaCadence()));
+      for (let i = 0; i < 50 && hote.etat().battle!.turn === 0 && horloge.enAttente(); i++) horloge.jusquALaProchaine();
+      expect(jetonsDeMarche).toHaveLength(1);
+      expect(reprisesDeMarche).toEqual(jetonsDeMarche);
+      expect(() => jetons.reprendre(jetonsDeMarche[0])).toThrow(/jeton inconnu/);
+      expect([hote.etat().battle!.turn, decisionsDuTour(chargeur), frappesDuTour(chargeur, hote.etat().battle!.log)]).toEqual([1, 1, 1]);
+    } finally {
+      liaison.cloreLeBancHote();
+      hote.fermer();
+    }
+
+    const miroir = rejouerChezLInvite(liaison, 'auto');
+    expect([miroir.programmes, miroir.reprises, miroir.ecritures, decisionsDuTour(chargeur)]).toEqual([0, 0, 0, 1]);
+    expect(liaison.intentions).toEqual([]);
+    expect(miroir.instantanesStables).toBe(true);
+    expect([miroir.etat.battle?.turn, frappesDuTour(chargeur, miroir.etat.battle!.log)]).toEqual([1, 1]);
+  });
 });
 
 describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invité', () => {

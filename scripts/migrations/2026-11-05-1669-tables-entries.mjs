@@ -34,11 +34,11 @@ const TABLES_DE = {
 };
 
 
-/** Les ops `rollTable` à table EN LIGNE (sans `tableId`) du document, à toute profondeur. */
+/** Les ops `rollTable` à table en ligne du document, hors références `table` et `tableId`. */
 function opsRollTableEnLigne(noeud, chemin = '', acc = []) {
   if (Array.isArray(noeud)) noeud.forEach((v, i) => opsRollTableEnLigne(v, `${chemin}[${i}]`, acc));
   else if (noeud && typeof noeud === 'object') {
-    if (noeud.op === 'rollTable' && !('tableId' in noeud)) acc.push([noeud, chemin]);
+    if (noeud.op === 'rollTable' && !('table' in noeud) && !('tableId' in noeud)) acc.push([noeud, chemin]);
     for (const [k, v] of Object.entries(noeud)) opsRollTableEnLigne(v, `${chemin}.${k}`, acc);
   }
   return acc;

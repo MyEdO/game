@@ -35,7 +35,7 @@ import { prendreVerrou } from '../../test/verrou.mjs'
 const url = (rel) => pathToFileURL(fileURLToPath(new URL(rel, import.meta.url))).href
 const commandeDuGenerateur = (script) => [
   fileURLToPath(new URL('./jouer-generateur.mjs', import.meta.url)),
-  JSON.stringify({ script, targets: ['reg.js'] }),
+  JSON.stringify({ runner: 'node', script, targets: ['reg.js'] }),
 ]
 
 /** Attend `existsSync(chemin)`, au plus `ms`. */

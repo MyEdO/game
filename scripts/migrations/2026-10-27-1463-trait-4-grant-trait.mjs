@@ -20,7 +20,7 @@
  * migration est laissée telle quelle, et ne fait entrer aucun Groupe.
  * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une op qui porte à la fois
  * une clé à plat et `trait` ; un `argFrom` autre que `obsessions` ; une clé inconnue sur un `grantTrait`, un
- * `removeTrait` ou un `domeWard` ; un Indice de `domeWard` qui porte un terme de jet ; pour une rangée à
+ * `removeTrait` ou un `domeWard` à migrer ; un Indice de `domeWard` qui porte un terme de jet ; pour une rangée à
  * migrer, son Groupe absent du registre quand il n'est pas `neuf`, ou présent sous un autre libellé.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
@@ -138,8 +138,8 @@ function migrerOp(o, rel) {
     return;
   }
   const plates = Object.keys(o).filter((k) => k in A_PLAT || k === 'argFrom');
-  for (const k of Object.keys(o)) if (!CLES_DE_L_OP.has(k) && !plates.includes(k)) fautes.push(`${rel} : grantTrait porte la clé inconnue « ${k} »`);
   if (!plates.length) return;
+  for (const k of Object.keys(o)) if (!CLES_DE_L_OP.has(k) && !plates.includes(k)) fautes.push(`${rel} : grantTrait porte la clé inconnue « ${k} »`);
   if (o.trait !== undefined) return void fautes.push(`${rel} : grantTrait porte « ${plates.join(' », « ')} » et « trait »`);
   if (o.argFrom !== undefined && o.argFrom !== 'obsessions') return void fautes.push(`${rel} : argFrom « ${o.argFrom} » inconnu`);
   const trait = traitPose(o);

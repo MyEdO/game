@@ -1,2 +1,2 @@
-"""Géométrie de `humanoide--tete--humain` : reprise de son GLB publié (`element/publie.py`)."""
-from publie import reprendre  # noqa: F401
+"""Géométrie de `humanoide--tete--humain` : la tête de race de `element/tete_makehuman.py`."""
+from tete_makehuman import construire  # noqa: F401

@@ -28,7 +28,7 @@ MATERIAUX = {'bas': ('vet2', 'laine')}
 """Illustration : laine blanche (`vet2`, écru au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 PORTEUSES = {c: [f'cuisse_{c}', f'genou_{c}', f'mollet_{c}', f'pied_{c}'] for c in 'gd'}
 """Par jambe, les zones que le bas traverse : ses poids et ses clés en viennent."""

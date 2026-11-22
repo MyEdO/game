@@ -8,7 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * des transitions #4649, #4574 et #4674 ainsi que la forme précédant les références de création (#3917). Une save
+ * des transitions #4649, #4574, #4674 et #4435 ainsi que la forme précédant les références de création (#3917). Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -55,6 +55,7 @@ export interface SaveGame extends SaveMeta {
  * exclusion qui n'est pas ici n'existe pas. La même couture sert l'instantané coop (`noyau/coop.ts`).
  */
 const HORS_SAVE = {
+  cadenceHote: 'cadence de table reçue dans la session coop',
   // #767 · #766
   campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, registreDesScenes.ts)',
 } as const satisfies Partial<Record<keyof EtatDeJeu, string>>;
@@ -127,7 +128,14 @@ const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
   avant: 'efb77d9c287718df',
   apres: 'f642d26deb938799',
 };
-const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_SAVE);
+/** #4435 */
+const TRANSITION_DE_L_AMARRAGE = {
+  avant: '3bdb6fe66470f1fe',
+  apres: '8f9224af02d1831d',
+};
+const FORMAT_AVANT_L_AMARRAGE = FORMAT_SAVE === TRANSITION_DE_L_AMARRAGE.apres
+  ? TRANSITION_DE_L_AMARRAGE.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_L_AMARRAGE);
 const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
   ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE;
 const FORMAT_A_UNE_COULEUR = formatDeLaCouleurUnique('save', FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE);
@@ -140,7 +148,8 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_L_AMARRAGE
+      || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
       || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
       || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
@@ -172,7 +181,8 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
+    } else if (parsed.version !== FORMAT_AVANT_L_AMARRAGE
+        && parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
         && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
       migrerLaSaveAvantLesDeuxCouleurs(parsed.data);
     }

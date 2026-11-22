@@ -7,7 +7,6 @@ import { ID_DE_PORTEUR, PORTEURS } from '../engine/porteursDePassifs.testkit';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import { statblockToCombatant } from './monde/spawn';
 import type { CustomStatblock } from '../engine/statblock';
-import type { OpPassive } from '../engine/ops';
 import type { Combatant } from '../engine/types';
 import { ALDO, BRUNA, CORA, etatAttable, rangsAssis, taverneAttablee } from './taverneAttablee.testkit';
 import { effectiveMaxWounds } from '../engine/characteristics';
@@ -51,7 +50,7 @@ describe('transitionDuJeu — occupation des sièges', () => {
  * suit le delta (LDB 48 l.27).
  */
 describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () => {
-  const plus3 = (): OpPassive[] => [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
+  const plus3 = () => [{ op: 'attrMod' as const, attr: 'wounds' as const, mod: 3 }];
   /** Profil à 30 partout : B = 12 ; blessé de 2. */
   const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'heros' });
 

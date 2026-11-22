@@ -9,6 +9,16 @@ import type { Bouton, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 import { imposerLesD100 } from '../../../src/noyau/battleRng.testkit';
 import { rendreLaVue } from '../../../src/hoteTexte/vue';
+import { giveTrappingSchema } from '../../../src/data/schemas/defs-scenes/effets';
+import { withBourseMoney } from '../../../src/engine/bourse';
+import { combattantDeTest } from '../../../src/engine/combattantDeTest.testkit';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
+import { ecrireLaSauvegarde } from '../../../src/hote/sauvegardes';
+import { surUnBancHorsTest } from '../../../src/noyau/banc.testkit';
+import { applyEffects } from '../../../src/noyau/combatEffects';
+import { catalogEntryOf } from '../../../src/noyau/merchantFlow';
+import { emptyScene } from '../../../src/noyau/monde/scene';
+import { snapshotSave } from '../../../src/noyau/persistance/save';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; vi.restoreAllMocks(); });
@@ -113,5 +123,66 @@ describe('le Marchandage joué par le pont', () => {
     expect(jet(s).lignes[0].jet).toMatchObject({ d100: 5, verdict: 'reussite' });
     s = jouer({ type: 'jetValider', args: ['marchandage'] });
     expect(s.vue.projection.jets.some((j) => j.flux === 'marchandage')).toBe(false);
+  });
+});
+
+describe('les contacts de Guilde par le pont (LDB 68 l.46–48)', () => {
+  it('joue les boutons de l’étal, du choix de Guilde et des deux jets, puis rend l’étal', () => {
+    const { sauvegarde, echec } = surUnBancHorsTest((banc) => {
+      const g = banc.getState;
+      const scene = emptyScene('bourg', 4, 4);
+      scene.entities.push({
+        id: 'medecin-du-bourg', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 },
+        merchant: { archetype: { id: 'medecin' }, settlement: 'village' },
+      });
+      const heros = withBourseMoney(combattantDeTest({ id: 'heros', kind: 'heros' }), { gold: 100, silver: 0, brass: 0 }, idsDeTest);
+      banc.setState({ party: [heros], scene, gameTime: 8 * 60 });
+      applyEffects(g, banc.setState, [giveTrappingSchema.parse({
+        type: 'giveTrapping', objet: { id: 'licence-guilde-des-medecins' }, heroId: heros.id,
+      })]);
+      g().ouvrirLeMarchand('medecin-du-bourg');
+      const ratage = g().merchantStocks['medecin-du-bourg'].echecs?.find((e) => e.availability === 'rare' && catalogEntryOf(e.id)?.price);
+      expect(ratage, 'un échec véritable du marchand').toBeDefined();
+      return {
+        sauvegarde: snapshotSave(g(), '2026-11-21T20:00:00Z', { 'marche-membres-de-guildes': true }),
+        echec: ratage!,
+      };
+    });
+
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    expect(ecrireLaSauvegarde(stockage, 1, sauvegarde)).toBe(true);
+    let s = drainer(appel, appel('charger', { charger: 1, graine: 7 })).suite;
+    const article = () => Object.values(corps(s)).filter((e) => e.id.startsWith('etal/'))
+      .flatMap(boutons).find((b) => b.id === echec.id);
+    const jouer = (b?: Bouton) => {
+      expect(b, 'un bouton dessiné et autorisé').toMatchObject({ refus: null });
+      s = drainer(appel, appel('jouer', b!.jeu)).suite;
+    };
+    const geste = (verbe: string, valeur?: string) => gestesDessines(s.vue)
+      .flatMap((g): Bouton[] => g.type === 'bouton' ? [g] : g.type === 'choix' || g.type === 'liste' ? g.valeurs : [])
+      .find((b) => b.refus === null && 'type' in b.jeu && b.jeu.type === verbe
+        && b.jeu.args[0] === 'cascade' && (valeur === undefined || b.jeu.args[2] === valeur));
+
+    expect(s.vue.projection.fenetre?.cle).toBe('marchand');
+    expect(article()?.libelle).toMatch(/contacts de Guilde/i);
+    jouer(article());
+    expect(s.vue.projection.fenetre?.cle).toBe('cascade');
+    jouer(geste('jetRegler', 'consulter'));
+    jouer(geste('jetValider'));
+
+    imposerLesD100(4, 5);
+    jouer(geste('jetLancer'));
+    jouer(geste('jetValider'));
+    const relance = s.vue.projection.jets.find((j) => j.flux === 'cascade')?.lignes.find((l) => l.genre === 'test');
+    expect(relance?.cible).toBe(echec.target);
+    jouer(geste('jetLancer'));
+    jouer(geste('jetValider'));
+    if (s.vue.projection.fenetre?.cle === 'cascade') jouer(geste('fenetreFermer'));
+    expect(s.vue.projection.fenetre?.cle).toBe('marchand');
+    expect(article()?.libelle).toContain(catalogEntryOf(echec.id)!.label);
+    expect(article()?.libelle).not.toMatch(/contacts de Guilde/i);
+    jouer(article());
+    expect(boutons(corps(s)['panier']).some((b) => b.id === echec.id)).toBe(true);
   });
 });

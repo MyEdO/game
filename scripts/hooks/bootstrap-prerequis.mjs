@@ -23,9 +23,8 @@ export const PREREQUIS = [
   },
   {
     nom: 'hooks git du dépôt',
-    // Le script `postinstall` de `package.json` pose `core.hooksPath` et les deux pilotes de
-    // fusion (fiches MIXTES, stocks), puis produit les cibles de code ; sans lui, aucune garde de
-    // commit ne joue.
+    // Le script `postinstall` de `package.json` configure `core.hooksPath` et les pilotes de
+    // fusion `stocks` et `imports`, puis produit les cibles de code.
     manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
     // Sous le verrou d'outillage de l'arbre (#2187) : la barrière des hooks d'outil l'attend.
     poser: ({ racine, run, budget, gestes }) =>

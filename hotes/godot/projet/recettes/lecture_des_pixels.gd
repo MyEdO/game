@@ -114,11 +114,13 @@ static func uniforme(servie: Dictionary, octet: int) -> Dictionary:
 	return servie.merged({masque = Marshalls.raw_to_base64(octets)}, true)
 
 
-## La vision servie `servie`, l'octet de chaque case (`x`, `y`, couche d'indice `couche`) que `etat` rend.
+## La vision servie `servie`, l'octet de chaque case (`x`, `y`, couche d'indice `couche`) que `etat` rend, au plan `sol`
+## comme au plan `toit` de sa couche.
 static func masque_de_vision(servie: Dictionary, etat: Callable) -> Dictionary:
 	var octets := Marshalls.base64_to_raw(servie.masque)
 	var largeur := int(servie.largeur)
 	var rangees := int(servie.rangeesParPlan)
+	var couches := int(servie.rangees) / (2 * rangees)
 	for i in octets.size():
-		octets[i] = etat.call(i % largeur, (i / largeur) % rangees, i / (largeur * rangees))
+		octets[i] = etat.call(i % largeur, (i / largeur) % rangees, (i / (largeur * rangees)) % couches)
 	return servie.merged({masque = Marshalls.raw_to_base64(octets)}, true)

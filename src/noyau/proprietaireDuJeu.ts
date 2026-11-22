@@ -15,6 +15,8 @@ import { brancherLeJeu, debrancherLeJeu } from './branchement';
 import { tablesDuJeu } from './tablesDuJeu';
 import { poserLaPlateforme, retirerLaPlateforme, type Jeton } from './plateforme';
 import { transitionDuJeu } from './transitionDuJeu';
+import { stabiliserLesPlaiesDuPatient } from './acteDeSoin';
+import { patchAvecIdsNeufs } from './idsDuMonde';
 import { planifierLeTickAuto } from './combatAuto';
 import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
@@ -44,17 +46,21 @@ export interface ProprietaireDuJeu {
 export function ouvrirLeProprietaire(
   etatInitial: EtatDeJeu,
   entrees: EntreesDeLaPartie,
-  surProgramme: (jeton: Jeton, delai: number) => void,
+  surProgramme: (jeton: Jeton, delai: number, apresDeplacement?: readonly string[]) => void,
 ): ProprietaireDuJeu {
   const enVol = new Map<Jeton, () => void>();
   const abonnes = new Set<(etat: Jeu, prev: Jeu) => void>();
   const get: Get = () => etat;
+  const preparerLaPublication = (s: JeuDuNoyau): JeuDuNoyau => {
+    if (!s.medic || s.net.mode === 'invite') return s;
+    return { ...s, ...patchAvecIdsNeufs(s, (idNeuf) => stabiliserLesPlaiesDuPatient(s, idNeuf)) };
+  };
   const ecrire = (partiel: Ecrit): void => {
     const patch = typeof partiel === 'function' ? partiel(etat) : partiel;
     // Le patch de l'updater se fusionne sur l'état courant, lu après lui (zustand).
     const prev = etat;
     if (Object.is(patch, prev)) return;
-    etat = { ...prev, ...patch };
+    etat = preparerLaPublication({ ...prev, ...patch });
     for (const fn of abonnes) fn(etat, prev);
     const transition = transitionDuJeu(prev, etat);
     if (transition) ecrire(transition);
@@ -63,17 +69,17 @@ export function ouvrirLeProprietaire(
   const set = ecrire as SetDesClesReservees;
   const actions = creerActionsDuNoyau(get, set);
   loadRuleOverrides(entrees.reglesMaison);
-  let etat: JeuDuNoyau = { ...etatInitial, ...patchDeLArmement(etatInitial), ...actions };
+  let etat = preparerLaPublication({ ...etatInitial, ...patchDeLArmement(etatInitial), ...actions });
 
   brancherLeJeu(get, set, tablesDuJeu());
   seedBattleRng(entrees.graine);
   setCadence(entrees.cadence);
   setDesFixes(entrees.desFixes);
   poserLaPlateforme({
-    programmer: (suite, delai) => {
+    programmer: (suite, delai, apresDeplacement) => {
       const jeton = Object.freeze({}) as Jeton;
       enVol.set(jeton, suite);
-      surProgramme(jeton, delai);
+      surProgramme(jeton, delai, apresDeplacement);
       return jeton;
     },
     enAttente: (jeton) => enVol.has(jeton),

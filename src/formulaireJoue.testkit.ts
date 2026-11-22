@@ -30,11 +30,10 @@ import type { EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.m
  *  l'auteur ne choisit pas, sauf champ direct d'une variante d'union, que le choix de sa variante écrit (#841) ? */
 export const litteralFige = (noeud: unknown): boolean => videDuNoeud(noeud) !== undefined && ouverts([noeud]).filter((n) => !estTransparent(n)).every((n) => ['literal', 'enum'].includes(defDe(n)?.type ?? '')) && choixDuNoeud(noeud)?.length === 1;
 
-/** Les clés de la variante `valeur`, choisie au chemin `chemin` de l'ancre `ancre` (`BancDuFormulaire.schema`), qu'un
- *  littéral fige (`litteralFige`) : le choix de la variante les écrit. */
-function clesFigees(ancre: { noeud: unknown; donnee: unknown } | undefined, chemin: readonly Segment[], valeur: unknown): string[] {
-  if (ancre === undefined || !estObjet(valeur)) return [];
-  const variantes = ouverts(noeudsAuChemin(ancre.noeud, ancre.donnee, chemin), valeur);
+/** Les clés que fige un littéral dans la variante `valeur` au point de schéma `noeuds` : son choix les écrit. */
+function clesFigees(noeuds: readonly unknown[], valeur: unknown): string[] {
+  if (!estObjet(valeur)) return [];
+  const variantes = ouverts(noeuds, valeur);
   return Object.keys(valeur).filter((cle) => variantes.some((n) => noeudsAuChemin(n, valeur, [cle]).some(litteralFige)));
 }
 
@@ -62,7 +61,7 @@ export const union = parNoeud(unionDuNoeud);
 
 /** Les formes concrètes de la fermeture du nœud : objets, listes et records (`ouverts`, `estTransparent`). */
 export const formesConcretes = parNoeud((noeud: unknown): unknown[] =>
-  ouverts([noeud]).filter((n) => !estTransparent(n) && ['object', 'array', 'record'].includes(defDe(n)?.type ?? '')));
+  ouverts([noeud]).filter((n) => !estTransparent(n) && ['object', 'array', 'tuple', 'record'].includes(defDe(n)?.type ?? '')));
 
 /** Les clés que pose un record de nœud `record` (`recordDuNoeud`) : les valeurs de son nœud de clé (`choixDuNoeud`) ;
  *  aucune d'un record à clé ouverte. */
@@ -147,14 +146,20 @@ export function champEcrit(noeud: unknown, donnee: unknown, chemin: readonly Seg
   return champ === undefined ? undefined : `${champ}${RANG.repeat(chemin.length - cle)}`;
 }
 
-/** Le chemin `chemin` de la donnée `donnee` de nœud `noeud` traverse-t-il deux fois le même champ (`pasDuChemin`) :
- *  un schéma récursif (le Trait conféré d'un Trait), qui se joue à son premier niveau ? Le même champ deux fois porte
- *  deux fois la même clé : seul un tel chemin se descend. */
-function recursif(noeud: unknown, donnee: unknown, chemin: readonly Segment[]): boolean {
+/** Le premier rang auquel le chemin traverse un champ qu'il retrouvera plus loin. Le même champ porte la même clé
+ *  aux deux rangs, ce qui dispense de descendre les chemins dont toutes les clés diffèrent. */
+function repetitionDans(noeud: unknown, donnee: unknown, chemin: readonly Segment[]): number | undefined {
   const cles = chemin.filter((p) => typeof p === 'string');
-  if (new Set(cles).size === cles.length) return false;
-  const champs = pasDuChemin(noeud, donnee, chemin).flatMap((p) => p.champ ?? []);
-  return new Set(champs).size < champs.length;
+  if (new Set(cles).size === cles.length) return undefined;
+  const premiers = new Map<string, number>();
+  let repetition: number | undefined;
+  for (const [rang, { champ }] of pasDuChemin(noeud, donnee, chemin).entries()) {
+    if (champ === undefined) continue;
+    const premier = premiers.get(champ);
+    if (premier === undefined) premiers.set(champ, rang);
+    else if (repetition === undefined || premier < repetition) repetition = premier;
+  }
+  return repetition;
 }
 
 /** Un élément d'un formulaire tiré du schéma, tel que ses zones le portent. */
@@ -170,25 +175,20 @@ interface GesteDeValeur { geste: 'valeur'; chemin: Segment[]; valeur?: unknown }
  *  - `porteur`, la clé qui nomme le porteur d'un geste `valeur`, sa donnée et son chemin depuis son document ;
  *    `document`, ce document, que la garde relit avant et après ;
  *  - `schema`, le nœud du schéma du porteur qu'écrit le jeu d'une offre et sa donnée, où se lit le champ qu'écrit une
- *    offre (`champEcrit`) : un chemin qui traverse deux fois le même champ ne se joue pas (`recursif`) ;
- *  - `exemplaires`, les valeurs que le corpus du porteur porte au nœud de schéma d'un champ.
- *  Sans `exemplaires`, le banc joue au régime FAIBLE : le choix d'une variante d'union joue la première non choisie,
- *  deux écritures sont les mêmes à la forme de la donnée qu'elles traversent (`empreinte`). Avec lui, au régime FORT :
- *  le choix d'une variante joue chacune d'elles (`jouerLesVariantes`) sous l'union qu'elle désigne (`unionDuChoix`),
- *  sinon sous son empreinte ; deux écritures sont les mêmes au champ du schéma qu'écrit leur chemin, quand il en écrit
- *  un ; une écriture que le porteur refuse se rejoue, un texte en son repli (`valeurDeRepli`), refusée encore en la
- *  première de ses exemplaires de la sorte de la saisie, autre que la courante, toute autre là où une autre donnée la
- *  porte, dans la partie. Le régime fort est réservé au Compendium, qui dédoublonne au champ : sous la déduplication
- *  par donnée de l'éditeur de scène, qui tient l'aller-retour partagé, son coût mesuré excède le délai de ses gardes. */
+ *    offre (`champEcrit`) : un chemin qui traverse deux fois le même champ ne se joue pas (`repetitionDans`) ;
+ *  - `explorerLesUnions`, qui joue leurs variantes par identité de schéma et dédouble les offres au champ ;
+ *  - `exemplaires`, les valeurs que le corpus du porteur porte au nœud de schéma d'un champ. Ce corpus ouvre aussi
+ *    l'exploration des unions et le rejeu d'une écriture que le porteur refuse (`valeurDeRepli`, `exemplaireDe`). */
 export interface BancDuFormulaire<S, Z, G extends { geste: string }> {
   zones(s: S): Z;
   elements(z: Z): readonly Element[];
   deballe(jeu: Jeu): unknown;
   geste(z: Z, s: S, jeu: Jeu): G | undefined;
   jouer(s: S, g: G): S;
-  porteur(s: S, g: Extract<G, GesteDeValeur>): { cle: string; donnee: unknown; chemin: Segment[] } | undefined;
+  porteur(s: S, g: Extract<G, GesteDeValeur>): { cle: string; donnee: unknown; chemin: Segment[]; noeud?: unknown } | undefined;
   document(s: S, g: Extract<G, GesteDeValeur>): unknown;
   schema(s: S, jeu: Jeu): { noeud: unknown; donnee: unknown } | undefined;
+  explorerLesUnions?: (noeud: unknown) => boolean;
   exemplaires?: (noeud: unknown) => readonly unknown[];
 }
 
@@ -196,7 +196,7 @@ export interface BancDuFormulaire<S, Z, G extends { geste: string }> {
  *  `chemin` de la donnée de nœud de l'`ancre` : le rang du nœud de l'union (`rangDu`), parmi celles qu'ouvre la donnée
  *  à son chemin (`varianteCourante`) ; le champ que le choix pose (`champEcrit`) si aucune union ne porte ce
  *  discriminant ; `undefined` hors du schéma. */
-function unionDuChoix(ancre: { noeud: unknown; donnee: unknown } | undefined, chemin: readonly Segment[], discriminant: string): string | undefined {
+function unionDuChoix(ancre: { noeud: unknown; donnee: unknown } | undefined, chemin: readonly Segment[], discriminant: string, explore?: (noeud: unknown) => boolean): string | undefined {
   if (!ancre) return undefined;
   const champ = champEcrit(ancre.noeud, ancre.donnee, chemin);
   const valeur = auChemin(ancre.donnee, chemin);
@@ -204,7 +204,9 @@ function unionDuChoix(ancre: { noeud: unknown; donnee: unknown } | undefined, ch
   for (;;) {
     const u = union(n);
     if (!u) return champ;
-    if (u.discriminant === discriminant || (u.discriminant === '' && discriminant === 'forme')) return String(rangDu(u.noeud as object));
+    if (u.discriminant === discriminant || (u.discriminant === '' && discriminant === 'forme')) {
+      return !explore || explore(u.noeud) ? String(rangDu(u.noeud as object)) : undefined;
+    }
     n = varianteCourante(u, valeur)?.noeud;
   }
 }
@@ -352,14 +354,13 @@ function choixDes(elements: readonly Element[], id: string): Choix {
 /** Le jeu des offres du formulaire du porteur au banc `banc` :
  *  - `jouerLInspecteur`, la session où chaque offre de son formulaire est jouée une fois, celles qui emportent des
  *    champs après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante
- *    rouvre les offres de ses champs, ou, au régime fort (`BancDuFormulaire.exemplaires`), joue chacune d'elles
+ *    rouvre les offres de ses champs, ou, pour une union à explorer, joue chacune d'elles
  *    (`jouerLesVariantes`) sous son union, avant toute autre offre, le choix le moins profond d'abord, sur le document
  *    le plus petit ; seules jouent les offres dont l'id commence par l'une des `branches` (toutes, par défaut), hors
- *    de celles qui traversent deux fois le même champ (`estRecursive`), qui tronquent la branche (`tronquee`) ; chaque écriture s'ajoute à `out` (`ecrire`), le discriminant du choix d'une
+ *    de celles qui traversent deux fois le même champ (`repetitionDe`), qui tronquent la branche (`tronquee`) ; chaque écriture s'ajoute à `out` (`ecrire`), le discriminant du choix d'une
  *    variante à l'id de son choix (`valeur/<chemin>/<discriminant>`). Une offre dont l'empreinte (`empreinte`, sous son
  *    propre discriminant s'il est une clé de sa valeur) a déjà été jouée dans la partie ne s'y ajoute pas ; elle se joue
- *    encore si sa valeur est un objet ou une liste, qui ouvre les offres de ses champs, sauf sous le champ que le banc
- *    dit au régime fort, dont ce qu'elle ouvre est déjà joué ;
+ *    encore si sa valeur est un objet ou une liste, qui ouvre les offres de ses champs dans l'inspecteur restreint ;
  *  - `ecrire`, la session où un geste `valeur` est joué, son écriture, avec son chemin depuis le document de son
  *    porteur et la saisie qui l'a portée, ajoutée à `out` : celle du choix d'une variante qui porte le `discriminant`,
  *    marquée de sa `variante`, sur une variante quittée, son discriminant et chaque champ qu'elle pose et que la
@@ -383,19 +384,24 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
   type Valeur = Extract<G, GesteDeValeur>;
   /** Le régime FORT du banc (`BancDuFormulaire`) : il porte ses exemplaires. */
   const fort = banc.exemplaires !== undefined;
+  const explore = fort || banc.explorerLesUnions !== undefined;
   const estValeur = (g: G | undefined): g is Valeur => g?.geste === 'valeur';
 
-  /** Le champ qu'écrit au chemin `chemin` le jeu `jeu` de la session `s`, au schéma de son porteur (`schema`,
-   *  `champEcrit`) ; `undefined` hors du schéma. */
+  /** L'identité de l'offre au schéma du porteur. Dans un document, un même nœud réutilisé reçoit des porteurs
+   *  déclarés distincts : l'offre du champ se qualifie par celle de son parent immédiat. */
   const champDe = (s: S, jeu: Jeu, chemin: readonly Segment[]): string | undefined => {
     const ancre = banc.schema(s, jeu);
-    return ancre && champEcrit(ancre.noeud, ancre.donnee, chemin);
+    if (!ancre) return undefined;
+    const champ = champEcrit(ancre.noeud, ancre.donnee, chemin);
+    if (champ === undefined || banc.explorerLesUnions === undefined) return champ;
+    const parent = champEcrit(ancre.noeud, ancre.donnee, chemin.slice(0, -1));
+    return JSON.stringify([parent, champ]);
   };
 
-  /** L'offre `o` de la session `s` traverse-t-elle deux fois le même champ du schéma de son porteur (`recursif`) ? */
-  const estRecursive = (s: S, o: Offre): boolean => {
+  /** Le rang du premier passage d'un champ répété dans l'offre `o` (`repetitionDans`). */
+  const repetitionDe = (s: S, o: Offre): number | undefined => {
     const ancre = banc.schema(s, o.jeu);
-    return ancre !== undefined && recursif(ancre.noeud, ancre.donnee, o.chemin);
+    return ancre && repetitionDans(ancre.noeud, ancre.donnee, o.chemin);
   };
 
   /** Le geste que joue le jeu `jeu` des zones `zones` de la session `s`, passé en JSON comme le pont le reçoit
@@ -410,7 +416,7 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
   }
 
   /** L'EMPREINTE de l'écriture `geste` portée par la saisie `saisie` sur la session `s` : le champ `champ` qu'elle
-   *  écrit, au régime fort (`champDe`), sinon la clé de son porteur,
+   *  écrit, quand le banc explore les unions (`champDe`), sinon la clé de son porteur,
    *  son chemin aux rangs effacés, la forme du porteur et de chaque objet que le chemin traverse ; et la forme de la valeur jouée, sous les `discriminants` des
    *  variantes déjà choisies dans la partie. Deux écritures de même empreinte écrivent les mêmes champs de la même
    *  variante : la seconde ne s'ajoute à rien. */
@@ -446,54 +452,93 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
 
   /** La session `suite`, jouée depuis `s` par l'écriture `geste`, consignée à `out` (`ecrire`) ; du choix d'une variante,
    *  chacune de ses clés `figees` (`clesFigees`) hors de son discriminant, écrite par ce choix. */
-  function consigner(s: S, suite: S, geste: Valeur, saisie: string, out: EcritureJouee[], discriminant?: string, figees: readonly string[] = []): S {
+  function consigner(s: S, suite: S, geste: Valeur, saisie: string, out: EcritureJouee[], discriminant?: string, figees: readonly string[] = [], mouvement?: EcritureJouee['mouvement']): S {
     const avant = banc.document(s, geste);
     const apres = banc.document(suite, geste);
     const porteur = banc.porteur(s, geste)!;
     const quittee = auChemin(porteur.donnee, geste.chemin);
     const variante = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur ? geste.valeur : undefined;
-    const ecrits = variante && estObjet(quittee)
-      ? Object.keys(variante).filter((cle) => cle === discriminant || !(estObjet(quittee) && cle in quittee)).map((cle) => ({ chemin: [...geste.chemin, cle], valeur: variante[cle] }))
-      : [{ chemin: geste.chemin, valeur: geste.valeur }];
+    const ecrits = [{ chemin: geste.chemin, valeur: geste.valeur }];
+    const parent = geste.chemin.slice(0, -1);
+    const crediteParent = porteur.noeud !== undefined && !mouvement && discriminant === undefined && typeof parent[parent.length - 1] === 'string'
+      && estObjet(auChemin(porteur.donnee, parent))
+      && marcher(porteur.noeud, porteur.donnee, parent)?.champ !== undefined;
+    if (variante && estObjet(quittee)) {
+      for (const cle of Object.keys(variante)) {
+        if (cle === discriminant || !(cle in quittee)) ecrits.push({ chemin: [...geste.chemin, cle], valeur: variante[cle] });
+      }
+    }
     if (variante) deLaPartie(discriminantsJoues, out).add(discriminant!);
-    for (const ecrit of ecrits) out.push({ avant, apres, chemin: [...porteur.chemin, ...ecrit.chemin], valeur: ecrit.valeur, saisie, ...(variante ? { variante: discriminant } : {}) });
+    for (const ecrit of ecrits) out.push({
+      avant, apres, chemin: [...porteur.chemin, ...ecrit.chemin], valeur: ecrit.valeur, saisie,
+      ...(variante ? { variante: discriminant } : {}), ...(mouvement ? { mouvement } : {}), ...(crediteParent ? { crediteParent: true as const } : {}),
+    });
     for (const cle of figees) if (cle !== discriminant) out.push({ avant, apres, chemin: [...porteur.chemin, ...geste.chemin, cle], valeur: (geste.valeur as Record<string, unknown>)[cle], saisie, variante: cle });
     return suite;
   }
 
-  function jouerLInspecteur(depart: S, out: EcritureJouee[], branches: readonly string[] = [''], jouees = new Set<string>(), tronquee = { oui: false }): S {
+  /** Le geste à son rang, consigné au conteneur avec sa position. Une valeur scalaire offerte à l'ajout s'écrit
+   *  aussi à son rang ou à sa clé, par le geste qui l'a posée. */
+  function consignerLeConteneur(s: S, suite: S, joue: G, geste: Valeur, offre: Offre, out: EcritureJouee[]): S {
+    const porteur = banc.porteur(s, geste)!;
+    const ecrit = { ...geste, valeur: auChemin(banc.porteur(suite, geste)?.donnee, geste.chemin) };
+    if (!('chemin' in joue) || !Array.isArray(joue.chemin)) throw new Error(`l’offre ${offre.id} ne désigne aucun rang ni clé`);
+    const ajoute = estValeur(joue) && joue.valeur !== undefined;
+    const mouvement: EcritureJouee['mouvement'] = offre.cle ? undefined : {
+      geste: joue.geste === 'monter' ? 'monter' : ajoute ? 'inserer' : 'retirer',
+      chemin: [...porteur.chemin, ...joue.chemin],
+    };
+    consigner(s, suite, ecrit, offre.saisie, out, undefined, [], mouvement);
+    if (ajoute && (joue.valeur === null || typeof joue.valeur !== 'object')) {
+      consigner(s, suite, joue, offre.saisie, out, undefined, [], mouvement);
+    }
+    return suite;
+  }
+
+  function jouerLInspecteur(depart: S, out: EcritureJouee[], branches: readonly string[] = [''], jouees = new Set<string>(), tronquee: { oui: boolean; avant?: number } = { oui: false }): S {
     let s = depart;
     const deja = deLaPartie(empreintesJouees, out);
+    const rejoueLesStructures = !fort && branches.some(Boolean);
+    const ouvreDesChamps = (valeur: unknown) => estObjet(valeur) || Array.isArray(valeur);
     for (let n = 0; n < GESTES_AU_PLUS; n++) {
       const zones = banc.zones(s);
       const offertes = offres(banc, banc.elements(zones)).filter((o) => branches.some((b) => o.id.startsWith(b)));
-      const restantes = offertes.filter((o) => !estRecursive(s, o));
-      if (restantes.length < offertes.length) tronquee.oui = true;
+      const restantes = offertes.filter((o) => {
+        const repetition = repetitionDe(s, o);
+        if (repetition === undefined) return true;
+        if (repetition < (tronquee.avant ?? Infinity)) tronquee.oui = true;
+        return false;
+      });
       for (;;) {
         const libres = restantes.filter((o) => !jouees.has(o.id));
-        const variantes = fort ? libres.filter((o) => o.saisie === 'saisieChoix' && o.emporte && estLeChoixDUneVariante(o.id, o.chemin)) : [];
+        const variantes = explore ? libres.filter((o) => o.saisie === 'saisieChoix' && o.emporte && estLeChoixDUneVariante(o.id, o.chemin)) : [];
         const offre = variantes.reduce<Offre | undefined>((a, o) => (a && a.chemin.length <= o.chemin.length ? a : o), undefined)
           ?? libres.find((o) => !o.emporte)
           ?? libres.reduce((a, o) => (o.chemin.length > a.chemin.length ? o : a), libres[0]);
         if (!offre) return s;
         jouees.add(offre.id);
-        const champ = fort ? champDe(s, offre.jeu, offre.chemin) : undefined;
+        const champ = explore ? champDe(s, offre.jeu, offre.chemin) : undefined;
         const choixDeVariante = offre.emporte && offre.saisie === 'saisieChoix';
         // Sous un champ que dit le banc, une offre déjà jouée se lit à l'offre même : son geste ne s'en tire pas.
-        if (champ !== undefined && !choixDeVariante && deja.has(empreinteAuChamp(champ, offre.saisie, offre.valeur, deLaPartie(discriminantsJoues, out)))) continue;
+        if (champ !== undefined && !choixDeVariante && (!rejoueLesStructures || !ouvreDesChamps(offre.valeur)) &&
+          deja.has(empreinteAuChamp(champ, offre.saisie, offre.valeur, deLaPartie(discriminantsJoues, out)))) continue;
         const joue = gesteDuJeu(zones, s, offre.jeu);
         if (!joue) throw new Error(`l’offre ${offre.id} n’est pas offerte`);
         // Le geste d'un élément à son rang s'empreint et se consigne en écriture de sa liste (`Offre.rang`).
-        const geste = offre.rang ? ({ ...joue, geste: 'valeur', chemin: offre.chemin, valeur: offre.valeur } as Valeur) : valeurDuJeu(zones, s, offre.jeu, offre.id);
+        const geste = offre.rang ? ({ ...joue, geste: 'valeur', chemin: offre.chemin, valeur: offre.valeur } as Valeur) : joue;
+        if (!estValeur(geste)) throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
         const discriminant = choixDeVariante ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
         const propre = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur;
         const cle = empreinte(s, geste, offre.saisie, propre ? new Set([...deLaPartie(discriminantsJoues, out), discriminant]) : deLaPartie(discriminantsJoues, out), champ);
-        if (fort && discriminant !== undefined && estLeChoixDUneVariante(offre.id, geste.chemin)) {
-          jouerLesVariantes(s, offre.id, out, unionDuChoix(banc.schema(s, offre.jeu), geste.chemin, discriminant) ?? cle);
-          continue;
+        if (explore && discriminant !== undefined && estLeChoixDUneVariante(offre.id, geste.chemin)) {
+          const union = unionDuChoix(banc.schema(s, offre.jeu), geste.chemin, discriminant, banc.explorerLesUnions);
+          if (fort || union !== undefined) {
+            jouerLesVariantes(s, offre.id, out, union ?? cle);
+            continue;
+          }
         }
         const neuve = !deja.has(cle);
-        if (!neuve && (champ !== undefined || (!estObjet(geste.valeur) && !Array.isArray(geste.valeur)))) continue;
+        if (!neuve && (!ouvreDesChamps(geste.valeur) || (champ !== undefined && !rejoueLesStructures))) continue;
         deja.add(cle);
         // Une autre variante choisie rouvre les champs qu'elle porte, homonymes de ceux de la variante quittée.
         if (choixDeVariante) {
@@ -501,12 +546,13 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
           for (const id of jouees) if (id !== offre.id && id.startsWith(sous)) jouees.delete(id);
         }
         const jouee = banc.jouer(s, offre.rang ? joue : geste);
-        const ecrite = offre.rang ? ({ ...geste, valeur: auChemin(banc.porteur(jouee, geste)?.donnee, offre.chemin) ?? [] } as Valeur) : geste;
-        const suite = neuve ? consigner(s, jouee, ecrite, offre.saisie, out, discriminant) : jouee;
+        const suite = !neuve ? jouee
+          : offre.rang ? consignerLeConteneur(s, jouee, joue, geste, offre, out)
+            : consigner(s, jouee, geste, offre.saisie, out, discriminant);
         // Une écriture refusée se rejoue : un texte en son repli, le porteur jugeant sa forme (une extension, un
         // identifiant) ; refusée encore, en un exemplaire du corpus (`exemplaireDe`) ; sans lui, toute autre, ou un
         // texte sans texte courant, là où une autre donnée la porte.
-        const refuse = neuve && fort && !offre.emporte && isDeepStrictEqual(banc.document(s, geste), banc.document(suite, geste));
+        const refuse = neuve && explore && !offre.emporte && isDeepStrictEqual(banc.document(s, geste), banc.document(suite, geste));
         const relue = refuse && offre.repli ? ecrire(s, valeurDuJeu(zones, s, offre.repli, offre.id), offre.saisie, out) : suite;
         const exemplaire = refuse && isDeepStrictEqual(banc.document(s, geste), banc.document(relue, geste)) ? exemplaireDe(s, offre, geste) : undefined;
         if (refuse && !offre.repli && !exemplaire) deja.delete(cle);
@@ -520,19 +566,26 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
   /** La session où l'exemplaire `jeu` de l'offre `offre` de la session `s`, de geste `geste`, est joué et consigné à
    *  `out` (`ecrire`) ; d'un geste à son rang (`Offre.rang`), en écriture de ce qui le porte, sa valeur lue après lui. */
   function ecrireLExemplaire(s: S, offre: Offre, geste: Valeur, jeu: Jeu, out: EcritureJouee[]): S {
-    if (!offre.rang) return ecrire(s, valeurDuJeu(banc.zones(s), s, jeu, offre.id), offre.saisie, out);
-    const jouee = banc.jouer(s, valeurDuJeu(banc.zones(s), s, jeu, offre.id));
-    return consigner(s, jouee, { ...geste, valeur: auChemin(banc.porteur(jouee, geste)?.donnee, offre.chemin) } as Valeur, offre.saisie, out);
+    const joue = valeurDuJeu(banc.zones(s), s, jeu, offre.id);
+    if (!offre.rang) return ecrire(s, joue, offre.saisie, out);
+    return consignerLeConteneur(s, banc.jouer(s, joue), joue, geste, offre, out);
   }
 
-  /** Les unions dont `jouerLesVariantes` joue les variantes, à cet instant. */
-  const unionsEnCours = new Set<unknown>();
+  /** Les unions et les charges d'opérations dont les variantes se jouent à cet instant. Deux menus
+   *  d'opérations peuvent partager des charges par identité, avec une autre charge pour le même nom. */
+  const unionsEnCours = new Set<string>();
+  const chargesEnCours = new Set<object>();
 
-  function jouerLesVariantes(s: S, id: string, out: EcritureJouee[], union?: unknown): void {
+  function jouerLesVariantes(s: S, id: string, out: EcritureJouee[], identite?: string): void {
     const branche = id.slice(0, id.lastIndexOf('/') + 1);
     const zones = banc.zones(s);
     const valeurs = choixDes(banc.elements(zones), id).valeurs;
-    if (union === undefined) {
+    if (banc.explorerLesUnions && identite === undefined) {
+      const premier = valeurDuJeu(zones, s, valeurs[0].jeu, valeurs[0].id);
+      const discriminant = id.slice(`valeur/${premier.chemin.join('/')}/`.length);
+      identite = unionDuChoix(banc.schema(s, valeurs[0].jeu), premier.chemin, discriminant, banc.explorerLesUnions);
+    }
+    if (identite === undefined) {
       for (const v of valeurs) {
         const geste = valeurDuJeu(zones, s, v.jeu, v.id);
         jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out, id.slice(`valeur/${geste.chemin.join('/')}/`.length)), out, [branche]);
@@ -545,43 +598,76 @@ export function jeuDuFormulaire<S, Z, G extends { geste: string }>(banc: BancDuF
     const premier = valeurDuJeu(zones, s, valeurs[0].jeu, valeurs[0].id);
     const chemin = premier.chemin;
     const discriminant = id.slice(`valeur/${chemin.join('/')}/`.length);
-    const pose = JSON.stringify([union, typeof chemin[chemin.length - 1] === 'number' ? null : champDe(s, valeurs[0].jeu, chemin)]);
+    const pose = JSON.stringify([identite, typeof chemin[chemin.length - 1] === 'number' ? null : champDe(s, valeurs[0].jeu, chemin)]);
     const quittee = auChemin(banc.porteur(s, premier)?.donnee, chemin);
     const valeurDe = (v: Choix['valeurs'][number]): unknown => ('args' in v.jeu ? v.jeu.args[2] : undefined);
+    const offres = valeurs.map((bouton) => ({ bouton, valeur: valeurDe(bouton) }));
     const ancre = banc.schema(s, valeurs[0].jeu);
-    const figeesDe = (v: unknown): string[] => clesFigees(ancre, chemin, v);
-    const formeDe = (v: unknown): string => JSON.stringify([union, forme(v, new Set([discriminant, ...figeesDe(v)]))]);
+    const unionDOperations = banc.explorerLesUnions && discriminant === 'op' && ancre ? union(marcher(ancre.noeud, ancre.donnee, chemin)?.noeud) : undefined;
+    const charges = unionDOperations?.discriminant === 'op' ? new Map(unionDOperations.variantes.map((v) => [v.cle, v.noeud as object])) : undefined;
+    const chargeDe = (v: unknown): object | undefined => estObjet(v) && typeof v.op === 'string' ? charges?.get(v.op) : undefined;
+    const chargesLocales = new Set<object>();
+    for (const { valeur } of offres) {
+      const charge = chargeDe(valeur);
+      if (charge !== undefined && !chargesEnCours.has(charge)) chargesLocales.add(charge);
+    }
+    const noeudsAuChoix = ancre ? noeudsAuChemin(ancre.noeud, ancre.donnee, chemin) : [];
+    const figeesDe = (v: unknown): string[] => {
+      const charge = chargeDe(v);
+      return clesFigees(charge ? [charge] : noeudsAuChoix, v);
+    };
+    const formeDe = (v: unknown): string => {
+      const charge = chargeDe(v);
+      return JSON.stringify([charge ? rangDu(charge) : identite, forme(v, new Set([discriminant, ...figeesDe(v)]))]);
+    };
     /** Le choix de la variante `w` joué depuis `x`, ses clés figées (`clesFigees`) écrites avec lui. */
     const ecrireLaVariante = (x: S, w: Choix['valeurs'][number]): S => {
       const geste = valeurDuJeu(banc.zones(x), x, w.jeu, w.id);
       return ecrire(x, geste, 'saisieChoix', out, discriminant, figeesDe(geste.valeur));
     };
-    const enCours = unionsEnCours.has(union);
-    unionsEnCours.add(union);
-    for (const v of valeurs) {
-      const variante = formeDe(valeurDe(v));
-      const neuve = !enCours && !explorees.has(variante);
-      const aPoser = (depuis: unknown): string[] => clesChangees(depuis, valeurDe(v), discriminant).map((cle) => JSON.stringify([variante, cle])).filter((c) => !cles.has(c));
+    const enCours = unionsEnCours.has(identite);
+    unionsEnCours.add(identite);
+    for (const charge of chargesLocales) chargesEnCours.add(charge);
+    for (const { bouton, valeur } of offres) {
+      const charge = chargeDe(valeur);
+      if (charge !== undefined && !chargesLocales.has(charge)) {
+        // L'appel englobant joue cette même charge. Ici, il reste à prouver la pose du contenant local.
+        if (!bouton.presse && !posees.has(pose) && ecrireLaVariante(s, bouton) !== s) posees.add(pose);
+        continue;
+      }
+      const variante = formeDe(valeur);
+      const neuve = (charge !== undefined || !enCours) && !explorees.has(variante);
+      const ids = new Map((estObjet(valeur) ? Object.keys(valeur) : ['']).map((cle) => [cle, JSON.stringify([variante, cle])]));
+      const aPoser = (depuis: unknown): string[] => clesChangees(depuis, valeur, discriminant).map((cle) => ids.get(cle)!).filter((c) => !cles.has(c));
       const ici = aPoser(quittee);
-      if (neuve || ici.length || (!v.presse && !posees.has(pose))) {
-        const choisie = ecrireLaVariante(s, v);
+      if (neuve || ici.length || (!bouton.presse && !posees.has(pose))) {
+        const choisie = ecrireLaVariante(s, bouton);
         for (const c of ici) cles.add(c);
-        if (!v.presse) posees.add(pose);
+        if (!bouton.presse) posees.add(pose);
         if (neuve) {
-          const tronquee = { oui: false };
+          // Sous une charge, une répétition interne a déjà son premier passage dans ce même rejeu.
+          const tronquee = { oui: false, ...(charge === undefined ? {} : { avant: chemin.length }) };
           jouerLInspecteur(choisie, out, [branche], new Set([id]), tronquee);
           if (!tronquee.oui) explorees.add(variante);
         }
       }
       // Les clés que le choix ne change pas depuis la quittée se changent depuis l'autre variante qui en change le plus.
-      const depuis = valeurs.map((w) => ({ w, gain: aPoser(valeurDe(w)) })).reduce((a, x) => (x.gain.length > a.gain.length ? x : a));
-      if (!depuis.gain.length) continue;
-      const autre = ecrireLaVariante(s, depuis.w);
+      const restantes = [...ids.values()].filter((c) => !cles.has(c)).length;
+      if (!restantes) continue;
+      let depuis: { bouton: Choix['valeurs'][number]; gain: string[] } | undefined;
+      for (const offre of offres) {
+        const gain = aPoser(offre.valeur);
+        if (gain.length && (!depuis || gain.length > depuis.gain.length)) depuis = { bouton: offre.bouton, gain };
+        if (gain.length === restantes) break;
+      }
+      if (!depuis) continue;
+      const autre = ecrireLaVariante(s, depuis.bouton);
       const retour = choix(autre, id).valeurs.find((r) => formeDe(valeurDe(r)) === variante);
       if (retour) ecrireLaVariante(autre, retour);
       for (const c of depuis.gain) cles.add(c);
     }
-    if (!enCours) unionsEnCours.delete(union);
+    for (const charge of chargesLocales) chargesEnCours.delete(charge);
+    if (!enCours) unionsEnCours.delete(identite);
   }
 
   const choix = (s: S, id: string): Choix => choixDes(banc.elements(banc.zones(s)), id);

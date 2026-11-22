@@ -1,9 +1,10 @@
-import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng } from './battleRng';
-import { applyAttackResult, attackWeaponOf, victimeDuCoup, resolveCastChain } from './combatFlow';
+import { applyAttackResult, resolveCastChain } from './combatFlow';
+import { fenetreDAttaque } from './fenetreDAttaque';
+import { inBattleId } from './monde/combatants';
 import { draineCascade } from './cascade.testkit';
 import { toucheSauvee, hitModifiers } from './combat/hitModifiers';
 import { createHero } from '../engine/character';
@@ -213,8 +214,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
 
 const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 
-/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetLancer('attaque')` la
- *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attaque')`. */
+// LDB 14 l.106, l.116 ; LDB 13 l.183 ; LDB 18 l.53, l.55
 function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().ensemencerLeTirage(3);
   const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
@@ -233,20 +233,28 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const [cible, victime] = cas === 'tas' ? [e1, e2] : [e1, A];
   const res = resolveStrayRangedHit(H, victime, arc, 44, 90, { rng: makeRNG(3) });
   banc.setState({ pendingAttack: { attackerId: H.id, targetId: cible.id, location: null, result: res, victimId: victime.id, weapon: arc } });
-  const s = banc.getState();
-  const pa = s.pendingAttack!;
-  const battle = s.battle!;
-  const target = battle.combatants.find((c) => c.id === pa.targetId)!;
-  const encaisse = victimeDuCoup(battle, target, pa);
-  const { compte } = issueAuJet(encaisse, coupAApplique(res, pa.grapple, encaisse), attackWeaponOf(findTrappingById, banc.getState().scene, battle, H, target, pa), H);
-  const apercu = { critiques: compte.critiques.length, blessures: compte.blessures };
+  const apercu = fenetreDAttaque(banc.getState())?.issue;
+  const debutDuJournal = banc.getState().battle!.log.length;
   const avant = structuredClone(victime);
   const visee = structuredClone(cible);
   banc.getState().jetValider('attaque');
   draineCascade(banc.getState, 200, () => 1);
-  const apres = (c: Combatant) => banc.getState().battle!.combatants.find((x) => x.id === c.id)!;
-  const applique = { critiques: (apres(victime).criticalWounds ?? 0) - (avant.criticalWounds ?? 0), blessures: res.woundsLost ?? 0 };
-  return { apercu, applique, res, perdues: avant.wounds.current - apres(victime).wounds.current, viseeIntacte: apres(cible).wounds.current === visee.wounds.current };
+  const bataille = banc.getState().battle!;
+  const victimeApres = inBattleId(bataille, victime.id)!;
+  const viseeApres = inBattleId(bataille, cible.id)!;
+  const ligneAppliquee = bataille.log.slice(debutDuJournal).find((evenement) =>
+    evenement.kind === 'tir' && evenement.actorId === H.id && evenement.targetId === victime.id
+  )?.text;
+  const applique = {
+    critiques: (victimeApres.criticalWounds ?? 0) - (avant.criticalWounds ?? 0),
+    blessures: res.woundsLost ?? 0,
+    perdues: avant.wounds.current - victimeApres.wounds.current,
+  };
+  const surLaCibleVisee = {
+    blessures: visee.wounds.current - viseeApres.wounds.current,
+    critiques: (viseeApres.criticalWounds ?? 0) - (visee.criticalWounds ?? 0),
+  };
+  return { apercu, ligneAppliquee, applique, surLaCibleVisee, res };
 }
 
 describe('aperçu au jet = application, Déviation au défaut (LDB 63 l.30)', () => {
@@ -263,12 +271,15 @@ describe('aperçu au jet = application, Déviation au défaut (LDB 63 l.30)', ()
 describe("aperçu au jet = application : la touche déviée se compte sur celui qui l'encaisse", () => {
   beforeEach(() => { setRule('combat-deviation-critique', false); });
 
-  for (const cas of ['tas', 'melee'] as const) it(`${cas} : la victime encaisse, pas la cible visée`, () => {
-    const { apercu, applique, res, perdues, viseeIntacte } = devieePuisApplication(cas);
-    expect(res.critical, 'le double de 44 porte un Critique').toBeTruthy();
-    expect(viseeIntacte, 'la cible visée ne perd rien').toBe(true);
-    expect(perdues, 'la victime perd au moins les Blessures du coup').toBeGreaterThanOrEqual(applique.blessures);
-    expect(applique.blessures).toBeGreaterThan(0);
-    expect(apercu).toEqual(applique);
+  it.each([
+    { cas: 'tas', genre: 'degats', attendu: { blessures: 9, perdues: 9, critiques: 0 } },
+    { cas: 'melee', genre: 'critique', attendu: { blessures: 6, perdues: 7, critiques: 1 } },
+  ] as const)('$cas : la victime encaisse, la cible visée reste intacte', ({ cas, genre, attendu }) => {
+    const { apercu, ligneAppliquee, applique, surLaCibleVisee, res } = devieePuisApplication(cas);
+    expect(res).toMatchObject({ attackerRoll: 44, critical: true });
+    expect(applique).toEqual(attendu);
+    expect(surLaCibleVisee).toEqual({ blessures: 0, critiques: 0 });
+    expect(ligneAppliquee).toBeTruthy();
+    expect(apercu).toEqual({ genre, ligne: ligneAppliquee });
   });
 });

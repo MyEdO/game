@@ -16,6 +16,9 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "poil",

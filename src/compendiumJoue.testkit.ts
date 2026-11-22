@@ -225,8 +225,7 @@ interface ChampDuPerimetre { chemin: string; conteneur: boolean }
  *  l'identité qu'une liste tient figée par le code (`identiteFigee`), et chaque clé posée d'un record (`clesDuRecord`),
  *  hors de celles d'un record total (`recordTotal`) de conteneurs requis, nommé par son chemin abstrait : clés, `#` d'un
  *  rang, `*` d'une clé de record, `<discriminant=clé>`
- *  d'une variante d'union (`unionDuNoeud`). Une variante sans forme (une op de `OPS_NON_TYPEES`, saisie en JSON) ne
- *  déclare aucun champ. Les conteneurs requis qu'il écarte vont à `requis`, ceux qu'exige chaque porteur qui les
+ *  d'une variante d'union (`unionDuNoeud`). Les conteneurs requis qu'il écarte vont à `requis`, ceux qu'exige chaque porteur qui les
  *  traverse (`exigeParSonPorteur`) compris, chacune de leurs occurrences comptée. */
 function perimetreDuNoeud(racines: readonly unknown[], requis: Map<string, ChampDuPerimetre>): Map<string, ChampDuPerimetre> {
   const out = new Map<string, ChampDuPerimetre>();

@@ -1133,7 +1133,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
   });
 
   it('une exposition HORS combat ouvre tout de suite la bande de Contraction, et consomme le marqueur (LDB 20)', () => {
-    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: 'peste-noire' }] } as never }, 'Puces'));
+    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: { id: 'peste-noire' } }] } as never }, 'Puces'));
     const bande = bandeDeContraction();
     expect(bande?.meta).toEqual({ entry: 'contagion', disease: 'peste-noire' });
     expect(bande?.participants?.map((p) => [p.id, p.difficulty])).toEqual(get().party.map((h) => [h.id, 'accessible']));
@@ -1142,7 +1142,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
 
   it('`membreAuHasard` : la feuille touche UN héros quand l’équipage PNJ est vide', () => {
     sansMarins();
-    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] } as never }, 'Rats'));
+    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' } }] } as never }, 'Rats'));
     expect(bandeDeContraction()?.participants).toHaveLength(1);
   });
 
@@ -1152,11 +1152,11 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops } as never }, 'Rats', sl));
   /** La table de l'Infestation de rats géants : 30 % d'exposition à la fièvre du rongeur. MDG 15 l.161 */
   const fievreA30: GameOp = { op: 'rollTable', die: { n: 1, sides: 100 }, entries: [
-    { min: 1, max: 30, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] }, { min: 31, max: 100, ops: [] },
+    { min: 1, max: 30, ops: [{ op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' } }] }, { min: 31, max: 100, ops: [] },
   ] };
   /** Le dé 1d10 + |DR négatif| (`addNegativeSL`) : 6 et plus expose. MSRC 16 l.90 */
   const parLeDRNegatif: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, addNegativeSL: true, entries: [
-    { min: 1, max: 5, ops: [] }, { min: 6, max: 99, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] },
+    { min: 1, max: 5, ops: [] }, { min: 6, max: 99, ops: [{ op: 'exposeDisease', disease: { id: 'fievre-du-rongeur' } }] },
   ] };
 
   it('un marin tiré, dé 1-30 : la bande de l’équipage seul ; son échec lui donne la fièvre du rongeur (MDG 15 l.161)', () => {
@@ -1210,7 +1210,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
 
   it('un marin tiré, `contractDisease` : l’équipage porte la maladie sans bande (`contractDisease`, #4448)', () => {
     imposerLesD100(100);
-    feuilleAuHasard([{ op: 'contractDisease', disease: 'fievre-du-rongeur' }]);
+    feuilleAuHasard([{ op: 'contractDisease', disease: { id: 'fievre-du-rongeur' } }]);
     expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
     expect(get().pendingCascade).toBeNull();
   });
@@ -1235,13 +1235,13 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
 
   it('Infestations : la donnée porte la RAW (Complexe 25 DR / 3d10 Enc / 30 % ; Intermédiaire 10 DR / 1d10 Enc / 15 %)', () => {
     const geants = JSON.stringify(consequence('infestation-de-rats-geants'));
-    expect(geants).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"complexe","drCible":25');
+    expect(geants).toContain('"test":{"crewTestType":"extermination-nuisibles","difficulty":"complexe"},"drCible":25');
     expect(geants).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":3,"sides":10}}}');
-    expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+    expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":{"id":"fievre-du-rongeur"}}]}');
     const rats = JSON.stringify(consequence('infestation-de-rats'));
-    expect(rats).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"intermediaire","drCible":10');
+    expect(rats).toContain('"test":{"crewTestType":"extermination-nuisibles","difficulty":"intermediaire"},"drCible":10');
     expect(rats).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":1,"sides":10}}}');
-    expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+    expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":{"id":"fievre-du-rongeur"}}]}');
   });
 
   it('Extermination : chaque étape cumule ses DR jusqu’au total, et l’infestation tombe (MDG 14 l.98-104)', () => {

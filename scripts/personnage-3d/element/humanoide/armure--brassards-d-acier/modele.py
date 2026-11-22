@@ -44,7 +44,7 @@ def canon(D, b, c, materiaux, manches, manche):
     porteur = b.porteur(D['ZONES'][c])
     n = D['COLONNES']
     thetas = [math.radians(360.0 * j / n) for j in range(n)]
-    grille, poids, radiales, centres = [], [], [], []
+    grille, radiales, centres = [], [], []
     for s_dos, s_pli in D['RANGEES']:
         rangee, rad = [], []
         for t in thetas:

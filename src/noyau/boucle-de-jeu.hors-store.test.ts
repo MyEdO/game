@@ -1964,7 +1964,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(line.effect.magicKnown).toBeUndefined();
   });
 
-  it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
+  it('Évaluation du contenu du coffre : un échec à DR négatif ouvre un nouvel essai le lendemain avec le délai par défaut', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);

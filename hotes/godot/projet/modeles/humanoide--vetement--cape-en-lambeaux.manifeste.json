@@ -1,0 +1,33 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "cape-en-lambeaux"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "manteau",
+  "couvre": [],
+  "chaines": [
+    "cape"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cape",
+      "palette": "accent",
+      "matiere": "prop--laine"
+    }
+  ],
+  "glb": {
+    "sha256": "d7bf035a85f89b7ed939f589cf8dc939e8d36c737c4589bf8e58c9791ef3cfe0",
+    "octets": 902880
+  }
+}

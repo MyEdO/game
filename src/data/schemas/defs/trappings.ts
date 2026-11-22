@@ -47,7 +47,7 @@ export const file = 'trappings.json';
 export const famille = 'entite';
 export const VARIANT_RESOLVED_FIELDS = ['source', 'alsoIn', 'descRef', 'qualities', 'availability', 'damage', 'price', 'manieAussi', 'qualitesAuChoix'] as const;
 
-export const apparenceDObjetSchema = nommerChamps(z.looseObject({
+export const apparenceDObjetSchema = nommerChamps(z.strictObject({
   shape: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
   formChoices: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
 }), {
@@ -265,6 +265,8 @@ const doc = document(
     sizeFor: sizeCategorySchema.optional(),
     /** Arbitrage #4110 (2026-11-16) */
     reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
+    /** #3045 Q4 ; EDOC 12 l.170-197 */
+    groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
@@ -284,6 +286,8 @@ const doc = document(
     passive: passifsDe(undefined, OBJETS_DU_PROJET).optional(),
     /** LDB 66 l.12-14 */
     service: z.boolean().optional(),
+    /** LDB 68 l.25, l.48 */
+    licenceDeGuilde: z.literal(true).optional(),
   },
   {
     ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
@@ -334,6 +338,7 @@ const doc = document(
       hint: 'Version grande taille d’une possession ordinaire (ex. équipement pour Ogre)',
     },
     reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
+    groups: { label: 'Groupes de l’objet', hint: 'Groupes perçus lorsque l’objet est porté ou tenu en vue' },
     availability: { label: 'Disponibilité' },
     ammoRangeMod: {
       label: 'Modificateur de portée (munition)',
@@ -366,6 +371,10 @@ const doc = document(
       label: 'Objet-service',
       hint: 'Marque un tarif de service (chambre, écurie…), pas un objet possédable',
     },
+    licenceDeGuilde: {
+      label: 'Licence de Guilde identifiée',
+      hint: 'Licence dont la Guilde émettrice est identifiée',
+    },
   },
   {
     codex: { keys: ['trappings'] },
@@ -381,7 +390,7 @@ const doc = document(
       champDeCharge: 'categorie',
       chargeParDiscriminant,
       requisesParDiscriminant: { melee: [], distance: [] },
-      marqueurs: ['service'],
+      marqueurs: ['service', 'licenceDeGuilde'],
     },
     affinerEntree: (entree) =>
       affinerAvecCatalogues(entree, (lire) => {

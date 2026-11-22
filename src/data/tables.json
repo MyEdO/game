@@ -506,9 +506,9 @@
           {
             "op": "grantTrait",
             "trait": {
-              "id": "lanceur-de-sorts",
-              "arg": "au choix"
-            }
+              "id": "lanceur-de-sorts"
+            },
+            "choix": true
           }
         ]
       }
@@ -1270,7 +1270,9 @@
         "ops": [
           {
             "op": "rollTable",
-            "tableId": "vdm-incantateur-hasardeux-domaine"
+            "table": {
+              "id": "vdm-incantateur-hasardeux-domaine"
+            }
           }
         ]
       }
@@ -2654,7 +2656,9 @@
         "ops": [
           {
             "op": "contractDisease",
-            "disease": "blessure-purulente"
+            "disease": {
+              "id": "blessure-purulente"
+            }
           }
         ]
       },
@@ -2665,7 +2669,9 @@
         "ops": [
           {
             "op": "contractDisease",
-            "disease": "verole-urticante"
+            "disease": {
+              "id": "verole-urticante"
+            }
           }
         ]
       },
@@ -2676,7 +2682,9 @@
         "ops": [
           {
             "op": "contractDisease",
-            "disease": "courante-galopante"
+            "disease": {
+              "id": "courante-galopante"
+            }
           }
         ]
       },
@@ -2687,7 +2695,9 @@
         "ops": [
           {
             "op": "contractDisease",
-            "disease": "verole-du-tanneur"
+            "disease": {
+              "id": "verole-du-tanneur"
+            }
           }
         ]
       },
@@ -2698,7 +2708,9 @@
         "ops": [
           {
             "op": "contractDisease",
-            "disease": "flux-sanglant"
+            "disease": {
+              "id": "flux-sanglant"
+            }
           }
         ]
       }
@@ -2708,6 +2720,7 @@
     "id": "vdm-catastrophes-de-brassage",
     "type": "tables",
     "label": "Catastrophes de brassage (VDM)",
+    "borneHauteOuverte": true,
     "die": {
       "n": 1,
       "sides": 10

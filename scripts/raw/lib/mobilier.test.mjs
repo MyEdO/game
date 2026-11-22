@@ -2,7 +2,7 @@
 // les trois familles de sites (onglet seul, folios de tête, onglet mot), l'exclusion des en-têtes de PROFIL, le retrait d'un jeton.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { chiffresDes, exempter, exemptionDe, exemptionsFausses, fenetreDe, sansJeton, sitesDeMobilier, sitesDuFichier } from './mobilier.mjs'
+import { chiffresDes, exempter, exemptionsFausses, fenetreDe, sansJeton, sitesDeMobilier, sitesDuFichier } from './mobilier.mjs'
 
 const ONGLETS = [{ chiffre: 'I', pages: [3, 7] }, { chiffre: 'II', pages: [23, 41] }, { chiffre: 'III', pages: [43, 107] }]
 
@@ -39,21 +39,28 @@ test('sitesDuFichier tire O et la plage de folios de l’entrée de découpe', (
   assert.deepEqual(sites.map((s) => [s.ligne, s.classe, s.jeton]), [[1, 'romain-seul', 'II'], [3, 'folio-nu', '25']])
 })
 
-test('exemptionDe : même fichier ET motif qui tient au texte de la ligne', () => {
-  const e = { fichier: 'S/004 - X.md', motif: /^I am no stranger/, jetons: 2 }
-  const texte = 'I am no stranger to radical thought'
-  assert.equal(exemptionDe(texte, 'S/004 - X.md', [e]), e)
-  assert.equal(exemptionDe(texte, 'S/005 - X.md', [e]), null)
-  assert.equal(exemptionDe('I am a stranger', 'S/004 - X.md', [e]), null)
+test('exempter : même fichier et ancre sur une seule ligne hors balises', () => {
+  const fichier = 'S/004 - X.md'
+  const exemption = { fichier, ancre: /^I am no stranger/, jetons: 1 }
+  const lire = (texte, chemin = fichier) => {
+    const occurrences = sitesDeMobilier(texte, { O: new Set(['I']), folios: [0, 0] })
+    return exempter(occurrences, chemin, texte, [exemption]).map((s) => s.exemption)
+  }
+  const texte = '<span id="page-8-0"></span>I am no stranger to wandering'
+  assert.deepEqual(lire(texte), [])
+  const texteAvecJeton = `${texte} I`
+  assert.deepEqual(lire(texteAvecJeton), [exemption])
+  assert.deepEqual(lire(texteAvecJeton, 'S/005 - X.md'), [null])
+  assert.deepEqual(lire(`${texteAvecJeton}\n${texte}`), [null])
 })
 
 test('exempter : une exemption couvre ses `jetons` sites de la ligne, PAS UN DE PLUS — un onglet ajouté reste un site', () => {
-  const e = { fichier: 'S/004 - X.md', motif: /^Alas, I neglected/, jetons: 1 }
+  const fichier = 'S/004 - X.md'
+  const e = { fichier, ancre: /^Alas, I neglected/, jetons: 1 }
   const O = new Set(['I'])
-  const juste = sitesDeMobilier('Alas, I neglected to consider', { O, folios: [0, 0] })
-  assert.deepEqual(exempter(juste, 'S/004 - X.md', [e]).map((s) => s.exemption), [e])
-  const ajoute = sitesDeMobilier('Alas, I neglected to consider I', { O, folios: [0, 0] })
-  const poses = exempter(ajoute, 'S/004 - X.md', [e])
+  const poser = (texte) => exempter(sitesDeMobilier(texte, { O, folios: [0, 0] }), fichier, texte, [e])
+  assert.deepEqual(poser('Alas, I neglected to consider').map((s) => s.exemption), [e])
+  const poses = poser('Alas, I neglected to consider I')
   assert.deepEqual(poses.map((s) => [s.debut, s.exemption]), [[6, e], [30, null]])
   assert.deepEqual(exemptionsFausses(poses, [e]), [])
   assert.deepEqual(exemptionsFausses([], [e]), [{ exemption: e, couverts: 0 }])

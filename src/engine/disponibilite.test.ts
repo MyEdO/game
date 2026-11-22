@@ -50,10 +50,10 @@ describe('disponibilite — Disponibilité RAW (LDB 59 l.13-34, p.290-291)', () 
     const a = rollStock(cat, 'ville', makeRNG(7));
     const b = rollStock(cat, 'ville', makeRNG(7));
     expect(a).toEqual(b); // déterministe
-    expect(a.find((l) => l.id === 'epee')!.qty).toBeGreaterThan(0); // Commune toujours
-    expect(a.find((l) => l.id === 'clavecin')).toBeUndefined(); // Exotique exclu
+    expect(a.stock.find((l) => l.id === 'epee')!.qty).toBeGreaterThan(0); // Commune toujours
+    expect(a.stock.find((l) => l.id === 'clavecin')).toBeUndefined(); // Exotique exclu
     const withCurated = rollStock(cat, 'ville', makeRNG(7), ['clavecin']); // curated = ids stables
-    expect(withCurated.find((l) => l.id === 'clavecin')!.qty).toBeGreaterThan(0); // curaté forcé
+    expect(withCurated.stock.find((l) => l.id === 'clavecin')!.qty).toBeGreaterThan(0); // curaté forcé
   });
   it('fullStock (système simplifié, LDB 59 l.15) : tout sauf Exotique/null en stock sans Test', () => {
     const cat: CatalogItem[] = [
@@ -197,7 +197,7 @@ describe('hors commerce — `isTradable` et le chemin ACHAT', () => {
       { id: 'licence', label: 'Licence de Guilde', availability: 'ND' as unknown as null },
       { id: 'mains', label: 'Mains nues', availability: null },
     ];
-    expect(rollStock(cat, 'cite', makeRNG(3)).map((l) => l.id)).toEqual(['epee']);
+    expect(rollStock(cat, 'cite', makeRNG(3)).stock.map((l) => l.id)).toEqual(['epee']);
     expect(fullStock(cat, 'cite', makeRNG(3)).map((l) => l.id)).toEqual(['epee']);
   });
 
@@ -206,6 +206,6 @@ describe('hors commerce — `isTradable` et le chemin ACHAT', () => {
     const s = fullStock(cat, 'village', makeRNG(3), ['licence']);
     expect(s.map((l) => l.id)).toEqual(['licence']);
     expect(s[0].qty).toBe(1); // Village = 1, aucun ×2 de classe Commune inventé
-    expect(rollStock(cat, 'village', makeRNG(3), ['licence']).map((l) => l.id)).toEqual(['licence']);
+    expect(rollStock(cat, 'village', makeRNG(3), ['licence']).stock.map((l) => l.id)).toEqual(['licence']);
   });
 });

@@ -295,8 +295,7 @@ inventé côté TS ne compile pas.
 Le registre fournit le fragment SVG par identifiant. Dans Godot, \`IconeDuCatalogue\`
 (\`hotes/godot/projet/scripts/icone_du_catalogue.gd\`) le rend par le catalogue des dessins
 aux couleurs du thème. La donnée valide l’identifiant par \`idDIconeSchema\`
-(\`src/data/schemas/grammaire/valeurs.ts\`). À la frontière de saisie, \`estIdDIcone\` teste
-l’identifiant dans \`src/data/icons/index.ts\`.
+(\`src/data/schemas/grammaire/valeurs.ts\`).
 
 ## 5. Icône portée par une DONNÉE (JSON)
 

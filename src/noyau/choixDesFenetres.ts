@@ -10,7 +10,8 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeRangee, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
+  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDArticleAAcheter,
+  IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeRangee, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
   IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
   IdDePosteDeBataille, IdDeSceneDeBataille,
   IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret, IdDeCouchage,
@@ -70,8 +71,8 @@ export interface ChoixDesFenetres {
     cacher: number;
   };
   marchand: {
-    /** Une unité de l'article au panier d'achat. */
-    ajouterAuPanier: IdDArticle;
+    /** Une unité au panier d’achat ou une recherche auprès de la Guilde pour cet article. */
+    ajouterAuPanier: IdDArticleAAcheter;
     /** Une unité de l'article ôtée du panier d'achat. */
     oterDuPanier: IdDArticle;
     /** L'article retiré du panier d'achat. */

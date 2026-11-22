@@ -34,6 +34,8 @@ const MAILLAGES := &"maillages_de_pile"
 const RANG_DE_LA_PEAU := 0
 ## La métadonnée d'une pièce skinnée dont le skin est une copie aux liaisons compensées (`refondre`) : le skin du GLB.
 const SKIN := &"skin_de_l_auteur"
+## La métadonnée d'une pièce skinnée : par face de son mesh, sa liaison dominante (`_liaisons_dominantes`).
+const LIAISONS_DOMINANTES := &"liaisons_dominantes"
 ## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
 ## de la fusion ; une pièce fondue (`refondre`) n'est sur aucun. La lampe d'une source portée l'exclut de son ombre
 ## (`Foyer`).
@@ -43,6 +45,10 @@ const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
 ## laisse.
 const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
+## L'angle de fusion des normales en degrés de la génération des niveaux de détail (`poser_les_niveaux`) : celui de
+## l'import de scène de l'éditeur, `lods/normal_merge_angle` à son défaut (`editor/import/3d/resource_importer_scene.cpp`
+## l.2273, Godot 4.7-stable).
+const ANGLE_DE_FUSION_DES_NORMALES := 20.0
 
 ## La fusion porte la pile des couches reçue (`recevoir_la_pile`).
 signal empilee
@@ -135,6 +141,9 @@ var pile: Dictionary = {}
 var _pile_fondue := ""
 ## La signature de la demande de pile en vol, `""` sans elle.
 var _pile_demandee := ""
+## Par os du squelette de la base posée, le membre qui le porte (`_membres_des_os_de_la_base`), vide avant qu'un objet
+## se range.
+var _membres_des_os := PackedInt32Array()
 ## Par id de prise montée dont l'élément se range à un emplacement de la base, ses nœuds tenus (`tenus`), ceux de sa
 ## copie rangée (`ranges`) et la ligne `<emplacement>#<prise>` de cette copie dans `_rangements` (`rangement`) : le clip
 ## joué montre l'un ou l'autre (`poser_le_clip`, #3806).
@@ -369,7 +378,7 @@ static func _paquet_lu(id: String, octets: PackedByteArray, recueil: Array[Strin
 
 
 ## Les `octets` du GLB du modèle `id` en scène, `MATERIAUX` posé à sa racine, `null` (et une erreur à `recueil`) s'ils ne
-## se lisent pas. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## se lisent pas. Chaque mesh y porte ses niveaux de détail (`poser_les_niveaux`). Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
 ## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp` `_create_skins`,
 ## `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
 static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String]) -> Node3D:
@@ -380,6 +389,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 	if code != OK:
 		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
 		return null
+	for maillage in etat.get_meshes():
+		poser_les_niveaux(maillage.mesh)
 	var scene := document.generate_scene(etat) as Node3D
 	if scene == null:
 		recueil.append("glb-illisible : %s (scène vide)" % id)
@@ -389,6 +400,17 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 		par_nom[materiau.resource_name] = materiau
 	scene.set_meta(MATERIAUX, par_nom)
 	return scene
+
+
+## Les niveaux de détail de `maillage` générés (`ImporterMesh.generate_lods`, #4413) : son mesh rendu
+## (`ImporterMesh.get_mesh`) porte, par surface, des index simplifiés que le rendu choisit selon la taille du mesh à
+## l'écran (`Viewport.mesh_lod_threshold`) ; ses sommets, ses os, ses poids et ses shape keys restent, et le niveau 0
+## est le mesh entier. Seule couture des niveaux de détail : la lecture d'un GLB (`scene_lue`), la cuisson des formes
+## (`cuire_les_formes`), la fusion (`refondre`) et la copie d'une pièce coupée d'un véhicule
+## (`MontageDeVehicule._porter_la_hauteur`) y passent.
+static func poser_les_niveaux(maillage: ImporterMesh) -> void:
+	# normal_split_angle : ignoré par Godot 4.7 (doc de `ImporterMesh.generate_lods`).
+	maillage.generate_lods(ANGLE_DE_FUSION_DES_NORMALES, 0.0, [])
 
 
 ## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même modèle partagent
@@ -431,6 +453,7 @@ func vider() -> void:
 	modele = null
 	materiaux_de_la_base = {}
 	_pieces_de_la_base.clear()
+	_membres_des_os.clear()
 	squelette = null
 	lecteur = null
 	gabarit = null
@@ -461,6 +484,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	materiaux_de_la_base = scene.get_meta(MATERIAUX, {})
 	add_child(scene)
 	_pieces_de_la_base.assign(scene.find_children("*", "MeshInstance3D", true, false))
+	_membres_des_os.clear()
 	squelette = squelette_de(scene)
 	for candidat in scene.find_children("*", "AnimationPlayer", true, false):
 		lecteur = candidat as AnimationPlayer
@@ -852,9 +876,11 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
-## rien dessous, sa face arrière à 5 mm de l'emplacement. À un emplacement qu'offre une pièce, qui le pose elle-même
-## (une case dans une hotte), l'objet ne descend pas plus bas, et de cette pièce ne compte que ce qu'elle porte sous
-## l'emplacement, jamais une paroi au-dessus
+## rien dessous, sa face arrière à 5 mm de l'emplacement. Une face que porte un avant-bras ou une main (l'os qui porte
+## le plus de son poids de peau a sa zone, ou celle d'un ancêtre, dans `Noyau.ZONES_DES_MEMBRES`) ne porte pas l'objet, sauf
+## à un emplacement de ce même membre : la visée passe au-delà (#4351). À un emplacement qu'offre une pièce, qui le
+## pose elle-même (une case dans une hotte), l'objet ne descend pas plus bas, et de cette pièce ne compte que ce qu'elle
+## porte sous l'emplacement, jamais une paroi au-dessus
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
 ## l'objet rangé. Un objet dont la boîte ainsi pendue descend sous le sol de la pose de repos (la hauteur de
@@ -865,6 +891,10 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## posé ou non, le mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce
 ## (`_suivre_les_poids`) ; la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
 ## objets du point.
+## Cette pose ne se calcule nulle part ailleurs : l'évaluateur (`asset/evaluer.mjs --preset`) et le rendu de contrôle
+## (`scripts/personnage-3d/rendu.py --preset`) la lisent du montage lui-même, monté sans écran par
+## `projet/outils/poses_des_ranges.gd` sur les GLB qu'ils reçoivent, à chaque instant qu'ils mesurent ou rendent
+## (`asset/posesDesRanges.mjs`, recette `projet/recettes/poses-des-ranges.gd`, #4351).
 
 ## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
 ## `composerSurLaBase`) côte à côte autour de l'axe de l'os, le premier sur le point, chaque suivant vers l'avant du
@@ -930,7 +960,7 @@ func _ranger() -> void:
 				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
 			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes,
-				offrant = offrant}
+				offrant = offrant, membre = _membres_des_os_de_la_base()[squelette.find_bone(attache.os)]}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -984,12 +1014,12 @@ func _suivre_les_poids() -> void:
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
 ## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
 ## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
-## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement), tourné de `tour` autour de l'axe de l'os ou
-## décalé de `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
+## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement, le `membre` qui porte l'emplacement,
+## `_membres_des_os_de_la_base`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
-	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant)
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant, rangement.membre)
 	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
@@ -1041,8 +1071,11 @@ static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: flo
 ## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
 ## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`). Un emplacement qu'offre une pièce de
 ## l'élément `offrant` (vide si la base l'offre) est posé par elle : la visée de ses pièces part de l'emplacement, et
-## l'objet n'y recule pas sous sa place sans rien dessous.
-static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String) -> Vector2:
+## l'objet n'y recule pas sous sa place sans rien dessous. Une face d'un autre membre que `membre`
+## (`_membres_des_os_de_la_base`, -1 hors membre) ne porte pas l'objet : la visée reprend au-delà, dans le même mesh
+## (#4351).
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String,
+		membre: int) -> Vector2:
 	var boite := _boite_de(sommets)
 	var arriere := {}
 	for v in sommets:
@@ -1060,6 +1093,9 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 			if not (porte.boite as AABB).intersects_segment(a, b):
 				continue
 			var touche: Dictionary = (porte.maille as TriangleMesh).intersect_segment(a, b)
+			while not touche.is_empty() and _sur_un_autre_membre(porte, touche.face_index, membre):
+				var au_dela := MiseEnPage.cote_au_dela(_par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z)
+				touche = (porte.maille as TriangleMesh).intersect_segment(_par(porte.vers_le_mesh, _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, au_dela))), b)
 			if not touche.is_empty():
 				var cote := _par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z
 				dessus[case_] = MiseEnPage.plus_haut(dessus.get(case_, -INF), cote)
@@ -1077,7 +1113,8 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 
 
 ## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
-## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), et les transformations
+## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), le mesh (`piece`), par
+## liaison de son skin le membre de son os (`membres`, `_membres_des_os_de_la_base`, vide si aucune n'en a), et les transformations
 ## (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
 func _portes_au_repos() -> Array[Dictionary]:
 	var meshes: Array = _pieces_de_la_base.map(func(mesh: MeshInstance3D) -> Array: return [mesh, ""])
@@ -1091,9 +1128,90 @@ func _portes_au_repos() -> Array[Dictionary]:
 			continue
 		var os := squelette.get_bone_global_rest(squelette.find_bone(skin.get_bind_name(0)))
 		var liaison := skin.get_bind_pose(0)
-		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(), element = paire[1],
+		var membres := PackedInt32Array()
+		for rang in skin.get_bind_count():
+			membres.append(_membres_des_os_de_la_base()[squelette.find_bone(skin.get_bind_name(rang))])
+		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(), element = paire[1], piece = mesh,
+			membres = membres if membres.count(-1) != membres.size() else PackedInt32Array(),
 			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
+
+
+## Par os du squelette de la base, le membre qui le porte, gardé dans `_membres_des_os` : le plus haut de ses
+## ancêtres, lui compris, de zone (`zoneDeLOs`, `asset/evaluateur/corps.ts`) l'une de `Noyau.ZONES_DES_MEMBRES`
+## (`asset/evaluateur/gardes/membres.ts`), -1 sans lui. La zone d'un os est celle dont les pièces de zone (`extras.zone`) de la base portent ensemble le plus de poids de peau
+## sur lui.
+func _membres_des_os_de_la_base() -> PackedInt32Array:
+	if not _membres_des_os.is_empty():
+		return _membres_des_os
+	var parts := {}
+	for piece in _pieces_de_la_base:
+		var zone: Variant = piece.get_meta("extras", {}).get("zone")
+		var skin := _skin_de_l_auteur(piece)
+		if zone == null or skin == null:
+			continue
+		var os_des_liaisons := PackedInt32Array()
+		for rang in skin.get_bind_count():
+			os_des_liaisons.append(squelette.find_bone(skin.get_bind_name(rang)))
+		for surface in piece.mesh.get_surface_count():
+			var tableaux := piece.mesh.surface_get_arrays(surface)
+			var liaisons: PackedInt32Array = tableaux[Mesh.ARRAY_BONES]
+			var poids: PackedFloat32Array = tableaux[Mesh.ARRAY_WEIGHTS]
+			for k in liaisons.size():
+				if poids[k] != 0.0:
+					var par_zone: Dictionary = parts.get_or_add(os_des_liaisons[liaisons[k]], {})
+					par_zone[zone] = MiseEnPage.cumul_des_poids(par_zone.get(zone, 0.0), poids[k])
+	for os in squelette.get_bone_count():
+		var membre := -1
+		var ancetre := os
+		while ancetre != -1:
+			if parts.has(ancetre) and _la_plus_lourde(parts[ancetre]) in Noyau.ZONES_DES_MEMBRES:
+				membre = ancetre
+			ancetre = squelette.get_bone_parent(ancetre)
+		_membres_des_os.append(membre)
+	return _membres_des_os
+
+
+## La face `face` de ce qui est porté `porte` (`_portes_au_repos`) est-elle portée par un autre membre que `membre` ?
+static func _sur_un_autre_membre(porte: Dictionary, face: int, membre: int) -> bool:
+	var membres: PackedInt32Array = porte.membres
+	if membres.is_empty():
+		return false
+	var os := membres[_liaisons_dominantes(porte.piece)[face]]
+	return os != -1 and os != membre
+
+
+## Par face du mesh de `piece`, dans l'ordre de ses surfaces (celui de `generate_triangle_mesh`), la liaison de son skin
+## qui porte le plus de poids sur ses trois sommets, gardée en métadonnée `LIAISONS_DOMINANTES`.
+static func _liaisons_dominantes(piece: MeshInstance3D) -> PackedInt32Array:
+	if piece.has_meta(LIAISONS_DOMINANTES):
+		return piece.get_meta(LIAISONS_DOMINANTES)
+	var dominantes := PackedInt32Array()
+	var faces := MeshDataTool.new()
+	for surface in piece.mesh.get_surface_count():
+		faces.create_from_surface(piece.mesh as ArrayMesh, surface)
+		for face in faces.get_face_count():
+			var parts := {}
+			for coin in 3:
+				var sommet := faces.get_face_vertex(face, coin)
+				var liaisons := faces.get_vertex_bones(sommet)
+				var poids := faces.get_vertex_weights(sommet)
+				for k in liaisons.size():
+					parts[liaisons[k]] = MiseEnPage.cumul_des_poids(parts.get(liaisons[k], 0.0), poids[k])
+			dominantes.append(_la_plus_lourde(parts))
+	piece.set_meta(LIAISONS_DOMINANTES, dominantes)
+	return dominantes
+
+
+## La clé de `parts` (des poids par clé) de plus fort poids, la première de l'ordre de `parts` à égalité.
+static func _la_plus_lourde(parts: Dictionary) -> Variant:
+	var fort := -INF
+	for cle: Variant in parts:
+		fort = MiseEnPage.plus_haut(fort, parts[cle])
+	for cle: Variant in parts:
+		if parts[cle] == fort:
+			return cle
+	return null
 
 
 ## Ce que porte un objet rangé de mesh `rangee` (`_rangements`), posé par `pose` dans l'os de repos `os`, comme ce qui
@@ -1102,7 +1220,7 @@ func _portes_au_repos() -> Array[Dictionary]:
 static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
 	var piece: MeshInstance3D = rangee.piece
 	var noeud: Node3D = rangee.noeud
-	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "",
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "", membres = PackedInt32Array(),
 		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
 		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 
@@ -1402,7 +1520,8 @@ func poser_les_morphes() -> void:
 ## absente, `MeshInstance3D.bake_mesh_from_current_blend_shape_mix`). Le rendu de compatibilité met à jour une surface à
 ## shape keys en une passe de base et une passe par clé non nulle, en plus de celle du squelette, à chaque image où le
 ## squelette bouge (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable) : cuite, seule
-## celle du squelette reste. Le mesh à shape keys est gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
+## celle du squelette reste. Le mesh cuit porte ses niveaux de détail (`poser_les_niveaux`). Le mesh à shape keys est
+## gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
 ## des poids inchangés ne recuisent rien. Un mesh sans shape key garde son mesh.
 static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 	var formes := (mesh.get_meta(FORMES) if mesh.has_meta(FORMES) else mesh.mesh) as ArrayMesh
@@ -1421,9 +1540,11 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 	for rang in formes.get_surface_count():
 		cuit.surface_set_material(rang, formes.surface_get_material(rang))
 		cuit.surface_set_name(rang, formes.surface_get_name(rang))
+	var detaille := ImporterMesh.from_mesh(cuit)
+	poser_les_niveaux(detaille)
 	mesh.set_meta(FORMES, formes)
 	mesh.set_meta(POIDS, poids)
-	mesh.mesh = cuit
+	mesh.mesh = detaille.get_mesh()
 
 
 ## @contrat Atelier 3D
@@ -1443,6 +1564,11 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## `top_level` (un objet rangé qui suit des `poids`, `_suivre_les_poids`) ou dont un matériau projette ses UV dans le
 ## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
 ## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
+## Chaque mesh dessiné porte ses niveaux de détail, générés à l'exécution par `MontageDeComposition.poser_les_niveaux`
+## (`ImporterMesh.generate_lods`, #4413) : à la lecture du GLB (`scene_lue`), donc aussi dans la scène fabriquée
+## (`FabriqueDeModeles`), à la cuisson des formes, à la fusion et à la copie d'une pièce coupée d'un véhicule. Le rendu en choisit un selon la taille du mesh à
+## l'écran ; le niveau 0 est le mesh entier, que compte le plafond assemblé de l'évaluateur. La recette autonome
+## `projet/recettes/niveaux-de-detail.gd` le vérifie.
 
 ## @contrat Pile des couches
 ## Dans une tenue fondue, la couche du dessous cède à celle qui la couvre (#3842) : à chaque refonte,
@@ -1479,7 +1605,7 @@ func _refondre_la_demande() -> void:
 
 ## L'ancienne `fusion` libérée, puis, la composition réglée (aucun montage en vol dans `_demandes`, aucune pile attendue
 ## pour ce qui est fondu, `_empiler`), les meshes visibles du modèle fondus en `fusion`, une surface par matériau
-## équivalent (`_signature`), chaque pièce fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque
+## équivalent (`_signature`), à ses niveaux de détail (`poser_les_niveaux`), chaque pièce fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque
 ## maillage que la pile résout fondu tel qu'elle le rend ; aucune sans squelette ou sans pièce à fondre. Non réglée,
 ## aucune fusion : chaque pièce rendue seule à son calque. Chaque
 ## liaison d'une pièce skinnée, fondue ou gagnée par la pile, est compensée (`_liaison_compensee`) ; une pièce skinnée
@@ -1520,6 +1646,7 @@ func refondre() -> void:
 	if not reglee:
 		return
 	var outils := {}
+	var materiaux := {}
 	for piece: MeshInstance3D in fondues:
 		for surface in piece.mesh.get_surface_count():
 			var resolu: Dictionary = resolus.get([piece, surface], {})
@@ -1534,16 +1661,17 @@ func refondre() -> void:
 			var cle := _signature(materiau)
 			if not outils.has(cle):
 				outils[cle] = SurfaceTool.new()
-				(outils[cle] as SurfaceTool).set_material(materiau)
+				materiaux[cle] = materiau
 			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois, resolu), 0, Transform3D.IDENTITY)
 	if outils.is_empty():
 		return
-	var mesh := ArrayMesh.new()
-	for outil: SurfaceTool in outils.values():
-		outil.commit(mesh)
+	var mesh := ImporterMesh.new()
+	for cle in outils:
+		mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, (outils[cle] as SurfaceTool).commit_to_arrays(), [], {}, materiaux[cle])
+	poser_les_niveaux(mesh)
 	fusion = MeshInstance3D.new()
 	fusion.name = "Fusion"
-	fusion.mesh = mesh
+	fusion.mesh = mesh.get_mesh()
 	fusion.skin = skin
 	fusion.layers = CALQUE
 	squelette.add_child(fusion)

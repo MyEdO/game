@@ -27,7 +27,6 @@ import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import { traitOctroye } from './psych/opsPsy';
 import { identiteDeCiblage } from './psych/ciblage';
-import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
@@ -144,7 +143,7 @@ export function mutationLimitExceeded(c: Combatant): boolean {
 
 /** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +
  *  `passiveCharSum`, hors pool volatil) : `max(mod, min(0, plancher − base))`, jamais positif. EDO 11 l.190 ; #1853. */
-function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
+function resoudrePlancher(c: Combatant, op: NonNullable<Mutation['passive']>[number]): NonNullable<Mutation['passive']>[number] {
   if (op.op !== 'charMod' || op.min == null) return op;
   const { min, ...fige } = op;
   const base = c.characteristics[op.characteristic] + passiveCharSum(c, op.characteristic);
@@ -258,12 +257,11 @@ export function nonDeviatableMutationAP(c: Combatant, loc: HitLocation): number 
 }
 
 /** 1 PA de mutation de moins à `loc` : l'`usure` à `loc` de la mutation qui porte encore un PA y croît de 1, une
- *  mutation à PA déviable d'abord. Rend false si aucune mutation n'a de PA à `loc`. L'appelant re-dérive l'armure.
- *  LDB 63 l.19 ; EDO App.2 l.196 */
-export function userLePADeMutation(c: Combatant, loc: HitLocation): boolean {
+ *  mutation à PA déviable d'abord. L'appelant re-dérive l'armure. LDB 63 l.19 ; EDO App.2 l.196 */
+export function userLePADeMutation(c: Combatant, loc: HitLocation, protection: 'deviable' | 'toute' = 'toute'): boolean {
   const mutations = c.mutations ?? [];
-  const source = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0)
-    ?? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0);
+  const deviable = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0);
+  const source = deviable ?? (protection === 'toute' ? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0) : undefined);
   if (!source) return false;
   source.usure = { ...source.usure, [loc]: (source.usure?.[loc] ?? 0) + 1 };
   return true;

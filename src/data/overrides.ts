@@ -90,11 +90,7 @@ import { estObjet } from '../lib/objet.mjs';
  *  Péché non lié (`opsAuPecheSchema`), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`). */
 export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
 
-/** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
- *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`
- *  (`src/data/criticals.ts`), la SEULE déclaration de la forme : une redéclaration structurelle en
- *  amputait `source`, `escalation` et les champs d'`Amputation` (`timing`/`loss`/`unites`), si bien que
- *  le Codex ne pouvait pas voir ce que le moteur joue. */
+/** Entrée de table de Blessures critiques (LDB 18 ; AA 07), partagée avec le moteur. */
 export type CritTableEntry = CritEntry;
 // Les 8 documents-tables de `criticals.json` (4 Localisations × 2 jeux) — rangées LIVE par id de
 // DOCUMENT (`critiqueEntries`, même référence que le moteur, patron `rangeesDe`).

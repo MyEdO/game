@@ -1,6 +1,6 @@
 """La géométrie commune aux modèles des décors (#4335) : les axes, le front de la recette, les axes d'une primitive de
 la recette, les coins d'un carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`,
-l'apothème d'un cylindre et les bouts de son axe, le rampant d'un prisme et le point sous lui, l'aléa semé de l'id, le
+l'apothème d'un cylindre et les bouts de son axe, le rampant d'un prisme et le point sous lui, le
 repère normal à un axe, le point d'une boîte de la recette compté en demi-côtés, le cap d'un azimut, le vecteur d'un
 plan à un angle, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par des points, le
 facteur d'un relief, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que
@@ -13,13 +13,12 @@ sa bobèche, étoffe plissée et dais, rampe d'escalier, pierre taillée, assise
 planches côte à côte, pièce plate découpée) et le partage inégal d'une longueur ; et la déclaration des éléments d'une
 famille, avec ses nœuds par matériau et la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
-import random
 
 from mathutils import Vector
 
 import habillage
 from gabarit import NOEUD_EMISSIF, VERSANTS, Gabarit, boite, vers_blender
-from maille import Maille, cylindre, lineaire, objet, point, poutre, tore, tour
+from maille import Maille, cylindre, lineaire, objet, point, poutre, tirage, tore, tour
 
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 FRONT = Vector(vers_blender(0, 1, 0))
@@ -72,11 +71,6 @@ def rampant(primitive):
     long = abs(descend.x) * lx + abs(descend.y) * ly
     return (descend, c - descend * (long / 2) + HAUT * (lz / 2), c + descend * (long / 2) - HAUT * (lz / 2), long,
             lx + ly - long)
-
-
-def alea(id_):
-    """Le générateur semé des codes de caractères de `id_`."""
-    return random.Random(sum((i + 1) * ord(c) for i, c in enumerate(id_)))
 
 
 def repere(axe):
@@ -550,7 +544,7 @@ def par_noeuds(D, id_, noeuds, batir):
     G = Gabarit(id_)
     mats = habillage.materiaux(D["MATERIAUX"][id_])
     pieces = {noeud: Maille([mats[nom] for nom in noms]) for noeud, noms in noeuds.items()}
-    batir(D, G, pieces, alea(id_))
+    batir(D, G, pieces, tirage(id_))
     objets = []
     for noeud, maille in pieces.items():
         maille.v = [tuple(p) for p in G.rentrer(maille.v, D["RETRAIT"])]

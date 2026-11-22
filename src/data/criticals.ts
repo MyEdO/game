@@ -5,7 +5,7 @@ import { deDeTirageDe } from './rangees';
 import { datasetDe, type EntreeDe, type EntreeVivante } from './datasets';
 import type { DeDeTable } from '../engine/tables';
 import type * as critiquesDef from './schemas/defs/criticals';
-import type { amputationSchema, critEscalationSchema } from './schemas/defs/criticals';
+import type { critEscalationSchema } from './schemas/defs/criticals';
 import type { z } from 'zod';
 
 /**
@@ -38,20 +38,6 @@ export type JeuDeCritique = CritDoc['jeu'];
 /** Famille de Localisation d'un tableau : les 4 tables couvrent les 6 `HitLocation` (LDB 18). */
 export type CritTableKey = CritDoc['localisation'];
 
-/** Amputation (LDB 18 l.237) — SOURCE UNIQUE de forme, partagée par les DEUX jeux, résolue par
- *  `noeudAmputation` (`src/engine/critical.ts`), qui en FABRIQUE le/les nœud(s) `test` — le moteur ne
- *  roule pas ce jet, la porte le joue.
- *  - `difficulty` = Test de Résistance de l'Amputation (échec → À Terre ; DR≤−2 → +Sonné ; DR≤−4 → +Inconscient).
- *  - `sequels` = ids de fiches de séquelle PERMANENTE (`traumas.json`), instanciées par `permanentAmputations`.
- *  - `timing: 'postEncounter'` = Test différé à la FIN de la rencontre (« Coupure à l'orteil », l.171 : « Une fois
- *    la rencontre terminée… ») — marqueur `Trauma.pendingAmputation` posé par `resolveCritique`, résolu au foyer
- *    de fin de combat.
- *  - `loss` = la SÉQUELLE est CONDITIONNELLE (sinon : membre tranché → séquelle TOUJOURS). `loss.difficulty`
- *    présent → Test SÉPARÉ dont la RÉUSSITE annule toute l'amputation (« Coupure à l'orteil » : `loss.difficulty`
- *    Intermédiaire, `difficulty` Accessible). Absent → le Test `difficulty` détermine LUI-MÊME la perte (« Pied
- *    écrasé » : un seul Test Accessible). `loss.perDR` → nombre d'orteils = 1 + DR en dessous de 0 (« Pied écrasé »). */
-export type Amputation = z.output<typeof amputationSchema>;
-
 /** Déclaration d'escalade gatée par les soins — partagée par les deux jeux. Instanciée par
  *  `stampCriticalEscalation` (trauma.ts) sur la plaie chirurgicale du critique. */
 export type CritEscalation = z.output<typeof critEscalationSchema>;
@@ -76,11 +62,6 @@ export function critiqueEntries(docId: string): CritTable {
   }
   return doc.entries;
 }
-
-/** Localisation REPRÉSENTATIVE d'une table de Critiques — inverse de `critTableKeyFor` pour les vues qui
- *  projettent une TABLE et non un coup réel (Codex, contrats). Côté DROIT par la convention DROITIER du
- *  moteur (`permanentAmputations`) : la table « Bras » couvre les deux côtés, la vue en montre un. */
-export const CRIT_TABLE_LOCATION: Record<CritTableKey, HitLocation> = { tete: 'tete', bras: 'brasD', corps: 'corps', jambe: 'jambeD' };
 
 /** Table de rattachement d'une Localisation (repli Bras, LDB 76 l.21, pour une loc sans table dédiée) —
  *  SOURCE UNIQUE de la projection loc→clé de table, partagée par `critiqueTable` (les lignes) et par la

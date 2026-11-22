@@ -14,7 +14,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Dé-stub d'« Allure démoniaque » (EDOC 13 l.270-280) : le Flow du sort sélectionne la colonne du Tableau
  * des aspects démoniaques (l.234-247) selon le Domaine du Chaos du lanceur (Condition `casterChaosDomain`),
  * tire sur la table `tables.json` (op `rollTable` `tableId`), octroie le Trait à la durée du Sort, et une
- * rangée « Mutation » attache une mutation PERMANENTE. RNG figé, sans store.
+ * rangée « Mutation » attache une mutation pour la durée du Sort. RNG figé, sans store.
  */
 const caster = (spec?: string): Combatant =>
   (blessuresSurLeProfil({
@@ -43,14 +43,14 @@ describe('Condition casterChaosDomain — 4 branches', () => {
   it('vraie SEULEMENT pour le Domaine du lanceur', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const) {
       const ctx = ctxFor(dom);
-      for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
+      for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const) {
         expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(probe === dom);
       }
     }
   });
   it('lanceur sans Domaine → toutes les branches fausses', () => {
     const ctx = ctxFor();
-    for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'])
+    for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const)
       expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(false);
   });
 });

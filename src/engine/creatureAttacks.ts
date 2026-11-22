@@ -11,10 +11,13 @@
 import { traitLisible } from './traits/dispatch';
 import { findTraitById, findManeuverById, findBreathTypeById, findConditionById, maneuvers, type BreathTypeData, type ManeuverDef } from '../data';
 import { t } from '../i18n';
-import { isEffectOp, reecrireFlow, spellEffectOps, type Condition, type EffectOp, type Flow } from './flowCore';
+import { reecrireFlow, spellEffectOps } from './flowCore';
 import type { TraitInstance, TraitList } from './statEntry';
-import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from './types';
-import type { GameOp } from './ops';
+import { DIFFICULTY_LABELS, type Combatant, type Difficulty, type Weapon } from './types';
+
+type FluxDeManoeuvre = NonNullable<ManeuverDef['effects']>[number]['flow'];
+type NoeudDOpsDeManoeuvre = Extract<FluxDeManoeuvre, { kind: 'effet' }>;
+type OpDeManoeuvre = NoeudDOpsDeManoeuvre['effet']['ops'][number];
 
 /** Type d'attaque naturelle (geste + règle distincts). Sert UNIQUEMENT à l'anim/pose/icône. */
 export type AttackKind = ManeuverDef['kind'];
@@ -35,6 +38,7 @@ export interface CreatureAttack {
   /** Clé de l'attaque parmi celles du porteur (`clesDesAttaques`) : l'id de sa manœuvre, distingué par le
    *  rang quand deux Traits octroient la même (deux Souffles de Types différents). LDB 85 l.322 */
   cle: string;
+  traitUid?: string;
   kind: AttackKind;
   /** Libellé canonique du trait (« Morsure +10 », « Attaque caudale +9 »…). */
   label: string;
@@ -75,7 +79,7 @@ const typesAppliques = (t: BreathTypeData): BreathTypeData[] =>
 
 /** Ce que la règle d'un Type fait aux cibles touchées. La Difficulté du Trait est celle des États posés.
  *  LDB 85 l.324-328 ; MDG 16 l.226 ; LDB 16 l.70 */
-function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): GameOp[] {
+function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): OpDeManoeuvre[] {
   const value = r.trancheDeBlessures ? { value: { minimum: 1, of: { parTranche: r.trancheDeBlessures, of: { woundsDealt: true as const } } } } : {};
   return [
     ...(r.etat ? [{ op: 'condition' as const, id: { id: r.etat }, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
@@ -97,25 +101,25 @@ function regleDuType(regles: BreathTypeData[], difficulte: Difficulty | undefine
     + (suites.length ? t('souffle.enjeu.puis', { suites: suites.join(t('souffle.enjeu.et')) }) : '');
 }
 
-/** La cible n'a pas Immunité au Type de Dégâts `typeDeDegats`. LDB 85 l.174 */
-const sansImmunite = (typeDeDegats: { id: string }): Condition => ({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: typeDeDegats.id } });
-
 /** Une tranche de la feuille des Dégâts : ses ops, et le Type de Dégâts auquel une Immunité les annule. */
-interface Tranche { ops: GameOp[]; typeDeDegats?: { id: string } }
+interface Tranche { ops: OpDeManoeuvre[]; typeDeDegats?: BreathTypeData['typeDeDegats'] }
+
+/** LDB 85 l.174 */
+const sansImmunite = (typeDeDegats: NonNullable<Tranche['typeDeDegats']>): Extract<FluxDeManoeuvre, { kind: 'si' }>['condition'] => ({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', ref: typeDeDegats } });
 
 /** La feuille `feuille` des Dégâts suivie des règles du Type : chaque tranche sous la porte d'Immunité de son
  *  Type de Dégâts, les tranches voisines d'un même Type dans une seule feuille, dans l'ordre (les règles
  *  lisent les Blessures subies, `woundsDealt`). Les Dégâts d'un Type composé n'ont pas de Type. LDB 85 l.174,
  *  l.326-328 ; EDOC 13 l.237 ; VDM 10 l.153 */
-function feuilleTypee(feuille: Flow & { kind: 'effet'; effet: EffectOp }, tranches: Tranche[]): Flow {
+function feuilleTypee(feuille: NoeudDOpsDeManoeuvre, tranches: Tranche[]): FluxDeManoeuvre {
   const fusion = tranches.filter((tr) => tr.ops.length).reduce<Tranche[]>((acc, tr) => {
     const der = acc[acc.length - 1];
     if (der && der.typeDeDegats?.id === tr.typeDeDegats?.id) der.ops.push(...tr.ops);
     else acc.push({ ops: [...tr.ops], typeDeDegats: tr.typeDeDegats });
     return acc;
   }, []);
-  const noeuds = fusion.map(({ ops, typeDeDegats }): Flow => {
-    const f: Flow = { ...feuille, effet: { ...feuille.effet, ops } };
+  const noeuds = fusion.map(({ ops, typeDeDegats }): FluxDeManoeuvre => {
+    const f: NoeudDOpsDeManoeuvre = { ...feuille, effet: { ...feuille.effet, ops } };
     return typeDeDegats ? { kind: 'si', condition: sansImmunite(typeDeDegats), alors: f } : f;
   });
   return noeuds.length === 1 ? noeuds[0] : { kind: 'sequence', etapes: noeuds };
@@ -128,7 +132,7 @@ export function souffleDuType(base: ManeuverDef, typeId: string | undefined, dif
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
-  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'effet' && isEffectOp(n.effet) && n.effet.ops.some((o) => o.op === 'wounds')
+  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'effet' && n.effet.ops.some((o) => o.op === 'wounds')
     ? feuilleTypee({ ...n, effet: n.effet }, [
       { ops: n.effet.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
       ...regles.map((r) => ({ ops: opsDeLaRegle(r, difficulte), typeDeDegats: r.typeDeDegats })),
@@ -165,6 +169,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
       out.push({
         cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
         trigger: def.activation, avantage: def.coutEnAvantage,
+        ...(inst.uid != null ? { traitUid: inst.uid } : {}),
         ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
         ...(def.ciblage === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
@@ -211,6 +216,13 @@ export function attaquesNaturelles(traits: TraitList): CreatureAttack[] {
 /** L'attaque naturelle `kind` de la liste unique (`attaquesNaturelles`). */
 export const attaqueNaturelle = (traits: TraitList, kind: string): CreatureAttack | undefined =>
   attaquesNaturelles(traits).find((a) => a.kind === kind);
+
+/** LDB 85 l.405 ; #1765 */
+export function armeDesTentacules(c: Pick<Combatant, 'weapons'>, a: CreatureAttack): Weapon | undefined {
+  if (a.kind !== 'tentacules' || (a.traitUid == null && a.bfInclus)) return undefined;
+  return c.weapons.find((w) => w.natural && w.attackKind === a.kind && w.source?.kind === 'trait'
+    && (a.traitUid != null ? w.uid === a.traitUid : 'plusBF' in w.damage && w.damage.plusBF));
+}
 
 // ---------------------------------------------------------------------------
 // Capacités SUR SOI (ciblage:'soi') — transformation/mue/auto-buff octroyées par un trait

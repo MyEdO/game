@@ -36,8 +36,9 @@ test('codeDeLArbre : la vraie couture CLI mesure et certifie les seuls codes pé
 })
 import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
-import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
-import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { estPidDeProcessus, estPidVivantDepuis, NAISSANCE_ABSENTE } from '../guards/lib/pid.mjs'
+import { DELAI_MESURE_PROCESSUS_MS } from '../guards/lib/processusWorktrees.mjs'
+import { IDENTITE_MESUREE, lireIdentiteMesuree } from '../test/identiteMesuree.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /** `n` pid factices distincts, tous au-delà de `process.pid` : `servirLesDemandes` retire de `lances` le pid du servant (`scripts/git-hooks/reconstruction.mjs:183`, #2945). */
@@ -681,7 +682,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
     '}',
   ].join('\n')
   const { racine } = instanceDeDepot({ fichiers: {
-    '.gitignore': 'node_modules/\n', 'commun.txt': 'commun',
+    '.gitignore': 'node_modules/\n/docs/\n/src/code.gen.ts\n', 'commun.txt': 'commun',
     'scripts/docs/lib/source-a.txt': 'a', 'notes/c/source.txt': 'c', 'notes/code/source.txt': 'code',
     ...Object.fromEntries(noms.map((nom) => [`g/${nom}.mjs`, generateur(nom)])),
   } })
@@ -706,8 +707,6 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
   })
   try {
     const complet = jouer()
-    git('add', 'docs', 'notes', 'scripts', 'g', 'src', 'commun.txt', '.gitignore')
-    git('commit', '-q', '-m', 'mesure initiale')
     const origine = git('rev-parse', 'HEAD').trim()
     writeFileSync(join(racine, source('a')), 'a modifié')
     git('add', source('a'))
@@ -1292,14 +1291,106 @@ test('(i) le détaché de la reconstruction naît sans `GIT_INDEX_FILE` ni jeton
   }
 })
 
-/** Les détachés `pids` attendus jusqu'à leur fin, bornée, nés au plus tard à cet appel qui les a lus : REND ceux encore vivants à l'échéance (#2603). */
-function attendreLesDetaches(pids) {
+/** À l'échéance, confirme la présence des détachés vivants ou indéterminés sans relire leur identité (#2586). */
+function attendreLesDetaches(pids, { echeanceMs = 60_000, mesurer, estVivant, horloge = () => performance.now(), dormir = attendreSync } = {}) {
   const lus = Date.now()
-  const vivants = () => pids.filter((pid) => estPidVivantDepuis(pid, lus, IDENTITE_MESUREE))
-  const fin = Date.now() + 60_000
-  while (vivants().length && Date.now() < fin) attendreSync(100)
-  return vivants()
+  const fin = horloge() + echeanceMs
+  const estPresent = (pid) => estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE, { estVivant })
+  let bloquants = [...new Set(pids)].map((pid) => ({ pid, etat: 'indetermine' }))
+  while (bloquants.length && horloge() < fin) {
+    bloquants = bloquants.flatMap((bloquant) => {
+      const { pid } = bloquant
+      if (!estPidDeProcessus(pid)) return [bloquant]
+      const restant = Math.ceil(fin - horloge())
+      if (restant <= 0) return [bloquant]
+      let mesure
+      const identite = {
+        ...IDENTITE_MESUREE,
+        lireCreation: (pid) => {
+          const vue = lireIdentiteMesuree(pid, { mesurer, timeout: Math.min(DELAI_MESURE_PROCESSUS_MS, restant) })
+          mesure = process.platform === 'linux' && !vue?.etat ? null : vue
+          return mesure?.creation ?? null
+        },
+      }
+      if (!estPidVivantDepuis(pid, lus, identite, { estVivant })) return []
+      if (!mesure) return estPresent(pid) ? [{ pid, etat: 'indetermine' }] : []
+      if (process.platform === 'linux' && mesure.etat === 'Z') return []
+      return [{ pid, etat: 'vivant' }]
+    })
+    const restant = fin - horloge()
+    if (bloquants.length && restant > 0) dormir(Math.min(100, restant))
+  }
+  return bloquants.filter(({ pid }) => !estPidDeProcessus(pid) || estPresent(pid))
 }
+
+function supprimerDepotApresLesDetaches(racine, pids) {
+  assert.deepEqual(attendreLesDetaches(pids), [])
+  rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
+}
+
+test('#2586 nettoyage des détachés : un zombie Linux présent est déjà terminé', { skip: process.platform !== 'linux' }, async (t) => {
+  const enfant = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' })
+  const fin = once(enfant, 'close')
+  const { pid } = enfant
+  try {
+    assert.ok(estPidDeProcessus(pid))
+    const echeance = performance.now() + 5_000
+    let etat
+    // Le parent récolte l'enfant quand le test rend la main à la boucle Node.
+    do {
+      etat = lireIdentiteMesuree(pid)?.etat
+      if (etat === 'Z') break
+      attendreSync(5)
+    } while (performance.now() < echeance)
+    assert.equal(etat, 'Z')
+    assert.equal(estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true)
+    const debut = performance.now()
+    assert.deepEqual(attendreLesDetaches([pid], { echeanceMs: 100 }), [])
+    assert.equal(estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true)
+    t.diagnostic(JSON.stringify({ pid, etat, ms: Math.round(performance.now() - debut) }))
+  } finally {
+    assert.deepEqual(await fin, [0, null])
+  }
+})
+
+test('#2586 nettoyage des détachés : vivant et indéterminé restent bloquants, PID réutilisé et disparu sont écartés', () => {
+  const [vivant, illisible, reutilise, disparu, sansEtat, finitAuDernierPas] = pidsFictifs(6)
+  const ancien = new Date(Date.now() - 60_000).toISOString()
+  const recent = new Date(Date.now() + 60_000).toISOString()
+  const entree = (pid, creation, etat, erreurs = []) => ({ pid, creation, etat, erreurs })
+  const mesures = new Map([
+    [vivant, entree(vivant, ancien, 'S')],
+    [illisible, entree(illisible, ancien, 'Z', ['identite illisible : [instable] identité modifiée'])],
+    [reutilise, entree(reutilise, recent, 'S')],
+    [sansEtat, entree(sansEtat, ancien, undefined)],
+    [finitAuDernierPas, entree(finitAuDernierPas, ancien, 'S')],
+  ])
+  let encorePresent = true
+  let maintenant = 0
+  const instantsDesMesures = []
+  const mesurer = ({ pids: [pid] }) => {
+    instantsDesMesures.push(maintenant)
+    if (pid === disparu) encorePresent = false
+    return { processus: mesures.has(pid) ? [mesures.get(pid)] : [] }
+  }
+  const estVivant = (pid) => (pid !== disparu || encorePresent) && (pid !== finitAuDernierPas || maintenant === 0)
+  const pids = [vivant, illisible, reutilise, disparu, finitAuDernierPas, NaN]
+  const attendus = [{ pid: vivant, etat: 'vivant' }, { pid: illisible, etat: 'indetermine' }, { pid: NaN, etat: 'indetermine' }]
+  if (process.platform === 'linux') {
+    pids.push(sansEtat)
+    attendus.push({ pid: sansEtat, etat: 'indetermine' })
+  }
+  const bloquants = attendreLesDetaches(pids, {
+    echeanceMs: 100,
+    mesurer,
+    estVivant,
+    horloge: () => maintenant,
+    dormir: (ms) => { maintenant += ms },
+  })
+  assert.equal(maintenant, 100)
+  assert.deepEqual(bloquants, attendus)
+  assert.deepEqual(instantsDesMesures, pids.filter(estPidDeProcessus).map(() => 0))
+})
 
 /** Un `build-all` FACTICE : `--code` rend 0 ; `--perimes` pose `.git/perimes-entame` puis attend `.git/debloquer`. */
 const BUILD_ALL_FACTICE = [
@@ -1312,109 +1403,96 @@ const BUILD_ALL_FACTICE = [
 ].join('\n')
 
 // #2603
-test('(a) CÂBLAGE réel : le VRAI post-commit rend la main pendant que la passe détachée attend ; elle se solde après', () => {
+test('(a) CÂBLAGE réel : le VRAI post-commit rend la main pendant que la passe détachée attend ; elle se solde après', (t) => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', 'scripts/docs/build-all.mjs': BUILD_ALL_FACTICE } })
   const git = gitDe(racine)
   const debloquer = join(racine, '.git', 'debloquer')
-  let rouge = null
-  let residu = null
-  try {
-    git('config', 'core.hooksPath', join(RACINE, 'scripts', 'git-hooks'))
-    writeFileSync(join(racine, 'a.txt'), 'b\n')
-    git('add', 'a.txt')
-    const debut = performance.now()
-    const vu = resultatDeGit(['commit', '--no-verify', '-q', '-m', 'b'], { cwd: racine })
-    const ms = Math.round(performance.now() - debut)
-    assert.equal(vu.status, 0, `${vu.error ?? ''}${vu.stdout}${vu.stderr}`)
-    assert.ok(ms < 30_000, `le post-commit rend la main sans attendre la passe : ${ms} ms`)
-    assert.match(`${vu.stdout}${vu.stderr}`, /^reconstruction seq=1$/m)
-    assert.equal(existsSync(debloquer), false)
-    assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 0 }), { etat: 'en-cours' })
-    writeFileSync(debloquer, '')
-    const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 120_000, pasMs: 100 })
-    assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 1, 0], JSON.stringify(passe))
-    assert.equal(existsSync(join(racine, '.git', 'perimes-entame')), true, 'la passe a joué `build-all --perimes` de l’arbre')
-    console.log(JSON.stringify({ banc2603: 'post-commit-reel', ms }))
-  } catch (e) {
-    rouge = e
-  } finally {
+  t.after(() => {
     writeFileSync(debloquer, '')
     const { logs } = cheminsDeLaReconstruction(racine)
-    const vivants = attendreLesDetaches(existsSync(logs) ? readdirSync(logs).map((f) => Number.parseInt(f, 10)) : [])
-    try {
-      assert.deepEqual(vivants, [])
-      rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
-    } catch (e) {
-      residu = e
-    }
-  }
-  if (rouge ?? residu) throw rouge ?? residu
+    const lances = existsSync(logs) ? readdirSync(logs).map((f) => Number.parseInt(f, 10)) : []
+    supprimerDepotApresLesDetaches(racine, lances)
+  })
+  git('config', 'core.hooksPath', join(RACINE, 'scripts', 'git-hooks'))
+  writeFileSync(join(racine, 'a.txt'), 'b\n')
+  git('add', 'a.txt')
+  const debut = performance.now()
+  const vu = resultatDeGit(['commit', '--no-verify', '-q', '-m', 'b'], { cwd: racine })
+  const ms = Math.round(performance.now() - debut)
+  assert.equal(vu.status, 0, `${vu.error ?? ''}${vu.stdout}${vu.stderr}`)
+  assert.ok(ms < 30_000, `le post-commit rend la main sans attendre la passe : ${ms} ms`)
+  assert.match(`${vu.stdout}${vu.stderr}`, /^reconstruction seq=1$/m)
+  assert.equal(existsSync(debloquer), false)
+  assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 0 }), { etat: 'en-cours' })
+  writeFileSync(debloquer, '')
+  const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 120_000, pasMs: 100 })
+  assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 1, 0], JSON.stringify(passe))
+  assert.equal(existsSync(join(racine, '.git', 'perimes-entame')), true, 'la passe a joué `build-all --perimes` de l’arbre')
+  console.log(JSON.stringify({ banc2603: 'post-commit-reel', ms }))
 })
 
 // #2603
-test('(d) rebase de 3 picks : 3 post-commit et un post-rewrite demandent, aucune passe pendant le rebase, une passe après', () => {
+test('(d) rebase de 3 picks : 3 post-commit et un post-rewrite demandent, aucune passe pendant le rebase, une passe après', (t) => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'hooks-fixture/\n', 'a.txt': 'a\n' } })
   const git = gitDe(racine)
   const journal = join(racine, '.git', 'journal-fixture')
   const lire = () => readFileSync(journal, 'utf8').trim().split('\n').filter(Boolean)
   const url = (rel) => JSON.stringify(pathToFileURL(join(RACINE, rel)).href)
   const serveur = join(racine, 'hooks-fixture', 'serveur.mjs')
-  try {
-    git('switch', '-q', '-c', 'cote')
-    for (const i of [1, 2, 3]) {
-      writeFileSync(join(racine, `f${i}.txt`), `${i}\n`)
-      git('add', `f${i}.txt`)
-      git('commit', '-q', '-m', `pick ${i}`)
-    }
-    git('switch', '-q', 'main')
-    writeFileSync(join(racine, 'b.txt'), 'b\n')
-    git('add', 'b.txt')
-    git('commit', '-q', '-m', 'b')
-    git('switch', '-q', 'cote')
-    mkdirSync(join(racine, 'hooks-fixture'))
-    for (const hook of ['post-commit', 'post-rewrite']) writeFileSync(join(racine, 'hooks-fixture', hook), readFileSync(join(RACINE, 'scripts/git-hooks', hook)), { mode: 0o755 })
-    writeFileSync(join(racine, 'hooks-fixture', 'docs-rebuild.mjs'), [
-      `import { reconstruireApresGit } from ${url('scripts/git-hooks/docs-rebuild.mjs')}`,
-      `import { demanderLaReconstruction } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
-      `import { lancerDetache } from ${url('scripts/guards/lib/lancerDetache.mjs')}`,
-      "import { appendFileSync } from 'node:fs'",
-      `appendFileSync(${JSON.stringify(journal)}, 'hook ' + process.argv[2] + '\\n')`,
-      `process.exitCode = reconstruireApresGit({ cwd: ${JSON.stringify(racine)}, hook: process.argv[2], generateurs: [{ script: 'g/a.mjs', targets: ['docs/a.md'] }],`,
-      "  annoncer: () => {}, npm: () => ({ status: 1 }), code: () => 1,",
-      `  demander: (cwd) => demanderLaReconstruction(cwd, { script: ${JSON.stringify(serveur)}, detacher: (opts) => {`,
-      '    const pid = lancerDetache(opts)',
-      `    appendFileSync(${JSON.stringify(journal)}, 'lance ' + pid + '\\n')`,
-      '    return pid',
-      '  } }) }).code',
-    ].join('\n'))
-    writeFileSync(serveur, [
-      `import { servirLesDemandes } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
-      `import { operationEnCours } from ${url('scripts/docs/lib/ecrivain-derives.mjs')}`,
-      `import { gitDirDe } from ${url('scripts/hooks/barriere-outil.mjs')}`,
-      "import { appendFileSync } from 'node:fs'",
-      'const racine = process.cwd()',
-      'servirLesDemandes({ racine, attenteArbre: { echeanceMs: 60_000, pasMs: 50 }, passe: () => {',
-      `  appendFileSync(${JSON.stringify(journal)}, 'passe ' + (operationEnCours(gitDirDe(racine)) ?? 'libre') + '\\n')`,
-      '  return 0',
-      '} })',
-    ].join('\n'))
-    git('config', 'core.hooksPath', 'hooks-fixture')
-    const vu = resultatDeGit(['rebase', '-x', 'node -e "setTimeout(() => {}, 1000)"', 'main'], { cwd: racine })
-    assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
-    const demandes = demandesDe(racine)
-    assert.equal(demandes, 4)
-    const passe = attendreLaReconstruction(racine, demandes, { echeanceMs: 120_000, pasMs: 100 })
-    assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 4, 0])
-    const lu = lire()
-    assert.deepEqual(lu.filter((l) => l.startsWith('hook ')), ['hook post-commit', 'hook post-commit', 'hook post-commit', 'hook post-rewrite'])
-    const passes = lu.filter((l) => l.startsWith('passe '))
-    assert.ok(passes.length >= 1, lu.join(' | '))
-    assert.deepEqual(passes.filter((l) => l !== 'passe libre'), [], lu.join(' | '))
-  } finally {
+  t.after(() => {
     const lances = existsSync(journal) ? lire().filter((l) => l.startsWith('lance ')).map((l) => Number(l.slice('lance '.length))) : []
-    assert.deepEqual(attendreLesDetaches(lances), [])
-    rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
+    supprimerDepotApresLesDetaches(racine, lances)
+  })
+  git('switch', '-q', '-c', 'cote')
+  for (const i of [1, 2, 3]) {
+    writeFileSync(join(racine, `f${i}.txt`), `${i}\n`)
+    git('add', `f${i}.txt`)
+    git('commit', '-q', '-m', `pick ${i}`)
   }
+  git('switch', '-q', 'main')
+  writeFileSync(join(racine, 'b.txt'), 'b\n')
+  git('add', 'b.txt')
+  git('commit', '-q', '-m', 'b')
+  git('switch', '-q', 'cote')
+  mkdirSync(join(racine, 'hooks-fixture'))
+  for (const hook of ['post-commit', 'post-rewrite']) writeFileSync(join(racine, 'hooks-fixture', hook), readFileSync(join(RACINE, 'scripts/git-hooks', hook)), { mode: 0o755 })
+  writeFileSync(join(racine, 'hooks-fixture', 'docs-rebuild.mjs'), [
+    `import { reconstruireApresGit } from ${url('scripts/git-hooks/docs-rebuild.mjs')}`,
+    `import { demanderLaReconstruction } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
+    `import { lancerDetache } from ${url('scripts/guards/lib/lancerDetache.mjs')}`,
+    "import { appendFileSync } from 'node:fs'",
+    `appendFileSync(${JSON.stringify(journal)}, 'hook ' + process.argv[2] + '\\n')`,
+    `process.exitCode = reconstruireApresGit({ cwd: ${JSON.stringify(racine)}, hook: process.argv[2], generateurs: [{ script: 'g/a.mjs', targets: ['docs/a.md'] }],`,
+    "  annoncer: () => {}, npm: () => ({ status: 1 }), code: () => 1,",
+    `  demander: (cwd) => demanderLaReconstruction(cwd, { script: ${JSON.stringify(serveur)}, detacher: (opts) => {`,
+    '    const pid = lancerDetache(opts)',
+    `    appendFileSync(${JSON.stringify(journal)}, 'lance ' + pid + '\\n')`,
+    '    return pid',
+    '  } }) }).code',
+  ].join('\n'))
+  writeFileSync(serveur, [
+    `import { servirLesDemandes } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
+    `import { operationEnCours } from ${url('scripts/docs/lib/ecrivain-derives.mjs')}`,
+    `import { gitDirDe } from ${url('scripts/hooks/barriere-outil.mjs')}`,
+    "import { appendFileSync } from 'node:fs'",
+    'const racine = process.cwd()',
+    'servirLesDemandes({ racine, attenteArbre: { echeanceMs: 60_000, pasMs: 50 }, passe: () => {',
+    `  appendFileSync(${JSON.stringify(journal)}, 'passe ' + (operationEnCours(gitDirDe(racine)) ?? 'libre') + '\\n')`,
+    '  return 0',
+    '} })',
+  ].join('\n'))
+  git('config', 'core.hooksPath', 'hooks-fixture')
+  const vu = resultatDeGit(['rebase', '-x', 'node -e "setTimeout(() => {}, 1000)"', 'main'], { cwd: racine })
+  assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
+  const demandes = demandesDe(racine)
+  assert.equal(demandes, 4)
+  const passe = attendreLaReconstruction(racine, demandes, { echeanceMs: 120_000, pasMs: 100 })
+  assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 4, 0])
+  const lu = lire()
+  assert.deepEqual(lu.filter((l) => l.startsWith('hook ')), ['hook post-commit', 'hook post-commit', 'hook post-commit', 'hook post-rewrite'])
+  const passes = lu.filter((l) => l.startsWith('passe '))
+  assert.ok(passes.length >= 1, lu.join(' | '))
+  assert.deepEqual(passes.filter((l) => l !== 'passe libre'), [], lu.join(' | '))
 })
 
 // #2493 #2603

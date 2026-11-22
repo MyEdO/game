@@ -1,7 +1,7 @@
 /**
  * LA VISION DU GROUPE PAR LE PONT (#3950, tranche A) : ce que la vue montre est ce que le groupe connaît
- * (`src/noyau/visionDuGroupe.ts`), ce que le noyau laisse viser ne change pas. `siege-enceinte` pose au départ derrière
- * sa muraille 8 de ses ennemis, sur des cases que le groupe ne voit pas ; `opera-plan`, une scène à deux couches explorée pas à pas ;
+ * (`src/noyau/visionDuGroupe.ts`), ce que le noyau laisse viser ne change pas. `siege-enceinte` pose des ennemis visibles
+ * par la herse et d'autres cachés derrière la courtine ; `opera-plan`, une scène à deux couches explorée pas à pas ;
  * `poursuite-terrestre`, 3 brigands embusqués ; `ecuries-clayonnage`, des structures de siège dont une face est vue et
  * l'ancrage non ; `melee-dans-le-noir`, deux gobelins au contact du groupe dans les ténèbres, hors de vue et qui se battent
  * (`docs/raw/4e/combat.md`, « Combat rapproché dans le noir »).
@@ -34,22 +34,30 @@ const visionDe = (r: Reponse): VisionDuMonde => {
   return r as unknown as VisionDuMonde;
 };
 
-describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue du groupe', () => {
+const marqueDuPlan = (appel: ReturnType<typeof table>['appel'], x: number, y: number, z: number): string => {
+  const reponse = appel('plan', { z });
+  if (!reponse.ok || typeof reponse.plan !== 'string') throw new Error(`réponse sans plan : ${JSON.stringify(reponse)}`);
+  return [...reponse.plan.split('\n')[2 * y + 1]][2 * x + 1];
+};
+
+describe('siege-enceinte — les ennemis vus par la herse ou masqués par la courtine', () => {
   const { appel } = table();
   let suite: Suite;
   const vue = (): VueDuPont => suite.vue;
   const enVue = () => vue().projection.combat!.voisins.liste.map((c) => c.id);
   /** Les combattants posés que la vue ne dessine pas. */
   const horsDeVue = () => Object.values(vue().occupants).filter((id) => !enVue().includes(id));
-  const DERRIERE_LA_MURAILLE = ['brg-canon', 'brg-cata', 'personnage-1', 'personnage-2', 'personnage-3', 'personnage-5', 'personnage-6', 'personnage-7'];
+  const GOBELIN_CACHE = 'personnage-5';
+  const GOBELIN_PAR_LA_HERSE = 'personnage-7';
 
   beforeAll(() => {
     suite = drainer(appel, appel('demarrer', { scenario: 'siege-enceinte', graine: 1 })).suite;
   });
   afterAll(() => { appel('quitter'); });
 
-  it('ses 8 ennemis derrière la muraille ont chacun leur case aux occupants, et ni corps, ni marques, ni rang dans l’ordre du tour', () => {
-    expect(horsDeVue().sort(), 'les occupants hors de vue : exactement les 8 ennemis derrière la muraille').toEqual(DERRIERE_LA_MURAILLE);
+  it('les occupants cachés gardent leur case, sans corps, marque ni rang dans l’ordre du tour', () => {
+    expect(horsDeVue(), 'le gobelin que masque la courtine').toContain(GOBELIN_CACHE);
+    expect(enVue(), 'le gobelin visible par la herse').toContain(GOBELIN_PAR_LA_HERSE);
     expect(Object.keys(vue().corps.combattants).sort(), 'les corps : ceux des combattants en vue').toEqual([...enVue()].sort());
     expect(Object.keys(vue().marques).sort(), 'les marques : celles des combattants en vue').toEqual([...enVue()].sort());
     const rangs = vue().zones['combat.ordre'].filter((p) => p.type === 'entite').map((p) => p.id);
@@ -59,8 +67,21 @@ describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue d
       .toBe(Math.min(vue().projection.combat!.tours, TETE_DU_ROUND_SUIVANT));
   });
 
+  it('le plan marque le gobelin visible par la herse mais ne situe pas celui derrière la courtine', () => {
+    const marqueDe = (id: string) => {
+      const caseOccupee = Object.keys(vue().occupants).find((cle) => vue().occupants[cle] === id);
+      expect(caseOccupee, `le combattant ${id} occupe une case`).toBeDefined();
+      const [x, y, z] = caseOccupee!.split(',').map(Number);
+      return marqueDuPlan(appel, x, y, z);
+    };
+    expect(enVue()).toContain(GOBELIN_PAR_LA_HERSE);
+    expect(horsDeVue()).toContain(GOBELIN_CACHE);
+    expect(marqueDe(GOBELIN_PAR_LA_HERSE)).toBe('&');
+    expect(marqueDe(GOBELIN_CACHE)).not.toBe('&');
+  });
+
   it('la fiche d’un ennemi hors de vue se refuse en `validation`, en mots du joueur ; celle d’un héros s’ouvre', () => {
-    expect(erreurDe(appel('fiche', { fiche: { porteur: DERRIERE_LA_MURAILLE[7] } }))).toEqual({ categorie: 'validation', message: `fiche : porteur, ${t('vision.ficheHorsDeVue')}` });
+    expect(erreurDe(appel('fiche', { fiche: { porteur: GOBELIN_CACHE } }))).toEqual({ categorie: 'validation', message: `fiche : porteur, ${t('vision.ficheHorsDeVue')}` });
     const heros = enVue()[0];
     expect(appel('fiche', { fiche: { porteur: heros } })).toMatchObject({ ok: true });
     expect(appel('fiche', { fiche: null })).toMatchObject({ ok: true });
@@ -70,7 +91,7 @@ describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue d
     const vision = visionDe(appel('vision'));
     expect(vue().vision, 'la clé de la vue : l’empreinte des octets du masque').toBe(hash32AuMillieme(depuisBase64(vision.masque)).toString(36));
     expect((appel('vue') as { vue: VueDuPont }).vue.vision, 'une relecture ne change pas la clé').toBe(vue().vision);
-    expect(vision.rangees, 'un plan de `rangeesParPlan` rangées par couche').toBe(vision.rangeesParPlan * mondeDe(appel).monde!.hauteurs.length);
+    expect(vision.rangees, 'un plan `sol` puis un plan `toit` de `rangeesParPlan` rangées par couche').toBe(2 * vision.rangeesParPlan * mondeDe(appel).monde!.hauteurs.length);
   });
 });
 
@@ -139,7 +160,7 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
   });
   afterAll(() => { appel('quitter'); });
 
-  it('le plan `i` du masque est la couche `hauteurs[i]` du monde : seule celle du groupe a des cases vues, la sienne comprise', () => {
+  it('le plan `i` du masque est la couche `hauteurs[i]` du monde : celle du groupe a des cases vues, la sienne comprise, une autre ne voit que par sa colonne', () => {
     const { hauteurs } = mondeDe(appel).monde!;
     const vision = visionDe(appel('vision'));
     const octets = depuisBase64(vision.masque);
@@ -147,9 +168,13 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
     const z = etage ?? 0;
     const plan = (i: number) => octets.subarray(i * vision.largeur * vision.rangeesParPlan, (i + 1) * vision.largeur * vision.rangeesParPlan);
     expect(hauteurs.length, 'une scène à deux couches').toBe(2);
-    expect(hauteurs.map((_, i) => plan(i).includes(255)), `les plans aux cases vues, couches ${hauteurs.map((h) => h.z).join(', ')}`).toEqual(hauteurs.map((h) => h.z === z));
     const i = hauteurs.findIndex((h) => h.z === z);
     expect(plan(i)[groupe[1] * vision.largeur + groupe[0]], 'la case du groupe, vue, au plan de sa couche').toBe(255);
+    hauteurs.forEach((h, j) => {
+      if (j === i) return;
+      const sansColonne = [...plan(j).keys()].filter((k) => plan(j)[k] === 255 && plan(i)[k] !== 255);
+      expect(sansColonne, `couche ${h.z} : une case vue sans sa colonne vue à la couche du groupe`).toEqual([]);
+    });
   });
 
   it('un pas change `vue.vision` ; chaque case vue que le pas quitte vaut 128, explorée', () => {
@@ -167,14 +192,18 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
 });
 
 describe('poursuite-terrestre — les embusqués', () => {
-  it('ses 3 brigands embusqués ne sont pas aux entités de l’exploration', { timeout: 60_000 }, () => {
+  it('ses 3 brigands embusqués sont absents des entités de l’exploration et du plan', { timeout: 60_000 }, () => {
     const { appel } = table();
     try {
       const { vue } = drainer(appel, appel('demarrer', { scenario: 'poursuite-terrestre', graine: 1 })).suite;
-      const embusques = entitesDe('poursuite-terrestre').filter((e) => e.combat?.hiddenUntilCombat).map((e) => e.id);
+      const embusques = entitesDe('poursuite-terrestre').filter((e) => e.combat?.hiddenUntilCombat);
       expect(embusques, 'témoin : 3 embusqués à la scène').toHaveLength(3);
       const entites = vue.projection.exploration!.entites.liste.map((e) => e.id);
-      expect(entites.filter((id) => embusques.includes(id)), `les entités de l’exploration : ${entites.join(', ')}`).toEqual([]);
+      expect(embusques.filter((e) => entites.includes(e.id)), `les entités de l’exploration : ${entites.join(', ')}`).toEqual([]);
+      const { masque, largeur } = visionDe(appel('vision'));
+      const octets = depuisBase64(masque);
+      expect(embusques.some(({ pos }) => octets[pos.y * largeur + pos.x] === 255), 'un brigand embusqué sur une case vue').toBe(true);
+      for (const { id, pos, z } of embusques) expect(marqueDuPlan(appel, pos.x, pos.y, z ?? 0), id).not.toBe('&');
     } finally {
       appel('quitter');
     }

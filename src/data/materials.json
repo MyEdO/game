@@ -432,6 +432,69 @@
     "metalness": 0
   },
   {
+    "id": "cuivre",
+    "type": "materials",
+    "label": "Cuivre",
+    "domain": "prop",
+    "color": "#b0623a",
+    "roughness": 0.4,
+    "metalness": 0.7
+  },
+  {
+    "id": "bronze-patine",
+    "type": "materials",
+    "label": "Bronze",
+    "domain": "prop",
+    "color": "#8a6a34",
+    "roughness": 0.45,
+    "metalness": 0.7
+  },
+  {
+    "id": "or-fin",
+    "type": "materials",
+    "label": "Or",
+    "domain": "prop",
+    "color": "#d4a62a",
+    "roughness": 0.3,
+    "metalness": 0.8
+  },
+  {
+    "id": "plume",
+    "type": "materials",
+    "label": "Plume",
+    "domain": "prop",
+    "color": "#cfc8b8",
+    "roughness": 0.85,
+    "metalness": 0
+  },
+  {
+    "id": "osier",
+    "type": "materials",
+    "label": "Osier",
+    "domain": "prop",
+    "color": "#a8824e",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "emaille",
+    "type": "materials",
+    "label": "Émail",
+    "domain": "prop",
+    "color": "#23508c",
+    "roughness": 0.15,
+    "metalness": 0
+  },
+  {
+    "id": "velours",
+    "type": "materials",
+    "label": "Velours",
+    "domain": "prop",
+    "color": "#6e1f2e",
+    "roughness": 1,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",
@@ -446,7 +509,8 @@
     "soffite": "#3d130c",
     "fasciaDropM": 0.2,
     "fascia": "#2e0e07",
-    "ridgeCap": "#bf5e46"
+    "ridgeCap": "#bf5e46",
+    "kit": "tuile"
   },
   {
     "id": "chaume",
@@ -460,7 +524,9 @@
     "O": "#997c3c",
     "line": "#463714",
     "eaveOverhangM": 0.72,
-    "soffite": "#4a3a16"
+    "soffite": "#4a3a16",
+    "ridgeCap": "#8a6f35",
+    "kit": "chaume"
   },
   {
     "id": "toit-ardoise",
@@ -477,7 +543,8 @@
     "soffite": "#222831",
     "fasciaDropM": 0.16,
     "fascia": "#171c22",
-    "ridgeCap": "#788896"
+    "ridgeCap": "#788896",
+    "kit": "ardoise"
   },
   {
     "id": "plan",
@@ -946,5 +1013,222 @@
     "label": "Plume noire",
     "domain": "couleur",
     "color": "#24221f"
+  },
+  {
+    "id": "yeux-bleu-pale",
+    "type": "materials",
+    "label": "Yeux bleu pâle",
+    "domain": "couleur",
+    "color": "#8fb4d4"
+  },
+  {
+    "id": "yeux-bleu-profond",
+    "type": "materials",
+    "label": "Yeux bleu profond",
+    "domain": "couleur",
+    "color": "#24407a"
+  },
+  {
+    "id": "yeux-turquoise",
+    "type": "materials",
+    "label": "Yeux turquoise",
+    "domain": "couleur",
+    "color": "#3fa39a"
+  },
+  {
+    "id": "yeux-vert-pale",
+    "type": "materials",
+    "label": "Yeux vert pâle",
+    "domain": "couleur",
+    "color": "#8fb58a"
+  },
+  {
+    "id": "yeux-vert-mousse",
+    "type": "materials",
+    "label": "Yeux vert mousse",
+    "domain": "couleur",
+    "color": "#4a5e2e"
+  },
+  {
+    "id": "yeux-gris-pale",
+    "type": "materials",
+    "label": "Yeux gris pâle",
+    "domain": "couleur",
+    "color": "#aab2ba"
+  },
+  {
+    "id": "yeux-gris-sombre",
+    "type": "materials",
+    "label": "Yeux gris sombre",
+    "domain": "couleur",
+    "color": "#3e4248"
+  },
+  {
+    "id": "yeux-noirs",
+    "type": "materials",
+    "label": "Yeux noirs",
+    "domain": "couleur",
+    "color": "#16141a"
+  },
+  {
+    "id": "yeux-noisette",
+    "type": "materials",
+    "label": "Yeux noisette",
+    "domain": "couleur",
+    "color": "#8a6a3a"
+  },
+  {
+    "id": "yeux-marron-fonce",
+    "type": "materials",
+    "label": "Yeux marron foncé",
+    "domain": "couleur",
+    "color": "#3a2416"
+  },
+  {
+    "id": "yeux-ambre",
+    "type": "materials",
+    "label": "Yeux ambre",
+    "domain": "couleur",
+    "color": "#b8862a"
+  },
+  {
+    "id": "yeux-or",
+    "type": "materials",
+    "label": "Yeux or",
+    "domain": "couleur",
+    "color": "#d0a838"
+  },
+  {
+    "id": "yeux-cuivre",
+    "type": "materials",
+    "label": "Yeux cuivre",
+    "domain": "couleur",
+    "color": "#a05a30"
+  },
+  {
+    "id": "yeux-violets",
+    "type": "materials",
+    "label": "Yeux violets",
+    "domain": "couleur",
+    "color": "#7a55a8"
+  },
+  {
+    "id": "cheveux-blond-pale",
+    "type": "materials",
+    "label": "Cheveux blond pâle",
+    "domain": "couleur",
+    "color": "#e4d6a8"
+  },
+  {
+    "id": "cheveux-blond-cendre",
+    "type": "materials",
+    "label": "Cheveux blond cendré",
+    "domain": "couleur",
+    "color": "#b8a67c"
+  },
+  {
+    "id": "cheveux-paille",
+    "type": "materials",
+    "label": "Cheveux paille",
+    "domain": "couleur",
+    "color": "#c8a83c"
+  },
+  {
+    "id": "cheveux-miel",
+    "type": "materials",
+    "label": "Cheveux miel",
+    "domain": "couleur",
+    "color": "#b08040"
+  },
+  {
+    "id": "cheveux-blond-roux",
+    "type": "materials",
+    "label": "Cheveux blond roux",
+    "domain": "couleur",
+    "color": "#c48850"
+  },
+  {
+    "id": "cheveux-cuivre",
+    "type": "materials",
+    "label": "Cheveux cuivre",
+    "domain": "couleur",
+    "color": "#b0602c"
+  },
+  {
+    "id": "cheveux-auburn",
+    "type": "materials",
+    "label": "Cheveux auburn",
+    "domain": "couleur",
+    "color": "#6e2e1c"
+  },
+  {
+    "id": "cheveux-lie-de-vin",
+    "type": "materials",
+    "label": "Cheveux lie de vin",
+    "domain": "couleur",
+    "color": "#5a2030"
+  },
+  {
+    "id": "cheveux-argent",
+    "type": "materials",
+    "label": "Cheveux argent",
+    "domain": "couleur",
+    "color": "#b8bcc0"
+  },
+  {
+    "id": "cheveux-noir-bleute",
+    "type": "materials",
+    "label": "Cheveux noir bleuté",
+    "domain": "couleur",
+    "color": "#1a2036"
+  },
+  {
+    "id": "tissu-pourpre",
+    "type": "materials",
+    "label": "Tissu pourpre",
+    "domain": "couleur",
+    "color": "#5c2a6c"
+  },
+  {
+    "id": "tissu-ecarlate",
+    "type": "materials",
+    "label": "Tissu écarlate",
+    "domain": "couleur",
+    "color": "#c2201c"
+  },
+  {
+    "id": "tissu-azur",
+    "type": "materials",
+    "label": "Tissu azur",
+    "domain": "couleur",
+    "color": "#2f6fb5"
+  },
+  {
+    "id": "tissu-indigo",
+    "type": "materials",
+    "label": "Tissu indigo",
+    "domain": "couleur",
+    "color": "#2e2a66"
+  },
+  {
+    "id": "tissu-cramoisi",
+    "type": "materials",
+    "label": "Tissu cramoisi",
+    "domain": "couleur",
+    "color": "#8c1232"
+  },
+  {
+    "id": "tissu-vert-sombre",
+    "type": "materials",
+    "label": "Tissu vert sombre",
+    "domain": "couleur",
+    "color": "#3b423a"
+  },
+  {
+    "id": "vert-fiole",
+    "type": "materials",
+    "label": "Vert de fiole",
+    "domain": "couleur",
+    "color": "#4d9555"
   }
 ]

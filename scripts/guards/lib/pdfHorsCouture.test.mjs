@@ -7,9 +7,25 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { REGISTRE_LIVRES } from '../../raw/_lib.mjs'
 import { ECRIT_LU } from '../../gates/toutes.mjs'
+import { cleDeLigne, positionsDesAncres } from './stock.mjs'
 import { EXEMPTIONS, EXT, estShell, fichiersBalayes, litterauxDe, nomPdf, racinesBalayees, sitesFautifs } from './pdfHorsCouture.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+const LITTERAUX = litterauxDe(REGISTRE_LIVRES)
+
+function juger(fichier, source, exemptions = EXEMPTIONS) {
+  const texte = source.replace(/\r\n?/g, '\n')
+  const entrees = exemptions.filter((e) => e.fichier === fichier)
+  const ancres = positionsDesAncres(fichier, texte, entrees.map((e) => e.ancre))
+  const fautes = []
+  const touchees = new Set()
+  for (const site of sitesFautifs(texte, LITTERAUX, { shell: estShell(fichier) })) {
+    const ancre = ancres.get(site.ligne)
+    if (ancre === undefined) fautes.push(site)
+    else touchees.add(ancre)
+  }
+  return { fautes, vues: entrees.filter((e) => touchees.has(e.ancre)) }
+}
 
 test('sitesFautifs : chaque forme refusée est VUE, chacune seule', () => {
   const lits = litterauxDe([{ id: 'x', abbr: 'X', dir: 'Source/Mon Livre', pdf: nomPdf('Autre nom') }])
@@ -44,21 +60,48 @@ test('sitesFautifs : chaque forme refusée est VUE, chacune seule', () => {
 })
 
 test('GARDE : aucun fichier de code ni JSON de configuration ne construit ni ne code en dur un chemin de PDF hors de la couture', () => {
-  const litteraux = litterauxDe(REGISTRE_LIVRES)
+  const cles = EXEMPTIONS.map(({ fichier, ancre }) => cleDeLigne(fichier, ancre))
+  assert.equal(new Set(cles).size, cles.length, 'exemptions PDF déclarées en double')
+  assert.ok(EXEMPTIONS.every(({ raison, date }) => raison.trim() && /^\d{4}-\d{2}-\d{2}$/.test(date)))
   const fichiers = fichiersBalayes()
   assert.ok(fichiers.length > 1000, `balayage suspect : ${fichiers.length} fichier(s)`)
   const vues = new Set()
   const fautes = []
   for (const f of fichiers) {
-    const texte = readFileSync(join(RACINE, f), 'utf8').replace(/\r\n?/g, '\n')
-    for (const s of sitesFautifs(texte, litteraux, { shell: estShell(f) })) {
-      const ex = EXEMPTIONS.find((e) => e.fichier === f && e.motif.test(s.texte))
-      if (ex) { vues.add(ex); continue }
-      fautes.push(`${f}:${s.ligne} (${s.forme}) ${s.texte}`)
-    }
+    const verdict = juger(f, readFileSync(join(RACINE, f), 'utf8'))
+    for (const ex of verdict.vues) vues.add(ex)
+    for (const s of verdict.fautes) fautes.push(`${f}:${s.ligne} (${s.forme}) ${s.texte}`)
   }
   assert.deepEqual(fautes, [], 'chemin de PDF hors de `pdfDe` (scripts/raw/_lib.mjs) — passer par la couture ou sa CLI scripts/raw/pdf-de.mjs, ou exempter AU SITE (scripts/guards/lib/pdfHorsCouture.mjs)')
-  assert.deepEqual(EXEMPTIONS.filter((e) => !vues.has(e)).map((e) => `${e.fichier} ${e.motif}`), [], 'exemption sans site : à retirer')
+  assert.deepEqual(EXEMPTIONS.filter((e) => !vues.has(e)).map((e) => `${e.fichier} ${e.ancre}`), [], 'exemption sans site : à retirer')
+})
+
+test('exemption PDF au site unique, stable au déplacement et caduque à la réécriture', () => {
+  const fichier = 'scripts/temoin-generation.mjs'
+  const ancre = `const chemin = f.endsWith('.${EXT}')`
+  const ex = { fichier, ancre, raison: 'test de l’extension, sans nom de livre', date: '2026-11-22' }
+  const original = `const a = 1\n${ancre}\n`
+  const examiner = (texte) => juger(fichier, texte, [ex])
+  const deplace = examiner('\n' + original)
+  assert.deepEqual(deplace.fautes, [])
+  assert.ok(deplace.vues.includes(ex))
+
+  const disparu = examiner(original.replace(ancre, ''))
+  assert.deepEqual(disparu.fautes, [])
+  assert.ok(!disparu.vues.includes(ex))
+
+  const variante = ancre + ' // Témoin'
+  const reecrit = examiner(original.replace(ancre, variante))
+  assert.deepEqual(reecrit.fautes.map((s) => s.texte), [variante])
+  assert.ok(!reecrit.vues.includes(ex))
+
+  const double = examiner(original.replace(ancre, ancre + '\n' + ancre))
+  assert.deepEqual(double.fautes.map((s) => s.texte), [ancre, ancre])
+  assert.ok(!double.vues.includes(ex))
+
+  const ajoute = examiner(original.replace(ancre, ancre + '\n' + variante))
+  assert.deepEqual(ajoute.fautes.map((s) => s.texte), [variante])
+  assert.ok(ajoute.vues.includes(ex))
 })
 
 test('LIT déclaré : chaque racine que la garde balaie est couverte par `ECRIT_LU[\'test:hooks\'].lit`', () => {

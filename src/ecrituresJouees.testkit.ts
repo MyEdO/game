@@ -20,14 +20,27 @@ import {
   type Segment,
   type SessionDEdition,
 } from './noyau/index';
-import { accesDe, DOCUMENTS, FORMULAIRES, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
+import {
+  accesDe,
+  cleDeLElement,
+  DOCUMENTS,
+  FORMULAIRES,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  type SorteDePorteur,
+} from './noyau/sceneEditLecture';
+import { formeAuPoint } from './noyau/codex/editFields';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
-import { jeuDuFormulaire, type BancDuFormulaire } from './formulaireJoue.testkit';
+import { jeuDuFormulaire, marcher, type BancDuFormulaire } from './formulaireJoue.testkit';
+import { psychologies } from './data';
 import { ENTREES_DE_DOSSIER } from './data/dossiers';
+import { ouverts } from './data/schemas/grammaire/descente';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { detenteur } from './lib/detenteur.testkit';
+import { ecrituresDesOutilsDeScene } from './ecrituresDesOutilsDeScene.testkit';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
@@ -48,6 +61,9 @@ const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;
 const inspecteur = (s: SessionDEdition, retraitDuPorteurLogique = true): Inspecteur =>
   ({ 'editeur.inspecteur': inspecteurDeLaSession(s, { retraitDuPorteurLogique }) });
+
+/** Les offres d'une session du banc, dont la lecture ne change pas entre deux gestes. */
+const inspecteursDesSessions = new WeakMap<SessionDEdition, Inspecteur>();
 
 /** Les boutons des zones `zones` : chaque bouton, et chaque valeur d'un choix ou d'une liste. */
 const boutonsDesZones = (zones: ZonesDeLEditeur) =>
@@ -86,14 +102,14 @@ const porteurDuJeu = (jeu: Jeu): { sorte: SorteDePorteur; id: string } | undefin
  *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`) ; le schéma du porteur du jeu d'une offre
  *  (`porteurDuJeu`), celui de son formulaire (`FORMULAIRES`), et sa donnée. */
 const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEditeur>, GesteDEdition> = {
-  zones: (s) => inspecteur(s, s.document !== 'narratif'),
+  zones: (s) => inspecteursDesSessions.get(s) ?? inspecteursDesSessions.set(s, inspecteur(s, s.document !== 'narratif')).get(s)!,
   elements: (z) => z['editeur.inspecteur'],
   deballe: (jeu) => ('edition' in jeu ? jeu.edition : undefined),
   geste: (zones, _s, recu) => ('edition' in recu ? (boutonDeLEdition(zones, recu.edition) ? recu.edition : undefined) : gesteDuFormulaire(zones, recu)),
   jouer,
   porteur: (s, g) => {
     const p = porteurDu(s, g.porteur);
-    return p && { cle: g.porteur.sorte, ...p };
+    return p && { cle: g.porteur.sorte, ...p, noeud: FORMULAIRES[g.porteur.sorte].schema };
   },
   document: (s, g) => documentDu(s, g.porteur.sorte),
   schema: (s, jeu) => {
@@ -101,8 +117,41 @@ const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEdite
     const p = porteur && porteurDu(s, porteur);
     return p && { noeud: FORMULAIRES[porteur.sorte].schema, donnee: p.donnee };
   },
+  explorerLesUnions: () => true,
 };
 const { jouerLInspecteur, ecrire, jouerLesVariantes, choix: choixDeLInspecteur, gesteDuJeu, gesteDuChoix, composerLAdresse } = jeuDuFormulaire(BANC);
+
+/** La branche et la clé de collection qu'emploie le formulaire pour cette donnée. */
+function avecModele(racine: keyof typeof RACINES, ecritures: EcritureJouee[]): EcritureJouee[] {
+  const schema = DOCUMENTS[racine].schema;
+  const points = new WeakMap<object, Map<string, { noeud: unknown; valeur: unknown }>>();
+  function auPoint(document: unknown, chemin: readonly Segment[]) {
+    if (!estObjet(document)) return undefined;
+    const chemins = points.get(document) ?? new Map<string, { noeud: unknown; valeur: unknown }>();
+    const cle = JSON.stringify(chemin);
+    const lu = chemins.get(cle);
+    if (lu) return lu;
+    const point = { noeud: marcher(schema, document, chemin)?.noeud, valeur: auChemin(document, chemin) };
+    chemins.set(cle, point);
+    points.set(document, chemins);
+    return point;
+  }
+  const modele: NonNullable<EcritureJouee['modele']> = {
+    cleDeListe(document, chemin, element) {
+      const point = auPoint(document, chemin);
+      for (const n of ouverts([point?.noeud], point?.valeur)) {
+        const cle = cleDeLElement(n, element);
+        if (cle !== undefined) return cle;
+      }
+      return undefined;
+    },
+    forme(document, chemin) {
+      const point = auPoint(document, chemin);
+      return formeAuPoint(point?.noeud, point?.valeur)?.noeud;
+    },
+  };
+  return ecritures.map((ecriture) => ({ ...ecriture, modele }));
+}
 
 /** La session `suite`, tirée de `s` par un outil ou un bouton qui crée un porteur de sorte `sorte`, sélectionné ;
  *  l'écriture de sa collection entière, avec son chemin depuis son document, s'ajoute à `out`. */
@@ -110,7 +159,10 @@ function cree(s: SessionDEdition, suite: SessionDEdition, sorte: SorteDePorteur,
   const porteur = porteurChoisi(suite);
   const neuf = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
   if (!neuf) throw new Error(`aucun porteur ${sorte} créé`);
-  out.push({ avant: documentDu(s, sorte), apres: documentDu(suite, sorte), chemin: neuf.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
+  out.push({
+    avant: documentDu(s, sorte), apres: documentDu(suite, sorte), chemin: neuf.chemin.slice(0, -1),
+    valeur: porteursDe(suite, sorte), saisie: 'bouton', mouvement: { geste: 'inserer', chemin: neuf.chemin },
+  });
   return suite;
 }
 
@@ -149,7 +201,10 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
     const sous = cheminDeLElement(acc.donnee, fixe)!;
     return { donnee: auChemin(acc.donnee, sous), chemin: [...acc.chemin, ...sous] };
   }, { donnee, chemin: [] }).chemin;
-  out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...chemin, ...element, 'id'], valeur: vers, saisie: 'saisieTexte' });
+  out.push({
+    avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...chemin, ...element, 'id'],
+    valeur: vers, saisie: 'saisieTexte', renommage: { avant: geste.element ?? porteur.id, apres: vers },
+  });
   return suite;
 }
 
@@ -169,7 +224,10 @@ function renommer(s: SessionDEdition, out: EcritureJouee[], vers?: string): Sess
   const [ancien, neuf] = [avant.donnee, porteurDu(suite, { sorte: porteur.sorte, id: nom })?.donnee] as unknown[];
   const cle = estObjet(ancien) && estObjet(neuf) ? Object.keys(neuf).find((k) => neuf[k] === nom && ancien[k] === porteur.id) : undefined;
   if (cle === undefined) throw new Error(`le formulaire nommer n’a pas renommé ${porteur.id} en ${nom}`);
-  out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...avant.chemin, cle], valeur: nom, saisie: saisie.type });
+  out.push({
+    avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...avant.chemin, cle],
+    valeur: nom, saisie: saisie.type, renommage: { avant: porteur.id, apres: nom },
+  });
   return suite;
 }
 
@@ -317,14 +375,20 @@ function tracerLaZoneJouable(s: SessionDEdition, out: EcritureJouee[]): void {
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(premierProjet(), 'scenes/ajouter');
+  out.push(...ecrituresDesOutilsDeScene(s, { presser, cliquer, poserUnNavire }));
   jouerLInspecteur(s, out);
   for (const [sorte, de, a, boutons] of ZONES) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
-    s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);
+    const zone = boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }));
+    if (sorte === 'effect') out.push(...jouerLesChargesEnContexte(zone, 'valeur/onCross/'));
+    s = jouerLInspecteur(zone, out);
   }
   tracerLaZoneJouable(s, out);
   FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
   const dialogue = jouerLInspecteur(ajouter(s, 'dialogue', out), out);
+  const avecUnNoeudDePlus = presser(dialogue, premierBouton(dialogue, 'valeur/nodes/ajouter'));
+  const dialogueEdite = sceneEditee(avecUnNoeudDePlus).dialogues?.find((d) => d.id === selectionne(avecUnNoeudDePlus));
+  ecrire(avecUnNoeudDePlus, gesteDuChoix(avecUnNoeudDePlus, 'valeur/start/id', (v) => v !== dialogueEdite?.start.id), 'saisieChoix', out);
   const repondu = choixDe(dialogue, REPONSE_AJOUTEE).reduce((x, id) => presser(x, choixDeLInspecteur(x, id).valeurs[0].id), dialogue);
   s = renommer(identifierChaque(repondu, out), out, DIALOGUE_RENOMME);
   s = ajouter(s, 'rencontre', out);
@@ -346,9 +410,10 @@ export function ecrituresJouees(): EcritureJouee[] {
   const effet = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
   jouerLesVariantes(effet, EFFET_DU_DECOR, out);
   composerLAdresse(jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, [PROSE_DU_DECOR.adresse]), PROSE_DU_DECOR.adresse, out);
+  out.push(...ecrituresDesReferencesDeScene());
   jouerLInspecteur(personnageDuDialogue(), out, A_DIALOGUE.branches);
   jouerLInspecteur(coqueChoisie(), out, COQUE.branches);
-  return out;
+  return avecModele('scene', out);
 }
 
 /** Les écritures de chaque porteur joué à ses branches (`FICHES`, `ENROLE`, `BRANCHES_DU_PRESET`, `A_DIALOGUE`, `COQUE`),
@@ -364,21 +429,21 @@ export function ecrituresDesPorteursSeuls(): EcritureJouee[] {
     [personnageDuDialogue(), A_DIALOGUE.branches],
     [coqueChoisie(), COQUE.branches],
   ];
-  return seuls.flatMap(([s, branches]) => {
+  return avecModele('scene', seuls.flatMap(([s, branches]) => {
     const out: EcritureJouee[] = [];
     jouerLInspecteur(s, out, branches);
     return out;
-  });
+  }));
 }
 
 /** La session `s` où le bouton d'id `id` est pressé ; l'écriture du champ `champ` du porteur sélectionné, relu après,
  *  s'ajoute à `out`. */
-function consigner(s: SessionDEdition, id: string, champ: Segment[], out: EcritureJouee[]): SessionDEdition {
+function consigner(s: SessionDEdition, id: string, champ: Segment[], out: EcritureJouee[], variante?: string): SessionDEdition {
   const porteur = porteurChoisi(s)!;
   const suite = presser(s, id);
   const apres = porteurDu(suite, porteur)!;
   const valeur = auChemin(apres.donnee, champ);
-  out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...apres.chemin, ...champ], valeur, saisie: 'bouton' });
+  out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...apres.chemin, ...champ], valeur, saisie: 'bouton', ...(variante ? { variante } : {}) });
   return suite;
 }
 
@@ -400,8 +465,102 @@ function narratifMisEnPlace(): SessionDEdition {
   return ajouter(presser(etat, premierBouton(etat, 'valeur/forme/valeurs/ajouter')), 'presetsPnj', []);
 }
 
+/** Les références que l'inspecteur d'une scène ne peut offrir qu'en présence de leurs cibles dans le projet. */
+function ecrituresDesReferencesDeScene(): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const etatHeros = presser(ajouter(narratifMisEnPlace(), 'etats', []), 'etat/forme/heros');
+  const scene = presser(presser(etatHeros, 'document/scene'), 'scenes/ajouter');
+  const personnage = poserPersonnage(scene, FICHES[0][0], 5, 5);
+  const dialogue = ajouter(personnage, 'dialogue', []);
+  const rencontres = ajouter(ajouter(dialogue, 'rencontre', []), 'rencontre', []);
+
+  const decor = cliquer(presser(presser(rencontres, 'outil/prop'), `prop/${DECOR}`), 3, 3);
+  const action = presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id);
+  const flow = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
+  const sousEffet = EFFET_DU_DECOR.slice(0, -'type'.length);
+  const references = [
+    ['poserEtat', ['etat', 'valeur']],
+    ['designerHeros', ['etat']],
+    ['startMassBattle', ['battle/sceneEncounters']],
+    ['startDialogue', ['dialogue/id', 'speakerId']],
+    ['revealClue', ['indiceId', 'stade']],
+    ['discreditClue', ['indiceId']],
+    ['startPursuit', ['encounter']],
+  ] as const;
+  for (const [type, chemins] of references) {
+    const effet = jouer(flow, gesteDuChoix(flow, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === type));
+    jouerLInspecteur(effet, out, chemins.map((c) => sousEffet + c));
+  }
+
+  const outil = presser(presser(rencontres, 'outil/zone'), 'zone/effect');
+  const zone = jouer(jouer(outil, { geste: 'appui', point: point(2, 2) }), { geste: 'relache', point: point(3, 3) });
+  const avecOp = jouerLInspecteur(zone, out, ['valeur/onCross/ajouter']);
+  const avecEtat = jouer(avecOp, gesteDuChoix(avecOp, 'valeur/onCross/0/op', (v) => estObjet(v) && v.op === 'condition'));
+  const condition = 'valeur/onCross/0/lockedUntil/';
+  const verrou = (kind: string) => jouer(avecEtat, gesteDuChoix(avecEtat, `${condition}kind`, (v) => estObjet(v) && v.kind === kind));
+  jouerLInspecteur(verrou('etat'), out, [`${condition}etat`, `${condition}value`]);
+  const herosMort = verrou('partyDead');
+  const qui = gesteDuChoix(herosMort, `${condition}who/forme`, (v) => estObjet(v) && 'etat' in v);
+  jouerLInspecteur(jouer(herosMort, qui), out, [`${condition}who/etat`]);
+  return out;
+}
+
+/** Une clôture dont la condition lit la valeur d'un état énuméré réellement présent au narratif. */
+function ecrituresDeLaCloture(): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const narratif = presser(presser(narratifMisEnPlace(), 'document/scene'), 'document/narratif');
+  const cloture = jouerLInspecteur(narratif, out, ['valeur/cloture/ajouter']);
+  const when = 'valeur/cloture/when/';
+  const condition = gesteDuChoix(cloture, `${when}kind`, (v) => estObjet(v) && v.kind === 'etat');
+  jouerLInspecteur(jouer(cloture, condition), out, [`${when}etat`, `${when}value`]);
+  return out;
+}
+
 /** La péripétie ajoutée à une route, et le préfixe d'id de son premier Effet. */
 const PERIL = { ajouter: 'valeur/perils/ajouter/', effets: 'valeur/perils/0/effects/ajouter', effet: 'valeur/perils/0/effects/0/' } as const;
+
+/** Des écritures qui exigent un porteur déjà renseigné ou deux branches incompatibles de son formulaire. */
+function jouerLesChargesEnContexte(s: SessionDEdition, ops: string): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const op = `${ops}0/`;
+  const avecOp = presser(s, premierBouton(s, `${ops}ajouter`));
+  const choisir = (nom: string) => jouer(avecOp, gesteDuChoix(avecOp, `${op}op`, (v) => estObjet(v) && v.op === nom));
+
+  const psy = choisir('beginPsych');
+  const typesACible = new Set<string>(psychologies.filter((p) => p.cibles?.includes('groupe')).map((p) => p.id));
+  const typePsy = gesteDuChoix(psy, `${op}type/id`, (v) => typeof v === 'string' && typesACible.has(v));
+  jouerLInspecteur(jouer(psy, typePsy), out, [`${op}cible`]);
+
+  const combat = choisir('combatEnMer');
+  const adversaire = gesteDuChoix(combat, `${op}adversaire/id`, (v) => typeof v === 'string' && v !== '');
+  jouerLInspecteur(ecrire(combat, adversaire, 'saisieChoix', out), out, [`${op}adversaire`]);
+
+  const avecTexte = jouerLInspecteur(choisir('narrative'), out, [`${op}text`]);
+  jouerLInspecteur(avecTexte, out, [`${op}adapteDe`]);
+
+  const entrees = `${op}entries/`;
+  const table = jouerLInspecteur(choisir('rollTable'), out, [`${entrees}ajouter`]);
+  jouerLInspecteur(table, out, ['min', 'max', 'ops/ajouter'].map((champ) => `${entrees}0/${champ}`));
+
+  const auToucher = `${op}onHitEffects/`;
+  const arme = jouerLInspecteur(choisir('augmentWeapon'), out, [`${auToucher}ajouter`]);
+  const effetDArme = `${auToucher}0/`;
+  jouerLInspecteur(arme, out, ['trigger', 'on/', 'condition', 'attackType', 'coupCritique', 'optional'].map((champ) => effetDArme + champ));
+  const flux = ecrire(arme, gesteDuChoix(arme, `${effetDArme}flow/kind`, (v) => estObjet(v) && v.kind === 'effet'), 'saisieChoix', out, 'kind');
+  return [...out, ...ecrituresDeLaFeuilleDOperations(flux, `${effetDArme}flow/effet/`)];
+}
+
+/** La cible de chaque branche et les deux formes d'échéance d'une feuille d'opérations déjà ouverte. */
+function ecrituresDeLaFeuilleDOperations(flux: SessionDEdition, charge: string): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  // L'échéance absolue et la durée sont exclusives. Chacune part de la même feuille sans échéance.
+  for (const champ of ['heroId', 'label', 'untilTime', 'pendantJours']) jouerLInspecteur(flux, out, [charge + champ]);
+  for (const champ of ['role', 'volontaires']) {
+    const cible = gesteDuChoix(flux, `${charge}on/forme`, (v) => estObjet(v) && champ in v);
+    jouerLInspecteur(ecrire(flux, cible, 'saisieChoix', out), out, [`${charge}on/${champ}`]);
+  }
+  return out;
+}
 
 /** Les écritures de la carte du monde de la première campagne du jeu, son narratif mis en place (`narratifMisEnPlace`) :
  *  la carte renommée (`identifierChaque`) ; l'inspecteur de la carte ; un lieu posé à l'outil Lieu et un ajouté à la zone Logique, un point d'intérêt épinglé à
@@ -415,7 +574,26 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   identifierChaque(carte, out);
   let s = jouerLInspecteur(carte, out);
   const depart = projetEdite(s).worldMap!.places[0];
-  s = jouerLInspecteur(cree(s, cliquer(presser(s, 'outil/lieu'), 85, 15), 'lieu', out), out);
+  const lieuNeuf = cree(s, cliquer(presser(s, 'outil/lieu'), 85, 15), 'lieu', out);
+  ecrire(lieuNeuf, gesteDuChoix(lieuNeuf, 'valeur/port/ajouter', (v) => estObjet(v) && typeof v.ref === 'string'), 'saisieChoix', out, 'ref');
+  const relireLieu = (session: SessionDEdition) =>
+    projetEdite(session).worldMap!.places.find((lieu) => lieu.id === selectionne(lieuNeuf))!;
+  const choisirAmarrage = (session: SessionDEdition, valeur: 'simple' | 'cale-seche') =>
+    ecrire(session, gesteDuChoix(session, 'valeur/amarrage', (v) => v === valeur), 'saisieChoix', out);
+  const amarrage = choisirAmarrage(lieuNeuf, 'simple');
+  expect(relireLieu(amarrage).amarrage).toBe('simple');
+  const cale = choisirAmarrage(amarrage, 'cale-seche');
+  const caleEditee = jouerLInspecteur(cale, out, ['valeur/constructeurDeBateaux', 'valeur/materiauxCaleSeche']);
+  expect(relireLieu(caleEditee)).toMatchObject({ amarrage: 'cale-seche', constructeurDeBateaux: expect.any(Number), materiauxCaleSeche: expect.any(Boolean) });
+  const sansCale = relireLieu(choisirAmarrage(caleEditee, 'simple'));
+  expect(sansCale.amarrage).toBe('simple');
+  expect(sansCale.constructeurDeBateaux).toBeUndefined();
+  expect(sansCale.materiauxCaleSeche).toBeUndefined();
+  const sansAmarrage = relireLieu(presser(caleEditee, 'valeur/amarrage/aucune'));
+  expect(sansAmarrage.amarrage).toBeUndefined();
+  expect(sansAmarrage.constructeurDeBateaux).toBeUndefined();
+  expect(sansAmarrage.materiauxCaleSeche).toBeUndefined();
+  s = jouerLInspecteur(lieuNeuf, out);
   const neuf = selectionne(s);
   s = jouerLInspecteur(ajouter(presser(s, 'outil/select'), 'lieu', out), out);
   s = presser(presser(s, `logique/lieu/${neuf}`), 'lieu/plan');
@@ -426,12 +604,21 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   s = consigner(consigner(s, 'lieu/etablissement/ajouter/auberge', ['services'], out), 'lieu/etablissement/ajouter/auberge', ['services'], out);
   s = consigner(consigner(s, 'lieu/poi/cible/service/auberge', ['poi'], out), 'lieu/etablissement/auberge-2/retirer', ['services'], out);
   s = consigner(consigner(s, 'lieu/etablissement/auberge/offre/repas/retirer', ['services'], out), 'lieu/etablissement/auberge/offre/ajouter/repas', ['services'], out);
+  const avecRefus = jouerLInspecteur(s, out, ['valeur/services/0/refus']);
+  const restreint = ecrire(avecRefus, gesteDuChoix(avecRefus, 'valeur/services/0/when/kind', (v) => estObjet(v) && v.kind === 'always'), 'saisieChoix', out, 'kind');
+  const refusSousCondition: EcritureJouee[] = [];
+  jouerLInspecteur(restreint, refusSousCondition, ['valeur/services/0/refus']);
+  out.push(...refusSousCondition);
   s = presser(jouerLInspecteur(presser(presser(s, 'outil/select'), `logique/lieu/${neuf}`), out), 'lieu/plan');
   const tiree = jouer(jouer(jouer(presser(s, 'outil/chemin'), { geste: 'appui', point: point(depart.pos.x, depart.pos.y) }), { geste: 'glisse', point: point(70, 20) }), { geste: 'relache', point: point(85, 15) });
   s = cree(s, tiree, 'route', out);
   s = ecrire(s, gesteDuChoix(s, 'valeur/modes/ajouter', (v) => v === 'diligence'), 'saisieChoix', out);
+  jouerLInspecteur(s, out, ['valeur/modes/1/monter']);
   const peril = presser(s, premierBouton(s, PERIL.ajouter));
   const effet = presser(peril, premierBouton(peril, PERIL.effets));
+  const souffle = jouer(effet, gesteDuChoix(effet, `${PERIL.effet}type`, (v) => estObjet(v) && v.type === 'zoneBlast'));
+  jouerLInspecteur(souffle, out, [`${PERIL.effet}ops/`]);
+  out.push(...jouerLesChargesEnContexte(souffle, `${PERIL.effet}ops/`));
   jouerLesVariantes(effet, `${PERIL.effet}type`, out);
   const etendu = jouer(effet, gesteDuChoix(effet, `${PERIL.effet}type`, (v) => estObjet(v) && v.type === 'extendedTest'));
   jouerLesVariantes(etendu, `${PERIL.effet}stake/forme`, out);
@@ -446,7 +633,7 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   const retiree = presser(presser(presser(presser(s, 'outil/select'), 'document/scene'), 'document/carte'), 'carte/retirer');
   const rouverte = presser(retiree, 'document/carte');
   out.push({ avant: documentDu(retiree, 'carte'), apres: documentDu(rouverte, 'carte'), chemin: [], valeur: documentDu(rouverte, 'carte'), saisie: 'bouton' });
-  return out;
+  return avecModele('carte', out);
 }
 
 /** Les registres du narratif, chacun ajouté à la zone Logique et joué à son inspecteur. */
@@ -484,13 +671,12 @@ const lignesDeLIdentite = (s: SessionDEdition): number => {
 const avecUneLigne = (s: SessionDEdition): SessionDEdition =>
   lignesDeLIdentite(s) || !boutonsDe(s, LIGNE_AJOUTEE).length ? s : presser(s, premierBouton(s, LIGNE_AJOUTEE));
 
-/** La session `s` où un repère s'ajoute à l'identité de l'état sélectionné, qui porte une ligne (`avecUneLigne`) :
- *  l'écriture de ses lignes, dont chacune gagne la valeur du repère neuf (`etatCouvert`), s'ajoute à `out`
- *  (`consigner`). */
+/** La session où un repère s'ajoute à l'identité. Le geste d'ajout couvre les valeurs de la ligne déjà portée. */
 function repereSurLesLignes(s: SessionDEdition, out: EcritureJouee[]): SessionDEdition {
   const avecLigne = avecUneLigne(s);
   if (!lignesDeLIdentite(avecLigne)) throw new Error('l’identité de l’état ne porte aucune ligne où le repère neuf pose sa valeur');
-  return consigner(avecLigne, REPERE_AJOUTE, ['forme', 'identite', 'lignes'], out);
+  jouerLInspecteur(avecLigne, out, ['valeur/forme/identite/lignes/0/espece', 'valeur/forme/identite/lignes/0/sexe']);
+  return consigner(avecLigne, REPERE_AJOUTE, ['forme', 'identite', 'lignes', 0, 'valeurs'], out);
 }
 
 /** Les écritures du narratif de la première campagne du jeu : chacun des `REGISTRES` ajouté à la zone Logique, joué à
@@ -508,10 +694,11 @@ export function ecrituresDuNarratif(): EcritureJouee[] {
   jouerLInspecteur(ajouter(ajouter(s, 'affaires', []), 'indices', out), out, ['valeur/affaireId']);
   const avecProfil = presser(presser(s, `logique/presetsPnj/${(porteursDe(s, 'presetsPnj')[0] as { id: string }).id}`), 'valeur/profil/trappings/ajouter');
   for (const id of choixDe(avecProfil, /^valeur\/profil\/trappings\/\d+\/forme$/)) jouerLesVariantes(avecProfil, id, out);
-  for (const id of boutonsDe(s, 'etat/forme/')) {
-    s = jouerLInspecteur(consigner(ajouter(s, 'etats', out), id, ['forme'], out), out);
-    if (boutonsDe(s, REPERE_AJOUTE).length) s = repereSurLesLignes(s, out);
-  }
+  const enumere = consigner(ajouter(s, 'etats', out), 'etat/forme/enum', ['forme'], out, 'kind');
+  const heros = consigner(enumere, 'etat/forme/heros', ['forme'], out, 'kind');
+  const avecIdentite = jouerLInspecteur(heros, out, ['valeur/forme/identite/ajouter']);
+  s = repereSurLesLignes(jouerLInspecteur(avecIdentite, out), out);
+  jouerLInspecteur(enumere, out);
   s = jouerLInspecteur(ajouter(s, 'indices', out), out, ['valeur/refs']);
   const pnj = ajouter(s, 'presetsPnj', out);
   s = jouerLInspecteur(ecrire(pnj, gesteDuChoix(pnj, 'valeur/base/id', (v) => v === ENROLE.fiche), 'saisieChoix', out), out, ['valeur/apparence', 'valeur/profil']);
@@ -521,10 +708,15 @@ export function ecrituresDuNarratif(): EcritureJouee[] {
   for (const { boutons, choix } of UNIONS_DU_PNJ) jouerLesVariantes(boutons.reduce(presser, ajouter(s, 'presetsPnj', out)), choix, out);
   const objet = ajouter(s, 'objets', out);
   for (const { boutons, choix } of UNIONS_DE_L_OBJET) jouerLesVariantes((boutons as readonly string[]).reduce(presser, objet), choix, out);
+  const auToucher = presser(objet, 'valeur/onHitEffects/ajouter');
+  const flux = jouer(auToucher, gesteDuChoix(auToucher, 'valeur/onHitEffects/0/flow/kind', (v) => estObjet(v) && v.kind === 'effet'));
+  out.push(...ecrituresDeLaFeuilleDOperations(flux, 'valeur/onHitEffects/0/flow/effet/'));
+  out.push(...jouerLesChargesEnContexte(flux, 'valeur/onHitEffects/0/flow/effet/ops/'));
   jouerLInspecteur(presser(objet, 'valeur/derivedWeapon/ajouter'), out, ['valeur/derivedWeapon/']);
   composerLAdresse(jouerLInspecteur(objet, out, ['valeur/descRef/']), 'valeur/descRef/', out);
   jouerLInspecteur(presser(presser(s, 'document/scene'), 'document/narratif'), out);
-  return out;
+  out.push(...ecrituresDeLaCloture());
+  return avecModele('narratif', out);
 }
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));

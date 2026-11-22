@@ -19,6 +19,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  * l'effet `transition: { scene }` et `worldMap.places[].scene`.
  */
 import { tableTotale } from '../../../lib/tableTotale';
+import { estIdDEtiquetteDObjet } from '../../../lib/entityId';
 import { z } from 'zod';
 import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
@@ -35,7 +36,7 @@ import {
   pointDuPlanSchema,
   settlementSchema,
 } from '../grammaire/valeurs';
-import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
+import { joursDeReassortSchema, licencesDeGuildeSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, testDeSceneSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import {
@@ -194,10 +195,11 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   resaleRate: tauxDeRachatSchema.optional(),
   buyMarkup: majorationDAchatSchema.optional(),
   restockDays: joursDeReassortSchema.optional(),
+  licencesDeGuilde: licencesDeGuildeSchema.optional(),
   guild: z.boolean().optional(),
   marketMode: marketModeSchema.optional(),
   tenirComptes: z.boolean().optional(),
-}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, licencesDeGuilde: { label: 'Licences de Guilde appropriées', hint: 'Remplace les licences appropriées de l’archétype pour ce négoce' }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
@@ -223,7 +225,7 @@ export type OptionalDeScene = z.output<typeof optionalDeSceneSchema>;
 
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le corps, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
-  id: z.string(),
+  id: z.string().refine((id) => !estIdDEtiquetteDObjet(id), 'Identifiant réservé aux sources de Psychologie des objets.'),
   pos: cell2Schema,
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),

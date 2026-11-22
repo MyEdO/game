@@ -35,9 +35,9 @@ import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
 import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
-import { isOutOfAction, combatTestPenalty } from '../engine/conditions';
+import { isOutOfAction, combatTestPenalty, pionsRetirables } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
-import { actorIn } from './monde/combatants';
+import { porteurParId } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { isEngagedWith, isEngaged, resteEngageAuRoundSuivant } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
@@ -84,12 +84,7 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
   const diff = arg ? difficulteDeLArg(arg) : undefined;
-  // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
-  // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
-  // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
-  // Si l'instance N'A PAS le paramètre attendu (trait templé posé sans arg/value), l'op est DROPPÉE (null) :
-  // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon). Seul un
-  // champ REQUIS porte un gabarit (`op-defs.test.ts`) : l'op tombe faute de ce qu'elle ne peut exécuter sans.
+  // Un gabarit de champ requis reçoit le paramètre d'instance avant l'exécution. Sans ce paramètre, le Flow omet l'op.
   const substOp = (op: GameOp): GameOp | null => {
     if (op.op === 'condition' && op.argDifficulty) {
       // L'État prend la Difficulté de l'arg (Venin, `LDB 85 l.423`) ; sans arg, il n'en porte aucune (`LDB 85 l.425`).
@@ -97,14 +92,13 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
       delete pose.argDifficulty;
       return diff ? { ...pose, difficulte: diff } : pose;
     }
-    const o = op as Record<string, unknown>;
-    const hasArg = Object.values(o).includes(ARG_TEMPLATE);
-    const hasInd = Object.values(o).includes(INDICE_TEMPLATE);
-    if (!hasArg && !hasInd) return op; // pas de template → inchangée
-    if ((hasArg && arg === undefined) || (hasInd && value === undefined)) return null; // paramètre manquant → op inerte
-    const out = { ...o };
-    for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
-    return out as unknown as GameOp;
+    if (op.op === 'exposeDisease' && op.disease.id === ARG_TEMPLATE) {
+      return arg === undefined ? null : { ...op, disease: { id: arg } };
+    }
+    if (op.op === 'topUpAdvantage' && Object.is(op.amount, INDICE_TEMPLATE)) {
+      return value === undefined ? null : { ...op, amount: value };
+    }
+    return op;
   };
   const visit = (f: TriggeredEffect['flow']): TriggeredEffect['flow'] => {
     if (f.kind === 'test') {
@@ -179,7 +173,11 @@ export function effectSourcesOf(actor: Combatant, resolveTrapping: TrappingResol
     // Un pion NATIF posé par-dessus reste, lui, pleinement joué, sur sa part native seule.
     const derive = cond.derivedFrom?.stacks ?? 0;
     if (derive >= (cond.value ?? 1)) continue;
-    out.push({ effects: withSource(withArg(d.effects, cond.difficulte), { kind: 'etat', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
+    // LDB 18 l.120, l.150, l.179
+    const effects = pionsRetirables(actor, cond.id) > 0 ? d.effects : d.effects.filter(({ trigger, flow }) =>
+      trigger !== 'onRoundEnd' || flow.kind !== 'test' || !spellEffectOps(flow.reussite).some((op) => op.op === 'removeCondition' && op.id?.id === cond.id));
+    if (!effects.length) continue;
+    out.push({ effects: withSource(withArg(effects, cond.difficulte), { kind: 'etat', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
   }
   // Une affliction CIBLÉE émet par INSTANCE, et seulement ACTIVE : sa fin la désactive (LDB 21 l.9). L'instance
   // voyage avec la source (`affliction`).
@@ -445,9 +443,9 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
  *  de Vue, étiquette de la scène) ; `undefined` hors combat, sans instance ou sans Cible. */
 function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
-  const { battle, scene } = get();
+  const { battle, scene, campaignNarratif } = get();
   if (!battle || !scene || affliction?.cible === undefined) return undefined;
-  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead));
+  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead, objetDuNarratif(campaignNarratif)));
 }
 
 /** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide
@@ -544,12 +542,13 @@ export function applyTriggeredEffects(
           lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
           continue;
         }
-        // Hors fin de Round : voie cadence-aware `routeTriggeredTest` quand le contexte porte `set`
-        // (onGainCondition / attaques → cascade influençable pour un héros manuel, inline + file différée
-        // sinon) ; SANS `set` (entretien HORS COMBAT) → INLINE. Jamais avalé. GÉNÉRIQUE : tout État à `onRoundEnd` test (Empoisonné…).
-        // Un effet OPT-IN atteint ici un héros MANUEL (les autres sont filtrés par l'enveloppe) : `flowOffert`.
-        if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flowOffert(eff), flowCtx); continue; }
-        if (eff.optional) continue; // opt-in SANS voie de choix (entretien hors combat) → non exercé
+        // Le gain et l'entretien des États confient leur suite à la cascade pendant le Test.
+        // Les effets opt-in passent par le même Flow de choix.
+        if (ctx.set) {
+          routeTriggeredTest(get, ctx.set, t, actor, flowOffert(eff), flowCtx, trigger === 'onGainCondition' || trigger === 'onRoundEnd');
+          continue;
+        }
+        if (eff.optional) continue;
         lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
         continue;
       }
@@ -605,7 +604,7 @@ export function resetOwnTestFailedGuard(): void { firingOwnTestFailed = false; }
  */
 export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { sl: number; rng: RNG; set?: SetFn }): string[] {
   if (firingOwnTestFailed) return []; // ré-entrance SYNCHRONE (sous-Test inline du palier 2) → jamais de ré-émission
-  const a = typeof actor === 'string' ? actorIn(get(), actor) : actor;
+  const a = typeof actor === 'string' ? porteurParId(get(), actor) : actor;
   if (!a) return [];
   // EARLY-OUT : aucune source (symptôme/trait/état…) ne porte ce trigger → rien à faire (coût quasi nul).
   if (!effectSourcesOf(a, objetDuNarratif(get().campaignNarratif)).some((s) => s.effects.some((e) => e.trigger === 'onOwnTestFailed'))) return [];
@@ -638,8 +637,12 @@ function fireStatusEffects(
  * Chaque État est joué avec `ctx.stacks = ses pions`, RÉDUITS d'une capacité de la cible s'il le déclare
  * (Hémorragique − Endurci `bleedIgnore`, LDB 10 — générique, jamais par-nom). Inerte sans `effects`.
  */
+export function sourcesDEtats(c: Combatant, resolveTrapping: TrappingResolver): TriggerSource[] {
+  return effectSourcesOf(c, resolveTrapping).filter((s) => s.key.startsWith('cond:'));
+}
+
 export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
-  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c, objetDuNarratif(get().campaignNarratif)).filter((s) => s.key.startsWith('cond:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
+  return fireStatusEffects(get, c, trigger, ctx, sourcesDEtats(c, objetDuNarratif(get().campaignNarratif)).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
 }
 
 /**

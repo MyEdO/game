@@ -1,6 +1,6 @@
 /**
  * Talents d'attaque DÉCLENCHÉE en DONNÉE (`TalentData.effects` → op `grantFreeAttack{immediate}`, résolu
- * par `resolveFreeAttacks`). Assaut féroce (LDB 10) : « une fois par Round, si vous touchez en mêlée
+ * par `resolveFreeAttacks`). Assaut féroce (LDB 10 l.72-78) : « une fois par Round, si vous touchez en mêlée
  * → attaque supplémentaire (coût Avantage ou Mouvement) ». Preuve que créer un talent qui DONNE une attaque
  * fonctionne de bout en bout depuis la donnée.
  */
@@ -61,7 +61,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     campGain(banc.getState, H, 2);
-    applySummon(banc.getState, banc.setState, H, { ref: 'loup' } as never, { rng: desDuTest });
+    applySummon(banc.getState, banc.setState, H, { creature: { id: 'loup' }, count: 1 }, { rng: desDuTest });
     const loup = () => banc.getState().battle!.combatants.find((c) => c.summon)!;
     expect(loup().kind).toBe('heros');
     expect(loup().advantage).toBe(2);

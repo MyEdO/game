@@ -4,10 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
+import { isDeepStrictEqual } from 'node:util';
 import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
+  type EcritureJouee,
   auditerLEditabilite,
+  cheminsCreditesJoues,
   documentDeclarations,
   orphanFields,
   perimetreDeLaRacine,
@@ -15,6 +18,7 @@ import {
 } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
 import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ecrituresJouees.testkit';
+import { auChemin, estObjet } from './lib/objet.mjs';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -90,8 +94,9 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
   // 415 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
   // type, `CustomStatblock.type` ; `OptionalSwap.note`, discriminant de PRÉSENCE, reste).
+  // 1 538 = mesure #1468 avec Condition, Flow et GameOp, leurs déclarations récursives partagées.
   // L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`).
-  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 250_000 });
+  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 1_538, delai: 250_000 });
 
   it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
@@ -122,6 +127,20 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
 
   it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 120_000 }, () => {
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
+  });
+
+  it('retirer un poste réel ne crédite pas les munitions du poste décalé', { timeout: 120_000 }, () => {
+    const retrait = ecritures().find((e) => {
+      if (e.mouvement?.geste !== 'retirer' || e.chemin[e.chemin.length - 1] !== 'postes') return false;
+      const rang = e.mouvement.chemin[e.chemin.length];
+      const avant = auChemin(e.avant, e.chemin);
+      const apres = auChemin(e.apres, e.chemin);
+      return typeof rang === 'number' && Array.isArray(avant) && Array.isArray(apres) &&
+        apres.some((poste, i) => i >= rang && poste === avant[i + 1] && estObjet(poste) && poste.ammo !== undefined &&
+          !isDeepStrictEqual(poste.ammo, avant[i]?.ammo));
+    })!;
+    expect(retrait, 'le retrait décale un poste dont les munitions diffèrent à ce rang').toBeDefined();
+    expect(cheminsCreditesJoues([retrait]).map((e) => e.chemin)).toEqual([retrait.chemin]);
   });
 
   it('une racine est un argument : le programme partagé porte la carte du monde et le narratif, une racine introuvable lève en se nommant (#4234)', { timeout: 120_000 }, () => {
@@ -181,6 +200,12 @@ export interface Scene { id: string; routes: Route[] }\n`,
         { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
       ] });
       expect(seul.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+      const insereeEnTete = { id: 's', routes: [{ id: 'b' }, { id: 'a', couvre: ['x'] }] };
+      const insertion = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres: insereeEnTete, chemin: ['routes'], valeur: insereeEnTete.routes, saisie: 'bouton' },
+      ] });
+      expect(insertion.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+      expect(ids(orphanFields(insertion))).toContain('Route.couvre');
     } finally { program.dispose(); }
   });
 
@@ -221,12 +246,19 @@ export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeur
       id: 's', parts: [{ kind: 'cellule', row: '1', sum: 'aaaa' }], reperes: [{ id: 'r' }],
       valeurs: [{ repere: 'r', valeur: 'x' }, { repere: 'autre', valeur: 'y' }], v: { kind: 'a', n: 5 }, ...plus,
     });
+    const modele: NonNullable<EcritureJouee['modele']> = {
+      cleDeListe: (_, chemin, element) => {
+        const cle = chemin[0] === 'reperes' ? 'id' : chemin[0] === 'valeurs' ? 'repere' : undefined;
+        return cle && (element as Record<string, unknown>)[cle];
+      },
+      forme: () => undefined,
+    };
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         // L'adresse d'une prose change : le produit rescelle son empreinte.
         { avant: doc(), apres: doc({ parts: [{ kind: 'cellule', row: '2', sum: 'bbbb' }] }), chemin: ['parts', 0, 'row'], valeur: '2', saisie: 'saisieChoix' },
         // Un repère renommé : le produit réécrit chaque valeur qui le désignait.
-        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte' },
+        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte', modele, renommage: { avant: 'r', apres: 'q' } },
         // Un repère ajouté : le produit pose, hors du chemin écrit, un scalaire absent avant.
         { avant: doc(), apres: doc({ reperes: [{ id: 'r' }, { id: 'neuf' }], valeurs: [{ repere: 'r', valeur: 'x', note: '' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 1], valeur: { id: 'neuf' }, saisie: 'saisieChoix' },
         // Un Effet ajouté : son corps neuf pose des scalaires absents avant.
@@ -238,6 +270,123 @@ export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeur
       ] });
       expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['B.kind', 'Cellule.row', 'Cellule.sum', 'Repere.id', 'Scene.effects', 'Scene.valeurs', 'Valeur.repere']);
     } finally { program.dispose(); }
+  });
+
+  it('un champ de position scalaire exige son entrée de liste, de tuple ou de record', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Scene { label: string; noms: string[]; poids: Record<string, number>; couple: [string, number] }',
+    });
+    const avant = { label: 'avant', noms: ['un', 'deux'], poids: { nord: 3 }, couple: ['ouest', 2] };
+    const audit = (ecrituresJouees: EcritureJouee[]) => {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees });
+      return rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id).sort();
+    };
+    try {
+      const apres = { ...avant, label: 'après', noms: ['deux', 'un'], poids: { nord: 4 } };
+      expect(audit([
+        { avant, apres, chemin: ['label'], valeur: apres.label, saisie: 'saisieTexte' },
+        { avant, apres, chemin: ['noms'], valeur: apres.noms, saisie: 'bouton', mouvement: { geste: 'monter', chemin: ['noms', 1] } },
+      ])).toEqual(['Scene.label', 'Scene.noms']);
+      expect(audit([
+        { avant, apres: { ...avant, noms: ['neuf', ...avant.noms] }, chemin: ['noms', 0], valeur: 'neuf',
+          saisie: 'saisieChoix', mouvement: { geste: 'inserer', chemin: ['noms', 0] } },
+        { avant, apres: { ...avant, poids: { nord: 4 } }, chemin: ['poids', 'nord'], valeur: 4, saisie: 'saisieNombre' },
+        { avant, apres: { ...avant, couple: ['est', 2] }, chemin: ['couple', 0], valeur: 'est', saisie: 'saisieTexte' },
+      ])).toEqual(['Scene.couple[0]', 'Scene.noms[]', 'Scene.poids{}']);
+      expect(audit([
+        { avant, apres: { ...avant, poids: { ...avant.poids, sud: 1 } }, chemin: ['poids', 'sud'], valeur: 1, saisie: 'saisieNombre' },
+      ])).toEqual(['Scene.poids{}']);
+    } finally { program.dispose(); }
+  });
+
+  it('distingue les champs homonymes anonymes à travers une union imbriquée à présence et à littéraux numériques', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Scene { cadre: { note: "autre"; valeur: { n: number } } | { valeur: { phase: 1; n: number } | { phase: 2; n: number } | { phase: 3; n: number } } }',
+    });
+    const avant = { cadre: { valeur: { phase: 3, n: 0 } } };
+    const apres = { cadre: { valeur: { phase: 3, n: 1 } } };
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['cadre', 'valeur', 'n'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.field === 'n')).toHaveLength(4);
+      const credites = rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id);
+      expect(credites).toEqual(['Scene.cadre.valeur<note=absent><phase=3>.n']);
+    } finally { program.dispose(); }
+  });
+
+  it('un scalaire direct dans la variante qui vient d’être remplacée attend son propre contrôle', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface A { sorte: "a"; n: number } export interface B { sorte: "b"; n: number } export interface Scene { v: A | B }',
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant: { v: { sorte: 'a', n: 0 } }, apres: { v: { sorte: 'b', n: 1 } }, chemin: ['v', 'n'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.authors.length)).toEqual([]);
+    } finally { program.dispose(); }
+  });
+
+  it('une écriture statiquement atteinte ne crédite que la branche booléenne qu’elle produit', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Oui { actif: true; n: number } export interface Non { actif: false; n: number } export interface Scene { variante: Oui | Non }',
+      'hotes/godot/pont/pont.ts': "import type { Scene } from '../../../src/noyau/monde/scene'; export class Pont { editer(n: number): Scene { return { variante: { actif: true, n } }; } }",
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Oui.actif', 'Oui.n', 'Scene.variante']);
+    } finally { program.dispose(); }
+  });
+
+  it('une union ambiguë prouve seulement les déclarations communes et les valeurs départagent les types compatibles', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': [
+        'export interface Commun { partage: number }',
+        'export interface A extends Commun { sorte?: "a"; n: number }',
+        'export interface B extends Commun { sorte?: "b"; n: number }',
+        'export interface C { sorte: "a" | "aa"; n: number }',
+        'export interface D { sorte: "b" | "bb"; n: number }',
+        'export interface E { n: number } export interface F { n: string }',
+        'export interface G { sorte: "a"; n: number } export interface H { sorte: "b"; n: number }',
+        'export interface Scene { option: A | B; finie: C | D; scalaire: E | F; mixte: G | H | string }',
+      ].join('\n'),
+    });
+    const avant = { option: { partage: 0, n: 0 }, finie: { sorte: 'bb', n: 0 }, scalaire: { n: 'avant' }, mixte: { sorte: 'b', n: 0 } };
+    const apres = { option: { partage: 1, n: 1 }, finie: { sorte: 'bb', n: 1 }, scalaire: { n: 'après' }, mixte: { sorte: 'b', n: 1 } };
+    const jouer = (cle: keyof typeof avant, champ: string, valeur: unknown): EcritureJouee => ({
+      avant, apres: { ...avant, [cle]: apres[cle] }, chemin: [cle, champ], valeur, saisie: 'saisieChoix',
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        jouer('option', 'n', 1), jouer('option', 'partage', 1), jouer('finie', 'n', 1), jouer('scalaire', 'n', 'après'), jouer('mixte', 'n', 1),
+      ] });
+      expect(rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id).sort()).toEqual(['A.partage', 'D.n', 'F.n', 'H.n']);
+      expect(rows.find((r) => r.field === 'partage')?.at).toBe('src/noyau/monde/scene.ts:1');
+    } finally { program.dispose(); }
+  });
+
+  it('une valeur statique apporte à chaque branche les seules propriétés qu’elle porte', () => {
+    const programme = (valeur: string) => virtualProgram({
+      'src/noyau/monde/scene.ts': [
+        'export interface A { kind: "a"; p: number } export interface B { kind: "b"; p?: number; q: number }',
+        'export interface Oui { sorte: "oui"; n: number } export interface Non { sorte: "non"; n: number }',
+        'export interface Scene { v: A | B; mixte: Oui | Non | string }',
+      ].join('\n'),
+      'hotes/godot/pont/pont.ts': [
+        "import type { Scene } from '../../../src/noyau/monde/scene';",
+        'type Source = { kind: "a"; p: number } | { kind: "b"; q: number };',
+        'export class Pont { editer(raw: Source, n: number): Scene { return { v: ' + valeur + ', mixte: { sorte: "non", n } }; } }',
+      ].join('\n'),
+    });
+    for (const valeur of ['raw', '{ ...raw }']) {
+      const program = programme(valeur);
+      try {
+        const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+        expect(rows.filter((r) => r.authors.length && ['p', 'q', 'n'].includes(r.field)).map((r) => r.id).sort()).toEqual([
+          'A.p', 'B.q', 'Non.n',
+        ]);
+      } finally { program.dispose(); }
+    }
   });
 
   it('une propriété PRODUITE PAR UNE FABRIQUE est le champ de son TYPE produit : deux produits d’un même type sont un champ, deux de types distincts en sont deux', () => {
@@ -319,7 +468,7 @@ export const tracerCalque = () => {
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual([]);
+      expect(ids(orphanFields(rows)), 'assembler les cases ne prouve pas une écriture au rang').toEqual(['SceneEffectZone.tiles[]']);
       for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
         expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Zonage.ts']);
       }
@@ -493,226 +642,57 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     expect([...manques].sort(), 'propriétés de la donnée que la marche ne voit pas').toEqual([]);
   });
 
-  it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `duDocument` sur les deux FICHIERS du document perd les champs nommés ici (mutation
-    // mesurée) : ce sont les seuls du périmètre déclarés hors du document.
-    // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
-    // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
-    // et sa provenance (`SourceRef`, composée par `source`/`alsoIn`) entrent donc au périmètre.
-    // #1463 PR-3b : la fourchette (`Plage`) de la pose, et les clés de l'Indice par Localisation — shape
-    // DÉRIVÉ (`tableTotale`), propriétés synthétiques rattachées à la déclaration de `parLocalisation`.
-    // #1463 Trait 3b-2 : la pose, récursive par `confere`, a un type DÉCLARÉ (`TraitPose`) ; ses champs
-    // se nomment à leur premier porteur du document.
-    // #3012 S4b : `entryPoints` et `stations[].pos` composent `ptSchema` (`defs-scenes/communs.ts`), le `Pt` du noyau.
-    // #3606 M1a : les options d'une entité sont la sortie de `optionalDeSceneSchema` (la note « swap », ses octrois de
-    // Caractéristique et de Compétence), et une Amélioration celle de `navalTraitRefSchema`.
-    // #3606 M1b : le profil personnalisé est la sortie de `customStatblockSchema` (`defs-scenes/communs.ts`) ; sa
-    // pose de Trait nomme les champs de la pose, à son premier porteur, et son Talent est `TalentRef`.
-    // #3606 M1c : l'apparence d'une entité est l'entrée d'`entityAppearanceSchema` (`grammaire/valeurs.ts`) ; ses
-    // couleurs, clés d'emplacement de palette d'un type mappé.
-    // #3606 M2f1 : la marche descend dans le corps des fabriques — l'`id` d'une référence (`objetDeRef`, `grammaire/ref.ts`),
-    // la prose adressée d'une réplique (`proseNommee`, `grammaire/prose.ts`) et son adresse (`grammaire/valeurs.ts`) ; et
-    // à travers l'annotation de type d'un schéma (`RefDesignee`, `TraitPose`, le `{ id: string }` d'un
-    // `z.ZodType<…>`, `ChampsNommes`) ou d'un type manuscrit du document (`Calage`).
-    // #4056 E7 : le Test d'un nœud de scène est la sortie de `testDeSceneSchema` (`grammaire/mecanique.ts`) ; ses champs,
-    // sa facilitation et son opposition se nomment au premier type nommé qui les porte, `SujetDuJet`. Le marqueur
-    // `argDifficulty` du seul Test de flux n'y entre pas : le type de la scène dérive de son schéma.
-    const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
-    const fichier = (r: { decl: ts.Declaration }) =>
-      path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
-    const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
-    expect(
-      horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
-      'ce que la frontière par MODULE perdrait'
-    ).toEqual([
-      'AjustementsDArme.ajusteeAuPorteur @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.allonge @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.groupesDeManiement @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.qualites @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.qualites.id @ src/data/schemas/grammaire/ref.ts',
-      'AjustementsDArme.qualites.value @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.retire @ src/data/schemas/grammaire/reference.ts',
-      'AjustementsDArme.sansSpecialisation @ src/data/schemas/grammaire/reference.ts',
-      'AuthoredShipPoste.engin.id @ src/data/schemas/grammaire/ref.ts',
-      'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
-      'Calage.x @ src/data/props.types.ts',
-      'Calage.y @ src/data/props.types.ts',
-      'CaracteristiqueChiffree.characteristic @ src/data/schemas/grammaire/valeurs.ts',
-      'CaracteristiqueChiffree.value @ src/data/schemas/grammaire/valeurs.ts',
-      'CharStats.B @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.M @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.agilite @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.capacite-de-combat @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.capacite-de-tir @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.dexterite @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.endurance @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.force @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.force-mentale @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.initiative @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.intelligence @ src/data/schemas/defs-scenes/communs.ts',
-      'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
-      'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.accent.id @ src/data/schemas/grammaire/ref.ts',
-      'Couleurs.barreau @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.corps @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.cuir @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.fourrure @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.gravats @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.joint @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.metal @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.metal2 @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.peau @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.planche @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.plume @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.traverse @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.vegetal @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.vet1 @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.vet2 @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.vitre @ src/data/schemas/grammaire/valeurs.ts',
-      'Couleurs.yeux @ src/data/schemas/grammaire/valeurs.ts',
-      'CustomStatblock.char @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.followsCharacterRules @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.inert @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.label @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.skills.value @ src/data/index.ts',
-      'CustomStatblock.spells @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.talents @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.traits @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.traits.alsoIn @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.arg @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.confere @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.count @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.difficulte @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.hidden @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.id @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.maison @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.matiere @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.natural @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.parLocalisation @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.plage @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.profilDArme @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
-      'Dialogue.start.id @ src/data/schemas/grammaire/ref.ts',
-      'DialogueNode.adapteDe @ src/data/schemas/grammaire/prose.ts',
-      'DialogueNode.desc @ src/data/schemas/grammaire/prose.ts',
-      'DialogueNode.descRef @ src/data/schemas/grammaire/prose.ts',
-      'DialogueNode.descRef.book @ src/data/schemas/grammaire/valeurs.ts',
-      'DialogueNode.descRef.ch @ src/data/schemas/grammaire/valeurs.ts',
-      'DialogueNode.descRef.parts @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.apparencesObjets @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.apparencesObjets.id @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.armurePortee @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.couleurs @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.embleme @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.embleme.id @ src/data/schemas/grammaire/ref.ts',
-      'EntityAppearance.sex @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.species @ src/data/schemas/grammaire/valeurs.ts',
-      'EntityAppearance.tenue @ src/data/schemas/grammaire/valeurs.ts',
-      'Facilitation.hasSkill @ src/data/schemas/grammaire/mecanique.ts',
-      'Facilitation.hasTalent @ src/data/schemas/grammaire/mecanique.ts',
-      'Facilitation.steps @ src/data/schemas/grammaire/mecanique.ts',
-      'FragmentBlocs.b0 @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.b1 @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.finSec @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.finSecOcc @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.kind @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.sec @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.secOcc @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentBlocs.sum @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.col @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.kind @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.row @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.sec @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.secOcc @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.sum @ src/data/schemas/grammaire/valeurs.ts',
-      'FragmentCellule.table @ src/data/schemas/grammaire/valeurs.ts',
-      'MarchandDeScene.archetype.id @ src/data/schemas/grammaire/ref.ts',
-      'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
-      'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
-      'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
-      'OffreDeTaverne.id @ src/data/schemas/grammaire/ref.ts',
-      'Oppose.attacker @ src/data/schemas/grammaire/mecanique.ts',
-      'Oppose.attackerBonusSL @ src/data/schemas/grammaire/mecanique.ts',
-      'Oppose.attackerLabel @ src/data/schemas/grammaire/mecanique.ts',
-      'Oppose.attackerSkill @ src/data/schemas/grammaire/mecanique.ts',
-      'Oppose.bonusSL @ src/data/schemas/grammaire/mecanique.ts',
-      'Oppose.defenderMustWin @ src/data/schemas/grammaire/mecanique.ts',
-      'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.note @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.remove @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.size @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.wounds @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.brasD @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.brasG @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.corps @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.jambeD @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.jambeG @ src/data/schemas/grammaire/reference.ts',
-      'ParLocalisation.tete @ src/data/schemas/grammaire/reference.ts',
-      'Plage.max @ src/data/schemas/grammaire/valeurs.ts',
-      'Plage.min @ src/data/schemas/grammaire/valeurs.ts',
-      'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
-      'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
-      'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
-      'RectDeCases.h @ src/data/schemas/grammaire/valeurs.ts',
-      'RectDeCases.w @ src/data/schemas/grammaire/valeurs.ts',
-      'RectDeCases.x @ src/data/schemas/grammaire/valeurs.ts',
-      'RectDeCases.y @ src/data/schemas/grammaire/valeurs.ts',
-      'RefDesignee.id @ src/data/schemas/grammaire/ref.ts',
-      'RefDesignee.spec @ src/data/schemas/grammaire/ref.ts',
-      'Scene.startMessage.adapteDe @ src/data/schemas/grammaire/prose.ts',
-      'SceneEntity.upgrades.id @ src/data/schemas/grammaire/ref.ts',
-      'SceneEntity.upgrades.value @ src/data/schemas/grammaire/reference.ts',
-      'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
-      'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
-      'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
-      'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
-      'SujetDuJet.avisSurLeStatut @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.begging @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.characteristic @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.crewTestType @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.difficulty @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.difficultyBy @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.difficultyBy.cond @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.difficultyBy.difficulty @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.easierIf @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.exceptGroups @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.gate @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.label @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.menace @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.noSupport @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.onlyGroups @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.opposed @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.requireSL @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.sense @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.skill @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.stake @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.stake.adapteDe @ src/data/schemas/grammaire/prose.ts',
-      'SujetDuJet.stake.authored @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.stake.source @ src/data/schemas/grammaire/prose.ts',
-      'SujetDuJet.tool @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.vsCapricieux @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.vsGroups @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.vsStatus @ src/data/schemas/grammaire/mecanique.ts',
-      'SujetDuJet.vsStatus.standing @ src/data/schemas/grammaire/valeurs.ts',
-      'SujetDuJet.vsStatus.tier @ src/data/schemas/grammaire/valeurs.ts',
-      'TalentRef.id @ src/data/schemas/grammaire/reference.ts',
-      'TalentRef.spec @ src/data/schemas/grammaire/reference.ts',
-      'TalentRef.times @ src/data/schemas/grammaire/reference.ts',
+  it('la frontière par identité conserve les déclarations composées dans les trois documents', { timeout: 120_000 }, () => {
+    const programme = perimetre();
+    const mecanique = programme.program.getSourceFile(path.resolve(ROOT, 'src/data/schemas/grammaire/mecanique.ts'));
+    if (!mecanique) throw new Error('grammaire mécanique absente du programme');
+    const temoins = new Map([
+      ['GameOp', 'afterHours: formulaSchema.optional()'],
+      ['Condition', "kind: z.literal('has')"],
+      ['Flow', 'etapes: z.array(renvoi)'],
     ]);
-    // Contre-témoin : `Rect` ne doit RIEN à l'inclusion par identité — il est déclaré DANS le document,
-    // son renommage `Trigger.rect.*` → `Rect.*` vient du NOMMAGE du porteur rendu par `z.infer`.
-    expect(fichier(scope.find((r) => r.id === 'Rect.z')!)).toBe('src/data/schemas/defs-scenes/scene.ts');
+    const declarations = new Map<string, ts.PropertyAssignment[]>();
+    function relever(n: ts.Node) {
+      if (ts.isPropertyAssignment(n)) {
+        for (const [algebre, texte] of temoins) {
+          if (n.getText() !== texte) continue;
+          const sites = declarations.get(algebre) ?? [];
+          sites.push(n);
+          declarations.set(algebre, sites);
+        }
+      }
+      n.forEachChild(relever);
+    }
+    relever(mecanique);
+    for (const [nom, racine] of Object.entries(RACINES)) {
+      const modulesDuDocument = [racine.fichierType, racine.fichierSchema];
+      const module = (r: { decl: ts.Declaration }) =>
+        path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
+      const scope = perimetreDeLaRacine(programme, ROOT, racine);
+      const duDocument = documentDeclarations(programme, ROOT, racine);
+      const parModule = scope.filter((r) => modulesDuDocument.includes(module(r)));
+      for (const algebre of temoins.keys()) {
+        const sites = declarations.get(algebre);
+        expect(sites, algebre).toHaveLength(1);
+        const [decl] = sites!;
+        expect(duDocument.has(decl), `${nom} · ${algebre}`).toBe(true);
+        expect(scope.some((r) => r.decl === decl), `${nom} · ${algebre}`).toBe(true);
+        expect(parModule.some((r) => r.decl === decl), `${nom} · ${algebre}`).toBe(false);
+      }
+      const champs = new Map(scope.filter((r) => r.position === undefined).map((r) => [r.id, r.decl]));
+      for (const { decl, id, position } of scope) {
+        if (position !== undefined) expect(decl, id).toBe(champs.get(id.slice(0, -position.length)));
+      }
+      if (nom === 'scene') {
+        const horsModules = scope.filter((r) => r.position === undefined && !modulesDuDocument.includes(module(r)));
+        expect(horsModules).toHaveLength(new Set(horsModules.map((r) => r.id)).size);
+        expect(horsModules.length).toBeGreaterThanOrEqual(1_205);
+        expect(horsModules.map((r) => r.id)).toEqual(expect.arrayContaining([
+          'AjustementsDArme.ajusteeAuPorteur', 'Calage.x', 'CharStats.B', 'Couleurs.cheveux', 'Scene.startMessage.adapteDe',
+        ]));
+        expect(parModule.some((r) => r.id === 'Rect.z')).toBe(true);
+      }
+    }
   });
 
   /**
@@ -852,7 +832,7 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/Editeur.ts']);
 
@@ -927,7 +907,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
       // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de la primitive atteinte aussi.
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/inspecteur.ts']);
@@ -954,7 +934,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'basculer', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags', 'Scene.flags{}']);
 
     } finally { program.dispose(); }
   });
@@ -978,7 +958,9 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.find((r) => r.id === 'Scene.flags')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
+      expect(ids(orphanFields(rows)), 'le scan statique prouve le record, le rang d’écriture attend le geste').toEqual(['Scene.flags{}']);
 
     } finally { program.dispose(); }
   });
@@ -1001,7 +983,7 @@ export function creerPont(s: Scene) {
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
+      expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.flags{}', 'Scene.id']);
     } finally { program.dispose(); }
   });
 
@@ -1031,7 +1013,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
     } finally { program.dispose(); }
   });
 

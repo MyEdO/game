@@ -2,20 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
 import type { CodexItem } from './registry';
 
-/**
- * CODEX — le joueur voit AUTANT de jets que le moteur en joue, et la PERTE que la ligne prononce
- * (#1657 B3-1b). Doctrine des jets (utilisateur 2026-08-24) : « A partir du moment ou je dois faire un
- * jet, il doit apparaitre. »
- *
- * Ce que cette sonde attrape, et qu'aucune mesure de FORME ne voit (les clés du Codex ne bougent pas) :
- *  - une rangée dont l'Amputation est CERTAINE (22 des 26) affichant son Test mais TAISANT la perte —
- *    « Main ouverte » (LDB 18 l.122) rendait « jet + États » et jamais « perdez un doigt » ;
- *  - la QUANTITÉ de la ligne (« Perdez 1d10 dents », l.77) avalée par l'humanisation de l'op ;
- *  - un jet ANNONÇANT la conséquence du jet SUIVANT — « Coupure à l'orteil » (l.171) : le gate ne doit
- *    porter que l'amputation, les États étant ceux du Test l.237 qui le suit.
- * Les textes sont comparés EXACTEMENT : une régression d'affichage n'a nulle part où se cacher.
- */
-
 const item = (categorie: string, id: string): CodexItem => {
   const cat = CODEX.find((c) => c.key === categorie);
   if (!cat) throw new Error(`catégorie Codex « ${categorie} » absente du registre`);
@@ -32,40 +18,78 @@ const faits = (it: CodexItem): Record<string, string> =>
 const rubrique = (it: CodexItem, titre: string): string[] => {
   const sec = (it.sections ?? []).find((s) => s.title === titre);
   if (!sec) throw new Error(`rubrique « ${titre} » absente — rubriques : ${(it.sections ?? []).map((s) => s.title).join(' | ')}`);
-  return (sec.rows ?? []).map((r) => (r.t === 'text' ? r.text : r.t === 'ref' ? r.show : JSON.stringify(r)));
+  return (sec.rows ?? []).map((r) => (r.t === 'text' ? r.text : r.t === 'ref' ? r.show : r.t === 'sub' ? r.label : JSON.stringify(r)));
 };
 
 const titres = (it: CodexItem): string[] => (it.sections ?? []).map((s) => s.title);
 
-describe('#1657 B3-1b — le Codex dit les Tests d’Amputation ET la perte que la ligne prononce', () => {
-  it('« Main ouverte » (LDB 18 l.122) : le Test d’Amputation est nommé, et le doigt perdu est DIT', () => {
-    const it = item('criticalsBras', 'main-ouverte');
-    expect(faits(it)['Jet d’Amputation']).toBe('Résistance Complexe (−10)');
-    expect(rubrique(it, 'Résistance Complexe (−10) — si le jet échoue')).toEqual(['À Terre', 'Sonné', 'Inconscient']);
-    expect(rubrique(it, 'Amputation — quoi que donne le jet')).toEqual(['perd Doigts amputés — Amputation']);
+const CHOC_DE_LA_PLAIE = [
+  'À Terre',
+  'Si la marge est au plus -2 DR', 'Sonné',
+  'Si la marge est au plus -4 DR', 'Inconscient',
+];
+
+describe('#1675 — projection des Flows d’Amputation', () => {
+  it.each([
+    ['criticalsBras', 'main-ouverte'],
+    ['aaCriticalsBras', 'aa-bras-116'],
+  ])('associe perte certaine et Test de plaie à Main ouverte dans %s', (categorie, id) => {
+    const fiche = item(categorie, id);
+    expect(faits(fiche)['Jet d’Amputation']).toBe('Résistance Complexe (−10)');
+    expect(rubrique(fiche, 'Résistance Complexe (−10) — si le jet échoue')).toEqual(CHOC_DE_LA_PLAIE);
+    expect(rubrique(fiche, 'Amputation — quoi que donne le jet')).toEqual(['perd Doigts amputés — Amputation']);
   });
 
-  it('« Bouche explosée » (l.77) : la QUANTITÉ de la ligne (1d10 dents) est rendue', () => {
-    const it = item('criticalsTete', 'bouche-explosee');
-    expect(faits(it)['Jet d’Amputation']).toBe('Résistance Facile (+40)');
-    expect(rubrique(it, 'Amputation — quoi que donne le jet')).toEqual(['perd 1d10 Dents perdues — Amputation']);
+  it.each([
+    ['criticalsBras', 'main-mutilee'],
+    ['aaCriticalsBras', 'aa-bras-126'],
+  ])('distingue le Test de plaie du Test de rangée à −20 pour Main mutilée dans %s', (categorie, id) => {
+    const fiche = item(categorie, id);
+    const plaie = 'Plaie d’amputation — Résistance Difficile (−20)';
+    expect(faits(fiche)['Jet']).toBe('Résistance Difficile (−20)');
+    expect(faits(fiche)['Jet d’Amputation']).toBe(plaie);
+    expect(rubrique(fiche, `${plaie} — si le jet échoue`)).toEqual(CHOC_DE_LA_PLAIE);
   });
 
-  it('« Pied écrasé » (l.180) : la perte est GATÉE par le Test — elle vit dans son échec, pas hors jet', () => {
-    const it = item('criticalsJambe', 'pied-ecrase');
-    expect(faits(it)['Jet d’Amputation']).toBe('Résistance Accessible (+20)');
-    expect(rubrique(it, 'Résistance Accessible (+20) — si le jet échoue')).toEqual([
-      'À Terre', 'Sonné', 'Inconscient', 'perd Orteil(s) amputé(s), et un de plus par DR en dessous de 0 — Amputation',
+  it.each([
+    ['criticalsTete', 'bouche-explosee'],
+    ['aaCriticalsTete', 'aa-tete-66'],
+  ])('affiche la quantité de dents de Bouche explosée dans %s', (categorie, id) => {
+    const fiche = item(categorie, id);
+    expect(faits(fiche)['Jet d’Amputation']).toBe('Résistance Facile (+40)');
+    expect(rubrique(fiche, 'Amputation — quoi que donne le jet')).toEqual(['perd 1d10 Dents perdues — Amputation']);
+  });
+
+  it.each([
+    ['criticalsJambe', 'pied-ecrase'],
+    ['aaCriticalsJambe', 'aa-jambe-106'],
+  ])('distingue les deux Tests à +20 et leurs effets pour Pied écrasé dans %s', (categorie, id) => {
+    const fiche = item(categorie, id);
+    const perte = 'Perte de l’orteil — Résistance Accessible (+20)';
+    const plaie = 'Plaie d’amputation — Résistance Accessible (+20)';
+    expect(faits(fiche)['Jets d’Amputation']).toBe(`${perte} puis ${plaie}`);
+    expect(rubrique(fiche, `${perte} — si le jet échoue`)).toEqual([
+      'À Terre', 'perd Orteil(s) amputé(s), et un de plus par DR en dessous de 0 — Amputation', `Puis, ${plaie}`,
     ]);
-    expect(titres(it), 'une perte gatée ne doit PAS s’annoncer comme certaine').not.toContain('Amputation — quoi que donne le jet');
+    expect(rubrique(fiche, `${plaie} — si le jet échoue`)).toEqual(CHOC_DE_LA_PLAIE);
+    expect(titres(fiche)).not.toContain(`${perte} — si le jet réussit`);
+    expect(titres(fiche)).not.toContain('Amputation — quoi que donne le jet');
   });
 
-  it('« Coupure à l’orteil » (l.171) : DEUX jets nommés, chacun ne portant QUE sa propre conséquence', () => {
-    const it = item('criticalsJambe', 'coupure-a-l-orteil');
-    expect(faits(it)['Jets d’Amputation']).toBe('Résistance Intermédiaire (+0) puis Résistance Accessible (+20)');
-    expect(faits(it).Quand).toBe('Une fois la rencontre terminée');
-    // Le GATE (l.171) ne promet QUE la perte : les États sont ceux du Test l.237 qui suit son échec.
-    expect(rubrique(it, 'Résistance Intermédiaire (+0) — si le jet échoue')).toEqual(['perd Orteil(s) amputé(s) — Amputation']);
-    expect(rubrique(it, 'Résistance Accessible (+20) — si le jet échoue')).toEqual(['À Terre', 'Sonné', 'Inconscient']);
+  it.each([
+    ['criticalsJambe', 'coupure-a-l-orteil'],
+    ['aaCriticalsJambe', 'aa-jambe-56'],
+  ])('situe le Test englobant et sa suite pour Coupure à l’orteil dans %s', (categorie, id) => {
+    const fiche = item(categorie, id);
+    const perte = 'Perte de l’orteil — Résistance Intermédiaire (+0)';
+    const plaie = 'Plaie d’amputation — Résistance Accessible (+20)';
+    expect(faits(fiche)['Jets d’Amputation']).toBe(`${perte} puis ${plaie}`);
+    expect(faits(fiche).Quand).toBe('Une fois la rencontre terminée');
+    expect(rubrique(fiche, `${perte} — si le jet échoue`)).toEqual([
+      'perd Orteil(s) amputé(s) — Amputation', `Puis, ${plaie}`,
+    ]);
+    expect(rubrique(fiche, `${plaie} — si le jet échoue`)).toEqual(CHOC_DE_LA_PLAIE);
+    expect(titres(fiche)).not.toContain(`${perte} — si le jet réussit`);
+    expect(titres(fiche)).not.toContain('Amputation — quoi que donne le jet');
   });
 });

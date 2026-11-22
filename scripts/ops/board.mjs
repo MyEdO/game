@@ -575,7 +575,7 @@ export const GESTES_DU_BOARD = Object.freeze({ arbrePrincipal, fetchOrigin, bran
  *   maintenant?: Date, joursDormant?: number, joursFusionRecente?: number}} [params]
  * @returns {{ok: true, lignes: object[], vivants: {branche: string, tickets: number[], avance: number, retard: number,
  *   dernierCommit: string, sale: boolean,
- *   worktrees: string[]}[], anomalies: Anomalie[]} | {ok: false, refus: string}}
+ *   worktrees: string[]}[], anomalies: Anomalie[]} | {ok: false, categorie: string, refus: string}}
  */
 export function mesurer({
   cwd = process.cwd(), base = BASE, gestes = GESTES_DU_BOARD, inv = inventaire,
@@ -584,7 +584,7 @@ export function mesurer({
   joursDormant = JOURS_DORMANT, joursFusionRecente = JOURS_FUSION_RECENTE,
 } = {}) {
   const vuRacine = gestes.arbrePrincipal(depotDe(cwd))
-  if (!vuRacine.disponible) return { ok: false, refus: refusDeGit(vuRacine) }
+  if (!vuRacine.disponible) return { ok: false, categorie: 'panne', refus: refusDeGit(vuRacine) }
   const principal = vuRacine.valeur
   let panne = null
   const depot = depotDe(principal, { enPanne: (_raison, vu) => { panne = refusDeGit(vu) } })
@@ -598,8 +598,10 @@ export function mesurer({
   if (!sansFetch) {
     const vuFetch = gestes.fetchOrigin(depot)
     if (!reussi(vuFetch)) {
+      const delaiDepasse = 'diagnostic' in vuFetch && vuFetch.diagnostic?.error?.code === 'ETIMEDOUT'
       return {
         ok: false,
+        categorie: delaiDepasse ? 'transitoire' : 'panne',
         refus: `origin non consultable (${refusDeGit(vuFetch)}) — la mesure contre ${base} `
           + `serait fausse ; \`${commandeSansFetch}\` mesure sur les refs déjà là`,
       }
@@ -609,12 +611,12 @@ export function mesurer({
   }
 
   const refs = gestes.branchesDe(depot)
-  if (refs === null) return { ok: false, refus: `git for-each-ref illisible : ${raison()}` }
+  if (refs === null) return { ok: false, categorie: 'panne', refus: `git for-each-ref illisible : ${raison()}` }
 
   const parBranche = new Map()
   const sales = new Set()
   const vuInv = inv({ racine: principal, cwd, sansFetch: true })
-  if (!vuInv.ok) return { ok: false, refus: vuInv.refus }
+  if (!vuInv.ok) return { ok: false, categorie: 'panne', refus: vuInv.refus }
   for (const w of vuInv.worktrees) {
     if (w.principal) continue
     if (!w.branche) {

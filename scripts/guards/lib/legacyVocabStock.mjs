@@ -413,13 +413,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
-    motif: "désormais",
-    ancre: "ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/flowtest-derived-stake.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais l'enjeu au TYPE) → `resolveStake` (la porte unique de la surface).",

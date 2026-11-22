@@ -9,6 +9,7 @@ import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './monde/path';
+import type { EscaladeEnAttente } from './monde/climbMove';
 import type { ModeDEvaluation, ModeDeMarche } from './merchantFlow';
 import type { Dir8 } from '../geometry/dir8';
 import type { Dialogue } from './monde/scene';
@@ -214,6 +215,7 @@ export interface PendingTest {
    *  (via `gainAdvantage`, qui respecte AUSSI le plafond général d'Avantage). Consomme l'Action, réussi
    *  ou non (« Chaque Round que vous passez à… »). Absent = Test ordinaire. */
   combatAdvantage?: { combatantId: string; cap: number };
+  escalade?: EscaladeEnAttente;
   /** Avancée de DIALOGUE différée : quand le choix `dialogue.reponse` lance un `choice.flow` qui SUSPEND sur ce
    *  Test, l'avancée (`choice.next` → nœud, ou clôture) est portée ici et appliquée par `jetValider('test')`
    *  APRÈS la branche + continuation — sinon le nœud suivant coexiste sous la modale de jet. */
@@ -1682,8 +1684,10 @@ export type Cloture =
   | { verbe: 'testRateDeLActeur'; actorId: string; sl: number }
   /** Effets PROGRAMMÉS dus au même pas d'horloge et pas encore joués (`fireScheduledEffects`). */
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
-  /** Suite du pas maritime déjà écoulé avant un Effet programmé. */
-  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number }
+  | { verbe: 'reprendreEntretienDesRounds'; reprise: import('./outOfCombatUpkeep').RepriseEntretienDesRounds }
+  | { verbe: 'reprendreEntretienDeLHorloge'; minutes: number; apresLesRounds?: true }
+  /** Suite du pas maritime déjà écoulé. */
+  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }

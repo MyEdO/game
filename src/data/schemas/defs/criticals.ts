@@ -2,10 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 18 ; AA 07 ; LDB 18 l.53 ; AA 07 l.40 ; AA 07 l.79. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couvertureDeclareeDuDe, type TableTiree } from '../grammaire/couverture-table';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import {
   cibleEtendueSchema,
-  difficultySchema,
   enumNomme,
   hitLocationSchema,
   maisonSchema,
@@ -81,24 +81,6 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   onHealGrant: { label: 'octroi après guérison' },
 });
 
-/** LDB 18 l.237. */
-export const amputationSchema = nommerChamps(z.strictObject({
-  difficulty: difficultySchema,
-  sequels: refs('trauma'),
-
-  unites: formulaSchema.optional(),
-  // LDB 18 l.171 ; AA 07 l.171.
-  timing: z.literal('postEncounter').optional(),
-
-  loss: nommerChamps(z.strictObject({ difficulty: difficultySchema.optional(), perDR: z.boolean().optional() }), { difficulty: { label: 'difficulté' }, perDR: { label: 'par DR' } }).optional(),
-}), {
-  difficulty: { label: 'difficulté' },
-  sequels: { label: 'séquelles' },
-  unites: { label: 'unités' },
-  timing: { label: 'moment' },
-  loss: { label: 'perte' },
-});
-
 const rangeeAPlat = z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
@@ -106,7 +88,14 @@ const rangeeAPlat = z.strictObject({
   ops: executeesDe().optional(),
   test: noeudCritique.optional(),
   lethal: z.boolean().optional(),
-  amputation: amputationSchema.optional(),
+  amputation: nommerChamps(z.strictObject({
+    flow: flowSchema,
+    // LDB 18 l.171 ; AA 07 l.171.
+    timing: z.literal('postEncounter').optional(),
+  }), {
+    flow: { label: 'déroulement' },
+    timing: { label: 'moment' },
+  }).optional(),
   traumas: refs('trauma').optional(),
   escalation: critEscalationSchema.optional(),
   // Note MAISON (#195) : trace éditable d'une valeur mécanique absente littéralement du texte RAW (règle stricte 7).
@@ -165,6 +154,10 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
+    // LDB 18 l.83, l.126, l.153, l.183 ; AA 07 l.105, l.131, l.157, l.183.
+    affinerEntree: couvertureDeclareeDuDe<TableTiree & { jeu: 'aa' | 'ldb' }>(
+      file, (table) => table.jeu === 'aa' ? 'ouverte' : 'fermee', 'borne-haute',
+    ),
     // (`jeu`, `localisation`) est l'identité de recherche d'un document (`critiqueDoc`, `src/data/criticals.ts`) :
     // un couple, un document.
     affinerDataset: (dataset) =>

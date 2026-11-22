@@ -14,7 +14,9 @@ export const REGLES_COMMUNES = '.claude/sous-agents.md'
 
 /** La sortie du hook pour `entree`, `null` s'il n'y a rien à porter. */
 export function sortieSousAgent(entree, { env = process.env, racine = RACINE_DU_DEPOT, fiches = () => fichesDAgent(racine) } = {}) {
-  const fiche = fiches().get(String(entree?.agent_type ?? ''))
+  const type = entree?.agent_type
+  if (typeof type !== 'string' || !type.trim()) return null
+  const fiche = fiches().get(type)
   const accorde = (outil) => !fiche || outilAccorde(fiche, outil)
   const parts = []
   if (OUTILS_SHELL.some(accorde)) parts.push(readFileSync(join(racine, REGLES_COMMUNES), 'utf8').trim())

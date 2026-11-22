@@ -26,7 +26,15 @@ import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { isMainThread } from 'node:worker_threads'
-import { canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import {
+  canoniser,
+  canoniserParDossier,
+  dansLaMesure,
+  estPipeNomme,
+  memoireDeCanonisation,
+  projeterListingMesure,
+  relatifEntreCheminsCanoniques,
+} from './chemin-mesure.mjs'
 import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
 import { cheminAbsent, correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
@@ -68,7 +76,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
   const cheminsRejetes = new Set()
   // Un `realpathSync.native` est un appel système (0,048 ms mesuré) et un générateur relit les mêmes
   // chemins des milliers de fois : la canonisation se mémorise pour la durée de la mesure.
-  const canoniserMemo = canoniseurParDossier()
+  const memoireCanonique = memoireDeCanonisation()
 
   /**
    * Chemin RELATIF POSIX retenu, ou `null` (hors racine, exclu, cible, ou descripteur de fichier).
@@ -84,9 +92,10 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
       : null
     if (!cheminBrut) return null
     const abs = path.resolve(base, cheminBrut)
-    const rel = relatifSousRacine(base, abs, canoniserMemo)
+    const canonique = canoniserParDossier(abs, memoireCanonique)
+    const rel = relatifEntreCheminsCanoniques(base, canonique)
     if (rel === null) {
-      rejets?.add(canoniserMemo(abs))
+      rejets?.add(canonique)
       return null
     }
     if (!rel || !admissible(rel)) return null
@@ -213,7 +222,8 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
   const noterGit = (commande, args, options, vu) => {
     if (!/(?:^|[\\/])git(?:\.exe)?$/i.test(String(commande))) return
     mesurer(() => {
-      const cwd = relatifSousRacine(base, path.resolve(options?.cwd ?? process.cwd()), canoniserMemo)
+      const canonique = canoniserParDossier(path.resolve(options?.cwd ?? process.cwd()), memoireCanonique)
+      const cwd = relatifEntreCheminsCanoniques(base, canonique)
       if (cwd === null) throw new Error('requête Git mesurée hors racine')
       if (options?.input !== undefined || options?.env !== undefined || options?.shell) throw new Error('requête Git mesurée avec entrée, environnement ou shell non rejouable')
       const requete = normaliserRequeteMesuree(base, { args: args ?? [], cwd, ...(vu.canal ? { canal: vu.canal } : {}), status: vu.status, stdout: vu.stdout, stderr: vu.stderr })
@@ -316,8 +326,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
     ecrits,
     mesurer,
     restaurer,
-    // Un fichier ÉCRIT par le générateur n'est pas une de ses sources, même s'il l'a relu avant
-    // (`build-implemente.mjs` réinjecte un champ dans les fiches docs/raw qu'il vient de lire).
+    // Le collecteur exclut des sources les sorties écrites par le générateur.
     rendu,
   }
 }

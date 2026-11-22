@@ -43,8 +43,8 @@ jobs:
       - id: install
         run: npm ci
 
-      # Chaque dérivé de `GENERATORS` PRODUIT (#2203) : un MIXTE périmé laisse un diff que « Arbre
-      # inchangé » refuse (même ordre que `ci.yml`).
+      # Produit les cibles pures de `GENERATORS` (#2203). « Arbre inchangé » contrôle ensuite
+      # l'intégrité des fichiers suivis, dans le même ordre que `ci.yml`.
       - id: docs-build
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

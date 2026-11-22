@@ -850,7 +850,7 @@ export interface ItemCapabilities {
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
 }
-export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix'> {
+export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix' | 'groups'> {
   /** id STABLE (slug du libellé) — cible des `TrappingRef`, robuste au renommage. */
   id: string;
   label: string;
@@ -1020,6 +1020,8 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
    *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
+  /** LDB 68 l.25, l.48 */
+  licenceDeGuilde?: true;
 }
 /** Profil d'arme d'une DONNÉE (`TrappingData.derivedWeapon`) : la `Weapon` du moteur, ses Groupes désignés
  *  par `ref('weaponGroup')`. Le moteur l'arme par `armeDeLaDonnee` (`engine/items.ts`). */
@@ -1210,8 +1212,8 @@ export const SYMPTOM_SEVERITIES = ['moderee', 'grave'] as const;
 export type MutationData = EntreeDe<typeof mutationsDef>;
 export const mutations = datasetDe<typeof mutationsDef>(mutationsJson);
 export const mutationTables = datasetDe<typeof tablesDeCorruption>(mutationTablesJson);
-/** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `tableId`) —
- *  loader + lookup fail-fast dans `data/effectTables.ts` (importe le type `GameOp` du moteur, réservé). */
+/** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `table: { id }`) —
+ *  chargement et recherche par id dans `data/effectTables.ts`, depuis le schéma du dataset. */
 export { effectTables, findEffectTableById } from './effectTables';
 const mutationParId = indexParId('mutations', mutations);
 /** Résout une Mutation (entité) par son `id` STABLE — lookup DONNÉE sans cycle (le résolveur de tirage
@@ -1290,6 +1292,8 @@ export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
 export type TerrainDef = EntreeDe<typeof terrainsDef>;
 /** Les familles de kit 3D d'escalier, une par modèle `escalier--<famille>` (`kitDEscalierSchema`). */
 export type KitDEscalier = NonNullable<TerrainDef['kitDEscalier']>;
+/** Les familles de kit 3D de toit, une par modèle `toit--<famille>` (`kitDeToitSchema`, `kit` d'une couverture). */
+export type KitDeToit = NonNullable<RoofMaterialDef['kit']>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
@@ -1621,7 +1625,7 @@ export function seasonLabel(id: string): PlayerText {
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
  *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
-export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
+export type NatureAbsente = 'heros' | 'combattant' | 'objet' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
 export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {

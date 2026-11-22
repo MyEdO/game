@@ -45,7 +45,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
       .map((t) => ({ id: t.id, label: t.label, availability: (t.availability as CatalogItem['availability']) ?? null }));
     // seeds multiples : le curated doit ressortir quelle que soit l'issue du Test de Disponibilité du reste du stock
     for (const seed of [1, 2, 3, 42]) {
-      const stock = rollStock(cat, 'ville', makeRNG(seed), arch.curated);
+      const { stock } = rollStock(cat, 'ville', makeRNG(seed), arch.curated);
       const ids = stock.map((l) => l.id);
       expect(ids).toContain('tonneau-d-eau-douce');
       expect(ids).toContain('pieces-detachees-de-navire');

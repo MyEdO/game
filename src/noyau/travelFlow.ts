@@ -33,7 +33,8 @@ import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
 import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
-import { lieuDuGroupe, placeById, otherEnd, refusDAcces, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
+import { estBateauFluvial, lieuDuGroupe, placeById, otherEnd, refusDAcces, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
@@ -415,7 +416,11 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
   const modeDesservi = route.modes.includes(mode) || (mode === 'monture' && route.modes.includes('pied'));
   if (!modeDesservi || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
-  if (mode === 'mer') return refusDuDepartEnMer(() => s);
+  if (mode === 'mer') {
+    const { vessel } = s;
+    if (vessel?.escale !== undefined && vessel.escale !== from.id && estBateauFluvial(vessel)) return t('port.pasAQuai');
+    return refusDuDepartEnMer(() => s);
+  }
   const devis = devisDeTrajet(s, route, from.id, mode, opts);
   if (!devis.coqueFluviale && devis.kmh <= 0) return t('wm.refusSurcharge');
   if (devis.passage && !devis.passage.offre) return t('tf.refusSansTarif');
@@ -479,7 +484,16 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   if (devis.coqueFluviale) {
     const riverPlan = garanti(buildRiverPlan(get, routeId, from.id, to.id, route, mode, { cadence: opts.cadence }),
       routeId, 'plan de descente fluviale');
-    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
+    const { vessel, billetEnMain } = get();
+    const appareillage: Partial<Pick<Jeu, 'vessel'>> = {};
+    if (vessel?.escale !== undefined && estBateauFluvial(vessel) && estLeNavireDeCampagne(riverPlan.vehicle, vessel)) {
+      const { escale: _quai, ...enNavigation } = vessel;
+      appareillage.vessel = enNavigation;
+    }
+    set({
+      travelPlan: riverPlan, worldMapOpen: false, travelRecap: null,
+      billetEnMain: billetApresDepart(billetEnMain, routeId, mode), ...quitterLeLieu, ...appareillage,
+    });
     log(get, set, [t('tf.departFluvial', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
     runRiverDays(get, set);
     return;

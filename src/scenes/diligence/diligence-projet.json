@@ -1348,7 +1348,11 @@
         "sum": "30177de2fcae727b"
        }
       ]
-     }
+     },
+     "grantGroups": [
+      "cultiste",
+      "rustres-et-idiots"
+     ]
     }
    },
    {
@@ -2018,7 +2022,11 @@
         "sum": "ccef5bba3064c869"
        }
       ]
-     }
+     },
+     "grantGroups": [
+      "humain",
+      "personnes-qui-ne-leur-offrent-rien"
+     ]
     }
    },
    {
@@ -3802,6 +3810,7 @@
     "h": 50
    },
    "ambiance": "exterieur",
+   "northDeg": 180,
    "reliefDefaults": {
     "cliff": {
      "id": "terre"
@@ -25771,7 +25780,10 @@
     "y": 6,
     "w": 32,
     "h": 38
-   }
+   },
+   "groups": [
+    "bonheur"
+   ]
   },
   {
    "type": "scene",

@@ -602,15 +602,109 @@
           }
         ],
         "amputation": {
-          "difficulty": "facile",
-          "sequels": [
-            "dents-perdues"
-          ],
-          "unites": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "dents-perdues"
+                      ],
+                      "unites": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "facile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
         },
         "desc": "Votre bouche se remplit de sang et de dents cassées avec un bruit répugnant. Gagnez\n2 États Hémorragique. Perdez 1d10 dents – Amputation (Facile)",
@@ -648,10 +742,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "oreille-perdue"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "oreille-perdue"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "accessible"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Il ne reste plus grand-chose de votre oreille alors que le coup la déchiquette. Gagnez\n3 États Assourdi et 2 États Hémorragique. Vous perdez votre oreille – Amputation\n(Accessible)",
         "source": {
@@ -695,10 +883,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "complexe",
-          "sequels": [
-            "oeil-perdu"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "oeil-perdu"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "complexe"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Le coup porté à votre œil le crève, ce qui provoque une douleur quasi insoutenable.\nGagnez les États suivants : 3 Aveuglé, 2 Hémorragique et 1 Sonné. Perdez votre\nœil – Amputation (Complexe)",
         "source": {
@@ -742,11 +1024,105 @@
           }
         ],
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "nez-ampute",
-            "oeil-perdu"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "nez-ampute",
+                        "oeil-perdu"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Le coup vous explose le visage, crevant un œil et vous brisant le nez. Gagnez les\nÉtats suivants : 3 Hémorragique, 3 Aveuglé et 2 Sonné. Perdez votre œil et votre\nnez – Amputation (Difficile)",
         "source": {
@@ -812,16 +1188,111 @@
           }
         },
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "langue-amputee",
-            "dents-perdues"
-          ],
-          "unites": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "langue-amputee",
+                        "dents-perdues"
+                      ],
+                      "unites": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile",
+                  "label": "Plaie d’amputation"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
         },
         "traumas": [
@@ -1425,10 +1896,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "doigt-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "doigt-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "accessible"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "L'horreur vous saisit alors que votre doigt s'envole – Amputation (Accessible). Gagnez\n1 État Hémorragique",
         "source": {
@@ -1465,10 +2030,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "complexe",
-          "sequels": [
-            "doigt-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "doigt-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "complexe"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "escalation": {
           "perRound": {
@@ -1579,10 +2238,105 @@
           }
         },
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "main-bras-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "main-bras-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile",
+                  "label": "Plaie d’amputation"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Votre main n'est plus qu'un tas de chair hémorragique. Vous perdez votre main –\nAmputation (Difficile). Gagnez 2 États Hémorragique. Réussissez un Test de Résistance\nDifficile (-20) ou gagnez les États Sonné et À Terre",
         "source": {
@@ -1655,10 +2409,105 @@
           }
         },
         "amputation": {
-          "difficulty": "tresDifficile",
-          "sequels": [
-            "main-bras-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "main-bras-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "tresDifficile",
+                  "label": "Plaie d’amputation"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Vos tendons sont tranchés par la force du coup, et votre bras est devenu inutilisable –\nAmputation (Très Difficile). Gagnez 3 États Hémorragique, 1 État À Terre et 1 État\nSonné. Réussissez un Test de Résistance Difficile (-20) ou gagnez l'État Inconscient",
         "source": {
@@ -2311,7 +3160,9 @@
           },
           {
             "op": "contractDisease",
-            "disease": "blessure-purulente"
+            "disease": {
+              "id": "blessure-purulente"
+            }
           }
         ],
         "desc": "Vous contractez une Blessure Purulente (voir Maladie et Infection) et gagnez 2 États\nHémorragique.",
@@ -2405,7 +3256,9 @@
           },
           {
             "op": "contractDisease",
-            "disease": "infection-du-sang"
+            "disease": {
+              "id": "infection-du-sang"
+            }
           }
         ],
         "desc": "Gagnez 1 État Hémorragique qui ne peut être retiré que par Chirurgie. Vous contractez\nInfection Sanguine (voir Maladie et Infection).",
@@ -2733,14 +3586,120 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "orteil-ampute"
-          ],
-          "timing": "postEncounter",
-          "loss": {
-            "difficulty": "intermediaire"
-          }
+          "flow": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "intermediaire",
+              "label": "Perte de l’orteil"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "amputer",
+                        "sequels": [
+                          "orteil-ampute"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "test",
+                  "test": {
+                    "skill": {
+                      "id": "resistance"
+                    },
+                    "difficulty": "accessible",
+                    "label": "Plaie d’amputation"
+                  },
+                  "reussite": {
+                    "kind": "sequence",
+                    "etapes": []
+                  },
+                  "echec": {
+                    "kind": "sequence",
+                    "etapes": [
+                      {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "a-terre"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -2
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "sonne"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -4
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "inconscient"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "timing": "postEncounter"
         },
         "desc": "Gagnez 1 État Hémorragique. Une fois la rencontre terminée, effectuez un Test\nde Résistance Intermédiaire (+0). Sur un échec, vous perdez un orteil – Amputation\n(Accessible)",
         "source": {
@@ -3202,12 +4161,130 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "orteil-ampute"
-          ],
-          "loss": {
-            "perDR": true
+          "flow": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Perte de l’orteil"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      },
+                      {
+                        "op": "amputer",
+                        "sequels": [
+                          "orteil-ampute"
+                        ],
+                        "unitesPerSL": {
+                          "every": 1,
+                          "amount": 1,
+                          "onFailure": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "test",
+                  "test": {
+                    "skill": {
+                      "id": "resistance"
+                    },
+                    "difficulty": "accessible",
+                    "label": "Plaie d’amputation"
+                  },
+                  "reussite": {
+                    "kind": "sequence",
+                    "etapes": []
+                  },
+                  "echec": {
+                    "kind": "sequence",
+                    "etapes": [
+                      {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "a-terre"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -2
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "sonne"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -4
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "inconscient"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
           }
         },
         "escalation": {
@@ -3263,10 +4340,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "membre-inferieur-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "membre-inferieur-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Votre pied est sectionné au niveau de la cheville et atterrit 1d3 mètres plus loin dans\nune direction au hasard – Amputation (Difficile) (voir Dispersion). Vous gagnez les\nÉtats suivants : 3 Hémorragique, 2 États Sonné et 1 État À Terre",
         "source": {
@@ -3310,10 +4481,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "tresDifficile",
-          "sequels": [
-            "membre-inferieur-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "membre-inferieur-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "tresDifficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Un des tendons principaux à l'arrière de votre jambe est coupé, vous faisant hurler de\ndouleur alors que votre jambe s'effondre sous le poids de votre corps. Vous gagnez\n2 États Hémorragique, 2 États Sonné et 1 État À Terre. Il ne vous reste plus qu'à\ncontempler, avec horreur, votre jambe dont vous venez de perdre l'usage – Amputation\n(Très Difficile).",
         "source": {
@@ -3815,10 +5080,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "oreille-perdue"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "oreille-perdue"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "accessible"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Un coup vous déchire l'oreille. Vous recevez 3 États Assourdi et 2 États Hémorragique. Vous perdez votre oreille – Amputation (Accessible).",
         "source": {
@@ -3848,15 +5207,109 @@
           }
         ],
         "amputation": {
-          "difficulty": "facile",
-          "sequels": [
-            "dents-perdues"
-          ],
-          "unites": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "dents-perdues"
+                      ],
+                      "unites": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "facile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
         },
         "desc": "Le coup vous déchausse plusieurs dents. Vous recevez 2 États Hémorragique. Vous perdez 1d10 dents – Amputation (Facile).",
@@ -3953,10 +5406,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "complexe",
-          "sequels": [
-            "oeil-perdu"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "oeil-perdu"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "complexe"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Un coup porté à votre œil le crève. Vous recevez 3 États Aveuglé, 2 États Hémorragique et 1 État Sonné. Vous perdez votre œil – Amputation (Complexe).",
         "source": {
@@ -4000,11 +5547,105 @@
           }
         ],
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "oeil-perdu",
-            "nez-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "oeil-perdu",
+                        "nez-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Le coup détruit votre œil et votre nez. Vous recevez 3 États Hémorragique, 3 États Aveuglé et 2 États Sonné. Vous perdez votre œil et votre nez – Amputation (Difficile).",
         "source": {
@@ -4044,16 +5685,110 @@
           "fracture-tete-majeure"
         ],
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "langue-amputee",
-            "dents-perdues"
-          ],
-          "unites": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "langue-amputee",
+                        "dents-perdues"
+                      ],
+                      "unites": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
         },
         "desc": "Le coup vous fracasse totalement la mâchoire : il vous détruit la langue et fait voler vos dents. Vous recevez 4 États Hémorragique et 3 États Sonné. Vous subissez le Traumatisme Fracture (Majeure) et vous perdez votre langue et 1d10 dents – Amputation (Difficile).",
@@ -4597,10 +6332,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "doigt-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "doigt-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "accessible"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Vous perdez un doigt – Amputation (Accessible). Vous subissez 1 État Hémorragique.",
         "source": {
@@ -4637,10 +6466,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "complexe",
-          "sequels": [
-            "doigt-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "doigt-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "complexe"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "escalation": {
           "perRound": {
@@ -4751,10 +6674,105 @@
           }
         },
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "main-bras-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "main-bras-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile",
+                  "label": "Plaie d’amputation"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Vous perdez votre main – Amputation (Difficile). Vous recevez 2 États Hémorragique et vous devez réussir un Test de Résistance Difficile (–20) sous peine de subir 1 État Sonné et 1 État À Terre.",
         "source": {
@@ -4820,10 +6838,105 @@
           }
         },
         "amputation": {
-          "difficulty": "tresDifficile",
-          "sequels": [
-            "main-bras-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "main-bras-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "tresDifficile",
+                  "label": "Plaie d’amputation"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Le coup rend votre bras inutilisable de manière permanente – Amputation (Très Difficile). Vous recevez 3 États Hémorragique et 1 État Sonné. Vous devez réussir un Test de Résistance Difficile (–20) sous peine de subir l'État Inconscient.",
         "source": {
@@ -5856,14 +7969,120 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "orteil-ampute"
-          ],
-          "timing": "postEncounter",
-          "loss": {
-            "difficulty": "intermediaire"
-          }
+          "flow": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "intermediaire",
+              "label": "Perte de l’orteil"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "amputer",
+                        "sequels": [
+                          "orteil-ampute"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "test",
+                  "test": {
+                    "skill": {
+                      "id": "resistance"
+                    },
+                    "difficulty": "accessible",
+                    "label": "Plaie d’amputation"
+                  },
+                  "reussite": {
+                    "kind": "sequence",
+                    "etapes": []
+                  },
+                  "echec": {
+                    "kind": "sequence",
+                    "etapes": [
+                      {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "a-terre"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -2
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "sonne"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -4
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "inconscient"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "timing": "postEncounter"
         },
         "desc": "Vous recevez 1 État Hémorragique. Une fois la rencontre terminée, effectuez un Test de Résistance Intermédiaire (+0). Sur un Échec, vous perdez un orteil – Amputation (Accessible).",
         "source": {
@@ -6273,12 +8492,130 @@
           }
         ],
         "amputation": {
-          "difficulty": "accessible",
-          "sequels": [
-            "orteil-ampute"
-          ],
-          "loss": {
-            "perDR": true
+          "flow": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible",
+              "label": "Perte de l’orteil"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": [
+                {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "ops": [
+                      {
+                        "op": "condition",
+                        "id": {
+                          "id": "a-terre"
+                        },
+                        "value": 1
+                      },
+                      {
+                        "op": "amputer",
+                        "sequels": [
+                          "orteil-ampute"
+                        ],
+                        "unitesPerSL": {
+                          "every": 1,
+                          "amount": 1,
+                          "onFailure": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "test",
+                  "test": {
+                    "skill": {
+                      "id": "resistance"
+                    },
+                    "difficulty": "accessible",
+                    "label": "Plaie d’amputation"
+                  },
+                  "reussite": {
+                    "kind": "sequence",
+                    "etapes": []
+                  },
+                  "echec": {
+                    "kind": "sequence",
+                    "etapes": [
+                      {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "a-terre"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -2
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "sonne"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "kind": "si",
+                        "condition": {
+                          "kind": "slThreshold",
+                          "op": "<=",
+                          "value": -4
+                        },
+                        "alors": {
+                          "kind": "effet",
+                          "effet": {
+                            "type": "ops",
+                            "ops": [
+                              {
+                                "op": "condition",
+                                "id": {
+                                  "id": "inconscient"
+                                },
+                                "value": 1
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
           }
         },
         "escalation": {
@@ -6334,10 +8671,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "difficile",
-          "sequels": [
-            "membre-inferieur-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "membre-inferieur-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "difficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Votre pied est sectionné – Amputation (Difficile). Vous gagnez les États suivants : 3 États Hémorragique, 2 États Sonné et 1 État À Terre.",
         "source": {
@@ -6381,10 +8812,104 @@
           }
         ],
         "amputation": {
-          "difficulty": "tresDifficile",
-          "sequels": [
-            "membre-inferieur-ampute"
-          ]
+          "flow": {
+            "kind": "sequence",
+            "etapes": [
+              {
+                "kind": "effet",
+                "effet": {
+                  "type": "ops",
+                  "ops": [
+                    {
+                      "op": "amputer",
+                      "sequels": [
+                        "membre-inferieur-ampute"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "resistance"
+                  },
+                  "difficulty": "tresDifficile"
+                },
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
+                },
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
+                    {
+                      "kind": "effet",
+                      "effet": {
+                        "type": "ops",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": {
+                              "id": "a-terre"
+                            },
+                            "value": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -2
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "sonne"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "kind": "si",
+                      "condition": {
+                        "kind": "slThreshold",
+                        "op": "<=",
+                        "value": -4
+                      },
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
+                          "type": "ops",
+                          "ops": [
+                            {
+                              "op": "condition",
+                              "id": {
+                                "id": "inconscient"
+                              },
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "desc": "Votre jambe cède sous le poids de votre corps. Vous gagnez 2 États Hémorragique, 2 États Sonné et 1 État À Terre et vous perdez l'usage de votre jambe – Amputation (Très Difficile).",
         "source": {

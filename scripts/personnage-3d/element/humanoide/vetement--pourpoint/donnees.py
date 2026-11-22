@@ -33,7 +33,7 @@ MATERIAUX = {
 même drap teint par la palette."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 # --- Maillage ---
 SEGMENTS_CORPS = 12                # HYPOTHÈSE de maillage : le corps est caché sous le plastron
@@ -75,7 +75,6 @@ RETRAIT_DES_CREVES = 0.020
 """m : les deux bords d'un crevé, aux anneaux intérieurs de la bande, rentrent vers l'axe du bras ; la fente s'ouvre en
 creux entre deux bouffants. HYPOTHÈSE : sous l'aisance du bouffant (42 mm), au-dessus de la chemise (16 mm)."""
 COUPE_MIN = 0.06                   # pourpoint-matelasse
-CREUX_DE_LA_RACINE = 0.0           # pourpoint-matelasse
 RAYON_DE_COUPE_MAX = 0.12          # pourpoint-matelasse
 ANGLE_DU_PAN = 170.0               # pourpoint-matelasse (aucun pan : sans effet)
 INCLINAISON_DU_PAN = 20.0          # pourpoint-matelasse (aucun pan : sans effet)

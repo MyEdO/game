@@ -984,11 +984,9 @@ const decrireCible = (c) => c.surface !== undefined
  * est-elle visible dans cette couche). Rend `{ absente }`, `{ vide }`, `{ hors }` ou le point, avec le
  * `label` de la cible (son nom accessible, 60 caractères).
  */
-function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom, fnCouche, fnNommer) {
+function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, creerNomAccessible, couche, nommer) {
   const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[’']/g, "'").trim();
-  const nomAccessible = new Function('norm', 'return ' + fnNom)(norm);
-  const couche = new Function('return ' + fnCouche)();
-  const nommer = new Function('return ' + fnNommer)();
+  const nomAccessible = creerNomAccessible(norm);
   const decrire = (e) => { const t = norm(e.textContent).slice(0, 60); return nommer(e) + (t ? ' « ' + t + ' »' : ''); };
   const rangeeDe = new Map();
   const etiquetteDe = (e) => norm(e.querySelector(cible.etiquette.selecteur)?.textContent);
@@ -1061,12 +1059,10 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
  * ancêtre défilant, ou ancêtre `position: fixed`, à défaut `document.scrollingElement`). Rend
  * `{ ferme, fenetre }` si oui (`fenetre` : `{ l, h }`, la taille de la fenêtre) ; la marque est retirée, sauf sur un recouvrement (relu jusqu'à l'échéance).
  */
-function pageControler(jeton, attr, x, y, mode, intention, fnCouche, fnNommer) {
+function pageControler(jeton, attr, x, y, mode, intention, couche, nommer) {
   const c = document.querySelector('[' + attr + '="' + jeton + '"]');
   if (!c) return { absente: true };
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  const nommer = new Function('return ' + fnNommer)();
-  const couche = new Function('return ' + fnCouche)();
   const fin = (v) => { c.removeAttribute(attr); return v; };
   const mecanisme = c.disabled ? 'disabled' : c.getAttribute('aria-disabled') === 'true' ? 'aria-disabled' : null;
   let ferme = null;
@@ -1090,11 +1086,16 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche, fnNommer) {
   };
 }
 
+function evaluerLocaliseur(session, cible, jeton, qui, defiler, point) {
+  return evaluerAvecFonctions(session, pageLocaliser, [`(norm) => (${FN_NOM_ACCESSIBLE})`, FN_COUCHE, FN_NOMMER_ELEMENT],
+    cible, jeton, ATTR_CIBLE, qui, defiler, point, SELECTEUR_CONTROLES);
+}
+
 /** MARQUE la cible (`pageLocaliser`, point `aucun`) sans geste, pour une lecture ou un appel CDP :
  *  rend le `jeton` posé, `null` si la cible est absente et lève si plusieurs candidats correspondent. */
 async function marquer(session, cible, qui) {
   const jeton = nouveauJeton();
-  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, ATTR_CIBLE, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
+  const loc = await evaluerLocaliseur(session, formeDeCible(cible, qui), jeton, qui, false, 'aucun');
   return loc.absente ? null : jeton;
 }
 
@@ -1110,7 +1111,7 @@ async function localiser(session, cible, { jeton, qui, defiler = true, point = '
   const fin = Date.now() + attenteMs;
   let loc;
   for (;;) {
-    loc = await evaluerFn(session, pageLocaliser, cible, jeton, ATTR_CIBLE, qui, defiler, point, SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
+    loc = await evaluerLocaliseur(session, cible, jeton, qui, defiler, point);
     if (!loc.absente || Date.now() >= fin) break;
     await sleep(Math.min(50, Math.max(0, fin - Date.now())));
   }
@@ -1124,7 +1125,7 @@ async function localiser(session, cible, { jeton, qui, defiler = true, point = '
  *  `attenteMs` (la scène de dés `div.rm-scene` couvre la fenêtre le temps du roulis) ; à l'échéance,
  *  la levée nomme le DERNIER recouvreur. Rend `{ ferme }` (`null`, ou ce que `lire` a touché). */
 async function controler(session, x, y, { jeton, libelle, qui, intention, attenteMs, mode }) {
-  const lire = () => evaluerFn(session, pageControler, jeton, ATTR_CIBLE, x, y, mode, intention, FN_COUCHE, FN_NOMMER_ELEMENT);
+  const lire = () => evaluerAvecFonctions(session, pageControler, [FN_COUCHE, FN_NOMMER_ELEMENT], jeton, ATTR_CIBLE, x, y, mode, intention);
   const echeance = Date.now() + attenteMs;
   let v = await lire();
   while (v.recouvre && Date.now() < echeance) {
@@ -1626,8 +1627,16 @@ export async function verdictDebordement(session, { dans = 'body', marge = 1 } =
  * tout ce dont elle a besoin arrive par `args`, et son résultat doit être sérialisable en JSON.
  */
 export async function evaluerFn(session, fn, ...args) {
-  const appel = `(${fn.toString()}).apply(null, ${JSON.stringify(args)})`
-  return evaluate(session, appel)
+  return evaluerAppel(session, fn, JSON.stringify(args))
+}
+
+/** Les fonctions de page déclarées dans ce module rejoignent les données JSON dans l'appel CDP. */
+function evaluerAvecFonctions(session, fn, fonctions, ...args) {
+  return evaluerAppel(session, fn, `[...${JSON.stringify(args)}, ${fonctions.join(', ')}]`)
+}
+
+function evaluerAppel(session, fn, argumentsJs) {
+  return evaluate(session, `(${fn.toString()}).apply(null, ${argumentsJs})`)
 }
 
 /**
@@ -1723,12 +1732,12 @@ export async function frappe(session, { focus, qui = 'frappe', delaiEntreeMs = D
   if (!brut) throw new Error(`${qui} : session sans émetteur d'entrée (non branchée par \`brancherCdp\`) — aucune frappe émise`);
   if (focus !== undefined) {
     const jeton = await marquer(session, { selecteur: focus }, qui);
-    const manque = jeton ? await evaluerFn(session, (marque, attr, fnNommer) => {
+    const manque = jeton ? await evaluerAvecFonctions(session, (marque, attr, nommer) => {
       const el = document.querySelector(marque);
       el.removeAttribute(attr);
       const a = document.activeElement;
-      return a === el ? null : 'focus sur ' + (a ? new Function('return ' + fnNommer)()(a) : '(aucun)');
-    }, marqueDe(jeton), ATTR_CIBLE, FN_NOMMER_ELEMENT) : 'aucun élément désigné';
+      return a === el ? null : 'focus sur ' + (a ? nommer(a) : '(aucun)');
+    }, [FN_NOMMER_ELEMENT], marqueDe(jeton), ATTR_CIBLE) : 'aucun élément désigné';
     if (manque) throw new Error(`${qui} « ${focus} » : la cible n'a pas le focus (${manque}) — aucune frappe émise`);
   }
   await emettreSous(evenements, async (domaine, params) => {

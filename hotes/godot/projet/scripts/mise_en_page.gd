@@ -43,8 +43,8 @@ const PLACE_DU_POINT := QUART_DE_TOUR
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
-## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`), et dont un tronçon recouvre la
-## fin du précédent (`point_en_deca`).
+## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`, `cote_au_dela`), et dont un
+## tronçon recouvre la fin du précédent (`point_en_deca`).
 const PAS_AU_DELA_M := 0.0005
 ## La longueur, en mètres, d'un tronçon dont un rayon reprend (`bout_du_troncon`) : le moteur physique du projet
 ## (GodotPhysics3D, `physics/3d/physics_engine` au défaut) manque toute face plus proche de l'origine du tronçon que
@@ -184,6 +184,14 @@ static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case:
 	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
 
 
+## L'échelle d'une faîtière d'un modèle de toit longue de `long` mètres, dont chaque bras descend d'une pente de 1,
+## posée sur un faîte qui court selon `sens` entre deux pans dont les pentes diffèrent de deux fois `ecart` (mètres par
+## case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la longueur du faîte,
+## en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
+static func echelle_de_faitiere(sens: Vector2, ecart: float, long: float, par_case: float) -> Vector3:
+	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(ecart, par_case) * echelle_metrique(par_case), echelle_metrique(par_case))
+
+
 ## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
 ## court selon `sens`, haute de `hauteur` mètres, sur un plateau de `par_case` mètres par case (#4471) : en longueur
 ## celle qui le porte à la longueur de l'arête (`longueur_d_arete`), en hauteur celle qui porte son sommet à celle de
@@ -321,10 +329,16 @@ static func rangee_de_pose(couche: int, rangees_par_plan: int) -> float:
 	return (2 * couche + 1) * rangees_par_plan
 
 
-## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
-## `case` de la couche d'indice `couche`.
+## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan `sol` de `rangees_par_plan` rangées par couche, puis
+## un plan `toit` par couche), de la case `case` de la couche d'indice `couche`, au plan `sol`.
 static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
+
+
+## Le texel, dans le masque de la vision (`texel_de_vision`) de `couches` couches, de la case `case` de la couche d'indice
+## `couche`, au plan `toit` : celui qu'une pièce posée sur une nappe de toit lit.
+static func texel_de_toit(case: Vector2i, couche: int, rangees_par_plan: int, couches: int) -> Vector2i:
+	return texel_de_vision(case, couches + couche, rangees_par_plan)
 
 
 ## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
@@ -716,6 +730,25 @@ static func echelle_de_la_boite(taille: Vector3, hauteur_vue: float) -> float:
 	return taille.length() / hauteur_vue
 
 
+## La hauteur que vise, au pivot, l'axe d'une caméra posée en `position` autour de lui et inclinée de `inclinaison`
+## radians (négative : vers le bas), à l'échelle 1 de son orbite.
+static func hauteur_visee_au_pivot(position: Vector3, inclinaison: float) -> float:
+	return position.y + position.z * tan(inclinaison)
+
+
+## La hauteur dont le pivot de l'orbite monte au zoom minimal du cadre `cadre` pour que l'axe de la caméra, qui vise
+## la hauteur `visee` au pivot à l'échelle 1 (`hauteur_visee_au_pivot`), y passe à la hauteur `tete`.
+static func elevation_vers_la_tete(tete: float, cadre: float, visee: float) -> float:
+	return tete - ZOOM_MINIMAL * cadre * visee
+
+
+## Le pivot de l'orbite au-dessus de la racine posée en `racine`, à l'échelle `echelle` : sur elle à l'échelle `cadre`
+## du cadre posé et au-delà, il monte avec le zoom avant jusqu'à `elevation` au zoom minimal (`ZOOM_MINIMAL` fois
+## `cadre`).
+static func pivot_de_l_orbite(racine: Vector3, echelle: float, cadre: float, elevation: float) -> Vector3:
+	return racine + Vector3.UP * elevation * clampf((cadre - echelle) / (cadre - ZOOM_MINIMAL * cadre), 0.0, 1.0)
+
+
 ## L'échelle de l'orbite d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée de `ZOOM_MINIMAL` à
 ## `ZOOM_MAXIMAL` fois l'échelle `cadre` du cadre posé (`distance_zoomee`).
 static func echelle_zoomee(echelle: float, sens: float, cadre: float) -> float:
@@ -746,8 +779,9 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
 
 
-## Le poids cumulé des repères d'un point suivi (`MontageDeComposition._suivre_les_poids`) de poids cumulé `cumul`, quand
-## s'y ajoute un repère de poids `poids`.
+## Le poids cumulé `cumul` quand s'y ajoute le poids `poids` : des repères d'un point suivi
+## (`MontageDeComposition._suivre_les_poids`), ou des poids de peau sur un os ou une liaison
+## (`MontageDeComposition._membres_des_os_de_la_base`, `_liaisons_dominantes`).
 static func cumul_des_poids(cumul: float, poids: float) -> float:
 	return cumul + poids
 
@@ -850,6 +884,12 @@ static func decalage_a_cote(decalage: float, sens: float, debut_precedent: float
 ## La case, de `CASE_DE_CONTACT` mètres en (x, y) d'un repère de rangement, où tombe le sommet `sommet`.
 static func case_de_contact(sommet: Vector3) -> Vector2i:
 	return Vector2i(floori(sommet.x / CASE_DE_CONTACT), floori(sommet.y / CASE_DE_CONTACT))
+
+
+## La cote d'où la visée d'une case (`centre_de_contact`, de `PORTEE_DE_CONTACT` à son opposé) reprend au-delà de la cote
+## `cote` qu'elle touche (`MontageDeComposition._appuyer`).
+static func cote_au_dela(cote: float) -> float:
+	return cote - PAS_AU_DELA_M
 
 
 ## Le point d'un repère de rangement au centre de la case `case`, à la cote `cote` sur la normale sortante.

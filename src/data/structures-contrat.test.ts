@@ -49,11 +49,12 @@ import { CLES_ENVELOPPE, document, type DeclarationExposition } from './schemas/
 import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
-import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
+import { TYPES, espaceDe, idDe, ref, reperesDuParse, type TypeEntite } from './schemas/grammaire/ref';
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs';
-import { conditionSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { conditionSchema, extendedTestSchema, flowTestSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { coDescendre } from './schemas/grammaire/descente';
 import { estObjet } from '../lib/objet.mjs';
 
 /**
@@ -131,6 +132,49 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(formes.find((f) => f.champ === 'scalaire')).toMatchObject({ signature: 'id-nu', statut: 'historique', occurrences: 2, cibles: ['skills.json'] });
     expect(formes.find((f) => f.champ === 'skillRef')).toMatchObject({ signature: 'id', statut: 'cible', occurrences: 2, cibles: ['skills.json'] });
   });
+  it('écarte le discriminant d’une GameOp validée au site et conserve les vraies références', () => {
+    const expose = { op: 'exposeDisease', disease: { id: 'peste-noire' } };
+    const catalogue = z.array(z.strictObject({ id: z.string(), label: z.string() }));
+    const ops = z.array(gameOpSchema);
+    const porteur = z.array(z.strictObject({
+      id: z.string(),
+      label: z.string(),
+      ops,
+      refusees: ops,
+      copies: z.array(z.strictObject({ op: z.string(), amount: z.number() })),
+    }));
+    const defs: SchemaDef[] = [
+      { file: 'characteristics.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'maladies.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'porteur.json', root: 'src/data', famille: 'entite', schema: porteur },
+    ];
+    const mesure = scannerFixtureDeReferences('structures-discriminant-op-', {
+      'characteristics.json': [{ id: 'corruption', label: 'Homonyme témoin' }],
+      'maladies.json': [{ id: 'peste-noire', label: 'Maladie témoin' }],
+      'porteur.json': [{
+        id: 'porteur',
+        label: 'Porteur',
+        ops: [{ op: 'corruption', amount: 1 }, expose],
+        refusees: [{ op: 'corruption', amount: false }],
+        copies: [{ op: 'corruption', amount: 1 }],
+      }],
+    }, defs);
+
+    expect(mesure.totalOps).toBe(2);
+    expect(mesure.autresPorteursDOp.filter(({ dataset }) => dataset === 'porteur.json')).toMatchObject([
+      { champ: 'refusees', op: 'corruption', motif: 'charge refusée' },
+      { champ: 'copies', op: 'corruption', motif: 'hors site GameOp' },
+    ]);
+    const references = [...mesure.referencesParPorteur.values()].flatMap((cases) =>
+      [...cases].filter(([, occurrence]) => occurrence.dataset === 'porteur.json')
+        .map(([cle, occurrence]) => `${occurrence.champ}.${cle}`),
+    );
+    expect(lignes(references)).toEqual(['copies.op', 'refusees.op']);
+    expect(reperesDuParse(gameOpSchema, expose)).toContainEqual(
+      expect.objectContaining({ path: ['disease', 'id'], type: 'maladie' }),
+    );
+  });
+
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('structures-scan.mts');
@@ -471,7 +515,7 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ['criticals.json', 'id', 'id', 'etats.json'],
     ['arene-projet.json', 'members', 'entityId', 'arene-projet.json'],
     ['maladies.json', 'symptoms', 'symptomId', 'symptoms.json'],
-    ['activities.json', 'ops', 'tableId+…', 'tables.json'],
+    ['activities.json', 'table', 'id', 'tables.json'],
   ])('%s › %s {%s} est une occurrence de référence dont la cible résout vers %s', (dataset, champ, sig, cible) => {
     const f = occurrence(dataset, champ, sig);
     expect(f, `aucune occurrence de référence mesurée sous \`${dataset} › ${champ} {${sig}}\` — le champ porteur est MESURÉ, pas déclaré.`).toBeTruthy();
@@ -492,13 +536,17 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ).toEqual([]);
   });
 
-  it('les refs à plat dans les ops sont VUES : aucune n’est orpheline sous un `op`', () => {
-    const refsDansOps = scan.formes.filter((f) => f.concept === 'reference' && (f.champ === 'ops' || f.champ === 'onFail'));
-    expect(refsDansOps.reduce((a, f) => a + f.occurrences, 0)).toBeGreaterThan(0);
-    expect(
-      refsDansOps.every((f) => f.statut === 'divergente' || f.statut === 'historique'),
-      'une ref à plat dans une op est une DIVERGENCE : la cible L1c est une ref EMBOÎTÉE (`{op, skill: {id}}`).',
-    ).toBe(true);
+  it('les références emboîtées des opérations atteignent les catalogues de leur schéma de porteur', () => {
+    const slots = slotsDuParse(scan, DEFS);
+    expect(slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ dataset: 'activities.json', path: '[].outcomes[].ops[].table.id', type: 'table' }),
+      expect.objectContaining({ dataset: 'spells.json', path: '[].effects.etapes[].effet.ops[].disease.id', type: 'maladie' }),
+      expect.objectContaining({
+        dataset: 'loup-et-saumure-projet.json',
+        path: 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id',
+        type: 'manannFactor',
+      }),
+    ]));
   });
 
   it('une ENTRÉE DE RACINE n’est jamais orpheline (les 90 faux orphelins de `props.json` sont morts)', () => {
@@ -679,6 +727,72 @@ describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () 
   for (const [nom, brut] of brutParNom) marche(brut, nom, '', '');
   const conceptsDesPoses = (ids: ReadonlySet<IdConceptPose> | undefined) => new Set([...(ids ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
   const STRUCTURELS = CONCEPTS.filter((c) => c.exigeCandidatureStructurelle).map((c) => c.id);
+
+  it('le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', () => {
+    const dataset = 'loup-et-saumure-projet.json';
+    const { o, champ } = objets.find((x) => x.dataset === dataset && x.o.type === 'extendedTest')!;
+    const def = DEFS.find((d) => d.file === dataset)!;
+    const projet = structuredClone(brutParNom.get(dataset));
+    let effetAvecCleEtrangere: Record<string, unknown> | undefined;
+    coDescendre(def.schema, projet, ({ valeur }) => {
+      if (estObjet(valeur) && valeur.type === 'extendedTest') {
+        valeur.argDifficulty = true;
+        effetAvecCleEtrangere = valeur;
+        return 'arreter';
+      }
+    });
+    if (!effetAvecCleEtrangere) throw new Error('Test étendu du projet introuvable');
+
+    const classement = (effet: Record<string, unknown>, poses?: ReadonlySet<IdConceptPose>) =>
+      classerValeur(signature(Object.keys(effet)), Object.keys(effet), { dataset, champ, poses });
+    expect(extendedTestSchema.safeParse(o).success).toBe(true);
+    expect(classement(o, poses.get(o))).toMatchObject({ concept: 'test', statut: 'cible' });
+    expect(classement(o)).toMatchObject({ concept: 'test', statut: 'divergente' });
+
+    const contrePoses = posesDesObjets([def], new Map([[dataset, projet]]));
+    expect(extendedTestSchema.safeParse(effetAvecCleEtrangere).error?.issues).toContainEqual(
+      expect.objectContaining({ code: 'unrecognized_keys', keys: ['argDifficulty'] }),
+    );
+    expect(contrePoses.get(effetAvecCleEtrangere)?.has('test-etendu')).toBe(false);
+    expect(classement(effetAvecCleEtrangere, contrePoses.get(effetAvecCleEtrangere))).toMatchObject({
+      concept: 'test', statut: 'divergente',
+    });
+  });
+
+  it('le Test d’équipage du Flow garde sa pose quand la difficulté est implicite (#1657)', () => {
+    const dataset = 'sea-events.json';
+    const def = DEFS.find((d) => d.file === dataset)!;
+    const evenements = structuredClone(brutParNom.get(dataset));
+    let test: Record<string, unknown> | undefined;
+    coDescendre(def.schema, evenements, ({ valeur }) => {
+      if (estObjet(valeur) && valeur.crewTestType === 'affaler') {
+        delete valeur.difficulty;
+        test = valeur;
+        return 'arreter';
+      }
+    });
+    if (!test) throw new Error('Test d’équipage d’Ouragan introuvable');
+    const cles = Object.keys(test);
+    const pose = posesDesObjets([def], new Map([[dataset, evenements]])).get(test);
+    expect(flowTestSchema.safeParse(test).success).toBe(true);
+    expect(pose?.has('test')).toBe(true);
+    expect(classerValeur(signature(cles), cles, { dataset, champ: 'test', poses: pose })).toMatchObject({
+      concept: 'test', signature: 'crewTestType+…', statut: 'cible',
+    });
+    const sansEnjeu = { ...test };
+    delete sansEnjeu.stake;
+    expect(flowTestSchema.safeParse(sansEnjeu).error?.issues).toContainEqual(
+      expect.objectContaining({ code: 'custom', path: ['stake'] }),
+    );
+  });
+
+  it('la grammaire classe les Tests d’équipage de la mer sous `test` (#1657)', () => {
+    const formes = scan.formes.filter((f) => f.dataset === 'sea-events.json' && f.concept === 'test' && f.signature.includes('crewTestType'));
+    expect(formes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ champ: 'test', signature: 'crewTestType,difficulty', statut: 'cible' }),
+      expect.objectContaining({ champ: 'test', signature: 'crewTestType,difficulty+…', statut: 'cible' }),
+    ]));
+  });
 
   it('pose et noyau ne se contredisent pas : aucun objet posé n’est revendiqué par le noyau d’un AUTRE concept', () => {
     const posees = objets.filter((x) => poses.get(x.o)?.size);
@@ -1161,6 +1275,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].sondes = [{ skillIdent: 'athletisme', poids: 3 }]; // graphie de référence NEUVE
       axes[0].opsSonde = [
         { op: 'heal', amount: 1 },
+        { op: 'arrowWard' },
         { op: 'arrowWard', machinId: 'absent' },
         { op: 'heal', amount: false, machinId: 'absent' },
         { op: 'constructor', machinId: 'absent' },
@@ -1183,21 +1298,24 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       expect(orphelinesNeuves, 'une FK morte (`machinId`) n’est pas vue : le motif `clé de référence non résolue` serait inatteignable.').toContain(
         'sonde.json | casses | machinId | clé de référence non résolue',
       );
-      expect(opsNeuves).toEqual(['arrowWard | machinId,op | sonde.json', 'heal | amount,op | sonde.json']);
+      expect(opsNeuves).toEqual(['arrowWard | op | sonde.json', 'heal | amount,op | sonde.json']);
       expect(apres.totalOps).toBe(temoin.totalOps + 2);
       expect(apres.totalConditionsAvecOp).toBe(temoin.totalConditionsAvecOp + 1);
       expect(apres.autresPorteursDOp.filter((o) => o.dataset === 'sonde.json').map(({ motif, op, champ }) => [motif, op, champ])).toEqual([
         ['charge refusée', undefined, 'opsSonde'],
+        ['charge refusée', 'arrowWard', 'opsSonde'],
         ['charge refusée', 'heal', 'opsSonde'],
         ['hors site GameOp', 'heal', 'copies'],
         ['hors site GameOp', 'heal', 'copies'],
         ['op inconnue', 'constructor', 'opsSonde'],
         ['op inconnue', 'toString', 'opsSonde'],
       ]);
-      expect(orphelinesNeuves.filter((o) => o.startsWith('sonde.json | opsSonde'))).toEqual([
-        'sonde.json | opsSonde | amount,machinId,op | clé de référence non résolue',
-        'sonde.json | opsSonde | machinId | clé de référence non résolue',
-        'sonde.json | opsSonde | machinId,op | clé de référence non résolue',
+      expect(apres.orphelines
+        .filter((o) => o.dataset === 'sonde.json' && o.champ === 'opsSonde')
+        .map(({ signature, motif, occurrences }) => [signature, motif, occurrences])).toEqual([
+        ['machinId,op', 'clé de référence non résolue', 2],
+        ['amount,machinId,op', 'clé de référence non résolue', 1],
+        ['machinId', 'clé de référence non résolue', 1],
       ]);
       expect(orphelinesNeuves).toContain('sonde.json | copies | amount,id,op | identité non résolue');
       expect(apres.objets.invisibles).toBe(temoin.objets.invisibles + 3);

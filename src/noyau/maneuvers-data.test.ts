@@ -15,9 +15,11 @@ import { setDataset } from '../data/overrides';
 import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { makeRNG } from '../engine/dice';
-import { buildWeapon } from '../engine/items';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { buildWeapon, emptyArmour, itemFromTrappingById, recomputeLoadout } from '../engine/items';
+import { armourPhysiqueAt, sourceDuTraitA } from '../engine/armourBypass';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../engine/flowCore';
+import type { ManeuverDef } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
@@ -66,7 +68,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
 
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
-    const edited: TriggeredEffect[] = [
+    const edited: ManeuverDef['effects'] = [
       { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
     ];
     try {
@@ -143,6 +145,22 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
     const e = frappe('ronge-fixture', undefined, 15, { weapons: [lame] });
     expect(e.armour.corps).toBe(4);
     expect(lame.damageTaken).toBe(1);
+  });
+  it('Corrosif use à la même localisation le cuir du Trait et la chemise de mailles portée', () => {
+    const cotte = { ...itemFromTrappingById('chemise-de-mailles', idsDeTest)!, equipped: true };
+    const e = mk({
+      traits: [{ id: 'armure', matiere: 'leather', parLocalisation: { ...emptyArmour(), corps: 2 } }],
+      items: [cotte],
+    });
+    recomputeLoadout(e);
+    expect(armourPhysiqueAt(e, 'corps')).toBe(4);
+
+    applyTriggeredEffects(get, mk({ id: 'a' }), souffle('ronge-fixture').effects ?? [], 'onHit',
+      { victim: e, indice: 15, rng: makeRNG(2) });
+    expect(cotte.damageTaken).toBe(1);
+    expect(sourceDuTraitA(e, 'corps')?.pa).toBe(1);
+    recomputeLoadout(e);
+    expect(armourPhysiqueAt(e, 'corps')).toBe(2);
   });
   it('l’enjeu dit la tranche du Froid et l’équipement rongé du Corrosif', () => {
     const enjeu = (type: string) => {

@@ -13,12 +13,14 @@
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { echapperRegex } from '../../../src/lib/regex.ts';
 import { allAbbrAlternation } from '../../raw/_lib.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 import { RACINES_PRESENTES } from './racinesPresentes.mjs';
 import { lexemesGdscript } from './gdscript.mjs';
+import { positionsDesAncres } from './stock.mjs';
 
 const EXTENSION_GDSCRIPT = '.gd';
 const estGdscript = (rel) => String(rel).endsWith(EXTENSION_GDSCRIPT);
@@ -821,12 +823,8 @@ export function legacyVocabIn(text, relPath) {
  * @returns {{ line: number, detail: string }[]}
  */
 export function scanLegacyVocabHorsStock(relPath, contenu) {
-  return scanLegacyVocab(relPath, contenu).filter((f) => {
-    const motif = /^\[([^\]]+)\]/.exec(f.detail)?.[1] ?? '';
-    return !LEGACY_VOCAB_SITES.some(
-      (s) => s.motif === motif && matchesBaselineEntry({ file: relPath, line: f.line, detail: f.detail }, s),
-    );
-  });
+  const signaux = scanLegacyVocab(relPath, contenu).map((f) => ({ ...f, file: relPath }));
+  return partitionVocabulaire(signaux, new Map([[relPath, contenu]])).nouveaux.map(({ line, detail }) => ({ line, detail }));
 }
 
 /**
@@ -934,13 +932,12 @@ export function scanRawClaims(relPath, contenu) {
 // rubrique compacte, pour que la ligne NOUVELLE saute aux yeux. Elle nomme le site par
 // FICHIER + ANCRE de texte (jamais un numéro de ligne, qui dérive au premier commit voisin), et
 // porte sa raison + sa date — données dans `decisions-baseline.json`, mécanique ici.
-// Contrepartie : une entrée qui ne matche plus rien dans un fichier SCANNÉ est signalée comme
-// périmée, et se purge (les listes décroissent).
+// Les entrées sans site unique dans un fichier scanné sont signalées comme périmées.
 // ---------------------------------------------------------------------------------------------
 
 /**
  * @typedef {{ fichier: string, motif: string, ancre: string, raison: string, date: string }} BaselineEntry
- * @typedef {{ file: string, line: number, detail: string }} PlacedFinding
+ * @typedef {{ file: string, line: number, detail: string, horsBaseline?: true }} PlacedFinding
  */
 
 export const DECISIONS_BASELINE_PATH = fileURLToPath(new URL('./decisions-baseline.json', import.meta.url));
@@ -971,47 +968,80 @@ export function decisionsBaselineDe(texte) {
 }
 
 const normPath = (/** @type {string} */ p) => String(p).replace(/\\/g, '/');
-/** Comparaison de texte insensible à la casse et aux blancs de continuation de commentaire
- *  (`*`/`//` en tête de ligne d'un bloc). L'ancre se recopie VERBATIM depuis le commentaire visé :
- *  ses accents comptent, seule la mise en page varie. */
-const normText = (/** @type {string} */ s) =>
-  String(s)
-    .replace(/[\s*/]+/g, ' ')
-    .toLowerCase()
-    .trim();
+/**
+ * @template {{ fichier: string }} E
+ * @param {PlacedFinding[]} findings
+ * @param {E[]} stock
+ * @param {ReadonlyMap<string, string>} textesScannes
+ * @param {(entree: E, fichier: string, texte: string, signaux: PlacedFinding[]) => PlacedFinding | undefined} ancrer
+ */
+function partitionSignaux(findings, stock, textesScannes, ancrer) {
+  const scannes = new Map([...textesScannes].map(([fichier, texte]) => [normPath(fichier), texte]));
+  /** @type {Map<string, PlacedFinding[]>} */ const parFichier = new Map();
+  for (const signal of findings) {
+    const fichier = normPath(signal.file);
+    if (!parFichier.has(fichier)) parFichier.set(fichier, []);
+    parFichier.get(fichier).push(signal);
+  }
 
-/** Le signal `finding` est-il le site déclaré par `entry` ? (même fichier + ancre présente)
- * @param {PlacedFinding} finding @param {BaselineEntry} entry @returns {boolean} */
-export function matchesBaselineEntry(finding, entry) {
-  if (!entry?.ancre) return false;
-  return normPath(finding.file) === normPath(entry.fichier) && normText(finding.detail).includes(normText(entry.ancre));
+  /** @type {Map<PlacedFinding, number[]>} */ const propositions = new Map();
+  for (const [index, entree] of stock.entries()) {
+    const fichier = normPath(entree.fichier);
+    const signaux = parFichier.get(fichier);
+    const texte = scannes.get(fichier);
+    if (texte === undefined || !signaux) continue;
+    const signal = ancrer(entree, fichier, texte, signaux);
+    if (!signal) continue;
+    if (!propositions.has(signal)) propositions.set(signal, []);
+    propositions.get(signal).push(index);
+  }
+
+  const nouveaux = [];
+  const connus = [];
+  const touchees = new Set();
+  for (const finding of findings) {
+    const candidates = propositions.get(finding);
+    if (candidates?.length === 1) {
+      const index = candidates[0];
+      connus.push({ finding, entry: stock[index] });
+      touchees.add(index);
+    } else {
+      nouveaux.push(finding);
+    }
+  }
+  const perimees = stock.filter((entree, i) => !touchees.has(i) && scannes.has(normPath(entree.fichier)));
+  return { nouveaux, connus, perimees };
 }
 
 /**
- * Range les signaux en NOUVEAUX / connus (baseline), et relève les entrées de baseline périmées.
- * La péremption ne se juge que sur les fichiers RÉELLEMENT scannés (`scannedFiles`) : un hook
- * diff-scopé ne voit qu'une poignée de fichiers, il ne peut pas conclure qu'un site absent de son
- * diff a disparu du dépôt.
+ * Signaux classés à partir de leur position dans le texte réellement scanné.
  * @param {PlacedFinding[]} findings
  * @param {BaselineEntry[]} baseline
- * @param {Iterable<string>} [scannedFiles] défaut : les fichiers portant au moins un signal
- * @returns {{ nouveaux: PlacedFinding[], connus: { finding: PlacedFinding, entry: BaselineEntry }[], perimees: BaselineEntry[] }}
+ * @param {ReadonlyMap<string, string>} textesScannes
  */
-export function partitionBaseline(findings, baseline, scannedFiles) {
-  /** @type {PlacedFinding[]} */ const nouveaux = [];
-  /** @type {{ finding: PlacedFinding, entry: BaselineEntry }[]} */ const connus = [];
-  const touchees = new Set();
-  for (const f of findings) {
-    const i = baseline.findIndex((e) => matchesBaselineEntry(f, e));
-    if (i < 0) nouveaux.push(f);
-    else {
-      touchees.add(i);
-      connus.push({ finding: f, entry: baseline[i] });
-    }
-  }
-  const scanned = new Set([...(scannedFiles ?? findings.map((f) => f.file))].map(normPath));
-  const perimees = baseline.filter((e, i) => !touchees.has(i) && scanned.has(normPath(e.fichier)));
-  return { nouveaux, connus, perimees };
+export function partitionBaseline(findings, baseline, textesScannes) {
+  return partitionSignaux(findings, baseline, textesScannes, (entree, fichier, texte, signaux) => {
+    if (!entree.ancre) return;
+    const [ligne] = positionsDesAncres(fichier, texte, [entree.ancre]).keys();
+    if (ligne === undefined) return;
+    const porteurs = signaux.filter((signal) => !signal.horsBaseline && signal.line === ligne);
+    if (porteurs.length === 1) return porteurs[0];
+  });
+}
+
+/** Le stock lexical nomme un fragment dans le texte normalisé d'une ligne. */
+const normVocabulaire = (/** @type {string} */ s) => s.replace(/[\s*/]+/g, ' ').toLowerCase().trim();
+
+/** @param {PlacedFinding[]} findings @param {ReadonlyMap<string, string>} textesScannes */
+export function partitionVocabulaire(findings, textesScannes) {
+  return partitionSignaux(findings, LEGACY_VOCAB_SITES, textesScannes, (entree, fichier, texte, signaux) => {
+    const projection = texte.split('\n').map(normVocabulaire).join('\n');
+    const motif = new RegExp(echapperRegex(normVocabulaire(entree.ancre)));
+    const [ligne] = positionsDesAncres(fichier, projection, [motif]).keys();
+    if (ligne === undefined) return;
+    const porteurs = signaux.filter((signal) => signal.line === ligne && /^\[([^\]]+)\]/.exec(signal.detail)?.[1] === entree.motif);
+    if (porteurs.length === 1) return porteurs[0];
+  });
 }
 
 /**
@@ -1036,6 +1066,6 @@ export function formatBaselineReport({ nouveaux, connus, perimees }) {
       out.push(`  ${entry.fichier} — ${entry.motif} (${entry.date}) : ${entry.raison}`);
     }
   }
-  for (const e of perimees) out.push(`baseline périmée — purger l'entrée : ${e.fichier} — ${e.motif} (${e.date})`);
+  for (const e of perimees) out.push(`baseline périmée — purger l'entrée : ${e.fichier} — ${e.motif} (${e.date}) — ancre « ${e.ancre} »`);
   return out;
 }

@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { capaciteDeCombatSchema, domaineDuChaosSchema, OP_DEFS } from './mecanique';
+import { capaciteDeCombatSchema, domaineDuChaosSchema, hasWhatSchema, OP_DEFS } from './mecanique';
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -101,6 +101,8 @@ const NOMMES = [
   'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
   // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
   'bois|pierre',
+  // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
+  'ardoise|tuile|chaume',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -164,6 +166,8 @@ const NOMMES = [
   // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
   // marché et le mode de marché d'un marchand de scène.
   'village|ville|cite',
+  // `formeDeTeteSchema` (#4413) : les formes de la tête d'un preset et d'une Mutation.
+  'visage_inverse|nez_fort|arcades_marquees|joues_creuses|visage_long',
   // La clé d'indice de Taille de lieu de `disponibilite.json` › `colonneParTaille` (MSRC 13 l.44-50, #4277).
   '1|2|3|4',
   'complet|sans-disponibilite|sans-marchandage|simplifie',
@@ -226,7 +230,14 @@ const NOMMES = [
   'reussite|echec|maladresse',
   'test|combat|threat|hold|rally',
   'any|all',
-  'group|talent|trait|psych|immunity',
+  ...hasWhatSchema.options,
+  'attaque|attaqueReussie|paradeDuDefenseur|paradeAdverse|defenseAdverse|testRate',
+  'available|immediate',
+  'frenzied',
+  'held|mainHand',
+  'magic',
+  'maxUnits',
+  'nullify',
   'moderee|grave',
   'nuit|voyage|flux|combat',
   'noise|magic',
@@ -268,6 +279,8 @@ const NOMMES = [
   'petrifie',
   // `signalDuPortSchema` (#4357) : le signal d'un port, phare ou clocher (MDG 13 l.333-351).
   'phare|clocher',
+  // `amarrageSchema` (MSRC 7 l.109-111).
+  'simple|cale-seche',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.

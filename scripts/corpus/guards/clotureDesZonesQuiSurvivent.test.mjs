@@ -13,18 +13,139 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeParLaSurvie, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
 import { paquetDe } from '../../guards/lib/couchesLint.mjs'
 import { cibleLexicale } from '../../guards/lib/interneLint.mjs'
-import { analyserTexte } from '../../guards/lib/dialecte.mjs'
-import { valeursDAcquisition } from '../../guards/lib/racinesBalayees.mjs'
+import { EXTENSIONS_DE_SCRIPT, analyserTexte, typescript } from '../../guards/lib/dialecte.mjs'
+import { ciblesDEcritureDeCommande, lancementDInterpreteur } from '../../guards/lib/ecrituresShell.mjs'
+import { forgerDepot } from '../../guards/lib/depotGabarit.mjs'
+import { evaluer, lecteurDExpressions, valeursDAcquisition } from '../../guards/lib/racinesBalayees.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-import { TRAVAIL, depotDe, listerImage } from '../../guards/lib/gitPorte.mjs'
+import { TRAVAIL, depotDe, fichiersIgnoresDe, listerImage } from '../../guards/lib/gitPorte.mjs'
 import { CHEMIN_TSCONFIG, aliasDe, arbreDuDisque, clotureDImports, estModule, grapheInverse, resolveImport } from '../../guards/lib/importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
+
+const EXTERIEURS_JS = new Set(['node', 'node.exe', 'tsx', 'npx'])
+const LANCEURS_NODE = new Set(['fork', 'spawn', 'spawnSync', 'execFile', 'execFileSync'])
+const LANCEURS_SHELL = new Set(['exec', 'execSync'])
+const MOT_OPAQUE = '\0'
+const PAQUETS_DE_L_OUTILLAGE = new Set(Object.values(COUCHES).flatMap((c) => Object.values(c.paquetsDOutillage ?? {}).flat()))
+const PAQUETS_FERMES_AUX_ENFANTS = new Set(PAQUETS_DE_L_HOTE_WEB.filter((p) => !PAQUETS_DE_L_OUTILLAGE.has(p)))
+
+/** Les entrées d'enfants bornées par leur lancement Node, depuis leur cwd. Le code en ligne, les
+ *  options d'environnement, les relais et les argv indéterminés demandent une mesure distincte. */
+function entreesDesEnfants(rel, sourceFile, sites, depot, racine, image) {
+  const estModuleEnfant = (spec) => spec === 'node:child_process' || spec === 'child_process'
+  const estOutilLocal = (spec) => spec?.endsWith('/lancer-local.mjs') && depot.cible(rel, spec) === 'scripts/lancer-local.mjs'
+  if (!sites.some(({ spec }) => estModuleEnfant(spec) || estOutilLocal(spec))) return []
+
+  const ts = typescript()
+  const lire = lecteurDExpressions(rel, sourceFile)
+  const motDExpression = (e) => {
+    if (e.k === 'lit' && typeof e.v === 'string') return e.v
+    const valeurs = evaluer(e, { lambdas: lire.lambdas })
+    return valeurs.length === 1 && 'chemin' in valeurs[0] ? resolve(racine, valeurs[0].chemin) : MOT_OPAQUE
+  }
+  const mot = (n) => {
+    if (!n) return MOT_OPAQUE
+    if (ts.isStringLiteralLikeNode(n)) return n.text
+    const valeurs = valeursDAcquisition(rel, sourceFile, n, depot)
+    if (valeurs.length === 1) {
+      if ('specificateur' in valeurs[0]) return valeurs[0].specificateur
+      if ('fichier' in valeurs[0]) return resolve(racine, valeurs[0].fichier)
+    }
+    return motDExpression(lire.expr(n))
+  }
+  const argvDe = (n) => {
+    if (!n) return []
+    if (!ts.isArrayLiteralExpression(n)) {
+      const e = lire.expr(n)
+      return e.k === 'liste' ? e.v.map(motDExpression) : [MOT_OPAQUE]
+    }
+    const args = []
+    for (const e of n.elements) {
+      if (ts.isSpreadElement(e)) return [...args, MOT_OPAQUE]
+      args.push(mot(e))
+    }
+    return args
+  }
+  const option = (options, nom) => {
+    if (!options) return undefined
+    if (!ts.isObjectLiteralExpression(options)) return null
+    for (const p of [...options.properties].reverse()) {
+      if (ts.isSpreadAssignment(p) || ts.isComputedPropertyName(p.name)) return null
+      if (p.name.text !== nom) continue
+      if (ts.isShorthandPropertyAssignment(p)) return p.name
+      return ts.isPropertyAssignment(p) ? p.initializer : null
+    }
+  }
+  const estNode = (n) => n && ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression)
+    && n.expression.text === 'process' && n.name.text === 'execPath'
+  const lancements = []
+  const relever = (n, scripts, cwd, opaque, paquets = []) => {
+    const cibles = scripts.flatMap((script) => {
+      if (!script || script.includes(MOT_OPAQUE) || cwd === MOT_OPAQUE) return []
+      const cible = relative(racine, resolve(racine, cwd, script)).split('\\').join('/')
+      return image.has(cible) && estModule(cible) ? [cible] : []
+    })
+    lancements.push({
+      site: rel + ':' + lire.ligneDe(n),
+      cibles,
+      paquets,
+      opaque: opaque || cibles.length < scripts.length,
+    })
+  }
+  const interpreter = (n, commande, argv, cwd) => {
+    const lancement = lancementDInterpreteur([commande, ...argv])
+    const scripts = lancement?.scripts ?? []
+    const paquets = (lancement?.prechargements ?? []).map(paquetDe).filter((p) => p !== null)
+    relever(n, scripts, cwd, !scripts.length || lancement.enLigne !== undefined, paquets)
+  }
+  const visiter = (n) => {
+    if (ts.isCallExpression(n)) {
+      const cible = lire.cibleAppele(n)
+      const [premier, args, options, quatrieme] = n.arguments
+      if (cible?.k === 'importe' && estOutilLocal(cible.spec) && cible.nom === 'sortieOutilLocal'
+        && mot(args) === 'tsx' && mot(options) === 'tsx') {
+        interpreter(n, 'tsx', argvDe(quatrieme), mot(premier))
+      } else if (cible?.k === 'importe' && estModuleEnfant(cible.spec) && LANCEURS_SHELL.has(cible.nom)) {
+        const commande = mot(premier)
+        const optionCwd = option(args, 'cwd')
+        const cwd = optionCwd === undefined ? racine : mot(optionCwd)
+        if (commande !== MOT_OPAQUE && cwd !== MOT_OPAQUE) {
+          const scripts = ciblesDEcritureDeCommande(commande, { scripts: true, base: resolve(racine, cwd), lireTexte: () => null })
+            .filter(({ operation }) => operation === 'script')
+          if (scripts.length) relever(n, scripts.map(({ chemin }) => chemin), racine, false)
+        }
+      } else if (cible?.k === 'importe' && estModuleEnfant(cible.spec) && LANCEURS_NODE.has(cible.nom)) {
+        const opt = args && ts.isObjectLiteralExpression(args) ? args : options
+        const optionCwd = option(opt, 'cwd')
+        const cwd = optionCwd === undefined ? racine : mot(optionCwd)
+        if (cible.nom === 'fork') {
+          const execPath = option(opt, 'execPath')
+          const execArgv = option(opt, 'execArgv')
+          if (execPath === undefined || estNode(execPath) || mot(execPath) === 'node') {
+            interpreter(n, 'node', [...(execArgv === null ? [MOT_OPAQUE] : argvDe(execArgv)), mot(premier)], cwd)
+          }
+        } else {
+          const commande = estNode(premier) ? 'node' : mot(premier)
+          const shell = option(opt, 'shell')
+          if (EXTERIEURS_JS.has(commande)) {
+            const argv = shell === undefined || shell?.kind === ts.SyntaxKind.FalseKeyword
+              ? argvDe(opt === args ? undefined : args) : [MOT_OPAQUE]
+            interpreter(n, commande, argv, cwd)
+          }
+        }
+      }
+    }
+    n.forEachChild(visiter)
+  }
+  visiter(sourceFile)
+  return lancements
+}
 
 /**
  * Les TRANSITS des zones qui survivent dans `fichiers` (chemins relatifs à `racine`, l'ensemble que la marche lit) : par
@@ -33,18 +154,19 @@ const RACINE = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\
  * ferme au module (`paquetFerme`, sous l'outillage du module, `surSites`), et chaque acquisition calculée d'un membre
  * que la forme fermée ne résout pas. Les acquisitions calculées se relèvent une fois par module (`surSites`, sous le
  * cache de marche partagé) et se jugent par groupe.
- * @param {string} racine @param {readonly string[]} fichiers
- * @returns {{ cloture: Set<string>, transits: string[], suivis: number }}
+ * Les fichiers ignorés n'entrent que par acquisition.
+ * @param {string} racine @param {readonly string[]} fichiers @param {readonly string[]} [ignores]
+ * @returns {{ cloture: Set<string>, transits: string[], suivis: number, enfants: Set<string>, lancements: Map }}
  */
-function transitsDesZonesQuiSurvivent(racine, fichiers) {
+function transitsDesZonesQuiSurvivent(racine, fichiers, ignores = []) {
   const modules = fichiers.filter((rel) => estModule(rel) && estZone(zoneDe(rel)) && COUCHES[zoneDe(rel)].survit === true)
   // Par zone, et par paquets que l'outillage du module lui ouvre (`paquetsDOutillage`).
   const ouverts = (rel) => PAQUETS_DE_L_HOTE_WEB.filter((p) => !paquetFerme(zoneDe(rel), p, rel)).join(',')
   const parGroupe = Map.groupBy(modules, (rel) => `${zoneDe(rel)}|${ouverts(rel)}`)
   const abs = (rel) => join(racine, rel).split('\\').join('/')
   const relDe = (a) => relative(racine, a).split('\\').join('/')
-  const arbre = arbreDuDisque(fichiers.map(abs))
-  const image = new Set(fichiers)
+  const image = new Set([...fichiers, ...ignores])
+  const arbre = arbreDuDisque([...image].map(abs))
   const alias = aliasDe(image.has(CHEMIN_TSCONFIG) ? readFileSync(abs(CHEMIN_TSCONFIG), 'utf8') : null, racine)
   const cibleDe = (rel, spec) => {
     const c = resolveImport(abs(rel), spec, arbre.existe, alias, 'dynamique', racine)
@@ -63,6 +185,7 @@ function transitsDesZonesQuiSurvivent(racine, fichiers) {
   const cloture = new Set()
   const transits = []
   const paquets = new Map()
+  const lancements = new Map()
   /** Par module, ses acquisitions calculées : site, et valeurs (`valeursDAcquisition`) ou chargeur non suivi. */
   const calcules = new Map()
   const surSites = (a, sites, sourceFile) => {
@@ -74,41 +197,50 @@ function transitsDesZonesQuiSurvivent(racine, fichiers) {
       valeurs: s.genre === 'chargeur' ? null : valeursDAcquisition(rel, sourceFile, s.noeud.arguments?.[0], depot),
     }))
     if (juges.length) calcules.set(rel, juges)
+    const enfants = entreesDesEnfants(rel, sourceFile, sites, depot, racine, image)
+    if (enfants.length) lancements.set(rel, enfants)
   }
-  let suivis = 0
-  for (const racines of parGroupe.values()) {
-    const de = zoneDe(racines[0])
-    /** Les sites calculés qui atteignent chaque cible, et les rouges du groupe. */
+  /** Une marche inclut les acquisitions calculées jusqu'au point fixe, quel que soit son point d'entrée. */
+  const marche = (racines) => {
     const calculesVers = new Map()
+    const paquetsCalcules = []
     const rouges = []
-    let membres = new Set()
+    let membres
     for (let racinesDuTour = racines; ;) {
       membres = clotureDImports(racinesDuTour, { racine, cache, arbre, surSites })
       calculesVers.clear()
+      paquetsCalcules.length = 0
       rouges.length = 0
       for (const rel of [...membres].sort())
         for (const { site, valeurs } of calcules.get(rel) ?? []) {
-          if (valeurs === null) { rouges.push(`${de} : chargeur non suivi — ${site}`); continue }
-          if (!valeurs.length) rouges.push(`${de} : acquisition calculée sans valeur — ${site}`)
+          if (valeurs === null) { rouges.push(`chargeur non suivi — ${site}`); continue }
+          if (!valeurs.length) rouges.push(`acquisition calculée sans valeur — ${site}`)
           for (const v of valeurs) {
-            if ('non' in v) { rouges.push(`${de} : acquisition calculée non résolue — ${site} : ${v.non}`); continue }
+            if ('non' in v) { rouges.push(`acquisition calculée non résolue — ${site} : ${v.non}`); continue }
             const nu = 'specificateur' in v && !/^[./]/.test(v.specificateur) && cibleDe(rel, v.specificateur) === null
             if (nu) {
               const paquet = paquetDe(v.specificateur)
-              if (paquet !== null && paquetFerme(de, paquet, racines[0])) rouges.push(`${de} : paquet ${paquet} ← ${site} (acquisition calculée)`)
+              if (paquet !== null) paquetsCalcules.push({ paquet, site })
               continue
             }
             const cibles = 'fichier' in v ? [v.fichier].filter((f) => image.has(f))
-              : 'dossier' in v ? fichiers.filter((f) => estModule(f) && (v.dossier === '' || f.startsWith(`${v.dossier}/`)))
+              : 'dossier' in v ? [...image].filter((f) => estModule(f) && (v.dossier === '' || f.startsWith(`${v.dossier}/`)))
                 : [cibleDe(rel, v.specificateur)].filter((c) => c !== null && image.has(c))
-            if (!cibles.length) rouges.push(`${de} : acquisition calculée introuvable — ${site} : ${JSON.stringify(v)}`)
+            if (!cibles.length) rouges.push(`acquisition calculée introuvable — ${site} : ${JSON.stringify(v)}`)
             for (const c of cibles) calculesVers.set(c, [...(calculesVers.get(c) ?? []), `${site} (acquisition calculée)`])
           }
         }
       const neufs = [...calculesVers.keys()].filter((c) => !membres.has(c))
-      if (!neufs.length) break
+      if (!neufs.length) return { membres, calculesVers, paquetsCalcules, rouges }
       racinesDuTour = [...racinesDuTour, ...neufs]
     }
+  }
+  let suivis = 0
+  for (const racines of parGroupe.values()) {
+    const de = zoneDe(racines[0])
+    const { membres, calculesVers, paquetsCalcules, rouges } = marche(racines)
+    for (const { paquet, site } of paquetsCalcules)
+      if (paquetFerme(de, paquet, racines[0])) transits.push(`${de} : paquet ${paquet} ← ${site} (acquisition calculée)`)
     suivis += calculesVers.size
     for (const rel of membres) cloture.add(rel)
     const inverse = grapheInverse(cache)
@@ -118,32 +250,73 @@ function transitsDesZonesQuiSurvivent(racine, fichiers) {
     }
     for (const rel of [...membres].sort())
       for (const paquet of new Set(paquets.get(rel))) if (paquetFerme(de, paquet, racines[0])) transits.push(`${de} : paquet ${paquet} ← ${rel}`)
-    transits.push(...rouges)
+    transits.push(...rouges.map((r) => `${de} : ${r}`))
   }
-  return { cloture, transits, suivis }
+  // L'enfant est un exécutable indépendant. Son graphe ne donne aucun droit d'import au lanceur.
+  const enfants = new Set()
+  const departs = new Set(cloture)
+  for (const rel of departs)
+    for (const { site, cibles, paquets: precharges } of lancements.get(rel) ?? []) {
+      for (const paquet of new Set(precharges))
+        if (PAQUETS_FERMES_AUX_ENFANTS.has(paquet))
+          transits.push(`processus enfant : paquet ${paquet} (préchargement) ← ${site}`)
+      for (const entree of cibles) {
+        if (enfants.has(entree)) continue
+        enfants.add(entree)
+        const { membres, paquetsCalcules, rouges } = marche([entree])
+        for (const rouge of rouges) transits.push(`processus enfant : ${rouge} ← ${entree} ← ${site}`)
+        for (const { paquet, site: acquisition } of paquetsCalcules)
+          if (PAQUETS_FERMES_AUX_ENFANTS.has(paquet))
+            transits.push(`processus enfant : paquet ${paquet} ← ${acquisition} (acquisition calculée) ← ${entree} ← ${site}`)
+        for (const membre of membres) {
+          departs.add(membre)
+          const zone = zoneDe(membre)
+          if (estZone(zone) && !COUCHES[zone].survit)
+            transits.push(`processus enfant : ${membre} ← ${entree} ← ${site}`)
+          for (const paquet of new Set(paquets.get(membre)))
+            if (PAQUETS_FERMES_AUX_ENFANTS.has(paquet))
+              transits.push(`processus enfant : paquet ${paquet} ← ${membre} ← ${entree} ← ${site}`)
+        }
+      }
+    }
+  return { cloture, transits, suivis, enfants, lancements }
+}
+
+/** La clôture sur le corpus de travail et les cibles ignorées qu'un chargement peut réellement lire. */
+function transitsDuTravail(depot) {
+  const fichiers = listerImage(depot, TRAVAIL)
+  const pathspecs = [...EXTENSIONS_DE_SCRIPT, '.json'].map((ext) => ':(glob)**/*' + ext)
+  const ignores = fichiersIgnoresDe(depot, ...pathspecs, ':(exclude,glob)**/node_modules/**')
+  return transitsDesZonesQuiSurvivent(depot.cwd, fichiers, ignores)
 }
 
 test('CLÔTURE : aucun module d’une zone qui survit, production comprise, n’atteint, de proche en proche, une zone qui n’y survit pas', () => {
-  const { cloture, transits, suivis } = transitsDesZonesQuiSurvivent(RACINE, listerImage(depotDe(RACINE), TRAVAIL))
+  const { cloture, transits, suivis, enfants } = transitsDuTravail(depotDe(RACINE))
   assert.deepEqual(transits, [], 'transit vers une zone qui ne survit pas (`fermeParLaSurvie`), ou acquisition calculée non résolue : chaque ligne nomme la zone du module racine, le module atteint et ses importeurs, ou le site')
   // Témoins de MESURE : la marche traverse un module hors des zones, ce que `murs/tests-survivants` et `murs/purete-imports`
   // ne suivent pas, et suit au moins une acquisition calculée.
   assert.ok([...cloture].some((rel) => zoneDe(rel) === null), 'la clôture ne traverse aucun module hors des zones : le mur ne mesure plus le transit')
   assert.ok(suivis > 0, 'aucune acquisition calculée suivie : le mur ne mesure plus les acquisitions calculées')
+  assert.ok(enfants.size > 0, 'aucun point d’entrée Node suivi depuis un lancement')
 })
 
-/** Les transits d'un arbre forgé (chemin → texte), jeté après. */
-function forger(fichiers) {
+/** Mesure la fixture temporaire (chemin → texte). */
+function dansArbreForge(fichiers, mesurer) {
   const racine = mkdtempSync(join(tmpdir(), 'cloture-zones-survivantes-'))
   try {
     for (const [rel, code] of Object.entries(fichiers)) {
       mkdirSync(dirname(join(racine, rel)), { recursive: true })
       writeFileSync(join(racine, rel), code)
     }
-    return transitsDesZonesQuiSurvivent(racine, Object.keys(fichiers)).transits
+    return mesurer(racine)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+}
+
+/** Les transits d'un arbre forgé. */
+function forger(fichiers) {
+  return dansArbreForge(fichiers, (racine) => transitsDesZonesQuiSurvivent(racine, Object.keys(fichiers)).transits)
 }
 
 /** Les ponts vers le module hors des zones qui acquiert Three, sous chaque forme d'arc que la marche lit. */
@@ -178,6 +351,43 @@ test('CLÔTURE : un paquet fermé atteint par un module hors des zones est rouge
   }), [])
 })
 
+test('CLÔTURE : un enfant Node, son préchargeur ou le script de tsx suivent leurs propres imports', () => {
+  const commun = {
+    'src/noyau/a.test.ts': "import '../../scripts/lanceur.mjs';",
+    'scripts/lancer-local.mjs': 'export function sortieOutilLocal() {}',
+    'scripts/enfant.mjs': "import './transit.mjs';",
+    'scripts/transit.mjs': "export { valeur } from 'react';",
+    'scripts/neutre.mjs': 'export const valeur = 1;',
+  }
+  const appels = [
+    "import { spawnSync as lancer } from 'node:child_process';\nlancer(process.execPath, ['scripts/enfant.mjs']);",
+    "import { execFile } from 'child_process';\nconst fichier = './enfant.mjs'; execFile('node', [fichier], { cwd: 'scripts' });",
+    "import { fork } from 'node:child_process';\nfork('./enfant.mjs', { cwd: 'scripts' });",
+    "import { spawn } from 'node:child_process';\nspawn('node', ['--import', './enfant.mjs', './neutre.mjs'], { cwd: 'scripts' });",
+    "import { spawn } from 'node:child_process';\nspawn('node', ['--require=./enfant.mjs', './neutre.mjs'], { cwd: 'scripts' });",
+    "import { sortieOutilLocal } from './lancer-local.mjs';\nsortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/enfant.mjs']);",
+    `import { exec } from 'node:child_process';\nexec("cd scripts && npx tsx './enfant.mjs'");`,
+  ]
+  for (const lanceur of appels) {
+    const arbre = { ...commun, 'scripts/lanceur.mjs': lanceur }
+    assert.deepEqual(forger(arbre), [
+      'processus enfant : paquet react ← scripts/transit.mjs ← scripts/enfant.mjs ← scripts/lanceur.mjs:2',
+    ])
+    assert.deepEqual(forger({ ...arbre, 'scripts/transit.mjs': "export { valeur } from 'three';" }), [])
+  }
+  assert.deepEqual(forger({
+    ...commun,
+    'scripts/lanceur.mjs': appels[0],
+    'scripts/enfant.mjs': "const cible = './transit.mjs'; export const charger = () => import(cible);",
+  }), ['processus enfant : paquet react ← scripts/transit.mjs ← scripts/enfant.mjs ← scripts/lanceur.mjs:2'])
+  const precharger = (paquet) => forger({
+    ...commun,
+    'scripts/lanceur.mjs': `import { spawn } from 'node:child_process';\nspawn('node', ['--import', '${paquet}', 'scripts/neutre.mjs']);`,
+  })
+  assert.deepEqual(precharger('react'), ['processus enfant : paquet react (préchargement) ← scripts/lanceur.mjs:2'])
+  assert.deepEqual(precharger('three'), [])
+})
+
 test('CLÔTURE : un module de production atteint Three par un pont hors des zones ; l’évaluateur d’assets de Godot peut l’utiliser', () => {
   const hote = { 'hotes/x.mjs': "import { y } from '../scripts/pont.mjs';\nexport const x = y;\n" }
   const pont = { 'scripts/pont.mjs': "export { Mesh as y } from 'three';\n" }
@@ -204,6 +414,8 @@ const SOCLE_CALCULE = {
 }
 
 const LISTER = "import { listerEntrees } from './guards/lib/lister.mjs';\n"
+
+const DESCENTE_TRANSIT = `${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../scripts/transit/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`
 
 /** Les acquisitions non suivies et le paquet fermé chargé par un spécificateur calculé, avec le site à nommer. */
 const ROUGES_CALCULES = {
@@ -246,7 +458,7 @@ test('CLÔTURE : les acquisitions calculées résolues étendent la clôture jus
   const formes = {
     '`resolve` depuis le cwd': ["import { resolve } from 'node:path';\nexport const x = () => import(resolve('scripts/transit/dep.ts'));\n"],
     '`pathToFileURL(texte)`': ["import { pathToFileURL } from 'node:url';\nexport const x = () => import(pathToFileURL('scripts/transit/dep.ts').href);\n"],
-    'F2 descente de `scripts/transit/`': [`${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../scripts/transit/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`],
+    'F2 descente de `scripts/transit/`': [DESCENTE_TRANSIT],
     'F7 second ordre': ["const b = './b.mjs';\nexport const x = () => import(b);\n", { 'scripts/b.mjs': "const s = './transit/dep.ts';\nexport const y = () => import(s);\n" }],
   }
   const noms = Object.keys(formes)
@@ -274,4 +486,38 @@ test('CLÔTURE : une acquisition calculée que la forme fermée lit vers une zon
   }
   const formes = Object.keys(VERTS)
   assert.deepEqual(tableTotale(formes, (forme) => forger({ ...SOCLE_CALCULE, 'scripts/pont.mjs': VERTS[forme] })), tableTotale(formes, () => []))
+})
+
+test('CLÔTURE : les sources ignorées atteintes sur disque entrent par un glob, une descente ou un chemin calculé exact', () => {
+  const cible = 'scripts/transit/dep.generated.ts'
+  const inerte = 'scripts/transit/valeur.generated.json'
+  const dormant = 'src/noyau/dormant.generated.ts'
+  const commun = {
+    '.gitignore': '*.generated.ts\n*.generated.mts\n*.generated.json\n',
+    'src/noyau/a.test.ts': SOCLE_CALCULE['src/noyau/a.test.ts'],
+    'scripts/guards/lib/lister.mjs': SOCLE_CALCULE['scripts/guards/lib/lister.mjs'],
+    'scripts/cible.generated.mts': "export const nom = './transit/dep.generated.ts';\n",
+    [inerte]: '{}\n',
+    [dormant]: "export * from 'three';\n",
+  }
+  const formes = {
+    glob: "export const x = import.meta.glob('./transit/*.{ts,json}', { eager: true });\n",
+    descente: DESCENTE_TRANSIT,
+    'chemin exact': "import { nom } from './cible.generated.mts';\nexport const x = () => import(nom);\n",
+  }
+  const mesurer = (pont, code) => dansArbreForge({
+    ...commun,
+    'scripts/pont.mjs': pont,
+    [cible]: code,
+  }, (racine) => transitsDuTravail(forgerDepot(racine)))
+
+  for (const [forme, pont] of Object.entries(formes)) {
+    const rouge = mesurer(pont, "export * from 'three';\n")
+    assert.deepEqual(rouge.transits, ["noyau : paquet three ← " + cible], forme)
+    const vert = mesurer(pont, 'export const x = 1;\n')
+    assert.deepEqual(vert.transits, [], forme)
+    assert.ok(vert.cloture.has(cible), forme)
+    assert.ok(!vert.cloture.has(dormant), forme)
+    if (forme === 'glob') assert.ok(vert.cloture.has(inerte), forme)
+  }
 })

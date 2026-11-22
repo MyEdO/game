@@ -48,8 +48,8 @@ describe('pilote de cascade : aucune itération de test neuve ne pilote la casca
   });
 
   it('chaque exemption AU SITE couvre EXACTEMENT un site de son fichier', () => {
-    const couverture = EXEMPTIONS.map((e) => `${e.fichier} ${e.motif} : ${mesure().boucles.filter((b) => b.rel === e.fichier && e.motif.test(b.ref)).length}`);
-    expect(couverture).toEqual(EXEMPTIONS.map((e) => `${e.fichier} ${e.motif} : 1`));
+    const couverture = EXEMPTIONS.map((e) => `${e.fichier} ${e.ancre} : ${mesure().boucles.filter((b) => b.exemption === e).length}`);
+    expect(couverture).toEqual(EXEMPTIONS.map((e) => `${e.fichier} ${e.ancre} : 1`));
   });
 });
 
@@ -149,17 +149,18 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
 
   it('une exemption couvre un site SEUL : deux sites au même ref sont comptés tous deux', () => {
-    const exemption: ExemptionPilote = { fichier: cible().rel, motif: /^it:morsure$/, raison: 'morsure' };
+    const exemption: ExemptionPilote = { fichier: cible().rel, ancre: 'it:morsure', raison: 'morsure', date: '2026-11-22' };
     const seul = ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) g().jetValider(\'cascade\');');
     expect(refs(seul, [exemption])).toEqual([]);
+    expect(refs(`// insertion sans rapport\n${seul}`, [exemption])).toEqual([]);
     expect(refs(seul, [])).toEqual(['it:morsure']);
     const second = ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) g().jetValider(\'cascade\');\n  while (g().pendingCascade) { g().jetLancer(\'cascade\', \'a\'); g().jetValider(\'cascade\'); }');
     expect(refs(second, [exemption])).toEqual(['it:morsure', 'it:morsure']);
   });
 
-  it('le motif d’une exemption est ANCRÉ : un titre qui le prolonge n’est pas couvert', () => {
+  it('l’ancre d’une exemption est exacte : un titre qui le prolonge n’est pas couvert', () => {
     const texte = `${cible().text}\nit('morsure — et autre chose', () => { while (g().pendingCascade) g().jetValider('cascade'); });\n`;
-    expect(refs(texte, [{ fichier: cible().rel, motif: /^it:morsure$/, raison: 'morsure' }])).toEqual(['it:morsure — et autre chose']);
+    expect(refs(texte, [{ fichier: cible().rel, ancre: 'it:morsure', raison: 'morsure', date: '2026-11-22' }])).toEqual(['it:morsure — et autre chose']);
   });
 
   it('une boucle qui DÉCLARE des blocs de test ou des hooks ne les exécute pas : aucun site', () => {

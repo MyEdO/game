@@ -1,7 +1,7 @@
 /**
  * CE QUE LE GROUPE CONNAÎT (#3950, `src/noyau/visionDuGroupe.ts`) : un combattant en vue, une entité connue, un nom, le
  * masque du monde et sa clé, et les effets d'un appel tels que le groupe les voit (`effetsDeLAppel`). Le scénario
- * `siege-enceinte` pose le groupe dans la cour, au sud de la muraille, et l'assaut au nord, hors de sa vue.
+ * `siege-enceinte` pose le groupe dans la cour, face au tunnel de la herse.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -16,7 +16,9 @@ import { effetsDeLAppel, type Effet } from './effetsDeLAppel';
 import { lumiereDeLaScene } from './lumiereDeLaScene';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
-import type { SceneEntity } from './monde/scene';
+import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
+import { perimeterWallSegs } from './sceneEdit.testkit';
+import { METRES_PER_LEVEL } from './monde/relief';
 import type { Evenement } from './partie';
 import type { Jeu } from './etat';
 
@@ -35,17 +37,15 @@ const heros = (): Combatant[] => combattants().filter((c) => c.kind === 'heros')
 
 const SOLDAT = 'soldat-de-test';
 const SORCIER = 'sorcier-de-test';
-const GOBELIN = 'personnage-7';
+const GOBELIN = 'personnage-5';
 const GOBELIN_2 = 'personnage-3';
-const GOBELIN_3 = 'personnage-5';
-/** Les ennemis au nord de la muraille que le groupe ne voit pas au départ. */
-const DERRIERE_LA_MURAILLE = ['brg-canon', 'brg-cata', 'personnage-1', 'personnage-2', 'personnage-3', 'personnage-5', 'personnage-6', 'personnage-7'];
+const GOBELIN_PAR_LA_HERSE = 'personnage-7';
 type Case = { x: number; y: number; z: number };
 /** Des cases que le groupe voit au départ, libre (`VUE_LIBRE`) ou tenue par le sorcier (`VUE_DU_SORCIER`), une case
- *  qu'il ne voit pas, celle du gobelin au nord de la muraille (`NON_VUE`), et une case loin de tout (`LOIN`). */
+ *  que masque la courtine (`NON_VUE`), et une case loin de tout (`LOIN`). */
 const VUE_LIBRE: Case = { x: 16, y: 44, z: 0 };
 const VUE_DU_SORCIER: Case = { x: 14, y: 44, z: 0 };
-const NON_VUE: Case = { x: 14, y: 32, z: 0 };
+const NON_VUE: Case = { x: 13, y: 32, z: 0 };
 const LOIN: Case = { x: 0, y: 33, z: 0 };
 const cle = (c: Case) => `${c.x},${c.y},${c.z}`;
 
@@ -68,10 +68,15 @@ function octet(c: { x: number; y: number }): number {
   return depuisBase64(masque)[c.y * largeur + c.x];
 }
 
-describe('siege-enceinte — au départ, l’assaut derrière la muraille hors de la vue du groupe', () => {
-  it('chaque ennemi derrière la muraille est hors de vue, sans nom, son octet 0 ou 128 ; chaque héros est en vue, à son nom', () => {
+describe('siege-enceinte — la vue du groupe depuis la cour', () => {
+  it('un gobelin est visible par la herse ; la courtine masque les autres témoins et leurs noms', () => {
+    const enVue = parId(GOBELIN_PAR_LA_HERSE);
+    expect(combattantEnVue(etat(), enVue)).toBe(true);
+    expect(nomEnVue(etat(), enVue.id)).toBe(enVue.label);
+    expect(octet(enVue.pos!)).toBe(255);
+
     const caches = ennemis().filter((c) => !combattantEnVue(etat(), c));
-    expect(caches.map((c) => c.id).sort(), 'les ennemis hors de vue').toEqual(DERRIERE_LA_MURAILLE);
+    expect(caches.map((c) => c.id)).toContain(GOBELIN);
     expect(caches.map((c) => [c.id, nomEnVue(etat(), c.id)])).toEqual(caches.map((c) => [c.id, t('vision.horsDeVue')]));
     for (const c of caches) expect([0, 128], c.id).toContain(octet(c.pos!));
     expect(heros().map((c) => [combattantEnVue(etat(), c), nomEnVue(etat(), c.id)])).toEqual(heros().map((c) => [true, c.label]));
@@ -87,7 +92,7 @@ describe('connaissanceDuGroupe, visionDuMonde — vue, explorée, inconnue', () 
     const scene = etat().scene!;
     const vision = visionDuMonde(avecScene());
     const { w, h } = scene.dimensions;
-    expect([vision.largeur, vision.rangees, vision.rangeesParPlan, depuisBase64(vision.masque).length]).toEqual([w, h * scene.layers.length, h, w * h * scene.layers.length]);
+    expect([vision.largeur, vision.rangees, vision.rangeesParPlan, depuisBase64(vision.masque).length]).toEqual([w, 2 * h * scene.layers.length, h, 2 * w * h * scene.layers.length]);
   });
 
   it('hors de la zone jouable, une case de la grille est au moins explorée, vue si la vue l’atteint (#4392)', () => {
@@ -109,7 +114,7 @@ describe('connaissanceDuGroupe, visionDuMonde — vue, explorée, inconnue', () 
 
 describe('combattantEnVue — le couple monté, la structure de siège', () => {
   it('un ennemi hors de vue que monte un héros est en vue ; monté par un ennemi, non', () => {
-    poserLesCombattants({ [GOBELIN]: { riderId: SOLDAT }, [SOLDAT]: { mountId: GOBELIN }, [GOBELIN_2]: { riderId: GOBELIN_3 } });
+    poserLesCombattants({ [GOBELIN]: { riderId: SOLDAT }, [SOLDAT]: { mountId: GOBELIN }, [GOBELIN_2]: { riderId: GOBELIN_PAR_LA_HERSE } });
     expect([combattantEnVue(etat(), parId(GOBELIN)), combattantEnVue(etat(), parId(GOBELIN_2))]).toEqual([true, false]);
   });
 
@@ -174,7 +179,7 @@ describe('effetsDeLAppel — ce que le groupe voit, lu sur l’état d’après 
     const [chemin, pas] = effets(marche(GOBELIN, [NON_VUE, { x: 16, y: 43, z: 0 }, VUE_LIBRE]));
     expect(chemin).toMatchObject({ quoi: 'deplacement', qui: GOBELIN, cases: [{ x: 16, y: 43, z: 0, metres: 0 }, { x: VUE_LIBRE.x, y: VUE_LIBRE.y, z: 0 }] });
     expect(pas).toMatchObject({ quoi: 'son' });
-    expect(effets(marche(GOBELIN, [NON_VUE, { x: 14, y: 36, z: 0 }, VUE_LIBRE])).map((e) => e.quoi), 'une seule case vue au bout : aucun chemin').toEqual(['son']);
+    expect(effets(marche(GOBELIN, [NON_VUE, { x: 12, y: 36, z: 0 }, VUE_LIBRE])).map((e) => e.quoi), 'une seule case vue au bout : aucun chemin').toEqual(['son']);
     expect(effets(marche(GOBELIN_2, [VUE_LIBRE, NON_VUE])).map((e) => e.quoi), 'fini hors de vue : aucun chemin').toEqual(['son']);
     expect(effets(marche(SOLDAT, [NON_VUE, VUE_LIBRE, { x: 16, y: 45, z: 0 }]))[0], 'un héros garde tout son chemin').toMatchObject({ cases: [NON_VUE, VUE_LIBRE, { x: 16, y: 45 }] });
   });
@@ -209,5 +214,63 @@ describe('lumiereDeLaScene — les foyers tels que le groupe les voit', () => {
     const [vue, cachee] = ['posee/lampe-vue', 'posee/lampe-cachee'].map((k) => sources().find((s) => s.cle === k));
     expect(vue).toMatchObject({ visuel: 'feu', son: { id: 'crepitement' } });
     expect(cachee, 'sa lampe, sans flamme ni son').toMatchObject({ x: NON_VUE.x, y: NON_VUE.y, energie: vue!.energie, rayonCases: vue!.rayonCases, visuel: null, son: null });
+  });
+});
+
+/**
+ * #4471 — le plan `toit` du masque. Un corps clos de murs (rez) porte un étage (plancher z1) coiffé d'une masse ; le
+ * groupe se tient dans la cour, de jour. La nappe se lit à l'état de son pied, le plancher qu'elle coiffe gardant le sien.
+ */
+describe('visionDuMonde — le plan `toit` porte l’état du pied de chaque nappe (#4471)', () => {
+  const W = 20, H = 8;
+  const CORPS = { x: 3, y: 3, w: 4, h: 3 };
+  const dans = (x: number, y: number) => x >= CORPS.x && x < CORPS.x + CORPS.w && y >= CORPS.y && y < CORPS.y + CORPS.h;
+  const scene = (): Scene => {
+    const t1 = [...Array(W * H).keys()].map((i) => (dans(i % W, Math.floor(i / W)) ? 'plancher' : 'vide'));
+    const h1 = t1.map((t) => (t === 'plancher' ? METRES_PER_LEVEL : 0));
+    return {
+      ...emptyScene('toit-du-pied', W, H),
+      layers: [{ z: 0, tiles: new Array(W * H).fill('herbe') }, { z: 1, tiles: t1, height: h1 }],
+      walls: perimeterWallSegs([CORPS]),
+      architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [
+        { id: 'logis', z: 1, footprint: [CORPS], levels: 2, profile: 'hip', pitchDeg: 30, material: { id: 'tuile' } },
+      ] }],
+    } as unknown as Scene;
+  };
+  /** Les octets du masque, vu depuis `pos` (couche 0), de jour, avec `explored` en mémoire de carte. */
+  const octets = (pos: { x: number; y: number }, explored: string[] = []) => {
+    const sc = scene();
+    const vision = visionDuMonde({ scene: sc, battle: null, party: [], partyPos: pos, gameTime: 12 * 60, lightLevel: null, explored: { [sc.id]: explored } } as never);
+    const o = depuisBase64(vision.masque);
+    return { o, plan: (rang: number, x: number, y: number) => o[(rang * H + y) * W + x] };
+  };
+  const SOL_Z1 = 1, TOIT_Z0 = 2, TOIT_Z1 = 3;
+
+  it('depuis la cour, la nappe est vue sur toute son emprise ; le plancher qu’elle coiffe reste inconnu', () => {
+    const { plan } = octets({ x: 1, y: 1 });
+    for (let y = CORPS.y; y < CORPS.y + CORPS.h; y++)
+      for (let x = CORPS.x; x < CORPS.x + CORPS.w; x++) {
+        expect(plan(TOIT_Z1, x, y), `toit (${x},${y})`).toBe(255);
+        expect(plan(SOL_Z1, x, y), `plancher (${x},${y})`).toBe(0);
+      }
+  });
+
+  it('hors d’une nappe, le plan `toit` porte l’état du plan `sol`', () => {
+    const { plan } = octets({ x: 1, y: 1 });
+    for (const [x, y] of [[1, 1], [0, 7], [9, 0]]) {
+      expect(plan(TOIT_Z0, x, y), `(${x},${y}) z0`).toBe(plan(0, x, y));
+      expect(plan(TOIT_Z1, x, y), `(${x},${y}) z1`).toBe(plan(SOL_Z1, x, y));
+    }
+  });
+
+  it('un pied seulement exploré rend la nappe explorée ; aucun pied connu, inconnue', () => {
+    const loin = { x: W - 1, y: 0 };
+    const sc = scene();
+    const nuit = (explored: string[]) => {
+      const vision = visionDuMonde({ scene: sc, battle: null, party: [], partyPos: loin, gameTime: 0, lightLevel: null, explored: { [sc.id]: explored } } as never);
+      return depuisBase64(vision.masque)[(TOIT_Z1 * H + CORPS.y) * W + CORPS.x];
+    };
+    expect(nuit(['2,4,0'])).toBe(128);
+    expect(nuit(['0,7,0'])).toBe(0);
   });
 });

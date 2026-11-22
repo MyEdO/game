@@ -2,9 +2,10 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene, type WallClimb } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyEffects } from './combatEffects';
+import { setRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import { placeCombatant } from './monde/spawn';
+import { memeCase } from './monde/seating';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
@@ -12,14 +13,18 @@ import { planFranchissement } from './fallMove';
 import { REFUS_FRANCHISSEMENT } from './gesteDArete';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
-/**
- * Câblage de l'ESCALADE (LDB 15 l.53-57) à la géométrie z (#82) : `franchirLArete` grimpe une arête
- * `WallSeg.climb` — exploration (le groupe) et combat (le héros actif). Échelle = sans Test, coût de
- * Mouvement (½ vitesse) ; paroi = Test d'Escalade (échec → chute) consommant l'Action (LDB 13 l.86-88) ;
- * paroi exigeant Grimpeur, Talent absent = refus.
- */
+function resoudreLeTest(de: number, sl: number, success = false) {
+  banc.getState().jetLancer('test');
+  banc.getState().jetImposerLeResultat('test', de);
+  expect(banc.getState().pendingTest).toMatchObject({ target: 40, roll: de, sl, success });
+  banc.getState().jetValider('test');
+}
+
+function chutesOuvertes() {
+  return banc.getState().pendingCascade?.participants.filter((etape) => etape.kind === 'chuteDe') ?? [];
+}
 
 // Falaise de 4 m entre le pied (2,1) à 0 m et le sommet (2,0) à 4 m ; l'arête N de (2,1) porte la grimpe.
 function cliffScene(climb: WallClimb): Scene {
@@ -50,6 +55,8 @@ describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
 describe('franchirLArete, escalade — exploration', () => {
   beforeEach(() => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    hero.characteristics.force = 40;
+    hero.skills = [];
     banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene({ kind: 'ladder' }) });
   });
 
@@ -57,6 +64,32 @@ describe('franchirLArete, escalade — exploration', () => {
     banc.setState({ scene: cliffScene({ kind: 'ladder' }), partyPos: foot });
     banc.getState().franchirLArete(top);
     expect(banc.getState().partyPos).toEqual(top);
+  });
+
+  it('paroi en montée : le groupe ne bouge qu’après la réussite du Test', () => {
+    banc.setState({ scene: cliffScene({ kind: 'surface' }) });
+    banc.getState().franchirLArete(top);
+    expect(banc.getState().partyPos).toEqual(foot);
+    resoudreLeTest(28, 2, true);
+    expect(banc.getState().partyPos).toEqual(top);
+    expect(chutesOuvertes()).toHaveLength(0);
+  });
+
+  it('paroi en descente : le groupe reste au sommet sur un échec ordinaire', () => {
+    banc.setState({ scene: cliffScene({ kind: 'surface' }), partyPos: top });
+    banc.getState().franchirLArete(foot);
+    resoudreLeTest(79, -3);
+    expect(banc.getState().partyPos).toEqual(top);
+    expect(chutesOuvertes()).toHaveLength(0);
+  });
+
+  it('paroi en descente : le groupe atteint le pied sur une réussite', () => {
+    banc.setState({ scene: cliffScene({ kind: 'surface' }), partyPos: top });
+    banc.getState().franchirLArete(foot);
+    expect(banc.getState().partyPos).toEqual(top);
+    resoudreLeTest(28, 2, true);
+    expect(banc.getState().partyPos).toEqual(foot);
+    expect(chutesOuvertes()).toHaveLength(0);
   });
 
   it('paroi exigeant Grimpeur, Talent absent : le groupe ne bouge pas (refus)', () => {
@@ -82,14 +115,15 @@ describe('franchirLArete, escalade — combat', () => {
     banc.setState({ battle: null });
   });
 
-  function setup(climb: WallClimb, atPos = foot) {
+  function setup(climb: WallClimb, atPos = foot, sc = cliffScene(climb)) {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    hero.characteristics.force = 40;
+    hero.skills = [];
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
-    const sc = cliffScene(climb);
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'heros')!;
     b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
@@ -108,12 +142,15 @@ describe('franchirLArete, escalade — combat', () => {
     expect(b.acted).toBe(false);
   });
 
-  it('paroi : le héros monte ET l’Action est consommée (Test requis, LDB 13 l.86-88)', () => {
+  it('paroi : l’Action est consommée à l’ouverture, le héros monte à la réussite', () => {
     const { H } = setup({ kind: 'surface' });
     banc.getState().franchirLArete(top);
     const b = banc.getState().battle!;
-    expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
+    expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject(foot);
     expect(b.acted).toBe(true);
+    expect(b.movementUsed).toBeGreaterThan(0);
+    resoudreLeTest(28, 2, true);
+    expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toMatchObject(top);
   });
 
   it('paroi exigeant Grimpeur, Talent absent : le héros ne bouge pas', () => {
@@ -139,15 +176,73 @@ describe('franchirLArete, escalade — combat', () => {
     expect(b.log.some((e) => e.text.includes('Grimpant'))).toBe(true);
   });
 
-  it('la chute de combat (échec d’Escalade) ramène le faller nommé au pied et lui coûte des Blessures', () => {
-    const { H } = setup({ kind: 'surface' }, top); // héros hissé au sommet (état optimiste)
-    const before = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current;
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'heros', heroId: H.id, metres: 4, to: { x: 2, y: 1, z: 0 } }]);
-    const hc = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(hc.pos).toMatchObject({ x: 2, y: 1 }); // retombé au pied
-    // Le 1d10 des Dégâts tombe à la PORTE (#1508) : l'étape à dé nu appendue le montre et le pose.
-    draineCascade(banc.getState);
-    expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current)
-      .toBeLessThan(before); // 3 Dégâts/m + 1d10 − BE (LDB 15 l.80)
+  it('un échec à −4 DR en montée depuis le pied laisse le héros au sol sans dé de dégâts', () => {
+    const { H } = setup({ kind: 'surface' });
+    const before = H.wounds.current;
+    banc.getState().franchirLArete(top);
+    resoudreLeTest(84, -4);
+    const grimpeur = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(grimpeur.pos).toMatchObject(foot);
+    expect(grimpeur.wounds.current).toBe(before);
+    expect(chutesOuvertes()).toHaveLength(0);
+  });
+
+  it.each([
+    { de: 79, sl: -3, doubles: false, doigts: 0, chute: false, cas: 'échec ordinaire à −3 DR' },
+    { de: 84, sl: -4, doubles: false, doigts: 0, chute: true, cas: 'échec à −4 DR' },
+    { de: 55, sl: -1, doubles: false, doigts: 0, chute: false, cas: 'double raté sans l’option de Maladresse' },
+    { de: 55, sl: -1, doubles: true, doigts: 0, chute: true, cas: 'double raté reconnu comme Maladresse' },
+    { de: 51, sl: -1, doubles: false, doigts: 1, chute: true, cas: 'Maladresse liée à un doigt amputé' },
+  ])('en descente : $cas', ({ de, sl, doubles, doigts, chute }) => {
+    setRule('test-critiques-doubles', doubles);
+    const { H } = setup({ kind: 'surface' }, top);
+    if (doigts) H.traumas = [{ uid: 'doigt', label: 'Doigt amputé', traumaId: 'doigt-ampute', location: 'brasG', count: doigts }];
+    const before = H.wounds.current;
+    banc.getState().franchirLArete(foot);
+    expect(H.pos).toMatchObject(top);
+    resoudreLeTest(de, sl);
+    if (chute) {
+      expect(H.pos).toMatchObject(foot);
+      expect(chutesOuvertes()).toMatchObject([{ actorId: H.id, meta: { chuteMetres: 4 } }]);
+      draineCascade(banc.getState);
+      expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
+    } else {
+      expect(H.pos).toMatchObject(top);
+      expect(chutesOuvertes()).toHaveLength(0);
+      expect(H.wounds.current).toBe(before);
+    }
+  });
+
+  it('le dernier appui reste occupé par le grimpeur si la seule retombée est prise par un allié', () => {
+    const climb = { kind: 'surface' } as const;
+    const scene = cliffScene(climb);
+    const depart = { ...foot, z: 1 };
+    const arrivee = { ...top, z: 2 };
+    for (const [z, hauteur] of [[1, 2], [2, 4]]) {
+      scene.layers.push({ z, tiles: new Array(16).fill('plancher'), height: new Array(16).fill(hauteur) });
+    }
+    scene.walls = [{ ...foot, z: 1, side: 'N', climb }];
+    const { H } = setup(climb, depart, scene);
+    const allie = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Allié', seed: 2 });
+    placeCombatant(allie, scene, { ...foot, z: 0 });
+    const battle = banc.getState().battle!;
+    banc.setState({ battle: { ...battle, combatants: [...battle.combatants, allie] } });
+
+    banc.getState().franchirLArete(arrivee);
+    const pc = banc.getState().pendingCascade;
+    expect(pc?.participants[pc.cursor]?.stake).toMatchObject({ key: { kind: 'escalade-test-sans-chute' } });
+    resoudreLeTest(84, -4);
+    expect(H.pos).toMatchObject(depart);
+    expect(allie.pos && memeCase(allie.pos, { ...foot, z: 0 })).toBe(true);
+    expect(chutesOuvertes()).toHaveLength(0);
+  });
+
+  it('règle maison désactivée : un échec à −4 DR laisse le héros au sommet', () => {
+    setRule('escalade-chute-sur-echec', false);
+    const { H } = setup({ kind: 'surface' }, top);
+    banc.getState().franchirLArete(foot);
+    resoudreLeTest(84, -4);
+    expect(H.pos).toMatchObject(top);
+    expect(chutesOuvertes()).toHaveLength(0);
   });
 });

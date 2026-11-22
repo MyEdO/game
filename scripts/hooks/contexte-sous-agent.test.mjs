@@ -49,6 +49,12 @@ test('sortieSousAgent : règles communes au type à shell, mémoire en conteneur
   }
 })
 
+test('une enveloppe sans type ne se confond pas avec un type intégré', () => {
+  for (const entree of [null, {}, { agent_type: '' }, { agent_type: ' ' }, { agent_type: 7 }]) {
+    assert.equal(sortieSousAgent(entree, { fiches: () => assert.fail('aucune fiche à résoudre') }), null)
+  }
+})
+
 test('les règles communes du dépôt existent et ne sont recopiées dans aucune fiche d’agent', () => {
   const racine = fileURLToPath(new URL('../../', import.meta.url))
   const tetes = [...readFileSync(join(racine, REGLES_COMMUNES), 'utf8').matchAll(/^- \*\*([^*]+)\*\*/gm)].map(([, tete]) => tete.replace(/[.:]$/, '').toLowerCase())

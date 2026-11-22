@@ -160,12 +160,12 @@ function rendu() {
     runCombatFlow: 'hôte de COMBAT d\'`executerFlow` : remet le nœud et la continuation à `resolveFlowTest`.',
     runSceneConsumableFlow: 'hôte du consommable bu HORS combat : modale restreinte au buveur.',
     runPureFlowLines: 'hôte PUR des effets déclenchés sans voie de jet : il LÈVE sur un nœud `test`, jamais de branche muette.',
-    resolveFlowTest: 'voie CADENCE-AWARE en combat : étape de cascade influençable pour un acteur piloté, jet inline sinon.',
+    resolveFlowTest: 'Test d’acteur en combat et hors combat. Le siège qui tient le porteur joue une étape influençable dans la séquence d’accueil. Les automates résolvent le Test directement.',
     resolveInlineFlowTest: 'nœud `test` RACINE d\'un effet déclenché atteint sans store : jet inline, branche jouée par `runPureFlowLines`.',
     bandeTriggeredTest: 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés.',
     collectRoundEndTestSteps: 'Tests de FIN DE ROUND d\'un porteur surfacé : une étape influençable par source d\'effet.',
-    routeTriggeredTest: 'porte d\'un Test SUBI : hors combat, modale au sujet ; en combat, `runCombatFlow`.',
-    CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête en combat : modale restreinte au grimpeur (hors combat, `runFlow`).',
+    routeTriggeredTest: 'Porte canonique des Tests déclenchés en et hors combat. Un Test subi simple et autonome hors rencontre conserve sa modale. Les Tests de gain d’État et d’entretien à l’horloge rejoignent la cascade par `runCombatFlow`.',
+    CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête : modale restreinte au grimpeur en combat, testeur proposé au groupe en exploration.',
   }
   const routeurs = new Map()
   for (const { file, fn, porte } of scanRouteursDeTest(prodFiles('src'))) {

@@ -1,7 +1,7 @@
 /**
  * L'ÉCHOPPE EN VUE (#3534) — ce qu'un hôte montre de l'échoppe qui tient la main : la bourse du groupe ; l'étal rangé
  * par famille (`merchantFamilies`), chaque article à son prix (`prixDeLigne`), sa quantité en stock et son ajout au
- * panier, fermé avec sa raison (`refusDAjout`) ; le panier (`devisDuPanier`), chaque ligne ôtée d'une unité, son total
+ * panier ou recours de Guilde (`lignesDAchat`) ; le panier (`devisDuPanier`), chaque ligne ôtée d'une unité, son total
  * et le paiement (`marchand.payer`) ; les possessions de chaque héros à vendre, leur gain (`sellGain`) et leur refus
  * (`sellRefusal`), puis le lot (`devisDeVente`), son total et la vente (`marchand.vendre`). Lecteur PUR, lu par les hôtes du
  * noyau (`hote/ecran.ts`).
@@ -17,8 +17,7 @@ import {
   contexteDAchat,
   devisDeVente,
   devisDuPanier,
-  prixDeLigne,
-  refusDAjout,
+  lignesDAchat,
   sellGain,
   sellRefusal,
   type MerchantState,
@@ -31,7 +30,7 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
-export interface ArticleEnVue { id: string; nom: string; stock: number; prix: string | null; auPanier: number; ajouter: GesteFermable }
+export interface ArticleEnVue { id: string; nom: string; stock: number; prix: string | null; auPanier: number; recoursDeGuilde: boolean; ajouter: GesteFermable }
 
 /** Une famille de l'étal et ses articles, du plus courant au plus rare puis par nom. */
 export interface FamilleEnVue { id: string; nom: string; articles: ArticleEnVue[] }
@@ -79,18 +78,20 @@ export function familleDeLArticle(id: string): string {
   return FAMILLE_PAR_CATEGORIE.get(objet.categorie) ?? FAMILLE_PAR_DEFAUT;
 }
 
-/** L'étal de l'échoppe `m` : chaque famille qui a un article en stock, dans l'ordre de `merchantFamilies`. */
+/** L'étal de l'échoppe `m`, dans l'ordre de `merchantFamilies`. */
 function etalDe(s: Jeu, m: MerchantState): FamilleEnVue[] {
-  const contexte = contexteDAchat(s, m);
-  const nom = (id: string) => catalogEntryOf(id)?.label ?? id;
-  const lignes = m.stock.filter((l) => l.qty > 0).sort((a, b) => rangDeRarete(a.id) - rangDeRarete(b.id) || nom(a.id).localeCompare(nom(b.id)));
-  const article = (l: { id: string; qty: number }): ArticleEnVue => {
-    const prix = prixDeLigne(m, l.id, contexte.ent, contexte.party);
-    return {
-      id: l.id, nom: nom(l.id), stock: l.qty, prix: prix ? formatMoney(prix) : null, auPanier: m.cart.find((c) => c.id === l.id)?.qty ?? 0,
-      ajouter: { geste: choix('ajouterAuPanier', l.id), refus: refusDAjout(m, l.id, contexte) },
-    };
-  };
+  const lignes = lignesDAchat(s, m)
+    .filter((l) => l.qty > 0 || l.demandeALaGuilde)
+    .sort((a, b) => rangDeRarete(a.id) - rangDeRarete(b.id) || a.nom.localeCompare(b.nom));
+  const article = (l: (typeof lignes)[number]): ArticleEnVue => ({
+    id: l.id,
+    nom: l.nom,
+    stock: l.qty,
+    prix: l.prix ? formatMoney(l.prix) : null,
+    auPanier: l.auPanier,
+    recoursDeGuilde: !!l.demandeALaGuilde,
+    ajouter: { geste: choix('ajouterAuPanier', l.id), refus: l.refus },
+  });
   return merchantFamilies.flatMap((f): FamilleEnVue[] => {
     const siens = lignes.filter((l) => familleDeLArticle(l.id) === f.id);
     return siens.length ? [{ id: f.id, nom: f.label, articles: siens.map(article) }] : [];

@@ -1236,8 +1236,15 @@ export const retraitOffert = <S extends SorteDePorteur>(sorte: S, donnee: Donnee
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
  *  (`ecritureAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le `Source/` du cadre
  *  `cadre`) ; ou son refus. */
-export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
-  ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> => {
+  if (sorte === 'lieu' && chemin.length === 1 && chemin[0] === 'amarrage' && (valeur === undefined || valeur === 'simple')) {
+    const sansCale = { ...donnee } as typeof donnee & Pick<MapPlace, 'constructeurDeBateaux' | 'materiauxCaleSeche'>;
+    delete sansCale.constructeurDeBateaux;
+    delete sansCale.materiauxCaleSeche;
+    donnee = sansCale;
+  }
+  return ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+};
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'élément de liste au chemin `chemin` de son formulaire passe
  *  avant le précédent (`monteeAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le
@@ -2317,8 +2324,15 @@ export function poseToitureDeCorps(
  *  portée qui en exigerait une hors plage sensée sort en masse SIGNALÉE (`validateScene`), jamais
  *  repliée en silence sur une valeur arbitraire. */
 export function fittedPitchDeg(spanTiles: number, metresPerTile: number, referencePitchDeg: number, riseMaxStoreys: number): number {
+  return Math.floor(penteDeComble(spanTiles, metresPerTile, referencePitchDeg, riseMaxStoreys) * 10) / 10;
+}
+
+/** La pente (°) EXACTE que `fittedPitchDeg` arrondit : la référence, rabattue à la borne de comble. Une pente que rien
+ *  n'écrit dans une masse (le champ commun d'un groupe de nappes, `noyau/monde/volume/toits.ts`) la prend sans arrondi,
+ *  si bien que son faîte tombe sur la borne, à la cote du faîte d'une masse que la même borne rabat. */
+export function penteDeComble(spanTiles: number, metresPerTile: number, referencePitchDeg: number, riseMaxStoreys: number): number {
   const capDeg = (Math.atan((2 * riseMaxStoreys * METRES_PER_LEVEL) / (spanTiles * metresPerTile)) * 180) / Math.PI;
-  return Math.floor(Math.min(referencePitchDeg, capDeg) * 10) / 10;
+  return Math.min(referencePitchDeg, capDeg);
 }
 
 /** Portée (m) au-delà de laquelle un corps ne se coiffe plus d'un simple PIGNON — la distance

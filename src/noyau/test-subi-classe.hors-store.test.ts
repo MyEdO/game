@@ -22,11 +22,14 @@ import { pushCombatStep } from './combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
-import type { Combatant } from '../engine/types';
+import { LOCALISATIONS_DE_COUP, type Combatant } from '../engine/types';
+import { CRITIQUE_DOCS, critTableKeyFor } from '../data/criticals';
+import { resolveCritique } from '../engine/critical';
+import { makeRNG } from '../engine/dice';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { GameOp, OpsCtx } from '../engine/ops';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW } from '../engine/flowCore';
+import { EMPTY_FLOW, walkFlow } from '../engine/flowCore';
 
 /** Le banc du balayage, ouvert à la collecte du `describe` (`surUnBancHorsTest`) : les tests ne lisent que ses relevés. */
 let banc: Banc;
@@ -203,6 +206,34 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
   }
 }
 
+/** L'amputation est instanciée par la rangée du Critique avant de passer à la porte. */
+function preparerNoeudDAmputation(n: Noeud, sujet: Combatant): Noeud {
+  const porteur = n.fichier === 'criticals.json' && /^\.entries\[(\d+)]\.amputation\.flow/.exec(n.chemin);
+  if (!porteur) return n;
+  const table = CRITIQUE_DOCS.find((doc) => doc.id === n.entryId);
+  const rangee = table?.entries[Number(porteur[1])];
+  const loc = LOCALISATIONS_DE_COUP.find((l) => critTableKeyFor(l) === table?.localisation);
+  if (!table || !rangee?.amputation || !loc) throw new Error(`Porteur d’amputation introuvable pour ${n.entryId}${n.chemin}`);
+
+  const crit = resolveCritique(table.jeu, sujet, loc, makeRNG(1), { forcedRoll: rangee.min });
+  if (crit.entryId !== rangee.id) throw new Error(`Critique « ${crit.entryId} » produit pour la rangée « ${rangee.id} »`);
+  const testFlow = crit.testFlow;
+  const flow = rangee.amputation.timing === 'postEncounter'
+    ? crit.traumas.find((t) => t.pendingAmputation)?.pendingAmputation
+    : rangee.test && testFlow?.kind === 'sequence' ? testFlow.etapes[1] : testFlow;
+  let node: Noeud['node'] | undefined;
+  if (flow) {
+    walkFlow(flow, (f, chemin) => {
+      const suffixe = chemin.map((pas) => typeof pas === 'number' ? `[${pas}]` : `.${pas}`).join('');
+      if (f.kind !== 'test' || `${porteur[0]}${suffixe}` !== n.chemin) return;
+      node = f;
+      return 'stop';
+    });
+  }
+  if (!node) throw new Error(`Test d’amputation non produit par ${crit.entryId} pour ${n.chemin}`);
+  return { ...n, node, ft: node.test };
+}
+
 /** Ce qu'un site produit quand on le joue d'un bout à l'autre. `branchesVides` rejoue le MÊME site
  *  avec des branches neutralisées : c'est le TÉMOIN auquel la course réelle se compare. */
 function jouerUnSite(n: Noeud, issue: boolean, opts?: { branchesVides?: boolean }):
@@ -250,10 +281,11 @@ describe('#1874 C0 — CLASSE : aucun nœud `test` de la donnée ne déborde sur
 
   surUnBancHorsTest((b) => {
     banc = b;
-    for (const n of noeuds) {
+    for (const brut of noeuds) {
       for (const issue of [true, false]) {
-        const site = `${n.fichier} ${n.entryId}${n.chemin} [${issue ? 'reussite' : 'echec'}]`;
+        const site = `${brut.fichier} ${brut.entryId}${brut.chemin} [${issue ? 'reussite' : 'echec'}]`;
         try {
+          const n = preparerNoeudDAmputation(brut, combattantDeTest({ id: 'h3' }));
           const reel = jouerUnSite(n, issue);
           if (!reel.jouee) { gatesFermees.push(site); continue; }
           ouvertsParFichier.set(n.fichier, (ouvertsParFichier.get(n.fichier) ?? 0) + 1);

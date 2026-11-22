@@ -1,8 +1,9 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
-import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
+import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, drainPendingLog, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
+import { journaliser } from './combatLog';
 import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
 import { evaluateTest, extendedTestStep } from '../engine/tests';
@@ -16,6 +17,10 @@ import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
 import { actorIn, inBattleId } from './monde/combatants';
+import { placeCombatant } from './monde/spawn';
+import { flowFromEffects } from './monde/flow';
+import { poserLeGroupe } from './marcheDuGroupe';
+import { chuteSurEchecDEscalade } from './monde/climbMove';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
@@ -113,10 +118,11 @@ export const TABLES = {
     /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
      *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
     testRateDeLActeur: (get, set, c) => {
-      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
-      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-      if (fired.length) fired.forEach((l) => get().ecrireAuJournal(l));
-      set({ ...touchActors(get()) });
+      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set });
+      const extra = drainPendingLog(get, set);
+      if (get().battle) journaliser(get, set, fired, 'etat', { actorId: c.actorId, extra });
+      else journaliser(get, set, [...fired, ...extra.map((e) => e.text)], 'etat');
+      set(touchActors(get()));
     },
   },
 } satisfies FragmentDeTables;
@@ -213,8 +219,23 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
         // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
         // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
-        const branch = effSuccess ? pt.onSuccess : pt.onFailure;
         const avant = comptePasDifferes(get());
+        let branch = effSuccess ? pt.onSuccess : pt.onFailure;
+        if (pt.escalade) {
+          const etat = get();
+          const grimpeur = actorIn(etat, pt.actorId);
+          if (effSuccess) {
+            if (!etat.battle) poserLeGroupe(get, set, pt.escalade.arrivee);
+            else if (grimpeur) {
+              placeCombatant(grimpeur, etat.scene, pt.escalade.arrivee);
+              set(touchActors(get()));
+              bus.emit(EVT.SCENE_DIRTY);
+            }
+          } else {
+            const chute = chuteSurEchecDEscalade(pt.escalade, pt.sl, lance, grimpeur);
+            if (chute) branch = flowFromEffects([chute]);
+          }
+        }
         const issue = pt.subi
           ? reprendreTestSubi(get, set, pt, effSuccess)
           : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);

@@ -1,4 +1,6 @@
+import { hash } from 'node:crypto';
 import { ast } from './dialecte.mjs';
+import { cleDeLigne, lignesDuContenu } from './stock.mjs';
 // Mécanique de scan du garde-fou « liste de LIVRES recopiée dans le code » (#1825).
 //
 // INVARIANT : le code ne nomme AUCUN livre — un livre de plus, c'est de la DONNÉE
@@ -56,30 +58,17 @@ export function estExclu(rel) {
   return /\.generated\./.test(rel) || /migration/i.test(rel) || rel.startsWith('src/data/schemas/');
 }
 
-/**
- * Exemptions AU SITE (jamais au fichier), même idiome que `rawRefIntegrity.mjs#SITE_EXEMPTIONS` :
- * `{ fichier, ligne, forme, raison, date }`. Une exemption nomme la LIGNE EXACTE et la FORME — un
- * déplacement du site la périme (fail-closed), et le banc refuse toute entrée sans `raison` ni
- * `date`. Deux classes seulement l'ouvrent, et chacune se MESURE avant de s'inscrire — rien n'y
- * entre par anticipation :
- *  - la COLLISION de vocabulaire : un `id` de livre qui est aussi un nom de LIEU (une cité donne son
- *    nom à son supplément) ou un `abbr` de deux lettres qui est une clé d'objet quelconque ;
- *  - la table HISTORIQUE : une énumération qui décrit un ÉTAT PASSÉ du dépôt, que le registre
- *    d'aujourd'hui ne peut pas rendre — même nature qu'une migration, sans en porter le nom.
- * @type {{ fichier: string, ligne: number, forme: string, raison: string, date: string }[]}
- */
+/** @type {import('./livresRecopies.mjs').ExemptionDeSite[]} */
 export const SITE_EXEMPTIONS = [
   {
     fichier: 'scripts/raw/reanchor-split.mjs',
-    ligne: 21,
+    ancre: 'export const SPLIT_SOURCES = [',
+    empreinte: '3f16cdc499b889509bf71f1ef9b9fc71ba69d4193d58c9567c2e02d1b81ced5e',
     forme: 'tableau-objets',
     raison: "table HISTORIQUE : les deux livres dont le fichier mono-bloc a été éclaté au commit nommé par `SPLIT_SOURCE_SHA`, avec leur chemin TEL QU'IL ÉTAIT À CE COMMIT (adresse `git show <sha>^:<path>`, pas un chemin du disque). QUELS livres ont été éclatés à ce commit est un fait d'histoire que le registre ne porte pas : rien à dériver.",
     date: '2026-09-20',
   },
 ]
-
-const estExempte = (rel, site) =>
-  SITE_EXEMPTIONS.some((e) => e.fichier === rel && e.ligne === site.line && e.forme === site.forme)
 
 /**
  * Nom d'un livre → le LIVRE qu'il désigne. Les deux noms sous lesquels le dépôt désigne un livre
@@ -122,7 +111,7 @@ const nomDePropriete = (p) =>
 const chainesDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0-9_ .-]+/);
 
 /**
- * Sites d'un fichier où une ÉNUMÉRATION LITTÉRALE recopie le registre des livres.
+ * Sites où une énumération littérale recopie le registre, et verdict des exemptions de ce fichier.
  *
  * FORMES VUES (`forme` du site) :
  *  - `tableau` : tableau littéral — éléments directs, et CLÉ de chaque tuple imbriqué (`new Map([[…]])`) ;
@@ -147,9 +136,9 @@ const chainesDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0
  * @param {string} relPath chemin relatif, séparateurs `/` (décide du dialecte de parse)
  * @param {string} contenu source du fichier
  * @param {Map<string, string>} [identites] registre INJECTÉ (défaut : `src/data/books.json`)
- * @returns {{ line: number, forme: string, valeurs: string[] }[]}
+ * @type {typeof import('./livresRecopies.mjs').analyserLivresRecopies}
  */
-export function scanLivresRecopies(relPath, contenu, identites = IDENTITES, sourceFile) {
+export function analyserLivresRecopies(relPath, contenu, identites = IDENTITES, sourceFile) {
   const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const sites = [];
   const juger = (valeurs, node, forme) => {
@@ -157,7 +146,7 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES, sour
     const livres = new Set(retenues.map((v) => identites.get(v)));
     if (livres.size < SEUIL) return;
     const site = { line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, forme, valeurs: retenues };
-    if (!estExempte(relPath, site)) sites.push(site);
+    sites.push({ site, node });
   };
   const visit = (n) => {
     if (ts.isArrayLiteralExpression(n)) {
@@ -208,5 +197,27 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES, sour
     n.forEachChild(visit);
   };
   visit(sf);
-  return sites;
+  const couverts = new Set();
+  const perimees = [];
+  const ambigues = [];
+  for (const entree of SITE_EXEMPTIONS) {
+    if (entree.fichier !== relPath) continue;
+    const lignes = lignesDuContenu(relPath, contenu, cleDeLigne(relPath, entree.ancre));
+    const porteurs = sites.filter(({ site }) => site.line === lignes[0] && site.forme === entree.forme);
+    if (lignes.length > 1 || porteurs.length > 1) {
+      ambigues.push(entree);
+      continue;
+    }
+    const porteur = porteurs[0];
+    // L'empreinte du littéral couvre aussi les anciens chemins de ce registre historique.
+    if (!porteur || hash('sha256', porteur.node.getText(sf).replaceAll('\r\n', '\n')) !== entree.empreinte) {
+      perimees.push(entree);
+      continue;
+    }
+    couverts.add(porteur);
+  }
+  const fautes = sites.filter((s) => !couverts.has(s)).map(({ site }) => site);
+  return { fautes, perimees, ambigues };
 }
+
+export const scanLivresRecopies = (...args) => analyserLivresRecopies(...args).fautes;

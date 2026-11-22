@@ -6,18 +6,21 @@
  * `affecterLEmplacementAuSiege`, `affecterLeSiegeMJ`) et ses refus.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetCadence, setCadence } from '../engine/cadence';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emettreIntentInvite, sanitizeIntentArgs } from './reseau';
 import { GUEST_INTENTS } from './intentionsDeSiege';
 import { tableDeDissipation } from './tableDeDissipation.testkit';
 import { applyEffects } from './combatEffects';
 import { affichés, narratif, hero as heroDesIndices, fixtureScene } from './monde/clues.fixture';
-import { initialNet, type NetState } from './etat';
+import { etatInitialDuJeu, initialNet, type NetState } from './etat';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
+import { frapper, horsBataille } from './coupHorsBataille.testkit';
+import { testScene } from '../scenes/test-fixture';
 
 const caseDe = (banc: Banc, id: string) => ({ ...banc.getState().battle!.combatants.find((c) => c.id === id)!.pos! });
 
@@ -46,6 +49,11 @@ function enInvite(): Banc {
 }
 
 describe('transmettreLesIntentions — l’invité demande, l’hôte joue', () => {
+  afterEach(() => {
+    resetCadence();
+    vi.restoreAllMocks();
+  });
+
   it('a. un verbe de l’allowlist appelé par l’état part en intention, arguments assainis, et ne joue pas chez l’invité', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ party: [heroDesIndices()] });
@@ -145,12 +153,38 @@ describe('transmettreLesIntentions — l’invité demande, l’hôte joue', () 
     expect(enrobesRestants(banc, origine)).toEqual([]);
   });
 
-  it('h. en Auto-combat, le Destin que le tick résout pour le héros de l’invité part en intention', () => {
+  it('h. le miroir Auto transmet le choix explicite du Destin sans lancer de tick', () => {
     const { banc, espion } = invite({}, ouvrirLeBanc({ cadence: 'auto' }));
-    banc.setState({ pendingFateSave: { heroId: 'h1', source: 'slow' } as never });
-    banc.jusquA(() => espion.mock.calls.length > 0);
-    expect(espion.mock.calls[0]).toEqual(['fenetreChoisir', ['destin', 'issue', 'survivre']]);
-    expect(banc.getState().pendingFateSave, 'le Destin s’est joué chez l’invité').not.toBeNull();
+    const instantane = instantaneDeLaCoop({
+      ...etatInitialDuJeu(),
+      ...tableDeDissipation('hote', {}),
+      pendingFateSave: { heroId: 'h2', source: 'slow' },
+    });
+    banc.setState(appliquerLInstantane(instantane, banc.getState()).etat);
+    const recu = banc.getState();
+    const ecritures = compterLesEcritures(banc);
+    expect(recu.pendingFateSave).toMatchObject({ heroId: 'h2', source: 'slow' });
+    expect(banc.enAttente()).toBe(0);
+    expect(banc.jusquALaProchaine()).toBe(0);
+    expect(espion).not.toHaveBeenCalled();
+
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
+    expect(espion.mock.calls).toEqual([['fenetreChoisir', ['destin', 'issue', 'survivre']]]);
+    expect(banc.getState()).toBe(recu);
+    expect(ecritures()).toBe(0);
+  });
+
+  it('i. l’hôte Auto résout le choix du Destin du héros d’un siège distant', () => {
+    const { banc, H, E } = horsBataille(testScene());
+    const destin = H.fate!;
+    banc.setState({ net: { ...initialNet(), mode: 'hote', ownership: { [H.id]: 1 } } });
+    setCadence('auto');
+    frapper(banc, E, H, [22, 12, 1, 100]);
+    expect(banc.getState().pendingFateSave).toMatchObject({ heroId: H.id, source: 'hit' });
+
+    expect(banc.jusquA((s) => s.pendingFateSave === null)).toBeGreaterThan(0);
+    expect(banc.getState().pendingFateSave).toBeNull();
+    expect(H.fate, 'LDB 17 l.29-32').toBe(destin - 1);
   });
 });
 

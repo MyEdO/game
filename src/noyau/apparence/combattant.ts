@@ -10,12 +10,14 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
+import { armourPhysiqueAt, sourceDuTraitA } from '../../engine/armourBypass';
 import { findTierEntry } from '../../engine/tables';
 import {
   findCreatureById,
   findFicheDeVehicule,
   findNavalTrait,
   findGroupeDArmureById,
+  findMutationById,
   findPlanDEspeceById,
   findSpeciesById,
   findTenueDeCarriere,
@@ -70,15 +72,15 @@ const armureEquipee = (i: ItemInstance): Armure => ({
   couche: findGroupeDArmureById(i.subType)?.couche ?? -1,
 });
 
-/** L'armure de statbloc de `c` (PA par localisation, `c.armour`), si son apparence la déclare portée (`armurePortee`, son
- *  apparence d'auteur, sinon sa créature ; #774) : par Groupe d'armure atteint, les localisations dont les PA ont ce Groupe
- *  pour palier (`groupeDuPalier`), à sa teinte. */
+/** L'armure de statbloc déclarée portée regroupe ses Localisations par palier de PA nets. #774 */
 function armureDeStatbloc(c: Combatant): Armure[] {
   if (!(c.appearanceOverride?.armurePortee ?? findCreatureById(c.creatureId)?.appearance?.armurePortee)) return [];
   const parGroupe = new Map<GroupeDArmure, HitLocation[]>();
   for (const loc of LOCALISATIONS_DE_COUP) {
-    if (!(c.armour[loc] > 0)) continue;
-    const groupe = groupeDuPalier(c.armour[loc]);
+    const trait = sourceDuTraitA(c, loc);
+    const pa = trait ? (trait.matiere === 'peau' ? 0 : trait.pa) : armourPhysiqueAt(c, loc);
+    if (pa <= 0) continue;
+    const groupe = groupeDuPalier(pa);
     parGroupe.set(groupe, [...(parGroupe.get(groupe) ?? []), loc]);
   }
   return [...parGroupe].map(([groupe, locs]) => ({ objet: { nom: groupe.label, candidats: [], locs, ...(groupe.teinte ? { teinte: groupe.teinte.id } : {}) }, couche: groupe.couche }));
@@ -110,9 +112,20 @@ function couleursDuCombattant(c: Combatant, race?: RaceAppearanceData): Pick<Ent
   return Object.keys(couleurs).length ? { couleurs } : {};
 }
 
+/** Les formes de la tête de `c` : celles de chacune de ses Mutations, lues au catalogue par son id (#4413), au plus fort
+ *  des poids qui nomment une même forme ; absentes si aucune n'en donne. */
+function formesDeTeteDuCombattant(c: Combatant): Pick<PorteeDeComposition, 'formesDeTete'> {
+  const formes: NonNullable<PorteeDeComposition['formesDeTete']> = {};
+  for (const m of c.mutations ?? []) {
+    for (const [nom, poids] of Object.entries(findMutationById(m.id)?.formesDeTete ?? {}) as [keyof typeof formes, number][]) formes[nom] = Math.max(formes[nom] ?? 0, poids);
+  }
+  return Object.keys(formes).length ? { formesDeTete: formes } : {};
+}
+
 /** Ce que porte `c`, `null` si son espèce n'a aucune race de rendu (#2993) : sa tête, ses armes tenues puis rangées,
  *  ses objets équipés qui revêtent des pièces (`piecesDeLObjet`), son armure (`armuresDuCombattant`), puis la tenue de
- *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt. */
+ *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt ; et les formes de
+ *  sa tête (`formesDeTeteDuCombattant`). */
 export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
   const race = raceDeRendu(c.species);
   if (!race) return null;
@@ -135,6 +148,7 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     rapport,
     ...(embleme ? { embleme } : {}),
     ...couleursDuCombattant(c, race),
+    ...formesDeTeteDuCombattant(c),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
     sex: sexeDuPorteur(c) ?? 'M',

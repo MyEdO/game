@@ -64,7 +64,32 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoid
 ``` Vérifier unités, axes, échelle et pose de liaison de la base,
 sans les modifier dans l'élément. Une coupure ne coûte qu'une passe : chaque passe du point fixe des poids écrit une
 reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses écarts
-suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite. La construction exige `node` dans le `PATH` : avant Blender,
+suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite.
+La passe des membres (`membres.py`) imprime une ligne `MEMBRES` par clip du pack et ne refuse jamais : lire ces lignes
+pour savoir quel clip est gardé ou rendu à sa source ; un clip dérivé (`deux_mains.py`) refusé arrête la construction.
+La construction juge les clips dérivés comme la garde `membres` sur chaque état du gabarit (`verdict_du_tronc.py`) et
+redérive un clip fautif sous sa visée accrue des états où sa peau entre dans le tronc, trois dérivations au plus
+(`deux_mains.deriver_sur_les_etats`) : lire les lignes `VERDICT <clip> tour <k> cellules <n>` ; un clip encore fautif
+arrête la construction en nommant son état, son image et sa profondeur.
+
+Une retouche de la pose des bras d'un clip (clés de geste de `deux_mains.py`, passe de `membres.py`) s'itère au banc
+avant de cuire la base. Le banc importe la base publiée, `~/.cache/wfrp-modeles-3d/<glb.sha256 du manifeste>.glb` que
+`npm run godot:sonde` y tire, rejoue les clips nommés avec le code de l'arbre (`--deux-mains` : dérivés de
+`deux_mains.CLIPS` et jugés sur les états du gabarit comme dans la construction ; `--pack` : passe de `membres.py`, `tous` pour le pack entier), réécrit les rotations des bras, des
+clavicules et du dos de ces clips dans une copie du GLB, écrit à côté le manifeste à son empreinte et imprime la
+commande `npm run godot:evaluer` à lancer sur cette copie :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/banc.py ~/.cache/wfrp-modeles-3d/<empreinte>.glb hotes/godot/projet/modeles/humanoide.manifeste.json --sortie /atelier/banc --deux-mains Hampe_Touche
+```
+
+Le banc prouve la garde Node sur la base publiée rechargée, clips rejoués. Il ne prouve pas la base cuite : la peau de
+la scène rechargée s'écarte de celle de la construction (#3810), et les chaînes des clips rejoués restent celles de la
+base publiée. Le banc ne réécrit que les clés existantes du GLB publié, quand la construction écrit ses clés aux instants
+du clip : lire la sortie du banc comme une interpolation, entre deux clés, de poses que la passe n'a pas mesurées. Avant de publier, cuire la base et jouer `npm run godot:evaluer -- <base.glb> --manifeste
+<manifeste> --etats-gabarit` sur sa sortie.
+
+La construction exige `node` dans le `PATH` : avant Blender,
 `scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
 et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
 les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un texte de licence
@@ -158,12 +183,23 @@ offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS
 mètres glTF, sa proue vers +Z et tribord vers -X, où se montent dans l'ordre les pièces des postes de ce bord, chacune
 tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
-**`faceFlip`** : chaque tête porte la shape key `visage_inverse`. C'est une clé de la tête, pas de
-la base : elle ne se déclare pas parmi les silhouettes (`silhouette-absente`). Le design la fait
-générer par la chaîne, refuser à l'import quand elle manque, et poser par l'hôte quand le noyau
-publie `faceFlip` résolu. Aucun de ces trois gestes n'est livré, et ni le validateur ni l'import
-n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON VÉRIFIÉE tant que
-l'import ne la refuse pas.
+**Clés de forme propres (`formesDeTete`, #4413)** : une pièce skinnée peut porter des shape keys qui ne sont
+ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
+déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
+`element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
+propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
+de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
+la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
+traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
+cibles de MakeHuman lues sommet à sommet), et leur clé `feminin` ajoute à celle du corps l'écart de MakeHuman
+entre ses deux sexes. Les noms admis sont la liste fermée
+`NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
+un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
+validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
+exactement les silhouettes et les `formesDeTete` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
+la base (`shape-key-non-declaree`, `shape-key-absente`). L'hôte pose leurs poids : le preset
+(`formesDeTete`) ou les Mutations du combattant (`formesDeTete` de `mutations.json`) les donnent, le pont les
+verse dans `morphes` (`hotes/godot/pont/composition.ts`).
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
 **localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.
@@ -225,17 +261,22 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
-  à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
+  à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
-  compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
-  traitement modifié et inscrit leurs sommes. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
+  compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
+  « fabriquée par ImageMagick, sans image source » et son générateur, graine `-seed` comprise, en tête du traitement
+  (`origineDe`, `hotes/godot/asset/texture.ts`). `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les
+  textures d'un traitement modifié, inscrit leurs sommes et imprime la commande de leur transfert. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
   pixel à 1024 px : une trame réelle tombe sous le pixel. Elle se réduit puis se tuile dans son traitement jusqu'à la
   plus petite période encore lisible, environ 4 px de la texture finale, soit environ 8 mm (#4527). Un relief fait
   512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024. Une couverture de toit
   (`roof--<id>`, domaine `roof`) ne porte que sa neutre et son relief : une nappe de toit ou une couronne lit la neutre,
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
+  Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
+  un morceau de cette apparence garde la couleur de ses sommets (#4471).
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
@@ -258,11 +299,24 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
-un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
-sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `unitaire`, `lambeaux` pour
+un ourlet effiloché ; `Base.nappe` pour une double nappe, `Base.nappe_simple` pour une nappe simple, à plusieurs
+matériaux par `teintes` ; `porteur_de` et son `arbre_de` pour une surface porteuse, visée par `viser` (résultat brut),
+`toucher` (point et normale sortante, `None` sans surface) ou `sur_le_porteur` (erreur sans surface) ;
+`Base.offrir_sur` pour offrir un emplacement sur une surface), `maille.py` pour un solide rigide (cylindre, tour à
+sections rondes ou elliptiques, boîte, tube, tore…) et pour l'aléa semé d'un id (`tirage`), `element/lame.py` pour une
+arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
-robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
+Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
+`anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
+ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+`element/tete.py` pour une tête de race bâtie de volumes sur la couture du cou (orc, gobelin : un dossier ne porte que
+son `donnees.py` et `from tete import construire`), `element/tete_makehuman.py` pour une tête humanoïde tirée de la
+tête de MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées (humain, nain, haut-elfe, halfling : le
+dossier ne porte que son `donnees.py`, dont `CUITES` nomme les cibles qui font la race, et
+`from tete_makehuman import construire` ; le pack `mpfb` de la base se tire seul, `production.pack_source`),
+`element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
@@ -325,7 +379,15 @@ l'os, dans l'ordre des `objets` du preset, sauf sur les cases qu'une pièce offr
 section « Atelier 3D » du contrat du pont). Un objet glissé en travers d'une sangle se centre sur son origine ; une
 arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un objet du même GLB qui porte la propriété
 `fourreau` : l'hôte ne le montre que l'arme rangée. Un écart cuit dans l'élément le ferait flotter sur un autre porteur
-(#3743, #3844).
+(#3743, #3844). Cette pose ne vit que dans Godot : `rendu.py --preset <id>` et `npm run godot:evaluer -- … --preset <id>`
+la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
+de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
+la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
+pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe : la profondeur où il s'enfonce derrière
+un vêtement qu'il traverse, quelle que soit la longueur qui ressort devant ; tout entier derrière, comme sous une cape,
+il ne le traverse pas. Une pose isolée se demande à
+`node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
+chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -519,15 +581,24 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 |---|---|---|
 | base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
+| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 6 600 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
 | armure par pièce | 2 000 | 512² |
 | rigide tenu | 1 200 | 256² |
 | accessoire ou trait | 800 | 256² |
 | prop d'art | 1 500 | 512² |
-| personnage assemblé, base visible comprise | 16 000 | — |
+| personnage assemblé, base visible comprise, au niveau de détail 0 | 24 000 | — |
 
 Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+La tête humanoïde MakeHuman garde le maillage `body` de MakeHuman (#4413) : ses cibles fines (joues, oreilles, bouche)
+ne s'expriment que sur lui, et sa pleine définition sert aux portraits ; ce n'est pas une décimation ni une retopologie
+à la construction. Plafond assemblé à 24 000 au niveau de détail 0 : décision utilisateur du 2026-11-19 (#4413). Les
+modèles de `modeles/` se lisent à l'exécution (`GLTFDocument`), sans import (`export_presets.cfg` exclut `modeles/*`) :
+Godot n'en tire aucun niveau de détail ; il les génère à l'exécution, par `MontageDeComposition.poser_les_niveaux`
+(`ImporterMesh.generate_lods`, `hotes/godot/projet/scripts/montage_de_composition.gd`), sur chaque mesh d'un GLB lu, sur
+chaque mesh cuit et sur le mesh fondu du personnage ; le rendu simplifie le personnage qui s'éloigne.
 
 Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
 les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
@@ -541,17 +612,17 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset`, la pose au `--clip`, et sa `planche.png` porte
+(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
 plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
-Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : l'export Web
-(`node hotes/godot/construire.mjs --export --sortie <web>`, après `--sonde` verte) puis la capture du preset dans
-l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <web> --captures <dossier>`, face,
-trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
+Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : la capture du preset
+dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, puis `gros-plan` : le visage de face, au zoom
+minimal de la molette, sous `dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
+côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
 Un modèle sans base (véhicule, décor, arête) se regarde dans Godot par les mêmes outils, une fois importé au dossier
@@ -582,7 +653,10 @@ Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et mod
 licences que dépose l'import sous `hotes/godot/projet/modeles/`, puis le GLB à la Release (section « Importer une base et
 ses éléments ») ; `npm run personnage-3d:tests` (`test_element.py`) reconstruit chaque élément d'`element/` et compare son
 manifeste, empreinte comprise, au publié, et l'import refuse `[construction-absente]` un élément sur base dont le dossier
-manque. Garder un rapport lié aux empreintes exactes. Garder hors dépôt
+manque. Le même test exige d'une peau qui remplace des zones de la base (couche `peau`, `couvre` non vide : une tête)
+qu'elle suive la base à leur couture, au repos et sous chaque silhouette et chaque clé `gabarit_*`, la reconstruite comme
+la publiée à chaque course : une base republiée se livre avec ses têtes reconstruites et republiées (#4413). Garder un
+rapport lié aux empreintes exactes. Garder hors dépôt
 illustration, contrat, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
 un nouvel export. Les voisins restent identiques, signatures à l'appui.
 
@@ -697,8 +771,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de la branche de travail, qui porte les
-provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur empreinte), que
+GLB vont à la Release `modeles-3d` par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
+provenances neuves qui les épinglent, fabriquée par `npm run godot:transfert -- <nom> <fichier>...`, que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
 
 ## 10. Décor
@@ -925,6 +999,57 @@ budget, coques closes, raccord) et compare chaque manifeste au publié. Une fami
 `kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 
+## 13. Toit
+
+La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
+couverture de `src/data/materials.json`) se construit comme
+un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
+`scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
+ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
+nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
+`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
+bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
+à trois brins sur son dos, baguettes de noisetier filées et croisées).
+
+**Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
+faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
+étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
+levée au-dessus du pan), jamais d'équerre au pan.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
+même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
+élément en son milieu à chaque bout (`faitage.recouvrants`) : la moitié de queue d'un bout se complète de la moitié de
+tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin, selle, brins, baguettes) va à une période
+qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
+au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
+cases.
+
+**Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
+couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
+de leur matière du domaine `prop`, sans couleur imposée.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py toit/<couverture> --sortie /atelier/<couverture>
+npm run godot:valider -- /atelier/<couverture>/toit--<couverture>/toit--<couverture>.element.json \
+  /atelier/<couverture>/toit--<couverture>/toit--<couverture>.glb
+npm run personnage-3d:integrer -- toit/<couverture>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py <couverture> --couverture <id> \
+  --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
+```
+
+`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
+elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
+trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
+comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
+kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
+compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
+
 ## Disponibilité à sonder avant chaque production
 
 Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur livraison du design :
@@ -933,7 +1058,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
 | garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
-| constructeur de l'élément (rigide, skinné ; tête à venir) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`) | #3743, migration des éléments publiés |
+| constructeur de l'élément (rigide, skinné, tête) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`, `tete.py`) | #3743, migration des éléments publiés |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |
@@ -963,7 +1088,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<nom>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers épinglés ajoutés de force (GLB, textures du catalogue, sons) : `npm run godot:transfert -- <nom> <fichier>...` fabrique son commit sans toucher l'index et imprime le `git push` (`hotes/godot/asset/transfert.ts`) ; `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
 
 Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
 contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et

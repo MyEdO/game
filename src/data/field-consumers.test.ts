@@ -18,7 +18,7 @@ import { markSchema } from './schemas/defs/progression-schemas-derived';
  * qui nomme la divergence dont vit le bloc DÉTERMINISME) ; le PÉRIMÈTRE des cibles, où aucune cible
  * ne rend zéro champ ; la DÉRIVATION des cibles de catalogue (`ciblesDeCatalogue`), mordue sur
  * fixtures ; le cas FONDATEUR (`TrappingRef.spec`, #903) en CONTRAT POSITIF
- * `fichier:ligne` sur le dépôt RÉEL ; le DÉTERMINISME cross-OS (ordre total de la liste des racines,
+ * par déclaration sur le dépôt RÉEL ; le DÉTERMINISME cross-OS (ordre total de la liste des racines,
  * et `.md` byte-identique sur le corpus inversé) ; le CONTRAT POSITIF des champs dont le détecteur
  * au `TypeChecker` (#1620) a recouvré les lecteurs, chacun nommé avec son site, avec les CLIQUETS
  * NOMINATIFS des « 0 lecteur » et des champs absents du type TS (une entrée apparue comme une entrée
@@ -288,8 +288,8 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
   /**
    * `TrappingRef.spec` a DEUX lecteurs directs, un par ROLE : `resoudre`
    * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement
-   * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
-   * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
+   * `qualityChoice`, et `gabaritDeLaRef` (`src/engine/items.ts`) qui la matérialise sur l'`ItemInstance`
+   * pour `itemFromTrappingRef` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
    * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refLabel`
    * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
@@ -301,22 +301,39 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(target, 'TrappingRef absent de CIBLES_DE_GRAMMAIRE — le cas fondateur a perdu sa surface').toBeTruthy();
     const byField = rapport().byType.get('TrappingRef');
     expect(byField, 'TrappingRef absent du rapport mesuré').toBeTruthy();
-    // `fichier @symbole` (ancre de `Hit`, `scripts/docs/build-field-consumers.mts`) : le fichier seul
-    // resterait vert si le lecteur déménageait dans une AUTRE fonction du même module, la ligne rougirait
-    // au premier ajout en amont. Le nombre de SITES distincts tient « un seul site par lecteur ».
-    const hits: { file: string; line: number; symbole: string }[] = byField!.get('spec') ?? [];
-    const specSites = new Set(hits.map((h) => `${h.file}:${h.line}`));
-    const specLecteurs = [...new Set(hits.map((h) => `${h.file} @${h.symbole}`))].sort();
+    const hits = byField!.get('spec') ?? [];
+    const ancres = hits.map((h) => `${h.file} @${h.englobante}`).sort();
+    const sites = hits.map((h) => `${h.file}:${h.line}`).join(', ');
     expect(
-      specLecteurs,
-      'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts @gabaritDeLaRef', 'src/engine/trappingChoices.ts @spec']);
-    expect(specSites.size, `un site lecteur par symbole — sites : ${[...specSites].join(', ')}`).toBe(2);
+      ancres,
+      'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation'
+        + `\nSites des lectures : ${sites}`,
+    ).toEqual([
+      'src/engine/items.ts @gabaritDeLaRef',
+      'src/engine/items.ts @gabaritDeLaRef',
+      'src/engine/trappingChoices.ts @resoudre',
+    ]);
     expect(
       hits.some((h) => h.file.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
     ).toBe(false);
   }, 240_000);
+
+  it('deux propriétés homonymes gardent chacune la fonction qui porte la lecture', () => {
+    const home = 'src/lecteurs.ts';
+    const programme = virtualProgram({ [home]: `
+interface Ref { spec?: string }
+function resoudre(ref: Ref) { return { spec: ref.spec }; }
+function recopier(ref: Ref) { return { spec: ref.spec }; }
+` });
+    try {
+      const hits = scanFieldReads({ type: 'Ref', home }, ['spec'], [join(VIRTUAL_ROOT, home)], VIRTUAL_ROOT, undefined, programme);
+      expect(hits.map(({ symbole, englobante }) => ({ symbole, englobante }))).toEqual([
+        { symbole: 'spec', englobante: 'resoudre' },
+        { symbole: 'spec', englobante: 'recopier' },
+      ]);
+    } finally { programme.dispose(); }
+  });
 });
 
 /**
@@ -359,7 +376,6 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/noyau/monde/volume/matieres.ts @tv'],
   ['EntityAppearance', 'armurePortee', 'src/noyau/apparence/combattant.ts @armureDeStatbloc'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
-  ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/noyau/codex/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
@@ -389,7 +405,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MaterialEntry: [
-    'E', 'O', 'S', 'built', 'foot', 'metalness', 'palette', 'ridgeCap', 'roughness', 'shadeDark', 'vueDeDessus',
+    'E', 'O', 'S', 'built', 'foot', 'metalness', 'palette', 'roughness', 'shadeDark', 'vueDeDessus',
   ],
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],

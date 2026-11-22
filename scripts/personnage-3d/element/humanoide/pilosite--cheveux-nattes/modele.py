@@ -16,19 +16,8 @@ import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction_spatiale, emprunter, joindre, joindre_les_surfaces, lambeaux, maillage_skinne, poids_normalises, porteur_de
-
-
-def vise(arbre, origine, d, portee):
-    """Le point et la normale sortante de la surface la plus extérieure touchée par la visée du dehors (`origine` +
-    `portee` · `d`) vers `origine`."""
-    loc, n, _, _ = arbre.ray_cast(Vector((origine + portee * d).tolist()), Vector((-d).tolist()), portee)
-    if loc is None:
-        raise ValueError(f'cheveux-nattes : aucune surface depuis {origine.round(3).tolist()} vers {d.round(3).tolist()}')
-    n = np.array(n)
-    return np.array(loc), n if n @ d > 0 else -n
+from tissu import Maillage, direction_spatiale, emprunter, joindre, joindre_les_surfaces, lambeaux, porteur_de, sur_le_porteur
 
 
 # ---------------------------------------------------------------- calotte
@@ -42,7 +31,7 @@ def calotte(D, b, M, peau):
     h_bord, h_coeur = c['hauteur']
 
     def pose(d, h):
-        p, normale = vise(peau, C, d, c['portee'])
+        p, normale = sur_le_porteur(peau, C, d, c['portee'])
         return p + h * normale
 
     rangs = []
@@ -95,7 +84,7 @@ def chemin(D, b, arbre, foulard, cote):
     for os_, decalage, phi, e, portee, jeu in t['chemin']:
         O = np.array(b.tete(os_)) + np.asarray(decalage, float)
         d = direction_spatiale(cote * phi, e)
-        p, _ = vise(arbre, O, d, portee)
+        p, _ = sur_le_porteur(arbre, O, d, portee)
         passages.append(p + (jeu + r) * d)
     X, indices = catmull_rom(passages, 24)
     s = abscisses(X)
@@ -106,7 +95,7 @@ def chemin(D, b, arbre, foulard, cote):
     axe = np.array(b.tete(t['os_du_releve']))
 
     def trop_pres(p):
-        return any(surfaces.find_nearest(Vector(p.tolist()))[3] < r + jeu
+        return any(surfaces['arbre'].find_nearest(Vector(p.tolist()))[3] < r + jeu
                    for surfaces, jeu in ((arbre, t['jeu_min']), (foulard, t['jeu_au_foulard'])))
     for passe in range(t['passes']):
         for i in range(debut, len(X)):
@@ -169,13 +158,11 @@ def construire(D, materiaux, b):
     dessous = joindre_les_surfaces([pourpoint] + [b.corps(z) for z in D['ZONES_DU_CORPS']])
     foulard_ = b.matieres_publiees(D['CONTOURNE']['foulard'], D['MATIERES_DU_FOULARD'])
     toutes = joindre_les_surfaces([tete, pourpoint, foulard_] + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    foulard = BVHTree.FromPolygons([tuple(p) for p in foulard_[0]], foulard_[1].tolist(), all_triangles=True)
-    peau = BVHTree.FromPolygons([tuple(p) for p in tete[0]], tete[1].tolist(), all_triangles=True)
-    arbre = BVHTree.FromPolygons([tuple(p) for p in toutes[0]], toutes[1].tolist(), all_triangles=True)
+    foulard, arbre = porteur_de(*foulard_), porteur_de(*toutes)
     porteur_tete, porteur_dessous = porteur_de(*tete), porteur_de(*dessous)
 
     M = Maillage()
-    calotte(D, b, M, peau)
+    calotte(D, b, M, porteur_tete)
     X, orientes, normales = M.orienter()
     W = np.array([emprunter(p, porteur_tete)[0] for p in X])
     piece = b.nappe('cheveux_nattes', X, normales, W, orientes, materiaux['poil'], D['EPAISSEUR'])
@@ -194,10 +181,7 @@ def construire(D, materiaux, b):
                 poids_par_sommet[i] = w
     Xn, faces, _ = N.orienter()
     Wn = np.array([poids_par_sommet[i] for i in range(len(Xn))])
-    tresses = maillage_skinne('nattes', [tuple(p) for p in Xn], [tuple(f) for f in faces], materiaux['poil'], b.rig,
-                              poids_normalises(Wn, b.os))
-    for polygone in tresses.data.polygons:
-        polygone.use_smooth = True
+    tresses = b.nappe_simple('nattes', [tuple(p) for p in Xn], [tuple(f) for f in faces], Wn, materiaux['poil'])
     piece = joindre([piece, tresses])
 
     b.transferer(piece, D['ZONES_DES_CLES'])

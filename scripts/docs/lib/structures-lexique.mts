@@ -118,7 +118,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'SPREADS (`...X.shape` d’un schéma, `...X` d’un objet de shapes) : un littéral de def s’apparie et se classe sur ses seules clés PROPRES, une clé venue d’un spread étant composée, jamais re-tapée ; la grammaire, elle, les résout récursivement pour signer ses schémas communs (`jetSchema` = `characteristic,difficulty,skill`), et un spread qu’elle ne sait pas résoudre (`.pick(...)`, fabrique, paramètre) rend son littéral PARTIEL, exclu des communs. Angle mort : un re-tapage RÉPARTI entre spread et clés propres (`{ ...sujetDuJetSchema.shape, difficulty }` qui recompose `jetSchema`) n’est pas vu. Mesuré 2026-11-06 : 54 littéraux de def à spread, 7 littéraux de grammaire partiels ; le compte courant est au § 4 du doc (`angleMortDesSpreads`).',
   '`schemasCommuns` recommande le PREMIER candidat COMPATIBLE (racines avant niches). Plusieurs schémas compatibles peuvent porter la même forme. La recommandation dépend alors de leur ordre, même si le def est identique.',
   'Les portes MOTEUR (`src/engine`, `src/noyau`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
-  'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill` ou `characteristic`, les clés de `sujetDuJetSchema`, ou le type de Test d’équipage `crewTestType` qui les exclut), l’invariant de `flowTestSchema` (#1657 B3-3, #1652), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
+  'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill` ou `characteristic`, les clés de `sujetDuJetSchema`, ou le type de Test d’équipage `crewTestType` qui les exclut), l’invariant de `flowTestSchema` (#1657 B3-3, #1652), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
   'Une ÉTIQUETTE (`clé: z.literal(v)`) nomme une VARIANTE : un littéral n’entre dans un concept POSÉ que si chacune de ses étiquettes est admise par un nœud posé du concept qu’atteignent les schémas du registre (`etiquettesDesPoses` : valeurs admises du nœud posé, ou d’un produit de la classe posée, plus tout type d’entité de `TYPES` pour un produit `refTypee`) — `{id, type: setObjective}` n’est pas une référence typée, `{indiceId, type: discreditClue}` n’est pas un effet narratif posé. Un concept SANS pose n’a pour nœuds que des littéraux : il n’est REdéclaré que s’il est déclaré PLUS D’UNE FOIS, grammaire et modules réunis — son littéral unique est sa DÉFINITION (`formeNarratif`, `src/data/schemas/defs-scenes/narratif.ts`, que la grammaire ne peut importer ; mesuré 2026-11-05, #3012, seul littéral de module d’un concept sans pose), et un concept sans pose qu’un seul module déclare n’est pas vu.',
   'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de même FORME à `kind` compatible. Deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`) bouge.',
 ];
@@ -707,9 +707,7 @@ export const CONCEPTS: readonly Concept[] = [
   // Partition MESURÉE sur les 2 racines (2026-11-05, 329 porteurs de `difficulty`) : plage 15,
   // identité 62, référence 8, sans sujet 54, et 190 Tests. La prémisse est rejouée par une marche
   // brute (`src/data/structures-contrat.test.ts`, volet (c)), sans cardinal écrit.
-  // POSE : les signatures `+…` sont CIBLES sur la seule pose `test` (au patron de `reference-chiffree`) ;
-  // le `+…` d'un Test posé ne replie que des clés de `flowTestSchema`, strict. Un objet classé par son
-  // noyau, et non par sa pose, reste divergent.
+  // Chaque signature `+…` est cible pour la pose de la grammaire qui valide la charge repliée.
   // Aucun concept ne revendique les 3 jeux à manches de `tavernGames.json` — `boules`
   // (`drCap`, `volley`), `torchon` (`table`, `throwerPenalty`), `pierres` (`target`, `phases`) : ce sont
   // trois RÈGLES, pas une forme. Un noyau qui les réunirait (leurs 10 clés, deux suffisant à classer)
@@ -731,6 +729,15 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'characteristic,difficulty+…', statut: 'cible', pose: 'test', note: 'idem' },
       { sig: 'characteristic,difficulty,skill+…', statut: 'cible', pose: 'test', note: 'idem' },
       { sig: 'characteristic,difficulty,skill', statut: 'cible', pose: 'test', note: '`skill` et `characteristic` coexistent à `flowTestSchema` (#1657 B3-3)' },
+      { sig: 'crewTestType,difficulty+…', statut: 'cible', pose: 'test', note: 'Test d’équipage du Flow avec son enjeu' },
+      { sig: 'crewTestType+…', statut: 'cible', pose: 'test', note: 'Test d’équipage du Flow avec son enjeu et sa difficulté implicite' },
+      { sig: 'crewTestType,difficulty', statut: 'cible', pose: 'test-fixe-d-equipage', note: 'Test fixe d’équipage dont la cadence pose l’enjeu' },
+      { sig: 'skill+…', statut: 'cible', pose: 'test-etendu', note: 'Test étendu composé du jet, de la décision et de la charge d’effet' },
+      { sig: 'characteristic+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'difficulty,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,difficulty+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,difficulty,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
     ],
     noyau: ['difficulty'],
     coPresence: ['skill', 'characteristic', 'crewTestType'],
@@ -887,6 +894,8 @@ export const CONCEPT_DE_LA_POSE: Readonly<Record<IdConceptPose, string>> = {
   'effet-narratif-indice': 'effet-narratif',
   'special-de-jeu': 'special-de-jeu',
   test: 'test',
+  'test-etendu': 'test',
+  'test-fixe-d-equipage': 'test',
 };
 for (const [pose, concept] of Object.entries(CONCEPT_DE_LA_POSE))
   if (!CONCEPTS.some((c) => c.id === concept)) throw new Error(`CONCEPT_DE_LA_POSE : la pose « ${pose} » nomme « ${concept} », absent de CONCEPTS.`);

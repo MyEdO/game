@@ -1,4 +1,4 @@
-import type { Diagnostic } from 'typescript/unstable/sync';
+import type { Checker, Diagnostic } from 'typescript/unstable/sync';
 import type { Node, SourceFile } from 'typescript/unstable/ast';
 import type { AnalyseEmpruntee, FichierSource } from './dialecte.mjs';
 
@@ -34,8 +34,8 @@ export interface SiteDeModule extends PositionDeModule {
 }
 export type LiaisonSituee = Omit<SiteDeModule, 'liaisons'> & LiaisonDeModule;
 /** Une chaîne est analysée et validée ; un SourceFile est réutilisé sans reparsage,
- * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. */
-export function sitesDeModule(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];
+ * avec contrôle des seuls diagnostics fournis. Le checker emprunté lie les références à Vitest. */
+export function sitesDeModule(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[], checker?: Checker): SiteDeModule[];
 export function liaisonsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): LiaisonSituee[];
 export function chargementsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];
 

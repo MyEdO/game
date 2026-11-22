@@ -2,11 +2,12 @@
  * LES PACKS SOURCES D'UNE BASE EN RELEASE (#3248) : les packs de `SOURCES` (`production.ts`) vivent dans la Release
  * `TAG`, en archives `tar.gz` nommées par leur SHA-256 (`ARCHIVES`). `tirerSources` tire chaque archive absente du cache,
  * la vérifie par sa somme, l'extrait dans son dossier du cache, puis vérifie chaque source par son empreinte
- * (`empreinteDeSource`) contre `packs_sources` de la provenance de la base : tout écart est un refus. La commande est
- * `sources.mjs`.
+ * (`empreinteDeSource`) contre `packs_sources` de la provenance de la base : tout écart est un refus. L'extraction se
+ * fait à part puis se renomme en place : un dossier extrait est complet, et des tirages menés de front se partagent le
+ * cache. La commande est `sources.mjs`.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,7 +58,8 @@ function extraireTar(archive: string, dossier: string): void {
 
 /** Les chemins de la source et du texte de licence de chaque pack de `SOURCES`, tirés des `archives` de la Release dans `cache` et
  *  vérifiés : chaque archive par sa somme, chaque source par son empreinte attendue (`empreintesAttendues`). Une archive
- *  dont une source manque ou s'écarte est retirée puis réextraite ; un écart qui reste lève. */
+ *  dont une source manque ou s'écarte est réextraite à part, puis remplace le dossier en place ; un écart qui reste lève.
+ *  Un renommage refusé parce qu'un tirage concurrent a posé le dossier avant lui garde ce dossier s'il est valide. */
 export async function tirerSources({ archives = ARCHIVES, cache = CACHE_DES_SOURCES, provenance = JSON.parse(readFileSync(PROVENANCE, 'utf8')) as Provenance, telecharger = fetch as Telecharger, extraire = extraireTar, journal = (l: string) => console.error(l) }: {
   archives?: Archives; cache?: string; provenance?: Provenance; telecharger?: Telecharger; extraire?: (archive: string, dossier: string) => void; journal?: (ligne: string) => void;
 } = {}): Promise<Record<Pack, CheminsDuPack>> {
@@ -66,8 +68,9 @@ export async function tirerSources({ archives = ARCHIVES, cache = CACHE_DES_SOUR
   for (const [somme, packs] of Object.entries(archives)) {
     const archive = join(cache, `${somme}.tar.gz`), dossier = join(cache, somme)
     const entrees = Object.entries(packs) as [Pack, CheminsDuPack][]
-    const ecarts = () => entrees.filter(([pack, { source }]) => !existsSync(join(dossier, source)) || empreinteDeSource(pack, join(dossier, source)) !== attendues.get(pack)).map(([pack]) => pack)
-    if (existsSync(dossier) && !ecarts().length) journal(`[sources] ${Object.keys(packs).join(', ')} : déjà extraits et vérifiés`)
+    const ecarts = (racine: string) => entrees.filter(([pack, { source }]) => !existsSync(join(racine, source)) || empreinteDeSource(pack, join(racine, source)) !== attendues.get(pack)).map(([pack]) => pack)
+    const valide = (racine: string) => existsSync(racine) && !ecarts(racine).length
+    if (valide(dossier)) journal(`[sources] ${Object.keys(packs).join(', ')} : déjà extraits et vérifiés`)
     else {
       mkdirSync(cache, { recursive: true })
       await enCacheOuTire(archive, somme, `${somme}.tar.gz`, async () => {
@@ -77,11 +80,14 @@ export async function tirerSources({ archives = ARCHIVES, cache = CACHE_DES_SOUR
         if (!reponse.ok) throw new Error(`${url} : HTTP ${reponse.status}`)
         return new Uint8Array(await reponse.arrayBuffer())
       })
-      rmSync(dossier, { recursive: true, force: true })
-      mkdirSync(dossier)
-      extraire(archive, dossier)
-      const fausses = ecarts()
-      if (fausses.length) throw new Error(`[source-fausse] ${fausses.join(', ')} : empreinte différente de packs_sources de la provenance (archive ${somme})`)
+      const provisoire = mkdtempSync(`${dossier}.extraction-`)
+      try {
+        extraire(archive, provisoire)
+        const fausses = ecarts(provisoire)
+        if (fausses.length) throw new Error(`[source-fausse] ${fausses.join(', ')} : empreinte différente de packs_sources de la provenance (archive ${somme})`)
+        if (!valide(dossier)) rmSync(dossier, { recursive: true, force: true })
+        try { renameSync(provisoire, dossier) } catch (erreur) { if (!valide(dossier)) throw erreur }
+      } finally { rmSync(provisoire, { recursive: true, force: true }) }
       journal(`[sources] ${Object.keys(packs).join(', ')} : extraits et vérifiés`)
     }
     for (const [pack, { source, licence }] of entrees) chemins[pack] = { source: join(dossier, source), licence: join(dossier, licence) }

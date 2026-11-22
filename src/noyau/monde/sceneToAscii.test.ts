@@ -321,13 +321,16 @@ describe('planDeLaCouche — la couche, ses marques et sa légende', () => {
   scene.entities = [
     { id: 'table', kind: 'prop', pos: { x: 1, y: 0 }, decor: { id: 'table' } },
     { id: 'coffre', kind: 'prop', pos: { x: 0, y: 1 }, decor: { id: 'coffre' } },
-    { id: 'marin', kind: 'personnage', pos: { x: 3, y: 0 }, creature: { id: 'humain' } },
+    { id: 'marin', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
+    { id: 'vigie', kind: 'personnage', pos: { x: 3, y: 0 }, creature: { id: 'humain' } },
   ];
 
-  it('l’œil, le groupe, les personnages et les décors, chacun à sa case ; un héros sur un décor le cache', () => {
-    expect(planDeLaCouche({ scene, battle: null, partyPos: { x: 0, y: 1 } }, 0, { x: 2, y: 1, z: 0, azimut: 100 })).toBe([
+  const jeu = { scene, battle: null, partyPos: { x: 0, y: 1 }, gameTime: 12 * 60, lightLevel: null, explored: {} };
+
+  it('l’œil, le groupe, les personnages en vue et les décors ; un héros sur un décor le cache', () => {
+    expect(planDeLaCouche(jeu, 0, { x: 2, y: 1, z: 0, azimut: 100 })).toBe([
       '+-+-+-+-+',
-      '|. % .|&|',
+      '|& % .|.|',
       '+ + +-+:+',
       '|@ . → .|',
       '+-+-+-+-+',
@@ -341,6 +344,6 @@ describe('planDeLaCouche — la couche, ses marques et sa légende', () => {
   });
 
   it('l’œil d’une autre couche ne se marque pas', () => {
-    expect(planDeLaCouche({ scene, battle: null, partyPos: { x: 0, y: 1 } }, 0, { x: 2, y: 1, z: 1, azimut: 100 })).not.toContain('→');
+    expect(planDeLaCouche(jeu, 0, { x: 2, y: 1, z: 1, azimut: 100 })).not.toContain('→');
   });
 });

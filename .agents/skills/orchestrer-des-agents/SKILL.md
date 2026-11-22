@@ -146,11 +146,7 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
 `npm run test:perimetre`.
 - **Agent rendu depuis plus de 5 min = agent NEUF au brief COURT, jamais `SendMessage`** : son cache vit
   5 min, au-delà la reprise réécrit tout son contexte (#2568).
-- **Signal de vie** : l'mtime de `~/.claude/projects/<slug>/<session>/subagents/agent-<id>.jsonl`
-  (pas `tasks/<id>.output`), sous `Monitor`, seuil 15 min. Un appel figé sans `tool_result` est tenu par
-  un hook vivant depuis plus de 2 min ou un `cygwin-console-helper` orphelin : `Stop-Process` par PID dans
-  un `.ps1` (`pwsh -NoProfile -File`), jamais par nom, ni sur `scripts/git-hooks/` ou un `node --test`.
-  Puis un agent NEUF, briefé sur le diff partiel relu (#2112).
+- **Agent sans signal de vie** : voir le diagnostic dans `regime-de-vague.md` avant toute relance.
 - **Reprise d'un worktree : mesurer l'INDEX** (`git diff --cached --stat HEAD`, `--cached --stat
   MERGE_HEAD`, `git diff --stat`, stashes du chantier) : le brief donne ces chiffres et dit « couches à
   séparer », jamais « sans conflit ».
@@ -177,10 +173,5 @@ test:perimetre` avant commit et relire le diff. Pour un écran Godot, suivre `.c
 - **Les CLAIMS ARCHITECTURAUX se contre-grep** ; exiger la SORTIE BRUTE des
   portes au rendu ; un vert ne vaut que s'il porte un compte de tests > 0 (les enfants Vitest tournent
   en `--passWithNoTests`, `scripts/test/partition.mjs`). **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
-- **Friction de recette MESURÉE par script = hypothèse** ; seule la capture vaut fait. Avant tout brief de
-  correction, le recetteur la re-mesure isolément (sonde discriminante nommée, tableau brut).
-- **Livraison d'ÉCRAN → trois passes** : recette fonctionnelle (DoD), jugement d'écran (captures → juge
-  en lentilles : charte/primitives, hiérarchie-densité, cohérence inter-écrans, « prototype ou
-  produit ? », défauts concrets), lisibilité si du style a bougé. Sur un sous-système, audit adversarial :
-  un raccourci qui « borne le reste » est un défaut, pas un choix.
+- **Recette ou jugement d'écran** : suivre la vérification dans `regime-de-vague.md`.
 - Au retour de chaque agent, vérifier qu'il ne laisse aucun processus.

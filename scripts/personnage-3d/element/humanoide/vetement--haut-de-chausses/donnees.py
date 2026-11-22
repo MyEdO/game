@@ -1,6 +1,5 @@
 """Données de `humanoide--vetement--haut-de-chausses` (le Soldat, #4318), lues par `modele.py` : la pièce
-`haut-de-chausses` de la garde-robe, de l'ensemble `tenue-uniforme-de-soldat`, seul à la porter (le Gladiateur porte sa
-variante `haut-de-chausses-ample`).
+`haut-de-chausses` de la garde-robe, de l'ensemble `tenue-uniforme-de-soldat`, que porte aussi le preset `gladiateur`.
 
 Illustration directrice : « Soldat | soldat | `carrieres/soldat.png` | Livre de Base | 76 | certaine » (`INDEX.md` du
 recueil `illustrations-wfrp.zip` ; page du PDF, folio imprimé 74), hors dépôt.
@@ -38,7 +37,7 @@ du bandeau, en drap ; le blanc (`vet2`, écru au preset) des pans de la jambe ga
 toile. Deux emplacements de palette, une matière chacun."""
 
 BUDGET_TRIANGLES = 2000
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 PORTEUSES = ['hanches', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d']
 """Les zones que la culotte traverse : ses poids et ses clés en viennent."""

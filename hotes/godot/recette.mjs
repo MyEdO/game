@@ -213,8 +213,10 @@
 // - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie
 //   en tête du panneau, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
 //   montée dans la scène ou nommée manquante ; la fusion porte la pile des couches (#3842), au bilan de l'évaluateur
-//   sur les mêmes éléments et les mêmes formes ; puis capturé de face, de trois quarts et de dos (glissés au bouton
-//   droit de l'orbite) : ce que le jeu montrera d'un preset.
+//   sur les mêmes éléments et les mêmes formes ; avec `--instant <s>`, posé au clip `--clip` à cet instant, en pause
+//   (onglet Animation, image par image) ; puis capturé de face, de trois quarts, de profil et de dos (glissés au bouton
+//   droit de l'orbite), enfin de face en gros plan, la molette tournée jusqu'au zoom minimal de l'orbite, qui monte
+//   sa visée sur la tête : ce que le jeu montrera d'un preset.
 // - `vision` (`--scenario grimpant`, #3950) : la fenêtre du round à l'Entrée, l'ennemi en vue a son corps posé et son
 //   rang dans l'ordre du tour ; sous chaque regard que la touche V offre au combat (tactique et plateau, `regardDuJeu`
 //   y rendant la tactique pour l'immersion), la caméra posée au même point par `wfrpCadrer` (`CADRAGES_DE_LA_VISION`),
@@ -260,7 +262,7 @@
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --piece <production skinnée>
-//   node hotes/godot/recette.mjs --parcours preset --preset sorcier --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours preset --preset sorcier [--clip <clip> --instant <s>] --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours bord --scenario a-bord-de-la-caraque --web <export> --captures <dossier>
 //     --route <route.json de hotes/godot/recettes/route-a-bord.hors-store.test.ts>
 /**
@@ -310,7 +312,7 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
 })
 const preparation = o['preparation-native']
 if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
@@ -321,6 +323,7 @@ if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages a
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
+if (o.instant !== undefined && (o.parcours !== 'preset' || !Number.isFinite(Number(o.instant)) || Number(o.instant) < 0)) throw new Error('--instant <secondes> va avec --parcours preset, qui pose le clip --clip à cet instant')
 if ((o.parcours === 'planche') !== !!o.planche) throw new Error('--parcours planche va avec --planche <nom d’une planche>, et --planche avec lui seul')
 if (o.planche && !o.natif) throw new Error('--planche se joue en natif (--natif) : à la page, une planche se montre au banc des étalons (etalons.mjs)')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -355,6 +358,9 @@ const sansRendu = o.natif && !o.rendu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] }, preparation: preparation && resolve(preparation) })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
+/** Le texte du nord de l'inspecteur de la scène après « +15° » depuis `texte` : 15° depuis le haut du plan, sinon le
+ *  nord tourné de 15°, borné à 345° (`PAS_DU_NORD`, `src/hote/editeur.ts`). */
+const nordTourne = (texte) => `Nord : ${texte === 'Nord : vers le haut du plan' ? 15 : Math.min(Number(/\d+/.exec(texte)[0]) + 15, 345)}° dans le sens horaire`
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
 /** L'attente la plus longue d'une publication : une vue se publie à l'image qui suit sa mise en page, après que le pont
  *  l'a rendue. */
@@ -871,14 +877,26 @@ const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.
 /** Le combat joué en joueur pressé jusqu'à ce que `fini(v)` tienne : chaque fenêtre à l'Entrée, ou par la première
  *  valeur ouverte et non pressée de ses choix, gestes ou réglages, quand aucun n'a le focus, chaque tour une charge
  *  ou une attaque cliquée sur la case de la première cible (`caseDeLaCible`), sinon la fin du tour ; `quoi` nomme ce
- *  qu'on attend. */
+ *  qu'on attend. Les publications entre deux gestes ont leur propre borne. */
 async function jouerEnJoueurPresse(fini, quoi) {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  for (let pas = 0; !fini(v); pas++) {
+  let pas = 0
+  let publicationsPassives = 0
+  while (!fini(v)) {
     const c = v.projection.combat
-    assert.ok(pas < 600 && c, `${quoi} : rien après ${pas} gestes, combat ${c?.fin ?? 'en cours'}`)
+    assert.ok(c, `${quoi} : le combat n'est plus publié après ${pas} gestes`)
+    if (!v.projection.fenetre && !(c.intention && c.cibles.liste.length) && c.barre.forme !== 'ouverte') {
+      assert.ok(publicationsPassives < 600, `${quoi} : ${publicationsPassives} publications consécutives sans geste après ${pas} gestes`)
+      await marquer()
+      await nouvelEcran(FIL_DE_LA_PAGE_MS)
+      publicationsPassives++
+      v = await vue()
+      continue
+    }
+
+    assert.ok(pas < 600, `${quoi} : rien après ${pas} gestes, combat ${c.fin ?? 'en cours'}`)
     const offres = zone(v, 'combat.offres').flatMap((e) => e.valeurs).filter((b) => !b.refus)
     const choixDeLaFenetre = [...zone(v, 'fenetre.gestes'), ...zone(v, 'fenetre.reglages')]
     const valeur = choixDeLaFenetre.some((g) => g.focus) ? null : choixDeLaFenetre.flatMap((g) => (g.type === 'choix' ? g.valeurs : [])).find((b) => !b.refus && !b.presse)
@@ -888,11 +906,9 @@ async function jouerEnJoueurPresse(fini, quoi) {
       await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
       await nouvelEcran()
     } else if (c.intention && c.cibles.liste.length) await cliquerCase(caseDeLaCible(v, c.cibles.liste[0]))
-    else if (c.barre.forme === 'ouverte') await presserLOffre(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour'))
-    else {
-      await marquer()
-      await nouvelEcran()
-    }
+    else await presserLOffre(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour'))
+    pas++
+    publicationsPassives = 0
     v = await vue()
   }
   return v
@@ -2729,15 +2745,16 @@ async function parcoursEditeur() {
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
   const nord = () => e.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte
-  assert.equal(nord(), 'Nord : vers le haut du plan', 'sans sélection, l’inspecteur est celui de la scène')
+  const nordInitial = nord()
+  assert.match(nordInitial ?? '', /^Nord : /, 'sans sélection, l’inspecteur est celui de la scène')
   await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : 15° dans le sens horaire'`)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === ${JSON.stringify(nordTourne(nordInitial))}`)
   e = await editeur()
-  noter(`inspecteur de la scène, « +15° » : ${nord()}`)
+  noter(`inspecteur de la scène, « +15° » : ${nordInitial} → ${nord()}`)
   await capturer('3508-l6-1-scene')
   await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
-  noter('« Annuler » : le nord rendu au haut du plan')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === ${JSON.stringify(nordInitial)}`)
+  noter(`« Annuler » : le nord rendu à ${nordInitial}`)
   const message = 'Au relais\nEn route'
   const formulaireDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'valeur/startMessage/texte')`
   assert.equal(boutonDeLEditeur(await editeur(), 'valeur/startMessage/ajouter')?.libelle, 'Ajouter : message de départ', 'la Diligence n’a pas de message de départ')
@@ -3355,13 +3372,14 @@ async function parcoursEditeur() {
   noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
   const ecrite = e.zones['editeur.titre'][0].texte
   const nordDe = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte`
+  const nordEcrit = await lire(nordDe)
   await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
-  await waitFor(session, `${nordDe} === 'Nord : 15° dans le sens horaire'`)
+  await waitFor(session, `${nordDe} === ${JSON.stringify(nordTourne(nordEcrit))}`)
   const ailleurs = avantLAjout.find((b) => b.libelle !== ecrite)
   await choisirALaListe('scenes', ailleurs.id, 'editeur.scenes', `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ailleurs.libelle)}`)
   await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ecrite)} && ${nordDe} === 'Nord : vers le haut du plan'`)
-  noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu au haut du plan`)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ecrite)} && ${nordDe} === ${JSON.stringify(nordEcrit)}`)
+  noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu à ${nordEcrit}`)
   await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
   const ecranNeuf = await ecran()
@@ -4247,8 +4265,17 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-/** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, puis dos. */
-const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['dos', Math.PI]]
+/** Les vues capturées par le parcours `preset` : le lacet de l'orbite, en radians depuis la face (trois quarts, profil,
+ *  dos, puis de nouveau la face), et, pour le gros plan, le zoom avant à fond. */
+const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['profil', -Math.PI / 2], ['dos', Math.PI], ['gros-plan', 0, true]]
+/** Les crans de molette qui portent l'orbite de son cadre à son zoom minimal, où le zoom se borne
+ *  (`MiseEnPage.echelle_zoomee`) : plus qu'il n'en faut, un cran de trop n'y change rien. */
+const CRANS_DU_ZOOM_MINIMAL = 20
+/** Le point de la scène de l'atelier, hors du panneau, où la molette zoome et autour duquel glisse l'orbite. */
+const SCENE_DE_L_ATELIER = { surface: 'canvas', x: 850, y: 360 }
+/** La course d'un glissé de l'orbite, en pixels, centrée sur `SCENE_DE_L_ATELIER` : elle tient entre le panneau, qui
+ *  prend le mouvement de la souris, et le bord de la fenêtre. */
+const COURSE_DE_L_ORBITE = 400
 /** Chaque élément de la composition (`composition.montes`) monté dans la scène (`montes` et `lignes` de l'atelier), ses
  *  GLB lus : une capture plus tôt montre les premiers objets seuls. */
 const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.element).map((m) => m.element).sort())
@@ -4284,9 +4311,32 @@ async function prouverLaPile() {
   assert.ok(mesures.pile.couverts > 0 && mesures.pile.masques > 0, 'la tenue du preset empile des couches')
 }
 
-/** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts et de dos :
- *  sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion porte la pile
- *  des couches de l'évaluateur (`prouverLaPile`). */
+/** Le clip `clip` posé en pause à l'instant `instant` (s) : choisi à l'onglet Animation, mis en pause, puis avancé
+ *  image par image jusqu'à l'image la plus proche, le clip bouclé. Rend l'instant posé. */
+async function poserLInstant(clip, instant) {
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', clip)
+  await attendreLAtelier(`a.clip === ${JSON.stringify(clip)} && a.lecture`)
+  await cliquerAmene('Pause', 1)
+  await attendreLAtelier('a.lecture === false')
+  const { duree } = await atelier()
+  assert.ok(instant <= duree, `--instant ${instant} : au plus la durée du clip ${clip}, ${duree} s`)
+  const tour = (ecart) => ((ecart % duree) + duree) % duree
+  const suivante = async () => { await cliquerAmene('Image suivante', 1); return (await atelier()).instant }
+  const depart = (await atelier()).instant
+  let posee = await suivante()
+  const pas = tour(posee - depart)
+  assert.ok(pas > 0, `l'image suivante avance le clip ${clip} : ${depart} → ${posee}`)
+  while (tour(instant - posee) >= pas / 2 && tour(instant - posee) <= duree - pas / 2) posee = await suivante()
+  noter(`${clip} posé à ${posee} s (demandé ${instant} s)`)
+  return posee
+}
+
+/** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts, de profil
+ *  et de dos, puis de face en gros plan, la molette tournée de `CRANS_DU_ZOOM_MINIMAL` crans sur la scène, chaque
+ *  glissé de l'orbite tenu dans la scène (`COURSE_DE_L_ORBITE`) : sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion
+ *  porte la pile des couches de l'évaluateur (`prouverLaPile`) ; avec `--instant`, posé au clip `--clip` à cet instant
+ *  (`poserLInstant`). */
 async function parcoursPreset() {
   const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
   assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
@@ -4303,13 +4353,18 @@ async function parcoursPreset() {
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
   await prouverLaPile()
+  const pose = o.instant === undefined ? '' : `-${o.clip}-${(await poserLInstant(o.clip, Number(o.instant))).toFixed(2)}s`
   let lacet = 0
-  for (const [nom, cible] of VUES_DU_PRESET) {
-    const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)
-    const pas = Math.ceil(Math.abs(dx) / 10)
-    if (dx) await geste(session, { surface: 'canvas', x: 1000, y: 360 }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
+  for (const [nom, cible, dePres] of VUES_DU_PRESET) {
+    for (let reste = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL); reste;) {
+      const dx = Math.sign(reste) * Math.min(Math.abs(reste), COURSE_DE_L_ORBITE)
+      const pas = Math.ceil(Math.abs(dx) / 10)
+      await geste(session, { ...SCENE_DE_L_ATELIER, x: SCENE_DE_L_ATELIER.x - Math.round(dx / 2) }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
+      reste -= dx
+    }
     lacet = cible
-    await capturer(`preset-${preset.id}-${nom}`)
+    if (dePres) await molette(session, SCENE_DE_L_ATELIER, -CRAN_DE_MOLETTE, { crans: CRANS_DU_ZOOM_MINIMAL })
+    await capturer(`preset-${preset.id}${pose}-${nom}`)
   }
 }
 

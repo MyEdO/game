@@ -1,6 +1,6 @@
 """Données de `humanoide--vetement--bottines` (le Soldat, #4318), lues par `modele.py` : la variante `bottines` de la
-pièce `bottes` de la garde-robe, que le preset `soldat` porte (le Sorcier et l'Apothicaire gardent la pièce `bottes`, le
-Gladiateur sa variante `bottes-a-revers`).
+pièce `bottes` de la garde-robe, que le preset `soldat` porte (le Sorcier, l'Apothicaire et le Gladiateur gardent la pièce
+`bottes`).
 
 Illustration directrice : « Soldat | soldat | `carrieres/soldat.png` | Livre de Base | 76 | certaine » (`INDEX.md` du
 recueil `illustrations-wfrp.zip` ; page du PDF, folio imprimé 74), hors dépôt.
@@ -28,7 +28,7 @@ MATERIAUX = {'cuir': ('cuir', 'cuir-tanne')}
 """Illustration : cuir fauve (`cuir`, fauve au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 PORTEUSES = {c: [f'pied_{c}', f'mollet_{c}'] for c in 'gd'}
 """Par pied, les zones que la bottine entoure : ses poids et ses clés en viennent."""
