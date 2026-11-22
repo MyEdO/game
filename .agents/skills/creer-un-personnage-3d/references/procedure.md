@@ -616,8 +616,8 @@ retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON V
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
 Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : la capture du preset
-dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, sous
-`dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
+dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, puis `gros-plan` : le visage de face, au zoom
+minimal de la molette, sous `dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
 côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 

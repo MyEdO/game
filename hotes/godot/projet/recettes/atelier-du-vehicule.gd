@@ -3,9 +3,11 @@ extends SceneTree
 ## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un
 ## pont figé (`PontFige`, `pont_fige.gd`, sur le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui
 ## sert le listage et les GLB du projet et répond à chaque entrée de `vehicule` que la sonde a figée. À l'ouverture, la
-## base posée, servie sans aucun élément, offre chaque onglet, Équipement pour ce qui reste à produire (#3792). La
-## caraque choisie à la liste de tête des véhicules se pose au sol, cadrée à sa taille, l'onglet montré cédant la place
-## au premier qu'elle offre ; un canon choisi à une place de tribord, le Sabord installé, la Figure de proue installée,
+## base posée, servie sans aucun élément, offre chaque onglet, Équipement pour ce qui reste à produire (#3792) ; son
+## orbite cadrée sur un corps à la tête mesurée (`MarcheDeLAtelier.cadrer_le_corps`), le pivot reste sur la racine au
+## cadre et plus loin, et la molette tournée jusqu'au zoom minimal porte l'axe de la caméra à la hauteur de la tête
+## (#4746). La caraque choisie à la liste de tête des véhicules se pose au sol, cadrée à sa taille, l'onglet montré
+## cédant la place au premier qu'elle offre, le pivot de son orbite sur la racine jusqu'au zoom minimal ; un canon choisi à une place de tribord, le Sabord installé, la Figure de proue installée,
 ## le Sabord retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie l'entrée attendue, et son montage
 ## (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à sa position, tournée vers son bord,
 ## chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud `montre` et cachant son nœud `cache`, les
@@ -30,6 +32,12 @@ const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
 ## La plus petite échelle d'orbite qui cadre une coque d'une trentaine de mètres, la caméra de la scène cadrant un corps.
 const CADRE_D_UNE_COQUE := 5.0
+## La hauteur de la tête, en mètres au-dessus de la racine, du corps que la recette donne à cadrer.
+const TETE := 1.6
+## Les crans de molette au bout desquels l'orbite est à son zoom minimal, puis, en sens inverse, à son zoom maximal.
+const CRANS_DE_ZOOM := 20
+## L'écart admis, en mètres, sur une hauteur de visée.
+const TOLERANCE_DE_VISEE := 0.001
 ## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
 const ECLATS_ETEINTS_S := 4.0
 ## Le clip de la liste choisi pendant une attaque du trébuchet.
@@ -61,11 +69,26 @@ func _recetter() -> void:
 		await process_frame
 	var a_l_ouverture: Array = pont.ecran.get("atelier", {}).get("onglets", [])
 	_verifier(a_l_ouverture == ["personnage", "equipement", "couleurs", "animation", "effets", "outils"], "la base sans élément posée à l'ouverture : onglets offerts %s" % [a_l_ouverture])
+	var marche := atelier.get_node("Marche") as MarcheDeLAtelier
+	marche.cadrer_le_corps(MarcheDeLAtelier.CADRE_NEUTRE, TETE)
+	await _images(2)
+	var au_cadre := _visee(marche)
+	_verifier(is_zero_approx(marche.orbite.position.y), "au cadre d'un corps, le pivot sur la racine : à %.3f m" % marche.orbite.position.y)
+	await _zoomer(marche, MOUSE_BUTTON_WHEEL_UP)
+	_verifier(is_equal_approx(marche.echelle(), MiseEnPage.ZOOM_MINIMAL), "la molette porte l'orbite d'un corps à son zoom minimal : échelle %.3f" % marche.echelle())
+	_verifier(absf(_visee(marche) - TETE) < TOLERANCE_DE_VISEE, "au zoom minimal, la caméra vise la tête à %.3f m : %.3f m" % [TETE, _visee(marche)])
+	await _zoomer(marche, MOUSE_BUTTON_WHEEL_DOWN)
+	_verifier(is_zero_approx(marche.orbite.position.y), "plus loin que le cadre d'un corps, le pivot sur la racine : à %.3f m" % marche.orbite.position.y)
+	print("[atelier-du-vehicule] visée d'un corps : %.3f m au cadre, %.3f m au zoom minimal" % [au_cadre, TETE])
+	marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE)
 	_choisir(atelier, "modele/vehicule", "caraque")
 	await _etape(atelier, pont, cles, 0, "caraque choisie")
 	_verifier(pont.ecran.atelier.onglet == pont.ecran.atelier.onglets[0], "la caraque choisie depuis Personnage : l'onglet montré %s, attendu le premier offert %s" % [pont.ecran.atelier.onglet, pont.ecran.atelier.onglets[0]])
-	var cadre: float = (atelier.get_node("Marche") as MarcheDeLAtelier).echelle()
+	var cadre: float = marche.echelle()
 	_verifier(cadre > CADRE_D_UNE_COQUE, "la caraque cadrée à sa taille : échelle d'orbite %.2f" % cadre)
+	await _zoomer(marche, MOUSE_BUTTON_WHEEL_UP)
+	_verifier(is_equal_approx(marche.echelle(), MiseEnPage.ZOOM_MINIMAL * cadre) and is_zero_approx(marche.orbite.position.y),
+			"au zoom minimal de la caraque, le pivot sur la racine : échelle %.2f, pivot à %.3f m" % [marche.echelle(), marche.orbite.position.y])
 	_choisir(atelier, "poste/tribord/0", "canon-moyen")
 	await _etape(atelier, pont, cles, 1, "canon à tribord 1")
 	_cocher(atelier, "amelioration/sabord", true)
@@ -85,6 +108,23 @@ func _recetter() -> void:
 		push_error("[atelier-du-vehicule] " + faute)
 	print("[atelier-du-vehicule] %d entrées de `vehicule`, erreurs=%d" % [pont.entrees.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## La hauteur où l'axe de la caméra de `marche` croise la verticale de son pivot, l'orbite de face.
+func _visee(marche: MarcheDeLAtelier) -> float:
+	var oeil := marche.camera.global_position
+	var axe := -marche.camera.global_basis.z
+	return oeil.y + axe.y * (marche.orbite.global_position.z - oeil.z) / axe.z
+
+
+## `CRANS_DE_ZOOM` crans de molette `bouton` remis à `marche` comme hors de l'interface, puis le pivot suivi.
+func _zoomer(marche: MarcheDeLAtelier, bouton: MouseButton) -> void:
+	var cran := InputEventMouseButton.new()
+	cran.button_index = bouton
+	cran.pressed = true
+	for i in CRANS_DE_ZOOM:
+		marche._unhandled_input(cran)
+	await _images(2)
 
 
 ## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet et chaque lumière connus de

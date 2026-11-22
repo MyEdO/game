@@ -730,6 +730,25 @@ static func echelle_de_la_boite(taille: Vector3, hauteur_vue: float) -> float:
 	return taille.length() / hauteur_vue
 
 
+## La hauteur que vise, au pivot, l'axe d'une caméra posée en `position` autour de lui et inclinée de `inclinaison`
+## radians (négative : vers le bas), à l'échelle 1 de son orbite.
+static func hauteur_visee_au_pivot(position: Vector3, inclinaison: float) -> float:
+	return position.y + position.z * tan(inclinaison)
+
+
+## La hauteur dont le pivot de l'orbite monte au zoom minimal du cadre `cadre` pour que l'axe de la caméra, qui vise
+## la hauteur `visee` au pivot à l'échelle 1 (`hauteur_visee_au_pivot`), y passe à la hauteur `tete`.
+static func elevation_vers_la_tete(tete: float, cadre: float, visee: float) -> float:
+	return tete - ZOOM_MINIMAL * cadre * visee
+
+
+## Le pivot de l'orbite au-dessus de la racine posée en `racine`, à l'échelle `echelle` : sur elle à l'échelle `cadre`
+## du cadre posé et au-delà, il monte avec le zoom avant jusqu'à `elevation` au zoom minimal (`ZOOM_MINIMAL` fois
+## `cadre`).
+static func pivot_de_l_orbite(racine: Vector3, echelle: float, cadre: float, elevation: float) -> Vector3:
+	return racine + Vector3.UP * elevation * clampf((cadre - echelle) / (cadre - ZOOM_MINIMAL * cadre), 0.0, 1.0)
+
+
 ## L'échelle de l'orbite d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée de `ZOOM_MINIMAL` à
 ## `ZOOM_MAXIMAL` fois l'échelle `cadre` du cadre posé (`distance_zoomee`).
 static func echelle_zoomee(echelle: float, sens: float, cadre: float) -> float:
