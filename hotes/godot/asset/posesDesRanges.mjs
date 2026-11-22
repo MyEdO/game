@@ -5,8 +5,9 @@
 // `porteeDeComposition`, `composerSurLaBase`) sur les manifestes voisins des GLB donnés, hors dépôt compris, puis
 // l'éditeur épinglé la monte et rend la transformation de chaque mesh rangé à chaque instant demandé
 // (`poserLesRanges`, `construire.mjs` ; `projet/outils/poses_des_ranges.gd`).
-// En ligne de commande, l'entrée standard porte `{ base, manifeste, elements, preset, silhouettes?, clip?, t? }` et la
-// sortie standard `{ elements, sans }` pour ce seul instant, le repos sans `clip` :
+// En ligne de commande, l'entrée standard porte `{ base, manifeste, elements, preset, facteurs?, silhouettes?, clip?, t? }`
+// (`facteurs` : ceux du gabarit, les autres aux `FACTEURS_NEUTRES`) et la sortie standard `{ elements, sans }` pour ce
+// seul instant, le repos sans `clip` :
 //   node hotes/godot/asset/posesDesRanges.mjs < demande.json
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
@@ -79,11 +80,11 @@ export async function posesDesRanges({ base, manifeste, elements, preset, instan
 
 if (import.meta.main) {
   console.log = console.error
-  const { silhouettes = {}, clip = '', t = 0, ...demande } = JSON.parse(await text(process.stdin))
+  const { facteurs = {}, silhouettes = {}, clip = '', t = 0, ...demande } = JSON.parse(await text(process.stdin))
   const a = await assets()
   const brut = JSON.parse(readFileSync(demande.manifeste, 'utf8'))
   const morphes = { ...tableTotale(brut.silhouettes ?? [], () => 0), ...silhouettes }
-  const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, a.FACTEURS_NEUTRES, morphes) } : {}
+  const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, { ...a.FACTEURS_NEUTRES, ...facteurs }, morphes) } : {}
   const { elements, sans } = await posesDesRanges({ ...demande, instants: [{ ...gabarit, morphes, clip, t }] })
   process.stdout.write(JSON.stringify({ elements: elements.map((e) => e && { ligne: e.ligne, meshes: Object.fromEntries(Object.entries(e.meshes).map(([nom, poses]) => [nom, poses[0]])) }), sans }))
 }

@@ -25,6 +25,8 @@ const translation = (x: number, y: number, z: number): number[] => [1, 0, 0, 0, 
 
 const CLIP = 'Marche';
 const base = glb([cube('corps', 0.3, 'torse')], CLIP);
+/** La même base, avec une silhouette `large` qui ne déplace aucun sommet. */
+const AVEC_SILHOUETTE = glb([{ ...cube('corps', 0.3, 'torse'), formes: { large: () => [0, 0, 0] } }], CLIP);
 const robe = glb([cube('robe', 0.4, 'bras')]);
 const gilet = glb([cube('gilet', 0.4, 'torse')]);
 const fiole = glb([PLAQUETTE]);
@@ -68,6 +70,8 @@ describe('rangement', () => {
     expect(dedans[1]).toMatchObject({ garde: 'rigideRange', mesh: 'élément 2/fiole#0', seuil: -ECART_DE_SUIVI_M });
     expect(dedans[1].valeur).toBeCloseTo(-0.006, 6);
     expect(rigides(await sous(DEDANS, [0])), 'la robe offre sa case').toEqual([]);
+    const sousUneSilhouette = await evaluer({ base: AVEC_SILHOUETTE, elements: [robe, fiole], couches, silhouettes: { large: 1 }, ranger: async (i) => [null, { meshes: { fiole: i.map(() => DEDANS) }, offrants: [], os: OS }] });
+    expect(rigides(sousUneSilhouette).map((e) => e.garde), 'au repos d’une silhouette aussi').toContain('rigideRange');
     expect(rigides(await sous(DEDANS, [], gilet)).map((e) => e.clip), 'un vêtement de sa zone : au repos seul, comme une couche').toEqual([undefined]);
     expect(rigides(await sous(DEDANS, [], robe, { [CLIP]: 1 })).map((e) => e.clip), 'au plafond du clip').toEqual([undefined]);
   });
