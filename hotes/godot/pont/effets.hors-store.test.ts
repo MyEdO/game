@@ -5,7 +5,7 @@
  * ses dés, et la vue porte la musique de la partie (#3825), les marques des États et les zones qui durent (#3834).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table, type Reponse, enFocus } from './pont.testkit';
+import { drainer, enFocus, erreurDe, suiteDe, table, vueDe, type Reponse } from './pont.testkit';
 import { ambiance } from '../../../src/data';
 import { siegeEngines, type Effet, type VitrineDesEffets } from '../../../src/noyau/index';
 import { clicDuCombattant, type Suite } from './pont';
@@ -45,8 +45,33 @@ describe('les effets par le pont', () => {
     const heros = debut.vue.projection.combat!.actif!.id;
     const armee = jouer(appel('jouer', { type: 'armerLIntention', args: ['charge'] }));
     const [cible] = armee.vue.projection.combat!.cibles.liste;
-    jouer(appel('jouer', clicDuCombattant(armee.vue, cible)));
-    const coup = rendus.find((e) => e.quoi === 'coup' && e.de === heros);
+    const approche = suiteDe(appel('jouer', clicDuCombattant(armee.vue, cible)));
+    expect(approche.effets).toContainEqual(expect.objectContaining({ quoi: 'deplacement', qui: heros }));
+    expect(approche.vue.projection.fenetre).toBeNull();
+    expect(approche.programmes).toEqual([{ id: expect.any(Number), delai: expect.any(Number), apresDeplacement: [heros] }]);
+    const [programme] = approche.programmes;
+
+    const autreAttaque = suiteDe(appel('jouer', { type: 'armerLAttaque', args: ['arme'] }));
+    const clic = clicDuCombattant(autreAttaque.vue, cible)!;
+    const tentative = appel('jouer', { type: clic.type, args: [...clic.args, { confirm: true }] });
+    expect(tentative).toMatchObject({ ok: false, erreur: { categorie: 'regle', message: 'Une frappe est déjà en attente.' } });
+    expect(vueDe(appel('vue')).projection.fenetre).toBeNull();
+
+    expect(appel('reglages', { type: 'preference', args: ['combat-cadence', 'auto'] })).toMatchObject({ ok: true });
+    const enAuto = drainer(appel, appel('nouvelles')).suite;
+    expect(enAuto.vue.projection.combat?.actif?.id).toBe(heros);
+    expect(enAuto.vue.projection.fenetre).toBeNull();
+    expect(appel('reglages', { type: 'preference', args: ['combat-cadence', 'manuel'] })).toMatchObject({ ok: true });
+
+    const frappe = appel('reprendre', { jeton: programme.id });
+    expect(suiteDe(frappe).vue.projection.fenetre?.cle).toBe('cascade');
+    expect(erreurDe(appel('reprendre', { jeton: programme.id }))).toEqual({
+      categorie: 'validation', message: `jeton inconnu : ${programme.id}`,
+    });
+    jouer(frappe);
+    const coups = rendus.filter((e) => e.quoi === 'coup' && e.de === heros);
+    expect(coups).toHaveLength(1);
+    const [coup] = coups;
     expect(coup, 'le coup du héros est dans la suite').toMatchObject({ quoi: 'coup', vers: cible, issue: expect.stringMatching(/^(touche|critique|pare|manque)$/), couleur: expect.stringMatching(/^#[0-9a-f]{6}$/), trajet: null });
     expect(coup!.quoi === 'coup' && coup!.arrivee?.son?.fichiers.length, 'son arrivée joue un son du registre').toBeGreaterThan(0);
     expect(coup!.quoi === 'coup' && coup!.flottants.length, 'son arrivée dit son issue').toBeGreaterThan(0);

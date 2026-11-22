@@ -97,7 +97,8 @@ export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>, premier = 0) {
         if (e.type !== 'programme') return [];
         const id = suivant++;
         tenus.set(id, e.jeton);
-        return [{ id, delai: e.delai }];
+        const { delai, apresDeplacement } = e;
+        return [{ id, delai, ...(apresDeplacement ? { apresDeplacement } : {}) }];
       });
     },
     reprendre(id: number): ResultatDeLAppel {
