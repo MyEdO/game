@@ -231,10 +231,16 @@ describe('piecesDeToitDeLaScene — arêtiers et noues d’une croupe (#4471)', 
     );
   });
 
-  it('sur une croupe de chaume à 1 m par case, chaque pièce d’arêtier traverse au moins une case, le débord compris', () => {
-    const pieces = croupe([{ x: 2, y: 2, w: 6, h: 3 }], { material: { id: 'chaume' } }, 1).filter((p) => p.piece === 'aretier');
+  it.each([1, 0.5])('sur une croupe de chaume à %s m par case, chaque pièce d’arêtier traverse au moins une case, et le débord va à celle du bas', (metresPerTile) => {
+    const pieces = croupe([{ x: 2, y: 2, w: 6, h: 3 }], { material: { id: 'chaume' } }, metresPerTile).filter((p) => p.piece === 'aretier');
     expect(pieces.length).toBeGreaterThan(0);
     for (const p of pieces) expect(p.cases.length, p.cle).toBeGreaterThan(0);
+    const plusBas = Math.min(...pieces.map((p) => p.entree));
+    for (const p of pieces.filter((q) => Math.abs(q.entree - plusBas) < 1e-9)) {
+      const bas = { x: p.milieu.x - p.sens.x / 2, y: p.milieu.y - p.sens.y / 2 };
+      expect(bas.x < 1.5 || bas.x > 7.5, `${p.cle} : son bas sur le débord`).toBe(true);
+      expect(bas.y < 1.5 || bas.y > 4.5, `${p.cle} : son bas sur le débord`).toBe(true);
+    }
   });
 
   it('une arête entre deux pans de pentes inégales porte leur gradient moyen : son travers cisaille la pièce', () => {
