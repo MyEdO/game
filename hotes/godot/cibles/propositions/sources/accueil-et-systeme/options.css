@@ -4,7 +4,7 @@
 .pref .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pref b{font-weight:400;font-size:15.5px;color:#f0e2c2;white-space:nowrap}
 .pref .glose{margin:5px 0 0}
-#preferences .trait{height:1px;background:rgba(226,192,106,.28);margin:2px 0}
+#preferences .filet{margin:2px 0}
 .curseur{display:inline-flex;align-items:center;gap:12px}
 .curseur .val{width:44px;text-align:right;font-size:19px;line-height:20px;color:#3a1a10;white-space:nowrap}
 .bois .curseur .val{color:#f3e6c6;width:54px;font-size:18px}

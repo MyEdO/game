@@ -258,11 +258,8 @@
                 : `${echapper(qui(l.qui).nom)} à ${l.distance} m · portée ${l.portee} m`);
   const carteDe = (c) => {
     const lignes = c.detail.map(ligneDeCarte);
-    const marque = c.marque && modif(c.marque.valeur === undefined ? echapper(c.marque.nom) : `${c.marque.valeur < 0 ? signe(c.marque.valeur) : c.marque.valeur} ${echapper(c.marque.nom)}`);
-    /* la marque suit la dernière ligne quand elle y tient, sinon passe dessous */
-    const derniere = lignes.length ? lignes.pop() : '';
-    const sous = [...lignes, marque ? (`${derniere}${c.marque.nom}`.length > 24 ? `${derniere} <br>${marque}` : `${derniere} ${marque}`) : derniere].join(`${separateur('median')}<br>`);
-    return carte(echapper(c.nom ?? qui(c.qui).nom), sous, { armee: !!c.choisie, fermee: !!c.refus, refus: c.refus && c.survol ? echapper(c.refus) : '', classe: c.funeste ? 'funeste' : '', portrait: c.qui ? portrait(qui(c.qui).buste, { camp: campDe(c.qui) }) : '' });
+    const marque = !c.marque ? '' : c.marque.valeur === undefined ? echapper(c.marque.nom) : `${c.marque.valeur < 0 ? signe(c.marque.valeur) : c.marque.valeur} ${echapper(c.marque.nom)}`;
+    return carte(echapper(c.nom ?? qui(c.qui).nom), lignes.join(`${separateur('median')}<br>`), { armee: !!c.choisie, fermee: !!c.refus, refus: c.refus && c.survol ? echapper(c.refus) : '', classe: c.funeste ? 'funeste' : '', marque, portrait: c.qui ? portrait(qui(c.qui).buste, { camp: campDe(c.qui) }) : '' });
   };
   /* au-delà de trois cartes, la liste se pagine par trois, à la page de la carte choisie (`../dispositions.md`, « Débordement ») */
   const PAR_PAGE = 3;
@@ -556,7 +553,7 @@
     const modifiees = ouvert.gauche.concat(ouvert.droite).filter((r) => r.modifiee).length;
     return [fondDeTable(),
       cartouche({ icone: 'systeme', nom: echapper(o.titre.nom), sous: echapper(o.titre.sous), taille: 'titre' }),
-      `<div id="preferences" class="cadre bois" data-piece="colonne-gestion"><div class="fond bois">${o.son.map(pref).join('')}<div class="trait"></div>${o.jeu.map(pref).join('')}</div>${ruban('Préférences')}${ferrures}</div>`,
+      `<div id="preferences" class="cadre bois" data-piece="colonne-gestion"><div class="fond bois">${o.son.map(pref).join('')}${filet()}${o.jeu.map(pref).join('')}</div>${ruban('Préférences')}${ferrures}</div>`,
       signets(o.domaines.map((d) => ({ nom: echapper(d.nom), compte: d.regles, marque: !!d.modifiees })), echapper(ouvert.domaine)),
       `<div id="registre" class="reglages${o.verrou ? ' verrou' : ''}" data-piece="registre"><div class="tranche"></div>
         <div class="feuille g parchemin">
@@ -639,7 +636,7 @@
      pastille du système */
   const menuDeLaPartie = (m) => [
     titreLibre('pause', m.titre.sur, m.titre.nom, { filet: true }),
-    entreesDe(m.entrees, m.instant, `<div class="trait"></div>${plaqueDEntree(m.quitter)}<div class="dernier ombre">Dernière sauvegarde automatique à ${m.derniereAuto}.</div>`),
+    entreesDe(m.entrees, m.instant, `${filet({ fondu: true, or: true })}${plaqueDEntree(m.quitter)}<div class="dernier ombre">Dernière sauvegarde automatique à ${m.derniereAuto}.</div>`),
     `<div id="coins" data-piece="coins">${rond('systeme', 'grand', { arme: true })}</div>`,
   ];
   /* la clôture d'un chapitre : son sous-titre, ce que la route retiendra (les objectifs soldés, les PX), les lieux révélés,
@@ -681,7 +678,7 @@
   const recruter = (n) => cadre('rail', null, null, null, null, 'bois', `<div class="deux">${plaque('Pré-tirés', { armee: n.onglet === 'pretires' })}${plaque('Mes personnages', { armee: n.onglet === 'roster' })}</div>
     ${glose({ texte: `${pluriel(n.salle.voyageurs.length, n.onglet === 'roster' ? 'personnage' : 'voyageur')} dans la salle, sur ${n.salle.total}` })}
     <div class="tourne">${rond('gauche', 'petit')}<span class="rubrique">D’autres voyageurs</span>${rond('droite', 'petit')}</div>
-    <div class="trait"></div>${plaque('Créer un personnage', { icone: 'plume', classe: 'gauche' })}${plaque('Importer un personnage…', { icone: 'disque', classe: 'gauche' })}`, { ruban: 'Recruter', piece: 'colonne-gauche' });
+    ${filet()}${plaque('Créer un personnage', { icone: 'plume', classe: 'gauche' })}${plaque('Importer un personnage…', { icone: 'disque', classe: 'gauche' })}`, { ruban: 'Recruter', piece: 'colonne-gauche' });
   const salleDe = (n) => {
     const places = placesDesVoyageurs(n.salle.voyageurs.length);
     return `<div id="salle">${n.salle.voyageurs.map((v, k) => { const [cx, y] = places[k];
@@ -820,7 +817,7 @@
      propriétés, ou les options de l'outil (`liste` : celles d'un outil qui choisit parmi tous les genres du système, le
      terrain) ; au pied la validation, ou ce qui retire ce qui est choisi (`supprimer`) */
   const inspecteur = ({ genre, sous, corps, liste = false, validation, supprimer = '' }) => cadre('inspecteur', null, null, null, null, 'parchemin', colonne('inspecteur', {
-    tete: `${titre({ texte: genre, cle: 'choisi' })}${sousTitre({ texte: sous })}<div class="trait"></div>`, corps, liste,
+    tete: `${titre({ texte: genre, cle: 'choisi' })}${sousTitre({ texte: sous })}${filet()}`, corps, liste,
     geste: validation ? validationDe(validation) : supprimer && plaque(supprimer, { icone: 'croix', taille: 'petite' }),
   }), { ruban: 'Inspecteur' });
   const inspecteurDe = (i, validation) => inspecteur({ genre: echapper(i.genre), sous: echapper(i.ou ?? i.options), validation, supprimer: echapper(i.supprimer ?? ''), liste: 'terrains' in i, corps: 'terrains' in i

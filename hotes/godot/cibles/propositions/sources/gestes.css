@@ -228,7 +228,13 @@ html,body{margin:0;background:var(--noir)}
 /* la carte courte, à la hauteur d'une bande : son nom et la valeur qui décide sur une ligne */
 .plaque.carte.courte{height:26px}
 .plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
-.plaque.carte .qui{min-width:0}
+.plaque.carte .qui{flex:1 1 0;min-width:0}
+/* la marque, sur sa ligne sous le portrait et le texte, de toute la largeur intérieure ; en liste, à la suite du texte */
+.plaque.carte>div{flex-wrap:wrap;align-content:center;row-gap:6px}
+.plaque.carte .marque-de-carte{flex:0 0 100%;display:flex}
+.cartes.liste>.carte>div{flex-wrap:nowrap}
+.cartes.liste>.carte .marque-de-carte{flex:none}
+.cartes.liste>.carte:has(.marque-de-carte) .qui{flex:0 1 auto}
 .plaque.carte :is(.n,.c){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}
 .plaque.carte .c{-webkit-line-clamp:3}
 .plaque.carte .n{font-size:16px;line-height:19px;letter-spacing:.3px;color:var(--ivoire)}
@@ -284,8 +290,8 @@ html,body{margin:0;background:var(--noir)}
 .sceau.de b{font-weight:700;font-size:28px;line-height:26px}
 .sceau.de i{margin-top:5px;font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
 
-/* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond */
-.filet{display:flex;align-items:center;margin:11px 0;color:var(--creme-2)}
+/* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond ; sans marge, son écart est du placement */
+.filet{display:flex;align-items:center;color:var(--creme-2)}
 .parchemin .filet{color:var(--encre-2)}
 .filet.or{color:var(--or)}
 .filet::before,.filet::after{content:"";flex:1;height:1px;background:currentColor;opacity:.5}

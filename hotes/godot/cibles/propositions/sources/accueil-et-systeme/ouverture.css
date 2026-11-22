@@ -14,7 +14,7 @@
 #entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px}
 #entrees :is(.reprise,.dernier){font-style:italic;font-size:14px;line-height:18px;color:#e6dabd;white-space:nowrap}
 #entrees .reprise .rubrique{font-style:normal;color:#f0e2c2}
-#entrees .trait{height:1px;background:linear-gradient(90deg,rgba(226,192,106,.55),rgba(226,192,106,0));margin:8px 0}
+#entrees .filet{margin:8px 0}
 #entrees .dernier{margin:2px 0 0 4px;color:#cfc2a4}
 #outils{display:flex;gap:6px}
 #outils .outil{gap:6px;width:92px}

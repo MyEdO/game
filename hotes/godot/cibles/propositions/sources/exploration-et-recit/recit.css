@@ -82,6 +82,7 @@
 #rail .documents .rub{text-align:center}
 #rail .plaque .prix{margin-left:auto}
 #affaire>.fond{display:flex;flex-direction:column;padding:24px 28px 0}
+#affaire>.fond>.filet{margin:11px 0}
 #affaire .tete{display:flex;justify-content:space-between;align-items:flex-end}
 #affaire .indice{display:flex;align-items:center;gap:10px}
 #affaire .indice .nom-propre{margin-right:6px}

@@ -448,7 +448,7 @@ Règle 4 du même plan.
 - **Forme** : id vers texte. L'id est en minuscules, par domaine puis par chose : `combat.fin-du-tour`. Le texte est un mot fixe, ou une phrase à trous nommés avec ses formes de nombre : `voyage.reste.km` vaut « {n} km avant {lieu} ». Le type de l'id est l'ensemble des clés du fichier : un id inconnu échoue au typage.
 - **Dans une donnée** : un champ de libellé porte l'id, plus un texte. `ouvrir: [{ id: 'dossier' }]` suffit, le mot vient de `ouvrir.dossier` (aujourd'hui l'état répète le mot : `libelle`, `M:678`).
 - **Dans une table** : `#id`, avec ses trous nourris par des champs : `#voyage.reste.{unite}(n ← frise.reste, lieu ← frise.vers)`.
-- **Dans une primitive** : un paramètre `libelle` reçoit le texte déjà résolu par le moteur. La primitive le place et n'écrit aucun mot. Au moins sept en écrivent aujourd'hui : `bourse` et `rangeeDeBourses` (`sources/gestes.js:411`, `:412`), `paginer` (`sources/gestes.js:382`), `ouiNon` (`sources/gestes.js:355`), `camp` (`sources/combat/jet.js:12-13`), `testeurs` (`sources/combat/jet.js:50`), `bandeau` (`sources/lieux-et-nuit/commun.js:60`). Le relevé n'est pas exhaustif.
+- **Dans une primitive** : un paramètre `libelle` reçoit le texte déjà résolu par le moteur. La primitive le place et n'écrit aucun mot. Au moins sept en écrivent aujourd'hui : `bourse` et `rangeeDeBourses` (`sources/gestes.js:412`, `:413`), `paginer` (`sources/gestes.js:383`), `ouiNon` (`sources/gestes.js:356`), `camp` (`sources/combat/jet.js:12-13`), `testeurs` (`sources/combat/jet.js:50`), `bandeau` (`sources/lieux-et-nuit/commun.js:60`). Le relevé n'est pas exhaustif.
 
 ### Dix mots en dur aujourd'hui
 
@@ -457,9 +457,9 @@ Règle 4 du même plan.
 | « Fin du tour » | `R:427` | `combat.fin-du-tour` |
 | « Journal » | `R:516`, `R:1337` | `mot.journal` |
 | « Libre » | `R:447` | `mot.libre` |
-| « Bourses du groupe » | `sources/gestes.js:411` | `bourse.groupe` |
-| « Total » | `sources/gestes.js:411`, `:412` | `mot.total` |
-| « Page 1 sur N » | `sources/gestes.js:382` | `page.rang` : « Page {n} sur {sur} » |
+| « Bourses du groupe » | `sources/gestes.js:412` | `bourse.groupe` |
+| « Total » | `sources/gestes.js:412`, `:413` | `mot.total` |
+| « Page 1 sur N » | `sources/gestes.js:383` | `page.rang` : « Page {n} sur {sur} » |
 | « Testeur » | `sources/combat/jet.js:50` | `jet.testeur` |
 | « Réussite », « Échec », « Critique » | `sources/combat/jet.js:13`, `R:954` | `verdict.reussite`, `verdict.echec`, `verdict.critique` |
 | « Cadence du voyage », « Jour par jour », « Sous vos ordres » | `R:943-944` | `voyage.cadence`, `cadence.jourParJour`, `cadence.commande` |

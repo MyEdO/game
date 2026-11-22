@@ -8,7 +8,7 @@
 #rail .glose{margin-top:2px}
 #rail .tourne{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
 #rail .tourne span{font-size:13.5px;color:#f0e2c2}
-#rail .trait{height:1px;background:rgba(226,192,106,.28);margin:4px 2px}
+#rail .filet{margin:4px 2px}
 #recruter{position:absolute;width:150px}
 #recruter .plaque>div{font-size:14.5px}
 #recruter .du-roster{display:flex;justify-content:center;margin-top:9px}

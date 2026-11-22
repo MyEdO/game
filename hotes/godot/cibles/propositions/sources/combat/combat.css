@@ -15,7 +15,7 @@
 .rang.fantome.loin{opacity:.22}
 .borne{display:flex;align-items:center;gap:9px;margin:1px 0 1px 3px}
 .borne span{font-size:12px;color:var(--creme-2)}
-.borne i{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,185,149,.6),rgba(201,185,149,0))}
+.borne .filet{flex:1}
 
 /* la barre de l'actif */
 #barre .fond{background:none;box-shadow:none}
@@ -182,10 +182,6 @@
 #jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
 .bascules{display:flex;gap:16px;align-items:center;height:100%}
 .bascules .bascule span{line-height:14px}
-
-/* la marque d'une carte de choix */
-#jet .place>.carte .etiquette{margin:0 0 0 6px}
-#jet .place>.carte br+.etiquette{margin:1px 0 0}
 
 /* une suite de frappe : la consigne tient la place du meuble, le champ reste à cliquer */
 .glose.consigne{margin:14px 0 0;height:70px}

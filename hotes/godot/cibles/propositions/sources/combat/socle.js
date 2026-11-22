@@ -14,7 +14,7 @@ const combattant = (genre, camp, nom, pv, max, classe = '', etats = '') => rang(
   taille: classe.includes('actif') ? 'grand' : classe.includes('fantome') ? 'petit' : 'moyen',
   corps: `${classe.includes('fantome') ? '' : `<div class="ligne">${vie(pv, max)}<span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}`,
 });
-const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre">Round ${n}</span><i></i></div>`;
+const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre">Round ${n}</span>${filet({ fondu: true })}</div>`;
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 /* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme')}</div>`;

@@ -9,8 +9,6 @@
 .ligne.la{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),0 0 10px rgba(255,214,140,.35)}
 .ligne.la em{color:#3a2a12}
 .ligne+.ligne{margin-top:3px}
-.trait{height:1px;background:rgba(226,192,106,.28)}
-.parchemin .trait{background:rgba(60,40,20,.35)}
 
 /* ───────── la coop ───────── */
 .feuillet-coop .fond{padding:34px 24px 22px;display:flex;flex-direction:column;gap:16px}
@@ -92,7 +90,7 @@
 #inspecteur .fond{height:100%;box-sizing:border-box}
 #inspecteur .defile.corps{gap:0}
 #inspecteur .sous-titre{white-space:nowrap}
-#inspecteur .trait{margin:9px 0 3px}
+#inspecteur .filet{margin:9px 0 3px}
 .prop{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:38px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12}
 .prop>span{white-space:nowrap}
 .prop.gris>span{color:#7a6548}
@@ -153,7 +151,7 @@
 #fiche-du-compendium>.fond>.tete{position:absolute;left:22px;right:22px;top:14px;display:flex;align-items:baseline;gap:14px;white-space:nowrap}
 #fiche-du-compendium>.fond>.tete .source{font-size:13px;padding:1px 8px 2px;border:1px solid rgba(60,40,20,.55);border-radius:2px;color:#2a1d12}
 #fiche-du-compendium>.fond>.tete .epingle{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:13px;color:#5a130b}
-#fiche-du-compendium>.fond>.filet{position:absolute;left:22px;right:22px;top:56px;margin:0}
+#fiche-du-compendium>.fond>.filet{position:absolute;left:22px;right:22px;top:56px}
 .corps-de-fiche>.gauche{position:absolute;left:22px;top:78px;width:572px;bottom:14px;display:flex;flex-direction:column}
 .corps-de-fiche.atelier>.gauche{bottom:58px}
 .corps-de-fiche .puces{display:flex;gap:8px;margin:0 0 12px}
