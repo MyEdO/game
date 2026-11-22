@@ -2278,7 +2278,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
           ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
-          ...quaiDuGroupe(env.get()),
+          ...quaiDuGroupe(env.get(), { vehicleId: e.navire.id }),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));

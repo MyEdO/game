@@ -66,6 +66,39 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
+  it('relit la carte et la coque sauvegardées avant les données d’amarrage', () => {
+    const etat: EtatDeJeu = {
+      ...etatInitialDuJeu(),
+      lieu: 'quai',
+      worldMap: {
+        id: 'reik', label: 'Reik',
+        places: [{ id: 'quai', label: 'Quai', pos: { x: 10, y: 20 }, scene: { id: 'quai' } }],
+        routes: [],
+      },
+      vessel: {
+        uid: 'navire-1', vehicleId: 'barge-fluviale', wounds: { current: 48, max: 60 },
+        morale: { score: 50, lastMoraleWeek: 0, factors: [] },
+      },
+    };
+    const courante = snapshotSave(etat, '2026-11-22T06:30:00.000Z');
+    const ancienne = { ...courante, version: 'e8e579742f3dbb30' };
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(courante);
+
+    const carte = etat.worldMap!;
+    const avecCale = snapshotSave({
+      ...etat,
+      worldMap: {
+        ...carte,
+        places: carte.places.map((lieu) => ({ ...lieu, amarrage: 'cale-seche', constructeurDeBateaux: 43, materiauxCaleSeche: true })),
+      },
+    }, courante.savedAt);
+    expect(lireSave(exporterLaSauvegarde(avecCale))).toEqual(avecCale);
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {
     const fiche = combattantDeTest({ id: 'heros-usure', kind: 'heros' });
     const banc = ouvrirLeBanc({ etat: { party: [fiche] } });

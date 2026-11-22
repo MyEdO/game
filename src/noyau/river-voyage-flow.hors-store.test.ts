@@ -12,6 +12,9 @@ import { byId, findVehicleById, refLabel, resolveStake, voyageStakeRef, STAKES, 
 import { creditBourse, totalDesBourses } from './bourseFlow';
 import { fromBrass, toBrass } from '../engine/money';
 import { devisDeTrajet, refusDeDepart } from './travelFlow';
+import { applyEffects } from './combatEffects';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
+import { lotDeCargaison } from './carriers';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -147,6 +150,50 @@ describe('devis et départ fluviaux', () => {
       river: { day: { baseKm } },
     });
     expect(get().pendingCascade?.participants).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'fleuveNavigation' })]));
+  });
+
+  it('la barge du groupe reste à son quai pendant un trajet à pied puis sur une barge de route de même type', () => {
+    launch(false, 1);
+    applyEffects(get, set, [
+      { type: 'setVessel', navire: { id: 'barge-fluviale' }, hullMax: 60, hullCurrent: 41 },
+      { type: 'ops', on: 'navire', ops: [{ op: 'cargaison', enc: 3 }] },
+      { type: 'givePossession', nature: 'vehicule', ref: { type: 'vehicle', id: 'charrette' } },
+    ]);
+    const [lot] = get().vessel!.cargo!;
+    const [charrette] = get().possessions;
+    const bargeAmarree = { uid: get().vessel!.uid, escale: 'A', wounds: { current: 41, max: 60 }, cargo: [lot] };
+    expect(get().vessel).toMatchObject(bargeAmarree);
+    expect(lotDeCargaison(get(), lot.uid)?.lot).toBe(lot);
+
+    get().partirEnVoyage('r-reik', 'pied');
+    draineCascade(get);
+    expect(get().lieu).toBe('B');
+    expect(lotDeCargaison(get(), lot.uid)).toBeUndefined();
+    get().deplacerLaCargaison(lot.uid, charrette.uid, 1);
+    expect(get().possessions[0].cargo ?? []).toEqual([]);
+    expect(get().vessel).toMatchObject(bargeAmarree);
+
+    const carte = get().worldMap!;
+    const [route] = carte.routes;
+    const maritime: MapRoute = { ...route, modes: ['mer'], river: undefined, sea: true };
+    const depuisB = { ...get(), worldMap: { ...carte, routes: [maritime] } };
+    expect(refusDeDepart(depuisB, maritime.id, 'mer')).toBe(t('port.pasAQuai'));
+    expect(refusDeDepart({ ...depuisB, vessel: { ...get().vessel!, escale: undefined } }, maritime.id, 'mer')).toBeNull();
+
+    const destination = { id: 'C', label: 'Quai aval', pos: { x: 100, y: 0 }, scene: { id: 'quai-c' } };
+    const descente: MapRoute = { ...route, a: route.b, b: { id: destination.id }, modes: ['barge-fluviale'] };
+    set({ worldMap: { ...carte, places: [...carte.places, destination], routes: [descente] } });
+    const devis = devisDeTrajet(get(), descente, 'B', 'barge-fluviale');
+    expect(devis.coqueFluviale).toMatchObject({ creatureId: 'barge-fluviale' });
+    expect(estLeNavireDeCampagne(devis.coqueFluviale, get().vessel)).toBe(false);
+    seedBattleRng(9);
+    get().partirEnVoyage(descente.id, 'barge-fluviale', { cadence: 'jourParJour' });
+    expect(get().travelPlan?.vehicle).toMatchObject({ creatureId: 'barge-fluviale' });
+    expect(estLeNavireDeCampagne(get().travelPlan?.vehicle, get().vessel)).toBe(false);
+    expect(lotDeCargaison(get(), lot.uid)).toBeUndefined();
+    draineCascade(get, 200, () => 1);
+    expect(get().lieu).toBe(destination.id);
+    expect(get().vessel).toMatchObject(bargeAmarree);
   });
 
   // LDB 51 l.185-187
@@ -910,8 +957,10 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');
-      expect(f.source.note).toMatch(/^MSRC 7 l\.\d+$/);
-      expect(f.desc?.length, 'le verbatim est présent').toBeGreaterThan(60);
+      expect(f.source.page).toBeGreaterThan(0);
+      expect(f.source.note).toMatch(/^MSRC 7 l\.\d+(?:-\d+)?$/);
+      expect(f.descRef).toMatchObject({ book: f.source.book, ch: '07' });
+      expect(f.desc?.length, 'le verbatim est résolu à la Source').toBeGreaterThan(60);
     }
   });
 });

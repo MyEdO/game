@@ -40,8 +40,8 @@ const vehiclePossession = (uid: string, ownerId: string, vehicleId: string, carg
   ({ uid, ownerId, nature: 'vehicule', vehicleId, location: { kind: 'avec-le-groupe' }, items: [], cargo });
 
 const slice = (over: Partial<CarrierStateSlice> = {}): CarrierStateSlice => ({
-  party: [], vessel: null, possessions: [], ...over,
-} as CarrierStateSlice);
+  party: [], vessel: null, possessions: [], lieu: null, ...over,
+});
 
 describe('partyCarriers — couture d’état des porteurs (#327 lot B)', () => {
   it('un héros est un porteur à jambes : capacité = BF+BE, occupé = totalEncumbrance', () => {
@@ -93,6 +93,21 @@ describe('primaryCargoCarrier / bulkCargoRefs / persist (#327 lot C)', () => {
     expect(primaryCargoCarrier(slice({ party: [h], possessions: [mule, cart] }))!.id).toBe('v1'); // véhicule > bête
     const vessel = { vehicleId: 'barge-fluviale', cargo: [] } as unknown as CarrierStateSlice['vessel'];
     expect(primaryCargoCarrier(slice({ party: [h], possessions: [mule, cart], vessel }))!.id).toBe(CAMPAIGN_VESSEL_CARRIER_ID); // navire > tout
+  });
+
+  it('la barge amarrée rend sa cale accessible au groupe sur le même quai', () => {
+    const cargo = [lot('sel', 10)];
+    const vessel = { uid: 'barge', vehicleId: 'barge-fluviale', escale: 'A', cargo, morale: { score: 75, lastMoraleWeek: 0, factors: [] } };
+    const groupe = [hero('nel')];
+    const charrette = vehiclePossession('v1', 'nel', 'charrette');
+    const auQuai = slice({ party: groupe, possessions: [charrette], vessel, lieu: 'A' });
+    const ailleurs = { ...auQuai, lieu: 'B' };
+    expect(primaryCargoCarrier(auQuai)?.id).toBe(CAMPAIGN_VESSEL_CARRIER_ID);
+    expect(bulkCargoRefs(auQuai).map((ref) => ref.lot)).toEqual(cargo);
+    expect(carrierById(ailleurs, CAMPAIGN_VESSEL_CARRIER_ID)).toBeUndefined();
+    expect(primaryCargoCarrier(ailleurs)?.id).toBe(charrette.uid);
+    expect(bulkCargoRefs(ailleurs)).toEqual([]);
+    expect(vessel.cargo).toBe(cargo);
   });
 
   it('sans bête/véhicule/navire, aucun porteur de défaut (Contenance = plafond réel)', () => {
