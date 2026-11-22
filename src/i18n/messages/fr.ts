@@ -3670,7 +3670,6 @@ export const fr = {
   'wm.allureDuree': 'Allure {kmh} km/h · Durée {duree}',
   'wm.total': ' · Total ({places} place{s}) ',
   'wm.bourseInsuffisante': ' (bourse insuffisante)',
-  'wm.rations': ' · Rations pour les nuits : {besoin} (le groupe en porte {porte})',
   'wm.surcharge': 'Le groupe ne peut pas avancer (surcharge) — allégez les sacs.',
   'wm.vivres': 'Vivres {dispo}/{requis}',
   'wm.eau': 'Eau {dispo}/{requis} L',
@@ -3966,6 +3965,7 @@ export const fr = {
   'upkeep.sobering': 'Dessoûlage',
   'upkeep.sleepDeprived': '{name} — privation de sommeil ({n} nuit{s} sans dormir) :',
   'upkeep.rationsUsed': 'Le groupe entame ses provisions ({n} ration{s}).',
+  'upkeep.holdUsed': "Le groupe mange à la cale : −{n} (reste {left} jour{s}-homme).",
 
   // ── #1318 V8c₄ — SOINS & CHIRURGIE (`noyau/medicFlow.ts`, `medic.*`, LDB 10 l.184, LDB 18 l.120/179).
   'medic.aidRequired': 'Aide Médicale requise avant de rééduquer le membre.',

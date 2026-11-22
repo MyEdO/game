@@ -136,9 +136,9 @@ import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, manannBase, seaBoardEventById,
-  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, removeCargo, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
+  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, removeCargo, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
-  type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
+  type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import {
   navalMoveMod,
@@ -163,7 +163,6 @@ import {
   facteurDuVivreSeul,
   facteursDeVivreSeul,
   moraleBand,
-  weeklyCrewWageBrass,
   crewTalentDR,
   UNDERCREW_DR,
   capToSuccesMinime,
@@ -171,7 +170,7 @@ import {
   rudeEpreuveMoraleDelta,
   SUCCES_MINIME_CAP,
 } from '../engine/crewMorale';
-import { mangerLaCale, noterLeRepas, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
+import { mangerLaCale, noterLeRepas, rationsDeCale } from '../engine/provisions';
 import { toMoney, toBrass, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
@@ -189,7 +188,14 @@ import {
 } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { applyContraction, contractionDue, diseaseDefs, diseaseHasCapability, maladieDeclaree, nomDuPorteurDeMaladies, type Disease } from '../engine/disease';
+import {
+  applyContraction,
+  contractionDue,
+  diseaseDefs,
+  diseaseHasCapability,
+  maladieDeclaree,
+  nomDuPorteurDeMaladies,
+} from '../engine/disease';
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
@@ -596,59 +602,12 @@ export function raisonDuRefusDAppareiller(refus: RefusDAppareiller): string {
   return refus.motif === 'cale' ? t('sv.refusCale', { pct: refus.ratioPct }) : t('sv.refusImmobile');
 }
 
-/** Blessures de coque d'un navire de campagne : maximum, courantes, à restaurer. SOURCE UNIQUE du
- *  dossier du navire et du devis de chantier. PUR. */
+/** Blessures de coque d'un navire de campagne : maximum, courantes, à restaurer. SOURCE UNIQUE du devis de
+ *  chantier et des réparations. PUR. */
 export function blessuresDeCoqueARestaurer(vessel: CampaignVessel): { max: number; current: number; missing: number } {
   const max = vessel.wounds?.max ?? findVehicleById(vessel.vehicleId)?.hull?.char.B ?? 0;
   const current = vessel.wounds?.current ?? max;
   return { max, current, missing: max - current };
-}
-
-/** Jours entiers où `bouches` mangent à leur faim à la cale depuis la minute `now`, péremption comprise (`mangerLaCale`). MDG 14 l.238 */
-function joursDeVivres(lots: readonly LotDeVivres[], bouches: number, now: number): number {
-  let cale = lots;
-  let jours = 0;
-  for (;;) {
-    const repas = mangerLaCale(cale, bouches, 1, now + jours * MINUTES_PER_DAY);
-    if (repas.manque > 0) return jours;
-    cale = repas.lots;
-    jours++;
-  }
-}
-
-/** Dossier d'un navire de campagne : coque, cale (MDG 12 l.70-75), refus d'appareiller, population
- *  embarquée (`shipboardSouls`, MDG 14 l.238), autonomies, soldes et maladies du porteur collectif de l'équipage
- *  (`CampaignVessel.porteurDeLEquipage`, MDG 14 l.172). Vue PURE lue par l'écran du dossier. */
-export interface DossierDuNavire {
-  woundsMax: number; woundsCur: number; missing: number;
-  capacity: number; cargoEnc: number; overload: CargoOverload; cargoMax: number; cargoMarks: number[];
-  refusDAppareiller: string | null;
-  heroes: number; crewCount: number; autonomyDays: number | null; provisionDays: number | null; weeklyWageBrass: number;
-  soldesParRole: { roleId: string; count: number; weeklyBrass: number }[];
-  maladiesDeLEquipage: Pick<Disease, 'id' | 'phase'>[];
-}
-
-/** `null` : le type du navire n'a pas de profil naval. */
-export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[], now: number): DossierDuNavire | null {
-  const vd = findVehicleById(vessel.vehicleId);
-  if (!vd?.ship) return null;
-  const { max: woundsMax, current: woundsCur, missing } = blessuresDeCoqueARestaurer(vessel);
-  const capacity = vd.ship.capacity;
-  const cargoEnc = cargoTotalEnc(vessel.cargo ?? []);
-  const refus = refusDAppareiller(vessel);
-  const { heroes, crew: crewCount } = shipboardSouls({ party, vessel });
-  const dailyWater = provisioningManifest(party, vessel.waterLitres, 1, now, { count: crewCount, provisions: vessel.provisions }).eauRequiseLitres;
-  return {
-    woundsMax, woundsCur, missing,
-    capacity, cargoEnc, overload: cargoOverload(cargoEnc, capacity), cargoMax: overloadMaxEnc(capacity), cargoMarks: overloadMarks(capacity),
-    refusDAppareiller: refus ? raisonDuRefusDAppareiller(refus) : null,
-    heroes, crewCount,
-    autonomyDays: vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null,
-    provisionDays: vessel.provisions != null && crewCount > 0 ? joursDeVivres(vessel.provisions, crewCount, now) : null,
-    weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
-    soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
-    maladiesDeLEquipage: (vessel.porteurDeLEquipage?.diseases ?? []).map(({ id, phase }) => ({ id, phase })),
-  };
 }
 
 /** Refus d'un départ en mer (`null` : le navire de campagne appareille) — les cas où `buildSeaPlan` rend
@@ -1494,16 +1453,34 @@ function suspendreLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: nu
   confierLaSuite(set, [{ verbe: 'reprendreLeTempsEnMer', borneDuPas, minutes, apresLesRounds }]);
 }
 
+/** La journée de mer en cours accoste-t-elle (ses milles achèvent la traversée) ? */
+function accosteAujourdhui(plan: TravelPlan, sea: SeaVoyageState): boolean {
+  return plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
+}
+
+/** Fin d'un pas d'horloge en mer : en voyage rapide, l'entretien des Rounds et du jour, et le scorbut au jour
+ *  franchi ; jour par jour, au dernier pas du jour d'arrivée, l'entretien des jours franchis, joué à bord, et le
+ *  scorbut de qui ce repas mène à un multiple de `JOURS_DU_MOIS`. MDG 14 l.230 ; #4453 */
 function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: number, apresLesRounds?: true): boolean {
-  if (get().travelPlan?.sea?.fast && minutes > 0) {
+  const jourFranchi = dayIndex(borneDuPas) > dayIndex(borneDuPas - minutes);
+  const plan = get().travelPlan;
+  const sea = plan?.sea;
+  if (sea?.fast && minutes > 0) {
     if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
       suspendreLePasEnMer(get, set, borneDuPas, minutes, true);
       return false;
     }
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
-    const steps = [...entretien.steps, ...(dayIndex(borneDuPas) > dayIndex(borneDuPas - minutes) ? buildScurvySteps(get, set) : [])];
+    const steps = [...entretien.steps, ...(jourFranchi ? buildScurvySteps(get, set) : [])];
     if (steps.length
       && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+  } else if (plan && sea?.tempsEnMer && borneDuPas >= sea.tempsEnMer.fin && accosteAujourdhui(plan, sea)) {
+    const avant = joursSansFraisABord(get, set);
+    const entretien = preparerLEntretienQuotidien(get, set, minutes);
+    noteSeaLine(get, set, entretien.log);
+    const steps = [...entretien.steps, ...buildScurvySteps(get, set, avant)];
+    if (steps.length
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', 'Entretien quotidien')) return false;
   }
   return !checkPartyWiped(get, set);
 }
@@ -1528,7 +1505,7 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
     if (fin === undefined) {
       const porteurs = porteursABord(get, set);
       const restantes = temps.fin - debut;
-      const avantEntretien = sea.fast && contagionPossibleABord(porteurs) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
+      const avantEntretien = sea.fast && (contagionPossibleABord(porteurs) || get().vessel?.provisions != null) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
       const avantEcheance = prochaineEcheance(get(), restantes);
       const avantScorbut = sea.fast ? avantLeProchainMoisSansFrais(porteurs, debut) : restantes;
       const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance, avantScorbut));
@@ -1752,12 +1729,13 @@ const JOURS_DE_SOUPE_REGULIERS = 15;
  * SCORBUT — UNE bande dont les porteurs à bord appelés sont les RANGÉES (`porteursABord` : PJ et équipage
  * collectif), comme le Mal de mer ci-dessus. Appelé : le porteur dont les jours sans vivre frais
  * (`regimeDeBord`) atteignent un multiple de `JOURS_DU_MOIS`. Difficulté de RANGÉE : Facile pour qui a mangé
- * `JOURS_DE_SOUPE_REGULIERS` jours de soupe de chou fermenté, Intermédiaire sinon. MDG 14 l.230-232
+ * `JOURS_DE_SOUPE_REGULIERS` jours de soupe de chou fermenté, Intermédiaire sinon. `avant` : les comptes d'avant un
+ * repas, seul appelé qui l'a vu changer. MDG 14 l.230-232
  */
-function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
-  const appeles = porteursABord(get, set).filter(({ porteur }) => {
+function buildScurvySteps(get: Get, set: Set, avant?: ReadonlyMap<string, number>): BuiltCascadeStep[] {
+  const appeles = porteursABord(get, set).filter(({ id, porteur }) => {
     const jours = porteur.regimeDeBord?.joursSansVivreFrais ?? 0;
-    return jours > 0 && jours % JOURS_DU_MOIS === 0 && contractionDue(porteur, 'scorbut');
+    return jours > 0 && jours % JOURS_DU_MOIS === 0 && avant?.get(id) !== jours && contractionDue(porteur, 'scorbut');
   });
   if (!appeles.length) return [];
   const bande = buildBand(get, {
@@ -1770,6 +1748,11 @@ function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
     }),
   });
   return bande ? [bande] : [];
+}
+
+/** Les jours sans vivre frais de chaque porteur à bord, par id de rangée (`buildScurvySteps`). */
+function joursSansFraisABord(get: Get, set: Set): Map<string, number> {
+  return new Map(porteursABord(get, set).map(({ id, porteur }) => [id, porteur.regimeDeBord?.joursSansVivreFrais ?? 0]));
 }
 
 /** Lignes de conclusion d'une séquence RÉSOLUE D'OFFICE (aucune fenêtre ne les a montrées) : celles des
@@ -1850,14 +1833,12 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   if (doneSteps) noteSeaLine(get, set, lignesResolues(doneSteps));
   const sea = plan.sea;
 
-  // Horloge : à l'ARRIVÉE au port, la journée entière passe (+24 h) — l'entretien du jour est rattrapé
-  // par le prochain `runDailyUpkeep` (garde `lastUpkeepDay`). Sinon (HALTE de nuit / activités en mer)
-  // la traversée s'arrête au crépuscule et la nuit de sommeil enjambe minuit : UN SEUL franchissement de
-  // jour par cycle jour+nuit (comme le voyage terrestre). L'ENTRETIEN (rations/faim, maladies,
-  // convalescence) n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans
-  // la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  const arrived = plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
-  const dayMinutes = arrived ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
+  // Horloge : à l'ARRIVÉE au port, la journée entière passe (+24 h) — l'entretien des jours franchis se joue
+  // à bord, au dernier pas (`terminerLePasEnMer`). Sinon (HALTE de nuit / activités en mer) la traversée
+  // s'arrête au crépuscule ; l'ENTRETIEN des jours franchis (rations/faim, maladies, convalescence), minuit
+  // passé en route compris, n'est jamais roulé en route (sinon la Faim s'installe avant le repas) : il se
+  // résout dans la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`, soins du soignant compris.
+  const dayMinutes = accosteAujourdhui(plan, sea) ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + dayMinutes } });
   continuerLeTempsEnMer(get, set);
 }

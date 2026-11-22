@@ -5,7 +5,7 @@ import { makeRNG } from './dice';
 import { casterTalents, learnableSpells } from './grimoire';
 import { blessingsOf, talentConcrete } from '../data';
 import { featuresOf } from './combatFeatures/dispatch';
-import { rationCount, dailyFoodUpkeep } from './provisions';
+import { rationCount, dailyFoodUpkeep, rationsDuSac } from './provisions';
 import { itemLabel } from './items';
 import { bonus } from './characteristics';
 import { dotationsDuHeros, emplacementsDeDotation } from './trappingChoices';
@@ -59,7 +59,7 @@ describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', seed: 7 });
     const before = rationCount(h);
     expect(before).toBeGreaterThan(0); // le créateur produit des objets compatibles isRation
-    const r = dailyFoodUpkeep(h, 50, bonus(h.characteristics.endurance), makeRNG(1));
+    const r = dailyFoodUpkeep(h, rationsDuSac(h), 50, bonus(h.characteristics.endurance), makeRNG(1));
     expect(r.ate).toBe(true);
     expect(r.rationConsumed).toBe(true);
     expect(rationCount(h)).toBe(before - 1);

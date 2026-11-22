@@ -62,7 +62,6 @@ import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
 import { canAfford, formatMoney, type Money } from '../engine/money';
-import { provisioningManifest } from '../engine/provisions';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { rollDice } from '../engine/dice';
@@ -350,8 +349,6 @@ export interface DevisDeTrajet {
   plan: TravelPlanCalc | null;
   /** Héros qui voyagent (vivants, dans la rencontre). */
   voyageurs: number;
-  /** Rations des nuits en route (LDB 66 l.20 ; ADE II 2 l.708 ; LDB 10 l.139) et rations portées. */
-  rations: { requises: number; portees: number };
   /** Passage payant (EDO 01 l.142 ; LDB 51 l.178) : l'offre (`null` : aucun tarif pour ce mode) et, hors
    *  billet en main, la classe, le prix du groupe et sa couverture par les bourses. `null` : pas de passage. */
   passage: { offre: OffreDePassage | null; classeId: string; cost: Money | null; abordable: boolean } | null;
@@ -375,7 +372,6 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
   const premierJour = travelDayBudget(mode, hours, prior);
   const plan = travelPlanCalc(route.km, kmh, hours, premierJour);
   const enRoute = s.party.filter((h) => !h.dead && !h.outOfRencontre);
-  const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0, s.gameTime);
   const passagePayant = mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !coqueFluviale;
   const offre = passagePayant ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
   const achat = offre && !offre.couvert ? offre : null;
@@ -383,7 +379,6 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
   const cost = achat ? transportCost(achat.tarif, classeId, enRoute.length, achat.issue) : null;
   return {
     hours, allure, kmh, coqueFluviale, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
-    rations: { requises: manifeste.rationsRequises, portees: manifeste.rationsDispo },
     passage: offre === undefined ? null : { offre, classeId, cost, abordable: !cost || canAfford(totalDesBourses(s.party), cost) },
   };
 }

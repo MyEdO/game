@@ -5,6 +5,8 @@ import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from '
 import { makeRNG, RNG } from './dice';
 import {
   dailyFoodUpkeep,
+  rationsDuSac,
+  rationsDeLaCale,
   applyFaimTest,
   isStarving,
   hungerCharPenalties,
@@ -15,13 +17,11 @@ import {
   isThirsty,
   isDeprived,
   thirstCharPenalties,
-  provisioningManifest,
   feedFromMeal,
   mangerLaCale,
 } from './provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 import { lotsDeCale } from './caleDeTest.testkit';
-import { rule } from './policy';
 import { effectiveChar } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';
@@ -57,7 +57,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(r.ate).toBe(true);
     expect(r.rationConsumed).toBe(true);
     expect(rationCount(c)).toBe(1);
@@ -66,11 +66,11 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('#513 — ogre (ADE II 2 l.708) : consomme 2 rations/jour, insuffisant si une seule dispo', () => {
     const c = hero({ rations: 2, traits: [{ id: 'ogre' }] });
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(r.ate).toBe(true);
     expect(rationCount(c)).toBe(0); // les 2 rations consommées d'un coup
     const c2 = hero({ rations: 1, traits: [{ id: 'ogre' }] });
-    const r2 = dailyFoodUpkeep(c2, 30, 3, fixed(95));
+    const r2 = dailyFoodUpkeep(c2, rationsDuSac(c2), 30, 3, fixed(95));
     expect(r2.ate).toBe(false); // 1 ration ne suffit pas à un ogre (facteur ×2)
     expect(rationCount(c2)).toBe(1); // rien consommé faute du compte
   });
@@ -79,7 +79,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     const c = hero({ rations: 0 });
     c.hunger = { days: 3, tests: 2, failures: 1 }; // affamé avant le Sort
     c.activeEffects = [{ label: 'Graisse de la terre', bonus: 0, duration: { scale: 'permanent' }, noHunger: true }];
-    const r = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     expect(r.ate).toBe(true);
     expect(r.rationConsumed).toBe(false); // rien à consommer (sustentation magique)
     expect(r.damage).toBe(0);
@@ -88,23 +88,23 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('sans nourriture : Test de Résistance tous les 2 jours seulement', () => {
     const c = hero({ rations: 0 });
-    const d1 = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const d1 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     expect(d1.log).toEqual([]); // jour 1 : pas encore de Test
     expect(isStarving(c)).toBe(true);
-    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const d2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     expect(d2.log.join(' ')).toContain('Test de Résistance');
   });
 
   it('1ᵉʳ échec → −10 F et E (effectiveChar) ; 2ᵉ échec → dégâts ignorant les PA (min 1) + −10 ailleurs', () => {
     const c = hero({ rations: 0, endurance: 30 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j1
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j2 : Test raté → 1ᵉʳ échec
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // j1
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // j2 : Test raté → 1ᵉʳ échec
     expect(c.hunger?.failures).toBe(1);
     expect(effectiveChar(c, 'force')).toBe(20);
     expect(effectiveChar(c, 'endurance')).toBe(20);
     expect(effectiveChar(c, 'agilite')).toBe(30); // pas encore
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j3
-    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // j4 : 2ᵉ échec
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // j3
+    const d4 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // j4 : 2ᵉ échec
     expect(c.hunger?.failures).toBe(2);
     expect(d4.damage).toBe(7); // d10 forcé à 10 − BE 3 = 7
     expect(effectiveChar(c, 'agilite')).toBe(20);
@@ -113,22 +113,22 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('les Tests sont de plus en plus difficiles : −10 par Test déjà tenté (LDB 18 l.338)', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // 1ᵉʳ Test : cible 30
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
+    const d2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // 1ᵉʳ Test : cible 30
     expect(d2.log[0]).toContain('30');
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // 2ᵉ Test : cible 30 − 10 = 20
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
+    const d4 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // 2ᵉ Test : cible 30 − 10 = 20
     expect(d4.log[0]).toContain('(−10)');
     expect(d4.log[0]).toContain('20');
   });
 
   it('manger à nouveau efface compteurs et malus (choix documenté)', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     expect(effectiveChar(c, 'force')).toBe(20);
     c.items!.push(ration('r9'));
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(r.ate).toBe(true);
     expect(r.log.join(' ')).toContain('mange enfin à sa faim');
     expect(isStarving(c)).toBe(false);
@@ -137,16 +137,16 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('Brouet (LDB 10 l.139) : 1 ration couvre 2 jours, Test de faim tous les 3 jours', () => {
     const c = hero({ rations: 1, brouet: true });
-    const d1 = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const d1 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(d1.rationConsumed).toBe(true);
-    const d2 = dailyFoodUpkeep(c, 30, 3, makeRNG(1)); // jour « gratuit »
+    const d2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1)); // jour « gratuit »
     expect(d2.ate).toBe(true);
     expect(d2.rationConsumed).toBe(false);
     // Puis plus rien : Test au 3ᵉ jour de jeûne (pas au 2ᵉ).
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j1
-    const j2 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j2 : pas de Test
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j1
+    const j2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j2 : pas de Test
     expect(j2.log).toEqual([]);
-    const j3 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j3 : Test
+    const j3 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j3 : Test
     expect(j3.log.join(' ')).toContain('Test de Résistance');
   });
 
@@ -159,10 +159,10 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('deferTest (cascade de nuit) : un Test de Faim DÛ est DIFFÉRÉ, pas roulé ici', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j1 (pas de Test)
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j1 (pas de Test)
     let kind = '';
     let mods: Parameters<UpkeepDeferTest>[0]['mods'];
-    const r = dailyFoodUpkeep(c, 30, 3, fixed(95), (spec) => { kind = spec.kind; mods = spec.mods; }); // j2 : Test DÛ → différé
+    const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95), (spec) => { kind = spec.kind; mods = spec.mods; }); // j2 : Test DÛ → différé
     expect(kind).toBe('faim');
     // La pénalité voyage NOMMÉE avec sa règle depuis le producteur (jamais étiquetée à la couture d'entretien).
     expect(mods).toEqual([{ value: 0, label: 'Tests déjà subis', famille: 'jet', ref: RULE_REF['faim-et-soif'] }]); // 1ᵉʳ Test → pénalité 0
@@ -270,92 +270,6 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     expect(r2.damage).toBe(7);
   });
 
-  describe('provisioningManifest — manifeste d\'avitaillement au départ (#241)', () => {
-    it('suffisant : rations et eau couvrent les jours estimés', () => {
-      const party = [hero({ rations: 5 }), hero({ rations: 5 })];
-      const m = provisioningManifest(party, 100, 3, 0);
-      expect(m.joursEstimes).toBe(3);
-      expect(m.rationsDispo).toBe(10);
-      expect(m.rationsRequises).toBe(6); // 2 héros × 3 jours
-      expect(m.eauRequiseLitres).toBe(18); // 2 héros × 3 jours × 3 L (médiane)
-      expect(m.eauDispoLitres).toBe(100);
-      expect(m.suffisant).toBe(true);
-    });
-
-    it('insuffisant en vivres', () => {
-      const party = [hero({ rations: 1 })];
-      const m = provisioningManifest(party, 100, 5, 0);
-      expect(m.rationsDispo).toBe(1);
-      expect(m.rationsRequises).toBe(5);
-      expect(m.suffisant).toBe(false);
-    });
-
-    it('insuffisant en eau seule (vivres suffisants)', () => {
-      const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, 5, 5, 0); // besoin 15 L, dispo 5
-      expect(m.eauRequiseLitres).toBe(15);
-      expect(m.suffisant).toBe(false);
-    });
-
-    it('waterLitres absent : ravitaillement réputé assuré, ne bloque pas', () => {
-      const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, undefined, 5, 0);
-      expect(m.eauDispoLitres).toBeNull();
-      expect(m.suffisant).toBe(true);
-    });
-
-    it('Brouet : 1 ration couvre 2 jours de voyage', () => {
-      const party = [hero({ rations: 2, brouet: true })];
-      const m = provisioningManifest(party, 100, 4, 0);
-      expect(m.rationsRequises).toBe(2); // ceil(4/2)
-      expect(m.suffisant).toBe(true);
-    });
-
-    it('héros morts exclus du manifeste', () => {
-      const party = [hero({ rations: 0 }), { ...hero({ rations: 0 }), dead: true }];
-      const m = provisioningManifest(party, 100, 3, 0);
-      expect(m.rationsRequises).toBe(3); // un seul héros vivant compté
-      expect(m.souls).toBe(1);
-    });
-
-    it('#245 — l’équipage PNJ compte dans la population (eau ET vivres)', () => {
-      const party = [hero({ rations: 6 }), hero({ rations: 6 })]; // 2 héros, 12 rations portées
-      // 10 marins PNJ embarqués, 30 jours-homme de vivres de cale sur deux vivres.
-      const m = provisioningManifest(party, 1000, 3, 0, { count: 10, provisions: lotsDeCale({ 'nourriture-courses-journee': 12, 'ration-biscuits-de-mer': 18 }, 0) });
-      expect(m.souls).toBe(12); // 2 héros + 10 PNJ
-      expect(m.eauRequiseLitres).toBe(12 * 3 * 3); // souls × jours × 3 L (médiane) = 108
-      expect(m.rationsRequises).toBe(2 * 3 + 10 * 3); // héros (6) + équipage (30) = 36
-      expect(m.rationsDispo).toBe(12 + 30); // rations portées + vivres de cale = 42
-      expect(m.suffisant).toBe(true);
-    });
-
-    it('#245 — vivres de cale insuffisants pour l’équipage → manifeste en déficit', () => {
-      const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, 1000, 5, 0, { count: 8, provisions: lotsDeCale({ 'ration-nourriture-preservee': 5 }, 0) }); // équipage requiert 40, cale 5
-      expect(m.souls).toBe(9);
-      expect(m.rationsRequises).toBe(5 + 40);
-      expect(m.rationsDispo).toBe(10 + 5); // 15 < 45
-      expect(m.suffisant).toBe(false);
-    });
-
-    it('MDG 14 l.238 — frais seul qui pourrit avant la fin de la traversée : la part pourrie ne compte pas, manifeste en déficit', () => {
-      const peremption = rule('mer-vivres-frais-peremption-jours');
-      const jours = peremption + 3;
-      // 4 marins, de quoi manger `jours` jours en volume, mais tout en frais embarqué à l'heure du départ.
-      const m = provisioningManifest([], 1000, jours, 0, { count: 4, provisions: lotsDeCale({ 'nourriture-courses-journee': 4 * jours }, 0) });
-      expect(m.rationsRequises).toBe(4 * jours);
-      expect(m.rationsDispo).toBe(4 * peremption); // mangé jusqu'à la péremption, le reste pourrit
-      expect(m.suffisant).toBe(false);
-    });
-
-    it('#513 — ogre (ADE II 2 l.708) : rations ET eau requises ×2 (Trait racial `ogre`)', () => {
-      const party = [hero({ rations: 10, traits: [{ id: 'ogre' }] }), hero({ rations: 10 })];
-      const m = provisioningManifest(party, 1000, 3, 0);
-      expect(m.rationsRequises).toBe(3 * 2 + 3); // ogre × facteur 2, humain × 1
-      expect(m.eauRequiseLitres).toBe(2 * 3 * 3 + 1 * 3 * 3); // ogre × facteur 2, humain × 1, 3 L/jour (médiane)
-    });
-  });
-
   it('isDeprived : affamé OU assoiffé bloque la récupération ; assoiffé seul suffit', () => {
     const c = hero({ rations: 1 }); // pas affamé
     c.thirst = { days: 2, tests: 1, failures: 0 };
@@ -375,16 +289,16 @@ describe('régime de bord — écrit en mangeant (MDG 14 l.230-232)', () => {
   it('une ration ordinaire : un jour de plus sans frais ; une ration de soupe : et un jour de soupe', () => {
     const c = hero({ rations: 1 });
     c.items = [...c.items!, soupe('s1')];
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 1 });
   });
 
   it('porter de la soupe sans la manger ne compte pas : seul le vivre mangé fait le jour', () => {
     const c = hero({ rations: 1 });
     c.items = [...c.items!, soupe('s1')];
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(c.items!.map((it) => it.trappingId)).toEqual([SOUPE]);
     expect(c.regimeDeBord!.joursDeSoupe).toBe(0);
   });
@@ -393,22 +307,36 @@ describe('régime de bord — écrit en mangeant (MDG 14 l.230-232)', () => {
     const c = hero({ rations: 0 });
     c.regimeDeBord = { joursSansVivreFrais: 12, joursDeSoupe: 7 };
     feedFromMeal(c);
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 0, joursDeSoupe: 0 });
   });
 
   it('Brouet (LDB 10 l.139) : le jour couvert par la demi-ration est fait du même vivre, jamais du frais', () => {
     const c = hero({ rations: 0, brouet: true });
     c.items = [soupe('s1')];
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
-    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 2 });
   });
 
   it('un jour sans manger : un jour de plus sans frais', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(1));
+    dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(1));
     expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
+  });
+
+  it('la cale comme garde-manger : prend le besoin entier et laisse le sac, ou rien quand elle est à court (MDG 14 l.238 ; #4453)', () => {
+    const ogre = hero({ rations: 2, traits: [{ id: 'ogre' }] });
+    const cale = { lots: lotsDeCale({ [FRAIS]: 3 }, 0) };
+    const r = dailyFoodUpkeep(ogre, rationsDeLaCale(cale, 0), 30, 3, makeRNG(1));
+    expect(r.ate).toBe(true);
+    expect(rationCount(ogre)).toBe(2);
+    expect(cale.lots.map((l) => l.rations)).toEqual([1]);
+    expect(ogre.regimeDeBord).toEqual({ joursSansVivreFrais: 0, joursDeSoupe: 0 });
+    const r2 = dailyFoodUpkeep(ogre, rationsDeLaCale(cale, 0), 30, 3, makeRNG(1));
+    expect(r2.ate).toBe(false);
+    expect(cale.lots.map((l) => l.rations)).toEqual([1]);
+    expect(rationCount(ogre)).toBe(2);
   });
 
   it('mangerLaCale rend le repas de chaque jour : le vivre qui a nourri seul toutes les bouches, absent si mêlé ou à court', () => {
