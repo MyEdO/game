@@ -1754,7 +1754,7 @@ test('file : une course de file rouge sur un GROUPE (G^1 hors d’origin/main) n
     const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs, parents: ['p'.repeat(40), 'ttttttttt'], fileTimeoutMin: 0.002 })
     const vu = etapeFile.jouer(ctx, journalPush())
     assert.equal(vu.indetermine, true, `jobs=${jobs}`)
-    assert.ok(!gestes.some((g) => ['jobs', 'fusionner'].includes(g[0])), `jobs=${jobs} : ${JSON.stringify(gestes)}`)
+    assert.ok(!gestes.some((g) => g[0] === 'fusionner'), `jobs=${jobs} : ${JSON.stringify(gestes)}`)
   }
 })
 
@@ -1765,8 +1765,29 @@ test('file #3412 : une course de file rouge dont G^1 est ANCÊTRE d’origin/mai
     const vu = etapeFile.jouer(ctx, journal)
     assert.deepEqual([vu.ok, vu.relancer], [false, undefined], `jobs=${jobs}`)
     assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : ${jobs[0]}`)
-    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'])
+    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'jobs', 'tronc'])
     assert.equal(journal.ejections ?? 0, 0)
+  }
+})
+
+test('file #4197 : une PR éjectée dont la course de file attribuée est EN VOL avec un job déjà rouge est un rouge NOMMÉ, sans nouvelle demande ; sans job rouge, elle se redemande', () => {
+  const enVol = { ...courseDeFileRouge, status: 'in_progress', conclusion: null }
+  for (const jobs of [['suite'], []]) {
+    const { ctx, gestes } = ctxFile({ pr: REST(), file: [enVol], jobs, parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+    let demandes = 0
+    ctx.demanderFusion = () => (++demandes === 2 ? { ok: true, statut: 'merged', fusion: 'f'.repeat(40) } : { ok: true, statut: 'enqueued', compte: 'cgauche', entree: ENTREE_2495 })
+    ctx.etatFileDePr = () => ({ ok: true, id: 'PR7', compte: 'cgauche' })
+    const journal = journalPush()
+    const vu = etapeFile.jouer(ctx, journal)
+    if (jobs.length) {
+      assert.equal(vu.ok, false)
+      assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : suite`)
+      assert.deepEqual([demandes, journal.ejections ?? 0], [1, 0])
+    } else {
+      assert.equal(vu.ok, true, vu.raison)
+      assert.deepEqual([demandes, journal.ejections], [2, 1])
+    }
+    assert.ok(!gestes.some((g) => g[0] === 'fusionner'))
   }
 })
 
@@ -1776,7 +1797,7 @@ test('file : une course de file rouge attribuée dont les jobs sont ILLISIBLES e
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
   assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 ; jobs illisibles : HTTP 502`)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'jobs', 'tronc'])
 })
 
 test('file : une PR relue sur un ANCÊTRE de la tête publiée (push pas encore vu) attend dans la borne ; sur une autre histoire, « push hors du train »', () => {
@@ -1891,7 +1912,7 @@ test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, 
   ctx.etatFileDePr = () => ({ ok: true })
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.indetermine, true, 'la nouvelle demande attend sa course dans la borne')
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'jobs', 'tronc', 'demander'])
   assert.equal(journal.ejections, 1)
   assert.ok(lignes.includes(`[publier] file — PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 ANNULÉE — jobs annulés : docs, suite 1/3 : nouvelle demande de fusion sur ttttttttt\n`), lignes.join(''))
   assert.ok(lignes.includes('[publier] file — PR #7 : course de file absente\n'), 'la course 99, terminée avant la 2ᵉ demande, ne la juge pas')
@@ -1904,7 +1925,7 @@ test(`#2392 file : une course de file ANNULÉE au-delà de la borne (${BORNE_EJE
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
   assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/100 ANNULÉE — jobs annulés : docs — reprise une 2ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander', 'tronc', 'jobs'], 'aucune fusion')
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'jobs', 'tronc', 'demander', 'jobs', 'tronc'], 'aucune fusion')
 })
 
 test('file #2525 : une PR en CONFLIT avant la demande — reprise BORNÉE sans demande, même course de branche en vol : FUSION d’origin/main (jamais rebase), relance push → pr → file', () => {
@@ -1915,9 +1936,10 @@ test('file #2525 : une PR en CONFLIT avant la demande — reprise BORNÉE sans d
     const vu = etapeFile.jouer(ctx, journal)
     assert.equal(vu.ok, true, vu.raison)
     assert.deepEqual(vu.relancer, ['push-branche', 'pr', 'file'])
-    assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner'], 'aucune demande de fusion')
-    assert.match(gestes[1][1], /^chore\(merge\): refs #2178 — fusion de origin\/main dans chantier\/2178\n/)
-    assert.ok(gestes[1][1].includes(MOTIF_REPRISE))
+    const lectures = branche[0] === enVol ? ['jobs'] : []
+    assert.deepEqual(gestes.map((g) => g[0]), [...lectures, 'tronc', 'fusionner'], 'aucune demande de fusion')
+    assert.match(gestes.at(-1)[1], /^chore\(merge\): refs #2178 — fusion de origin\/main dans chantier\/2178\n/)
+    assert.ok(gestes.at(-1)[1].includes(MOTIF_REPRISE))
     assert.deepEqual([journal.ejections, journal.tete], [1, 'nnnnnnnnn'])
   }
 })
