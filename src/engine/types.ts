@@ -331,8 +331,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   removedQualities?: string[];
   /** POLARITÉS de qualité neutralisées (altération `augmentWeapon.removeType`) : la polarité de chaque
    *  qualité est résolue par le REGISTRE (`qualities.json` champ `polarite`) à la fusion — jamais une
-   *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
-   *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
+   *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ».
+   *  La charge `augmentWeapon` porte l'énumération de polarité dans `removeType`. */
   removedTypes?: ('atout' | 'defaut')[];
   /** `id` de munition REPRÉSENTATIVE de l'arme (la première de `TrappingData.munitions`), là où `subType` seul ne
    *  la nomme pas. Lu par `ammoFamilyLabel` pour le hint joueur. */

@@ -647,8 +647,7 @@ function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type:
 
 /**
  * Marque le nœud en cours de validation comme un NŒUD D'OP ATTEINT par le parse (`gameOpSchema`,
- * `grammaire/mecanique.ts`), AVANT tout jugement de son payload : « atteint » ne dit pas « jugé » (une
- * op de `OPS_NON_TYPEES` est atteinte et son payload n'est jugé par aucune feuille `idDe`). Hors du
+ * `grammaire/mecanique.ts`), AVANT le jugement de son payload. Le repère compte aussi les opérations refusées. Hors du
  * parse de mesure, l'appel ne fait rien : le parse normal n'y gagne aucun chemin.
  */
 export function marquerOpAtteinte(ctx: z.RefinementCtx): void {

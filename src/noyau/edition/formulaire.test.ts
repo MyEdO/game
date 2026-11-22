@@ -729,7 +729,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
 /** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`) de chaque porteur de
  *  `PORTEURS`, toutes branches ouvertes, sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) :
  *  `variantes` d'une union nommée, puis chaque variante, `ajouter` ou `json` d'une liste, `ajouter` d'un record dont les clés sont posées
- *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, `json` d'une op sans forme déclarée, sinon
+ *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, sinon
  *  celle de la feuille (`choix`, `nombre`, `texte`, `json`), sauf d'un champ exigé à formes objet, toujours présent,
  *  dont l'hôte rend les champs de la forme que dessine sa valeur (`formeAuPoint`). Un nœud déjà descendu ne se redescend
  *  pas. */
@@ -758,8 +758,7 @@ function saisiesDesFormulaires(): Map<string, string> {
       vus.add(u.noeud);
       for (const v of u.variantes) {
         const ici = `${chemin}<${u.discriminant || 'forme'}=${v.cle}>`;
-        if (v.noeud === undefined) saisies.set(ici, 'json');
-        else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
+        if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
         else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
         else if (elementDuNoeud(v.noeud) !== undefined) champ({ ...f, noeud: v.noeud }, ici);
         else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);

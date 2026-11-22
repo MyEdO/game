@@ -286,10 +286,10 @@ export function clesPosees(f: FieldDesc, ici: readonly (string | number)[]): boo
 
 /** Une variante d'une union : la valeur de son discriminant (vide : la variante d'une union à présence qui ne le porte
  *  pas, `discriminantDePresence`), son libellé et son nœud. */
-export interface VarianteDuNoeud { cle: string; libelle: string; noeud: unknown }
+export interface VarianteDuNoeud { readonly cle: string; readonly libelle: string; readonly noeud: unknown }
 
 /** Une union dont chaque variante est nommée : son nœud, son discriminant, ses variantes. */
-export interface UnionDuNoeud { noeud: unknown; discriminant: string; variantes: VarianteDuNoeud[] }
+export interface UnionDuNoeud { noeud: unknown; discriminant: string; variantes: readonly VarianteDuNoeud[] }
 
 /** Les branches d'union du nœud (`|N`). */
 const branchesDe = (n: unknown): unknown[] => enfantsDe(n).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
@@ -366,6 +366,9 @@ function variantesDOperations(
   return variantes;
 }
 
+/** Les descriptions des opérations sont communes à toutes les valeurs du répartiteur. */
+const chargesNommees = new WeakMap<DeclarationDEnfants, readonly VarianteDuNoeud[]>();
+
 /** L'union du nœud, chacune de ses variantes nommée : d'une répartition d'ops (`payloads-op`), chaque op typée, nommée
  *  par son payload ; d'une union discriminée, chaque branche, de
  *  l'unique valeur de son discriminant (`libelleDeLaBranche`) ; d'une union à présence, de même, la branche qui ne porte
@@ -376,13 +379,16 @@ export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
   if (n === undefined) return undefined;
   const declaration = declarationDEnfants(n);
   if (declaration) {
-    const variantes = variantesDOperations(declaration);
-    return variantes && { noeud: n, discriminant: 'op', variantes };
+    const variantes = chargesNommees.get(declaration) ?? variantesDOperations(declaration);
+    if (!variantes) return undefined;
+    chargesNommees.set(declaration, variantes);
+    return { noeud: n, discriminant: 'op', variantes };
   }
   const presence = discriminantDePresence(n);
   const sansDiscriminant = presence !== undefined || defDe(n)!.discriminator !== undefined ? undefined : variantesSansDiscriminant(n);
   const discriminant = presence ?? defDe(n)!.discriminator ?? '';
-  const variantes = sansDiscriminant ?? branchesDe(n).map((b) => {
+  if (sansDiscriminant) return { noeud: n, discriminant, variantes: sansDiscriminant };
+  const variantes = branchesDe(n).map((b) => {
     const lues = valeursAdmises(b)[discriminant];
     const admises = [...(lues ?? [])];
     const cle = presence !== undefined && lues === undefined ? '' : admises.length === 1 && typeof admises[0] === 'string' ? admises[0] : undefined;

@@ -385,6 +385,16 @@ function brancheDeRollTable(valeur: unknown): 0 | 1 | undefined {
   return inline ? 0 : 1;
 }
 
+const nomDOpManann = { op: z.literal('manann') };
+const nomDOpCargaison = { op: z.literal('cargaison') };
+const nomDOpEquipage = { op: z.literal('equipage') };
+const nomDOpPerilDeMer = { op: z.literal('perilDeMer') };
+const nomDOpMarcheDuPort = { op: z.literal('marcheDuPort') };
+const nomDOpProvisions = { op: z.literal('provisions') };
+const nomDOpDeitySkillMod = { op: z.literal('deitySkillMod') };
+const nomDOpSkillDRBonus = { op: z.literal('skillDRBonus') };
+const nomDOpRollTable = { op: z.literal('rollTable') };
+
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
  * vérifié sur toutes les occurrences réelles de l'op dans les 2 racines authorées. Une entrée est un
@@ -647,8 +657,8 @@ const DECLARATIONS_D_OPS = {
   shipMorale: nommerChamps(z.strictObject({ op: z.literal('shipMorale'), delta: effetSigneSchema }), { op: { label: "opération"  }, delta: { label: "variation" } }),
   /** MDG 15 l.97–124 */
   manann: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('manann'), delta: effetSigneSchema }), { op: { label: "opération"  }, delta: { label: "variation" } }),
-    nommerChamps(z.strictObject({ op: z.literal('manann'), facteur: ref('manannFactor') }), { op: { label: "opération"  }, facteur: { label: "facteur" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpManann, delta: effetSigneSchema }), { op: { label: "opération"  }, delta: { label: "variation" } }),
+    nommerChamps(z.strictObject({ ...nomDOpManann, facteur: ref('manannFactor') }), { op: { label: "opération"  }, facteur: { label: "facteur" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { delta?: unknown; facteur?: unknown };
@@ -677,10 +687,10 @@ const DECLARATIONS_D_OPS = {
   }).refine((v) => v.meteo !== undefined || v.ventInverse !== undefined, { message: 'meteoImposee VIDE : nommer « meteo » (axes imposés) ou « ventInverse ».' }), { op: { label: "opération"  }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, meteo: { label: "météo imposée" }, ventInverse: { label: "vent inversé" }, aggravation: { label: "aggravation" } }),
   /** `cargaison` — MDG 15 l.209-210, l.224-225, l.250, l.33-36, l.159-164, l.174-178 */
   cargaison: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('cargaison'), enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perteAuDechargement: formulaSchema }), { op: { label: "opération"  }, perteAuDechargement: { label: "perte au déchargement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perduePct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perduePct: { label: "part perdue (%)" } }),
-    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perdueEnc: formulaSchema }), { op: { label: "opération"  }, perdueEnc: { label: "Encombrement perdu" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpCargaison, enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpCargaison, perteAuDechargement: formulaSchema }), { op: { label: "opération"  }, perteAuDechargement: { label: "perte au déchargement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpCargaison, perduePct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perduePct: { label: "part perdue (%)" } }),
+    nommerChamps(z.strictObject({ ...nomDOpCargaison, perdueEnc: formulaSchema }), { op: { label: "opération"  }, perdueEnc: { label: "Encombrement perdu" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown; perduePct?: unknown; perdueEnc?: unknown };
@@ -693,12 +703,12 @@ const DECLARATIONS_D_OPS = {
    *  MDG 15 l.202-204, l.213-218, l.258, l.33-35 */
   equipage: z.union([
     nommerChamps(z.strictObject({
-      op: z.literal('equipage'),
+      ...nomDOpEquipage,
       delta: formulaSchema,
       role: ref('crewRole').optional(),
       sansSolde: z.literal('jusquAuPort').optional(),
     }), { op: { label: "opération"  }, delta: { label: "variation" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, sansSolde: { label: "sans solde" } }),
-    nommerChamps(z.strictObject({ op: z.literal('equipage'), perdusPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perdusPct: { label: "part perdue (%)" } }),
+    nommerChamps(z.strictObject({ ...nomDOpEquipage, perdusPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perdusPct: { label: "part perdue (%)" } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { delta?: unknown; perdusPct?: unknown };
@@ -710,8 +720,8 @@ const DECLARATIONS_D_OPS = {
   /** `perilDeMer` : le navire heurte un péril (`collision`) OU entre dans un tourbillon (`tourbillon`), exclusifs.
    *  MDG 15 l.140-141, l.146, l.181-183 */
   perilDeMer: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('perilDeMer'), collision: ref('seaHazard') }), { op: { label: "opération"  }, collision: { label: "péril heurté" , texte: { regime: "technique"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('perilDeMer'), tourbillon: ref('tourbillon') }), { op: { label: "opération"  }, tourbillon: { label: "tourbillon" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpPerilDeMer, collision: ref('seaHazard') }), { op: { label: "opération"  }, collision: { label: "péril heurté" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpPerilDeMer, tourbillon: ref('tourbillon') }), { op: { label: "opération"  }, tourbillon: { label: "tourbillon" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { collision?: unknown; tourbillon?: unknown };
@@ -754,12 +764,12 @@ const DECLARATIONS_D_OPS = {
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('marcheDuPort'), colonnes: enumNomme({ penurie: 'Pénurie', saturation: 'Saturation de produits' }) }), { op: { label: "opération"  }, colonnes: { label: "colonnes de l’Index" } }),
+    nommerChamps(z.strictObject({ ...nomDOpMarcheDuPort, colonnes: enumNomme({ penurie: 'Pénurie', saturation: 'Saturation de produits' }) }), { op: { label: "opération"  }, colonnes: { label: "colonnes de l’Index" } }),
     nommerChamps(z.strictObject({
-      op: z.literal('marcheDuPort'),
+      ...nomDOpMarcheDuPort,
       offre: nommerChamps(z.strictObject({ enc: formulaSchema, remisePct: z.number().int().min(1).max(99) }), { enc: { label: "Encombrement offert" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, remisePct: { label: "remise (%)" } }),
     }), { op: { label: "opération"  }, offre: { label: "offre" } }),
-    nommerChamps(z.strictObject({ op: z.literal('marcheDuPort'), demande: z.number().int(), jours: formulaSchema }), { op: { label: "opération"  }, demande: { label: "Demande" }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpMarcheDuPort, demande: z.number().int(), jours: formulaSchema }), { op: { label: "opération"  }, demande: { label: "Demande" }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { colonnes?: unknown; offre?: unknown; demande?: unknown };
@@ -772,10 +782,10 @@ const DECLARATIONS_D_OPS = {
    *  d'eau (`eauTonneaux`), exclusifs ; `jours` et `rations` nomment leur vivre de la cale (`vivre`).
    *  MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242, l.245-252 */
   provisions: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpProvisions, jours: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+    nommerChamps(z.strictObject({ ...nomDOpProvisions, gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
+    nommerChamps(z.strictObject({ ...nomDOpProvisions, rations: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+    nommerChamps(z.strictObject({ ...nomDOpProvisions, eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown; vivre?: unknown };
@@ -901,13 +911,13 @@ const DECLARATIONS_D_OPS = {
   skillMod: nommerChamps(z.strictObject({ op: z.literal('skillMod'), skill: refOuSpec('skill'), mod: z.number(), sense: senseSchema.optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, sense: { label: "sens"  } }),
   /** Durée EXCLUSIVE, en heures OU en jours (`engine/ops.ts`, union `deitySkillMod`). */
   deitySkillMod: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
-    nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationDays: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+    nommerChamps(z.strictObject({ ...nomDOpDeitySkillMod, pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+    nommerChamps(z.strictObject({ ...nomDOpDeitySkillMod, pick: deitySkillPickSchema, mod: z.number(), durationDays: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   ], { error: () => MESSAGE_DUREE_DE_DIVINITE }),
   /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). */
   skillDRBonus: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: ref('crewTestType'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpSkillDRBonus, skill: refOuSpec('skill'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ ...nomDOpSkillDRBonus, testType: ref('crewTestType'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { skill?: unknown; testType?: unknown; bonus?: unknown };
@@ -1014,7 +1024,7 @@ const DECLARATIONS_D_OPS = {
 };
 
 const tableDeTirageReferencee = nommerChamps(z.strictObject({
-  op: z.literal('rollTable'),
+  ...nomDOpRollTable,
   mod: z.number().optional(),
   addNegativeSL: z.boolean().optional(),
   extraRollsPerStep: z.number().optional(),
@@ -1070,7 +1080,7 @@ const declarationsDOpsRecursives = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, 
   /** Table INLINE (`entries`) OU RÉFÉRENCÉE (`table`), exclusives (`engine/ops.ts`, union `rollTable`). */
   rollTable: z.union([
     marquerProduit(nommerChamps(z.strictObject({
-      op: z.literal('rollTable'),
+      ...nomDOpRollTable,
       die: deDeTirageSchema,
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
@@ -1208,10 +1218,12 @@ type ModPassifDesBlessures = ChargePassiveDesBlessures & { auTotal?: never };
 export type OpPassive = FermerOp<Exclude<ChargeDOp, ModDesBlessures>, false> | ChargePsyExecutee | ModPassifDesBlessures;
 
 type GameOpAuteur<R = Record<never, never>> = FermerOp<SortiesDOps<R>[keyof DeclarationsDOps], true>;
-type PassifAuteur = FermerOp<Exclude<SortiesDOps<Record<never, never>>[keyof DeclarationsDOps], ModDesBlessures>, true> | ChargePassiveDesBlessures;
-type FeuilleAuteur = z.output<ReturnType<typeof effetDOperations<z.ZodType<GameOpAuteur>>>>;
+type PassifAuteur = Exclude<GameOpAuteur, ModDesBlessures> | ChargePassiveDesBlessures;
+type SchemaDeFeuilleAuteur = ReturnType<typeof effetDOperations<z.ZodType<GameOpAuteur>>>;
+type FeuilleAuteur = z.output<SchemaDeFeuilleAuteur>;
 type FlowAuteur = ArbreDeFlow<FeuilleAuteur, z.output<typeof flowTestSchema>, number | typeof INDICE_TEMPLATE, z.output<typeof conditionSchema>>;
-type EffetDeclencheAuteur = z.output<ReturnType<typeof effetDeclencheSur<z.ZodType<FlowAuteur>>>>;
+type SchemaDEffetDeclencheAuteur = ReturnType<typeof effetDeclencheSur<z.ZodType<FlowAuteur>>>;
+type EffetDeclencheAuteur = z.output<SchemaDEffetDeclencheAuteur>;
 export type EffetDeclencheMoteur = z.output<ReturnType<typeof effetDeclencheSur<z.ZodType<Flow<EffectOp>>>>>;
 
 const CATALOGUE_DES_DECLARATIONS_D_OPS = {
@@ -2518,7 +2530,7 @@ export function famillesConstruites(): readonly FamilleMecanique[] {
 
 const FERMEE = mecaniqueDe({});
 export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = FERMEE.opDefs;
-export const gameOpSchema = FERMEE.gameOp;
+export const gameOpSchema: z.ZodType<GameOpAuteur> = FERMEE.gameOp;
 
 type ContexteDEffetDArme = { genre?: z.output<typeof genreDArmeSchema>; refus?: string };
 
@@ -2576,9 +2588,9 @@ type AuPeche<O> = O extends unknown ? { [K in keyof O]: FeuilleAuPeche<O[K]> } :
 /** Liste d'ops EXÉCUTÉE au dialecte du Péché (régime `formule: 'peche'`), portée par une rangée de `miscast.json` : le
  *  moteur la lit par `gameOpSchema` après avoir lié le Péché (`engine/miscast.ts`). LDB 40 l.46 */
 export const opsAuPecheSchema = executeesDe(mecaniqueDe({ formule: 'peche' }).gameOp);
-export const effectOpSchema = FERMEE.effectOp;
-export const flowSchema = FERMEE.flow;
-export const triggeredEffectSchema = FERMEE.triggeredEffect;
+export const effectOpSchema: SchemaDeFeuilleAuteur = FERMEE.effectOp;
+export const flowSchema: z.ZodType<FlowAuteur> = FERMEE.flow;
+export const triggeredEffectSchema: SchemaDEffetDeclencheAuteur = FERMEE.triggeredEffect;
 export const travelTableEntrySchema = FERMEE.travelTableEntry;
 export const shipCrewHitSchema = FERMEE.shipCrewHit;
 export const shipCritEntrySchema = FERMEE.shipCritEntry;

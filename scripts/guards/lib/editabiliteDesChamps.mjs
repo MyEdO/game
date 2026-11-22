@@ -63,8 +63,8 @@ import { ElementFlags, SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `RefDesignee`, `TraitPose`) : un `interface` ou un `type` de la couche donnée (`typeDeLaDonnee`) entre avec ses
 // `PropertySignature`, comme ceux qu'annotent les types MANUSCRITS du document (`SceneEntity.calage` : `Calage`).
 // Aucun nœud listé ne l'arrête ; `z.custom<T>()` est une frontière STRUCTURELLE (aucun shape à marcher), détectée et
-// jamais listée, et un type du MOTEUR (`Condition`, `Flow`, `GameOp`, `FlowTest`, `src/engine/`) n'est pas de la couche
-// donnée : son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma (#1468).
+// jamais listée. Les alias moteur de `Condition`, `Flow` et `GameOp` mènent aux déclarations de la grammaire.
+// Une déclaration propre à un type du moteur reste hors des identités du document.
 // Mesure au tronc 64465aeb0 : 462 champs en scène, 484 en carte et 392 en narratif, zéro issu du moteur.
 // La mesure des positions et des déclarations de variantes (#4289) porte ces comptes à 497, 507 et 407.
 // Le niveau importe : le SYMBOLE d'un type inféré d'un schéma zod est anonyme et déclaré dans
@@ -508,6 +508,7 @@ const branchesSansVide = (type) => nonVides.get(type) ?? nonVides.set(type,
   membresDe(type).filter((b) => !(b.flags & (TypeFlags.Undefined | TypeFlags.Null)))).get(type);
 
 const signaturesDUnion = new WeakMap();
+const SANS_SIGNATURES = { parType: new Map() };
 const naturesScalaires = new WeakMap();
 const ABSENT = { nom: 'absent', optionnel: true, natures: [] };
 const jetonLitteral = (v) => '=' + JSON.stringify(v);
@@ -545,8 +546,8 @@ function signaturesDe(checker, branches) {
   if (memorisees !== undefined) return memorisees;
   const objets = branches.filter((t) => estObjetType(t) && !positionsDeListe(checker, t).length);
   if (objets.length < 2) {
-    signaturesDUnion.set(branches, []);
-    return [];
+    signaturesDUnion.set(branches, SANS_SIGNATURES);
+    return SANS_SIGNATURES;
   }
   const proprietes = objets.map((t) => new Map(checker.getPropertiesOfType(t).map((p) => [p.name, p])));
   const indexes = objets.map((t) => indexTexte(checker, t));
@@ -560,18 +561,29 @@ function signaturesDe(checker, branches) {
   const litteraux = discriminants.filter(([, cs]) => cs.some((c) => c.natures?.some((n) => n.startsWith('='))));
   const presences = discriminants.filter(([, cs]) => cs.includes(ABSENT) && cs.some((c) => !c.optionnel));
   const nomment = litteraux.length ? litteraux : presences.length ? presences : discriminants;
-  const signatures = objets.map((type, i) => ({
-    type,
+  const parType = new Map(objets.map((type, i) => [type, {
     tests: discriminants.map(([nom, cs]) => [nom, cs[i]]),
-    nomment: nomment.map(([nom, cs]) => [nom, cs[i].nom]),
-  }));
+    nom: nomment.length ? '<' + nomment.map(([nom, cs]) => nom + '=' + cs[i].nom).join(',') + '>' : '',
+  }]));
+  // Un littéral requis dans chaque branche objet permet d'écarter les autres branches avant leurs tests.
+  const commun = litteraux.find(([, contraintes]) => contraintes.every((c) =>
+    !c.optionnel && c.natures?.length === 1 && c.natures[0].startsWith('=')));
+  const parValeur = new Map();
+  if (commun) {
+    const [, contraintes] = commun;
+    for (const [i, type] of objets.entries()) {
+      const jeton = contraintes[i].natures[0];
+      if (!parValeur.has(jeton)) parValeur.set(jeton, []);
+      parValeur.get(jeton).push(type);
+    }
+  }
+  const signatures = { parType, ...(commun ? { index: { cle: commun[0], parValeur } } : {}) };
   signaturesDUnion.set(branches, signatures);
   return signatures;
 }
 
 function qualifierBranche(checker, branches, type) {
-  const cas = signaturesDe(checker, branches).find((b) => b.type === type)?.nomment;
-  return cas?.length ? '<' + cas.map(([nom, valeur]) => nom + '=' + valeur).join(',') + '>' : '';
+  return signaturesDe(checker, branches).parType.get(type)?.nom ?? '';
 }
 
 function convientAuScalaire(natures, valeur) {
@@ -583,19 +595,23 @@ function convientAuScalaire(natures, valeur) {
 /** Les branches dont la forme peut porter la valeur relue. Plusieurs peuvent rester compatibles. */
 function branchesDeLaValeur(checker, type, valeur) {
   const branches = membresDe(type);
-  const signatures = signaturesDe(checker, branches);
-  return branches.filter((t) => {
-    if (valeur === undefined) return !sansValeur(t);
-    if (Array.isArray(valeur)) return positionsDeListe(checker, t).length > 0;
-    if (estObjet(valeur)) {
-      if (!estObjetType(t) || positionsDeListe(checker, t).length) return false;
-      const signature = signatures.find((b) => b.type === t);
-      return !signature || signature.tests.every(([nom, { optionnel, natures }]) => {
-        const lue = Object.hasOwn(valeur, nom) ? valeur[nom] : undefined;
-        return lue === undefined ? optionnel : convientAuScalaire(natures, lue);
-      });
-    }
-    return !estObjetType(t) && convientAuScalaire(naturesDuType(t), valeur);
+  if (valeur === undefined) return branches.filter((t) => !sansValeur(t));
+  if (Array.isArray(valeur)) return branches.filter((t) => positionsDeListe(checker, t).length > 0);
+  if (!estObjet(valeur)) return branches.filter((t) => !estObjetType(t) && convientAuScalaire(naturesDuType(t), valeur));
+  const { parType, index } = signaturesDe(checker, branches);
+  let candidats = branches;
+  if (index) {
+    const lue = Object.hasOwn(valeur, index.cle) ? valeur[index.cle] : undefined;
+    if (lue === undefined || estObjet(lue) || Array.isArray(lue)) return [];
+    candidats = index.parValeur.get(jetonLitteral(lue)) ?? [];
+  }
+  return candidats.filter((t) => {
+    const signature = parType.get(t);
+    if (!signature) return estObjetType(t) && !positionsDeListe(checker, t).length;
+    return signature.tests.every(([nom, { optionnel, natures }]) => {
+      const lue = Object.hasOwn(valeur, nom) ? valeur[nom] : undefined;
+      return lue === undefined ? optionnel : convientAuScalaire(natures, lue);
+    });
   });
 }
 
@@ -608,8 +624,8 @@ function branchesDeLaSource(checker, type, source) {
     return [...new Set(membresDe(source).flatMap((t) => branchesDeLaSource(checker, type, t)))];
   }
   const compatibles = [];
-  const signatures = signaturesDe(checker, membresDe(type));
-  for (const { type: t, tests } of signatures) {
+  const { parType } = signaturesDe(checker, membresDe(type));
+  for (const [t, { tests }] of parType) {
     if (tests.every(([nom, contrainte]) => {
       const prop = checker.getPropertyOfType(source, nom);
       if (!prop || (prop.flags & SymbolFlags.Optional)) return true;
@@ -623,7 +639,7 @@ function branchesDeLaSource(checker, type, source) {
     })) compatibles.push(t);
   }
   const objets = membresDe(type).filter(estObjetType);
-  const candidats = signatures.length ? compatibles : objets;
+  const candidats = parType.size ? compatibles : objets;
   // Une écriture partielle ne possède pas forcément tous les champs requis.
   const assignees = candidats.filter((t) => checker.isTypeAssignableTo(source, t));
   return assignees.length ? assignees : candidats;
