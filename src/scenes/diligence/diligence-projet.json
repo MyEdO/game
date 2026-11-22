@@ -15253,14 +15253,17 @@
      },
      "creature": {
       "id": "humain"
-     }
+     },
+     "couvre": [
+      "EDO-01#pnj19"
+     ]
     },
     {
      "id": "diligence-cour-palefrenier-2",
      "kind": "personnage",
      "pos": {
-      "x": 24,
-      "y": 34
+      "x": 23,
+      "y": 31
      },
      "facing": "N",
      "appearance": {
@@ -15270,7 +15273,10 @@
      },
      "creature": {
       "id": "humain"
-     }
+     },
+     "couvre": [
+      "EDO-01#pnj19"
+     ]
     },
     {
      "id": "diligence-cour-abreuvoir",
@@ -26892,6 +26898,9 @@
     },
     {
      "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "interior",
      "id": "zone-3-0",
      "area": {
