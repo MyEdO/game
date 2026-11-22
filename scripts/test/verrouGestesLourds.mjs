@@ -2,8 +2,8 @@
 // sous le `.git` commun (`npm ci` efface `node_modules/.cache`). Preneurs : `PRENEURS`, et `scripts/gates/toutes.mjs`.
 import { join } from 'node:path'
 import { depotDe, dossierGitCommun } from '../guards/lib/gitPorte.mjs'
-import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
-import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
+import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
+import { IDENTITE_MESUREE, lireIdentiteMesuree } from './identiteMesuree.mjs'
 
 /** Vrai si `argv` est un geste LOURD de `scripts/docs/build-all.mjs` (#2603) : tout mode, hors `--code` et `--check --only`. */
 export const estGesteLourd = (argv) => !argv.includes('--code') && !(argv.includes('--check') && argv.includes('--only'))
@@ -47,17 +47,7 @@ export const ATTENTE_GESTES_LOURDS = Object.freeze({ echeanceMs: 30 * 60 * 1000,
 export function verrouGestesLourds(racine, { mesurer = mesurerProcessusWorktrees, plateforme = process.platform } = {}) {
   const commun = dossierGitCommun(depotDe(racine))
   if (!commun.disponible) throw new Error(commun.raison)
-  const estZombie = (pid) => {
-    if (plateforme !== 'linux') return false
-    try {
-      const vue = mesurer({ pids: [pid], identites: true, timeout: DELAI_MESURE_PROCESSUS_MS })
-      if (vue.indeterminee || vue.erreurs?.length) return false
-      const tenant = vue.processus.find((processus) => processus.pid === pid)
-      return tenant?.etat === 'Z' && tenant.erreurs?.length === 0
-    } catch {
-      return false
-    }
-  }
+  const estZombie = (pid) => plateforme === 'linux' && lireIdentiteMesuree(pid, { mesurer })?.etat === 'Z'
   return {
     chemin: join(commun.valeur, 'gestes-lourds.verrou'),
     libelle: 'un geste lourd tient la machine',
