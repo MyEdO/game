@@ -402,22 +402,22 @@
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
   "prop--laine.jpg": {
-    "sha256": "c86183b8f72732eab6efc3b10af095c68115e50bb3784675b8687716da2ee840",
+    "sha256": "f35e09fd5fa5e5b7b46ee32280f00fefbda12afb669a9a7f0e082c15f643ea97",
     "source": "https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_Color.jpg) ; dérivée de prop--laine.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--laine.neutre.jpg": {
-    "sha256": "39b8176ec2a8907f2bd35ba5490561bde16de43c67d51a60dedd6a6c7b06f954",
+    "sha256": "1400e2728acbfdfdbb3dce936966b50bfd15100677dcb38e4884749fdaece290",
     "source": "https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 128x128! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+    "traitement": "ImageMagick : -resize 256x256! -colorspace Gray -auto-level +level 30%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
   "prop--laine.normale.jpg": {
-    "sha256": "342f0a42d7db8dc9d958a9743cda04d5a6f1a208b106fb50640f85c76efc2182",
+    "sha256": "e1f63ecb91ec069848eddd8bb8bc91566dc50ef90fbca36f57895acc2f6f515c",
     "source": "https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
-    "traitement": "ImageMagick : -resize 64x64! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 90"
   },
   "prop--laiton-dore.neutre.jpg": {
     "sha256": "79f519a734cce21f54b3b8a162b2e23d02468d32473e8a07058ba0603c559146",
