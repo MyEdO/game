@@ -36,14 +36,12 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   avec leur origine et leurs deux colonnes en poids de silhouettes, dérivées de `poidsDeSilhouettes` et
  *   `poidsDeCarrure`. `coinsDeSilhouettesAtteignables`, commun à `etatsDuGabarit` et `grilleDesAppuis`, en dérive les
  *   coins ; les poids identiques et les jeux de facteurs identiques sont dédupliqués. La règle des deux carrures
- *   exclusives appartient à `poidsDeCarrure`. `poidsDeSilhouettes` ne cumule `carrure_plus` avec aucune autre
- *   silhouette : un corps féminin la perd, un corps masculin ne la garde que plus forte que `corpulence`, qui
- *   l'emporte à égalité (#3104, levée par #3280). Une branche de carrure dont le coin lointain n'est pas la somme de
- *   ses deux colonnes perd sa colonne de corpulence : sa cellule se réduit à l'axe de carrure, l'axe de corpulence
- *   restant porté par l'autre branche du même sexe ; la branche `carrure_plus` d'un corps féminin a une colonne de
- *   carrure nulle. Sans silhouette, le domaine est un point, ses coins contiennent seulement `{}` et sa liste de
- *   cellules est vide ; Python ne réénonce pas les axes du domaine. Les coins prouvent le maximum de norme et le
- *   maximum d’erreur de positions GLB, par convexité d’une norme de fonction affine.
+ *   exclusives appartient à `poidsDeCarrure` ; `poidsDeSilhouettes` pose chaque silhouette à son poids propre, qui se
+ *   cumule avec celui de chaque autre (#3280) : une cellule par sexe et par branche de carrure, sa colonne de
+ *   corpulence et sa colonne de carrure, son coin lointain la somme des deux. Sans silhouette, le domaine est un
+ *   point, ses coins contiennent seulement `{}` et sa liste de cellules est vide ; Python ne réénonce pas les axes du
+ *   domaine. Les coins prouvent le maximum de norme et le maximum d’erreur de positions GLB, par convexité d’une norme
+ *   de fonction affine.
  * - Les opérations de `gabarit.mjs` : `silhouettes` rend le vocabulaire de `asset/silhouettes.ts`, que Python lit par
  *   `noms_silhouettes.py` ; `etatsAuxFacteursNeutres` et `etatsDuGabarit` rendent ces états et le champ requis
  *   `cellulesSilhouettes`, émis aussi par la cuisson ; `cles` cuit les seules clés `gabarit_*` d'un `corps`, sans les
@@ -356,10 +354,8 @@ export const poidsDeCarrure = (st: number, bornes: TableDeGabarit['st']): Record
  */
 export const poidsDeSilhouettes = ({ sex, build, st }: { sex: Sexe; build: number; st: number }, table: TableDeGabarit): Record<string, number> => {
   const carrure = poidsDeCarrure(st, table.st);
-  const corpulence = borne((build - BUILD_NEUTRE) / (1 - BUILD_NEUTRE));
-  const plusSeule = sex === 'M' && carrure[CARRURE_PLUS] > corpulence;
   return tableTotale(NOMS_DES_SILHOUETTES, (nom) => nom === FEMININ ? (sex === 'F' ? 1 : 0)
-    : nom === CORPULENCE ? (plusSeule ? 0 : corpulence) : nom === CARRURE_PLUS ? (plusSeule ? carrure[nom] : 0) : carrure[nom]);
+    : nom === CORPULENCE ? borne((build - BUILD_NEUTRE) / (1 - BUILD_NEUTRE)) : carrure[nom]);
 };
 
 export interface CelluleDeSilhouettes {
@@ -382,10 +378,7 @@ export function cellulesDeSilhouettesAtteignables(table: TableDeGabarit, silhoue
     const origine = poids(sex, BUILD_NEUTRE, FACTEURS_NEUTRES.st);
     const [corpulence, carrure] = [poids(sex, 1, FACTEURS_NEUTRES.st), poids(sex, BUILD_NEUTRE, st)]
       .map((bout) => tableTotale(silhouettes, (nom) => bout[nom] - origine[nom]));
-    const coin = poids(sex, 1, st);
-    const cumul = silhouettes.every((nom) => coin[nom] === origine[nom] + corpulence[nom] + carrure[nom]);
-    return { nom: `${sex}_${branche}`, origine,
-      colonnes: [cumul ? corpulence : tableTotale(silhouettes, () => 0), carrure] as [Record<string, number>, Record<string, number>] };
+    return { nom: `${sex}_${branche}`, origine, colonnes: [corpulence, carrure] as [Record<string, number>, Record<string, number>] };
   }));
 }
 

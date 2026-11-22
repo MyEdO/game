@@ -52,7 +52,16 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
       if (!verdict.ok) expect(verdict.ecarts.some((e) => e.ou === 'gabarit.st')).toBe(attendu);
     }
   });
-  it('croise exactement les neuf coins atteignables avec chaque jeu de facteurs', () => {
+  it('cumule `carrure_plus` avec `feminin` et avec `corpulence` (#3280)', () => {
+    expect(poidsDeSilhouettes({ sex: 'F', build: BUILD_NEUTRE, st: table.st.max }, table)).toEqual({ [FEMININ]: 1, [CORPULENCE]: 0, [CARRURE_MOINS]: 0, [CARRURE_PLUS]: 1 });
+    expect(poidsDeSilhouettes({ sex: 'M', build: 1, st: table.st.max }, table)).toEqual({ [FEMININ]: 0, [CORPULENCE]: 1, [CARRURE_MOINS]: 0, [CARRURE_PLUS]: 1 });
+    expect(poidsDeSilhouettes({ sex: 'F', build: 1, st: table.st.max }, table)).toEqual({ [FEMININ]: 1, [CORPULENCE]: 1, [CARRURE_MOINS]: 0, [CARRURE_PLUS]: 1 });
+    expect(etatsAuxFacteursNeutres(table, noms).map((e) => e.nom).sort()).toEqual(['neutre', FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS,
+      `${FEMININ}_${CORPULENCE}`, `${FEMININ}_${CARRURE_MOINS}`, `${FEMININ}_${CARRURE_PLUS}`, `${CORPULENCE}_${CARRURE_MOINS}`, `${CORPULENCE}_${CARRURE_PLUS}`,
+      `${FEMININ}_${CORPULENCE}_${CARRURE_MOINS}`, `${FEMININ}_${CORPULENCE}_${CARRURE_PLUS}`].sort());
+  });
+
+  it('croise exactement les douze coins atteignables avec chaque jeu de facteurs', () => {
     const etats = etatsDuGabarit(table, noms);
     const groupes = new Map<string, EtatDuGabarit[]>();
     for (const e of etats) {
@@ -60,9 +69,9 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
       groupes.set(cle, [...(groupes.get(cle) ?? []), e]);
     }
     expect(groupes.size).toBe(13);
-    expect(etats).toHaveLength(13 * 9);
+    expect(etats).toHaveLength(13 * 12);
     for (const groupe of groupes.values()) {
-      expect(groupe).toHaveLength(9);
+      expect(groupe).toHaveLength(12);
       for (const sex of ['M', 'F'] as const) for (const build of [BUILD_NEUTRE, 1]) for (const st of [table.st.min, FACTEURS_NEUTRES.st, table.st.max]) {
         const poids = poidsDeSilhouettes({ sex, build, st }, table);
         expect(groupe.some((e) => noms.every((nom) => e.poidsSilhouettes[nom] === poids[nom]))).toBe(true);
@@ -70,8 +79,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
     }
     for (const e of etats) {
       expect(e.poidsSilhouettes[CARRURE_MOINS] * e.poidsSilhouettes[CARRURE_PLUS]).toBe(0);
-      expect(e.poidsSilhouettes[CORPULENCE] * e.poidsSilhouettes[CARRURE_PLUS]).toBe(0);
-      expect(e.poidsSilhouettes[FEMININ] * e.poidsSilhouettes[CARRURE_PLUS]).toBe(0);
       expect(e.poidsGabarit).toEqual(poidsDuGabarit(e.facteurs, table.bornes, e.poidsSilhouettes));
       expect(e.poidsReference).toEqual(poidsDuGabarit(e.facteurs, table.bornes, tableTotale(noms, () => 0)));
     }
@@ -90,7 +97,7 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
     }
   });
 
-  it('émet quatre cellules affines qui couvrent les poids continus, carrure_plus seule hors du cumul', () => {
+  it('émet quatre cellules affines, une colonne de corpulence et une de carrure chacune, qui couvrent les poids continus', () => {
     const cellules = cellulesDeSilhouettesAtteignables(table, noms);
     expect(cellules).toHaveLength(4);
     const point = (cellule: (typeof cellules)[number], u: number, v: number) =>
@@ -99,12 +106,11 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
       const sex = index < 2 ? 'M' : 'F';
       const plus = index % 2 === 1;
       const extremite = plus ? table.st.max : table.st.min;
-      const seule = plus && sex === 'M';
-      if (plus) expect(noms.every((nom) => cellule.colonnes[seule ? 0 : 1][nom] === 0)).toBe(true);
+      expect(cellule.colonnes).toEqual([{ ...tableTotale(noms, () => 0), [CORPULENCE]: 1 }, { ...tableTotale(noms, () => 0), [plus ? CARRURE_PLUS : CARRURE_MOINS]: 1 }]);
       for (const u of [0, 0.37, 1]) for (const v of [0, 0.61, 1]) {
         const poids = poidsDeSilhouettes({ sex, build: BUILD_NEUTRE + u * (1 - BUILD_NEUTRE),
           st: FACTEURS_NEUTRES.st + v * (extremite - FACTEURS_NEUTRES.st) }, table);
-        const attendu = !seule ? point(cellule, u, v) : u >= v ? point(cellules[index - 1], u, 0) : point(cellule, 0, v);
+        const attendu = point(cellule, u, v);
         for (const nom of noms) expect(attendu[nom]).toBeCloseTo(poids[nom], 14);
       }
     }
