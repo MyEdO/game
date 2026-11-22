@@ -340,7 +340,15 @@ export function proprietesZod(node, entree) {
   const memeSource = entree && node.getSourceFile().text === entree.text && path.resolve(node.getSourceFile().fileName).toLowerCase() === path.resolve(entree.sf.fileName).toLowerCase()
   const final = memeSource ? entree.formesFinales?.get(`${node.pos}:${node.end}`) : undefined
   const retrouver = n => n.pos === final?.base.pos && n.end === final?.base.end ? n : n.forEachChild(retrouver)
-  const base = noyauZod(final ? retrouver(node.getSourceFile()) : node, entree)
+  let base = noyauZod(final ? retrouver(node.getSourceFile()) : node, entree)
+  // Un membre de famille peut être construit par une fabrique locale à retour unique.
+  if (entree?.checker && ts.isCallExpression(base) && ts.isIdentifier(base.expression)) {
+    const fabrique = entree.checker.getSymbolAtLocation(base.expression)?.valueDeclaration?.resolve()
+    if (fabrique && ts.isFunctionDeclaration(fabrique) && fabrique.getSourceFile().fileName === base.getSourceFile().fileName && fabrique.body?.statements.length === 1) {
+      const [retour] = fabrique.body.statements
+      if (ts.isReturnStatement(retour) && retour.expression) base = noyauZod(retour.expression, entree)
+    }
+  }
   if (!ts.isCallExpression(base) || !ts.isObjectLiteralExpression(base.arguments[0])) {
     throw new Error(`proprietesZod — forme d'objet zod illisible : ${node.getText(node.getSourceFile())}`)
   }
@@ -385,7 +393,7 @@ function declarationReelle(entree, programmes) {
     if (!decl || !ts.isVariableDeclaration(decl) || !ts.isVariableStatement(decl.parent.parent)) return null
     if (decl.initializer && ts.isPropertyAccessExpression(decl.initializer)) { acces = decl.initializer; continue }
     const source = decl.getSourceFile()
-    return { decl, statement: decl.parent.parent, sf: source, text: source.text, chemin: entree.chemin, decorateursZod: entree.decorateursZod, formesFinales: entree.formesFinales }
+    return { decl, statement: decl.parent.parent, sf: source, text: source.text, chemin: entree.chemin, decorateursZod: entree.decorateursZod, formesFinales: entree.formesFinales, checker }
   }
 }
 

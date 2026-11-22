@@ -55,7 +55,7 @@ describe('#1117 — l’oracle d’affichage tranche ce qu’il SAIT, et se tait
   it('Vigilance (`has talent`) RESTE décidable : porteur → sa branche, non-porteur → l’autre', () => {
     const alors: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'extenue' } }] } };
     const branch: Flow = {
-      kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
+      kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', ref: { id: 'vigilance' } },
       alors, sinon: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' }, value: 1 }] } },
     };
     const vigilant = C({ talents: [{ talentId: 'vigilance', times: 1 }] as TalentInstance[] });
@@ -65,7 +65,7 @@ describe('#1117 — l’oracle d’affichage tranche ce qu’il SAIT, et se tait
 
   it('le verdict d’une Condition COMPOSÉE suit son membre le plus faible (un inconnu ⇒ inconnu)', () => {
     const cc = combatConditionCtx(C(), {});
-    const stable = { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' } as const;
+    const stable = { kind: 'has', who: 'target', what: 'talent', ref: { id: 'vigilance' } } as const;
     const inconnu = { kind: 'slThreshold', op: '<=', value: -6 } as const;
     expect(stableCondVerdict(stable, cc)).toBe(false);
     expect(stableCondVerdict(inconnu, cc)).toBeUndefined();
@@ -83,7 +83,7 @@ describe('#1117 — l’oracle d’affichage tranche ce qu’il SAIT, et se tait
  * il n'y a alors personne à désigner, et une chip inventée enseignerait un faux.
  */
 describe('#1117 — l’objet mécanique responsable d’une branche incertaine se NOMME, ou rien', () => {
-  const vigilance = { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' } as const;
+  const vigilance = { kind: 'has', who: 'target', what: 'talent', ref: { id: 'vigilance' } } as const;
   const secondJet = {
     kind: 'test', test: { skill: 'perception', difficulty: 'intermediaire', label: 'Vigilance' },
     reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' }, value: 1 }] } },
@@ -103,7 +103,7 @@ describe('#1117 — l’objet mécanique responsable d’une branche incertaine 
 
   it('un TRAIT est désigné de la même façon (dérivé de `cond.what`, aucune entité nommée en code)', () => {
     const branch: Flow = {
-      kind: 'si', condition: { kind: 'has', who: 'target', what: 'trait', value: 'vision-nocturne' } as never,
+      kind: 'si', condition: { kind: 'has', who: 'target', what: 'trait', ref: { id: 'vision-nocturne' } },
       alors: secondJet, sinon: surpris,
     };
     const c = C({ traits: [{ id: 'vision-nocturne' }] as never });
@@ -117,7 +117,7 @@ describe('#1117 — l’objet mécanique responsable d’une branche incertaine 
     // `compare` sur un sujet que les ops AMONT mutent (récupération du Sonné, donnée réelle).
     expect(branchBlockingEntity(recoverySuccess('sonne'), C({ conditions: [{ id: 'sonne', value: 2 }] as never }))).toBeUndefined();
     // `has group` : appartenance stable, mais pas un objet mécanique à fiche — hors table, donc silence.
-    const parGroupe: Flow = { kind: 'si', condition: { kind: 'has', who: 'target', what: 'group', value: 'humain' } as never, alors: secondJet, sinon: surpris };
+    const parGroupe: Flow = { kind: 'si', condition: { kind: 'has', who: 'target', what: 'group', ref: { id: 'humain' } }, alors: secondJet, sinon: surpris };
     expect(branchBlockingEntity(parGroupe, C())).toBeUndefined();
   });
 

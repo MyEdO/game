@@ -75,7 +75,7 @@ describe('opSansObjet ≡ applyOps ne change rien', () => {
 
   it.each([[0, true], [2, false]] as const)('Gesundheit (« days: 0 », +1 jour par DR) à DR %s : sans objet = %s', (sl, sansObjet) => {
     const c = { ...FICHES.vierge(), diseases: [{ ...maladie(5 * MINUTES_PER_DAY), id: 'blessure-purulente' }] };
-    const o: GameOp = { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' };
+    const o: GameOp = { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: { id: 'blessure-purulente' } };
     const avant = JSON.stringify(c);
     expect(opSansObjet(c, o, { sl }) != null).toBe(sansObjet);
     applyOps(c, [o], { idNeuf: idsDeTest, rng: makeRNG(1), sl });

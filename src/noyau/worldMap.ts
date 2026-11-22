@@ -27,7 +27,7 @@ import type {
   routePerilSchema,
   worldMapParamsSchema,
 } from '../data/schemas/defs-scenes/worldmap';
-import type { refusDAccesSchema } from '../data/schemas/grammaire/acces';
+import type { champsDAcces, refusDAccesSchema } from '../data/schemas/grammaire/acces';
 import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { routeBilletSchema } from '../data/schemas/grammaire/route';
@@ -39,7 +39,7 @@ import { findCargoEntryById } from '../engine/cargo';
 import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
-import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
+import { evalCondition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, semencesDeScene } from '../data';
 import { colonneDeLaTaille } from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
@@ -102,7 +102,7 @@ export interface MapPlace extends ChampsDAmarrage {
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
-  when?: Condition;
+  when?: z.output<typeof mapPlaceSchema>['when'];
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
 }
@@ -151,7 +151,7 @@ export type MapRoute = MapRouteTrace & Acces;
  *  (infobulle — arbitrage 2026-08-24, jamais inline par défaut). Jugé par `refusDAcces`. */
 export type Acces =
   | { when?: undefined; refus?: z.infer<typeof refusDAccesSchema> }
-  | { when: Condition; refus: z.infer<typeof refusDAccesSchema> };
+  | { when: NonNullable<z.output<typeof champsDAcces.when>>; refus: z.infer<typeof refusDAccesSchema> };
 
 /** La raison de la fermeture de l'accès `acces` sous `ctx`, ou `null` : il est ouvert. Source unique du verdict d'un
  *  accès réservé, route et établissement. PUR. */

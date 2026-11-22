@@ -84,12 +84,7 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
   const diff = arg ? difficulteDeLArg(arg) : undefined;
-  // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
-  // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
-  // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
-  // Si l'instance N'A PAS le paramètre attendu (trait templé posé sans arg/value), l'op est DROPPÉE (null) :
-  // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon). Seul un
-  // champ REQUIS porte un gabarit (`op-defs.test.ts`) : l'op tombe faute de ce qu'elle ne peut exécuter sans.
+  // Un gabarit de champ requis reçoit le paramètre d'instance avant l'exécution. Sans ce paramètre, le Flow omet l'op.
   const substOp = (op: GameOp): GameOp | null => {
     if (op.op === 'condition' && op.argDifficulty) {
       // L'État prend la Difficulté de l'arg (Venin, `LDB 85 l.423`) ; sans arg, il n'en porte aucune (`LDB 85 l.425`).
@@ -97,14 +92,13 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
       delete pose.argDifficulty;
       return diff ? { ...pose, difficulte: diff } : pose;
     }
-    const o = op as Record<string, unknown>;
-    const hasArg = Object.values(o).includes(ARG_TEMPLATE);
-    const hasInd = Object.values(o).includes(INDICE_TEMPLATE);
-    if (!hasArg && !hasInd) return op; // pas de template → inchangée
-    if ((hasArg && arg === undefined) || (hasInd && value === undefined)) return null; // paramètre manquant → op inerte
-    const out = { ...o };
-    for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
-    return out as unknown as GameOp;
+    if (op.op === 'exposeDisease' && op.disease.id === ARG_TEMPLATE) {
+      return arg === undefined ? null : { ...op, disease: { id: arg } };
+    }
+    if (op.op === 'topUpAdvantage' && Object.is(op.amount, INDICE_TEMPLATE)) {
+      return value === undefined ? null : { ...op, amount: value };
+    }
+    return op;
   };
   const visit = (f: TriggeredEffect['flow']): TriggeredEffect['flow'] => {
     if (f.kind === 'test') {

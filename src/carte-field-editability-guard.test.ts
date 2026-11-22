@@ -10,7 +10,9 @@ import { ALLER_RETOUR, cheminsCreditesJoues } from '../scripts/guards/lib/editab
 describe('#4234 — chaque champ de la carte du monde a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
   // #1615, mesure sur 2ab2f58ce et son correctif : 535 → 484. Le registre des Scènes de Round retire
   // les 51 clés de MassBattleSpec.sceneEncounters qui désignaient d’autres Activités.
-  const { audit, ecritures } = garderLaRacine('carte', ecrituresDeLaCarte, { plancher: 484, delai: 80_000 });
+  // #1468 : 1 293 champs après composition des trois algèbres et 135 opérations jouées par le pont.
+  // Le rejeu des gestes et l’audit de la carte prennent ensemble 124 s sur War.
+  const { audit, ecritures } = garderLaRacine('carte', ecrituresDeLaCarte, { plancher: 1_293, delai: 220_000 });
 
   it('prouve la saisie des entrées de vitesse, de couverture et de Scène de Round, et le seul ordre d’une montée', { timeout: 80_000 }, () => {
     for (const id of ['Omit.speed{}', 'MapPlace.couvre[]', 'MassBattleSpec.scenes[]']) {

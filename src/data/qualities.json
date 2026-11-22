@@ -1223,7 +1223,9 @@
               "ops": [
                 {
                   "op": "exposeDisease",
-                  "disease": "blessure-purulente"
+                  "disease": {
+                    "id": "blessure-purulente"
+                  }
                 }
               ]
             }

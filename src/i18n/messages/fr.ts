@@ -948,7 +948,6 @@ export const fr = {
   'ecran.formulaire.valeur.aucune': 'Aucune',
   'ecran.formulaire.valeur.ecrire': 'Écrire',
   'ecran.formulaire.valeur.monter': 'Monter : {libelle}',
-  'ecran.formulaire.valeur.motif.opNonTypee': 'Opération sans forme déclarée (#1468) : saisie JSON validée.',
   'ecran.formulaire.valeur.refus.nonOffert': 'le formulaire n’offre pas le champ « {chemin} »',
   'ecran.formulaire.valeur.refus.horsSorte': 'la valeur n’est pas de la sorte du champ « {chemin} »',
   'ecran.formulaire.valeur.refus.illisible': 'le JSON saisi au champ « {chemin} » est illisible',

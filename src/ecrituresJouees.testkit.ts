@@ -34,8 +34,9 @@ import { formeAuPoint } from './noyau/codex/editFields';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { jeuDuFormulaire, marcher, type BancDuFormulaire } from './formulaireJoue.testkit';
+import { psychologies } from './data';
 import { ENTREES_DE_DOSSIER } from './data/dossiers';
-import { declarationDEnfants, ouverts } from './data/schemas/grammaire/descente';
+import { ouverts } from './data/schemas/grammaire/descente';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { detenteur } from './lib/detenteur.testkit';
@@ -60,6 +61,9 @@ const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;
 const inspecteur = (s: SessionDEdition, retraitDuPorteurLogique = true): Inspecteur =>
   ({ 'editeur.inspecteur': inspecteurDeLaSession(s, { retraitDuPorteurLogique }) });
+
+/** Les offres d'une session du banc, dont la lecture ne change pas entre deux gestes. */
+const inspecteursDesSessions = new WeakMap<SessionDEdition, Inspecteur>();
 
 /** Les boutons des zones `zones` : chaque bouton, et chaque valeur d'un choix ou d'une liste. */
 const boutonsDesZones = (zones: ZonesDeLEditeur) =>
@@ -98,7 +102,7 @@ const porteurDuJeu = (jeu: Jeu): { sorte: SorteDePorteur; id: string } | undefin
  *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`) ; le schéma du porteur du jeu d'une offre
  *  (`porteurDuJeu`), celui de son formulaire (`FORMULAIRES`), et sa donnée. */
 const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEditeur>, GesteDEdition> = {
-  zones: (s) => inspecteur(s, s.document !== 'narratif'),
+  zones: (s) => inspecteursDesSessions.get(s) ?? inspecteursDesSessions.set(s, inspecteur(s, s.document !== 'narratif')).get(s)!,
   elements: (z) => z['editeur.inspecteur'],
   deballe: (jeu) => ('edition' in jeu ? jeu.edition : undefined),
   geste: (zones, _s, recu) => ('edition' in recu ? (boutonDeLEdition(zones, recu.edition) ? recu.edition : undefined) : gesteDuFormulaire(zones, recu)),
@@ -113,7 +117,7 @@ const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEdite
     const p = porteur && porteurDu(s, porteur);
     return p && { noeud: FORMULAIRES[porteur.sorte].schema, donnee: p.donnee };
   },
-  explorerLesUnions: (noeud) => declarationDEnfants(noeud)?.nature !== 'payloads-op',
+  explorerLesUnions: () => true,
 };
 const { jouerLInspecteur, ecrire, jouerLesVariantes, choix: choixDeLInspecteur, gesteDuJeu, gesteDuChoix, composerLAdresse } = jeuDuFormulaire(BANC);
 
@@ -375,7 +379,9 @@ export function ecrituresJouees(): EcritureJouee[] {
   jouerLInspecteur(s, out);
   for (const [sorte, de, a, boutons] of ZONES) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
-    s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);
+    const zone = boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }));
+    if (sorte === 'effect') out.push(...jouerLesChargesEnContexte(zone, 'valeur/onCross/'));
+    s = jouerLInspecteur(zone, out);
   }
   tracerLaZoneJouable(s, out);
   FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
@@ -404,6 +410,7 @@ export function ecrituresJouees(): EcritureJouee[] {
   const effet = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
   jouerLesVariantes(effet, EFFET_DU_DECOR, out);
   composerLAdresse(jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, [PROSE_DU_DECOR.adresse]), PROSE_DU_DECOR.adresse, out);
+  out.push(...ecrituresDesReferencesDeScene());
   jouerLInspecteur(personnageDuDialogue(), out, A_DIALOGUE.branches);
   jouerLInspecteur(coqueChoisie(), out, COQUE.branches);
   return avecModele('scene', out);
@@ -458,8 +465,102 @@ function narratifMisEnPlace(): SessionDEdition {
   return ajouter(presser(etat, premierBouton(etat, 'valeur/forme/valeurs/ajouter')), 'presetsPnj', []);
 }
 
+/** Les références que l'inspecteur d'une scène ne peut offrir qu'en présence de leurs cibles dans le projet. */
+function ecrituresDesReferencesDeScene(): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const etatHeros = presser(ajouter(narratifMisEnPlace(), 'etats', []), 'etat/forme/heros');
+  const scene = presser(presser(etatHeros, 'document/scene'), 'scenes/ajouter');
+  const personnage = poserPersonnage(scene, FICHES[0][0], 5, 5);
+  const dialogue = ajouter(personnage, 'dialogue', []);
+  const rencontres = ajouter(ajouter(dialogue, 'rencontre', []), 'rencontre', []);
+
+  const decor = cliquer(presser(presser(rencontres, 'outil/prop'), `prop/${DECOR}`), 3, 3);
+  const action = presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id);
+  const flow = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
+  const sousEffet = EFFET_DU_DECOR.slice(0, -'type'.length);
+  const references = [
+    ['poserEtat', ['etat', 'valeur']],
+    ['designerHeros', ['etat']],
+    ['startMassBattle', ['battle/sceneEncounters']],
+    ['startDialogue', ['dialogue/id', 'speakerId']],
+    ['revealClue', ['indiceId', 'stade']],
+    ['discreditClue', ['indiceId']],
+    ['startPursuit', ['encounter']],
+  ] as const;
+  for (const [type, chemins] of references) {
+    const effet = jouer(flow, gesteDuChoix(flow, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === type));
+    jouerLInspecteur(effet, out, chemins.map((c) => sousEffet + c));
+  }
+
+  const outil = presser(presser(rencontres, 'outil/zone'), 'zone/effect');
+  const zone = jouer(jouer(outil, { geste: 'appui', point: point(2, 2) }), { geste: 'relache', point: point(3, 3) });
+  const avecOp = jouerLInspecteur(zone, out, ['valeur/onCross/ajouter']);
+  const avecEtat = jouer(avecOp, gesteDuChoix(avecOp, 'valeur/onCross/0/op', (v) => estObjet(v) && v.op === 'condition'));
+  const condition = 'valeur/onCross/0/lockedUntil/';
+  const verrou = (kind: string) => jouer(avecEtat, gesteDuChoix(avecEtat, `${condition}kind`, (v) => estObjet(v) && v.kind === kind));
+  jouerLInspecteur(verrou('etat'), out, [`${condition}etat`, `${condition}value`]);
+  const herosMort = verrou('partyDead');
+  const qui = gesteDuChoix(herosMort, `${condition}who/forme`, (v) => estObjet(v) && 'etat' in v);
+  jouerLInspecteur(jouer(herosMort, qui), out, [`${condition}who/etat`]);
+  return out;
+}
+
+/** Une clôture dont la condition lit la valeur d'un état énuméré réellement présent au narratif. */
+function ecrituresDeLaCloture(): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const narratif = presser(presser(narratifMisEnPlace(), 'document/scene'), 'document/narratif');
+  const cloture = jouerLInspecteur(narratif, out, ['valeur/cloture/ajouter']);
+  const when = 'valeur/cloture/when/';
+  const condition = gesteDuChoix(cloture, `${when}kind`, (v) => estObjet(v) && v.kind === 'etat');
+  jouerLInspecteur(jouer(cloture, condition), out, [`${when}etat`, `${when}value`]);
+  return out;
+}
+
 /** La péripétie ajoutée à une route, et le préfixe d'id de son premier Effet. */
 const PERIL = { ajouter: 'valeur/perils/ajouter/', effets: 'valeur/perils/0/effects/ajouter', effet: 'valeur/perils/0/effects/0/' } as const;
+
+/** Des écritures qui exigent un porteur déjà renseigné ou deux branches incompatibles de son formulaire. */
+function jouerLesChargesEnContexte(s: SessionDEdition, ops: string): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  const op = `${ops}0/`;
+  const avecOp = presser(s, premierBouton(s, `${ops}ajouter`));
+  const choisir = (nom: string) => jouer(avecOp, gesteDuChoix(avecOp, `${op}op`, (v) => estObjet(v) && v.op === nom));
+
+  const psy = choisir('beginPsych');
+  const typesACible = new Set<string>(psychologies.filter((p) => p.cibles?.includes('groupe')).map((p) => p.id));
+  const typePsy = gesteDuChoix(psy, `${op}type/id`, (v) => typeof v === 'string' && typesACible.has(v));
+  jouerLInspecteur(jouer(psy, typePsy), out, [`${op}cible`]);
+
+  const combat = choisir('combatEnMer');
+  const adversaire = gesteDuChoix(combat, `${op}adversaire/id`, (v) => typeof v === 'string' && v !== '');
+  jouerLInspecteur(ecrire(combat, adversaire, 'saisieChoix', out), out, [`${op}adversaire`]);
+
+  const avecTexte = jouerLInspecteur(choisir('narrative'), out, [`${op}text`]);
+  jouerLInspecteur(avecTexte, out, [`${op}adapteDe`]);
+
+  const entrees = `${op}entries/`;
+  const table = jouerLInspecteur(choisir('rollTable'), out, [`${entrees}ajouter`]);
+  jouerLInspecteur(table, out, ['min', 'max', 'ops/ajouter'].map((champ) => `${entrees}0/${champ}`));
+
+  const auToucher = `${op}onHitEffects/`;
+  const arme = jouerLInspecteur(choisir('augmentWeapon'), out, [`${auToucher}ajouter`]);
+  const effetDArme = `${auToucher}0/`;
+  jouerLInspecteur(arme, out, ['trigger', 'on/', 'condition', 'attackType', 'coupCritique', 'optional'].map((champ) => effetDArme + champ));
+  const flux = ecrire(arme, gesteDuChoix(arme, `${effetDArme}flow/kind`, (v) => estObjet(v) && v.kind === 'effet'), 'saisieChoix', out, 'kind');
+  return [...out, ...ecrituresDeLaFeuilleDOperations(flux, `${effetDArme}flow/effet/`)];
+}
+
+/** La cible de chaque branche et les deux formes d'échéance d'une feuille d'opérations déjà ouverte. */
+function ecrituresDeLaFeuilleDOperations(flux: SessionDEdition, charge: string): EcritureJouee[] {
+  const out: EcritureJouee[] = [];
+  // L'échéance absolue et la durée sont exclusives. Chacune part de la même feuille sans échéance.
+  for (const champ of ['heroId', 'label', 'untilTime', 'pendantJours']) jouerLInspecteur(flux, out, [charge + champ]);
+  for (const champ of ['role', 'volontaires']) {
+    const cible = gesteDuChoix(flux, `${charge}on/forme`, (v) => estObjet(v) && champ in v);
+    jouerLInspecteur(ecrire(flux, cible, 'saisieChoix', out), out, [`${charge}on/${champ}`]);
+  }
+  return out;
+}
 
 /** Les écritures de la carte du monde de la première campagne du jeu, son narratif mis en place (`narratifMisEnPlace`) :
  *  la carte renommée (`identifierChaque`) ; l'inspecteur de la carte ; un lieu posé à l'outil Lieu et un ajouté à la zone Logique, un point d'intérêt épinglé à
@@ -515,6 +616,9 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   jouerLInspecteur(s, out, ['valeur/modes/1/monter']);
   const peril = presser(s, premierBouton(s, PERIL.ajouter));
   const effet = presser(peril, premierBouton(peril, PERIL.effets));
+  const souffle = jouer(effet, gesteDuChoix(effet, `${PERIL.effet}type`, (v) => estObjet(v) && v.type === 'zoneBlast'));
+  jouerLInspecteur(souffle, out, [`${PERIL.effet}ops/`]);
+  out.push(...jouerLesChargesEnContexte(souffle, `${PERIL.effet}ops/`));
   jouerLesVariantes(effet, `${PERIL.effet}type`, out);
   const etendu = jouer(effet, gesteDuChoix(effet, `${PERIL.effet}type`, (v) => estObjet(v) && v.type === 'extendedTest'));
   jouerLesVariantes(etendu, `${PERIL.effet}stake/forme`, out);
@@ -604,9 +708,14 @@ export function ecrituresDuNarratif(): EcritureJouee[] {
   for (const { boutons, choix } of UNIONS_DU_PNJ) jouerLesVariantes(boutons.reduce(presser, ajouter(s, 'presetsPnj', out)), choix, out);
   const objet = ajouter(s, 'objets', out);
   for (const { boutons, choix } of UNIONS_DE_L_OBJET) jouerLesVariantes((boutons as readonly string[]).reduce(presser, objet), choix, out);
+  const auToucher = presser(objet, 'valeur/onHitEffects/ajouter');
+  const flux = jouer(auToucher, gesteDuChoix(auToucher, 'valeur/onHitEffects/0/flow/kind', (v) => estObjet(v) && v.kind === 'effet'));
+  out.push(...ecrituresDeLaFeuilleDOperations(flux, 'valeur/onHitEffects/0/flow/effet/'));
+  out.push(...jouerLesChargesEnContexte(flux, 'valeur/onHitEffects/0/flow/effet/ops/'));
   jouerLInspecteur(presser(objet, 'valeur/derivedWeapon/ajouter'), out, ['valeur/derivedWeapon/']);
   composerLAdresse(jouerLInspecteur(objet, out, ['valeur/descRef/']), 'valeur/descRef/', out);
   jouerLInspecteur(presser(presser(s, 'document/scene'), 'document/narratif'), out);
+  out.push(...ecrituresDeLaCloture());
   return avecModele('narratif', out);
 }
 

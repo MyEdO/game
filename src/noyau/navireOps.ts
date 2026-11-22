@@ -96,12 +96,13 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'manann': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const mood = vesselManann(vessel);
-      if (o.factorId !== undefined) {
-        const deja = mood.applied.includes(o.factorId);
-        const { mood: next, delta, label } = applyManannFactor(mood, o.factorId, ctx.rng);
-        if (deja) return [t('eff.manannDejaApplique', { factor: label ?? o.factorId })];
+      if ('facteur' in o && o.facteur !== undefined) {
+        const facteur = o.facteur.id;
+        const deja = mood.applied.includes(facteur);
+        const { mood: next, delta, label } = applyManannFactor(mood, facteur, ctx.rng);
+        if (deja) return [t('eff.manannDejaApplique', { factor: label ?? facteur })];
         set({ vessel: { ...vessel, manann: next } });
-        return [t('eff.facteurDeManann', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? o.factorId })];
+        return [t('eff.facteurDeManann', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? facteur })];
       }
       const delta = tirerSigne(o.delta, ctx.rng);
       set({ vessel: { ...vessel, manann: addManann(mood, delta) } });
@@ -377,7 +378,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
 /** Une table à rangées en ligne dont une rangée porte une op de NAVIRE : elle se tire à la portée du navire,
  *  où ses ops se résolvent ; `applyOps` les laisserait inertes. MDG 15 l.213-218, l.258 */
 const estTableDuNavire = (o: GameOp): o is Extract<GameOp, { op: 'rollTable' }> =>
-  o.op === 'rollTable' && 'entries' in o && o.entries.some((r) => r.ops.some((x) => estOpDuNavire(x) || estTableDuNavire(x)));
+  o.op === 'rollTable' && o.entries !== undefined && o.entries.some((r) => r.ops.some((x) => estOpDuNavire(x) || estTableDuNavire(x)));
 
 /** Applique la feuille `e` (`on: 'navire'`) au navire de campagne, ops dans l'ordre authoré ; rend les
  *  lignes du journal (aussi posées au recap du jour en mer). */

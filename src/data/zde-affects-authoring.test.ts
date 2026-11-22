@@ -105,7 +105,7 @@ describe("`affects` — les formes que le verbatim rend PARTICULIÈRES", () => {
       kind: 'all',
       of: [
         { kind: 'relation', who: 'target', is: 'allie' },
-        { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'cieux' } },
+        { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', ref: { id: 'magie-des-arcanes', spec: 'cieux' } } },
       ],
     });
     expect(verdict(area.affects)).toEqual({ lanceur: false, allie: true, ennemi: false, neutre: false });

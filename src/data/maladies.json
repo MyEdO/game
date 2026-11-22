@@ -709,14 +709,22 @@
             "ops": [
               {
                 "op": "aggravateSymptom",
-                "disease": "pneumonie",
-                "symptomId": "fievre",
+                "disease": {
+                  "id": "pneumonie"
+                },
+                "symptom": {
+                  "id": "fievre"
+                },
                 "severity": "grave",
                 "otherwise": [
                   {
                     "op": "grantSymptom",
-                    "disease": "pneumonie",
-                    "symptomId": "toxine"
+                    "disease": {
+                      "id": "pneumonie"
+                    },
+                    "symptom": {
+                      "id": "toxine"
+                    }
                   }
                 ]
               }

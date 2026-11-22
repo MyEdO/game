@@ -43,14 +43,14 @@ describe('Condition casterChaosDomain — 4 branches', () => {
   it('vraie SEULEMENT pour le Domaine du lanceur', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const) {
       const ctx = ctxFor(dom);
-      for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
+      for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const) {
         expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(probe === dom);
       }
     }
   });
   it('lanceur sans Domaine → toutes les branches fausses', () => {
     const ctx = ctxFor();
-    for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'])
+    for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const)
       expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(false);
   });
 });

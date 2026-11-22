@@ -76,7 +76,7 @@
     "type": "primitives.manifest",
     "label": "tirerLaTable",
     "fichier": "src/engine/ops.ts",
-    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `tableId`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
+    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `table: { id }`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
     "perimetre": "`applyOps` (rangée appliquée à la cible), `appliquerAuNavire` (rangées remises en file du navire), tout appelant sans fiche qui tire une table d'ops",
     "verrou": "src/engine/tirer-la-table.test.ts"
   },

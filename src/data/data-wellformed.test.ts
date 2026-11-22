@@ -7,7 +7,7 @@
  * Cinq familles de checks :
  *  1. SYNTAXE        — chaque fichier `JSON.parse` (échec → rouge avec le fichier).
  *  2. OPS CONNUES    — toute `{op:'…'}` (hors Condition `kind`) a un `op` du vocabulaire `GameOp` réel
- *                      (extrait de l'union `GameOp` de `engine/ops.ts` par regex → zéro dérive).
+ *                      (les noms des schémas déclarés dans `OP_DEFS`).
  *  3. FORMULES       — tout champ Formula d'une `GameOp` (`amount`/`count`/… ) est `isValidFormula`
  *                      (number fini OU objet à clé connue). Une string qui fuit → rouge.
  *  4. PLACEHOLDERS   — une string `$…` n'est tolérée QUE si elle vaut `'$arg'`/`'$indice'` ET vit dans
@@ -35,6 +35,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isValidFormula } from '../engine/ops';
 import { ICON_DEFS } from './icons';
+import { OP_DEFS } from './schemas/grammaire/mecanique';
 import { ACTIVITIES } from './index';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, flowHasImpureOpOutsideTest, flowHasFreeAttack } from '../engine/flowCore';
 import type { Flow } from '../engine/flowCore';
@@ -44,10 +45,8 @@ import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 
-// --- Vocabulaire GameOp EXACT, extrait de l'union `GameOp` de engine/ops.ts (membres `| { op: '…'`) →
-//     jamais une liste maintenue à la main qui dériverait de l'union.
-const OPS_SRC = readFileSync(resolve(__dirname, '../engine/ops.ts'), 'utf8');
-const KNOWN_OPS = new Set([...OPS_SRC.matchAll(/\|\s*\{\s*op:\s*'([^']+)'/g)].map((m) => m[1]));
+// Le registre des schémas fournit les noms. Le parcours des JSON bruts reste indépendant du parse.
+const KNOWN_OPS = new Set(Object.keys(OP_DEFS));
 // Opérateurs de comparaison d'une Condition `compare`/`slThreshold`/… (engine/flowCore.ts `CompareOp`) :
 // un AUTRE espace de noms pour la clé `op`, TOUJOURS porté par un objet à `kind` → exclu du dispatch GameOp.
 const COMPARE_OPS = new Set(['>=', '<=', '==', '<', '>', '!=']);
@@ -147,7 +146,7 @@ for (const f of files) {
 const fmt = (issues: Issue[]) => issues.map((i) => `  ${i.file}${i.path} → ${i.detail}`).join('\n');
 
 describe('Intégrité des données src/data/*.json', () => {
-  it('extraction du vocabulaire GameOp depuis ops.ts (méta — non vide, ops phares présentes)', () => {
+  it('vocabulaire des schémas GameOp (méta — non vide, ops phares présentes)', () => {
     expect(KNOWN_OPS.size).toBeGreaterThan(60);
     for (const op of ['wounds', 'condition', 'summon', 'grantTrait', 'narrative']) expect(KNOWN_OPS.has(op)).toBe(true);
   });

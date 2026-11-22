@@ -57,14 +57,6 @@ function opDe(donnee, choisir) {
   throw new Error('aucune op ne répond au choix')
 }
 
-/** `texte` de `spells.json` où la première op qui satisfait `choisir` est doublée dans son tableau. */
-const ajouterOp = (choisir) => (texte) => {
-  const spells = JSON.parse(texte)
-  const { op, tableau } = opDe(spells, choisir)
-  tableau.push({ ...op })
-  return JSON.stringify(spells)
-}
-
 /** Le lancement du processus `tsx` qui rend, en JSON sur sa sortie, les verdicts de `jugerLesComptes` sur chaque
  *  `[base, tete]` du dépôt `racine` (la mesure d'un commit s'y mémoïse), sous l'env d'un dépôt forgé. Les verdicts sont
  *  sa sortie ENTIÈRE : la génération et la mesure d'une image tournent dans des processus enfants à sortie capturée. */
@@ -403,14 +395,20 @@ test('#1463 `--base` sans ref, ou suivi d’un drapeau, est une erreur nommée',
   }
 })
 
-test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient ; un CLASSEMENT changé sans donnée est une baisse du détecteur, un `idDe` retiré une baisse de donnée (#2969)',{ timeout: 900_000 }, async (t) => {
+test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient ; un CLASSEMENT changé sans donnée est une baisse du détecteur, une référence emboîtée une baisse de donnée (#2969)',{ timeout: 900_000 }, async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
     const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'docs/dossiers', ...LUS_PAR_LES_GENERATEURS, 'scripts', 'package.json', 'tsconfig.json')
+    const mecanique = 'src/data/schemas/grammaire/mecanique.ts'
+    const registreDOp = 'export const OPS_NON_TYPEES: readonly string[] = '
+    const opNonTypeeDeDonnee = 'sondeDonneeNonTypee'
+    const stockInitial = registreDOp + JSON.stringify([opNonTypeeDeDonnee]) + ';'
+    const introduireLeStock = remplacer(registreDOp + '[];', stockInitial)
     for (const rel of suivis) {
       mkdirSync(dirname(join(dossier, rel)), { recursive: true })
-      writeFileSync(join(dossier, rel), readFileSync(join(RACINE, rel)))
+      const source = readFileSync(join(RACINE, rel))
+      writeFileSync(join(dossier, rel), rel === mecanique ? introduireLeStock(source.toString('utf8')) : source)
     }
     const depot = forgerDepot(dossier)
     for (const lot of enLots(suivis)) assert.ok(reussi(commitDe(depot, { message: 'fondation', chemins: lot })), 'commit de fondation')
@@ -420,13 +418,20 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
       return shaDe(depot, 'HEAD')
     }
     const fondation = shaDe(depot, 'HEAD')
-    const typee = commiter({ 'src/data/spells.json': (t) => ajouterOp((o) => o.op === 'freeReroll')(ajouterOp((o) => o.op === 'reduceDiseaseDays')(t)) }, 'ops de donnée')
+    const donnee = commiter({
+      'src/data/spells.json': (texte) => {
+        const spells = JSON.parse(texte)
+        const { op, tableau } = opDe(spells, (o) => o.op === 'reduceDiseaseDays')
+        tableau.push({ ...op }, { op: opNonTypeeDeDonnee })
+        return JSON.stringify(spells)
+      },
+    }, 'ops de donnée, typée et non typée')
     const lache = commiter({
       'src/data/schemas/defs/creatures.ts': (texte) => [
         remplacer('z.array(competenceChiffreeAEmplacementSchema)', 'z.array(z.custom<{ value: number }>())'),
         remplacer("spells: refs('spell'),", 'spells: z.array(z.string()),'),
       ].reduce((courant, muter) => muter(courant), texte),
-      'src/data/schemas/grammaire/mecanique.ts': remplacer("  'arrowWard', 'attackKeyword',", "  'arrowWard', 'sondeNonTypee', 'attackKeyword',"),
+      [mecanique]: remplacer(stockInitial, registreDOp + JSON.stringify([opNonTypeeDeDonnee, 'sondeNonTypee']) + ';'),
     }, 'schéma et op\n\nCLIQUET: scripts/guards/lib/structuresStock.mjs +1 — op de plus, déclarée au message')
     // Le générateur de la tête importe du src que la base n'a pas, et le src de la tête lit une sortie que le
     // générateur de la base ne produit pas : seule la génération de CHAQUE image par son propre code lie une paire.
@@ -451,22 +456,22 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
     // Le classement `estFeuilleDId` (module marqué `MARQUE_DE_CLASSEMENT`) changé sans aucune donnée : sous le
     // détecteur de la base, la tête garde ses feuilles, et la baisse est celle du DÉTECTEUR.
     const registre = 'src/data/schemas/grammaire/interne/feuilles.ts'
+    const emboitee = "op: z.literal('contractDisease'), disease: ref('maladie')"
+    const plate = "op: z.literal('contractDisease'), disease: idDe('maladie')"
+    const avecRefPlate = commiter({ [mecanique]: remplacer(emboitee, plate) }, 'témoin de référence à plat')
     const classementDeLaTete = remplacer('typeDeFeuilleDId(noeud) !== undefined;', "typeDeFeuilleDId(noeud) !== undefined && typeDeFeuilleDId(noeud) !== 'maladie';")
     const reclasse = commiter({ [registre]: classementDeLaTete }, 'classement sans donnée')
-    // Un `idDe` retiré d'un schéma (`OP_DEFS`, une déclaration de l'image) : les deux détecteurs voient la baisse.
+    // Une référence emboîtée ferme le site à plat dans le schéma : les deux détecteurs voient la baisse.
     const retire = commiter({
       [registre]: remplacer(" && typeDeFeuilleDId(noeud) !== 'maladie';", ';'),
-      'src/data/schemas/grammaire/mecanique.ts': remplacer(
-        `contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease'), disease: idDe('maladie') }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} } }),`,
-        `contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease') }), { op: { label: "opération"  } }),`,
-      ),
-    }, 'idDe retiré')
+      [mecanique]: remplacer(plate, emboitee),
+    }, 'référence emboîtée')
 
     const [[passe, refus], [liee], [symetrique], [duDetecteur, deDonnee]] = await jugerDeFront(dossier, [
-      [[fondation, typee], [typee, lache]],
+      [[fondation, donnee], [donnee, lache]],
       [[lache, croisee]],
       [[lecteur, renommee]],
-      [[renommee, reclasse], [renommee, retire]],
+      [[avecRefPlate, reclasse], [avecRefPlate, retire]],
     ], t.signal)
     assert.equal(passe.ok, true, passe.texte)
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
@@ -479,7 +484,7 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
     const feuilles = site('FEUILLES_D_ID', ['skills', 'spells'], ['', '[]'])
     const locales = site('STRUCTURES_LOCALES', ['skills'], ['[]'])
     const attendues = ['DETTE_OPS : sondeNonTypee | non typée', ...feuilles, ...locales]
-    const deLaBase = `détecteur de la base (${typee.slice(0, 9)})`
+    const deLaBase = `détecteur de la base (${donnee.slice(0, 9)})`
     assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), ['détecteur de la tête', deLaBase].flatMap((d) => attendues.map((a) => `  [${d}] ${a}`)), refus.texte)
     assert.equal(liee.ok, true, liee.texte)
     assert.doesNotMatch(liee.texte, /paire sautée/, liee.texte)
