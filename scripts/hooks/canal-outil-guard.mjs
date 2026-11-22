@@ -2,7 +2,7 @@
 // (`FAMILLES_LEAN_CTX`, `scripts/guards/lib/contratGarde.mjs`) ou REFUSÉ, direct avec ses actions
 // refusées ; la passerelle n'appelle qu'un outil de `LECTURES_LIBRES`, quelle que soit la forme de ses
 // arguments (lean-ctx `LEAN_CTX_VERSION`, `registered/ctx_call.rs` l.75 : « Preserve the existing flattened-call contract »),
-// tout autre outil s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
+// tout autre outil CLASSÉ s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
 // (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
 // porte une clé que son op ne consomme pas (`OPS_CTX_PATCH`), ou un shell lean-ctx qui porte une clé hors de
 // `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartition.mjs`) dit le
@@ -29,6 +29,7 @@ function evaluer(entree, contexte) {
     if (famille === PASSERELLE) {
       const appele = outilAppele(entree)
       if (appele === null) return refus(`la passerelle n'appelle qu'un outil nommé sans ambiguïté (${outil} : \`name\`/\`tool\` absents, non-chaînes ou divergents)`)
+      if (familleLeanCtx(appele) === null) return refus(`outil lean-ctx non classé (${outil} → ${JSON.stringify(appele)}) : aucune garde ne le juge`)
       return LECTURES_LIBRES.includes(appele) ? null : refus(`la passerelle n'appelle qu'un outil de lecture sans action refusée (${outil} → ${appele}) : appeler ${appele} DIRECTEMENT`)
     }
     if (famille === null) return refus(`outil lean-ctx non classé (${outil}) : aucune garde ne le juge`)
