@@ -300,9 +300,37 @@ const metaDuModDAttribut = {
   attr: { label: 'attribut' },
   mod: { label: 'modificateur', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } },
 } as const;
+const autresModsDAttribut = [
+  variante('Chance', nommerChamps(z.strictObject({ ...champsDuModDAttribut, attr: z.literal('fortune') }), metaDuModDAttribut)),
+  variante('Détermination', nommerChamps(z.strictObject({ ...champsDuModDAttribut, attr: z.literal('resolve') }), metaDuModDAttribut)),
+] as const;
+const formeDuModDesBlessures = { ...champsDuModDAttribut, attr: z.literal('wounds') };
+const modDesBlessuresPassifSchema = variante('Blessures', nommerChamps(
+  z.strictObject(formeDuModDesBlessures),
+  metaDuModDAttribut,
+));
+const modDesBlessuresExecuteSchema = variante('Blessures', nommerChamps(
+  z.strictObject({ ...formeDuModDesBlessures, auTotal: z.literal(true).optional() }),
+  { ...metaDuModDAttribut, auTotal: { label: 'au total de Blessures' } },
+));
+const modDAttributPassifSchema = z.discriminatedUnion('attr', [...autresModsDAttribut, modDesBlessuresPassifSchema]);
+const modDAttributExecuteSchema = z.discriminatedUnion('attr', [...autresModsDAttribut, modDesBlessuresExecuteSchema]);
+
+/** Le canal passif garde le diagnostic d’un marquage de Blessures au total au niveau du champ. */
+function cleRefuseeDuModPassif(valeur: unknown): CleRefusee | undefined {
+  if (!estObjet(valeur) || valeur.attr !== 'wounds') return undefined;
+  return {
+    cle: 'auTotal',
+    message: '« auTotal » n’agit que sur une liste d’opérations EXÉCUTÉE (consommable, manœuvre, sort) : '
+      + 'une liste passive ne marque pas ses modificateurs de Caractéristique. Retirer « auTotal ».',
+  };
+}
 
 const ciblePsyDeGroupe = ref(idDe('groupe', undefined, { nue: true }));
-const ciblePsyExecutee = z.union([ciblePsyDeGroupe, z.strictObject({ personnage: z.string() })]);
+const ciblePsyIndividuelle = nommerChamps(z.strictObject({ personnage: z.string() }), {
+  personnage: { label: 'personnage', texte: { regime: 'technique', usage: 'identifiant du personnage ciblé à l’exécution' } },
+});
+const ciblePsyExecutee = z.union([ciblePsyDeGroupe, ciblePsyIndividuelle]);
 
 const champsDePosePsy = {
   op: z.literal('beginPsych'),
@@ -311,7 +339,14 @@ const champsDePosePsy = {
   active: z.boolean().optional(),
 };
 
-const posePsyExecutee = z.strictObject({
+const metaDePosePsy = {
+  op: { label: 'opération' },
+  type: { label: 'état psychologique', texte: { regime: 'technique', usage: 'référence mécanique résolue au catalogue' } },
+  indice: { label: 'Indice', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } },
+  active: { label: 'subi' },
+} as const;
+
+const posePsyExecutee = nommerChamps(z.strictObject({
   ...champsDePosePsy,
   cible: ciblePsyExecutee.optional(),
   sourceId: z.string().optional(),
@@ -319,6 +354,14 @@ const posePsyExecutee = z.strictObject({
   surmontee: z.boolean().optional(),
   lastTestRound: z.number().optional(),
   fromTest: z.boolean().optional(),
+}), {
+  ...metaDePosePsy,
+  cible: { label: 'cible' },
+  sourceId: { label: 'source de l’état', texte: { regime: 'technique', usage: 'identifiant de la source à l’exécution' } },
+  calmeDR: { label: 'DR de calme' },
+  surmontee: { label: 'surmontée' },
+  lastTestRound: { label: 'Round du dernier Test' },
+  fromTest: { label: 'issu d’un Test' },
 });
 
 type LiensChampsDOps<O, P, F, D> = {
@@ -328,7 +371,11 @@ type LiensChampsDOps<O, P, F, D> = {
   declenche: () => z.ZodType<D>;
 };
 
-const diagnosticsDUnion = z.registry<{ branche: (valeur: unknown) => number | undefined }, z.ZodUnion>();
+type CleRefusee = { cle: string; message: string };
+const diagnosticsDeCharge = z.registry<{
+  branche?: (valeur: unknown) => number | undefined;
+  cleRefusee?: (valeur: unknown) => CleRefusee | undefined;
+}>();
 
 function brancheDeRollTable(valeur: unknown): 0 | 1 | undefined {
   if (!estObjet(valeur)) return undefined;
@@ -344,7 +391,7 @@ function brancheDeRollTable(valeur: unknown): 0 | 1 | undefined {
  * IMBRIQUÉE dans un payload (`z.lazy`) pointe la famille FERMÉE : seules les ops à la racine d'un
  * porteur lisent ses régimes (`mecaniqueDe`).
  */
-const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
+const DECLARATIONS_D_OPS = {
   arrowWard: nommerChamps(z.strictObject({ op: z.literal('arrowWard') }), { op: { label: "opération" } }),
   attackWardFM: nommerChamps(z.strictObject({ op: z.literal('attackWardFM') }), { op: { label: "opération" } }),
   breakBlade: nommerChamps(z.strictObject({ op: z.literal('breakBlade') }), { op: { label: "opération" } }),
@@ -389,15 +436,7 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     amount: formulaSchema,
   }), { op: { label: "opération" }, amount: { label: "modificateur", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
 
-  attrMod: z.discriminatedUnion('attr', [
-    variante('Chance', nommerChamps(z.strictObject({ ...champsDuModDAttribut, attr: z.literal('fortune') }), metaDuModDAttribut)),
-    variante('Détermination', nommerChamps(z.strictObject({ ...champsDuModDAttribut, attr: z.literal('resolve') }), metaDuModDAttribut)),
-    variante('Blessures', nommerChamps(z.strictObject({
-      ...champsDuModDAttribut,
-      attr: z.literal('wounds'),
-      auTotal: z.literal(true).optional(),
-    }), { ...metaDuModDAttribut, auTotal: { label: 'au total de Blessures' } })),
-  ]),
+  attrMod: modDAttributExecuteSchema,
   critOnRoll: nommerChamps(z.strictObject({
     op: z.literal('critOnRoll'),
     mod: z.number(),
@@ -494,19 +533,6 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     difficulty: difficultySchema.optional(),
     easeSteps: z.number().optional(),
   }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, difficulty: { label: "difficulté" }, easeSteps: { label: "crans de facilité" } }),
-  aggravateSymptom: nommerChamps(z.strictObject({
-    op: z.literal('aggravateSymptom'),
-    disease: ref('maladie'),
-    symptom: ref('symptome'),
-    severity: symptomSeveritySchema,
-    otherwise: executeesDe(liens.op()).optional(),
-  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptom: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  }, otherwise: { label: "sinon" } }),
-  attenuateSymptom: nommerChamps(z.strictObject({
-    op: z.literal('attenuateSymptom'),
-    disease: ref('maladie'),
-    symptom: ref('symptome'),
-    otherwise: executeesDe(liens.op()).optional(),
-  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptom: { label: "symptôme" , texte: { regime: "technique"} }, otherwise: { label: "sinon" } }),
   grantSymptom: nommerChamps(z.strictObject({
     op: z.literal('grantSymptom'),
     disease: ref('maladie'),
@@ -702,25 +728,6 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     grandsCanons: z.number().int().min(1).optional(),
     exigence: z.literal('fouille').optional(),
   }), { op: { label: "opération"  }, navire: { label: "navire" , texte: { regime: "technique"} }, equipage: { label: "équipage" }, chef: { label: "chef" , texte: { regime: "technique"} }, grandsCanons: { label: "grands canons" }, exigence: { label: "exigence" } }),
-  /** `infestation` — MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
-  infestation: nommerChamps(z.strictObject({
-    op: z.literal('infestation'),
-    test: z.lazy(() => testFixeDEquipageSchema),
-    ...cibleEtendueSchema.shape,
-    chaqueNuit: liens.flow(),
-    /** MDG 15 l.161, l.176 */
-    surDRNegatif: liens.flow().optional(),
-  }), { op: { label: "opération"  }, test: { label: "Test d’équipage" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }),
-  /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
-  combatEnMer: nommerChamps(z.strictObject({
-    op: z.literal('combatEnMer'),
-    adversaire: ref('creature', {
-      nombre: nommerNoeud(z.number().int().min(1), { nom: 'effectif' }),
-      optionals: nommerNoeud(listeSansCle(z.array(traitInstanceSchema).min(1)).optional(), { nom: 'Traits facultatifs' }),
-    }),
-    repousseAPct: z.number().int().min(1).max(99).optional(),
-    victoire: liens.flow().optional(),
-  }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
   /** `attaquesSubies` — MDG 15 l.163-164, l.177-178 */
   attaquesSubies: nommerChamps(z.strictObject({
     op: z.literal('attaquesSubies'),
@@ -833,7 +840,7 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
   }), (lire) => {
     const ciblage = lireLesCiblesPsy(lire);
     return (o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx, ciblage);
-  }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
+  }), { ...metaDePosePsy, cible: { label: 'Cible', texte: { regime: 'technique', usage: 'référence mécanique résolue au catalogue' } } }),
   /** Fin des états d'un TYPE, ou de l'INSTANCE dont l'effet porte l'op (`instance`, réservé à la famille de
    *  `defs/psychology.ts` : ailleurs aucune instance ne voyage dans le contexte). */
   endPsych: declarerPayload({
@@ -975,39 +982,7 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     allyOfCaster: z.boolean().optional(),
     cancelFlag: z.string().optional(),
   }), { op: { label: "opération"  }, creature: { label: "créature" }, delayDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, allyOfCaster: { label: "allié du lanceur" }, cancelFlag: { label: "drapeau d’annulation" , texte: { regime: "technique"} } }),
-  intoxicate: nommerChamps(z.strictObject({
-    op: z.literal('intoxicate'),
-    tantQuIvre: executeesDe(liens.op()).optional(),
-  }), { op: { label: "opération"  }, tantQuIvre: { label: "tant qu’ivre" } }),
   polymorph: nommerChamps(z.strictObject({ op: z.literal('polymorph'), creature: ref('creature') }), { op: { label: "opération"  }, creature: { label: "créature" } }),
-  transform: nommerChamps(z.strictObject({
-    op: z.literal('transform'),
-    tag: z.string(),
-    ops: executeesDe(liens.op()),
-    creature: ref('creature').optional(),
-  }), { op: { label: "opération"  }, tag: { label: "marque" , texte: { regime: "technique"} }, ops: { label: "opérations" }, creature: { label: "forme transformée" , texte: { regime: "technique"} } }),
-  /** Table INLINE (`entries`) OU RÉFÉRENCÉE (`table`), exclusives (`engine/ops.ts`, union `rollTable`). */
-  rollTable: z.union([
-    nommerChamps(z.strictObject({
-      op: z.literal('rollTable'),
-      die: deDeTirageSchema,
-      mod: z.number().optional(),
-      addNegativeSL: z.boolean().optional(),
-      extraRollsPerStep: z.number().optional(),
-      entries: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: executeesDe(liens.op()) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
-    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, entries: { label: "rangées" } }),
-    nommerChamps(z.strictObject({
-      op: z.literal('rollTable'),
-      mod: z.number().optional(),
-      addNegativeSL: z.boolean().optional(),
-      extraRollsPerStep: z.number().optional(),
-      table: ref('table'),
-    }), { op: { label: "opération"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, table: { label: "table" , texte: { regime: "technique"} } }),
-  ], {
-    error: (iss) => brancheDeRollTable(iss.input) === undefined
-      ? 'table EXCLUSIVE : « entries » (rangées inline) OU « table » (tables.json) — exactement une des deux.'
-      : messageDeFormes(iss),
-  }).register(diagnosticsDUnion, { branche: brancheDeRollTable }),
   testMod: nommerChamps(z.strictObject({
     op: z.literal('testMod'),
     amount: z.number(),
@@ -1035,8 +1010,80 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     mode: porteeDAssautSchema,
     amount: z.number(),
   }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" } }),
-  perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: executeesDe(liens.op()) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
-  delayed: nommerChamps(z.strictObject({
+};
+
+const tableDeTirageReferencee = nommerChamps(z.strictObject({
+  op: z.literal('rollTable'),
+  mod: z.number().optional(),
+  addNegativeSL: z.boolean().optional(),
+  extraRollsPerStep: z.number().optional(),
+  table: ref('table'),
+}), { op: { label: "opération"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, table: { label: "table" , texte: { regime: "technique"} } });
+
+const longueurDeZoneParDR = nommerChamps(z.strictObject({ every: z.number(), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "distance" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } });
+
+/** Les charges dont le schéma appelle une racine mécanique. Le lien est fermé à la famille générale. */
+const declarationsDOpsRecursives = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
+  aggravateSymptom: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('aggravateSymptom'),
+    disease: ref('maladie'),
+    symptom: ref('symptome'),
+    severity: symptomSeveritySchema,
+    otherwise: executeesDe(liens.op()).optional(),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptom: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  }, otherwise: { label: "sinon" } }), 'declarationsDOpsRecursives', 'aggravateSymptom'),
+  attenuateSymptom: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('attenuateSymptom'),
+    disease: ref('maladie'),
+    symptom: ref('symptome'),
+    otherwise: executeesDe(liens.op()).optional(),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptom: { label: "symptôme" , texte: { regime: "technique"} }, otherwise: { label: "sinon" } }), 'declarationsDOpsRecursives', 'attenuateSymptom'),
+  /** `infestation` — MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  infestation: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('infestation'),
+    test: z.lazy(() => testFixeDEquipageSchema),
+    ...cibleEtendueSchema.shape,
+    chaqueNuit: liens.flow(),
+    /** MDG 15 l.161, l.176 */
+    surDRNegatif: liens.flow().optional(),
+  }), { op: { label: "opération"  }, test: { label: "Test d’équipage" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }), 'declarationsDOpsRecursives', 'infestation'),
+  /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
+  combatEnMer: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('combatEnMer'),
+    adversaire: ref('creature', {
+      nombre: nommerNoeud(z.number().int().min(1), { nom: 'effectif' }),
+      optionals: nommerNoeud(listeSansCle(z.array(traitInstanceSchema).min(1)).optional(), { nom: 'Traits facultatifs' }),
+    }),
+    repousseAPct: z.number().int().min(1).max(99).optional(),
+    victoire: liens.flow().optional(),
+  }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }), 'declarationsDOpsRecursives', 'combatEnMer'),
+  intoxicate: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('intoxicate'),
+    tantQuIvre: executeesDe(liens.op()).optional(),
+  }), { op: { label: "opération"  }, tantQuIvre: { label: "tant qu’ivre" } }), 'declarationsDOpsRecursives', 'intoxicate'),
+  transform: marquerProduit(nommerChamps(z.strictObject({
+    op: z.literal('transform'),
+    tag: z.string(),
+    ops: executeesDe(liens.op()),
+    creature: ref('creature').optional(),
+  }), { op: { label: "opération"  }, tag: { label: "marque" , texte: { regime: "technique"} }, ops: { label: "opérations" }, creature: { label: "forme transformée" , texte: { regime: "technique"} } }), 'declarationsDOpsRecursives', 'transform'),
+  /** Table INLINE (`entries`) OU RÉFÉRENCÉE (`table`), exclusives (`engine/ops.ts`, union `rollTable`). */
+  rollTable: z.union([
+    marquerProduit(nommerChamps(z.strictObject({
+      op: z.literal('rollTable'),
+      die: deDeTirageSchema,
+      mod: z.number().optional(),
+      addNegativeSL: z.boolean().optional(),
+      extraRollsPerStep: z.number().optional(),
+      entries: z.array(marquerProduit(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: executeesDe(liens.op()) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } }), 'declarationsDOpsRecursives', 'rollTable.entries[]')),
+    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, entries: { label: "rangées" } }), 'declarationsDOpsRecursives', 'rollTable.inline'),
+    tableDeTirageReferencee,
+  ], {
+    error: (iss) => brancheDeRollTable(iss.input) === undefined
+      ? 'table EXCLUSIVE : « entries » (rangées inline) OU « table » (tables.json) — exactement une des deux.'
+      : messageDeFormes(iss),
+  }).register(diagnosticsDeCharge, { branche: brancheDeRollTable }),
+  perRound: marquerProduit(nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: executeesDe(liens.op()) }), { op: { label: "opération"  }, ops: { label: "opérations" } }), 'declarationsDOpsRecursives', 'perRound'),
+  delayed: marquerProduit(nommerChamps(z.strictObject({
     op: z.literal('delayed'),
     afterMinutes: formulaSchema.optional(),
     afterHours: formulaSchema.optional(),
@@ -1046,13 +1093,13 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     forHours: formulaSchema.optional(),
     forDays: formulaSchema.optional(),
     ops: executeesDe(liens.op()),
-  }), { op: { label: "opération"  }, afterMinutes: { label: "délai en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterHours: { label: "délai en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDuration: { label: "après la durée" }, forMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forDays: { label: "durée en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, ops: { label: "opérations" } }),
-  zone: nommerChamps(z.strictObject({
+  }), { op: { label: "opération"  }, afterMinutes: { label: "délai en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterHours: { label: "délai en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDuration: { label: "après la durée" }, forMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forDays: { label: "durée en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, ops: { label: "opérations" } }), 'declarationsDOpsRecursives', 'delayed'),
+  zone: marquerProduit(nommerChamps(z.strictObject({
     op: z.literal('zone'),
     shape: zoneShapeSchema,
     radiusMeters: formulaSchema.optional(),
     lengthMeters: formulaSchema.optional(),
-    lengthPerSL: nommerChamps(z.strictObject({ every: z.number(), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "distance" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
+    lengthPerSL: longueurDeZoneParDR.optional(),
     blocksLoS: z.boolean().optional(),
     onCross: executeesDe(liens.op()).optional(),
     perRound: executeesDe(liens.op()).optional(),
@@ -1062,8 +1109,8 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     noCorruption: z.boolean().optional(),
     durationRounds: formulaSchema.optional(),
     rendu: ref('rendu').optional(),
-  }), { op: { label: "opération"  }, shape: { label: "forme"  }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, rendu: { label: "rendu" }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
-  augmentWeapon: nommerChamps(z.strictObject({
+  }), { op: { label: "opération"  }, shape: { label: "forme"  }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, rendu: { label: "rendu" }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }), 'declarationsDOpsRecursives', 'zone'),
+  augmentWeapon: marquerProduit(nommerChamps(z.strictObject({
     op: z.literal('augmentWeapon'),
     addQualities: refs('quality').optional(),
     damageBonus: formulaSchema.optional(),
@@ -1074,8 +1121,8 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     suppressEnchants: z.boolean().optional(),
     passive: liens.passifs().optional(),
     onHitEffects: effetsDArmeDe(liens.declenche()).optional(),
-  }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
-  grantWeapon: nommerChamps(controlerSousPortee(z.strictObject({
+  }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }), 'declarationsDOpsRecursives', 'augmentWeapon'),
+  grantWeapon: nommerChamps(controlerSousPortee(marquerProduit(z.strictObject({
     op: z.literal('grantWeapon'),
     label: z.string(),
     damage: formulaSchema,
@@ -1089,25 +1136,26 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
     teinte: ref('material', undefined, 'objet').optional(),
     form: objetDonneSchema.optional(),
     chooseForm: z.boolean().optional(),
-  }), OBJETS_DU_PROJET, (valeur, entree) => {
+  }), 'declarationsDOpsRecursives', 'grantWeapon'), OBJETS_DU_PROJET, (valeur, entree) => {
     if (!estObjet(valeur) || !estObjet(valeur.form) || typeof valeur.form.id !== 'string') return [];
     const modele = entree(valeur.form.id);
     if (!estObjet(modele)) return [];
     if (valeur.chooseForm === true) return [{ path: ['form', 'id'], message: 'Une forme fixe de campagne est incompatible avec le choix de la forme.' }];
     return estObjet(modele.shape) ? [] : [{ path: ['form', 'id'], message: 'L’objet de campagne choisi doit déclarer une forme.' }];
   }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, teinte: { label: "teinte" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
-  rollThreshold: nommerChamps(z.strictObject({
+  rollThreshold: marquerProduit(nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
     sides: z.number(),
-    thresholds: z.array(nommerChamps(z.strictObject({ atLeast: z.number(), ops: executeesDe(liens.op()) }), { atLeast: { label: "minimum" }, ops: { label: "opérations" } })),
-  }), { op: { label: "opération"  }, sides: { label: "faces" }, thresholds: { label: "seuils" } }),
+    thresholds: z.array(marquerProduit(nommerChamps(z.strictObject({ atLeast: z.number(), ops: executeesDe(liens.op()) }), { atLeast: { label: "minimum" }, ops: { label: "opérations" } }), 'declarationsDOpsRecursives', 'rollThreshold.thresholds[]')),
+  }), { op: { label: "opération"  }, sides: { label: "faces" }, thresholds: { label: "seuils" } }), 'declarationsDOpsRecursives', 'rollThreshold'),
 });
 
 declare const PASSIFS_D_OP: unique symbol;
 declare const FLOW_D_OP: unique symbol;
 declare const DECLENCHE_D_OP: unique symbol;
 
-type DeclarationsDOps = ReturnType<typeof declarationsDOps<LienRecursif, typeof PASSIFS_D_OP, typeof FLOW_D_OP, typeof DECLENCHE_D_OP>>;
+type DeclarationsDOps = typeof DECLARATIONS_D_OPS
+  & ReturnType<typeof declarationsDOpsRecursives<LienRecursif, typeof PASSIFS_D_OP, typeof FLOW_D_OP, typeof DECLENCHE_D_OP>>;
 
 type CleDUnChamp<O extends string, C> = `${O}.${C & string}`;
 type RegimeDuChamp<R, K> = K extends keyof R ? R[K] : undefined;
@@ -1154,40 +1202,44 @@ type ChargePsyExecutee = OpPosePsy | OpAvecCibleExecutee<SortiesDOps<Regimes>['g
 export type GameOp = FermerOp<ChargeDOp, false> | ChargePsyExecutee;
 
 type ModDesBlessures = Extract<SortiesDOps<Regimes>['attrMod'], { attr: 'wounds' }>;
-type ModPassifDesBlessures = Omit<ModDesBlessures, 'auTotal'> & { auTotal?: never };
+type ChargePassiveDesBlessures = z.output<typeof modDesBlessuresPassifSchema>;
+type ModPassifDesBlessures = ChargePassiveDesBlessures & { auTotal?: never };
 export type OpPassive = FermerOp<Exclude<ChargeDOp, ModDesBlessures>, false> | ChargePsyExecutee | ModPassifDesBlessures;
 
 type GameOpAuteur<R = Record<never, never>> = FermerOp<SortiesDOps<R>[keyof DeclarationsDOps], true>;
-type PassifAuteur = FermerOp<Exclude<SortiesDOps<Record<never, never>>[keyof DeclarationsDOps], ModDesBlessures>, true> | Omit<ModDesBlessures, 'auTotal'>;
+type PassifAuteur = FermerOp<Exclude<SortiesDOps<Record<never, never>>[keyof DeclarationsDOps], ModDesBlessures>, true> | ChargePassiveDesBlessures;
 type FeuilleAuteur = z.output<ReturnType<typeof effetDOperations<z.ZodType<GameOpAuteur>>>>;
 type FlowAuteur = ArbreDeFlow<FeuilleAuteur, z.output<typeof flowTestSchema>, number | typeof INDICE_TEMPLATE, z.output<typeof conditionSchema>>;
 type EffetDeclencheAuteur = z.output<ReturnType<typeof effetDeclencheSur<z.ZodType<FlowAuteur>>>>;
 export type EffetDeclencheMoteur = z.output<ReturnType<typeof effetDeclencheSur<z.ZodType<Flow<EffectOp>>>>>;
 
-const DECLARATIONS_D_OPS = declarationsDOps({
-  op: () => z.lazy((): z.ZodType<GameOpAuteur> => gameOpSchema),
-  passifs: () => passifsDe(z.lazy((): z.ZodType<GameOpAuteur> => gameOpSchema), OBJETS_DU_PROJET),
-  flow: () => z.lazy((): z.ZodType<FlowAuteur> => flowSchema),
-  declenche: () => z.lazy((): z.ZodType<EffetDeclencheAuteur> => triggeredEffectSchema),
-});
+const CATALOGUE_DES_DECLARATIONS_D_OPS = {
+  ...DECLARATIONS_D_OPS,
+  ...declarationsDOpsRecursives({
+    op: () => z.lazy((): z.ZodType<GameOpAuteur> => gameOpSchema),
+    passifs: () => passifsDe(undefined, OBJETS_DU_PROJET),
+    flow: () => z.lazy((): z.ZodType<FlowAuteur> => flowSchema),
+    declenche: () => z.lazy((): z.ZodType<EffetDeclencheAuteur> => triggeredEffectSchema),
+  }),
+};
 
 type ChampsAChoixDe<K extends string, D> = D extends PayloadDeclare<infer F>
   ? { [C in keyof F & string]: F[C] extends ChampAChoixDeclare ? `${K}.${C}` : never }[keyof F & string]
   : never;
 
-/** `<op>.<champ>` de chaque champ à choix, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
+/** `<op>.<champ>` de chaque champ à choix, DÉRIVÉ des déclarations du catalogue. */
 export type ChampAChoix = { [K in keyof DeclarationsDOps & string]: ChampsAChoixDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
 
 type ChampsReservesDe<K extends string, D> = D extends PayloadDeclare<infer F>
   ? { [C in keyof F & string]: F[C] extends ChampReserveDeclare ? `${K}.${C}` : never }[keyof F & string]
   : never;
 
-/** `<op>.<champ>` de chaque champ réservé, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
+/** `<op>.<champ>` de chaque champ réservé, DÉRIVÉ des déclarations du catalogue. */
 export type ChampReserve = { [K in keyof DeclarationsDOps & string]: ChampsReservesDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
 
 /** Les `<op>.<champ>` dont la déclaration est une instance de `classe`. */
 function champsDeclares<T extends string>(classe: abstract new (...a: never[]) => object): readonly T[] {
-  return Object.entries(DECLARATIONS_D_OPS).flatMap(([op, d]) =>
+  return Object.entries(CATALOGUE_DES_DECLARATIONS_D_OPS).flatMap(([op, d]) =>
     !(d instanceof PayloadDeclare) ? [] : Object.entries(d.champs).flatMap(([champ, v]) => (v instanceof classe ? [`${op}.${champ}` as T] : [])),
   );
 }
@@ -1359,12 +1411,25 @@ export const domaineDuChaosSchema = enumNomme({
   indivisible: 'Indivisible',
 });
 
+/**
+ * Forme de la Condition réservée : même validation d’entrée dans les deux régimes, puis seul le
+ * régime Psychologie admet la condition. LDB 21 l.19, l.39, l.48.
+ */
+export const conditionCibleEnVueSchema = nommerChamps(z.strictObject({
+  kind: z.literal('cibleEnVue'),
+  hostiles: z.literal(true).optional(),
+}), { kind: { label: 'type' }, hostiles: { label: 'hostiles seulement' } }, { typeNomme: 'ConditionCibleEnVue' });
+export type ConditionCibleEnVue = z.output<typeof conditionCibleEnVueSchema>;
+
 /** Les branches de Condition composent leurs opérandes et un renvoi vers la même algèbre. */
 function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly ConditionReservee[]) {
-  const reservee = <T extends z.ZodType>(kind: ConditionReservee, branche: T): T =>
-    admises.includes(kind) ? branche : branche.check(z.superRefine((_v, ctx) => {
+  const reservee = <T extends z.ZodType>(kind: ConditionReservee, branche: T) => {
+    if (admises.includes(kind)) return branche;
+    return branche.transform((_v, ctx) => {
       ctx.addIssue({ code: 'custom', message: `Condition « ${kind} » : réservée à la famille qui l'admet (régime « condition.${kind} », src/data/schemas/grammaire/mecanique.ts) ; elle serait FAUSSE en silence ici.` });
-    }));
+      return z.NEVER;
+    });
+  };
   return z.discriminatedUnion('kind', [
     variante('Toujours', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('always') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.always')),
     variante('Drapeaux', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('flag'), expr: z.string().min(1, 'Condition « flag » : le drapeau (`expr`) est vide — nommez le drapeau posé par l’Effet `setFlag`, ou retirez la Condition.') }), { kind: { label: "type"  }, expr: { label: "expression" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.flag')),
@@ -1413,7 +1478,7 @@ function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly Conditio
     variante('Domaine du Chaos du lanceur', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: domaineDuChaosSchema }), { kind: { label: "type"  }, is: { label: "domaine" } }), 'conditionDe', 'condition.casterChaosDomain')),
     variante('Atteinte VISIBLE (apparence)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive')),
     variante('Est un NAVIRE', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('navire'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.navire')),
-    variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue'))),
+    variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', conditionCibleEnVueSchema)),
     variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: listeSansCle(z.array(renvoi)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
     variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: listeSansCle(z.array(renvoi)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
     variante('NON', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('not'), of: renvoi }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.not')),
@@ -1763,7 +1828,7 @@ export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<Opt
 
 /** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
 function noeudDeTest<T extends z.ZodType, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
-  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test", texte: { regime: "technique", usage: "Test paramétré par son schéma" } }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
@@ -2071,6 +2136,7 @@ const feuilleAuPeche = (noeud: z.ZodType): z.ZodType =>
 
 /** Le payload construit `noeud` de l'op `op` au dialecte du Péché : un CLONE (méta, contrôles et message d'union hérités)
  *  dont les feuilles de formule de premier niveau passent par `feuilleAuPeche`. Sans feuille de formule, il ressort identique. */
+function payloadAuPeche<S extends z.ZodType>(noeud: S, op: string): z.ZodType<AuPeche<z.output<S>>>;
 function payloadAuPeche(noeud: z.ZodType, op: string): z.ZodType {
   if (noeud instanceof z.ZodObject) {
     const shape: z.ZodRawShape = Object.fromEntries(Object.entries(noeud.shape).map(([champ, v]) => [champ, feuilleAuPeche(v)]));
@@ -2092,7 +2158,18 @@ type SchemaAuRegime<O extends string, D, R> =
 
 type CatalogueDePayloads<D, R> = { [K in keyof D & string]: SchemaAuRegime<K, D[K], R> };
 
-function payloadsDe<R extends Regimes>(regimes: R): CatalogueDePayloads<typeof DECLARATIONS_D_OPS, R> {
+/** Construit la charge stricte à partir de la forme et des métas sélectionnées dans la même déclaration. */
+function payloadStrict(
+  declaration: PayloadDeclare,
+  op: keyof DeclarationsDOps,
+  shape: z.ZodRawShape,
+  reservesAdmises: Readonly<Record<string, z.ZodType>>,
+) {
+  const meta = Object.fromEntries(Object.keys(shape).map((champ) => [champ, declaration.meta[champ]]));
+  return marquerProduit(nommerChamps(z.strictObject(shape).check(...(declaration.affinage ? [declaration.affinage] : [])), meta), 'payloadsDe', op, reservesAdmises);
+}
+
+function payloadsDe<R extends Regimes>(regimes: R): CatalogueDePayloads<typeof CATALOGUE_DES_DECLARATIONS_D_OPS, R> {
   const auPeche = regimes.formule === 'peche';
   const feuille = (noeud: z.ZodType): z.ZodType => auPeche ? feuilleAuPeche(noeud) : noeud;
   const ferme = (op: keyof DeclarationsDOps, d: PayloadDeclare) => {
@@ -2105,25 +2182,41 @@ function payloadsDe<R extends Regimes>(regimes: R): CatalogueDePayloads<typeof D
           : [[champ, feuille(v)]],
     );
     const shape = Object.fromEntries<z.ZodType>(champs);
-    const meta = Object.fromEntries(champs.map(([champ]) => [champ, d.meta[champ as string]]));
     const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])));
-    const noeud = nommerChamps(z.strictObject(shape).check(...(d.affinage ? [d.affinage] : [])), meta);
-    return marquerProduit(noeud, 'payloadsDe', op, reservesAdmises);
+    return payloadStrict(d, op, shape, reservesAdmises);
   };
-  const catalogue = Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
+  const catalogue = Object.entries(CATALOGUE_DES_DECLARATIONS_D_OPS).map(([op, d]) => {
     const cle = op as keyof DeclarationsDOps;
     return [op, nommerNoeud(d instanceof PayloadDeclare ? ferme(cle, d) : auPeche ? payloadAuPeche(d, op) : d, { label: OP_LABEL[cle] })] as const;
   });
   // Object.fromEntries efface la correspondance entre chaque clé, sa forme et son régime.
-  return Object.fromEntries<z.ZodType>(catalogue) as CatalogueDePayloads<typeof DECLARATIONS_D_OPS, R>;
+  return Object.fromEntries<z.ZodType>(catalogue) as CatalogueDePayloads<typeof CATALOGUE_DES_DECLARATIONS_D_OPS, R>;
 }
 
-function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(charges: D) {
+/** Remplace le diagnostic de la clé réservée et garde les autres clés du même rejet. */
+function nommerCleRefusee(issue: z.core.$ZodIssue, refus: CleRefusee): z.core.$ZodIssue[] {
+  if (issue.code !== 'unrecognized_keys' || issue.path.length || !issue.keys.includes(refus.cle)) return [issue];
+  const auChamp: z.core.$ZodIssue = { code: 'custom', path: [refus.cle], message: refus.message };
+  const cles = issue.keys.filter(cle => cle !== refus.cle);
+  return cles.length ? [auChamp, { ...issue, keys: cles, message: `Clés non reconnues : « ${cles.join(' », « ')} ».` }] : [auChamp];
+}
+
+function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(
+  charges: D,
+  groupe?: { particuliere: keyof D & string; schema: z.ZodType<z.output<D[keyof D]>> },
+) {
   const chargeDe = (v: unknown): D[keyof D] | undefined =>
     estObjet(v) && typeof v.op === 'string' && Object.prototype.hasOwnProperty.call(charges, v.op) ? charges[v.op as keyof D] : undefined;
+  const partagee = (v: unknown) => groupe !== undefined && estObjet(v) && v.op !== groupe.particuliere;
   const union = marquerProduit(z.transform((v, ctx) => {
-    marquerOpAtteinte(ctx);
     const charge = chargeDe(v);
+    if (charge && groupe && partagee(v)) {
+      const res = groupe.schema.safeParse(v);
+      if (res.success) return res.data;
+      for (const issue of res.error.issues) ctx.addIssue({ ...issue });
+      return z.NEVER;
+    }
+    marquerOpAtteinte(ctx);
     if (!charge) {
       ctx.addIssue({
         code: 'custom',
@@ -2135,18 +2228,26 @@ function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(charges: D) 
     const res = charge.safeParse(v);
     if (res.success) return res.data;
     const op = estObjet(v) ? v.op : undefined;
-    const branche = charge instanceof z.ZodUnion ? diagnosticsDUnion.get(charge)?.branche(v) : undefined;
+    const diagnostics = diagnosticsDeCharge.get(charge);
+    const branche = diagnostics?.branche?.(v);
     // Une branche certaine révèle ses chemins même si zod a interrompu les deux branches.
     const issues = res.error.issues.flatMap((issue) =>
       branche !== undefined && issue.code === 'invalid_union' && issue.path.length === 0
         ? issue.errors[branche] ?? [issue]
         : [issue]);
-    for (const issue of issues) ctx.addIssue({ ...issue, message: `GameOp « ${op} » : ${issue.message}` });
+    const refus = diagnostics?.cleRefusee?.(v);
+    for (const issue of refus ? issues.flatMap(i => nommerCleRefusee(i, refus)) : issues)
+      ctx.addIssue({ ...issue, message: `GameOp « ${op} » : ${issue.message}` });
     return z.NEVER;
   }), 'construire', 'gameOp');
-  declarerEnfants(union, Object.entries(charges).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
+  // Le groupe effectue le même parse au même point de la donnée ; seul `^op` nomme sa charge.
+  const enfants = groupe ? [
+    { noeud: groupe.schema, segment: '' },
+    { noeud: charges[groupe.particuliere], segment: '^' + groupe.particuliere },
+  ] : Object.entries(charges).map(([op, noeud]) => ({ noeud, segment: '^' + op }));
+  declarerEnfants(union, enfants, valeur => {
     const charge = chargeDe(valeur);
-    return charge ? [charge] : [];
+    return charge && (!groupe || !partagee(valeur)) ? [charge] : [];
   }, 'payloads-op');
   return union;
 }
@@ -2262,7 +2363,7 @@ function effetDeclencheSur<F extends z.ZodType>(flow: F) {
      *  proposé (étape de CHOIX de fin de Round, skippable) ; IA / cadence auto → JAMAIS exercé (ni décision
      *  silencieuse ni jet caché). */
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true, texte: { regime: "technique", usage: "Flow paramétré par son schéma" } }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 }
 
 function effetDOperations<S extends z.ZodType>(operations: S) {
@@ -2280,7 +2381,12 @@ function effetDOperations<S extends z.ZodType>(operations: S) {
 function construire<R extends Regimes>(regimes: R) {
   const opDefs = payloadsDe(regimes);
   const condition = conditionDe(regimes);
-  const gameOp = unionDesOps(opDefs);
+  const { attrMod: _particuliere, ...autresOps } = opDefs;
+  const commun = { particuliere: 'attrMod', schema: unionDesOps(autresOps) } as const;
+  const gameOp = unionDesOps(opDefs, commun);
+  const attrModPassif = regimes.formule === 'peche' ? payloadAuPeche(modDAttributPassifSchema, 'attrMod') : modDAttributPassifSchema;
+  nommerNoeud(attrModPassif, { label: OP_LABEL.attrMod }).register(diagnosticsDeCharge, { cleRefusee: cleRefuseeDuModPassif });
+  const gameOpPassif = unionDesOps({ ...opDefs, attrMod: attrModPassif }, commun);
   const effectOp = effetDOperations(gameOp);
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
@@ -2362,9 +2468,9 @@ function construire<R extends Regimes>(regimes: R) {
     note: z.string(),
   }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } }), 'construire', 'shipCritEntry');
 
-  for (const noeud of [gameOp, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
+  for (const noeud of [gameOp, gameOpPassif, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
   const catalogue: Readonly<Record<string, z.ZodType>> = opDefs;
-  return { regimes, opDefs: catalogue, condition, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };
+  return { regimes, opDefs: catalogue, condition, gameOp, gameOpPassif, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };
 }
 
 /** Une famille mécanique : ses payloads d'op et tout nœud qui compose un `GameOp`. */
@@ -2430,20 +2536,12 @@ export function effetsDArmeDe<E extends z.ZodType>(effet: E, contexte: (porteur:
 type FormePassive<O> = O extends { op: 'attrMod'; attr: 'wounds' } ? Omit<O, 'auTotal'> : O;
 
 export function passifsDe(op?: undefined, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<PassifAuteur[]>;
-export function passifsDe<O extends GameOp>(op: z.ZodType<O>, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<FormePassive<O>[]>;
-export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<GameOp[]> {
-  const liste = z.array(op).superRefine((ops, ctx) => {
-    ops.forEach((o, i) => {
-      if (o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [i, 'auTotal'],
-          message: '« auTotal » n’agit que sur une liste d’opérations EXÉCUTÉE (consommable, manœuvre, sort) : '
-            + 'une liste passive ne marque pas ses modificateurs de Caractéristique. Retirer « auTotal ».',
-        });
-      }
-    });
-  });
+export function passifsDe<O extends { op: string }>(op: z.ZodType<O>, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<FormePassive<O>[]>;
+export function passifsDe(op?: z.ZodType<{ op: string }>, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<{ op: string }[]> {
+  const regimes = regimesDuNoeud(op);
+  if (op && !regimes) throw new Error('Une liste passive attend les opérations d’une famille mécanique.');
+  // Les charges imbriquées peuvent construire leur liste avant la famille fermée.
+  const liste = z.array(z.lazy(() => regimes ? mecaniqueDe(regimes).gameOpPassif : FERMEE.gameOpPassif));
   const passive = catalogueSeul ? ouvrirPortees(liste, [catalogueSeul], 'vide') : liste;
   REGIMES_DES_LISTES.set(passive, 'passive');
   return listeSansCle(passive);

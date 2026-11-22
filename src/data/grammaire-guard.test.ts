@@ -340,9 +340,9 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .map(({ f, t }) => `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.detail}`)
       .sort();
     expect(dansLaGrammaire).toEqual([
-      'src/data/schemas/grammaire/mecanique.ts:declarationsDOps.castPenalty|skill',
-      'src/data/schemas/grammaire/mecanique.ts:declarationsDOps.skillDRBonus|skill',
-      'src/data/schemas/grammaire/mecanique.ts:declarationsDOps.skillMod|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillMod|skill',
       // Les cinq variantes de `has` partagent la clé canonique `ref`, chacune avec son catalogue.
       ...Array<string>(5).fill('src/data/schemas/grammaire/mecanique.ts:hasConditionSchema|ref'),
       'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',

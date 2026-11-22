@@ -4,7 +4,8 @@
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, mecaniqueDe } from './mecanique';
-import { declarationDEnfants, defDe, ouverts, valeursAdmises } from './descente';
+import { defDe, enfantsDe, ouverts, valeursAdmises } from './descente';
+import { unionDuNoeud } from '../../../noyau/codex/editFields';
 import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
@@ -295,17 +296,18 @@ describe('OP_DEFS — payload strict par op, refus au site', () => {
   });
 
   it('le parse expose chaque charge stricte du registre sous son discriminant', () => {
-    const declaration = declarationDEnfants(gameOpSchema);
-    expect(declaration?.nature).toBe('payloads-op');
+    const catalogue = unionDuNoeud(gameOpSchema);
+    expect(catalogue?.discriminant).toBe('op');
     const charges = Object.entries(OP_DEFS);
-    expect(charges.length).toBeGreaterThan(0);
-    expect(declaration?.enfants).toEqual(charges.map(([op, noeud]) => ({ noeud, segment: `^${op}` })));
+    expect(catalogue?.variantes).toHaveLength(charges.length);
+    expect(new Map(catalogue?.variantes.map(({ cle, noeud }) => [cle, noeud]))).toEqual(new Map(charges));
     for (const [op, noeud] of charges) {
       const formes = ouverts([noeud]).filter((forme) => defDe(forme)?.type === 'object');
       expect(formes.length, op).toBeGreaterThan(0);
       for (const forme of formes) {
         expect(valeursAdmises(forme).op, op).toEqual(new Set([op]));
-        expect(defDe(defDe(forme)?.catchall)?.type, op).toBe('never');
+        const horsForme = enfantsDe(forme).find(({ segment }) => segment === '.*');
+        expect(defDe(horsForme?.noeud)?.type, op).toBe('never');
       }
     }
   });

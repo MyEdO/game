@@ -834,12 +834,26 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
       ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
       ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
-      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
       ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
     ]);
-    expect(Object.keys(attendues)).toHaveLength(17);
+    expect(Object.keys(attendues)).toHaveLength(16);
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
-    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
+    // Le parcours global ne garde que le premier chemin d’une charge partagée avec les passifs.
+    const onHitEffects = [
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'sequence', etapes: [] } },
+    ] satisfies NonNullable<Extract<GameOp, { op: 'grantWeapon' }>['onHitEffects']>;
+    const armes = [
+      zone({ onCross: [{ op: 'grantWeapon', label: 'Arme de test', damage: 1, onHitEffects }] }),
+      zone({ onCross: [{ op: 'augmentWeapon', onHitEffects }] }),
+    ];
+    for (const arme of armes) {
+      const cible = champ(formulaireDe('zone', arme, CADRE_VIDE), arme, 'onCross', 0, 'onHitEffects', 0, 'on');
+      const variantes = unionDuNoeud(cible.noeud)?.variantes;
+      expect(variantes).toHaveLength(3);
+      expect(choixDuNoeud(variantes?.find((v) => v.libelle === 'Cible désignée')?.noeud)?.map((c) => c.valeur)).toContain('victime');
+    }
+    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua'];
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });
 

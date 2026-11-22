@@ -7,7 +7,7 @@
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
-import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
+import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises, type DeclarationDEnfants } from '../../data/schemas/grammaire/descente';
 import { collectionDe } from '../../data/schemas/grammaire/collection-cle';
 import {
   aLaFormeDe,
@@ -343,6 +343,29 @@ function libelleDeLaBranche(option: unknown, discriminant: string, cle: string):
   return nomDeNoeud(option)?.label ?? ouverts(pasDeDonnee(ouverts([option]), discriminant)).map((n) => valeursDe(n)?.[cle]).find((l) => l !== undefined);
 }
 
+/** Les charges d'un répartiteur, dans leur ordre déclaré à travers les groupes transparents. */
+function variantesDOperations(
+  declaration: DeclarationDEnfants,
+  chemin: ReadonlySet<DeclarationDEnfants> = new Set(),
+): VarianteDuNoeud[] | undefined {
+  if (chemin.has(declaration)) return undefined;
+  const visites = new Set(chemin).add(declaration);
+  const variantes: VarianteDuNoeud[] = [];
+  for (const { segment, noeud } of declaration.enfants) {
+    if (segment === '') {
+      const groupe = declarationDEnfants(noeud);
+      const feuilles = groupe && variantesDOperations(groupe, visites);
+      if (!feuilles) return undefined;
+      variantes.push(...feuilles);
+      continue;
+    }
+    const libelle = nomDeNoeud(noeud)?.label;
+    if (libelle === undefined) return undefined;
+    variantes.push({ cle: segment.slice(1), libelle, noeud });
+  }
+  return variantes;
+}
+
 /** L'union du nœud, chacune de ses variantes nommée : d'une répartition d'ops (`payloads-op`), chaque op typée, nommée
  *  par son payload ; d'une union discriminée, chaque branche, de
  *  l'unique valeur de son discriminant (`libelleDeLaBranche`) ; d'une union à présence, de même, la branche qui ne porte
@@ -352,18 +375,19 @@ export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
   const n = noeudDUnion(noeud);
   if (n === undefined) return undefined;
   const declaration = declarationDEnfants(n);
-  const presence = declaration ? undefined : discriminantDePresence(n);
-  const sansDiscriminant = declaration || presence !== undefined || defDe(n)!.discriminator !== undefined ? undefined : variantesSansDiscriminant(n);
-  const discriminant = declaration ? 'op' : presence ?? defDe(n)!.discriminator ?? '';
-  const variantes = sansDiscriminant
-    ?? (declaration
-    ? declaration.enfants.map((e) => ({ cle: e.segment.slice(1), libelle: nomDeNoeud(e.noeud)?.label, noeud: e.noeud }))
-    : branchesDe(n).map((b) => {
-      const lues = valeursAdmises(b)[discriminant];
-      const admises = [...(lues ?? [])];
-      const cle = presence !== undefined && lues === undefined ? '' : admises.length === 1 && typeof admises[0] === 'string' ? admises[0] : undefined;
-      return { cle, libelle: cle === undefined ? undefined : libelleDeLaBranche(b, discriminant, cle), noeud: b };
-    }));
+  if (declaration) {
+    const variantes = variantesDOperations(declaration);
+    return variantes && { noeud: n, discriminant: 'op', variantes };
+  }
+  const presence = discriminantDePresence(n);
+  const sansDiscriminant = presence !== undefined || defDe(n)!.discriminator !== undefined ? undefined : variantesSansDiscriminant(n);
+  const discriminant = presence ?? defDe(n)!.discriminator ?? '';
+  const variantes = sansDiscriminant ?? branchesDe(n).map((b) => {
+    const lues = valeursAdmises(b)[discriminant];
+    const admises = [...(lues ?? [])];
+    const cle = presence !== undefined && lues === undefined ? '' : admises.length === 1 && typeof admises[0] === 'string' ? admises[0] : undefined;
+    return { cle, libelle: cle === undefined ? undefined : libelleDeLaBranche(b, discriminant, cle), noeud: b };
+  });
   const nommees = variantes.filter((v): v is VarianteDuNoeud => v.cle !== undefined && v.libelle !== undefined);
   return nommees.length === variantes.length ? { noeud: n, discriminant, variantes: nommees } : undefined;
 }
