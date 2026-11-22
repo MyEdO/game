@@ -199,8 +199,8 @@ describe('projection des positions', () => {
   });
 });
 
-describe('ce que le groupe ne voit pas (#3950, `siege-enceinte` : 8 ennemis derrière la muraille au départ)', () => {
-  it('`carte` liste les seuls combattants en vue ; la `fiche` d’un ennemi hors de vue se refuse en mots du joueur', { timeout: 120_000 }, () => {
+describe('ce que le groupe voit depuis la cour de `siege-enceinte` (#3950)', () => {
+  it('`carte` et `fiche` montrent le gobelin visible par la herse et protègent celui que masque la courtine', { timeout: 120_000 }, () => {
     const table = partie('siege-enceinte', verbe('fenetreValider', 'debutDuRound'));
     try {
       const lignes: string[] = [];
@@ -210,12 +210,16 @@ describe('ce que le groupe ne voit pas (#3950, `siege-enceinte` : 8 ennemis derr
         lignes.push(...(suite ? page.slice(0, -1) : page));
         depuis = suite ? Number(suite[1]) : undefined;
       }
-      const listes = lignes.map((l) => l.slice(2).split(' ')[0]).sort();
-      expect(listes, 'la carte, page après page : les héros, les défenseurs du chemin de ronde, la porte, et les deux ennemis en vue').toEqual([
-        'chasseur-de-test', 'crew-baliste', 'crew-canon', 'personnage-0', 'personnage-4', 'personnage-8', 'personnage-9', 'personnage-a', 'personnage-b', 'personnage-c', 'personnage-d', 'personnage-e', 'soldat-de-test', 'sorcier-de-test', 'structure-14-37-N-0', 'structure-15-37-N-0', 'tueur-de-test',
-      ]);
-      const fiche = table.lire('fiche', { id: 'personnage-7' });
-      expect([fiche.erreur, fiche.texte], 'la fiche d’un gobelin derrière la muraille').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
+      const vuParLaHerse = 'personnage-7';
+      const masqueParLaCourtine = 'personnage-5';
+      const listes = lignes.map((l) => l.slice(2).split(' ')[0]);
+      expect(listes, 'la carte paginée nomme les témoins en vue').toEqual(expect.arrayContaining([
+        'soldat-de-test', 'crew-baliste', 'structure-14-37-N-0', 'structure-15-37-N-0', vuParLaHerse,
+      ]));
+      expect(listes).not.toContain(masqueParLaCourtine);
+      expect(table.lire('fiche', { id: vuParLaHerse }).erreur, 'la fiche du gobelin visible s’ouvre').toBeNull();
+      const fiche = table.lire('fiche', { id: masqueParLaCourtine });
+      expect([fiche.erreur, fiche.texte], 'la fiche du gobelin que masque la courtine').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
     } finally {
       fermerLaTable();
     }

@@ -1,7 +1,7 @@
 /**
  * CE QUE LE GROUPE CONNAÎT (#3950, `src/noyau/visionDuGroupe.ts`) : un combattant en vue, une entité connue, un nom, le
  * masque du monde et sa clé, et les effets d'un appel tels que le groupe les voit (`effetsDeLAppel`). Le scénario
- * `siege-enceinte` pose le groupe dans la cour, au sud de la muraille, et l'assaut au nord, hors de sa vue.
+ * `siege-enceinte` pose le groupe dans la cour, face au tunnel de la herse.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -35,17 +35,15 @@ const heros = (): Combatant[] => combattants().filter((c) => c.kind === 'heros')
 
 const SOLDAT = 'soldat-de-test';
 const SORCIER = 'sorcier-de-test';
-const GOBELIN = 'personnage-7';
+const GOBELIN = 'personnage-5';
 const GOBELIN_2 = 'personnage-3';
-const GOBELIN_3 = 'personnage-5';
-/** Les ennemis au nord de la muraille que le groupe ne voit pas au départ. */
-const DERRIERE_LA_MURAILLE = ['brg-canon', 'brg-cata', 'personnage-1', 'personnage-2', 'personnage-3', 'personnage-5', 'personnage-6', 'personnage-7'];
+const GOBELIN_PAR_LA_HERSE = 'personnage-7';
 type Case = { x: number; y: number; z: number };
 /** Des cases que le groupe voit au départ, libre (`VUE_LIBRE`) ou tenue par le sorcier (`VUE_DU_SORCIER`), une case
- *  qu'il ne voit pas, celle du gobelin au nord de la muraille (`NON_VUE`), et une case loin de tout (`LOIN`). */
+ *  que masque la courtine (`NON_VUE`), et une case loin de tout (`LOIN`). */
 const VUE_LIBRE: Case = { x: 16, y: 44, z: 0 };
 const VUE_DU_SORCIER: Case = { x: 14, y: 44, z: 0 };
-const NON_VUE: Case = { x: 14, y: 32, z: 0 };
+const NON_VUE: Case = { x: 13, y: 32, z: 0 };
 const LOIN: Case = { x: 0, y: 33, z: 0 };
 const cle = (c: Case) => `${c.x},${c.y},${c.z}`;
 
@@ -68,10 +66,15 @@ function octet(c: { x: number; y: number }): number {
   return depuisBase64(masque)[c.y * largeur + c.x];
 }
 
-describe('siege-enceinte — au départ, l’assaut derrière la muraille hors de la vue du groupe', () => {
-  it('chaque ennemi derrière la muraille est hors de vue, sans nom, son octet 0 ou 128 ; chaque héros est en vue, à son nom', () => {
+describe('siege-enceinte — la vue du groupe depuis la cour', () => {
+  it('un gobelin est visible par la herse ; la courtine masque les autres témoins et leurs noms', () => {
+    const enVue = parId(GOBELIN_PAR_LA_HERSE);
+    expect(combattantEnVue(etat(), enVue)).toBe(true);
+    expect(nomEnVue(etat(), enVue.id)).toBe(enVue.label);
+    expect(octet(enVue.pos!)).toBe(255);
+
     const caches = ennemis().filter((c) => !combattantEnVue(etat(), c));
-    expect(caches.map((c) => c.id).sort(), 'les ennemis hors de vue').toEqual(DERRIERE_LA_MURAILLE);
+    expect(caches.map((c) => c.id)).toContain(GOBELIN);
     expect(caches.map((c) => [c.id, nomEnVue(etat(), c.id)])).toEqual(caches.map((c) => [c.id, t('vision.horsDeVue')]));
     for (const c of caches) expect([0, 128], c.id).toContain(octet(c.pos!));
     expect(heros().map((c) => [combattantEnVue(etat(), c), nomEnVue(etat(), c.id)])).toEqual(heros().map((c) => [true, c.label]));
@@ -109,7 +112,7 @@ describe('connaissanceDuGroupe, visionDuMonde — vue, explorée, inconnue', () 
 
 describe('combattantEnVue — le couple monté, la structure de siège', () => {
   it('un ennemi hors de vue que monte un héros est en vue ; monté par un ennemi, non', () => {
-    poserLesCombattants({ [GOBELIN]: { riderId: SOLDAT }, [SOLDAT]: { mountId: GOBELIN }, [GOBELIN_2]: { riderId: GOBELIN_3 } });
+    poserLesCombattants({ [GOBELIN]: { riderId: SOLDAT }, [SOLDAT]: { mountId: GOBELIN }, [GOBELIN_2]: { riderId: GOBELIN_PAR_LA_HERSE } });
     expect([combattantEnVue(etat(), parId(GOBELIN)), combattantEnVue(etat(), parId(GOBELIN_2))]).toEqual([true, false]);
   });
 
@@ -174,7 +177,7 @@ describe('effetsDeLAppel — ce que le groupe voit, lu sur l’état d’après 
     const [chemin, pas] = effets(marche(GOBELIN, [NON_VUE, { x: 16, y: 43, z: 0 }, VUE_LIBRE]));
     expect(chemin).toMatchObject({ quoi: 'deplacement', qui: GOBELIN, cases: [{ x: 16, y: 43, z: 0, metres: 0 }, { x: VUE_LIBRE.x, y: VUE_LIBRE.y, z: 0 }] });
     expect(pas).toMatchObject({ quoi: 'son' });
-    expect(effets(marche(GOBELIN, [NON_VUE, { x: 14, y: 36, z: 0 }, VUE_LIBRE])).map((e) => e.quoi), 'une seule case vue au bout : aucun chemin').toEqual(['son']);
+    expect(effets(marche(GOBELIN, [NON_VUE, { x: 12, y: 36, z: 0 }, VUE_LIBRE])).map((e) => e.quoi), 'une seule case vue au bout : aucun chemin').toEqual(['son']);
     expect(effets(marche(GOBELIN_2, [VUE_LIBRE, NON_VUE])).map((e) => e.quoi), 'fini hors de vue : aucun chemin').toEqual(['son']);
     expect(effets(marche(SOLDAT, [NON_VUE, VUE_LIBRE, { x: 16, y: 45, z: 0 }]))[0], 'un héros garde tout son chemin').toMatchObject({ cases: [NON_VUE, VUE_LIBRE, { x: 16, y: 45 }] });
   });
