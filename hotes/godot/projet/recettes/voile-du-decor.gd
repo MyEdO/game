@@ -264,7 +264,7 @@ func _poser_le_volume(pont: PontDuDecor) -> bool:
 	var recus := pont.appeler("morceaux", manquants.merged({source = "partie"}))
 	if not _verifier(recus.get("ok") == true, "les morceaux du monde ne sont pas servis"):
 		return false
-	var _textures_gardees := await TexturesDeMatiere.preparer(_monde, VolumeDeScene.matieres_des_morceaux(recus))
+	var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(_monde, VolumeDeScene.textures_des_morceaux(recus))
 	_monde.volume.poser(monde, recus)
 	return _verifier(_monde.volume.manquants(monde).values().all(func(cles: Array) -> bool: return cles.is_empty()), "des morceaux du monde restent à poser")
 

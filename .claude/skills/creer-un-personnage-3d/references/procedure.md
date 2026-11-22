@@ -274,8 +274,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
   Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
-  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
-  un morceau de cette apparence garde la couleur de ses sommets (#4471).
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur (#4471).
+  Toute surface du monde dont la matière a sa neutre la lit et la teint de la couleur de ses sommets, morceau, nappe
+  ou couronne (`VolumeDeScene.albedo_de`, `teinte_des_sommets` de `art/monde.gdshader`) : un terrain la dérive de sa
+  texture (`; dérivée de terrain--<id>.jpg`), et son sol horizontal la relit à grande échelle pour casser la
+  répétition du motif.
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;

@@ -188,20 +188,28 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
-## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor, chacune
-## à vrai si une nappe ou une couronne la porte : sa texture neutre sert (`_matiere`).
-static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
+## Les chemins des textures que les maillages des géométries reçues peuvent lire, y compris après remaillage d'un décor
+## (`textures_de_la_matiere` de chacune de leurs matières).
+static func textures_des_morceaux(recus: Dictionary) -> PackedStringArray:
 	var matieres := {}
 	for famille in ["volume", "toits", "couronnes"]:
 		for geometrie: Dictionary in recus.get(famille, []):
-			_relever_les_matieres(geometrie, matieres, famille != "volume")
-	return matieres
+			_relever_les_matieres(geometrie, matieres)
+	var chemins := PackedStringArray()
+	for nom: String in matieres:
+		chemins.append_array(textures_de_la_matiere(nom))
+	return chemins
 
 
-static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary, neutre: bool) -> void:
+## Les chemins des textures que lit une surface de la matière `nom` : son albédo (`albedo_de`) et son relief.
+static func textures_de_la_matiere(nom: String) -> PackedStringArray:
+	return PackedStringArray([albedo_de(nom), relief_de(nom)])
+
+
+static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary) -> void:
 	for surface: Dictionary in geometrie.surfaces:
 		if not surface.get("priseSeulement", false) and not surface.has("navire"):
-			matieres[surface.matiere] = matieres.get(surface.matiere, false) or neutre
+			matieres[surface.matiere] = true
 
 
 ## Le volume du manifeste `monde` (`{ monde, toits, couronnes }`) à l'échelle d'une unité par case, sa case (0, 0) sur
@@ -524,7 +532,7 @@ func _preparer_le_repli(decor: String, secours: Dictionary) -> bool:
 	var recus := pont.appeler("retablirDecors", secours.merged({prop = decor}))
 	if recus.get("ok") != true:
 		return false
-	var textures := await TexturesDeMatiere.preparer(self, matieres_des_morceaux(recus))
+	var textures := await TexturesDeMatiere.preparer_les_chemins(self, textures_des_morceaux(recus))
 	if not is_inside_tree() or secours != _secours_des_decors:
 		return false
 	_poser_le_repli(decor, recus)
@@ -731,10 +739,10 @@ func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 ## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud, un morceau si `masquee`, peut faire revenir.
 static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary, masquee: bool) -> void:
 	var matieres := {}
-	_relever_les_matieres(geometrie, matieres, not masquee)
+	_relever_les_matieres(geometrie, matieres)
 	var textures: Array[Texture2D] = []
 	for nom: String in matieres:
-		for chemin: String in [_albedo_de(nom, masquee), relief_de(nom)]:
+		for chemin: String in textures_de_la_matiere(nom):
 			var texture := TexturesDeMatiere.retenue(chemin)
 			if texture != null:
 				textures.append(texture)
@@ -1063,17 +1071,20 @@ func _retournes(tableau: Variant) -> Variant:
 ## de monde : texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets, liée à la vision posée
 ## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`), sa texture projetée sur les trois axes ;
 ## celle d'une nappe ou d'une couronne, jamais : sa texture de retrait reste la noire par défaut, rien ne s'y replie ; sa
-## texture est la neutre (`texture_neutre_de`), projetée sur le plan de chaque face et teinte par la couleur de ses
-## sommets (`nappe`, `art/monde.gdshader`).
+## texture est projetée sur le plan de chaque face (`nappe`, `art/monde.gdshader`). Une texture neutre (`albedo_de`) est
+## teinte par la couleur de ses sommets (`teinte_des_sommets`).
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	var reference := matieres.get(nom) as WeakRef
 	var matiere := reference.get_ref() as ShaderMaterial if reference != null else null
 	if matiere != null:
 		return matiere
-	var albedo := TexturesDeMatiere.retenue(_albedo_de(nom, masquee))
+	var chemin := albedo_de(nom)
+	var albedo := TexturesDeMatiere.retenue(chemin)
 	matiere = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
 	texturer(matiere, nom, albedo, true)
+	if albedo != null and chemin == texture_neutre_de(nom):
+		matiere.set_shader_parameter("teinte_des_sommets", 1.0)
 	if masquee:
 		matiere.set_shader_parameter("retrait", _retrait)
 	elif albedo != null:
@@ -1088,10 +1099,11 @@ static func texture_de(nom: String) -> String:
 	return "res://textures/%s.jpg" % nom
 
 
-## Le chemin de la texture que lit la matière `nom` d'un morceau (`masquee`), ou d'une nappe ou d'une couronne
-## (`_matiere`).
-static func _albedo_de(nom: String, masquee: bool) -> String:
-	return texture_de(nom) if masquee else texture_neutre_de(nom)
+## Le chemin de la texture que lit la matière `nom` sous la couleur de sa surface (`_matiere`, le sol du hors-carte de
+## `Lumiere`) : sa neutre si le projet la porte, que cette couleur teint, sinon sa texture.
+static func albedo_de(nom: String) -> String:
+	var neutre := texture_neutre_de(nom)
+	return neutre if ResourceLoader.exists(neutre, "Texture2D") else texture_de(nom)
 
 
 ## Le chemin du relief de la texture de la matière `nom` au projet.

@@ -532,7 +532,7 @@ func _poser_l_echantillon() -> void:
 		_echantillon_en_vol = null
 		return
 	var recus := {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes}
-	var _textures_gardees := await TexturesDeMatiere.preparer(self, VolumeDeScene.matieres_des_morceaux(recus))
+	var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(self, VolumeDeScene.textures_des_morceaux(recus))
 	if charge != _echantillon_en_vol:
 		return
 	_echantillon_en_vol = null

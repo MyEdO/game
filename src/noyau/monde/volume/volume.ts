@@ -101,7 +101,7 @@ interface SurfaceDuVolume extends Provenance {
   fin: number;
 }
 
-/** Une face listée du volume : sa case et sa couche, celle de sa teinte, et sa provenance. */
+/** Une face listée du volume : sa case et sa couche, et sa provenance. */
 interface FaceListee extends Provenance {
   face: Face;
   cell: { x: number; y: number; z: number };
@@ -289,7 +289,7 @@ function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: rea
   for (const { faces: indices, ...surface } of parMatiere.values()) {
     const debut = positions.length / 3;
     for (const i of indices) {
-      const { face, cell, surLaCarte, quads, rangs } = faces[i];
+      const { face, surLaCarte, quads, rangs } = faces[i];
       if (surface.priseSeulement) {
         // Les faces de `buildPropVolumes` portent déjà leur orientation. `faceGeometry` suit la même triangulation.
         quads.quads.forEach((q, j) => {
@@ -299,15 +299,15 @@ function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: rea
         continue;
       }
       const m = face.material;
-      const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
-      const k = tintVarFactor(recetteDeMatiere(m), cell) / 255;
-      const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
+      const ton = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
+      const recette = recetteDeMatiere(m);
       for (const { sommets, normale } of trianglesOrientes(faceGeometry(face, mpt, quads, rangs), centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
         ajouterTriangle(sommets, surLaCarte);
-        for (const _ of sommets) {
+        for (const p of sommets) {
+          const k = tintVarFactor(recette, { x: arrondi(p.x), y: arrondi(p.y), z: arrondi(p.z) }) / 255;
           normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));
-          couleurs.push(...couleur);
+          couleurs.push(...ton.map((c) => arrondi(Math.min(1, c * k))), 1);
         }
       }
     }
@@ -373,7 +373,7 @@ export interface EtatDuVolume {
   readonly morceaux: ReadonlyMap<string, Readonly<{ faces: readonly FaceDuMorceau[]; morceau: MorceauDuMonde }>>;
 }
 
-/** Un décor posé dans le volume (`posesDuVolume`) : sa pose et la case de sa teinte (`FaceListee.cell`). */
+/** Un décor posé dans le volume (`posesDuVolume`) : sa pose et sa case (`FaceListee.cell`). */
 type PoseAuVolume = Readonly<{ pose: PoseDeDecor; cell: Case }>;
 
 /** Un décor posé : sa pose, la case de sa teinte, et ses faces (`facesDuDecor`). */

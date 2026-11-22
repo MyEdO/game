@@ -663,10 +663,10 @@ func _zoomer(sens: float) -> void:
 ## une flottaison sans collision du monde. Sans plaque offerte rencontrée, le rayon touche le volume comme à
 ## l'ordinaire (recette `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau de sa texture, `projet/textures/<matiere>.jpg`, et de son
-## relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; celle d'une
-## nappe de toit ou d'une couronne, de sa texture neutre, `<matiere>.neutre.jpg`, teinte par la couleur de ses sommets,
-## et de son relief, projetés sur le plan de chaque face, les rangs le long de son horizontale (recette
+## Le shader de monde rend chaque surface vue de sa texture neutre, `projet/textures/<matiere>.neutre.jpg`, teinte par la
+## couleur de ses sommets, ou à défaut de sa texture, `<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg` : ceux
+## d'un morceau projetés sur les trois axes du volume, un motif tous les deux mètres, ceux d'une nappe de toit ou d'une
+## couronne sur le plan de chaque face, les rangs le long de son horizontale (recette
 ## `projet/recettes/nappe-texturee.gd`) ; une matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
 ## `projet/textures/provenance.json` (dossier épinglé, `asset/epingles.ts`).
 ##

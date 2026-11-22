@@ -105,7 +105,8 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 
 ## Le sol du hors-carte `hors_carte` (`horsCarte` de la vue) autour du plateau `plateau`, qu'il déborde
 ## (`MiseEnPage.centre_du_hors_carte`, `etendue_du_hors_carte`) : sa matière habillée comme le dessus d'une case
-## (`VolumeDeScene.texturer`) si sa texture est au projet, sinon sa couleur, comme une case, effacée dans le fond en
+## (`VolumeDeScene.texturer`) si sa texture est au projet, sa neutre teinte par sa couleur (`VolumeDeScene.albedo_de`),
+## sinon sa couleur, comme une case, effacée dans le fond en
 ## `fonduCases` cases depuis le bord, ou dans la seule brume ; aucun sans sol.
 func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 	_hors_carte.visible = hors_carte.sol != null
@@ -115,7 +116,8 @@ func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 		sol_hors_carte.set_shader_parameter("normal_enabled", false)
 		return
 	var taille := Vector2i(plateau.w, plateau.h)
-	var texture := TexturesDeMatiere.retenue(VolumeDeScene.texture_de(hors_carte.sol.matiere))
+	var chemin := VolumeDeScene.albedo_de(hors_carte.sol.matiere)
+	var texture := TexturesDeMatiere.retenue(chemin)
 	_hors_carte.position = MiseEnPage.centre_du_hors_carte(taille)
 	_hors_carte.scale = MiseEnPage.etendue_du_hors_carte(taille)
 	if texture == null:
@@ -124,7 +126,8 @@ func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 	VolumeDeScene.texturer(sol_hors_carte, hors_carte.sol.matiere, texture, false)
 	if not sol_hors_carte.get_shader_parameter("normal_enabled"):
 		sol_hors_carte.set_shader_parameter("normal_texture", null)
-	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if texture != null else Color(hors_carte.sol.couleur))
+	var coloree := texture != null and chemin == VolumeDeScene.texture_de(hors_carte.sol.matiere)
+	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if coloree else Color(hors_carte.sol.couleur))
 	sol_hors_carte.set_shader_parameter("metres_par_case", plateau.metresParCase)
 	sol_hors_carte.set_shader_parameter("plateau", Vector2(taille))
 	sol_hors_carte.set_shader_parameter("fondu_cases", 0.0 if hors_carte.fonduCases == null else hors_carte.fonduCases)

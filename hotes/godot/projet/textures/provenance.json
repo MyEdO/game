@@ -11,6 +11,12 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
+  "terrain--herbe.neutre.jpg": {
+    "sha256": "a0036c46880c9dd06ff325effab6ce984aa9b6f6f3e9715aae921817a6feec20",
+    "source": "https://ambientcg.com/view?id=Grass004 (Grass004_1K-JPG.zip : Grass004_1K-JPG_Color.jpg) ; dérivée de terrain--herbe.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
   "terrain--terre.jpg": {
     "sha256": "8150f7b13feaf6c78b1b6cd3b9ef76b31d1e1b2c8b5d1372eb5620f3e712f719",
     "source": "https://ambientcg.com/view?id=Ground106 (Ground106_1K-JPG.zip : Ground106_1K-JPG_Color.jpg)",
@@ -22,6 +28,12 @@
     "source": "https://ambientcg.com/view?id=Ground106 (Ground106_1K-JPG.zip : Ground106_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "terrain--terre.neutre.jpg": {
+    "sha256": "7aceb1538f6c475ffba5a669e7781ad15548bb693749ac2c6baf739e8f09e9d2",
+    "source": "https://ambientcg.com/view?id=Ground106 (Ground106_1K-JPG.zip : Ground106_1K-JPG_Color.jpg) ; dérivée de terrain--terre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "terrain--boue.jpg": {
     "sha256": "d59398a5b651f16eaa897302a1302ea6d82bf4b3e10289c560e5c2ccaa72eacc",
@@ -83,6 +95,12 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
+  "terrain--route.neutre.jpg": {
+    "sha256": "8009a4c5c0565cc142f484c1cbce4ebc83fb2585e9a02bf94f0d58dac1b99157",
+    "source": "https://ambientcg.com/view?id=Ground037 (Ground037_1K-JPG.zip : Ground037_1K-JPG_Color.jpg) ; dérivée de terrain--route.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
   "terrain--tourbe.jpg": {
     "sha256": "1f13a1bab0b922753535d1ea174eca89fffaf2cdb16b3eb6a6565e219136b4d4",
     "source": "https://ambientcg.com/view?id=Ground048 (Ground048_1K-JPG.zip : Ground048_1K-JPG_Color.jpg)",
@@ -131,6 +149,12 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
+  "terrain--dalle.neutre.jpg": {
+    "sha256": "58bda71d94d6b86f4e1ca68125fa1197f9cdb6a9e213c4f190a99517f6b08e18",
+    "source": "https://ambientcg.com/view?id=PavingStones128 (PavingStones128_1K-JPG.zip : PavingStones128_1K-JPG_Color.jpg) ; dérivée de terrain--dalle.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
   "terrain--pierre.jpg": {
     "sha256": "814fb996de3119ed9ecf4b3b0604bea34568990a71694034b87ca27383b1c7d5",
     "source": "https://ambientcg.com/view?id=PavingStones142 (PavingStones142_1K-JPG.zip : PavingStones142_1K-JPG_Color.jpg)",
@@ -143,6 +167,12 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   },
+  "terrain--pierre.neutre.jpg": {
+    "sha256": "efdfbc2dadbd6b9abdb5a215bd94a628075cd0dbc85232687b4ab9b391978fc2",
+    "source": "https://ambientcg.com/view?id=PavingStones142 (PavingStones142_1K-JPG.zip : PavingStones142_1K-JPG_Color.jpg) ; dérivée de terrain--pierre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
   "terrain--plancher.jpg": {
     "sha256": "f4acc6c5f04feb94f9c40301b13d805fc5ba183c83029b4499b03d433f451c38",
     "source": "https://ambientcg.com/view?id=Planks037A (Planks037A_1K-JPG.zip : Planks037A_1K-JPG_Color.jpg)",
@@ -154,6 +184,12 @@
     "source": "https://ambientcg.com/view?id=Planks037A (Planks037A_1K-JPG.zip : Planks037A_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "terrain--plancher.neutre.jpg": {
+    "sha256": "52c79785b34a5a33ed3fb69c36bbdf6f6b94138ad3f4d07787b3c676a2849c85",
+    "source": "https://ambientcg.com/view?id=Planks037A (Planks037A_1K-JPG.zip : Planks037A_1K-JPG_Color.jpg) ; dérivée de terrain--plancher.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
   "terrain--planches.jpg": {
     "sha256": "69baa9c65989fd2a87d34272e23d948d0486cc6cd3a6d991ecf2ea86c561d310",
