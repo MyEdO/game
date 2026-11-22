@@ -12,7 +12,8 @@
 // un sac rangé n'en a pas. Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base). `--porte` joue les passes de la porte d'un
 // élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
-// processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart. Sous `--porte`, `--json` et
+// processus, en parallèle sur les cœurs et la mémoire libre de la machine, le tas de chacune borné ; code 1 si une
+// passe a un écart. Sous `--porte`, `--json` et
 // `--temoin` nomment un rapport par passe, le nom de la passe inséré avant `.json` (`mesure.json` → `mesure.neutre.json`,
 // `parPasse`) : le `--json` d'une porte sert de témoin à la suivante. `--plafonds` nomme la table des
 // écarts `membre-dans-un-vetement` que la tenue admet, `{ "<passe>": { "<clip>": <nombre> } }` (`gardeMembreDansUnVetement`).
@@ -35,6 +36,12 @@ import { chargerEvaluateur } from './charger.mjs'
 import { manifesteVoisin, posesDesRanges } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
+/** Ce qu'une passe de `--porte` tient hors de son tas, en Mo : ses tableaux de sommets et l'éditeur Godot de ses poses
+ *  (0,75 et 0,8 Go mesurés sur la tenue du Gladiateur, #4743). */
+const HORS_DU_TAS_MO = 2048
+/** Le tas d'une passe en Mo, sous lequel `--porte` mène moins de passes de front : la tenue du Gladiateur tient en 1,5 Go.
+ *  Sans borne, chaque passe laisse grossir son tas jusqu'à 6 Go et la porte meurt faute de mémoire (#4743). */
+const TAS_MINIMAL_MO = 1536
 
 const lirePaires = (texte, option, cles) => Object.fromEntries(texte.split(',').map((paire) => {
   const [cle, valeur, ...reste] = paire.split('=')
@@ -131,15 +138,18 @@ if (values.porte) {
   const propres = ['json', 'temoin']
   const args = process.argv.slice(2).filter((a, i, tous) => a !== '--porte' && !propres.some((o) => a === `--${o}` || a.startsWith(`--${o}=`) || tous[i - 1] === `--${o}`))
   const jouer = ([nom, ajout]) => new Promise((resolve) => {
-    const enfant = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args, ...ajout, ...propres.flatMap((o) => parPasse(o, nom))], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const enfant = spawn(process.execPath, [tas, fileURLToPath(import.meta.url), ...args, ...ajout, ...propres.flatMap((o) => parPasse(o, nom))], { stdio: ['ignore', 'pipe', 'pipe'] })
     let sortie = ''
     enfant.stdout.on('data', (d) => { sortie += d })
     enfant.stderr.on('data', (d) => { sortie += d })
     enfant.on('close', (code) => resolve({ nom, code, sortie }))
   })
+  const memoire = process.availableMemory() / 2 ** 20
+  const deFront = Math.max(1, Math.min(availableParallelism(), passes.length, Math.floor(memoire / (TAS_MINIMAL_MO + HORS_DU_TAS_MO))))
+  const tas = `--max-old-space-size=${Math.max(TAS_MINIMAL_MO, Math.floor(memoire / deFront - HORS_DU_TAS_MO))}`
   const resultats = []
   const file = [...passes]
-  await Promise.all(Array.from({ length: Math.min(availableParallelism(), passes.length) }, async () => {
+  await Promise.all(Array.from({ length: deFront }, async () => {
     while (file.length) resultats.push(await jouer(file.shift()))
   }))
   for (const [nom] of passes) {
