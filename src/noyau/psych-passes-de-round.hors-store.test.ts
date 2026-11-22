@@ -23,6 +23,7 @@ import { psychologyLabel } from '../data';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
+import { nomDe } from '../engine/nom';
 
 /**
  * Passes de Round de la psychologie de combat, héros (rangée surfacée) ET IA (jet sans pilote), par le
@@ -132,7 +133,7 @@ describe('Traits ciblés : premier Test au début, re-test selon l’entrée (LD
       const { h, e } = cibles(type);
       const psych = psychologyLabel(type);
       expect(psych).not.toBe(type);
-      const verdict = (id: string) => t('out.cibleGrip', { name: lu(id).label, psych });
+      const verdict = (id: string) => t('out.cibleGrip', { name: nomDe(lu(id)), psych });
       debut(1);
       expect(reTestHeros()).toEqual([[type, 1]]);
       jouer();

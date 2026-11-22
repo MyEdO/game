@@ -23,6 +23,7 @@ import { t } from '../../i18n';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import { nomDe } from '../../engine/nom';
 
 afterEach(resetCadence);
 
@@ -389,7 +390,7 @@ describe('#3235 — le verdict de l’hôte revient au siège qui a joué', () =
     expect(auteur.etat().battle?.combatants[0].psychState).toBeUndefined();
     h.psychState = [{ type: PSY.frenesie }];
     auteur.cliquer(loin.pos!, loin.id, { confirm: true });
-    const refusAttaque = t('cs.frenzyMustAttack', { name: h.label, foe: proche.label });
+    const refusAttaque = t('cs.frenzyMustAttack', { name: nomDe(h), foe: nomDe(proche) });
     const pourLAuteur = [refusCourse, refusCourse, refusAttaque];
     verifier(pourLAuteur, []);
     expect(get().pendingAttack).toBeNull();

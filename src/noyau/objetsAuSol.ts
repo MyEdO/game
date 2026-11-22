@@ -24,6 +24,7 @@ import { etatDeLaBarre } from './actionRegistry';
 import { ev, journaliser } from './combatLog';
 import { bouclierDuBinomeEnJeu } from './combat/surnombre';
 import { bus, EVT } from './bus';
+import { nomDe } from '../engine/nom';
 
 /** Le décor qui montre un objet posé au sol : le petit sac du catalogue des décors (`props.json`), non bloquant. */
 const DECOR_DE_L_OBJET_AU_SOL = 'bourse';
@@ -32,7 +33,7 @@ const DECOR_DE_L_OBJET_AU_SOL = 'bourse';
 const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'heros' ? (c.hero.items ?? []) : c.possession.items);
 
 /** Le nom d'un porteur. */
-const nomDe = (c: Carrier): string => (c.kind === 'heros' ? c.hero.label : possessionLabel(c.possession));
+export const nomDuPorteur = (c: Carrier): string => (c.kind === 'heros' ? nomDe(c.hero) : possessionLabel(c.possession));
 
 /** Pourquoi l'objet `uid` ne se pose pas au sol hors combat, `null` s'il se pose : en combat, l'inventaire de la fiche
  *  est fermé (`refusDInventaire`) ; personne ne le porte ; aucune scène ; son porteur n'est pas avec le groupe ; une arme
@@ -45,7 +46,7 @@ export function refusDePoser(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | '
   if (!porteur) return t('pf.objetSansPorteur');
   const objet = objetsDe(porteur).find((i) => i.uid === uid)!;
   if (!s.scene) return t('pf.poserSansScene', { item: itemLabel(objet) });
-  if (porteurLocalise(porteur).location.kind !== 'avec-le-groupe') return t('pf.poserHorsDuGroupe', { from: nomDe(porteur), item: itemLabel(objet) });
+  if (porteurLocalise(porteur).location.kind !== 'avec-le-groupe') return t('pf.poserHorsDuGroupe', { from: nomDuPorteur(porteur), item: itemLabel(objet) });
   if (objet.conjured) return t('pf.poserConjure', { item: itemLabel(objet) });
   return null;
 }
@@ -56,7 +57,7 @@ function refusDePoserEnCombat(s: Jeu, uid: string): string | null {
   const barre = etatDeLaBarre(s);
   if (barre.forme !== 'ouverte') return barre.raison;
   const objet = (barre.active.items ?? []).find((i) => i.uid === uid);
-  if (!objet) return t('cs.poserHorsDuTour', { name: barre.active.label });
+  if (!objet) return t('cs.poserHorsDuTour', { name: nomDe(barre.active) });
   if (objet.conjured) return t('pf.poserConjure', { item: itemLabel(objet) });
   return null;
 }
@@ -87,7 +88,7 @@ export function poserLObjet(get: Get, set: Set, uid: string): void {
   const lot: ItemInstance[] = [libre(objet), ...contenu.map((i) => ({ ...i, equipped: false }))];
   set((e) => ecrireLesPorteurs(e, { [porteurId]: (items) => sansLeLot(items, lot) }));
   deposerAuSol(get, set, lot, actif?.pos ?? s.partyPos);
-  journaliser(get, set, [t('pf.poser', { from: nomDe(porteur), item: itemLabel(objet) })], 'objet', { actorId: porteurId });
+  journaliser(get, set, [t('pf.poser', { from: nomDuPorteur(porteur), item: itemLabel(objet) })], 'objet', { actorId: porteurId });
 }
 
 /** Dépose seul à la case `pos`, libre, l'objet `objet` qui a déjà quitté son porteur (`laisserTomber`). */
@@ -109,7 +110,7 @@ export function lacherLeBouclierDuBinome(get: Get, set: Set, c: Combatant): void
   if (!bouclier || !c.weapons.includes(bouclier)) return;
   const tombe = laisserTomber(c, bouclier, get().forgerUnId);
   if (tombe) crochetDuSol(get, set).onLacher(c, tombe);
-  get().battle!.log.push(ev('fuite', t('cf.bouclierLacheEnFuyant', { name: c.label, weapon: bouclier.label }), c.id));
+  get().battle!.log.push(ev('fuite', t('cf.bouclierLacheEnFuyant', { name: nomDe(c), weapon: bouclier.label }), c.id));
 }
 
 /** Remet le lot du décor `entityId` au combattant `receveurId` (`avecLeLot` : une Bourse rejoint la sienne) et retire le
@@ -138,5 +139,5 @@ export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: st
   const refus = refusDeRamasserHorsCombat(get(), entityId, key, receveurId);
   if (refus) return void refuserGeste(get, set, refus);
   const label = ramasserDuSol(get, set, entityId, receveurId!);
-  get().ecrireAuJournal(t('cs.pickup', { name: get().party.find((h) => h.id === receveurId)!.label, label }));
+  get().ecrireAuJournal(t('cs.pickup', { name: nomDe(get().party.find((h) => h.id === receveurId)!), label }));
 }

@@ -7,11 +7,14 @@
  * (`docs/raw/4e/combat.md`, « Combat rapproché dans le noir »).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { corpsDe, drainer, erreurDe, mondeDe, table, type Reponse } from './pont.testkit';
+import { corpsDe, drainer, enFocus, gestesDessines, erreurDe, mondeDe, suiteDe, table, type Reponse } from './pont.testkit';
 import { casesDesCiblesDe, clicDuCombattant, SANS_BORNE, type Suite, type VueDuPont } from './pont';
 import { projeter } from '../../../src/hote/projection';
 import { TETE_DU_ROUND_SUIVANT } from '../../../src/hote/ecran';
 import { ouvrirLeBanc } from '../../../src/noyau/banc.testkit';
+import { horlogeVirtuelle } from '../../../src/noyau/index';
+import { jeuBranche } from '../../../src/noyau/branchement';
+import { combattantEnVue } from '../../../src/noyau/visionDuGroupe';
 import { lancerLeScenario } from '../../../src/noyau/lancementDeScenario';
 import { lancementDuScenario } from '../../../src/scenes/test-scenarios/_shared';
 import type { Combatant, Jeu } from '../../../src/noyau/index';
@@ -244,5 +247,51 @@ describe('casesDesCibles — un couple monté partage sa case', () => {
     const cases = casesDesCiblesDe(etat(), combat);
     const caseDuCouple = [pos.x, pos.y, pos.z ?? 0];
     expect([cases[cavalier], cases[monture]]).toEqual([caseDuCouple, caseDuCouple]);
+  });
+});
+
+/** Le geste de la première valeur du premier choix que la fenêtre dessine (un choix sans focus : le Destin). */
+const premierChoix = (v: VueDuPont) => gestesDessines(v).flatMap((g) => (g.type === 'choix' ? g.valeurs.map((b) => b.jeu) : []))[0];
+
+/** Les noms que la vue `v` dessine : les combattants en vue, les héros hors combat. */
+const nomsDessines = (v: VueDuPont) => [...(v.projection.combat?.voisins.liste ?? []), ...(v.projection.exploration?.heros ?? [])].map((c) => c.nom);
+
+describe('le texte du jeu ne nomme pas un combattant hors de vue (#4017)', () => {
+  it.each(['embuscade-fluviale', 'melee-dans-le-noir'])('%s : 80 gestes, ni le journal ni les zones de l’écran ne nomment un combattant hors de vue', { timeout: 120_000 }, (scenario) => {
+    const { appel } = table();
+    /** Chaque `Suite` de la réponse `r`, celles des programmes repris comprises. */
+    const suitesDe = (r: Reponse): Suite[] => {
+      let suite = suiteDe(r);
+      const toutes = [suite];
+      horlogeVirtuelle((jeton) => {
+        suite = suiteDe(appel('reprendre', { jeton }));
+        toutes.push(suite);
+        return suite.programmes;
+      }, suite.programmes).vider();
+      return toutes;
+    };
+    try {
+      const depart = suitesDe(appel('demarrer', { scenario, graine: 1 }));
+      let vue = depart[depart.length - 1].vue;
+      const etat = () => jeuBranche()!.get() as unknown as Jeu;
+      const fuites: string[] = [];
+      let neutres = 0;
+      for (let n = 0; n < 80 && !vue.projection.combat?.fin; n++) {
+        const geste = enFocus(vue)?.jeu ?? premierChoix(vue) ?? { type: 'terminerLeTour', args: [] };
+        const suites = suitesDe(appel('jouer', geste));
+        const caches = (etat().battle?.combatants ?? []).filter((c) => !combattantEnVue(etat(), c)).map((c) => c.label);
+        for (const s of suites) {
+          const nommables = new Set([...nomsDessines(vue), ...nomsDessines(s.vue)]);
+          const texte = JSON.stringify([s.vue.zones, s.journal]);
+          neutres += JSON.stringify(s.vue.zones).split(INCONNU).length - 1;
+          fuites.push(...caches.filter((nom) => !nommables.has(nom) && texte.includes(nom)).map((nom) => `geste ${n} : ${nom}`));
+          vue = s.vue;
+        }
+      }
+      expect(neutres, 'témoin : un combattant hors de vue agit, les zones de l’écran le disent du nom neutre').toBeGreaterThan(0);
+      expect(fuites).toEqual([]);
+    } finally {
+      appel('quitter');
+    }
   });
 });

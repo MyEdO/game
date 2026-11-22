@@ -40,6 +40,7 @@ import { rule } from './policy';
 import { offTerrainSuffocates } from './ops';
 import { itemCapability } from './capabilities';
 import { t } from '../i18n';
+import { nomDe } from './nom';
 
 /** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 l.35 / Seau, LDB 67 l.59) ? Capacité par-OBJET
  *  `waterContainer`, NON gatée sur le port — on le sort du sac pour asperger, comme `isRation`
@@ -97,18 +98,18 @@ export function suffocationTick(c: Combatant): string[] {
   if ((c.breathHoldSeconds ?? 0) > 0) {
     c.breathHoldSeconds = Math.max(0, c.breathHoldSeconds! - secondsPerRound());
     return [c.breathHoldSeconds > 0
-      ? t('suff.holding', { name: c.label, s: c.breathHoldSeconds })
-      : t('suff.noAir', { name: c.label })];
+      ? t('suff.holding', { name: nomDe(c), s: c.breathHoldSeconds })
+      : t('suff.noAir', { name: nomDe(c) })];
   }
   const lines: string[] = [];
   const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
     loseWounds(c, 1);
-    lines.push(t('suff.lose', { name: c.label }));
+    lines.push(t('suff.lose', { name: nomDe(c) }));
     if (c.wounds.current <= 0) {
       if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient');
       c.suffocationCountdown = be;
-      lines.push(t('suff.faints', { name: c.label, n: be }));
+      lines.push(t('suff.faints', { name: nomDe(c), n: be }));
     }
     return lines;
   }
@@ -116,12 +117,12 @@ export function suffocationTick(c: Combatant): string[] {
   if (c.suffocationCountdown == null) {
     if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient');
     c.suffocationCountdown = be;
-    lines.push(t('suff.unconscious', { name: c.label, n: be }));
+    lines.push(t('suff.unconscious', { name: nomDe(c), n: be }));
     return lines;
   }
   c.suffocationCountdown -= 1;
   lines.push(c.suffocationCountdown <= 0
-    ? t('suff.dies', { name: c.label })
-    : t('suff.countdown', { name: c.label, n: c.suffocationCountdown }));
+    ? t('suff.dies', { name: nomDe(c) })
+    : t('suff.countdown', { name: nomDe(c), n: c.suffocationCountdown }));
   return lines;
 }

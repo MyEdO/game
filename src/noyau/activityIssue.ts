@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { battleRng } from './battleRng';
 import type { Get } from './flowTypes';
 import { freeCons, type Consequence } from './rollSeam';
+import { nomDe } from '../engine/nom';
 
 /** Applique à `hero` l'issue de l'Activité `def` dont la spec et le jet (déjà résolu, sans jet, ou `null`
  *  pour une Activité sans Test) sont donnés. Rend l'issue PURE (`TravelActivityResult`, que l'agrégation
@@ -33,7 +34,7 @@ export function appliquerIssueActivite(
   const opsCtx: OpsCtx = { idNeuf: get().forgerUnId, label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activite', id: def.id } };
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
-  else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
+  else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: nomDe(hero), activity: def.label } });
   const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'reverseToken' && spec.target != null && spec.test.skill
     ? [{ op: 'grantReverseToken', skill: spec.test.skill }]
     : [];
@@ -44,7 +45,7 @@ export function appliquerIssueActivite(
     applyOps(hero, [extenue], opsCtx);
     cons.push({ ops: [extenue] });
   }
-  if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: hero.label })]));
+  if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: nomDe(hero) })]));
+  else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: nomDe(hero) })]));
   return { result: r, consequences: cons };
 }

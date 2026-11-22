@@ -24,6 +24,7 @@ import { intentAllowedFor } from './netOwnership';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { t } from '../i18n';
 import { findCreatureById } from '../data';
+import { fixtureText } from '../i18n/fixtureText';
 
 let banc: Banc;
 const g = () => banc.getState();
@@ -162,7 +163,7 @@ describe.each(['inventaire', 'butin', 'victoire'] as const)('relance d’une Év
 });
 
 describe('victory.depecer : le dépeçage est un choix de la victoire, à l’hôte (ZI 13)', () => {
-  const ecran = () => victoire({ defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }] });
+  const ecran = () => victoire({ defeated: [{ nom: fixtureText('Griffon'), count: 1, creatureId: 'griffon', enVue: true }, { nom: fixtureText('Humain'), count: 1, creatureId: 'humain', enVue: true }] });
 
   it('l’hôte dépèce une créature que la victoire ouvre', () => {
     banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
@@ -194,7 +195,7 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
 describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa meilleure Compétence admise (ZI 13 l.316)', () => {
   /** Dépèce `creatureId`, puis valide le jet ouvert à `roll` contre `target` : les pièces que reçoit la fenêtre du butin. */
   function recolter(creatureId: string, roll: number, target: number, h: Combatant = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 10 }] as never })) {
-    banc.setState({ party: [h], pendingVictory: victoire({ defeated: [{ label: 'X', count: 1, creatureId }] }) } as never);
+    banc.setState({ party: [h], pendingVictory: victoire({ defeated: [{ nom: fixtureText('X'), count: 1, creatureId, enVue: true }] }) } as never);
     g().fenetreChoisir('victoire', 'depecer', creatureId);
     const pt = g().pendingTest!;
     const sl = Math.floor(target / 10) - Math.floor(roll / 10);
@@ -218,7 +219,7 @@ describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa m
 
   it('une créature venimeuse : le récolteur joue Métier (Empoisonneur), sa meilleure Compétence admise', () => {
     const empoisonneur = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 5 }, { id: 'metier', spec: 'empoisonneur', characteristic: 'dexterite', advances: 30 }] as never });
-    banc.setState({ party: [empoisonneur], pendingVictory: victoire({ defeated: [{ label: 'Vouivre', count: 1, creatureId: 'vouivre' }] }) } as never);
+    banc.setState({ party: [empoisonneur], pendingVictory: victoire({ defeated: [{ nom: fixtureText('Vouivre'), count: 1, creatureId: 'vouivre', enVue: true }] }) } as never);
     g().fenetreChoisir('victoire', 'depecer', 'vouivre');
     expect(g().pendingTest?.sujet).toEqual({ skill: { id: 'metier', spec: 'empoisonneur' } });
   });
@@ -246,7 +247,7 @@ describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusé
 
   it('victory.depecer : l’hôte dépèce, chaque invité est refusé par la route', () => {
     const issues = PAR_SIEGE.map((siege) => {
-      enCoop({ pendingVictory: victoire({ defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] }) });
+      enCoop({ pendingVictory: victoire({ defeated: [{ nom: fixtureText('Griffon'), count: 1, creatureId: 'griffon', enVue: true }] }) });
       const args = ['victoire', 'depecer', 'griffon'] as const;
       return [intentAllowedFor(g(), siege, 'fenetreChoisir', [...args]), appliquerLIntentionDUnSiege(g, siege, 'fenetreChoisir', args), g().pendingVictory?.harvested];
     });

@@ -5,6 +5,7 @@
  * pour une table) ; un Test opposé rend sa ligne gagnante et son DR net. Le duel est celui de
  * `combatDeTest.testkit.ts` ; les deux témoins du dôme passent par la surface de la partie.
  */
+import { nomDe } from '../engine/nom';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, jetsEnVue, type EntreesDeLaPartie, type EtatDeJeu, type Jeu, type JetEnVue, type LigneDeJet } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
@@ -114,7 +115,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
   marchandage: {
     patch: {
       pendingBargain: {
-        playerId: H.id, playerName: H.label, contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'achat' }, opposant: { label: 'Marchand', valeur: 40 },
+        playerId: H.id, playerName: nomDe(H), contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'achat' }, opposant: { label: 'Marchand', valeur: 40 },
         playerSkill: 45, playerBase: 45, negotiator: false, roll: tr(20, 45), merchantRoll: tr(50, 40),
         result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attaquant', attackerWins: true, netSL: 4, decidedBy: 'dr' },
       },

@@ -7,6 +7,7 @@ import { initialFields } from './stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
+import { nomEnVue } from './visionDuGroupe';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
@@ -24,7 +25,8 @@ const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage:
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
-const tirsDe = (id: string) => g().battle!.log.filter((l) => l.text === t('cf.tirRapide', { name: id })).length;
+/** Les marqueurs de Tir rapide de `id`, nommé comme le groupe le voit (#4017). */
+const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.text === t('cf.tirRapide', { name: nomEnVue(g(), id)! })).length;
 const etape = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };
 
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).
