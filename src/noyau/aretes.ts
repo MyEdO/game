@@ -33,7 +33,7 @@
  * réponse que la navigation d'exploration (`exploreNav.ts`) ; aucun contrôleur, aucun accès.
  */
 import { t, type MsgKey } from '../i18n';
-import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSeg, type WallSide } from './monde/scene';
+import { heightAt, edgeOf, isWalkable, porteMasquee, structureIsDown, type Scene, type WallSeg, type WallSide } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import { cleArete } from './monde/wallIndex';
 import { planFranchissement } from './fallMove';
@@ -241,15 +241,15 @@ function denivelesDe(scene: Scene, x: number, y: number, z: number): readonly De
 
 const casesADeniveleParCouche = memoByRef((_scene: Scene) => new Map<number, readonly { x: number; y: number }[]>());
 
-/** Les cases de la couche `z` de `scene` d'où un mobile a un dénivelé (`denivelesDe`), rangée par rangée. Calculées
- *  une fois par scène et par couche. */
+/** Les cases de la couche `z` de `scene` où un mobile peut se tenir (`isWalkable`) et d'où il a un dénivelé
+ *  (`denivelesDe`), rangée par rangée. Calculées une fois par scène et par couche. */
 export function casesADenivele(scene: Scene, z: number): readonly { x: number; y: number }[] {
   const parCouche = casesADeniveleParCouche(scene);
   let cases = parCouche.get(z);
   if (!cases) {
     const { w, h } = scene.dimensions;
     const trouvees: { x: number; y: number }[] = [];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (isWalkable(scene, x, y, z) && denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
     parCouche.set(z, (cases = trouvees));
   }
   return cases;

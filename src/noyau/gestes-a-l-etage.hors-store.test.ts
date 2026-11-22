@@ -23,7 +23,7 @@ describe('les gestes d’exploration à l’étage de La Diligence', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], battle: null, journal: [] });
     banc.getState().lancerLaScene(paquetDuJeu(diligenceCampaign).scenes.find((sc) => sc.id === 'la-diligence')!);
-    banc.setState({ partyPos: { x: 18, y: 18, z: 1 } });
+    banc.setState({ partyPos: { x: 19, y: 22, z: 1 } });
     let lectures = 0;
     const scene = new Proxy(banc.getState().scene!, {
       get(cible, prop, recepteur) { lectures++; return Reflect.get(cible, prop, recepteur); },
