@@ -6,9 +6,11 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { executer } from '../docs/build-all.mjs'
+import { copierDocsFrais, preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
@@ -463,6 +465,63 @@ test('docs ciblés : copie puis docs:build --perimes, ordre et cwd conservés', 
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(appels.length, 3)
     assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--perimes'], cwd: cibleDe(racine, '2456-selection') })
+  } finally { jeter() }
+})
+
+test('têtes distinctes : l’ouverture copie un doc et reconstruit le producteur périmé', () => {
+  const doc = (nom) => ['docs', `${nom}.md`].join('/')
+  const fichiers = { '.gitignore': '/docs/\n/.wt-*/\n/node_modules/\n', 'a.txt': 'source d’origin', 'b.txt': 'source commune' }
+  const generateurs = ['a', 'b'].map((nom) => {
+    const script = `g/${nom}.mjs`
+    const cible = doc(nom)
+    fichiers[script] = [
+      "import { readFileSync } from 'node:fs'",
+      'export function* produire() {',
+      `  yield { out: readFileSync('${nom}.txt', 'utf8'), path: '${cible}', staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+      '}',
+    ].join('\n')
+    return { runner: 'node', script, targets: [cible] }
+  })
+  const { racine, git, jeter } = depotAvecOrigin(fichiers)
+  const construire = (cwd, ...argv) => executer({ cwd, argv: ['--quiet', ...argv], generateurs, verificateurs: [] })
+  try {
+    writeFileSync(join(racine, 'a.txt'), 'source du principal')
+    git('add', 'a.txt')
+    git('commit', '-q', '-m', 'source du principal')
+    mkdirSync(join(racine, 'docs'))
+    assert.equal(construire(racine), 0)
+    const tetePrincipale = git('rev-parse', 'HEAD')
+    const teteCible = git('rev-parse', 'origin/main')
+    assert.notEqual(tetePrincipale, teteCible)
+
+    let copie
+    let contrat
+    const appels = []
+    const vu = creerChantier({
+      env: POSTE, racine, nom: '2603-banc', annoncer: () => {},
+      copierDocs: (parametres) => {
+        contrat = { ...parametres, generateurs, verificateurs: [] }
+        copie = copierDocsFrais(contrat)
+        assert.equal(copie.ok, true, copie.raison)
+        return copie
+      },
+      npm: (_cmd, args, { cwd }) => {
+        if (!args.includes('docs:build')) return { status: 0 }
+        appels.push({ args, cwd })
+        assert.equal(existsSync(join(cwd, doc('a'))), false)
+        assert.equal(readFileSync(join(cwd, doc('b')), 'utf8'), 'source commune')
+        return { status: construire(cwd, ...args.slice(3)) }
+      },
+    })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.equal(copie.copies, 1)
+    assert.deepEqual(copie.scriptsARegenerer, ['g/a.mjs'])
+    assert.deepEqual(appels, [{ args: ['run', 'docs:build', '--', '--perimes'], cwd: vu.cible }])
+    assert.equal(gitDe(vu.cible, { net: true })('rev-parse', 'HEAD'), teteCible)
+    assert.equal(git('rev-parse', 'HEAD'), tetePrincipale)
+    assert.equal(readFileSync(join(vu.cible, doc('a')), 'utf8'), 'source d’origin')
+    assert.equal(preuveValide(vu.cible, contrat).ok, true)
+    assert.equal(construire(vu.cible, '--check'), 0)
   } finally { jeter() }
 })
 

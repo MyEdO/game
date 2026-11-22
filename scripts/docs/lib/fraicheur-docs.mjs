@@ -5,14 +5,16 @@ import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
 import { canoniser, canoniserParDossier, dansLaMesure, memoireDeCanonisation, projeterListingMesure, relatifEntreCheminsCanoniques } from './chemin-mesure.mjs'
-import { perimetreDeMesure } from './perimetre-mesure.mjs'
+import { perimetreDeMesure, verifierCiblesPures } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
 import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
 import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
+import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+import { GENERATORS, validerDeclaration } from './cibles-generees.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
@@ -20,13 +22,16 @@ const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 
 const OUTILS = ['package.json', 'package-lock.json']
 const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
+const LANCEUR = 'scripts/docs/build-all.mjs'
 const LIB_DES_DOCS = 'scripts/docs/lib'
-const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) })
+const fichiersDeLaLib = (racine = RACINE_OUTILLAGE, absent = 'lever') => listerArbre(path.join(racine, LIB_DES_DOCS), {
+  absent, filtre: (rel) => estModule(rel) && !estSuiteVitest(rel),
+})
   .map((rel) => `${LIB_DES_DOCS}/${rel}`)
 
 /** #2603 */
 export function fichiersDOutillage() {
-  return new Set([...clotureDImports(PRECHARGES, { racine: RACINE_OUTILLAGE }), 'scripts/docs/build-all.mjs', ...fichiersDeLaLib()])
+  return new Set([...clotureDImports(PRECHARGES, { racine: RACINE_OUTILLAGE }), LANCEUR, ...fichiersDeLaLib()])
 }
 
 function mesurerOutillage(ancien, memoire) {
@@ -59,7 +64,7 @@ export function vueApresGenerateur(vue, options, preuve, g, perimetre, ecrits) {
     return false
   }
   const selectionTouchee = (selection) => selection.some((motif) => [...sorties].some((rel) => correspondGlob(rel, motif)))
-  return photographier(vue.racine, options, preuve, lireMesure(vue.racine, options, true), undefined, perimetre, { vue, touche, selectionTouchee })
+  return photographier(vue.racine, options, preuve, lireMesure(vue.racine, options, true), undefined, perimetre, { reprise: { vue, touche, selectionTouchee } })
 }
 
 /** #2603 */
@@ -68,12 +73,15 @@ function vueDeContexte(racine, outillagePrecedent, perimetre = perimetreDeMesure
   return { hashes: new Map(OUTILS.map((rel) => [rel, hashFichier(racine, rel, undefined, memoire)])), outillage: mesurerOutillage(outillagePrecedent, memoire), perimetre, ignores: perimetre.ignores }
 }
 
-function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, reprise, portee) {
+const mesuresDe = (preuve) => Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure]))
+
+function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, { reprise, portee, preuveLocale } = {}) {
   const memoire = memoireDeVue()
   const reprendre = (carte, cle, rel, mesurer) => reprise?.vue[carte].has(cle) && !reprise.touche(rel) ? reprise.vue[carte].get(cle) : mesurer()
   const selection = portee ? [portee] : (options.selection ?? options.generateurs)
   const scripts = new Set(selection.map((g) => g.script))
-  const entrees = Object.entries({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) }).filter(([s]) => scripts.has(s)).map(([, e]) => e)
+  const entrees = [...Object.entries({ ...mesures, ...mesuresDe(preuve) }), ...Object.entries(mesuresDe(preuveLocale))]
+    .filter(([s]) => scripts.has(s)).map(([, e]) => e)
   const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
   const motifs = [motifsDeclares, ...selection.map((g) => g.targets)]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
@@ -143,8 +151,10 @@ function lireMesure(racine, options, facultative = false) {
   return mesure
 }
 
+const mesureComplete = (entree) => entree && [entree.fichiers, entree.dossiers, entree.cibles].every(Array.isArray)
+
 function entreeValide(racine, entree, memoire) {
-  if (!entree || !Array.isArray(entree.fichiers) || !Array.isArray(entree.dossiers) || !Array.isArray(entree.cibles)) throw new Error('mesure incomplète')
+  if (!mesureComplete(entree)) throw new Error('mesure incomplète')
   for (const rel of [...entree.fichiers, ...entree.dossiers, ...entree.cibles]) cheminSous(racine, rel, memoire)
   if (entree.incomplet?.length) throw new Error(`mesure non certifiable : ${entree.incomplet.join(', ')}`)
 }
@@ -298,7 +308,7 @@ export function avantGenerateur(racine, g, options, preparation) {
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
-    const capturer = () => photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
+    const capturer = () => photographier(racine, options, preuve, {}, undefined, undefined, { portee: g })
     const vue = capturer()
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new SourceModifiee('outillage modifié pendant génération')
@@ -433,18 +443,58 @@ export function preuveValide(racine, options, preuve = chargerPreuve(racine)) {
   return { ok: true, preuve }
 }
 
+function teteDeLArbre(racine) {
+  const depot = gitPorte.depotDe(racine)
+  const administration = gitDirDe(racine)
+  const racineGit = gitPorte.racineDe(depot)
+  const fichier = gitPorte.cheminGit(depot, 'HEAD')
+  const chemin = fichier && canoniser(path.resolve(racine, fichier))
+  const sha = gitPorte.shaDe(depot, 'HEAD')
+  if (!administration || !racineGit || canoniser(racineGit) !== canoniser(racine)
+    || chemin !== canoniser(path.join(administration, 'HEAD')) || !sha) throw new Error(`HEAD indisponible pour ${racine}`)
+  return { chemin, sha }
+}
+
+function outillageDeCopie(racine) {
+  const cles = new Set([LANCEUR, 'tsconfig.json', ...clotureDImports([LANCEUR, ...PRECHARGES], { racine }), ...fichiersDeLaLib(racine, 'vide')])
+  const memoire = memoireDeVue()
+  return [...cles].sort().map((rel) => [rel, hashFichier(racine, rel, undefined, memoire)])
+}
+
+function preuvesDeCopie(cache) {
+  return { version: 2, generateurs: Object.fromEntries(Object.entries(cache?.generateurs ?? {}).filter(([, r]) =>
+    mesureComplete(r?.mesure) && !r.mesure.incomplet?.length)) }
+}
+
 export function copierDocsFrais({ principal, cible, apresPreparation, apresCopie, ...options }) {
   try {
-    const head = gitPorte.shaDe(gitPorte.depotDe(principal), 'HEAD')
-    if (head !== gitPorte.shaDe(gitPorte.depotDe(cible), 'HEAD')) return { ok: false, complete: true, raison: 'HEAD différents' }
-    const cache = chargerPreuve(principal)
-    if (!cache) return { ok: false, complete: true, raison: 'cache absent' }
+    const tetePrincipale = teteDeLArbre(principal)
+    const teteCible = teteDeLArbre(cible)
+    options.generateurs.forEach(validerDeclaration)
+    verifierCiblesPures(principal, options.generateurs)
+    verifierCiblesPures(cible, options.generateurs)
+    const preuve = chargerPreuve(principal)
+    if (!preuve) return { ok: false, complete: true, raison: 'cache absent' }
     const hashCache = hashFichier(principal, CACHE_FRAICHEUR)
     const hashMesure = hashFichier(principal, options.sourcesLues)
     lireMesure(principal, options)
     const mesure = lireMesure(cible, options, true)
-    const cacheLocal = chargerPreuve(cible) ?? { version: 2, generateurs: {} }
-    const vuePrincipalAvant = nouvelleVue(principal, options, cache)
+    const cache = preuvesDeCopie(preuve)
+    const cacheLocal = preuvesDeCopie(chargerPreuve(cible))
+    const racinePrincipale = canoniser(principal)
+    const racineCible = canoniser(cible)
+    const racineOutillage = canoniser(RACINE_OUTILLAGE)
+    const racines = new Set([racinePrincipale, racineCible])
+    if (options.generateurs === GENERATORS || existsSync(path.join(principal, LANCEUR)) || existsSync(path.join(cible, LANCEUR))) {
+      racines.add(racineOutillage)
+    }
+    const outillages = () => [...racines].map(outillageDeCopie)
+    const outillagesAvant = outillages()
+    if (!outillagesAvant.every((outillage) => egaux(outillage, outillagesAvant[0]))) {
+      return { ok: false, complete: true, raison: 'outillage différent entre les arbres' }
+    }
+
+    const vuePrincipalAvant = nouvelleVue(principal, options, cache, {})
     const sourcesAvant = new Map()
     const validitesPrincipales = new Map()
     const docsPurs = new Map()
@@ -476,7 +526,7 @@ export function copierDocsFrais({ principal, cible, apresPreparation, apresCopie
     }
     apresPreparation?.()
     for (const [rel, hash] of provisoires) if (hashFichier(cible, rel) !== hash) return { ok: false, complete: true, raison: 'doc provisoire modifié avant retrait' }
-    const vueCiblePreparee = nouvelleVue(cible, options, { version: 2, generateurs: { ...Object.fromEntries(Object.entries(cacheLocal.generateurs).map(([s, r]) => [`local:${s}`, r])), ...cache.generateurs } })
+    const vueCiblePreparee = photographier(cible, options, cache, {}, vuePrincipalAvant.outillage, undefined, { preuveLocale: cacheLocal })
     const selection = new Set()
     const records = new Map()
     for (const g of options.generateurs) {
@@ -490,30 +540,24 @@ export function copierDocsFrais({ principal, cible, apresPreparation, apresCopie
         || record.sorties.some(([rel, hash]) => hashFichier(cible, rel, vueCiblePreparee) !== hash)) selection.add(g.script)
       else records.set(g.script, record)
     }
+    let copies = provisoires.size
     for (const [rel, hash] of provisoires) {
       if (!selection.has(options.generateurDe(rel, options.generateurs).script)) continue
       if (hashFichier(cible, rel) !== hash) return { ok: false, complete: true, raison: 'doc provisoire modifié avant retrait' }
       rmSync(cheminSous(cible, rel))
-    }
-    const copies = new Set([...provisoires.keys()].filter((rel) => !selection.has(options.generateurDe(rel, options.generateurs).script)))
-    for (const [rel, { hash, producteur }] of docsPurs) {
-      if (selection.has(producteur.script)) continue
-      if (records.get(producteur.script) !== cache.generateurs[producteur.script]) continue
-      if (hashFichier(principal, rel) !== hash) return { ok: false, complete: true, raison: 'doc principal modifié pendant copie' }
-      const destination = cheminSous(cible, rel)
-      invaliderPreuve(cible, [producteur.script])
-      mkdirSync(path.dirname(destination), { recursive: true })
-      copyFileSync(cheminSous(principal, rel), destination)
-      copies.add(rel)
+      copies--
     }
     for (const [script, record] of records) mesure[script] = record.mesure
     mkdirSync(path.dirname(cheminSous(cible, options.sourcesLues)), { recursive: true })
     writeFileSync(cheminSous(cible, options.sourcesLues), JSON.stringify(mesure))
     apresCopie?.()
-    const vuePrincipalFinale = nouvelleVue(principal, options, cache)
-    const vueCibleFinale = nouvelleVue(cible, options, { version: 2, generateurs: Object.fromEntries(records) })
+    const vuePrincipalFinale = nouvelleVue(principal, options, cache, {}, vuePrincipalAvant.outillage)
+    const vueCibleFinale = nouvelleVue(cible, options, { version: 2, generateurs: Object.fromEntries(records) }, {}, vueCiblePreparee.outillage)
+    if (!egaux(outillagesAvant, outillages())) {
+      return { ok: false, complete: true, raison: 'outillage modifié pendant copie' }
+    }
     if (hashFichier(principal, CACHE_FRAICHEUR) !== hashCache || hashFichier(principal, options.sourcesLues) !== hashMesure
-      || gitPorte.shaDe(gitPorte.depotDe(principal), 'HEAD') !== head || gitPorte.shaDe(gitPorte.depotDe(cible), 'HEAD') !== head) {
+      || !egaux(teteDeLArbre(principal), tetePrincipale) || !egaux(teteDeLArbre(cible), teteCible)) {
       return { ok: false, complete: true, raison: 'preuve, mesure ou HEAD modifié pendant copie' }
     }
     for (const g of options.generateurs) {
@@ -528,8 +572,10 @@ export function copierDocsFrais({ principal, cible, apresPreparation, apresCopie
         return { ok: false, complete: true, raison: 'sources ou copies modifiées pendant copie' }
       }
     }
+    verifierCiblesPures(principal, options.generateurs)
+    verifierCiblesPures(cible, options.generateurs)
     const preparation = { cache: cacheLocal }
     enregistrerPreuve(cible, options, preparation, records, vueCibleFinale)
-    return { ok: true, copies: copies.size, scriptsARegenerer: options.generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'attestations par générateur' }
+    return { ok: true, copies, scriptsARegenerer: options.generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'attestations par générateur' }
   } catch (e) { return { ok: false, complete: true, raison: e.message } }
 }
