@@ -12,7 +12,10 @@
 // un sac rangé n'en a pas. Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base). `--porte` joue les passes de la porte d'un
 // élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
-// processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart. `--plafonds` nomme la table des
+// processus, en parallèle sur les cœurs et la mémoire libre de la machine, le tas de chacune borné ; code 1 si une
+// passe a un écart. Sous `--porte`, `--json` et
+// `--temoin` nomment un rapport par passe, le nom de la passe inséré avant `.json` (`mesure.json` → `mesure.neutre.json`,
+// `parPasse`) : le `--json` d'une porte sert de témoin à la suivante. `--plafonds` nomme la table des
 // écarts `membre-dans-un-vetement` que la tenue admet, `{ "<passe>": { "<clip>": <nombre> } }` (`gardeMembreDansUnVetement`).
 // `--temoin` nomme le rapport `--json` d'un run antérieur : la sortie ne liste que les écarts absents du témoin
 // (`identiteDEcart`, `evaluateur/temoin.ts`) après une ligne de compte, et le code est 1 seulement s'il y en a ; `--json`
@@ -28,11 +31,18 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { coeurs, memoireDisponibleMo } from '../../../scripts/test/partition.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
 import { manifesteVoisin, posesDesRanges } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
+/** Ce qu'une passe de `--porte` tient hors de son tas, en Mo : ses tableaux de sommets et l'éditeur Godot de ses poses
+ *  (0,75 et 0,8 Go mesurés sur la tenue du Gladiateur, #4743). */
+const HORS_DU_TAS_MO = 2048
+/** Le tas d'une passe en Mo, sous lequel `--porte` mène moins de passes de front : la tenue du Gladiateur tient en 1,5 Go.
+ *  Sans borne, chaque passe laisse grossir son tas jusqu'à 6 Go et la porte meurt faute de mémoire (#4743). */
+const TAS_MINIMAL_MO = 1536
 
 const lirePaires = (texte, option, cles) => Object.fromEntries(texte.split(',').map((paire) => {
   const [cle, valeur, ...reste] = paire.split('=')
@@ -84,15 +94,15 @@ try {
   if (values['etats-gabarit'] && (!values.manifeste || values.facteurs !== undefined || values.silhouettes !== undefined)) {
     throw new Error('--etats-gabarit : --manifeste requis, --facteurs et --silhouettes incompatibles')
   }
-  if (values.porte && (!values.manifeste || values['etats-gabarit'] || values.silhouettes !== undefined || values.json !== undefined)) {
-    throw new Error('--porte : --manifeste requis, --etats-gabarit, --silhouettes et --json incompatibles')
+  if (values.porte && (!values.manifeste || values['etats-gabarit'] || values.silhouettes !== undefined)) {
+    throw new Error('--porte : --manifeste requis, --etats-gabarit et --silhouettes incompatibles')
   }
   facteurs = values.facteurs === undefined ? undefined : lirePaires(values.facteurs, 'facteurs', FACTEURS)
   silhouettes = values.silhouettes === undefined ? undefined : lirePaires(values.silhouettes, 'silhouettes')
   if (values.plafonds !== undefined && (values['etats-gabarit'] || facteurs !== undefined)) throw new Error('--plafonds : --etats-gabarit et --facteurs incompatibles')
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
-  if (values.temoin !== undefined && (values.porte || values['etats-gabarit'])) throw new Error('--temoin : --porte et --etats-gabarit incompatibles')
-  temoin = values.temoin === undefined ? undefined : lireTemoin(values.temoin)
+  if (values.temoin !== undefined && values['etats-gabarit']) throw new Error('--temoin : --etats-gabarit incompatible')
+  temoin = values.temoin === undefined || values.porte ? undefined : lireTemoin(values.temoin)
   if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error('--preset : --base et --manifeste requis')
 } catch (erreur) {
   console.error(erreur.message)
@@ -125,17 +135,22 @@ const ligneDEcart = (e) =>
 if (values.porte) {
   const { silhouettes: declarees = [] } = JSON.parse(readFileSync(values.manifeste, 'utf8'))
   const passes = [['neutre', []], ...declarees.map((nom) => [nom, ['--silhouettes', `${nom}=1`]])]
-  const args = process.argv.slice(2).filter((a) => a !== '--porte')
+  const parPasse = (option, nom) => (values[option] === undefined ? [] : [`--${option}`, values[option].replace(/(\.json)?$/, `.${nom}$1`)])
+  const propres = ['json', 'temoin']
+  const args = process.argv.slice(2).filter((a, i, tous) => a !== '--porte' && !propres.some((o) => a === `--${o}` || a.startsWith(`--${o}=`) || tous[i - 1] === `--${o}`))
   const jouer = ([nom, ajout]) => new Promise((resolve) => {
-    const enfant = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args, ...ajout], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const enfant = spawn(process.execPath, [tas, fileURLToPath(import.meta.url), ...args, ...ajout, ...propres.flatMap((o) => parPasse(o, nom))], { stdio: ['ignore', 'pipe', 'pipe'] })
     let sortie = ''
     enfant.stdout.on('data', (d) => { sortie += d })
     enfant.stderr.on('data', (d) => { sortie += d })
     enfant.on('close', (code) => resolve({ nom, code, sortie }))
   })
+  const memoire = memoireDisponibleMo(process.env)
+  const deFront = Math.max(1, Math.min(coeurs(process.env, availableParallelism), passes.length, Math.floor(memoire / (TAS_MINIMAL_MO + HORS_DU_TAS_MO))))
+  const tas = `--max-old-space-size=${Math.max(TAS_MINIMAL_MO, Math.floor(memoire / deFront - HORS_DU_TAS_MO))}`
   const resultats = []
   const file = [...passes]
-  await Promise.all(Array.from({ length: Math.min(availableParallelism(), passes.length) }, async () => {
+  await Promise.all(Array.from({ length: deFront }, async () => {
     while (file.length) resultats.push(await jouer(file.shift()))
   }))
   for (const [nom] of passes) {

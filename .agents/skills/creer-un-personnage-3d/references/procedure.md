@@ -534,13 +534,15 @@ publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport d
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte > /atelier/mesures/porte.txt
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
 gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
 déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
-moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
+moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>` et écrit son rapport
+(`porte.neutre.json`, `porte.feminin.json`…). Après une retouche, `--porte --temoin /atelier/mesures/porte.json` relit
+le rapport de chaque passe et ne sort que ses écarts neufs. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
