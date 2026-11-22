@@ -18,7 +18,7 @@ face.
 L'emblème du collet n'appartient pas à l'arme : un cartouche carré au milieu de chaque face du collet, surface `blason`
 (#3111), le reçoit du porteur ; sans emblème, il reste un champ d'acier comme son pourtour.
 
-Omis : la guipure en spirale de la hampe (motif, et le budget assemblé du Soldat est à sa limite).
+Omis : la guipure en spirale de la hampe (motif).
 
 Repère de la prise `main` de la base (comme `rigide--baton`) : origine sur la paume, +Y le long de la hampe vers le fer,
 +X l'axe de la paume, +Z du poignet vers les jointures, sens du tranchant d'une arme tenue (procédure du skill,

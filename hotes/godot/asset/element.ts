@@ -1,12 +1,12 @@
 /**
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
  * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
- * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
- * l'élément a une base (`REGLES_DES_CATEGORIES`). Sans base (décor, véhicule, Amélioration, #2987 ; arête, escalier,
- * toit, #4471), il
- * ne nomme aucune base et ses meshes restent à la racine de sa scène ou sous ses propres nœuds. Une clé bien formée se
- * résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le
- * blason.
+ * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes`, `formesDeTete` et
+ * `postes`, et si l'élément a une base (`REGLES_DES_CATEGORIES`). Les shape keys du GLB sont exactement ses silhouettes et
+ * ses formes de la tête déclarées, plus, hors liaison `rigide`, les clés de gabarit du GLB de sa base (#4413). Sans base
+ * (décor, véhicule, Amélioration, #2987 ; arête, escalier, toit, #4471), il ne nomme aucune base et ses meshes restent à
+ * la racine de sa scène ou sous ses propres nœuds. Une clé bien formée se résout contre la donnée du jeu
+ * (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement, une armure ou un accessoire offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116), ou
  * `<emplacement>#<rang>`, la case du rang-ième objet rangé à cet emplacement (`rangDeCase`, #3844) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
@@ -26,6 +26,7 @@
  * `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
+import { NOMS_DES_FORMES_DE_TETE, type FormeDeTete } from '../../../src/lib/formesDeTete.ts';
 import { parseHex } from '../../../src/lib/couleurHex.ts';
 import {
   ecartsDeCleDElement,
@@ -69,6 +70,9 @@ interface RegleDeCategorie {
   readonly chaines: boolean;
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
+  /** L'élément déclare les formes de la tête qu'il porte (`NOMS_DES_FORMES_DE_TETE`, #4413) : une tête, et toute pièce
+   *  skinnée qui suit les clés de la tête qu'elle contourne. */
+  readonly formesDeTete: boolean;
   /** L'élément offre des postes : par bord, les positions de sa scène, en mètres, où se montent les pièces des postes de ce
    *  bord, chacune tournée vers lui. */
   readonly postes: boolean;
@@ -90,8 +94,8 @@ interface RegleDeCategorie {
   readonly cases: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, formesDeTete: true, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, formesDeTete: false, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -159,6 +163,7 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
   & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, EmplacementOffert>> } : Rien)
   & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien)
+  & (Regles[C]['formesDeTete'] extends true ? { readonly formesDeTete?: readonly FormeDeTete[] } : Rien)
   & (Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien)
   & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
   & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien)
@@ -177,8 +182,9 @@ export type ManifesteDElement = {
   } & ChampsDe<C>;
 }[CategorieDElement];
 
-/** La surface de base lue par la validation d'un élément. */
-export type BaseDUnElement = Pick<ManifesteDeBase, 'base' | 'os' | 'chaines' | 'zones' | 'silhouettes' | 'prises'>;
+/** La surface de base lue par la validation d'un élément, et les clés de gabarit (`PREFIXE_DES_CLES_DU_GABARIT`) que porte
+ *  le GLB de la base, que tout élément qui n'est pas en liaison `rigide` porte aussi. */
+export type BaseDUnElement = Pick<ManifesteDeBase, 'base' | 'os' | 'chaines' | 'zones' | 'silhouettes' | 'prises'> & { readonly clesDuGabarit: readonly string[] };
 
 export type CodeDEcartDElement =
   | 'forme'
@@ -195,6 +201,9 @@ export type CodeDEcartDElement =
   | 'emplacement-sur-os-absent'
   | 'emplacement-inconnu'
   | 'silhouette-absente'
+  | 'forme-de-tete-inconnue'
+  | 'shape-key-non-declaree'
+  | 'shape-key-absente'
   | 'bord-inconnu'
   | 'etat-absent'
   | 'selon-absent'
@@ -236,6 +245,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   const optionnels = [
     ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
+    ...(regle.formesDeTete ? ['formesDeTete'] : []),
     ...(regle.postes ? ['postes'] : []), ...(regle.ancrages ? ['ancrages'] : []), ...(regle.montage ? ['montage'] : []),
     ...(regle.selon ? ['selon'] : []), ...(regle.clips ? ['clips'] : []), ...(regle.cases ? ['cases'] : []),
   ];
@@ -287,11 +297,20 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     const v = brut[champ];
     if (v === undefined || !admis.has(champ)) return;
     if (!estListeDeChaines(v) || new Set(v).size !== v.length) return refus('forme', champ, 'liste de chaînes sans doublon attendue');
-    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi} de la base \`${nomDeBase}\``); });
+    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi}`); });
   };
-  sousEnsemble('couvre', base?.zones ?? [], 'zone-inconnue', 'une zone');
-  sousEnsemble('chaines', Object.keys(base?.chaines ?? {}), 'chaine-absente', 'une chaîne');
-  sousEnsemble('silhouettes', base?.silhouettes ?? [], 'silhouette-absente', 'une shape key');
+  const deLaBase = `de la base \`${nomDeBase}\``;
+  sousEnsemble('couvre', base?.zones ?? [], 'zone-inconnue', `une zone ${deLaBase}`);
+  sousEnsemble('chaines', Object.keys(base?.chaines ?? {}), 'chaine-absente', `une chaîne ${deLaBase}`);
+  sousEnsemble('silhouettes', base?.silhouettes ?? [], 'silhouette-absente', `une shape key ${deLaBase}`);
+  sousEnsemble('formesDeTete', NOMS_DES_FORMES_DE_TETE, 'forme-de-tete-inconnue', `une forme de la tête : ${liste(NOMS_DES_FORMES_DE_TETE)} attendue`);
+
+  const listeDeclaree = (champ: string): readonly string[] => (admis.has(champ) && estListeDeChaines(brut[champ]) ? brut[champ] as readonly string[] : []);
+  const mode = estObjet(brut.liaison) ? brut.liaison.mode : undefined;
+  const shapeKeysAttendues = new Set([...listeDeclaree('silhouettes'), ...listeDeclaree('formesDeTete'), ...(mode !== 'rigide' ? base?.clesDuGabarit ?? [] : [])]);
+  const shapeKeysDuGlb = glb.formes;
+  for (const shapeKey of shapeKeysDuGlb) if (!shapeKeysAttendues.has(shapeKey)) refus('shape-key-non-declaree', 'glb', `la shape key ${shapeKey} du GLB n’est ni une silhouette ni une forme de la tête déclarée, ni une clé de gabarit ${deLaBase} portée en liaison \`${String(mode)}\``);
+  for (const shapeKey of shapeKeysAttendues) if (!shapeKeysDuGlb.has(shapeKey)) refus('shape-key-absente', 'glb', `${shapeKey}, déclarée ou clé de gabarit ${deLaBase}, n’est aucune shape key du GLB`);
 
   if (regle.emplacements && brut.emplacements !== undefined) {
     if (!estObjet(brut.emplacements)) refus('forme', 'emplacements', 'objet attendu');

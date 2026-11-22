@@ -22,14 +22,17 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "peau",
       "palette": "peau"
-    },
-    {
-      "nom": "cheveux",
-      "palette": "cheveux"
     },
     {
       "nom": "yeux",
@@ -37,7 +40,7 @@
     }
   ],
   "glb": {
-    "sha256": "be2c87c755a8667257ac18f97fe50519ecf767c2f4da0639bfba3d9f6749b6c9",
-    "octets": 494680
+    "sha256": "3c55ccee4a90aecf8918490320ba8baea6955e31a36fcfd930cbb080a96ea3d4",
+    "octets": 1414540
   }
 }

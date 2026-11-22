@@ -30,7 +30,7 @@ EPAISSEUR = 0.003                       # HYPOTHÈSE : cuir souple, double nappe
 
 # Ce que la coiffe contourne : la tête publiée et la coiffure du preset `apothicaire`, leurs matières visibles.
 CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--cheveux-nattes'}
-MATIERES_DE_LA_TETE = ['peau', 'cheveux']
+MATIERES_DE_LA_TETE = ['peau']
 MATIERES_DE_LA_COIFFURE = ['poil']
 ZONES_DES_CLES = ['tete', 'visage', 'nez', 'cou']
 """Zones de la base dont la coiffe prend ses clés, au plus près de chaque sommet."""

@@ -10,10 +10,19 @@ import json
 import shutil
 from pathlib import Path
 
+import script_node
+
 DEPOT = Path(__file__).resolve().parents[2]
 MODELES = DEPOT / "hotes" / "godot" / "projet" / "modeles"
 CACHE_DES_MODELES = Path.home() / ".cache" / "wfrp-modeles-3d"
 """Le cache des modèles, GLB nommés par empreinte (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`)."""
+
+
+def pack_source(pack):
+    """Le chemin du pack source `pack` de la base (`SOURCES` de `base/production.ts`), tiré de la Release et vérifié contre
+    la provenance de la base par `base/sources.mjs`."""
+    options = script_node.lancer(DEPOT / "scripts" / "personnage-3d" / "base" / "sources.mjs", [], None).split()
+    return Path(options[options.index(f"--{pack}") + 1])
 
 
 def dossier_de_sortie(chemin):
