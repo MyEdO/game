@@ -6,7 +6,7 @@
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { analyserTexte, analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from './dialecte.mjs';
+import { analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from './dialecte.mjs';
 import { correspondGlob } from './lister.mjs';
 import { METHODES_VITEST, OBJETS_VITEST } from './arcsDImport.mjs';
 import { createRequire } from 'node:module';
@@ -92,22 +92,26 @@ const fuit = (ts, parents, n) => {
 
 /**
  * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
- * `analyserTexte`, avec diagnostics séparés ; un SourceFile fourni est réutilisé sans reparsage,
+ * `analyserCorpus`, avec diagnostics séparés ; un SourceFile fourni est réutilisé sans reparsage,
  * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. Les positions
  * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null. L'appel d'une liaison
  * `tsImport` de `tsx/esm/api` est une acquisition dynamique ; un chargeur que la lecture ne suit pas (`createRequire`
- * renommé ou déstructuré, liaison de chargeur qui fuit, `vi` atteint par un espace, déstructuré ou qui fuit) rend un
+ * renommé ou déstructuré, liaison de chargeur qui fuit, `vi` renommé, atteint par un espace, déstructuré ou qui fuit) rend un
  * site `chargeur`, de nature `nonSuivi`, sans acquisition.
  * @param {string} fichier
  * @param {string | import('typescript/unstable/ast').SourceFile} source
  * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics] diagnostics de l'arbre fourni
+ * @param {import('typescript/unstable/sync').Checker} [checker] session vivante de l'arbre fourni, pour lier les références à Vitest
  */
-export function sitesDeModule(fichier, source, diagnostics) {
+export function sitesDeModule(fichier, source, diagnostics, checker) {
+  if (typeof source === 'string') {
+    for (const analyse of analyserCorpus([{ rel: fichier, text: source }]))
+      return sitesDeModule(fichier, analyse.sourceFile, analyse.diagnostics, analyse.checker);
+  }
   const ts = typescript();
-  const analyse = typeof source === 'string' ? analyserTexte({ rel: fichier, text: source }) : { sourceFile: source, diagnostics: diagnostics ?? [] };
-  const arbre = analyse.sourceFile;
+  const arbre = source;
   const texte = arbre.text;
-  const [faute] = analyse.diagnostics;
+  const [faute] = diagnostics ?? [];
   if (faute) {
     const ligne = arbre.getLineAndCharacterOfPosition(faute.pos).line + 1;
     throw new Error(`sitesDeModule : ${fichier} ne se parse pas, ligne ${ligne} : ${faute.text}`);
@@ -134,6 +138,7 @@ export function sitesDeModule(fichier, source, diagnostics) {
    *  les références d'un identifiant qui en est peut-être une (`fuit`). */
   const requireurs = new Set();
   const tsImporteurs = new Set();
+  const liaisonsVitest = new Map();
   const appelsDIdentifiant = [];
   const references = [];
   const parents = new Map();
@@ -152,11 +157,18 @@ export function sitesDeModule(fichier, source, diagnostics) {
       const liaisons = [];
       if (clause?.name) liaisons.push(liaison('defaut', clause.isTypeOnly, nom(clause.name), synthetique('default'), null));
       const noms = clause?.namedBindings;
-      if (noms && ts.isNamespaceImport(noms)) liaisons.push(liaison('espace', clause.isTypeOnly, nom(noms.name), etoile(noms), null));
-      else if (noms) for (const e of noms.elements) {
+      const deVitest = litteral(n.moduleSpecifier) === 'vitest' && !clause?.isTypeOnly;
+      if (noms && ts.isNamespaceImport(noms)) {
+        liaisons.push(liaison('espace', clause.isTypeOnly, nom(noms.name), etoile(noms), null));
+        if (deVitest) liaisonsVitest.set(noms.name.text, { position: noms.pos, espace: true });
+      } else if (noms) for (const e of noms.elements) {
         liaisons.push(liaison('nommee', clause.isTypeOnly || e.isTypeOnly, nom(e.name), nom(e.propertyName ?? e.name), null));
         if (cleDe(e) === 'createRequire' && e.name.text !== 'createRequire') nonSuivi(e);
         if (cleDe(e) === 'tsImport' && litteral(n.moduleSpecifier) === API_DE_TSX) tsImporteurs.add(e.name.text);
+        if (deVitest && !e.isTypeOnly && OBJETS_VITEST.has(cleDe(e))) {
+          if (e.name.text !== cleDe(e)) nonSuivi(e);
+          else liaisonsVitest.set(e.name.text, { position: e.pos, espace: false });
+        }
       }
       ajouter(n, 'import', clause?.isTypeOnly ? 'type' : 'statique', true, litteral(n.moduleSpecifier), !!clause, liaisons);
     } else if (ts.isExportDeclaration(n)) {
@@ -215,7 +227,29 @@ export function sitesDeModule(fichier, source, diagnostics) {
   visiter(arbre);
   /** Un identifiant qui désigne un chargeur : `require`, `createRequire`, ou une de leurs liaisons. */
   const chargeurs = new Set(['require', 'createRequire', ...requireurs, ...tsImporteurs]);
-  for (const n of references) if (chargeurs.has(n.text) && fuit(ts, parents, n)) nonSuivi(n);
+  for (const n of references) {
+    if (chargeurs.has(n.text) && fuit(ts, parents, n)) nonSuivi(n);
+    const vitest = liaisonsVitest.get(n.text);
+    if (!vitest || !checker) continue;
+    const parent = parents.get(n);
+    const membreVitest = vitest.espace && ts.isPropertyAccessExpression(parent)
+      && parent.expression === n && OBJETS_VITEST.has(parent.name.text);
+    const objet = membreVitest ? parent : n;
+    const exporte = ts.isExportSpecifier(parent) && (parent.propertyName ?? parent.name) === n
+      && !parent.isTypeOnly && !parents.get(parents.get(parent)).isTypeOnly;
+    if (!exporte && !fuit(ts, parents, objet)) continue;
+    const emploi = parents.get(objet);
+    if (objet === n && !vitest.espace && ts.isElementAccessExpression(emploi)) continue;
+    if (ts.isVariableDeclaration(emploi) && ts.isObjectBindingPattern(emploi.name)) {
+      const membresDuChargeur = membreVitest ? METHODES_VITEST : vitest.espace ? OBJETS_VITEST : null;
+      if (!emploi.name.elements.some((e) => e.dotDotDotToken || membresDuChargeur?.has(cleDe(e)))) continue;
+    }
+    const symbole = exporte ? checker.getExportSpecifierLocalTargetSymbol(parent)
+      : ts.isShorthandPropertyAssignment(parent) ? checker.getShorthandAssignmentValueSymbol(parent)
+        : checker.getSymbolAtLocation(n);
+    const declaration = symbole?.declarations?.[0]?.resolve();
+    if (declaration?.pos === vitest.position) nonSuivi(objet);
+  }
   for (const { n, nom, spec } of appelsDIdentifiant) {
     if (requireurs.has(nom)) ajouter(n, 'appel', 'require', true, spec);
     else if (tsImporteurs.has(nom)) ajouter(n, 'appel', 'dynamique', true, spec);
@@ -459,8 +493,8 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       if (memoises) { cache.set(abs, resoudre(abs, memoises)); continue; }
       aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
     }
-    for (const { fichier, sourceFile, diagnostics } of analyser(aAnalyser, tailleLot)) {
-      const tous = sitesDeModule(fichier.rel, sourceFile, diagnostics);
+    for (const { fichier, sourceFile, diagnostics, checker } of analyser(aAnalyser, tailleLot)) {
+      const tous = sitesDeModule(fichier.rel, sourceFile, diagnostics, checker);
       surSites?.(fichier.rel, tous, sourceFile);
       const sites = [...litterauxDe(tous),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];

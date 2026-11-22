@@ -52,6 +52,36 @@ let assetsDuListageCharges = null
 /** Les fonctions de validation du listage, reprises du chargement du mode s'il a déjà commencé. */
 export const assetsDuListage = () => (assetsDuListageCharges ??= assetsDeLHoteCharges ?? importerDHote('godot-listage', EXPORTS_DU_LISTAGE))
 
-/** Le module `module` de l’évaluateur d’assets (`evaluateur/`, par défaut `evaluer.ts`), hors du graphe de l’hôte : il
- *  ne lit ni le catalogue ni le noyau. */
-export const chargerEvaluateur = (module = 'evaluer.ts') => importer(fileURLToPath(new URL(`./evaluateur/${module}`, import.meta.url)), [])
+const MODULE_PAR_DEFAUT = 'evaluer.ts'
+const MODULES_DE_L_EVALUATEUR = new Set([
+  MODULE_PAR_DEFAUT,
+  'candidatsDAppui.ts',
+  'chargement.ts',
+  'echantillonnage.ts',
+  'gabarit.ts',
+  'gardes/etirement.ts',
+  'gardes/poids.ts',
+  'gardes/silhouettes.ts',
+  'glbFabrique.testkit.ts',
+  'grilleDesAppuis.ts',
+  'temoin.ts',
+  '../etatsDuGabarit.ts',
+  '../gabarit.ts',
+  '../manifesteDeBase.ts',
+  '../silhouettes.ts',
+  '../../../../scripts/personnage-3d/base/gabarit.ts',
+  '../../../../scripts/personnage-3d/base/sources.ts',
+  '../../../../src/data/props.types.ts',
+  '../../../../src/lib/tableTotale.ts',
+  '../../../../src/noyau/monde/piecesDArete.ts',
+  '../../../../src/noyau/monde/relief.ts',
+])
+
+/** Charge une entrée déclarée de l'évaluateur d'assets dans un module runner Vite sans entrée virtuelle de l'hôte. */
+export async function chargerEvaluateur(module = MODULE_PAR_DEFAUT) {
+  if (!MODULES_DE_L_EVALUATEUR.has(module)) {
+    const selecteur = typeof module === 'string' ? module : typeof module
+    throw new TypeError(`[godot-assets] sélecteur d'évaluateur inconnu : ${selecteur}`)
+  }
+  return importer(fileURLToPath(new URL(`./evaluateur/${module}`, import.meta.url)), [])
+}

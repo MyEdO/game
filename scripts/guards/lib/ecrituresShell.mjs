@@ -371,7 +371,8 @@ const cheminDeModule = (valeur) =>
     : /^(?:\.{1,2}(?:[\\/]|$)|[\\/]|[A-Za-z]:)/.test(valeur) ? valeur : null
 
 /** Les lancements d'un interpréteur JS : `{ scripts, configs, filtres, dossiers, ecritures, enLigne, argv }` — les
- *  fichiers qu'il lance (préchargements de `node` compris), les `--config` de `vitest` (`configs`, lancés aussi), les
+ *  fichiers qu'il lance (préchargements de `node` locaux compris), les spécificateurs nus (`prechargements`),
+ *  les `--config` de `vitest` (`configs`, lancés aussi), les
  *  positionnels de `vitest` (`filtres`, qui trient les suites balayées), les dossiers qu'il balaie
  *  (`dossiers` : ses `--dir`, sinon ses `--root`, sinon le cwd, racine de `vitest` sans `--config` ; un `--config` relatif
  *  se résout contre le dernier `--root`, et `dossierFixeParLaLigne` dit qu'un `--dir` ou `--root` l'emporte sur le
@@ -380,7 +381,7 @@ const cheminDeModule = (valeur) =>
  *  `stdout`/`stderr`), le code en ligne (`-e`, `-p`), `argv` = le `process.argv` d'un script seul (un argument non
  *  développé vaut `null`) ; `null` hors `node`, `tsx` et `vitest`. `npm test -- <args>` et `npx vitest` lancent
  *  `vitest`. Les options se lisent sur `bruts` (le texte des jetons) quand leur développement échoue. */
-function lancementDInterpreteur(textes, bruts = textes) {
+export function lancementDInterpreteur(textes, bruts = textes) {
   let nom = basenameExecutable(textes[0])
   let k = 1
   if (nom === 'npx') {
@@ -395,7 +396,7 @@ function lancementDInterpreteur(textes, bruts = textes) {
     nom = 'vitest'
     k = tiret + 1
   }
-  const rendu = { scripts: [], configs: [], filtres: [], dossiers: [], ecritures: [], enLigne: undefined }
+  const rendu = { scripts: [], prechargements: [], configs: [], filtres: [], dossiers: [], ecritures: [], enLigne: undefined }
   if (nom === 'vitest') {
     // `config.dir || config.root` (vitest 5.0.3, `dist/chunks/index.DpLw24bj.js:12204`) : un `--dir` remplace la racine.
     const balayes = { racines: [], dirs: [] }
@@ -425,7 +426,11 @@ function lancementDInterpreteur(textes, bruts = textes) {
   const test = textes.includes('--test')
   const precharger = (valeur) => {
     if (typeof valeur !== 'string' || nonConstant(valeur)) rendu.scripts.push(null)
-    else if (cheminDeModule(valeur) !== null) rendu.scripts.push(cheminDeModule(valeur))
+    else {
+      const chemin = cheminDeModule(valeur)
+      if (chemin === null) rendu.prechargements.push(valeur)
+      else rendu.scripts.push(chemin)
+    }
   }
   for (; k < textes.length; k++) {
     const texte = nonConstant(textes[k]) ? bruts[k] : textes[k]
