@@ -1,7 +1,7 @@
 <title>Grisefosse</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;600;700&family=IM+Fell+English+SC&family=Open+Sans:wght@600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Open+Sans:wght@600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
 <link rel="stylesheet" href="kit.css">
 <style>
 /* Un écran de jeu plein cadre posé sur le kit des maquettes (`kit.css`) : la scène du lieu au fond, ses enseignes
@@ -122,22 +122,95 @@ button.plaque:disabled { cursor: not-allowed; }
 .stats dd { margin: 0; font-size: 15px; color: var(--encre); }
 .meta .glose { font-size: 13px; }
 .gestes-h { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.onglets-fiche { display: flex; gap: 4px; border-bottom: 1px solid var(--filet-encre); margin: 6px 0 8px; }
-.onglet-fiche { border: 0; background: none; padding: 6px 14px; font: 15px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--encre-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.onglet-fiche.actif { color: var(--sepia); border-bottom-color: var(--rouille); }
-.tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 5px; margin-bottom: 6px; }
-.tuile { display: grid; gap: 1px; text-align: left; padding: 5px 7px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); }
-.tuile:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--rouille); background: var(--voile-fort); }
-.tuile:disabled { opacity: .55; cursor: default; }
-.tuile .t-nom { font-size: 13.5px; font-weight: 600; color: var(--sepia); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tuile .t-etat { font-size: 12.5px; color: var(--encre-2); }
-.tuile .t-prix { font: 12px "IM Fell English SC", serif; color: var(--rouille); }
-.tuile.faite { background: rgba(79,107,46,.12); box-shadow: inset 0 0 0 1px rgba(79,107,46,.45); }
-.tuile.faite .t-etat { color: #4f6b2e; font-weight: 600; }
-.bilan-niveau { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--sepia); }
-.vers-niveau { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 8px; margin: 6px 0 4px; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); font-size: 13px; color: var(--encre-2); }
-.vers-niveau .fait { color: #4f6b2e; font-weight: 600; }
-.vers-niveau .plaque { margin-left: auto; }
+/* L'écran du héros : la disposition de la fiche des maquettes (scène 1280 × 720, cadres fixes), règles de
+   `heros/heros.css` du kit (`main`), polices remappées comme `kit.css`. */
+.ecran-heros { position: fixed; inset: 0; z-index: 20; background: radial-gradient(120% 90% at 50% 30%, #2a1d14, #0d0907 70%); }
+.scene-fiche { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+.place-cadre { position: absolute; display: flex; }
+.place-cadre > .cadre { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.place-cadre > .cadre.bande > .fond { display: grid; overflow: visible; flex-direction: row; }
+.place-cadre > .cadre.droite > .fond { padding-top: 34px; }
+.droite .rub, .competences .rub { white-space: normal; }
+.droite .talent .plaque { width: 84px; }
+.place-cadre > .cadre > .fond { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.competences > .fond > .defile, .droite > .fond { overflow-y: auto; scrollbar-width: thin; }
+.competences > .fond > .defile { flex: 1; min-height: 0; }
+.ident > .fond { overflow-y: auto; scrollbar-width: thin; gap: 6px; }
+.ident .pied { height: auto; margin-top: 8px; }
+.trou { display: inline-grid; place-items: center; }
+.trou.plein { border-color: var(--laiton); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen)); color: var(--encre); }
+.bande .c { border: 0; background: none; font: inherit; color: inherit; padding-bottom: 0; }
+button.c.carr { cursor: pointer; }
+button.c.carr:hover:not(:disabled)::before { background: rgba(255,246,208,.85); }
+button.c:disabled { cursor: default; opacity: .7; }
+.bande .c.faite .aug { color: #4f6b2e; font-weight: 600; }
+.rub.colonnes { display: flex; gap: 46px; margin-right: 38px; }
+.socle > .fond { padding: 8px 10px; }
+.socle .rang-heros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; height: 100%; }
+.talent.acquis { background: rgba(201,161,74,.16); }
+.gestes-ident { margin-top: auto; padding-top: 8px; }
+@media (max-width: 899px) {
+  .ecran-heros { overflow-y: auto; }
+  .scene-fiche { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
+  .place-cadre { position: relative; left: auto !important; top: auto !important; width: auto !important; height: auto !important; margin: 0 16px 14px; }
+  .place-cadre > .cadre > .fond { overflow: visible; }
+  .place-cadre > .cadre.bande > .fond { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 6px; padding: 18px 6px 8px; }
+  .socle .rang-heros { grid-template-columns: repeat(2, 1fr); }
+  .ecran-heros .croix-ecran { position: fixed; left: auto; right: 16px; top: 12px; z-index: 3; }
+}
+.croix-ecran { position: absolute; left: 1206px; top: 22px; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; line-height: 1; color: var(--encre); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen) 55%, var(--laiton)); box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 2px var(--laiton-ombre); }
+.pan>.fond{padding:15px 19px 14px}
+.pan>.fond.bois{padding:14px 16px}
+.pan:has(>.onglets)>.fond{padding-top:26px}
+.pan .filet{margin:9px 26px}
+.tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
+.tete-l>.plaque{flex:none}
+.pan .rub+.lignes,.pan .rub+.deux,.pan .rub+.trois{margin-top:3px}
+.pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
+:is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
+.val{flex:none;font-family:"Open Sans";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
+.comptes{display:flex;align-items:center;gap:9px;margin-top:9px}
+.trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
+.ident .tete{display:flex;gap:14px}
+.ident .tete>.q{flex:1;min-width:0}
+.ident .l{font-family:"IM Fell English SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
+.bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}
+.bourse-px .px>div{height:100%;border-radius:24px;display:grid;place-items:center;padding:0 14px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen) 55%,var(--laiton));box-shadow:inset 0 0 0 1px var(--laiton-ombre),inset 0 1px 0 var(--reflet-vif);font-family:"Open Sans";font-size:22px;font-weight:600;color:var(--encre)}
+.bourse-px b{display:block;font-family:"IM Fell English SC";font-weight:400;font-size:15px;line-height:20px;letter-spacing:1.1px;color:var(--sepia);white-space:nowrap}
+.exigences{margin-top:3px}
+.exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"IM Fell English";font-size:14px;line-height:17px;color:var(--encre)}
+.exige>span:not(.cpt){flex:1;min-width:0}
+.exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
+.ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
+.bande>.fond{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));padding:0 6px}
+.bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
+.bande .c+.c{border-left:1px solid var(--filet-encre)}
+.bande .c .ab{font-family:"IM Fell English SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
+.bande .c .v{font-family:"Open Sans";font-size:23px;line-height:27px;color:var(--encre)}
+.bande .c .aug{font-family:"Open Sans";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
+.bande .c>.etiquette{margin-top:1px}
+.bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
+.bande .c>*{position:relative}
+.bande .c .v{margin-right:16px}
+.bande .c .aug{position:absolute;top:32px;left:calc(50% + 9px);height:auto}
+.achat{position:relative;display:flex;align-items:center;gap:8px;height:34px;padding:0 2px;border-bottom:1px solid var(--filet-encre);min-width:0}
+.achat>.n{flex:1;min-width:0;overflow:hidden;font-family:"IM Fell English";font-size:14.5px;color:var(--encre);white-space:nowrap}
+.achat>.n small{font-size:12.5px;color:var(--encre-2)}
+.achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
+.achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
+.achat .plaque{flex:none;width:64px}
+.achat .val span{font-weight:400}
+.achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
+.achat .avertissement{margin-left:auto}
+.achat.hors{border-bottom:0;color:var(--encre-2)}
+.achat.hors>.n{color:var(--encre-2)}
+.achat svg{flex:none}
+.talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
+.talent .t{flex:1;min-width:0}
+.talent .t i{display:block;font-family:"IM Fell English SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
+.talent .plaque{flex:none;width:94px}
+.talent.clos .nom-propre{color:rgba(42,29,18,.6)}
 .offres { display: flex; flex-wrap: wrap; gap: 5px; }
 .offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
 .offre b { font-size: 13.5px; color: var(--sepia); }
@@ -154,7 +227,6 @@ button.plaque:disabled { cursor: not-allowed; }
 .provisions .qui { display: grid; font-size: 12.5px; color: var(--encre-2); }
 .provisions .offres { justify-content: flex-end; }
 .liste-h li > .offres { grid-column: 1 / -1; justify-content: flex-end; }
-.equipement-fiche { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 2px; font-size: 14px; color: var(--encre); }
 .etiquettes-sequelles { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
 .etiquette.sequelle { cursor: help; padding: 2px 8px; border-radius: 10px; font-size: 12.5px; background: rgba(124,31,20,.1); color: #7c1f14; box-shadow: inset 0 0 0 1px rgba(124,31,20,.35); }
 .etiquette.sequelle.permanente { background: #5a1a10; color: #f4e6cf; }

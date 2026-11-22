@@ -25,7 +25,7 @@ import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableT
 import { encumbrancePenalties } from '../../src/engine/encumbrance';
 import { consommableDe } from '../../src/engine/consumables';
 import { refusDeConsommer } from '../../src/noyau/consumableFlow';
-import { findCareerById, findCreatureById, findSpellById, findTalentById, findTrappingById, levelsForCareer, characteristics, conditionLabel, refLabel } from '../../src/data';
+import { byId, findCareerById, findCreatureById, findSpellById, findTalentById, findTrappingById, levelsForCareer, characteristics, conditionLabel, refLabel } from '../../src/data';
 import type { Combatant, CharKey, ItemInstance, HitLocation } from '../../src/engine/types';
 import type { Intention } from '../../src/noyau/partie';
 
@@ -395,7 +395,8 @@ export const encombrement = (c: Combatant): { porte: number; capacite: number; m
 // ─── Progression : ce que la carrière offre à son niveau ────────────────────────────────────────────────────
 
 export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
-export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number }
+/** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`). */
+export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number; carac: string; valeur: number }
 /** `aSpecifier` : le Talent attend une spécialisation que la carrière laisse au choix (un domaine, un dieu). */
 export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; aSpecifier?: boolean }
 export interface Progression {
@@ -426,7 +427,8 @@ export function progression(c: Combatant): Progression {
     caracs: [...new Set(chars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), augmentations: c.charAdvances?.[k] ?? 0, cout: advanceCost(c.charAdvances?.[k] ?? 0, 'caracteristique', true) })),
     competences: refs(sSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const adv = c.skills.find((x) => x.id === ref.id && (x.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
-      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: advanceCost(adv, 'competence', true) };
+      const k = byId('skill', ref.id)?.characteristic as CharKey | undefined;
+      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: advanceCost(adv, 'competence', true), carac: k ? libelleDeCarac(k).abr : '', valeur: testValue(c, { skill: ref }) };
     }),
     talents: refs(tSlots).map(({ aSpecifier, ...ref }) => {
       const fois = c.talents.filter((t) => t.talentId === ref.id && (aSpecifier || (t.spec ?? '') === (ref.spec ?? ''))).reduce((n, t) => n + t.times, 0);

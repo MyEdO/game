@@ -6,6 +6,7 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /** Pictogrammes au trait, `viewBox` 0 0 24 24. */
 export const PICTOS: Record<string, string> = {
+  "coche": "<path d=\"M5 12.500l4.500 4.500L19 7\"/>",
   "route": "<circle cx=\"12\" cy=\"12\" r=\"8.500\"/><path d=\"M15.500 8.500l-2 5-5 2 2-5z\"/>",
   "chope": "<path d=\"M6 7h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 3.500-2C10.500 3.500 13 3.500 13.500 5c1.500-.5 2.500.5 2.500 2\"/>",
   "soin": "<path d=\"M9.500 4h5v5.500H20v5h-5.500V20h-5v-5.500H4v-5h5.500z\"/>",
@@ -34,7 +35,7 @@ export const picto = (nom: string, taille = 22, trait = 1.6): string =>
   `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PICTOS[nom] ?? ''}</svg>`;
 
 /** Le cadre de portrait du kit autour d'un buste (un `<svg>` complet). */
-export const portrait = (buste: string, camp: 'heros' | 'ennemi', taille: 'petit' | 'moyen' | 'grand' = 'moyen', classe = ''): string =>
+export const portrait = (buste: string, camp: 'heros' | 'ennemi', taille: 'petit' | 'moyen' | 'grand' | 'affiche' = 'moyen', classe = ''): string =>
   `<div class="portrait ${camp === 'heros' ? 'laiton' : 'fer'} ${camp} ${taille} ${classe}"><div>${buste}</div></div>`;
 
 /** Les textures de bois et de parchemin, posées en variables CSS (`--tex-bois`, `--tex-parchemin`). */
@@ -46,9 +47,10 @@ export function poserLesTextures(): void {
 
 const FERRURES = '<i class="ferrure hg"></i><i class="ferrure hd"></i><i class="ferrure bg"></i><i class="ferrure bd"></i>';
 
-/** Le cadre de chêne ferré du kit, son fond (`bois` sombre ou `parchemin`) et son ruban de titre. */
-export const cadre = (contenu: string, { ruban = '', fond = '', classe = '', balise = 'section' } = {}): string =>
-  `<${balise} class="cadre bois ${classe}"><div class="fond ${fond}">${contenu}</div>${FERRURES}${ruban ? `<div class="ruban gothique">${ruban}</div>` : ''}</${balise}>`;
+/** Le cadre de chêne ferré du kit, son fond (`bois` sombre ou `parchemin`), sa tête (des onglets, posés sur le cadre) et
+ *  son ruban de titre. */
+export const cadre = (contenu: string, { ruban = '', fond = '', classe = '', balise = 'section', tete = '' } = {}): string =>
+  `<${balise} class="cadre bois ${classe}"><div class="fond ${fond}">${contenu}</div>${tete}${FERRURES}${ruban ? `<div class="ruban gothique">${ruban}</div>` : ''}</${balise}>`;
 
 /** La plaque du kit en bouton : repos laiton, `armee` (l'appel principal), `fermee` (désactivée). */
 export const plaque = (libelle: string, attrs: string, { armee = false, fermee = false, icone = '', prix = '', taille = 'moyenne', titre = '' } = {}): string =>
