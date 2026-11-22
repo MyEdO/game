@@ -15,10 +15,10 @@ const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles =
 /* qui occupe un camp de la fenêtre, quel que soit son rôle (testeur, cible, lanceur visé, interlocuteur, touché) : les
    places du camp (`PLACES_DU_CAMP`, `../rendu.js`), en miroir à droite : le portrait, l'identité (le nom, la ligne de
    son rôle), la rangée sous l'identité (les dés, une jauge, une réplique), l'issue */
-const fiche = ({ cote = '', portrait, nom, ligne, rangee = '', issue = '', classe = '' }) => `
+const fiche = ({ cote = '', portrait, nom: nomme, ligne, rangee = '', issue = '', classe = '' }) => `
   <div class="camp ${cote} ${classe}" data-primitive="fiche">${places('fenetre', {
     [`${cote || 'gauche'}-portrait`]: portrait,
-    [`${cote || 'gauche'}-identite`]: `<div class="n gothique" data-primitive="fiche">${nom}</div>${sousTitre({ texte: ligne, cle: 'Test' })}`,
+    [`${cote || 'gauche'}-identite`]: `${nom({ texte: nomme })}${sousTitre({ texte: ligne, cle: 'Test' })}`,
     [`${cote || 'gauche'}-des`]: rangee,
     [`${cote || 'gauche'}-issue`]: issue,
   })}</div>`;
@@ -56,7 +56,7 @@ const testeurs = (genres, choisi = 0) => `<div class="testeurs" data-primitive="
 const reglage = ({ sous, mot, figure = '', lignes = [], cartes = [], cumul = '', phrase = '' }) => ({
   centre: '<div id="verdict" class="grille" data-primitive="reglage"></div>',
   'reglage-sous': `${sousTitre({ texte: sous, cle: 'sous-titre' })}`,
-  'reglage-mot': `<div class="sorte-du-jet gothique" data-primitive="reglage" data-texte="sorte">${mot}</div>`,
+  'reglage-mot': nom({ texte: mot, taille: 'petit', cle: 'sorte' }),
   'reglage-figure': figure,
   ...Object.fromEntries(lignes.map((l, k) => [`reglage-ligne-${k + 1}`, l])),
   ...Object.fromEntries(cartes.map((c, k) => [`reglage-carte-${k + 1}`, c])),

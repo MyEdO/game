@@ -7,9 +7,9 @@
 #verdict{padding:2px 4px 0}
 #verdict .dr{line-height:normal;margin:0}
 #verdict>p{font-size:13px;line-height:17px}
-#jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
-#jet .camp.droite .n{justify-content:flex-end}
-#jet .camp .n .modif{margin-top:0}
+#jet .camp .nom-propre{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal}
+#jet .camp.droite .nom-propre{justify-content:flex-end}
+#jet .camp .nom-propre .modif{margin-top:0}
 #verdict .sous-titre{display:flex;justify-content:center;align-items:center;gap:7px}
 #jet .annonce{white-space:nowrap}
 /* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
@@ -30,7 +30,6 @@
 #verdict.surinc .axe{grid-template-columns:52px 40px 1fr 40px}
 #verdict.surinc .sort p{font-size:12px;line-height:16px}
 #jet .cibles-du-sort{padding-left:10px}
-#jet .c-s .n{font-size:16px}
 #critique .tete-c{display:flex;align-items:center;gap:18px}
 #critique .tete-c .tirage{min-width:0}
 #critique .tirage .sceau b{font-size:14px}
@@ -70,7 +69,6 @@
    centré à 8 du bas */
 .paysage{width:100%;height:100%}
 #bandeau .heros{gap:9px;padding:11px 10px 0}
-#bandeau .heros .nom{font-size:17.5px}
 .choix-h{display:flex;align-items:center;gap:4px;margin-top:6px;font-size:12.5px;color:#eadfc4}
 .choix-h .rubrique{flex:none;width:54px;font-size:9.5px;letter-spacing:0;color:var(--creme-2)}
 .choix-h b{font-weight:400}
@@ -87,7 +85,7 @@
    coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
 /* en coop, qui tient la main prend la place de la rumeur, sous le rail */
 #scene-du-commerce{position:absolute}
-#scene-du-commerce>.defile{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+#scene-du-commerce>.defile{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 #scene-du-commerce.en-deux>.defile{flex-direction:row;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
 #scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
 /* chaque hôte à la case de son genre, en colonne comme en deux colonnes : l'enseigne (son nom seul), le porteur et ce
@@ -95,7 +93,7 @@
    montre quatre, deux enseignes et deux porteurs (la halle à la vente), la suite défile */
 #scene-du-commerce .hote{flex:none;height:196px}
 #scene-du-commerce .hote.enseigne{height:76px}
-#scene-du-commerce .hote.charge{height:152px}
+#scene-du-commerce .hote.charge{height:156px}
 #page .porteur{padding-top:5px;padding-bottom:6px}
 #page .porteur span{margin-bottom:4px}
 /* une ligne à régler : son complément sous son nom, le prix et la quantité à droite des deux */
@@ -151,7 +149,7 @@
 #epreuve .fond{display:grid;grid-template-columns:1fr 360px 1fr;padding:22px 20px 0}
 .ost{display:flex;align-items:center;gap:14px;height:108px}
 .ost.droite{flex-direction:row-reverse;text-align:right}
-.ost .n{font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:24px;color:#3a1a10;white-space:nowrap}
+.ost .nom-propre{white-space:nowrap}
 .ost .sous-titre{white-space:nowrap}
 .ost .issue{margin-top:5px;font-size:13px;color:#7c1f14;white-space:nowrap}
 .ost .issue.reussite{color:#2f5a26}
@@ -173,7 +171,6 @@
 #lieu .activites-breves{display:flex;flex-wrap:wrap;gap:10px}
 #lieu .activite-breve{position:relative}
 #lieu .activite{position:relative;gap:9px;padding:5px 10px}
-#lieu .activite b{font-size:16.5px;line-height:21px}
 #lieu .activite i{font-size:11.5px;line-height:15px}
 /* les activités défilent entre la tête du lieu et l'envoi, au pied */
 
@@ -182,9 +179,9 @@
 #ordre{flex-direction:column;justify-content:flex-end;overflow:hidden;padding-bottom:166px}
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
+#ordre .rang .nom-propre{white-space:normal}
 #ordre .rang .jauge,#ordre .rang.actif .jauge{flex:none;width:38px}
 #ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px;height:100%}
-#ordre .rang.actif .nom{font-size:16px}
 #ordre .rang.actif .jauge{width:74px}
 #ordre .rang:not(.actif) .etat-porte .rubrique{display:none}
 
@@ -230,7 +227,6 @@
 #fiche-lue #f-sections{left:696px;top:106px;width:504px;height:330px}
 #fiche-lue #f-sections .fond{padding:30px 16px 0}
 #fiche-lue #f-sections .vignette{width:90px;height:90px}
-#fiche-lue #f-sections .arme .n{font-size:23px;line-height:26px}
 
 /* 4. Lieu, le bord : les postes autour du mât, l'état du bord ou la semaine en colonne de 360 au coin haut-droit, la
    pastille du dossier dessous, puis la station du héros choisi */
@@ -243,7 +239,6 @@
 #f-sections.dossier .fond{display:flex;flex-direction:column}
 #f-sections.dossier .arme{padding:8px;margin-bottom:8px}
 #f-sections.dossier .vignette{width:64px;height:64px}
-#f-sections.dossier .arme .n{font-size:23px;line-height:26px}
 #f-sections.dossier .ou .l{margin-bottom:12px}
 
 /* 3. Fiche, le héros sur le mur : tout s'arrête à la ligne basse, 164 du bas, au-dessus du bandeau réduit, centré à 8

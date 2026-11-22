@@ -26,17 +26,17 @@
 #tablee .legende{grid-column:span 2;height:36px;margin-top:10px;text-align:center;font-size:14px;line-height:18px;color:var(--creme-2)}
 .siege{position:relative;width:200px;box-sizing:border-box;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .siege .q{display:flex;align-items:center;gap:10px}
-.siege .q b{display:block;font-weight:600;font-size:22px;line-height:34px;margin:-7px 0 -6px;color:#f4e8ca;white-space:nowrap}
+.siege .q .nom-propre{white-space:nowrap}
 .siege .q span{display:block;font-size:12px;color:var(--creme-2);white-space:nowrap}
 .siege .medaillon{flex:none}
 .siege .tient{display:flex;align-items:center;gap:7px;margin-top:9px;min-height:50px}
 .siege .tient i{font-size:12.5px;color:var(--creme-2)}
 .siege.vous{box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.4)}
-.siege.absent .q b{color:#f0c8b4}
+.siege.absent .q .nom-propre{color:#f0c8b4}
 .siege.absent .q span{color:#f0a890}
 .siege.absent .tient .portrait{opacity:.55}
 .siege.vide{background:rgba(20,12,7,.7);box-shadow:0 0 0 1px rgba(226,192,106,.3);border:1px dashed rgba(226,192,106,.35)}
-.siege.vide .q b{font-weight:400;font-size:17px;color:var(--creme-2);font-family:"Fell";font-style:italic;letter-spacing:0}
+.siege.vide .q b{display:block;font-weight:400;font-size:17px;line-height:34px;margin:-7px 0 -6px;color:var(--creme-2);font-family:"Fell";font-style:italic;letter-spacing:0;white-space:nowrap}
 #invitation .fond{padding:30px 18px 18px;display:flex;flex-direction:column;gap:14px}
 #invitation .code{height:84px;display:grid;place-items:center;font-size:44px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
 #invitation .rub{margin-top:4px}
@@ -47,10 +47,9 @@
 #attribution .fond{padding:34px 20px 18px}
 #attribution .rang{display:grid;grid-template-columns:50px 1fr auto;align-items:center;column-gap:12px;padding:9px 0;border-bottom:1px solid rgba(60,40,20,.28)}
 /* le nom d'un héros passe à la ligne plutôt que de pousser les sièges hors du volet */
-#attribution .rang .nom{white-space:normal}
+#attribution .rang .nom-propre{white-space:normal}
 #attribution .mj{padding:14px 0 4px}
 #attribution .mj .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-#attribution .mj b{font-size:22px;line-height:30px;margin:-5px 0;color:#3a1a10}
 #attribution .mj i{font-size:13px;color:#4a3420}
 #attribution .segments b{padding:4px 9px 5px;font-size:13px}
 

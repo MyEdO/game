@@ -53,7 +53,7 @@ const FEUILLES = {
         piece("{ camp: 'pnj', choisi }", portrait('hote', { taille: 'grand', choisi: true })), piece("{ camp: 'ennemi' }", portrait('orc', { camp: 'ennemi', taille: 'grand' })), piece('ennemi, choisi', portrait('orc', { camp: 'ennemi', taille: 'grand', choisi: true })),
         piece("portrait('esquisse')", portrait('esquisse', { taille: 'grand' })), piece('portrait(null) : place libre', portrait(null, { taille: 'grand' })))),
     page('rangs', 868, 376, 388, 320, 'bois', 'rang(genre, …) · cartouche(…)',
-      ligne(piece("rang('mira', { nom, sous })", rang('mira', { nom: 'Mira', sous: 'Éclaireuse' })), piece('{ gothique: true, taille }', rang('orc', { camp: 'ennemi', nom: 'Orc', gothique: true, taille: 'grand' }))),
+      ligne(piece("rang('mira', { nom, sous })", rang('mira', { nom: 'Mira', sous: 'Éclaireuse' })), piece("{ gothique: 'moyen', taille }", rang('orc', { camp: 'ennemi', nom: 'Orc', gothique: 'moyen', taille: 'grand' }))),
       ligne(piece('cartouche({ icone, nom, sous })', cartouche({ icone: 'chope', nom: 'Odelina Landau', sous: 'L’aubergiste' })))),
     page('pictos', 868, 22, 388, 330, 'bois', "picto(nom, taille, couleur)",
       ligne(piece("picto('epee', 16)", picto('epee', 16)), piece("picto('epee')", picto('epee')), piece("picto('epee', 32)", picto('epee', 32))),

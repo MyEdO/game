@@ -61,7 +61,7 @@
 .partage{position:relative;display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--heros),76px) 54px;align-items:center;row-gap:3px;align-content:start;padding-left:18px;border-left:1px solid var(--filet-encre)}
 .partage .col{display:flex;align-items:center;gap:5px;padding:0 3px 6px;border-bottom:1px solid var(--filet-encre)}
 .partage .col .q{min-width:0;flex:1}
-.partage .col .q b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:17px;color:var(--sepia);letter-spacing:.3px;white-space:nowrap}
+.partage .col .q .nom-propre{white-space:nowrap}
 .partage .col .q span{display:block;font-size:10.5px;line-height:13px;color:var(--encre);white-space:nowrap}
 .partage .col .q span.plein{color:var(--sang)}
 .partage .col .jauge{margin-top:2px}
@@ -71,7 +71,7 @@
 .objet{display:flex;align-items:center;gap:9px;height:33px;min-width:0}
 .objet .t{display:flex;flex-direction:column;min-width:0}
 .objet .ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--encre);border:1px solid var(--trait-encre)}
-.objet b{flex:none;min-width:0;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:22px;color:var(--encre);letter-spacing:.3px;white-space:nowrap}
+.objet .nom-propre{flex:none;min-width:0;white-space:nowrap}
 .objet span{font-size:11.5px;line-height:11px;color:var(--rouille);white-space:nowrap}
 .prise{justify-self:center;width:26px;height:26px;border-radius:50%;border:1px dashed var(--trait-encre)}
 .fouille .trouve .reste{margin-top:8px;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
@@ -84,7 +84,7 @@
 #affaire>.fond{display:flex;flex-direction:column;padding:24px 28px 0}
 #affaire .tete{display:flex;justify-content:space-between;align-items:flex-end}
 #affaire .indice{display:flex;align-items:center;gap:10px}
-#affaire .indice b{font-size:24px;line-height:30px;color:var(--sepia);margin-right:6px}
+#affaire .indice .nom-propre{margin-right:6px}
 .chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--encre);border:1px solid var(--trait-encre);border-radius:2px;background:var(--voile)}
 .chip.neuf{color:var(--ivoire);border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire),var(--sang))}
 #affaire .plaque.epingle{flex:none;width:136px;margin-left:auto}
@@ -94,7 +94,6 @@
 .lu{padding:14px 20px 12px;border-radius:2px;background:var(--voile);box-shadow:0 0 0 1px var(--filet-encre),0 3px 8px var(--brou)}
 .lu+.lu{margin-top:12px}
 .lu .tete{margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--filet-encre)}
-.lu .tete b{font-size:21px;line-height:24px;color:var(--sepia)}
 .lu p{margin:0 0 6px;font-family:"Fell";font-size:15px;line-height:20.5px;color:var(--encre)}
 .lu.manuscrite p{font-style:italic}
 .lu.attenue{opacity:.82}

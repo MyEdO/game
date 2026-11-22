@@ -13,14 +13,14 @@
 .surinc .sort .sous-titre{margin-bottom:4px}
 .surinc .sort p{margin-top:4px}
 .axes .t{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420;padding-bottom:0;border-bottom:1px solid rgba(60,40,20,.4);margin-bottom:3px}
-.axes .t b{font-size:18px;line-height:24px;color:#3a1a10;white-space:nowrap}
+.axes .t .nom-propre{white-space:nowrap}
 .axe{display:grid;grid-template-columns:62px 44px 1fr 46px;align-items:center;height:20px;font-size:12.5px;color:#2a1d12}
 .axe em{grid-column:2/5;font-size:12.5px;color:#8a7a5c}
 .axe b{font-family:"Fell SC";font-weight:400;font-size:14px;text-align:right;padding-right:10px}
 .axe.ferme{color:#8a7a5c}
 .cibles-du-sort{display:flex;flex-direction:column;gap:9px;padding-left:16px}
 .c-s{display:flex;flex-direction:row-reverse;align-items:center;gap:11px;text-align:right}
-.c-s .n{font-size:18px;line-height:20px;color:#3a1a10;white-space:nowrap}
+.c-s .nom-propre{white-space:nowrap}
 .c-s .sous-titre{white-space:nowrap}
 
 

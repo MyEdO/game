@@ -7,8 +7,7 @@
 #jet .place>.camp{height:100%}
 .camp:is(.droite,.cible){flex-direction:row-reverse;text-align:right}
 /* ce que le choix vise : son nom sur deux lignes au plus, dans l'identité étroite du troisième emplacement */
-#jet .camp.cible .n{font-size:17px;line-height:18px}
-.camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
+.camp .nom-propre{white-space:nowrap}
 .camp .sous-titre{margin-top:1px}
 .camp .des{display:flex;align-items:center;gap:10px;margin-top:5px}
 .camp.droite .des{flex-direction:row-reverse}
@@ -65,7 +64,7 @@
 
 /* avant le dé, chaque nature à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) : la sorte du Test en grande ligne, une
    carte à la hauteur de sa bande, son nom à gauche, sa valeur à droite */
-#jet .sorte-du-jet{height:22px;line-height:22px;text-align:center;font-size:16px;white-space:nowrap;color:#3a1a10}
+#jet [data-place="fenetre/reglage-mot"]>.nom-propre{text-align:center;white-space:nowrap}
 #jet .place>.plaque.carte.courte{width:100%;max-width:none;min-width:0}
 .plaque.carte.courte>div{gap:6px;padding:0 8px}
 .plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}

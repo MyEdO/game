@@ -29,7 +29,7 @@
 /* la partie d'un jeu de taverne */
 .sieges{display:flex;gap:10px}
 .siege{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.siege b{font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:22px;margin:-2px 0 -4px;color:#2a1d12;white-space:nowrap}
+.siege .nom-propre{white-space:nowrap}
 .siege span{font-size:11px;color:#5a2a12;white-space:nowrap}
 .mise{display:flex;align-items:center;gap:14px}
 .mise .somme{display:flex;align-items:center;gap:10px;padding:5px 18px 5px 12px;border-radius:3px;border:1px solid rgba(60,40,20,.5);background:rgba(255,245,215,.3)}

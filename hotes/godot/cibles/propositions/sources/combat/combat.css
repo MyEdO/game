@@ -21,7 +21,7 @@
 #barre .fond{background:none;box-shadow:none}
 #actif-portrait{position:absolute;left:806px;top:580px;width:96px;height:118px;z-index:3}
 #actif-nom{position:absolute;left:764px;top:700px;width:180px;text-align:center;z-index:3}
-#actif-nom .n{font-size:20px;line-height:27px;color:#f3e6c6;text-shadow:0 1px 2px #000;white-space:nowrap}
+#actif-nom .nom-propre{white-space:nowrap}
 #actif-nom .a{font-size:12px;color:var(--creme-2);margin-top:0;white-space:nowrap}
 #etat{position:absolute;left:24px;top:14px;width:452px;display:grid;grid-template-columns:1fr 1fr;column-gap:26px;row-gap:13px}
 .mesure .tete{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--creme-2)}
@@ -83,11 +83,11 @@
 /* ───────── états ajoutés (#3935) : tour adverse, jets, critique, début du round, fin, journal, fiche ───────── */
 
 /* l'adversaire agit : l'ordre et le meuble passent au fer, tout ce qui se presse se ferme */
-.rang.ennemi.actif .nom{color:#f6b9a6}
+.rang.ennemi.actif .nom-propre{color:#f6b9a6}
 .rang.lu .nom{color:#f6ead0}
 #barre.adverse .outil span{color:var(--eteint)}
 #barre.adverse .ruban{filter:grayscale(.85) brightness(.62)}
-#barre.adverse~#actif-nom .n{color:#f6b9a6}
+#barre.adverse~#actif-nom .nom-propre{color:#f6b9a6}
 
 /* la silhouette des localisations */
 .silhouette{flex:none;display:block}
@@ -118,7 +118,6 @@
 /* la fiche au clic sur un portrait de l'ordre */
 #f-identite .fond{padding:18px 17px 0}
 #f-identite .fond>.tete{display:flex;gap:13px}
-#f-identite .n{font-size:28px;line-height:30px;color:#3a1a10}
 #f-identite .sous-titre{margin-top:5px}
 #f-identite .mesure{margin-top:24px}
 #f-identite .mesure .tete{color:#4a3420}
@@ -139,7 +138,6 @@
 .vignette{flex:none;width:112px;height:112px;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.5),0 0 0 1px #1a1005}
 .vignette>div{height:100%;background:radial-gradient(circle at 50% 40%,#4a3020,#1b100a 80%);box-shadow:inset 0 0 0 1px #000}
 .vignette svg{display:block;width:100%;height:100%}
-.arme .n{font-size:26px;line-height:28px;color:#3a1a10}
 .mesures{display:flex;align-items:center;gap:11px;margin-top:7px}
 .mesures .rub{margin-right:16px}
 .mesures .m{margin-right:20px}
@@ -180,7 +178,7 @@
 #jet .place>.regle{margin:0;height:100%}
 #jet .place>.regle.localisation{justify-content:flex-start;gap:8px}
 #jet .place>.regle.localisation>:not(.options){flex:none}
-#jet .place>.regle.localisation .gothique{margin-left:2px;font-size:22px;line-height:24px;color:#3a1a10}
+#jet .place>.regle.localisation .nom-propre{margin-left:2px}
 #jet .place>.regle.localisation .modif{margin-top:0}
 #jet .place>.regle.localisation .options{margin-left:auto}
 #jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}

@@ -28,13 +28,13 @@
 .avis:nth-child(odd){transform:rotate(-1deg);margin-right:14px}
 .avis:nth-child(even){transform:rotate(1deg);margin-left:14px}
 .avis .clou{left:10px;top:17px}
-.avis b{font-size:18px;line-height:30px;margin:-4px 0;color:#3a1a10;white-space:nowrap}
+.avis .nom-propre{white-space:nowrap}
 
 .heros .renvoi{display:flex;flex-direction:column;gap:6px;margin-top:11px;color:var(--creme-2)}
 .heros .renvoi>span{display:flex;align-items:center;gap:6px}
 .heros .renvoi svg{flex:none}
 .heros .renvoi .rubrique{font-size:12px;color:var(--creme-2)}
-.heros:has(>.portrait.vide) .nom{color:var(--creme-2)}
+.heros:has(>.portrait.vide) .nom-propre{color:var(--creme-2)}
 .heros .siege{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:6px;font-size:12px;color:var(--creme-2)}
 .heros .siege .segments b{padding:2px 7px 3px;font-size:12px}
 .heros:has(>.portrait.vide) .sous-titre{white-space:normal}

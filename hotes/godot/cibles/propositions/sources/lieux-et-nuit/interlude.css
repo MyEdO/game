@@ -3,7 +3,6 @@
 #carte .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 11px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-12px;box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3);white-space:nowrap}
 .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
-.lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:15.5px;line-height:17px;letter-spacing:.3px;color:#f4e8ca}
 .lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
 /* la place du héros qui s'y rend, tenue vide : l'étiquette garde sa largeur qu'un héros y aille ou non */
 .lieu .qui{display:flex;flex:none;width:25px;height:26px;align-items:center}
@@ -19,7 +18,6 @@
 #lieu .pnj p{margin:2px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
 .activite{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(201,185,149,.22)}
 .activite.prise{background:rgba(226,192,106,.1);box-shadow:inset 0 0 0 1px rgba(226,192,106,.85),0 0 12px rgba(255,214,140,.2)}
-.activite b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:24px;margin:-3px 0 -2px;color:#f4e8ca;letter-spacing:.3px}
 .activite i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
 #lieu .plaque.envoyer>div{font-size:16px}
 .rangs{display:flex;flex-direction:column;gap:9px;margin-top:12px}

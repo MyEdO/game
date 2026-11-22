@@ -102,13 +102,21 @@ html,body{margin:0;background:var(--noir)}
 .rang{display:flex;align-items:center;gap:10px}
 .rang .qui{min-width:0}
 .rang .nom{font-size:13.5px;color:#eadfc4;white-space:nowrap}
-.rang .nom.gothique{font-size:19px;color:#f6ead0;letter-spacing:.3px}
+.rang .nom-propre{white-space:nowrap}
 .rang.ennemi .nom{color:#f0a48e}
 .rang .sous-titre{white-space:nowrap}
 .parchemin .rang .nom{color:var(--sepia);text-shadow:none}
 /* le titre d'un panneau ; sur parchemin, à l'encre */
 .titre{font-size:28px;line-height:40px;margin:-7px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
 .parchemin .titre:not(.ecran){color:var(--sepia);text-shadow:none}
+/* le nom : trois tailles ; sur la scène, à l'ivoire ombré ; sur bois, à l'ivoire, ombre courte ; sur parchemin, à la sépia */
+.nom-propre{margin:0;color:var(--ivoire);text-shadow:0 1px 2px var(--noir),0 0 10px var(--ombre-forte),0 0 22px var(--ombre-forte)}
+.nom-propre.grand{font-size:22px;line-height:30px}
+.nom-propre.moyen{font-size:18px;line-height:24px}
+.nom-propre.petit{font-size:16px;line-height:22px}
+.bois .nom-propre{text-shadow:0 1px 2px var(--noir)}
+.parchemin .nom-propre{color:var(--sepia);text-shadow:none}
+.parchemin .bois .nom-propre{color:var(--ivoire);text-shadow:0 1px 2px var(--noir)}
 /* le sous-titre ; sur parchemin, à l'encre brune */
 .sous-titre{font-family:"Fell SC",serif;font-size:12.5px;line-height:14px;letter-spacing:1.1px;color:var(--creme-2)}
 .parchemin .sous-titre{color:var(--encre-2)}
@@ -124,9 +132,8 @@ html,body{margin:0;background:var(--noir)}
 .glose.avertissement{color:var(--sang)}
 /* le cartouche à la taille `ligne` : médaillon, nom, ce qu'il est */
 .cartouche{display:flex;align-items:center;gap:11px;min-width:0}
-.cartouche .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+.cartouche .nom-propre{white-space:nowrap}
 .cartouche .sous-titre{white-space:nowrap}
-.parchemin .cartouche .n{color:var(--sepia);text-shadow:none}
 .onglets{position:absolute;left:30px;top:-9px;display:flex;align-items:center;gap:9px;z-index:2}
 .onglets .ruban{position:static;transform:none}
 .onglets .plaque{flex:none}
@@ -158,7 +165,7 @@ html,body{margin:0;background:var(--noir)}
 .apercu .tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;height:26px}
 /* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde (`tableDApercu`) */
 .apercu .defile.table{height:125px}
-.apercu .tete .n{font-size:22px;line-height:24px;color:var(--sepia);white-space:nowrap}
+.apercu .tete .nom-propre{white-space:nowrap}
 .apercu .tete .sous-titre{white-space:nowrap}
 /* la bannière d'issue d'un combat : centrée, haut à 190, sa plaque d'appel 28 dessous */
 .issue-du-combat{position:absolute;left:calc(50% - 280px);top:190px;width:560px;display:flex;flex-direction:column;align-items:center;gap:28px}

@@ -208,7 +208,6 @@
 /* ───────── l'identité : création achevée, fiche, progression ───────── */
 .ident .tete{display:flex;gap:14px}
 .ident .tete>.q{flex:1;min-width:0}
-.ident .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:26px;line-height:36px;color:var(--sepia);letter-spacing:.3px;margin:-3px 0 1px}
 .ident .l{font-family:"Fell SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
 .ident .tete .faits{margin-top:10px}
 .ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
@@ -259,7 +258,7 @@
 #heros-neuf>.fond{display:flex;gap:12px}
 #heros-neuf .niche{width:104px}
 .acquis{flex:1;min-width:0;display:flex;flex-direction:column}
-.acquis .qui{font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:32px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap;overflow:hidden;margin:-4px 0 4px}
+.acquis>.nom-propre{white-space:nowrap;overflow:hidden;margin-bottom:4px}
 .acquis .a{margin-bottom:7px;min-width:0}
 .acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
 .acquis .a i .jeton{height:16px;font-size:10px;padding:0 6px}
@@ -292,7 +291,6 @@
 .inventaire .ligne{height:26px;font-size:14px;padding:0 6px}
 .inventaire .ligne svg{flex:none}
 .ouvert{display:flex;flex-direction:column;gap:5px;padding:9px 12px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px var(--brou);min-width:0}
-.ouvert .cartouche .n{font-size:20px}
 .ouvert .ligne{height:26px;font-size:14px;padding:0 5px;gap:6px}
 .ouvert .deux{column-gap:8px}
 .ouvert .achat{height:auto;min-height:34px;gap:8px;padding:1px 2px}
@@ -334,12 +332,11 @@
 .depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
 .talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
 .talent .t{flex:1;min-width:0}
-.talent .t b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
 .talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
 .talent .plaque{flex:none;width:94px}
 .talent .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 6px}
 .talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11px;letter-spacing:.8px}
-.talent.clos b{color:rgba(42,29,18,.6)}
+.talent.clos .nom-propre{color:rgba(42,29,18,.6)}
 .achat.sort{height:31px;gap:10px;padding:0 4px}
 .achat.sort .cout{margin-left:0;width:38px}
 .achat.sort .plaque.composant{width:146px}
@@ -362,9 +359,8 @@
 .station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
 .station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
 .station .et{margin-top:4px;text-align:center;white-space:nowrap}
-.station .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
 .station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:13px;letter-spacing:.8px;color:var(--rouille)}
-.station.loin .et b{color:rgba(42,29,18,.5)}
+.station.loin .et .nom-propre{color:rgba(42,29,18,.5)}
 .station.loin .et i{color:rgba(90,58,28,.6)}
 .ouvre{align-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:start}
 .ouvre .rub{padding-top:3px}

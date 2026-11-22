@@ -10,7 +10,7 @@ const losange = (x, y, a = A, b = B) => `M${x},${y - b}L${x + a},${y}L${x},${y +
 /* ───────── les gabarits de l'écran ───────── */
 /* `etats` : les États que porte le combattant (`etatPorte`), sous sa barre ; l'actif et le lu sont choisis */
 const combattant = (genre, camp, nom, pv, max, classe = '', etats = '') => rang(genre, {
-  camp, nom, classe, gothique: classe.includes('actif'), choisi: /actif|lu/.test(classe),
+  camp, nom, classe, gothique: classe.includes('actif') ? 'petit' : '', choisi: /actif|lu/.test(classe),
   taille: classe.includes('actif') ? 'grand' : classe.includes('fantome') ? 'petit' : 'moyen',
   corps: `${classe.includes('fantome') ? '' : `<div class="ligne">${vie(pv, max)}<span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}`,
 });

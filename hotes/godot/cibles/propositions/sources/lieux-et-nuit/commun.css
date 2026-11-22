@@ -8,7 +8,7 @@
 .heros{position:relative;display:flex;gap:13px;padding:11px 14px 0 13px;min-width:0;height:100%}
 .place+.place>.heros{border-left:1px solid rgba(0,0,0,.6);box-shadow:inset 1px 0 0 rgba(255,220,160,.07)}
 .heros .qui{flex:1;min-width:0}
-.heros .nom{font-size:20.5px;line-height:28px;margin:-3px 0 -3px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
+.heros .nom-propre{white-space:nowrap}
 .heros .l2{display:flex;justify-content:space-between;align-items:baseline;margin-top:1px}
 .heros .sous-titre{white-space:nowrap}
 .heros .pv{font-size:10.5px;color:#e6dabd;white-space:nowrap}
@@ -31,11 +31,11 @@
 .poste .medaillon{z-index:1}
 .poste .tenants{align-self:stretch;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
 .poste .et{align-self:stretch;margin-top:-5px;padding:7px 12px 4px;text-align:center;border-radius:2px;box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
-.poste .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:17px;letter-spacing:.3px;color:#f4e8ca;white-space:nowrap}
+.poste .et .nom-propre{white-space:nowrap}
 .poste .et span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}
 .poste.vide .et{box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px #0c0705}
-.poste.vide .et b{font-size:15px;color:#e2d5b6}
-.poste.ferme .et b,.poste.ferme .et span{color:#8d8474}
+.poste.vide .et .nom-propre{color:#e2d5b6}
+.poste.ferme .et :is(.nom-propre,span){color:#8d8474}
 .poste.vise .medaillon{box-shadow:0 0 0 1px #150d04,0 0 18px rgba(255,214,140,.9)}
 .poste.vise .et{box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.8),0 0 16px rgba(255,214,140,.35)}
 .poste::after{content:"";position:relative;left:var(--pointe,0px);width:10px;height:10px;margin-top:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
@@ -74,7 +74,6 @@
 .soin.pris{border:2px solid #a8842f;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:8px 10px}
 .soin .ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(60,40,20,.6);background:rgba(60,40,20,.08)}
 .soin .t{flex:1;min-width:0}
-.soin .t b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:20px;color:#2a1d12;letter-spacing:.3px}
 .soin .t i{display:block;font-size:12.5px;line-height:16px;color:#4a3420}
 .soin .t .c{font-family:"Fell SC";font-size:11.5px;letter-spacing:1px;color:#6b1c10}
 .soin .px{flex:none;font-size:14px;font-weight:600;color:#2a1d12;white-space:nowrap}
