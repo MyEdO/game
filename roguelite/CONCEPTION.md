@@ -80,6 +80,17 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
    carrières, prochaine étape de chaque axe, retours en jeu).
 4. **Les visuels**, avec Fable : illustrations, icônes, pions.
 
+## Le code
+
+- `src/noyau/` : la façade du noyau WFRP, seule entrée (`index.ts`) compilée à part (`dist/noyau.js`) ; un module par
+  domaine (héros, partie, combat, hameau, soins, équipement, carrière). Aucune règle n'y est réécrite.
+- `src/jeu/` : la boucle de jeu, seule entrée (`index.ts`) ; valeurs d'adaptation (`valeurs.ts`, tous les nombres du
+  roguelite), état, village, soins, carrières, boutiques, expédition, sauvegarde ; `outils.ts` reste interne.
+- `src/ui/` : l'interface ; le gabarit (`ecran.ts`), les pièces du kit (`pieces.ts`), les survols (`bulles.ts`), les
+  lieux, les services, la fiche, le rejeu. `main.ts` ne tient que l'état de l'interface et le routage des gestes.
+- `src/hameau.ts`, `src/cour.ts`, `src/figures.ts`, `src/kit.ts` : les dessins (panorama, cour de combat, figurines,
+  pictogrammes et cadres du kit).
+
 ## La recette
 
 Les scripts de `recette/` se jouent contre le jeu construit (`node roguelite/construire.mjs`, puis un serveur
@@ -87,7 +98,9 @@ statique sur `roguelite/dist`) :
 
 - `partie.mjs` : une partie de bout en bout (bâtir, équiper, progresser, partir, quatre salles, rentrer) ;
 - `debords.mjs` : chaque écran, à trois tailles, sans cadre qui rogne ce qui doit tenir ;
-- `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables.
+- `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables ;
+- `instantanes.mjs` (avec `partie-fixe.ts`) : le HTML de chaque écran sur une partie fixe, à comparer avant et après
+  une refonte qui ne doit rien changer.
 
 Un écran n'est fini que si ses critères passent à 1280 × 720 et 1920 × 1080, avec une capture regardée ; le
 téléphone est un test de fumée.
