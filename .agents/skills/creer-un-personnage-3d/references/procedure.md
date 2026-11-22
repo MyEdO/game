@@ -264,8 +264,10 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
-  compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
-  traitement modifié et inscrit leurs sommes. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
+  compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
+  « fabriquée par ImageMagick, sans image source » et son générateur, graine `-seed` comprise, en tête du traitement
+  (`origineDe`, `hotes/godot/asset/texture.ts`). `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les
+  textures d'un traitement modifié, inscrit leurs sommes et imprime la commande de leur transfert. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
   pixel à 1024 px : une trame réelle tombe sous le pixel. Elle se réduit puis se tuile dans son traitement jusqu'à la
   plus petite période encore lisible, environ 4 px de la texture finale, soit environ 8 mm (#4527). Un relief fait
   512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024. Une couverture de toit
@@ -537,13 +539,15 @@ publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport d
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte > /atelier/mesures/porte.txt
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
 gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
 déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
-moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
+moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>` et écrit son rapport
+(`porte.neutre.json`, `porte.feminin.json`…). Après une retouche, `--porte --temoin /atelier/mesures/porte.json` relit
+le rapport de chaque passe et ne sort que ses écarts neufs. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
@@ -774,8 +778,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de la branche de travail, qui porte les
-provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur empreinte), que
+GLB vont à la Release `modeles-3d` par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
+provenances neuves qui les épinglent, fabriquée par `npm run godot:transfert -- <nom> <fichier>...`, que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
 
 ## 10. Décor
@@ -1091,7 +1095,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<nom>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers épinglés ajoutés de force (GLB, textures du catalogue, sons) : `npm run godot:transfert -- <nom> <fichier>...` fabrique son commit sans toucher l'index et imprime le `git push` (`hotes/godot/asset/transfert.ts`) ; `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
 
 Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
 contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et

@@ -98,7 +98,7 @@ const NUL: Vecteur = [0, 0, 0];
 const cellule = (x: number): number => Math.floor(x / PORTEE_DE_COUVERTURE_M);
 /** La clé d'une cellule, exacte à moins de 2¹⁰ cellules de l'origine sur chaque axe ; au-delà, deux cellules qui
  *  partagent une clé ne font que proposer des triangles que `visiterLaCouverture` écarte. */
-const cle = (i: number, j: number, k: number): number => (i + 1024) + (j + 1024) * 2048 + (k + 1024) * 4194304;
+export const cleDeCellule = (i: number, j: number, k: number): number => (i + 1024) + (j + 1024) * 2048 + (k + 1024) * 4194304;
 
 /** Une surface posée : ses positions à plat, ses triangles (indices par trois) et ceux-ci rangés par cellule de
  *  `PORTEE_DE_COUVERTURE_M` de côté qu'ils touchent. */
@@ -116,9 +116,9 @@ export function couvertureDe(p: Float32Array, indices: ArrayLike<number>): Couve
     const borne = (axe: number, f: (...v: number[]) => number) => cellule(f(p[a * 3 + axe], p[b * 3 + axe], p[c * 3 + axe]));
     const [x0, y0, z0, x1, y1, z1] = [borne(0, Math.min), borne(1, Math.min), borne(2, Math.min), borne(0, Math.max), borne(1, Math.max), borne(2, Math.max)];
     for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) for (let k = z0; k <= z1; k++) {
-      const liste = grille.get(cle(i, j, k));
+      const liste = grille.get(cleDeCellule(i, j, k));
       if (liste) liste.push(t);
-      else grille.set(cle(i, j, k), [t]);
+      else grille.set(cleDeCellule(i, j, k), [t]);
     }
   }
   return { positions: p, indices, grille };
@@ -147,7 +147,7 @@ export function visiterLaCouverture(
   const [ci, cj, ck] = [cellule(x), cellule(y), cellule(z)];
   const vus = new Set<number>();
   for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
-    for (const t of grille.get(cle(i, j, k)) ?? []) {
+    for (const t of grille.get(cleDeCellule(i, j, k)) ?? []) {
       if (vus.has(t)) continue;
       vus.add(t);
       const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
@@ -176,7 +176,7 @@ export function croiserLaCouverture(
   const { positions: p, indices, grille } = couverture;
   const vus = new Set<number>();
   for (let i = cellule(Math.min(ax, bx)); i <= cellule(Math.max(ax, bx)); i++) for (let j = cellule(Math.min(ay, by)); j <= cellule(Math.max(ay, by)); j++) for (let k = cellule(Math.min(az, bz)); k <= cellule(Math.max(az, bz)); k++) {
-    for (const t of grille.get(cle(i, j, k)) ?? []) {
+    for (const t of grille.get(cleDeCellule(i, j, k)) ?? []) {
       if (vus.has(t)) continue;
       vus.add(t);
       const o = indices[t] * 3, [ox, oy, oz] = [p[o], p[o + 1], p[o + 2]];
@@ -500,7 +500,7 @@ function reprendre(
   const cellule = (x: number): number => Math.floor(x / HALO_M);
   const grille = new Map<number, Point[]>();
   for (const q of tenues.keys()) {
-    const k = cle(cellule(q.x), cellule(q.y), cellule(q.z));
+    const k = cleDeCellule(cellule(q.x), cellule(q.y), cellule(q.z));
     const liste = grille.get(k);
     if (liste) liste.push(q);
     else grille.set(k, [q]);
@@ -511,7 +511,7 @@ function reprendre(
     const poids = new Map<string, number>();
     let somme = 0, part = 0;
     for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
-      for (const c of grille.get(cle(i, j, k)) ?? []) {
+      for (const c of grille.get(cleDeCellule(i, j, k)) ?? []) {
         const d = Math.hypot(c.x - q.x, c.y - q.y, c.z - q.z);
         if (c === q || d >= HALO_M) continue;
         const tenue = tenues.get(c) as Reprise;

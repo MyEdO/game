@@ -36,6 +36,7 @@ import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepa
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
+import { nomDe } from '../engine/nom';
 import { type Difficulty, type UpkeepDeferTest, type TestIds } from '../engine/types';
 import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
@@ -52,51 +53,65 @@ import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
 
+interface LigneDEntretien {
+  text: string;
+  actorId?: string;
+}
+
+function lignesDEntretien(textes: readonly string[], actorId?: string): LigneDEntretien[] {
+  return textes.map((text) => ({ text, actorId }));
+}
 
 /** Purge les effets à durée d'HORLOGE arrivés à échéance (`untilTime` ≤ maintenant) : contrecoups
  *  d'incantation (LDB 46/40) ET buffs de sort à durée en minutes/heures/jours (LDB 47 — cascade #T3).
  *  Appelée par la COUTURE du temps (`purgeSurAvanceDHorloge`, tirée par `avancerLHorloge`) ET par
  *  l'entretien quotidien ; couvre le groupe ET les combattants d'une bataille en cours (copies de spawn).
  *  RENVOIE les dissipations (reprises dans le rapport du jour au franchissement). */
-export function purgeClockEffects(get: Get, set: Set): string[] {
+export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
   const now = get().gameTime;
-  const expiredLog: string[] = [];
+  const expiredLog: LigneDEntretien[] = [];
   const pool = [...get().party, ...(get().battle?.combatants ?? [])];
   for (const h of pool) {
+    const lignes: string[] = [];
     const exp = (h.castPenalties ?? []).filter((p) => p.untilTime != null && p.untilTime <= now);
     if (exp.length) {
-      for (const p of exp) expiredLog.push(t('upkeep.fades', { name: h.label, what: p.label }));
+      for (const p of exp) lignes.push(t('upkeep.fades', { name: nomDe(h), what: p.label }));
       h.castPenalties = h.castPenalties!.filter((p) => !(p.untilTime != null && p.untilTime <= now));
     }
     const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, undefined, porte);
-    for (const e of fx) expiredLog.push(t('upkeep.fades', { name: h.label, what: e.label }));
-    expiredLog.push(...porte);
+    for (const e of fx) lignes.push(t('upkeep.fades', { name: nomDe(h), what: e.label }));
+    lignes.push(...porte);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const conds = (h.conditions ?? []).filter((x) => x.untilTime != null && x.untilTime <= now);
     if (conds.length) {
-      for (const x of conds) expiredLog.push(t('upkeep.condFades', { name: h.label, cond: conditionLabel(x.id) }));
+      for (const x of conds) lignes.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
       h.conditions = h.conditions.filter((x) => !(x.untilTime != null && x.untilTime <= now));
     }
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
-    expiredLog.push(...syncDerivedConditions(h));
+    lignes.push(...syncDerivedConditions(h));
+    expiredLog.push(...lignesDEntretien(lignes, h.id));
   }
-  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
+  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog.map(({ text }) => text)); }
   return expiredLog;
 }
 
 /** Dissipations d'horloge PRODUITES par la couture du temps (`avancerLHorloge`) et pas encore
  *  reprises dans un bilan d'entretien — drainées par `runDailyUpkeep`. */
-const dissipationsDHorloge: string[] = [];
+const dissipationsDHorloge: LigneDEntretien[] = [];
 
 /** Purge d'horloge tirée par la COUTURE UNIQUE de l'avance du temps : tout chemin qui la signale
  *  (`avancerLHorloge`, écrivain unique de `gameTime` : avancerLeTemps, repos, voyages terrestre, fluvial et en
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set, minutes: number): void {
-  dissipationsDHorloge.push(...purgeClockEffects(get, set), ...jeterLesVivresPourris(get, set), ...avancerLEquipage(get, set, minutes));
+  dissipationsDHorloge.push(
+    ...purgeClockEffects(get, set),
+    ...lignesDEntretien(jeterLesVivresPourris(get, set)),
+    ...lignesDEntretien(avancerLEquipage(get, set, minutes)),
+  );
 }
 
 /** Les maladies de l'équipage collectif (`porteursABord`) avancent de `minutes`, sans cycle de fiche, au port comme
@@ -142,7 +157,7 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
   for (const h of get().party) {
     const porte: string[] = [];
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', undefined, porte);
-    for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: h.label, what: e.label }));
+    for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label }));
     expiredLog.push(...porte);
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
@@ -179,7 +194,7 @@ export interface DeferredUpkeepTest {
   meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel jusqu'à l'applier
 }
 
-export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; fedDaily?: boolean; onDeferTest: (t: DeferredUpkeepTest) => void }): string[] {
+export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; fedDaily?: boolean; onDeferTest: (t: DeferredUpkeepTest) => void }): LigneDEntretien[] {
   // Dissipations d'effets d'horloge : au FRANCHISSEMENT de jour, elles font partie du rapport
   // visible (hors franchissement — rythme combat — le journal et les icônes d'État suffisent).
   // Celles déjà dissipées par la COUTURE du temps depuis le dernier entretien (voyage terrestre,
@@ -190,7 +205,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   const last = get().lastUpkeepDay;
   if (today <= last) return [];
   const party = get().party;
-  const lines: string[] = [];
+  const lines: LigneDEntretien[] = [];
   let rations = 0;
   // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `penurie-d-eau` ; en mer, suit les
   // tonneaux du navire (`vessel.waterLitres`) — stable sur l'entretien, calculé une fois.
@@ -230,11 +245,11 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
-      lines.push(...r.log);
+      lines.push(...lignesDEntretien(r.log, h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (w.damage > 0) loseWounds(h, w.damage);
-      lines.push(...w.log);
+      lines.push(...lignesDEntretien(w.log, h.id));
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
@@ -247,10 +262,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
       if (rule('maladie-mode') !== 'off') {
         const peutDeclarer = incubation && ((maladieId: string) => incubation(h.id, maladieId));
-        lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor, peutDeclarer));
+        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor, peutDeclarer), h.id));
       }
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
-      lines.push(...tickTraumaRecovery(h, 1, defer));
+      lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer), h.id));
     }
     // 4. Effets déclenchés d'HORLOGE portés par la DONNÉE (Trait, Mutation, État… — `clockHooks`,
     //    bus-owned). `onDayStart` : une émission par jour franchi (le rattrapage en doit autant que
@@ -267,17 +282,17 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
-        lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: missed > 1 ? 's' : '' }));
-        lines.push(...applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }));
+        lines.push({ text: t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' }), actorId: h.id });
+        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }), h.id));
       }
     }
   }
-  if (rations > 0) lines.unshift(t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }));
+  if (rations > 0) lines.unshift({ text: t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }) });
   // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
   // CHAQUE semaine franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
-  lines.push(...tickCampaignVesselWeek(get, set, today, battleRng())); // débite les bourses PAR-DESSUS (lit get().party à jour)
-  get().ecrireAuJournal(lines);
+  lines.push(...lignesDEntretien(tickCampaignVesselWeek(get, set, today, battleRng()))); // débite les bourses PAR-DESSUS (lit get().party à jour)
+  get().ecrireAuJournal(lines.map(({ text }) => text));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   return [...purged, ...lines]; // les dissipations du jour font partie du bilan affiché
 }

@@ -1,17 +1,17 @@
 /**
  * CE QUE LE GROUPE CONNAÎT (#3950) : les lecteurs de la loi de visibilité (`visibilityOf`, `src/noyau/visibility.ts`)
  * sur la vue du groupe (`computeStateVisible`) et la mémoire de carte de la scène (`explored`). Ils disent ce qui se
- * MONTRE : un combattant en vue, une entité connue, un nom, le masque du monde. Aucun ne change ce qui se cible ni ce
- * qui se joue.
+ * MONTRE : un combattant en vue, une entité connue, un nom, le masque du monde et les personnes déjà vues (#4017).
  */
 import type { Combatant } from '../engine/types';
 import type { Visibility } from '../data/ambiance.types';
-import { ambiance } from '../data';
+import { ambiance, dataLabel } from '../data';
 import { hash32AuMillieme } from '../lib/hash';
 import { campOf } from '../engine/relations';
-import { isStructure, structureFaceCells } from '../engine/structures';
+import { isInanimate, isStructure, structureFaceCells } from '../engine/structures';
 import { enBase64 } from '../lib/base64';
 import { t } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
 import type { EtatDeJeu, Jeu } from './etat';
 import { combatGeomOfList } from './mount';
 import { inBattleId, porteurParId } from './monde/combatants';
@@ -19,6 +19,8 @@ import { footprintN, footprintTiles } from './monde/footprint';
 import { discTiles } from './monde/zones';
 import { dansLaZoneJouable, wallOnSight, type Scene, type SceneEntity } from './monde/scene';
 import { memoByRefDeps } from './monde/sceneMemo';
+import { nomDEntite } from './monde/sceneNpc';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { caseDansGrille } from './monde/opacite';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { resolveNappes } from './monde/volume/toits';
@@ -109,11 +111,62 @@ export function entiteConnue(etat: EntreesDeLaConnaissance, e: SceneEntity): boo
   return e.kind === 'personnage' ? v === 'visible' : v !== 'unknown';
 }
 
+/** Le nom du porteur que le groupe voit. */
+export function nomObserve(c: Combatant): PlayerText {
+  // eslint-disable-next-line murs/marques -- #4017 : minteur de PlayerText pour un combattant que le groupe voit.
+  return c.label as PlayerText;
+}
+
 /** Le nom du porteur `id` tel que le groupe le connaît : son `label` s'il est en vue (`porteurEnVue`), sinon le nom
  *  neutre `vision.horsDeVue` ; `null` sans porteur. */
-export function nomEnVue(etat: Jeu, id: string): string | null {
+export function nomEnVue(etat: Jeu, id: string): PlayerText | null {
   if (!porteurEnVue(etat, id)) return t('vision.horsDeVue');
-  return porteurParId(etat, id)?.label ?? null;
+  const c = porteurParId(etat, id);
+  return c ? nomObserve(c) : null;
+}
+
+type EtatDesPersonnesVues = EntreesDeLaConnaissance & Pick<EtatDeJeu, 'personnesVues' | 'campaignNarratif'>;
+
+function memoireDesPersonnes(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personnesVues'>): Record<string, PlayerText> | undefined {
+  const { scene, personnesVues } = etat;
+  return scene && Object.prototype.hasOwnProperty.call(personnesVues, scene.id) ? personnesVues[scene.id] : undefined;
+}
+
+/** Le groupe a-t-il déjà observé cette personne sur cette scène (#4017) ? */
+export function personneDejaVue(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personnesVues'>, id: string): boolean {
+  const noms = memoireDesPersonnes(etat);
+  return !!noms && Object.prototype.hasOwnProperty.call(noms, id);
+}
+
+/** Le dernier nom d'une personne observée sur cette scène (#4017). */
+export function nomDejaVu(etat: Pick<EtatDesPersonnesVues, 'scene' | 'personnesVues'>, id: string): PlayerText | undefined {
+  return personneDejaVue(etat, id) ? memoireDesPersonnes(etat)![id] : undefined;
+}
+
+/** Les personnes vues sur cette écriture, jointes à la mémoire de la scène (#4017). */
+export function memoriserLesPersonnesVues(etat: EtatDesPersonnesVues): EtatDeJeu['personnesVues'] | undefined {
+  const { scene, battle, personnesVues } = etat;
+  if (!scene) return undefined;
+  const anciensNoms = memoireDesPersonnes(etat);
+  const observations: [string, PlayerText][] = [];
+  const noter = (id: string, nom: PlayerText) => {
+    if (anciensNoms?.[id] !== nom) observations.push([id, nom]);
+  };
+  if (battle) {
+    for (const c of battle.combatants) {
+      if (!isInanimate(c) && combattantEnVue(etat, c)) noter(c.id, nomObserve(c));
+    }
+  } else {
+    const presetDe = presetDuNarratif(etat.campaignNarratif);
+    for (const e of scene.entities) {
+      if (e.kind !== 'personnage' || !entiteConnue(etat, e)) continue;
+      const nom = nomDEntite(e, presetDe);
+      if (nom !== undefined) noter(e.id, dataLabel(nom));
+    }
+  }
+  return observations.length
+    ? { ...personnesVues, [scene.id]: { ...anciensNoms, ...Object.fromEntries(observations) } }
+    : undefined;
 }
 
 /** L'octet d'une case au masque de la vision. */

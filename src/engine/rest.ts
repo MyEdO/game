@@ -36,7 +36,8 @@ import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
 import { applyHealWounds } from './healing';
 import { diseaseLabel } from '../data';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
+import { nomDe } from './nom';
 
 /** États qui empêchent un repos réparateur. LDB 16 l.105 */
 function unstable(c: Combatant): boolean {
@@ -109,7 +110,7 @@ export function cureDiseases(c: Combatant, n: number): string[] {
   const removed = new Set(order.slice(0, n));
   c.diseases = c.diseases.filter((d) => !removed.has(d));
   for (const d of removed) {
-    log.push(t('rest.cured', { name: c.label, disease: diseaseLabel(d.id) }));
+    log.push(t('rest.cured', { name: nomDe(c), disease: diseaseLabel(d.id) }));
     if (diseaseDefs()[d.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), d.id];
   }
   log.push(...syncDerivedConditions(c));
@@ -128,7 +129,7 @@ export function maladieABenir(c: Combatant, opts: OptionsDeBenediction = {}): Di
 
 /** La raison dite quand aucune maladie n'est à raccourcir. */
 export const aucuneMaladieABenir = (c: Combatant, opts: OptionsDeBenediction): string =>
-  t('rest.noDiseaseToBless', { name: c.label, ciblee: opts.disease ? t('rest.fragTargeted') : '', benie: opts.once ? t('rest.fragAlreadyBlessed') : '' });
+  t('rest.noDiseaseToBless', { name: nomDe(c), ciblee: opts.disease ? t('rest.fragTargeted') : '', benie: opts.once ? t('rest.fragAlreadyBlessed') : '' });
 
 /**
  * Raccourcit la maladie ACTIVE `dz` de `c` (`maladieABenir`) de `days` jour(s), jamais sous 1 jour restant ni
@@ -139,10 +140,10 @@ export function blessDiseaseDuration(c: Combatant, dz: Disease, days: number, on
   if (once) dz.convalescenceBlessed = true;
   const avant = dz.minutesLeft;
   dz.minutesLeft = Math.min(avant, Math.max(MINUTES_PER_DAY, avant - Math.max(0, days) * MINUTES_PER_DAY));
-  if (dz.minutesLeft === avant) return [t('rest.diseaseUnchanged', { name: c.label, disease: diseaseLabel(dz.id) })];
+  if (dz.minutesLeft === avant) return [t('rest.diseaseUnchanged', { name: nomDe(c), disease: diseaseLabel(dz.id) })];
   const jours = Math.max(1, Math.round((avant - dz.minutesLeft) / MINUTES_PER_DAY));
   const resteJ = Math.round(dz.minutesLeft / MINUTES_PER_DAY);
-  return [t('rest.diseaseShortened', { name: c.label, disease: diseaseLabel(dz.id), days: jours, s: jours > 1 ? 's' : '', left: resteJ })];
+  return [t('rest.diseaseShortened', { name: nomDe(c), disease: diseaseLabel(dz.id), days: jours, s: jours > 1 ? 's' : '', left: resteJ })];
 }
 
 /** Jet d'une nuit (bilan structuré de la modale de Repos) : récupération ou cauchemars. */
@@ -160,7 +161,7 @@ export interface RestRoll {
  * dissipe l'Exténué (sommeil, LDB 16 l.92/101), soigne les PB (LDB 18 l.296 volet a Résistance +20 → DR+BE,
  * ET volet b +BE inconditionnel), puis les cauchemars (LDB 21 l.95) peuvent en regagner un. Réveille un
  * Inconscient et relève un héros À Terre dès qu'il repasse > 0 PB (LDB 18 l.15). Mute `c`, renvoie un résumé.
- * `collect` (modale de Repos) reçoit les JETS structurés (récupération, cauchemars) pour le bilan.
+ * Le bilan reçoit les jets structurés et les notes de la nuit sans le nom du porteur.
  * (Maladies/convalescence : décomptées par l'entretien quotidien — cf. en-tête #T3.)
  */
 /** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté, refusé par
@@ -215,10 +216,18 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   return { wokeUp };
 }
 
-export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRoll[]): string[] {
+export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: RestRoll[]; notes: string[] }): string[] {
   if (c.dead || c.outOfRencontre) return []; // un mort / éjecté ne se repose pas
+  const journal: string[] = [];
+  const ajouter = (cle: MsgKey, params?: Parameters<typeof t>[1]) => {
+    journal.push(t(cle, { ...params, name: nomDe(c) }));
+    if (bilan) bilan.notes.push(t(cle, { ...params, name: '' }).trimStart());
+  };
   // LDB 16 l.105
-  if (unstable(c)) return [t('rest.noRest', { name: c.label })];
+  if (unstable(c)) {
+    ajouter('rest.noRest');
+    return journal;
+  }
 
   const startPB = c.wounds.current;
   const hadFatigue = stacks(c, 'extenue') > 0;
@@ -231,7 +240,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
     if (needsRecoveryRoll(c)) {
       const base = testValue(c, { skill: { id: 'resistance' } });
       const res = rollTest(base, 'accessible', rng);
-      collect?.push({ kind: 'recuperation', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
+      bilan?.jets.push({ kind: 'recuperation', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
       roll = { sl: res.sl, success: res.success };
     }
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
@@ -241,18 +250,17 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
       const before = stacks(c, 'extenue');
       const out: { base: number; result: import('./tests').TestResult }[] = [];
       nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
-      for (const o of out) collect?.push({ kind: 'cauchemar', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
+      for (const o of out) bilan?.jets.push({ kind: 'cauchemar', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
       if (stacks(c, 'extenue') > before) nightmareNights++;
     }
   }
 
-  const log: string[] = [];
-  if (wokeUp) log.push(t('heal.awake', { name: c.label }));
   const healed = c.wounds.current - startPB;
   const span = days > 1 ? t('rest.spanDays', { n: days }) : t('rest.spanNight');
-  if (healed > 0) log.unshift(t('rest.healed', { name: c.label, n: healed, span }));
-  if (isDeprived(c)) log.push(t('rest.deprived', { name: c.label, etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') }));
-  if (hadFatigue && stacks(c, 'extenue') === 0) log.push(t('rest.fatigueGone', { name: c.label }));
-  if (nightmareNights > 0) log.push(t('rest.nightmares', { name: c.label, n: nightmareNights, total: days, s: days > 1 ? 's' : '' }));
-  return log;
+  if (healed > 0) ajouter('rest.healed', { n: healed, span });
+  if (wokeUp) ajouter('heal.awake');
+  if (isDeprived(c)) ajouter('rest.deprived', { etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') });
+  if (hadFatigue && stacks(c, 'extenue') === 0) ajouter('rest.fatigueGone');
+  if (nightmareNights > 0) ajouter('rest.nightmares', { n: nightmareNights, total: days, s: days > 1 ? 's' : '' });
+  return journal;
 }

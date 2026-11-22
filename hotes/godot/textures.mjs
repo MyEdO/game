@@ -11,7 +11,7 @@
 import { spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { parseArgs } from 'node:util'
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -29,7 +29,7 @@ const provenance = JSON.parse(readFileSync(join(DOSSIER_DES_TEXTURES, 'provenanc
 /** Les textures `nommes` déposées au projet et leurs sommes inscrites. */
 async function epingler() {
   for (const [nom, somme] of await epinglerLesTextures(nommes)) console.log(`[textures] ${nom} épinglée : ${somme}${somme === provenance[nom].sha256 ? ' (inchangée)' : `, ${provenance[nom].sha256} avant`}`)
-  console.log('[textures] ensuite : leur versement par une branche transfert/<x> (`node hotes/godot/epingles.mjs`)')
+  console.log(`[textures] ensuite : leur versement, \`npm run godot:transfert -- <nom> ${nommes.map((nom) => relative(process.cwd(), join(DOSSIER_DES_TEXTURES, nom))).join(' ')}\``)
 }
 
 /** Le nombre de textures rejouées qui diffèrent de leur épingle, chaque verdict dit. */
