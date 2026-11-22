@@ -73,6 +73,7 @@ import {
   ref,
   refs,
   refOuSpec,
+  relireChargeSansReperes,
   specFermeeDe,
   tirageSurTable,
   type RegimeDePorteur,
@@ -2203,19 +2204,19 @@ function nommerCleRefusee(issue: z.core.$ZodIssue, refus: CleRefusee): z.core.$Z
 
 function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(
   charges: D,
-  groupe?: { particuliere: keyof D & string; schema: z.ZodType<z.output<D[keyof D]>> },
+  groupe?: {
+    particuliere: keyof D & string;
+    schema: z.ZodType<z.output<D[keyof D]>>;
+    lire: (v: unknown, ctx: z.RefinementCtx) => z.output<D[keyof D]>;
+  },
 ) {
   const chargeDe = (v: unknown): D[keyof D] | undefined =>
     estObjet(v) && typeof v.op === 'string' && Object.prototype.hasOwnProperty.call(charges, v.op) ? charges[v.op as keyof D] : undefined;
   const partagee = (v: unknown) => groupe !== undefined && estObjet(v) && v.op !== groupe.particuliere;
-  const union = marquerProduit(z.transform((v, ctx) => {
+  const lire = (v: unknown, ctx: z.RefinementCtx) => {
     const charge = chargeDe(v);
-    if (charge && groupe && partagee(v)) {
-      const res = groupe.schema.safeParse(v);
-      if (res.success) return res.data;
-      for (const issue of res.error.issues) ctx.addIssue({ ...issue });
-      return z.NEVER;
-    }
+    // Le même contexte garde les repères et la charge pour l'ouvreur de portée englobant.
+    if (charge && groupe && partagee(v)) return groupe.lire(v, ctx);
     marquerOpAtteinte(ctx);
     if (!charge) {
       ctx.addIssue({
@@ -2227,11 +2228,16 @@ function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(
     }
     const res = charge.safeParse(v);
     if (res.success) return res.data;
+    const relue = relireChargeSansReperes(charge, v, res.error.issues);
+    if (relue?.success) {
+      for (const issue of res.error.issues) ctx.addIssue({ ...issue, continue: true });
+      return relue.data;
+    }
     const op = estObjet(v) ? v.op : undefined;
     const diagnostics = diagnosticsDeCharge.get(charge);
     const branche = diagnostics?.branche?.(v);
     // Une branche certaine révèle ses chemins même si zod a interrompu les deux branches.
-    const issues = res.error.issues.flatMap((issue) =>
+    const issues = (relue?.error ?? res.error).issues.flatMap((issue) =>
       branche !== undefined && issue.code === 'invalid_union' && issue.path.length === 0
         ? issue.errors[branche] ?? [issue]
         : [issue]);
@@ -2239,7 +2245,8 @@ function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(
     for (const issue of refus ? issues.flatMap(i => nommerCleRefusee(i, refus)) : issues)
       ctx.addIssue({ ...issue, message: `GameOp « ${op} » : ${issue.message}` });
     return z.NEVER;
-  }), 'construire', 'gameOp');
+  };
+  const union = marquerProduit(z.transform(lire), 'construire', 'gameOp');
   // Le groupe effectue le même parse au même point de la donnée ; seul `^op` nomme sa charge.
   const enfants = groupe ? [
     { noeud: groupe.schema, segment: '' },
@@ -2249,7 +2256,7 @@ function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(
     const charge = chargeDe(valeur);
     return charge && (!groupe || !partagee(valeur)) ? [charge] : [];
   }, 'payloads-op');
-  return union;
+  return { schema: union, lire };
 }
 
 /**
@@ -2382,11 +2389,11 @@ function construire<R extends Regimes>(regimes: R) {
   const opDefs = payloadsDe(regimes);
   const condition = conditionDe(regimes);
   const { attrMod: _particuliere, ...autresOps } = opDefs;
-  const commun = { particuliere: 'attrMod', schema: unionDesOps(autresOps) } as const;
-  const gameOp = unionDesOps(opDefs, commun);
+  const commun = { particuliere: 'attrMod', ...unionDesOps(autresOps) } as const;
+  const { schema: gameOp } = unionDesOps(opDefs, commun);
   const attrModPassif = regimes.formule === 'peche' ? payloadAuPeche(modDAttributPassifSchema, 'attrMod') : modDAttributPassifSchema;
   nommerNoeud(attrModPassif, { label: OP_LABEL.attrMod }).register(diagnosticsDeCharge, { cleRefusee: cleRefuseeDuModPassif });
-  const gameOpPassif = unionDesOps({ ...opDefs, attrMod: attrModPassif }, commun);
+  const { schema: gameOpPassif } = unionDesOps({ ...opDefs, attrMod: attrModPassif }, commun);
   const effectOp = effetDOperations(gameOp);
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE

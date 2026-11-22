@@ -712,6 +712,25 @@ const estPropre = (issue: IssueLue): boolean =>
 /** L'issue `issue` est-elle une FAUTE, et non un repère du parse de mesure (`estPropre`) ? */
 export const estUneFaute = (issue: unknown): boolean => !estPropre(issue as IssueLue);
 
+/**
+ * Retrouve la sortie d'une charge qui ne rend que des repères. Les ouvreurs doivent encore parcourir
+ * cette valeur pour juger ses références locales. Seul le parse de mesure rejoue la charge validée.
+ */
+export function relireChargeSansReperes<S extends z.ZodType>(
+  schema: S,
+  entree: unknown,
+  issues: readonly z.core.$ZodIssue[],
+): z.ZodSafeParseResult<z.output<S>> | undefined {
+  if (!parseDeMesure || issues.length === 0 || issues.some(estUneFaute)) return undefined;
+  const precedent = parseDeMesure;
+  parseDeMesure = false;
+  try {
+    return schema.safeParse(entree);
+  } finally {
+    parseDeMesure = precedent;
+  }
+}
+
 /** Ce que rend le parse de mesure : les références validées par `idDe` et le path de DONNÉE de chaque
  *  nœud d'op que `gameOpSchema` a validé (`marquerOpAtteinte`). */
 export interface MesureDuParse {
