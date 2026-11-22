@@ -369,6 +369,25 @@ export function equipement(h: Heros): { main?: string; secondaire?: string; armu
   return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
 }
 
+/** Une pièce portée, décrite : son nom, et ce que le catalogue ou la pièce en disent (Dégâts, mains, allonge,
+ *  portée, PA, qualités). */
+export interface PieceDecrite { label: string; degats?: string; mains?: number; allonge?: string; portee?: number; pa?: number; qualites: string[] }
+/** La panoplie du héros : ses deux mains (set actif) et son armure portée, décrites. */
+export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; armure?: PieceDecrite } {
+  const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+  const arme = (uid?: string): PieceDecrite | undefined => {
+    const it = uid ? h.c.items?.find((i) => i.uid === uid) : undefined;
+    if (!it) return undefined;
+    const a = it.trappingId ? articleDuCatalogue(it.trappingId) : undefined;
+    return { label: it.label, qualites: a?.qualites ?? [], ...(a?.degats ? { degats: a.degats } : {}), ...(a?.mains ? { mains: a.mains } : {}), ...(a?.allonge ? { allonge: a.allonge } : {}), ...(a?.portee ? { portee: a.portee } : {}) };
+  };
+  const portee = h.c.items?.find((i) => i.kind === 'armor' && i.equipped);
+  return {
+    main: arme(lo?.main), secondaire: arme(lo?.secondaire),
+    ...(portee ? { armure: { label: portee.label, pa: h.c.armour.corps, qualites: libellesDeQualites(portee.qualities ?? []) } } : {}),
+  };
+}
+
 function payer(e: Etat, h: Heros | undefined, prix: number): string | null {
   if (!h) return 'Héros introuvable.';
   if (e.expedition?.groupe.includes(h.c.id)) return 'Ce héros est en expédition.';

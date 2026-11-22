@@ -314,12 +314,23 @@ function panneauDroit(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, acti
     return `<div class="rub">Connus</div><div class="etats">${connus || glose('aucun')}</div>
       <div class="rub">${esc(voie.nom)}</div>${!initie ? glose(`Au niveau 2, le Talent ${voie.nom} ouvre ces sorts.`) : aApprendre.map((id) => ligneDAchat(false, '', esc(nomDeSort(id)), plaque('Apprendre', `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, { taille: 'petite' }))).join('') || glose('Tout est appris.')}`;
   }
-  const eq = J.equipement(h);
-  const armes = h.c.weapons.map((w) => w.label).join(' et ') || 'mains nues';
-  return `<div class="rub">Porté</div>${ligneDAchat(false, '', esc(armes), '<span class="glose">en main</span>')}${ligneDAchat(false, '', esc(eq.armure ?? 'sans armure'), `<span class="glose">${eq.pa} PA</span>`)}
-    ${ligneDEncombrement(h.c)}
-    ${!etat.expedition && J.prixDuSoin(etat) != null ? `<div class="rub">Chapelle de Shallya</div><div class="offres">${soinsDuHeros(h)}</div>` : ''}
-    ${etat.expedition ? '' : glose('La forge change armes et armure.')}`;
+  const p = J.panoplie(h);
+  const e = encombrement(h.c);
+  const trop = e.porte > e.capacite;
+  const essentiel = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`].filter(Boolean).join(' · ');
+  const main = (titre: string, x?: J.PieceDecrite) => `<div class="main${x ? '' : ' vide'}"><i>${titre}</i><b>${esc(x?.label ?? 'Vide')}</b></div>`;
+  const detail = (x?: J.PieceDecrite) => (x ? `<div class="ligne"><span class="n">${esc(x.label)} <small>${esc([essentiel(x), ...x.qualites].filter(Boolean).join(' · '))}</small></span></div>` : '');
+  const sac = J.provisionsPortees(h);
+  return `<div class="rub">Panoplie ${glose('ce que le héros tient en main')}</div>
+    <div class="sets"><div class="set en-main">${main('Main principale', p.main)}${p.main?.mains === 2 && !p.secondaire ? '<div class="main vide"><i>Main secondaire</i><b>Prise à deux mains</b></div>' : main('Main secondaire', p.secondaire)}</div></div>
+    <div class="lignes">${detail(p.main)}${detail(p.secondaire)}</div>
+    <div class="rub">Armure</div>
+    <div class="sets"><div class="set un">${`<div class="main${p.armure ? '' : ' vide'}"><i>${p.armure ? `${p.armure.pa} PA à chaque emplacement` : 'Portée'}</i><b>${esc(p.armure?.label ?? 'Aucune')}</b></div>`}</div></div>
+    ${p.armure?.qualites.length ? `<div class="lignes"><div class="ligne"><span class="n"><small>${esc(p.armure.qualites.join(' · '))}</small></span></div></div>` : ''}
+    <div class="rub">Encombrement <span class="glose ${trop ? 'avertissement' : 'courante'}">${e.porte} / ${e.capacite}${trop ? (e.immobile ? ' · immobilisé' : ` · Mouvement −${e.mouvement}, Agilité −${Math.abs(e.agilite)}`) : ''}</span></div>
+    ${jauge(Math.min(1, e.porte / Math.max(1, e.capacite)), { teinte: trop ? 'cire' : 'or', taille: 'forte' })}
+    <div class="rub">Sac</div><div class="lignes">${sac.length ? sac.map((q) => `<div class="ligne"><span class="n">${esc(q.label)}</span><small>×${q.nombre}</small></div>`).join('') : `<div class="ligne vide"><span class="n"><small>Aucune provision</small></span></div>`}</div>
+    ${etat.expedition ? '' : `<div class="pied-equipement">${plaque('Aller à la forge', `data-a="batiment" data-id="forge" data-client="${h.c.id}"`, { icone: 'enclume', taille: 'petite', armee: true })}</div>`}`;
 }
 
 function ecranDuHeros(id: string, onglet: Onglet) {
@@ -690,7 +701,7 @@ document.addEventListener('click', (ev) => {
   if (!el || (el as HTMLButtonElement).disabled) return;
   const { a, id = '', i, k } = el.dataset;
   switch (a) {
-    case 'batiment': return basculer({ type: 'batiment', id: id as J.IdBatiment });
+    case 'batiment': if (el.dataset.client) client = el.dataset.client; return basculer({ type: 'batiment', id: id as J.IdBatiment });
     case 'heros': return basculer({ type: 'heros', id, onglet: (k as Onglet | undefined) ?? (etat.expedition?.groupe.includes(id) ? 'route' : 'fiche') });
     case 'onglet': if (panneau?.type === 'heros') panneau = { ...panneau, onglet: k as Onglet }; return rendre();
     case 'chronique': return basculer({ type: 'chronique' });
