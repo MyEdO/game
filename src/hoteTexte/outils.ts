@@ -9,7 +9,7 @@ import { z } from 'zod';
 import '../lib/zodEnFrancais.ts';
 
 /** Ce que `lire` sait rendre, une lecture par valeur de `quoi`. */
-export const LECTURES = ['vue', 'offres', 'carte', 'cases', 'fiche', 'journal', 'verbes'] as const;
+export const LECTURES = ['vue', 'choix', 'offres', 'carte', 'cases', 'fiche', 'journal', 'verbes'] as const;
 export type Lecture = (typeof LECTURES)[number];
 
 /** Les gestes d'un appel de `jouer`, au plus. */
@@ -81,6 +81,7 @@ export function outils({ scenarios, cadences }: Enumerations) {
       description: [
         'Lit la partie sans la changer : rien ne s’écrit. `quoi` choisit la lecture :',
         'vue (l’actif, la fenêtre qui tient la main et la signature de ses verbes, le jet en attente, les offres, les cibles ; en exploration, le groupe, son étage, son cap et ses gestes prêts à jouer) ;',
+        'choix (les options nommées de la fenêtre courante, chacune avec sa clé de sélection) ;',
         'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action ; chaque offre avec le geste qui la joue ; en exploration, tous les gestes du groupe) ;',
         'carte (les combattants, l’actif d’abord ; hors combat, les trajets depuis le lieu du groupe avec leurs modes, durées, gestes ou refus et les cadences offertes ; les héros du groupe et leur id, puis les entités de la scène) ;',
         'cases (les cases atteignables au tour de l’actif, avec leur coût) ;',

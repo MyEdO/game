@@ -5,20 +5,21 @@ import type { Combatant } from '../engine/types';
 import { CHEMINS_DES_COMBATTANTS } from './combattantsDeLEtat.generated';
 import { releaseRecomposedRanks } from './monde/seating';
 import { computeStateVisible, exploreAvec } from './visionState';
+import { memoriserLesPersonnesVues } from './visionDuGroupe';
 import type { EtatDeJeu } from './etat';
 import { brouillonTenu } from './acteDeSoin';
 
 /**
  * Rend l'écriture que la transition de `prev` à `s` appelle, ou `null`. Elle compose quatre
  * observations de la même écriture : les Blessures des combattants touchés (`blessuresSuivies`),
- * l'occupation des sièges (`chaisesLevees`), puis l'exploré (`exploreeVue`), lu sur l'état que les deux
+ * l'occupation des sièges (`chaisesLevees`), puis la mémoire de la vue (`memoireDeLaVue`), lue sur l'état que les deux
  * premières rendent : la vision qu'elles changent est celle que le propriétaire va poser ; enfin le
  * brouillon du soin de l'infirmerie (`brouillonTenu`), sur les Blessures réconciliées.
  */
 export function transitionDuJeu(prev: EtatDeJeu, s: EtatDeJeu): Partial<EtatDeJeu> | null {
   const scene = chaisesLevees(prev, s);
   const ecriture = { ...blessuresSuivies(prev, s), ...(scene ? { scene } : {}) };
-  Object.assign(ecriture, exploreeVue(prev, { ...s, ...ecriture }));
+  Object.assign(ecriture, memoireDeLaVue(prev, { ...s, ...ecriture }));
   Object.assign(ecriture, brouillonTenu({ ...s, ...ecriture }));
   return Object.keys(ecriture).length ? ecriture : null;
 }
@@ -92,7 +93,7 @@ const ENTREES_DE_LA_VISION = ['scene', 'battle', 'party', 'partyPos', 'gameTime'
 /**
  * @contrat Méthodes
  * La mémoire de carte de la partie (`explored`, les cases explorées par scène) s'accumule dans le noyau : chaque
- * écriture qui change une entrée de la vision du groupe y fond les cases vues (`exploreeVue`,
+ * écriture qui change une entrée de la vision du groupe y fond les cases vues (`memoireDeLaVue`,
  * `src/noyau/transitionDuJeu.ts`). Le pont et Godot n'appellent rien pour la tenir.
  */
 /**
@@ -100,12 +101,12 @@ const ENTREES_DE_LA_VISION = ['scene', 'battle', 'party', 'partyPos', 'gameTime'
  * pas (chacun des pas d'une marche passe par sa propre écriture), une heure, une lumière, un combat, une
  * entrée en scène, un chargement, un instantané coop. La vision ne se calcule que si une de ses entrées
  * (`ENTREES_DE_LA_VISION`) a changé de RÉFÉRENCE, et par le calcul mémoïsé que le rendu lit aussi
- * (`computeStateVisibleAndLight`). Réentrance structurelle : l'écriture rendue ne touche que `explored`,
- * qui n'est pas une entrée — elle ne se rejoue pas —, et l'union ne rend rien sans case neuve
- * (`exploreAvec`). Rend `{ explored }`, ou rien.
+ * (`computeStateVisibleAndLight`). La mémoire des personnes vues relève de la même transition (#4017).
+ * L'écriture des deux mémoires ne change aucune entrée de la vision.
  */
-function exploreeVue(prev: EtatDeJeu, s: EtatDeJeu): Partial<EtatDeJeu> {
+function memoireDeLaVue(prev: EtatDeJeu, s: EtatDeJeu): Partial<EtatDeJeu> {
   if (ENTREES_DE_LA_VISION.every((k) => s[k] === prev[k])) return {};
   const explored = exploreAvec(s, computeStateVisible(s));
-  return explored ? { explored } : {};
+  const personnesVues = memoriserLesPersonnesVues(s);
+  return { ...(explored ? { explored } : {}), ...(personnesVues ? { personnesVues } : {}) };
 }

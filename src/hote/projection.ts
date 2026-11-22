@@ -265,13 +265,16 @@ function offresEnVue(etat: Jeu, offres: readonly Offre[]): OffreEnVue[] {
 
 const tranche = <T>(liste: readonly T[], n: number): { liste: T[]; enPlus: number } => ({ liste: liste.slice(0, n), enPlus: Math.max(0, liste.length - n) });
 
-/** L'aperçu du premier clic (`battle.preview`), `null` sans aperçu. */
+/** L'aperçu du premier clic (`battle.preview`), `null` sans aperçu ou pour une cible hors de vue pendant
+ *  `personneChoisie`. */
 export function apercuDe(etat: Jeu): Apercu | null {
   const a = etat.battle?.preview;
   if (!a) return null;
-  return 'targetId' in a
-    ? { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null }
-    : { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y, a.tile.z ?? 0], cout: 'cost' in a ? a.cost : null };
+  if ('targetId' in a) {
+    if (fenetreDuJeu(etat)?.etape?.kind === 'personneChoisie' && !porteurEnVue(etat, a.targetId)) return null;
+    return { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null };
+  }
+  return { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y, a.tile.z ?? 0], cout: 'cost' in a ? a.cost : null };
 }
 
 /** Une case que le champ peint au tour de l'actif : sa zone (`porteesDuTour`), la case, son coût. */

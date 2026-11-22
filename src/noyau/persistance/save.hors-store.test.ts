@@ -66,6 +66,37 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
+  it.each(['3bdb6fe66470f1fe', '3386ad14e6f47600'])('relit le format %s et retire les anciens choix publics de Colérique', (version) => {
+    const [cible, autre] = ['cible-ancien-format', 'autre-ancien-format'].map((id) => combattantDeTest({ id, kind: 'heros' }));
+    const etat = { ...etatInitialDuJeu(), party: [cible, autre] };
+    const { data, ...meta } = snapshotSave(etat, '2026-11-22T09:00:00Z');
+    const { personnesVues: _personnesVues, ...sansMemoire } = data;
+    const escalade = { arrivee: { x: 3, y: 4, z: 1 } };
+    const ancienne = {
+      ...meta, version,
+      data: {
+        ...sansMemoire,
+        ...(version === '3386ad14e6f47600' ? { pendingTest: { actorId: autre.id, escalade } } : {}),
+        pendingCascade: {
+          title: 'Colérique', cursor: 0, seq: 1, log: [], purpose: 'combat',
+          participants: [{ id: 'ancien-choix', kind: 'personneChoisie', actorId: autre.id, options: [
+            { key: autre.id, label: autre.label }, { key: 'personne-cachee', label: 'Personne cachée' },
+          ], defaultChoice: 'personne-cachee', chosen: autre.id, meta: { choiceTargetId: cible.id } }],
+        },
+      },
+    };
+    const lue = lireSave(JSON.stringify(ancienne));
+    if (typeof lue === 'string') throw new Error(lue);
+    const reprise = chargerLaSave(lue).etat;
+    expect(reprise.personnesVues).toEqual({});
+    if (version === '3386ad14e6f47600') expect(reprise.pendingTest).toMatchObject({ escalade });
+    expect(reprise.pendingCascade?.participants[0]).toMatchObject({
+      options: [{ key: 'personne/0', label: autre.label }],
+      chosen: 'personne/0',
+      defaultChoice: 'personne/0',
+    });
+  });
+
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {
     const fiche = combattantDeTest({ id: 'heros-usure', kind: 'heros' });
     const banc = ouvrirLeBanc({ etat: { party: [fiche] } });

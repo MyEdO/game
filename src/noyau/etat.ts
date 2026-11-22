@@ -1,3 +1,4 @@
+import type { PlayerText } from '../i18n/playerText';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Cadence } from '../engine/cadence';
 import type { Formula } from '../engine/ops';
@@ -485,6 +486,8 @@ export interface EtatDeJeu {
   /** Brouillard de guerre : cases déjà explorées par scène (`sceneId` → clés "x,y,z"). PERSISTE entre
    *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`lancerLaScene`). */
   explored: Record<string, string[]>;
+  /** Derniers noms vus par le groupe, par scène puis par id de personne (#4017). */
+  personnesVues: Record<string, Record<string, PlayerText>>;
   /** Journal d'événements RÉCENTS (fenêtre glissante de 40, `ecrireAuJournal`) — CAMPAGNE-scopé : survit aux
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
@@ -842,6 +845,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     clotureConsommee: false,
     clues: {},
     explored: {},
+    personnesVues: {},
     journal: [],
     lignesAuJournal: 0,
     combatsOuverts: 0,
