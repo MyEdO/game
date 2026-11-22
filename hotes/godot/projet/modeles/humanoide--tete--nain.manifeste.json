@@ -1,0 +1,46 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "tete",
+  "cle": {
+    "tete": "nain"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "peau"
+    },
+    {
+      "nom": "yeux",
+      "palette": "yeux"
+    }
+  ],
+  "glb": {
+    "sha256": "1692c7cc2c5660ba8f80fc7629a6e54ee0977f69871777d7c979f1c0d3bc8b73",
+    "octets": 1427644
+  }
+}
