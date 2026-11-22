@@ -5,7 +5,7 @@
  * (`entree`), armes et armures des cases (`caseObjet`), toutes avec leur aperçu.
  */
 import * as J from '../jeu';
-import { carac, ficheDuSort, libelleDeCarac, talentsAcquis, texteDuTalent, type CharKey } from '../combat';
+import { carac, ficheDuSort, libelleDeCarac, talentsAcquis, texteDuTalent, type CharKey } from '../noyau';
 import { picto, plaque, portrait } from '../kit';
 import { CADRES, ecran } from './ecran';
 import {

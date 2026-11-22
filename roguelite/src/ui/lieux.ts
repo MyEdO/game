@@ -5,7 +5,7 @@
  * fiche : rien ne saute d'un écran à l'autre. Un écran ouvert (service, fiche) remplace la scène du lieu.
  */
 import * as J from '../jeu';
-import { ficheDuSort, nomDeCreature } from '../combat';
+import { ficheDuSort, nomDeCreature } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';

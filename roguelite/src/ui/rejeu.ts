@@ -4,7 +4,7 @@
  * la vitesse. Le combat est déjà joué : ce module ne fait que le montrer.
  */
 import type * as J from '../jeu';
-import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../combat';
+import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';

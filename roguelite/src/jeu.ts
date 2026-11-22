@@ -8,9 +8,9 @@ import {
   refusDUsage, talentDeCombat, plaiesASoigner, panserLesPlaies, opererLesBlessures, makeRNG, generateName, type RNG, nouvelleRecrue, jouerLeCombat, reposer, soigner, guerirDesSequelles, sequelles, horsDeCombat,
   nomDeCreature, nomDeCarriereDuLivre, libellesDeQualites, auHameau, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, progression,
   type ArticleDuCatalogue, type Combatant, type IssueDuCombat, type Geste, type Identite, type PoidsDArmure, type Progression,
-} from './combat';
+} from './noyau';
 
-export type { CharKey, PoidsDArmure } from './combat';
+export type { CharKey, PoidsDArmure } from './noyau';
 
 // ─── Valeurs d'adaptation ───────────────────────────────────────────────────────────────────────────────────
 

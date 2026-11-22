@@ -2,7 +2,7 @@
 // roster complet (`PROFILS`), sur plusieurs graines. Signale les impasses, les combats de moins de 5 pas et le taux de victoire.
 // Usage : npx tsx roguelite/balayage.ts <graines> [destination]
 import { DESTINATIONS, PROFILS } from './src/jeu';
-import { nouvelleRecrue, jouerLeCombat, nomDeCreature } from './src/combat';
+import { nouvelleRecrue, jouerLeCombat, nomDeCreature } from './src/noyau';
 const N = Number(process.argv[2] ?? 10);
 for (const d of DESTINATIONS.filter((x) => !process.argv[3] || x.id === process.argv[3])) {
   for (const [genre, liste] of [['meute', d.meutes], ['élite', d.elites], ['maître', [d.boss]]] as const) {

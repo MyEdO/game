@@ -5,7 +5,7 @@
  * porte son aperçu au survol (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
  */
 import * as J from '../jeu';
-import { articleDuCatalogue, encombrement, libelleDEtat, sequelles, type Combatant } from '../combat';
+import { articleDuCatalogue, encombrement, libelleDEtat, sequelles, type Combatant } from '../noyau';
 import { armeDuLibelle, buste, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
 

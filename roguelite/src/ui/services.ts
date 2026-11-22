@@ -6,7 +6,7 @@
  * ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { carac, nomDeCreature } from '../combat';
+import { carac, nomDeCreature } from '../noyau';
 import { medaillon, plaque, portrait, rond } from '../kit';
 import { CADRES, ecran } from './ecran';
 import { exigencesDuNiveau } from './fiche';
