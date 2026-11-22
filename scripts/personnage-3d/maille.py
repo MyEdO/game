@@ -15,6 +15,9 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+UV_DE_LA_BRIQUE = "uv_de_la_brique"
+"""L'attribut booléen de face d'un objet (`objet`) : vrai sur les faces dont la brique a donné les UV, qu'elles gardent
+(`poser_les_uv_en_metres`)."""
 AUTRES_AXES = np.array([[1, 2], [0, 2], [0, 1]])
 """Par axe dominant de la normale d'une face, les deux axes qui portent ses UV (`uv_cubiques`)."""
 
@@ -25,21 +28,22 @@ def tirage(graine):
 
 
 class Maille:
-    """Sommets, faces, index de matériau et UV des coins d'un objet, en coordonnées du monde."""
+    """Sommets, faces, index de matériau et UV des coins d'un objet, en coordonnées du monde ; `None` pour les UV d'une
+    face que la brique ne donne pas."""
 
     def __init__(self, materiaux):
         self.v, self.f, self.m, self.uv = [], [], [], []
         self.materiaux = materiaux
 
     def ajouter(self, sommets, faces, mat, uvs=None):
-        """`uvs` : les UV de chaque coin de chaque face, (0, 0) partout sinon."""
+        """`uvs` : les UV de chaque coin de chaque face, s'il y en a."""
         base = len(self.v)
         self.v.extend(tuple(p) for p in sommets)
         index = [m.name for m in self.materiaux].index(mat)
         for k, face in enumerate(faces):
             self.f.append([base + i for i in face])
             self.m.append(index)
-            self.uv.append(uvs[k] if uvs else [(0.0, 0.0)] * len(face))
+            self.uv.append(uvs[k] if uvs else None)
 
 
 def lineaire(table, x):
@@ -269,9 +273,9 @@ def uv_cubiques(positions, coins, debuts, totaux):
     return np.take_along_axis(p, AUTRES_AXES[np.abs(normales).argmax(axis=1)][face], axis=1)
 
 
-def poser_les_uv_en_metres(objet, blasons):
+def poser_les_uv_en_metres(objet):
     """Pose sur la première couche d'UV de `objet`, créée si absente, les UV en mètres de ses faces au repos
-    (`uv_cubiques`), hors des faces des matériaux de `blasons`, qui gardent les leurs (#4313)."""
+    (`uv_cubiques`), hors des faces dont la brique a donné les UV (`UV_DE_LA_BRIQUE`), qui gardent les leurs (#4313)."""
     me = objet.data
 
     def lire(collection, champ, largeur, type_):
@@ -281,8 +285,8 @@ def poser_les_uv_en_metres(objet, blasons):
     debuts, totaux = lire(me.polygons, "loop_start", 1, np.int64), lire(me.polygons, "loop_total", 1, np.int64)
     couche = me.uv_layers[0] if me.uv_layers else me.uv_layers.new(name="UVMap")
     uv = lire(couche.data, "uv", 2, np.float32)
-    blason = np.array([m is not None and m.name.split(".")[0] in blasons for m in me.materials] + [False])
-    garde = blason[lire(me.polygons, "material_index", 1, np.int64)][faces_des_coins(debuts, totaux)]
+    donnees = me.attributes.get(UV_DE_LA_BRIQUE)
+    garde = (lire(donnees.data, "value", 1, bool) if donnees else np.zeros(len(debuts), bool))[faces_des_coins(debuts, totaux)]
     cubiques = uv_cubiques(lire(me.vertices, "co", 3, np.float64), lire(me.loops, "vertex_index", 1, np.int64), debuts, totaux)
     uv[~garde] = cubiques[~garde]
     couche.data.foreach_set("uv", uv.ravel())
@@ -290,7 +294,8 @@ def poser_les_uv_en_metres(objet, blasons):
 
 def objet(nom, maille, origine, angle_lisse):
     """L'objet `nom`, ses sommets ramenés à `origine`, triangulé, normales extérieures, lissé par angle ; seuls les
-    matériaux que portent ses faces lui sont attachés, dans l'ordre de la maille."""
+    matériaux que portent ses faces lui sont attachés, dans l'ordre de la maille ; les faces dont la maille porte les UV
+    les gardent, marquées `UV_DE_LA_BRIQUE`, les autres sont à (0, 0)."""
     utilises = sorted(set(maille.m))
     renum = {m: i for i, m in enumerate(utilises)}
     ox, oy, oz = origine
@@ -300,8 +305,9 @@ def objet(nom, maille, origine, angle_lisse):
         poly.material_index = renum[m]
     couche = donnees.uv_layers.new(name="UVMap")
     for poly, coins in zip(donnees.polygons, maille.uv):
-        for boucle, uv in zip(poly.loop_indices, coins):
+        for boucle, uv in zip(poly.loop_indices, coins or ()):
             couche.data[boucle].uv = uv
+    donnees.attributes.new(UV_DE_LA_BRIQUE, "BOOLEAN", "FACE").data.foreach_set("value", [c is not None for c in maille.uv])
     bm = bmesh.new()
     bm.from_mesh(donnees)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)

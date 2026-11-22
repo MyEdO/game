@@ -280,8 +280,9 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   un morceau de cette apparence garde la couleur de ses sommets (#4471).
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
-  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
-  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
+  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2) ; une face garde les UV
+  que sa brique lui donne (`Maille.ajouter`, `uvs` : un blason sur le carré [0,1]², une plume le long de sa hampe),
+  toute autre reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
   `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
   à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
   la coiffure) nomme ses ids.
@@ -498,8 +499,8 @@ sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.m
 contournés. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
 `<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
 l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
-mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne, à son
-GLB local : la sortie le dit (`LOCAL`), cette construction ne s'importe pas. Exemple du manifeste qu'il écrit pour un rigide :
+mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne ou dont il prend
+un emplacement (`OFFRANT`, son manifeste lu au `<id>.element.json` posé à côté du GLB), à son GLB local : la sortie le dit (`LOCAL`), cette construction ne s'importe pas. Exemple du manifeste qu'il écrit pour un rigide :
 
 ```json
 {

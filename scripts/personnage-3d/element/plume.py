@@ -4,8 +4,8 @@ l'emplacement `cimier` (+X la gauche du personnage, +Y la verticale inclinée ve
 Chaque plume est un volume fermé le long de sa hampe (`chemin`, courbe de Catmull-Rom) : des sections en lentille de
 six points, larges des barbes et épaisses au droit de la hampe, le bord des barbes arqué vers l'arrière de la face
 (`RETOMBEE`) et alternativement avancé et reculé d'une section à la suivante (`FRANGE`) ; pied et pointe fermés en
-éventail. Le repère de la section suit la hampe par transport de la normale de la face. Toute cote vient de
-`donnees.py`.
+éventail. Le repère de la section suit la hampe par transport de la normale de la face. Ses UV, en mètres : v le long
+de la hampe, u en travers des barbes, depuis la hampe. Toute cote vient de `donnees.py`.
 """
 import numpy as np
 from maille import Maille, lineaire, objet
@@ -35,8 +35,9 @@ def plume(D, m, nom):
     centres = courbe([np.asarray(q, float) for q in p['chemin']], n)
     tangentes = np.gradient(centres, axis=0)
     tangentes /= np.linalg.norm(tangentes, axis=1, keepdims=True)
+    long = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(centres, axis=0), axis=1))])
     face = AVANT
-    sommets, faces = [], []
+    sommets, faces, uv = [], [], []
     for k, (c, T) in enumerate(zip(centres, tangentes)):
         face = face - (face @ T) * T
         face /= np.linalg.norm(face)
@@ -48,18 +49,20 @@ def plume(D, m, nom):
         for u, v in ((-1.0, -D['RETOMBEE'] * w / e), (-0.45, 0.85), (0.45, 0.85), (1.0, -D['RETOMBEE'] * w / e),
                      (0.45, -0.55), (-0.45, -0.55)):
             sommets.append(c + u * w * travers + v * e * face)
+            uv.append((u * w, long[k]))
     for k in range(n - 1):
         for i in range(COTES):
             j = (i + 1) % COTES
             faces.append([COTES * k + i, COTES * k + j, COTES * (k + 1) + j, COTES * (k + 1) + i])
     pied, pointe = len(sommets), len(sommets) + 1
-    sommets.append(centres[0] - 0.004 * tangentes[0])
-    sommets.append(centres[-1] + 0.5 * lineaire(p['largeurs'], 1.0) * tangentes[-1])
+    recul, saillie = 0.004, 0.5 * lineaire(p['largeurs'], 1.0)
+    sommets += [centres[0] - recul * tangentes[0], centres[-1] + saillie * tangentes[-1]]
+    uv += [(0.0, -recul), (0.0, long[-1] + saillie)]
     for i in range(COTES):
         j = (i + 1) % COTES
         faces.append([pied, j, i])
         faces.append([pointe, COTES * (n - 1) + i, COTES * (n - 1) + j])
-    m.ajouter(sommets, faces, p['surface'])
+    m.ajouter(sommets, faces, p['surface'], [[uv[i] for i in f] for f in faces])
 
 
 def construire(D, materiaux):

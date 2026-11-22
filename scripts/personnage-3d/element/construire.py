@@ -10,9 +10,10 @@ emprunte le squelette.
 
 `donnees.py` porte `MANIFESTE` (les champs publiés propres à l'élément : `categorie`, `cle`, `liaison`, et pour une pièce
 skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de palette, matière)}`, `habillage.py`),
-`BLASONS` s'il en a (les matériaux qui reçoivent l'emblème, qui gardent leurs UV, comme ceux d'un véhicule ; tout autre
-matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313),
-`BUDGET_TRIANGLES`, et chaque dimension nommée avec sa source. `modele.py` porte `construire`, selon la liaison :
+`BLASONS` s'il en a (les matériaux qui reçoivent l'emblème, dépliés sur le carré UV par leur brique, #3111),
+`BUDGET_TRIANGLES`, et chaque dimension nommée avec sa source. Chaque face garde les UV que sa brique lui donne
+(`maille.UV_DE_LA_BRIQUE`), toute autre s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres` (#4313).
+`modele.py` porte `construire`, selon la liaison :
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
   de base) ou de l'emplacement `EMPLACEMENT` qu'offre l'élément importé `OFFRANT` ; ils pendent à l'os de ce
   repère ;
@@ -25,8 +26,9 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
   `BUDGET_TRIANGLES`.
 
-`--local <id>=<glb>` (répétable) lit l'élément publié `<id>` (un élément contourné, ou l'élément même d'une reprise) au
-GLB local au lieu du cache épinglé (`entrees.glb_locaux`, #4338) : la construction n'est alors pas reproductible depuis le
+`--local <id>=<glb>` (répétable) lit l'élément publié `<id>` (un élément contourné, l'élément même d'une reprise, ou
+l'`OFFRANT` d'un rigide, dont le manifeste est alors le `<id>.element.json` posé à côté du GLB par `ecrire_le_dossier`)
+au GLB local au lieu du cache épinglé (`entrees.glb_locaux`, #4338) : la construction n'est alors pas reproductible depuis le
 dépôt, la sortie le dit, et elle ne s'importe pas.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
@@ -51,7 +53,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 import habillage  # noqa: E402
 import maille  # noqa: E402
 import tissu  # noqa: E402
-from entrees import glb_locaux  # noqa: E402
+from entrees import glb_locaux, ids_lus  # noqa: E402
 from glb import lire_glb  # noqa: E402
 from formes import noms_des_cles  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
@@ -144,13 +146,13 @@ def verifier_les_normales(objets):
         raise ValueError(f"coins d'un même sommet aux normales presque égales, fusion à l'export instable : {fautes}")
 
 
-def exporter(chemin, rig, objets, skinne, blasons):
+def exporter(chemin, rig, objets, skinne):
     """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`), leurs UV en mètres
-    posées hors des matériaux de `blasons` (`maille.poser_les_uv_en_metres`, #4313) ; une pièce skinnée garde ses clés, et
-    chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide (`element/lame.py`)."""
+    posées hors des faces dont la brique a donné les UV (`maille.poser_les_uv_en_metres`, #4313) ; une pièce skinnée
+    garde ses clés, et chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide (`element/lame.py`)."""
     verifier_les_normales(objets)
     for objet in objets:
-        maille.poser_les_uv_en_metres(objet, blasons)
+        maille.poser_les_uv_en_metres(objet)
     bpy.ops.object.select_all(action="DESELECT")
     rig.select_set(True)
     for objet in objets:
@@ -194,23 +196,26 @@ def triangles_de(objets, budget):
     return triangles
 
 
-def repere_de_pendaison(D, manifeste_de_base):
+def repere_de_pendaison(D, manifeste_de_base, locaux):
     """Le repère où pend un rigide (#4318) : la prise `D['PRISE']` de la base, ou l'emplacement `D['EMPLACEMENT']`
-    qu'offre l'élément importé `D['OFFRANT']`."""
+    qu'offre l'élément importé `D['OFFRANT']`, au manifeste écrit à côté de son GLB local s'il est de `locaux`
+    (`--local`)."""
     if "PRISE" in D:
         return manifeste_de_base["prises"][D["PRISE"]]
-    return lire(MODELES / f"{D['OFFRANT']}.manifeste.json")["emplacements"][D["EMPLACEMENT"]]
+    id_ = D["OFFRANT"]
+    manifeste = locaux[id_].with_name(f"{id_}.element.json") if id_ in locaux else MODELES / f"{id_}.manifeste.json"
+    return lire(manifeste)["emplacements"][D["EMPLACEMENT"]]
 
 
-def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
+def construire_rigide(D, modele, manifeste_de_base, glb_de_base, locaux, temporaire):
     """Les objets du modèle, pendus à l'os de leur repère (`repere_de_pendaison`) ; rend les octets, les champs propres
     et le compte."""
-    prise = repere_de_pendaison(D, manifeste_de_base)
+    prise = repere_de_pendaison(D, manifeste_de_base, locaux)
     rig = armature_au_repos(glb_de_base)
     objets = modele.construire(D, habillage.materiaux(D["MATERIAUX"]))
     triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
     attache = pendre(objets, rig, prise)
-    octets = exporter(temporaire, rig, objets, skinne=False, blasons=D.get("BLASONS", ()))
+    octets = exporter(temporaire, rig, objets, skinne=False)
     verifier_la_pendaison(temporaire, prise["os"], attache)
     return octets, objets, {}, triangles
 
@@ -227,7 +232,7 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_,
         piece = modele.construire(D, materiaux, base)
         triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
         objets = base.decouper_par_zone(piece)
-    octets = exporter(temporaire, base.rig, objets, skinne=True, blasons=D.get("BLASONS", ()))
+    octets = exporter(temporaire, base.rig, objets, skinne=True)
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
     de_la_base = set(manifeste_de_base["silhouettes"])
     siennes = list(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)
@@ -255,13 +260,14 @@ def main():
     sortie = dossier_de_sortie(args.sortie)
     id_ = identifiant(base, M)
     try:
-        locaux = glb_locaux(args.local, {*D.get("CONTOURNE", {}).values(), *([id_] if hasattr(modele, "reprendre") else [])})
+        locaux = glb_locaux(args.local, {*ids_lus(ICI / base / dossier / "donnees.py"),
+                                         *([id_] if hasattr(modele, "reprendre") else [])})
     except ValueError as erreur:
         p.error(str(erreur))
     temporaire = sortie / f"{id_}.tmp.glb"
     mode = M["liaison"]["mode"]
     if mode == "rigide":
-        octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire)
+        octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, locaux, temporaire)
     elif mode in ("squelette", "surface"):
         octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base,
                                                                   lambda i: locaux.get(i) or epingle(i, args.cache), id_, temporaire)

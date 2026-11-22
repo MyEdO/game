@@ -76,7 +76,7 @@ def champ(m, C, cu, cw, yc):
     def face(q, mat, uv=None):
         m.f.append(q)
         m.m.append(noms.index(mat))
-        m.uv.append(uv or [(0.0, 0.0)] * len(q))
+        m.uv.append(uv)
 
     # Sur chaque face, la grille 4 × 4 (h, r) ; sa case du milieu est le cartouche.
     debuts = {}
