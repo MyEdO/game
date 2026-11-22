@@ -103,6 +103,7 @@ import { drainPendingLog } from './combatEffects';
 import { stepDetail, stepPrecision } from './rollSeam';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 import type { Jeu } from './etat';
+import { nomDe } from '../engine/nom';
 
 /** SPÉCIALISATIONS de Métier lues par la réparation de bateau (l.107-117) — ids STABLES de
  *  `skills.json`, JAMAIS des libellés : `testValue` compare `s.spec === spec` à l'ID que porte
@@ -931,7 +932,7 @@ const APPLIERS = {
   fleuveReparationDeCommande: (get, set, step, hero) => {
     if (!step.result) return;
     if (step.result.success) set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, broken: false, horsDeControle: false } } });
-    const name = garanti(hero, step.actorId, 'charpentier').label;
+    const name = nomDe(garanti(hero, step.actorId, 'charpentier'));
     return { consequences: freeCons([step.result.success
       ? { text: t('fleuve.reparationReussie', { name }), tone: 'reussite' }
       : { text: t('fleuve.reparationRatee', { name }), tone: 'echec' }]) };
@@ -944,7 +945,7 @@ const APPLIERS = {
     if (!kept) patchDay(get, set, { forceDrift: true });
     const savoirNote = savoir > 0 ? t('fleuve.fragmentDeSavoir', { n: savoir }) : '';
     return { consequences: freeCons([{
-      text: t('fleuve.ligneDeNavigation', { who: garanti(hero, step.actorId, 'pilote').label, savoir: savoirNote, issue: controlLabel(kept, step.result.success) }),
+      text: t('fleuve.ligneDeNavigation', { who: nomDe(garanti(hero, step.actorId, 'pilote')), savoir: savoirNote, issue: controlLabel(kept, step.result.success) }),
       tone: step.result.success ? 'reussite' : kept ? 'neutre' : 'echec',
     }]) };
   },
@@ -1104,7 +1105,7 @@ const APPLIERS = {
   fleuveReparationDeBreche: (get, set, step, hero) => {
     if (!step.result) return;
     const plan = get().travelPlan!;
-    const name = garanti(hero, step.actorId, 'charpentier').label;
+    const name = nomDe(garanti(hero, step.actorId, 'charpentier'));
     if (step.result.success) {
       const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, tirer(TEMPORARY_REPAIR.woundsPerRepair, battleRng()));
       healVesselHull(get, set, plan.vehicle!, healed);
@@ -1139,7 +1140,7 @@ const APPLIERS = {
   /** Renflouage INFLUENÇABLE (#270, Force) — MÊME issue que `applyEchouage`, jet différé. */
   fleuveEchouageForce: (_get, _set, step, hero) => {
     if (!step.result) return;
-    const name = garanti(hero, step.actorId, 'renfloueur').label;
+    const name = nomDe(garanti(hero, step.actorId, 'renfloueur'));
     return { consequences: freeCons([step.result.success
       ? { text: t('fleuve.remisAFlot', { name }), tone: 'reussite' }
       : { text: t('fleuve.pasRemisAFlot', { name }), tone: 'echec' }]) };

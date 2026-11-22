@@ -24,6 +24,7 @@ import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
 import { idDEtiquetteDObjet } from '../lib/entityId';
+import { nomDe } from '../engine/nom';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -143,7 +144,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
-    expect(banc.getState().journal).toContain(t('out.cibleGrip', { name: h.label, psych: psychologyLabel('animosite') }));
+    expect(banc.getState().journal).toContain(t('out.cibleGrip', { name: nomDe(h), psych: psychologyLabel('animosite') }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -157,7 +158,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
     expect(hero.resilience).toBe(0);
-    expect(banc.getState().journal).toContain(t('out.cibleMaster', { name: h.label, psych: psychologyLabel('animosite') }));
+    expect(banc.getState().journal).toContain(t('out.cibleMaster', { name: nomDe(h), psych: psychologyLabel('animosite') }));
   });
 
   it('Détermination = immunité temporaire (LDB 17 l.59) : psychImmuneRoundsLeft posé, animosité inerte (≈ succès one-shot), -1 Détermination', () => {

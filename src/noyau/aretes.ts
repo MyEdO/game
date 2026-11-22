@@ -41,6 +41,8 @@ import { inBattleId } from './monde/combatants';
 import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import type { Pt } from './monde/path';
 import type { BattleState } from './etat';
+import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Ce qu'une arête OFFRE. Identité STABLE (le libellé est de l'affichage). */
 export type CapaciteArete = 'structure' | 'chute' | 'fenetre' | 'escalade' | 'porte';
@@ -87,7 +89,7 @@ export interface AreteUtilisable {
   /** Largeur pleine du trait de prise, en pixels (`LARGEUR_PRISE_ARETE`). */
   largeurPrise: number;
   /** Texte JOUEUR déjà résolu. */
-  libelle: string;
+  libelle: PlayerText;
   /** Combattant-structure visé par le geste de siège (`cliquerLaCase`). */
   cid?: string;
   /** Accès de pièce que le geste FRANCHIT (ouvrir la porte, marcher jusqu'à `to`) — jumeau de `cid`
@@ -142,7 +144,7 @@ export function caseOpposee(arete: AreteUtilisable): Pt {
  * Libellé JOUEUR d'un accès de pièce — SOURCE UNIQUE, celle que le peintre affiche en `aria-label` et
  * en `<title>` : six formes selon la nature de l'accès et le sens du franchissement.
  */
-export const libellePortail = (portal: RoomPortal): string =>
+export const libellePortail = (portal: RoomPortal): PlayerText =>
   (portal.kind === 'door-closed'
     ? portal.exterior ? t('arete.porteExterieureFermee') : t('arete.porteFermee')
     : portal.exterior
@@ -287,7 +289,7 @@ function structures(ctx: ContexteAretes): AreteUtilisable[] {
       capacite: 'structure',
       ancrage: { x: w.x, y: w.y, z },
       largeurPrise: LARGEUR_PRISE_ARETE.structure,
-      libelle: sc.label,
+      libelle: nomDe(sc),
       cid,
     });
   }

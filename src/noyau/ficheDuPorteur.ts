@@ -11,7 +11,12 @@ import type { Jeu } from './etat';
 import { porteurParId, rencontreEngagee } from './monde/combatants';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ficheDuPersonnage, nomDIndividu } from './monde/sceneNpc';
-import { entiteConnue } from './visionDuGroupe';
+import { nomDe } from '../engine/nom';
+import { garanti } from '../lib/garanti';
+import {
+  entiteConnue,
+  nomEnVue,
+} from './visionDuGroupe';
 import type { NomDIndividu } from '../engine/psych/ciblage';
 import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant } from '../engine/types';
 import { effectiveArmourAt, effectiveChar, forceDuPorteur } from '../engine/characteristics';
@@ -45,6 +50,7 @@ import {
 } from '../data';
 import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
 import { cibleDuCodex, type CibleDuCompendium } from './codex/registry';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Une Caractéristique : son abréviation, son nom, sa valeur effective (`effectiveChar`). */
 export interface CaracteristiqueDeLaFiche { cle: CharKey; abrege: string; libelle: string; valeur: number }
@@ -89,7 +95,7 @@ export interface MentionsDeLaFiche { nature: NatureDeMention; titre: string; men
 /** La fiche d'un porteur. */
 export interface FicheDuPorteur {
   id: string;
-  nom: string;
+  nom: PlayerText;
   espece: Renvoyable | null;
   carriere: Renvoyable | null;
   blessures: [courant: number, max: number];
@@ -149,10 +155,10 @@ export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'carriere' | 'bl
 /** Le combattant `c` s'il a une fiche : une coque (navire, engin) n'a pas de profil de personnage. */
 const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicle(c) && !isEngin(c);
 
-/** L'en-tête de la fiche du combattant `c`, lu sur lui. */
-const enTeteDuCombattant = (c: Combatant): EnTeteDeFiche => ({
+/** L'en-tête de la fiche du combattant `c`, lu sur lui, sous le nom `nom`. */
+const enTeteDuCombattant = (c: Combatant, nom: PlayerText): EnTeteDeFiche => ({
   id: c.id,
-  nom: c.label,
+  nom,
   carriere: c.career ? instance('careers', c.career, careerLabelFor(c)) : null,
   blessures: [c.wounds.current, c.wounds.max],
   etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
@@ -175,7 +181,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
 /** L'en-tête de la fiche du porteur `id`, au domaine de `ficheDuPorteur` : `null` sans lui ou pour une coque. PUR. */
 export function enTeteDuPorteur(s: Jeu, id: string): EnTeteDeFiche | null {
   const c = porteurDeLaFiche(s, id);
-  return aUneFiche(c) ? enTeteDuCombattant(c) : null;
+  return aUneFiche(c) ? enTeteDuCombattant(c, garanti(nomEnVue(s, id), id, 'porteur de la fiche')) : null;
 }
 
 /** La fiche du combattant `c`, les individus que nomment ses Traits par `nom` ; `null` pour une coque (`aUneFiche`). PUR. */
@@ -198,7 +204,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   const creature = c.porteurDeFiche?.ref === undefined ? undefined : findCreatureById(c.porteurDeFiche.ref);
   const espece = findSpeciesById(c.species);
   return {
-    ...enTeteDuCombattant(c),
+    ...enTeteDuCombattant(c, nomDe(c)),
     espece: espece ? renvoyable('races', espece.id, espece.label) : null,
     destin: c.fate ?? null,
     chance: c.fortune ?? null,

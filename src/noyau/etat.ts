@@ -341,7 +341,7 @@ export interface CampaignVessel {
   crewLost?: number;
   /** L'équipage PNJ, un porteur de maladies collectif lu et écrit par `porteursABord`.
    *  LDB 20 l.127-129 ; MDG 14 l.172, l.208-209, l.230-232 */
-  porteurDeLEquipage?: Omit<import('../engine/disease').PorteurDeMaladies, 'label'>;
+  porteurDeLEquipage?: import('../engine/disease').MaladiesDuPorteur;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];

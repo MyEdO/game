@@ -9,6 +9,7 @@ import { structureIsDown, structureDownKey } from './monde/scene';
 import type { Scene } from './monde/scene';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -118,7 +119,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const resolved = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!;
       expect(resolved.outOfRencontre).toBe(true);
       expect(resolved.exitReason).toBe('repousse');
-      expect(banc.getState().battle!.log.some((e) => e.text === t('cf.repousse', { name: resolved.label }))).toBe(true);
+      expect(banc.getState().battle!.log.some((e) => e.text === t('cf.repousse', { name: nomDe(resolved) }))).toBe(true);
     });
 
     it("seuil ATTEINT (Blessures = atOrBelowPercent%) → la cible sort (MDG 15 l.143 « tombe à la moitié »)", () => {

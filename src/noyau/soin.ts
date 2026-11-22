@@ -20,6 +20,7 @@ import { libelleDeTest } from './jetsEnVue';
 import { libelleDuReglage } from './libelles';
 import { garanti } from '../lib/garanti';
 import { refusDeLActeALInfirmerie } from './acteDeSoin';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 
 /** Les paramètres déclarés du soin `ph`, que l'annonce et le résolveur lisent tous deux. */
 export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): ParametresDeSoin => ({ test: ph.test, bandages: ph.bandagesDe != null });
@@ -43,7 +44,7 @@ export function refusDesBandages(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'
   if (porteurId == null) return ph.test === 'dexterite' ? t('heal.bandagesConditionDeLaDexterite') : null;
   if (!actePanse(ph.mode)) return t('heal.bandagesSansEffet');
   const porteur = actorIn(s as Jeu, porteurId);
-  return porteur && porteDesBandages(porteur) ? null : t('heal.bandagesAbsents', { name: porteur?.label ?? porteurId });
+  return porteur && porteDesBandages(porteur) ? null : t('heal.bandagesAbsents', { name: nomOuAbsence(porteur, 'combattant', porteurId) });
 }
 
 /** Pourquoi le Test `test` est refusé au soin en cours, `null` s'il s'offre. VERDICT UNIQUE du réglage `soins.test` et de la fenêtre. */
@@ -86,7 +87,7 @@ export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<Hea
       geste: gesteDuReglage('soins', 'bandages'), libelle: libelleDuReglage('soins', 'bandages'), choisie: ph.bandagesDe,
       options: [
         { valeur: null, libelle: t('heal.sansBandages'), refus: ph.bandagesDe == null ? null : refusDesBandages(s, null) },
-        ...porteurs.map((c) => ({ valeur: c.id, libelle: t('heal.bandagesDe', { name: c.label }), refus: c.id === ph.bandagesDe ? null : refusDesBandages(s, c.id) })),
+        ...porteurs.map((c) => ({ valeur: c.id, libelle: t('heal.bandagesDe', { name: nomDe(c) }), refus: c.id === ph.bandagesDe ? null : refusDesBandages(s, c.id) })),
       ],
     } : null,
   };

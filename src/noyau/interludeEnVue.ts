@@ -23,6 +23,8 @@ import { fenetreDuJeu } from './combatAuto';
 import { libelleDuChoix } from './libelles';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
+import { nomEnVue } from './visionDuGroupe';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Un geste d'interlude : son nom, le verbe qui le joue, et pourquoi il ne se joue pas maintenant (`null` s'il se joue). */
 export interface GesteDInterlude { libelle: string; geste: GesteDuNoyau; refus: string | null }
@@ -49,7 +51,7 @@ export interface DepotAFaire { geste: GesteDuNoyau; refus: string | null; genres
  *  cibles, l'Événement de sa période (`null` tant que son dé n'est pas tombé), les choix de l'Activité qu'il compose et
  *  sa pratique (`null` : il n'en compose aucune), ses Activités jouées par leur verbe, et son dépôt en banque. */
 export interface HerosDInterlude {
-  id: string; nom: string; restantes: number; recues: number; px: number; bourse: string; evenement: string | null;
+  id: string; nom: PlayerText; restantes: number; recues: number; px: number; bourse: string; evenement: string | null;
   composition: ChoixDInterlude[]; pratiquer: GesteDInterlude | null; activites: ActiviteEnVue[]; depot: DepotAFaire;
 }
 
@@ -114,8 +116,8 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
 }
 
 /** Le libellé d'un dépôt : son héros, son genre et son montant, et ce que rend un investissement. */
-export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank']>[number]): string {
-  const heros = garanti(s.party.find((h) => h.id === d.heroId), d.heroId, 'héros du dépôt').label;
+export function libelleDuDepot(s: Jeu, d: NonNullable<Etat['bank']>[number]): string {
+  const heros = garanti(nomEnVue(s, d.heroId), d.heroId, 'héros du dépôt');
   const montant = formatMoney(fromBrass(d.brass));
   return d.kind === 'investir'
     ? t('interlude.depot.investir', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('investir', d.brass, d.rate))), indice: d.rate })
@@ -132,7 +134,7 @@ export function interludeEnVue(s: Jeu): InterludeEnVue | null {
     heros: s.party.filter((h) => !h.dead && itl.perHero[h.id]).map((h) => {
       const st = itl.perHero[h.id];
       return {
-        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st),
+        id: h.id, nom: garanti(nomEnVue(s, h.id), h.id, 'héros de l’interlude'), restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st),
         ...compositionDuHeros(s, h), activites: activitesDuHeros(s, h), depot: depotDuHeros(s, h),
       };
     }),
