@@ -213,7 +213,8 @@
 // - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie
 //   en tête du panneau, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
 //   montée dans la scène ou nommée manquante ; la fusion porte la pile des couches (#3842), au bilan de l'évaluateur
-//   sur les mêmes éléments et les mêmes formes ; puis capturé de face, de trois quarts et de dos (glissés au bouton
+//   sur les mêmes éléments et les mêmes formes ; avec `--instant <s>`, posé au clip `--clip` à cet instant, en pause
+//   (onglet Animation, image par image) ; puis capturé de face, de trois quarts, de profil et de dos (glissés au bouton
 //   droit de l'orbite) : ce que le jeu montrera d'un preset.
 // - `vision` (`--scenario grimpant`, #3950) : la fenêtre du round à l'Entrée, l'ennemi en vue a son corps posé et son
 //   rang dans l'ordre du tour ; sous chaque regard que la touche V offre au combat (tactique et plateau, `regardDuJeu`
@@ -260,7 +261,7 @@
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --piece <production skinnée>
-//   node hotes/godot/recette.mjs --parcours preset --preset sorcier --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours preset --preset sorcier [--clip <clip> --instant <s>] --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours bord --scenario a-bord-de-la-caraque --web <export> --captures <dossier>
 //     --route <route.json de hotes/godot/recettes/route-a-bord.hors-store.test.ts>
 /**
@@ -310,7 +311,7 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
 })
 const preparation = o['preparation-native']
 if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
@@ -321,6 +322,7 @@ if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages a
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
+if (o.instant !== undefined && (o.parcours !== 'preset' || !Number.isFinite(Number(o.instant)) || Number(o.instant) < 0)) throw new Error('--instant <secondes> va avec --parcours preset, qui pose le clip --clip à cet instant')
 if ((o.parcours === 'planche') !== !!o.planche) throw new Error('--parcours planche va avec --planche <nom d’une planche>, et --planche avec lui seul')
 if (o.planche && !o.natif) throw new Error('--planche se joue en natif (--natif) : à la page, une planche se montre au banc des étalons (etalons.mjs)')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -4262,8 +4264,8 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-/** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, puis dos. */
-const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['dos', Math.PI]]
+/** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, profil, puis dos. */
+const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['profil', -Math.PI / 2], ['dos', Math.PI]]
 /** Chaque élément de la composition (`composition.montes`) monté dans la scène (`montes` et `lignes` de l'atelier), ses
  *  GLB lus : une capture plus tôt montre les premiers objets seuls. */
 const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.element).map((m) => m.element).sort())
@@ -4299,9 +4301,31 @@ async function prouverLaPile() {
   assert.ok(mesures.pile.couverts > 0 && mesures.pile.masques > 0, 'la tenue du preset empile des couches')
 }
 
-/** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts et de dos :
- *  sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion porte la pile
- *  des couches de l'évaluateur (`prouverLaPile`). */
+/** Le clip `clip` posé en pause à l'instant `instant` (s) : choisi à l'onglet Animation, mis en pause, puis avancé
+ *  image par image jusqu'à l'image la plus proche, le clip bouclé. Rend l'instant posé. */
+async function poserLInstant(clip, instant) {
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', clip)
+  await attendreLAtelier(`a.clip === ${JSON.stringify(clip)} && a.lecture`)
+  await cliquerAmene('Pause', 1)
+  await attendreLAtelier('a.lecture === false')
+  const { duree } = await atelier()
+  assert.ok(instant <= duree, `--instant ${instant} : au plus la durée du clip ${clip}, ${duree} s`)
+  const tour = (ecart) => ((ecart % duree) + duree) % duree
+  const suivante = async () => { await cliquerAmene('Image suivante', 1); return (await atelier()).instant }
+  const depart = (await atelier()).instant
+  let posee = await suivante()
+  const pas = tour(posee - depart)
+  assert.ok(pas > 0, `l'image suivante avance le clip ${clip} : ${depart} → ${posee}`)
+  while (tour(instant - posee) >= pas / 2 && tour(instant - posee) <= duree - pas / 2) posee = await suivante()
+  noter(`${clip} posé à ${posee} s (demandé ${instant} s)`)
+  return posee
+}
+
+/** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts, de profil
+ *  et de dos : sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion
+ *  porte la pile des couches de l'évaluateur (`prouverLaPile`) ; avec `--instant`, posé au clip `--clip` à cet instant
+ *  (`poserLInstant`). */
 async function parcoursPreset() {
   const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
   assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
@@ -4318,13 +4342,14 @@ async function parcoursPreset() {
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
   await prouverLaPile()
+  const pose = o.instant === undefined ? '' : `-${o.clip}-${(await poserLInstant(o.clip, Number(o.instant))).toFixed(2)}s`
   let lacet = 0
   for (const [nom, cible] of VUES_DU_PRESET) {
     const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)
     const pas = Math.ceil(Math.abs(dx) / 10)
     if (dx) await geste(session, { surface: 'canvas', x: 1000, y: 360 }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
     lacet = cible
-    await capturer(`preset-${preset.id}-${nom}`)
+    await capturer(`preset-${preset.id}${pose}-${nom}`)
   }
 }
 

@@ -327,7 +327,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
-  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle), ...gardeRigideRangeAuRepos(rigidesPercesAuRepos, libelle));
+  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
+  ecarts.push(...gardeRigideRangeAuRepos(rigidesPercesAuRepos, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {

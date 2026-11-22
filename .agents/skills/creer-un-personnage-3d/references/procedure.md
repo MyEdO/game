@@ -381,7 +381,8 @@ arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un ob
 la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
 de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
 la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
-pièce qui offre sa case. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
+pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe. Une pose isolée se demande à
+`node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
 chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
@@ -614,10 +615,10 @@ retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON V
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
-Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : l'export Web
-(`node hotes/godot/construire.mjs --export --sortie <web>`, après `--sonde` verte) puis la capture du preset dans
-l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <web> --captures <dossier>`, face,
-trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
+Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : la capture du preset
+dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, sous
+`dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
+côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
 Un modèle sans base (véhicule, décor, arête) se regarde dans Godot par les mêmes outils, une fois importé au dossier
