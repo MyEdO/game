@@ -494,7 +494,7 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
       'albatre', 'feuillage', 'bois-mort', 'os', 'sang-repandu', 'eau-dormante', 'paille', 'toile-ecrue',
       'toile-chaos', 'pierre-chaos', 'rune-chaos', 'ombre', 'terre-battue', 'roseau', 'soie', 'ecaille',
       'chapeau-rouge', 'drap-terne', 'peau-morte', 'corde', 'cuir-tanne',
-      'laine', 'fourrure', 'acier-battu', 'mailles', 'verre', 'papier', 'cire', 'cire-a-cacheter', 'terre-cuite',
+      'laine', 'fourrure', 'acier-battu', 'mailles', 'verre', 'papier', 'cire', 'cire-a-cacheter', 'encre-noire', 'terre-cuite',
       'chitine', 'petale', 'toile-peinte', 'crin', 'corne', 'chevelure', 'chair-champignon', 'massette',
       'ecorce', 'ecorce-hetre', 'ecorce-pin',
       'cuivre', 'bronze-patine', 'or-fin', 'plume', 'osier', 'emaille', 'velours',

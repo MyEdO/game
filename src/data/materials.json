@@ -324,6 +324,15 @@
     "metalness": 0
   },
   {
+    "id": "encre-noire",
+    "type": "materials",
+    "label": "Encre noire",
+    "domain": "prop",
+    "color": "#1a140e",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
     "id": "terre-cuite",
     "type": "materials",
     "label": "Terre cuite",
