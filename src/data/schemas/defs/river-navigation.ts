@@ -56,11 +56,11 @@ const champs = {
   }),
   horsDeControle: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
   echouage: nommerChamps(z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }), { hullDamage: { label: 'Dégâts de coque' }, source: { label: 'Source' } }),
+  /** MSRC 7 l.109-111 */
   permanentRepairCarpenterPenalty: z.int().nonpositive(),
   permanentRepairGoldPerDamage: z.int().positive(),
   permanentRepairWounds: tirageSchema,
   permanentRepairHours: tirageSchema,
-  permanentRepairSource: sourceRefSchema,
   temporaryRepair: nommerChamps(z.strictObject({
     woundsPerRepair: tirageSchema,
     enduranceDifficulty: difficultySchema,
@@ -100,7 +100,6 @@ const doc = document(
     permanentRepairGoldPerDamage: { label: 'Couronnes d’or par Dégât restauré en cale sèche' },
     permanentRepairWounds: { label: 'Dégâts restaurés par Test réussi en cale sèche' },
     permanentRepairHours: { label: 'Heures par Test réussi en cale sèche' },
-    permanentRepairSource: { label: 'Source de la réparation en cale sèche' },
     temporaryRepair: { label: 'Réparation temporaire', hint: 'Blessures réparées par Test, Test d’Endurance de suivi' },
   },
   { codex: { keys: ['riverNavigation'] }, edit: { object: 'unique' } },

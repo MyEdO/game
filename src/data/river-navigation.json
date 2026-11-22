@@ -211,11 +211,6 @@
       "sides": 10
     }
   },
-  "permanentRepairSource": {
-    "book": "mort-sur-le-reik-compagnon",
-    "page": 30,
-    "note": "MSRC 7 l.109-111"
-  },
   "temporaryRepair": {
     "woundsPerRepair": {
       "dice": {

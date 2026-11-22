@@ -66,7 +66,7 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
-  it('relit la carte et la coque sauvegardées avant les données d’amarrage', () => {
+  it('réserve la reprise de la carte et de la coque à la transition de l’amarrage', () => {
     const etat: EtatDeJeu = {
       ...etatInitialDuJeu(),
       lieu: 'quai',
@@ -81,11 +81,14 @@ describe('lireSave — format courant', () => {
       },
     };
     const courante = snapshotSave(etat, '2026-11-22T06:30:00.000Z');
-    const ancienne = { ...courante, version: 'e8e579742f3dbb30' };
+    const ancienne = { ...courante, version: '3bdb6fe66470f1fe' };
     const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
     onTestFinished(() => migrerLesCouleurs.mockRestore());
 
-    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(courante);
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(
+      courante.version === '8f9224af02d1831d' ? courante : 'autreFormat',
+    );
+    expect(lireSave(exporterLaSauvegarde({ ...ancienne, version: 'e8e579742f3dbb30' }))).toBe('autreFormat');
 
     const carte = etat.worldMap!;
     const avecCale = snapshotSave({

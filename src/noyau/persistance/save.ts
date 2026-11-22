@@ -130,8 +130,8 @@ const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
 };
 /** #4435 */
 const TRANSITION_DE_L_AMARRAGE = {
-  avant: 'e8e579742f3dbb30',
-  apres: '20444e3bbb90f739',
+  avant: '3bdb6fe66470f1fe',
+  apres: '8f9224af02d1831d',
 };
 const FORMAT_AVANT_L_AMARRAGE = FORMAT_SAVE === TRANSITION_DE_L_AMARRAGE.apres
   ? TRANSITION_DE_L_AMARRAGE.avant : FORMAT_SAVE;
