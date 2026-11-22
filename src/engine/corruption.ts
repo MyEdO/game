@@ -27,7 +27,6 @@ import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import { traitOctroye } from './psych/opsPsy';
 import { identiteDeCiblage } from './psych/ciblage';
-import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
@@ -144,7 +143,7 @@ export function mutationLimitExceeded(c: Combatant): boolean {
 
 /** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +
  *  `passiveCharSum`, hors pool volatil) : `max(mod, min(0, plancher − base))`, jamais positif. EDO 11 l.190 ; #1853. */
-function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
+function resoudrePlancher(c: Combatant, op: NonNullable<Mutation['passive']>[number]): NonNullable<Mutation['passive']>[number] {
   if (op.op !== 'charMod' || op.min == null) return op;
   const { min, ...fige } = op;
   const base = c.characteristics[op.characteristic] + passiveCharSum(c, op.characteristic);

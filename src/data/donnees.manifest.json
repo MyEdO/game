@@ -237,7 +237,7 @@
           "files": [
             "tables.json"
           ],
-          "desc": "Tables d'effets `[min,max] → GameOp[]` référencées par l'op `rollTable` (`tableId`) — Tableau des aspects démoniaques (Allure démoniaque, EDOC 13) par Domaine du Chaos"
+          "desc": "Tables d'effets `[min,max] → GameOp[]` référencées par l'op `rollTable` (`table: { id }`) — Tableau des aspects démoniaques (Allure démoniaque, EDOC 13) par Domaine du Chaos"
         },
         {
           "files": [

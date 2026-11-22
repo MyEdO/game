@@ -113,7 +113,7 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
   });
 
   it("affects has trait : seul le porteur du trait reçoit l'effet (forme non-camp — généralité du vocabulaire Condition)", () => {
-    setTarget({ ...AREA, affects: { kind: 'has', who: 'target', what: 'trait', value: 'amphibie' } });
+    setTarget({ ...AREA, affects: { kind: 'has', who: 'target', what: 'trait', ref: { id: 'amphibie' } } });
     const c = caster(5, 5, SPELL);
     setupBattle(c, [mk('PORTEUR', 'heros', 6, 5, [{ id: 'amphibie' }]), mk('SANS-TRAIT', 'heros', 4, 5), distantFoe()], SPELL);
     cast();

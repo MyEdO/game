@@ -4,12 +4,14 @@ import { applyOps } from './ops';
 import { removeActiveEffects } from './conditions';
 import { attachMutation } from './corruption';
 import { rollMutation } from '../data/mutations';
+import { effectTables, mutationTables } from '../data';
+import { setDataset } from '../data/overrides';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
- * Op `rollTable` variante `tableId` (dé-stub Allure démoniaque, EDOC 13) + multiplicité `extraRollsPerStep`
+ * Op `rollTable` variante `table` (dé-stub Allure démoniaque, EDOC 13) + multiplicité `extraRollsPerStep`
  * (couplée au PAS de Surincantation alloué à la Durée, `ctx.overcastDurationSteps` — EDOC 13 l.270-276,
  * « pour chaque +2 DR, vous pouvez à la fois prolonger la durée et refaire un jet ») + op `rollMutation`
  * (mutation PERMANENTE). Résolution de table via `tables.json` (`findEffectTableById`, fail-fast), lookup
@@ -27,10 +29,10 @@ const dummy = (p: Partial<Combatant> = {}): Combatant =>
 /** RNG figé au dé `n` (int() renvoie `n`, tous appels). */
 const fixed = deFixe;
 
-describe('op rollTable — variante tableId (tables.json)', () => {
+describe('op rollTable — variante table (tables.json)', () => {
   it('résout la table référencée et applique les ops de la rangée (Nurgle 3 = Démoniaque (7))', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }], { idNeuf: idsDeTest, rng: fixed(3), defaultDurationRounds: 5 });
+    applyOps(c, [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(3), defaultDurationRounds: 5 });
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff).toHaveLength(1);
     expect(eff[0].grantedTrait!.id).toBe('demoniaque');
@@ -39,28 +41,37 @@ describe('op rollTable — variante tableId (tables.json)', () => {
     expect((c.traits ?? []).some((t) => t.id === 'demoniaque')).toBe(true);
   });
 
-  it('tableId inconnu → fail-fast (jamais un tirage silencieux)', () => {
-    expect(() => applyOps(dummy(), [{ op: 'rollTable', tableId: 'inexistante' }], { idNeuf: idsDeTest, rng: fixed(1) })).toThrow(/introuvable/i);
+  it('une table référencée absente du catalogue vivant est nommée à l’exécution', () => {
+    const id = 'allure-demoniaque-nurgle';
+    const catalogue = effectTables.slice();
+    expect(catalogue.some((table) => table.id === id)).toBe(true);
+    setDataset('effectTables', catalogue.filter((table) => table.id !== id));
+    try {
+      expect(() => applyOps(dummy(), [{ op: 'rollTable', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }))
+        .toThrow(/table d'effets « allure-demoniaque-nurgle » introuvable/);
+    } finally {
+      setDataset('effectTables', catalogue);
+    }
   });
 
   it('extraRollsPerStep : 1 jet + N par pas de Surincantation Durée (EDOC 13 l.270-276)', () => {
     const roll = (overcastDurationSteps: number, perStep: number) => {
       const c = dummy();
-      applyOps(c, [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle', extraRollsPerStep: perStep }], { idNeuf: idsDeTest, rng: fixed(3), overcastDurationSteps, defaultDurationRounds: 3 });
+      applyOps(c, [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' }, extraRollsPerStep: perStep }], { idNeuf: idsDeTest, rng: fixed(3), overcastDurationSteps, defaultDurationRounds: 3 });
       return (c.activeEffects ?? []).filter((e) => e.grantedTrait).length;
     };
     expect(roll(0, 1)).toBe(1); // 0 pas de Durée → 1 seul jet
     expect(roll(1, 1)).toBe(2); // 1 pas → +1 jet
     expect(roll(2, 1)).toBe(3); // 2 pas → +2 jets (RAW « à la fois prolonger la durée et refaire un jet »)
     const c = dummy();
-    applyOps(c, [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle', extraRollsPerStep: 1 }], { idNeuf: idsDeTest, rng: fixed(3), defaultDurationRounds: 3 }); // ctx sans overcastDurationSteps ≡ 0
+    applyOps(c, [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' }, extraRollsPerStep: 1 }], { idNeuf: idsDeTest, rng: fixed(3), defaultDurationRounds: 3 }); // ctx sans overcastDurationSteps ≡ 0
     expect((c.activeEffects ?? []).filter((e) => e.grantedTrait)).toHaveLength(1);
   });
 
   it('chosenTableRolls DÉCLINE le jet (EDOC 13 l.276 « vous pouvez ») sans jamais dépasser les pas alloués', () => {
     const roll = (overcastDurationSteps: number, chosenTableRolls: number | undefined) => {
       const c = dummy();
-      applyOps(c, [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle', extraRollsPerStep: 1 }], { idNeuf: idsDeTest, rng: fixed(3), overcastDurationSteps, chosenTableRolls, defaultDurationRounds: 3 });
+      applyOps(c, [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' }, extraRollsPerStep: 1 }], { idNeuf: idsDeTest, rng: fixed(3), overcastDurationSteps, chosenTableRolls, defaultDurationRounds: 3 });
       return (c.activeEffects ?? []).filter((e) => e.grantedTrait).length;
     };
     expect(roll(2, undefined)).toBe(3); // chosen absent = tous les pas (comportement actuel/IA)
@@ -73,7 +84,7 @@ describe('op rollTable — variante tableId (tables.json)', () => {
   it('addNegativeSL décale le jet vers le bas de |DR| (parité avec la forme inline)', () => {
     // die=3, |DR|=3 → lookup à 6 (Nurgle 6 = Peur (3))
     const c = dummy();
-    applyOps(c, [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle', addNegativeSL: true }], { idNeuf: idsDeTest, rng: fixed(3), sl: -3 });
+    applyOps(c, [{ op: 'rollTable', table: { id: 'allure-demoniaque-nurgle' }, addNegativeSL: true }], { idNeuf: idsDeTest, rng: fixed(3), sl: -3 });
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff[0].grantedTrait!.id).toBe('peur');
     expect(eff[0].grantedTrait!.value).toBe(3);
@@ -115,8 +126,17 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false);
   });
 
-  it('table de mutation inconnue → fail-fast', () => {
-    expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: { id: 'inexistante' } }], { idNeuf: idsDeTest, rng: fixed(1) })).toThrow(/introuvable/i);
+  it('une table de mutation référencée absente du catalogue vivant est nommée à l’exécution', () => {
+    const id = 'edoc-phys-nurgle';
+    const catalogue = mutationTables.slice();
+    expect(catalogue.some((table) => table.id === id)).toBe(true);
+    setDataset('mutationTables', catalogue.filter((table) => table.id !== id));
+    try {
+      expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }))
+        .toThrow(/table « edoc-phys-nurgle » introuvable/);
+    } finally {
+      setDataset('mutationTables', catalogue);
+    }
   });
 
   it('mutation TEMPORISÉE détachée à l’expiration : instance ET Trait passif retirés', () => {

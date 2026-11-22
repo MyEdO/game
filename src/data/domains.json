@@ -77,8 +77,10 @@
                   "kind": "has",
                   "who": "target",
                   "what": "talent",
-                  "value": "magie-des-arcanes",
-                  "spec": "feu"
+                  "ref": {
+                    "id": "magie-des-arcanes",
+                    "spec": "feu"
+                  }
                 }
               }
             ]
@@ -155,8 +157,10 @@
                   "kind": "has",
                   "who": "target",
                   "what": "talent",
-                  "value": "magie-des-arcanes",
-                  "spec": "lumiere"
+                  "ref": {
+                    "id": "magie-des-arcanes",
+                    "spec": "lumiere"
+                  }
                 }
               }
             ]
@@ -190,25 +194,33 @@
                 "kind": "has",
                 "who": "target",
                 "what": "trait",
-                "value": "mort-vivant"
+                "ref": {
+                  "id": "mort-vivant"
+                }
               },
               {
                 "kind": "has",
                 "who": "target",
                 "what": "trait",
-                "value": "demoniaque"
+                "ref": {
+                  "id": "demoniaque"
+                }
               },
               {
                 "kind": "has",
                 "who": "target",
                 "what": "group",
-                "value": "mort-vivant"
+                "ref": {
+                  "id": "mort-vivant"
+                }
               },
               {
                 "kind": "has",
                 "who": "target",
                 "what": "group",
-                "value": "demon"
+                "ref": {
+                  "id": "demon"
+                }
               }
             ]
           },
@@ -339,25 +351,33 @@
                       "kind": "has",
                       "who": "target",
                       "what": "trait",
-                      "value": "mort-vivant"
+                      "ref": {
+                        "id": "mort-vivant"
+                      }
                     },
                     {
                       "kind": "has",
                       "who": "target",
                       "what": "trait",
-                      "value": "demoniaque"
+                      "ref": {
+                        "id": "demoniaque"
+                      }
                     },
                     {
                       "kind": "has",
                       "who": "target",
                       "what": "group",
-                      "value": "mort-vivant"
+                      "ref": {
+                        "id": "mort-vivant"
+                      }
                     },
                     {
                       "kind": "has",
                       "who": "target",
                       "what": "group",
-                      "value": "demon"
+                      "ref": {
+                        "id": "demon"
+                      }
                     }
                   ]
                 }
@@ -473,25 +493,33 @@
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "mort-vivant"
+                  "ref": {
+                    "id": "mort-vivant"
+                  }
                 },
                 {
                   "kind": "has",
                   "who": "target",
                   "what": "trait",
-                  "value": "demoniaque"
+                  "ref": {
+                    "id": "demoniaque"
+                  }
                 },
                 {
                   "kind": "has",
                   "who": "target",
                   "what": "group",
-                  "value": "mort-vivant"
+                  "ref": {
+                    "id": "mort-vivant"
+                  }
                 },
                 {
                   "kind": "has",
                   "who": "target",
                   "what": "group",
-                  "value": "demon"
+                  "ref": {
+                    "id": "demon"
+                  }
                 }
               ]
             }
@@ -533,13 +561,17 @@
                 "kind": "has",
                 "who": "target",
                 "what": "trait",
-                "value": "mort-vivant"
+                "ref": {
+                  "id": "mort-vivant"
+                }
               },
               {
                 "kind": "has",
                 "who": "target",
                 "what": "group",
-                "value": "mort-vivant"
+                "ref": {
+                  "id": "mort-vivant"
+                }
               }
             ]
           },
@@ -657,8 +689,10 @@
               "kind": "has",
               "who": "target",
               "what": "talent",
-              "value": "magie-des-arcanes",
-              "spec": "cieux"
+              "ref": {
+                "id": "magie-des-arcanes",
+                "spec": "cieux"
+              }
             }
           },
           "alors": {

@@ -5,7 +5,7 @@
  * Le dataset se pose et se restaure par son seam (`setDataset`, `resetData`).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { designations, enregistrerEntree, supprimerEntree } from './atelierDuCodex';
+import { designations, enregistrerEntree, supprimerEntree, validateEntry } from './atelierDuCodex';
 import { reperesDuParse } from './schemas/grammaire/ref';
 import { rangee } from './schemas/defs/mutationTables';
 import { validateDataset } from './schemas/validate';
@@ -100,9 +100,23 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
     expect(traits()[0]).toBe(avant[0]);
   });
 
-  it('une réf d’op requise manquante est refusée sans rien poser', () => {
-    const issue = enregistrerEntree('traits', { ...avant[0], passive: [{ op: 'grantTalent', talent: {} }] }, 0);
-    expect(issue).toEqual({ ok: false, erreurs: ['Accorder un Talent : Talent à choisir'] });
+  it.each([{}, { id: '' }])('une référence d’op requise non élue est refusée avant la transaction (%j)', (talent) => {
+    const entree = { ...avant[0], passive: [{ op: 'grantTalent', talent }] };
+    const erreurs = validateEntry('traits', entree, avant, 0);
+    expect(erreurs).toEqual([expect.stringMatching(/Talent › identifiant : GameOp « grantTalent »/u)]);
+    expect(enregistrerEntree('traits', entree, 0)).toEqual({ ok: false, erreurs });
+    expect(traits()[0]).toBe(avant[0]);
+  });
+  it('une référence vide dans une opération imbriquée reste visible avant la transaction', () => {
+    const entree = {
+      ...avant[0], passive: [{
+        op: 'rollTable', die: { n: 1, sides: 10 },
+        entries: [{ min: 1, max: 10, ops: [{ op: 'grantTalent', talent: { id: '' } }] }],
+      }],
+    };
+    const erreurs = validateEntry('traits', entree, avant, 0);
+    expect(erreurs).toEqual([expect.stringMatching(/Talent › identifiant : GameOp « grantTalent »/u)]);
+    expect(enregistrerEntree('traits', entree, 0)).toEqual({ ok: false, erreurs });
     expect(traits()[0]).toBe(avant[0]);
   });
 });
@@ -118,6 +132,12 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
     expect(entreesDuDataset(ds)[0], categorie).toBe(premiere);
     return issue.ok ? '' : issue.erreurs.join('\n');
   };
+
+  it('une référence d’op inventée nomme son catalogue et restaure la rangée', () => {
+    expect(refus('traits', (e) => ({
+      ...e, passive: [{ op: 'grantTalent', talent: { id: 'talent-fantome-1468' } }],
+    }))).toMatch(/GameOp « grantTalent » : « talent-fantome-1468 » est absent du catalogue des talents/u);
+  });
 
   it('un Trait inconnu d’une créature', () => {
     expect(refus('creatures', (e) => ({ ...e, traits: [{ id: 'trait-fantome' }] }))).toMatch(/« trait-fantome » est absent du catalogue des traits/);

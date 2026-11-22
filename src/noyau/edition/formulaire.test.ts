@@ -74,7 +74,6 @@ import {
   menaceSchema,
   OP_DEFS,
   OP_LABEL,
-  OPS_NON_TYPEES,
   porteurDeTestFixe,
   testFixeSchema,
 } from '../../data/schemas/grammaire/mecanique';
@@ -83,7 +82,6 @@ import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
 import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
-import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
 import { choixDeLaSpec, choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
@@ -103,6 +101,7 @@ const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { sce
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
+type Condition = NonNullable<Declencheur['when']>;
 
 /** Une zone d'effet neuve, ses champs `champs` posés. */
 const zone = (champs: Partial<Zone> = {}): Zone => ({ ...addEffectZone(emptyScene('s', 4, 4), { x: 0, y: 0, w: 2, h: 2 }).scene.effectZones![0], ...champs });
@@ -175,13 +174,15 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect([entreeOuverte('skill', 'metier'), choixDuNoeud(specDe('skill', 'metier'))], 'Métier, entrée ouverte').toEqual([true, undefined]);
   });
 
-  it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
+  it('les 135 opérations se choisissent au schéma, chacune nommée et décrite champ par champ', () => {
     const z = zone({ onCross: [{ op: 'charMod', characteristic: 'force', mod: -10 }] as never });
     const champs = formulaireDe('zone', z, CADRE_VIDE);
     const op = champ(champs, z, 'onCross', 0);
     expect(op).toMatchObject({ key: '0', label: 'à la traversée 1', nullable: false });
     const variantes = variantesAChoisir(op.noeud, z.onCross![0])!;
-    expect(variantes.map((v) => v.cle).sort()).toEqual([...Object.keys(OP_DEFS), ...OPS_NON_TYPEES].sort());
+    expect(variantes).toHaveLength(135);
+    expect(variantes.map((v) => v.cle).sort()).toEqual(Object.keys(OP_DEFS).sort());
+    expect(unionDuNoeud(op.noeud)?.variantes.every((v) => v.noeud !== undefined)).toBe(true);
     for (const v of variantes) expect(v.libelle, v.cle).toBe(OP_LABEL[v.cle as GameOp['op']]);
     expect(variantes.find((v) => v.cle === 'corruption')!.valeur).toEqual(newOp('corruption'));
     expect(variantes.find((v) => v.courante), 'la courante pose sa valeur').toMatchObject({ cle: 'charMod', valeur: z.onCross![0] });
@@ -190,13 +191,24 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(champ(champs, z, 'onCross', 0, 'mod')).toMatchObject({ kind: 'number' });
   });
 
-  it('une op de `OPS_NON_TYPEES` choisie n’a pas de forme déclarée : sa saisie reste en JSON', () => {
-    expect(OPS_NON_TYPEES).toContain('statusMod');
-    const valeur = { op: 'statusMod', amount: 1 };
-    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), CADRE_VIDE)[1].noeud);
-    const u = unionDuNoeud(noeud)!;
-    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'statusMod', noeud: undefined });
-    expect(formeAuPoint(noeud, valeur)).toBeUndefined();
+  it('le modificateur de statut expose son champ au formulaire de zone', () => {
+    const valeur = { op: 'statusMod', amount: 1 } as const;
+    const z = zone({ onCross: [valeur] });
+    const formulaire = formulaireDe('zone', z, CADRE_VIDE);
+    const noeud = champ(formulaire, z, 'onCross', 0).noeud;
+    const variante = varianteCourante(unionDuNoeud(noeud)!, valeur);
+    expect(variante?.cle).toBe('statusMod');
+    expect(variante?.noeud).toBe(OP_DEFS.statusMod);
+    expect(formeAuPoint(noeud, valeur)?.tenus).toEqual(['op']);
+    expect(champ(formulaire, z, 'onCross', 0, 'amount')).toMatchObject({ kind: 'number' });
+  });
+
+  it('conserve les deux formes des opérations Manann et tirage sur table', () => {
+    for (const noeud of [OP_DEFS.manann, OP_DEFS.rollTable]) {
+      const variantes = unionDuNoeud(noeud)?.variantes;
+      expect(variantes).toHaveLength(2);
+      expect(variantes?.every((v) => v.libelle && v.noeud !== undefined)).toBe(true);
+    }
   });
 });
 
@@ -208,9 +220,9 @@ describe('la référence au catalogue d’un type', () => {
 });
 
 describe('`newOp`', () => {
-  it('sans fabrique, une op typée prend la valeur neuve de son payload, ses références vides, une op non typée son seul nom ; une op inconnue lève', () => {
+  it('sans fabrique dédiée, le brouillon se tire du schéma avec les références à choisir', () => {
     expect(newOp('incomingAttackMod')).toEqual(valeurNeuveDe(OP_DEFS.incomingAttackMod));
-    expect(newOp('contractDisease'), 'aucune Maladie élue à la place de l’auteur').toEqual({ op: 'contractDisease', disease: '' });
+    expect(newOp('contractDisease'), 'aucune Maladie élue à la place de l’auteur').toEqual({ op: 'contractDisease', disease: { id: '' } });
     expect(newOp('incomingAttackMod')).toMatchObject({ op: 'incomingAttackMod' });
     expect(newOp('intoxicate')).toEqual({ op: 'intoxicate' });
     expect(() => newOp('pas-une-op')).toThrow(/pas-une-op/);
@@ -238,7 +250,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
   });
 
   it('une variante qui est elle-même une union se choisit au même chemin, nommée par l’énumération de son discriminant ; ni `kind` ni `what` ne s’écrivent en champ', () => {
-    const has = { kind: 'has', who: 'target', what: 'group', value: 'x' } as Condition;
+    const has = { kind: 'has', who: 'target', what: 'group', ref: { id: 'x' } } as Condition;
     const noeud = formulaireDe('declencheur', declencheur(has), CADRE_VIDE)[0].noeud;
     const interne = varianteCourante(unionDuNoeud(noeud)!, has)!.noeud;
     const u = unionDuNoeud(interne)!;
@@ -247,7 +259,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
     expect(u.variantes.every((v) => v.libelle.length > 0)).toBe(true);
     const forme = formeAuPoint(noeud, has)!;
     expect(forme.tenus).toEqual(['kind', 'what']);
-    expect(champsOfferts(forme.noeud, has as Record<string, unknown>, forme.tenus).map((c) => c.key)).toEqual(['who', 'value']);
+    expect(champsOfferts(forme.noeud, has as Record<string, unknown>, forme.tenus).map((c) => c.key)).toEqual(['who', 'ref']);
   });
 });
 
@@ -406,7 +418,7 @@ describe('le geste `valeur` de la session', () => {
 
   it('refuse une valeur hors de la sorte de son champ, par le message de son parse, un champ que le formulaire n’offre pas, un porteur absent, et dit pourquoi', () => {
     const ajoute = jouer(depart, ['crossTest'], {});
-    const opInconnue = { regle: "GameOp « pas-une-op » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée." };
+    const opInconnue = { regle: "GameOp « pas-une-op » : op inconnue de OP_DEFS." };
     for (const [chemin, valeur, refus] of [
       [['crossTest', 'characteristic'], 'vigueur', { regle: 'Option invalide : une valeur parmi "capacite-de-combat"|"capacite-de-tir"|"force"|"endurance"|"initiative"|"agilite"|"dexterite"|"intelligence"|"force-mentale"|"sociabilite" attendue' }],
       [['crossTest', 'requireSL'], 'deux', { regle: 'Entrée invalide : nombre attendu, chaîne de caractères reçu' }],
@@ -425,10 +437,18 @@ describe('le geste `valeur` de la session', () => {
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
 
     const avecOps = jouer(depart, ['onCross'], [{ op: 'statusMod', amount: 1 }]);
-    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'statusMod', amount: 2 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'statusMod', amount: 2 }]);
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
+    expect(laZone(jouer(avecOps, ['onCross', 0, 'amount'], 3)).onCross).toEqual([{ op: 'statusMod', amount: 3 }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toEqual(opInconnue);
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
+
+    const avecMaladie = jouer(avecOps, ['onCross', 0], newOp('contractDisease'));
+    const maladie = choixDeLaFeuilleDId({ type: 'maladie' })[0];
+    const zoneMaladie = laZone(avecMaladie);
+    const champId = champ(formulaireDe('zone', zoneMaladie, CADRE_VIDE), zoneMaladie, 'onCross', 0, 'disease', 'id');
+    expect(choixDuNoeud(champId.noeud)).toContainEqual({ valeur: maladie.id, libelle: maladie.label });
+    expect(laZone(jouer(avecMaladie, ['onCross', 0, 'disease', 'id'], maladie.id)).onCross).toEqual([
+      { op: 'contractDisease', disease: { id: maladie.id } },
+    ]);
+
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
     for (const chemin of [['once'], ['rect', 'z']] as Segment[][]) {
@@ -457,8 +477,8 @@ describe('les choix d’une union réunissent ses références, ses énumératio
     const difficulte = champ(formulaireDe('zone', z, CADRE_VIDE), z, 'crossTest', 'difficulty').noeud;
     expect(choixDuNoeud(difficulte)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
     expect(valeurNeuveDe(difficulte)).toBe(Object.keys(DIFFICULTY_LABELS)[0]);
-    const d = declencheur({ kind: 'has', who: 'target', what: 'trait', value: 'a-distance' } as Condition);
-    const trait = champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'value').noeud;
+    const d = declencheur({ kind: 'has', who: 'target', what: 'trait', ref: { id: 'a-distance' } } as Condition);
+    const trait = champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'ref', 'id').noeud;
     expect(choixDuNoeud(trait)).toEqual(choixDeLaFeuilleDId({ type: 'trait' }).map((e) => ({ valeur: e.id, libelle: e.label })));
     expect(valeurNeuveDe(trait)).toBe(ids('trait')[0]);
   });
@@ -486,7 +506,7 @@ describe('une union se lit à la présence de son discriminant : les options d�
 function bourseLiee(): Condition {
   const pile: unknown[] = [seaEventsJson];
   for (let v = pile.pop(); v !== undefined; v = pile.pop()) {
-    if (v !== null && typeof v === 'object' && (v as { kind?: unknown }).kind === 'money') return v as Condition;
+    if (v !== null && typeof v === 'object' && (v as { kind?: unknown }).kind === 'money') return conditionSchema.parse(v);
     if (v !== null && typeof v === 'object') pile.push(...Object.values(v));
   }
   throw new Error('aucune Condition « money » dans sea-events.json');
@@ -494,7 +514,7 @@ function bourseLiee(): Condition {
 
 describe('une union sans discriminant se lit à la forme de ses branches : la Bourse et la référence d’une possession (#3606 M2e2)', () => {
   it('la Bourse ≥ offre « Montant » et « Valeur liée », qui partagent `brass` ; la courante est celle dont la valeur a la forme', () => {
-    const montant = recast(CONDITION_TOUJOURS, 'money');
+    const montant = conditionSchema.parse(recast(CONDITION_TOUJOURS, 'money'));
     const liee = bourseLiee();
     expect([montant, liee].map((c) => (c as { atLeast: unknown }).atLeast)).toEqual([{ gold: 1 }, { brass: { tire: expect.any(String) } }]);
     const noeud = (c: Condition) => { const d = declencheur(c); return champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'atLeast').noeud; };
@@ -709,7 +729,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
 /** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`) de chaque porteur de
  *  `PORTEURS`, toutes branches ouvertes, sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) :
  *  `variantes` d'une union nommée, puis chaque variante, `ajouter` ou `json` d'une liste, `ajouter` d'un record dont les clés sont posées
- *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, `json` d'une op sans forme déclarée, sinon
+ *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, sinon
  *  celle de la feuille (`choix`, `nombre`, `texte`, `json`), sauf d'un champ exigé à formes objet, toujours présent,
  *  dont l'hôte rend les champs de la forme que dessine sa valeur (`formeAuPoint`). Un nœud déjà descendu ne se redescend
  *  pas. */
@@ -738,8 +758,7 @@ function saisiesDesFormulaires(): Map<string, string> {
       vus.add(u.noeud);
       for (const v of u.variantes) {
         const ici = `${chemin}<${u.discriminant || 'forme'}=${v.cle}>`;
-        if (v.noeud === undefined) saisies.set(ici, 'json');
-        else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
+        if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
         else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
         else if (elementDuNoeud(v.noeud) !== undefined) champ({ ...f, noeud: v.noeud }, ici);
         else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
@@ -814,12 +833,26 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
       ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
       ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
-      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
       ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
     ]);
-    expect(Object.keys(attendues)).toHaveLength(17);
+    expect(Object.keys(attendues)).toHaveLength(16);
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
-    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
+    // Le parcours global ne garde que le premier chemin d’une charge partagée avec les passifs.
+    const onHitEffects = [
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'sequence', etapes: [] } },
+    ] satisfies NonNullable<Extract<GameOp, { op: 'grantWeapon' }>['onHitEffects']>;
+    const armes = [
+      zone({ onCross: [{ op: 'grantWeapon', label: 'Arme de test', damage: 1, onHitEffects }] }),
+      zone({ onCross: [{ op: 'augmentWeapon', onHitEffects }] }),
+    ];
+    for (const arme of armes) {
+      const cible = champ(formulaireDe('zone', arme, CADRE_VIDE), arme, 'onCross', 0, 'onHitEffects', 0, 'on');
+      const variantes = unionDuNoeud(cible.noeud)?.variantes;
+      expect(variantes).toHaveLength(3);
+      expect(choixDuNoeud(variantes?.find((v) => v.libelle === 'Cible désignée')?.noeud)?.map((c) => c.valeur)).toContain('victime');
+    }
+    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua'];
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });
 
@@ -893,8 +926,8 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     ]).toEqual([true, false, true, false, true, false]);
   });
 
-  it('se saisit encore en JSON EXACTEMENT : chaque op non typée', () => {
-    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual(OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`).sort());
+  it('chaque champ du formulaire a une saisie structurée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c)).toEqual([]);
   });
 });
 

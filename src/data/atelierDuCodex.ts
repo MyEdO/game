@@ -20,18 +20,19 @@ import {
   type EcritureDEnTete,
   type ObjectDatasetKey,
 } from './overrides';
+import { z } from 'zod';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
-import { cheminLisible, fichiersLisantLeCatalogue, lieuDe, schemaForFile, validateDataset } from './schemas/validate';
+import { cheminLisible, fichiersLisantLeCatalogue, lieuDe, noeudsDesEntrees, schemaForFile, validateDataset, validateDocument } from './schemas/validate';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE } from './schemas/_cles-de-dataset.generated';
 import { cleNichee, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { reperesDuParse, TYPES, type CibleDeReference } from './schemas/grammaire/ref';
+import { estFeuilleDId, reperesDuParse, TYPES, type CibleDeReference } from './schemas/grammaire/ref';
+import { coDescendre, declarationDEnfants, noeudsAuChemin } from './schemas/grammaire/descente';
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
 import { publierSiAcceptee, versionDesDatasets } from './versionDataset';
 import { serializeDataset } from './serialize';
 import { entryKey } from './index';
-import { opsMissingRefs } from './refsDOp';
 import { ecartsDeLaRegle } from './schemas/defs/reglesOptionnelles';
 import { auChemin, estObjet } from '../lib/objet.mjs';
 
@@ -53,9 +54,29 @@ const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (
   { key: 'prosthesis[].id', ds: 'trappings', get: (e) => ((e.prosthesis as { id?: string }[] | undefined) ?? []).map((p) => p.id) },
 ];
 
+/** Refus des références d'op encore à choisir, sur le schéma d'atelier de la rangée. */
+function refsDOpAChoisir(dataset: DatasetKey, entree: Entry): string[] {
+  const erreurs = new Map<string, string>();
+  for (const racine of noeudsDesEntrees(dataset)) coDescendre(racine, entree, ({ noeuds, valeur, chemin }) => {
+    const op = noeuds.find((n): n is z.ZodType => n instanceof z.ZodType && declarationDEnfants(n)?.nature === 'payloads-op');
+    if (!op) return;
+    const fautes = validateDocument(op, valeur);
+    if (!fautes) return 'elaguer';
+    const estId = (cheminDeLOp: readonly (string | number)[]) => noeudsAuChemin(op, valeur, cheminDeLOp).some(estFeuilleDId);
+    for (const faute of fautes) {
+      const saisie = auChemin(valeur, faute.chemin);
+      if (saisie != null && saisie !== '') continue;
+      if (estId(faute.chemin) || (saisie == null && estId([...faute.chemin, 'id']))) {
+        erreurs.set(JSON.stringify([...chemin, ...faute.chemin]), `${cheminLisible(faute.lieu)} : ${faute.message}`);
+      }
+    }
+  });
+  return [...erreurs.values()];
+}
+
 /** Valide une entrée AVANT persist (bouton Enregistrer bloqué tant que non vide) : identité
- *  (id non vide + unique, libellé non vide) + refs NICHÉES résolvables (`NESTED_REF_FIELDS`) ; une référence
- *  d'un champ typé par la grammaire (`idDe`, `refs`) se juge au parse de la racine (`enregistrerMutation`). PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
+ *  (id non vide + unique, libellé non vide), références nichées et références d'op à choisir.
+ *  Le parse de la racine juge la mutation complète. `selfIndex` vaut −1 pour une création. */
 export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[], selfIndex: number): string[] {
   const errors: string[] = [];
   // id : requis + unique là où le dataset est id-based (toutes les entités migrées par-id).
@@ -76,9 +97,8 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
       else if (!known.has(id)) errors.push(`${key} : réf « ${id} » introuvable (${ds})`);
     }
   }
-  // Ops MÉCANIQUES portées par l'entrée (`passive`, `effects`, `ops`, rangées de table…) : une réf de
-  // registre REQUISE non élue rend l'op inapplicable — source unique `OP_REF_FIELDS`.
-  errors.push(...opsMissingRefs(entry));
+  const ds = editableDataset(categoryKey);
+  if (ds) errors.push(...refsDOpAChoisir(ds, entry));
   if (categoryKey === 'reglesOptionnelles') errors.push(...ecartsDeLaRegle(entry));
   return errors;
 }

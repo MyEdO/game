@@ -8,7 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * des transitions #4649, #4574, #4674, #4188, #4435 et #4017 ainsi que la forme précédant les références de création (#3917). Une save
+ * des transitions #4649, #4574, #4674 et #4435 ainsi que la forme précédant les références de création (#3917). Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -20,7 +20,6 @@ import type { StakeRef } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { etatInitialDuJeu, initialNet, type CampaignVessel, type EtatDeJeu } from '../etat';
 import type { PendingCascade } from '../pendings';
-import { choixDesPersonnesConnues } from '../personneChoisie';
 import { bornerLesRegistresDuBord } from '../shipCrew';
 import { opsDeRetourDEquipage } from '../navireOps';
 import { pruneSeatAssignments } from '../monde/seating';
@@ -129,10 +128,14 @@ const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
   avant: 'efb77d9c287718df',
   apres: 'f642d26deb938799',
 };
-/** #4188, #4435, #4017 */
-const FORMAT_AVANT_ESCALADE = '3bdb6fe66470f1fe';
-const FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES = [FORMAT_AVANT_ESCALADE, '3386ad14e6f47600', '4af3c3767de89f9f'];
-const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_ESCALADE);
+/** #4435 */
+const TRANSITION_DE_L_AMARRAGE = {
+  avant: '3bdb6fe66470f1fe',
+  apres: '8f9224af02d1831d',
+};
+const FORMAT_AVANT_L_AMARRAGE = FORMAT_SAVE === TRANSITION_DE_L_AMARRAGE.apres
+  ? TRANSITION_DE_L_AMARRAGE.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_L_AMARRAGE);
 const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
   ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE;
 const FORMAT_A_UNE_COULEUR = formatDeLaCouleurUnique('save', FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE);
@@ -145,7 +148,7 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES.includes(version)
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_L_AMARRAGE
       || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
       || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
       || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
@@ -178,7 +181,7 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (!FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES.includes(parsed.version)
+    } else if (parsed.version !== FORMAT_AVANT_L_AMARRAGE
         && parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
         && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
       migrerLaSaveAvantLesDeuxCouleurs(parsed.data);
@@ -254,34 +257,7 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
     net: initialNet(),
     ...reposerPaquetDeCampagne(data.campaignDoc),
   };
-  return { etat: reprendreLesChoixDePersonnes(etat), regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
-}
-
-/** Rouvre un choix de Colérique sauvegardé avant la mémoire des personnes (#4017). */
-function reprendreLesChoixDePersonnes(etat: EtatDeJeu): EtatDeJeu {
-  const reprendre = (cascade: PendingCascade) => {
-    if (!cascade.participants.some((e) => e.kind === 'personneChoisie' && !e.meta?.personnesEnOption)) return cascade;
-    return { ...cascade, participants: cascade.participants.map((etape) => {
-      if (etape.kind !== 'personneChoisie' || etape.meta?.personnesEnOption) return etape;
-      const { options: _options, defaultChoice: _defaut, chosen, ...reste } = etape;
-      const cible = (etat.battle?.combatants ?? etat.party).find((c) => c.id === reste.meta?.choiceTargetId);
-      const choix = cible && !cible.dead ? choixDesPersonnesConnues(etat, cible) : undefined;
-      if (!choix) return reste;
-      const rang = chosen === undefined ? -1 : choix.personnesEnOption.ids.indexOf(chosen);
-      return {
-        ...reste,
-        options: choix.options,
-        defaultChoice: choix.defaultChoice,
-        ...(rang < 0 ? {} : { chosen: choix.options[rang].key }),
-        meta: { ...reste.meta, personnesEnOption: choix.personnesEnOption },
-      };
-    }) };
-  };
-  return {
-    ...etat,
-    pendingCascade: etat.pendingCascade ? reprendre(etat.pendingCascade) : null,
-    suspendedCascades: etat.suspendedCascades.map(reprendre),
-  };
+  return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }
 
 function enjeuDeRetourDEquipage(enjeu: StakeRef | undefined): boolean {

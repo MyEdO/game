@@ -41,19 +41,21 @@ const expandPath = path => path.reduce((paths, key) => paths.flatMap(p => (Array
 
 export function champsDeclares(schema, visitNode = () => {}) {
   const champs = new Map()
-  const visit = (node, path, seen) => {
-    if (!node || seen.has(node)) return
+  const ancetres = new Set()
+  const visit = (node, path) => {
+    if (!node || ancetres.has(node)) return
     visitNode(node, path)
-    const next = new Set(seen).add(node)
+    ancetres.add(node)
     for (const e of enfantsDe(node)) {
       if (e.segment === '{clé}') continue
       const key = e.cle ?? (e.segment === '[]' || e.segment === '{}' ? e.segment : undefined)
       const p = key === undefined ? path : [...path, key]
       if (e.cle !== undefined) champs.set(JSON.stringify(p), p)
-      visit(e.noeud, p, next)
+      visit(e.noeud, p)
     }
+    ancetres.delete(node)
   }
-  visit(schema, [], new Set())
+  visit(schema, [])
   return [...champs.values()]
 }
 
@@ -314,6 +316,31 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   return { claims, reads, unresolved }
 }
 
+/** Les preuves rattachées à chaque préfixe exact d'un chemin de dataset. */
+function indexerRattachements() {
+  const noeud = () => ({ enfants: new Map(), preuves: [] })
+  const racine = noeud()
+  return {
+    ajouter(preuve) {
+      let courant = racine
+      for (const cle of preuve.path) {
+        if (!courant.enfants.has(cle)) courant.enfants.set(cle, noeud())
+        courant = courant.enfants.get(cle)
+      }
+      courant.preuves.push(preuve)
+    },
+    *leLongDe(chemin) {
+      let courant = racine
+      yield* courant.preuves
+      for (const cle of chemin) {
+        courant = courant.enfants.get(cle)
+        if (!courant) break
+        yield* courant.preuves
+      }
+    },
+  }
+}
+
 export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, programme = null, fichiers = null } = {}) {
   const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), {
     filtre: rel => estModule(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) &&
@@ -355,6 +382,16 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     const envelope = typeNomme('src/data/schemas/grammaire/document.ts', 'EnveloppeDocument')
     const variant = typeNomme('src/data/schemas/grammaire/valeurs.ts', 'Variant')
     const absent = [], counts = []
+    const pasParSite = new WeakMap()
+    const pasDansLeType = (site, type, cle) => {
+      if (!type) return []
+      let parType = pasParSite.get(site)
+      if (!parType) pasParSite.set(site, parType = new WeakMap())
+      let parCle = parType.get(type)
+      if (!parCle) parType.set(type, parCle = new Map())
+      if (!parCle.has(cle)) parCle.set(cle, step(checker, [type], cle, site))
+      return parCle.get(cle)
+    }
     for (const d of definitions) {
       const common = []
       const variants = []
@@ -362,7 +399,7 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
         if (shared.has(node)) common.push({ path, ...shared.get(node), existence: true })
         if (variant && classeDeProduit(node)?.fabrique === 'variantOf') {
           common.push({ path, ...variant })
-          variants.push({ node, path })
+          variants.push(path)
         }
         if (envelope && classeDeProduit(node)?.fabrique === 'document') {
           for (const key of CLES_ENVELOPPE) {
@@ -371,33 +408,45 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
           }
         }
       })
-      const ofFile = claims.filter(c => c.file === d.file)
+      const rattachements = indexerRattachements()
+      for (const preuve of claims) if (preuve.file === d.file) rattachements.ajouter(preuve)
       const contrat = contrats.get(d.file)
-      if (contrat) ofFile.push(contrat)
-      ofFile.push(...common)
+      if (contrat) rattachements.ajouter(contrat)
+      for (const preuve of common) rattachements.ajouter(preuve)
       const typePaths = new Map()
       const typesAt = (claim, path) => {
         let cache = typePaths.get(claim)
         if (!cache) typePaths.set(claim, cache = new Map([['[]', [claim.type]]]))
         const key = JSON.stringify(path)
-        if (!cache.has(key)) cache.set(key, [...new Set(step(checker, typesAt(claim, path.slice(0, -1)), path.at(-1), claim.node))])
+        if (!cache.has(key)) {
+          const cle = path.at(-1)
+          const parents = typesAt(claim, path.slice(0, -1))
+          cache.set(key, [...new Set(parents.flatMap(type => pasDansLeType(claim.node, type, cle)))])
+        }
         return cache.get(key)
       }
       const readPaths = new Set(reads.filter(r => r.file === d.file).flatMap(r => expandPath(r.path).map(p => JSON.stringify(p))))
-      for (const v of variants) {
-        const base = v.path.slice(0, -2)
-        const baseClaims = ofFile.filter(c => c.path.every((key, i) => base[i] === key) && base.length >= c.path.length)
-        for (const c of baseClaims) {
-          const types = typesAt(c, base.slice(c.path.length))
-          for (const type of types) common.push({ path: v.path, type, node: c.node })
+      // Les projections se lisent dans les preuves initiales avant d'entrer elles-mêmes dans l'index.
+      const projections = []
+      for (const path of variants) {
+        const base = path.slice(0, -2)
+        for (const preuve of rattachements.leLongDe(base)) {
+          const types = typesAt(preuve, base.slice(preuve.path.length))
+          for (const type of types) projections.push({ path, type, node: preuve.node })
         }
       }
-      ofFile.push(...common.filter(c => !ofFile.includes(c)))
+      for (const preuve of projections) rattachements.ajouter(preuve)
+      const typeExplicite = (path) => {
+        for (const preuve of rattachements.leLongDe(path)) {
+          const suite = path.slice(preuve.path.length)
+          if ((suite.length || preuve.existence) && typesAt(preuve, suite).length) return true
+        }
+        return false
+      }
       let missing = 0
       for (const path of declared) {
-        const typed = ofFile.some(c => c.path.every((key, i) => path[i] === key) && (path.length > c.path.length || c.existence && path.length === c.path.length) && typesAt(c, path.slice(c.path.length)).length > 0)
         const read = readPaths.has(JSON.stringify(path))
-        if (!typed && !read) { absent.push(`${d.file}:${path.join('.').replaceAll('.[]', '[]').replaceAll('.{}', '{}')}`); missing++ }
+        if (!read && !typeExplicite(path)) { absent.push(`${d.file}:${path.join('.').replaceAll('.[]', '[]').replaceAll('.{}', '{}')}`); missing++ }
       }
       counts.push({ file: d.file, declares: declared.length, absents: missing })
     }

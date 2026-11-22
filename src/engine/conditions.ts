@@ -661,7 +661,7 @@ function impliqueDeplacement(ctx: EtatTestCtx): boolean {
  *  (LDB 16 l.105) : le Test résiste à l'une des maladies visées. */
 function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestCtx): boolean {
   if (op.sense && !(competenceParId(ctx.skill)?.senses?.includes(op.sense) && (ctx.sense == null || ctx.sense === op.sense))) return false;
-  return !op.diseases || (ctx.disease != null && op.diseases.includes(ctx.disease));
+  return !op.diseases || op.diseases.some((id) => id === ctx.disease);
 }
 
 /** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{characteristic}` exécutée, #193) pour la Caractéristique

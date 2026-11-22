@@ -983,7 +983,9 @@
               "ops": [
                 {
                   "op": "exposeDisease",
-                  "disease": "blessure-purulente"
+                  "disease": {
+                    "id": "blessure-purulente"
+                  }
                 }
               ]
             }
@@ -1210,7 +1212,9 @@
               "ops": [
                 {
                   "op": "exposeDisease",
-                  "disease": "$arg"
+                  "disease": {
+                    "id": "$arg"
+                  }
                 }
               ]
             }
@@ -1358,7 +1362,9 @@
                       "kind": "has",
                       "who": "target",
                       "what": "trait",
-                      "value": "dresse-guerre"
+                      "ref": {
+                        "id": "dresse-guerre"
+                      }
                     }
                   ]
                 },
@@ -1373,7 +1379,9 @@
                       "kind": "has",
                       "who": "target",
                       "what": "trait",
-                      "value": "dresse-magie"
+                      "ref": {
+                        "id": "dresse-magie"
+                      }
                     }
                   ]
                 }
@@ -2022,7 +2030,9 @@
                   "kind": "has",
                   "who": "target",
                   "what": "immunity",
-                  "value": "poison"
+                  "ref": {
+                    "id": "poison"
+                  }
                 }
               }
             ]
@@ -2391,7 +2401,9 @@
             "ops": [
               {
                 "op": "exposeDisease",
-                "disease": "$arg",
+                "disease": {
+                  "id": "$arg"
+                },
                 "difficultyShift": -2,
                 "incubation": "instant"
               }
@@ -2551,7 +2563,9 @@
             "ops": [
               {
                 "op": "scheduleRespawn",
-                "ref": "self",
+                "creature": {
+                  "id": "self"
+                },
                 "delayDays": {
                   "dice": {
                     "n": 1,
@@ -3141,7 +3155,9 @@
             "ops": [
               {
                 "op": "rollTable",
-                "tableId": "vdm-incantateur-hasardeux-domaine"
+                "table": {
+                  "id": "vdm-incantateur-hasardeux-domaine"
+                }
               }
             ]
           }

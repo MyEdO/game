@@ -160,8 +160,10 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
       if (eff.type === 'ops') {
         for (const o of eff.ops) {
-          if (o.op === 'manann' && (!o.factorId || !findManannFactor(o.factorId)))
-            fautifs.push(`${sceneId} : op manann sans facteur du catalogue (« ${String(o.factorId)} »)`);
+          if (o.op === 'manann') {
+            const id = o.facteur?.id;
+            if (!id || !findManannFactor(id)) fautifs.push(`${sceneId} : op manann sans facteur du catalogue (« ${String(id)} »)`);
+          }
         }
       }
       if (eff.type === 'setVessel') {

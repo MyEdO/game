@@ -20,7 +20,7 @@ import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneEffectZoneSchema, sceneSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
@@ -259,8 +259,8 @@ export interface SceneEffectZone {
    *  l'inspecteur. */
   tiles?: Pt[];
   blocksLoS?: boolean;
-  onCross?: import('../../engine/ops').GameOp[];
-  perRound?: import('../../engine/ops').GameOp[];
+  onCross?: z.output<typeof sceneEffectZoneSchema.shape.onCross>;
+  perRound?: z.output<typeof sceneEffectZoneSchema.shape.perRound>;
   /** GATE de Test à la traversée (cf. `BattleZone.crossTest`, zones.ts) — même sémantique pour une
    *  zone authorée (piège/hasard de scène). */
   crossTest?: TestDeScene;

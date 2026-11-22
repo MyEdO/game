@@ -5,6 +5,7 @@
 // champs de schéma (`LIENS_SCHEMA_TYPES`).
 import { markSchema } from '../../../src/data/schemas/defs/progression-schemas-derived'
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente'
+import { nomDeNoeud } from '../../../src/data/schemas/grammaire/meta'
 import * as valeurs from '../../../src/data/schemas/grammaire/valeurs'
 import * as reference from '../../../src/data/schemas/grammaire/reference'
 import { talentDEspece } from '../../../src/data/schemas/grammaire/avancement'
@@ -13,6 +14,15 @@ import { critEscalationSchema } from '../../../src/data/schemas/defs/criticals'
 import {
   propVolumeRecipeSchema, propPrimitiveSchema, propSeatSlotSchema, propPoint3Schema, propSize3Schema,
 } from '../../../src/data/schemas/defs/props'
+
+const FOYER_MECANIQUE = 'src/data/schemas/grammaire/mecanique.ts'
+const formesMecaniquesNommees = new Map()
+for (const schema of new Set(Object.values(mecanique))) {
+  const type = nomDeNoeud(schema)?.typeNomme
+  if (!type) continue
+  if (formesMecaniquesNommees.has(type)) throw new Error(`Deux formes mécaniques portent le type ${type}.`)
+  formesMecaniquesNommees.set(type, { schema, type, home: FOYER_MECANIQUE })
+}
 
 /** `type` + `home` = l'IDENTITÉ de la cible : `scanFieldReads` résout la déclaration de ce type DANS
  *  ce module et compare des SYMBOLES — un homonyme d'un autre module n'entre pas, et aucune
@@ -31,6 +41,7 @@ export const CIBLES_DE_GRAMMAIRE = [
   { schema: talentDEspece, type: 'AdvancementRef', home: 'src/data/index.ts' },
   { schema: valeurs.entityAppearanceSchema, type: 'EntityAppearance', home: 'src/engine/authoringAppearance.ts' },
   { schema: mecanique.flowTestSchema, type: 'FlowTest', home: 'src/engine/flowCore.ts' },
+  ...formesMecaniquesNommees.values(),
   { schema: mecanique.travelTableEntrySchema, type: 'TravelTableEntry', home: 'src/engine/travelTables.ts' },
   { schema: mecanique.shipCrewHitSchema, type: 'ShipCrewHit', home: 'src/data/shipCriticals.ts' },
   { schema: mecanique.shipCritEntrySchema, type: 'ShipCritEntry', home: 'src/data/shipCriticals.ts' },
