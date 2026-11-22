@@ -1426,8 +1426,6 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     patch.waterLitres = Math.max(0, vessel.waterLitres - souls * dailyWaterLitres('mediane') * fast.days);
   }
   if (vessel) set({ vessel: { ...vessel, ...patch } });
-  // Vivres de l'équipage PNJ sur toute la traversée rapide (MÊME couture que le détaillé).
-  log(get, set, consumeCrewProvisions(get, set, fast.days));
   const minutes = fast.days * MINUTES_PER_DAY;
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + minutes } });
   continuerLeTempsEnMer(get, set);
@@ -1444,6 +1442,13 @@ function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours
 function contagionPossibleABord(porteurs: ReturnType<typeof porteursABord>): boolean {
   return rule('maladie-mode') !== 'off' && porteurs.some((source) =>
     source.porteur.diseases?.some((maladie) => diseaseHasCapability(maladie, 'contagious')));
+}
+
+/** Minutes jusqu'au jour où le premier porteur à bord atteint un multiple de `JOURS_DU_MOIS` jours sans vivre
+ *  frais (`buildScurvySteps`). MDG 14 l.230 */
+function avantLeProchainMoisSansFrais(porteurs: ReturnType<typeof porteursABord>, debut: number): number {
+  const jours = Math.min(...porteurs.map(({ porteur }) => JOURS_DU_MOIS - ((porteur.regimeDeBord?.joursSansVivreFrais ?? 0) % JOURS_DU_MOIS)));
+  return (minutesUntilNext(debut, 0) || MINUTES_PER_DAY) + (jours - 1) * MINUTES_PER_DAY;
 }
 
 function prochaineEcheance(s: Jeu, maximum: number): number {
@@ -1495,13 +1500,14 @@ function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: num
       return false;
     }
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
-    if (entretien.steps.length
-      && !jouerLesBandesDeSanteEnMer(get, set, entretien.steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+    const steps = [...entretien.steps, ...(dayIndex(borneDuPas) > dayIndex(borneDuPas - minutes) ? buildScurvySteps(get, set) : [])];
+    if (steps.length
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
   }
   return !checkPartyWiped(get, set);
 }
 
-/** LDB 20 l.12-13, l.206 ; MDG 14 l.208 ; MDG 15 l.25 */
+/** LDB 20 l.12-13, l.206 ; MDG 14 l.208, l.230 ; MDG 15 l.25 */
 export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeStep[]): void {
   if (doneSteps && !get().travelPlan?.sea?.fast) noteSeaLine(get, set, lignesResolues(doneSteps));
   for (;;) {
@@ -1523,7 +1529,8 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
       const restantes = temps.fin - debut;
       const avantEntretien = sea.fast && contagionPossibleABord(porteurs) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
       const avantEcheance = prochaineEcheance(get(), restantes);
-      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance));
+      const avantScorbut = sea.fast ? avantLeProchainMoisSansFrais(porteurs, debut) : restantes;
+      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance, avantScorbut));
       const pas = calculerLePasDExposition(get, set, maximum, [porteurs]);
       fin = debut + pas.minutes;
       const steps = bandesDeContagion(get, set, pas.tests);
@@ -1539,6 +1546,7 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
       patchSea(get, set, { tempsEnMer: { fin: temps.fin } });
     }
     const minutes = fin - debut;
+    if (sea.fast) log(get, set, consumeCrewProvisions(get, set, dayIndex(fin) - dayIndex(debut)));
     const avant = comptePasDifferes(get());
     if (minutes > 0) get().avancerLHorloge(minutes);
     else fireScheduledEffects(get, set);
