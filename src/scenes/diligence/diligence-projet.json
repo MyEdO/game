@@ -14205,7 +14205,7 @@
      },
      "pos": {
       "x": 13,
-      "y": 16
+      "y": 14
      },
      "facing": "E"
     },
@@ -14228,7 +14228,7 @@
       "id": "etagere"
      },
      "pos": {
-      "x": 16,
+      "x": 17,
       "y": 13
      },
      "facing": "S"
@@ -15858,20 +15858,21 @@
      "x": 14,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois"
+     "structure": "mur-a-ossature-en-bois",
+     "window": true
     },
     {
      "x": 15,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 16,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois"
+     "structure": "mur-a-ossature-en-bois",
+     "window": true
     },
     {
      "x": 17,
@@ -18435,8 +18436,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 31,
@@ -19055,8 +19055,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 16,
@@ -19077,8 +19076,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 13,
@@ -20866,10 +20864,19 @@
        ],
        "features": [
         {
-         "id": "fenetre-7-7-n",
+         "id": "fenetre-6-7-n",
          "kind": "window-band",
          "edge": {
-          "x": 15,
+          "x": 14,
+          "y": 13,
+          "side": "N"
+         }
+        },
+        {
+         "id": "fenetre-8-7-n",
+         "kind": "window-band",
+         "edge": {
+          "x": 16,
           "y": 13,
           "side": "N"
          }
@@ -21345,7 +21352,7 @@
          "kind": "chimney",
          "edge": {
           "x": 12,
-          "y": 16,
+          "y": 14,
           "side": "E"
          },
          "offset": 0.55
@@ -22350,24 +22357,6 @@
        ],
        "features": [
         {
-         "id": "fenetre-6-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 14,
-          "y": 13,
-          "side": "N"
-         }
-        },
-        {
-         "id": "fenetre-9-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 17,
-          "y": 13,
-          "side": "N"
-         }
-        },
-        {
          "id": "fenetre-11-7-n",
          "kind": "window-band",
          "edge": {
@@ -22439,15 +22428,6 @@
         "zone-t-z1"
        ],
        "features": [
-        {
-         "id": "fenetre-22-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 30,
-          "y": 13,
-          "side": "N"
-         }
-        },
         {
          "id": "fenetre-24-7-n",
          "kind": "window-band",
