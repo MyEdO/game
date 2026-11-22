@@ -250,7 +250,7 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
-  à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
+  à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
