@@ -85,48 +85,39 @@ if (manquesDArgs.length) {
 }
 const MAX_ECHANGES = MAX_ECHANGES_EXPLICITE ?? ECHANGES_PAR_BEAT * DOSSIER.beats.length
 
-// ── Appels d'agent : un échec se NOMME, une sortie anomale se RENVOIE (#2721) ─────────────────────
-/** L'appel `lancer()`, qui ne lève jamais : `{ rendu, cause: null }`, ou `{ rendu: null, cause }` — l'erreur
- *  levée (schéma non tenu après les essais du harnais, erreur d'API) ou l'absence de rendu. */
-const capturer = async (lancer) => {
-  try {
-    const rendu = await lancer()
-    return rendu ? { rendu, cause: null } : { rendu: null, cause: 'rien rendu' }
-  } catch (erreur) {
-    return { rendu: null, cause: `échec : ${erreur?.message ?? String(erreur)}` }
-  }
-}
-/** Renvois d'une sortie anomale à son agent, au plus. */
-const ESSAIS_DE_CORRECTION = 2
-/** Le prompt d'un renvoi : le prompt d'origine, la sortie fautive, chaque anomalie précise. */
-const renvoiDeCorrection = (prompt, rendu, anomalies) => `${prompt}
-
-SORTIE À CORRIGER — ta sortie précédente à ce même message :
-${JSON.stringify(rendu, null, 1)}
-
-ANOMALIES (chacune se corrige ; le reste de la sortie se garde) :
-${anomalies.map((a) => `- ${a}`).join('\n')}
-Rends la sortie ENTIÈRE, corrigée.`
-/** `lancer(prompt, essai)` (essai 0 = l'appel, puis chaque renvoi), validé par `anomaliesDe(rendu)` : une
- *  sortie anomale est renvoyée `ESSAIS_DE_CORRECTION` fois au plus. Rend le dernier rendu, ses anomalies
- *  restantes, la cause d'un premier appel sans rendu, et le nombre de renvois joués ; un renvoi sans rendu
- *  garde le rendu précédent et nomme sa cause parmi les anomalies. */
-const appelValide = async (prompt, lancer, anomaliesDe) => {
-  const premier = await capturer(() => lancer(prompt, 0))
-  let { rendu } = premier
-  let anomalies = rendu ? anomaliesDe(rendu) : []
-  let renvois = 0
-  while (rendu && anomalies.length && renvois < ESSAIS_DE_CORRECTION) {
-    renvois += 1
-    const corrige = await capturer(() => lancer(renvoiDeCorrection(prompt, rendu, anomalies), renvois))
-    if (!corrige.rendu) {
-      anomalies = [...anomalies, `renvoi ${renvois} sans rendu — ${corrige.cause}`]
-      break
+// Deux appels au plus par site. Si le harnais rejette le schéma, il ne livre que son diagnostic.
+const labelDAppel = (label, renvois) => renvois ? `${label}:renvoi${renvois}` : label
+const diagnosticBorne = (texte) => texte.length <= 240 ? texte : `${texte.slice(0, 239)}…`
+const appelValide = async (prompt, lancer, anomaliesDe = () => []) => {
+  const lire = async (texte, renvois) => {
+    let rendu, cause
+    try {
+      rendu = await lancer(texte, renvois)
+      cause = rendu ? null : 'rien rendu'
+    } catch (erreur) {
+      cause = `échec : ${diagnosticBorne(String(erreur?.message ?? erreur))}`
     }
-    rendu = corrige.rendu
-    anomalies = anomaliesDe(rendu)
+    return { rendu: rendu ?? null, cause, anomalies: rendu ? anomaliesDe(rendu) : [], renvois }
   }
-  return { rendu, cause: premier.cause, anomalies, renvois }
+  const premier = await lire(prompt, 0)
+  if (!premier.cause && !premier.anomalies.length) return premier
+  const sortie = premier.rendu
+    ? `SORTIE À CORRIGER — ta sortie précédente à ce même message :
+${JSON.stringify(premier.rendu, null, 1)}
+
+`
+    : ''
+  const erreurs = premier.cause ? [premier.cause] : premier.anomalies
+  const second = await lire(`${prompt}
+
+${sortie}ANOMALIES (chacune se corrige ; le reste de la sortie se garde) :
+${erreurs.map((a) => `- ${a}`).join('\n')}
+Rends la sortie ENTIÈRE, corrigée.`, 1)
+  if (!second.cause) return second
+  if (premier.rendu) {
+    return { ...premier, anomalies: [...premier.anomalies, `renvoi 1 sans rendu — ${second.cause}`], renvois: 1 }
+  }
+  return premier.cause === second.cause ? second : { ...second, cause: `appel initial : ${premier.cause} · renvoi : ${second.cause}` }
 }
 
 /** L'outil de dés du moteur, par son chemin ABSOLU dans l'arbre : le répertoire courant du shell n'est pas forcément l'arbre. */
@@ -285,34 +276,35 @@ const SYNTHESE = {
 // ── Préparation ──────────────────────────────────────────────────────────────────────────────
 // Deux lecteurs en SÉQUENCE : l'auteur des fiches que les joueurs reçoivent ne voit ni le chapitre ni
 // ses secrets (`EDO 02 l.40`) ; le lecteur du chapitre reçoit la liste des PJ, jamais leurs fiches.
-const fichesPJ = await capturer(() => agent(`Tu PRÉPARES les personnages d'une table papier simulée : tu lis le dépôt, tu ne joues pas.
+const fichesPJ = await appelValide(`Tu PRÉPARES les personnages d'une table papier simulée : tu lis le dépôt, tu ne joues pas.
 ${CADRE_ARBRE}
 ${RENDU_AU_SCHEMA}
 
 Rends les fiches des 4 PJ du GROUPE PRÉTIRÉ CANONIQUE du dépôt : \`groupeVitrine(fabriqueLocale('table'))\` (src/data/pregens.ts ; la fabrique d'ids, src/engine/fabriqueDId.ts), sur les entrées de src/data/pregens.json. Construis-les par UNE sonde \`npx tsx -e "…"\`, sans fichier écrit, qui importe ce module de l'arbre par son chemin ABSOLU : pour chaque héros, espèce, carrière, caractéristiques effectives (\`effectiveChar\`, src/engine/characteristics.ts), valeurs de Test de ses compétences (\`testValue\`, src/engine/skills.ts), talents, possessions, points de Destin/Résilience, motivation et ambitions. \`fiche\` = cette fiche en Markdown court, valeurs chiffrées comprises (les jets se tireront sur ces valeurs) : c'est le texte que le JOUEUR de ce héros reçoit, tel quel. \`id\` = l'id du héros ; \`nom\`, \`espece\`, \`carriere\` = ceux de sa fiche.
 \`groupe.source\` = la source exacte du groupe (fonction, fichier:ligne, ids) ; \`groupe.commande\` = la commande de ta sonde.`,
-  { label: 'fiches-pj', phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'lecteur', model: 'sonnet', effort: 'medium' }))
+  (prompt, essai) => agent(prompt,
+    { label: labelDAppel('fiches-pj', essai), phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'lecteur', model: 'sonnet', effort: 'medium' }),
+  ({ pjs }) => {
+    const ids = pjs.map((pj) => pj.id)
+    return [
+      ...pjs.flatMap((pj, rang) => (pj.id.trim() ? [] : [`fiches des PJ — PJ ${rang + 1} (« ${diagnosticBorne(pj.nom)} ») sans id`])),
+      ...[...new Set(ids.filter((id, rang) => id.trim() && ids.indexOf(id) !== rang))].map((id) => `fiches des PJ — id « ${diagnosticBorne(id)} » en double`),
+    ]
+  })
+let agentsPreparation = 1 + fichesPJ.renvois
 
-if (!fichesPJ.rendu) {
-  log(`ARRÊT : les fiches des PJ n’ont rien rendu (${fichesPJ.cause}) — aucune partie sans fiches des PJ.`)
-  return { verdict: 'ARRÊT', manques: [`fiches des PJ sans rendu — ${fichesPJ.cause}`], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 1, mj: 0, joueurs: 0, analyse: 0, total: 1 }, date: DATE }
+if (!fichesPJ.rendu || fichesPJ.anomalies.length) {
+  const manques = fichesPJ.rendu ? fichesPJ.anomalies : [`fiches des PJ sans rendu — ${fichesPJ.cause}`]
+  log(`ARRÊT : ${manques.join(' · ')} — aucune partie sans quatre fiches distinctes.`)
+  return { verdict: 'ARRÊT', manques, journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: agentsPreparation, mj: 0, joueurs: 0, analyse: 0, total: agentsPreparation }, date: DATE }
 }
 const { pjs: PJS, groupe: GROUPE } = fichesPJ.rendu
-/** Chaque joueur est keyé par l'id de son PJ : un id vide ou en double confondrait deux joueurs. */
 const idsDesPJ = PJS.map((pj) => pj.id)
-const idsDePJInvalides = [
-  ...PJS.flatMap((pj, rang) => (pj.id.trim() ? [] : [`fiches des PJ — PJ ${rang + 1} (« ${pj.nom} ») sans id`])),
-  ...[...new Set(idsDesPJ.filter((id, rang) => id.trim() && idsDesPJ.indexOf(id) !== rang))].map((id) => `fiches des PJ — id « ${id} » en double`),
-]
-if (idsDePJInvalides.length) {
-  log(`ARRÊT : ${idsDePJInvalides.length} id(s) de PJ invalide(s) — ${idsDePJInvalides.join(' · ')} ; aucune partie sur des joueurs confondus.`)
-  return { verdict: 'ARRÊT', manques: idsDePJInvalides, journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 1, mj: 0, joueurs: 0, analyse: 0, total: 1 }, date: DATE }
-}
 
 /** La fiche du MJ, TIRÉE du dossier de chapitre : le livre n'est relu que pour citer une ligne. */
 const ficheMJ = Object.fromEntries(CHAMPS_DE_LA_FICHE.map((champ) => [champ, DOSSIER[champ]]))
 const LISTE_DES_PJ = PJS.map((pj) => ({ id: pj.id, nom: pj.nom, espece: pj.espece, carriere: pj.carriere }))
-const choixDuSosie = await capturer(() => agent(`Tu PRÉPARES une table papier simulée : tu désignes, s'il y a lieu, le PJ SOSIE d'un PNJ. Tu lis, tu ne joues pas.
+const choixDuSosie = await appelValide(`Tu PRÉPARES une table papier simulée : tu désignes, s'il y a lieu, le PJ SOSIE d'un PNJ. Tu lis, tu ne joues pas.
 ${CADRE}
 ${CHAPITRE_LU}
 
@@ -323,8 +315,8 @@ Les PJ de la table (id, nom, espèce, carrière) :
 ${JSON.stringify(LISTE_DES_PJ, null, 1)}
 
 Si le chapitre exige qu'un PJ ressemble à un PNJ (le sosie de Kastor Lieberung, \`EDO 02 l.40\`), désigne dans \`sosie\` le PJ que le livre désigne ou, à défaut, celui dont la carrière s'en rapproche le plus : \`id\` = son id NU dans la liste ci-dessus, \`ref\` = la réf nue du passage qui le désigne (relis-le au Source/). Sans sosie, \`id\` = '' et \`ref\` = ''. \`motif\` est toujours renseigné : pourquoi ce PJ, ou pourquoi aucun.`,
-  {
-    label: 'sosie', phase: 'Préparation', agentType: 'lecteur', model: 'sonnet', effort: 'medium',
+  (prompt, essai) => agent(prompt, {
+    label: labelDAppel('sosie', essai), phase: 'Préparation', agentType: 'lecteur', model: 'sonnet', effort: 'medium',
     schema: {
       type: 'object', additionalProperties: false,
       properties: {
@@ -336,15 +328,17 @@ Si le chapitre exige qu'un PJ ressemble à un PNJ (le sosie de Kastor Lieberung,
       },
       required: ['sosie'],
     },
-  }))
+  }),
+  ({ sosie }) => !sosie.id && sosie.ref.trim() ? [`id vide avec ref « ${diagnosticBorne(sosie.ref)} » : un passage cité sans PJ désigné`] : [])
+agentsPreparation += 1 + choixDuSosie.renvois
 
 if (!choixDuSosie.rendu) {
   log(`ARRÊT : le choix du sosie n’a rien rendu (${choixDuSosie.cause}) — aucune partie sans ce choix.`)
-  return { verdict: 'ARRÊT', manques: [`choix du sosie sans rendu — ${choixDuSosie.cause}`], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 2, mj: 0, joueurs: 0, analyse: 0, total: 2 }, date: DATE }
+  return { verdict: 'ARRÊT', manques: [`choix du sosie sans rendu — ${choixDuSosie.cause}`], journal: null, analyse: null, ...SANS_DECLENCHEURS, preparationPartielle: { pjs: PJS, groupe: GROUPE }, agents: { preparation: agentsPreparation, mj: 0, joueurs: 0, analyse: 0, total: agentsPreparation }, date: DATE }
 }
 
 const sosieRendu = choixDuSosie.rendu.sosie
-const anomaliesDeSosie = !sosieRendu.id && sosieRendu.ref.trim() ? [`id vide avec ref « ${sosieRendu.ref} » : un passage cité sans PJ désigné`] : []
+const anomaliesDeSosie = choixDuSosie.anomalies
 const sosie = sosieRendu.id ? sosieRendu : null
 if (anomaliesDeSosie.length) log(`Préparation : anomalie de sosie — ${anomaliesDeSosie[0]} ; aucun PJ n’est marqué, le MJ ne reçoit aucun sosie.`)
 const joueurs = PERSONAS.map((persona, rang) => ({ persona, pj: PJS[rang], sosie: Boolean(sosie) && PJS[rang].id === sosie.id }))
@@ -376,6 +370,7 @@ let intentions = []
 let tirageSuivant = 0
 let fin = false
 let interrompue = null
+let echangeRejete = null
 let agentsMJ = 0
 let agentsJoueurs = 0
 /** Chaque joueur sans rendu, à son échange et avec sa cause : un trou de la partie. */
@@ -432,7 +427,7 @@ Règles de ta table :
     .map((id) => `déclencheur « ${id} » : statut « ${rendu.tour.declencheurs[id].statut} » sans motif`)
   const appelDuMJ = await appelValide(promptDuMJ, (prompt, essai) => agent(prompt,
     {
-      label: essai ? `mj:${numero}:renvoi${essai}` : `mj:${numero}`, phase: 'Partie', agentType: 'mj-de-table', model: 'sonnet', effort: 'medium',
+      label: labelDAppel(`mj:${numero}`, essai), phase: 'Partie', agentType: 'mj-de-table', model: 'sonnet', effort: 'medium',
       schema: {
         type: 'object', additionalProperties: false,
         properties: {
@@ -462,23 +457,25 @@ Règles de ta table :
     break
   }
   if (appelDuMJ.renvois) log(`Échange ${numero} : ${appelDuMJ.renvois} renvoi(s) au MJ pour anomalie(s) ; ${appelDuMJ.anomalies.length} restée(s).`)
-  /** Ce que les renvois ont perdu : un renvoi sans rendu, et sa cause. */
-  const anomaliesDeRenvoi = appelDuMJ.anomalies.filter((a) => !anomaliesDeTirageDe(mj).includes(a) && !anomaliesDeDeclencheursDe(mj).includes(a))
-  const declencheursDeLEchange = enAttente.map((id) => ({ id, ...mj.tour.declencheurs[id] }))
+  const anomaliesDeTirage = anomaliesDeTirageDe(mj)
   const anomaliesDeDeclencheurs = anomaliesDeDeclencheursDe(mj)
+  if (appelDuMJ.anomalies.length) {
+    const anomaliesDeRenvoi = appelDuMJ.anomalies.slice(anomaliesDeTirage.length + anomaliesDeDeclencheurs.length)
+    echangeRejete = { numero, intentionsNonResolues: intentions, renvois: appelDuMJ.renvois, anomaliesDeTirage, anomaliesDeDeclencheurs, anomaliesDeRenvoi }
+    log(`Échange ${numero} rejeté : ${appelDuMJ.anomalies.join(' · ')}.`)
+    break
+  }
+  const declencheursDeLEchange = enAttente.map((id) => ({ id, ...mj.tour.declencheurs[id] }))
   for (const d of declencheursDeLEchange) {
     if (d.statut === 'joue') etatDe.set(d.id, { etat: 'joue', echange: numero })
     else if (d.statut === 'ecarte') etatDe.set(d.id, { etat: 'ecarte', echange: numero, motif: d.motif })
     else etatDe.set(d.id, { etat: 'attente', dernierStatut: d.statut, motif: d.motif })
   }
-  if (anomaliesDeDeclencheurs.length) log(`Échange ${numero} : ${anomaliesDeDeclencheurs.length} anomalie(s) de déclencheur — ${anomaliesDeDeclencheurs.join(' · ')}.`)
-  const anomaliesDeTirage = anomaliesDeTirageDe(mj)
-  tirageSuivant = mj.jets.reduce((m, jet) => Math.max(m, jet.tirage + 1), premierTirage + mj.jets.length)
-  if (anomaliesDeTirage.length) log(`Échange ${numero} : ${anomaliesDeTirage.length} anomalie(s) de tirage — ${anomaliesDeTirage.join(' · ')}. Tirage suivant : ${tirageSuivant}.`)
+  tirageSuivant = premierTirage + mj.jets.length
   etatPrive = mj.tour.etatPrive
   echanges.push({
     numero, intentions, resolutions: intentions.map((i) => ({ persona: i.persona, pj: i.pj, intention: i.intention, ...mj.resolutions[i.pj] })), jets: mj.jets, anomaliesDeTirage, declencheurs: declencheursDeLEchange, anomaliesDeDeclencheurs,
-    renvois: appelDuMJ.renvois, anomaliesDeRenvoi, narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
+    renvois: appelDuMJ.renvois, anomaliesDeRenvoi: [], narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
   })
   if (mj.fin) {
     fin = true
@@ -487,7 +484,7 @@ Règles de ta table :
   if (numero === MAX_ECHANGES) break
 
   const recentsPourLesJoueurs = publicsRecents()
-  const rendus = await parallel(joueurs.map((j, rang) => () => capturer(() => agent(`Tu JOUES un personnage à une table de jeu de rôle (Warhammer). Tu ne sais du monde que ce que la narration du MJ t'a dit.
+  const rendus = await parallel(joueurs.map((j, rang) => () => appelValide(`Tu JOUES un personnage à une table de jeu de rôle (Warhammer). Tu ne sais du monde que ce que la narration du MJ t'a dit.
 Tu n'ouvres AUCUN fichier et tu ne lances AUCUNE commande : tu joues depuis ce message seul, jamais depuis le livre ni le dépôt.
 
 TA PERSONA — ${JEUX_DE_PERSONA[j.persona]}
@@ -501,11 +498,14 @@ CE QUE LE MJ A RACONTÉ (derniers échanges publics) :
 ${recentsPourLesJoueurs}
 
 Rends \`jeu.intention\` : ce que ton personnage fait ou dit MAINTENANT, en une ou deux phrases à la première personne, fidèle à ta persona. Rends \`jeu.notes\` : tes notes privées mises à jour (soupçons, noms, plans), elles te seront rendues au prochain échange.`,
-    { label: `joueur:${j.persona}:${numero}`, phase: 'Partie', schema: JOUEUR, agentType: 'joueur', model: 'sonnet', effort: 'low' }))))
-  agentsJoueurs += joueurs.length
+    (prompt, essai) => agent(prompt,
+      { label: labelDAppel(`joueur:${j.persona}:${numero}`, essai), phase: 'Partie', schema: JOUEUR, agentType: 'joueur', model: 'sonnet', effort: 'low' })
+  ).then((appel) => ({ persona: j.persona, ...appel }))))
   intentions = []
-  rendus.forEach((r, rang) => {
-    const j = joueurs[rang]
+  const parPersona = new Map(rendus.map((r) => [r.persona, r]))
+  joueurs.forEach((j, rang) => {
+    const r = parPersona.get(j.persona)
+    agentsJoueurs += 1 + r.renvois
     if (!r.rendu) {
       log(`Échange ${numero} : le joueur ${j.persona} n’a rien rendu (${r.cause}) — aucune intention de sa part à cet échange.`)
       joueursSansRendu.push(`échange ${numero} : ${j.persona} — ${r.cause}`)
@@ -526,7 +526,9 @@ const journal = {
   livre: LIVRE, chapitre: CHAPITRE, fichiers: FICHIERS, seed: SEED, maxEchanges: MAX_ECHANGES,
   preparation: { pjs: PJS, groupe: GROUPE, ficheMJ, sosie: sosieRendu, anomaliesDeSosie },
   joueurs: joueurs.map((j) => ({ persona: j.persona, pj: j.pj.id, nom: j.pj.nom, sosie: j.sosie })),
-  echanges, notesFinales: joueurs.map((j, rang) => ({ persona: j.persona, pj: j.pj.id, notes: notes[rang] })), tiragesConsommes: tirageSuivant, fin, plafondAtteint, interrompue,
+  echanges, notesFinales: joueurs.map((j, rang) => ({ persona: j.persona, pj: j.pj.id, notes: notes[rang] })),
+  ...(joueursSansRendu.length ? { intentionsNonResolues: intentions } : {}),
+  ...(echangeRejete ? { echangeRejete } : {}), tiragesConsommes: tirageSuivant, fin, plafondAtteint, interrompue,
 }
 /** Ce que le juge reçoit de la partie : ses SORTIES — intentions, résolutions dites, jets, sorts des
  *  déclencheurs, narration, beat — jamais l'état privé du MJ, son classement de ses propres résolutions ni
@@ -539,7 +541,7 @@ const journalDuJuge = {
     numero: e.numero, intentions: e.intentions, resolutions: e.resolutions.map((r) => ({ persona: r.persona, pj: r.pj, resolution: r.resolution })),
     jets: e.jets, declencheurs: e.declencheurs.map((d) => ({ id: d.id, statut: d.statut })), narration: e.narration, beat: e.beat, fin: e.fin,
   })),
-  fin, plafondAtteint, interrompue,
+  fin, plafondAtteint, interrompue: interrompue && { echange: interrompue.echange },
 }
 
 /** Ce que la partie n'a pas joué du livre : rendu, journalisé, et jugé par une rubrique de l'analyse. */
@@ -550,15 +552,15 @@ const declencheursEcartes = DECLENCHEURS.filter((d) => etatDe.get(d.id).etat ===
 const bilanDesDeclencheurs = `déclencheurs : ${declencheursNonJoues.length} NON JOUÉ(S)${declencheursNonJoues.length ? ` (${declencheursNonJoues.map((d) => `${d.id} ${d.ref.join(' ; ')}, dernier sort ${d.dernierStatut}`).join(' ; ')})` : ''}, ${declencheursEcartes.length} ÉCARTÉ(S)${declencheursEcartes.length ? ` (${declencheursEcartes.map((d) => `${d.id} à l'échange ${d.echange} — ${d.motif}`).join(' ; ')})` : ''}`
 
 /** Les anomalies d'une espèce, sur toute la partie, chacune à son échange. */
-const anomaliesDesEchanges = (espece) => echanges.flatMap((e) => e[espece].map((a) => `échange ${e.numero} : ${a}`))
+const anomaliesDeLEchangeRejete = (espece) => echangeRejete ? echangeRejete[espece].map((a) => `échange ${echangeRejete.numero} : MJ — ${a}`) : []
 /** Les TROUS du run, par espèce, chacune sous le verdict qui la nomme, dans l'ordre où elles le priment :
  *  SIGNAL ou THÉÂTRE ne se rend que si toutes sont vides. Chaque trou d'agent nomme sa cause. */
 const trousDuRun = ({ fuites = [], analyseSansRendu = [] } = {}) => [
   { espece: 'interruption', verdict: 'INTERROMPU', liste: interrompue ? [`échange ${interrompue.echange} : ${interrompue.cause}, ${interrompue.intentionsNonResolues.length} intention(s) sans résolution`] : [] },
   { espece: 'joueursSansRendu', verdict: 'PARTIE INCOMPLÈTE', liste: joueursSansRendu },
   { espece: 'anomaliesDeSosie', verdict: 'PARTIE ANOMALE', liste: anomaliesDeSosie },
-  { espece: 'anomaliesDeTirage', verdict: 'PARTIE ANOMALE', liste: anomaliesDesEchanges('anomaliesDeTirage') },
-  { espece: 'anomaliesDeDeclencheurs', verdict: 'PARTIE ANOMALE', liste: anomaliesDesEchanges('anomaliesDeDeclencheurs') },
+  { espece: 'anomaliesDeTirage', verdict: 'PARTIE ANOMALE', liste: anomaliesDeLEchangeRejete('anomaliesDeTirage') },
+  { espece: 'anomaliesDeDeclencheurs', verdict: 'PARTIE ANOMALE', liste: anomaliesDeLEchangeRejete('anomaliesDeDeclencheurs') },
   { espece: 'fuites', verdict: 'PARTIE ANOMALE', liste: fuites },
   { espece: 'analyseSansRendu', verdict: 'SANS ANALYSE', liste: analyseSansRendu },
 ]
@@ -570,8 +572,8 @@ const conclusion = (trous, succes) => {
 }
 
 if (!echanges.length) {
-  const agentsSansAnalyse = { preparation: 2, mj: agentsMJ, joueurs: agentsJoueurs, analyse: 0, total: 2 + agentsMJ + agentsJoueurs }
-  log(`Analyse : aucune — la partie est INTERROMPUE avant son premier échange (${interrompue.cause}) ; ${bilanDesDeclencheurs}.`)
+  const agentsSansAnalyse = { preparation: agentsPreparation, mj: agentsMJ, joueurs: agentsJoueurs, analyse: 0, total: agentsPreparation + agentsMJ + agentsJoueurs }
+  log(`Analyse : aucune — la partie est INTERROMPUE avant son premier échange (${interrompue?.cause ?? 'rendu du MJ rejeté'}) ; ${bilanDesDeclencheurs}.`)
   return { ...conclusion(trousDuRun(), null), journal, analyse: null, declencheursNonJoues, declencheursEcartes, agents: agentsSansAnalyse, date: DATE }
 }
 
@@ -585,7 +587,7 @@ const NUMEROS_D_ECHANGE = echanges.map((e) => e.numero)
 const IDS_DES_SECRETS = ficheMJ.secrets.map((s) => s.id)
 /** La réf de chaque secret de la fiche, par id : le juge nomme le secret, le script en porte la réf. */
 const refDuSecret = new Map(ficheMJ.secrets.map((s) => [s.id, s.ref]))
-const analyse = await capturer(() => agent(`Tu ANALYSES une table papier simulée de ${LIVRE} ${CHAPITRE}. Relis le chapitre au Source/ : le journal dit ce qui s'est joué, le livre dit ce qui était prévu.
+const analyse = await appelValide(`Tu ANALYSES une table papier simulée de ${LIVRE} ${CHAPITRE}. Relis le chapitre au Source/ : le journal dit ce qui s'est joué, le livre dit ce qui était prévu.
 ${CADRE}
 ${CHAPITRE_LU}
 
@@ -604,8 +606,8 @@ Rends :
 - besoins : ce que le jeu devra offrir pour que ces intentions aboutissent, chacun avec les personas qui ont eu l'intention et la réf du livre qui la prévoit (\`''\` s'il ne la prévoit pas). Tu ne tries pas : le script retient.
 - synthese.markdown : une synthèse courte.
 Un jet du journal se vérifie en rejouant sa commande : l'outil est déterministe.`,
-  {
-    label: 'analyse', phase: 'Analyse', agentType: 'juge-de-source', model: 'opus', effort: 'high',
+  (prompt, essai) => agent(prompt, {
+    label: labelDAppel('analyse', essai), phase: 'Analyse', agentType: 'juge-de-source', model: 'opus', effort: 'high',
     schema: {
       type: 'object', additionalProperties: false,
       properties: {
@@ -630,11 +632,12 @@ Un jet du journal se vérifie en rejouant sa commande : l'outil est déterminist
         declencheurs: { type: 'object', additionalProperties: false, properties: proprietesPar(aJuger, () => JUGEMENT_DE_DECLENCHEUR), required: aJuger },
         fuites: {
           type: 'array',
-          items: {
+          items: IDS_DES_SECRETS.length ? {
             type: 'object', additionalProperties: false,
             properties: { echange: { enum: NUMEROS_D_ECHANGE }, secret: { enum: IDS_DES_SECRETS }, constat: { type: 'string' } },
             required: ['echange', 'secret', 'constat'],
-          },
+          } : {},
+          maxItems: IDS_DES_SECRETS.length ? undefined : 0,
         },
         besoins: BESOINS,
         synthese: SYNTHESE,
@@ -643,7 +646,8 @@ Un jet du journal se vérifie en rejouant sa commande : l'outil est déterminist
     },
   }))
 
-const agents = { preparation: 2, mj: agentsMJ, joueurs: agentsJoueurs, analyse: 1, total: 3 + agentsMJ + agentsJoueurs }
+const agentsAnalyse = 1 + analyse.renvois
+const agents = { preparation: agentsPreparation, mj: agentsMJ, joueurs: agentsJoueurs, analyse: agentsAnalyse, total: agentsPreparation + agentsMJ + agentsJoueurs + agentsAnalyse }
 if (!analyse.rendu) {
   log(`Analyse : le juge n’a rien rendu (${analyse.cause}) — le journal est rendu sans classement ; ${bilanDesDeclencheurs}.`)
   return { ...conclusion(trousDuRun({ analyseSansRendu: [`analyse — ${analyse.cause}`] }), null), journal, analyse: null, declencheursNonJoues, declencheursEcartes, agents, date: DATE }
@@ -659,6 +663,6 @@ const fuitesSourcees = classement.fuites.map((f) => ({ ...f, ref: refDuSecret.ge
 const fuites = fuitesSourcees.map((f) => `échange ${f.echange} : secret « ${f.secret} » — ${f.constat} (${f.ref.join(' ; ')})`)
 const manquesDuMJ = declencheursJuges.filter((d) => d.manque)
 const { verdict, trous } = conclusion(trousDuRun({ fuites }), adverses.length ? 'SIGNAL' : 'THÉÂTRE')
-log(`Analyse : ${verdict} — ${intentionsClassees.length} intention(s) classée(s), dont ${adverses.length} refusée(s) ou hors livre jouée(s) par les personas adverses (${PERSONAS_ADVERSES.join(', ')}) ; ${classement.tempsMorts.length} temps mort(s) ; ${fuites.length} fuite(s) de secret ; ${bilanDesDeclencheurs}, dont ${manquesDuMJ.length} MANQUÉ(S) par le MJ ; besoins ${besoins.filter((b) => b.retenu).length} retenu(s) sur ${besoins.length} ; ${agents.total} agents joués (2 de préparation, ${agentsMJ} MJ, ${agentsJoueurs} joueurs, 1 juge).`)
+log(`Analyse : ${verdict} — ${intentionsClassees.length} intention(s) classée(s), dont ${adverses.length} refusée(s) ou hors livre jouée(s) par les personas adverses (${PERSONAS_ADVERSES.join(', ')}) ; ${classement.tempsMorts.length} temps mort(s) ; ${fuites.length} fuite(s) de secret ; ${bilanDesDeclencheurs}, dont ${manquesDuMJ.length} MANQUÉ(S) par le MJ ; besoins ${besoins.filter((b) => b.retenu).length} retenu(s) sur ${besoins.length} ; ${agents.total} agents joués (${agentsPreparation} de préparation, ${agentsMJ} MJ, ${agentsJoueurs} joueurs, ${agentsAnalyse} juge(s)).`)
 const { synthese, ...reste } = classement
 return { verdict, trous, journal, analyse: { ...reste, intentions: intentionsClassees, declencheurs: declencheursJuges, fuites: fuitesSourcees, besoins, synthese_markdown: synthese.markdown }, declencheursNonJoues, declencheursEcartes, agents, date: DATE }

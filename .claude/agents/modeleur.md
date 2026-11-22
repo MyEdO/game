@@ -35,7 +35,6 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, rendus, mesures)
   vivent hors du dépôt, au dossier nommé au brief. Tu ne touches ni la base, ni le kit partagé
   (`scripts/personnage-3d/` hors de tes dossiers), ni les voisins : un besoin commun revient à l'orchestrateur.
-- **Chaque build tient sous 270 s.** Un build plus long se découpe ou se lance en fond, sous ta veille.
 - **Après deux échecs du même défaut, change de méthode** avant une troisième retouche, et dis-le.
 - **Seule la mesure Node valide** : `npm run godot:valider` puis `npm run godot:evaluer` sur la matrice
   de facteurs et de silhouettes que le brief demande, ta pièce évaluée avec la tenue (tête, coiffure, voisins) pour que

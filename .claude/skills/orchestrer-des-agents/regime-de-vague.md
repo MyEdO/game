@@ -37,3 +37,17 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   travail restant, croissance nette (≤ 0), émises sans épique, balance par vague ; fermetures dépilant
   le stock de plus de 28 jours (≥ 50 %), restes résorbés sous deux semaines (≥ 60 %). Deux semaines
   sans mesure = anomalie à signaler.
+
+## Suivi des agents et des recettes
+
+- **Signal de vie** : l'mtime de `~/.claude/projects/<slug>/<session>/subagents/agent-<id>.jsonl`
+  (pas `tasks/<id>.output`), sous `Monitor`, seuil 15 min. Un appel figé sans `tool_result` est tenu par
+  un hook vivant depuis plus de 2 min ou un `cygwin-console-helper` orphelin : `Stop-Process` par PID dans
+  un `.ps1` (`pwsh -NoProfile -File`), jamais par nom, ni sur `scripts/git-hooks/` ou un `node --test`.
+  Puis un agent NEUF, briefé sur le diff partiel relu (#2112).
+- **Friction de recette MESURÉE par script = hypothèse** ; seule la capture vaut fait. Avant tout brief de
+  correction, le recetteur la re-mesure isolément (sonde discriminante nommée, tableau brut).
+- **Livraison d'ÉCRAN → trois passes** : recette fonctionnelle (DoD), jugement d'écran (captures → juge
+  en lentilles : charte/primitives, hiérarchie-densité, cohérence inter-écrans, « prototype ou
+  produit ? », défauts concrets), lisibilité si du style a bougé. Sur un sous-système, audit adversarial :
+  un raccourci qui « borne le reste » est un défaut, pas un choix.
