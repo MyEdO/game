@@ -300,3 +300,14 @@ Non couvert par la mesure : la largeur d'un libellé agrandi dans une ligne sans
 
 - Planche : `hotes/godot/cibles/propositions/sources/kit/planche-textes.html`.
 - Avant / après simulés (hors dépôt) : `creation-presentation`, `editeur-de-scene` (`porte`), `combat-naval-bordee`, `tour-de-combat` (`cible-montee`).
+
+## Réponses de l'utilisateur (2026-11-22)
+
+Choix d'interface, révisable (pas une règle de jeu). Les 13 questions des trois lots ont été posées ensemble, chacune avec son option recommandée, sous la forme d'une liste ; réponse verbatim : « Tout accepter (Recommandé) ». Pour ce lot, la liste acceptée disait :
+
+- Sous-titre sur parchemin : encre brune (--encre-2) ; la rouille reste à la rubrique.
+- Libellé d'une ligne libellé-valeur = rubrique 13/16 partout.
+- Ligne de tableau : libellé en Spectral 13,5 (une entrée, pas une rubrique).
+- « Coût doublé », mention de designer : note courante en rouge sang.
+
+Par doctrine, sans question (`user-doctrine-icone-identifie-survol-detaille`) : une infobulle native (`title=`) devient une bulle au survol ; le compteur devient icône et nom au survol.

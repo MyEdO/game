@@ -284,3 +284,15 @@ Seulement les vrais choix ; ce que la doctrine du survol tranche déjà (infobul
 
 - Planche : `hotes/godot/cibles/propositions/sources/kit/planche-pieces-et-jauges.html`, rendue en code 0, relevé vide. Elle montre une sélection : 10 des 68 libellés de plaque, les variantes de bulle par largeur et la raison en ligne, l'outil, le médaillon visé et le compteur, les jauges et les pas ; la cible sur bois et sur parchemin. Le rond, le disque et la réglette, inchangés, n'y sont pas.
 - Avant / après simulés (hors dépôt, avant à gauche) : bulles `fiche-possessions-prothese`, `activites-en-mer` ; plaques `bivouac`, `defense-avant-le-de` ; jauges `creation-competences-de-carriere`.
+
+## Réponses de l'utilisateur (2026-11-22)
+
+Choix d'interface, révisable (pas une règle de jeu). Les 13 questions des trois lots ont été posées ensemble, chacune avec son option recommandée, sous la forme d'une liste ; réponse verbatim : « Tout accepter (Recommandé) ». Pour ce lot, la liste acceptée disait :
+
+- Petite plaque : 13 px partout, rangées denses reprises par leur disposition.
+- Nombre seul dans une plaque (10 PX) : Chiffres 12,5 dans la case prix.
+- Bulle longue : une ligne jusqu'à 300 px, puis à la ligne.
+- Raison écrite en ligne (« Pas de place ») : Spectral italique 13/16.
+- Clous de progression : une forme « clous » à part (les pas petits coupent 5 noms en création).
+
+Par doctrine, sans question (`user-doctrine-icone-identifie-survol-detaille`) : une infobulle native (`title=`) devient une bulle au survol ; le compteur devient icône et nom au survol.

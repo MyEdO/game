@@ -414,3 +414,14 @@ Tranché sans question par un arbitrage déjà cité :
 - `S/voyage/voyage.css:12` : `.filet{margin:11px 0 8px}` sans portée. Elle change la marge du kit dans les gabarits qui chargent `voyage/voyage.css` (route et relais, `S/rendu.js:1742`, `:1754`).
 - `S/rendu.css:15` : `#verdict .sous .point`, émis par aucun script (déjà noté au catalogue).
 - `.pt` a deux sens : puce de coop (`S/outils/outils.css:45`) et station du changement de carrière (`S/heros/heros.css:361`).
+
+## Réponses de l'utilisateur (2026-11-22)
+
+Choix d'interface, révisable (pas une règle de jeu). Les 13 questions des trois lots ont été posées ensemble, chacune avec son option recommandée, sous la forme d'une liste ; réponse verbatim : « Tout accepter (Recommandé) ». Pour ce lot, la liste acceptée disait :
+
+- Noms en 3 tailles : 22 / 18 / 16, le petit sur 22 d'interligne (16/19 coupe 55 états).
+- Filet : sa marge est du placement (11 px partout casse 26 états).
+- Ligne de liste : 28 px, 44 quand une précision passe dessous.
+- Compte d'étiquette (+25 PX) : Chiffres 11,5, hauteur 21.
+
+Par doctrine, sans question (`user-doctrine-icone-identifie-survol-detaille`) : une infobulle native (`title=`) devient une bulle au survol ; le compteur devient icône et nom au survol.
