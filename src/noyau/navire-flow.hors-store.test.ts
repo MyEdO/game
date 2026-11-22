@@ -1237,11 +1237,11 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     const geants = JSON.stringify(consequence('infestation-de-rats-geants'));
     expect(geants).toContain('"test":{"crewTestType":"extermination-nuisibles","difficulty":"complexe"},"drCible":25');
     expect(geants).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":3,"sides":10}}}');
-    expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+    expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":{"id":"fievre-du-rongeur"}}]}');
     const rats = JSON.stringify(consequence('infestation-de-rats'));
     expect(rats).toContain('"test":{"crewTestType":"extermination-nuisibles","difficulty":"intermediaire"},"drCible":10');
     expect(rats).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":1,"sides":10}}}');
-    expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+    expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":{"id":"fievre-du-rongeur"}}]}');
   });
 
   it('Extermination : chaque étape cumule ses DR jusqu’au total, et l’infestation tombe (MDG 14 l.98-104)', () => {

@@ -328,6 +328,15 @@ type LiensChampsDOps<O, P, F, D> = {
   declenche: () => z.ZodType<D>;
 };
 
+const diagnosticsDUnion = z.registry<{ branche: (valeur: unknown) => number | undefined }, z.ZodUnion>();
+
+function brancheDeRollTable(valeur: unknown): 0 | 1 | undefined {
+  if (!estObjet(valeur)) return undefined;
+  const inline = valeur.entries !== undefined;
+  if (inline === (valeur.table !== undefined)) return undefined;
+  return inline ? 0 : 1;
+}
+
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
  * vérifié sur toutes les occurrences réelles de l'op dans les 2 racines authorées. Une entrée est un
@@ -995,13 +1004,10 @@ const declarationsDOps = <O, P, F, D>(liens: LiensChampsDOps<O, P, F, D>) => ({
       table: ref('table'),
     }), { op: { label: "opération"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, table: { label: "table" , texte: { regime: "technique"} } }),
   ], {
-    error: (iss) => {
-      const v = (iss.input ?? {}) as { entries?: unknown; table?: unknown };
-      return (v.entries === undefined) === (v.table === undefined)
-        ? 'table EXCLUSIVE : « entries » (rangées inline) OU « table » (tables.json) — exactement une des deux.'
-        : messageDeFormes(iss);
-    },
-  }),
+    error: (iss) => brancheDeRollTable(iss.input) === undefined
+      ? 'table EXCLUSIVE : « entries » (rangées inline) OU « table » (tables.json) — exactement une des deux.'
+      : messageDeFormes(iss),
+  }).register(diagnosticsDUnion, { branche: brancheDeRollTable }),
   testMod: nommerChamps(z.strictObject({
     op: z.literal('testMod'),
     amount: z.number(),
@@ -2129,7 +2135,13 @@ function unionDesOps<D extends Readonly<Record<string, z.ZodType>>>(charges: D) 
     const res = charge.safeParse(v);
     if (res.success) return res.data;
     const op = estObjet(v) ? v.op : undefined;
-    for (const issue of res.error.issues) ctx.addIssue({ ...issue, message: `GameOp « ${op} » : ${issue.message}` });
+    const branche = charge instanceof z.ZodUnion ? diagnosticsDUnion.get(charge)?.branche(v) : undefined;
+    // Une branche certaine révèle ses chemins même si zod a interrompu les deux branches.
+    const issues = res.error.issues.flatMap((issue) =>
+      branche !== undefined && issue.code === 'invalid_union' && issue.path.length === 0
+        ? issue.errors[branche] ?? [issue]
+        : [issue]);
+    for (const issue of issues) ctx.addIssue({ ...issue, message: `GameOp « ${op} » : ${issue.message}` });
     return z.NEVER;
   }), 'construire', 'gameOp');
   declarerEnfants(union, Object.entries(charges).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {

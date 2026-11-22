@@ -193,9 +193,11 @@ describe('OP_DEFS — payload strict par op, refus au site', () => {
     expect(fantome.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
       ['table.id', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
     ]);
-    // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
+    // Le diagnostic de la référence d’une op de rangée garde son chemin complet.
     const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: { id: 'maladie-fantome' } }] }] });
-    expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease.id']);
+    expect(imbriquee.error!.issues.map((i) => [i.code, i.path.join('.'), i.message])).toEqual([
+      ['custom', 'entries.0.ops.0.disease.id', 'GameOp « rollTable » : GameOp « contractDisease » : « maladie-fantome » est absent du catalogue des maladies (maladies.json).'],
+    ]);
   });
 
   // VDM 12 l.920.

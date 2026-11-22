@@ -1275,6 +1275,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].sondes = [{ skillIdent: 'athletisme', poids: 3 }]; // graphie de référence NEUVE
       axes[0].opsSonde = [
         { op: 'heal', amount: 1 },
+        { op: 'arrowWard' },
         { op: 'arrowWard', machinId: 'absent' },
         { op: 'heal', amount: false, machinId: 'absent' },
         { op: 'constructor', machinId: 'absent' },
@@ -1297,21 +1298,24 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       expect(orphelinesNeuves, 'une FK morte (`machinId`) n’est pas vue : le motif `clé de référence non résolue` serait inatteignable.').toContain(
         'sonde.json | casses | machinId | clé de référence non résolue',
       );
-      expect(opsNeuves).toEqual(['arrowWard | machinId,op | sonde.json', 'heal | amount,op | sonde.json']);
+      expect(opsNeuves).toEqual(['arrowWard | op | sonde.json', 'heal | amount,op | sonde.json']);
       expect(apres.totalOps).toBe(temoin.totalOps + 2);
       expect(apres.totalConditionsAvecOp).toBe(temoin.totalConditionsAvecOp + 1);
       expect(apres.autresPorteursDOp.filter((o) => o.dataset === 'sonde.json').map(({ motif, op, champ }) => [motif, op, champ])).toEqual([
         ['charge refusée', undefined, 'opsSonde'],
+        ['charge refusée', 'arrowWard', 'opsSonde'],
         ['charge refusée', 'heal', 'opsSonde'],
         ['hors site GameOp', 'heal', 'copies'],
         ['hors site GameOp', 'heal', 'copies'],
         ['op inconnue', 'constructor', 'opsSonde'],
         ['op inconnue', 'toString', 'opsSonde'],
       ]);
-      expect(orphelinesNeuves.filter((o) => o.startsWith('sonde.json | opsSonde'))).toEqual([
-        'sonde.json | opsSonde | amount,machinId,op | clé de référence non résolue',
-        'sonde.json | opsSonde | machinId | clé de référence non résolue',
-        'sonde.json | opsSonde | machinId,op | clé de référence non résolue',
+      expect(apres.orphelines
+        .filter((o) => o.dataset === 'sonde.json' && o.champ === 'opsSonde')
+        .map(({ signature, motif, occurrences }) => [signature, motif, occurrences])).toEqual([
+        ['machinId,op', 'clé de référence non résolue', 2],
+        ['amount,machinId,op', 'clé de référence non résolue', 1],
+        ['machinId', 'clé de référence non résolue', 1],
       ]);
       expect(orphelinesNeuves).toContain('sonde.json | copies | amount,id,op | identité non résolue');
       expect(apres.objets.invisibles).toBe(temoin.objets.invisibles + 3);
