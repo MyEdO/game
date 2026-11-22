@@ -2708,6 +2708,7 @@
     "id": "vdm-catastrophes-de-brassage",
     "type": "tables",
     "label": "Catastrophes de brassage (VDM)",
+    "borneHauteOuverte": true,
     "die": {
       "n": 1,
       "sides": 10

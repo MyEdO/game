@@ -340,7 +340,7 @@
     "dancers": 11,
     "table": [
       {
-        "min": -99,
+        "min": 0,
         "max": 2,
         "points": 1,
         "label": "à la jambe"
@@ -353,7 +353,7 @@
       },
       {
         "min": 6,
-        "max": 99,
+        "max": null,
         "points": 3,
         "label": "à la tête"
       }

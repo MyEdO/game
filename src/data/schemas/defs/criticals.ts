@@ -2,6 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 18 ; AA 07 ; LDB 18 l.53 ; AA 07 l.40 ; AA 07 l.79. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couvertureDeclareeDuDe, type TableTiree } from '../grammaire/couverture-table';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import {
   cibleEtendueSchema,
@@ -153,6 +154,10 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
+    // LDB 18 l.83, l.126, l.153, l.183 ; AA 07 l.105, l.131, l.157, l.183.
+    affinerEntree: couvertureDeclareeDuDe<TableTiree & { jeu: 'aa' | 'ldb' }>(
+      file, (table) => table.jeu === 'aa' ? 'ouverte' : 'fermee', 'borne-haute',
+    ),
     // (`jeu`, `localisation`) est l'identité de recherche d'un document (`critiqueDoc`, `src/data/criticals.ts`) :
     // un couple, un document.
     affinerDataset: (dataset) =>

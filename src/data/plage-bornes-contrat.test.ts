@@ -9,8 +9,7 @@
  *  B. les bornes d'un RÉGLAGE et les bornes d'un TIRAGE sont disjointes ;
  *  C. la fourchette EMBOÎTÉE (`{range: {min, max}}`) n'existe nulle part ;
  *  E. une borne `null` ne s'admet qu'à travers `plageOuverteSchema` (#1463 L-gram-1), composé aux positions
- *     de schéma NOMMÉES, et la donnée n'en porte qu'à ces positions — un nœud de grammaire à part plutôt
- *     qu'une paire de bornes rendue `nullable` partout ;
+ *     de schéma NOMMÉES. Les domaines ouverts en haut refusent de fermer leur dernière bande (#1915) ;
  *  F. aucun schéma de document n'admet une paire de nombres en TUPLE hors des paramètres d'une recette de
  *     RENDU (`detailRecipeSchema`).
  *
@@ -40,7 +39,7 @@ import { defDe, descendre, enfantsDe, ouverts } from './schemas/grammaire/descen
 import { detailRecipeSchema, plageOuverteSchema, raceKeySchema } from './schemas/grammaire/valeurs';
 import { validateDataset } from './schemas/validate';
 import { tableTotale } from '../lib/tableTotale';
-import { estObjet } from '../lib/objet.mjs';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 
 /** Les DEUX racines de donnée du projet, comme le scan des structures (`scripts/docs/lib/structures-scan.mts`) :
  *  une graphie de bornes qui n'apparaîtrait que dans un document de SCÈNE échapperait sinon à la mesure.
@@ -62,6 +61,20 @@ const PAIRES = [
 
 type Objet = Record<string, unknown>;
 type Site = { doc: string; chemin: string; cles: string[] };
+type BandeOuverte = { doc: string; chemin: string; adresse: readonly (string | number)[]; min: number | null };
+
+const POSITIONS_OUVERTES = [
+  'advancementCosts.json::[]', 'crew-morale.json::.bands[]', 'criticals.json::[].entries[]', 'miscast.json::[].entries[]',
+  'naval-progression.json::.entries[]', 'sea-cargo.json::.vente.prixDOffre[]', 'sea-events.json::.boardEvents.entries[]',
+  'sea-events.json::.fastVoyage.entries[]', 'sea-navigation.json::.orientation.changementDeCap.entries[]',
+  'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
+  'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',
+  'ship-construction.json::.standard[].lengthM', 'structure-criticals.json::.entries[]', 'tables.json::[].entries[]',
+  'tavernGames.json::[].table[]',
+];
+const FICHIERS_OUVERTS = new Set(POSITIONS_OUVERTES.map((p) => p.split('::')[0]));
+const PLAFOND_HISTORIQUE = 100000;
+const REFUS_DU_PLAFOND = /borne haute.*`max: null`/u;
 
 const estNombre = (v: unknown): v is number => typeof v === 'number';
 
@@ -77,19 +90,23 @@ type Mesure = {
    *  tableau à dessein (cf. l'en-tête, bord (2) : hors tableau, `{max}` seul est un CARDINAL). */
   borneHauteSeule: Site[];
   /** Objet portant une borne numérique et l'autre `null` : la bande OUVERTE (`plageOuverteSchema`). */
-  bandesOuvertes: Site[];
+  bandesOuvertes: BandeOuverte[];
   /** Seuils de tirage à borne haute seule, par position. */
   seuils: string[];
   /** Documents JSON effectivement lus, PAR RACINE — sans quoi l'élargissement de la marche à une
    *  seconde racine serait un no-op indétectable (elle n'y porte, aujourd'hui, aucune borne). */
   documentsParRacine: Record<string, number>;
+  fichiers: Map<string, string>;
 };
 
 function mesurer(): Mesure {
-  const m: Mesure = { paires: {}, emboites: [], deuxBornes: [], borneHauteSeule: [], bandesOuvertes: [], seuils: [], documentsParRacine: {} };
-  const walk = (n: unknown, doc: string, chemin: string, dansTableau: boolean): void => {
+  const m: Mesure = {
+    paires: {}, emboites: [], deuxBornes: [], borneHauteSeule: [], bandesOuvertes: [], seuils: [],
+    documentsParRacine: {}, fichiers: new Map(),
+  };
+  const walk = (n: unknown, doc: string, chemin: string, adresse: readonly (string | number)[]): void => {
     if (Array.isArray(n)) {
-      for (const e of n) walk(e, doc, `${chemin}[]`, true);
+      for (const [i, e] of n.entries()) walk(e, doc, `${chemin}[]`, [...adresse, i]);
       return;
     }
     if (!n || typeof n !== 'object') return;
@@ -107,13 +124,14 @@ function mesurer(): Mesure {
     // du lexique ne le fait plus non plus (`candidatureHorsTableau`, #1659) — un `{min,max}` porté par
     // un champ est la même fourchette que celui d'un élément de tableau.
     if (estNombre(o.min) && estNombre(o.max)) m.deuxBornes.push({ doc, chemin, cles });
-    if ((estNombre(o.min) && o.max === null) || (o.min === null && estNombre(o.max))) m.bandesOuvertes.push({ doc, chemin, cles });
-    if (dansTableau && 'max' in o && !('min' in o) && (estNombre(o.max) || o.max === null)) {
+    if (estNombre(o.min) && o.max === null) m.bandesOuvertes.push({ doc, chemin, adresse, min: o.min });
+    if (o.min === null && estNombre(o.max)) m.bandesOuvertes.push({ doc, chemin, adresse, min: null });
+    if (typeof adresse[adresse.length - 1] === 'number' && 'max' in o && !('min' in o) && (estNombre(o.max) || o.max === null)) {
       m.borneHauteSeule.push({ doc, chemin, cles });
     }
     for (const c of cles.filter((cle) => cle === 'rand' || cle === 'randByRace')) m.seuils.push(`${doc}${chemin}.${c}`);
 
-    for (const c of cles) walk(o[c], doc, `${chemin}.${c}`, false);
+    for (const c of cles) walk(o[c], doc, `${chemin}.${c}`, [...adresse, c]);
   };
   /** Les `.json` d'une racine, à toute profondeur : ce qui est collecté est de la DONNÉE, pas un
    *  corpus source — `listerArbre`, jamais `readCorpus`. */
@@ -122,7 +140,10 @@ function mesurer(): Mesure {
   for (const [cle, racine] of RACINES) {
     const lus = documents(racine);
     m.documentsParRacine[cle] = lus.length;
-    for (const [nom, chemin] of lus) walk(JSON.parse(readFileSync(chemin, 'utf8')), nom, '', false);
+    for (const [nom, chemin] of lus) {
+      m.fichiers.set(nom, chemin);
+      walk(JSON.parse(readFileSync(chemin, 'utf8')), nom, '', []);
+    }
   }
   return m;
 }
@@ -140,6 +161,23 @@ const atteints = (racine: unknown): Set<unknown> => {
 };
 
 const M = mesurer();
+
+function verifierLeRefusDuChevauchement(
+  fichier: string,
+  mutant: unknown,
+  rangees: unknown,
+  minTerminal: number,
+  plafond: number,
+): void {
+  const precedente = Array.isArray(rangees) ? rangees.find((r) => estObjet(r) && r.max === minTerminal - 1) : undefined;
+  if (!estObjet(precedente) || typeof precedente.id !== 'string') {
+    throw new Error(`${fichier} : aucune rangée adjacente identifiée avant ${minTerminal}`);
+  }
+  precedente.max = plafond;
+  const refus = validateDataset(fichier, mutant);
+  expect(refus, `${precedente.id} atteint le résultat terminal ${minTerminal}`).toMatch(/chevauche la rangée/u);
+  expect(refus).toContain(precedente.id);
+}
 
 describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vague `plage`)', () => {
   it('A — la marche couvre les DEUX racines de donnée (sinon l’affirmation « dans la donnée » ment)', () => {
@@ -188,19 +226,60 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
       'une paire de bornes admet `null` sans composer `plageOuverteSchema` : la bande ouverte est le nœud d’une EXCEPTION nommée, pas une paire rendue `nullable`.',
     ).toEqual([]);
     const positions = paires.filter((p) => p.bornes.every((b) => bornesOuvertes.has(b))).map((p) => p.site).sort();
-    expect(positions, 'les positions qui composent `plageOuverteSchema` ont changé : chacune se nomme ici.').toEqual([
-      'advancementCosts.json::[]', 'crew-morale.json::.bands[]', 'criticals.json::[].entries[]', 'miscast.json::[].entries[]',
-      'naval-progression.json::.entries[]', 'sea-cargo.json::.vente.prixDOffre[]', 'sea-events.json::.boardEvents.entries[]',
-      'sea-events.json::.fastVoyage.entries[]', 'sea-navigation.json::.orientation.changementDeCap.entries[]',
-      'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
-      'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',
-      'ship-construction.json::.standard[].lengthM', 'structure-criticals.json::.entries[]', 'tables.json::[].entries[]',
-    ]);
-    const documents = new Set(positions.map((p) => p.split('::')[0]));
+    expect(positions, 'les positions qui composent `plageOuverteSchema` ont changé : chacune se nomme ici.').toEqual(POSITIONS_OUVERTES);
+    const positionsAdmises = new Set(positions);
     expect(
-      [...new Set(M.bandesOuvertes.map((s) => s.doc))].filter((d) => !documents.has(d)),
-      'une bande OUVERTE est portée par un document qui ne compose pas `plageOuverteSchema`.',
+      [...new Set(M.bandesOuvertes.map((s) => `${s.doc}::${s.chemin}`))].filter((site) => !positionsAdmises.has(site)),
+      'une bande OUVERTE est portée à une position qui ne compose pas `plageOuverteSchema`.',
     ).toEqual([]);
+  });
+
+  it.each([...FICHIERS_OUVERTS])('E — les domaines déclarés protègent les bandes hautes ouvertes (%s)', (fichier) => {
+    const chemin = M.fichiers.get(fichier);
+    if (chemin === undefined) throw new Error(`${fichier} est absent du corpus des plages`);
+    const donnee: unknown = JSON.parse(readFileSync(chemin, 'utf8'));
+    expect(validateDataset(fichier, donnee), fichier).toBeNull();
+
+    const bandes = M.bandesOuvertes.filter((site) => site.doc === fichier);
+    for (const { adresse, min } of bandes) {
+      if (min === null) continue;
+      const mutant = structuredClone(donnee);
+      const bande = auChemin(mutant, adresse);
+      const lieu = `${fichier}${adresse.map((s) => typeof s === 'number' ? `[${s}]` : `.${s}`).join('')}`;
+      if (!estObjet(bande)) throw new Error(`${lieu} est introuvable dans la donnée`);
+      const plafonds = fichier === 'criticals.json' && bande.id === 'aa-bras-136' ? [min, PLAFOND_HISTORIQUE] : [min];
+      for (const max of plafonds) {
+        bande.max = max;
+        expect(validateDataset(fichier, mutant), `${lieu} avec max: ${max}`).toMatch(REFUS_DU_PLAFOND);
+      }
+      if (fichier !== 'criticals.json' && fichier !== 'miscast.json') continue;
+      bande.max = null;
+      verifierLeRefusDuChevauchement(fichier, mutant, auChemin(mutant, adresse.slice(0, -1)), min, min);
+    }
+  });
+
+  it('E — les Critiques du Livre de base refusent aussi le chevauchement du 100 fermé', () => {
+    const fichier = 'criticals.json';
+    const chemin = M.fichiers.get(fichier);
+    if (chemin === undefined) throw new Error(`${fichier} est absent du corpus des plages`);
+    const mutant: unknown = JSON.parse(readFileSync(chemin, 'utf8'));
+    const bras = Array.isArray(mutant) ? mutant.find((table) => estObjet(table) && table.id === 'criticals-ldb-bras') : undefined;
+    expect(validateDataset(fichier, mutant)).toBeNull();
+    verifierLeRefusDuChevauchement(fichier, mutant, estObjet(bras) ? bras.entries : undefined, 100, PLAFOND_HISTORIQUE);
+  });
+
+  it('E — le même plafond numérique est valide lorsque le dé d’une table d’effets le déclare', () => {
+    const rangee = { min: 1, max: PLAFOND_HISTORIQUE, ops: [] };
+    const table = {
+      id: 'table-de-couverture', type: 'tables', label: 'Table de couverture',
+      source: { book: 'livre-de-base', page: 40 },
+      die: { n: 1, sides: PLAFOND_HISTORIQUE }, entries: [rangee],
+    };
+    expect(validateDataset('tables.json', [table])).toBeNull();
+
+    const ouverte = { ...table, borneHauteOuverte: true };
+    expect(validateDataset('tables.json', [ouverte])).toMatch(REFUS_DU_PLAFOND);
+    expect(validateDataset('tables.json', [{ ...ouverte, entries: [{ ...rangee, max: null }] }])).toBeNull();
   });
 
   it('F — aucun schéma de document n’admet une paire de nombres en TUPLE hors d’une recette de RENDU (`detailRecipeSchema`)', () => {

@@ -7,6 +7,7 @@
  * Ce module = TYPES + lecteur vivant + lookup ; ajouter/régler = éditer `tables.json`, jamais ce fichier.
  */
 import { tableOuverte, type DeDeTable } from '../engine/tables';
+import { garanti } from '../lib/garanti';
 import effectTablesJson from './tables.json';
 import { deDeTirageDe, type RangeeDe } from './rangees';
 import { datasetDe, type EntreeDe } from './datasets';
@@ -30,7 +31,16 @@ export const effectTables = datasetDe<typeof tablesDEffets>(effectTablesJson);
 
 /** Tables LUES par id, reconstruites à la version du dataset (#1667). */
 const tablesLues = memoParVersion('effectTables', () =>
-  new Map(effectTables.map((t): [string, EffectTableLue] => [t.id, { ...t, entries: tableOuverte(t.entries) }])));
+  new Map(effectTables.map((table: EffectTable): [string, EffectTableLue] => {
+    const entries = table.borneHauteOuverte
+      ? tableOuverte(table.entries)
+      : table.entries.map((rangee, i) => ({
+        ...rangee,
+        min: garanti(rangee.min, table.id, `borne basse de la rangée ${i + 1} de la table d’effets fermée`),
+        max: garanti(rangee.max, table.id, `borne haute de la rangée ${i + 1} de la table d’effets fermée`),
+      }));
+    return [table.id, { ...table, entries }];
+  })));
 
 /** Table d'effets par `id` STABLE — FAIL-FAST (id inconnu = bug de données côté op `rollTable`/authoring). */
 export function findEffectTableById(id: string): EffectTableLue {

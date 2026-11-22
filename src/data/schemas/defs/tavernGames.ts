@@ -2,11 +2,11 @@ import { nommerChamps, nommerNoeud, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
+import { charKeySchema, deDeTirageSchema, difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, plageSchema } from '../grammaire/valeurs';
 import { executeesDe, testFixeSchema, porteurDeTestFixe, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
 import { idDe } from '../grammaire/ref';
-import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
+import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE, type SequenceTableRow } from '../../../engine/sequenceVocab';
 
 export const file = 'tavernGames.json';
 export const famille = 'entite';
@@ -84,8 +84,8 @@ const doc = document(
     dancers: z.number().optional(),
     /** Table de score par plage de DR (Torchon l.111) — lue par `findTableEntry` via le socle. */
     table: z.array(nommerChamps(z.strictObject({
-      ...plageSchema.shape, points: z.number(), label: z.string(),
-    }), { ...metaDesChamps(plageSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
+      ...plageOuverteSchema.shape, points: z.number(), label: z.string(),
+    }), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
     /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.70, Fléchettes l.97, Boules l.57.
      *  `gain`/`critique`/`maladresse`/`depassement` nomment un effet de lancer ENREGISTRÉ
      *  (table `lancers`, `src/noyau/sequenceCore.ts`), jamais un id de jeu. */
@@ -295,13 +295,21 @@ const doc = document(
     exiges: ['desc', 'source'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const jeu = v as { mode?: string; specials?: unknown[] };
+        const jeu = v as { id: string; mode?: string; specials?: unknown[]; roundShape?: string; table?: SequenceTableRow[] };
         if (jeu.specials?.length && !joueUnTest(jeu)) {
           ctx.addIssue({
             code: 'custom',
             path: ['specials'],
             message: 'Un Spécial modifie un Test : le jeu doit se résoudre par un Test.',
           });
+        }
+        if (jeu.roundShape === 'thrower') {
+          const table = jeu.table ?? [];
+          // NADJ 16 l.111 ; LDB 12 l.160.
+          const ecarts = ecartsDeCouverture(table, 0, 'ouverte', (ligne) => `la rangée ${table.indexOf(ligne) + 1}`);
+          if (ecarts.length) {
+            ctx.addIssue({ code: 'custom', path: ['table'], message: `« ${jeu.id} » : ${ecarts.join(' ; ')}.` });
+          }
         }
       }),
   },
