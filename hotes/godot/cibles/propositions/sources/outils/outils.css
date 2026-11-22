@@ -15,7 +15,6 @@
 .feuillet-coop p{margin:0;font-size:14.5px;line-height:20px;color:#3a2a18}
 .feuillet-coop .indice{font-style:italic;font-size:13.5px;color:#4a3420;margin-top:-9px}
 .feuillet-coop .plaque{flex:none}
-.feuillet-coop .plaque>div{font-size:17px}
 .refus{display:flex;align-items:center;gap:9px;font-style:italic;font-size:14px;color:#6b1c10}
 .cases{display:flex;gap:7px}
 .cases b{flex:1;height:58px;display:grid;place-items:center;font-size:30px;line-height:58px;color:#3a1a10;background:rgba(255,248,222,.55);border-radius:2px;box-shadow:inset 0 1px 3px rgba(60,35,5,.55),0 0 0 1px rgba(60,40,20,.7)}
@@ -57,20 +56,16 @@
 #barre .sous-titre{white-space:nowrap}
 #barre .espace{flex:1}
 #barre .plaque{flex:none}
-#barre .plaque>div{font-size:13px;padding:0 11px;gap:6px}
 #barre .segments b{padding:6px 10px 7px;font-size:13px}
 #barre .croix{position:static}
-#barre .plaque.seule>div{padding:0 9px}
 /* les lots de la barre : le titre, les documents, chaque lot de gestes, à 17 l’un de l’autre */
 #barre .lot-de-gestes{display:flex;align-items:center;gap:8px}
 #barre .medaillon+div{margin-right:9px}
 #barre .lot-de-gestes+.lot-de-gestes{margin-left:9px}
 #volets .fond{padding:34px 10px 10px}
 #volets .onglets{position:absolute;left:10px;right:10px;top:-8px;display:flex;justify-content:center;gap:4px}
-#volets .onglets .plaque>div{font-size:12px;padding:0 8px}
 #volets .gestes{display:flex;flex-direction:column;gap:6px}
 #volets .gestes .plaque{flex:none}
-#volets .gestes .plaque>div{font-size:12px;letter-spacing:.6px}
 #volets .ligne{height:auto;min-height:32px;padding:5px 10px;box-sizing:border-box;white-space:normal;line-height:18px;font-size:14px}
 .prop.sens{flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px}
 .outils{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
@@ -83,7 +78,6 @@
 #plan .fond>svg{display:block;width:100%;height:100%}
 #couches{position:absolute;left:20px;top:18px;display:flex;gap:5px}
 #couches .plaque{flex:none}
-#couches .plaque>div{font-size:12.500px;padding:0 10px;gap:6px}
 #nord{position:absolute;right:22px;top:18px;display:flex;align-items:center;gap:7px;font-size:12px;color:#f0e2c2;white-space:nowrap}
 #pied{display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:3px;box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.25);font-size:13.5px;color:#f0e2c2;white-space:nowrap}
 #pied .v{margin-left:auto;color:var(--creme-2)}
@@ -105,7 +99,6 @@
 #inspecteur .geste{padding-top:7px}
 #inspecteur [data-place="inspecteur/geste"]{display:flex;flex-direction:column;justify-content:flex-end}
 #inspecteur [data-place="inspecteur/geste"]>.plaque{flex:none}
-#inspecteur .plaque>div{font-size:13px}
 #inspecteur .segments b{font-size:11.5px;padding:3px 7px 4px;letter-spacing:.3px}
 
 .facettes{display:flex;flex-wrap:wrap;gap:6px}

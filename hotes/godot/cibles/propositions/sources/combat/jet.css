@@ -53,7 +53,6 @@
 #jet .dr-du-jet b{font-weight:400;font-size:12px;color:#2a1d12}
 #jet :is([data-place="fenetre/issue-phrase"],[data-place="fenetre/reglage-phrase"])>.glose{padding:0 6px;text-align:center}
 #suites .place>.plaque{width:100%}
-#suites .place>.plaque>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 
 /* les réserves du héros (`reserves`, `jet.js`) : une case de largeur fixe par jeton, son icône à gauche de son disque */
 .en-reserve{display:flex;gap:10px;align-items:center;color:#2a1d12}

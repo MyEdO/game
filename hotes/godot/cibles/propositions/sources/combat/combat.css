@@ -74,7 +74,7 @@
 #liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}
 #liste .rub{padding:0 2px 1px}
 #liste .plaque.ligne-l{flex:none}
-#liste .plaque.ligne-l>div{justify-content:flex-start;padding:0 12px;font-size:15px}
+#liste .plaque.ligne-l>div{justify-content:flex-start}
 .case-r{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .case-r .plaque{flex:none;width:44px}
 .case-r .numero{position:absolute;left:-7px;top:-7px}
@@ -159,11 +159,9 @@
 #ecran[data-etat^=meuble-] #gestes{top:7px}
 .plaques.conditionnelles{margin-top:6px;gap:6px}
 #ecran[data-etat^=meuble-] #gestes .conditionnelles .plaque{flex:0 1 auto}
-.plaques.conditionnelles .plaque>div{padding:0 6px;font-size:12.5px;letter-spacing:.7px}
 #ecran[data-etat^=meuble-] .pastilles{margin-top:7px;justify-content:flex-start;gap:9px}
 #ecran[data-etat^=meuble-] .outil{width:auto;flex-direction:row;gap:5px}
 #ecran[data-etat^=meuble-] .outil .bouton-rond{width:28px;height:28px}
-#ecran[data-etat^=meuble-] .outil span{font-size:11px;letter-spacing:.4px}
 /* l'offre que porte une entité du champ */
 .pastille-entite{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
 .pastille-entite span{font-size:12px;color:#f0e2c2;white-space:nowrap}
@@ -172,13 +170,14 @@
 .regle .l{font-size:12px;color:#4a3420;white-space:nowrap}
 #jet .regle .options{gap:6px}
 #jet .regle .options .plaque{min-width:0}
-#jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
 /* les lignes de réglage, chacune à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) */
 #jet .place>.regle{margin:0;height:100%}
 #jet .place>.regle.localisation{justify-content:flex-start;gap:8px}
-#jet .place>.regle.localisation>:not(.options){flex:none}
+#jet .place>.regle.localisation>*{flex:none}
 #jet .place>.regle.localisation .nom-propre{margin-left:2px}
-#jet .place>.regle.localisation .options{margin-left:auto}
+#jet .place>.regle.localisation>.bouton-rond{margin-left:auto}
+#jet [data-place="fenetre/reglage-pleine-1"]>.regle{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
+#jet [data-place="fenetre/reglage-pleine-1"]>.regle .l{white-space:nowrap}
 #jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
 .bascules{display:flex;gap:16px;align-items:center;height:100%}
 .bascules .bascule span{line-height:14px}

@@ -9,7 +9,6 @@
 .offre td:first-child{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--creme-2)}
 .offre td:last-child{text-align:right;font-weight:600;color:#f4e8ca}
 .offre .gestes{display:flex;gap:8px;margin-top:9px}
-.offre .gestes .plaque>div{font-size:13.5px;gap:7px;padding:0 6px}
 .offre.choisie{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.38)}
 .hote:is(.enseigne,.charge)>.fond{padding:8px 14px 9px 10px}
 
@@ -37,7 +36,6 @@
 .quantite .val{flex:none;width:86px;text-align:right;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;white-space:nowrap}
 .quantite .bornes{display:flex;justify-content:space-between;font-size:11px;color:#5a4530;margin-top:1px}
 #page .compte td:first-child span{font-size:11.5px;color:#5a4530;margin-left:6px}
-#page .plaque.conclure>div{font-size:16.5px}
 .voies{display:flex;flex-direction:column;gap:7px}
 .voies .soin{margin-top:0}
 .faits{width:100%;border-collapse:collapse;font-size:13.5px;color:#2a1d12}
@@ -56,7 +54,6 @@
 .service p{margin:7px 0 0;font-size:13px;line-height:17px}
 .service .gestes{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 .service .gestes .plaque{flex:1 1 auto}
-.service .gestes .plaque>div{font-size:13px;gap:6px;padding:0 9px;letter-spacing:.8px}
 #carte-du-lieu svg{display:block;width:100%;height:100%}
 .depart{display:flex;align-items:center;gap:10px;padding:6px 2px}
 .depart+.depart{border-top:1px solid rgba(226,192,106,.2)}
@@ -65,7 +62,6 @@
 .depart .ou span{display:block;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .depart .moyens{display:flex;gap:7px}
 .depart .plaque{flex:none}
-.depart .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
 .depart p{margin:4px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
 
 /* le Marchandage : le bandeau de jet du combat (`../combat/jet.css`, lié avant cette feuille), à sa place ; ce que la

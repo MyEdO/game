@@ -27,7 +27,6 @@
 .pan .filet{margin:9px 26px}
 .tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
 .tete-l>.plaque{flex:none}
-.tete-l>.plaque>div{font-size:12.5px;padding:0 12px}
 .lignes{display:flex;flex-direction:column}
 .deux{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
 .trois{display:grid;grid-template-columns:repeat(3,1fr);column-gap:12px}
@@ -100,8 +99,6 @@
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
 .tirage-c>.l{flex:1}
 .tirage-c .plaque{flex:none;width:250px}
-.tirage-c .plaque>div{font-size:12.5px}
-.tirage-c .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
 .ligne.repartie{height:30px}
 .profil-c{align-self:stretch;flex:none;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.25)}
 .profil-c>.fond{display:grid;grid-template-columns:repeat(6,1fr)}
@@ -151,7 +148,6 @@
 .tire .n>span{overflow:hidden}
 .tire .n .raison{font-size:10px}
 .tire .plaque{flex:none}
-.tire .plaque>div{font-size:12px;padding:0 10px}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
 .mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
@@ -284,8 +280,6 @@
 .consequence{color:var(--sang)}
 .gestes-o{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gestes-o .plaque.large,.gestes-o .plaque:is(:first-child,.large+*):is(:last-child,:has(+.large)){grid-column:1 / -1}
-.gestes-o .plaque>div{font-size:12.5px;padding:0 10px}
-.gestes-o .plaque .prix{font-family:"Fell";font-weight:400;letter-spacing:0;color:var(--creme)}
 .gestes-o .bulle-refus{left:auto;right:0;transform:none}
 .gestes-o .bulle-refus::before{left:auto;right:60px}
 .cout{margin-left:auto;font-family:"Chiffres";font-size:11.5px;font-weight:600;color:var(--encre-2)}
@@ -299,7 +293,6 @@
 .achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
 .achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
 .achat .plaque{flex:none;width:64px}
-.achat .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 4px}
 .achat .val span{font-weight:400}
 .achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
 .achat .avertissement{margin-left:auto}
@@ -311,20 +304,14 @@
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
 .depli .plaque{flex:none;width:150px}
-.depli .plaque>div{font-size:12px;padding:0 9px}
-.depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
 .talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
 .talent .t{flex:1;min-width:0}
 .talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
 .talent .plaque{flex:none;width:94px}
-.talent .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 6px}
-.talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11px;letter-spacing:.8px}
 .talent.clos .nom-propre{color:rgba(42,29,18,.6)}
 .achat.sort{height:31px;gap:10px;padding:0 4px}
 .achat.sort .cout{margin-left:0;width:38px}
 .achat.sort .plaque.composant{width:146px}
-.achat.sort .plaque.composant>div{font-family:"Fell SC";font-weight:400;letter-spacing:.6px}
-.achat.sort .plaque .prix{font-family:"Chiffres";font-size:11.5px}
 #talents .rub{margin-top:8px;white-space:normal}
 #talents .rub:first-child{margin-top:0}
 .pied-de-bourse{margin-top:8px;padding:0 4px;color:var(--encre)}
@@ -340,7 +327,6 @@
 .station .pt>.etiquette{position:absolute;left:40px;top:6px}
 .station .clou-fer{position:relative;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,var(--fer-clair) 60%,var(--noir));box-shadow:0 1px 2px var(--ombre)}
 .station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
-.station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
 .station .et{margin-top:2px;text-align:center;white-space:nowrap}
 .station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:13px;letter-spacing:.8px;color:var(--rouille)}
 .station.loin .et .nom-propre{color:rgba(42,29,18,.5)}
@@ -352,6 +338,5 @@
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
 #autre .plaques{height:28px;margin:0 0 8px}
-#autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}
 #autre>.fond>.glose{margin-top:9px}

@@ -197,7 +197,8 @@ sorte du Test : l'adversaire en miroir pour un Test opposé, l'interlocuteur ou 
 Test simple ou étendu quand la donnée le porte ; avant le dé, tout jet a de même un seul centre (`reglage`), le même
 cadre et ses places fixes `reglage-*`, vides quand la nature manque : `sous` (au rect de `issue-sous`), `mot` (la sorte
 du Test et sa difficulté, 22 de haut), `figure` (la silhouette, colonne réservée), `ligne-1` à `ligne-3` (280 de
-large, à côté de la figure), `carte-1` à `carte-4` (deux par bande, sur la largeur du centre), `cumul` et `phrase` (aux
+large, à côté de la figure), sans figure `pleine-1` à `pleine-3` (qui prennent aussi sa colonne, `pleine-1` sur
+deux bandes, son libellé au-dessus de ses options), `carte-1` à `carte-4` (deux par bande, sur la largeur du centre), `cumul` et `phrase` (aux
 rects de `issue-dr` et `issue-phrase`) ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
 (`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
 troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et

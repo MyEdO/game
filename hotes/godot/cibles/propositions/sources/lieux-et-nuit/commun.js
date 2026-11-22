@@ -76,7 +76,7 @@ const rail = (titre, services, pied, piece = 'colonne-gauche', suite = '') => ca
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */
 const poste = (cx, y, { nom: nomme, sous, icone, heros = [], ferme = false, vise = false, plus = false, piece = '', pointe = 0 }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" data-primitive="poste"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${cx}px;top:${y}px${pointe ? `;--pointe:${pointe}px` : ''}">
-  ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
+  ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit', vise }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme, vise })}
   <div class="et bois">${nom({ texte: nomme, taille: 'petit' })}${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.
 Object.assign(globalThis, { radial, rims, sapin, perso, flammes, toile, fermer, bandeau, hote, rail, poste });

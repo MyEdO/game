@@ -149,12 +149,10 @@ html,body{margin:0;background:var(--noir)}
 .onglets{position:absolute;left:30px;top:-9px;display:flex;align-items:center;gap:9px;z-index:2}
 .onglets .ruban{position:static;transform:none}
 .onglets .plaque{flex:none}
-.onglets .plaque>div{padding:0 15px;font-size:12.5px}
 /* l'onglet à sa place (`onglets`, `cadre`) : la largeur de la place, actif ou non */
 .onglets .place{display:flex;align-items:center}
 .onglets .place>:is(.ruban,.plaque){width:100%;text-align:center}
 .onglets .place>.ruban{padding-left:12px;padding-right:12px}
-.onglets .place>.plaque>div{padding:0 6px}
 /* les signets : la forme verticale des onglets, au bord droit du registre */
 .signets{position:absolute;left:calc(100% - 184px);top:66px;display:flex;flex-direction:column;gap:4px}
 .signet{display:flex;align-items:center;gap:7px;width:176px;height:38px;padding:0 36px 2px 13px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,calc(100% - 16px) 0,calc(100% - 26px) 50%,calc(100% - 16px) 100%,0 100%);filter:drop-shadow(0 2px 3px var(--ombre))}
@@ -186,7 +184,6 @@ html,body{margin:0;background:var(--noir)}
 .issue-du-combat .banniere span{font-size:60px;line-height:90px;letter-spacing:1px;color:var(--ivoire);text-shadow:0 3px 4px var(--ombre-forte);white-space:nowrap}
 .issue-du-combat .place>p{margin:0;text-align:center;font-style:italic;font-size:17px;color:var(--creme)}
 .issue-du-combat .place>.plaque{width:100%}
-.issue-du-combat .plaque>div{padding:0 24px}
 .cartouche .etiquette{margin-left:8px;vertical-align:3px}
 
 /* la jauge : teinte cire (la vie) ou or, fine ou forte */
@@ -219,6 +216,7 @@ html,body{margin:0;background:var(--noir)}
 .plaque.petite>div{font-size:13px}
 .plaque.appel{height:52px;min-height:52px}
 .plaque.appel>div{font-size:18px;letter-spacing:1.4px;gap:12px}
+.plaque.geste>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 .plaque .numero{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:var(--lit);box-shadow:0 0 0 1px var(--filet-or-vif);font-family:"Fell SC";font-size:12px;letter-spacing:0;color:var(--ivoire)}
 .plaque.survol{box-shadow:0 3px 6px var(--ombre-forte),0 0 0 1px var(--contour),0 0 8px var(--halo)}
 .plaque.survol>div{color:var(--or-eclat);box-shadow:inset 0 0 0 1px var(--filet-or-vif),inset 0 1px 0 var(--reflet)}
@@ -227,6 +225,7 @@ html,body{margin:0;background:var(--noir)}
 .plaque.fermee{box-shadow:0 2px 4px var(--ombre),0 0 0 1px var(--noir)}
 .plaque.fermee>div{background:radial-gradient(120% 140% at 50% 0%,var(--fer-mat),var(--fer-sombre) 75%);color:var(--eteint);box-shadow:inset 0 0 0 1px var(--ombre-forte)}
 .plaque .prix{margin-left:auto;font-size:12.5px}
+.plaque .prix.seul{margin-left:0}
 .plaque.gauche>div{justify-content:flex-start}
 /* la carte : une plaque haute, un portrait et deux lignes, dont la plus longue passe à la ligne quand la carte est
    étroite ; la seule pièce qui s'étire, de 200 à 262, les cartes d'une rangée à parts égales ; sous 200 de large, ou à
@@ -270,6 +269,7 @@ html,body{margin:0;background:var(--noir)}
 .medaillon>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,var(--chene),var(--chene-nuit) 72%);box-shadow:inset 0 0 0 1px var(--ombre-forte),inset 0 0 0 2px var(--filet-or)}
 .medaillon.ferme{color:var(--eteint)}
 .medaillon.inerte{color:var(--creme)}
+.medaillon.vise{box-shadow:0 3px 6px var(--ombre-forte),0 0 18px var(--halo-vif)}
 .medaillon.grand{width:54px;height:54px;padding:4px}
 .medaillon.moyen{width:40px;height:40px;padding:3px}
 .medaillon.petit{width:30px;height:30px;padding:3px}

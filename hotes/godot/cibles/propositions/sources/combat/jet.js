@@ -51,14 +51,14 @@ const testeurs = (genres, choisi = 0) => `<div class="testeurs" data-primitive="
 /* les réglages d'un jet avant le dé, au centre : le cadre du centre (le même que celui du jet tombé) et ses places
    fixes (`PLACES_DU_REGLAGE`, `../rendu.js`), les mêmes quelle que soit la situation : sur quoi il porte (`sous`) ; la
    sorte du Test et sa difficulté (`mot`) ; la figure (la silhouette des localisations) ; les lignes de réglage, une par
-   place (`lignes`, rangées par leur rang) ; les cartes de choix ou d'enjeu (`cartes`) ; le cumul d'un Test étendu ; la
+   place (`lignes`, rangées par leur rang), à côté de la figure ou, sans elle, pleines ; les cartes de choix ou d'enjeu (`cartes`) ; le cumul d'un Test étendu ; la
    phrase. Une nature absente laisse sa place vide. Rend le contenu de chaque place de la fenêtre */
 const reglage = ({ sous, mot, figure = '', lignes = [], cartes = [], cumul = '', phrase = '' }) => ({
   centre: '<div id="verdict" class="grille" data-primitive="reglage"></div>',
   'reglage-sous': `${sousTitre({ texte: sous, cle: 'sous-titre' })}`,
   'reglage-mot': nom({ texte: mot, taille: 'petit', cle: 'sorte' }),
   'reglage-figure': figure,
-  ...Object.fromEntries(lignes.map((l, k) => [`reglage-ligne-${k + 1}`, l])),
+  ...Object.fromEntries(lignes.map((l, k) => [`reglage-${figure ? 'ligne' : 'pleine'}-${k + 1}`, l])),
   ...Object.fromEntries(cartes.map((c, k) => [`reglage-carte-${k + 1}`, c])),
   'reglage-cumul': cumul,
   'reglage-phrase': phrase && glose({ texte: phrase, cle: 'phrase' }),

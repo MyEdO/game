@@ -207,16 +207,18 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le bouton rond : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; le pictogramme suit */
   const ROND = { menu: [11, 3], petit: [18, 1.6], moyen: [20, 1.6], grand: [24, 1.6], maitre: [44, 1.6] };
   const rond = (contenu, taille = 'moyen', { ferme = false, arme = false, survol = false } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'} ${taille}${arme ? ' arme' : ''}${survol ? ' survol' : ''}" data-primitive="rond"><div>${PICTOS[contenu] ? picto(contenu, ROND[taille][0], undefined, ROND[taille][1]) : `<b>${contenu}</b>`}</div></div>`;
-  /* la plaque : `taille` appel, moyenne ou petite ; `numero` : sa touche, en tête ; `prix` à droite */
-  const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" data-primitive="plaque" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
+  /* la plaque : `taille` appel, moyenne, petite, ou geste (la rangée des gestes de la fenêtre du bas, sur trois lignes au
+     plus) ; `numero` : sa touche, en tête ; `prix` : un nombre, à droite du libellé, seul au centre sans libellé */
+  const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" data-primitive="plaque" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres${libelle ? '' : ' seul'}">${prix}</span>` : ''}</div></div>`;
   /* choisir par carte : la plaque haute, un portrait et deux lignes ; `marque` : son étiquette, sur sa ligne sous le texte ;
      `refus` : la bulle de la carte fermée survolée */
   const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '', marque = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}" data-primitive="carte"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c" data-secondaire>${sous}</div></div>${marque ? `<div class="marque-de-carte">${etiquette({ texte: marque })}</div>` : ''}</div>${refus ? raison(refus) : ''}</div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
   const outil = (nom, libelle, { ouvert = false, ferme = false, taille = 'petit' } = {}) => `<div class="outil${ouvert ? ' ouvert' : ''}" data-primitive="outil">${rond(nom, taille, { ferme, arme: ouvert })}<span class="rubrique">${libelle}</span></div>`;
-  /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas */
+  /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas ; `vise` : ce qu'il
+     désigne est visé */
   const MEDAILLON = { grand: 27, moyen: 20, petit: 15 };
-  const medaillon = (nom, { taille = 'grand', ferme = false, inerte = false } = {}) => `<div class="medaillon ${ferme || inerte ? 'fer' : 'laiton'} ${taille}${ferme ? ' ferme' : ''}${inerte ? ' inerte' : ''}" data-primitive="medaillon"><div>${picto(nom, MEDAILLON[taille])}</div></div>`;
+  const medaillon = (nom, { taille = 'grand', ferme = false, inerte = false, vise = false } = {}) => `<div class="medaillon ${ferme || inerte ? 'fer' : 'laiton'} ${taille}${ferme ? ' ferme' : ''}${inerte ? ' inerte' : ''}${vise ? ' vise' : ''}" data-primitive="medaillon"><div>${picto(nom, MEDAILLON[taille])}</div></div>`;
   /* le disque numéroté : `taille` grand, moyen, petit ; `vide` : la réserve est épuisée */
   const disque = (n, { taille = 'moyen', vide = false } = {}) => `<div class="disque fer ${taille}${vide ? ' vide' : ''}" data-primitive="disque"><div>${n}</div></div>`;
   const compteur = (n, libelle) => `<div class="compteur" data-primitive="compteur">${disque(n, { taille: 'grand' })}<span class="rubrique">${libelle}</span></div>`;

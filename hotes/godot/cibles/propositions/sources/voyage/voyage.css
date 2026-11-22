@@ -48,7 +48,6 @@
 #station .fond{padding:22px 14px 10px}
 .stations{display:flex;gap:7px}
 .stations .plaque{flex:1}
-.stations .plaque>div{font-size:13px;padding:0 6px}
 #station p{margin:9px 2px 0;font-style:italic;font-size:13px;line-height:17px;color:#e6dabd}
 /* les Activités de la semaine en mer : les réglages de la semaine et sa validation */
 #bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#eadfc4}
