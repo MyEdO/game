@@ -25,7 +25,7 @@ MANIFESTE = {
 }
 """`couvre` : sous l'ourlet effiloché, pieds écartés, le mollet se voit (procédure, section 2) ; la cloche des manches
 laisse l'avant-bras sortir, bandé."""
-MATERIAUX = {'robe': ('vet1', 'laine')}   # gris de construction, sans couleur cuite
+MATERIAUX = {'robe': ('vet1', 'laine')}
 
 EMPLACEMENTS_DEPLACES = ['ceinture_avant']
 """Design L2 de #2972 : la robe (chaîne `jupe`) déplace `ceinture_avant` sur sa surface, où se posent la cordelière et la
