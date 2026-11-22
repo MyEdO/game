@@ -278,6 +278,10 @@ export function talentDeCombat(id: string): boolean {
 /** Libellé d'une carrière (`careers.json`). */
 export const nomDeCarriereDuLivre = (id: string): string => findCareerById(id)?.label ?? id;
 
+/** Les Talents que porte le héros : libellé, nombre de fois, et s'il agit en combat automatique (`talentDeCombat`). */
+export const talentsAcquis = (c: Combatant): { label: string; fois: number; combat: boolean }[] =>
+  c.talents.map((t) => ({ label: refLabel('talents', { id: t.talentId, ...(t.spec ? { spec: t.spec } : {}) }), fois: t.times, combat: talentDeCombat(t.talentId) }));
+
 /** Libellé d'un sort ou d'un miracle (`spells.json`). */
 export const nomDeSort = (id: string): string => findSpellById(id)?.label ?? id;
 

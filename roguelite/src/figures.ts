@@ -26,7 +26,8 @@ const TENUES: Record<string, Partial<Gabarit>> = {
   'joueur-d-epee': { tenue: 'f-rouge', coiffe: 'casque' }, flagellant: { tenue: 'f-os' }, 'chasseur-de-primes': { tenue: 'f-noir', coiffe: 'chapeau' },
 };
 
-function armeDuLibelle(libelle = ''): Gabarit['arme'] {
+/** La famille d'une arme d'après son libellé, pour sa figure et son pictogramme. */
+export function armeDuLibelle(libelle = ''): Gabarit['arme'] {
   const l = libelle.toLowerCase();
   if (/zweih|bâtarde|batarde|grande épée/.test(l)) return 'grande-epee';
   if (/arc|arbal/.test(l)) return 'arc';

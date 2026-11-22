@@ -211,27 +211,32 @@ button.c:disabled { cursor: default; opacity: .7; }
 .talent .t i{display:block;font-family:"IM Fell English SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
 .talent .plaque{flex:none;width:94px}
 .talent.clos .nom-propre{color:rgba(42,29,18,.6)}
-.lignes{display:flex;flex-direction:column}
-.ligne{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:2px solid transparent;border-bottom:1px solid var(--filet-encre);font-family:"IM Fell English",serif;font-size:15px;color:var(--encre);white-space:nowrap;min-width:0}
-.ligne>.n{flex:1;min-width:0;overflow:hidden}
-.ligne>.n small{font-size:13px;color:var(--encre-2)}
-.sets{display:flex;gap:10px}
-.set{position:relative;flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;height:46px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px var(--brou)}
-.set.en-main{border:2px solid var(--laiton);background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
-.set.neuf{flex:none;width:46px;display:grid;grid-template-columns:none;place-items:center;border:1.5px dashed var(--trait-encre);background:none;box-shadow:none;color:var(--encre-2)}
-.main{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:center;column-gap:6px;padding:0 9px;min-width:0;color:var(--encre)}
-.main+.main{border-left:1px solid var(--filet-encre)}
-.main i{grid-column:1 / -1;font-family:"IM Fell English SC";font-style:normal;font-size:10px;line-height:13px;letter-spacing:.9px;color:var(--rouille);white-space:nowrap}
-.main b{font-family:"IM Fell English";font-weight:400;font-size:14px;line-height:18px;white-space:nowrap;overflow:hidden}
-.set.un { grid-template-columns: 1fr; }
-.droite .sets + .lignes { margin-top: 2px; }
-.droite .ligne { height: auto; min-height: 26px; padding: 3px 6px; font-size: 14px; white-space: normal; }
-.droite .ligne small { color: var(--encre-2); }
-.droite .ligne > small { margin-left: auto; }
 .droite .jauge { margin: 4px 0 2px; }
 .droite .rub { margin-top: 9px; }
 .droite .rub:first-child { margin-top: 0; }
 .pied-equipement { margin-top: auto; padding-top: 10px; }
+.cases-equipement { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.case-objet { display: grid; justify-items: center; gap: 3px; min-width: 0; }
+.boite-objet { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--laiton); border-radius: 4px; color: var(--sepia); font: inherit; background: radial-gradient(90% 80% at 50% 35%, rgba(255,246,208,.95), rgba(228,203,134,.85)); box-shadow: 0 0 0 1px var(--contour), 0 2px 5px var(--brou); }
+.case-objet.grande .boite-objet { width: 64px; height: 64px; }
+button.boite-objet { cursor: pointer; }
+button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 0 0 10px var(--halo-vif); }
+.boite-objet:disabled { cursor: default; opacity: .5; filter: grayscale(.6); }
+.case-objet.vide .boite-objet { border: 1.5px dashed var(--trait-encre); background: rgba(60,40,20,.06); box-shadow: none; }
+.boite-objet em { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font-style: normal; font-size: 11px; line-height: 18px; color: var(--ivoire); background: #5a1a10; box-shadow: 0 0 0 1px var(--contour); }
+.nom-objet { max-width: 100%; font: 11px "IM Fell English SC", serif; letter-spacing: .5px; color: var(--encre-2); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-objet.grande .nom-objet { font-size: 12px; white-space: normal; line-height: 14px; }
+.cases-sac { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: flex-start; }
+.cases-sac .case-objet { width: 66px; }
+.cases-sac .nom-objet { white-space: normal; line-height: 12px; }
+.essentiels { display: grid; gap: 1px; margin-top: 6px; font-size: 12.5px; color: var(--encre-2); text-align: center; }
+.sacs-cadre { position: absolute; left: var(--gouttiere-g); top: 150px; width: min(360px, calc(100vw - 32px)); z-index: 3; }
+.sacs { display: grid; gap: 8px; }
+.sac-heros { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.sac-heros .portrait.hors { filter: grayscale(1); opacity: .6; }
+.sacs-cadre .cases-sac .case-objet { width: 50px; }
+.sacs-cadre .nom-objet { display: none; }
+@media (max-width: 899px) { .sacs-cadre { display: none; } }
 .offres { display: flex; flex-wrap: wrap; gap: 5px; }
 .offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
 .offre b { font-size: 13.5px; color: var(--sepia); }

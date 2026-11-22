@@ -5,8 +5,8 @@
  * relevés du noyau.
  */
 import * as J from './jeu';
-import { carac, encombrement, libelleDeCarac, libelleDEtat, nomDeCreature, nomDeSort, sequelles, type CharKey, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau, type Combatant } from './combat';
-import { DEGRADES_DES_FIGURINES, buste, figurine, gabaritDeCreature, gabaritDuHeros } from './figures';
+import { carac, encombrement, libelleDeCarac, libelleDEtat, nomDeCreature, nomDeSort, sequelles, talentsAcquis, type CharKey, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau, type Combatant } from './combat';
+import { DEGRADES_DES_FIGURINES, armeDuLibelle, buste, figurine, gabaritDeCreature, gabaritDuHeros } from './figures';
 import { dessinerLaCour, type Cour } from './cour';
 import { cadre, jauge, medaillon, picto, plaque, portrait, poserLesTextures, rond } from './kit';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from './hameau';
@@ -235,6 +235,29 @@ function soinsDuHeros(h: J.Heros) {
   return tout || '<span class="glose">rien à soigner</span>';
 }
 
+// ─── Objets en cases : une icône, un compte, le détail au survol ─────────────────────────────────────────────
+
+const PICTO_D_ARME: Record<string, string> = { 'grande-epee': 'epee', massue: 'marteau', fronde: 'arc' };
+const iconeDArme = (label: string) => (/bouclier/i.test(label) ? 'bouclier' : (() => { const f = armeDuLibelle(label) ?? 'epee'; return PICTO_D_ARME[f] ?? f; })());
+const iconeDeProvision = (id: string) => (id.startsWith('potion') ? 'fiole' : 'pot');
+/** Une case d'objet : son pictogramme, son compte, son nom dessous ; `attrs` en fait un bouton, `refus` le ferme. */
+function caseObjet(o: { icone?: string; nom: string; detail: string; compte?: number; attrs?: string; refus?: string | null; taille?: 'grande' | 'petite' }) {
+  const vide = !o.icone;
+  const corps = `${vide ? '' : picto(o.icone!, o.taille === 'grande' ? 30 : 22, 1.6)}${o.compte && o.compte > 1 ? `<em class="chiffres">${o.compte}</em>` : ''}`;
+  const titre = esc(o.refus ? `${o.detail} — ${o.refus}` : o.detail);
+  const boite = o.attrs
+    ? `<button type="button" class="boite-objet" ${o.attrs} title="${titre}"${o.refus ? ' disabled' : ''}>${corps}</button>`
+    : `<span class="boite-objet" title="${titre}">${corps}</span>`;
+  return `<div class="case-objet ${o.taille ?? 'petite'}${vide ? ' vide' : ''}">${boite}<span class="nom-objet">${esc(o.nom)}</span></div>`;
+}
+const essentielDe = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`, x.pa != null && `${x.pa} PA`].filter(Boolean).join(' · ');
+const detailDe = (x: J.PieceDecrite) => [x.label, essentielDe(x), ...x.qualites].filter(Boolean).join(' · ');
+/** Le sac d'un héros en cases ; en expédition, un clic utilise l'objet. */
+const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPortees(h).map((q) => caseObjet({
+  icone: iconeDeProvision(q.id), nom: q.label, detail: q.label, compte: q.nombre,
+  ...(utilisable ? { attrs: `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, refus: q.refus } : {}),
+})).join('');
+
 // ─── L'écran du héros : la disposition de la fiche des maquettes, en lite ───────────────────────────────────
 
 const CARACS_DU_PROFIL: CharKey[] = ['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'intelligence', 'force-mentale', 'sociabilite'];
@@ -301,35 +324,42 @@ function panneauGauche(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, enR
 }
 
 /** Le panneau de droite, en onglets : Talents et Sorts au hameau, Équipement partout. */
-function panneauDroit(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, actif: string) {
+function panneauDroit(h: J.Heros, o: ReturnType<typeof J.offresDeCarriere>, actif: string, progresse: boolean) {
   const xp = h.c.xp ?? 0;
   const voie = J.voieDe(h.carriere);
+  if (actif === 'talents' && !progresse) {
+    const acquis = talentsAcquis(h.c);
+    const autres = acquis.filter((t) => !t.combat).length;
+    return `<div class="rub">Acquis ${glose('ceux qui agissent en combat')}</div>${acquis.filter((t) => t.combat).map((t) => `<div class="talent acquis">${medaillon('etoile', 'moyen')}<div class="t"><div class="nom-propre petit gothique">${esc(t.label)}</div><i>${t.fois > 1 ? `Acquis ×${t.fois}` : 'Acquis'}</i></div></div>`).join('')}
+      ${autres ? glose(`Et ${autres} autre${autres > 1 ? 's' : ''}, sans effet en combat.`) : ''}
+      ${glose(etat.expedition ? 'Les Talents s’achètent au hameau.' : 'Relevez la salle d’armes pour en apprendre d’autres.')}`;
+  }
   if (actif === 'talents') {
     return `<div class="rub">Du niveau ${glose('ceux qui agissent en combat')}</div>${o.talents.map((t, i) => `<div class="talent${t.possede ? ' acquis' : ''}">${medaillon(t.possede ? 'etoile' : 'livre', 'moyen', !t.possede)}<div class="t"><div class="nom-propre petit gothique">${esc(t.label)}</div><i>${t.possede ? `Acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : 'À apprendre'}</i></div>${plaque('', `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, { prix: `${t.cout} PX`, taille: 'petite', fermee: xp < t.cout })}</div>`).join('')}`;
   }
-  if (actif === 'sorts' && voie) {
-    const initie = h.c.talents.some((t) => t.talentId === voie.talent);
+  if (actif === 'sorts') {
     const connus = (h.c.spells ?? []).map((id) => `<span class="etiquette rectangle">${esc(nomDeSort(id))}</span>`).join('');
-    const aApprendre = voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id));
-    return `<div class="rub">Connus</div><div class="etats">${connus || glose('aucun')}</div>
-      <div class="rub">${esc(voie.nom)}</div>${!initie ? glose(`Au niveau 2, le Talent ${voie.nom} ouvre ces sorts.`) : aApprendre.map((id) => ligneDAchat(false, '', esc(nomDeSort(id)), plaque('Apprendre', `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, { taille: 'petite' }))).join('') || glose('Tout est appris.')}`;
+    const initie = !!voie && h.c.talents.some((t) => t.talentId === voie.talent);
+    const aApprendre = voie && initie ? voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id)) : [];
+    const voieHtml = !voie ? '' : !progresse ? glose(`Au hameau, la salle d’armes enseigne ${voie.nom}.`)
+      : !initie ? glose(`Au niveau 2, le Talent ${voie.nom} ouvre ces sorts.`)
+      : aApprendre.map((id) => ligneDAchat(false, '', esc(nomDeSort(id)), plaque('Apprendre', `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, { taille: 'petite' }))).join('') || glose('Tout est appris.');
+    return `<div class="rub">Connus ${glose('lancés seuls en combat')}</div><div class="etats">${connus || glose('aucun')}</div>${voie ? `<div class="rub">${esc(voie.nom)}</div>${voieHtml}` : ''}`;
   }
   const p = J.panoplie(h);
   const e = encombrement(h.c);
   const trop = e.porte > e.capacite;
-  const essentiel = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`].filter(Boolean).join(' · ');
-  const main = (titre: string, x?: J.PieceDecrite) => `<div class="main${x ? '' : ' vide'}"><i>${titre}</i><b>${esc(x?.label ?? 'Vide')}</b></div>`;
-  const detail = (x?: J.PieceDecrite) => (x ? `<div class="ligne"><span class="n">${esc(x.label)} <small>${esc([essentiel(x), ...x.qualites].filter(Boolean).join(' · '))}</small></span></div>` : '');
-  const sac = J.provisionsPortees(h);
-  return `<div class="rub">Panoplie ${glose('ce que le héros tient en main')}</div>
-    <div class="sets"><div class="set en-main">${main('Main principale', p.main)}${p.main?.mains === 2 && !p.secondaire ? '<div class="main vide"><i>Main secondaire</i><b>Prise à deux mains</b></div>' : main('Main secondaire', p.secondaire)}</div></div>
-    <div class="lignes">${detail(p.main)}${detail(p.secondaire)}</div>
-    <div class="rub">Armure</div>
-    <div class="sets"><div class="set un">${`<div class="main${p.armure ? '' : ' vide'}"><i>${p.armure ? `${p.armure.pa} PA à chaque emplacement` : 'Portée'}</i><b>${esc(p.armure?.label ?? 'Aucune')}</b></div>`}</div></div>
-    ${p.armure?.qualites.length ? `<div class="lignes"><div class="ligne"><span class="n"><small>${esc(p.armure.qualites.join(' · '))}</small></span></div></div>` : ''}
+  const deuxMains = p.main?.mains === 2 && !p.secondaire;
+  const piece = (titre: string, x: J.PieceDecrite | undefined, icone: string | undefined) => caseObjet({ icone: x ? icone : undefined, nom: x ? x.label : titre, detail: x ? `${titre} : ${detailDe(x)}` : `${titre} : vide`, taille: 'grande' });
+  const sac = casesDuSac(h, !!etat.expedition?.groupe.includes(h.c.id));
+  return `<div class="rub">Porté ${glose('le détail au survol')}</div>
+    <div class="cases-equipement">${piece('Main principale', p.main, p.main && iconeDArme(p.main.label))}
+      ${deuxMains ? caseObjet({ nom: 'Prise à deux mains', detail: 'Main secondaire : prise par l’arme à deux mains', taille: 'grande' }) : piece('Main secondaire', p.secondaire, p.secondaire && iconeDArme(p.secondaire.label))}
+      ${piece('Armure', p.armure, 'armure')}</div>
+    <div class="essentiels">${[p.main, p.armure].filter((x): x is J.PieceDecrite => !!x).map((x) => `<span>${esc(essentielDe(x))}</span>`).join('')}</div>
     <div class="rub">Encombrement <span class="glose ${trop ? 'avertissement' : 'courante'}">${e.porte} / ${e.capacite}${trop ? (e.immobile ? ' · immobilisé' : ` · Mouvement −${e.mouvement}, Agilité −${Math.abs(e.agilite)}`) : ''}</span></div>
     ${jauge(Math.min(1, e.porte / Math.max(1, e.capacite)), { teinte: trop ? 'cire' : 'or', taille: 'forte' })}
-    <div class="rub">Sac</div><div class="lignes">${sac.length ? sac.map((q) => `<div class="ligne"><span class="n">${esc(q.label)}</span><small>×${q.nombre}</small></div>`).join('') : `<div class="ligne vide"><span class="n"><small>Aucune provision</small></span></div>`}</div>
+    <div class="rub">Sac</div><div class="cases-sac">${sac || '<span class="glose courante">Aucune provision : le relais en vend au départ.</span>'}</div>
     ${etat.expedition ? '' : `<div class="pied-equipement">${plaque('Aller à la forge', `data-a="batiment" data-id="forge" data-client="${h.c.id}"`, { icone: 'enclume', taille: 'petite', armee: true })}</div>`}`;
 }
 
@@ -340,14 +370,15 @@ function ecranDuHeros(id: string, onglet: Onglet) {
   const progresse = !etat.expedition && J.niveauMaximal(etat) > 0;
   const o = J.offresDeCarriere(h);
   const voie = J.voieDe(h.carriere);
-  const noms: [string, string][] = progresse ? [['talents', 'Talents'], ...(voie ? [['sorts', 'Sorts'] as [string, string]] : []), ['equipement', 'Équipement']] : [['equipement', 'Équipement']];
-  const actif = noms.some(([k]) => k === onglet) ? onglet : noms[0][0];
+  const lanceur = !!voie || (h.c.spells ?? []).length > 0;
+  const noms: [string, string][] = [['talents', 'Talents'], ...(lanceur ? [['sorts', 'Sorts'] as [string, string]] : []), ['equipement', 'Équipement']];
+  const actif = noms.some(([k]) => k === onglet) ? onglet : progresse ? noms[0][0] : 'equipement';
   const groupe = enRoute ? J.herosDuGroupe(etat) : etat.roster;
   return `<div class="ecran-heros" role="dialog" aria-label="${esc(h.c.label)}"><div class="scene-fiche">
     ${cadreA([26, 20, 340, 536], identite(h, o, progresse), { classe: 'ident' })}
     ${cadreA([384, 20, 800, 96], bande(h, o, progresse), { ruban: 'Caractéristiques', classe: 'bande' })}
     ${cadreA([384, 136, 470, 420], panneauGauche(h, o, enRoute, progresse), { ruban: enRoute ? 'Entre deux salles' : 'Compétences', classe: 'competences' })}
-    ${cadreA([872, 136, 384, 420], panneauDroit(h, o, actif), { classe: 'droite', tete: onglets(noms, actif) })}
+    ${cadreA([872, 136, 384, 420], panneauDroit(h, o, actif, progresse), { classe: 'droite', tete: onglets(noms, actif) })}
     ${cadreA([160, 560, 960, 152], `<div class="rang-heros">${groupe.map((x) => carteDeHeros(x, x.c.id === h.c.id)).join('')}</div>`, { fond: '', classe: 'socle' })}
     <button type="button" class="croix-ecran" data-a="fermer-panneau" aria-label="Fermer">×</button>
   </div></div>`;
@@ -406,6 +437,21 @@ function ecranDuHameau() {
 const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', boss: 'Maître' };
 const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'epee', elite: 'bouclier', camp: 'tente', tresor: 'bourse', boss: 'couronne' };
 
+/** Les sacs du groupe côte à côte, à la manière de la grille d'expédition : un clic sur une case utilise l'objet ; la
+ *  Bénédiction de Guérison d'un Béni est une case de plus, une fois par expédition, sur le plus blessé. */
+function sacsDeLExpedition(groupe: J.Heros[]) {
+  const plusBlesse = groupe.filter((x) => !x.c.dead).sort((a, b) => a.c.wounds.current / a.c.wounds.max - b.c.wounds.current / b.c.wounds.max)[0];
+  const rangees = groupe.map((h) => {
+    const benit = (h.c.spells ?? []).includes('benediction-de-guerison');
+    const priere = benit ? caseObjet({ icone: 'soin', nom: 'Bénédiction', detail: `Bénédiction de Guérison sur ${plusBlesse?.c.label ?? 'personne'}, une fois par expédition`,
+      ...(plusBlesse ? { attrs: `data-a="prier" data-id="${h.c.id}" data-k="${plusBlesse.c.id}"` } : {}),
+      refus: !J.peutPrier(etat, h) ? 'déjà priée, ou le Béni est hors de combat' : plusBlesse && plusBlesse.c.wounds.current >= plusBlesse.c.wounds.max ? 'personne n’est blessé' : null }) : '';
+    const cases = casesDuSac(h, true) + priere;
+    return `<div class="sac-heros">${portrait(busteDuHeros(h), 'heros', 'petit', J.valide(h) ? '' : 'hors')}<div class="cases-sac">${cases || '<span class="glose courante">sac vide</span>'}</div></div>`;
+  }).join('');
+  return `<div class="sacs-cadre">${cadre(`<div class="sacs">${rangees}</div>`, { ruban: 'Sacs', fond: 'parchemin', balise: 'div' })}</div>`;
+}
+
 function ecranDeLExpedition() {
   const x = etat.expedition!;
   const d = J.destinationCourante(etat)!;
@@ -421,10 +467,11 @@ function ecranDeLExpedition() {
     <div class="cartouche-lieu">${cadre(`<div class="cartouche">${medaillon('route', 'grand')}<div><div class="titre gothique">${esc(d.nom)}</div><div class="sous-titre">Salle ${x.index + 1} sur ${x.salles.length} · jour ${etat.jour + x.index}</div></div></div>
       <div class="ressources"><span class="etiquette compte or">${x.or} CO</span><span class="etiquette compte or">${x.trophees} trophée${x.trophees > 1 ? 's' : ''}</span><span class="etiquette compte fer">${x.px} PX chacun</span></div>`, { balise: 'div' })}</div>
     <div class="piste-cadre">${cadre(`<ol class="piste">${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}">${medaillon(PICTO_DE_SALLE[s.type], i === x.index ? 'grand' : 'moyen', s.faite)}<span class="sous-titre">${NOM_DE_SALLE[s.type]}</span></li>`).join('')}</ol>`, { balise: 'div', ruban: 'La route' })}</div>
+    ${sacsDeLExpedition(groupe)}
     <div class="salle-cadre">${cadre(`<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
       <div class="gestes colonne">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>
       ${valides < groupe.length ? `<p class="glose avertissement">${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.</p>` : ''}
-      <p class="glose">La fiche d’un héros donne ses provisions et, pour un Béni, sa prière de soin.</p>`, { fond: 'parchemin', balise: 'div' })}</div>
+      <p class="glose">Un clic sur une case d’un sac l’utilise ; survolez-la pour son détail.</p>`, { fond: 'parchemin', balise: 'div' })}</div>
     ${pageOuverte()}
     ${bandeauDesHeros(groupe, 'Personne.')}
   </div>`;

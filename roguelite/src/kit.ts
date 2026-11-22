@@ -6,6 +6,16 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /** Pictogrammes au trait, `viewBox` 0 0 24 24. */
 export const PICTOS: Record<string, string> = {
+  "hache": "<path d=\"M6 21L15 8\"/><path d=\"M13 5c3-2 6-1 7 1l-4 6c-2-1-3-4-3-7z\"/>",
+  "lance": "<path d=\"M4 20L18 6\"/><path d=\"M15 4l5-1-1 5-3-1z\"/>",
+  "arc": "<path d=\"M7 3c8 3 8 15 0 18\"/><path d=\"M7 3v18\"/><path d=\"M4 12h12M13 9l3 3-3 3\"/>",
+  "dague": "<path d=\"M14 4l3 3-8 8-2-1-1-2z\"/><path d=\"M6 14l4 4M5 19l2-2\"/>",
+  "baton": "<path d=\"M7 21L17 4\"/><circle cx=\"18\" cy=\"3.500\" r=\"1.500\"/>",
+  "marteau": "<path d=\"M8 20l7-9\"/><path d=\"M12 6l4-3 5 5-3 4z\"/>",
+  "fleau": "<path d=\"M5 20l6-7\"/><path d=\"M11 13c1-3 3-4 5-4\"/><circle cx=\"18\" cy=\"8\" r=\"2.500\"/>",
+  "armure": "<path d=\"M8 4l4 2 4-2 4 3-2 4v9H6v-9L4 7z\"/><path d=\"M12 6v14\"/>",
+  "fiole": "<path d=\"M10 3h4M10.500 3v5L6 17a3 3 0 0 0 3 4h6a3 3 0 0 0 3-4l-4.500-9V3\"/><path d=\"M7.500 15h9\"/>",
+  "pot": "<path d=\"M7 8h10l-1 11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z\"/><path d=\"M6 8h12M9 5h6v3H9z\"/>",
   "coche": "<path d=\"M5 12.500l4.500 4.500L19 7\"/>",
   "route": "<circle cx=\"12\" cy=\"12\" r=\"8.500\"/><path d=\"M15.500 8.500l-2 5-5 2 2-5z\"/>",
   "chope": "<path d=\"M6 7h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 3.500-2C10.500 3.500 13 3.500 13.500 5c1.500-.5 2.500.5 2.500 2\"/>",
