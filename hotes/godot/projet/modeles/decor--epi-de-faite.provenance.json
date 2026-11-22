@@ -1,0 +1,13 @@
+{
+  "model": "decor--epi-de-faite.glb",
+  "model_sha256": "c4f2a480a7cd6ed9e547280ac93e7a7a57d146f17f3ba5c1bafbf58a99a54914",
+  "importe_le": "2026-11-22",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

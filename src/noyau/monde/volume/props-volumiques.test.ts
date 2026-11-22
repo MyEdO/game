@@ -196,6 +196,8 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
       'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'table', 'chaise', 'banc', 'tabouret',
       'armoire', 'etagere', 'etal-marche', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle',
       'table-ronde-4-tabourets', 'cheminee', 'enseigne', 'clocheton',
+      // #4471 — les ornements de façade et de faîte de La Diligence.
+      'ecu', 'epi-de-faite', 'girouette',
       'applique-murale',
       // #1343 — le mobilier de l'opéra/théâtre : chacun tient sur sa case à tous ses caps.
       'siege', 'fauteuil-loge', 'canape', 'coiffeuse', 'pupitre-chef', 'miroir', 'paravent',
@@ -223,7 +225,8 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
     // #3198 — les grands décors gardent, par leur corps, les cases que leur billboard déclarait.
     ...tableTotale(['abreuvoir', 'barque', 'lit', 'cheval-mort', 'passerelle-d-embarquement', 'cargaison-bachee'], () => ({ ns: [2, 1], eo: [1, 2] })),
     ...tableTotale(['idole-chaos', 'epave-carrosse', 'tente'], () => ({ ns: [2, 2], eo: [2, 2] })),
-    ...tableTotale(['tribune', 'balustrade-bois'], () => ({ ns: [3, 1], eo: [1, 3] })),
+    // #4471 — la diligence, 4,35 m du train arrière à la pointe du timon, 1,90 m de moyeu à moyeu.
+    ...tableTotale(['tribune', 'balustrade-bois', 'diligence'], () => ({ ns: [3, 1], eo: [1, 3] })),
   };
 
   it('la liste des empreintes attendues couvre EXACTEMENT le catalogue des recettes', () => {

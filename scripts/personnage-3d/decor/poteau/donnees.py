@@ -1,6 +1,7 @@
-"""Données des ouvrages dressés sur un poteau ou une hampe (#4335) : un GLB par décor `gibet`, `pilori`, `cage`,
-`enseigne`, `panneau`, `pieu`, `etendard` et `banniere-chaos` de `src/data/props.json`, bâti dans l'enveloppe convexe
-des primitives de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions d'adaptation, chacune en
+"""Données des ouvrages dressés sur un poteau ou une hampe (#4335, #4471) : un GLB par décor `gibet`, `pilori`, `cage`,
+`enseigne`, `ecu`, `epi-de-faite`, `girouette`, `panneau`, `pieu`, `etendard` et `banniere-chaos` de
+`src/data/props.json`, bâti dans l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration
+au corpus : proportions d'adaptation, chacune en
 fraction de la primitive qui la porte (son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front
 de la recette vers -y, z vers le haut) ; un azimut est un angle en degrés dans le plan du sol, de +x vers +y.
 
@@ -18,6 +19,14 @@ de la recette vers -y, z vers le haut) ; un azimut est un angle en degrés dans 
 - `enseigne` : une patte de scellement aux bouts forgés en pointe, rivée ; la potence, un fer carré terminé par un
   bouton ; un tirant de la tête de la patte à la potence ; deux chaînes de cinq maillons, le premier pris dans la
   potence, le dernier dans le tableau ; le tableau, des planches inégales dans un cadre.
+- `ecu` : une planche d'un seul tenant au contour de l'enveloppe de ses trois boîtes, un écu à pans ; un cerclage de
+  fers plats sur ses rives, un rivet à chaque angle ; deux pitons à œil sur sa rive haute. Son repère est celui de
+  l'enseigne : mince en x, large en y, son axe à l'aplomb du milieu du tableau de l'enseigne, ses pitons à l'aplomb
+  des chaînes de celle-ci.
+- `epi-de-faite` : une embase en jupe, une hampe effilée en pointe, un bulbe et une boule dorée enfilés sur elle.
+- `girouette` : une embase, une hampe effilée en pointe, la croix des points cardinaux, deux fers carrés terminés
+  chacun de deux losanges découpés ; la flèche, un fer plat, sa pointe et sa banderole à deux queues, découpées, dans
+  le plan de la boîte de la recette ; une douille à sa hauteur ; une boule dorée.
 - `panneau` : le poteau à chanfreins arrêtés, la tête en pointe ; une flèche de deux planches de bois gris, entaillée
   en queue, taillée en pointe du côté où descend le prisme de la recette ; deux traverses chevillées sur leur face ;
   deux chevilles qui prennent la flèche au poteau.
@@ -36,7 +45,9 @@ est une croix et non une dalle. `cage` : le toit porte des tirants. `panneau` : 
 mi-hauteur, au centre du prisme, là où son rampant passe à mi-hauteur. `etendard`, `banniere-chaos` : le bas de
 l'étoffe est découpé (`bord`) et non coupé en biais comme le prisme.
 
-Matières : celles des recettes, sans ajout. Le catalogue n'a ni chanvre usé (la corde du gibet est de `corde`), ni
+Matières : celles des recettes, sans ajout. L'écu est de `bois-chene` nu : le catalogue n'a pas de bois peint, et un
+décor ne porte pas de surface `blason` (`geometrie.elements`). La boule de l'épi et celle de la girouette sont de
+`laiton-dore`, leur nœud `ferrure`. Le catalogue n'a ni chanvre usé (la corde du gibet est de `corde`), ni
 fer rouillé (`fer-noirci`) ; faute de fer dans leur recette, le gibet, le pilori et le panneau sont chevillés, sans
 clou ni penture. Aucun emplacement de palette ne nomme la corde ni la pierre : elles prennent `accent` et `corps` ;
 l'étoffe, `vet1`."""
@@ -45,18 +56,23 @@ l'étoffe, `vet1`."""
 BOIS = {"bois": ("bois", "bois-chene")}
 FER = {"fer": ("metal", "fer-noirci")}
 PIERRE = {"pierre": ("corps", "pierre-atre")}
+DORURE = {"ferrure": ("metal2", "laiton-dore")}
 MATERIAUX = {
     "gibet": {**BOIS, "corde": ("accent", "corde")},
     "pilori": BOIS,
     "cage": FER,
     "enseigne": {**FER, **BOIS},
+    "ecu": {**FER, **BOIS},
+    "epi-de-faite": {**FER, **DORURE},
+    "girouette": {**FER, **DORURE},
     "panneau": {**BOIS, "vieux": ("bois", "bois-mort")},
     "pieu": {**BOIS, **PIERRE},
     "etendard": {**PIERRE, **BOIS, "toile": ("vet1", "toile-rouge"), "ferrure": ("metal", "laiton-dore")},
     "banniere-chaos": {**PIERRE, **BOIS, "toile": ("vet1", "toile-chaos"), "ferrure": ("metal", "fer-noirci")},
 }
 
-BUDGET_TRIANGLES = {"gibet": 2600, "pilori": 1500, "cage": 2800, "enseigne": 1500, "panneau": 500, "pieu": 300,
+BUDGET_TRIANGLES = {"gibet": 2600, "pilori": 1500, "cage": 2800, "enseigne": 1500, "ecu": 900, "epi-de-faite": 700,
+                    "girouette": 1100, "panneau": 500, "pieu": 300,
                     "etendard": 2300, "banniere-chaos": 2300}
 
 ANGLE_LISSE = {"bois": 40, "vieux": 40, "fer": 40, "ferrure": 40, "corde": 50, "toile": 60, "pierre": 35}
@@ -215,6 +231,60 @@ ENSEIGNE = {
     "chaine": {"maillons": 5, "petit": 0.20, "segments": (8, 4)},
     "cadre": {"largeur": 0.085, "ancrage": 0.40, "montant": 0.86, "planches": 3, "ecart": 0.16, "jour": 0.003,
               "epaisseur": (0.50, 0.66)},
+}
+
+# Écu : `planche` : rangs, du haut vers la pointe, des boîtes dont l'enveloppe fait son contour, la tête de la première
+# puis le pied de chacune ; `pitons` : leurs rangs. `epaisseur` : demi-épaisseur de la planche (part de celle de la
+# première boîte) ; `arete` : chanfrein de ses rives (fraction de son épaisseur).
+# `cerclage` : `largeur` : demi-largeur de ses fers (fraction de la largeur de la première boîte), posés au dedans des
+# rives ; `chanfrein` (fraction de cette demi-largeur) ; `rivet` : son rayon (part de cette demi-largeur), sa saillie
+# (part de la demi-épaisseur de la boîte), `cotes`.
+# `piton` : `grand` : rayon de son œil (part de la demi-largeur de sa boîte), `petit` : rayon de son fer (part de la
+# demi-épaisseur de sa boîte), `prise` : part du rayon de l'œil dont son centre monte sur le bas de sa boîte ;
+# `segments` du tour et de la section.
+ECU = {
+    "planche": (0, 1, 2), "pitons": (3, 4),
+    "epaisseur": 0.6, "arete": 0.2,
+    "cerclage": {"largeur": 0.022, "chanfrein": 0.3, "rivet": (1.25, 0.98), "cotes": 6},
+    "piton": {"grand": 0.72, "petit": 0.45, "prise": 0.75, "segments": (10, 5)},
+}
+
+SPHERE = ((0.0, 0.35), (0.12, 0.70), (0.30, 0.94), (0.5, 1.0), (0.70, 0.94), (0.88, 0.70), (1.0, 0.35))
+"""Le profil d'une boule tournée dans son cylindre (`geometrie.tourne`)."""
+
+# Épi de faîtage : rang de l'embase, de la hampe, du bulbe et de la boule dans la recette ; profil de chacun (part de
+# la longueur, part de l'apothème de son cylindre), `cotes`.
+EPI = {
+    "embase": 0, "hampe": 1, "bulbe": 2, "boule": 3,
+    "jupe": ((0.0, 1.0), (0.25, 0.96), (0.55, 0.62), (1.0, 0.40)),
+    "fut": ((0.0, 0.95), (0.70, 0.80), (0.86, 0.95), (0.88, 0.60), (1.0, 0.12)),
+    "oignon": ((0.0, 0.30), (0.10, 0.62), (0.32, 1.0), (0.48, 0.96), (0.70, 0.62), (0.88, 0.36), (1.0, 0.30)),
+    "cotes": 10,
+}
+
+# Girouette : rang de l'embase, de la hampe, des deux bras de la croix, de la boîte de la flèche et de la boule dans
+# la recette ; `pied`, `fut` : profil de l'embase et de la hampe (part de la longueur, part de l'apothème), `cotes`.
+# `bras` : profil d'un bras de la croix (`geometrie.profilee`) ; `losange` : sa demi-diagonale (fraction de la
+# longueur du bras), le recul de son centre depuis le bout du bras (fraction de cette longueur), sa demi-épaisseur
+# (part de celle du bras).
+# `aile` : la flèche, dans le plan de sa boîte ; `epaisseur` : demi-épaisseur de ses fers (part de celle de la boîte),
+# `arete` : chanfrein des pièces découpées (fraction de la longueur de la boîte) ; `fer` : demi-hauteur du fer plat
+# (fraction de la hauteur de la boîte), sa queue et sa tête (parts de la demi-longueur de la boîte) ; `pointe` :
+# longueur (part de la demi-longueur) et demi-hauteur (part de la demi-hauteur) ; `banderole` : sa naissance (part de la
+# demi-longueur, du côté opposé à la pointe), sa demi-hauteur à la naissance puis au bout (parts de la demi-hauteur),
+# l'entaille de ses deux queues (part de la demi-longueur).
+# `douille` : son rayon (part de l'apothème de la hampe, qu'il dépasse) et sa demi-hauteur (fraction de la hauteur
+# de la boîte de la flèche).
+GIROUETTE = {
+    "embase": 0, "hampe": 1, "croix": (2, 3), "fleche": 4, "boule": 5,
+    "pied": ((0.0, 1.0), (0.35, 0.94), (1.0, 0.45)),
+    "fut": ((0.0, 0.95), (0.80, 0.75), (0.94, 0.60), (1.0, 0.12)),
+    "cotes": 10,
+    "bras": ((0.0, 0.6, 0.6, 0.3), (0.03, 1.0, 1.0, 0.3), (0.97, 1.0, 1.0, 0.3), (1.0, 0.6, 0.6, 0.3)),
+    "losange": (0.065, 0.075, 0.5),
+    "aile": {"epaisseur": 0.8, "arete": 0.004, "fer": (0.04, 0.80, 0.70), "pointe": (0.36, 0.40),
+             "banderole": (0.14, 0.26, 0.96, 0.22)},
+    "douille": (1.5, 0.12),
 }
 
 # Panneau : rang du poteau, du tableau et de sa pointe dans la recette.

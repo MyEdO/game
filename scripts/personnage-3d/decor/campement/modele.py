@@ -16,7 +16,8 @@ from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, anneau, a
                        tournee)
 from maille import lineaire, tore
 
-DECORS = ("charrette", "epave-carrosse", "barque", "etal-marche", "tente", "tas-foin", "cargaison-bachee", "hamac")
+DECORS = ("charrette", "diligence", "epave-carrosse", "barque", "etal-marche", "tente", "tas-foin", "cargaison-bachee",
+          "hamac")
 
 
 def roue(m, primitive, dehors, large, R, manquants, moyeu):
@@ -41,11 +42,36 @@ def roue(m, primitive, dehors, large, R, manquants, moyeu):
                 large / 2 * R["rai"], R["fuseau"], R["pans"])
 
 
+def ferrees(D, G, pieces, roues, bandage):
+    """Les roues `roues` [(rang du bandage, de la jante, du moyeu dans la recette)] : un bandage de fer épais de
+    `bandage` de son rayon, une roue de bois (`roue`) jusqu'à son milieu, un moyeu de laiton. Rend le centre et le rayon
+    du moyeu de chacune dans la recette."""
+    moyeux = []
+    for rang_bandage, jante, noix in roues:
+        cercle_de_fer, boite = G.primitives[rang_bandage], G.primitives[noix]
+        ct, rt, lt = rond(cercle_de_fer)
+        epais = rt * bandage
+        cercle(pieces["fer"], AXES[cercle_de_fer["axis"]][0], tuple(ct), rt - epais / 2, lt, epais,
+               cercle_de_fer["sides"], "fer")
+        cm, rm, lm = rond(boite)
+        roue(pieces[MAT], G.primitives[jante], rt - epais / 2, lt, D["ROUE"], (),
+             (pieces["laiton"], "laiton", geometrie.apotheme(boite), lm / 2))
+        moyeux.append((cm, rm))
+    return moyeux
+
+
+def bloc(D, m, centre, demi, mat=MAT):
+    """Un bloc de `centre` et de demi-côtés `demi` (x, y, z), ses arêtes adoucies de `D["ARETE"]` de son plus petit
+    côté."""
+    dx, dy, dz = demi
+    planche(m, centre - X * dx, centre + X * dx, Y, HAUT, dy, dz, 2 * min(demi) * D["ARETE"], mat)
+
+
 def charrette(D, G, pieces, a):
     """Une charrette d'après `CHARRETTE` : plateau de planches en travers, quatre ridelles à lisses et montants
     chevillés, deux longerons qui filent en brancards, une traverse entre eux, un essieu sur ses cales, deux roues à
     rais cerclées de fer, moyeux de laiton."""
-    C, bois, fer = D["CHARRETTE"], pieces[MAT], pieces["fer"]
+    C, bois = D["CHARRETTE"], pieces[MAT]
     c, (lx, ly, lz) = pave(G.primitives[C["plateau"]])
     bordage(bois, c, Y, X, ly, lx, lz, C["plancher"], D, a)
 
@@ -67,18 +93,7 @@ def charrette(D, G, pieces, a):
             for axe in lisses:
                 cheville(bois, Vector((pied.x, pied.y, axe.z)) + dehors * ((face - fond) / 2), dehors, rayon, a)
 
-    moyeux = []
-    for bandage, jante, noix in C["roues"]:
-        cercle_de_fer, boite = G.primitives[bandage], G.primitives[noix]
-        ct, rt, lt = rond(cercle_de_fer)
-        epais = rt * C["bandage"]
-        cercle(fer, AXES[cercle_de_fer["axis"]][0], tuple(ct), rt - epais / 2, lt, epais, cercle_de_fer["sides"],
-               "fer")
-        cm, rm, lm = rond(boite)
-        roue(bois, G.primitives[jante], rt - epais / 2, lt, D["ROUE"], (),
-             (pieces["laiton"], "laiton", geometrie.apotheme(boite), lm / 2))
-        moyeux.append((cm, rm))
-    (gauche, rayon), (droite, _) = moyeux
+    (gauche, rayon), (droite, _) = ferrees(D, G, pieces, C["roues"], C["bandage"])
     E = C["essieu"]
     demi = rayon * E["section"]
     planche(bois, gauche, droite, (droite - gauche).normalized().cross(HAUT), HAUT, demi, demi, demi * D["ARETE"])
@@ -100,6 +115,135 @@ def charrette(D, G, pieces, a):
         limons.append((cb - avant * (long / 2 - long * part), large / 2 * section, bz / 2 * section))
     (p0, du, dv), (p1, _, _) = limons
     planche(bois, p0, p1, (p1 - p0).normalized().cross(HAUT), HAUT, du, dv, dv * D["ARETE"])
+
+
+def diligence(D, G, pieces, a):
+    """Une diligence d'après `DILIGENCE` : châssis sur deux essieux et quatre roues ferrées, caisse close à membrure,
+    vitrages, portières à poignée et marchepied, toit de cuir à galerie et bagages, siège du cocher, coffre arrière,
+    timon et palonnier. Elle file en x, le timon du côté de sa boîte."""
+    K, bois, fer, cuir, laiton = D["DILIGENCE"], pieces[MAT], pieces["fer"], pieces["cuir"], pieces["laiton"]
+    P = G.primitives
+
+    cc, (cx, cy, cz) = pave(P[K["chassis"]])
+    large = cz / 2 * K["longeron"]
+    for s in COTES:
+        bloc(D, bois, cc + Y * (s * (cy / 2 - large)), (cx / 2, large, cz / 2))
+    for part in K["traverses"]:
+        bloc(D, bois, cc + X * (cx / 2 * part), (large * K["traverse"], cy / 2 - large, cz / 2 * K["traverse"]))
+    moyeux = ferrees(D, G, pieces, K["roues"], K["bandage"])
+    trains = []
+    for i, j in K["essieux"]:
+        (gauche, rayon), (droite, _) = moyeux[i], moyeux[j]
+        demi = rayon * K["essieu"]
+        planche(bois, gauche, droite, (droite - gauche).normalized().cross(HAUT), HAUT, demi, demi, demi * D["ARETE"])
+        milieu = gauche.lerp(droite, 1 / 2)
+        for s in COTES:
+            bloc(D, bois, Vector((milieu.x, cc.y + s * (cy / 2 - large), (milieu.z + cc.z) / 2)),
+                 (demi * K["cale"], large, (cc.z - milieu.z) / 2 + demi))
+        trains.append((milieu, demi))
+
+    Q = K["coque"]
+    c, (lx, ly, lz) = pave(P[K["caisse"]])
+    bas, haut = c.z - lz / 2, c.z + lz / 2
+    e, retrait, cote, lisse_ = ly * Q["paroi"], ly * Q["retrait"], ly * Q["poteau"], lz * Q["membrure"]
+    saillie = (retrait + e / 2) / 2
+    for sx in COTES:
+        for sy in COTES:
+            pied = Vector((c.x + sx * (lx / 2 - cote), c.y + sy * (ly / 2 - cote), bas))
+            profilee(bois, pied, pied + HAUT * lz, (cote, cote), POTEAU)
+    bloc(D, bois, Vector((c.x, c.y, bas + e / 2)), (lx / 2 - cote, ly / 2 - cote, e / 2))
+    for s in COTES:
+        bout = c + X * (s * (lx / 2 - retrait - e / 2))
+        bloc(D, bois, bout, (e / 2, ly / 2 - cote, lz / 2 - e))
+        for z in (bas + lisse_, haut - lisse_):
+            bloc(D, bois, Vector((c.x + s * (lx / 2 - saillie), c.y, z)), (saillie, ly / 2 - cote, lisse_))
+    porte = lx * Q["porte"]
+    H = K["poignee"]
+    for rang in K["vitrages"]:
+        cv, (vx, _, vz) = pave(P[rang])
+        dehors = Y * math.copysign(1, cv.y - c.y)
+        bloc(D, bois, c + dehors * (ly / 2 - retrait - e / 2), (lx / 2 - cote, e / 2, lz / 2 - e))
+        bloc(D, pieces["vitre"], Vector((cv.x, c.y, cv.z)) + dehors * (ly / 2 - retrait * (1 - Q["vitre"]) - e / 2),
+             (vx / 2, e / 2, vz / 2), "vitre")
+        membrure = c + dehors * (ly / 2 - saillie)
+        appui = cv.z - vz / 2 - lisse_
+        for z in (bas + lisse_, appui, haut - lisse_):
+            bloc(D, bois, Vector((membrure.x, membrure.y, z)), (lx / 2 - cote, saillie, lisse_))
+        for x, pied in ((c.x - porte, bas), (c.x + porte, bas), (cv.x - vx / 2, appui), (cv.x + vx / 2, appui)):
+            bloc(D, bois, Vector((x, membrure.y, (pied + haut) / 2)),
+                 (lisse_ * Q["montant"], saillie * Q["face"], (haut - pied) / 2 - lisse_ * Q["ancrage"]))
+        prise = c + X * (porte * H["place"]) - HAUT * (lz * H["hauteur"]) + dehors * (ly / 2 - retrait)
+        tournee(laiton, prise, prise + dehors * (retrait + ly * H["saillie"]), *normales(dehors), lz * H["rayon"],
+                H["profil"], H["cotes"], "laiton")
+        M = K["degre"]
+        dx, dy, dz = lx * M["plat"][0], ly * M["plat"][1], lz * M["plat"][2]
+        plat = Vector((c.x, c.y, bas - lz * M["hauteur"])) + dehors * (ly / 2 + dy)
+        bloc(D, fer, plat, (dx, dy, dz), "fer")
+        for s in COTES:
+            pied = plat + X * (s * dx * M["tirant"][0]) - dehors * (dy * M["tirant"][0])
+            geometrie.fil(fer, pied, Vector((pied.x, pied.y, bas)) - dehors * (dy * (1 - M["tirant"][0]) + cote),
+                          dz * M["tirant"][1], K["rambarde"]["cotes"], "fer")
+
+    ct, (tx, ty, tz) = pave(P[K["toit"]])
+    planche(cuir, ct - X * (tx / 2), ct + X * (tx / 2), Y, HAUT, ty / 2, tz / 2, tz * K["couverture"], "cuir")
+    dessus = ct.z + tz / 2
+    Ra = K["rambarde"]
+    cg, (gx, gy, gz) = pave(P[K["galerie"]])
+    r = gz * Ra["rayon"]
+    lisse_z, dx, dy = cg.z + gz / 2 - r, gx / 2 - r, gy / 2 - r
+    coins = [Vector((cg.x + sx * dx, cg.y + sy * dy, lisse_z)) for sx, sy in geometrie.ANGLES]
+    for p, q in zip(coins, coins[1:] + coins[:1]):
+        fil = (q - p).normalized()
+        geometrie.fil(fer, p - fil * r, q + fil * r, r, Ra["cotes"], "fer")
+    longs, petits = Ra["montants"]
+    pieds = [(cg.x + dx * (2 * k / (longs - 1) - 1), cg.y + s * dy) for s in COTES for k in range(longs)]
+    pieds += [(cg.x + s * dx, cg.y + dy * (2 * k / (petits - 1) - 1)) for s in COTES for k in range(1, petits - 1)]
+    for x, y in pieds:
+        geometrie.fil(fer, Vector((x, y, dessus - r)), Vector((x, y, lisse_z)), r, Ra["cotes"], "fer")
+    T = K["coffret"]
+    haut_t = gz * T["cotes"][2]
+    bloc(D, bois, Vector((cg.x + gx / 2 * T["place"], cg.y, dessus + haut_t / 2)),
+         (gx / 2 * T["cotes"][0], gy / 2 * T["cotes"][1], haut_t / 2))
+
+    S = K["sangles"]
+    for rang, mat in ((K["malle"], "cuir"), (K["arriere"], MAT)):
+        cm, (mx, my, mz) = pave(P[rang])
+        bloc(D, pieces[mat], cm, tuple(cote_ / 2 * K["bagage"] for cote_ in (mx, my, mz)), mat)
+        fil, long, travers, large_m = (X, mx, Y, my) if mx > my else (Y, my, X, mx)
+        for part in S["places"]:
+            bande = cm + fil * (long / 2 * K["bagage"] * part)
+            demi = fil * (long * S["largeur"]) + travers * (large_m / 2) + HAUT * (mz / 2)
+            bloc(D, fer, bande, (abs(demi.x), abs(demi.y), demi.z), "fer")
+
+    cf, (fx, fy, fz) = pave(P[K["coffre"]])
+    bloc(D, bois, cf, (fx / 2, fy / 2, fz / 2))
+    cs, (sx_, sy_, sz) = pave(P[K["siege"]])
+    planche(cuir, cs - Y * (sy_ / 2), cs + Y * (sy_ / 2), X, HAUT, sx_ / 2, sz / 2, sz * K["coussin"], "cuir")
+    avant = X * math.copysign(1, cs.x - c.x)
+    Ga, La = K["garde"], K["lanterne"]
+    rg, rl = sz * Ga["rayon"], lz * La["rayon"]
+    for s in COTES:
+        y = cs.y + s * (sy_ / 2 - 2 * rg)
+        nez = c + avant * (lx / 2)
+        geometrie.fil(fer, Vector((nez.x, y, cs.z + sz / 2 + lz * Ga["prise"])),
+                      Vector((cs.x, y, cs.z + sz / 2 + rg)) + avant * (sx_ / 2 * Ga["pied"]), rg, Ga["cotes"], "fer")
+        fanal = Vector((nez.x, c.y + s * (ly / 2 - rl), c.z + lz * La["hauteur"])) + avant * rl
+        tournee(laiton, fanal, fanal + HAUT * (lz * La["longueur"]), X, Y, rl, La["profil"], La["cotes"], "laiton")
+
+    cp, (px, py, pz) = pave(P[K["marchepied"]])
+    bloc(D, bois, cp, (px / 2, py / 2, pz / 2))
+    for s in COTES:
+        y = cc.y + s * (cy / 2 - large)
+        geometrie.fil(fer, Vector((cc.x, y, cc.z)) + avant * (cx / 2 - large), Vector((cp.x, y, cp.z)),
+                      cz * K["console"], Ga["cotes"], "fer")
+
+    (train, demi), = (t for t in trains if (t[0] - cc).dot(avant) > 0)
+    cb, (bx, by, bz) = pave(P[K["timon"]])
+    depart, pointe = train + HAUT * (demi + bz / 2), cb + avant * (bx / 2)
+    file = (pointe - depart).normalized()
+    profilee(bois, depart, pointe, (by / 2, bz / 2), K["fleche"], MAT, Y, file.cross(Y))
+    cl, (ax, ay, az) = pave(P[K["palonnier"]])
+    bloc(D, bois, cl, (ax / 2, ay / 2, az / 2))
 
 
 def carrosse(D, G, pieces, a):
@@ -585,8 +729,8 @@ def hamac(D, G, pieces, a):
     coque(pieces["toile"], rangs, "toile")
 
 
-BATIR = {"charrette": charrette, "epave-carrosse": carrosse, "barque": barque, "etal-marche": etal, "tente": tente,
-         "tas-foin": foin, "cargaison-bachee": cargaison, "hamac": hamac}
+BATIR = {"charrette": charrette, "diligence": diligence, "epave-carrosse": carrosse, "barque": barque,
+         "etal-marche": etal, "tente": tente, "tas-foin": foin, "cargaison-bachee": cargaison, "hamac": hamac}
 
 
 def construire(D, id_):

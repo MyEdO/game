@@ -1,13 +1,21 @@
-"""Données du campement (#4335) : un GLB par décor `charrette`, `epave-carrosse`, `barque`, `etal-marche`, `tente`,
-`tas-foin`, `cargaison-bachee` et `hamac` de `src/data/props.json`, bâti dans l'enveloppe convexe des primitives de sa
-recette (`gabarit.py`). Aucune illustration au corpus : proportions d'adaptation, chacune en fraction de la primitive
-qui la porte (son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front de la recette vers -y, z
-vers le haut).
+"""Données du campement (#4335, #4471) : un GLB par décor `charrette`, `diligence`, `epave-carrosse`, `barque`,
+`etal-marche`, `tente`, `tas-foin`, `cargaison-bachee` et `hamac` de `src/data/props.json`, bâti dans l'enveloppe
+convexe des primitives de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions d'adaptation, chacune
+en fraction de la primitive qui la porte (son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front
+de la recette vers -y, z vers le haut).
 
 - `charrette` : un plateau de planches en travers ; quatre ridelles, chacune de deux lisses sur quatre montants
   chevillés ; deux longerons sous le plateau, qui filent en brancards effilés, une traverse entre eux ; un essieu
   équarri de moyeu à moyeu, une cale sous chaque longeron ; deux roues à douze rais tournés, jante de bois, bandage
   de fer, moyeu de laiton.
+- `diligence` : une voiture fermée sur un châssis de deux longerons et trois traverses ; quatre roues à rais, jante
+  de bois, bandage de fer, moyeu de laiton, les grandes à l'arrière, un essieu équarri par train, calé sous les
+  longerons ; une caisse close entre quatre poteaux, ses parois en retrait de sa membrure : ceintures basse, d'appui
+  et haute, montants de la portière et des baies ; de chaque flanc, un vitrage d'un seul tenant derrière ces
+  montants, une poignée de laiton et un marchepied de fer pendu à la caisse ; un toit de cuir débordant, une galerie
+  de fer à douze montants, une malle de cuir sanglée de fer et un coffret ; à l'avant, le coffre du cocher, son
+  coussin de cuir, deux garde-corps de fer, deux lanternes de laiton et un marchepied sur deux consoles ; à
+  l'arrière, un coffre sanglé de fer ; le timon, de l'essieu avant à sa pointe, et son palonnier. Sans attelage.
 - `epave-carrosse` : une caisse de planches debout entre quatre poteaux, entières du côté du toit, brisées à des
   hauteurs inégales au-delà de son faîte, comme les deux poteaux de ce bout ; ceintures basse et haute, plancher ;
   la baie de la porte entre deux montants, fermée d'ombre, une allège dessous ; un pan de toit de voliges aux bouts
@@ -44,11 +52,15 @@ la recette. La tente : deux mâts portent la faîtière ; le pignon est en retra
 d'ombre derrière lui, là où la recette la pose. Le tas de foin et la cargaison ne gardent de leurs primitives que
 l'encombrement. Le hamac : la toile va d'une barre à l'autre, plus longue que sa boîte.
 
+La diligence : le timon part de l'essieu avant, sous sa boîte ; le
+vitrage tient dans la caisse, en deçà de la boîte de la recette.
+
 Matières : celles des recettes, sauf la tente, qui prend `corde` pour ses haubans, que sa recette ne nomme pas : un
 hauban n'est ni de toile ni de bois. Le carrosse garde `bois-chene` pour ses roues, ses essieux et son timon,
 `bois-mort` pour sa caisse et ses débris. Le catalogue n'a ni foin (`paille` pour le tas, que la recette lui donne),
-ni toile goudronnée (`toile-ecrue` pour la bâche), ni fer rouillé. Aucun emplacement de palette ne nomme la corde
-ni l'ombre : elles prennent `accent` ; la paille prend `vegetal`, la toile `vet1`."""
+ni toile goudronnée (`toile-ecrue` pour la bâche), ni fer rouillé. La caisse de la diligence est de `bois-chene` nu : le
+catalogue n'a pas de bois peint. Aucun emplacement de palette ne nomme la corde ni l'ombre : elles prennent `accent` ;
+le verre prend `corps` ; la paille prend `vegetal`, la toile `vet1`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -56,8 +68,10 @@ VIEUX = {"vieux": ("bois", "bois-mort")}
 CORDE = {"corde": ("accent", "corde")}
 OMBRE = {"ombre": ("accent", "ombre")}
 ECRUE = {"toile": ("vet1", "toile-ecrue")}
+FERRURES = {"fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore")}
 MATERIAUX = {
-    "charrette": {**BOIS, "fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore")},
+    "charrette": {**BOIS, **FERRURES},
+    "diligence": {**BOIS, **FERRURES, "cuir": ("cuir", "cuir-tanne"), "vitre": ("corps", "verre")},
     "epave-carrosse": {**BOIS, **VIEUX, **OMBRE},
     "barque": {**BOIS, **VIEUX, **CORDE},
     "etal-marche": {**BOIS, "toile": ("vet1", "toile-rouge")},
@@ -67,10 +81,11 @@ MATERIAUX = {
     "hamac": {**BOIS, **ECRUE, **CORDE},
 }
 
-BUDGET_TRIANGLES = {"charrette": 4800, "epave-carrosse": 6400, "barque": 4400, "etal-marche": 3700, "tente": 2100,
-                    "tas-foin": 1500, "cargaison-bachee": 2700, "hamac": 1400}
+BUDGET_TRIANGLES = {"charrette": 4800, "diligence": 8400, "epave-carrosse": 6400, "barque": 4400, "etal-marche": 3700,
+                    "tente": 2100, "tas-foin": 1500, "cargaison-bachee": 2700, "hamac": 1400}
 
-ANGLE_LISSE = {"bois": 40, "vieux": 40, "fer": 40, "laiton": 40, "toile": 60, "corde": 50, "ombre": 30, "paille": 35}
+ANGLE_LISSE = {"bois": 40, "vieux": 40, "fer": 40, "laiton": 40, "toile": 60, "corde": 50, "ombre": 30, "paille": 35,
+               "cuir": 40, "vitre": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein et une gerbe
 gardent leurs arêtes, une pièce tournée, un cordage et une toile sont ronds."""
 
@@ -115,6 +130,57 @@ CHARRETTE = {
     "limon": ((0.0, 0.7, 0.7, 0.2), (0.02, 1.0, 1.0, 0.2), (0.6, 1.0, 1.0, 0.2), (0.97, 0.72, 0.72, 0.3),
               (1.0, 0.5, 0.5, 0.3)),
     "traverse": (0.08, 0.8),
+}
+
+# Diligence : rang de chaque boîte dans la recette, des deux vitrages et des roues (bandage, bois, moyeu) ; `essieux` :
+# rangs, parmi `roues`, des deux roues de l'essieu arrière puis de l'essieu avant. `bandage`, `essieu` : comme la
+# charrette ; `cale` : sa demi-longueur (part du demi-côté de l'essieu).
+# `longeron` : sa demi-largeur (part de la demi-hauteur du châssis) ; `traverses` : leur place (parts de sa
+# demi-longueur), `traverse` : leur section (part de celle d'un longeron).
+# `coque`, la caisse : `paroi` : son épaisseur, `retrait` de sa face sous celle de la membrure, `poteau` : son
+# demi-côté (fractions de la largeur de la caisse) ; `membrure` : demi-hauteur d'une ceinture (fraction de la hauteur
+# de la caisse), `montant` : demi-largeur d'un montant (part de cette demi-hauteur), `face` : part de la saillie des
+# ceintures que garde la sienne, `ancrage` : part de la demi-hauteur d'une ceinture où il s'arrête ; `porte` : sa
+# demi-largeur
+# (fraction de la longueur de la caisse) ; `vitre` : part du retrait dont le vitrage dépasse la paroi.
+# `poignee` : sa place depuis l'axe de la porte (part de sa demi-largeur), sa hauteur sous l'axe de la caisse, son
+# rayon (fractions de la hauteur de la caisse), sa saillie (fraction de la largeur de la caisse), son profil, `cotes`.
+# `degre`, le marchepied de la portière : sa hauteur sous la caisse (fraction de la hauteur de la caisse), ses
+# demi-côtés le long de la caisse, en travers, en hauteur (fractions de la longueur, de la largeur, de la hauteur de
+# la caisse), `tirant` : place de ses deux tirants (part de sa demi-longueur) et leur rayon (part de sa
+# demi-épaisseur).
+# `couverture` : chanfrein du toit (part de son épaisseur). `rambarde`, la galerie : `rayon` de ses fers (fraction de
+# sa hauteur), `montants` par long côté puis par petit côté, coins compris, `cotes`.
+# `bagage` : part de sa boîte que garde une malle ; `sangles` : leur place (parts de sa demi-longueur), leur
+# demi-largeur (fraction de sa longueur). `coffret` : sa place le long de la galerie (part de sa demi-longueur), ses
+# demi-côtés (parts de ceux de la galerie).
+# `coussin` : chanfrein du siège (part de son épaisseur). `garde` : hauteur de sa prise sur la caisse au-dessus du
+# siège (fraction de la hauteur de la caisse), place de son pied (part de la demi-longueur du siège), son rayon
+# (fraction de l'épaisseur du siège), `cotes`. `lanterne` : sa hauteur sur l'axe de la caisse, sa longueur, son rayon
+# (fractions de la hauteur de la caisse), son profil, `cotes`. `console` : rayon des consoles du marchepied (fraction
+# de la hauteur du châssis).
+# `fleche` : profil du timon, de l'essieu à sa pointe (`geometrie.profilee`).
+DILIGENCE = {
+    "caisse": 0, "toit": 1, "galerie": 2, "malle": 3, "chassis": 4, "coffre": 5, "siege": 6, "marchepied": 7,
+    "arriere": 8, "timon": 9, "palonnier": 10, "vitrages": (11, 12),
+    "roues": ((13, 14, 15), (16, 17, 18), (19, 20, 21), (22, 23, 24)), "essieux": ((0, 1), (2, 3)),
+    "bandage": 0.04, "essieu": 0.5, "cale": 1.2,
+    "longeron": 1.0, "traverses": (-0.96, 0.0, 0.96), "traverse": 0.8,
+    "coque": {"paroi": 0.02, "retrait": 0.012, "poteau": 0.03, "membrure": 0.03, "montant": 0.8, "face": 0.85,
+              "ancrage": 0.5, "porte": 0.12, "vitre": 0.5},
+    "poignee": {"place": 0.72, "hauteur": 0.03, "rayon": 0.012, "saillie": 0.03,
+                "profil": ((0.0, 0.5), (0.6, 0.5), (0.7, 1.0), (1.0, 0.8)), "cotes": 6},
+    "degre": {"hauteur": 0.18, "plat": (0.07, 0.055, 0.008), "tirant": (0.8, 0.9)},
+    "couverture": 0.4,
+    "rambarde": {"rayon": 0.05, "montants": (5, 3), "cotes": 5},
+    "bagage": 0.96, "sangles": {"places": (-0.5, 0.5), "largeur": 0.04},
+    "coffret": {"place": 0.55, "cotes": (0.2, 0.55, 0.8)},
+    "coussin": 0.3,
+    "garde": {"prise": 0.25, "pied": 0.8, "rayon": 0.12, "cotes": 5},
+    "lanterne": {"hauteur": 0.2, "longueur": 0.11, "rayon": 0.03,
+                 "profil": ((0.0, 0.3), (0.1, 0.8), (0.2, 1.0), (0.7, 1.0), (0.8, 0.6), (1.0, 0.2)), "cotes": 6},
+    "console": 0.15,
+    "fleche": ((0.0, 1.0, 1.0, 0.2), (0.9, 0.8, 0.8, 0.2), (1.0, 0.5, 0.5, 0.2)),
 }
 
 # Épave de carrosse : rang de la caisse, du toit, de la porte, des roues et du timon dans la recette ; `essieux` :
