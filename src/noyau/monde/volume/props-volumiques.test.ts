@@ -196,6 +196,8 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
       'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'table', 'chaise', 'banc', 'tabouret',
       'armoire', 'etagere', 'etal-marche', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle',
       'table-ronde-4-tabourets', 'cheminee', 'enseigne', 'clocheton',
+      // #4471 — les ornements de façade et de faîte de La Diligence.
+      'ecu', 'epi-de-faite', 'girouette',
       'applique-murale',
       // #1343 — le mobilier de l'opéra/théâtre : chacun tient sur sa case à tous ses caps.
       'siege', 'fauteuil-loge', 'canape', 'coiffeuse', 'pupitre-chef', 'miroir', 'paravent',

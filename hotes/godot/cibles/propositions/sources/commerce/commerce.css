@@ -9,7 +9,6 @@
 .offre td:first-child{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--creme-2)}
 .offre td:last-child{text-align:right;font-weight:600;color:#f4e8ca}
 .offre .gestes{display:flex;gap:8px;margin-top:9px}
-.offre .gestes .plaque>div{font-size:13.5px;gap:7px;padding:0 6px}
 .offre.choisie{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.38)}
 .hote:is(.enseigne,.charge)>.fond{padding:8px 14px 9px 10px}
 
@@ -23,25 +22,22 @@
 
 /* la page du chargement et du lot, sur parchemin */
 #page .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
-#page h3{font-size:27px;line-height:42px;margin:-10px 0 -9px;white-space:nowrap}
-#page .tete .sous{white-space:nowrap}
+#page .tete .sous-titre{white-space:nowrap}
 #page .r{font-family:"Fell SC";font-size:12.5px;letter-spacing:1.1px;color:#6b1c10}
-#page .note{font-size:12.5px;line-height:16px;color:#4a3420;text-align:center}
+#page .note{text-align:center}
 .porteurs{display:flex;gap:8px}
 .porteur{flex:1;min-width:0;padding:7px 10px 9px;border-radius:3px;border:1px solid rgba(60,40,20,.4);background:rgba(255,245,215,.2)}
 .porteur.pris{border:2px solid #a8842f;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:6px 9px 8px}
 .porteur.ferme{opacity:.55}
 .porteur .l{display:flex;align-items:center;gap:7px}
-.porteur b{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:20px;color:#2a1d12;letter-spacing:.3px;white-space:nowrap}
-.porteur span{display:block;font-size:12px;color:#4a3420;white-space:nowrap;margin:1px 0 5px}
+.porteur .nom-propre{white-space:nowrap}
+.porteur>span{display:block;font-size:12px;color:#4a3420;white-space:nowrap;margin:1px 0 5px}
 .quantite{display:flex;align-items:center;gap:12px}
 .quantite .val{flex:none;width:86px;text-align:right;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;white-space:nowrap}
 .quantite .bornes{display:flex;justify-content:space-between;font-size:11px;color:#5a4530;margin-top:1px}
 #page .compte td:first-child span{font-size:11.5px;color:#5a4530;margin-left:6px}
-#page .plaque.conclure>div{font-size:16.5px}
 .voies{display:flex;flex-direction:column;gap:7px}
 .voies .soin{margin-top:0}
-.voies .soin .t b{font-size:18px}
 .faits{width:100%;border-collapse:collapse;font-size:13.5px;color:#2a1d12}
 .faits td{padding:2px 0;vertical-align:baseline}
 .faits td:last-child{text-align:right;font-weight:600;white-space:nowrap}
@@ -58,33 +54,28 @@
 .service p{margin:7px 0 0;font-size:13px;line-height:17px}
 .service .gestes{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 .service .gestes .plaque{flex:1 1 auto}
-.service .gestes .plaque>div{font-size:13px;gap:6px;padding:0 9px;letter-spacing:.8px}
 #carte-du-lieu svg{display:block;width:100%;height:100%}
 .depart{display:flex;align-items:center;gap:10px;padding:6px 2px}
 .depart+.depart{border-top:1px solid rgba(226,192,106,.2)}
 .depart .ou{flex:1;min-width:0}
-.depart .ou b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:23px;color:#f4e8ca;letter-spacing:.3px;white-space:nowrap}
-.depart .ou span{display:block;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+.depart .ou .nom-propre{white-space:nowrap}
+.depart .ou>span{display:block;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .depart .moyens{display:flex;gap:7px}
 .depart .plaque{flex:none}
-.depart .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
 .depart p{margin:4px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
 
 /* le Marchandage : le bandeau de jet du combat (`../combat/jet.css`, lié avant cette feuille), à sa place ; ce que la
    famille y change : un centre plus large pour les prix, des libellés sur une ligne */
 #jet .fond{grid-template-columns:1fr 340px 1fr}
 .camp .issue b{text-transform:none}
-.modif{margin-top:0;white-space:nowrap}
-#verdict .sous,#verdict .dr{white-space:nowrap}
+#verdict .sous-titre,#verdict .dr{white-space:nowrap}
 
 /* la halle vue d'un siège invité */
 #main .fond{display:flex;align-items:center;gap:12px;padding:8px 14px}
-#main b{display:block;font-weight:400;font-size:22px;line-height:32px;margin:-5px 0 -4px;color:#f4e8ca;white-space:nowrap}
-#main span{display:block;font-size:12px;line-height:15px;color:var(--creme-2)}
+#main .nom-propre{white-space:nowrap}
+#main .rubrique{display:block;font-size:12px;line-height:15px;color:var(--creme-2)}
 .heros .joue{display:flex;align-items:center;gap:6px;margin-top:9px}
-.heros .joue .attend{margin-top:0}
-.heros .attend.autre{background:linear-gradient(180deg,#3a3630,#1e1c18);color:#cfc5ae;box-shadow:0 0 0 1px #000,0 2px 4px rgba(0,0,0,.6)}
-#page .note.refus{display:flex;align-items:center;gap:8px;color:#6b1c10}
+#page .note.refus{display:flex;align-items:center;gap:8px}
 /* les parts de l'achat, sous le compte */
 #page .qui-paie{padding-top:5px;border-top:1px solid rgba(60,40,20,.42);color:#2a1d12}
 #page .qui-paie .rubrique{font-size:12px;color:#6b1c10}
@@ -93,7 +84,6 @@
 /* les pages du port : lignes à choisir ou à régler, travaux du chantier */
 #page .lignes{display:flex;flex-direction:column}
 .ligne{display:grid;grid-template-columns:auto 1fr 84px 96px;align-items:center;column-gap:10px;height:27px;padding:0 8px;border-top:1px solid rgba(60,40,20,.28);font-size:13.5px;color:#2a1d12;white-space:nowrap}
-.ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17.5px;letter-spacing:.3px}
 .ligne .c{font-size:12px;color:#5a4530}
 .ligne .px{text-align:right;font-weight:600}
 .ligne .n{text-align:right;font-weight:600}

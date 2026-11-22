@@ -24,7 +24,7 @@
         0.018496
       ],
       "rotation": [
-        -0.147072,
+        -0.147073,
         -0.043633,
         -3.141593
       ],
@@ -38,15 +38,17 @@
   "surfaces": [
     {
       "nom": "parchemin",
-      "palette": "corne"
+      "palette": "corne",
+      "matiere": "prop--papier"
     },
     {
       "nom": "cire",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--cire"
     }
   ],
   "glb": {
-    "sha256": "335937cf99586ec8935b3054252b5746b48209225cc68fe8e105ba183b021981",
-    "octets": 428712
+    "sha256": "2cb6d7cfb478d96bff30f1884cfb7d648383155d8dd88dd16a22bb2c03cad643",
+    "octets": 428664
   }
 }
