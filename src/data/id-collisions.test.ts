@@ -36,7 +36,7 @@
  *       • décor↔véhicule : un DÉCOR (meuble, `props.json`) homonyme d'un VÉHICULE à coque (`vehicles.json`)
  *           — l'entité porte sa NATURE (`SceneEntity.kind`), qui dit dans quel catalogue lire sa réf, donc
  *           SANS DANGER, mais actée : chaise (chaise de meuble vs chaise à porteurs EDOC 07 l.192),
- *           charrette, diligence (la voiture posée en décor, #4471, vs le véhicule attelé, EDOC folio 26).
+ *           charrette.
  *       • décor↔trapping : un DÉCOR homonyme d'une POSSESSION ordinaire (le sac PORTE l'objet, la scène
  *           POSE le décor — deux entités, même mot) — rocher, tonneau, marmite, tente, hamac, coffre, etendard, bourse (la
  *           Bourse de sac, LDB folio 301, vs la bourse POSÉE au sol — #1680 ligne 14).
@@ -68,7 +68,7 @@ const CATEGORIES: Record<string, { id: string }[]> = {
 /** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */
 const KNOWN_CROSS = [
   'arme', 'beni', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette', 'chute', 'coffre',
-  'cornes', 'corruption', 'diligence', 'effrayant', 'etendard', 'etreinte-glaciale',
+  'cornes', 'corruption', 'effrayant', 'etendard', 'etreinte-glaciale',
   'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'fuite', 'haine', 'hamac', 'hurlement-de-la-bete-indomptable',
   'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
   'morsure', 'mouvement', 'ogre', 'perturbant', 'pieces-detachees-de-navire', 'pistolet', 'poudre-impregnee-d-aqshy',
