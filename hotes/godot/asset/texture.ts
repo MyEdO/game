@@ -1,8 +1,10 @@
 /**
  * LE REJEU DES TEXTURES ÉPINGLÉES (#4527) : chaque texture du catalogue (`projet/textures/`, `epingles.ts`) se
  * refabrique depuis sa source CC0 par le traitement que sa provenance consigne. La provenance est la seule recette :
- * `source` nomme la page, l'archive et le fichier pris, ou la texture du catalogue dont elle dérive (« ; dérivée de
- * <fichier> ») ; `traitement` porte les arguments d'ImageMagick, entre l'image lue et l'image écrite. Les octets
+ * `source` nomme la page, l'archive et le fichier pris, la texture du catalogue dont elle dérive (« ; dérivée de
+ * <fichier> »), ou dit qu'aucune image ne la précède (`FABRIQUEE`) ; `traitement` porte les arguments d'ImageMagick,
+ * entre l'image lue et l'image écrite, ou, pour une texture fabriquée, tout ce qui précède l'image écrite : son
+ * générateur, graine comprise (`-seed`), en tête. Les octets
  * rendus dépendent de la version d'ImageMagick et de sa libjpeg : une texture est reproduite quand ses pixels sont
  * ceux de l'épinglée (`verdictDuRejeu`).
  */
@@ -17,25 +19,29 @@ import type { Telecharger } from './release.ts';
 /** Le cache des sources téléchargées, hors de l'arbre. */
 export const CACHE_DES_SOURCES = join(homedir(), '.cache', 'wfrp-sources-de-textures');
 
-/** D'où vient l'image que le traitement lit : une texture du catalogue, ou un fichier téléchargé, seul ou pris dans
- *  une archive. */
+/** D'où vient l'image que le traitement lit : une texture du catalogue, un fichier téléchargé, seul ou pris dans
+ *  une archive, ou aucune pour une texture que le traitement fabrique. */
 export type Origine =
+  | { readonly fabriquee: true }
   | { readonly deriveeDe: string }
   | { readonly url: string; readonly fichier: string; readonly archive?: string };
 
+/** La `source` d'une texture que son traitement fabrique sans image lue. */
+export const FABRIQUEE = 'fabriquée par ImageMagick, sans image source';
 const DERIVEE = / ; dérivée de ([\w.-]+\.jpg)$/;
 const AMBIENTCG = /^https:\/\/ambientcg\.com\/view\?id=\w+ \(([\w-]+\.zip) : ([\w-]+\.jpg)\)$/;
 const POLYHAVEN = /^https:\/\/polyhaven\.com\/a\/(\w+) \((\w+_1k\.jpg), [^()]+\)$/;
 
 /** L'origine que nomme la `source` d'une provenance, ou lève sur une forme qu'aucun site connu ne porte. */
 export function origineDe(source: string): Origine {
+  if (source === FABRIQUEE) return { fabriquee: true };
   const derivee = DERIVEE.exec(source);
   if (derivee) return { deriveeDe: derivee[1] as string };
   const ambientcg = AMBIENTCG.exec(source);
   if (ambientcg) return { url: `https://ambientcg.com/get?file=${ambientcg[1]}`, archive: ambientcg[1] as string, fichier: ambientcg[2] as string };
   const polyhaven = POLYHAVEN.exec(source);
   if (polyhaven) return { url: `https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/${polyhaven[1]}/${polyhaven[2]}`, fichier: polyhaven[2] as string };
-  throw new Error(`source « ${source} » : ni ambientCG « <page> (<archive>.zip : <fichier>.jpg) », ni Poly Haven « <page> (<fichier>_1k.jpg, <auteur>) », ni « … ; dérivée de <fichier>.jpg »`);
+  throw new Error(`source « ${source} » : ni ambientCG « <page> (<archive>.zip : <fichier>.jpg) », ni Poly Haven « <page> (<fichier>_1k.jpg, <auteur>) », ni « … ; dérivée de <fichier>.jpg », ni « ${FABRIQUEE} »`);
 }
 
 const IMAGEMAGICK = 'ImageMagick : ';
@@ -72,7 +78,7 @@ export const verdictDuRejeu = (somme: string, epinglee: string, rejouee: string,
   somme === epinglee ? 'octets' : pixels(rejouee, deposee) ? 'pixels' : 'differente';
 
 /** Le chemin, dans le cache `cache`, du fichier source d'`origine` : téléchargé s'il y manque, sorti de son archive. */
-async function sourceEnCache(origine: Exclude<Origine, { deriveeDe: string }>, cache: string, telecharger: Telecharger): Promise<string> {
+async function sourceEnCache(origine: Extract<Origine, { url: string }>, cache: string, telecharger: Telecharger): Promise<string> {
   const fichier = join(cache, origine.fichier);
   if (existsSync(fichier)) return fichier;
   mkdirSync(cache, { recursive: true });
@@ -98,8 +104,8 @@ export async function rejouerLesTextures(noms: readonly string[], provenance: Re
     const entree = provenance[nom];
     if (!entree) throw new Error(`${nom} : absent de la provenance des textures`);
     const origine = origineDe(entree.source);
-    const lu = 'deriveeDe' in origine ? await rejouer(origine.deriveeDe) : await sourceEnCache(origine, cache, telecharger);
-    executer('convert', [lu, ...argumentsDeTraitement(entree.traitement), ecrit]);
+    const lu = 'fabriquee' in origine ? [] : ['deriveeDe' in origine ? await rejouer(origine.deriveeDe) : await sourceEnCache(origine, cache, telecharger)];
+    executer('convert', [...lu, ...argumentsDeTraitement(entree.traitement), ecrit]);
     sommes.set(nom, sha256(readFileSync(ecrit)));
     return ecrit;
   };

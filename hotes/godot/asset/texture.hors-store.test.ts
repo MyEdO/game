@@ -2,7 +2,7 @@
  * LE REJEU DES TEXTURES ÉPINGLÉES (#4527, `texture.ts`) : l'origine que nomme une source, les arguments que consigne un
  * traitement, l'ordre du rejeu, et la provenance commitée, que le rejeu lit tout entière.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +10,7 @@ import { DOSSIER_DES_TEXTURES, type ProvenanceFabriquee } from './epingles';
 import {
   argumentsDeTraitement,
   epinglerLesTextures,
+  FABRIQUEE,
   origineDe,
   rejouerLesTextures,
   verdictDuRejeu,
@@ -19,7 +20,8 @@ const LICENCE = 'CC0-1.0';
 const AMBIENTCG = 'https://ambientcg.com/view?id=Fabric068 (Fabric068_1K-JPG.zip : Fabric068_1K-JPG_Color.jpg)';
 
 describe('rejouer une texture épinglée', () => {
-  it('lit l’origine d’une source : archive d’ambientCG, fichier de Poly Haven, texture du catalogue', () => {
+  it('lit l’origine d’une source : archive d’ambientCG, fichier de Poly Haven, texture du catalogue, aucune image', () => {
+    expect(origineDe(FABRIQUEE)).toEqual({ fabriquee: true });
     expect(origineDe(AMBIENTCG)).toEqual({ url: 'https://ambientcg.com/get?file=Fabric068_1K-JPG.zip', archive: 'Fabric068_1K-JPG.zip', fichier: 'Fabric068_1K-JPG_Color.jpg' });
     expect(origineDe('https://polyhaven.com/a/clay_plaster (clay_plaster_diff_1k.jpg, Amal Kumar)'))
       .toEqual({ url: 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clay_plaster/clay_plaster_diff_1k.jpg', fichier: 'clay_plaster_diff_1k.jpg' });
@@ -43,6 +45,18 @@ describe('rejouer une texture épinglée', () => {
 
   it('refuse un nom que la provenance n’épingle pas, avant toute écriture', async () => {
     await expect(rejouerLesTextures(['absente.jpg'], {}, tmpdir())).rejects.toThrow(/absent de la provenance/);
+  });
+
+  it('rejoue une texture fabriquée sans image lue, aux mêmes octets d’un rejeu à l’autre', async () => {
+    const provenance = { 'bruit.jpg': { sha256: 'a'.repeat(64), source: FABRIQUEE, licence: LICENCE, traitement: 'ImageMagick : -size 32x32 -seed 4746 plasma:fractal -colorspace Gray -strip -quality 85' } };
+    const sorties = [mkdtempSync(join(tmpdir(), 'wfrp-texture-')), mkdtempSync(join(tmpdir(), 'wfrp-texture-'))];
+    try {
+      const [premier, second] = await Promise.all(sorties.map((sortie) => rejouerLesTextures(['bruit.jpg'], provenance, sortie, { telecharger: () => { throw new Error('téléchargement inattendu'); } })));
+      expect(premier?.get('bruit.jpg')).toMatch(/^[0-9a-f]{64}$/);
+      expect(second?.get('bruit.jpg')).toBe(premier?.get('bruit.jpg'));
+    } finally {
+      for (const sortie of sorties) rmSync(sortie, { recursive: true, force: true });
+    }
   });
 
   it('reproduit une texture aux mêmes octets, ou aux mêmes pixels que l’épinglée déposée ; sinon elle diffère', () => {
