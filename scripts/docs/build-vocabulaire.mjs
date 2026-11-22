@@ -12,8 +12,8 @@ import { loadSource, readSchemaUnionMembers, renderFields } from './lib/jsdocUni
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
-import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, CONDITIONS_RESERVEES, conditionSchema, flowSchema, gameOpSchema } from '../../src/data/schemas/grammaire/mecanique.ts'
-import { declarationDEnfants, defDe, enfantsDe, ouverts, valeursAdmises } from '../../src/data/schemas/grammaire/descente.ts'
+import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, CONDITIONS_RESERVEES, OP_DEFS, conditionSchema, flowSchema } from '../../src/data/schemas/grammaire/mecanique.ts'
+import { defDe, enfantsDe, ouverts, valeursAdmises } from '../../src/data/schemas/grammaire/descente.ts'
 import { nomDeNoeud } from '../../src/data/schemas/grammaire/meta.ts'
 
 /** Le corps rendu et les messages du lanceur, sans rien écrire. */
@@ -209,14 +209,12 @@ function rendu() {
     })
   }
 
-  const charges = declarationDEnfants(gameOpSchema)
-  if (charges?.nature !== 'payloads-op' || !charges.enfants.length) {
-    throw new Error(`${TOOL} — charges de GameOp introuvables dans ${MECA_SRC}`)
-  }
-  const opRows = charges.enfants.map(({ noeud, segment }) => {
-    const name = segment.slice(1)
-    return { name, fieldGroups: lireFormes(noeud, 'op', name), role: nomDeNoeud(noeud)?.label }
-  })
+  const opRows = Object.entries(OP_DEFS).map(([name, noeud]) => ({
+    name,
+    fieldGroups: lireFormes(noeud, 'op', name),
+    role: nomDeNoeud(noeud)?.label,
+  }))
+  if (!opRows.length) throw new Error(`${TOOL} — charges de GameOp introuvables dans ${MECA_SRC}`)
   const opRawCount = opRows.reduce((compte, r) => compte + r.fieldGroups.length, 0)
   const conditions = lireBranches(conditionSchema, 'kind')
   const flows = lireBranches(flowSchema, 'kind')
