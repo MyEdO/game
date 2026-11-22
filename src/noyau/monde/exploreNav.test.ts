@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
 import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
-import { aPorteeDe, cheminsDuGroupe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
+import { aPorteeDe, cheminsDuGroupe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';
-import { cheminsDepuis, type Pt } from './path';
+import { cheminsDepuis, pathTo, type Pt } from './path';
+import { footprintTiles } from './footprint';
 
 /** Les chemins du groupe depuis `depart`, sans case bloquée. */
 const depuis = (sc: Scene, depart: Pt) => cheminsDepuis(sc, depart, { blocked: new Set() });
@@ -337,5 +338,26 @@ describe('aPorteeDe — la portée d’un geste d’exploration, étage COMPRIS'
   it('`exploreMoveDest` s’en sert : un décor de l’étage se REJOINT au lieu d’être servi sur place', () => {
     const sc = sceneWith([coffre({ x: 4, y: 3 })]);
     expect(exploreMoveDest(sc, { x: 4, y: 4 }, { x: 4, y: 3 }), 'de plain-pied et adjacent : rien à marcher').toBeNull();
+  });
+});
+
+describe('marche du groupe : une coque posée tient ses cases, une créature non (#4471)', () => {
+  const depart = { x: 0, y: 2 };
+  const marche = (sc: Scene, but: Pt) => pathTo(sc, depart, but, optionsDeCheminDuGroupe([]));
+
+  it('la diligence (2×2) : le chemin contourne ses quatre cases, aucune ne se foule', () => {
+    const diligence: SceneEntity = { id: 'diligence', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { x: 3, y: 1 } };
+    const sc = sceneWith([diligence]);
+    const cases = footprintTiles(diligence.pos, 2);
+    const chemin = marche(sc, { x: 7, y: 2 });
+    expect(chemin).not.toBeNull();
+    expect(chemin!.filter((p) => cases.some((c) => c.x === p.x && c.y === p.y))).toEqual([]);
+    expect(cases.map((c) => marche(sc, c))).toEqual([null, null, null, null]);
+  });
+
+  it('un humain posé : sa case reste marchable, le groupe la traverse', () => {
+    const humain: SceneEntity = { id: 'humain', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 3, y: 2 } };
+    const chemin = marche(sceneWith([humain]), humain.pos);
+    expect(chemin?.[chemin.length - 1]).toEqual(humain.pos);
   });
 });

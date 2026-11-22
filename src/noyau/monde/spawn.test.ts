@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize, entiteFootTiles } from './spawn';
-import { footprintN, footprintTiles } from './footprint';
+import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy } from './spawn';
+import { entiteFootTiles, entitySize, footprintN, footprintTiles } from './footprint';
 import { weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { buildWeapon, laisserTomber, piecesPorteesA, recomputeLoadout, weaponFromItem } from '../../engine/items';

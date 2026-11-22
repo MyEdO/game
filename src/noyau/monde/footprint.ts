@@ -13,11 +13,12 @@
  * de DÉCOR (`propFootTiles`) LISENT le catalogue app-owned `props.json` (`../data`),
  * vérité unique de l'empreinte d'un prop — ce module n'est donc pas sans dépendance de données.
  */
-import { findPropById } from '../../data';
+import { findCreatureById, findPropById, findSiegeEngineById, findVehicleById, tailleDuProfil } from '../../data';
 import { decalageDuCalage, empreinteDuProp, offsetAncre } from '../../data/props.types';
 import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
+import type { CustomStatblock } from '../../engine/statblock';
 import type { Pt } from './path';
 import { areteSepareLeCoupEntre, plafondDe, sceneMetresPerTile, wallOnSight, type Scene, type SceneEntity } from './scene';
 import { isStructure } from '../../engine/structures';
@@ -81,6 +82,35 @@ export function propFootTiles(ref: string | undefined, pos: Pt, facing: Dir8 | u
   const out: Pt[] = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push({ x: pos.x + dx, y: pos.y + dy });
   return out;
+}
+
+/** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
+ *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire). */
+export function entitySize(ent: { creature?: { id: string }; statblock?: CustomStatblock }): SizeCategory {
+  const creature = ent.creature && findCreatureById(ent.creature.id);
+  return tailleDuProfil({
+    size: ent.statblock?.size,
+    traits: ent.statblock?.traits ?? creature?.traits,
+    talents: ent.statblock?.talents ?? creature?.talents,
+  });
+}
+
+/** L'empreinte que la fiche d'un corps déclare, celle que `ficheDuCorps` pose au combattant : coque (`hull.footprint`),
+ *  engin de siège (`siegeFootprint`). */
+function empreinteDeLaFiche(ent: Pick<SceneEntity, 'vehicule' | 'engin'>): number | undefined {
+  if (ent.vehicule) return findVehicleById(ent.vehicule.id)?.hull?.footprint;
+  if (ent.engin) return findSiegeEngineById(ent.engin.id)?.siegeFootprint;
+  return undefined;
+}
+
+/** Le côté de l'empreinte d'un corps de scène (`footprintN`), celui de son combattant. */
+export const coteDeLEmpreinte = (ent: SceneEntity): number => footprintN({ size: entitySize(ent), footprint: empreinteDeLaFiche(ent) });
+
+/** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
+ *  couture unique de la marchabilité et de la ligne de vue), sinon le carré de `coteDeLEmpreinte`. */
+export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
+  if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
+  return footprintTiles(ent.pos, coteDeLEmpreinte(ent));
 }
 
 /**

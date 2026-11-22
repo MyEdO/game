@@ -46,10 +46,8 @@ import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
-import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
+import { type Scene, heightAt, tileAt } from './scene';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
-import { footprintN, footprintTiles, propFootTiles } from './footprint';
-import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -141,35 +139,6 @@ function charsFrom(src: Partial<Record<string, number | null>>, fallback = 30): 
   return chars;
 }
 
-
-/** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
- *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire). */
-export function entitySize(ent: { creature?: { id: string }; statblock?: CustomStatblock }): SizeCategory {
-  const creature = ent.creature && findCreatureById(ent.creature.id);
-  return tailleDuProfil({
-    size: ent.statblock?.size,
-    traits: ent.statblock?.traits ?? creature?.traits,
-    talents: ent.statblock?.talents ?? creature?.talents,
-  });
-}
-
-/** L'empreinte que la fiche d'un corps déclare, celle que `ficheDuCorps` pose au combattant : coque (`hull.footprint`),
- *  engin de siège (`siegeFootprint`). */
-function empreinteDeLaFiche(ent: Pick<SceneEntity, 'vehicule' | 'engin'>): number | undefined {
-  if (ent.vehicule) return findVehicleById(ent.vehicule.id)?.hull?.footprint;
-  if (ent.engin) return findSiegeEngineById(ent.engin.id)?.siegeFootprint;
-  return undefined;
-}
-
-/** Le côté de l'empreinte d'un corps de scène (`footprintN`), celui de son combattant. */
-export const coteDeLEmpreinte = (ent: SceneEntity): number => footprintN({ size: entitySize(ent), footprint: empreinteDeLaFiche(ent) });
-
-/** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
- *  couture unique de la marchabilité et de la ligne de vue), sinon le carré de `coteDeLEmpreinte`. */
-export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
-  if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
-  return footprintTiles(ent.pos, coteDeLEmpreinte(ent));
-}
 
 /** Nuée non imprimée au profil : LDB 85 l.253 ; ZI 02 l.138-140 (Nuée imprimée). Ses Blessures : `effectiveMaxWounds`. */
 function applySwarmBuild(chars: Characteristics): Characteristics {
@@ -482,8 +451,9 @@ export class RefIrresoluble extends Error {
  *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
 function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos?: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   if (porteur.vehicule !== undefined) {
-    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'ennemi' pour être
-    // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
+    // MDG 13 : la coque (`vehicleCombatant`, facette `hull`), à PV, sans arme ni Mouvement, immune à la Psychologie,
+    // sans `inert` : elle garde son tour et compte à la fin du combat (`checkBattleOver`). `kind: 'ennemi'`, que
+    // `side: 'allie'` du membre change en `'heros'` (`combatSlice`).
     const coque = findVehicleById(porteur.vehicule);
     const c = coque && vehicleCombatant(coque, id);
     if (!c) throw new RefIrresoluble(porteur.vehicule, id);
