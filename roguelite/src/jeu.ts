@@ -78,7 +78,7 @@ export const PROFILS: readonly Profil[] = [
   { id: 'repurgateur', nom: 'Répurgateur', relais: 1, identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
   { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 1, identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
     voie: { talent: 'invocation', spec: 'sigmar', nom: 'Invocation (Sigmar)', sorts: ['marteau-ardent-de-sigmar', 'n-ecoutez-point-la-sorciere'] } },
-  { id: 'duelliste', nom: 'Duelliste', relais: 1, identite: { talent: { id: 'pas-de-cote' } }, devise: 'Pare, esquive, riposte. Pas de côté.' },
+  { id: 'duelliste', nom: 'Duelliste', relais: 1, identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
   { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
   { id: 'flagellant', nom: 'Flagellant', relais: 2, identite: { talent: { id: 'frenesie' } }, devise: 'La douleur est une prière. Frénésie.' },
   { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
@@ -270,7 +270,7 @@ export const prixDeLHospice = (e: Etat, acte: ActeDHospice): number | null =>
 /** Ce que l'hospice peut faire pour le héros. */
 export const actesPossibles = (h: Heros): ActeDHospice[] => { const p = plaiesASoigner(h.c); return [...(p.panser ? ['panser' as const] : []), ...(p.operer ? ['operer' as const] : [])]; };
 
-/** Confie le héros à l'hospice : les sœurs pansent ses plaies, ou le chirurgien l'opère ; il y reste une semaine. */
+/** Confie le héros à l'hospice : les sœurs pansent ses plaies dans la journée ; opéré, il y reste une semaine. */
 export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): string | null {
   const h = heros(e, id);
   const prix = prixDeLHospice(e, acte);
@@ -280,8 +280,8 @@ export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): strin
   if (e.or < prix) return `Il faut ${prix} CO.`;
   e.or -= prix;
   const lignes = acte === 'panser' ? panserLesPlaies(h.c, GUERISON_DE_L_HOSPICE, e.graine++) : opererLesBlessures(h.c);
-  h.retrait = SEMAINE_DE_REPOS;
-  noter(e, `${lignes.join(' ')} ${h.c.label} reste une semaine à l’hospice.`);
+  if (acte === 'operer') h.retrait = SEMAINE_DE_REPOS;
+  noter(e, `${lignes.join(' ')}${acte === 'operer' ? ` ${h.c.label} reste une semaine à l’hospice.` : ''}`);
   return null;
 }
 
@@ -313,14 +313,14 @@ const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieu
 
 /** Les offres de la carrière du héros : la voie du lanceur réduite à sa spécialisation, et les seuls Talents qui
  *  agissent dans un combat automatique (`talentDeCombat`). */
-export function offresDeCarriere(h: Heros): Progression {
+export function offresDeCarriere(h: Heros): Progression & { talentAcquis: boolean } {
   const p = progression(h.c);
   const voie = voieDe(h.carriere);
   const talents = p.talents.flatMap((t) => {
     if (voie && t.ref.id === voie.talent) return t.ref.spec && t.ref.spec !== voie.spec ? [] : [{ ...t, ref: { id: voie.talent, spec: voie.spec }, label: voie.nom, aSpecifier: false }];
     return t.aSpecifier || !talentDeCombat(t.ref.id) || TALENTS_HORS_DU_COMBAT.has(t.ref.id) ? [] : [t];
   });
-  return { ...p, talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
+  return { ...p, talentAcquis: p.talents.some((t) => t.possede > 0), talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
 }
 
 export type Achat = { genre: 'carac'; id: string } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau' } | { genre: 'sort'; id: string };

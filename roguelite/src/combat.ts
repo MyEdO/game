@@ -219,13 +219,25 @@ export function reposer(c: Combatant, graine: number, jours: number): string[] {
 /** `pv` Points de Blessure regagnés par un soin (`applyHealWounds`) : un Inconscient guéri revient à lui. */
 export const soigner = (c: Combatant, pv: number): string[] => applyHealWounds(c, pv);
 
-/** Les séquelles portées (`traumas`) : libellé, jours de convalescence restants (absent : permanente). */
-export const sequelles = (c: Combatant): { label: string; jours?: number; desc?: string }[] =>
-  (c.traumas ?? []).map((t) => ({ label: t.label, ...(t.recoveryDays != null ? { jours: t.recoveryDays } : {}), ...(t.desc ? { desc: t.desc } : {}) }));
+/** Les séquelles portées (`traumas`) et leur issue : jours de convalescence restants, chirurgie exigée (LDB 18 l.208,
+ *  l.239), sinon permanente. */
+export const sequelles = (c: Combatant): { label: string; jours?: number; chirurgie: boolean; desc?: string }[] =>
+  (c.traumas ?? []).map((t) => ({ label: t.label, chirurgie: !!t.needsSurgery, ...(t.recoveryDays != null ? { jours: t.recoveryDays } : {}), ...(t.desc ? { desc: t.desc } : {}) }));
 
 /** Ce qu'un soigneur peut encore faire des séquelles : des plaies à panser par la Guérison (LDB 18 l.204, l.222), des
  *  blessures à opérer (LDB 18 l.208, l.239). */
-export const plaiesASoigner = (c: Combatant): { panser: boolean; operer: number } => ({ panser: hasTreatableTrauma(c), operer: surgeryTraumas(c).length });
+export const plaiesASoigner = (c: Combatant): { panser: boolean; operer: number } => ({ panser: panserSert(c), operer: surgeryTraumas(c).length });
+
+/** Panser changerait-il une plaie ? Joué sur une copie, chaque Test réussi : une déchirure majeure n'est que
+ *  diagnostiquée (LDB 18 l.231), une déchirure mineure raccourcit, une fracture est réduite. */
+function panserSert(c: Combatant): boolean {
+  if (!hasTreatableTrauma(c)) return false;
+  const copie = structuredClone(c);
+  const etatDe = (x: Combatant) => JSON.stringify((x.traumas ?? []).map((t) => [t.recoveryDays, t.fractureSet]));
+  const avant = etatDe(copie);
+  while (hasTreatableTrauma(copie)) treatTrauma(copie, 0, true);
+  return etatDe(copie) !== avant;
+}
 
 /** Un soigneur de Guérison `valeur` panse chaque plaie qui le permet : un Test par plaie, le jet consommé même raté
  *  (`treatTrauma`). LDB 18 l.204, l.222 */

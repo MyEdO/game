@@ -170,7 +170,7 @@ function pageDuBatiment(id: J.IdBatiment) {
   } else if (id === 'temple') {
     corps = J.prixDuSoin(etat) == null ? '<p class="glose">La chapelle est en ruine : il faut la relever pour que les sœurs soignent les blessés. En attendant, seuls les héros restés au hameau se reposent.</p>'
       : `<div class="sous-titre">Les blessés</div>${listeDeHeros((h) => `<span class="offres">${soinsDuHeros(h)}</span>`)}
-        <p class="glose">Les sœurs pansent les plaies, le chirurgien opère : le héros reste une semaine à l’hospice. Les séquelles de convalescence guérissent aussi avec le temps, au repos.</p>`;
+        <p class="glose">Les sœurs pansent les plaies ; le chirurgien opère, et l’opéré reste une semaine à l’hospice. Une séquelle « repos » guérit avec le temps au hameau ; une séquelle « permanente » reste.</p>`;
   } else if (id === 'salle') {
     corps = n === 0 ? '<p class="glose">La salle d’armes est en ruine : il faut la relever pour dépenser les PX.</p>'
       : `<div class="sous-titre">Carrières · jusqu’au niveau ${J.niveauMaximal(etat)}</div>${listeDeHeros((h) => plaque('Progresser', `data-a="heros" data-id="${h.c.id}" data-k="carriere"`, { icone: 'epee', taille: 'petite', armee: (h.c.xp ?? 0) >= 100 }))}`;
@@ -211,13 +211,14 @@ function pageDuDepart(p: Extract<Panneau, { type: 'depart' }>) {
 
 /** Les séquelles en étiquettes : une par nature (×N si plusieurs), sa convalescence la plus longue, le texte au survol. */
 function etiquettesDeSequelles(c: Combatant) {
-  const groupes = new Map<string, { n: number; jours?: number; desc?: string }>();
+  const groupes = new Map<string, { n: number; jours?: number; chirurgie: boolean; desc?: string }>();
   for (const q of sequelles(c)) {
     const g = groupes.get(q.label);
-    if (g) { g.n++; if (q.jours != null) g.jours = Math.max(g.jours ?? 0, q.jours); } else groupes.set(q.label, { n: 1, jours: q.jours, desc: q.desc });
+    if (g) { g.n++; if (q.jours != null) g.jours = Math.max(g.jours ?? 0, q.jours); } else groupes.set(q.label, { n: 1, jours: q.jours, chirurgie: q.chirurgie, desc: q.desc });
   }
+  const issue = (g: { jours?: number; chirurgie: boolean }) => (g.jours != null ? `repos ${g.jours} j` : g.chirurgie ? 'chirurgie' : 'permanente');
   return groupes.size ? `<div class="etiquettes-sequelles" aria-label="Séquelles">${[...groupes].map(([label, g]) =>
-    `<span class="etiquette sequelle${g.jours == null ? ' permanente' : ''}" title="${esc(`${g.desc ?? label}${g.jours != null ? ` — ${g.jours} jours de convalescence` : ' — permanente'}`)}">${esc(label)}${g.n > 1 ? ` ×${g.n}` : ''}${g.jours != null ? ` · ${g.jours} j` : ''}</span>`).join('')}</div>` : '';
+    `<span class="etiquette sequelle${g.jours == null && !g.chirurgie ? ' permanente' : ''}" title="${esc(g.desc ?? label)}">${esc(label)}${g.n > 1 ? ` ×${g.n}` : ''} · ${issue(g)}</span>`).join('')}</div>` : '';
 }
 
 /** Entre deux salles : les provisions du héros, et la prière de soin d'un Béni. */
@@ -242,7 +243,7 @@ function ongletDeCarriere(h: J.Heros) {
   const xp = h.c.xp ?? 0;
   const caracsFaites = o.caracs.filter((k) => k.augmentations >= o.requis).length;
   const compsFaites = Math.min(8, o.competences.filter((k) => k.augmentations >= o.requis).length);
-  const talentFait = o.talents.some((t) => t.possede) ? 1 : 0;
+  const talentFait = o.talentAcquis ? 1 : 0;
   const voie = J.voieDe(h.carriere);
   const initie = voie && h.c.talents.some((t) => t.talentId === voie.talent);
   const aApprendre = voie && initie ? voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id)) : [];
@@ -270,7 +271,7 @@ function soinsDuHeros(h: J.Heros) {
   const bouton = (label: string, essentiel: string, prix: number, detail: string, attrs: string) => offre(label, essentiel, prix, detail, attrs);
   const tout = [
     J.blesse(h) && soin != null ? bouton('Soigner', 'PB et États', soin, 'Tous les Points de Blessure et les États de la rencontre', `data-a="soigner" data-id="${h.c.id}"`) : '',
-    ...actes.map((acte) => { const prix = J.prixDeLHospice(etat, acte); return prix == null ? '' : bouton(acte === 'panser' ? 'Panser' : 'Opérer', 'une semaine', prix, acte === 'panser' ? 'Les sœurs pansent les plaies : une déchirure guérit plus vite, une fracture est réduite (LDB 18 l.204, l.222).' : 'Le chirurgien opère les blessures qui l’exigent : amputation, fracture majeure (LDB 18 l.208, l.239).', `data-a="hospice" data-id="${h.c.id}" data-k="${acte}"`); }),
+    ...actes.map((acte) => { const prix = J.prixDeLHospice(etat, acte); return prix == null ? '' : bouton(acte === 'panser' ? 'Panser' : 'Opérer', acte === 'panser' ? 'dans la journée' : 'une semaine', prix, acte === 'panser' ? 'Les sœurs pansent les plaies : une déchirure guérit plus vite, une fracture est réduite (LDB 18 l.204, l.222).' : 'Le chirurgien opère les blessures qui l’exigent : amputation, fracture majeure (LDB 18 l.208, l.239).', `data-a="hospice" data-id="${h.c.id}" data-k="${acte}"`); }),
     larmes != null && J.sequellesGuerissables(h) ? bouton('Larmes de Shallya', 'une séquelle', larmes, 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation (LDB 42).', `data-a="sequelle" data-id="${h.c.id}"`) : '',
   ].join('');
   return tout || '<span class="glose">rien à soigner</span>';
