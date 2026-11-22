@@ -196,8 +196,8 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   });
 
   it('Condition `compare` générique : who (cible/lanceur) × donnée/État · opérateur · valeur (const ou acteur)', () => {
-    const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
-    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'groupe' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
+    const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['mort-vivant'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
+    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'groupe' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
     const ctx = { flags: {}, gameTime: 0, target, caster };
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', condition: 'brise' }, op: '>=', value: 3 }, ctx)).toBe(true); // valeur d'État (stacks)
@@ -213,12 +213,12 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(evalCondition({ kind: 'relation', who: 'caster', is: 'groupe' }, ctx)).toBe(true); // le lanceur est du groupe
     expect(evalCondition({ kind: 'relation', who: 'target', is: 'soi' }, ctx)).toBe(false); // cible ≠ lanceur
     // Condition `has` : appartenance Groupe / Talent (spec) / Trait.
-    expect(evalCondition({ kind: 'has', who: 'target', what: 'group', value: 'Morts-vivants' }, ctx)).toBe(true);
-    expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, ctx)).toBe(true);
-    expect(evalCondition({ kind: 'has', who: 'target', what: 'immunity', value: 'poison' }, ctx)).toBe(true); // LDB 85 l.174
-    expect(evalCondition({ kind: 'has', who: 'caster', what: 'immunity', value: 'poison' }, ctx)).toBe(false);
-    expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', value: 'magie-des-arcanes', spec: 'Feu' }, ctx)).toBe(true);
-    expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', value: 'magie-des-arcanes', spec: 'Mort' }, ctx)).toBe(false); // spec ≠
+    expect(evalCondition({ kind: 'has', who: 'target', what: 'group', ref: { id: 'mort-vivant' } }, ctx)).toBe(true);
+    expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', ref: { id: 'mort-vivant' } }, ctx)).toBe(true);
+    expect(evalCondition({ kind: 'has', who: 'target', what: 'immunity', ref: { id: 'poison' } }, ctx)).toBe(true); // LDB 85 l.174
+    expect(evalCondition({ kind: 'has', who: 'caster', what: 'immunity', ref: { id: 'poison' } }, ctx)).toBe(false);
+    expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', ref: { id: 'magie-des-arcanes', spec: 'feu' } }, ctx)).toBe(true);
+    expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', ref: { id: 'magie-des-arcanes', spec: 'mort' } }, ctx)).toBe(false); // spec ≠
   });
 
   it('op rollThreshold : UN d10 → soin = la valeur du dé via Formula {rolled}', () => {
@@ -560,7 +560,7 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
       .map((e) => e.flow).find((f): f is Extract<Flow, { kind: 'test' }> => f.kind === 'test')!.test.difficulty;
     expect(difficulteDuTest(mk({ conditions: [{ id: 'empoisonne', value: 1, difficulte: 'tresDifficile' }] }))).toBe('tresDifficile');
     const sansDifficulte = mk({ conditions: [{ id: 'empoisonne', value: 1 }] });
-    const auteur = findConditionById('empoisonne')!.effects!.map((e) => e.flow).find((f): f is Extract<Flow, { kind: 'test' }> => f.kind === 'test')!.test.difficulty;
+    const auteur = findConditionById('empoisonne')!.effects!.map((e) => e.flow).find((f) => f.kind === 'test')!.test.difficulty;
     expect(difficulteDuTest(sansDifficulte)).toBe(auteur);
   });
 });

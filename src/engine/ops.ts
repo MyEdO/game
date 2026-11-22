@@ -13,9 +13,10 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
+import type { z } from 'zod';
 import type { RegleOptionnelleId } from './policy';
 import type { FabriqueDId } from './fabriqueDId';
-import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
+import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import {
@@ -37,14 +38,17 @@ import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenu
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
-import type { ShipCritKey } from '../data/shipCriticals';
-import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
-import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
-import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { contexteDeTestSchema, exposureLevelSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { contexteDeTestSchema, exposureLevelSchema, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
+import type {
+  GameOp,
+  OpPassive,
+  fenetreDeDeterminationSchema,
+  perSLSchema,
+  senseSchema,
+} from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
 import { caracDuCombattant, evaluer, resolveFormula, slBonus, valeurSansTirage } from './formule';
@@ -102,12 +106,11 @@ import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
 import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
-import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
+import { cibleDeRef, estCibleType, identiteDeCiblage } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
-import type { SizeCategory } from './size';
 import { clockLabel, type Duration } from './duration';
 import { suspendSource } from './suspension';
 import { deitySkills, priestCult } from './magic'; // cycle runtime (magic→ops) : appelé à l'application, jamais à l'init du module
@@ -115,10 +118,9 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
-import type { TriggeredEffect, FlowTest, Flow } from './flowCore';
+import type { TriggeredEffect } from './flowCore';
 import {
   EffectSource,
-  ArmourBypass,
   CHAR_LABELS,
   CharKey,
   Combatant,
@@ -128,13 +130,10 @@ import {
   ItemInstance,
   Weapon,
   locationLabel,
-  type ReachValue,
   type ConditionEmit,
-  type ContexteDeTest,
 } from './types';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
-import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, pluriel, deElide, type MsgKey } from '../i18n';
 import { applyActiveEffect } from './effetsActifs';
@@ -285,10 +284,7 @@ export function isValidFormula(f: unknown): f is Formula {
  *    quand le livre ne chiffre pas la fenêtre — `LDB 20 l.170`).
  * DISTINCTE de `durationRounds`/`durationMinutes`/`durationHours`, qui sont la durée de l'ÉTAT POSÉ.
  */
-export type ResolveWindow =
-  | 'none'
-  | { scale: 'rounds'; left: Formula }
-  | { scale: 'clock'; minutes: Formula };
+export type ResolveWindow = z.output<typeof fenetreDeDeterminationSchema>;
 
 /** Résout la fenêtre ci-dessus en `Duration` — `undefined` = REFUS (`'none'`). PURE (`now` injecté). */
 export function resolveWindowDuration(w: ResolveWindow | undefined, ref: Combatant, now: number, rng: RNG): Duration | undefined {
@@ -300,16 +296,7 @@ export function resolveWindowDuration(w: ResolveWindow | undefined, ref: Combata
 
 /** Échelle « par +N DR » d'un sort (LDB 41/42/47 — « +1 par +2 DR », « +DR Dégâts ») :
  *  appliquée au DR du jet d'incantation (`OpsCtx.sl`), jamais négative. */
-export interface PerSL {
-  /** Palier de DR (« par +2 DR » → 2). */
-  every: number;
-  /** Quantité ajoutée par palier (peut être négative — retrait de Corruption). */
-  amount: number;
-  /** Échelle sur l'ÉCHEC (branche `fail` d'un nœud Flow `test`, `ctx.sl` négatif) au lieu de la réussite —
-   *  « gagnant un État X pour chaque niveau d'échec » (ex. Hallucinogène, MSRC 15 l.167). Magnitude =
-   *  `|sl|` quand `sl < 0`, 0 sinon (symétrique du défaut qui ignore tout `sl` négatif). */
-  onFailure?: boolean;
-}
+export type PerSL = z.output<typeof perSLSchema>;
 /** Estimation DÉTERMINISTE d'une `Formula` pour le SCORING (jamais de tirage — le planning ne doit PAS
  *  consommer le RNG seedable, sous peine de désync du flux déterministe / coop / tests reproductibles, et
  *  d'une magnitude aléatoire). Calque la convention statique de `missileDamage` (valeur écrite). Les dés
@@ -341,7 +328,7 @@ export function skillDRBonus(c: Combatant, skill: RefDesignee): number {
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
-      if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
+      if (op.op === 'skillDRBonus' && 'skill' in op && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
     }
   }
   // Séquelles (`c.traumas`) : leurs ops passives, `kind` = `passiveKind` de la fiche, sinon DÉRIVÉ par
@@ -360,7 +347,7 @@ export function skillDRBonus(c: Combatant, skill: RefDesignee): number {
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
   // gatés porté/tenu via `passiveMods`.
   for (const it of c.items ?? []) {
-    for (const op of it.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
+    for (const op of it.passive ?? []) if (op.op === 'skillDRBonus' && 'skill' in op && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
   }
   return n;
 }
@@ -470,906 +457,19 @@ export function incomingDamageNullified(defender: Combatant, attacker: Combatant
 /** Sens PAIRÉ (œil/oreille, LDB 18) — vocabulaire PARTAGÉ par `senseLoss` (perte de l'organe) et la
  *  restriction `skillMod.sense` (le Test SOLLICITE ce sens : Surdité ne pénalise que les Tests de
  *  Perception basés sur l'ouïe, pas ceux basés sur la vue/l'odorat — LDB 18). */
-export type PairedSense = 'vue' | 'ouie';
+export type PairedSense = z.output<typeof senseSchema>;
 
 /** Mot RÉSERVÉ de `scheduleRespawn.ref` : la créature DÉFUNTE elle-même, lue par son `creatureId` à la
  *  programmation (`noyau/combatFlow › scheduleRespawnFromOp`). */
 export const SELF_REF = 'self';
 
-export type GameOp =
-  /** Blessures subies DIRECTEMENT. Par DÉFAUT ignore BE ET PA (tables de contrecoup LDB 46/40 ;
-   *  sorts « ignorant BE et PA » comme la Comète à Deux Queues). `ignoreTB:false` → le Bonus
-   *  d'Endurance de la cible est DÉDUIT (sort « ignorant les PA » SEULEMENT, ex. ZdE de poison) ;
-   *  `ignoreAP:false` → les PA (Localisation Corps) sont déduits. `perSL` : « +DR Dégâts » ;
-   *  `onlyGroups` : ne touche qu'un Groupe (« les Morts-vivants… », Feu de l'âme). */
-  | { op: 'wounds'; amount: Formula; perSL?: PerSL; onlyGroups?: string[]; ignoreTB?: boolean; ignoreAP?: boolean;
-      /** Quand les PA sont déduits (`ignoreAP:false`), IGNORE en plus les PA d'une matière (Cieux/Métal =
-       *  `metal`, Ombres = `nonMagic`) — attribut de Domaine (l'arc d'Azyr perce le métal). */
-      bypassArmour?: ArmourBypass;
-      /** Localisation dont les PA sont déduits (quand `ignoreAP:false`). `corps` (défaut) ou `least` =
-       *  la Localisation la MOINS protégée (En Flammes brûle là où l'armure protège le moins, LDB 16 l.84). */
-      apFrom?: 'corps' | 'least';
-      /** Plancher de Blessures infligées APRÈS mitigation (Sang corrosif : « min 1 » même BE/PA élevés). */
-      min?: number;
-      /** PA ADDITIONNELS de CE coup (situationnels), cumulés aux PA de la Localisation quand `ignoreAP:false` :
-       *  ex. les +2 PA de poupe / +5 PA frontaux du Bélier d'une collision (`CollisionDamage.armorBonus`). Garde
-       *  la mitigation DANS l'op (langue unique) plutôt que de la pré-calculer côté appelant. */
-      extraAP?: number;
-      /** Mode COUP D'ARME : résout les Blessures via `woundsFromHit(ctx.weapon, …)` — donc qualités d'arme
-       *  (Perforante/Empaleuse), armure à la `ctx.location` et BE, comme une attaque normale (≠ formule + flags).
-       *  Requiert `ctx.weapon` ; `amount` = Dégâts totaux (arme + DR + qualités) ; `min` = plancher (0 navire). */
-      weaponHit?: boolean }
-  /** Blessures rendues (plafonnées au max). */
-  | { op: 'heal'; amount: Formula; perSL?: PerSL }
-  /** Blessures rendues AU LANCEUR (« Puis vous Guérissez 1 Point de Blessure » — Drain).
-   *  Sans `ctx.caster`, s'applique à la cible (auto-sort). */
-  | { op: 'healCaster'; amount: Formula }
-  /** Ajout d'un État nommé (LDB 16). `durationRounds` : État À DURÉE (« qui dure 1d10
-   *  Rounds ») ; `perRound` : État RÉCURRENT — ré-appliqué chaque fin de Round par un effet actif
-   *  porteur, pendant la durée en ROUNDS que l'op porte (`durationRounds`) et, à défaut, pendant celle
-   *  du CONTEXTE (`durationFromCtx` : durée du sort). La récurrence se compte en Rounds : `perRound`
-   *  avec `durationMinutes`/`durationHours` est REFUSÉ à l'application. Les gates
-   *  `onlyIfCondition`/`unlessCondition` voyagent avec l'op récurrente : ils sont évalués à CHAQUE
-   *  fin de Round (`LDB 40 l.75`, `LDB 16 l.117`). */
-  | { op: 'condition'; id: { id: string }; value?: Formula; durationRounds?: Formula; perRound?: boolean; valuePerSL?: PerSL; onlyGroups?: string[];
-      /** Gates d'État (Sommeil, LDB 47 : « Si la cible possède un État À Terre, elle gagne
-       *  Inconscient » / sinon « gagnant l'État À Terre ») : appliqué seulement si la cible
-       *  porte (`onlyIfCondition`) / ne porte pas (`unlessCondition`) l'État nommé. */
-      onlyIfCondition?: { id: string }; unlessCondition?: { id: string };
-      /** Force d'évasion d'un État à Test opposé (Empêtré : « se libérer » contre cette Force, LDB 16
-       *  l.66) — résolue contre le RÉFÉRENT (`ctx.caster ?? target`) À L'APPLICATION et FIGÉE sur l'entrée
-       *  de condition. Ex. `{ charOf: 'force-mentale' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
-       *  Force d'entrave égale votre Force Mentale »), `{ charOf: 'intelligence' }` (Enchevêtrement des Arcanes),
-       *  ou un littéral (`60`). Absente ⇒ le flux de récupération garde son défaut (Force de la source
-       *  vivante, ou Test simple). */
-      escapeStrength?: Formula;
-      /** Seuil de DR FIGÉ d'un État à Test NON opposé (Empêtré « se libérer » contre un seuil, Filets —
-       *  Zoo Impérial p.29 : « Test de Force Intermédiaire (+0) et obtenir un nombre de DR égal à l'Indice
-       *  du filet »). Résolue contre le RÉFÉRENT et FIGÉE sur l'entrée de condition, comme `escapeStrength`
-       *  (mutuellement exclusifs : priorité à `escapeThreshold` s'il est présent — cf. `resolveRecoverTest`). */
-      escapeThreshold?: Formula;
-      /** Aggravation sur ÉCHEC du Test de récupération (Filets, Zoo Impérial p.29 : « si la cible ne
-       *  parvient pas à se dépêtrer, elle gagne un État Empêtré supplémentaire ») — FIGÉE sur l'entrée de
-       *  condition. Absent (Immobilisante générique LDB 62 l.258) : un échec n'aggrave rien. */
-      entangleOnFail?: boolean;
-      /** Dégâts ignorant l'armure infligés à CHAQUE tentative de libération, réussie ou ratée (Filets
-       *  BARBELÉS, Zoo Impérial p.29 : « infligent automatiquement des Dégâts qui ignorent l'armure à toute
-       *  cible qui se débat »). Résolue contre le RÉFÉRENT et FIGÉE sur l'entrée de condition ; ZI 2 l.178 ne
-       *  chiffre pas ce montant — champ de DONNÉE éditable (qualité `filet-barbele`), rien en dur ici. */
-      struggleDamage?: Formula;
-      /** Difficulté des Tests qui éliminent l'État, dictée par sa source (LDB 16 l.70 ; MDG 16 l.226) —
-       *  FIGÉE sur l'entrée d'État, lue par le Test `argDifficulty` de l'État. */
-      difficulte?: import('./types').Difficulty;
-      /** La `difficulte` vient de l'argument d'instance du porteur (« Venin (Difficile) », `LDB 85 l.423`),
-       *  posée par `withArg` (`noyau/triggeredEffects`) ; sans argument, l'État n'en porte aucune et son Test
-       *  garde la sienne (`LDB 85 l.425`). Même drapeau que le Test `argDifficulty`. */
-      argDifficulty?: boolean;
-      /** VERROU de Critique (LDB 18) : l'État posé ne pourra être RETIRÉ que lorsque cette Condition
-       *  (algèbre flowCore) sera vraie. Ex. Aveuglé « tant que tous les Hémorragique n'ont pas été
-       *  éliminés » (Tête 46-50) ⇒ `{ kind:'compare', subject:{who:'target',condition:'hemorragique'},
-       *  op:'==', value:0 }`. Figé sur l'entrée d'État, évalué par `isConditionLocked`. */
-      lockedUntil?: import('./flowCore').Condition;
-      /** Fenêtre de Détermination de l'État que cette op porte en PASSIF (`ResolveWindow` ci-dessus,
-       *  lue par `fenetreDetermination`/`raisonRefusDetermination`). Inerte hors canal passif. */
-      resolveWindow?: ResolveWindow;
-      /** VERROU d'ACTE de soin (LDB 18) : l'État posé « ne peut être retiré que par [acte] » (Aveuglé/Sonné/
-       *  Inconscient « par Aide Médicale », Hémorragique « par Chirurgie »). Figé sur l'instance, levé par l'acte
-       *  nommé (`releaseConditionLocks`) qui RETIRE alors l'État. Évalué par `isConditionLocked`. */
-      unlockBy?: import('./types').ConditionUnlock;
-      /** Empoignade (LDB 14 l.159) : poser AUSSI la relation symétrique `grapplingWith` entre le RÉFÉRENT
-       *  (`ctx.caster`, l'attaquant) et la cible — la SEULE voie data-driven de démarrage d'une Empoignade
-       *  (Constricteur onHit, Tentacules/Langue, Absorption, et l'init JOUEUR migrée). L'État *Empêtré* est
-       *  l'effet visible ; ce flag ajoute le lien de lutte (résolu ensuite par le flux/IA d'Empoignade). */
-      grapple?: boolean;
-      /** État à durée d'HORLOGE (minutes/heures depuis `ctx.now`) — Belladone « un sommeil… dure 1d10+4
-       *  heures » (LDB 72 l.18), Fleur de lune Inconscient « Durée : 1d10+5 heures » (LDB 71 l.29). Résolue
-       *  à l'application → `ConditionInstance.untilTime`, purgée par `purgeClockEffects` (même patron que
-       *  `castPenalty.minutes`). Exclusif de `durationRounds`/`perRound`. */
-      durationMinutes?: Formula; durationHours?: Formula;
-      /** État PORTÉ par l'effet actif du contexte (#1695) — LDB 48 l.495 (Transmutation de Chamon) :
-       *  « qui persistent tous pour la durée du Sort ». L'op est posée en PASSIF sur un `ActiveEffect`
-       *  à `durationFromCtx(ctx)` (jamais une copie de durée sur le pion) ; le pion en est la
-       *  réconciliation (`derivedFrom`) et part avec l'effet : expiration, Dissipation, purge.
-       *  Le canal passif ne transporte que `id`, `value` et `resolveWindow` : `carried` est donc
-       *  EXCLUSIF des durées et de `perRound` (l'effet porteur les tient), des VERROUS (sa source EST
-       *  son verrou — `unlockBy` y serait inerte, `releaseConditionLocks`) et des champs de LUTTE
-       *  (`escapeStrength`/`escapeThreshold`/`entangleOnFail`/`struggleDamage`/`grapple`), que
-       *  `addCondition` fige à la pose et que la réconciliation appelle NU. Refus NOMINATIF au parse
-       *  (`CHAMPS_EXCLUS_DE_CARRIED`, `data/schemas/grammaire/mecanique.ts`).
-       *  `perRound` n'est PAS ce canal : il dit « l'État REVIENT chaque Round » (`estCausePersistante`),
-       *  quand `carried` dit « il ne part pas ». */
-      carried?: true }
-  /** Retrait d'États : `id` absent = au choix de la cible (1er État porté). `valuePerSL` : échelle
-   *  « +1 par +N DR » ajoutée à `value` (Mâchoires d'acier : « chaque DR supprime un État Sonné
-   *  supplémentaire », LDB 10) — inerte si absent (calque op `condition`). */
-  | { op: 'removeCondition'; id?: { id: string }; value?: Formula; valuePerSL?: PerSL; all?: boolean }
-  /** Met fin à un état PSYCHOLOGIQUE porté (collection `psychState`, DISTINCTE de `conditions` : pas de perte
-   *  d'Avantage, LDB 21 ≠ LDB 16) : ceux du `type`, ou l'instance de l'effet qui porte l'op (`instance`,
-   *  `OpsCtx.affliction`). Une affliction CIBLÉE finit DÉSACTIVÉE : son marqueur de rencontre reste (LDB 21
-   *  l.9) ; une autre (Frénésie) est retirée. Journalisé via `t()`. */
-  | { op: 'endPsych'; type: { id: string } }
-  | { op: 'endPsych'; instance: 'courante' }
-  /** POSE (ou met à jour) un état PSYCHOLOGIQUE porté — JUMELLE d'`endPsych`, même collection
-   *  `psychState` (DISTINCTE de `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16).
-   *  UPSERT : l'entrée visée est celle de même identité (`identiteDeCiblage`) pour un Trait CIBLÉ
-   *  (`cible`), ou — sans `cible` — de même `type` et `sourceId` (Peur/Terreur : une entrée par créature
-   *  source) ; absente, créée. Charge utile lue par le moteur de Psychologie : `indice` (Indice à
-   *  surmonter), `active` (Trait ciblé subi / résisté), `lastTestRound` (n° de Round du dernier Test) :
-   *  absents, INCHANGÉS sur une entrée existante, sauf `active` d'un Trait ciblé, qui vaut subi. `calmeDR`
-   *  (DR cumulé du Test étendu), `surmontee` (Peur surmontée) et `fromTest` (née d'un Test) disent CETTE
-   *  pose : absents, ils retombent. LDB 21 l.9, l.25, l.56
-   *  Journalisé via `t()` ; une entrée `active:false` est un marqueur inerte (aucune ligne). */
-  | { op: 'beginPsych'; type: { id: string }; cible?: RefDeCible; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
-  /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
-   *  `durationRounds` absent = durée du
-   *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
-   *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque (Aux Armes « −10 Agilité pendant
-   *  1d10 jours », `durationHours` = jours×24) — même patron que `condition.durationHours`, résolue
-   *  MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`. Exclusif de `durationRounds`.
-   *  `min` : plancher d'une PERTE de mutation (EDO 11 l.190), résolu en `mod` figé par `attachMutation`
-   *  (`engine/corruption.ts`) ; aucune instance attachée ne le porte, aucun autre lecteur ne le voit. */
-  | { op: 'charMod'; characteristic: CharKey; mod: number; min?: number; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
-  /** PA à une Localisation (`loc`) ou à TOUTES (`loc` absent — Armure Aethyrique « +1 PA à toutes les
-   *  Localisations »). Flow de sort → `ActiveEffect` temporisé (apAll/apAt) lu par effectiveArmourAt ;
-   *  `passive` de mutation/trait → armure naturelle permanente lue par mutationArmourBonus.
-   *  `amount` NÉGATIF = RETRAIT de PA (VDM 05 — Armure de fer blanc « perd 2 Points d'Armure à chaque
-   *  Localisation » ; Inscription, volet acide « détruit 1 Point d'Armure à la Localisation touchée ») :
-   *  la valeur est portée telle quelle sur l'effet actif, le PLANCHER 0 est appliqué au TOTAL par
-   *  `effectiveArmourAt` — jamais ici (un clamp à la pose rendrait la donnée silencieusement inerte).
-   *  `noDeviation` (LDB 63 l.30 + EDO App.2 l.196) : ce PA conféré ne peut pas servir à la Déviation
-   *  Critique (Écailles) ; défaut absent = déviatable (Trait créature Armure / armure portée restent sacrifiables).
-   *  `atHitLocation` : la Localisation est celle du COUP courant (`ctx.location`) — « à la Localisation
-   *  touchée » (VDM 05, Inscription). Prime sur `loc` ; hors contexte de touche, l'op est inerte (journalisée). */
-  | { op: 'ap'; loc?: HitLocation; amount: Formula; noDeviation?: boolean; atHitLocation?: boolean }
-  // (Il n'existe PLUS d'op `test` : un Test est un nœud de la STRUCTURE Flow `{kind:'test'}`, jamais une
-  //  feuille d'effet — résolu CADENCE-AWARE par `resolveFlowTest` (héros manuel = jet influençable ;
-  //  ennemi/auto = inline), avec sa branche `onFail` et sa continuation honorées. Les derniers usages
-  //  inline — les Tests imbriqués des tables d'Imparfaites/Colère, LDB 46/40 — sont des nœuds
-  //  Flow `test` produits par `engine/miscast` et joués par `applyMiscast`→`runCombatFlow`.
-  //  « vocabulaire de Test UNIQUE » : aucun jet de héros ne se résout en silence.)
-  /** Points de Corruption (LDB 19). Le store branche `ctx.onCorruption` (seuil →
-   *  mutation → damnation) ; sans contexte, simple incrément du compteur.
-   *  `align` : Puissance du Chaos de la source — force la table EDOC alignée si une mutation survient. */
-  | { op: 'corruption'; amount: number; perSL?: PerSL; align?: ChaosAlign }
-  /** Points de PÉCHÉ ±N (LDB 40 l.36 : sanction du prêtre fautif ; ACE Annexe I « Pénitence » :
-   *  « enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant ») — jamais sous 0. COUTURE UNIQUE
-   *  du Péché : l'Effet de scène `giveSin` passe par CETTE op (une seule implémentation). */
-  | { op: 'sinMod'; amount: number }
-  /** EXPOSITION à une Influence corruptrice (LDB 19 l.29) : op IMPURE résolue par le noyau via
-   *  `ctx.onCorruptionExposure` (`noyau/corruptionFlow.crochetsDeCorruption`), qui reçoit la cible ;
-   *  sans contexte (moteur pur), journalisée sans jet.
-   *  `nature` absente = indéterminée → le joueur choisit le Test de `influences-corruptrices` dans la modale.
-   *  DEUX SENS, une seule op — `easeSteps` présent = la cible est ABRITÉE : l'op pose une protection
-   *  (`ActiveEffect.corruptionEase`, N crans) qui ATTÉNUE toute Influence subie tant qu'elle dure
-   *  (VDM 05 — Bouclier en acier doré : « réduit de 2 crans une Influence corruptrice (une Exposition
-   *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
-   *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
-   *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition.
-   *  `difficulty` : la Difficulté que la source imprime pour le Test (ZI 13 l.197) ; absente, celle du Test
-   *  de `influences-corruptrices`. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; difficulty?: Difficulty; easeSteps?: number }
-  /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
-   *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
-   *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
-   *  points NON dépensés à l'expiration (rounds OU horloge, engine/grantedResources). `perSL` : « +1
-   *  par +2 DR ». `amount` NÉGATIF = retrait (Dague voleuse de chance, VDM 12 l.833) — le compteur
-   *  plancher à 0, jamais l'argument. */
-  | { op: 'gainResource'; resource: 'fortune' | 'fate'; amount: number; perSL?: PerSL; temporary?: boolean }
-  /** Gain ADDITIF de `amount` Avantages (NADJ 16 l.34, LDB 14 l.204-209), plafonné (`engine/advantage`).
-   *  Passe par `ctx.onGainAdvantage` quand la couche state le fournit (`campGain` en combat) ; sinon le
-   *  primitif `engine/advantage.gainAdvantage`. */
-  | { op: 'gainAdvantage'; amount: Formula }
-  /** Porte l'Avantage de la cible à AU MOINS `amount` (jamais réduit). Trait Redoutable (MDG 16 l.11) :
-   *  complétion jusqu'à l'*Indice* (`amount: '$indice'` baké).
-   *  `feedOpposingPool` : clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) — QUAND
-   *  cette op S'EXÉCUTE (le garde-fou Empêtré/Inconscient/Surpris, MDG 16 l.11, vit dans le nœud `if`
-   *  englobant de la donnée — jamais revérifié ici), la créature génère EN PLUS l'Indice PLEIN (`amount`
-   *  résolu, pas le seul manquant) pour la réserve adverse, via `ctx.onOpposingAdvantage` (même patron que
-   *  `ctx.onCorruption`) — consommé kind-agnostiquement par le noyau (`noyau/combat/advantagePool.ts`). */
-  | { op: 'topUpAdvantage'; amount: Formula; feedOpposingPool?: boolean }
-  /** Pénalité/blocage d'incantation temporisé (contrecoups, LDB 46/40) : −N à une
-   *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
-   *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
-   *  `skill` absent = TOUTE magie (même idiome d'absence que `grantReverseToken` ci-dessous). */
-  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula; weeks?: Formula }
-  /** Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès
-   *  Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »),
-   *  composé par `actorStatus` (engine/social.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). */
-  | { op: 'statusMod'; amount: Formula }
-  /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
-   *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
-   *  Test (« concernant votre cible », l.218) ; `characteristic` : tout Test de cette Caractéristique ;
-   *  `contexte` : le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais
-   *  consommé (ACE 12 l.60). */
-  | { op: 'grantReverseToken'; skill?: RefDesignee; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
-  /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
-   *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
-   *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
-   *  par `traitsOctroyes` (Indice formulé lu sur le lanceur, LDB 47 l.441 ; `indicePerSL` : LDB 47 l.420).
-   *  `cible` : la Cible est TIRÉE sur une table de Cibles, une instance par tirage — EDOC 12 l.217, l.241.
-   *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque — MÊME patron que `charMod`/
-   *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`, dont le retrait
-   *  `removeActiveEffects` dé-accorde le trait) : un Trait borné en JOURS le dit ici (Désespoir,
-   *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
-  | { op: 'grantTrait'; trait: TraitPose; choix?: true; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
-  /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
-   *  retire ce que LA SOURCE COURANTE (`ctx.source`) a accordé, instances retrouvées par le registre
-   *  `TraitInstance.src`. Une instance NATIVE, ou accordée par un TIERS (Haine d'une prière, LDB 226),
-   *  n'est jamais touchée. Les `ActiveEffect` porteurs (`grantedTrait`) de CES instances tombent avec
-   *  elles (sinon leur expiration retirerait une instance re-accordée depuis). Consommateur authored :
-   *  le RE-CIBLAGE quotidien de Haine sporadique (`[removeTrait, grantTrait]`, EDOC 12 l.217 — une seule
-   *  instance, pas une par jour). */
-  | { op: 'removeTrait'; trait: { id: string } }
-  /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType.id` = un id de `psychology.json` (frenesie, peur…). Champs réservés aux sorts
-   *  (`grammaire/mecanique.ts`) : `envers` vise une personne que le DÉCIDEUR choisit (VDM 10 l.327), résolue
-   *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
-   *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
-   *  `durationHours`, la durée d'HORLOGE du Trait, porté alors par un `ActiveEffect` (`grantedPsychTrait`). */
-  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula; durationWeeks?: Formula }
-  /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
-   *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
-   *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
-  | { op: 'removePsychTrait'; psychType?: { id: string }; cible?: RefDeCible }
-  /** Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans
-   *  `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). La DURÉE vient du
-   *  contexte, ce n'est pas une propriété de l'op : `durationFromCtx` retombe sur `{ scale: 'permanent' }`
-   *  quand l'appelant ne fournit ni horloge ni compte de Rounds — et les deux régimes ne se rangent PAS
-   *  au même endroit :
-   *   - durée (Rounds/horloge) → porté par l'`ActiveEffect` (`grantedTalent`), qui s'éteint avec lui.
-   *     Tout lecteur de POSSESSION le voit, par la porte unique `effectiveTalents` (capacités de
-   *     combat, +DR de Talent, passifs, fiche). Les lecteurs d'ACQUISITION (`baseWithTalents`,
-   *     `careerSkillAdditions`/`careerTalentAdditions`, l'avancement) lisent `c.talents` et l'ignorent.
-   *   - sans échéance (Marques Arcaniques, VDM 02 l.238) → acquisition STRUCTURELLE dans `c.talents`
-   *     (comme `attachMutation` et l'effet de Signe astral), bornée par le Maxi du registre : tous les
-   *     canaux ci-dessus la voient.
-   *  Référence de Talent (`refOuSpec('talent')`, champ à choix de `mecanique.ts`). */
-  | { op: 'grantTalent'; talent: RefASpecialisation }
-  /** Talents SUSPENDUS, jamais retirés de `c.talents` : chaque Talent est une source suspendue
-   *  (`suspendSource`, `engine/suspension.ts`), que la porte de possession `effectiveTalents` écarte
-   *  tant que l'effet dure, toutes spécialisations confondues. Une seule durée, tirée une fois pour
-   *  toute la liste. LDB 40 l.80, l.82 */
-  | { op: 'suppressTalents'; talents: { id: string }[]; durationDays: Formula }
-  /** La cible ne peut plus être l'objet d'aucune Bénédiction ni d'aucun Miracle de la divinité de qui
-   *  applique l'op (`priestCult` de `ctx.caster`) : `prayerBannedOn` les fait échouer sur elle tant que
-   *  l'effet dure. Sans divinité : sans effet, journalisé. LDB 40 l.64 */
-  | { op: 'deityBan'; durationDays: Formula }
-  /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
-   *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
-  | { op: 'prayerForAction'; durationRounds: Formula }
-  /** VDM 09 l.354 */
-  | { op: 'forbidFlee' }
-  /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
-   *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
-   *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
-   *  Lu par `careerSkillAdditions` (création/avancement), pas appliqué au combattant. */
-  | { op: 'grantCareerSkill'; skill: RefASpecialisation }
-  /** Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la
-   *  liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de
-   *  `grantCareerSkill`. Lu par `careerTalentAdditions`, pas appliqué au combattant. */
-  | { op: 'grantCareerTalent'; talent: RefASpecialisation }
-  /** ALTÉRATION d'ARME temporisée — enchantement OU dégradation, une seule primitive (Jalon 2.6 —
-   *  Bénédiction de Droiture : Magique ; Marteau ardent : Magique +BSoc + En flammes/À Terre à la touche ; Épée
-   *  ardente : +6 + Percutante + En flammes ; VDM 05 — Arme enchantée « ajouter 1 Atout ou retirer 1
-   *  Défaut », Défaut « Tous les Atouts de l'arme disparaissent […] −1 DR à tous les Tests pour attaquer
-   *  avec elle », enchantements de l'arme neutralisés). Porté par le PORTEUR
-   *  (ActiveEffect.enchantRef) + l'objet (`ItemInstance.enchants`), replié dans l'arme à la résolution
-   *  (`applyEnchants`). `damageBonus` résolu contre le LANCEUR (BSoc du prêtre). */
-  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`), jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string[];
-      /** Qualités RETIRÉES par id STABLE (VDM 05 — Arme enchantée : « retirer 1 Défaut de l'arme »).
-       *  Retire aussi les qualités de FAMILLE du Groupe d'arme, qui sont sur le même plan RAW. */
-      removeQualities?: string[];
-      /** Retire TOUTES les qualités de cette POLARITÉ, lue dans le registre (`qualities.json` champ
-       *  `polarite`, via `isAtoutQuality`) — VDM 05 Défaut : « Tous les Atouts de l'arme disparaissent ».
-       *  Jamais une liste d'ids en dur : la polarité est une donnée du registre. Le NOM de ce champ d'op
-       *  est PERSISTÉ en donnée (1 porteur mesuré, `spells.json`) : son alignement sur `polarite` appartient
-       *  au lot des ops, #1468 (L1c). */
-      removeType?: 'atout' | 'defaut';
-      /** Neutralise les enchantements PRÉ-EXISTANTS de l'arme tant que celui-ci tient — VDM 05 Défaut,
-       *  clause des armes magiques gatée à +4 DR. */
-      suppressEnchants?: boolean;
-      /** Passifs d'ARME conférés par l'altération — MÊME vocabulaire que le `passive` d'un Atout/Défaut du
-       *  registre (`weaponRollMod`/`weaponDamageMod`/`armourPierce`/`critOnRoll`), lu au MÊME point
-       *  (`weaponPassiveOps`, engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour
-       *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attaque', drMod:-1}]`. */
-      passive?: OpPassive[];
-      /** Effets DÉCLENCHÉS « à la touche » de l'arme enchantée — forme UNIFIÉE (`TriggeredEffect`,
-       *  comme les Atouts d'arme et les Traits) : Marteau ardent → En flammes/À Terre ; Épée de
-       *  justice → Test du Groupe « Criminel » → Inconscient ; Morsure de l'hiver → Test (hors
-       *  Mort-vivant/Démon) → Sonné. Agrégés par `effectsOf` et dispatchés par `fireTriggers('onHit')`. */
-      onHitEffects?: TriggeredEffect[] }
-  /** Purge de maladies (Amère catharsis, LDB 42) : retire `count` (+échelle DR) maladies. */
-  | { op: 'cureDisease'; count?: number; countPerSL?: PerSL }
-  /** −N jours sur la durée d'une maladie active. `days` plat (B. de Convalescence, LDB 41) OU `dice`
-   *  (Rouille mouchetée : « Chaque dose réduit la durée de la maladie de 1d10 jours », MSRC 4 l.241) ;
-   *  `disease` = SCOPE par id (Gesundheit → seulement une `blessure-purulente`, MSRC 4 l.186 — sans filtre,
-   *  n'importe quelle maladie active serait raccourcie) ; `oncePerDisease` = une seule fois par maladie
-   *  (« Cette Prière ne peut être tentée qu'une fois par maladie », LDB 41 — les herbes se reprennent).
-   *  `daysPerSL` : échelle « +N jours par +M DR » du Test AYANT PRÉCÉDÉ l'op (Gesundheit : « un jour par
-   *  DR obtenu » au Test de Résistance Accessible, MSRC 04 l.184-186) — alimentée par `ctx.sl`. */
-  | { op: 'reduceDiseaseDays'; days?: number; dice?: DiceSpec; disease?: string; oncePerDisease?: boolean; daysPerSL?: PerSL }
-  /** Les Blessures ne s'infecteront pas (`woundDressed`) : LDB 09 l.260. */
-  | { op: 'preventInfection' }
-  /** Aide Médicale : lève l'escalade en attente et les verrous d'État « par Aide Médicale » (LDB 18 l.308-311). */
-  | { op: 'aideMedicale' }
-  /** EXPOSE la cible à une Maladie (`disease` = id de `maladies.json`) → Test de Contraction au bilan de
-   *  fin de combat, ou tout de suite hors combat (`ouvrirLesContagions`) (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
-   *  l'`arg` (ex. 'fievre-du-rongeur' pour les rats/skavens). Cumule sans doublon dans `diseaseExposure`
-   *  (double exposition à la même maladie → on garde la PIRE : shift le plus dur, `instant` si l'une
-   *  l'impose). Contagieux (Type), EDO App.2 l.228-230 : `difficultyShift: -2` (« le Test est de 2
-   *  niveaux plus difficile » — sens `easeDifficulty`, négatif = plus difficile) + `incubation:
-   *  'instant'` (« son incubation est changée en “Instantanée” »). Inerte sur un non-héros (bilan
-   *  héros-only). */
-  | { op: 'exposeDisease'; disease: string; difficultyShift?: number; incubation?: 'instant' }
-  /** CONTRACTE instantanément une Maladie (`disease` = id) — incubation 0, durée tirée. Complète
-   *  `exposeDisease` (exposition→test). Utilisé p.ex. par la conséquence `onFail` d'un symptôme « Blessé »
-   *  (→ Blessure Purulente) ; applicable par tout effet (artefact maudit…). Inerte si déjà porteur. */
-  | { op: 'contractDisease'; disease: string }
-  /** Mort DIRECTE hors Tableau des Critiques (Toxine, LDB 20 l.215 : « ou vous mourrez ») — 1 Point de
-   *  Destin sauve (LDB 17 l.29-37, « circonstances les plus difficiles […] éviter une mort certaine »,
-   *  MÊME patron que la mort par Hémorragie hors combat, `outOfCombatUpkeep.ts`), sinon `target.dead = true`. */
-  | { op: 'kill' }
-  /** Guérit `count` (+échelle DR) Blessures critiques de convalescence — jamais une amputation
-   *  (Larmes de Shallya, LDB 42). */
-  | { op: 'cureCriticalWound'; count?: number; countPerSL?: PerSL }
-  /** LDB 18 l.233–286. */
-  | { op: 'amputer'; sequels: string[]; loc?: HitLocation; unites?: Formula; unitesPerSL?: PerSL }
-  /** PB réduits à 0 SEUL (Châtiment, Tonnerre et foudre — LDB 40). L'Inconscient/Enflammé est posé
-   *  par une op `condition` séparée dans l'entrée appelante. */
-  | { op: 'reduceToZero' }
-  /** RETRAIT DU JEU : la cible est destituée, sa forme se dissipe — la force qui la soutenait cède.
-   *  `narration` choisit la prose : défaut/`'chaos'` = Démoniaque banni (« son âme retourne dans les
-   *  Royaumes du Chaos », LDB 85 l.98) ; `'unravel'` = Instable qui se délite (« les magies la maintenant
-   *  entière s'affaiblissent », LDB 85 l.199). Op IMPURE (marque `dead`), portée par l'`effects` du trait (édité au
-   *  Codex), jamais une branche en dur. L'unicité est garantie en amont (déclencheur `onSlain` / `if` à 0 PB).
-   *  `onlyGroups` : gaté par Groupe (Fauche-démon → cible Démoniaque seulement). */
-  | { op: 'banish'; narration?: 'chaos' | 'unravel'; onlyGroups?: string[] }
-  /** « Ne subit aucune pénalité causée par les États » (Endurance de l'anachorète, LDB 42) —
-   *  drapeau d'effet actif lu par combatTestPenalty/testStatePenalty. `count` : n'ignore que les
-   *  pénalités des N PIRES États (chanson « Les dames de L'Anguille » : « peut ignorer un État »,
-   *  MDG 09 l.244 — un seul, au choix ; le pool non-cumul rend rationnel d'ignorer le pire). */
-  | { op: 'ignoreStatePenalties'; count?: number }
-  /** « Peut relancer le prochain Test auquel elle échoue » (Bénédiction de Chance, LDB 41) —
-   *  drapeau consommé à l'usage au point de relance des flux de jet. */
-  | { op: 'freeReroll' }
-  /** « Deux lancers [de Blessure Critique], choisissez le meilleur » quand le porteur INFLIGE un
-   *  Critique (Bénédiction de Sauvagerie, LDB 41) — lu par `resolveCritique` via l'attaquant. */
-  | { op: 'critTwice' }
-  /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — seule la
-   *  matière `cuir` est mécanisée (pièce d'armure portée) ; le reste (denrées, vêtements) reste MJ. */
-  | { op: 'damageArmour'; material: 'cuir' }
-  /** 1 Dégât aux Armures et Armes portées par la cible (`endommagerLEquipementPorte`, `engine/items`), journalisé
-   *  en Localisations d'armure et en armes usées. LDB 85 l.325, l.447 */
-  | { op: 'damageWornGear' }
-  /** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
-   *  durée du Miracle » — Traits psy SUSPENDUS (portés par l'effet), restitués à l'expiration. */
-  | { op: 'suppressPsych' }
-  /** Aura anti-Sort portée par la cible (N'écoutez point la Sorcière, LDB 43 l.139-145) : `mod` au Test de Langue
-   *  (Magick) de tout Sort qui vise quelqu'un dans le rayon, élargi par DR via `perSL.radiusFormula`. */
-  | { op: 'castWard'; radius: Formula; mod: number; perSL?: { every: number; radiusFormula: Formula } }
-  /** « Soumis aux règles de la Suffocation » (LDB 18 l.345-346 — Ombres étrangleuses,
-   *  Transmutation de Chamon) : −1 PB/Round, 0 PB → Inconscient, mort après BE Rounds. */
-  | { op: 'suffocate' }
-  /** Bouclier anti-flèches (LDB 47 — L11) : « les projectiles constitués de matière organique
-   *  sont automatiquement détruits s'ils entrent dans la Zone d'Effet ». Aura sur la cible. */
-  | { op: 'arrowWard' }
-  /** Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `trait` à ceux qu'elle couvre : le Trait octroyé de
-   *  `grantTrait`, Indice requis. AUCUNE zone ne s'authore ici : elle est DÉJÀ déclarée par la ligne « Cible »
-   *  du sort (`SpellTarget`, ZdE en DIAMÈTRE — LDB 47 l.28), lue par `zdeDiameterMeters`. */
-  | { op: 'domeWard'; trait: TraitPose }
-  /** Bénédiction de Protection (LDB 41 — L13) : « Les ennemis doivent effectuer un Test de FM
-   *  Accessible (+20) pour attaquer votre cible ». Drapeau lu à la déclaration d'attaque. */
-  | { op: 'attackWardFM' }
-  /** Martyr (LDB 43 l.107) : « Vous recevez tous les Dégâts subis en principe par vos cibles.
-   *  […] votre Bonus d'Endurance est doublé pour le calcul des PB subis à cause de ces Dégâts. »
-   *  — l'effet est posé sur LA CIBLE protégée, avec l'id du prêtre (ctx.caster). */
-  | { op: 'martyr' }
-  /** « N'a pas besoin de respirer et ignore les règles de suffocation » (B. de Souffle, LDB 41). */
-  | { op: 'noBreath' }
-  /** « N'a pas besoin de manger ou de boire » (Graisse de la terre, LDB 48) : exempte de la Faim
-   *  (système de provisions) tant que le Sort dure. Lu par `dailyFoodUpkeep` (engine/provisions). */
-  | { op: 'noHunger' }
-  /** « Vous êtes mon meilleur ami ! » (Ivresse 3-4, LDB 09 l.480) : ignore Préjugés et Animosités
-   *  existants tant que l'effet dure — flag `ActiveEffect.ignoreAnimosity`. */
-  | { op: 'ignoreAnimosity' }
-  /** Modificateur de Test du porteur (Malédiction de malchance : −10 global). Sans `characteristic` = GLOBAL (tous les
-   *  Tests, porté par un effet actif, STACKE sur les États, lu par `combat/testStatePenalty`). AVEC `characteristic` =
-   *  modificateur de TEST qualifié par Caractéristique (Visage inversé −20 Soc, objet Laid −20 Soc), émis par
-   *  le collecteur passif et lu par `testValue/passiveTestMod` — n'altère PAS la Caractéristique (≠ charMod).
-   *  EXÉCUTÉ via `applyOps` (≠ passif d'État) : porte aussi `movementOnly`/`weaponHand`, portée MEMBRE d'une
-   *  pénalité de récupération (#193, Épaule luxée/Genou démis LDB+AA, « Tests effectués avec ce bras »/« cette
-   *  jambe ») — `weaponHand` restreint un `characteristic:'capacite-de-combat'` à l'arme tenue dans CETTE main (lu par `combatValue`/
-   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`characteristic:'agilite'` typiquement)
-   *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
-   *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
-   *  = comportement historique (global, comme avant #193). */
-  | { op: 'testMod'; amount: number; characteristic?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: Main }
-  /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
-   *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
-  | { op: 'weatherWard' }
-  /** Crée un objet catalogué ou personnalisé dans l'inventaire de la cible.
-   *  Alimente tout sort qui DONNE du matériel : Rations (Générosité de Manann, Récolte de Rhya →
-   *  système de provisions/Faim), etc. `count`/`perSL` : « +1 par +2 DR ». */
-  | { op: 'giveTrapping'; objet?: { id: string }; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
-  /** Crédite (positif) ou débite (négatif) la bourse PERSONNELLE de la cible, en SOUS DE CUIVRE
-   *  (`brass` — unité de compte unique, `engine/money.ts`). La Bourse est un trapping (doctrine
-   *  utilisateur 2026-07-16 : « Pour la bourse, c'est personnel et par défaut ça doit être dans… la
-   *  bourse du personnage. Oui c'est un trapping. ») : l'instance est CRÉÉE si la cible n'en porte pas,
-   *  et le solde ne descend jamais sous 0. FRONTIÈRE avec l'Effet de scène `giveMoney`
-   *  (`data/schemas/defs-scenes/effets.ts`) : celui-ci est un mouvement de GROUPE (réparti/drainé sur
-   *  toutes les bourses par `distributeCredit`/`drainGroup`) ; `money` vise UN porteur, celui que
-   *  `applyOps` traite. Les deux composent les MÊMES parts (`engine/bourse.ts`) — aucune 2ᵉ arithmétique.
-   *  `groupe` : le mouvement vise la BOURSE DU GROUPE (`mouvementDeLaBourseDuGroupe`, la couture de
-   *  `giveMoney`), une fois pour la feuille qui la porte (`estOpDeLaBourseDuGroupe`) ; `applyOps` la laisse
-   *  inerte. MDG 15 l.245-247 */
-  | { op: 'money'; montant: { brass: Formula }; groupe?: true }
-  /** Invoque une arme MAGIQUE temporaire (Arme aethyrique : Dégâts = BFM ; Faux de Shyish : Arme
-   *  d'hast, BFM+3 ; Épée ardente de Rhuin : Dégâts +6, Percutante). `damage` (résolue vs lanceur)
-   *  + `damagePlus` (offset constant) donnent la composante chiffrée ; `plusBF` y ajoute le Bonus de
-   *  Force (défaut : Dégâts FIXES, sans BF — conforme aux armes invoquées). L'objet invoqué est posé
-   *  dans un SET d'armes DÉDIÉ actif (engine/conjuredWeapons.equipConjuredWeapon) puis retiré à
-   *  l'expiration. `onHitEffects` : effets DÉCLENCHÉS à la touche (Épée ardente → En flammes) — même
-   *  forme `TriggeredEffect` unifiée que `augmentWeapon`/les Atouts d'arme. */
-  | { op: 'grantWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean;
-      qualities?: string[]; subType?: { id: string }; reach?: ReachValue; hands?: 1 | 2;
-      onHitEffects?: TriggeredEffect[];
-      /** Id de matière du domaine objet. */
-      teinte?: { id: string };
-      /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
-       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`).
-       *  `chooseForm` la prend du choix du lanceur. */
-      form?: { id: string };
-      /** Forme LIBRE (Arme aethyrique) : le lanceur choisit l'arme → `ctx.conjureForm` clone le profil
-       *  (Groupe/allonge/mains) d'une arme RÉELLE de la base ; sinon stats fixes du Sort. */
-      chooseForm?: boolean }
-  /** Accorde une ARME NATURELLE (Dent et griffe : Morsure BF+3 / Arme BF+4 ; Incarnation de Wyssan) :
-   *  attaque ADDITIONNELLE de mêlée injectée dans `c.weapons` (recomputeLoadout), retirée à
-   *  l'expiration. Dégâts SB-relatifs par défaut (`+BF+`+damage), `qualities` (Magique…) portés. */
-  | { op: 'grantNaturalWeapon'; label: string; damage: Formula; plusBF?: boolean; bare?: boolean; qualities?: string[]; attackKind?: string; subType?: { id: string } }
-  /** ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce :
-   *  attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). Effet IMPUR (ouvre
-   *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
-   *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : 'held' = arme du coup (`firedWeapon`), 'mainHand' = arme
-   *  de la main principale (`armeDeMainPrincipale`, LDB 10 l.500). `when` :
-   *  'available' = surfacée comme OPTION du Tour (Frénésie, lue par `availableAttacks`) ou 'immediate' = résolue
-   *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `avantageOuMouvement` : ce que la frappe
-   *  coûte au porteur. `activeIf` : condition
-   *  d'activation d'une grant 'available' (l'état `frenzied`). `perChargerOncePerRound` : 1× par chargeur. Le
-   *  plafond /Round est porté par la couche state (= niveau du talent). Un éventuel jet PRÉALABLE (Frappe
-   *  réactive : Test d'Initiative) est un nœud Flow `test` EN AMONT du `do`, pas un champ de l'op (cadence-aware
-   *  via `resolveFlowTest`). */
-  | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand'; when: 'available' | 'immediate';
-      coutEnAvantage?: number; avantageOuMouvement?: boolean;
-      activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
-  /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
-   *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
-   *  Mineure. Résolu par la couche state (combatFlow : `applyFocusInterruption` via le hook injecté
-   *  `focusInterrupt` appelé par `runCombatFlow`), qui détient get/set et le combattant. `applyOps` (moteur
-   *  pur) le laisse INERTE — comme `grantFreeAttack`/`summon`. */
-  | { op: 'interruptFocus' }
-  /** Marqueur IMPUR de la branche de VICTOIRE d'un Test opposé de Piège-lame (LDB 62 l.280) : l'adversaire
-   *  est désarmé (sa lame arrachée) et, sur un Succès Stupéfiant (marge nette ≥ 6 DR), sa lame est BRISÉE à
-   *  moins qu'elle ne possède l'Atout Incassable. Résolu par la couche state (combatFlow : `applyBladeTrap`
-   *  via le hook injecté `piegeALame` appelé par `runCombatFlow`), qui détient get/set, l'attaquant ciblé et
-   *  l'arme visée (contexte sérialisé `ctx.piegeALame`). `applyOps` (moteur pur) le laisse INERTE — comme
-   *  `grantFreeAttack`/`interruptFocus`/`summon`. */
-  | { op: 'breakBlade' }
-  /** CHUTE (`LDB 15 l.80`, `l.84`) : la cible tombe de la hauteur que dit une TABLE (`hauteur.table`,
-   *  `ship-criticals.json` → `tablesDeChute`), lue par (Taille de la coque `ctx.hull` × station du
-   *  tombant, `Combatant.shipStation`) — MDG 13 l.678-688. Résolue par `applyFall` (`./movement`), le
-   *  foyer unique de la formule. Table inconnue, coque absente, Taille non couverte ou station sans
-   *  colonne : anomalie NOMMÉE (une chute sans hauteur n'est pas une chute). */
-  | { op: 'fall'; hauteur: { table: { id: string } } }
-  /** POUSSÉE POSITIONNELLE (Poussée, LDB 47 l.479) : chaque cible affectée est repoussée en ligne
-   *  (direction lanceur→cible) de `meters` mètres jusqu'à l'obstacle ; la collision est journalisée. Op
-   *  IMPURE (déplace sur la grille) — INERTE dans applyOps, résolue par combatFlow (`applyCast` : scan
-   *  `spellOps(spell.effects,'caster')`, `pushAway` + `applyZoneCrossings`). */
-  | { op: 'push'; meters: Formula }
-  /** TÉLÉPORTATION du lanceur (Téléportation, LDB 47 l.517 / Portail d'Ombre / Eau de la terre, LDB 48 l.671/719) : le
-   *  lanceur se déplace de `meters` mètres (+`perSL` « +metersFormula par `every` DR ») en survolant les
-   *  obstacles. Op IMPURE (pose le mode 'teleportation' = choix de case d'arrivée) — INERTE dans applyOps,
-   *  résolue par combatFlow (`applyCast` : scan + `flyReachable`, puis pose différée `action:'teleportation'`). */
-  | { op: 'teleport'; meters: Formula; perSL?: { every: number; metersFormula: Formula } }
-  /** ATTAQUES EN CHAÎNE (LDB 47 l.340) : si le Projectile réduit la cible à 0 Blessure, il rebondit sur
-   *  l'ennemi le plus proche (≤ `hopMeters` m, dans la portée initiale), mêmes Dégâts, jusqu'à `maxBounces`
-   *  rebonds. Op IMPURE (rebond sur la grille) — INERTE dans applyOps, résolue par combatFlow (`applyCast`,
-   *  branche missile : scan + boucle de rebond). */
-  | { op: 'chain'; maxBounces: Formula; hopMeters: Formula }
-  /** Effet RÉCURRENT multi-Rounds : pose un effet actif porteur qui re-joue `ops` à CHAQUE fin de
-   *  Round tant que le sort dure (`ctx.defaultDurationRounds`, Surincantation de Durée incluse —
-   *  LDB 47). Généralise l'ancien « État par Round » : 1 Ration/Round (Récolte de Rhya), 1 État
-   *  X/Round (malédictions). Les `ops` internes sont résolues MAINTENANT (valeurs littérales) puis
-   *  ré-appliquées telles quelles — pas de dépendance au lanceur à chaque tick. */
-  | { op: 'perRound'; ops: GameOp[] }
-  /** Jet à PALIERS (Régénération : un d10 → soin = le dé ; sur 10, soigne aussi un Critique) : roule
-   *  1d`sides` UNE fois, applique les `ops` de CHAQUE palier dont `atLeast` est atteint (cumulatif).
-   *  Les ops de palier voient `{rolled}` = la valeur du dé. UN seul jet partagé (≠ jets indépendants). */
-  | { op: 'rollThreshold'; sides: number; thresholds: { atLeast: number; ops: GameOp[] }[] }
-  /** Tirage sur TABLE (`die` = dé de tirage des `entries` inline, `deDeTirageSchema` ; sous `tableId`, le dé est
-   *  celui de la table, jamais l'op — #1667) : lookup par fourchette `[min,max]` (`findTableEntry`, source
-   *  unique), les `ops` de la rangée touchée sont appliquées avec le MÊME ctx. DEUX formes exclusives de
-   *  la table : `entries` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
-   *  (`findEffectTableById`, fail-fast) — jamais les deux (membres stricts d'`OP_DEFS.rollTable`). `mod` = modificateur
-   *  CONSTANT ajouté au jet (Haute Alchimie « lancez 1d10 + 3 », VDM 03 l.698) — se cumule avec
-   *  `addNegativeSL` (le RAW enchaîne les deux : « lancez 1d10 + 3. Ajoutez les degrés d'échec »).
-   *  `addNegativeSL` ajoute |ctx.sl| au jet quand le contexte porte un DR négatif (Vers de carie
-   *  « ajoutez le nombre de DR négatifs », MSRC 16 l.90). `extraRollsPerStep` = un jet SUPPLÉMENTAIRE
-   *  par PAS de Surincantation CHOISI (`ctx.chosenTableRolls`, borné à `ctx.overcastDurationSteps` —
-   *  LDB 47 l.13-17 / EDOC 13 l.230+270-276 : « pour chaque +2 DR […] vous POUVEZ à la fois prolonger
-   *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
-   *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
-  | { op: 'rollTable'; die: DiceSpec; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
-  | { op: 'rollTable'; die?: never; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
-  /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
-   *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à
-   *  `grantTrait` (EDOC 13 l.276-277 « appliquez […] pour toute la durée du Sort ») : durée du contexte
-   *  (`durationFromCtx`) par défaut → mutation attachée + ActiveEffect porteur (`grantedMutation`) qui la
-   *  DÉTACHE à l'expiration (`dropExpiredGrantedMutations`) ; PERMANENTE si `duration:'permanent'` OU si le
-   *  ctx ne porte aucune durée (exactement `grantTrait`). Le chemin CORRUPTION (corruptionFlow →
-   *  `attachMutation` direct) reste permanent, intouché. PUR (moteur : profil du personnage). */
-  | { op: 'rollMutation'; table: { id: string }; duration?: 'permanent' }
-  /** Perte PERMANENTE de Caractéristique (Vers de carie « −1d10 Initiative… », MSRC 16 l.94-97) : décrémente
-   *  la Caractéristique de BASE (`c.characteristics`), jamais sous 0 — irréversible « sauf par des moyens
-   *  magiques ou miraculeux » (l.103). `amount` = Formula (1d10). Distincte de `charMod` (temporisé, effet
-   *  actif) : ceci ronge le profil lui-même (comme les mutations `passive`, mais soustractif direct). */
-  | { op: 'charDamage'; characteristic: CharKey; amount: Formula }
-  /** INVOCATION de créature(s) (Nécromancie « Réanimation/Relever les morts », Ulric « Hurlement du
-   *  loup », Démonologie « Manifestation », Taal « Roi de la Nature »…). Effet IMPUR (grille +
-   *  initiative) RÉSOLU par la couche state (`noyau/summonFlow.applySummon`) ; `applyOps` (moteur pur)
-   *  le laisse INERTE. `ref` = créature du bestiaire (forme libre) ; `count` (+`countPerSL`) = nombre ;
-   *  `addTraits`/`size` surchargent le statbloc (loup blanc = Loup + Frénésie + Grand) ; `allyOfCaster`
-   *  = camp du lanceur (défaut) sinon hostile (démons « hors de votre contrôle ») ; `despawnIfCasterDown`
-   *  = s'effondre si le lanceur tombe (minions liés au sorcier). */
-  | { op: 'summon'; ref: string; count: Formula; countPerSL?: PerSL; addTraits?: TraitPose[];
-      size?: SizeCategory; allyOfCaster?: boolean; despawnIfCasterDown?: boolean }
-  /** RECONSTITUTION DIFFÉRÉE (Gardien éternel, Middenheim — « se reconstitue au bout de d10 jours »).
-   *  À la MORT du porteur, programme la ré-invocation de la créature `ref` (`SELF_REF` = la défunte, par son
-   *  `creatureId`) après `delayDays` jours d'HORLOGE, sauf si `cancelFlag` est posé entre-temps (les
-   *  « précautions appropriées » : drain/rituel/corruption de la Source — un Effet de scène/MJ pose le flag).
-   *  Effet IMPUR (file `scheduledEffects` + `applySummon`) RÉSOLU par la couche state — programmé par
-   *  `resolveTriggerImpureOps` au décès, déclenché par `fireScheduledEffects` à l'échéance ; INERTE dans
-   *  `applyOps` (moteur pur), comme `summon`. */
-  | { op: 'scheduleRespawn'; ref: string; delayDays: Formula; count?: Formula; allyOfCaster?: boolean; cancelFlag?: string }
-  /** ZONE PERSISTANTE posée par un sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin : `placeSpellZone`) ou
-   *  par un effet déclenché qui porte sa durée (`durationRounds`, Bombe fumigène : crochet `OpsCtx.onZone`). Effet
-   *  IMPUR (pose une zone dans la scène/bataille) RÉSOLU par la couche state ; INERTE dans `applyOps` sans crochet. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
-   *  « +N m par +2 DR ») ; `blocksLoS` ; `onCross`/`perRound` = effets de zone (traversée / fin de Round). */
-  | { op: 'zone'; shape: 'disc' | 'wall'; radiusMeters?: Formula; lengthMeters?: Formula;
-      lengthPerSL?: { every: number; metersFormula: Formula }; blocksLoS?: boolean;
-      /** Effets de zone = `GameOp[]` (vocabulaire unique) appliqués par `applyOps` : `onCross` à la
-       *  TRAVERSÉE (« quiconque traverse le mur »), `perRound` au franchissement de Round pour qui
-       *  STATIONNE. Un dégât mitigé BE+PA = `op:'wounds' {ignoreTB:false, ignoreAP:false}` ; un État
-       *  entretenu = `op:'condition' {unlessCondition: <le même État>}` ; un soin = `op:'heal'`. */
-      onCross?: GameOp[]; perRound?: GameOp[];
-      /** GATE de Test à la TRAVERSÉE (Forêt d'épines, LDB 48 l.749) — cf. `BattleZone.crossTest`
-       *  (zones.ts) pour la sémantique complète (résolution cadence-aware, succès saute `onCross`). */
-      crossTest?: FlowTest;
-      /** BARRIÈRE infranchissable (Protection de Phâ : « ne peuvent pas entrer ») ; `gate:'profane'`
-       *  restreint barrière + `perRound` aux créatures profanes ; `noCorruption` : nul gain de Corruption
-       *  pour les occupants tant que la zone dure (LDB 48 l.393). */
-      barrier?: boolean; gate?: 'profane'; noCorruption?: boolean;
-      /** Durée en Rounds d'une zone posée HORS sort (#4202) — dé ouvert à la porte (`DES_DUNE_OP`). Interdite sur
-       *  l'op d'un sort : sa durée est celle du sort (`placeSpellZone`, LDB 47 l.15). */
-      durationRounds?: Formula;
-      /** Le rendu qui montre la zone tant qu'elle dure (`BattleZone.rendu`). */
-      rendu?: { id: string } }
-  /** MÉTAMORPHOSE en créature (Forme bestiale, LDB 48) : remplace F/E/Ag/Dex (charMod différentiel) et
-   *  accorde les Traits de la créature sauf Bestial (grantTrait), auto-restitués à l'expiration. `ref` =
-   *  créature du bestiaire (forme LIBRE — « les Bêtes du Reikland », pas l'Ours seul). Pure : expansée
-   *  par `polymorphOps` (engine/polymorph) puis ré-appliquée. */
-  | { op: 'polymorph'; ref: string }
-  /** TRANSFORMATION durable & réversible (≠ `polymorph`, buff temporaire de sort) — Métamorphose de
-   *  créature (Enfant d'Ulric humain↔hybride, Middenheim p.116) : applique un jeu de deltas AUTHORÉS
-   *  (`ops` — charMod/moveMod/grantTrait… du tableau RAW VERBATIM) sous un LABEL déterministe (`tag`) et
-   *  une durée PERMANENTE (jamais auto-restituée), + id de la forme (`morphRef`). Le
-   *  `tag` groupe TOUS les effets posés → retrait ATOMIQUE par `endTransform`. Générique (toute forme
-   *  alternative authorée : lycanthrope, phase de démon…), zéro nom d'entité en dur. */
-  | { op: 'transform'; tag: string; ops: GameOp[]; morphRef?: string }
-  /** Fin de TRANSFORMATION (`transform`) : retire d'un coup tous les effets actifs portant le `tag` (deltas
-   *  de profil + traits accordés + apparence) et recale les Blessures — retour à la forme de base. */
-  | { op: 'endTransform'; tag: string }
-  /** VOL DE VIE (LDB 48 — Caresse de Laniph, Vol de vie) : le lanceur (`ctx.caster`) regagne une
-   *  fraction (`num/den`, arrondi `round`, défaut plancher) des Blessures RÉELLEMENT infligées ce
-   *  lancement (`ctx.woundsDealt`, jamais plus que les PB perdus par la cible). */
-  | { op: 'lifeSteal'; num: number; den: number; round?: 'floor' | 'ceil' }
-  /** Modificateur (pénalité/bonus) à UNE Compétence nommée — GÉNÉRALISE les pénalités de séquelle
-   *  `skillPenalty` (Langue −100 « auto-échec parole ») ET `dodgePenalty` (Esquive −20, mobilité). Lu en
-   *  PASSIF par les helpers de trauma depuis `t.ops` (annulable par prothèse), et — si posé par un sort
-   *  via `applyOps` — par `ActiveEffect.passive` (collecteur `passiveMods`). Une op, n'importe quelle compétence.
-   *  `sense` (optionnel) RESTREINT l'application aux Tests qui SOLLICITENT ce sens (Surdité, LDB 18 : « Tests
-   *  de Perception basés sur l'ouïe » — PAS toute Perception) : gaté par le `sense` du CONTEXTE de Test
-   *  (`testValue`), pas une liste de compétences codée en dur. Absent = inconditionnel (Cécité : compétences
-   *  nommément listées CC/CT/Esquive/Chevaucher, `sense` inutile car déjà scopé par `skill`). */
-  | { op: 'skillMod'; skill: RefDesignee; mod: number; sense?: PairedSense }
-  /** `mod` aux Compétences associées à la divinité de la cible (`deitySkills`, `engine/magic.ts`) :
-   *  `pick: 'all'` les frappe toutes, `'random'` une seule tirée au `ctx.rng`. Un seul effet, une seule
-   *  durée d'horloge (`OpDuree`) ; cible sans divinité ou dieu sans liste : sans effet, journalisé.
-   *  LDB 40 l.61, l.70 */
-  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationHours: Formula; durationDays?: never }
-  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationDays: Formula; durationHours?: never }
-  /** +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ;
-   *  chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228).
-   *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
-   *  l'op est EXÉCUTÉE par un sort/une chanson (`applyOps`), depuis un `ActiveEffect.drBonus` temporisé.
-   *  DISTINCT de `skillMod` (qui modifie la VALEUR du Test, pas le DR obtenu). La `spec` de la référence
-   *  restreint à une spécialisation ; absente = toute spéc.
-   *  CIBLE EXCLUSIVE : SOIT `skill`, SOIT `testType` (#221, traits navals `naval-traits.json` uniquement),
-   *  un TYPE de Test d'équipage (`crew-test-types.json`) agnostique de la compétence (une Poursuite se
-   *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`
-   *  (personnage) ni `navalSkillTestDR` (coque). */
-  | { op: 'skillDRBonus'; skill: RefDesignee; bonus: FormuleSansTirage; testType?: never }
-  | { op: 'skillDRBonus'; testType: { id: string }; bonus: FormuleSansTirage; skill?: never }
-  /** +N DR aux Tests d'une CARACTÉRISTIQUE (chanson « Camarades d'équipage » : +1 DR sur tout Test de
-   *  Sociabilité, MDG 09 l.236) — variante par carac de `skillDRBonus`. Exécutée → `ActiveEffect.drBonus`
-   *  temporisé ; lisible aussi en PASSIF (trait/aura). Consommée par `charDRBonusOf` sur un Test RÉUSSI. */
-  | { op: 'charDRBonus'; characteristic: CharKey; bonus: FormuleSansTirage }
-  /** Modificateur aux Tests INDIVIDUELS composant un TEST D'ÉQUIPAGE (MDG 14) — chanson « Naviguons
-   *  tous ensemble » : « +10 sur les Tests individuels de chaque membre d'équipage impliqué dans un Test
-   *  d'équipage » (MDG 09 l.224). Exécutée → `ActiveEffect.crewTestMod`, lu par `crewRoleValue`
-   *  (engine/crewMorale) — le SEUL point de valeur des Tests d'équipage. */
-  | { op: 'crewTestMod'; mod: number }
-  /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité LDB 85 l.257, Nuée l.253).
-   *  PASSIF, lu par `incomingAttackLines` à la collecte des mods d'attaque — DISTINCT de `testMod`
-   *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : `PorteeDAssaut`.
-   *  Inerte dans `applyOps`. */
-  | { op: 'incomingAttackMod'; mode: PorteeDAssaut; amount: number;
-      /** Ne s'applique QUE si l'attaquant frappe par le flanc ou par derrière (Assourdi : « par le flanc
-       *  ou par derrière gagne +10 », LDB 16 l.29) — bonus ADDITIF (« supplémentaire ») évalué par
-       *  `meleeAttackerBonus` seulement quand l'appelant a établi l'angle (facing). Absent = inconditionnel. */
-      flankRear?: boolean }
-  /** L'ASSAILLANT du porteur GAGNE `amount` Avantage(s) avant son attaque (Sonné : « +1 Avantage », LDB 16
-   *  l.125). PASSIF de l'État/trait du DÉFENSEUR, lu par `incomingMeleeAdvantage` au moment de l'attaque
-   *  (≠ `incomingAttackMod` = bonus de TOUCHE éphémère). Inerte dans `applyOps`. */
-  | { op: 'incomingAdvantage'; mode: PorteeDAssaut; amount: number }
-  /** Modificateur au DR des SORTS qui affectent le porteur (Résistance à la Magie — trait `LDB 85 l.302`,
-   *  talent `LDB 10 l.1026`). `amount` est le modificateur PAR RANG de la source qui le porte : Indice du
-   *  trait (`TraitInstance.value`) ou niveau du talent (`times`) — négatif = réduction. PASSIF, lu par
-   *  `traitSpellDRMod`/`talentSpellDRMod` (engine/magic) au calcul du DR du Sort CONTRE cette cible
-   *  (Dégâts du Projectile, `ctx.sl` des Flows, zone, NI par cible). Inerte dans `applyOps`. */
-  | { op: 'incomingSpellDRMod'; amount: FormuleSansTirage }
-  /** +N au Bonus de Force (LDB 21 l.33). PASSIF, sommé par `bonusPassifDeForce` (engine/characteristics), lu par
-   *  tout lecteur du BF. Inerte dans `applyOps`. */
-  | { op: 'sbBonus'; amount: number }
-  /** L'attaque du porteur porte un MOT-CLÉ (Magique/Démoniaque/Fabriqué → 'magic', LDB 85). PASSIF, lu par
-   *  `attackHasKeyword` — sert la mitigation (Éthéré : seules les attaques 'magic' blessent). Inerte dans applyOps. */
-  | { op: 'attackKeyword'; keyword: 'magic' }
-  /** MITIGE les Dégâts ENTRANTS du porteur (Éthéré : nullifie sauf attaque 'magic', LDB 85 l.134). PASSIF, lu
-   *  par `incomingDamageNullified` à la résolution de touche. `mode:'nullify'` = 0 Blessure (critique inclus) ;
-   *  `unlessKeyword` = laisse passer une attaque portant ce mot-clé. Inerte dans applyOps. */
-  | { op: 'mitigateIncoming'; mode: 'nullify'; unlessKeyword?: 'magic' }
-  /** Échelle MULTIPLICATIVE du Mouvement — GÉNÉRALISE le drapeau `movementHalved` (= 1/2). `num/den` = la
-   *  fraction appliquée à `c.movement` (amputation de jambe : 1/2). Trauma : lu par `traumaMovementHalved` ;
-   *  sort : portée par `ActiveEffect.passive`. (`M` n'est pas une Caractéristique → op de mouvement dédiée.)
-   *  `durationRounds` : effet TEMPORAIRE à durée intrinsèque (Souffle coupé « Mouvement réduit de moitié
-   *  pendant 1d10 Rounds », LDB 18-Traumatisme) — MÊME patron que `maxWeaponHands.durationRounds` : résolu
-   *  indépendamment du ctx ; absent = durée du ctx (`durationFromCtx`, sort/effet permanent de trauma). */
-  | { op: 'moveScale'; num: number; den: number; durationRounds?: Formula }
-  /** Modificateur ADDITIF de Mouvement (trait Brutal −1 / Rapide +1, mutation ±1, encombrement) — distinct de
-   *  `moveScale` (multiplicatif). `effectiveMovement` somme les `moveMod` PUIS applique les `moveScale`. */
-  | { op: 'moveMod'; mod: number }
-  /** HORS de son terrain d'élection (`terrain` = type de tuile de la case occupée, ex. `eau`), le porteur
-   *  est diminué : `mSet` REMPLACE son Mouvement (Créature marine : « son M tombe à 1 », MDG 16 l.17 ;
-   *  Aquatique : « ne peut pas se déplacer sur la terre ferme », MSRC 15 l.139 → `mSet: 0`) et `testDR`
-   *  s'applique à TOUS ses Tests (Créature marine : « tous les Tests qu'elle effectue subissent –2 DR »).
-   *  GÉNÉRIQUE (aucun nom de créature) : porté par le `passive` d'un Trait, GATÉ par la POSITION — le
-   *  state pose le drapeau dérivé `Combatant.offTerrain` à chaque placement (`placeCombatant`), les
-   *  consommateurs purs (`offTerrainMoveCap`/`offTerrainTestDR`, trauma.ts) lisent le drapeau. `suffocates` :
-   *  hors du terrain, la créature suffoque (Créature marine : « sinon elles se mettent à suffoquer »,
-   *  MDG 16 l.19) — lu par `offTerrainSuffocates`/`suffocationTick`. Inerte dans applyOps (passif pur,
-   *  jamais « lancé »). */
-  | { op: 'offTerrainMod'; terrain: { id: string }; mSet?: number; testDR?: number; suffocates?: boolean }
-  /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
-   *  Chance (Chanceux), Détermination (Obstiné). `mod` = formule lue avant tout jet (`{bonusOf:'endurance'}`
-   *  pour Dur à cuire). Passif : lu sur TOUT porteur du collecteur `passiveMods` (`sommeAttrMods`) par
-   *  fortuneMax/resolveMax/`effectiveMaxWounds` (#3060). Destin/Résilience N'ONT PAS de maximum dérivé (un octroi
-   *  passe par `gainResource`) → EXCLUS de l'union (#292). */
-  | { op: 'attrMod'; attr: 'fortune' | 'resolve'; mod: FormuleSansTirage }
-  /** `attrMod` des Blessures. `auTotal` (#3060 ; Middenheim 04 l.27, LDB 71 l.20) : `mod` est le changement
-   *  TOTAL des Blessures max que produit la liste d'ops qui le porte. Les `charMod` de cette liste et de ses
-   *  descentes (`transform`, `polymorph`…) sont marqués `ActiveEffect.blessuresAuTotal` et n'entrent pas dans
-   *  le recalcul (`effectiveMaxWounds`) : la source déplace les Blessures max d'exactement `mod`, quels que
-   *  soient les autres modificateurs, et son retrait rend la valeur d'avant. Canal exécuté (`applyOps`). */
-  | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: true }
-  /** Plafond de mains d'arme maniables — GÉNÉRALISE `noTwoHanded` (hands:1 = pas d'arme à deux mains).
-   *  Une amputation de main/bras pose `maxWeaponHands:1` (PERMANENT, via Trauma.ops). `durationRounds` :
-   *  effet TEMPORAIRE à durée intrinsèque (Aux Armes « main/bras inutilisable Nd10 [−BE] Rounds », l.2557/
-   *  2562/2588) — résolu indépendamment du ctx, comme `condition`/`charMod` ; absent = durée du ctx
-   *  (`durationFromCtx`, sort). Lu par `cannotWieldTwoHanded`/`recomputeLoadout` (via `passiveMods`,
-   *  canal `ActiveEffect.passive` — même collecteur que la séquelle permanente). */
-  | { op: 'maxWeaponHands'; hands: number; durationRounds?: Formula }
-  /** Lâche l'objet tenu dans UNE main (Aux Armes, bras/corps « Vous lâchez ce que vous teniez dans
-   *  cette main ») — l'arme TENUE dans cette main (`items.estUneVraieArme`, lue dans `c.weapons`) quitte
-   *  les mains par `items.lacherLArme`, sauf un objet source `disarmImmune` ; une arme DÉRIVÉE
-   *  (`derivedFromItem`) ne se lâche pas ; une arme à deux mains (`Weapon.hands`) est tenue par les deux.
-   *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER
-   *  partagée avec `handAmputated` : `brasD`→`main`, `brasG`→`secondaire`) ; localisation `corps` ou absente
-   *  (« Choisissez au hasard l'un de vos deux bras ») → tirage aléatoire (`ctx.rng`). Sans objet tenu
-   *  dans cette main : inerte (journalisé). */
-  | { op: 'disarm' }
-  /** Main « ensanglantée » (Aux Armes bras 46-50, l.2569 : Main ensanglantée) — pose un marqueur PAR-MAIN
-   *  (`Combatant.handGates`), DISTINCT du compteur global Hémorragique, qui impose un Test de Dextérité
-   *  (+20) AVANT toute Action employant l'arme tenue par cette main (`attackHandGate` ; Échec → op `disarm`).
-   *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER, comme `disarm` : `brasD`→`main`, `brasG`→`secondaire`).
-   *  Le gate tient tant que l'Hémorragique tient (`removeCondition` purge le marqueur à 0). */
-  | { op: 'handGate' }
-  /** Perte d'un organe sensoriel PAIRÉ (œil/oreille). Porté par une séquelle dont l'entrée déclare son
-   *  seuil d'escalade (`TraumaFiche['cumul']` `escalade` : 2 organes → Cécité/Surdité, LDB 18 l.273/277). */
-  | { op: 'senseLoss'; sense: PairedSense }
-  /** Perd sa prochaine Action ET/OU son prochain Mouvement (Affamé : « festoie » ; échec du gate de la
-   *  Racine de mandragore : « une Action ou un Mouvement (un au choix) », LDB 71 l.35 → l'issue du choix
-   *  pose `what:'action'` ou `'movement'`). `what` absent = les deux (comportement historique). Pose les
-   *  drapeaux lus au début du Round du porteur. */
-  | { op: 'loseTurn'; what?: 'action' | 'movement' }
-  /** GATE d'action par Round (Racine de mandragore, LDB 71 l.35 : « Les utilisateurs doivent réussir un
-   *  Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ») —
-   *  `ActiveEffect.testDAgir` vérifié au DÉBUT du tour du porteur en combat (cadence-aware : héros manuel =
-   *  étape de cascade influençable + choix Action/Mouvement ; IA/auto = jet inline, l'Action est gardée).
-   *  Hors combat (pas de Rounds) : inerte. */
-  | { op: 'testDAgir'; characteristic: CharKey }
-  /** Bonus/malus aux Tests LIÉS À UNE MALADIE (contraction, cycle quotidien, Test de fin) —
-   *  Fleur de lune « +30 à tous les Tests associés pour résister à la [Peste noire] » (LDB 71 l.26),
-   *  Racine de terre +10 (LDB 72 l.28), Tonique digestif +20 (l.32). `diseases` = ids ciblés (absent =
-   *  toutes). → `ActiveEffect.diseaseTestMod`, sommé par `activeDiseaseTestMod` (engine/disease) aux
-   *  call-sites qui calculent la Résistance d'un Test de maladie. */
-  | { op: 'diseaseTestMod'; diseases?: string[]; amount: number }
-  /** SUSPEND un symptôme de maladie par id (Racine de terre : « annuler les effets de bubons causés par
-   *  la Peste noire », LDB 72 l.28) — analogue de `suppressPsych` : les canaux `passive`/`onTick` du
-   *  symptôme sont ignorés tant que l'effet dure (`ActiveEffect.suppressedSymptom`, lu par
-   *  `symptomSuppressed` dans engine/disease), restitués à l'expiration. */
-  | { op: 'suppressSymptom'; symptomId: string }
-  /** AGGRAVE un symptôme déjà porté par la maladie `disease` (EDOC 08 l.104 : « le symptôme Fièvre
-   *  devient Grave »). `otherwise` = échelon SUIVANT, appliqué quand il n'y a plus rien à aggraver
-   *  (symptôme déjà à cette sévérité) — EDOC 08 l.106-108. → `aggravateDiseaseSymptom` (engine/disease). */
-  | { op: 'aggravateSymptom'; disease: string; symptomId: string; severity: 'moderee' | 'grave'; otherwise?: GameOp[] }
-  /** ATTÉNUE d'un échelon un symptôme déjà porté (LDB 20 l.159 : « transformant Grave en Modéré et
-   *  Modéré en convulsions normales ») — MIROIR d'`aggravateSymptom`. `otherwise` = ce qui s'applique
-   *  quand il n'y a plus rien à atténuer (symptôme déjà à son échelon de base). → `attenuateDiseaseSymptom`. */
-  | { op: 'attenuateSymptom'; disease: string; symptomId: string; otherwise?: GameOp[] }
-  /** AJOUTE un symptôme à une maladie déjà portée (EDOC 08 l.106-108 : « la maladie développe également
-   *  le symptôme Toxine »). No-op si le symptôme y figure déjà. → `grantDiseaseSymptom`. */
-  | { op: 'grantSymptom'; disease: string; symptomId: string; severity?: 'moderee' | 'grave' }
-  /** Ops DIFFÉRÉES à échéance d'horloge (op IMPURE — file `scheduledEffects`, résolue couche state comme
-   *  `summon`/`zone` ; INERTE dans `applyOps`). Délai : `afterMinutes`/`afterHours`/`afterDays` depuis
-   *  maintenant, OU `afterDuration:true` = à l'échéance de la durée du contexte (`ctx.defaultUntilTime` —
-   *  Bonnet de fou « Quand l'effet se dissipe, l'utilisateur perd 1d10 PB », LDB 71 l.20). `forMinutes`/
-   *  `forHours`/`forDays` : durée d'horloge PROPRE des effets durables de `ops` à partir de l'échéance
-   *  (Délice de Ranald : pénalité pendant le reste du jour, LDB 71 l.24). */
-  | { op: 'delayed'; afterMinutes?: Formula; afterHours?: Formula; afterDays?: Formula; afterDuration?: true;
-      forMinutes?: Formula; forHours?: Formula; forDays?: Formula; ops: GameOp[] }
-  /** Retire une pièce d'artillerie d'une COQUE (« Canon perdu », MDG 13 l.765 : la pièce passe par-dessus
-   *  bord) : `target.postes` perd UN poste au hasard (`ctx.rng`) ; si son chef de pièce (`crewIds[0]`, résolu
-   *  dans `ctx.crew`) la servait, il est démancipé (`mannedPoste` + arme dérivée retirés). GÉNÉRIQUE — remplace
-   *  le flag ad hoc `losePoste`. Inerte si la coque n'a aucun poste. */
-  | { op: 'removeShipPoste' }
-  /** Commandant d'équipe (AA 13 l.29-35) : lie CE chef de pièce (`target`) au commandant `commanderId` qui
-   *  vient de le diriger (Test de Commandement réussi) → l'équipe tire ENSUITE au score de Projectiles du
-   *  commandant (substitution re-validée à chaque tir tant qu'il vit et reste à portée de voix). */
-  | { op: 'teamCommander'; commanderId: string }
-  /** PASSIF d'ARME (Atout/Défaut, LDB 62-63) : modificateur de DR/plat à une PHASE de jet de combat —
-   *  Précise (+10 `flatMod` en attaque), Imprécise (−1 DR en attaque), Pointue (+1 DR au Test d'attaque
-   *  RÉUSSI, `phase:'attaqueReussie'`, LDB 62 l.288), Défensive (+1 DR parade du défenseur), À Enroulement
-   *  (−1 DR parade adverse), Lente (+1 DR à TOUTE défense adverse), Pratique/Peu Fiable (±1 DR à
-   *  un Test raté). Lu PAR ID par `engine/qualities/dispatch` (attackDRAdjust/parryDRAdjust/vsDefenseDRAdjust/
-   *  qualitySum/craftTestDRAdjust). INERTE dans `applyOps`. */
-  | { op: 'weaponRollMod'; phase: 'attaque' | 'attaqueReussie' | 'paradeDuDefenseur' | 'paradeAdverse' | 'defenseAdverse' | 'testRate'; drMod?: number; flatMod?: number }
-  /** PASSIF d'ARME : modificateur de DÉGÂTS (LDB 62-63) — Dévastatrice (DR = max(DR,
-   *  dé des unités), `mode:'maxUnits'`), Percutante (+ dé des unités, `plusUnits`), Inoffensive (annule les
-   *  Atouts de Dégâts, `negateAtouts`), Épuisante (`chargeGated` : Percutante/Dévastatrice de l'arme inertes
-   *  hors Charge). Lu PAR ID par `qualityDamageStep`. INERTE dans `applyOps`. */
-  | { op: 'weaponDamageMod'; mode?: 'maxUnits'; plusUnits?: boolean; negateAtouts?: boolean; chargeGated?: boolean }
-  /** PASSIF d'ARME : Perforante (LDB 62 l.270) — `bypass` (ex. `'nonMetal'`) puis `amount` PA retirés du
-   *  reliquat à la mitigation. Lu PAR ID par `qualitySum('armourReduction')`/`qualityArmourBypasses`.
-   *  INERTE dans `applyOps`. */
-  | { op: 'armourPierce'; amount: number; bypass?: ArmourBypass }
-  /** PASSIF d'ARME : Empaleuse (LDB 62) — déclenche un Coup Critique quand `roll % mod === equals`
-   *  (`{mod:10, equals:0}` = multiple de 10). Forme DÉCLARATIVE sérialisable (remplace le hook fonction
-   *  `critTrigger`). Lu PAR ID par `qualityCritTriggered`. INERTE dans `applyOps`. */
-  | { op: 'critOnRoll'; mod: number; equals: number }
-  /** Dépense `amount` Points d'Avantage du RÉFÉRENT (Déstabilisante : coût d'un Test de renversement).
-   *  `amount` absent = TOUS (LDB 14 l.219). Effet PUR appliqué par `applyOps` (jamais sous 0). */
-  | { op: 'spendAdvantage'; amount?: number }
-  /** Émission de LUMIÈRE — `radiusM` = le rayon éclairé en MÈTRES, la valeur RAW telle qu'elle est
-   *  écrite (Bougie 10 m `LDB 74 l.43`, Lanterne 20 m `LDB 74 l.58`) ; c'est `rayonEnCases`
-   *  (`noyau/monde/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
-   *  INERTE dans applyOps — lu par `combatantLights` (vision) pour les objets PORTÉS/TENUS. Côté SORT :
-   *  pousse un `ActiveEffect.light` temporisé (durée), lu au MÊME point.
-   *  `tone` : référence à un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
-   *  du rendu et jamais ici ; absent = `flamme`. Le RAYON reste seul à porter une conséquence de règle. */
-  | { op: 'light'; radiusM: number; tone?: { id: string } }
-  /** Boisson alcoolisée : enregistre UN échec de Résistance à l'alcool (LDB 09 l.475) sur la cible —
-   *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
-   *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow).
-   *  `tantQuIvre` : ops jouées sous l'effet d'ivresse (`EFFET_D_IVRESSE`), retirées au dessoûlage. MDG 16 l.411 */
-  | { op: 'intoxicate'; tantQuIvre?: GameOp[] }
-  /** Narration de campagne : texte Markdown et provenance locale. #2001. `nombre` : un nombre tiré à
-   *  l'application, annoncé après le texte. MDG 15 l.154-155 */
-  | { op: 'narrative'; text: string; nombre?: Formula; source?: SourceRef; adapteDe?: SourceRef }
-  /** MORAL de l'équipage du navire (MDG 14) : `delta` signé tiré. Op de NAVIRE (`OPS_DU_NAVIRE`) — inerte
-   *  dans `applyOps`, résolue sur la cible `navire` (`noyau/navireOps.ts`). MDG 15 l.180, l.220 */
-  | { op: 'shipMorale'; delta: EffetSigne }
-  /** HUMEUR DE MANANN du navire : `delta` signé libre, OU un facteur du tableau (`factorId`, appliqué une
-   *  fois par navire, MDG 15 l.85). Op de NAVIRE. MDG 15 l.83-125 */
-  | { op: 'manann'; delta: EffetSigne; factorId?: never }
-  | { op: 'manann'; factorId: string; delta?: never }
-  /** COUPS CRITIQUES de coque : `count` Critiques sur `location`, ou sur une localisation tirée
-   *  (`aleatoire`) ; `equipageEpargne` ignore les Dégâts qu'ils infligent à l'équipage. Op de NAVIRE.
-   *  MDG 15 l.153, l.49-51 */
-  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula; equipageEpargne?: true }
-  /** MODIFICATEUR du navire : `m` au Mouvement, `manDR` en DR aux Tests de Manœuvre, `evite` les périls que le
-   *  navire ne heurte pas (op `perilDeMer`), jusqu'au carénage (`carenage`), jusqu'au prochain événement de
-   *  bord (`evenementDeBord`) ou pendant `jours` jours. Op de NAVIRE. MDG 15 l.184-185, l.187-188, l.228, l.229 */
-  | { op: 'navireMod'; m?: number; manDR?: number; evite?: string[]; jusqua: 'carenage' | 'evenementDeBord' | { jours: Formula } }
-  /** MÉTÉO IMPOSÉE au navire pendant `jours` jours : les axes de `meteo` remplacent la météo tirée, le vent
-   *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
-   *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
-   *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
-  | { op: 'meteoImposee'; jours: Formula; meteo?: MeteoImposee; ventInverse?: true; aggravation?: AggravationMeteo }
-  /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
-   *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
-   *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
-   *  MDG 15 l.209-210, l.224-225, l.250, l.33-36, l.159-164, l.174-178 */
-  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never; perduePct?: never; perdueEnc?: never }
-  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never; perduePct?: never; perdueEnc?: never }
-  | { op: 'cargaison'; perduePct: number; enc?: never; perteAuDechargement?: never; perdueEnc?: never }
-  | { op: 'cargaison'; perdueEnc: Formula; enc?: never; perteAuDechargement?: never; perduePct?: never }
-  /** ÉQUIPAGE du navire : `delta` marins (négatif : perdus ; positif : recueillis, dans la limite de
-   *  l'effectif nominal) ; le recueilli qui tient un rôle d'équipage (`role`) entre au rôle, sans solde
-   *  jusqu'au prochain port (`sansSolde`). OU `perdusPct` % des PNJ de l'équipage à bord perdus. Op de
-   *  NAVIRE. MDG 15 l.202-204, l.213-218, l.258, l.33-35 */
-  | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort'; perdusPct?: never }
-  | { op: 'equipage'; perdusPct: number; delta?: never; role?: never; sansSolde?: never }
-  /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
-   *  bord gâtées (cale et rations des héros), OU `rations` rations de mer, OU `eauTonneaux` tonneaux d'eau
-   *  douce, exclusifs ; `vivre` : le vivre de la cale (`sea-navigation.json` `longsVoyages.vivresDeCale`) que
-   *  `jours` ou `rations` ajoutent. Op de NAVIRE. MDG 15 l.169-170, l.235-236, l.194, l.223 ; MDG 14 l.242, l.245-252 */
-  | { op: 'provisions'; jours: Formula; vivre: { id: Id<'trapping'> }; gateesPct?: never; rations?: never; eauTonneaux?: never }
-  | { op: 'provisions'; gateesPct: number; jours?: never; rations?: never; eauTonneaux?: never; vivre?: never }
-  | { op: 'provisions'; rations: Formula; vivre: { id: Id<'trapping'> }; jours?: never; gateesPct?: never; eauTonneaux?: never }
-  | { op: 'provisions'; eauTonneaux: Formula; jours?: never; gateesPct?: never; rations?: never; vivre?: never }
-  /** PÉRIL DE MER : le navire heurte le péril `collision` (`sea-perils.json` hazards), OU un tourbillon
-   *  (`tourbillon`) l'aspire à la périphérie de sa zone. Op de NAVIRE. MDG 15 l.140-141, l.146, l.181-183 ;
-   *  MDG 13 l.446, l.475-499, l.514-537 */
-  | { op: 'perilDeMer'; collision: { id: string }; tourbillon?: never }
-  | { op: 'perilDeMer'; tourbillon: { id: string }; collision?: never }
-  /** NAVIRE HOSTILE en vue : la coque `navire`, son `equipage` (créature type, effectif total), son `chef`, ses
-   *  `grandsCanons` ; s'il juge le navire vulnérable il approche, et exige de fouiller la cale (`fouille`), sinon
-   *  il attaque. Op de NAVIRE. MDG 15 l.150-151, l.171-173 */
-  | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' }
-  /** Infestation du navire avec Test d'équipage.
-   *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
-  | { op: 'infestation'; test: Required<Pick<FlowTest, 'crewTestType' | 'difficulty'>>; drCible: number; chaqueNuit: Flow; surDRNegatif?: Flow }
-  /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
-   *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
-   *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
-  | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow }
-  /** ATTAQUES SUBIES : la cible UNIQUE subit `nombre` (un Tirage) attaques de l'`assaillant`, un statbloc (porteur
-   *  `statblock` de `PorteurDeFiche`). Résolue par l'effet de scène `ops` (`estOpDAttaquesSubies`). MDG 15 l.163-164,
-   *  l.177-178 */
-  | { op: 'attaquesSubies'; assaillant: { statblock: CustomStatblock }; nombre: Tirage }
-  /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
-   *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
-  | { op: 'commission'; montant: { brass: Formula } }
-  /** CONSTRUCTEUR DE NAVIRES D'ESCALE : jusqu'à l'appareillage, la réparation au port se teste à Métier (Constructeur
-   *  de navires) `competence`, et chaque réparation ou Amélioration prend `duree` jours, tirés au travail. Op de
-   *  NAVIRE. MDG 15 l.255 */
-  | { op: 'constructeurDEscale'; competence: number; duree: Formula }
-  /** RATIONS D'ESCALE : jusqu'à l'appareillage, les vivres frais s'achètent au port à `montant`. Op de NAVIRE.
-   *  MDG 15 l.262 */
-  | { op: 'rationsDEscale'; montant: { brass: Formula } }
-  /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent
-   *  (`colonnes`), OU un client offre au plus `offre.enc` Enc d'une cargaison tirée au hasard pour la saison à
-   *  `offre.remisePct` % sous son prix de base ; OU, dans un autre port tiré au hasard, la Demande d'une cargaison
-   *  tirée au hasard croît de `demande` pendant `jours` jours. Résolue une fois par la feuille qui la porte
-   *  (`estOpDuMarche`). MDG 15 l.253, l.256, l.259, l.263 */
-  | { op: 'marcheDuPort'; colonnes: 'penurie' | 'saturation'; offre?: never; demande?: never; jours?: never }
-  | { op: 'marcheDuPort'; offre: { enc: Formula; remisePct: number }; colonnes?: never; demande?: never; jours?: never }
-  | { op: 'marcheDuPort'; demande: number; jours: Formula; colonnes?: never; offre?: never };
+export type { GameOp } from '../data/schemas/grammaire/mecanique';
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
-export interface AggravationMeteo { de: Formula; seuil: number; meteo: MeteoImposee }
+export type AggravationMeteo = NonNullable<Extract<GameOp, { op: 'meteoImposee' }>['aggravation']>;
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
-export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
+export type { OpPassive } from '../data/schemas/grammaire/mecanique';
 
 /** Profil d'ANNULATION d'un effet PASSIF (système unifié) — le « flag de typage » qui dit CE QUI le neutralise.
  *  Porté par chaque `PassiveMod` ; une table `kind → annulateurs` (engine/trauma) applique le gating. */
@@ -1818,15 +918,15 @@ export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source' | 'affliction'> & {
 /** Les afflictions de `c` auxquelles `o` met fin : l'instance du contexte (`instance`, par son identité de
  *  ciblage), ou celles du type ; une affliction ciblée seulement si elle est ACTIVE. */
 function afflictionsFinies(c: Combatant, o: Extract<GameOp, { op: 'endPsych' }>, ctx: ContexteDeRetrait): PsychAffliction[] {
-  const visee = 'instance' in o
+  const visee = o.instance
     ? (p: PsychAffliction) => !!ctx.affliction && identiteDeCiblage(p.type, p.cible) === identiteDeCiblage(ctx.affliction.type, ctx.affliction.cible)
-    : (p: PsychAffliction) => p.type === o.type.id;
+    : (p: PsychAffliction) => p.type === o.type?.id;
   return (c.psychState ?? []).filter((p) => visee(p) && (!estCibleType(p.type) || p.active === true));
 }
 
 /** Le type d'état psy que nomme une op `endPsych` (celui de l'instance du contexte, sinon le sien). */
 const typeDeFin = (o: Extract<GameOp, { op: 'endPsych' }>, ctx: ContexteDeRetrait): string | undefined =>
-  'instance' in o ? ctx.affliction?.type : o.type.id;
+  o.instance ? ctx.affliction?.type : o.type?.id;
 
 /** Un compte `base` + échelle de DR est-il positif sous `ctx` ? */
 function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRetrait): boolean {
@@ -1857,7 +957,7 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
     case 'cureCriticalWound':
       return (c.traumas ?? []).some((tr) => tr.kind != null) && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.sansCritiqueAGuerir', { name: c.label });
     case 'reduceDiseaseDays': {
-      const opts = { disease: o.disease, once: o.oncePerDisease };
+      const opts = { disease: o.disease?.id, once: o.oncePerDisease };
       const dz = maladieABenir(c, opts);
       if (!dz) return aucuneMaladieABenir(c, opts);
       const raccourcit = dz.minutesLeft > MINUTES_PER_DAY && (!!o.dice || comptePositif(o.days ?? 1, o.daysPerSL, ctx));
@@ -1884,9 +984,9 @@ export function reussiteSansObjet(c: Combatant, ops: readonly GameOp[], ctx: Con
 
 type OpTable = Extract<GameOp, { op: 'rollTable' }>;
 
-/** Les rangées d'une op `rollTable` : en ligne (`entries`) ou référencées (`tableId` → tables.json, fail-fast). */
+/** Les rangées d'une op `rollTable` : en ligne (`entries`) ou référencées (`table` → tables.json, fail-fast). */
 function rangeesDeLaTable(o: OpTable): { min: number; max: number; ops: GameOp[] }[] {
-  return 'tableId' in o ? findEffectTableById(o.tableId).entries : o.entries;
+  return o.table ? findEffectTableById(o.table.id).entries : o.entries;
 }
 
 /** Une rangée tirée d'une `rollTable` : ses ops et le dé tiré (`rolled` des ops de la rangée). */
@@ -1897,7 +997,7 @@ interface RangeeTiree { ops: GameOp[]; rolled: number }
  *  VDM 03 l.698 ; MSRC 16 l.90 ; EDOC 13 l.276 */
 export function* tirerLaTable(o: OpTable, ctx: Pick<OpsCtx, 'sl' | 'overcastDurationSteps' | 'chosenTableRolls'>, rng: RNG): Generator<RangeeTiree> {
   const rows = rangeesDeLaTable(o);
-  const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
+  const de = o.table ? effectTableDie(o.table.id) : deDeTirageDe(o);
   const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
   const allocatedSteps = Math.max(0, ctx.overcastDurationSteps ?? 0);
   const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
@@ -2028,7 +1128,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'topUpAdvantage': {
         // Porte l'Avantage à AU MOINS `amount` (jamais réduit) — Redoutable complète jusqu'à l'Indice.
-        const want = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
+        const want = typeof o.amount === 'string' ? 0 : Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         if ((target.advantage ?? 0) < want) { target.advantage = want; lines.push(t('op.avantageComplete', { name: target.label, n: want })); }
         // Clause AA Redoutable (MDG 16 l.13) : l'op S'EXÉCUTE ⇒ le garde-fou de la donnée (empetre/
         // inconscient/surpris, dans le nœud `if` englobant) est déjà franchi — l'Indice PLEIN part EN
@@ -2387,7 +1487,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const held = [lo?.main, lo?.secondaire]
           .map((u) => objetDeSlot(target, u))
           .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
-        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(i.shape?.id ?? ''));
+        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.some((id) => id === i.shape?.id));
         if (!item) {
           lines.push(t('op.sansArmeAEnchanter', { name: target.label, src: nomDeSource(ctx) }));
           break;
@@ -2435,7 +1535,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // `oncePerDisease` = verrou « une fois par maladie » (Bénédiction de Convalescence, LDB 41) ;
         // `daysPerSL` = échelle sur le DR du Test précédent (Gesundheit, MSRC 04 l.184-186).
         const days = (o.dice ? rollDice(o.dice, rng) : (o.days ?? 1)) + slBonus(ctx.sl, o.daysPerSL);
-        lines.push(...blessDiseaseDuration(target, maladieABenir(target, { disease: o.disease, once: o.oncePerDisease })!, days, o.oncePerDisease));
+        lines.push(...blessDiseaseDuration(target, maladieABenir(target, { disease: o.disease?.id, once: o.oncePerDisease })!, days, o.oncePerDisease));
         break;
       }
       case 'preventInfection': {
@@ -2455,7 +1555,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'contractDisease': {
         // Contraction instantanée (incubation 0) — délègue à la machinerie de maladie (cycle-safe :
         // disease.ts n'importe `ops` qu'en type). Inerte si déjà porteur.
-        lines.push(...contractDiseaseOnce(target, o.disease, rng));
+        lines.push(...contractDiseaseOnce(target, o.disease.id, rng));
         break;
       }
       case 'kill': {
@@ -2694,14 +1794,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'suppressSymptom': {
         // Suspension d'un symptôme par id (Racine de terre → bubons) — les canaux passive/onTick du
         // symptôme sont ignorés tant que l'effet dure (`symptomSuppressed`), restitués à l'expiration.
-        suspendSymptom(target, o.symptomId, durationFromCtx(ctx), nomDeSource(ctx));
-        lines.push(t('op.symptomeSuspendu', { name: target.label, symptom: refLabel('symptoms', { id: o.symptomId }), src: nomDeSource(ctx) }));
+        suspendSymptom(target, o.symptom.id, durationFromCtx(ctx), nomDeSource(ctx));
+        lines.push(t('op.symptomeSuspendu', { name: target.label, symptom: refLabel('symptoms', o.symptom), src: nomDeSource(ctx) }));
         break;
       }
       case 'aggravateSymptom': {
         // EDOC 08 l.104-108 : échelon d'aggravation. Le symptôme est DÉJÀ à cette sévérité →
         // l'échelon `otherwise` ; symptôme ABSENT → rien (l'échelon suivant ne s'ouvre pas).
-        const r = aggravateDiseaseSymptom(target, o.disease, o.symptomId, o.severity);
+        const r = aggravateDiseaseSymptom(target, o.disease.id, o.symptom.id, o.severity);
         lines.push(...r.log);
         if (r.etat === 'deja' && o.otherwise?.length) lines.push(...applyOps(target, o.otherwise, imbrique()));
         break;
@@ -2710,13 +1810,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // LDB 20 l.159 : l'échelon REDESCEND d'un cran, À DURÉE (celle que déclare le porteur — même
         // canal que `suppressSymptom`). Plus rien à atténuer → l'échelon `otherwise` ; symptôme ABSENT
         // → rien (symétrique exact d'`aggravateSymptom`).
-        const r = attenuateDiseaseSymptom(target, o.disease, o.symptomId, durationFromCtx(ctx), nomDeSource(ctx));
+        const r = attenuateDiseaseSymptom(target, o.disease.id, o.symptom.id, durationFromCtx(ctx), nomDeSource(ctx));
         lines.push(...r.log);
         if (r.etat === 'deja' && o.otherwise?.length) lines.push(...applyOps(target, o.otherwise, imbrique()));
         break;
       }
       case 'grantSymptom': {
-        lines.push(...grantDiseaseSymptom(target, o.disease, o.symptomId, o.severity));
+        lines.push(...grantDiseaseSymptom(target, o.disease.id, o.symptom.id, o.severity));
         break;
       }
       case 'testDAgir': {
@@ -2997,8 +2097,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'polymorph':
         // Métamorphose : développée en charMod différentiel + grantTrait (auto-restitués) — pure. + id de
         // la forme le temps de l'effet (morphRef, `liveMorphRef`), restitué à l'expiration.
-        lines.push(...applyOps(target, polymorphOps(target, o.ref), imbrique()));
-        applyActiveEffect(target, { label: nomDeSource(ctx, 'metamorphose'), morphRef: o.ref, bonus: 0, duration: durationFromCtx(ctx) });
+        lines.push(...applyOps(target, polymorphOps(target, o.creature.id), imbrique()));
+        applyActiveEffect(target, { label: nomDeSource(ctx, 'metamorphose'), morphRef: o.creature.id, bonus: 0, duration: durationFromCtx(ctx) });
         break;
       case 'transform': {
         // Applique les deltas AUTHORÉS sous le LABEL `tag` (déterministe → retrait atomique) et une durée
@@ -3006,7 +2106,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // (morphRef) porte le MÊME tag pour être retirée avec le reste par `endTransform`.
         const inner: OpsCtx = imbrique({ label: o.tag, effectId: o.tag, defaultDurationRounds: undefined, defaultUntilTime: undefined });
         lines.push(...applyOps(target, o.ops, inner));
-        if (o.morphRef) applyActiveEffect(target, { label: o.tag, effectId: o.tag, morphRef: o.morphRef, bonus: 0, duration: { scale: 'permanent' } });
+        if (o.creature) applyActiveEffect(target, { label: o.tag, effectId: o.tag, morphRef: o.creature.id, bonus: 0, duration: { scale: 'permanent' } });
         lines.push(t('op.metamorphose', { name: target.label, tag: o.tag }));
         break;
       }

@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { capaciteDeCombatSchema, domaineDuChaosSchema, OP_DEFS } from './mecanique';
+import { capaciteDeCombatSchema, domaineDuChaosSchema, hasWhatSchema, OP_DEFS } from './mecanique';
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -228,7 +228,14 @@ const NOMMES = [
   'reussite|echec|maladresse',
   'test|combat|threat|hold|rally',
   'any|all',
-  'group|talent|trait|psych|immunity',
+  ...hasWhatSchema.options,
+  'attaque|attaqueReussie|paradeDuDefenseur|paradeAdverse|defenseAdverse|testRate',
+  'available|immediate',
+  'frenzied',
+  'held|mainHand',
+  'magic',
+  'maxUnits',
+  'nullify',
   'moderee|grave',
   'nuit|voyage|flux|combat',
   'noise|magic',

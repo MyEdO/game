@@ -19,7 +19,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { buildWeapon, emptyArmour, itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { armourPhysiqueAt, sourceDuTraitA } from '../engine/armourBypass';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../engine/flowCore';
+import type { ManeuverDef } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
@@ -68,7 +68,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
 
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
-    const edited: TriggeredEffect[] = [
+    const edited: ManeuverDef['effects'] = [
       { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
     ];
     try {

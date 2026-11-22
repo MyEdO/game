@@ -967,7 +967,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'e
   // appliquée, conservateur) plutôt qu'exempté en bloc — cohérent avec les scénarios d'embuscade cités.
   const surprise: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.surpris }, value: 1 }] } };
   const onLose: Flow = {
-    kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
+    kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', ref: { id: 'vigilance' } },
     alors: testFlow<Effect>({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
     sinon: surprise,
   };
@@ -7266,8 +7266,8 @@ function scheduleRespawnFromOp(
 ): string[] {
   if (!actor.pos) return [];
   // `SELF_REF` : la fiche du défunt, quel qu'en soit le porteur (Middenheim 04 p.115, LDB 76 l.11, #1882).
-  const porteur = op.ref === SELF_REF ? actor.porteurDeFiche : { ref: op.ref };
-  if (!porteur) throw new Error(`[scheduleRespawn] « ${actor.id} » n'a été spawné d'aucune fiche : \`ref:'self'\` ne peut le reconstituer (#1882)`);
+  const porteur = op.creature.id === SELF_REF ? actor.porteurDeFiche : { ref: op.creature.id };
+  if (!porteur) throw new Error(`[scheduleRespawn] « ${actor.id} » n'a été spawné d'aucune fiche : \`creature: { id: 'self' }\` ne peut le reconstituer (#1882)`);
   const days = resolveFormula(op.delayDays, actor, battleRng());
   const count = Math.max(1, resolveFormula(op.count ?? 1, actor, battleRng()));
   const respawn: ScheduledRespawn = {

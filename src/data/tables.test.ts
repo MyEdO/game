@@ -4,24 +4,24 @@ import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { effectTables, findEffectTableById } from './index';
 import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
+import { estObjet } from '../lib/objet.mjs';
+import { gameOpSchema } from './schemas/grammaire/mecanique';
 
 /**
  * Intégrité de `tables.json` (tables d'effets référençables) + BIEN-FORMATION des ops `rollTable` dans TOUS
- * les `src/data/*.json` : la contrainte XOR (`entries` ⊕ `tableId`) et la résolution de `tableId` → tables.json.
+ * les `src/data/*.json` : la contrainte XOR (`entries` ⊕ `table`) et la résolution de `table.id` dans tables.json.
  */
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
-const effectIds = new Set<string>(effectTables.map((t) => t.id));
 
 /** Collecte toutes les ops d'un `op` donné, en profondeur, de tous les datasets. */
 function collectOps(op: string): Record<string, unknown>[] {
   const out: Record<string, unknown>[] = [];
   const walk = (n: unknown): void => {
     if (Array.isArray(n)) return void n.forEach(walk);
-    if (!n || typeof n !== 'object') return;
-    const o = n as Record<string, unknown>;
-    if (o.op === op && !('kind' in o)) out.push(o);
-    for (const v of Object.values(o)) walk(v);
+    if (!estObjet(n)) return;
+    if (n.op === op && !('kind' in n)) out.push(n);
+    for (const v of Object.values(n)) walk(v);
   };
   for (const f of files) walk(JSON.parse(readFileSync(join(DIR, f), 'utf8')));
   return out;
@@ -54,13 +54,22 @@ describe('tables.json — tables d’effets référençables', () => {
 });
 
 describe('bien-formation des ops rollTable (tous les datasets)', () => {
-  it('rollTable : EXACTEMENT un de `entries` ⊕ `tableId`', () => {
-    const bad = collectOps('rollTable').filter((o) => ('entries' in o) === ('tableId' in o));
-    expect(bad, `rollTable doit porter entries OU tableId (jamais les deux, jamais aucun) :\n${JSON.stringify(bad)}`).toEqual([]);
+  const ops = collectOps('rollTable');
+
+  it('les deux formes portent exactement une table, en ligne ou référencée', () => {
+    expect(ops.some((o) => 'entries' in o)).toBe(true);
+    expect(ops.some((o) => 'table' in o)).toBe(true);
+    const bad = ops.filter((o) => ('entries' in o) === ('table' in o));
+    expect(bad, `rollTable doit porter entries OU table :\n${JSON.stringify(bad)}`).toEqual([]);
   });
 
-  it('rollTable.tableId résout dans tables.json', () => {
-    const bad = collectOps('rollTable').filter((o) => 'tableId' in o && !effectIds.has(o.tableId as string));
-    expect(bad, `tableId introuvable :\n${JSON.stringify(bad)}`).toEqual([]);
+  it('chaque référence de table est jugée au parse', () => {
+    const refs = ops.filter((o) => 'table' in o);
+    expect(refs.length).toBeGreaterThan(0);
+    const bad = refs.flatMap((op) => {
+      const resultat = gameOpSchema.safeParse(op);
+      return resultat.success ? [] : [{ op, fautes: resultat.error.issues }];
+    });
+    expect(bad, `référence de table refusée :\n${JSON.stringify(bad)}`).toEqual([]);
   });
 });

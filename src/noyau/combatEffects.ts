@@ -1005,7 +1005,7 @@ function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp
     if (o.op !== 'exposeDisease' && o.op !== 'contractDisease') { ecartees++; continue; }
     if (env.get().battle) throw new Error(t('eff.maladieDeLEquipageEnCombat'));
     if (o.op === 'exposeDisease') { expositions = exposerALaMaladie(expositions, o); continue; }
-    contractDiseaseOnce(equipage.porteur, o.disease, ctx.rng).forEach((l) => env.log(l));
+    contractDiseaseOnce(equipage.porteur, o.disease.id, ctx.rng).forEach((l) => env.log(l));
     equipage.ecrire();
   }
   if (ecartees) env.log(t('eff.membreAuHasardMarin'));

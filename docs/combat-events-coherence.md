@@ -52,6 +52,12 @@ authoré avec `effects:[{trigger:'onHit'|'onKill'|'onTurnStart'|'onWoundLoss'|'o
 rappeler. **Maladies/Mutations** réagissent par **composition** (elles octroient un Trait/État, déjà
 couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouveau chemin de dispatch.
 
+**Contrat des effets.** Le schéma de `TriggeredEffect` compose le déclencheur, sa cible et un `Flow`.
+Les branches conditionnelles de ce flux composent `Condition`. Ses feuilles mécaniques contiennent des
+`GameOp`, dont les charges strictes sont déclarées dans `OP_DEFS`. Le formulaire Godot lit les
+variantes et les champs de ces mêmes schémas. Le catalogue est généré dans
+`docs/vocabulaire-mecanique.md`.
+
 **Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
 (a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le

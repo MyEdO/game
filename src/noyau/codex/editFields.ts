@@ -1,8 +1,8 @@
 /**
  * Inférence de formulaire DEPUIS la donnée (pas de schéma par dataset → un nouveau dataset s'édite
  * tout seul). Métadonnées de RENDU uniquement : décrit comment afficher un champ, sans introduire de
- * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit` et par le
- * formulaire de l'éditeur de carte (`formulaireDe`, `noyau/sceneEditLecture.ts`), qui y lit aussi les variantes d'une
+ * structure intermédiaire — on édite les vrais objets de `src/data`. Le Compendium (`formulaireDeLAtelier`) et
+ * l'éditeur de carte (`formulaireDe`, `noyau/sceneEditLecture.ts`) y lisent aussi les variantes d'une
  * union (`unionDuNoeud`) et l'élément d'une liste (`elementDuNoeud`).
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
@@ -22,9 +22,8 @@ import {
   type TypeEntite,
 } from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
-import { declarationDeTestFixe, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
+import { declarationDeTestFixe } from '../../data/schemas/grammaire/mecanique';
 import { choixDeLaFeuilleDId, choixDeLaSpec } from '../../data';
-import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 import { estObjet } from '../../lib/objet.mjs';
 import { memoByRef } from '../monde/sceneMemo';
@@ -286,8 +285,7 @@ export function clesPosees(f: FieldDesc, ici: readonly (string | number)[]): boo
 }
 
 /** Une variante d'une union : la valeur de son discriminant (vide : la variante d'une union à présence qui ne le porte
- *  pas, `discriminantDePresence`), son libellé, son nœud (`undefined` : une op sans forme déclarée, de
- *  `OPS_NON_TYPEES`, qui se saisit en JSON). */
+ *  pas, `discriminantDePresence`), son libellé et son nœud. */
 export interface VarianteDuNoeud { cle: string; libelle: string; noeud: unknown }
 
 /** Une union dont chaque variante est nommée : son nœud, son discriminant, ses variantes. */
@@ -346,7 +344,7 @@ function libelleDeLaBranche(option: unknown, discriminant: string, cle: string):
 }
 
 /** L'union du nœud, chacune de ses variantes nommée : d'une répartition d'ops (`payloads-op`), chaque op typée, nommée
- *  par son payload, puis chaque op de `OPS_NON_TYPEES` (`OP_LABEL`) ; d'une union discriminée, chaque branche, de
+ *  par son payload ; d'une union discriminée, chaque branche, de
  *  l'unique valeur de son discriminant (`libelleDeLaBranche`) ; d'une union à présence, de même, la branche qui ne porte
  *  pas son discriminant de clé vide, nommée par son nœud ; d'une union sans discriminant, chaque branche
  *  (`variantesSansDiscriminant`). `undefined` hors d'une union, ou si une variante est sans nom. */
@@ -359,10 +357,7 @@ export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
   const discriminant = declaration ? 'op' : presence ?? defDe(n)!.discriminator ?? '';
   const variantes = sansDiscriminant
     ?? (declaration
-    ? [
-      ...declaration.enfants.map((e) => ({ cle: e.segment.slice(1), libelle: nomDeNoeud(e.noeud)?.label, noeud: e.noeud })),
-      ...OPS_NON_TYPEES.map((op) => ({ cle: op, libelle: OP_LABEL[op as GameOp['op']], noeud: undefined })),
-    ]
+    ? declaration.enfants.map((e) => ({ cle: e.segment.slice(1), libelle: nomDeNoeud(e.noeud)?.label, noeud: e.noeud }))
     : branchesDe(n).map((b) => {
       const lues = valeursAdmises(b)[discriminant];
       const admises = [...(lues ?? [])];
@@ -382,7 +377,7 @@ export function varianteCourante(u: UnionDuNoeud, valeur: unknown): VarianteDuNo
   if (typeof valeur !== 'object') return undefined;
   const lu = (valeur as Record<string, unknown>)[u.discriminant] ?? '';
   const ouvertes = ouverts([u.noeud], valeur);
-  return u.variantes.find((v) => v.cle === lu && (v.noeud === undefined || ouvertes.includes(v.noeud)));
+  return u.variantes.find((v) => v.cle === lu && ouvertes.includes(v.noeud));
 }
 
 /** La seule forme objet de la fermeture du nœud, la valeur `valeur` ouverte (`ouverts`), dont les clés déclarées portent
@@ -397,14 +392,13 @@ function formeDeLaValeur(noeud: unknown, valeur: unknown): unknown {
 
 /** Où s'écrivent les champs de la valeur `valeur` du nœud : à travers ses unions, le nœud de leur variante courante
  *  (`varianteCourante`), et les discriminants que tiennent leurs choix ; puis, d'une union sans variantes nommées, la
- *  branche que dessine la valeur (`formeDeLaValeur`) ; `undefined` quand une union n'a pas de variante courante à
- *  forme déclarée. */
+ *  branche que dessine la valeur (`formeDeLaValeur`) ; `undefined` quand une union n'a pas de variante courante. */
 export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown; tenus: string[] } | undefined {
   const tenus: string[] = [];
   let n = noeud;
   for (let u = unionDuNoeud(n); u; u = unionDuNoeud(n)) {
     const v = varianteCourante(u, valeur);
-    if (v?.noeud === undefined) return undefined;
+    if (v === undefined) return undefined;
     if (u.discriminant !== '') tenus.push(u.discriminant);
     n = v.noeud;
   }

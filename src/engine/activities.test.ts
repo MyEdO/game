@@ -397,14 +397,14 @@ describe('Augure (VDM 03 l.466-514) — tire réellement le Tableau des Symboles
 
   it('Succès Minime (+0 à +1 DR) : un lancer sur `vdm-symboles-augure`', () => {
     const ops = matchOutcomes(aug, { success: true, sl: 0 }).flatMap((b) => b.ops ?? []);
-    expect(ops).toEqual([{ op: 'rollTable', tableId: 'vdm-symboles-augure' }]);
+    expect(ops).toEqual([{ op: 'rollTable', table: { id: 'vdm-symboles-augure' } }]);
   });
 
   it('Succès Impressionnant (+4 à +5 DR) : deux lancers', () => {
     const ops = matchOutcomes(aug, { success: true, sl: 4 }).flatMap((b) => b.ops ?? []);
     expect(ops).toEqual([
-      { op: 'rollTable', tableId: 'vdm-symboles-augure' },
-      { op: 'rollTable', tableId: 'vdm-symboles-augure' },
+      { op: 'rollTable', table: { id: 'vdm-symboles-augure' } },
+      { op: 'rollTable', table: { id: 'vdm-symboles-augure' } },
     ]);
   });
 

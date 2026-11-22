@@ -112,6 +112,8 @@ export const TYPES = {
   steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
   // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
   seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
+  manannFactor: { espace: 'sea-events.json#manann.factors', catalogue: 'facteurs de l’humeur de Manann' },
+  fallHeightTable: { espace: 'ship-criticals.json#tablesDeChute', catalogue: 'tables de hauteur de chute' },
   tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
   // MDG 13 l.170 : les axes d'une rangée de la météo marine et d'une op `meteoImposee` résolvent AU PARSE.
   seaPrecipitation: { espace: 'sea-weather.json#precipitations', catalogue: 'précipitations en mer' },
@@ -850,6 +852,7 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
 export function ref<F extends z.ZodType<string, string>>(feuille: F): ReturnType<typeof objetDeRef<F, Record<never, never>>>;
+export function ref<F extends z.ZodType<string, string>, E extends Record<string, z.ZodType>>(feuille: F, extra: E): ReturnType<typeof objetDeRef<F, E>>;
 export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
 export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite> | z.ZodType<string, string>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {

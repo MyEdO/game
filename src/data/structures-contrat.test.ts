@@ -49,7 +49,7 @@ import { CLES_ENVELOPPE, document, type DeclarationExposition } from './schemas/
 import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
-import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
+import { TYPES, espaceDe, idDe, ref, reperesDuParse, type TypeEntite } from './schemas/grammaire/ref';
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs';
@@ -133,6 +133,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(formes.find((f) => f.champ === 'skillRef')).toMatchObject({ signature: 'id', statut: 'cible', occurrences: 2, cibles: ['skills.json'] });
   });
   it('écarte le discriminant d’une GameOp validée au site et conserve les vraies références', () => {
+    const expose = { op: 'exposeDisease', disease: { id: 'peste-noire' } };
     const catalogue = z.array(z.strictObject({ id: z.string(), label: z.string() }));
     const ops = z.array(gameOpSchema);
     const porteur = z.array(z.strictObject({
@@ -153,7 +154,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       'porteur.json': [{
         id: 'porteur',
         label: 'Porteur',
-        ops: [{ op: 'corruption', amount: 1 }, { op: 'exposeDisease', disease: 'peste-noire' }],
+        ops: [{ op: 'corruption', amount: 1 }, expose],
         refusees: [{ op: 'corruption', amount: false }],
         copies: [{ op: 'corruption', amount: 1 }],
       }],
@@ -168,7 +169,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       [...cases].filter(([, occurrence]) => occurrence.dataset === 'porteur.json')
         .map(([cle, occurrence]) => `${occurrence.champ}.${cle}`),
     );
-    expect(lignes(references)).toEqual(['copies.op', 'ops.disease', 'refusees.op']);
+    expect(lignes(references)).toEqual(['copies.op', 'refusees.op']);
+    expect(reperesDuParse(gameOpSchema, expose)).toContainEqual(
+      expect.objectContaining({ path: ['disease', 'id'], type: 'maladie' }),
+    );
   });
 
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
@@ -511,7 +515,7 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ['criticals.json', 'id', 'id', 'etats.json'],
     ['arene-projet.json', 'members', 'entityId', 'arene-projet.json'],
     ['maladies.json', 'symptoms', 'symptomId', 'symptoms.json'],
-    ['activities.json', 'ops', 'tableId+…', 'tables.json'],
+    ['activities.json', 'table', 'id', 'tables.json'],
   ])('%s › %s {%s} est une occurrence de référence dont la cible résout vers %s', (dataset, champ, sig, cible) => {
     const f = occurrence(dataset, champ, sig);
     expect(f, `aucune occurrence de référence mesurée sous \`${dataset} › ${champ} {${sig}}\` — le champ porteur est MESURÉ, pas déclaré.`).toBeTruthy();
@@ -532,13 +536,17 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ).toEqual([]);
   });
 
-  it('les refs à plat dans les ops sont VUES : aucune n’est orpheline sous un `op`', () => {
-    const refsDansOps = scan.formes.filter((f) => f.concept === 'reference' && (f.champ === 'ops' || f.champ === 'onFail'));
-    expect(refsDansOps.reduce((a, f) => a + f.occurrences, 0)).toBeGreaterThan(0);
-    expect(
-      refsDansOps.every((f) => f.statut === 'divergente' || f.statut === 'historique'),
-      'une ref à plat dans une op est une DIVERGENCE : la cible L1c est une ref EMBOÎTÉE (`{op, skill: {id}}`).',
-    ).toBe(true);
+  it('les références emboîtées des opérations atteignent les catalogues de leur schéma de porteur', () => {
+    const slots = slotsDuParse(scan, DEFS);
+    expect(slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ dataset: 'activities.json', path: '[].outcomes[].ops[].table.id', type: 'table' }),
+      expect.objectContaining({ dataset: 'spells.json', path: '[].effects.etapes[].effet.ops[].disease.id', type: 'maladie' }),
+      expect.objectContaining({
+        dataset: 'loup-et-saumure-projet.json',
+        path: 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id',
+        type: 'manannFactor',
+      }),
+    ]));
   });
 
   it('une ENTRÉE DE RACINE n’est jamais orpheline (les 90 faux orphelins de `props.json` sont morts)', () => {

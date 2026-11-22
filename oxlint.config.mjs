@@ -755,19 +755,6 @@ export const BLOCS_LINT = [
     },
   },
   {
-    // #495, #2724
-    files: ['src/**'],
-    excludeFiles: ['src/ui/editor/**', 'src/ui/gallery/**', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
-    rules: {
-      'murs/atelier': ['error', {
-        patterns: [{
-          group: ['**/editor/GameOpEditor', '**/editor/GameOpEditor.*', '**/editor/ConditionEditor', '**/editor/ConditionEditor.*', '**/data/refsDOp', '**/data/refsDOp.*'],
-          message: 'Atelier (#495) : `GameOpEditor`, `ConditionEditor` et la palette d’auteur `refsDOp` ne servent qu’à l’atelier (`src/ui/editor/`, et la galerie DEV `src/ui/gallery/`) et à sa validation (`src/data/atelierDuCodex.ts`) — une surface joueur compose `opRows`/`GameOpChips`/`humanizeCondition`.',
-        }],
-      }],
-    },
-  },
-  {
     // CWE-338, #2724
     files: ['server/src/**'],
     excludeFiles: ['server/src/**/*.test.*'],

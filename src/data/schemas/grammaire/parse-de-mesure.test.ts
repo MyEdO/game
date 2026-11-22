@@ -124,9 +124,8 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
 // nœud d'op (`emetteursDOp`, `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
 // ============================================================================
 
-/** Les nœuds qui émettent le repère d'op : le côté `in` du `gameOp` de CHAQUE famille construite
- *  (`famillesConstruites`, `grammaire/mecanique.ts`), qui porte le `superRefine`. */
-const emetteursDOp = (): ReadonlySet<object> => new Set(famillesConstruites().map((f) => (f.gameOp as unknown as z.ZodPipe).in));
+/** Les nœuds qui émettent le repère d'op : le `gameOp` de CHAQUE famille construite. */
+const emetteursDOp = (): ReadonlySet<object> => new Set(famillesConstruites().map((f) => f.gameOp));
 
 type Issue = { readonly code: string; readonly params?: object; readonly errors?: readonly (readonly Issue[])[]; readonly issues?: readonly Issue[] };
 type Charge = { value: unknown; issues: Issue[] };

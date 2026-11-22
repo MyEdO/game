@@ -309,7 +309,7 @@ describe('etats.json — verrou de type sans libellé, et soin de Détermination
   it('chaque champ du verrou s’authore SEUL, et un verrou sans libellé rend la raison générique', () => {
     expect(etatsSchema.safeParse(etat({ lockedUntil: pbPleins })).success).toBe(true);
     expect(etatsSchema.safeParse(etat({ lockedReason: 'parce que' })).success).toBe(true);
-    setDataset('etats', etats.map((e) => (e.id === 'sonne' ? { ...e, lockedUntil: pbPleins as unknown as Condition } : e)));
+    setDataset('etats', etats.map((e) => (e.id === 'sonne' ? { ...e, lockedUntil: pbPleins } : e)));
     const c = mk();
     c.wounds.current = 0;
     addCondition(c, 'sonne', 1);
