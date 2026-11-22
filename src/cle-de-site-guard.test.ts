@@ -21,7 +21,8 @@ import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { ast } from '../scripts/guards/lib/dialecte.mjs';
 import {
-  cleEnLigne, constructionsReserveesDuCorpus, recopieDeCanon, scanConstructionsReservees,
+  cleEnLigne, COMPARATEUR_D_ANCRE_EN_LIGNE, constructionsReserveesDuCorpus, EXEMPTION_PAR_LIGNE,
+  recopieDeCanon, scanConstructionsReservees,
 } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusTypeScriptDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import {
@@ -43,6 +44,8 @@ function domaineDuSite(rel: string): boolean {
   return domaineDesStocks(rel) || rel.startsWith('scripts/data/') || rel.startsWith('scripts/git-hooks/');
 }
 
+const domaineDesExemptions = (rel: string) => rel.startsWith('src/') || rel.startsWith('scripts/');
+
 const CONSTRUCTIONS_DE_STOCK = [
   {
     ...cleEnLigne({
@@ -52,6 +55,8 @@ const CONSTRUCTIONS_DE_STOCK = [
     }),
     foyer: FOYER_DE_LA_CLE,
   },
+  { ...EXEMPTION_PAR_LIGNE, foyer: STOCK, domaine: domaineDesExemptions },
+  { ...COMPARATEUR_D_ANCRE_EN_LIGNE, foyer: STOCK, domaine: domaineDesExemptions },
   { ...recopieDeCanon({ nom: 'clé de site', membres: CHAMPS_REQUIS, complet: true, formes: ['tableau', 'membres de type'] }), foyer: FOYER_DE_LA_CLE },
   {
     ...recopieDeCanon({ nom: 'Site', membres: CHAMPS_DE_SITE_OBSERVE, complet: true, formes: ['membres de type'] }),
@@ -76,6 +81,41 @@ const EN_LIGNE = ['clé de site en ligne'];
 describe('clé de site (#1903)', () => {
   it('les constructions de stock sont déclarées dans leur foyer', () => {
     expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), CONSTRUCTIONS_DE_STOCK)).toEqual([]);
+  });
+
+  it('une liste d’exemptions ne désigne jamais un site par la position du citant', () => {
+    const faute = ['exemption par numéro de ligne'];
+    expect(fixture("const coutures = { 'data/index.ts:3283': 'justification' };")).toEqual(faute);
+    expect(fixture("const DECLARATIONS = [{ file: 'data/index.ts', line: 3283, reason: 'couture' }];")).toEqual(faute);
+    expect(fixture("const RATCHET = [{ url: new URL('file:///a.ts'), row: 4 }];")).toEqual(faute);
+    expect(fixture("const ALLOWLIST = new Set(['src/z.ts:8']);")).toEqual(faute);
+    expect(fixture("const ALLOWED_SITES = ['data/index.ts:3283'];")).toEqual(faute);
+    expect(fixture("const table = new Map([['data/index.ts:3283', 'Oui']]);")).toEqual(faute);
+    expect(fixture("expect(scan({'data/index.ts:3283': 'couture'})).toEqual([]);")).toEqual(faute);
+    expect(fixture("assert.deepEqual(scan({'data/index.ts:3283': 'couture'}), []);")).toEqual(faute);
+    expect(fixture('const EXEMPTIONS = { [`${hit.rel}:${hit.line}`]: "couture" };')).toEqual(faute);
+    expect(fixture("const enVigueur = [{ site: 'src/z.ts:8', raison: 'couture' }];")).toEqual(faute);
+  });
+
+  it('une localisation, une fixture et une référence RAW restent lisibles', () => {
+    expect(fixture('const message = `${hit.file}:${hit.line}`;')).toEqual([]);
+    expect(fixture("expect(fautes).toEqual(['script-fixture.ts:4']);")).toEqual([]);
+    expect(fixture("expect(resultat).toEqual({'x.ts:3': 'erreur'});")).toEqual([]);
+    expect(fixture("expect(resultat).toEqual(new Map([['x.ts:3', 'erreur']]));")).toEqual([]);
+    expect(fixture("assert.deepEqual(resultat, {'x.ts:3': 'erreur'});")).toEqual([]);
+    expect(fixture("assertDeepEqual(resultat, [{'x.ts:3': 'erreur'}]);")).toEqual([]);
+    expect(fixture("const signal = { fichier: 'src/test.ts', line: 4, detail: 'site fautif' };")).toEqual([]);
+    expect(fixture("const EXEMPTIONS = [{ fichier: 'src/test.ts', ref: 'LDB 17 l.24', occurrence: 1 }];")).toEqual([]);
+    expect(fixture("const EXEMPTIONS = ['src/data/index.ts#charger'];")).toEqual([]);
+  });
+
+  it('le fichier et l’ancre d’une exemption passent par le comparateur canonique', () => {
+    const faute = ['comparateur d’ancre recopié'];
+    expect(fixture('const vu = formes.find((e) => e.file === rel && e.motif.test(texte));')).toEqual(faute);
+    expect(fixture('const vu = formes.filter((e) => normaliser(e.file) === rel && texte.includes(normaliser(e.ancre)));')).toEqual(faute);
+    expect(fixture('const vu = formes.filter((e) => texte === e.ancre && e.file === rel);')).toEqual(faute);
+    expect(fixture('const vus = formes.filter((e) => e.file === rel && grammaire.test(texte));')).toEqual([]);
+    expect(fixture('const vus = formes.filter((e) => e.file === rel && motif.includes(autre.ancre));')).toEqual([]);
   });
 
   it('clé à occurrence', () => {

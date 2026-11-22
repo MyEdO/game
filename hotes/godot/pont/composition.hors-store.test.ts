@@ -15,8 +15,6 @@ import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { creerPont } from './pont';
-import { evaluer } from '../asset/evaluateur/evaluer.ts';
-import { glbFabrique } from '../asset/evaluateur/glbFabrique.testkit.ts';
 import { NOMS_DES_SILHOUETTES } from '../asset/silhouettes.ts';
 import { NOMS_DES_FORMES_DE_TETE } from '../../../src/lib/formesDeTete';
 
@@ -121,14 +119,12 @@ describe('composerSurLaBase', () => {
     expect(avec.reliefs).toEqual(sans.reliefs);
   });
 
-  it('les `morphes` du Sorcier, silhouettes et formes de la tête, passent à l’évaluateur tels quels, comme la pile de la recette `preset` (#4413)', async () => {
+  it('les `morphes` du Sorcier ne portent que des silhouettes et des formes de la tête, au moins une (#4413)', () => {
     const sorcier = cataloguesDeComposition().presets.find((p) => p.id === 'sorcier')!.composition;
-    const { morphes } = composer({ humanoide }, sorcier);
-    expect(Object.keys(morphes).filter((nom) => (NOMS_DES_FORMES_DE_TETE as readonly string[]).includes(nom))).not.toEqual([]);
-    const base = glbFabrique({ clips: { Repos: [0, 0] }, anneau: tableTotale(NOMS_DES_SILHOUETTES, () => new Array<number>(27).fill(0)) });
-    // La base, comme `humanoide`, ne porte que les silhouettes : une forme de la tête est la clé d'un élément de tête.
-    await expect(evaluer({ base, silhouettes: morphes, pas: 0.5 })).resolves.toBeDefined();
-    await expect(evaluer({ base, silhouettes: { ...morphes, nez_crochu: 1 }, pas: 0.5 })).rejects.toThrow(/\[silhouette-absente\] nez_crochu /);
+    const noms = Object.keys(composer({ humanoide }, sorcier).morphes);
+    const estForme = (nom: string) => (NOMS_DES_FORMES_DE_TETE as readonly string[]).includes(nom);
+    expect(noms.filter(estForme)).not.toEqual([]);
+    expect(noms.filter((nom) => !estForme(nom) && !(NOMS_DES_SILHOUETTES as readonly string[]).includes(nom))).toEqual([]);
   });
 
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {

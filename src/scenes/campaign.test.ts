@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
-  allBuiltinCampaigns, areneCampaign, builtinCampaigns, campagneALancer, campagneDuJeu, copieDuJeu, diligenceCampaign, documentDuJeu, paquetDuJeu,
+  allBuiltinCampaigns, areneCampaign, builtinCampaigns, campagneALancer, campagneDuJeu, campagneDuPaquet,
+  copieDuJeu, diligenceCampaign, documentDuJeu, paquetDuJeu,
   type BuiltinCampaign,
 } from './campaign';
 import { parseProject, texteDuDepot, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
@@ -33,6 +34,16 @@ describe('builtinCampaigns — registre des campagnes exposées au picker', () =
   });
 });
 
+function refusDuProjet(paquet: unknown): ProjetRefuse {
+  try {
+    parseProject(paquet);
+  } catch (erreur) {
+    if (erreur instanceof ProjetRefuse) return erreur;
+    throw erreur;
+  }
+  throw new Error('Le projet devait être refusé.');
+}
+
 /** #1692 : à l'import, une campagne du jeu n'est que son identité et son paquet NON PARSÉ ; la porte
  *  `parseProject` se passe au geste. */
 describe('campagne du jeu — identité à l’import, paquet parsé au geste', () => {
@@ -42,6 +53,54 @@ describe('campagne du jeu — identité à l’import, paquet parsé au geste', 
     expect(areneCampaign.label).toBe(areneProjet.label);
     expect(areneCampaign.icon).toBe(areneProjet.icon);
     expect(Object.keys(areneCampaign).sort()).toEqual(['fichier', 'icon', 'id', 'label', 'maison', 'paquet', 'type', 'versionContenu']);
+  });
+
+  const fichier = 'arene-projet.json';
+  const { label: _label, ...sansLabel } = areneProjet;
+  const { maison: _maison, ...sansProvenance } = areneProjet;
+  const { icon: _icon, ...sansIcone } = areneProjet;
+
+  it.each([
+    ['label', sansLabel],
+    ['type', { ...areneProjet, type: 'scene' }],
+    ['icon', { ...areneProjet, icon: 'hors-registre-des-icones' }],
+    ['source', sansProvenance],
+  ] as const)('partage le refus du projet sur le champ %s', (champ, paquet) => {
+    const { cause, fautes } = refusDuProjet(paquet);
+    expect(fautes.map(faute => faute.chemin)).toEqual([[champ]]);
+    expect(() => campagneDuPaquet(paquet, fichier)).toThrow(expect.objectContaining({
+      name: 'ProjetRefuse',
+      cause,
+      fautes,
+      message: expect.stringContaining(fichier),
+    }));
+  });
+
+  it('exige une icône pour le registre des campagnes fournies', () => {
+    expect(parseProject(sansIcone).icon).toBeUndefined();
+    expect(() => campagneDuPaquet(sansIcone, fichier)).toThrow(expect.objectContaining({
+      name: 'ProjetRefuse',
+      fautes: [expect.objectContaining({ chemin: ['icon'] })],
+    }));
+  });
+
+  const avecAuteur = { ...areneProjet, auteur: 'A' };
+
+  it('lit l’auteur sans accéder aux scènes', () => {
+    const paquet = {
+      ...avecAuteur,
+      get scenes(): never {
+        throw new Error('Le lecteur d’identité a lu les scènes.');
+      },
+    };
+    const campagne = campagneDuPaquet(paquet, fichier);
+    expect(campagne.auteur).toBe(avecAuteur.auteur);
+    expect(campagne.paquet).toBe(paquet);
+    expect(campagne).not.toHaveProperty('scenes');
+  });
+
+  it('lit le même auteur au parse du projet complet', () => {
+    expect(parseProject(avecAuteur).auteur).toBe(avecAuteur.auteur);
   });
 
   it('un paquet que la porte refuse : jouer, ouvrir et exporter lèvent `ProjetRefuse`', () => {
@@ -129,6 +188,20 @@ describe('export portable d’une campagne livrée — la prose ADRESSÉE fait l
   type Preset = { id: string; profil?: { desc?: unknown; descRef?: unknown } };
   const adresses = (JSON.parse(DISQUE).narratif.presetsPnj as Preset[]).filter((p) => p.profil?.descRef !== undefined);
   const exporte = (): Record<string, unknown> => JSON.parse(JSON.stringify(documentDuJeu(diligenceCampaign)));
+
+  it('contrôle la cohérence de l’adresse de description et restitue son texte', () => {
+    const descRef = adresses[0]?.profil?.descRef;
+    expect(descRef).toBeDefined();
+    const paquet = { ...areneProjet, desc: 'Description de test.', descRef };
+    const campagne = campagneDuPaquet(paquet, areneCampaign.fichier);
+    expect(campagne.desc).toBe(parseProject(paquet).desc);
+    expect(campagne).not.toHaveProperty('descRef');
+
+    const autreLivre = { ...paquet, source: { book: 'aux-armes', page: 1 } };
+    const { cause, fautes } = refusDuProjet(autreLivre);
+    expect(fautes.map(faute => faute.chemin)).toEqual([['descRef', 'book']]);
+    expect(() => campagneDuPaquet(autreLivre, areneCampaign.fichier)).toThrow(expect.objectContaining({ cause, fautes }));
+  });
 
   it('documentDuJeu → JSON → parseProject : chaque preset adressé revient AVEC son texte', () => {
     expect(adresses.length, 'aucun preset adressé — l’aller-retour ne mesurerait rien').toBeGreaterThan(0);

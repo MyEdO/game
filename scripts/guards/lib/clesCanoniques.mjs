@@ -23,6 +23,7 @@ const prototypesInertes = () => {
   }
   return true
 }
+const prototypesSansToJSON = () => !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')
 
 /** Les modes d'une clé : `texte` (projection JSON), `strict` (certifiée, `null` hors domaine), `cellules` (stricte, en cellules). */
 const MODES = Object.freeze({
@@ -271,37 +272,41 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       return signature
     }
     const pileDesTokens = new Set()
-    const tokensDe = (v, tokens, projection = false) => {
+    const tokensDe = (v, tokens, sansToJSONConnu, projection = false) => {
       if (v === null || v === undefined || typeof v === 'symbol') { tokens.push(null); return true }
       const type = typeof v
       if (type === 'string' || type === 'boolean') { tokens.push(v); return true }
       if (type === 'number') { tokens.push(Number.isFinite(v) ? v + 0 : null); return true }
       if (type !== 'object') return false
       if (cellules && referencesBooleennes.has(v)) { tokens.push(v); return true }
-      const lectureDirecte = possedes.has(v) && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')
+      const sansToJSON = sansToJSONConnu ?? prototypesSansToJSON()
+      const lectureDirecte = sansToJSON && possedes.has(v)
       if (!lectureDirecte && !projection && (types.isProxy(v) || !Array.isArray(v) || Object.getPrototypeOf(v) !== Array.prototype ||
-        Object.hasOwn(v, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON') || Object.hasOwn(Object.prototype, 'toJSON'))) return false
+        Object.hasOwn(v, 'toJSON') || !sansToJSON)) return false
       const locaux = []
       if (lectureDirecte || Array.isArray(v)) {
-        if (pileDesTokens.has(v)) return false
-        pileDesTokens.add(v)
+        const suivre = !ferme || !lectureDirecte
+        if (suivre) {
+          if (pileDesTokens.has(v)) return false
+          pileDesTokens.add(v)
+        }
         locaux.push(liste)
         let exact = true
         for (let i = 0; i < v.length; i++) {
           if (lectureDirecte) {
-            if (!tokensDe(v[i], locaux, projection)) { exact = false; break }
+            if (!tokensDe(v[i], locaux, sansToJSONConnu, projection)) { exact = false; break }
             continue
           }
           const p = Object.getOwnPropertyDescriptor(v, i)
-          if (!p || !Object.hasOwn(p, 'value') || !tokensDe(p.value, locaux, projection)) { exact = false; break }
+          if (!p || !Object.hasOwn(p, 'value') || !tokensDe(p.value, locaux, sansToJSONConnu, projection)) { exact = false; break }
         }
-        pileDesTokens.delete(v)
+        if (suivre) pileDesTokens.delete(v)
         if (!exact) return false
       } else {
         locaux.push(objet)
         for (const nom of Object.keys(v)) {
           locaux.push(nom)
-          if (!tokensDe(v[nom], locaux, true)) return false
+          if (!tokensDe(v[nom], locaux, sansToJSONConnu, true)) return false
         }
       }
       locaux.push(fin)
@@ -312,13 +317,14 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       return true
     }
     const interner = (descriptor) => {
+      const sansToJSONConnu = ferme ? prototypesSansToJSON() : undefined
       let tokens = []
-      if (!tokensDe(descriptor, tokens)) {
+      if (!tokensDe(descriptor, tokens, sansToJSONConnu)) {
         stable = false
         tokens = []
         const projete = JSON.stringify(descriptor)
         if (projete === undefined) throw new Error('CLE_DOMAINE_JSON')
-        tokensDe(JSON.parse(projete), tokens, true)
+        tokensDe(JSON.parse(projete), tokens, sansToJSONConnu, true)
       }
       if (cellules) return celluleDe(tokens)
       const signature = signatureDe(tokens)

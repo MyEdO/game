@@ -12,7 +12,13 @@ const SOURCE = { book: 'livre-de-base', page: 218, note: 'Tableau de la Colère 
 /** Un document-table minimal portant UNE rangée dont les `ops` sont celles qu'on éprouve. */
 const table = (ops: unknown[]) => ([{
   id: 'miscast-colere', type: 'miscast', label: 'Colère des dieux', die: { n: 1, sides: 100 }, source: SOURCE,
-  entries: [{ id: 'colere-eprouvee', min: 1, max: 5, label: 'Éprouvée', ops, source: SOURCE }],
+  entries: [
+    { id: 'colere-eprouvee', min: 1, max: 5, label: 'Éprouvée', ops, source: SOURCE },
+    {
+      id: 'colere-appele-a-rendre-des-comptes', min: 151, max: null, label: 'Appelé à rendre des comptes',
+      source: { ...SOURCE, note: 'Tableau de la Colère des dieux, LDB 40 l.89' },
+    },
+  ],
 }]);
 
 /** Premier message d'erreur rendu par le parse — le contrat se lit AU MESSAGE, pas au seul booléen. */
@@ -68,7 +74,12 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
   });
 
   it('les ops d’échec d’un Test imbriqué sont la famille FERMÉE : le terme de Péché y est REFUSÉ', () => {
-    const rangee = (onFail: unknown[]) => [{ ...table([])[0], entries: [{ ...table([])[0].entries[0], ops: undefined, test: { test: { characteristic: 'force-mentale', difficulty: 'accessible' }, onFail } }] }];
+    const rangee = (onFail: unknown[]) => {
+      const [colere] = table([]);
+      const [eprouvee, ...autres] = colere.entries;
+      const test = { test: { characteristic: 'force-mentale', difficulty: 'accessible' }, onFail };
+      return [{ ...colere, entries: [{ ...eprouvee, ops: undefined, test }, ...autres] }];
+    };
     expect(schema.safeParse(rangee([{ op: 'condition', id: { id: 'sonne' }, value: 1 }])).success).toBe(true);
     expect(refus(rangee([{ op: 'condition', id: { id: 'sonne' }, value: { sum: [1, { sinPoints: true }] } }]))).not.toBe('');
   });

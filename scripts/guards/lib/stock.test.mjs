@@ -9,11 +9,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   cleDeContenu,
+  cleDeLigne,
   cleDeSite,
   ecartDuVolet,
   estEntreeDeSite,
   estNeuveOuAccrue,
   lignesDuContenu,
+  positionsDesAncres,
   naissanceDu,
   phraseDeNaissance,
   refusDeCroissance,
@@ -253,4 +255,22 @@ test('cleDeContenu / lignesDuContenu : la clé suit le texte, jamais la position
   assert.deepEqual(lignesDuContenu('x.mjs', `\n${text}`, cle), [3])
   assert.deepEqual(lignesDuContenu('x.mjs', text, cleDeContenu('x.mjs', text, 1)), [1, 3], 'ambiguë')
   assert.deepEqual(lignesDuContenu('x.mjs', text, `x.mjs${SEPARATEUR_DE_CLE}// c`), [], 'périmée')
+})
+
+test('positionsDesAncres : une ancre déplacée reste seule admise, les ancres absentes ou dupliquées échouent', () => {
+  const ancres = ['// dispersée', '// légitime', '// absente']
+  const texte = '// dispersée\n  // légitime\r\n// dispersée\n'
+  assert.equal(cleDeLigne('x.mjs', ancres[1]), cleDeContenu('x.mjs', texte, 2))
+  assert.deepEqual([...positionsDesAncres('x.mjs', `\n${texte}`, ancres)], [[3, '// légitime']])
+  assert.deepEqual([...positionsDesAncres('x.mjs', texte.replace('légitime', 'réécrite'), ancres)], [])
+})
+
+test('positionsDesAncres : motif sans état, aucun porteur revendiqué par deux ancres', () => {
+  const ancre = /^légitime/g
+  ancre.lastIndex = 3
+  assert.deepEqual([...positionsDesAncres('x.mjs', 'étranger\nlégitime suite', [ancre])], [[2, ancre]])
+  assert.equal(ancre.lastIndex, 3)
+  assert.deepEqual([...positionsDesAncres('x.mjs', 'légitime suite', [ancre, 'légitime suite'])], [])
+  assert.deepEqual([...positionsDesAncres('x.mjs', 'légitime suite\nlégitime autre', ['légitime suite', ancre])], [])
+  assert.deepEqual([...positionsDesAncres('x.mjs', 'légitime suite\nlégitime autre', [ancre, 'légitime suite'])], [])
 })

@@ -13,6 +13,7 @@
 - [Monnaie — conversions et nomenclature](#monnaie--conversions-et-nomenclature)
 - [Disponibilité — tiers et table de stock](#disponibilité--tiers-et-table-de-stock)
 - [Achat — procédure et Disponibilité](#achat--procédure-et-disponibilité)
+- [Option Membres de Guildes](#option-membres-de-guildes)
 - [Marchandage — Test opposé, réductions, Négociateur](#marchandage--test-opposé-réductions-négociateur)
 - [Évaluation — identification qualité et estimation prix](#évaluation--identification-qualité-et-estimation-prix)
 - [Vente — base ½, Marchandage, Baisse des prix, Troc](#vente--base-½-marchandage-baisse-des-prix-troc)
@@ -96,6 +97,24 @@ Les règles d'achat/vente sont **optionnelles** — le MJ peut simplement décla
 
 **Modificateurs de recherche active** (LDB 59 l.50) :
 - +10 % à +20 % à la Disponibilité si le personnage appartient à une Carrière pertinente (Marchand, Receleur) ou passe **une journée entière** à chercher et à faire des Tests de Ragot.
+
+---
+
+## Option Membres de Guildes
+
+**Source : LDB 68 l.25, l.46-48 ; LDB 59 l.15-34, l.45-50 ; LDB 09 l.430-432 ; LDB 12 l.40, l.135-151.**
+
+> « Si vous possédez une licence de Guilde appropriée, vous pouvez utiliser vos contacts particuliers pour localiser des objets rares. Si vous ratez un Test de Disponibilité quand vous tentez d'acheter un objet, vous pouvez effectuer un Test de Ragot pour en discuter avec vos camarades de Guildes et voir si l'un d'eux sait où vous pouvez trouver ce dont vous avez besoin. Sur un succès, l'un de vos contacts offre quelques suggestions utiles, et vous pouvez relancer le Test de Disponibilité. » — LDB 68 l.48
+
+Le personnage qui détient une licence appropriée peut faire un Test simple de Ragot après l’échec à l’achat d’un article Limité ou Rare. En cas de réussite, la relance reprend le seuil de Disponibilité de l’article. La recherche active d’une journée relève de LDB 59 l.50.
+
+Le négoce déclare les licences dont les contacts peuvent renseigner le client. L’archétype Médecin admet la licence de la Guilde des Médecins, dont les membres prescrivent des remèdes et pratiquent des interventions chirurgicales (LDB 08 l.2235, l.2249, l.2273). L’auteur d’une scène peut ajuster la liste à son négoce.
+
+La difficulté du Ragot de Guilde est un réglage maison, Intermédiaire (+0) par défaut (LDB 12 l.135-151).
+
+**Preuve d’implémentation :** LDB 68 l.48
+
+**Implémente :** [État calculé](../implemente.generated.md#4eeconomieoption-membres-de-guildes)
 
 ---
 

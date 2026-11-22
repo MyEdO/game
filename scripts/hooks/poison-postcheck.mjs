@@ -57,7 +57,7 @@ async function voletPoison(rel, reel) {
       detail: `${f.detail} → une revendication se TRACE (tag [entériné AAAA-MM-JJ] validé par l'utilisateur) ou n'existe pas. Sans trace = justification fallacieuse présumée.`,
     })),
   ];
-  const verdict = partitionBaseline(signaux, loadDecisionsBaseline(), [rel]);
+  const verdict = partitionBaseline(signaux, loadDecisionsBaseline(), new Map([[rel, text]]));
   // Ce qui appelle un geste (NOUVEAU, entrée de baseline périmée) rejoint les lignes à traiter ;
   // le rappel des sites tenus pour intentionnels sort à part, sans consigne de correction.
   lines.push(...formatBaselineReport({ ...verdict, connus: [] }));

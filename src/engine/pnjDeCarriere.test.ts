@@ -147,7 +147,7 @@ describe('designationsDeCarriere — une Compétence d’une entrée sans choix 
 describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans celles de la Classe (R3, R4)', () => {
   it('le Doktor porte les dotations des Niveaux 1 à 3 du Médecin, aucune des Lettrés', () => {
     const ids = porte({ carrieres: { medecin: 3 } }).items!.map((i) => i.trappingId);
-    expect(ids).toEqual(expect.arrayContaining(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']));
+    expect(ids).toEqual(expect.arrayContaining(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-guilde-des-medecins', 'outils-professionnels-medecin', 'atelier']));
     expect(ids).not.toContain('bourse');
   });
   it('le Chevalier 3 garde au sac, non portée, la barde de sa dotation : l’armure qu’il porte est celle du Chevalier 2 (#4135)', () => {

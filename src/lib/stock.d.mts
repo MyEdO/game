@@ -64,8 +64,10 @@ export type Echeance = { [C in (typeof CHAMPS_D_ECHEANCE)[number]]: string };
 export type EcheanceNullable = { [C in keyof Echeance]: Echeance[C] | null };
 
 export function cleDeSite(e: EntreeDeSite): string;
+export function cleDeLigne(rel: string, ligne: string): string;
 export function cleDeContenu(rel: string, texte: string, ligne: number): string;
 export function lignesDuContenu(rel: string, texte: string, cle: string): number[];
+export function positionsDesAncres<A extends string | RegExp>(rel: string, texte: string, ancres: Iterable<A>): Map<number, A>;
 export function groupeDeSite(e: EntreeDeSite): string;
 export function estEntreeDeSite(e: unknown): e is EntreeDeSite;
 

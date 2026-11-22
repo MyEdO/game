@@ -572,6 +572,23 @@ function pagePilotee(html, { recouvrir } = {}) {
 }
 
 
+test('recette CDP : le localiseur, le contrôle et la frappe fonctionnent sans constructeur Function dans la page', async () => {
+  const { dom, doc, etat, session } = pagePilotee('<button class="icone ouvrir" aria-label="S’ouvrir">Ouvrir</button><input id="champ">')
+  try {
+    dom.window.Function = () => { throw new Error('constructeur Function interdit dans la page') }
+    await clickButtonByText(session, "S'ouvrir")
+    assert.deepEqual(etat.cliques, ['Ouvrir'])
+    doc.querySelector('button').focus()
+    await assert.rejects(() => frappe(session, { focus: '#champ' }, (emettre) => emettre('texte', { text: 'x' })),
+      /la cible n'a pas le focus \(focus sur button\.icone\.ouvrir\)/)
+    doc.querySelector('#champ').focus()
+    await frappe(session, { focus: '#champ' }, (emettre) => emettre('texte', { text: 'x' }))
+    assert.equal(etat.emis.at(-1), 'Input.insertText:')
+  } finally {
+    dom.window.close()
+  }
+})
+
 test('clic : mouvement et relâchement échouent, cause et code primaires conservés', async () => {
   const { session } = pagePilotee('<div id="surface"></div>')
   let releases = 0

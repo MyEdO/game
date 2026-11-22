@@ -12,6 +12,7 @@ import { PROTOCOL_VERSION, serializeMessage } from '../../../src/hote/coop/proto
 import {
   buildDeLaCoop,
   etatInitialDuJeu,
+  horlogeVirtuelle,
   OPTIONAL_RULES,
   pointDeRepriseAGarder,
   poserLesReglesMaisonPersistees,
@@ -30,6 +31,7 @@ import { t } from '../../../src/i18n';
 import { testScene } from '../../../src/scenes/test-fixture';
 import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
+import { resetCadence } from '../../../src/engine/cadence';
 
 type Appel = ReturnType<typeof table>['appel'];
 
@@ -57,6 +59,7 @@ afterEach(() => {
   if (courant) courant('quitter');
   if (courant) courant('salon', { salon: 'quitter' });
   courant = null;
+  resetCadence();
   poserLesReglesMaisonPersistees({});
   vi.useRealTimers();
 });
@@ -149,11 +152,17 @@ async function tramesDeLHote() {
 }
 
 /** Le dernier instantané envoyé au siège 1 par un hôte qui a démarré le dôme et ouvert son premier round, puis
- *  affecté ses deux héros au siège 1 d'Anna : au tour de la sorcière, à elle. L'hôte quitté ensuite. */
-async function combatDeLHote() {
+ *  affecté ses deux héros au siège 1 d'Anna. Au tour de la sorcière ou de l'ennemi, l'hôte se quitte. */
+async function combatDeLHote(actif: 'heros' | 'ennemi' = 'heros') {
   const { appel } = table(stockageEnMemoire(), reseau());
   appel('demarrer', { scenario: 'dome', graine: 7 });
   drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['debutDuRound'] }));
+  if (actif === 'ennemi') {
+    for (let i = 0; i < 8; i++) {
+      const fin = suiteDe(appel('jouer', { type: 'terminerLeTour', args: [] }));
+      if (fin.programmes.length) break;
+    }
+  }
   const ws = await hebergerAnna(appel);
   for (const id of ['heros/sorciere/1', 'heros/protegee/1']) appel('salon', zonesDe(appel)['salon.sieges'].flatMap((c) => c.valeurs).find((v) => v.id === id)!.jeu);
   await vi.advanceTimersByTimeAsync(200);
@@ -205,6 +214,48 @@ const offre = (s: { vue: { zones: { 'combat.offres': Element[] } } }, id: string
   s.vue.zones['combat.offres'].flatMap((c) => (c.type === 'choix' ? c.valeurs : [])).find((v) => v.id === id);
 
 describe('le pont rejoint un salon', () => {
+  it('le réglage Auto de l’hôte publie la cadence de la table et relance le tour en cours', async () => {
+    const { appel } = table(stockageEnMemoire(), reseau());
+    try {
+      appel('demarrer', { scenario: 'dome', graine: 7 });
+      const debut = drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['debutDuRound'] })).suite;
+      expect(debut.vue.zones['combat.actif'].map((e) => e.id)).toEqual(['sorciere']);
+      const ws = await hebergerAnna(appel);
+      const cadenceRecue = () => {
+        const instantanes = instantanesAuSiege1(ws);
+        const { data } = JSON.parse(instantanes[instantanes.length - 1]!);
+        return appliquerLInstantane(data, etatInitialDuJeu()).etat.cadenceHote;
+      };
+      suiteDe(appel('nouvelles'));
+      expect(cadenceRecue()).toBe('manuel');
+
+      const auto = { type: 'preference', args: ['combat-cadence', 'auto'] };
+      expect(appel('reglages', auto).ok).toBe(true);
+      let reprise = suiteDe(appel('nouvelles'));
+      expect(reprise.programmes.some(({ delai }) => delai > 0)).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(cadenceRecue()).toBe('auto');
+
+      const envoyes = instantanesAuSiege1(ws).length;
+      expect(appel('reglages', auto).ok).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(instantanesAuSiege1(ws)).toHaveLength(envoyes);
+      expect(appel('nouvelles')).toEqual(RIEN);
+
+      const actif = () => reprise.vue.projection.combat?.actif?.id;
+      const horloge = horlogeVirtuelle((jeton) => {
+        reprise = suiteDe(appel('reprendre', { jeton }));
+        return reprise.programmes;
+      }, reprise.programmes);
+      expect(actif()).toBe('sorciere');
+      for (let i = 0; i < 30 && actif() === 'sorciere' && horloge.enAttente(); i++) horloge.jusquALaProchaine();
+      expect(actif()).toBeTruthy();
+      expect(actif()).not.toBe('sorciere');
+    } finally {
+      quitterLHote(appel);
+    }
+  });
+
   it('Contre-sort : nouvelles filtre le lancer du MJ avant la réponse dans la Suite JSON', async () => {
     const declarer = ['contreSort', 'declaration', 'solo', repondantDuContreSort];
     const lancer = ['contreSort', repondantDuContreSort];
@@ -472,19 +523,28 @@ describe('M6, M7, M8 — chez un invité', () => {
     expect(suiteDe(appel('nouvelles')).vue.projection.scene, 'l’instantané suivant n’est pas appliqué').not.toBeNull();
   });
 
-  it('M7 — un miroir clos qui a programmé un jeton : la partie que `ouvrir` ouvre numérote ses jetons à la suite', async () => {
-    const instantane = await combatDeLHote();
+  it('M7 — pendant un tour ennemi, le miroir en préférence Auto ne programme rien ; sa partie suivante programme normalement', async () => {
+    const instantane = await combatDeLHote('ennemi');
+    const { battle } = JSON.parse(instantane).data;
+    expect(battle.combatants.find((c: { id: string }) => c.id === battle.order[battle.turn]).kind).toBe('ennemi');
     const { appel } = invite();
-    appel('reglages', { type: 'preference', args: ['combat-cadence', 'auto'] });
+    expect(appel('reglages', { type: 'preference', args: ['combat-cadence', 'auto'] }).ok).toBe(true);
     const ws = await assis(appel);
     await recevoir(ws, instantane);
-    const programmes = suiteDe(appel('nouvelles')).programmes.map((j) => j.id);
-    expect(programmes.length, 'témoin : l’auto-cadence du miroir n’a rien programmé').toBeGreaterThan(0);
+    const { vue, programmes } = suiteDe(appel('nouvelles'));
+    expect(programmes).toEqual([]);
+    expect(appel('preferences')).toMatchObject({ preferences: { 'combat-cadence': 'auto' } });
+    expect(appel('reglages', { type: 'preference', args: ['combat-cadence', 'rapide'] }).ok).toBe(true);
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(appel('nouvelles')).toEqual(RIEN);
+    expect(appel('vue')).toMatchObject({ vue });
+    expect(await intentionsParties(ws)).toEqual([]);
+
     appel('salon', { salon: 'quitter' });
     quitteeDe(appel('nouvelles'));
     const ouverte = suiteDe(appel('ouvrir', { graine: 7 }));
     const recrue = suiteDe(appel('jouer', bouton(ouverte.vue.zones['groupe.pretires'], 'pretire/wanda-weltschmertz', 'recruter').jeu));
-    expect(recrue.programmes.map((j) => j.id)[0]).toBe(Math.max(...programmes) + 1);
+    expect(recrue.programmes.length).toBeGreaterThan(0);
   });
 
   it('M7 — un second `rejoindre` ouvre un miroir neuf : son premier instantané ne dit aucune ligne', async () => {

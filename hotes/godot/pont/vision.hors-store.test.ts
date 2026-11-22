@@ -1,7 +1,7 @@
 /**
  * LA VISION DU GROUPE PAR LE PONT (#3950, tranche A) : ce que la vue montre est ce que le groupe connaît
- * (`src/noyau/visionDuGroupe.ts`), ce que le noyau laisse viser ne change pas. `siege-enceinte` pose au départ derrière
- * sa muraille 8 de ses ennemis, sur des cases que le groupe ne voit pas ; `opera-plan`, une scène à deux couches explorée pas à pas ;
+ * (`src/noyau/visionDuGroupe.ts`), ce que le noyau laisse viser ne change pas. `siege-enceinte` pose des ennemis visibles
+ * par la herse et d'autres cachés derrière la courtine ; `opera-plan`, une scène à deux couches explorée pas à pas ;
  * `poursuite-terrestre`, 3 brigands embusqués ; `ecuries-clayonnage`, des structures de siège dont une face est vue et
  * l'ancrage non ; `melee-dans-le-noir`, deux gobelins au contact du groupe dans les ténèbres, hors de vue et qui se battent
  * (`docs/raw/4e/combat.md`, « Combat rapproché dans le noir »).
@@ -34,22 +34,24 @@ const visionDe = (r: Reponse): VisionDuMonde => {
   return r as unknown as VisionDuMonde;
 };
 
-describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue du groupe', () => {
+describe('siege-enceinte — les ennemis vus par la herse ou masqués par la courtine', () => {
   const { appel } = table();
   let suite: Suite;
   const vue = (): VueDuPont => suite.vue;
   const enVue = () => vue().projection.combat!.voisins.liste.map((c) => c.id);
   /** Les combattants posés que la vue ne dessine pas. */
   const horsDeVue = () => Object.values(vue().occupants).filter((id) => !enVue().includes(id));
-  const DERRIERE_LA_MURAILLE = ['brg-canon', 'brg-cata', 'personnage-1', 'personnage-2', 'personnage-3', 'personnage-5', 'personnage-6', 'personnage-7'];
+  const GOBELIN_CACHE = 'personnage-5';
+  const GOBELIN_PAR_LA_HERSE = 'personnage-7';
 
   beforeAll(() => {
     suite = drainer(appel, appel('demarrer', { scenario: 'siege-enceinte', graine: 1 })).suite;
   });
   afterAll(() => { appel('quitter'); });
 
-  it('ses 8 ennemis derrière la muraille ont chacun leur case aux occupants, et ni corps, ni marques, ni rang dans l’ordre du tour', () => {
-    expect(horsDeVue().sort(), 'les occupants hors de vue : exactement les 8 ennemis derrière la muraille').toEqual(DERRIERE_LA_MURAILLE);
+  it('les occupants cachés gardent leur case, sans corps, marque ni rang dans l’ordre du tour', () => {
+    expect(horsDeVue(), 'le gobelin que masque la courtine').toContain(GOBELIN_CACHE);
+    expect(enVue(), 'le gobelin visible par la herse').toContain(GOBELIN_PAR_LA_HERSE);
     expect(Object.keys(vue().corps.combattants).sort(), 'les corps : ceux des combattants en vue').toEqual([...enVue()].sort());
     expect(Object.keys(vue().marques).sort(), 'les marques : celles des combattants en vue').toEqual([...enVue()].sort());
     const rangs = vue().zones['combat.ordre'].filter((p) => p.type === 'entite').map((p) => p.id);
@@ -60,7 +62,7 @@ describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue d
   });
 
   it('la fiche d’un ennemi hors de vue se refuse en `validation`, en mots du joueur ; celle d’un héros s’ouvre', () => {
-    expect(erreurDe(appel('fiche', { fiche: { porteur: DERRIERE_LA_MURAILLE[7] } }))).toEqual({ categorie: 'validation', message: `fiche : porteur, ${t('vision.ficheHorsDeVue')}` });
+    expect(erreurDe(appel('fiche', { fiche: { porteur: GOBELIN_CACHE } }))).toEqual({ categorie: 'validation', message: `fiche : porteur, ${t('vision.ficheHorsDeVue')}` });
     const heros = enVue()[0];
     expect(appel('fiche', { fiche: { porteur: heros } })).toMatchObject({ ok: true });
     expect(appel('fiche', { fiche: null })).toMatchObject({ ok: true });

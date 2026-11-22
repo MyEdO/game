@@ -707,9 +707,7 @@ export const CONCEPTS: readonly Concept[] = [
   // Partition MESURÉE sur les 2 racines (2026-11-05, 329 porteurs de `difficulty`) : plage 15,
   // identité 62, référence 8, sans sujet 54, et 190 Tests. La prémisse est rejouée par une marche
   // brute (`src/data/structures-contrat.test.ts`, volet (c)), sans cardinal écrit.
-  // POSE : les signatures `+…` sont CIBLES sur la seule pose `test` (au patron de `reference-chiffree`) ;
-  // le `+…` d'un Test posé ne replie que des clés de `flowTestSchema`, strict. Un objet classé par son
-  // noyau, et non par sa pose, reste divergent.
+  // Chaque signature `+…` est cible pour la pose de la grammaire qui valide la charge repliée.
   // Aucun concept ne revendique les 3 jeux à manches de `tavernGames.json` — `boules`
   // (`drCap`, `volley`), `torchon` (`table`, `throwerPenalty`), `pierres` (`target`, `phases`) : ce sont
   // trois RÈGLES, pas une forme. Un noyau qui les réunirait (leurs 10 clés, deux suffisant à classer)
@@ -731,6 +729,15 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'characteristic,difficulty+…', statut: 'cible', pose: 'test', note: 'idem' },
       { sig: 'characteristic,difficulty,skill+…', statut: 'cible', pose: 'test', note: 'idem' },
       { sig: 'characteristic,difficulty,skill', statut: 'cible', pose: 'test', note: '`skill` et `characteristic` coexistent à `flowTestSchema` (#1657 B3-3)' },
+      { sig: 'crewTestType,difficulty+…', statut: 'cible', pose: 'test', note: 'Test d’équipage du Flow avec son enjeu' },
+      { sig: 'crewTestType+…', statut: 'cible', pose: 'test', note: 'Test d’équipage du Flow avec son enjeu et sa difficulté implicite' },
+      { sig: 'crewTestType,difficulty', statut: 'cible', pose: 'test-fixe-d-equipage', note: 'Test fixe d’équipage dont la cadence pose l’enjeu' },
+      { sig: 'skill+…', statut: 'cible', pose: 'test-etendu', note: 'Test étendu composé du jet, de la décision et de la charge d’effet' },
+      { sig: 'characteristic+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'difficulty,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,difficulty+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
+      { sig: 'characteristic,difficulty,skill+…', statut: 'cible', pose: 'test-etendu', note: 'idem' },
     ],
     noyau: ['difficulty'],
     coPresence: ['skill', 'characteristic', 'crewTestType'],
@@ -887,6 +894,8 @@ export const CONCEPT_DE_LA_POSE: Readonly<Record<IdConceptPose, string>> = {
   'effet-narratif-indice': 'effet-narratif',
   'special-de-jeu': 'special-de-jeu',
   test: 'test',
+  'test-etendu': 'test',
+  'test-fixe-d-equipage': 'test',
 };
 for (const [pose, concept] of Object.entries(CONCEPT_DE_LA_POSE))
   if (!CONCEPTS.some((c) => c.id === concept)) throw new Error(`CONCEPT_DE_LA_POSE : la pose « ${pose} » nomme « ${concept} », absent de CONCEPTS.`);

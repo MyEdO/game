@@ -14,6 +14,7 @@ import { GESTES_DU_BOARD, issuesDeGh, mesurer } from './board.mjs'
 import { lignesDeLaMesure, lireMesure, porteeDe } from './suiviDonnee.mjs'
 import { ecrireSuivi, lireLeSuivi, nomDeLaMesure, relire } from './suiviFichiers.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { BorneAbsente } from '../guards/lib/gitPorte.mjs'
 import { inventaire } from './worktrees.mjs'
 
 /** Le verrou de la mesure EN COURS du suivi de l'épique `n`, pris sans attente pour toute sa durée. PURE. */
@@ -37,7 +38,7 @@ export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, iss
   try {
     vu = mesurer({ ...params, gestes: enveloppes, inv: envelopper('inv', inv), issues: envelopper('issues', issues) })
   } catch (e) {
-    vu = { ok: false, refus: e.message }
+    vu = { ok: false, categorie: e instanceof BorneAbsente ? 'validation' : 'panne', refus: e instanceof Error ? e.message : String(e) }
   }
   const total = horloge() - depart
   const somme = Object.values(durees).reduce((a, b) => a + b, 0)
@@ -47,6 +48,15 @@ export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, iss
 /** La ligne de profil. PURE. */
 const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Object.entries(durees)
   .map(([nom, ms]) => `${nom} ${Math.round(ms)}`).join(' · ')} · total ${Math.round(total)} · reste ${reste.toFixed(1)}`
+
+/** @param {string} rendu @param {{categorie: string, refus: string}[]} [refus] */
+function rendreLaMesure(rendu, refus = []) {
+  return {
+    code: refus.length ? 1 : 0,
+    stdout: rendu ? `${rendu}\n` : '',
+    stderr: refus.map(({ categorie, refus: motif }) => `[suivi] ${prefixeDeRefus(categorie)} ${motif}\n`).join(''),
+  }
+}
 
 /**
  * La MESURE d'un suivi, sous le verrou de mesure `.<N>.mesure.verrou` pris SANS attente pour toute sa durée :
@@ -61,7 +71,7 @@ const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Obj
  */
 export function mesurerLeSuivi({ numero, dossier, sansFetch = false, json = false, fs = FS, pid = process.pid, maintenant = new Date(), mesure = {} }) {
   const lu = lireLeSuivi({ dossier, epique: numero, lisibles: [], fs })
-  if (!lu.suivi) return { code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(fs.existsSync(lu.chemin) ? 'panne' : 'validation')} ${lu.alerte}\n` }
+  if (!lu.suivi) return rendreLaMesure('', [{ categorie: fs.existsSync(lu.chemin) ? 'panne' : 'validation', refus: lu.alerte }])
   const verrou = prendreVerrou({ chemin: join(dossier, nomDuVerrouDeMesure(numero)), libelle: `mesure du suivi #${numero}`, pid, commande: 'scripts/ops/suivi.mjs --mesurer', cwd: dossier, fs })
   if (verrou.etat !== 'pris') {
     const deja = `mesure du suivi #${numero} déjà en cours : rien n'est lancé`
@@ -90,9 +100,10 @@ function mesurerSousVerrou({ numero, dossier, sansFetch, json, fs, pid, maintena
     profil,
   }
   const ecrit = ecrireSuivi({ cible, contenu: `${JSON.stringify(document, null, 2)}\n`, attendu: avant, geste: 'la mesure', fs, pid })
-  if (!ecrit.ok) return { code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(ecrit.categorie)} ${ecrit.refus}\n${vu.ok ? '' : `[suivi] mesure refusée : ${vu.refus}\n`}` }
-  const rendu = json
-    ? JSON.stringify(document)
-    : [...lignesDeLaMesure({ epique: numero, mesure: lireMesure(relire(cible, fs)) }), ...document.anomalies.map((a) => `- ⚠ ${a.texte}`), ligneDeProfil(profil)].join('\n')
-  return { code: vu.ok ? 0 : 1, stdout: `${rendu}\n`, stderr: '' }
+  const refus = vu.ok ? [] : [{ categorie: vu.categorie, refus: `mesure refusée : ${document.refus}` }]
+  if (!ecrit.ok) return rendreLaMesure('', [ecrit, ...refus])
+  if (json) return rendreLaMesure(JSON.stringify(document), refus)
+  if (!vu.ok) return rendreLaMesure('', refus)
+  const lignes = lignesDeLaMesure({ epique: numero, mesure: lireMesure(relire(cible, fs)) })
+  return rendreLaMesure([...lignes, ...document.anomalies.map((a) => `- ⚠ ${a.texte}`), ligneDeProfil(profil)].join('\n'))
 }

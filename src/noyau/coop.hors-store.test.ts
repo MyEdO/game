@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from './coop';
 import { etatInitialDuJeu, snapshotSave, type EtatDeJeu } from './index';
 import { OPTIONAL_RULES, loadRuleOverrides, ruleOverrides } from '../engine/policy';
+import { cadence, resetCadence, setCadence } from '../engine/cadence';
 import { unpackHouseRules } from './persistance/save';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -45,17 +46,18 @@ function inviteAuSiege2(): EtatDeJeu {
 }
 
 afterEach(() => {
+  resetCadence();
   loadRuleOverrides({});
   setDataset('etats', structuredClone(ETATS_LIVRES));
   setDataset('reglesOptionnelles', structuredClone(REGLES_LIVREES));
 });
 
 describe('instantané coop de l’hôte', () => {
-  it('porte EXACTEMENT les clés de jeu de la sauvegarde hors celles locales au client, plus les règles maison', () => {
+  it('porte les clés de jeu partagées, les règles maison et la cadence de l’hôte', () => {
     const etat = hoteEnPartie();
     const cles = Object.keys(snapshotSave(etat, 'x').data).filter((k) => !(LOCALES as readonly string[]).includes(k));
     const { game, rules } = unpackHouseRules(instantaneDeLaCoop(etat));
-    expect(Object.keys(game).sort()).toEqual([...cles].sort());
+    expect(Object.keys(game).sort()).toEqual([...cles, 'cadenceHote'].sort());
     expect(rules).toEqual(ruleOverrides());
   });
 
@@ -74,6 +76,17 @@ describe('application de l’instantané chez l’invité', () => {
     loadRuleOverrides({});
     appliquerLInstantane(data, inviteAuSiege2());
     expect(ruleOverrides()).toEqual({ [flag.id]: true });
+  });
+
+  it('lit la cadence de la table hors des sauvegardes et conserve la préférence de l’invité', () => {
+    setCadence('auto');
+    const data = instantaneDeLaCoop(hoteEnPartie());
+    setCadence('rapide');
+    const { etat } = appliquerLInstantane(data, inviteAuSiege2());
+    expect(etat.cadenceHote).toBe('auto');
+    expect(cadence()).toBe('rapide');
+    expect(snapshotSave(etat, 'x').data).not.toHaveProperty('cadenceHote');
+    expect(appliquerLInstantane({ ...data, cadenceHote: 'inconnue' }, etat).etat.cadenceHote).toBe('manuel');
   });
 
   it('garde l’identité réseau de l’invité et ce qui lui est local, prend le reste de l’hôte', () => {

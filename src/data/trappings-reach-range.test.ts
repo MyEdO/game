@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { trappings } from './index';
 import { validateDataset } from './schemas/validate';
 import { AVAILABILITIES, REACH_LABELS, REACH_VARIABLE } from '../engine/types';
+import { isTradable } from '../engine/disponibilite';
 import { priceToMoney, toBrass } from '../engine/money';
 
 /**
@@ -14,6 +15,7 @@ import { priceToMoney, toBrass } from '../engine/money';
  *     UNIQUEMENT sur les armes à distance.
  */
 const rows = trappings;
+const LICENCES = ['licence-de-guilde', 'licence-guilde-de-droit', 'licence-guilde-des-medecins'];
 
 const ALLONGE = new Set(['Personnelle', 'Très courte', 'Courte', 'Moyenne', 'Longue', 'Très longue', 'Considérable', 'Variable']);
 const isNumericLike = (v: unknown): boolean =>
@@ -130,10 +132,16 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
     expect(err).toContain('élément « hallebarde » › Disponibilité');
   });
 
-  it('les 2 lignes « ND » du livre portent la marque, et elles seules (LDB 62 l.31, LDB 68 l.11)', () => {
+  it('seules les entrées rattachées aux 2 lignes « ND » portent la marque (LDB 62 l.31, LDB 68 l.11)', () => {
     expect(rows.filter((t) => t.availability === 'ND').map((t) => t.id).sort()).toEqual(
-      ['arme-improvisee', 'licence-de-guilde'],
+      ['arme-improvisee', ...LICENCES],
     );
+  });
+
+  it.each(LICENCES)('une licence de Guilde est hors commerce et n’a pas de prix d’achat (%s, LDB 68 l.11,25)', (id) => {
+    const licence = rows.find((t) => t.id === id)!;
+    expect(isTradable(licence.availability)).toBe(false);
+    expect(licence).toMatchObject({ price: 'ND', enc: 0 });
   });
 
   it('les objets sans valeur imprimée gardent leur absence — aucune classe ne leur est inventée', () => {
@@ -182,9 +190,9 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
  * d'équipement). Les deux valent zéro sou au calcul, mais ne se confondent pas en donnée.
  */
 describe('trappings — Prix : un montant, la marque « ND », ou rien', () => {
-  it('les 3 lignes « ND » en colonne Prix portent la marque, et elles seules', () => {
+  it('seules les entrées rattachées aux 3 lignes « ND » en colonne Prix portent la marque', () => {
     expect(rows.filter((t) => t.price === 'ND').map((t) => t.id).sort()).toEqual(
-      ['arme-improvisee', 'licence-de-guilde', 'mains-nues'],
+      ['arme-improvisee', ...LICENCES, 'mains-nues'],
     );
   });
 

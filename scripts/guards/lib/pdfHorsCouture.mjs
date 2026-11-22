@@ -75,29 +75,188 @@ const CONFIG_JSON = /^(?:[^/]+|\.(?:claude|codex|agents|github)\/.+)\.json$/
 export const estBalaye = (f) => EXTENSIONS_DE_CODE.some((ext) => f.endsWith(ext)) || CONFIG_JSON.test(f)
 export const estShell = (f) => /\.(sh|ps1)$/.test(f)
 
-// Exemptions AU SITE : `fichier` + `motif` de la ligne + `raison`. Chacune doit toucher un site.
-const MIGRATION_1699 = 'scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs'
-const RAISON_1699 = 'migration DATÉE #1699, rejouée telle qu’écrite (`migrations:replay`) : '
+// #2175 #2235
+const RAISON_1699 = "migration DATÉE #1699, rejouée telle qu’écrite (`migrations:replay`) : "
+const RAISON_PDF_FACTICE = "banc de la migration datée 1699 : PDF FACTICES d’un `Source/` jetable, qu’elle renomme par extension"
+const RAISON_EXTRACTION_INJECTEE = "chemin FACTICE passé à un extracteur INJECTÉ (`pagesPerdues`, `verifierExtraction`) — jamais ouvert"
+const RAISON_RESTITUTION = "chaîne ATTENDUE du formateur pur `commandeRestitution`"
+const RAISON_SOUS_DOSSIER = "nom de SOUS-DOSSIER de sortie Marker factice, pas une extension"
+const RAISON_AUCUN_SUIVI = "commentaire citant la mesure « aucun PDF suivi »"
 export const EXEMPTIONS = [
-  { fichier: MIGRATION_1699, motif: /^\* {2}3\. PDF gitignorés homonymes d'un dossier/, raison: `${RAISON_1699}commentaire de son plan, la forme des PDF qu’elle renomme` },
-  { fichier: MIGRATION_1699, motif: /^\* {4}\(`ROOT \/ "Source" \/ "<Livre>\./, raison: `${RAISON_1699}commentaire citant la construction Python de son époque` },
-  { fichier: MIGRATION_1699, motif: /^'\.png', '\.jpg', /, raison: `${RAISON_1699}liste d’extensions BINAIRES qu’elle ne réécrit pas, aucun livre` },
-  { fichier: MIGRATION_1699, motif: /^\.filter\(\(e\) => e\.isFile\(\) && e\.name\.toLowerCase\(\)\.endsWith\(/, raison: `${RAISON_1699}FILTRE d’extension des PDF de \`Source/\` qu’elle renomme, n’en nomme aucun` },
-  { fichier: 'scripts/raw/_lib.mjs', motif: /^return markerDe\(`\$\{id\}\./, raison: 'LA construction de la couture : copie de travail `_marker/<id>.<ext>` (`copieMarkerDe`)' },
-  { fichier: 'src/data/schemas/defs/books.ts', motif: /^pdf: z\.string\(\)\.endsWith\(/, raison: 'schéma du champ `pdf` du registre : la FORME exigée à la donnée, aucun chemin' },
-  { fichier: 'src/data/field-consumers.test.ts', motif: /^BookData: \[/, raison: 'stock des zéros du registre des livres : le NOM du champ `pdf`, aucun chemin' },
-  { fichier: 'src/data/field-consumers.test.ts', motif: /par `scripts\/raw\/_lib\.mjs#pdfDe`',$/, raison: 'raison du zéro du champ `pdf` du registre : son nom et sa couture, aucun chemin' },
-  { fichier: 'scripts/docs/build-reprise.mjs', motif: /^quoi: `PDFs de/, raison: 'motif `.gitignore` de TOUS les PDF, cité par le doc de reprise — aucun livre' },
-  { fichier: 'scripts/docs/build-reprise.mjs', motif: /^Compress-Archive -Path "Source/, raison: 'commande de SAUVEGARDE de tous les PDF de `Source/` imprimée au doc de reprise — aucun livre' },
-  { fichier: 'scripts/gates/toutes.mjs', motif: /écartés par extension/, raison: 'prose de la raison de gate : l’extension écartée par la copie du corpus' },
-  { fichier: 'scripts/raw/check-folio-continuity.mjs', motif: /git ls-files "\*\./, raison: 'commentaire citant la mesure « aucun PDF suivi »' },
-  { fichier: 'scripts/raw/lib/empty-folios-stock.mjs', motif: /git ls-files "\*\./, raison: 'commentaire citant la mesure « aucun PDF suivi »' },
-  { fichier: 'scripts/migrations/lib/joue.mjs', motif: /^filter: \(src\) => path\.extname/, raison: 'FILTRE d’extension de la copie du corpus : écarte TOUS les PDF, n’en nomme aucun' },
-  { fichier: 'scripts/migrations/lib/1699-source-chemins-ascii.test.mjs', motif: /join\(racine, /, raison: 'banc de la migration datée 1699 : PDF FACTICES d’un `Source/` jetable, qu’elle renomme par extension' },
-  { fichier: 'scripts/hooks/stocks-nominatifs.test.mjs', motif: /^'Source\/Warhammer v4 - Livre de base version corrigee\/08 - Statut\./, raison: 'fixture : un chemin qui ne nomme AUCUN fichier de stock (ni `.md`), jamais ouvert' },
-  { fichier: 'scripts/raw/lib/marker-pages.test.mjs', motif: /'x\./, raison: 'chemin FACTICE passé à un extracteur INJECTÉ (`pagesPerdues`, `verifierExtraction`) — jamais ouvert' },
-  { fichier: 'scripts/raw/lib/marker-pages.test.mjs', motif: /Source\/_marker\/core-rulebook-5e\./, raison: 'chaîne ATTENDUE du formateur pur `commandeRestitution`' },
-  { fichier: 'scripts/raw/lib/marker-pages.test.mjs', motif: /mdsDeMarker\(base\), \[join\(base, /, raison: 'nom de SOUS-DOSSIER de sortie Marker factice, pas une extension' },
+  {
+    fichier: "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+    ancre: "*  3. PDF gitignorés homonymes d'un dossier (`Source/<dossier>.\u0070df`) — pas INDÉPENDANT du plan git :",
+    raison: RAISON_1699 + "commentaire de son plan, la forme des PDF qu’elle renomme",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+    ancre: "*    (`ROOT / \"Source\" / \"<Livre>.\u0070df\"` en Python) — `scripts/art-ref/ldb_extract.py:40` et",
+    raison: RAISON_1699 + "commentaire citant la construction Python de son époque",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+    ancre: "'.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.\u0070df', '.zip', '.gz', '.woff', '.woff2',",
+    raison: RAISON_1699 + "liste d’extensions BINAIRES qu’elle ne réécrit pas, aucun livre",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+    ancre: ".filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.\u0070df') && !estAscii(e.name))",
+    raison: RAISON_1699 + "FILTRE d’extension des PDF de `Source/` qu’elle renomme, n’en nomme aucun",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/_lib.mjs",
+    ancre: "return markerDe(`${id}.\u0070df`, options)",
+    raison: "LA construction de la couture : copie de travail `_marker/<id>.<ext>` (`copieMarkerDe`)",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "src/data/schemas/defs/books.ts",
+    ancre: "\u0070df: z.string().endsWith('.\u0070df').nullable().optional(),",
+    raison: "schéma du champ `pdf` du registre : la FORME exigée à la donnée, aucun chemin",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "src/data/field-consumers.test.ts",
+    ancre: "BookData: ['dir', 'language', 'niveauDeSection', '\u0070df', 'teneur'],",
+    raison: "stock des zéros du registre des livres : le NOM du champ `pdf`, aucun chemin",
+    date: "2026-11-13",
+  },
+  {
+    fichier: "src/data/field-consumers.test.ts",
+    ancre: "'BookData.\u0070df': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#pdfDe`',",
+    raison: "raison du zéro du champ `pdf` du registre : son nom et sa couture, aucun chemin",
+    date: "2026-11-13",
+  },
+  {
+    fichier: "scripts/docs/build-reprise.mjs",
+    ancre: "quoi: `PDFs de \\`Source/*.\u0070df\\` (\\`${motif('*.\u0070df')}\\`)`,",
+    raison: "motif `.gitignore` de TOUS les PDF, cité par le doc de reprise — aucun livre",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/docs/build-reprise.mjs",
+    ancre: "Compress-Archive -Path \"Source\\\\*.\u0070df\",\"art-ref\" -DestinationPath \"<stockage-externe>\\\\game-sources-$(Get-Date -Format yyyy-MM-dd).zip\"",
+    raison: "commande de SAUVEGARDE de tous les PDF de `Source/` imprimée au doc de reprise — aucun livre",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/gates/toutes.mjs",
+    ancre: "'`.\u0070df`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +",
+    raison: "prose de la raison de gate : l’extension écartée par la copie du corpus",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/check-folio-continuity.mjs",
+    ancre: "// (`git ls-files \"*.\u0070df\"` = 0), donc `pdfChars` est une mesure TRANSPORTÉE, faite une fois au PDF par",
+    raison: RAISON_AUCUN_SUIVI,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/empty-folios-stock.mjs",
+    ancre: "// Le PDF n'est lu QU'ICI, et AUCUN PDF n'est suivi par le dépôt (`git ls-files \"*.\u0070df\"` = 0) :",
+    raison: RAISON_AUCUN_SUIVI,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/lib/joue.mjs",
+    ancre: "filter: (src) => path.extname(src).toLowerCase() !== '.\u0070df',",
+    raison: "FILTRE d’extension de la copie du corpus : écarte TOUS les PDF, n’en nomme aucun",
+    date: "2026-10-28",
+  },
+  {
+    fichier: "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+    ancre: "writeFileSync(join(racine, `${LIVRE}.\u0070df`), '\u0070df-factice')",
+    raison: RAISON_PDF_FACTICE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+    ancre: "assert.ok(existsSync(join(racine, `${livreAscii}.\u0070df`)), 'le PDF ignoré homonyme n’a pas suivi')",
+    raison: RAISON_PDF_FACTICE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+    ancre: "assert.ok(!existsSync(join(racine, `${LIVRE}.\u0070df`)))",
+    raison: RAISON_PDF_FACTICE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+    ancre: "writeFileSync(join(racine, 'Source/Livre é.\u0070df'), '\u0070df-factice')",
+    raison: RAISON_PDF_FACTICE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+    ancre: "assert.ok(existsSync(join(racine, 'Source/Livre e.\u0070df')))",
+    raison: RAISON_PDF_FACTICE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/hooks/stocks-nominatifs.test.mjs",
+    ancre: "'Source/Warhammer v4 - Livre de base version corrigee/08 - Statut.\u0070df',",
+    raison: "fixture : un chemin qui ne nomme AUCUN fichier de stock (ni `.md`), jamais ouvert",
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.equal(\u0070df, 'x.\u0070df')",
+    raison: RAISON_EXTRACTION_INJECTEE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.deepEqual(pagesPerdues(pages, 'x.\u0070df', { extraire }),",
+    raison: RAISON_EXTRACTION_INJECTEE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.deepEqual(pagesPerdues(new Map([[1, 'Du texte\\n']]), 'x.\u0070df', { extraire }), [])",
+    raison: RAISON_EXTRACTION_INJECTEE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.deepEqual(verifierExtraction(pages, { pdfPath: 'x.\u0070df', extraire }).perdues, [{ page: 2, pypdf: 1461 }])",
+    raison: RAISON_EXTRACTION_INJECTEE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "const v = verifierExtraction(pages, { pdfPath: 'x.\u0070df', extraire, restitutions: new Map([[2, 'Planche\\n']]) })",
+    raison: RAISON_EXTRACTION_INJECTEE,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.equal(commandeRestitution('Source/_marker/core-rulebook-5e.\u0070df', 'Source/_marker/full/core-rulebook-5e/slices', 17),",
+    raison: RAISON_RESTITUTION,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "'marker_single \"Source/_marker/core-rulebook-5e.\u0070df\" --output_format markdown --config_json scripts/raw/marker-paginate.json'",
+    raison: RAISON_RESTITUTION,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.deepEqual(mdsDeMarker(base), [join(base, '0-39', '\u0070df', '\u0070df.md')])",
+    raison: RAISON_SOUS_DOSSIER,
+    date: "2026-09-23",
+  },
+  {
+    fichier: "scripts/raw/lib/marker-pages.test.mjs",
+    ancre: "assert.deepEqual(mdsDeMarker(base), [join(base, '\u0070df', '\u0070df.md')])",
+    raison: RAISON_SOUS_DOSSIER,
+    date: "2026-09-23",
+  },
 ]
 
 /** Fichiers balayés, relatifs POSIX, triés : suivis ET non encore indexés (`-co --exclude-standard`)

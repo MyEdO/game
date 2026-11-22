@@ -69,6 +69,8 @@ export const SUIVI: string;
 export const TRAVAIL: string;
 /** Les fichiers que l'image `arbre` (une ref, `INDEX`, `SUIVI` ou `TRAVAIL`) porte sous `dossiers`, chemins POSIX. */
 export function listerImage(depot: Depot, arbre: string, ...dossiers: string[]): string[];
+/** Les fichiers ignorés de l'arbre de travail que couvrent les pathspecs, chemins POSIX. */
+export function fichiersIgnoresDe(depot: Depot, ...pathspecs: string[]): string[];
 
 /** Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est absent. */
 export function lireEnLot(depot: Depot, arbre: string, rels: readonly string[]): Map<string, string | null>;

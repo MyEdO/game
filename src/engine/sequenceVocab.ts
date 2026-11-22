@@ -10,6 +10,7 @@ import type { GameOp } from './ops';
 import type { DiceSpec } from './dice';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { JetFixe } from './flowCore';
+import type { BandeOuverte } from './tables';
 
 /** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
  *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
@@ -36,9 +37,7 @@ export type ScoreDeSequence = (typeof SCORES_DE_SEQUENCE)[number];
 /** UNE LIGNE de table de score par PLAGE de DR — lue par `findTableEntry` (`engine/tables.ts`).
  *  Torchon trempé (NADJ 16 l.111) : jambe 1 point, corps 2 points à partir de 3 DR, tête 3 points à
  *  partir de 6 DR. `label` est de l'AFFICHAGE (la logique lit `points`). */
-export interface SequenceTableRow {
-  min: number;
-  max: number;
+export interface SequenceTableRow extends BandeOuverte {
   points: number;
   label: string;
 }

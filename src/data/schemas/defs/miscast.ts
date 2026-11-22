@@ -2,6 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couvertureDeclareeDuDe } from '../grammaire/couverture-table';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { cleDeTableDuDomaineSchema } from './domains';
@@ -67,7 +68,12 @@ const doc = document(
       },
     },
   },
-  { rangee, deDeTirage: true },
+  {
+    rangee,
+    deDeTirage: true,
+    // LDB 40 l.89.
+    affinerEntree: couvertureDeclareeDuDe(file, (table) => table.id === CATEGORIES.colereDesDieux ? 'ouverte' : 'fermee', 'borne-haute'),
+  },
 );
 
 export const schema = doc.schema;

@@ -1,4 +1,5 @@
 import type { Combatant, ItemInstance } from '../engine/types';
+import type { Cadence } from '../engine/cadence';
 import type { Formula } from '../engine/ops';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
@@ -718,6 +719,8 @@ export interface EtatDeJeu {
   /** Coop en ligne : état réseau sérialisable ; les objets réseau vivants (sessions, sockets du
    *  relay) restent dans la fermeture du salon (`hote/coop/salon.ts`). */
   net: NetState;
+  /** Cadence de table reçue par le miroir coop. */
+  cadenceHote?: Cadence;
   /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)
    *  et ses cases cochées ; `null` : fermée. */
   finDeSeance: FinDeSeance | null;

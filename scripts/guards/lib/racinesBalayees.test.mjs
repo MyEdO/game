@@ -1859,6 +1859,17 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
       else delete prototype.toJSON
     }
   }
+  const precedent = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
+  const tardive = { objet: { get champ() {
+    Object.defineProperty(Array.prototype, 'toJSON', { configurable: true, value: () => undefined })
+    return 'élément'
+  } } }
+  try {
+    assert.throws(() => ferme.cleDe(tardive), /CLE_DOMAINE_JSON/)
+  } finally {
+    if (precedent) Object.defineProperty(Array.prototype, 'toJSON', precedent)
+    else delete Array.prototype.toJSON
+  }
   const profond = () => {
     let v = { texte: 'src/a' }
     for (let i = 0; i < 100000; i++) v = { objet: v }

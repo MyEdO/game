@@ -1020,6 +1020,8 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
    *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
+  /** LDB 68 l.25, l.48 */
+  licenceDeGuilde?: true;
 }
 /** Profil d'arme d'une DONNÉE (`TrappingData.derivedWeapon`) : la `Weapon` du moteur, ses Groupes désignés
  *  par `ref('weaponGroup')`. Le moteur l'arme par `armeDeLaDonnee` (`engine/items.ts`). */

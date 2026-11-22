@@ -2,8 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** AA 10 l.13/116 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDuDeDeLaTable, plageOuverteSchema } from '../grammaire/valeurs';
-import { formatDice, type DiceSpec } from '../../../engine/dice';
+import { couvertureDeclareeDuDe } from '../grammaire/couverture-table';
+import { plageOuverteSchema } from '../grammaire/valeurs';
 
 export const file = 'structure-criticals.json';
 export const famille = 'config';
@@ -38,19 +38,8 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    // AA 10 l.116-127 ; patron `advancementCosts.ts`.
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        const table = v as { die: DiceSpec; entries?: { id?: string; min?: number; max?: number | null }[] };
-        const ecarts = ecartsDuDeDeLaTable(table, table.entries ?? [], (e) => `la rangée « ${e.id} »`);
-        if (ecarts.length) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['entries'],
-            message: `structure-criticals.json : les rangées ne couvrent pas le ${formatDice(table.die)} d'un seul tenant — ${ecarts.join(' ; ')}.`,
-          });
-        }
-      }),
+    // AA 10 l.116-127.
+    affinerEntree: couvertureDeclareeDuDe(file, () => 'ouverte'),
   },
 );
 

@@ -535,13 +535,12 @@ const DECLARATIONS_D_OPS = {
   /** `infestation` — MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
   infestation: nommerChamps(z.strictObject({
     op: z.literal('infestation'),
-    crewTestType: ref('crewTestType'),
-    difficulty: difficultySchema,
+    test: z.lazy(() => testFixeDEquipageSchema),
     ...cibleEtendueSchema.shape,
     chaqueNuit: z.lazy(() => flowSchema),
     /** MDG 15 l.161, l.176 */
     surDRNegatif: z.lazy(() => flowSchema).optional(),
-  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }),
+  }), { op: { label: "opération"  }, test: { label: "Test d’équipage" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }),
   /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
   combatEnMer: nommerChamps(z.strictObject({
     op: z.literal('combatEnMer'),
@@ -1391,6 +1390,17 @@ export const flowTestSchema = testDeDonnee(
  *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
 export const testFixeSchema = testDeDonnee(stakeRefSchema, {}, {});
 
+const metaDuTestFixe = metaDesChamps(testFixeSchema, { exigees: true });
+
+/** Test fixe d'équipage dont la cadence pose l'enjeu. */
+export const testFixeDEquipageSchema = nommerChamps(z.strictObject({
+  crewTestType: testFixeSchema.shape.crewTestType.unwrap(),
+  difficulty: testFixeSchema.shape.difficulty.unwrap(),
+}), {
+  crewTestType: metaDuTestFixe.crewTestType,
+  difficulty: metaDuTestFixe.difficulty,
+});
+
 /** Le Test d'un document de SCÈNE : son enjeu est la phrase que le document écrit (`authoredStakeSchema`,
  *  arbitrage user 2026-08-12, #1262), jamais une clé du catalogue du moteur. */
 export const testDeSceneSchema = testDeDonnee(authoredStakeSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
@@ -1447,9 +1457,7 @@ function declarerTestFixe<N extends z.ZodType>(porteur: N, champs: readonly Cham
 export const declarationDeTestFixe = (noeud: unknown): TestFixe | undefined =>
   typeof noeud === 'object' && noeud !== null ? TESTS_FIXES.get(noeud) : undefined;
 
-/** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
- *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite).
- *  Sa décision est celle d'un Test de flux (`decisionDuTestSchema`). */
+/** LDB 12 l.172-174. L’effet compose le jet et `decisionDuTestSchema`. Le drapeau ouvre la suite à la réussite. */
 export const extendedTestSchema = nommerChamps(z.strictObject({
   type: z.literal('extendedTest'),
   ...jetSchema.shape,
@@ -1460,7 +1468,7 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — l'enjeu d'un document (`stakeRefSchema`), résolu par `resolveStake` et
    *  affiché par la modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
-}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
+}).superRefine(nommerCeQueTesteLeJet), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
 export interface OptionsNoeudTest {

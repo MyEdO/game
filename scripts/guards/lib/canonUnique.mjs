@@ -12,11 +12,11 @@
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
 //    `SONDE_D_EXISTENCE`, `PREDICAT_D_OBJET`, `LECTURE_AU_CHEMIN`, `VIE_SUR_PID_LU` et
-//    `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `CONSTRUCTION_DE_TABLE_TOTALE`, `EXEMPTION_PAR_LIGNE` et `COMPARATEUR_D_ANCRE_EN_LIGNE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
-//    collection lue hors de sa vue, admise à des SITES nommés par `englobanteDe`),
+//    lecture d’une collection hors de sa vue canonique),
 //    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne), `constructionDeFragment`
 //    (un fragment d'adresse bâti hors de ses constructeurs) et `appelReserve` (une fonction déclarée
 //    appelée hors de son foyer) ;
@@ -1199,10 +1199,137 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
   };
 }
 
+const ADRESSE_PAR_LIGNE = /^(?:file:\/\/)?[^:\r\n]+\.[\p{L}0-9]+:\d+$/u;
+const NOMS_DU_FICHIER = new Set(['fichier', 'file', 'chemin', 'path', 'rel', 'url']);
+const NOMS_DE_POSITION = new Set(['ligne', 'line', 'row']);
+const NOMS_DE_RAISON = new Set(['raison', 'reason', 'justification']);
+const NOM_DE_POLITIQUE = /exempt|except|allowlist|allowed_?sites|whitelist|ratchet|(?:^|_)admis|stock/i;
+
+/** @param {ts.Node} n */
+function estDansUnePolitiqueDeSites(n) {
+  for (let p = n.parent; p && !ts.isFunctionLikeDeclaration(p); p = p.parent) {
+    if (ts.isVariableDeclaration(p)) return ts.isIdentifier(p.name) && NOM_DE_POLITIQUE.test(p.name.text);
+    if (ts.isPropertyAssignment(p) && NOM_DE_POLITIQUE.test(keyName(p.name) ?? '')) return true;
+  }
+  return false;
+}
+
+/** @param {ts.Expression} n */
+function adresseParLigne(n) {
+  const e = sansEnveloppe(n);
+  if (ts.isStringLiteralLikeNode(e)) return ADRESSE_PAR_LIGNE.test(e.text);
+  if (!ts.isTemplateExpression(e)) return false;
+  const dernier = e.templateSpans[e.templateSpans.length - 1];
+  const prefixe = e.templateSpans.length === 1 ? e.head.text : e.templateSpans[e.templateSpans.length - 2].literal.text;
+  if (!dernier || dernier.literal.text !== '' || !prefixe.endsWith(':')) return false;
+  if (!NOMS_DE_POSITION.has(nomDe(dernier.expression) ?? '') && !ts.isNumericLiteral(sansEnveloppe(dernier.expression))) return false;
+  const avant = e.templateSpans[e.templateSpans.length - 2]?.expression;
+  return ADRESSE_PAR_LIGNE.test(prefixe + '1') || (avant !== undefined && NOMS_DU_FICHIER.has(nomDe(avant) ?? ''));
+}
+
+/** Clé de site dans un dictionnaire, une liste d'exemptions ou un littéral d'entrées de Map.
+ * @param {ts.Node} n @returns {ts.Node | undefined} */
+function cleNumeriqueDeclaree(n) {
+  if (ts.isPropertyAssignment(n) && (ADRESSE_PAR_LIGNE.test(keyName(n.name) ?? '')
+    || (ts.isComputedPropertyName(n.name) && estDansUnePolitiqueDeSites(n) && adresseParLigne(n.name.expression)))) return n.name;
+  if (ts.isArrayLiteralExpression(n) && estDansUnePolitiqueDeSites(n)) return n.elements.find(adresseParLigne);
+  if (!ts.isNewExpression(n) || nomDe(n.expression) !== 'Map' || !n.arguments?.[0]) return undefined;
+  const entrees = sansEnveloppe(n.arguments[0]);
+  if (!ts.isArrayLiteralExpression(entrees)) return undefined;
+  for (const entree of entrees.elements) {
+    const paire = sansEnveloppe(entree);
+    if (ts.isArrayLiteralExpression(paire) && paire.elements[0] && adresseParLigne(paire.elements[0])) return paire.elements[0];
+  }
+}
+
+/** Un attendu littéral d'assertion, à travers ses conteneurs. L'appel au code testé coupe la montée.
+ * @param {ts.Node} n */
+function estAttenduLitteral(n) {
+  for (let enfant = n, p = n.parent; p; enfant = p, p = p.parent) {
+    if (ts.isCallExpression(p)) {
+      const appel = p.expression;
+      const nom = nomDe(appel);
+      if (nom === 'deepEqual' || nom === 'deepStrictEqual' || nom === 'assertDeepEqual') return p.arguments[1] === enfant;
+      if (!ts.isPropertyAccessExpression(appel) || (nom !== 'toEqual' && nom !== 'toStrictEqual')) return false;
+      const recepteur = appel.expression;
+      const expect = ts.isPropertyAccessExpression(recepteur) && recepteur.name.text === 'not' ? recepteur.expression : recepteur;
+      return ts.isCallExpression(expect) && nomDe(expect.expression) === 'expect' && p.arguments[0] === enfant;
+    }
+    if (!ts.isArrayLiteralExpression(p) && !ts.isObjectLiteralExpression(p) && !ts.isPropertyAssignment(p)
+      && !ts.isParenthesizedExpression(p) && !ts.isAsExpression(p) && !ts.isSatisfiesExpression(p)
+      && !(ts.isNewExpression(p) && (nomDe(p.expression) === 'Map' || nomDe(p.expression) === 'Set'))) return false;
+  }
+  return false;
+}
+
+/**
+ * Une exemption ou une couture ne se déclare pas par position : la clé d'un dictionnaire, l'entrée
+ * d'une collection de politique, ou un objet porteur de fichier et de raison fait foi. La position
+ * reste libre dans une sortie diagnostique ou l'attendu littéral d'une assertion de test.
+ * Le prédicat ne remonte pas le flot d'une valeur calculée avant son inscription dans la table.
+ */
+export const EXEMPTION_PAR_LIGNE = Object.freeze({
+  nom: 'exemption par numéro de ligne',
+  indice: (texte) => /:\d+|:\$\{|\b(?:ligne|line|row)\b/.test(texte),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf */
+  reconnait: (n, sf) => {
+    const cle = cleNumeriqueDeclaree(n);
+    if (cle && !estAttenduLitteral(n)) return `clé de site \`${cle.getText(sf)}\` : employer une ancre de contenu ou de déclaration`;
+    if (!ts.isObjectLiteralExpression(n) || estAttenduLitteral(n)) return null;
+    const champs = new Map(n.properties.flatMap((p) => ts.isPropertyAssignment(p) ? [[keyName(p.name), p.initializer]] : []));
+    if (![...champs.keys()].some((k) => NOMS_DE_RAISON.has(k)) && !estDansUnePolitiqueDeSites(n)) return null;
+    const site = champs.get('site');
+    if (site && adresseParLigne(site)) return `clé de site \`${site.getText(sf)}\` : employer une ancre de contenu ou de déclaration`;
+    if (![...champs.keys()].some((k) => NOMS_DU_FICHIER.has(k))) return null;
+    const position = [...champs].find(([k, v]) => NOMS_DE_POSITION.has(k) && ts.isNumericLiteral(sansEnveloppe(v)));
+    return position ? `champ \`${position[0]}\` numérique dans une exemption : employer une ancre de contenu ou de déclaration` : null;
+  },
+});
+
+const NOMS_D_ANCRE = new Set(['ancre', 'anchor', 'motif', 'pattern']);
+
+/** Porteur d'un champ d'entrée, à travers une éventuelle projection unaire.
+ * @param {ts.Expression} e @param {ReadonlySet<string>} noms @param {ts.SourceFile} sf */
+function porteurDuChamp(e, noms, sf) {
+  const x = sansEnveloppe(e);
+  if (ts.isCallExpression(x) && x.arguments.length === 1) return porteurDuChamp(x.arguments[0], noms, sf);
+  if (ts.isPropertyAccessExpression(x) && noms.has(x.name.text)) return x.expression.getText(sf);
+  if (ts.isElementAccessExpression(x) && ts.isStringLiteralLikeNode(x.argumentExpression) && noms.has(x.argumentExpression.text))
+    return x.expression.getText(sf);
+  return null;
+}
+
+/**
+ * Recopie d'un comparateur d'exemption : la même entrée porte le fichier comparé et le motif testé.
+ * Le prédicat suit les deux termes d'une conjonction et leurs projections unaires sur place.
+ */
+export const COMPARATEUR_D_ANCRE_EN_LIGNE = Object.freeze({
+  nom: 'comparateur d’ancre recopié',
+  indice: (texte) => texte.includes('&&') && /\b(?:ancre|anchor|motif|pattern)\b/.test(texte),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf */
+  reconnait: (n, sf) => {
+    const et = ts.SyntaxKind.AmpersandAmpersandToken;
+    if (!ts.isBinaryExpression(n) || n.operatorToken.kind !== et || maillonDeChaine(n, et)) return null;
+    const termes = operandesOu(n, et);
+    const egalites = termes.filter((t) => ts.isBinaryExpression(t) && EGALITES_SEULES.includes(t.operatorToken.kind));
+    const porteurs = new Set(egalites.flatMap((t) => [t.left, t.right])
+      .map((e) => porteurDuChamp(e, NOMS_DU_FICHIER, sf)).filter((p) => p !== null));
+    if (!porteurs.size) return null;
+    const appartient = (e) => porteurs.has(porteurDuChamp(e, NOMS_D_ANCRE, sf));
+    const ancre = termes.some((t) => {
+      const test = appelDeMethode(t, 'test');
+      if (test && appartient(test.recepteur)) return true;
+      const inclusion = appelDeMethode(t, 'includes');
+      return inclusion?.args[0] && appartient(inclusion.args[0]);
+    }) || egalites.some((t) => appartient(t.left) || appartient(t.right));
+    return ancre ? 'fichier et ancre comparés en ligne : employer la primitive de stock' : null;
+  },
+});
+
 /** La chaîne des déclarations NOMMÉES qui englobent `n` (fonction, méthode, variable liée à une
  *  fonction), de la plus externe à la plus interne, jointe par ` › ` ; `(module)` au niveau du fichier.
  *  @param {ts.Node} n @returns {string} */
-function englobanteDe(n) {
+export function englobanteDe(n) {
   const noms = [];
   for (let p = n.parent; p; p = p.parent) {
     if ((ts.isFunctionDeclaration(p) || ts.isMethodDeclaration(p)) && p.name) noms.unshift(p.name.getText());
@@ -1244,15 +1371,13 @@ export function appelReserve({ nom, fonctions }) {
  *  - l'IMPORT d'un fichier dont le nom est `json` ;
  *  - un APPEL à l'une des `fonctions` du `seam` (`estAppelDeclare`) dont le premier argument est le
  *    littéral `dataset`, ou n'est pas un littéral de chaîne.
- * `sitesAdmis` (`{ rel, englobante, appele }`, `englobanteDe`) : un appel au seam ADMIS à ce site, et à
- * lui seul — jamais un fichier. HORS DE PORTÉE : l'accès calculé (`ns['<exporte>']`), la
+ * HORS DE PORTÉE : l'accès calculé (`ns['<exporte>']`), la
  * déstructuration d'un espace de noms, `import()` dynamique, `export * from`.
  * @param {{ nom: string, liaisons: readonly { module: string, exporte: string }[], json: string,
- *   seam: { module: string, fonctions: readonly string[] }, dataset: string,
- *   sitesAdmis?: readonly { rel: string, englobante: string, appele: string }[] }} p
+ *   seam: { module: string, fonctions: readonly string[] }, dataset: string }} p
  * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
-export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, sitesAdmis = [] }) {
+export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset }) {
   const exportes = new Set(liaisons.map((l) => l.exporte));
   const lie = (module, exporte) => liaisons.some((l) => l.module === module && l.exporte === exporte);
   const fonctions = { [seam.module]: seam.fonctions };
@@ -1288,7 +1413,6 @@ export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, s
       const litteral = arg && ts.isStringLiteralLikeNode(arg);
       if (litteral && arg.text !== dataset) return null;
       const englobante = englobanteDe(n);
-      if (sitesAdmis.some((s) => resolve(RACINE, s.rel) === resolve(sf.fileName) && s.englobante === englobante && s.appele === appele)) return null;
       return litteral ? `\`${appele}('${dataset}')\` dans \`${englobante}\`` : `\`${appele}\` à argument non littéral dans \`${englobante}\``;
     },
   };

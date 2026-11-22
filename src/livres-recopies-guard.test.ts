@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  scanLivresRecopies, identitesDe, identitesReelles, estExclu,
+  analyserLivresRecopies, scanLivresRecopies, identitesDe, identitesReelles, estExclu,
   SCAN_DIRS, SEUIL, SITE_EXEMPTIONS,
 } from '../scripts/guards/lib/livresRecopies.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { cleDeLigne, lignesDuContenu } from '../scripts/guards/lib/stock.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 
 /**
@@ -44,11 +45,20 @@ const formes = (src: string, nom = 'fixture.ts') => scanLivresRecopies(nom, src,
 describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)', () => {
   it('aucune énumération littérale du code ne recopie le registre des livres', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
+    const perimees = new Set(SITE_EXEMPTIONS);
+    const ambigues = [];
     for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(SCAN_DIRS, { tests: true }).filter(({ rel }) => !estExclu(rel)))) {
-      for (const s of scanLivresRecopies(rel, text, undefined, sourceFile!)) {
+      const bilan = analyserLivresRecopies(rel, text, undefined, sourceFile!);
+      for (const s of bilan.fautes) {
         offenders.push(`${rel}:${s.line} — ${s.forme} figeant ${s.valeurs.length} livres : ${s.valeurs.join(', ')}`);
       }
+      for (const e of SITE_EXEMPTIONS) {
+        if (e.fichier === rel && !bilan.perimees.includes(e)) perimees.delete(e);
+      }
+      ambigues.push(...bilan.ambigues);
     }
+    expect([...perimees], 'Exemption(s) sans site ou au contenu réécrit').toEqual([]);
+    expect(ambigues, 'Exemption(s) ambiguë(s)').toEqual([]);
     expect(
       offenders,
       `Liste de livres recopiée (la DÉRIVER du registre \`src/data/books.json\` — \`REGISTRE_LIVRES\`/\`BOOKS\` de \`scripts/raw/_lib.mjs\`, \`alternationDe\` de \`src/lib/regex.ts\`) :\n${offenders.join('\n')}`,
@@ -117,24 +127,52 @@ describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)',
     expect(estExclu('src/noyau/combat/advantage-group.test.ts')).toBe(false);
   });
 
-  it('toute exemption AU SITE nomme sa ligne ET sa forme, et porte sa raison datée', () => {
+  it('toute exemption AU SITE nomme son ancre et sa forme, et porte sa raison datée', () => {
     const mal = SITE_EXEMPTIONS.filter(
-      (e) => !e.fichier || !Number.isInteger(e.ligne) || !e.forme || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? ''),
+      (e) => !e.fichier || !e.ancre.trim() || !/^[0-9a-f]{64}$/.test(e.empreinte)
+        || !e.forme || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date),
     );
     expect(mal, `Exemption(s) incomplète(s) : ${JSON.stringify(mal)}`).toEqual([]);
-    // Une exemption au FICHIER n'existe pas : chacune porte une ligne, donc périme au déplacement.
-    expect(SITE_EXEMPTIONS.every((e) => e.ligne > 0)).toBe(true);
+    const cles = SITE_EXEMPTIONS.map((e) => cleDeLigne(e.fichier, e.ancre));
+    expect(new Set(cles).size).toBe(cles.length);
   });
 
-  it('toute exemption COUVRE ENCORE un site réel : une entrée périmée rougit, la liste ne survit pas à son motif', () => {
-    // Le fichier est rescanné sous un AUTRE nom : l'exemption, keyée par chemin, ne s'y applique pas,
-    // et le site doit ressortir à la ligne et sous la forme que l'entrée déclare.
-    const perimees = SITE_EXEMPTIONS.filter((e) => {
-      const contenu = readFileSync(join(RACINE, e.fichier), 'utf8');
-      const nu = e.fichier.replace(/([^/]+)$/, 'sonde-exemption-$1');
-      return !scanLivresRecopies(nu, contenu).some((s) => s.line === e.ligne && s.forme === e.forme);
-    });
-    expect(perimees, `Exemption(s) sans site : ${JSON.stringify(perimees)} — le site a bougé ou a été dérivé, l'entrée se SUPPRIME.`).toEqual([]);
+  it('le comparateur suit le site historique et refuse toute disparition ou ambiguïté', () => {
+    const [exemption] = SITE_EXEMPTIONS;
+    const { fichier, ancre, forme } = exemption;
+    const contenu = readFileSync(join(RACINE, fichier), 'utf8');
+    const analyser = (texte: string) => analyserLivresRecopies(fichier, texte);
+    const lignes = contenu.split('\n');
+    const remplacer = (debut: number, longueur: number, ...nouvelles: string[]) => {
+      const copie = [...lignes];
+      copie.splice(debut, longueur, ...nouvelles);
+      return copie.join('\n');
+    };
+    const [ligne] = lignesDuContenu(fichier, contenu, cleDeLigne(fichier, ancre));
+    const fin = lignes.indexOf(']', ligne);
+    expect(fin).toBeGreaterThan(ligne);
+    const clair = { fautes: [], perimees: [], ambigues: [] };
+    expect(analyser(contenu)).toEqual(clair);
+    expect(analyser(`// insertion étrangère\n\n${contenu}`)).toEqual(clair);
+
+    const absent = remplacer(ligne - 1, fin - ligne + 2);
+    expect(analyser(absent)).toEqual({ ...clair, perimees: [exemption] });
+
+    const membre = lignes[ligne];
+    const reecrit = membre.replace(/\.md(?=['"])/, '-retouche.md');
+    expect(reecrit).not.toBe(membre);
+    const autreCheminHistorique = analyser(remplacer(ligne, 1, reecrit));
+    expect(autreCheminHistorique.perimees).toEqual([exemption]);
+    expect(autreCheminHistorique.fautes).toEqual([expect.objectContaining({ line: ligne, forme })]);
+
+    const recopies = analyser(`${contenu}\n${lignes.slice(ligne - 1, fin + 1).join('\n')}`);
+    expect(recopies.ambigues).toEqual([exemption]);
+    expect(recopies.fautes.map((s) => s.forme)).toEqual([forme, forme]);
+
+    const membresDoubles = lignes.slice(ligne, fin).map((m) => m.replace(/abbr: ('[^']+'),/, 'abbr: $1, autre: $1,'));
+    const homonymes = analyser(remplacer(ligne, fin - ligne, ...membresDoubles));
+    expect(homonymes.ambigues).toEqual([exemption]);
+    expect(homonymes.fautes.map((s) => [s.line, s.forme])).toEqual([[ligne, forme], [ligne, forme]]);
   });
 
   it('CÂBLAGE : le scan de CORPUS consomme réellement le détecteur (le registre RÉEL mord)', () => {

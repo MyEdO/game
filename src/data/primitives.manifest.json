@@ -668,9 +668,9 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeLigne/cleDeContenu/lignesDuContenu/positionsDesAncres/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée), lignes qu'elle désigne et positions des ancres univoques (contenu trimé ou regex sur une projection de ligne, toute collision refusée), son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
     "verrou": "cle-de-site-guard.test.ts, stock.test.mjs, stock-primitive.test.ts"
   },
@@ -920,9 +920,9 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/EXEMPTION_PAR_LIGNE/COMPARATEUR_D_ANCRE_EN_LIGNE/recopieDeCanon/cleEnLigne/englobanteDe/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, le refus d’une exemption indexée par une position ou comparée hors du contrat d’ancre, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection, de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence, et la chaîne des déclarations englobant un nœud ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
     "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts, ref-couvre.test.ts"
   },
@@ -940,7 +940,7 @@
     "type": "primitives.manifest",
     "label": "garde de la clé de site",
     "fichier": "src/cle-de-site-guard.test.ts",
-    "concept": "clé de site écrite en ligne ou recopiée hors de stock.mjs",
+    "concept": "clé de site écrite en ligne ou recopiée hors de stock.mjs, exemption identifiée par sa position",
     "perimetre": "périmètre des gardes",
     "verrou": "cle-de-site-guard.test.ts"
   },

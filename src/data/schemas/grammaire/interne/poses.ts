@@ -31,6 +31,7 @@ import {
   valeurDIdentiteSchema,
 } from '../campagne';
 import { specialSchema } from '../jeu-de-taverne';
+import { extendedTestSchema, testFixeDEquipageSchema } from '../mecanique';
 
 /** La classe de produit `(fabrique, rôles, clés d'extra)`. */
 const classe = (fabrique: string, roles: readonly string[], clesDExtra: readonly string[] = []): ClasseDePose => ({ fabrique, roles, clesDExtra });
@@ -86,6 +87,8 @@ const POSES_DE_GRAMMAIRE = {
   'effet-narratif-indice': revealClueSchema,
   'special-de-jeu': specialSchema,
   test: classe('testDeDonnee', ['test']),
+  'test-etendu': extendedTestSchema,
+  'test-fixe-d-equipage': testFixeDEquipageSchema,
 };
 
 export type IdConceptPose = keyof typeof POSES_DE_GRAMMAIRE;

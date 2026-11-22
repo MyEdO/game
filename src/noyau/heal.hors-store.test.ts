@@ -2,6 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { creditBourse } from './bourseFlow';
 import { ouvrirLeMedecin } from './medicFlow';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { applyEffects } from './combatEffects';
+import { finalizeBattle } from './combatFlow';
+import { draineCascade } from './cascade.testkit';
+import { testScene } from '../scenes/test-fixture';
 import { jouerUnReglage } from '../hote/reglages';
 import { bourseOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
@@ -454,14 +459,53 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
     banc.getState().jetRegler('soins', 'mode', 'chirurgie');
-    const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
-    const jambeG = patient.traumas!.find((t) => t.location === 'jambeG')!;
-    banc.getState().fenetreChoisir('infirmerie', 'plaie', brasD.uid); // au brouillon : opérer la blessure du brasD
+    const choix = () => reglageDuChoixDeFenetre(banc.getState(), 'infirmerie', 'plaie');
+    const traumas = banc.getState().party.find((h) => h.id === patient.id)!.traumas!;
+    const brasD = traumas.find((t) => t.location === 'brasD')!;
+    const jambeG = traumas.find((t) => t.location === 'jambeG')!;
+    const seconde = choix().valeurs![1].valeur;
+    expect(seconde).toBe(brasD.uid);
+    banc.getState().fenetreChoisir('infirmerie', 'plaie', String(seconde));
     expect(banc.getState().pendingHeal!.plaie).toBe(brasD.uid);
     banc.getState().jetLancer('soins');
     expect(banc.getState().medic!.surgery!.traumaUid).toBe(brasD.uid);
-    banc.getState().fenetreChoisir('infirmerie', 'plaie', jambeG.uid); // opération armée, avant la 1re passe
+    const premiere = choix().valeurs![0].valeur;
+    expect(premiere).toBe(jambeG.uid);
+    banc.getState().fenetreChoisir('infirmerie', 'plaie', String(premiere));
     expect(banc.getState().medic!.surgery!.traumaUid).toBe(jambeG.uid);
+  });
+
+  it('Infirmerie : une plaie acquise pendant le combat entre dans les choix au retour du groupe', () => {
+    const doc = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
+    const patient = hero({
+      id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
+      traumas: avecSequelles([], [tk('fracture', 'majeur', 'brasD', { be: 4, d10: 5 })]),
+    });
+    banc.setState({ party: [doc, patient] });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().ouvrirLeMedecin(patient.id);
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
+    const choix = () => reglageDuChoixDeFenetre(banc.getState(), 'infirmerie', 'plaie').valeurs!.map(({ valeur }) => valeur);
+    const bras = banc.getState().medic!.surgery!.traumaUid;
+    expect(choix()).toEqual([bras]);
+
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
+    expect(banc.getState().battle).not.toBeNull();
+    const compteur = banc.getState().prochainId;
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictTrauma', kind: 'fracture', severity: 'majeur', location: 'tete', heroId: patient.id }]);
+    draineCascade(banc.getState);
+    expect(choix()).toEqual([]);
+    expect(banc.getState().prochainId).toBe(compteur);
+
+    finalizeBattle(banc.getState, banc.setState);
+    banc.setState({ battle: null, pendingRoundStart: null, mode: 'exploration' });
+    const tete = banc.getState().party.find((h) => h.id === patient.id)?.traumas?.find((p) => p.location === 'tete');
+    expect(tete?.uid).toMatch(/^plaie-\d+$/);
+    expect(banc.getState().prochainId).toBe(compteur + 1);
+    expect(choix()).toEqual([bras, tete!.uid]);
+    banc.getState().fenetreChoisir('infirmerie', 'plaie', tete!.uid);
+    expect(banc.getState().medic!.surgery!.traumaUid).toBe(tete!.uid);
   });
 
   it('Récupération d’usage (« Épaule luxée », #166) : acte Guérison ARMÉ = Test ÉTENDU DR 6 (Accessible), retire le membre désactivé + pose −10 / 1d10 j, SANS dégât', () => {

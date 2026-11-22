@@ -24,6 +24,8 @@ import { evaluateTest, resolveOpposed, type TestResult } from '../engine/tests';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
+import { lireSave } from './persistance/save';
+import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -115,8 +117,25 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   it('l’entrée porte la règle : 12 par équipe, 11 danseurs, le barème en table, somme par camp', () => {
     expect(TORCHON.team?.size, '« deux équipes de 12 personnes » (l.109)').toBe(12);
     expect(TORCHON.dancers, '« deux cercles de 11 joueurs » (l.109)').toBe(11);
-    expect(TORCHON.table?.map((t) => [t.min, t.max, t.points])).toEqual([[-99, 2, 1], [3, 5, 2], [6, 99, 3]]);
+    expect(TORCHON.table?.map((t) => [t.min, t.max, t.points])).toEqual([[0, 2, 1], [3, 5, 2], [6, null, 3]]);
     expect(TORCHON.campScore).toBe('sum');
+  });
+
+  it('construit le barème depuis 0 jusqu’à une borne haute ouverte, dans tout ordre', () => {
+    const table = [...TORCHON.table!].reverse();
+    expect(schema.safeParse([{ ...TORCHON, table }]).success).toBe(true);
+    expect(schema.safeParse([{ ...TORCHON, table: undefined }]).success).toBe(false);
+    expect(schema.safeParse([{ ...TORCHON, table, roundShape: undefined }]).success).toBe(true);
+  });
+
+  it('refuse une borne haute finie sur la dernière rangée du barème de lancer', () => {
+    const table = TORCHON.table!.map((ligne) => ligne.max === null ? { ...ligne, max: 8 } : ligne);
+    const entree = { ...TORCHON, table };
+    const parse = schema.safeParse([entree]);
+    expect(parse.error?.issues).toContainEqual(expect.objectContaining({
+      path: [0, 'table'], message: expect.stringMatching(/torchon.*rangée 3.*max: null/),
+    }));
+    expect(schema.safeParse([{ ...entree, roundShape: undefined }]).success).toBe(true);
   });
 
   /** LA SANCTION DU RATÉ est en DONNÉE (famille 10, `NADJ 16 l.111` — la règle vit à l'Atlas et dans
@@ -179,9 +198,30 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     expect(ligne).toContain('à la tête : 3 points (107 DR)');
   });
 
+  it('reprend une partie sauvegardée avec la borne haute ouverte et joue 107 DR', () => {
+    const party = partie(1);
+    const texte = sauverLeBanc(banc);
+    chargerSurLeBanc(banc, texte);
+    const table = get().sequence?.parametres.table;
+    expect(table?.[table.length - 1].max).toBeNull();
+
+    validerLancerA107DR();
+    expect(recit.find((l) => l.includes(party[0].label) && l.includes('touche'))).toContain('à la tête : 3 points (107 DR)');
+  });
+
+  it('refuse le format de sauvegarde au barème exclusivement numérique', () => {
+    partie(1);
+    const ancienne = JSON.parse(sauverLeBanc(banc));
+    ancienne.version = '225fba0c9c76d245';
+    ancienne.data.sequence.parametres.table[0].min = -99;
+    ancienne.data.sequence.parametres.table[2].max = 99;
+    expect(lireSave(JSON.stringify(ancienne))).toBe('autreFormat');
+  });
+
+  const tableFermee = TORCHON.table!.map((ligne) => ligne.max === null ? { ...ligne, max: 105 } : ligne);
   it.each([
     { cas: 'tronqué avant la dernière rangée', table: TORCHON.table!.slice(0, -1) },
-    { cas: 'étendu au-delà de 99 avec un trou', table: [...TORCHON.table!, { min: 108, max: 110, points: 4, label: 'touche spéciale' }] },
+    { cas: 'étendu avec un trou', table: [...tableFermee, { min: 108, max: 110, points: 4, label: 'touche spéciale' }] },
   ])('signale le jet de 107 DR dans un barème $cas', ({ table }) => {
     partie(1);
     const sequence = get().sequence!;
@@ -189,10 +229,10 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     expect(validerLancerA107DR).toThrow('[rangée de table] « 107 » introuvable');
   });
 
-  it('utilise la rangée qui couvre 107 DR dans un barème étendu au-delà de 99', () => {
+  it('utilise la rangée qui couvre 107 DR dans un barème fermé étendu', () => {
     const party = partie(1);
     const sequence = get().sequence!;
-    const table = [...TORCHON.table!, { min: 100, max: 110, points: 4, label: 'touche spéciale' }];
+    const table = [...tableFermee, { min: 106, max: 110, points: 4, label: 'touche spéciale' }];
     banc.setState({ sequence: { ...sequence, parametres: tavernParams({ ...TORCHON, table }) } });
     validerLancerA107DR();
     const ligne = recit.find((l) => l.includes(party[0].label) && l.includes('touche'));
@@ -339,7 +379,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     dancers: 3,
     roundShape: 'thrower' as const,
     campScore: 'sum',
-    table: [{ min: -99, max: 99, points: 2, label: 'de plein fouet' }],
+    table: [{ min: 0, max: null, points: 2, label: 'de plein fouet' }],
     throwerPenalty: {
       test: { skill: { id: 'calme' }, difficulty: 'difficile' as const },
       label: 'Garder contenance',

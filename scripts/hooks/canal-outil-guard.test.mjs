@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
-import { LEAN_CTX_VERSION, LECTURE, familleLeanCtx } from '../guards/lib/contratGarde.mjs'
+import { LEAN_CTX_VERSION, LECTURE, PREFIXES_LEAN_CTX, familleLeanCtx } from '../guards/lib/contratGarde.mjs'
 import { REGISTRE } from './registre.mjs'
 import { CONSIGNE, CONSIGNE_NATIVE, garde } from './canal-outil-guard.mjs'
 
@@ -97,7 +97,7 @@ test('DRIVER : un outil de LECTURE classé, direct ou par la passerelle, un shel
 
 const P = 'mcp__lean-ctx__'
 
-test('DRIVER : la passerelle vers un outil hors `LECTURES_LIBRES` est REFUSÉE quelle que soit la forme de l’appel (imbriqué, aplati, `arguments` null/objet), canal prescrit : l’outil appelé DIRECTEMENT — surfaces claude et codex', () => {
+test('DRIVER : la passerelle vers un outil classé hors `LECTURES_LIBRES` est REFUSÉE quelle que soit la forme de l’appel (imbriqué, aplati, `arguments` null/objet), canal prescrit : l’outil appelé DIRECTEMENT — surfaces claude et codex', () => {
   const cas = [
     ['aplati ctx_knowledge export', { name: 'ctx_knowledge', action: 'export', format: 'okf', path: FICHE }],
     ['aplati ctx_knowledge import', { name: 'ctx_knowledge', action: 'import', path: FICHE, merge: 'replace' }],
@@ -108,13 +108,28 @@ test('DRIVER : la passerelle vers un outil hors `LECTURES_LIBRES` est REFUSÉE q
     ['imbriqué ctx_knowledge arguments non-objet', { name: 'ctx_knowledge', arguments: '{"action":"export"}' }],
     ['imbriqué ctx_knowledge recall (action inoffensive)', { name: 'ctx_knowledge', arguments: { action: 'recall', query: 'x' } }],
     ['aplati ctx_session status (action inoffensive)', { name: 'ctx_session', action: 'status' }],
-    ['name avec espace', { name: ' ctx_read', path: FICHE }],
+    ['aplati ctx_patch', { name: 'ctx_patch', path: FICHE }],
+    ['aplati ctx_shell', { name: 'ctx_shell', command: 'git status' }],
   ]
   for (const surface of ['claude', 'codex']) {
     for (const [nom, entree] of cas) {
       const { decision, raison } = decisionDe(`${P}ctx_call`, entree, surface)
       assert.equal(decision, 'deny', `${surface} : ${nom}`)
       assert.ok(raison.includes(CONSIGNE) && raison.includes(`appeler ${entree.name} DIRECTEMENT`), `${surface} : ${nom} : ${raison}`)
+    }
+  }
+})
+
+test('DRIVER : la passerelle refuse un nom non classé et conseille un canal connu — surfaces claude et codex', () => {
+  for (const [surface, prefixe] of Object.entries(PREFIXES_LEAN_CTX)) {
+    for (const name of ['ctx_outil_inconnu_2726', ' ctx_read']) {
+      const { decision, raison } = decisionDe(`${prefixe}ctx_call`, { name }, surface)
+      const cas = `${surface} : ${JSON.stringify(name)} : ${raison}`
+      assert.equal(decision, 'deny', cas)
+      assert.ok(raison.startsWith('[validation · non retentable]'), cas)
+      assert.doesNotMatch(raison, /DIRECTEMENT/, cas)
+      assert.ok(raison.includes('non classé') && raison.includes(JSON.stringify(name)), cas)
+      assert.ok(raison.includes(CONSIGNE), cas)
     }
   }
 })

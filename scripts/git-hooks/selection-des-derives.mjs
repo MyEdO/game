@@ -118,16 +118,15 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   const outillage = fichiersDOutillage()
   if (lot.some((f) => GRAPHE_DE_SELECTION.includes(f) || outillage.has(f))) return tous('graphe ou outil de mesure modifié')
   if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
-    ciblesLitterales([...g.targets, ...(g.injecte ?? [])]).some((c) => !existsSync(join(cwd, c))))) return tous('cible absente')
+    ciblesLitterales(g.targets).some((c) => !existsSync(join(cwd, c))))) return tous('cible absente')
   const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
-  const sorties = (g) => [...g.targets, ...(g.injecte ?? [])]
   let changement = true
   while (changement) {
     const avant = selection.size
     for (const g of generateurs) {
       if (!selection.has(g.script) && generateurs.some((producteur) => selection.has(producteur.script) &&
-        (mesure[g.script].fichiers.some((f) => sorties(producteur).some((c) => correspondGlob(f, c))) ||
-          touchesDocSources(ciblesSurDisque(sorties(producteur), cwd), mesure, { seulement: [g.script] })))) selection.add(g.script)
+        (mesure[g.script].fichiers.some((f) => producteur.targets.some((c) => correspondGlob(f, c))) ||
+          touchesDocSources(ciblesSurDisque(producteur.targets, cwd), mesure, { seulement: [g.script] })))) selection.add(g.script)
     }
     changement = selection.size !== avant
   }

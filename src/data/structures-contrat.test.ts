@@ -53,7 +53,8 @@ import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs';
-import { conditionSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { conditionSchema, extendedTestSchema, flowTestSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { coDescendre } from './schemas/grammaire/descente';
 import { estObjet } from '../lib/objet.mjs';
 
 /**
@@ -131,6 +132,45 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(formes.find((f) => f.champ === 'scalaire')).toMatchObject({ signature: 'id-nu', statut: 'historique', occurrences: 2, cibles: ['skills.json'] });
     expect(formes.find((f) => f.champ === 'skillRef')).toMatchObject({ signature: 'id', statut: 'cible', occurrences: 2, cibles: ['skills.json'] });
   });
+  it('écarte le discriminant d’une GameOp validée au site et conserve les vraies références', () => {
+    const catalogue = z.array(z.strictObject({ id: z.string(), label: z.string() }));
+    const ops = z.array(gameOpSchema);
+    const porteur = z.array(z.strictObject({
+      id: z.string(),
+      label: z.string(),
+      ops,
+      refusees: ops,
+      copies: z.array(z.strictObject({ op: z.string(), amount: z.number() })),
+    }));
+    const defs: SchemaDef[] = [
+      { file: 'characteristics.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'maladies.json', root: 'src/data', famille: 'entite', schema: catalogue },
+      { file: 'porteur.json', root: 'src/data', famille: 'entite', schema: porteur },
+    ];
+    const mesure = scannerFixtureDeReferences('structures-discriminant-op-', {
+      'characteristics.json': [{ id: 'corruption', label: 'Homonyme témoin' }],
+      'maladies.json': [{ id: 'peste-noire', label: 'Maladie témoin' }],
+      'porteur.json': [{
+        id: 'porteur',
+        label: 'Porteur',
+        ops: [{ op: 'corruption', amount: 1 }, { op: 'exposeDisease', disease: 'peste-noire' }],
+        refusees: [{ op: 'corruption', amount: false }],
+        copies: [{ op: 'corruption', amount: 1 }],
+      }],
+    }, defs);
+
+    expect(mesure.totalOps).toBe(2);
+    expect(mesure.autresPorteursDOp.filter(({ dataset }) => dataset === 'porteur.json')).toMatchObject([
+      { champ: 'refusees', op: 'corruption', motif: 'charge refusée' },
+      { champ: 'copies', op: 'corruption', motif: 'hors site GameOp' },
+    ]);
+    const references = [...mesure.referencesParPorteur.values()].flatMap((cases) =>
+      [...cases].filter(([, occurrence]) => occurrence.dataset === 'porteur.json')
+        .map(([cle, occurrence]) => `${occurrence.champ}.${cle}`),
+    );
+    expect(lignes(references)).toEqual(['copies.op', 'ops.disease', 'refusees.op']);
+  });
+
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('structures-scan.mts');
@@ -679,6 +719,72 @@ describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () 
   for (const [nom, brut] of brutParNom) marche(brut, nom, '', '');
   const conceptsDesPoses = (ids: ReadonlySet<IdConceptPose> | undefined) => new Set([...(ids ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
   const STRUCTURELS = CONCEPTS.filter((c) => c.exigeCandidatureStructurelle).map((c) => c.id);
+
+  it('le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', () => {
+    const dataset = 'loup-et-saumure-projet.json';
+    const { o, champ } = objets.find((x) => x.dataset === dataset && x.o.type === 'extendedTest')!;
+    const def = DEFS.find((d) => d.file === dataset)!;
+    const projet = structuredClone(brutParNom.get(dataset));
+    let effetAvecCleEtrangere: Record<string, unknown> | undefined;
+    coDescendre(def.schema, projet, ({ valeur }) => {
+      if (estObjet(valeur) && valeur.type === 'extendedTest') {
+        valeur.argDifficulty = true;
+        effetAvecCleEtrangere = valeur;
+        return 'arreter';
+      }
+    });
+    if (!effetAvecCleEtrangere) throw new Error('Test étendu du projet introuvable');
+
+    const classement = (effet: Record<string, unknown>, poses?: ReadonlySet<IdConceptPose>) =>
+      classerValeur(signature(Object.keys(effet)), Object.keys(effet), { dataset, champ, poses });
+    expect(extendedTestSchema.safeParse(o).success).toBe(true);
+    expect(classement(o, poses.get(o))).toMatchObject({ concept: 'test', statut: 'cible' });
+    expect(classement(o)).toMatchObject({ concept: 'test', statut: 'divergente' });
+
+    const contrePoses = posesDesObjets([def], new Map([[dataset, projet]]));
+    expect(extendedTestSchema.safeParse(effetAvecCleEtrangere).error?.issues).toContainEqual(
+      expect.objectContaining({ code: 'unrecognized_keys', keys: ['argDifficulty'] }),
+    );
+    expect(contrePoses.get(effetAvecCleEtrangere)?.has('test-etendu')).toBe(false);
+    expect(classement(effetAvecCleEtrangere, contrePoses.get(effetAvecCleEtrangere))).toMatchObject({
+      concept: 'test', statut: 'divergente',
+    });
+  });
+
+  it('le Test d’équipage du Flow garde sa pose quand la difficulté est implicite (#1657)', () => {
+    const dataset = 'sea-events.json';
+    const def = DEFS.find((d) => d.file === dataset)!;
+    const evenements = structuredClone(brutParNom.get(dataset));
+    let test: Record<string, unknown> | undefined;
+    coDescendre(def.schema, evenements, ({ valeur }) => {
+      if (estObjet(valeur) && valeur.crewTestType === 'affaler') {
+        delete valeur.difficulty;
+        test = valeur;
+        return 'arreter';
+      }
+    });
+    if (!test) throw new Error('Test d’équipage d’Ouragan introuvable');
+    const cles = Object.keys(test);
+    const pose = posesDesObjets([def], new Map([[dataset, evenements]])).get(test);
+    expect(flowTestSchema.safeParse(test).success).toBe(true);
+    expect(pose?.has('test')).toBe(true);
+    expect(classerValeur(signature(cles), cles, { dataset, champ: 'test', poses: pose })).toMatchObject({
+      concept: 'test', signature: 'crewTestType+…', statut: 'cible',
+    });
+    const sansEnjeu = { ...test };
+    delete sansEnjeu.stake;
+    expect(flowTestSchema.safeParse(sansEnjeu).error?.issues).toContainEqual(
+      expect.objectContaining({ code: 'custom', path: ['stake'] }),
+    );
+  });
+
+  it('la grammaire classe les Tests d’équipage de la mer sous `test` (#1657)', () => {
+    const formes = scan.formes.filter((f) => f.dataset === 'sea-events.json' && f.concept === 'test' && f.signature.includes('crewTestType'));
+    expect(formes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ champ: 'test', signature: 'crewTestType,difficulty', statut: 'cible' }),
+      expect.objectContaining({ champ: 'test', signature: 'crewTestType,difficulty+…', statut: 'cible' }),
+    ]));
+  });
 
   it('pose et noyau ne se contredisent pas : aucun objet posé n’est revendiqué par le noyau d’un AUTRE concept', () => {
     const posees = objets.filter((x) => poses.get(x.o)?.size);

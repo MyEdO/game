@@ -501,9 +501,34 @@ test('mobilier : le pronom « I » EXEMPTÉ ne rougit pas ; sans son exemption i
     assert.deepEqual(rougesAuSite(mobilierAvec(id)), [])
     const sans = mobilierAvec(id, undefined, [])
     assert.equal(rougesAuSite(sans, []).length, exemptes.length)
-    const morte = { fichier: exemptes[0].fichier, motif: /^aucune ligne ne porte ce texte$/, jetons: 1, raison: 'banc' }
+    const morte = { fichier: exemptes[0].fichier, ancre: /^aucune ligne ne porte ce texte$/, jetons: 1, raison: 'banc' }
     const avecMorte = [...EXEMPTIONS_MOBILIER, morte]
-    assert.deepEqual(rougesAuSite(mobilierAvec(id, undefined, avecMorte), avecMorte).map((r) => r.ref), [`exemption qui couvre 0 site(s) pour 1 déclaré(s) : ${morte.motif}`])
+    assert.deepEqual(rougesAuSite(mobilierAvec(id, undefined, avecMorte), avecMorte).map((r) => r.ref), [`exemption qui couvre 0 site(s) pour 1 déclaré(s) : ${morte.ancre}`])
+  }
+})
+
+test('mobilier : l’ancre suit le gisement et refuse sa disparition ou sa duplication', () => {
+  for (const id of LIVRES_A_ONGLETS) {
+    const [cible] = mobilierAvec(id).filter((s) => s.exemption)
+    const { fichier, ligne, exemption } = cible
+    const nom = fichier.slice(fichier.lastIndexOf('/') + 1)
+    const avec = (retouche) => mobilierAvec(id, (n, texte) => (n === nom ? retouche(texte) : texte))
+    const deplace = avec((texte) => `\n\n${texte}`)
+    assert.deepEqual(rougesAuSite(deplace), [])
+    assert.equal(deplace.find((s) => s.exemption === exemption)?.ligne, ligne + 2)
+
+    const remplacer = (texte, retouche) => {
+      const lignes = texte.split('\n')
+      lignes.splice(ligne - 1, 1, ...retouche(lignes[ligne - 1]))
+      return lignes.join('\n')
+    }
+    const diagnostic = { fichier, ref: `exemption qui couvre 0 site(s) pour ${exemption.jetons} déclaré(s) : ${exemption.ancre}` }
+    assert.deepEqual(rougesAuSite(avec((texte) => remplacer(texte, () => ['']))), [diagnostic])
+
+    const duplication = avec((texte) => remplacer(texte, (original) => [original, original]))
+    assert.deepEqual(duplication.filter((s) => !s.exemption).map((s) => s.ligne),
+      [...Array(exemption.jetons).fill(ligne), ...Array(exemption.jetons).fill(ligne + 1)])
+    assert.deepEqual(rougesAuSite(duplication).slice(-1), [diagnostic])
   }
 })
 
@@ -557,19 +582,11 @@ test('imperatif-soude : l’arbre est VERT — aucun pronom soudé ni détaché 
 
 test('imperatif-soude : un trait d’union RETIRÉ ou DÉTACHÉ rougit, nommé à sa ligne et à sa classe', () => {
   const lire = ldbRetouche((t) => t.replace('rappelez-vous', 'rappelezvous').replace('Rappelez-vous', 'Rappelez- vous'))
-  const rouges = imperatifsSoudesAll([LDB_DIR], [], lire)
+  const rouges = imperatifsSoudesAll([LDB_DIR], lire)
   assert.equal(rouges.length, 2, JSON.stringify(rouges))
   for (const r of rouges) assert.equal(r.fichier, TALENTS_LDB)
   assert.match(rouges[0].ref, /^l\.\d+ soude « rappelezvous » : /)
   assert.match(rouges[1].ref, /^l\.\d+ detache « Rappelez- vous » : /)
-})
-
-test('imperatif-soude : une exemption couvre ses jetons sites, pas un de plus ni de moins', () => {
-  const lire = ldbRetouche((t) => t.replace('rappelez-vous', 'rappelezvous'))
-  const juste = [{ fichier: TALENTS_LDB, motif: /rappelezvous de conserver/, jetons: 1, raison: 'test' }]
-  assert.deepEqual(imperatifsSoudesAll([LDB_DIR], juste, lire), [])
-  const large = [{ ...juste[0], jetons: 2 }]
-  assert.match(imperatifsSoudesAll([LDB_DIR], large, lire)[0].ref, /^exemption qui couvre 1 site\(s\) pour 2 déclaré\(s\)/)
 })
 
 test('imperatif-soude : les mots du livre et le trait d’union présent ne sont pas des sites', () => {

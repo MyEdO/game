@@ -7175,6 +7175,52 @@
     }
   },
   {
+    "id": "licence-guilde-des-medecins",
+    "type": "trappings",
+    "label": "Licence de la Guilde des Médecins",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": "ND",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "licenceDeGuilde": true,
+    "price": "ND",
+    "source": {
+      "book": "livre-de-base",
+      "page": 89,
+      "note": "LDB 08 l.2235, l.2249, l.2273"
+    }
+  },
+  {
+    "id": "licence-guilde-de-droit",
+    "type": "trappings",
+    "label": "Licence de la Guilde de Droit",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": "ND",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "licenceDeGuilde": true,
+    "price": "ND",
+    "source": {
+      "book": "livre-de-base",
+      "page": 193,
+      "note": "LDB 22 l.12"
+    }
+  },
+  {
     "id": "livre-apothicaire",
     "type": "trappings",
     "label": "Livre (Apothicaire)",

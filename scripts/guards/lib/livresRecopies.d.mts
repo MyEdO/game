@@ -6,7 +6,8 @@ export interface SiteDeRecopie {
 
 export interface ExemptionDeSite {
   fichier: string;
-  ligne: number;
+  ancre: string;
+  empreinte: string;
   forme: string;
   raison: string;
   date: string;
@@ -20,5 +21,8 @@ export const SEUIL: number;
 export function estExclu(rel: string): boolean;
 export function identitesDe(registre: { id?: string; abbr?: string }[]): Map<string, string>;
 export function identitesReelles(): Map<string, string>;
+export function analyserLivresRecopies(
+  relPath: string, contenu: string, identites?: Map<string, string>, sourceFile?: SourceFile,
+): { fautes: SiteDeRecopie[]; perimees: ExemptionDeSite[]; ambigues: ExemptionDeSite[] };
 export function scanLivresRecopies(relPath: string, contenu: string, identites?: Map<string, string>, sourceFile?: SourceFile): SiteDeRecopie[];
 import type { SourceFile } from 'typescript/unstable/ast';

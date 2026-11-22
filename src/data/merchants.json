@@ -86,6 +86,11 @@
       "oeil-de-verre",
       "crochet",
       "fausse-jambe"
+    ],
+    "licencesDeGuilde": [
+      {
+        "id": "licence-guilde-des-medecins"
+      }
     ]
   },
   {

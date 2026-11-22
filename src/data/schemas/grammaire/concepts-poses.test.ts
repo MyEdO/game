@@ -30,6 +30,7 @@ describe('lecture — un id par entrée de la table', () => {
       'monnaie', 'monnaie-partielle', 'ouverture', 'palette-d-objet', 'palier-de-billet', 'plage', 'plage-ouverte', 'prix-saisonnier',
       'profil-de-propulsion', 'profil-de-voile', 'prose-nommee', 'provenance-de-valeur', 'provenances-de-route', 'quantite',
       'reference', 'reference-a-specialisation', 'reference-chiffree', 'reference-typee', 'source', 'source-secondaire', 'special-de-jeu', 'test',
+      'test-etendu', 'test-fixe-d-equipage',
       'tirage-parmi', 'tirage-sur-table', 'trait-pose', 'valeur-d-identite',
     ]);
   });

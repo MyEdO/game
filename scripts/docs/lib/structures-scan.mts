@@ -792,14 +792,15 @@ export function scannerDonnees(
    * La clé OUVRE-T-ELLE une référence ? Non pour une clé de PROSE, non pour une clé de
    * `CLES_DE_SPECIALISATION` (même règle que les cases de `inscrireReference` ; #1904), non quand la
    * valeur est un LITTÉRAL D'ENUM du schéma du document (un discriminant `kind`/`type`/`op`… n'est pas
-   * une FK), ni quand le PORTEUR est une op dont le payload déclare cette valeur à cette clé
-   * (`choixDesOps`, #2818).
+   * une FK), ni pour le discriminant `op` d’une GameOp validée sur le schéma de son site (#1902),
+   * ni quand le payload d’une op déclare cette valeur à cette clé (`choixDesOps`, #2818).
    */
   const ouvreReference = (dataset: string, porteur: Obj, k: string, v: string): boolean =>
     !(CLES_PROSE_SANS_REFERENCE as readonly string[]).includes(k) &&
     !CLES_DE_SPECIALISATION.has(k) &&
     !estCleScopee(k) &&
     !choixDeclares.get(dataset)?.get(k)?.has(v) &&
+    !(k === 'op' && mecaniques.get(porteur) === 'op') &&
     !(typeof porteur.op === 'string' && choixDesOps.get(porteur.op)?.get(k)?.has(v));
 
   /** L'espace que NOMME le `type` d'une référence TYPÉE (`{ id, type }`, `refTypee` de

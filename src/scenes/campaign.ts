@@ -1,14 +1,21 @@
 /** Les campagnes du jeu : chacune est un paquet commité (`{<identité>, scenes, worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
  *  — celui de l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, que
- *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, une campagne du jeu n'est que son IDENTITÉ, lue
- *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
- *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
- *  bibliothèque (`campagneDeLEntree`). */
-import { estIdDIcone, type IconId } from '../data/icons';
+ *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, son IDENTITÉ est validée à la racine
+ *  du paquet selon le schéma de projet. La jouer, l'ouvrir dans l'éditeur ou l'exporter fait passer
+ *  le paquet entier par `parseProject` AU GESTE (#1692), comme une entrée de bibliothèque
+ *  (`campagneDeLEntree`). */
+import { z } from 'zod';
+import type { IconId } from '../data/icons';
 import { Scene } from '../noyau/monde/scene';
-import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
+import { WorldMap, parseProject, documentDeProjet, playerEntryError, ProjetRefuse, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
+import { projetDoc } from '../data/schemas/defs-scenes/projet';
+import { enfantsDe } from '../data/schemas/grammaire/descente';
+import { refuserSansProvenance } from '../data/schemas/grammaire/document';
+import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
+import { refineProse } from '../data/schemas/grammaire/prose';
+import { noeudObjet, rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
+import { tableTotale } from '../lib/tableTotale';
 import type { Combatant } from '../engine/types';
 import type { Jeu } from '../noyau/etat';
 import type { Get } from '../noyau/flowTypes';
@@ -120,45 +127,39 @@ export function documentDuJeu(c: BuiltinCampaign): ProjectDoc {
   return documentDeProjet(identite, scenes, { worldMap, activeAxes, narratif });
 }
 
-/**
- * Une campagne du jeu, son identité DÉRIVÉE de la racine de son paquet (#1467 L1b V-formeProjet) —
- * jamais re-tapée ici : la DONNÉE fait foi, et le seul moyen de changer l'`icon`/le `label` d'une
- * campagne est d'éditer son générateur (`scripts/<campagne>/generate.mjs`), pas ce fichier. Les champs
- * d'identité sont repris NOMMÉMENT : un spread reconduirait le contenu du paquet dans son identité.
- * `bundled-projects.test.ts` garde la validité des paquets sur disque.
- */
-function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>>, fichier: string): BuiltinCampaign {
-  const refus = (champ: string): never => {
-    throw new Error(`${fichier} : paquet de campagne du jeu sans \`${champ}\` valide à la racine — son identité se lit avant la porte (#1692).`);
-  };
-  const chaine = (champ: string): string => {
-    const v = paquet[champ];
-    return typeof v === 'string' && v !== '' ? v : refus(champ);
-  };
-  const optionnelle = (champ: string): string | undefined => (paquet[champ] === undefined ? undefined : chaine(champ));
-  const type = paquet.type === 'projet' ? paquet.type : refus('type');
-  const id = chaine('id');
-  const label = chaine('label');
-  const iconLue = chaine('icon');
-  const icon = estIdDIcone(iconLue) ? iconLue : refus('icon');
-  const versionContenu = typeof paquet.versionContenu === 'number' ? paquet.versionContenu : refus('versionContenu');
-  const desc = optionnelle('desc');
-  const auteur = optionnelle('auteur');
-  const maison = optionnelle('maison');
-  const source = paquet.source === undefined ? undefined : sourceRefSchema.parse(paquet.source);
-  return {
-    type,
-    id,
-    label,
-    icon,
-    versionContenu,
-    ...(desc !== undefined ? { desc } : {}),
-    ...(auteur !== undefined ? { auteur } : {}),
-    ...(source !== undefined ? { source } : {}),
-    ...(maison !== undefined ? { maison } : {}),
-    paquet,
-    fichier,
-  };
+const CLES_IDENTITE_DU_PAQUET = [
+  'type', 'id', 'label', 'icon', 'versionContenu', 'desc', 'auteur', 'source', 'maison', 'descRef',
+] as const satisfies readonly (keyof ProjectIdentite | 'descRef')[];
+
+const noeudProjet = noeudObjet(projetDoc.schema);
+if (!(noeudProjet instanceof z.ZodObject)) throw new Error('Le schéma du projet ne porte aucun objet racine.');
+const enfantsDuProjet = enfantsDe(noeudProjet);
+const metaDuProjet = metaDesChamps(noeudProjet, { exigees: true });
+const noeudsDIdentite = tableTotale(CLES_IDENTITE_DU_PAQUET, cle => {
+  const noeud = enfantsDuProjet.find(enfant => enfant.cle === cle)?.noeud;
+  if (!(noeud instanceof z.ZodType)) throw new Error(`Le schéma du projet ne porte pas le champ « ${cle} ».`);
+  return noeud;
+});
+const identiteDuPaquetSchema = nommerChamps(
+  z.strictObject({ ...noeudsDIdentite, icon: noeudsDIdentite.icon.nonoptional() })
+    .superRefine((valeur, ctx) => refuserSansProvenance(valeur, ctx, 'de l’entrée'))
+    .superRefine(refineProse({ type: projetDoc.type, exigeProse: projetDoc.exiges.includes('desc') })),
+  tableTotale(CLES_IDENTITE_DU_PAQUET, cle => metaDuProjet[cle]),
+);
+
+/** À l'import, seuls les nœuds d'identité du projet sont validés. L'adresse de la description
+ *  sert au contrôle de la prose et le paquet original est conservé pour la lecture au geste. */
+export function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>>, fichier: string): BuiltinCampaign {
+  const projection: Partial<Record<(typeof CLES_IDENTITE_DU_PAQUET)[number], unknown>> = {};
+  for (const cle of CLES_IDENTITE_DU_PAQUET) {
+    const valeur = paquet[cle];
+    if (valeur !== undefined) projection[cle] = valeur;
+  }
+  const refus = validerFormeVivante(identiteDuPaquetSchema, projection);
+  if (refus) throw new ProjetRefuse(refus.cause, refus.fautes, rapportDeFautes(fichier, refus.fautes));
+
+  const { descRef: _descRef, ...identite } = projection as ProjectIdentite & { icon: IconId; descRef?: unknown };
+  return { ...identite, paquet, fichier };
 }
 
 /** « La Diligence » — chapitre 1 de L'Ennemi Intérieur : paquet éditeur portant SES scènes (la

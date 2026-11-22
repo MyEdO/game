@@ -32,7 +32,7 @@ import {
   specialsApplicables, difficulteDuJoueur, difficulteDeBase,
   TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
-import { deDeLaTableTiree, findTableEntry, tableOuverte } from '../engine/tables';
+import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
@@ -1137,13 +1137,7 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
     const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
-      const table = seq.parametres.table;
-      // NADJ 16 l.111, LDB 12 l.73-77
-      const plafondHistorique = 99;
-      const tableDeTouche = table && opp.netSL > plafondHistorique && table.every((rangée) => rangée.max <= plafondHistorique)
-        ? tableOuverte(table.map((rangée) => rangée.max === plafondHistorique ? { ...rangée, max: null } : rangée))
-        : table;
-      const ligne = sequenceTableRow({ table: tableDeTouche }, opp.netSL);
+      const ligne = sequenceTableRow(seq.parametres, opp.netSL);
       const touche = garanti(ligne, opp.netSL, 'ligne de touche');
       const gain = touche.points;
       cumuls[lanceur.camp] = (cumuls[lanceur.camp] ?? 0) + gain;

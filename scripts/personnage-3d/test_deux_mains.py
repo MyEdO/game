@@ -1,56 +1,52 @@
-"""deux_mains : le coude d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle,
-ramène une cible hors de portée sur la sphère de portée ; les clés de geste s'interpolent en partant et en arrivant au
+"""deux_mains : les clés de geste s'interpolent en partant et en arrivant au
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
-le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge près, et écarte l'IK d'une pose qui
-en sort ;
+le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge donnée près ; il écarte l'IK d'une pose
+qui sort des bornes resserrées de leur marge, et un bras posé ne manque le contrôle des bornes qu'au-delà de la borne
+elle-même ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
-que meuvent les os libres ; la seconde
+que meuvent les os libres ; la peau du bras porte son repos sous chaque jeu du tronc et rapporte une arête à sa longueur
+au repos du corps neutre : sous un jeu dont la clé de forme double une arête, son rapport au repos du jeu est 2 (#3810) ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
-sous une silhouette à os, les têtes déplacées et le tronc posé sont ceux du squelette déplacé explicite, et un point du
-bras se mesure sur sa tête d'os déplacée, tournée par les axes du bras ; le prix du tronc compte la prise à sa marge ;
-une prise dans un tronc plan en sort à sa marge le long de la normale, une prise dehors ne bouge pas (#4002) ;
+sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
+pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; la poussée requise est nulle là où l'avancée ne
+sort pas la peau (#4002, #3810) ; l'arme n'avance que pour la peau des mains, et la peau entière que l'IK laisse dans le
+tronc se rend avec son jeu et la zone de son os dominant, à sa profondeur exacte : à 3 mm dedans elle passe, à 7 mm
+elle refuse le clip ; un bras posé manque le contrôle d'une main qui tourne trop vite sur son avant-bras ou d'une peau
+trop étirée (#3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
-l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
+l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878) ; un clip dont le
+verdict sur les états du gabarit ressort se redérive seul, sous sa visée accrue des jeux de ses états fautifs qu'elle ne
+pose pas déjà, sa redérivation remplaçant son action, et un clip encore fautif à la dernière dérivation refuse la
+construction en nommant son état, son image et sa profondeur (#3810)."""
 import json
 import math
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import bpy
 import numpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, TOURS, TRONC,  # noqa: E402
-                        ChaineDuBras, PeauDuBras, PeauDuTronc, bras, chemin, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        pousser, prix_du_tronc, repere_de_l_arme, tour_du_repere, tronc_pose)
+import deux_mains  # noqa: E402
+from deux_mains import (BORNES, CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
+                        chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_du_bras,
+                        peau_fixe, poser_les_bras, prix_du_tronc, rapports_du_bras, refus_du_tronc, repere_de_l_arme,
+                        tour_du_repere)
+from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
-from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, TETES, autour_de_l_avant, peaux  # noqa: E402
+from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
+from test_tronc import tronc_en_boite  # noqa: E402
+from tronc import TRONC, ChaineDuBras, PeauDuMembre, jeu_de_l_etat, membre_pose  # noqa: E402
+from verdict_du_tronc import Cellule  # noqa: E402
 
 L1, L2 = 0.25, 0.24
 LIBRE = {a: [-180, 180] for a in 'xyz'}
-
-
-class Coude(unittest.TestCase):
-    def test_une_cible_a_portee_est_atteinte_segments_gardes_coude_du_cote_du_pole(self):
-        epaule, cible, pole = Vector((0, 0, 1.4)), Vector((0.1, -0.3, 1.1)), Vector((1, 0, -1))
-        poignet, articulation = coude(epaule, cible, L1, L2, pole)
-        self.assertAlmostEqual((poignet - cible).length, 0, places=6)
-        self.assertAlmostEqual((articulation - epaule).length, L1, places=6)
-        self.assertAlmostEqual((poignet - articulation).length, L2, places=6)
-        axe = (cible - epaule).normalized()
-        milieu = epaule + axe * (articulation - epaule).dot(axe)
-        self.assertGreater((articulation - milieu).dot(pole), 0)
-
-    def test_une_cible_hors_de_portee_tend_le_bras_vers_elle(self):
-        epaule, cible = Vector((0, 0, 1.4)), Vector((0, -2, 1.4))
-        poignet, _ = coude(epaule, cible, L1, L2, Vector((0, 0, -1)))
-        self.assertAlmostEqual((poignet - epaule).length, L1 + L2, places=3)
-        self.assertGreater((poignet - epaule).normalized().dot((cible - epaule).normalized()), 0.9999)
 
 
 def torsion(parent, enfant):
@@ -78,9 +74,10 @@ class Bras(unittest.TestCase):
         axe = max(range(3), key=lambda i: abs(v[i]))
         serree = {**LIBRE, 'xyz'[axe]: [-abs(v[axe]) / 2, abs(v[axe]) / 2]}
         _, (_, humerus_, avant_bras_, _, _, detail) = self.poser(0, bornes=(serree, LIBRE))
-        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree),
-                        hors_des_bornes(humerus.transposed() @ avant_bras, serree))
-        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree), 1), places=6)
+        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree, MARGE_DES_BORNES),
+                        hors_des_bornes(humerus.transposed() @ avant_bras, serree, MARGE_DES_BORNES))
+        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree, MARGE_DES_BORNES), 1),
+                               places=6)
 
     def test_le_bras_ne_se_tord_pas_et_l_avant_bras_porte_la_torsion_dans_ses_bornes(self):
         for tourne in (-150, -90, -40, 0, 30, 90):
@@ -108,10 +105,13 @@ class Bras(unittest.TestCase):
 class HorsDesBornes(unittest.TestCase):
     def test_le_vecteur_de_rotation_se_lit_par_axe_a_la_marge_pres(self):
         bornes = {'x': [-20, 50], 'y': [-180, 180], 'z': [-10, 20]}
-        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes), 0)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes), 10 + MARGE_DES_BORNES, places=4)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes), 10 + MARGE_DES_BORNES, places=4)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes), 0.5, places=4)
+        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes, MARGE_DES_BORNES), 0)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes, MARGE_DES_BORNES), 10 + MARGE_DES_BORNES,
+                               places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes, MARGE_DES_BORNES), 10 + MARGE_DES_BORNES,
+                               places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes, MARGE_DES_BORNES), 0.5, places=4)
+        self.assertEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes, 0.0), 0)
 
 
 class Peau(unittest.TestCase):
@@ -122,7 +122,7 @@ class Peau(unittest.TestCase):
 
     def peau(self):
         longueurs = numpy.linalg.norm(self.X[self.ARETES[:, 0], :3] - self.X[self.ARETES[:, 1], :3], axis=1)
-        return PeauDuBras(self.X, self.W, self.ARETES, longueurs)
+        return PeauDuBras(self.X[None], self.W, self.ARETES, longueurs)
 
     def etirement(self, *matrices):
         peau = self.peau()
@@ -144,6 +144,26 @@ class Peau(unittest.TestCase):
         ecrase = etirement_du_bras(peau, fixe, [(1, numpy.array([numpy.diag([0.5, 0.5, 0.5, 1.0])]))])[1][0]
         self.assertAlmostEqual(ecrase, 0.5, places=6)
 
+    def test_sous_un_jeu_dont_la_cle_double_une_arete_son_rapport_au_repos_du_jeu_est_2(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        donnee = bpy.data.meshes.new('Bras')
+        donnee.from_pydata([tuple(p[:3]) for p in self.X], [tuple(a) for a in self.ARETES], [])
+        objet = bpy.data.objects.new('Bras', donnee)
+        bpy.context.scene.collection.objects.link(objet)
+        objet.vertex_groups.new(name='epaule').add(range(len(self.X)), 1.0, 'REPLACE')
+        objet.shape_key_add(name='Basis')
+        silhouettes = sorted({s for jeu in TRONC['jeux'] for s in jeu.poids})
+        for silhouette in silhouettes:
+            objet.shape_key_add(name=silhouette)
+        double = next(j for j, jeu in enumerate(TRONC['jeux']) if jeu.nom == silhouettes[0])
+        objet.data.shape_keys.key_blocks[silhouettes[0]].data[1].co = tuple(2 * self.X[1, :3] - self.X[0, :3])
+        peau = peau_du_bras([objet], ['racine', 'epaule'], ['epaule'], Matrix.Identity(4), TRONC['jeux'])
+        self.assertEqual(peau.x.shape, (len(TRONC['jeux']), len(self.X), 4))
+        rapports = rapports_du_bras(peau, peau.x[:, :, :3])
+        arete = next(k for k, (a, b) in enumerate(peau.aretes) if {int(a), int(b)} == {0, 1})
+        self.assertAlmostEqual(rapports[0, arete], 1.0, places=6)
+        self.assertAlmostEqual(rapports[double, arete], 2.0, places=6)
+
 
 LOCALES = [numpy.eye(4), autour_de_l_avant(numpy.pi / 2), autour_de_l_avant(-numpy.pi / 2)]
 """Le parent tourné de 90° autour de l'avant, l'enfant de −90° sous lui : e_b = ΔJ_b − R_b D_b non nul (`test_sol`)."""
@@ -160,51 +180,108 @@ class SousUneSilhouetteAOs(unittest.TestCase):
         numpy.testing.assert_allclose(ecarts_des_os(matrices, PARENT, DEPLACEMENTS)[0],
                                       tetes[:, 2] - (rotations_de_peau(matrices)[0] @ DEPLACEMENTS[..., None])[:, 2, 0], atol=1e-12)
 
-    def test_le_tronc_pose_est_la_peau_du_squelette_deplace(self):
-        cle_ = DECALAGE + PROPRE
-        tronc = PeauDuTronc((SOMMET + numpy.r_[cle_, 0.0])[None, None], numpy.array([[0.0, 0.0, 1.0]]), POIDS, PARENT,
-                            DEPLACEMENTS[None])
-        pose = tronc_pose(tronc, peaux(numpy.zeros((3, 3)), LOCALES))
-        explicite = (peaux(DEPLACEMENTS, LOCALES)[2] @ (SOMMET + numpy.r_[cle_, 0.0]))[:3]
-        numpy.testing.assert_allclose(pose.positions[0, 0], explicite, atol=1e-12)
 
-
-def plan(deplacements=None):
-    """Le tronc plan z = 0, normale +Z, dedans sous lui, posé au repos sur un seul os, un seul jeu."""
-    grille = numpy.linspace(-0.3, 0.3, 61)
-    x = numpy.array([[a, b, 0.0, 1.0] for a in grille for b in grille])
-    tronc = PeauDuTronc(x[None], numpy.tile([0.0, 0.0, 1.0], (len(x), 1)), numpy.ones((len(x), 1)), numpy.array([-1]),
-                        numpy.zeros((1, 1, 3)))
-    return tronc_pose(tronc, numpy.eye(4)[None])
+def membre(points, grossier=None):
+    """La `tronc.MembrePose` des `points` (sommets, 3), chacun sur la main d'une chaîne bras, avant-bras, main au repos, et
+    sa `tronc.PeauDuMembre`, tous les sommets échantillonnés, l'échantillon grossier `grossier` (tous sans lui), de
+    rayon nul."""
+    x = numpy.c_[points, numpy.ones(len(points))]
+    tous = numpy.arange(len(x))
+    peau = PeauDuMembre(x[None], numpy.tile([0.0, 0.0, 1.0], (len(x), 1)), numpy.zeros((0, 3), dtype=int), tous,
+                        tous if grossier is None else numpy.array(grossier), 0.0)
+    return membre_pose(peau, numpy.tile(numpy.eye(4), (3, 1, 1)), numpy.zeros((1, 3, 3)), numpy.zeros((1, 3, 3)), PARENT, [0, 1, 2]), peau
 
 
 class Tronc(unittest.TestCase):
     AXES = numpy.eye(3)[None, None].repeat(2, axis=1)
     """Un essai, le bras et l'avant-bras à leur repos."""
 
-    def prix(self, chaines, prise, axes=AXES):
+    def prix(self, points, chaines=((0, 0, 0),) * 3, grossier=None):
         chaine = ChaineDuBras(numpy.eye(3)[None].repeat(2, axis=0), numpy.array(chaines, dtype=float)[None])
-        return prix_du_tronc(plan(), chaine, numpy.array([[0.0, 0.0, 0.3]]), axes, (0.1, 0.0, 0.3), prise)[0]
+        return prix_du_tronc(tronc_en_boite(), membre(numpy.array(points), grossier), chaine,
+                             numpy.tile(numpy.eye(4), (1, 3, 1, 1)), self.AXES)[0]
 
-    def test_sous_une_silhouette_a_os_un_point_du_bras_se_mesure_sur_sa_tete_deplacee(self):
-        haute = (0.0, 0.0, 2.0)
-        enfonce = [(0, 0, 0), (0, 0, -0.5), (0, 0, -0.5)]
-        self.assertEqual(self.prix([(0, 0, 0)] * 3, haute), 0)
-        self.assertGreater(self.prix(enfonce, haute), 0)
-        retourne = self.AXES.copy()
-        retourne[0, 0] = numpy.diag([1.0, -1.0, -1.0])
-        self.assertEqual(self.prix(enfonce, haute, retourne), 0)
+    def test_le_prix_du_tronc_compte_le_pire_sommet_de_la_peau_a_sa_marge(self):
+        self.assertAlmostEqual(self.prix([(0.0, 0.0, 1.396), (0.0, 0.0, 1.7), (0.05, 0.0, 1.399)]),
+                               ((0.004 + ECART_DU_TRONC['marge']) / ECART_DU_TRONC['echelle']) ** 2, places=6)
 
-    def test_le_prix_du_tronc_compte_la_prise(self):
-        self.assertAlmostEqual(self.prix([(0, 0, 0)] * 3, (0.0, 0.0, -0.01)), ((0.01 + TRONC['prise']) / TRONC['echelle']) ** 2,
-                               places=6)
+    def test_un_essai_dont_l_echantillon_grossier_ne_peut_toucher_ne_paie_rien(self):
+        self.assertEqual(self.prix([(0.0, 0.0, 1.7), (0.0, 0.0, 1.396)], grossier=[0]), 0)
+        self.assertGreater(self.prix([(0.0, 0.0, 1.7), (0.0, 0.0, 1.396)], grossier=[1]), 0)
 
-    def test_une_prise_dans_un_tronc_plan_en_sort_a_sa_marge_le_long_de_la_normale(self):
-        pas = pousser(plan(), numpy.array([[[0.01, 0.02, -0.02], [0.05, -0.1, 0.03]]]))
-        numpy.testing.assert_allclose(pas, (0.0, 0.0, 0.02 + TRONC['prise']), atol=1e-12)
+    def test_sous_une_silhouette_a_os_la_peau_se_mesure_sur_sa_tete_deplacee(self):
+        haute = [(0.0, 0.0, 1.41)]
+        self.assertEqual(self.prix(haute), 0)
+        self.assertAlmostEqual(self.prix(haute, ((0, 0, -0.02),) * 3),
+                               ((0.01 + ECART_DU_TRONC['marge']) / ECART_DU_TRONC['echelle']) ** 2, places=6)
 
-    def test_une_prise_dehors_ne_bouge_pas(self):
-        self.assertFalse(pousser(plan(), numpy.array([[[0.01, 0.02, TRONC['prise'] + 0.01]]])).any())
+    def test_la_poussee_requise_est_nulle_la_ou_l_avancee_ne_sort_pas_la_peau(self):
+        tronc = tronc_en_boite()
+        requises = ecarter([tronc] * 2, [numpy.array([[[0.0, -0.146, 1.1]]]), numpy.array([[[0.0, 0.14, 1.1]]])])
+        self.assertAlmostEqual(requises[0], 0.004 + ECART_DU_TRONC['marge'], delta=POUSSEE['tolerance'])
+        self.assertEqual(requises[1], 0.0)
+
+
+class DefautDuBras(unittest.TestCase):
+    def lectures(self, tours):
+        return [(Matrix.Identity(3), Matrix.Identity(3), Quaternion((0, 0, 1), math.radians(t))) for t in tours]
+
+    def test_une_main_qui_tourne_sur_son_avant_bras_au_dela_de_la_vitesse_manque_le_controle_aux_images_verifiees(self):
+        images, etirements = [0.0, 1.0, 2.0], [(1.0, 1.0)] * 3
+        self.assertIsNone(defaut_du_bras('l', images, self.lectures((0, 1, 2)), etirements, range(3))[0])
+        vite = self.lectures((0, 0, 179))
+        self.assertEqual(defaut_du_bras('l', images, vite, etirements, range(3))[0][:2], ('vitesse du poignet', 2.0))
+        self.assertIsNone(defaut_du_bras('l', images, vite, etirements, [0])[0])
+
+    def test_une_peau_trop_etiree_manque_le_controle(self):
+        defaut, _ = defaut_du_bras('l', [0.0], self.lectures((0,)), [(4.0, 1.0)], [0])
+        self.assertEqual(defaut, ('étirement', 0.0, (4.0, 1.0)))
+
+    def test_une_pose_dans_la_marge_des_bornes_passe_et_une_pose_au_dela_de_la_borne_manque_le_controle(self):
+        borne = BORNES['lowerarm_l']['x'][1]
+        for ecart_, attendu in ((-0.5, None), (0.5, ('bornes de lowerarm_l', 0.0, 0.5))):
+            with self.subTest(ecart=ecart_):
+                avant_bras = Matrix.Rotation(math.radians(borne + ecart_), 3, 'X')
+                defaut, _ = defaut_du_bras('l', [0.0], [(avant_bras, Matrix.Identity(3), Quaternion())], [(1.0, 1.0)], [0])
+                self.assertEqual(defaut, attendu)
+
+
+class PoserLesBras(unittest.TestCase):
+    class Image:
+        """Une image sur le tronc en boîte dont la peau des mains est `mains` et la peau entière posée `peau`, l'arme
+        translatée, chacune d'un sommet par zone de `zones` ; tout état paie le même prix."""
+        def __init__(self, mains, peau, zones):
+            self.tronc, self.zones = tronc_en_boite(), zones
+            self._mains, self._peau = numpy.array([mains], dtype=float), numpy.array([peau], dtype=float)
+
+        def prix(self, translation, roulis, tours):
+            return numpy.zeros((len(roulis), len(tours['r']), len(tours['l'])))
+
+        def poses(self, translation, etat):
+            return numpy.array(translation), {}
+
+        def peau(self, poses):
+            return self._peau + poses[0]
+
+        def mains(self, translation):
+            return self._mains + numpy.array(translation)
+
+    def test_l_arme_n_avance_que_pour_les_mains_et_la_peau_laissee_dedans_se_rend_avec_son_jeu_et_sa_zone(self):
+        dehors, dedans = (0.0, -0.2, 1.1), (0.0, -0.146, 1.1)
+        images = [self.Image([dehors], [dehors, (0.05, -0.146, 1.0)], ['main_d', 'avant_bras_g']),
+                  self.Image([dedans], [dedans, dehors], ['main_g', 'avant_bras_d'])]
+        poses, restes = poser_les_bras(images, [0.0, 1e3], [0.0, 0.0])
+        self.assertEqual(tuple(poses[0][2]), (0.0, 0.0, 0.0))
+        self.assertAlmostEqual(poses[1][2].y, -(0.004 + ECART_DU_TRONC['marge']), delta=POUSSEE['tolerance'])
+        self.assertEqual((restes[0][1], restes[0][2]), (0, 'avant_bras_g'))
+        self.assertAlmostEqual(restes[0][0], 0.004, delta=1e-3)
+        self.assertLess(restes[1][0], 0.0)
+
+    def test_une_peau_a_3_mm_dans_le_tronc_passe_a_7_mm_refuse_le_clip(self):
+        images = [self.Image([(0.0, -0.3, 1.1)], [(0.0, -0.15 + p, 1.1)], ['main_d']) for p in (0.003, 0.007)]
+        _, restes = poser_les_bras(images, [0.0, 1e3], [0.0, 0.0])
+        self.assertIsNone(refus_du_tronc('Clip', 0.0, restes[0], TRONC['jeux']))
+        self.assertIn('main_d enfoncée de 0.70 cm', refus_du_tronc('Clip', 1.0, restes[1], TRONC['jeux']))
 
 
 class Interpolation(unittest.TestCase):
@@ -306,6 +383,51 @@ class SecondesPrises(unittest.TestCase):
                     self.assertAlmostEqual(lu, voulu, places=5)
                 self.assertEqual(math.copysign(1, seconde['position'][1]), math.copysign(1, SECONDES[maniement][0]))
         self.assertGreater(vues, 0)
+
+
+def etat(nom, facteur_des_bras, **poids):
+    """Un état de `gabarit.mjs` aux `poids` de silhouettes, le facteur des bras `facteur_des_bras`."""
+    return {'nom': nom, 'facteurs': {'sl': 1, 'legs': 1, 'arms': facteur_des_bras, 'head': 1, 'st': 1},
+            'poidsSilhouettes': poids, 'poidsGabarit': {}}
+
+
+class ViseeSurLesEtats(unittest.TestCase):
+    """Deux clips, A et B, sous une doublure de la dérivation, qui crée l'action et note la visée, et une doublure du
+    verdict, qui rend les cellules de son tour."""
+    TABLE = {'legs': [], 'arms': ['upperarm_l'], 'head': []}
+    ETATS = [etat('neutre', 1), etat('corpulence', 1, corpulence=1), etat('arms_plus__corpulence', 1.3, corpulence=1)]
+
+    def deriver(self, verdicts):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        visees, juges = [], []
+
+        def deriver_(bpy_, rig, reperes, visees_):
+            visees.append(dict(visees_))
+            return [bpy.data.actions.new(nom) for nom in visees_]
+
+        def cellules(rig, peaux, actions, table, etats, plantes):
+            juges.append([a.name for a in actions])
+            return verdicts[len(juges) - 1]
+
+        with mock.patch.object(deux_mains, 'CLIPS', {'A': None, 'B': None}), \
+                mock.patch.object(deux_mains, 'deriver', deriver_), mock.patch.object(deux_mains, 'cellules_du_tronc', cellules), \
+                mock.patch.object(deux_mains, 'etats_du_gabarit', lambda table, silhouettes: {'etats': self.ETATS}), \
+                mock.patch.object(deux_mains, 'meshes_for', lambda bpy_, rig: []):
+            return deux_mains.deriver_sur_les_etats(bpy, None, None, self.TABLE, [], []), visees, juges
+
+    def test_un_clip_fautif_se_rederive_seul_sous_sa_visee_accrue_et_passe_au_second_tour(self):
+        fautives = [Cellule('arms_plus__corpulence', 'A', 12.0, 'l', 0.0056), Cellule('corpulence', 'A', 3.0, 'r', 0.006)]
+        actions, visees, juges = self.deriver([fautives, []])
+        self.assertEqual([a.name for a in actions], ['A', 'B'])
+        self.assertEqual(sorted(a.name for a in bpy.data.actions), ['A', 'B'])
+        self.assertEqual(juges, [['A', 'B'], ['A']])
+        self.assertEqual(visees[0], {'A': TRONC['jeux'], 'B': TRONC['jeux']})
+        self.assertEqual(visees[1], {'A': (*TRONC['jeux'], jeu_de_l_etat(self.TABLE, self.ETATS[2]))})
+
+    def test_un_clip_encore_fautif_a_la_derniere_derivation_refuse_la_construction(self):
+        fautive = [Cellule('arms_plus__corpulence', 'B', 12.0, 'l', 0.0056)]
+        with self.assertRaisesRegex(ValueError, r'^B sous arms_plus__corpulence image 12.0 l : peau enfoncée de 0.56 cm'):
+            self.deriver([fautive] * deux_mains.TOURS_DE_VISEE + [[]])
 
 
 if __name__ == '__main__':

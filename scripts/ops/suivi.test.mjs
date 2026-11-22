@@ -12,7 +12,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { z } from 'zod'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { BorneAbsente, classer } from '../guards/lib/gitPorte.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
   ESSAIS_D_EDITION, JOURNAL, argumentsDuSuivi, digestDuSuivi,
@@ -27,6 +28,7 @@ import {
 } from './suiviDonnee.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { poserSuivi } from '../test/suiviDeBanc.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
 
 const SCRIPT = fileURLToPath(new URL('./suivi.mjs', import.meta.url))
 const MAINTENANT = new Date(2026, 9, 7, 10, 0)
@@ -224,6 +226,73 @@ test('PROCESSUS `--mesurer --sans-fetch` — le CLI réel, point d’entrée, va
     assert.equal(vu.status, 0, vu.stderr)
     assert.match(vu.stdout, /^## Mesure\nmesurée le .* \(sans fetch\)\n/)
     assert.equal(lireMesure(FS.readFileSync(join(racine, '.git', 'suivi', '665.mesure.json'), 'utf8')).ok, true)
+  } finally { FS.rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('CLI mesure : Git indisponible, refus persisté en JSON, relais sans fetch et écriture tenue', () => {
+  const { racine } = instanceDeDepot({ refs: { 'refs/remotes/origin/main': 'HEAD' } })
+  const dossier = join(racine, '.git', 'suivi')
+  const cible = join(dossier, '665.mesure.json')
+  const env = { ...envDeDepotForge(), ...envGitFeint([{ si: ['fetch'], status: 128, stderr: 'origin inaccessible (banc)' }]) }
+  const cli = (argv, environnement = env) => spawnSync(process.execPath, [SCRIPT, ...argv], {
+    cwd: racine, env: environnement, encoding: 'utf8', timeout: 30_000,
+  })
+  const mesurerCli = (options = [], environnement = env) => cli(['665', '--mesurer', ...options], environnement)
+  const motif = /origin non consultable .*origin inaccessible \(banc\).*`npm run ops:suivi -- 665 --mesurer --sans-fetch` mesure sur les refs déjà là/
+  const panne = /^\[suivi\] \[panne · non retentable\] mesure refusée : /m
+  try {
+    const absent = mesurerCli()
+    assert.equal(absent.status, 1)
+    assert.equal(absent.stdout, '')
+    assert.match(absent.stderr, /^\[suivi\] \[validation · non retentable\] .*absent/)
+    const creer = cli(['665', '--creer', 'banc'])
+    assert.equal(creer.status, 0, creer.stderr)
+
+    const texte = mesurerCli()
+    assert.equal(texte.status, 1, texte.stderr)
+    assert.equal(texte.stdout, '')
+    assert.match(texte.stderr, panne)
+    assert.match(texte.stderr, motif)
+
+    const json = mesurerCli(['--json'])
+    assert.equal(json.status, 1, json.stderr)
+    assert.match(json.stderr, panne)
+    const document = JSON.parse(json.stdout)
+    assert.equal(document.version, 1)
+    assert.equal(document.ok, false)
+    assert.match(document.refus, motif)
+    assert.doesNotMatch(document.refus, /^\[/)
+    assert.deepEqual(lireMesure(FS.readFileSync(cible, 'utf8')), { ok: true, mesure: document })
+
+    const verrou = prendreVerrou({ chemin: join(dossier, '.665.mesure.json.verrou'), libelle: 'écriture de la mesure du banc' })
+    assert.equal(verrou.etat, 'pris')
+    try {
+      const deux = mesurerCli(['--json'])
+      assert.equal(deux.status, 1, deux.stderr)
+      assert.equal(deux.stdout, '')
+      const diagnostics = deux.stderr.split('\n').filter((ligne) => ligne.startsWith('[suivi] ['))
+      assert.equal(diagnostics.length, 2, deux.stderr)
+      assert.match(diagnostics[0], /^\[suivi\] \[transitoire · retentable\] .*en cours d'écriture par un autre processus/)
+      assert.match(diagnostics[1], panne)
+      assert.match(diagnostics[1], motif)
+      assert.deepEqual(lireMesure(FS.readFileSync(cible, 'utf8')), { ok: true, mesure: document })
+    } finally { verrou.liberer() }
+
+    const envRefs = { ...env, ...envGitFeint([{ si: ['for-each-ref'], status: 128, stderr: 'refs illisibles (banc)' }]) }
+    const refs = mesurerCli(['--sans-fetch'], envRefs)
+    assert.equal(refs.status, 1, refs.stderr)
+    assert.equal(refs.stdout, '')
+    assert.match(refs.stderr, panne)
+    assert.match(refs.stderr, /git for-each-ref illisible .*refs illisibles \(banc\)/)
+    assert.doesNotMatch(refs.stderr, /fetchOrigin|origin non consultable/)
+
+    const reprise = mesurerCli(['--sans-fetch', '--json'])
+    assert.equal(reprise.status, 0, reprise.stderr)
+    assert.doesNotMatch(reprise.stderr, /fetchOrigin|mesure refusée/)
+    const rejouee = JSON.parse(reprise.stdout)
+    assert.deepEqual([rejouee.ok, rejouee.sansFetch, rejouee.refus], [true, true, null])
+    assert.ok(rejouee.anomalies.some((anomalie) => anomalie.genre === 'origin-non-rafraichi'))
+    assert.deepEqual(lireMesure(FS.readFileSync(cible, 'utf8')), { ok: true, mesure: rejouee })
   } finally { FS.rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -432,8 +501,30 @@ test('mesure REFUSÉE : écrite avec son motif, code non nul ; elle cite la comm
     const ecrite = JSON.parse(FS.readFileSync(join(dossier, '5.mesure.json'), 'utf8'))
     assert.equal(ecrite.ok, false)
     assert.match(ecrite.refus, /origin non consultable .*`npm run ops:suivi -- 5 --mesurer --sans-fetch` mesure sur les refs déjà là/)
-    assert.match(vu.stdout, /\*\*Mesure refusée\*\* : origin non consultable/)
+    assert.equal(vu.stdout, '')
+    assert.match(vu.stderr, /^\[suivi\] \[panne · non retentable\] mesure refusée : origin non consultable/)
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('mesure refusée : délai Git attesté, borne invalide et exception de l’outillage', () => {
+  const compte = { fetch: 0, issues: [] }
+  const delai = classer({ error: Object.assign(new Error('échéance de git'), { code: 'ETIMEDOUT' }), signal: 'SIGTERM' })
+  const fetch = mesureFactice(compte, { fetchOrigin: () => delai })
+  const { vu: interrompue } = mesureProfilee(fetch)
+  assert.equal(interrompue.categorie, 'transitoire')
+  assert.match(interrompue.refus, /origin non consultable \(interruption \(signal SIGTERM\)/)
+
+  const mesurerAvecErreur = (erreur) => mesureProfilee({
+    ...mesureFactice(compte),
+    portee: [1],
+    issues: () => { throw erreur },
+  }).vu
+  assert.deepEqual(mesurerAvecErreur(new BorneAbsente('mesure', ['ref-inconnue'])), {
+    ok: false, categorie: 'validation', refus: 'mesure : borne absente du dépôt — ref-inconnue',
+  })
+  assert.deepEqual(mesurerAvecErreur(new Error('lecture des tickets indisponible')), {
+    ok: false, categorie: 'panne', refus: 'lecture des tickets indisponible',
+  })
 })
 
 test('profil : chaque geste de GESTES_DU_BOARD, inv et issues chronométrés ; reste = total − somme', () => {

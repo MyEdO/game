@@ -6,9 +6,9 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couvertureDeclareeDuDe, type TableTiree } from '../grammaire/couverture-table';
 import { executeesDe, mecaniqueDe } from '../grammaire/mecanique';
-import { couvertureDuDeParDocument, plageOuverteSchema } from '../grammaire/valeurs';
-import type { DiceSpec } from '../../../engine/dice';
+import { plageOuverteSchema } from '../grammaire/valeurs';
 
 export const file = 'tables.json';
 export const famille = 'entite';
@@ -27,8 +27,8 @@ export const rangee = nommerChamps(z.strictObject({
 const doc = document(
   'tables',
   famille,
-  {},
-  {},
+  { borneHauteOuverte: z.boolean().optional() },
+  { borneHauteOuverte: { label: 'Borne haute ouverte' } },
   {
     codex: { keys: ['effectTables'] },
     edit: { dataset: 'effectTables' },
@@ -36,8 +36,10 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    // VDM 12 l.435 ; patron `structure-criticals.ts`.
-    affinerDataset: couvertureDuDeParDocument<{ id: string; die: DiceSpec; entries: z.output<typeof rangee>[] }>(file, (r, t) => `la rangée n° ${t.entries.indexOf(r) + 1}`),
+    // VDM 12 l.435.
+    affinerEntree: couvertureDeclareeDuDe<TableTiree & { borneHauteOuverte?: boolean }>(
+      file, (table) => table.borneHauteOuverte ? 'ouverte' : 'fermee',
+    ),
   },
 );
 

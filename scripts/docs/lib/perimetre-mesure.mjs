@@ -2,9 +2,21 @@
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { cheminGit, cheminsIgnores, configurationDe, depotDe, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe } from '../../guards/lib/gitPorte.mjs'
+import {
+  cheminGit, cheminsIgnores, configurationDe, depotDe, INDEX, listerImage,
+  nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, racineSurDisque,
+} from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
 import { canoniser, dansLaMesure, EXCLUSIONS_FIXES, relatifSousRacine } from './chemin-mesure.mjs'
+import { estCiblePure } from './cibles-generees.mjs'
+
+/** L'index porte les chemins suivis, y compris ceux dont le fichier a disparu du disque. */
+export function verifierCiblesPures(racine, generateurs) {
+  if (racineSurDisque(racine) === null) return
+  const suivies = listerImage(depotDe(racine), INDEX).filter((chemin) => estCiblePure(chemin, generateurs))
+  if (suivies.length) throw new Error(`cible(s) pure(s) suivie(s) dans Git :\n${suivies.map((cible) => `  ${cible}`).join('\n')}`)
+}
+
 /**
  * Chemins IGNORÉS par git sous la racine, en UNE invocation : `--directory` rend un dossier ignoré en
  * entier sous son seul nom (`scripts/raw/lib/__pycache__`), sans descendre dedans. Un fichier SUIVI

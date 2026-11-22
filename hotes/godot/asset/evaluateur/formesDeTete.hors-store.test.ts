@@ -1,8 +1,11 @@
 // Les formes de la tête dans l'évaluateur (#4413) : posées par leur nom sur l'élément qui les porte, elles changent la
-// pile des couches comme Godot la résout sur le corps cuit.
+// pile des couches comme Godot la résout sur le corps cuit ; une base qui ne porte que les silhouettes les reçoit.
 import { describe, expect, it } from 'vitest';
-import { VISAGE_INVERSE } from '../../../../src/lib/formesDeTete.ts';
+import { NOMS_DES_FORMES_DE_TETE, VISAGE_INVERSE } from '../../../../src/lib/formesDeTete.ts';
+import { tableTotale } from '../../../../src/lib/tableTotale.ts';
+import { NOMS_DES_SILHOUETTES } from '../silhouettes.ts';
 import { evaluer } from './evaluer.ts';
+import { glbFabrique } from './glbFabrique.testkit.ts';
 import { glb, type Piece, type Point } from './gardes/pieces.testkit.ts';
 
 /** Une nappe carrée de 0,2 m à la hauteur `z`, centrée en y = 1, en grille de 4 × 4 mailles, tournée vers +Z. */
@@ -35,5 +38,12 @@ describe('evaluer : une forme de la tête se pose sur l’élément qui la porte
     const BILAN = { suiveurs: 0, flottants: 0 };
     expect(await pile(0)).toEqual({ ...BILAN, couverts: 50, recules: 25, masques: 64 });
     expect(await pile(1)).toEqual({ ...BILAN, couverts: 25, recules: 0, masques: 32 });
+  });
+
+  it('une base qui ne porte que les silhouettes reçoit chaque forme de la tête avec elles ; un autre nom est une silhouette absente', async () => {
+    const base = glbFabrique({ clips: { Repos: [0, 0] }, anneau: tableTotale(NOMS_DES_SILHOUETTES, () => new Array<number>(27).fill(0)) });
+    const silhouettes = { ...tableTotale(NOMS_DES_SILHOUETTES, () => 0.5), ...tableTotale(NOMS_DES_FORMES_DE_TETE, () => 1) };
+    await expect(evaluer({ base, silhouettes, pas: 0.5 })).resolves.toBeDefined();
+    await expect(evaluer({ base, silhouettes: { ...silhouettes, nez_crochu: 1 }, pas: 0.5 })).rejects.toThrow(/\[silhouette-absente\] nez_crochu /);
   });
 });

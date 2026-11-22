@@ -32,7 +32,7 @@ import {
 } from './sequenceContract';
 import { runCascadeImmediate, stepInteraction, stepReady } from './cascade';
 import { estJete, extendedTestStep } from '../engine/tests';
-import { findTableEntry, findTableEntryIndex } from '../engine/tables';
+import { findTableEntry, findTableEntryIndex, tableOuverte } from '../engine/tables';
 import { bonus, bonusDe } from '../engine/characteristics';
 import { applyOps, type GameOp } from '../engine/ops';
 import { campAdvantageHooks } from './combat/advantagePool';
@@ -232,7 +232,7 @@ export function sequenceCumulsDeLaManche<P>(
 /** L'entrée de table couvrant ce DR, ou `undefined` si la séquence n'en déclare aucune. */
 export function sequenceTableRow(params: SequenceParams, sl: number): SequenceTableRow | undefined {
   const table = params.table;
-  return table?.length ? findTableEntry([...table], sl) : undefined;
+  return table?.length ? findTableEntry(tableOuverte(table), sl) : undefined;
 }
 
 /* ── FAMILLE (3bis) : BONUS DE CARACTÉRISTIQUE AJOUTÉ AU DR ──────────────────────────────────────*/

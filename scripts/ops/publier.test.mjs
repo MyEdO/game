@@ -402,8 +402,6 @@ test('jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend 
 
 // ── estMiroir ───────────────────────────────────────────────────────────────────────
 
-// Les générateurs RÉELS (`GENERATORS`) : un motif `injecte` large (`docs/raw/**/*.md`) atteint aussi des
-// cibles PURES, que seule la table réelle porte.
 describe('estMiroir', () => {
 
   test('estMiroir : la prose de l’Atlas reste manuscrite', () => {

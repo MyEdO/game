@@ -789,6 +789,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'FragmentCellule.sum @ src/data/schemas/grammaire/valeurs.ts',
       'FragmentCellule.table @ src/data/schemas/grammaire/valeurs.ts',
       'MarchandDeScene.archetype.id @ src/data/schemas/grammaire/ref.ts',
+      'MarchandDeScene.licencesDeGuilde.id @ src/data/schemas/grammaire/ref.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',

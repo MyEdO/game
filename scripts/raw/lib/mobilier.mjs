@@ -13,6 +13,7 @@ import characteristics from '../../../src/data/characteristics.json' with { type
 import { cellulesDe, estSeparateur, stripSpans } from '../../../src/data/source/decoupe.ts'
 import { nomsDeLaListe } from '../_lib.mjs'
 import { EXEMPTIONS_MOBILIER } from '../../guards/lib/mobilierExemptions.mjs'
+import { positionsDesAncres } from '../../guards/lib/stock.mjs'
 
 /** La fenêtre de pages d'un fichier `{ page, pageFin }` d'où O se tire (#1739). */
 export const fenetreDe = (e) => [e.page, e.pageFin + 1]
@@ -75,23 +76,24 @@ export function sitesDeMobilier(texte, { O, folios, abreviations = ABREVIATIONS 
 export const sitesDuFichier = (texte, entree, onglets) =>
   sitesDeMobilier(texte, { O: chiffresDes(onglets, fenetreDe(entree)), folios: [entree.page - 1, entree.pageFin + 1] })
 
-/** L'exemption d'une LIGNE : celle du même fichier dont le motif tient au texte (ancres de page
- *  ôtées), ou `null`. PURE. */
-export const exemptionDe = (texte, fichier, exemptions) =>
-  exemptions.find((e) => e.fichier === fichier && e.motif.test(stripSpans(texte))) ?? null
-
 /**
  * Pose les exemptions sur les sites d'UN fichier — PUR. Une exemption couvre, sur sa ligne, ses
  * `jetons` premiers sites dans l'ordre de la ligne, et PAS UN DE PLUS : un chiffre d'onglet ajouté à
  * une ligne exemptée reste un site.
  */
-export function exempter(sites, fichier, exemptions) {
+export function exempter(sites, fichier, texte, exemptions) {
+  const entrees = exemptions.filter((e) => e.fichier === fichier)
+  if (!entrees.length) return sites.map((s) => ({ ...s, exemption: null }))
+  const contenu = texte.split('\n').map(stripSpans).join('\n')
+  const ancres = positionsDesAncres(fichier, contenu, entrees.map((e) => e.ancre))
+  const parAncre = new Map(entrees.map((e) => [e.ancre, e]))
   const vus = new Map()
   return sites.map((s) => {
-    const e = exemptionDe(s.texte, fichier, exemptions)
+    const exemption = parAncre.get(ancres.get(s.ligne))
+    if (!exemption) return { ...s, exemption: null }
     const n = (vus.get(s.ligne) ?? 0) + 1
     vus.set(s.ligne, n)
-    return { ...s, exemption: e && n <= e.jetons ? e : null }
+    return { ...s, exemption: n <= exemption.jetons ? exemption : null }
   })
 }
 
@@ -106,8 +108,9 @@ export function mobilierDuDossier(dir, texteDe, liste, onglets, { exemptions = E
   if (onglets == null) return []
   return nomsDeLaListe(liste).flatMap((nom, i) => {
     const fichier = `${dir}/${nom}`
-    const sites = sitesDuFichier(texteDe(nom), liste[i], onglets).map((s) => ({ ...s, fichier, nnn: nom.slice(0, nom.indexOf(' ')) }))
-    return exempter(sites, fichier, exemptions)
+    const texte = texteDe(nom)
+    const sites = sitesDuFichier(texte, liste[i], onglets).map((s) => ({ ...s, fichier, nnn: nom.slice(0, nom.indexOf(' ')) }))
+    return exempter(sites, fichier, texte, exemptions)
   })
 }
 

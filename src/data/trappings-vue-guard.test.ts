@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  constructionsReserveesDuCorpus, lectureBruteDeCollection, scanConstructionsReservees, type SiteAdmis,
+  constructionsReserveesDuCorpus, lectureBruteDeCollection, scanConstructionsReservees,
 } from '../../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
@@ -39,9 +39,8 @@ const PARAMETRES = {
 const domaine = (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel);
 const GARDE = { ...lectureBruteDeCollection(PARAMETRES), foyer: FOYER, domaine };
 
-function lignes(text: string, rel = 'src/engine/temoin.ts', sitesAdmis?: readonly SiteAdmis[]): number[] {
-  const garde = sitesAdmis ? { ...lectureBruteDeCollection({ ...PARAMETRES, sitesAdmis }), foyer: FOYER, domaine } : GARDE;
-  return scanConstructionsReservees({ rel, text }, [garde]).map((t) => t.line);
+function lignes(text: string, rel = 'src/engine/temoin.ts'): number[] {
+  return scanConstructionsReservees({ rel, text }, [GARDE]).map((t) => t.line);
 }
 
 describe('lecture brute des trappings hors de la vue', () => {
@@ -67,22 +66,6 @@ describe('lecture brute des trappings hors de la vue', () => {
 
   it.each(FORMES)('frontière — %s : %s', (_verdict, _forme, texte, attendu) => {
     expect(lignes(texte)).toEqual(attendu);
-  });
-
-  it('un site admis ne l’est qu’à sa déclaration englobante et dans son fichier', () => {
-    const fichier = 'src/engine/temoin.ts';
-    const texte = "import { datasetArray } from '../data/overrides';\nfunction consulter() { return datasetArray('trappings'); }\nfunction instancier() { return datasetArray('trappings'); }";
-    const sites: SiteAdmis[] = [{ rel: fichier, englobante: 'consulter', appele: 'datasetArray' }];
-    expect(lignes(texte, fichier, sites)).toEqual([3]);
-    expect(lignes(texte, 'src/engine/autre.ts', sites)).toEqual([2, 3]);
-  });
-
-  it('une déclaration témoin peut nommer plusieurs lectures admises sans les ouvrir à ses voisines', () => {
-    const rel = 'src/engine/temoin.ts';
-    const texte = "import { collectionDuDataset, datasetSerializeRoot } from '../data/overrides';\nfunction consulter() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}\nfunction autre() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}";
-    const sites: SiteAdmis[] = ['collectionDuDataset', 'datasetSerializeRoot'].map((appele) => ({ rel, englobante: 'consulter', appele }));
-    expect(lignes(texte, rel, sites)).toEqual([7, 8]);
-    expect(lignes(texte, 'src/engine/autre.ts', sites)).toEqual([3, 4, 7, 8]);
   });
 
   it('le FOYER seul est hors de la garde : son texte, sous un autre chemin, est vu', () => {

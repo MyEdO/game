@@ -286,6 +286,8 @@ const doc = document(
     passive: passifsDe(undefined, OBJETS_DU_PROJET).optional(),
     /** LDB 66 l.12-14 */
     service: z.boolean().optional(),
+    /** LDB 68 l.25, l.48 */
+    licenceDeGuilde: z.literal(true).optional(),
   },
   {
     ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
@@ -369,6 +371,10 @@ const doc = document(
       label: 'Objet-service',
       hint: 'Marque un tarif de service (chambre, écurie…), pas un objet possédable',
     },
+    licenceDeGuilde: {
+      label: 'Licence de Guilde identifiée',
+      hint: 'Licence dont la Guilde émettrice est identifiée',
+    },
   },
   {
     codex: { keys: ['trappings'] },
@@ -384,7 +390,7 @@ const doc = document(
       champDeCharge: 'categorie',
       chargeParDiscriminant,
       requisesParDiscriminant: { melee: [], distance: [] },
-      marqueurs: ['service'],
+      marqueurs: ['service', 'licenceDeGuilde'],
     },
     affinerEntree: (entree) =>
       affinerAvecCatalogues(entree, (lire) => {

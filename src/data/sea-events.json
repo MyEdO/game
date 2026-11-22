@@ -877,10 +877,10 @@
             "ops": [
               {
                 "op": "infestation",
-                "crewTestType": {
-                  "id": "extermination-nuisibles"
+                "test": {
+                  "crewTestType": "extermination-nuisibles",
+                  "difficulty": "complexe"
                 },
-                "difficulty": "complexe",
                 "drCible": 25,
                 "chaqueNuit": {
                   "kind": "sequence",
@@ -1161,10 +1161,10 @@
             "ops": [
               {
                 "op": "infestation",
-                "crewTestType": {
-                  "id": "extermination-nuisibles"
+                "test": {
+                  "crewTestType": "extermination-nuisibles",
+                  "difficulty": "intermediaire"
                 },
-                "difficulty": "intermediaire",
                 "drCible": 10,
                 "chaqueNuit": {
                   "kind": "sequence",

@@ -10,7 +10,7 @@ import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
-import { GENERATORS, SOURCES_LUES } from './cibles-generees.mjs'
+import { GENERATORS, SOURCES_LUES, validerDeclaration } from './cibles-generees.mjs'
 import { canoniser, relatifSousRacine } from './chemin-mesure.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
@@ -75,9 +75,8 @@ function ecrireOuVerifier({ out, staleMsg, rerunMsg, okMsg, writeMsg, amorce }, 
 }
 
 async function piloter(g, produire, { racine, cwd = racine, check, journal }) {
-  const motifs = [...g.targets, ...(g.injecte ?? [])]
   const racinePhysique = canoniser(racine)
-  const declare = (rel) => Boolean(rel) && motifs.some((motif) => correspondGlob(rel, motif))
+  const declare = (rel) => Boolean(rel) && g.targets.some((motif) => correspondGlob(rel, motif))
   const operations = produire({ check })
   let operation = await operations.next()
   while (!operation.done) {
@@ -88,7 +87,7 @@ async function piloter(g, produire, { racine, cwd = racine, check, journal }) {
       const relatif = relatifSousRacine(racine, chemin, path.resolve)
       // Une jonction peut rediriger une cible déclarée vers une autre sortie ou hors de l'arbre.
       if (!declare(relatif) || !declare(relatifSousRacine(racinePhysique, chemin))) {
-        throw new Error(`${g.script} : cible hors de targets/injecte : ${cible.path}`)
+        throw new Error(`${g.script} : cible hors de targets : ${cible.path}`)
       }
       if (journal && !cible.amorce) appendFileSync(journal, `${relatif}\n`)
       aJour = ecrireOuVerifier(cible, chemin, relatif, check)
@@ -109,6 +108,8 @@ export async function lancerDepuisCLI(meta, produire) {
   const script = fileURLToPath(meta.url)
   const g = GENERATORS.find((g) => path.resolve(RACINE_DU_DEPOT, g.script) === script)
   if (!g) throw new Error(`${script} : générateur absent de GENERATORS`)
+  const { verifierCiblesPures } = await import('./perimetre-mesure.mjs')
+  verifierCiblesPures(RACINE_DU_DEPOT, [g])
   await piloter(g, produire, { racine: RACINE_DU_DEPOT, ...DEPART_CLI })
 }
 
@@ -117,6 +118,7 @@ export async function lancerDepuisManifeste(meta, charger) {
   const worker = new URL('./jouer-generateur.mjs', import.meta.url).href
   if (!meta.main || meta.url !== worker) throw new Error('Le manifeste se joue par le lanceur des dérivés.')
   const { lectures, ...g } = JSON.parse(process.argv[2])
+  validerDeclaration(g)
   const { cwd: racine, check } = DEPART_CLI
   const journal = lectures && path.resolve(racine, ciblesRenduesDans(lectures))
   if (journal && !relatifSousRacine(canoniser(racine), journal)?.startsWith(`${LECTURES_DU_BUILD}/`)) {

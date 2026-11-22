@@ -344,6 +344,55 @@ test('L3 chargements : expressions non littérales, import de type et fournisseu
   assert.ok(charges.every(({ niveauModule }) => niveauModule === false))
 })
 
+test('Vitest : un objet chargeur copié, passé ou renommé reste visible à la clôture', () => {
+  const texte = [
+    "import { vi, vi as v, vitest as outilsNommes } from 'vitest';",
+    "import * as outils from 'vitest';",
+    'const copie = vi;',
+    'recevoir(vi);',
+    'const autre = outils.vi;',
+    'recevoir(outils);',
+    'const objet = { vi };',
+    'export { vi as publique };',
+    "const temoin = vi.importActual('./inerte.ts');",
+  ].join('\n')
+  const rouges = (sites) => sites.filter(({ genre }) => genre === 'chargeur')
+    .map(({ ligne, nature, texte }) => [ligne, nature, texte])
+  const attendus = [
+    [1, 'nonSuivi', 'vi as v'],
+    [1, 'nonSuivi', 'vitest as outilsNommes'],
+    [3, 'nonSuivi', 'vi'],
+    [4, 'nonSuivi', 'vi'],
+    [5, 'nonSuivi', 'outils.vi'],
+    [6, 'nonSuivi', 'outils'],
+    [7, 'nonSuivi', 'vi'],
+    [8, 'nonSuivi', 'vi'],
+  ]
+  assert.deepEqual(rouges(sitesDeModule('a.ts', texte)), attendus)
+
+  const { racine, arbre } = ensembleEnMemoire({ 'a.ts': texte, 'inerte.ts': 'export const temoin = 1;' })
+  const sitesVus = []
+  const membres = clotureDImports(['a.ts'], { racine, arbre, surSites: (_abs, sites) => sitesVus.push(...sites) })
+  assert.deepEqual(rouges(sitesVus), attendus)
+  assert.deepEqual([...membres].sort(), ['a.ts', 'inerte.ts'])
+})
+
+test('Vitest : un homonyme local ou importé ailleurs et les usages ordinaires restent verts', () => {
+  const texte = [
+    "import { vi } from 'vitest';",
+    "import { vi as donnees } from './inerte.ts';",
+    "import type { vitest as Outils } from 'vitest';",
+    'function usage(vi) { recevoir(vi); const copie = vi; return { vi, copie }; }',
+    'recevoir(donnees);',
+    'const mock = vi.fn();',
+    'const { fn } = vi;',
+    'type Chargeur = typeof vi;',
+    'export type { vi };',
+    'export { type vi as autreType };',
+  ].join('\n')
+  assert.deepEqual(sitesDeModule('a.ts', texte).filter(({ genre }) => genre === 'chargeur'), [])
+})
+
 test('L3 AST réutilisé sans parents : identité, positions de tokens et niveau module', () => {
   const texte = "import { a as b } from './m';\nnamespace N { import X = Lib.x; export { X }; }"
   const sf = ast({ rel: 'a.ts', text: texte })

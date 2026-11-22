@@ -5,7 +5,8 @@ import { nommerChamps } from '../grammaire/meta';
  * (`src/data/merchants.types.ts`).
  */
 import { z } from 'zod';
-import { refs } from '../grammaire/ref';
+import { marqueDeListe, marquerCollection } from '../grammaire/collection-cle';
+import { affinerAvecCatalogues, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
 import { trappingCategorieSchema } from './trappings';
@@ -19,6 +20,20 @@ export const famille = 'entite';
 export const tauxDeRachatSchema = z.number().min(0).max(1);
 export const majorationDAchatSchema = z.number().positive();
 export const joursDeReassortSchema = z.number().int().min(0);
+
+/** LDB 68 l.48 */
+const licencesDeGuilde = affinerAvecCatalogues(z.array(ref('trapping')), (lire) => {
+  const catalogue = lire.catalogue('trapping');
+  const estIdentifiee = catalogue.porteLeMarqueur('licenceDeGuilde');
+  return (licences, ctx) => {
+    const connus = catalogue.ids();
+    licences.forEach(({ id }, index) => {
+      if (connus.has(id) && !estIdentifiee(id))
+        ctx.addIssue({ code: 'custom', path: [index, 'id'], message: `« ${id} » ne désigne pas une licence de Guilde identifiée.` });
+    });
+  };
+});
+export const licencesDeGuildeSchema = marquerCollection(licencesDeGuilde, marqueDeListe<{ id: string }>('id'));
 
 const doc = document(
   'merchants',
@@ -35,6 +50,7 @@ const doc = document(
     buyMarkup: majorationDAchatSchema.optional(),
     bargainSkill: z.number(),
     restockDays: joursDeReassortSchema.optional(),
+    licencesDeGuilde: licencesDeGuildeSchema.optional(),
     /** Sélection d'objets proposés d'office — ids de la sous-liste `INSTANCIABLE_PAR_ID`
      *  (`grammaire/sousListes.ts`) ; `curated` ignore la Disponibilité. */
     curated: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
@@ -46,6 +62,7 @@ const doc = document(
     buyMarkup: { label: 'Majoration d’achat', hint: 'Multiplicateur du prix listé à l’achat (1 = prix normal)' },
     bargainSkill: { label: 'Valeur de Marchandage', hint: 'Valeur opposée au Test de Marchandage du client' },
     restockDays: { label: 'Délai de réassort', hint: 'Jours écoulés avant que le stock ne soit re-tiré' },
+    licencesDeGuilde: { label: 'Licences de Guilde appropriées', hint: 'Licences dont les contacts peuvent renseigner le client sur les articles de ce négoce' },
     curated: { label: 'Objets garantis', hint: 'Possessions toujours en stock chez ce marchand, Disponibilité ignorée' },
     unitKinds: {
       label: 'Catégories d’unités vendues',
