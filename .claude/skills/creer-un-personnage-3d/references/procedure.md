@@ -1032,12 +1032,17 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py
   --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
 ```
 
-`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
-elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
-trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
-comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
-kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
-compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+`toit/revue.py` rend chaque pièce du kit (`faitiere`, `aretier`, `noue`) teinte du `ridgeCap` de la couverture
+`--couverture` dont il est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus : une ligne
+par pièce, seule sur son toit d'école ; une ligne par faîte de `revue.FAITES`, trois faîtières bout à bout sur deux pans
+de même pente, un toit raide puis un toit plat, étirées en hauteur comme l'hôte les pose ; puis une ligne par toit de
+`toit/poses.mjs` (une croupe d'école, une croupe en L, une croupe en croix), ses pans et ses pièces que le noyau sert,
+posées comme l'hôte les pose, pour voir les arêtiers monter, les noues dans leur creux et leurs rencontres aux nœuds.
+`npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque kit deux fois aux mêmes octets et compare chaque manifeste
+au publié ; chaque kit qu'une couverture nomme y a son modèle, dont les nœuds racine sont exactement `PIECES_DE_TOIT`
+(lu par `toit/pieces.mjs`, avec `DEMI_LARGEUR_DE_POSE_M`). Il mesure chaque pièce : repère, longueur, aucune pièce au-delà
+de la demi-largeur de pose, coques closes, assise sur les pans du toit d'école, l'arêtier sur la croupe d'école et la noue
+dans son creux, section égale à ses deux bouts. Une couverture neuve entre
 d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 
