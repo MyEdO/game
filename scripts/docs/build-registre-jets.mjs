@@ -165,7 +165,7 @@ function rendu() {
     bandeTriggeredTest: 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés.',
     collectRoundEndTestSteps: 'Tests de FIN DE ROUND d\'un porteur surfacé : une étape influençable par source d\'effet.',
     routeTriggeredTest: 'Porte canonique des Tests déclenchés en et hors combat. Un Test subi simple et autonome hors rencontre conserve sa modale. Les Tests de gain d’État et d’entretien à l’horloge rejoignent la cascade par `runCombatFlow`.',
-    CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête en combat : modale restreinte au grimpeur (hors combat, `runFlow`).',
+    CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête : modale restreinte au grimpeur en combat, testeur proposé au groupe en exploration.',
   }
   const routeurs = new Map()
   for (const { file, fn, porte } of scanRouteursDeTest(prodFiles('src'))) {

@@ -134,6 +134,9 @@ export const placePoiSchema = nommerChamps(z
     }
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, service: { label: "service" , texte: { regime: "technique"} } });
 
+/** MSRC 7 l.109-111 */
+const amarrageSchema = enumNomme({ simple: 'Amarrage simple', 'cale-seche': 'Cale sèche' });
+
 /** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. Sa Taille a UN porteur (`tailleDuLieu`) :
  *  son port, sinon `taille` ; un marché exige l'un des deux. MSRC 13 l.44-50 */
 export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObject({
@@ -148,6 +151,9 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
   /** Taille d'un lieu SANS port ; absente : le lieu n'est pas une agglomération. */
   taille: tailleDuLieuSchema.optional(),
   port: portProfileSchema.optional(),
+  amarrage: amarrageSchema.optional(),
+  constructeurDeBateaux: z.number().int().min(1).max(99).optional(),
+  materiauxCaleSeche: z.boolean().optional(),
   market: landMarketProfileSchema.optional(),
   services: listeCle(placeServiceSchema, 'id').optional(),
   poi: listeCle(placePoiSchema, 'id').optional(),
@@ -157,11 +163,16 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, taille: { label: "taille" }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose').superRefine((lieu, ctx) => {
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, taille: { label: "taille" }, port: { label: "port" }, amarrage: { label: "amarrage" }, constructeurDeBateaux: { label: "compétence du constructeur de bateaux" }, materiauxCaleSeche: { label: "matériaux pour le groupe" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose').superRefine((lieu, ctx) => {
   if (lieu.taille !== undefined && lieu.port !== undefined)
     ctx.addIssue({ code: 'custom', path: ['taille'], message: 'un lieu à port tient sa taille de son port : « taille » ne s’y pose pas.' });
   if (lieu.market !== undefined && lieu.taille === undefined && lieu.port === undefined)
     ctx.addIssue({ code: 'custom', path: ['market'], message: 'un marché exige la taille du lieu : posez « taille », ou un port.' });
+  if (lieu.amarrage === 'cale-seche') return;
+  for (const cle of ['constructeurDeBateaux', 'materiauxCaleSeche'] as const) {
+    if (lieu[cle] === undefined) continue;
+    ctx.addIssue({ code: 'custom', path: [cle], message: 'choisissez « Cale sèche » dans Amarrage pour conserver ce réglage.' });
+  }
 }), [SERVICES_DU_LIEU]);
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre

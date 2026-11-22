@@ -951,8 +951,14 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
       .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }]);
   });
 
-  it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position, de ses établissements et de ses points d’intérêt ; d’un établissement, son nom et son repos ; d’un point d’intérêt, son icône et, vers une scène, son nom', () => {
-    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'taille', 'port', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+  it('le formulaire du lieu offre les champs d’auteur, les options de sa cale sèche et les champs de ses établissements et points d’intérêt', () => {
+    const lieuDeLaCarte = CARTE.places[0];
+    const champsDuLieu = (lieu: MapPlace) => cles(formulaireDe('lieu', lieu, cadre));
+    const champsDeBase = champsDuLieu(lieuDeLaCarte);
+    expect(champsDeBase).toEqual(['label', 'scene', 'entry', 'icon', 'taille', 'port', 'amarrage', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+    expect(champsDuLieu({ ...lieuDeLaCarte, amarrage: 'simple' })).toEqual(champsDeBase);
+    const avecCale = champsDuLieu({ ...lieuDeLaCarte, amarrage: 'cale-seche' });
+    expect(avecCale.filter((cle) => !champsDeBase.includes(cle))).toEqual(['constructeurDeBateaux', 'materiauxCaleSeche']);
     const lieu: MapPlace = { ...CARTE.places[0], services: [{ id: 'auberge', kind: { id: 'auberge' } }], poi: [POI, { id: 'forge', pos: { x: 2, y: 2 }, service: { id: 'auberge' } }] };
     const offert = (c: Segment[], v: unknown) => avecLaValeurDuPorteur('lieu', lieu, c, v, cadre).ok;
     expect([offert(['poi', 0, 'label'], 'Chapelle'), offert(['poi', 1, 'label'], 'Forge'), offert(['poi', 0, 'pos'], { x: 2, y: 2 }), offert(['poi', 0, 'id'], 'x'), offert(['poi', 0, 'sceneId'], { id: 'salle' }), offert(['poi'], [])]).toEqual([true, false, false, false, false, false]);

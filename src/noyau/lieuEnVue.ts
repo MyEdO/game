@@ -11,6 +11,7 @@ import type { GesteDuNoyau } from './actionsDuNoyau';
 import { lieuDuGroupe, serviceIcon, type ResolvedPlaceService } from './worldMap';
 import { planDepuis, trajetsDepuis, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 import { refusAQuai } from './portFlow';
+import { offresDeLaCaleSeche } from './seaVoyageFlow';
 import { entreesDuLieu, refusDEntrerAuPoint, refusDuService, servicesDuLieu } from './lieuFlow';
 import { identitesResolues, nommer } from './monde/identites';
 import { fenetreDuJeu } from './combatAuto';
@@ -61,6 +62,13 @@ export function lieuEnVue(s: Jeu): LieuEnVue | null {
       gestes: gestesDuService(s, svc),
     }))
     .filter((svc) => svc.gestes.length > 0);
+  const offres = offresDeLaCaleSeche(s);
+  if (offres.length) services.push({
+    id: 'cale-seche', nom: t('fleuve.caleSeche'), icone: 'voyage/reparer', fond: null, accueil: null,
+    gestes: offres.map(({ voie, refus }): GesteDuService => voie === 'constructeur'
+      ? { id: voie, libelle: t('fleuve.reparerParLeConstructeur'), geste: { verbe: 'reparerLeNavire', args: [] }, refus }
+      : { id: voie, libelle: t('fleuve.reparerParLeGroupe'), geste: { verbe: 'reparerParLeGroupe', args: [] }, refus }),
+  });
   const pointsDInteret = entreesDuLieu(s).map((p): PointDInteretEnVue => ({
     id: p.id, nom: p.label,
     geste: { id: 'entrer', libelle: t('lieu.entrer'), geste: { verbe: VERBE_DE_CHOIX, args: ['ecranDuLieu', 'entrer', p.id] }, refus: refusDEntrerAuPoint(s, p) },

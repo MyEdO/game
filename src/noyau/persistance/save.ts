@@ -8,8 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * des transitions #4649, #4574 et #4674, celle précédant la mémoire des personnes (#4017) et celle précédant
- * les références de création (#3917). Une save
+ * des transitions #4649, #4574, #4674, #4188, #4435 et #4017 ainsi que la forme précédant les références de création (#3917). Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -130,9 +129,9 @@ const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
   avant: 'efb77d9c287718df',
   apres: 'f642d26deb938799',
 };
-/** #4017 */
+/** #4188, #4435, #4017 */
 const FORMAT_AVANT_ESCALADE = '3bdb6fe66470f1fe';
-const FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES = [FORMAT_AVANT_ESCALADE, '3386ad14e6f47600'];
+const FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES = [FORMAT_AVANT_ESCALADE, '3386ad14e6f47600', '4af3c3767de89f9f'];
 const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_ESCALADE);
 const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
   ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE;
@@ -146,7 +145,8 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES.includes(version) || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
+  return (version === FORMAT_SAVE || FORMATS_AVANT_LA_MEMOIRE_DES_PERSONNES.includes(version)
+      || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
       || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
       || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))

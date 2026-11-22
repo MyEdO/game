@@ -12,6 +12,8 @@
  */
 import type { IconId } from '../data/icons';
 import type { Scene } from './monde/scene';
+import type { CampaignVessel } from './etat';
+import { milieuDeLaCoque } from '../engine/coque';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
@@ -45,11 +47,18 @@ import type { Settlement } from '../data/schemas/grammaire/valeurs';
 /** Le marché qu'un auteur pose sur un lieu : le profil du moteur sans sa Taille, que porte le lieu (`tailleDuLieu`). */
 export type MarcheDAuteur = z.output<typeof landMarketProfileSchema>;
 
+type ChampsDAmarrage = Pick<z.output<typeof mapPlaceSchema>, 'amarrage' | 'constructeurDeBateaux' | 'materiauxCaleSeche'>;
+
+export interface CaleSecheFluviale {
+  constructeur?: ChampsDAmarrage['constructeurDeBateaux'];
+  materiauxPourLeGroupe?: ChampsDAmarrage['materiauxCaleSeche'];
+}
+
 type PortSansReference = PortProfile & { ref?: undefined };
 type PortDuDocument = PortSansReference | (Omit<z.input<typeof portProfileSchema>, 'ref'> & { ref: string });
 
 /** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
-export interface MapPlace {
+export interface MapPlace extends ChampsDAmarrage {
   id: string;
   label: string;
   /** Position sur la carte en % du canvas (0-100). */
@@ -283,11 +292,21 @@ export function lieuDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null
   return s.lieu && s.worldMap ? placeById(s.worldMap, s.lieu) : undefined;
 }
 
-/** Le quai d'un navire de campagne POSÉ là où se tient le groupe : à quai (`escale`) au lieu du groupe s'il est
- *  portuaire, en mer sinon. SOURCE UNIQUE des poses du navire (effet `setVessel`, lancement de scénario). MDG 15 l.129 */
-export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null }): { escale?: string } {
+/** MSRC 7 l.109-111 */
+export function caleSecheDuLieu(lieu: MapPlace | undefined): CaleSecheFluviale | undefined {
+  if (lieu?.amarrage !== 'cale-seche') return undefined;
+  return { constructeur: lieu.constructeurDeBateaux, materiauxPourLeGroupe: lieu.materiauxCaleSeche };
+}
+
+/** MSRC 7 l.172-178 */
+export function estBateauFluvial(vessel: Pick<CampaignVessel, 'vehicleId'>): boolean {
+  return milieuDeLaCoque({ creatureId: vessel.vehicleId }) === 'fluvial';
+}
+
+/** Le quai du navire de campagne posé au lieu du groupe. MDG 15 l.319 ; MSRC 7 l.109-111 */
+export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null }, vessel: Pick<CampaignVessel, 'vehicleId'>): { escale?: string } {
   const lieu = lieuDuGroupe(s);
-  return lieu?.port ? { escale: lieu.id } : {};
+  return lieu && (lieu.port || estBateauFluvial(vessel)) ? { escale: lieu.id } : {};
 }
 
 /** Catégorie d'un service résolu — routage du hub de lieu (#343). `port`/`marche`/`auberge` ont un

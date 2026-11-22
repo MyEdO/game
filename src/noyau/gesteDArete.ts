@@ -24,7 +24,8 @@ import { isMount, isRider, movementRemaining } from './mount';
 import { findActionById } from '../data';
 import type { PendingFall, TombantParticipant } from './pendings';
 import type { CorpsDesReglages } from './reglagesDuJet';
-import { jouerFlowEntier, applyEffects, ouvrirChute, effectTargets, runFlow, openSkillTest } from './combatEffects';
+import { jouerFlowEntier, applyEffects, ouvrirChute, effectTargets, openSkillTest } from './combatEffects';
+import { condCtx } from './bourseFlow';
 import { combatConditionCtx } from './combat/flowEval';
 import { placeCombatant } from './monde/spawn';
 import { t } from '../i18n';
@@ -241,33 +242,32 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     // `requiresGrimpeur`, réservée au Talent joueur (`planClimb` arbitre `autoSucceed`, réf ci-dessous).
     const hasGrimpeur = effectiveTalents(mover).some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
     const autoClimb = !!battle && hasAutoClimb(mover.traits);
-    const plan = planClimb(scene, from, to, hasGrimpeur, battle ? mover.id : undefined, autoClimb);
+    const appuiAdmissible = battle ? (appui: Pt) => !arriveeOccupee(battle, mover, appui) : undefined;
+    const plan = planClimb(scene, from, to, hasGrimpeur, battle ? mover.id : undefined, autoClimb, appuiAdmissible);
     if (!plan) throw new Error('franchirLArete : l’arête d’escalade ne porte pas de grimpe');
     if (plan.kind === 'impossible') return void refuserGeste(get, set, t('climb.tooHard', { name: mover.label }));
     if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return void refuserGeste(get, set, t('climb.sommetInaccessible', { name: mover.label }));
-    if (!battle) {
-      poserLeGroupe(get, set, to); // monte (optimiste) ; l'échec du Test fera chuter au pied via l'Effet `fall`
-      if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
-      return;
+    if (battle) {
+      const metres = metresDEscalade(scene, from, to);
+      // LDB 85 l.162 · LDB 15 l.55
+      const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));
+      if (movementRemaining(battle, mover) < cost) return void refuserGeste(get, set, t('climb.mouvementInsuffisant', { name: mover.label, cout: cost }));
+      if (plan.kind === 'test' && battle.acted) return void refuserGeste(get, set, t('climb.actionDejaPrise', { name: mover.label }));
+      if (arriveeOccupee(battle, mover, to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+      if (plan.kind === 'free') placeCombatant(mover, scene, to);
+      const log = plan.kind === 'free' && plan.auto
+        ? [...battle.log, ev('deplacement', t('climb.auto', { name: mover.label }), mover.id)]
+        : battle.log;
+      set({ battle: { ...battle, log, acted: plan.kind === 'test' || battle.acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
+      bus.emit(EVT.SCENE_DIRTY);
+    } else if (plan.kind === 'free') {
+      poserLeGroupe(get, set, to);
     }
-    const metres = metresDEscalade(scene, from, to);
-    // Grimpant `climbFullSpeed` (LDB 85 l.162) : coût NORMAL (1 case), pas la ½ vitesse du Talent
-    // Grimpeur joueur (LDB 15 l.55, `climbMovementCost`) — chemin joueur strictement inchangé.
-    const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));
-    if (movementRemaining(battle, mover) < cost) return void refuserGeste(get, set, t('climb.mouvementInsuffisant', { name: mover.label, cout: cost }));
-    // `surface` = Test requis → consomme l'Action (LDB 13 l.86-88) ; `ladder`/`auto` = sans Test → Mouvement seul.
-    if (plan.kind === 'test' && battle.acted) return void refuserGeste(get, set, t('climb.actionDejaPrise', { name: mover.label }));
-    if (arriveeOccupee(battle, mover, to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
-    placeCombatant(mover, scene, to); // hisse (optimiste) ; échec du Test → `fall` au pied
-    const acted = plan.kind === 'test' ? true : battle.acted;
-    // Résolution directe (Grimpant) : PAS un jet silencieux — il n'y a PAS de jet du tout, journalisé.
-    const log = plan.kind === 'free' && plan.auto
-      ? [...battle.log, ev('deplacement', t('climb.auto', { name: mover.label }), mover.id)]
-      : battle.log;
-    set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
-    bus.emit(EVT.SCENE_DIRTY);
-    // Lanceur = le mobile (`actorId`), LDB 15 l.57.
-    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.reussite, plan.flow.echec, EMPTY_FLOW, { actorId: mover.id });
+    if (plan.kind === 'test') {
+      const contexte = battle ? combatConditionCtx(mover, {}) : condCtx(get);
+      const { flow, escalade } = plan;
+      openSkillTest(get, set, flow.test, contexte, flow.reussite, flow.echec, EMPTY_FLOW, { ...(battle ? { actorId: mover.id } : {}), escalade });
+    }
   },
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le

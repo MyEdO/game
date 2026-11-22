@@ -1087,6 +1087,7 @@ export function openSkillTest(
     /** Action de combat « Cumuler l'Avantage » (LDB 09 l.305-308) : l'octroi porté par le pending et
      *  appliqué par `jetValider('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
     combatAdvantage?: { combatantId: string; cap: number };
+    escalade?: PendingTest['escalade'];
     /** Test initié en COMBAT : annulable pré-jet (l'Action n'est pas encore dépensée). */
     cancellable?: boolean;
     /** Test SUBI : le vocabulaire de sa branche (`PendingTest.subi`) — posé par `routeTriggeredTest`. */
@@ -1213,6 +1214,7 @@ export function openSkillTest(
       candidates: candidates.length > 1 ? candidates : undefined,
       ...(opts?.noOwnTestFailed ? { noOwnTestFailed: true } : {}),
       ...(opts?.combatAdvantage ? { combatAdvantage: opts.combatAdvantage } : {}),
+      ...(opts?.escalade ? { escalade: structuredClone(opts.escalade) } : {}),
       ...(opts?.cancellable ? { cancellable: true } : {}),
       ...(opts?.subi ? { subi: opts.subi } : {}),
     },
@@ -1943,8 +1945,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // nu par cible, affichable et posable ; la perte se dit à la résolution de son dé, pas ici.
       const targets = env.targets(e.target, e.heroId);
       const m = Math.max(0, e.metres);
-      // `to` ramène le faller au PIED (chute → il retombe en bas, LDB 15) : le GROUPE hors combat, ou
-      // les combattants nommés en combat (escalade ratée → hisse annulée par `placeCombatant`).
+      // `to` pose le groupe hors combat ou les combattants ciblés en combat.
       // Hors combat, l'atterrissage du groupe est une POSE : `poserLeGroupe` (déclencheurs, cap du groupe).
       // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
@@ -2278,7 +2279,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
           ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
-          ...quaiDuGroupe(env.get()),
+          ...quaiDuGroupe(env.get(), { vehicleId: e.navire.id }),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));

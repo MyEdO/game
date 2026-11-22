@@ -66,7 +66,7 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
-  it.each(['3bdb6fe66470f1fe', '3386ad14e6f47600'])('relit le format %s et retire les anciens choix publics de Colérique', (version) => {
+  it.each(['3bdb6fe66470f1fe', '3386ad14e6f47600', '4af3c3767de89f9f'])('relit le format %s et retire les anciens choix publics de Colérique', (version) => {
     const [cible, autre] = ['cible-ancien-format', 'autre-ancien-format'].map((id) => combattantDeTest({ id, kind: 'heros' }));
     const etat = { ...etatInitialDuJeu(), party: [cible, autre] };
     const { data, ...meta } = snapshotSave(etat, '2026-11-22T09:00:00Z');
@@ -76,7 +76,7 @@ describe('lireSave — format courant', () => {
       ...meta, version,
       data: {
         ...sansMemoire,
-        ...(version === '3386ad14e6f47600' ? { pendingTest: { actorId: autre.id, escalade } } : {}),
+        ...(version !== '3bdb6fe66470f1fe' ? { pendingTest: { actorId: autre.id, escalade } } : {}),
         pendingCascade: {
           title: 'Colérique', cursor: 0, seq: 1, log: [], purpose: 'combat',
           participants: [{ id: 'ancien-choix', kind: 'personneChoisie', actorId: autre.id, options: [
@@ -89,12 +89,46 @@ describe('lireSave — format courant', () => {
     if (typeof lue === 'string') throw new Error(lue);
     const reprise = chargerLaSave(lue).etat;
     expect(reprise.personnesVues).toEqual({});
-    if (version === '3386ad14e6f47600') expect(reprise.pendingTest).toMatchObject({ escalade });
+    if (version !== '3bdb6fe66470f1fe') expect(reprise.pendingTest).toMatchObject({ escalade });
     expect(reprise.pendingCascade?.participants[0]).toMatchObject({
       options: [{ key: 'personne/0', label: autre.label }],
       chosen: 'personne/0',
       defaultChoice: 'personne/0',
     });
+  });
+
+  it('réserve la reprise de la carte et de la coque à la transition de l’amarrage', () => {
+    const etat: EtatDeJeu = {
+      ...etatInitialDuJeu(),
+      lieu: 'quai',
+      worldMap: {
+        id: 'reik', label: 'Reik',
+        places: [{ id: 'quai', label: 'Quai', pos: { x: 10, y: 20 }, scene: { id: 'quai' } }],
+        routes: [],
+      },
+      vessel: {
+        uid: 'navire-1', vehicleId: 'barge-fluviale', wounds: { current: 48, max: 60 },
+        morale: { score: 50, lastMoraleWeek: 0, factors: [] },
+      },
+    };
+    const courante = snapshotSave(etat, '2026-11-22T06:30:00.000Z');
+    const ancienne = { ...courante, version: '3bdb6fe66470f1fe' };
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(courante);
+    expect(lireSave(exporterLaSauvegarde({ ...ancienne, version: 'e8e579742f3dbb30' }))).toBe('autreFormat');
+
+    const carte = etat.worldMap!;
+    const avecCale = snapshotSave({
+      ...etat,
+      worldMap: {
+        ...carte,
+        places: carte.places.map((lieu) => ({ ...lieu, amarrage: 'cale-seche', constructeurDeBateaux: 43, materiauxCaleSeche: true })),
+      },
+    }, courante.savedAt);
+    expect(lireSave(exporterLaSauvegarde(avecCale))).toEqual(avecCale);
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {

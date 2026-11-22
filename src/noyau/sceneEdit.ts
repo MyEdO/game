@@ -1236,8 +1236,15 @@ export const retraitOffert = <S extends SorteDePorteur>(sorte: S, donnee: Donnee
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
  *  (`ecritureAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le `Source/` du cadre
  *  `cadre`) ; ou son refus. */
-export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
-  ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> => {
+  if (sorte === 'lieu' && chemin.length === 1 && chemin[0] === 'amarrage' && (valeur === undefined || valeur === 'simple')) {
+    const sansCale = { ...donnee } as typeof donnee & Pick<MapPlace, 'constructeurDeBateaux' | 'materiauxCaleSeche'>;
+    delete sansCale.constructeurDeBateaux;
+    delete sansCale.materiauxCaleSeche;
+    donnee = sansCale;
+  }
+  return ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+};
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'élément de liste au chemin `chemin` de son formulaire passe
  *  avant le précédent (`monteeAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le

@@ -17,8 +17,7 @@ import { climbMovementCost } from '../engine/movement';
  * Le pathfinding ne traverse jamais une croisée (arbitrage #1712, 2026-09-08) : seul ce geste la franchit.
  *
  * La résolution du Test de chute (numérique, DR-driven, LDB 15 l.82) vit dans `rollFlowSpecs.fall`
- * (patron `pendingRun`), PAS ici : contrairement à `climbMove.ts`/`flow.ts::testFlow` (binaire, réservé
- * à l'Escalade), la réduction « −1 m par DR » exige la sortie NUMÉRIQUE de la modale canonique.
+ * (patron `pendingRun`).
  */
 export type RefusFranchissement =
   | 'non-adjacente' // pas une case cardinale voisine
