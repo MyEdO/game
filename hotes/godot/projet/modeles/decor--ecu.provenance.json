@@ -1,0 +1,13 @@
+{
+  "model": "decor--ecu.glb",
+  "model_sha256": "41a0e8870e80532d359fc6f8fe634f45e32ecbd09383766c7ba55991c54748ae",
+  "importe_le": "2026-11-22",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

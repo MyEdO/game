@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "ecu"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "41a0e8870e80532d359fc6f8fe634f45e32ecbd09383766c7ba55991c54748ae",
+    "octets": 35772
+  }
+}
