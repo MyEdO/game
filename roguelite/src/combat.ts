@@ -25,7 +25,7 @@ import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableT
 import { encumbrancePenalties } from '../../src/engine/encumbrance';
 import { consommableDe } from '../../src/engine/consumables';
 import { refusDeConsommer } from '../../src/noyau/consumableFlow';
-import { findCareerById, findCreatureById, findSpellById, findTrappingById, levelsForCareer, characteristics, conditionLabel, refLabel } from '../../src/data';
+import { findCareerById, findCreatureById, findSpellById, findTalentById, findTrappingById, levelsForCareer, characteristics, conditionLabel, refLabel } from '../../src/data';
 import type { Combatant, CharKey, ItemInstance, HitLocation } from '../../src/engine/types';
 import type { Intention } from '../../src/noyau/partie';
 
@@ -251,6 +251,17 @@ export const guerirDesSequelles = (c: Combatant, n: number): string[] => cureCri
 
 /** Hors de combat : à 0 PB ou Inconscient. */
 export const horsDeCombat = (c: Combatant): boolean => !!c.dead || c.wounds.current <= 0 || c.conditions.some((e) => e.id === 'inconscient');
+
+/** Les Compétences qu'un combat automatique teste. */
+const COMPETENCES_DU_COMBAT = new Set(['corps-a-corps', 'projectiles', 'esquive', 'calme', 'resistance', 'focalisation', 'priere', 'athletisme', 'intimidation']);
+/** Le Talent agit-il dans un combat automatique : effet de combat, passif, effets, trait conféré, domaine ou voie de
+ *  lanceur, ou bonus non manuel à un Test qu'un combat lance (`talents.json`) ? */
+export function talentDeCombat(id: string): boolean {
+  const t = findTalentById(id);
+  if (!t) return false;
+  if (t.combat || t.passive || t.effects || t.confereTrait || t.grantsArcaneDomain) return true;
+  return (t.test?.matches ?? []).some((m) => !('manual' in m && m.manual) && 'skill' in m && !!m.skill && COMPETENCES_DU_COMBAT.has(m.skill.id));
+}
 
 /** Libellé d'une carrière (`careers.json`). */
 export const nomDeCarriereDuLivre = (id: string): string => findCareerById(id)?.label ?? id;

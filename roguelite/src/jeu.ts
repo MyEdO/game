@@ -5,7 +5,7 @@
  * le RNG à graine du moteur (`makeRNG`), jamais par `Math.random`.
  */
 import {
-  refusDUsage, plaiesASoigner, panserLesPlaies, opererLesBlessures, makeRNG, generateName, type RNG, nouvelleRecrue, jouerLeCombat, reposer, soigner, guerirDesSequelles, sequelles, horsDeCombat,
+  refusDUsage, talentDeCombat, plaiesASoigner, panserLesPlaies, opererLesBlessures, makeRNG, generateName, type RNG, nouvelleRecrue, jouerLeCombat, reposer, soigner, guerirDesSequelles, sequelles, horsDeCombat,
   nomDeCreature, nomDeCarriereDuLivre, libellesDeQualites, auHameau, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, progression,
   type ArticleDuCatalogue, type Combatant, type IssueDuCombat, type Geste, type Identite, type PoidsDArmure, type Progression,
 } from './combat';
@@ -308,13 +308,17 @@ function auNoyau(e: Etat, h: Heros, gestes: Geste[]): string {
   return r.journal[r.journal.length - 1] ?? '';
 }
 
-/** Les offres de la carrière du héros, la voie du lanceur réduite à sa spécialisation. */
+/** Les Talents qui agissent par la donnée mais hors d'un combat automatique : vie sociale, voyage, fuite, soins. */
+const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieux', 'voyageur-aguerri', 'fuite', 'sprinter', 'pansement-de-fortune']);
+
+/** Les offres de la carrière du héros : la voie du lanceur réduite à sa spécialisation, et les seuls Talents qui
+ *  agissent dans un combat automatique (`talentDeCombat`). */
 export function offresDeCarriere(h: Heros): Progression {
   const p = progression(h.c);
   const voie = voieDe(h.carriere);
   const talents = p.talents.flatMap((t) => {
     if (voie && t.ref.id === voie.talent) return t.ref.spec && t.ref.spec !== voie.spec ? [] : [{ ...t, ref: { id: voie.talent, spec: voie.spec }, label: voie.nom, aSpecifier: false }];
-    return t.aSpecifier ? [] : [t];
+    return t.aSpecifier || !talentDeCombat(t.ref.id) || TALENTS_HORS_DU_COMBAT.has(t.ref.id) ? [] : [t];
   });
   return { ...p, talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
 }
