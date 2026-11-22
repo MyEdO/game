@@ -47,15 +47,19 @@ describe('rejouer une texture épinglée', () => {
     await expect(rejouerLesTextures(['absente.jpg'], {}, tmpdir())).rejects.toThrow(/absent de la provenance/);
   });
 
-  it('rejoue une texture fabriquée sans image lue, aux mêmes octets d’un rejeu à l’autre', async () => {
-    const provenance = { 'bruit.jpg': { sha256: 'a'.repeat(64), source: FABRIQUEE, licence: LICENCE, traitement: 'ImageMagick : -size 32x32 -seed 4746 plasma:fractal -colorspace Gray -strip -quality 85' } };
-    const sorties = [mkdtempSync(join(tmpdir(), 'wfrp-texture-')), mkdtempSync(join(tmpdir(), 'wfrp-texture-'))];
+  it('rejoue une texture fabriquée sans image lue : `convert` ne reçoit que son traitement et le fichier écrit', async () => {
+    const provenance = { 'bruit.jpg': { sha256: 'a'.repeat(64), source: FABRIQUEE, licence: LICENCE, traitement: 'ImageMagick : -size 32x32 -seed 4746 plasma:fractal -strip' } };
+    const sortie = mkdtempSync(join(tmpdir(), 'wfrp-texture-'));
+    const lances: (readonly string[])[] = [];
     try {
-      const [premier, second] = await Promise.all(sorties.map((sortie) => rejouerLesTextures(['bruit.jpg'], provenance, sortie, { telecharger: () => { throw new Error('téléchargement inattendu'); } })));
-      expect(premier?.get('bruit.jpg')).toMatch(/^[0-9a-f]{64}$/);
-      expect(second?.get('bruit.jpg')).toBe(premier?.get('bruit.jpg'));
+      const sommes = await rejouerLesTextures(['bruit.jpg'], provenance, sortie, {
+        telecharger: () => { throw new Error('téléchargement inattendu'); },
+        convertir: (args) => { lances.push(args); writeFileSync(args[args.length - 1], 'bruit'); },
+      });
+      expect(lances).toEqual([['-size', '32x32', '-seed', '4746', 'plasma:fractal', '-strip', join(sortie, 'bruit.jpg')]]);
+      expect(sommes.get('bruit.jpg')).toMatch(/^[0-9a-f]{64}$/);
     } finally {
-      for (const sortie of sorties) rmSync(sortie, { recursive: true, force: true });
+      rmSync(sortie, { recursive: true, force: true });
     }
   });
 

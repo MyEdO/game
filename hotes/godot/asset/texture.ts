@@ -95,8 +95,12 @@ async function sourceEnCache(origine: Extract<Origine, { url: string }>, cache: 
 type Rejouer = (noms: readonly string[], provenance: Readonly<Record<string, ProvenanceFabriquee>>, sortie: string) => Promise<ReadonlyMap<string, string>>;
 
 /** Refabrique dans `sortie` les textures `noms` de `provenance`, et celles dont elles dérivent, chacune après celle
- *  qu'elle lit ; rend la somme SHA-256 de chaque fichier écrit. Lève sur un nom que la provenance n'épingle pas. */
-export async function rejouerLesTextures(noms: readonly string[], provenance: Readonly<Record<string, ProvenanceFabriquee>>, sortie: string, { cache = CACHE_DES_SOURCES, telecharger = fetch }: { cache?: string; telecharger?: Telecharger } = {}): Promise<Map<string, string>> {
+ *  qu'elle lit, par `convertir` (ImageMagick `convert`, ses arguments) ; rend la somme SHA-256 de chaque fichier écrit.
+ *  Lève sur un nom que la provenance n'épingle pas. */
+export async function rejouerLesTextures(
+  noms: readonly string[], provenance: Readonly<Record<string, ProvenanceFabriquee>>, sortie: string,
+  { cache = CACHE_DES_SOURCES, telecharger = fetch, convertir = (args) => executer('convert', args) }: { cache?: string; telecharger?: Telecharger; convertir?: (args: readonly string[]) => void } = {},
+): Promise<Map<string, string>> {
   const sommes = new Map<string, string>();
   const rejouer = async (nom: string): Promise<string> => {
     const ecrit = join(sortie, nom);
@@ -105,7 +109,7 @@ export async function rejouerLesTextures(noms: readonly string[], provenance: Re
     if (!entree) throw new Error(`${nom} : absent de la provenance des textures`);
     const origine = origineDe(entree.source);
     const lu = 'fabriquee' in origine ? [] : ['deriveeDe' in origine ? await rejouer(origine.deriveeDe) : await sourceEnCache(origine, cache, telecharger)];
-    executer('convert', [...lu, ...argumentsDeTraitement(entree.traitement), ecrit]);
+    convertir([...lu, ...argumentsDeTraitement(entree.traitement), ecrit]);
     sommes.set(nom, sha256(readFileSync(ecrit)));
     return ecrit;
   };
