@@ -11,6 +11,8 @@ metadata:
 
 **Verbatim (2026-11-12)** : « Je vois des fils "résolu" avec des restes, c'est normal ? » — #4084.
 
+**Verbatim (2026-11-22)**, à un fil résolu après sa PR alors que son ticket gardait des étapes : « Ce que je veux faire c'est que tu aille au bout des choses avant de mettre un ticket en "résolu" » — #4585.
+
 **Why :** un reste rangé en ticket à la clôture n'a plus de porteur : le fil qui le connaissait est résolu, et l'utilisateur le retrouve en relisant ses fils.
 
 **How to apply :**
