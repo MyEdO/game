@@ -264,7 +264,7 @@ export function soignerAuTemple(e: Etat, id: string): string | null {
 }
 
 export type ActeDHospice = keyof typeof PRIX_DE_L_HOSPICE;
-/** Le prix de l'acte à l'hospice, `null` s'il n'y est pas encore pratiqué (panser au palier 1, opérer au palier 2). */
+/** Le prix de l'acte à l'hospice, `null` sous le palier qui le pratique (panser : 1, opérer : 2). */
 export const prixDeLHospice = (e: Etat, acte: ActeDHospice): number | null =>
   e.batiments.temple < (acte === 'panser' ? 1 : 2) ? null : PRIX_DE_L_HOSPICE[acte] / (e.batiments.temple >= 3 ? 2 : 1);
 /** Ce que l'hospice peut faire pour le héros. */
