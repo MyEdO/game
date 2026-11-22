@@ -292,7 +292,7 @@ function rendu() {
   }
 
   let out = `# Vocabulaire mécanique du moteur — GÉNÉRÉ\n\n`
-  out += `> ⚠️ Fichier GÉNÉRÉ par \`npm run docs:vocabulaire\` — NE PAS ÉDITER À LA MAIN.\n`
+  out += `> ⚠️ Fichier GÉNÉRÉ par \`node --import tsx scripts/docs/build-vocabulaire.mjs\` (\`npm run docs:vocabulaire\`) — NE PAS ÉDITER À LA MAIN.\n`
   out += `> Les schémas d’écriture de \`GameOp\`, \`Condition\`, \`Flow\`, \`EffectTrigger\` et \`EffectTargeting\` sont déclarés dans \`${MECA_SRC}\`.\n`
   out += `> Ils sont partagés par les sorts, traits, talents, états, maladies, qualités d’arme, consommables et flux de combat.\n`
   out += `> Le vocabulaire de SCÈNE (\`Effect\`) vit dans \`docs/campagne-effects.md\`.\n\n`
