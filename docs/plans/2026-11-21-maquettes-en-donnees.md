@@ -110,7 +110,8 @@ Le détail et les sources sont dans la carte.
      - La forme se choisit sur image : une planche du kit montre les variantes réelles et la forme proposée, sur la page de jugement, et l'utilisateur la valide.
      - Les sites viennent du relevé `brut`, pas des citations du catalogue.
      - Preuve : les PNG qui changent sont **exactement** les états qui portent cette nature, et aucun autre. `contenu` et `masque` restent bloquants.
-   - **Lot de table (invisible).** Un gabarit devient une table (règle 3). Les 170 états sont comparés dans les 4 formats (`rendre.mjs:42-47`), sous le navigateur épinglé, par `ecart`, et l'écart doit être de 0 px. Un écart est une erreur de migration.
+     - Outil : `npm run godot:maquettes:reference` à la tête de départ, puis `npm run godot:maquettes:comparer -- --attendu <fichier.json>` après l'application (`scripts/maquettes/pixels.mjs`, écarts dans `scripts/maquettes/ecarts.mjs`). Le fichier attendu liste les états qui portent la nature, `{ "<écran>/<état>": [...] }` ; `--attendu` se répète et ses fichiers s'unissent. Le rapport donne les états attendus restés inchangés et les états changés hors attendu, les entrées de relevé neuves dans chacun des 4 formats, et l'écart du style calculé de chaque texte en 16:9 par signature (deux derniers maillons du chemin DOM et propriétés changées), en entier dans `dist/maquettes-pixels/style-ecart.json`. Il sort en 1 sur un état changé hors attendu, un PNG sans pendant ou un relevé neuf ; l'écart de style se relit, et ne fait sortir en 1 que sous `--style-bloquant`. `--ecran <écran>` (répétable) restreint la référence et la comparaison à ces écrans.
+   - **Lot de table (invisible).** Un gabarit devient une table (règle 3). Les 170 états sont comparés dans les 4 formats (`rendre.mjs:52-57`), sous le navigateur épinglé, par `ecart`, et l'écart doit être de 0 px. Un écart est une erreur de migration.
 8. **Plus de variantes propres à un écran.** Un lot de nature réduit sa nature à sa forme cible. Le catalogue ne garde que les variantes qui ont une raison d'être, jamais une surcharge de famille.
 
 ## Étapes
@@ -139,7 +140,7 @@ Le détail et les sources sont dans la carte.
    - *Réponses de l'utilisateur du 2026-11-21* : Q1 « Harmoniser d'abord », Q2 avis rendu (règle 3), Q3 « Oui, dans l'état », Q4 « Emplacements et pluriel ». Le détail est sur #4585.
 3. **Lots de nature (règle 7)**, de la plus dispersée à la moins dispersée (carte, § variantes) : lignes libellé-valeur, titres, sous-titres et rubriques, notes, étiquettes, puces et listes, filets, bulles, plaques, jauges.
    - **Le premier va de bout en bout avant les autres** : planche, validation, primitive, application, preuve. Ce sont les titres de cadre et de panneau, l'exemple que l'utilisateur a cité.
-   - Chaque nature : planche des variantes réelles et de la forme proposée, primitive au kit, sites tirés du relevé `brut`, application en une passe, puis la preuve de la règle 7.
+   - Chaque nature : planche des variantes réelles et de la forme proposée, primitive au kit, sites tirés du relevé `brut`, application en une passe, puis la preuve de la règle 7 : la référence posée avant l'application, la comparaison avec `--attendu` après (règle 7, § Outil).
    - **Les titres faits, les neuf autres natures et l'échelle des noms passent par un seul point d'arrêt.** Choix de l'utilisateur du 2026-11-22 : « Un seul arrêt (Recommandé) ». Elles sont relevées et proposées ensemble, l'utilisateur les tranche en une fois, l'application suit, puis il juge les maquettes finales écran par écran.
 4. **Pilote des tables : `fenetre-du-bas` (49 états) et `edition` (4 états, deux types, illustration `#plan`).**
    - Les primitives utilisées passent à l'émission marquée (règle 2).

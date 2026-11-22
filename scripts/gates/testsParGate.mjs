@@ -37,7 +37,7 @@ export const RACINES = Object.freeze({
     'scripts/mods',
   ]),
   'test:docs': Object.freeze(['scripts/docs']),
-  'test:recette': Object.freeze(['scripts/recette']),
+  'test:recette': Object.freeze(['scripts/recette', 'scripts/maquettes']),
   'test:raw': Object.freeze(['scripts/raw', 'scripts/source']),
   'test:ops': Object.freeze(['scripts/ops']),
   // `scripts/personnage-3d` : la déclaration d'une base 3D jugée contre la donnée réelle du dépôt (#3106).

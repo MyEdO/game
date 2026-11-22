@@ -27,7 +27,7 @@ Ce document porte l'application des natures d'interface aux maquettes. Il sert d
 | étiquette | `etiquette({ texte, variante, teinte, valeur })` (rectangle, pastille, compte ; or, cire, fer) | `5754e8627b` | pas d'état changé hors attendu ; l'étiquette rognée du début du round est reprise dans `25f3826e0f` |
 | puce | `puce('losange' \| 'coche')`, `.losange`, `.coche` | `5754e8627b` | idem |
 | séparateur | `separateur('median')`, `.separateur.median` | `5754e8627b` pour la bascule des cartes seulement | les « · » écrits en texte restent à faire (voir Reste) |
-| filet | `filet({ fondu, losange, or })` ; sa marge est du placement | `25f3826e0f` | vérification en cours au moment de la reprise ; la rejouer (voir Outils) |
+| filet | `filet({ fondu, losange, or })` ; sa marge est du placement | `25f3826e0f` | passe 0 rouge ; 69 états attendus, tous changés ; formats sans relevé neuf ; deux écarts hors attendu en `bureau` seulement, non expliqués : `dossier-du-navire-cargaison` (2 px), `mer-conseil-de-bord` (1 px) |
 
 Teintes d'étiquette hors des quatre prévues, choisies sans question (révisables, un argument chacune) :
 - `pill.fermee`, `palier.ferme` et `attend.autre` → `fer` ;
@@ -100,5 +100,19 @@ Restent du lot 3 :
 ## Outils
 
 - `npm run godot:maquettes` : la passe (16:9, relevés bloquants, planches).
-- `npm run godot:maquettes:reference` et `godot:maquettes:comparer` (`scripts/maquettes/pixels.mjs`) : les pixels des 170 états × 4 formats. Le commentaire de tête de `pixels.mjs` dit l'usage. Il compare aussi les relevés de chaque format, l'attendu et le style des textes.
+- `npm run godot:maquettes:reference [-- --ecran <écran>…]` pose `dist/maquettes-reference` : les PNG des 170 états × 4 formats, le relevé de chaque état par format (`<format>/releves.json`) et le style calculé de chaque texte en 16:9 (`styles/`, capturé par `rendre.mjs` sous `RELEVE_STYLES`, sans second rendu). Une référence d'avant cet outil est refusée : la première commande d'une reprise est donc de poser la référence sur la tête.
+- `npm run godot:maquettes:comparer -- [--ecran <écran>…] [--attendu <attendu.json>…] [--style-bloquant]` rend l'arbre et rapporte :
+  - les PNG qui diffèrent ;
+  - les états attendus restés inchangés et les états changés hors attendu ;
+  - les relevés neufs de chaque format ;
+  - l'écart de style (`<sortie>/style-ecart.json`, résumé sur la sortie standard).
+
+  Il sort en 1 dans quatre cas : un état changé hors attendu, un PNG sans pendant, un relevé neuf, ou un écart de style sous `--style-bloquant`. Le calcul est dans `scripts/maquettes/ecarts.mjs`, son test dans `ecarts.test.mjs`. L'usage complet est au commentaire de tête de `scripts/maquettes/pixels.mjs`.
+- Un lot se vérifie ainsi :
+  1. sur la tête de départ, `godot:maquettes:reference` ;
+  2. l'agent écrit l'attendu, puis applique ;
+  3. `godot:maquettes` et `godot:maquettes:comparer -- --attendu <attendu-*.json>` ;
+  4. relire `style-ecart.json`.
+
+  Chacune des deux commandes longues dure environ 25 min ; elle se lance en tâche de fond ou dans une copie du dépôt (`git worktree add`, avec une copie de `node_modules/playwright` et `playwright-core`, jamais un lien), pendant que le lot suivant avance dans l'arbre principal.
 - Les sondes d'un groupe (relevé DOM des sites d'une nature, feuille cible injectée par préchargement) ne sont pas versionnées. Elles se refont depuis le doc du groupe, qui donne la méthode.

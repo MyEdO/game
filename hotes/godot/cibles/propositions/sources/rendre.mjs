@@ -27,7 +27,9 @@
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
 // `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le relevé `brut` (ce qu'un emplacement de primitive ou une
 // illustration porte hors d'une primitive, `data-primitive`) n'entre pas au rapport : il va au même fichier, que
-// l'agrégat compte par gabarit. Le rendu sort en code 1 si une page a une erreur, un
+// l'agrégat compte par gabarit. Sous `RELEVE_STYLES=<dossier>`, chaque état écrit aussi en `<écran>--<état>.json`, de
+// la même page, le style calculé de chaque élément à texte propre (`styles`), que `scripts/maquettes/pixels.mjs` compare
+// à sa référence. Le rendu sort en code 1 si une page a une erreur, un
 // relevé non vide ou du défilement de la page ; `passe.mjs` rend tous les écrans et agrège :
 //   node rendre.mjs --ecrans                                    les écrans de `maquettes/` qui portent des états, un par ligne
 //   node rendre.mjs --formats                                   les formats (`FORMATS`), un par ligne
@@ -293,6 +295,28 @@ const releve = ([largeur, hauteur, ILLUSTRATIONS]) => {
   return { brut: { emplacement, illustration }, pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, masque, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
+/** Le style calculé de chaque élément visible à texte propre sous `#ui`, hors SVG : son fond (la matière qui le porte),
+ *  son chemin DOM (cinq maillons au plus), son texte (60 signes) et son rect. */
+const styles = () => {
+  const propre = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim()
+  const nomDe = (x) => x.tagName.toLowerCase() + (x.id ? '#' + x.id : '') + (x.classList.length ? '.' + [...x.classList].join('.') : '')
+  const chemin = (e) => { const c = []; for (let x = e; x && x.id !== 'ui' && c.length < 5; x = x.parentElement) c.unshift(nomDe(x)); return c.join(' > ') }
+  const fondDe = (e) => { const m = e.closest('.parchemin, .bois, .laiton, .plaque, .signet, .ruban'); return !m ? 'scène' : ['ruban', 'plaque', 'signet', 'parchemin', 'bois'].find((f) => m.matches('.' + f)) ?? 'laiton' }
+  return [...document.querySelectorAll('#ui *')].flatMap((e) => {
+    const t = propre(e)
+    if (!t || e.closest('svg')) return []
+    const r = e.getBoundingClientRect(), c = getComputedStyle(e)
+    if (!r.width || !r.height || c.visibility === 'hidden' || c.opacity === '0') return []
+    return [{
+      chemin: chemin(e), texte: t.replace(/\s+/g, ' ').slice(0, 60), fond: fondDe(e), police: c.fontFamily.split(',')[0].replaceAll('"', ''),
+      taille: parseFloat(c.fontSize), graisse: c.fontWeight, style: c.fontStyle, couleur: c.color, interlettre: c.letterSpacing,
+      interligne: c.lineHeight, ombre: c.textShadow === 'none' ? '' : c.textShadow, casse: c.textTransform, marge: c.margin,
+      bordure: [c.borderTopWidth, c.borderRightWidth, c.borderBottomWidth, c.borderLeftWidth].join(' '), remplissage: c.padding,
+      rect: [r.left, r.top, r.width, r.height].map(Math.round),
+    }]
+  })
+}
+
 const [, , cible, png, ...reste] = process.argv
 if (cible === '--formats') {
   console.log(Object.keys(FORMATS).join('\n'))
@@ -322,6 +346,9 @@ if (refus) {
 /** Le dossier du relevé `contenu` (`RELEVE_CONTENUS`), un fichier par état, que `contenus.mjs` agrège. */
 const CONTENUS = process.env.RELEVE_CONTENUS
 if (CONTENUS) mkdirSync(CONTENUS, { recursive: true })
+/** Le dossier du relevé de style (`RELEVE_STYLES`), un fichier par état. */
+const STYLES = process.env.RELEVE_STYLES
+if (STYLES) mkdirSync(STYLES, { recursive: true })
 /** Le premier relevé de chaque contenu d'un gabarit (gabarit | porteur | rôle), et son état, que `contenu`
  * compare aux suivants : ceux des autres écrans déjà écrits sous `RELEVE_CONTENUS`, puis ceux de cette passe. */
 const REFERENCES = new Map()
@@ -346,6 +373,7 @@ async function capturer(maquette, sortie) {
   await p.waitForTimeout(400)
   const { habillage, contenus, brut, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur, ILLUSTRATIONS])
   if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus, brut }))
+  if (STYLES && maquette) writeFileSync(join(STYLES, `${cible}--${maquette.nom}.json`), JSON.stringify((await p.evaluate(styles)).map((t) => ({ ecran: cible, etat: maquette.nom, ...t }))))
   rapport.contenu = maquette ? Object.entries(contenus).flatMap(([cle, valeur]) => {
     const ref = REFERENCES.get(`${maquette.gabarit} | ${cle}`)
     return ref && classe(ref.valeur, valeur) === 'A' ? [`${cle} : autre qu'à ${ref.etat}`] : []

@@ -58,8 +58,9 @@ d'un écran ou d'une planche. Playwright se résout comme pour `rendre.mjs` (`..
 gabarit, le relevé `brut`, sans effet sur son code : ce qu'un emplacement de primitive (`data-emplacement`) ou une
 illustration porte hors d'une primitive (`data-primitive`, écrite par le seul kit). `npm run
 godot:maquettes:reference` rend les 170 états dans les quatre formats sous `dist/maquettes-reference`, à la tête de
-départ d'un lot ; `npm run godot:maquettes:comparer` rend l'arbre et sort en 1 sur tout PNG qui en diffère
-(`scripts/maquettes/pixels.mjs`). `npm run godot:maquettes:page -- [<passe>]` tire de la passe la page de jugement
+départ d'un lot, avec leurs relevés et le style de chaque texte ; `npm run godot:maquettes:comparer` rend l'arbre et
+sort en 1 sur tout PNG qui en diffère (sous `--attendu`, hors des états attendus) ou tout relevé neuf, et rapporte
+l'écart de style (`scripts/maquettes/pixels.mjs`). `npm run godot:maquettes:page -- [<passe>]` tire de la passe la page de jugement
 (`scripts/maquettes/page.mjs`, sous `dist/maquettes-page`).
 
 - À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
@@ -444,7 +445,7 @@ Règle 4 du même plan.
 
 ### Où et sous quelle forme
 
-- **Un seul fichier**, à créer avec le pilote : `sources/maquettes/libelles.ts`, à côté de `maquette.ts`. `rendre.mjs` le pose sur la page avec l'état, comme il pose `globalThis.MAQUETTE` (`sources/rendre.mjs:342`).
+- **Un seul fichier**, à créer avec le pilote : `sources/maquettes/libelles.ts`, à côté de `maquette.ts`. `rendre.mjs` le pose sur la page avec l'état, comme il pose `globalThis.MAQUETTE` (`sources/rendre.mjs:369`).
 - **Forme** : id vers texte. L'id est en minuscules, par domaine puis par chose : `combat.fin-du-tour`. Le texte est un mot fixe, ou une phrase à trous nommés avec ses formes de nombre : `voyage.reste.km` vaut « {n} km avant {lieu} ». Le type de l'id est l'ensemble des clés du fichier : un id inconnu échoue au typage.
 - **Dans une donnée** : un champ de libellé porte l'id, plus un texte. `ouvrir: [{ id: 'dossier' }]` suffit, le mot vient de `ouvrir.dossier` (aujourd'hui l'état répète le mot : `libelle`, `M:678`).
 - **Dans une table** : `#id`, avec ses trous nourris par des champs : `#voyage.reste.{unite}(n ← frise.reste, lieu ← frise.vers)`.
