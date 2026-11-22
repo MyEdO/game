@@ -14327,7 +14327,10 @@
       "x": 14,
       "y": 29
      },
-     "facing": "S"
+     "facing": "S",
+     "usable": {
+      "assise": true
+     }
     },
     {
      "id": "diligence-salon-cheminee",
