@@ -406,7 +406,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 ## (`ImporterMesh.get_mesh`) porte, par surface, des index simplifiés que le rendu choisit selon la taille du mesh à
 ## l'écran (`Viewport.mesh_lod_threshold`) ; ses sommets, ses os, ses poids et ses shape keys restent, et le niveau 0
 ## est le mesh entier. Seule couture des niveaux de détail : la lecture d'un GLB (`scene_lue`), la cuisson des formes
-## (`cuire_les_formes`) et la fusion (`refondre`) y passent.
+## (`cuire_les_formes`), la fusion (`refondre`) et la copie d'une pièce coupée d'un véhicule
+## (`MontageDeVehicule._porter_la_hauteur`) y passent.
 static func poser_les_niveaux(maillage: ImporterMesh) -> void:
 	# normal_split_angle : ignoré par Godot 4.7 (doc de `ImporterMesh.generate_lods`).
 	maillage.generate_lods(ANGLE_DE_FUSION_DES_NORMALES, 0.0, [])
@@ -1565,7 +1566,7 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
 ## Chaque mesh dessiné porte ses niveaux de détail, générés à l'exécution par `MontageDeComposition.poser_les_niveaux`
 ## (`ImporterMesh.generate_lods`, #4413) : à la lecture du GLB (`scene_lue`), donc aussi dans la scène fabriquée
-## (`FabriqueDeModeles`), à la cuisson des formes et à la fusion. Le rendu en choisit un selon la taille du mesh à
+## (`FabriqueDeModeles`), à la cuisson des formes, à la fusion et à la copie d'une pièce coupée d'un véhicule. Le rendu en choisit un selon la taille du mesh à
 ## l'écran ; le niveau 0 est le mesh entier, que compte le plafond assemblé de l'évaluateur. La recette autonome
 ## `projet/recettes/niveaux-de-detail.gd` le vérifie.
 
