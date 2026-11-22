@@ -19,11 +19,12 @@
   "surfaces": [
     {
       "nom": "poil",
-      "palette": "cheveux"
+      "palette": "cheveux",
+      "matiere": "prop--chevelure"
     }
   ],
   "glb": {
-    "sha256": "dec287ceb3c390eecd3dca96c8b8a44818c74ebc29444121937aa79e576b17c9",
-    "octets": 265624
+    "sha256": "31b9a63a1f86d54650e61d05c02a099b479d889976da4bc1f0e596996f953f56",
+    "octets": 265628
   }
 }

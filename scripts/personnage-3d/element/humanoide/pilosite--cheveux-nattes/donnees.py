@@ -23,8 +23,8 @@ MANIFESTE = {
     'couche': 'peau',
     'couvre': [],
 }
-MATERIAUX = {'poil': ('cheveux', ((0.6, 0.6, 0.6), 0.0, 0.95))}
-"""La surface des coiffures publiées : `poil`, palette `cheveux`, gris de construction."""
+MATERIAUX = {'poil': ('cheveux', 'chevelure')}
+"""La surface des coiffures publiées : `poil`, palette `cheveux`, matière `chevelure`."""
 
 BUDGET_TRIANGLES = 1500                 # procédure du skill, section 7 : pilosité
 

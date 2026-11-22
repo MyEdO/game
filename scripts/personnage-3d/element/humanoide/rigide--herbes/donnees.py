@@ -22,9 +22,9 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'vegetal': ('vegetal', ((0.5, 0.5, 0.5), 0.0, 0.9)),
+    'vegetal': ('vegetal', 'feuillage'),
 }
-"""Tiges et feuilles du même vert (`vegetal`, emplacement de palette des herbes, #3867). Gris de construction."""
+"""Tiges et feuilles du même vert, de `feuillage` (`vegetal`, emplacement de palette des herbes, #3867)."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 
