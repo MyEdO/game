@@ -398,6 +398,24 @@
     }
   },
   {
+    "id": "casque-a-cornes",
+    "type": "garde-robe",
+    "label": "Casque à cornes",
+    "kind": "variante",
+    "piece": {
+      "id": "casque"
+    }
+  },
+  {
+    "id": "plumet-simple",
+    "type": "garde-robe",
+    "label": "Plumet simple",
+    "kind": "variante",
+    "piece": {
+      "id": "plumet"
+    }
+  },
+  {
     "id": "baudrier-sur-armure",
     "type": "garde-robe",
     "label": "Baudrier sur armure",
