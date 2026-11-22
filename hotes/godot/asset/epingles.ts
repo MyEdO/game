@@ -29,7 +29,7 @@ export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.m
 export const DOSSIER_DES_TEXTURES = fileURLToPath(new URL('../projet/textures', import.meta.url));
 
 /** Les dossiers épinglés du projet Godot : ses textures et ses sons. */
-const DOSSIERS_EPINGLES = [DOSSIER_DES_TEXTURES, DOSSIER_DES_SONS];
+export const DOSSIERS_EPINGLES = [DOSSIER_DES_TEXTURES, DOSSIER_DES_SONS];
 
 /** L'entrée de provenance d'un fichier épinglé que le dépôt fabrique d'une source CC0 : un son (`son.ts`), une texture
  *  (`texture.ts`). */

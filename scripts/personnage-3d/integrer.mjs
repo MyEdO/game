@@ -5,12 +5,11 @@
 // entre au cache des modèles sous son empreinte (`enCacheOuTire`), où le constructeur du suivant le lit. Une ligne par id
 // importé : id, empreinte, octets, triangles. Au premier échec, la fin de son journal, et le code 1.
 // `--transfert <nom>` fabrique ensuite, sans toucher l'index ni l'arbre de travail, le commit fils de HEAD qui ajoute les
-// manifestes et provenances importés du lot et, de force, ses GLB (`fabriquerTransfert`), et imprime la commande qui le pousse en `transfert/<nom>`
-// (`.github/workflows/transfert.yml`) sans la lancer.
+// manifestes et provenances importés du lot et, de force, ses GLB (`fabriquerTransfert`, `hotes/godot/asset/transfert.ts`),
+// et imprime la commande qui le pousse en `transfert/<nom>` (`.github/workflows/transfert.yml`) sans la lancer.
 //
 //   npm run personnage-3d:integrer -- <base>/<élément>... [--transfert <nom>]
-import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -74,48 +73,6 @@ export const commandeDImport = (dossier, id, dejaImporte) =>
 export const trianglesParEmpreinte = (journal) =>
   new Map([...journal.matchAll(/^GLB \S+ \d+ ([0-9a-f]{64}) TRIANGLES (\d+)/gm)].map((m) => [m[1], Number(m[2])]))
 
-/** La commande, imprimée et jamais lancée, qui pousse le commit `sha` en branche `transfert/<nom>`. PURE. */
-export const commandeDEnvoi = (sha, nom) => `git push origin ${sha}:refs/heads/transfert/${nom}`
-
-/** La porte du commit (`scripts/git-hooks/commit-msg.mjs`) sur le fichier de message `fichier`, l'index temporaire dans
- *  `env` : rend le processus achevé. */
-const porteDuCommit = (fichier, { racine, env }) =>
-  spawnSync(process.execPath, [join(RACINE, 'scripts/git-hooks/commit-msg.mjs'), fichier], { cwd: racine, env, encoding: 'utf8' })
-
-/**
- * Le commit fils de HEAD du dépôt `racine` dont l'arbre est celui de HEAD plus, pour chaque GLB `glb` (`{ id, chemin,
- * sha256 }`, `chemin` relatif au dépôt), ses `<id>.manifeste.json` et `<id>.provenance.json` voisins et le GLB lui-même,
- * ignoré par git, ajouté de force, fabriqué sous un index temporaire (`GIT_INDEX_FILE`), son message jugé par `porte` :
- * rend son sha. Refuse un GLB que la provenance de cet index n'épingle pas, que le versement ne verserait pas.
- */
-export function fabriquerTransfert({ racine = RACINE, glb, nom, env = process.env, porte = porteDuCommit }) {
-  const temporaire = mkdtempSync(join(tmpdir(), 'transfert-'))
-  try {
-    const envDeLIndex = { ...env, GIT_INDEX_FILE: join(temporaire, 'index') }
-    const git = (...args) => {
-      const vu = spawnSync('git', args, { cwd: racine, env: envDeLIndex, encoding: 'utf8' })
-      if (vu.status !== 0) throw new Error(`git ${args.join(' ')} : ${vu.stderr.trim() || `code ${vu.status}`}`)
-      return vu.stdout.trim()
-    }
-    const voisin = ({ id, chemin }, suffixe) => join(dirname(chemin), `${id}.${suffixe}.json`).split('\\').join('/')
-    git('read-tree', 'HEAD')
-    git('add', '--', ...glb.flatMap((g) => [voisin(g, 'manifeste'), voisin(g, 'provenance')]))
-    git('add', '-f', '--', ...glb.map((g) => g.chemin))
-    for (const g of glb) {
-      const epinglee = JSON.parse(git('show', `:${voisin(g, 'provenance')}`)).model_sha256
-      if (epinglee !== g.sha256) throw new Error(`${voisin(g, 'provenance')} épingle ${epinglee}, le GLB importé est ${g.sha256}`)
-    }
-    const arbre = git('write-tree')
-    const message = join(temporaire, 'message')
-    writeFileSync(message, `transfert/${nom} : ${glb.length} GLB à verser à la Release des modèles\n\n${glb.map((g) => `${g.id} ${g.sha256}`).join('\n')}\n`)
-    const jugee = porte(message, { racine, env: envDeLIndex })
-    if (jugee.status !== 0) throw new Error(`porte du commit : ${`${jugee.stdout ?? ''}${jugee.stderr ?? ''}`.trim()}`)
-    return git('commit-tree', arbre, '-p', 'HEAD', '-F', message)
-  } finally {
-    rmSync(temporaire, { recursive: true, force: true })
-  }
-}
-
 /** Lance `node <commande>` depuis la racine, borné à `BORNE_MS` arbre compris (`spawnBorne`), son journal écrit sous
  *  `journal` ; au premier échec, imprime `geste`, la fin du journal et le diagnostic d'arrêt, et sort en 1, le dossier
  *  du journal gardé. Rend la sortie standard. */
@@ -136,10 +93,12 @@ if (import.meta.main) {
     process.exit(2)
   }
   const inconnus = positionals.filter((e) => !construction(e, '') || !existsSync(join(RACINE, construction(e, '').donnees)))
-  const nomInvalide = values.transfert !== undefined && spawnSync('git', ['check-ref-format', `refs/heads/transfert/${values.transfert}`]).status !== 0
-  if (!positionals.length || inconnus.length || nomInvalide) {
+  const transfert = values.transfert === undefined ? null
+    : await chargerAssets(["export { fabriquerTransfert, commandeDEnvoi, refusDuNom } from '/hotes/godot/asset/transfert.ts';"])
+  const refusDuTransfert = transfert?.refusDuNom(values.transfert)
+  if (!positionals.length || inconnus.length || refusDuTransfert) {
     if (inconnus.length) console.error(`éléments sans constructeur ni donnees.py : ${inconnus.join(', ')} (bases : ${Object.keys(CONSTRUCTEURS).join(', ')})`)
-    if (nomInvalide) console.error(`--transfert : « ${values.transfert} » ne nomme pas une branche`)
+    if (refusDuTransfert) console.error(`--transfert : ${refusDuTransfert}`)
     console.error('usage : npm run personnage-3d:integrer -- <base>/<élément>... [--transfert <nom>]')
     process.exit(2)
   }
@@ -162,7 +121,7 @@ if (import.meta.main) {
         const glb = join(dossier, model)
         await enCacheOuTire(join(CACHE_DES_MODELES, `${sha256}.glb`), sha256, id, async () => readFileSync(glb))
         console.log(`${id} ${sha256} ${statSync(glb).size} octets ${triangles.get(sha256) ?? '—'} triangles`)
-        importes.push({ id, chemin: relative(RACINE, join(DOSSIER_DES_MODELES, `${id}.glb`)).split('\\').join('/'), sha256 })
+        importes.push(relative(RACINE, join(DOSSIER_DES_MODELES, `${id}.glb`)).split('\\').join('/'))
       }
     }
   } catch (erreur) {
@@ -172,9 +131,9 @@ if (import.meta.main) {
     rmSync(temporaire, { recursive: true, force: true })
   }
   if (process.exitCode) process.exit()
-  if (values.transfert !== undefined) {
+  if (transfert) {
     try {
-      console.log(commandeDEnvoi(fabriquerTransfert({ glb: importes, nom: values.transfert }), values.transfert))
+      console.log(transfert.commandeDEnvoi(transfert.fabriquerTransfert({ fichiers: importes, nom: values.transfert }), values.transfert))
     } catch (erreur) {
       console.error(`ÉCHEC transfert : ${erreur.message}`)
       process.exit(1)

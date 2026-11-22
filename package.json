@@ -35,6 +35,7 @@
     "godot:epingles": "node hotes/godot/epingles.mjs",
     "godot:son": "node hotes/godot/son.mjs",
     "godot:textures": "node hotes/godot/textures.mjs",
+    "godot:transfert": "node hotes/godot/transfert.mjs",
     "godot:evaluer": "node hotes/godot/asset/evaluer.mjs",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
     "godot:maquettes": "node hotes/godot/cibles/propositions/sources/passe.mjs",

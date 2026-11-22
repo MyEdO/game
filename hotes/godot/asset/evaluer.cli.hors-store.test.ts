@@ -43,11 +43,11 @@ test('--etats-gabarit évalue chaque état de `etatsDuGabarit` sous ses facteurs
   }
 }, 120_000);
 
-test('--porte exige un manifeste et refuse --silhouettes et --json', () => {
-  for (const options of [[], ['--manifeste', 'manifeste.json', '--silhouettes', 'feminin=1'], ['--manifeste', 'manifeste.json', '--json', 'sortie.json']]) {
+test('--porte exige un manifeste et refuse --silhouettes', () => {
+  for (const options of [[], ['--manifeste', 'manifeste.json', '--silhouettes', 'feminin=1']]) {
     const resultat = spawnSync(process.execPath, [script, 'base.glb', '--porte', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });
     expect(resultat.status, resultat.stderr).toBe(2);
-    expect(resultat.stderr).toMatch(/--porte : --manifeste requis, --etats-gabarit, --silhouettes et --json incompatibles/);
+    expect(resultat.stderr).toMatch(/--porte : --manifeste requis, --etats-gabarit et --silhouettes incompatibles/);
   }
 });
 
@@ -69,13 +69,33 @@ test('--porte joue le corps neutre puis chaque silhouette déclarée seule à 1,
   }
 }, 120_000);
 
-test('--temoin refuse --porte et --etats-gabarit', () => {
-  for (const option of ['--porte', '--etats-gabarit']) {
-    const resultat = spawnSync(process.execPath, [script, 'base.glb', '--manifeste', 'manifeste.json', '--temoin', 'temoin.json', option], { cwd: racine, encoding: 'utf8', windowsHide: true });
-    expect(resultat.status, resultat.stderr).toBe(2);
-    expect(resultat.stderr).toMatch(/--temoin : --porte et --etats-gabarit incompatibles/);
-  }
+test('--temoin refuse --etats-gabarit', () => {
+  const resultat = spawnSync(process.execPath, [script, 'base.glb', '--manifeste', 'manifeste.json', '--temoin', 'temoin.json', '--etats-gabarit'], { cwd: racine, encoding: 'utf8', windowsHide: true });
+  expect(resultat.status, resultat.stderr).toBe(2);
+  expect(resultat.stderr).toMatch(/--temoin : --etats-gabarit incompatible/);
 });
+
+test('--porte avec --json écrit le rapport de chaque passe, que --porte avec --temoin relit passe par passe', () => {
+  const octets = glbFabrique({ bande: formesAvecGabarit({ feminin: [0, 0, 0, 0, 0, 0, 0, -3, 0] }, {}), clips: { Descend: [0, -0.2] } });
+  const manifeste = { ...manifesteDe(octets, ['racine', 'pelvis']), silhouettes: ['feminin'] };
+  const dossier = mkdtempSync(join(tmpdir(), 'porte-rapports-'));
+  try {
+    const [glb, json, mesure] = ['base.glb', 'manifeste.json', 'mesure.json'].map((f) => join(dossier, f));
+    writeFileSync(glb, octets);
+    writeFileSync(json, JSON.stringify(manifeste));
+    const porte = (...options: string[]) => spawnSync(process.execPath, [script, glb, '--manifeste', json, '--porte', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(porte('--json', mesure).status).toBe(1);
+    const ecarts = (passe: string): unknown[] => JSON.parse(readFileSync(join(dossier, `mesure.${passe}.json`), 'utf8')).ecarts;
+    expect(ecarts('feminin').length).toBeGreaterThan(ecarts('neutre').length);
+
+    const rejouee = porte('--temoin', mesure);
+    expect(rejouee.status, rejouee.stdout).toBe(0);
+    expect([...rejouee.stdout.matchAll(/^témoin (\d+) écart\(s\), mesure (\d+), neufs (\d+)$/gm)].map((m) => m.slice(1).map(Number)))
+      .toEqual(['neutre', 'feminin'].map((passe) => [ecarts(passe).length, ecarts(passe).length, 0]));
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}, 120_000);
 
 test('--temoin ne liste que les écarts absents du rapport témoin, sort en 1 seulement s’il y en a, et --json écrit le rapport complet', () => {
   const dossier = mkdtempSync(join(tmpdir(), 'evaluer-temoin-'));
