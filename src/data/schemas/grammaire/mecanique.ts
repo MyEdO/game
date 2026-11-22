@@ -2165,7 +2165,7 @@ function payloadStrict(
   shape: z.ZodRawShape,
   reservesAdmises: Readonly<Record<string, z.ZodType>>,
 ) {
-  const meta = Object.fromEntries(Object.keys(shape).map((champ) => [champ, declaration.meta[champ]]));
+  const meta = tableTotale(Object.keys(shape), (champ) => declaration.meta[champ]);
   return marquerProduit(nommerChamps(z.strictObject(shape).check(...(declaration.affinage ? [declaration.affinage] : [])), meta), 'payloadsDe', op, reservesAdmises);
 }
 
