@@ -7,6 +7,7 @@
 import { ouvrirLeLancement } from '../../src/hote/partie';
 import { arena, setEncounters } from '../../src/scenes/test-scenarios/_shared';
 import { fenetreDuJeu } from '../../src/noyau/combatAuto';
+import { footprintN } from '../../src/noyau/monde/footprint';
 import { createHero } from '../../src/engine/character';
 import { fabriqueLocale } from '../../src/engine/fabriqueDId';
 import { buyCharAdvance, inCareerChar, advanceCost } from '../../src/engine/advancement';
@@ -15,6 +16,7 @@ import { effectiveChar, bonusDe } from '../../src/engine/characteristics';
 import { rollTest } from '../../src/engine/tests';
 import { testValue } from '../../src/engine/skills';
 import { makeRNG } from '../../src/engine/dice';
+import { addCondition } from '../../src/engine/conditions';
 import { findCreatureById, levelsForCareer, characteristics, conditionLabel } from '../../src/data';
 import type { Combatant, CharKey } from '../../src/engine/types';
 import type { Intention } from '../../src/noyau/partie';
@@ -47,7 +49,8 @@ export function augmenter(c: Combatant, k: CharKey): string | null {
   return r.ok ? null : (r.reason ?? 'refusé');
 }
 
-export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; pv: number; max: number; x: number; y: number; hors: boolean }
+/** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
+export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
 export interface Pas { lignes: string[]; pions: PionDuPlateau[]; round: number }
 export interface IssueDuCombat {
   issue: 'victoire' | 'defaite' | 'impasse';
@@ -63,8 +66,8 @@ export interface IssueDuCombat {
 /** Plafond de pas : un combat qui ne se ferme pas s'arrête en impasse plutôt que de boucler. */
 const PLAFOND_DE_PAS = 4000;
 
-/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`. */
-/** `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
+/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`.
+ *  `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
  *  l'horloge et le premier jour tombe de nuit. */
 export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
   const largeur = 14;
@@ -96,7 +99,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     const montee = (c: Combatant) => !!c.riderId && b.combatants.some((r) => r.id === c.riderId && !r.dead);
     const pions = b.combatants.filter((c) => c.pos && !montee(c)).map((c): PionDuPlateau => ({
       id: c.id, label: c.label, camp: c.kind === 'heros' ? 'heros' : 'ennemi',
-      pv: Math.max(0, c.wounds.current), max: c.wounds.max, x: c.pos!.x, y: c.pos!.y,
+      pv: Math.max(0, c.wounds.current), max: c.wounds.max, x: c.pos!.x, y: c.pos!.y, cases: footprintN(c),
       hors: !!c.dead || c.conditions.some((e) => e.id === 'inconscient'),
     }));
     const precedent = pas[pas.length - 1];
@@ -106,7 +109,22 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     else pas.push({ lignes, pions, round: b.round });
   };
 
+  /** La rencontre close par le noyau : la fenêtre de fin fermée (`fenetreFermer`), le groupe revenu en exploration,
+   *  débarrassé de ce qui ne vit que le temps d'une rencontre. Rend le groupe tel que l'état le porte alors. */
+  const clore = (): Combatant[] => {
+    for (let k = 0; k < 5 && partie.etat().battle; k++) {
+      const ferme = fenetreDuJeu(partie.etat() as never)?.gestes.find((g) => g.verbe === 'fenetreFermer');
+      if (!ferme) break;
+      recevoir(partie.envoyer({ type: 'fenetreFermer', args: [ferme.fenetre] } as unknown as Intention));
+      while (file.length) recevoir(jetons.reprendre(file.shift()!));
+    }
+    const e = partie.etat();
+    const heros = e.battle ? e.battle.combatants.filter((c) => c.kind === 'heros') : e.party;
+    return heros.map((c) => structuredClone(c));
+  };
+
   let issue: IssueDuCombat['issue'] = 'impasse';
+  let morts: string[] = [];
   let groupeFinal: Combatant[] = groupe.map((h) => structuredClone(h));
   for (let n = 0; n < PLAFOND_DE_PAS; n++) {
     while (file.length) {
@@ -117,7 +135,8 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     const fin = s.battle?.over;
     if (fin === 'victoire' || fin === 'defaite') {
       issue = fin;
-      groupeFinal = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros').map((c) => structuredClone(c));
+      morts = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros' && c.dead).map((c) => c.id);
+      groupeFinal = clore();
       break;
     }
     const f = fenetreDuJeu(s as never);
@@ -130,15 +149,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     }
   }
   partie.fermer();
-  const morts = groupeFinal.filter((c) => c.dead).map((c) => c.id);
-  return { issue, pas, groupe: groupeFinal.map(remiseAuRepos), morts, largeur, hauteur };
-}
-
-/** Le héros sorti du combat : sa place, ses engagements et son Avantage ne survivent pas à la rencontre. */
-function remiseAuRepos(c: Combatant): Combatant {
-  const h: Combatant = { ...c, advantage: 0, engagedWith: [] };
-  delete h.pos;
-  return h;
+  return { issue, pas, groupe: groupeFinal, morts, largeur, hauteur };
 }
 
 /** Guérison naturelle après une nuit de sommeil : Test de Résistance Accessible (+20), DR + BE Points de
@@ -151,10 +162,14 @@ export function guerisonNaturelle(c: Combatant, graine: number): number {
   return gain;
 }
 
-/** `pv` Points de Blessure regagnés ; un porteur revenu au-dessus de 0 PB se relève. LDB 16 (Inconscient). */
+/** `pv` Points de Blessure regagnés. Un Inconscient guéri d'au moins 1 PB revient à lui (LDB 18 l.15) et gagne
+ *  l'État Exténué ; hors de la rencontre, il se relève (LDB 16 l.119). */
 export function soigner(c: Combatant, pv: number): void {
   c.wounds = { ...c.wounds, current: Math.min(c.wounds.max, c.wounds.current + pv) };
-  if (c.wounds.current > 0) c.conditions = c.conditions.filter((e) => e.id !== 'inconscient' && e.id !== 'a-terre');
+  if (c.wounds.current <= 0) return;
+  const revient = c.conditions.some((e) => e.id === 'inconscient');
+  c.conditions = c.conditions.filter((e) => e.id !== 'inconscient' && e.id !== 'a-terre');
+  if (revient) addCondition(c, 'extenue');
 }
 
 /** Bonus d'Endurance. */

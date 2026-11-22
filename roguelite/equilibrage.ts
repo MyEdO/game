@@ -1,9 +1,11 @@
 // Équilibrage : joue des expéditions entières sous node, sans interface, avec une stratégie simple (recruter,
 // soigner, bâtir, entraîner, partir vers la destination la plus lointaine, rentrer sous 2 héros valides).
+// L'état passe par JSON entre deux expéditions, comme une sauvegarde relue.
 // Usage : npx tsx roguelite/equilibrage.ts <graine> <expéditions>
 import * as J from './src/jeu';
-const e = J.nouvellePartie(Number(process.argv[2] ?? 42));
+let e = J.nouvellePartie(Number(process.argv[2] ?? 42));
 for (let exp = 0; exp < Number(process.argv[3] ?? 8); exp++) {
+  e = JSON.parse(JSON.stringify(e)) as J.Etat; // la sauvegarde relue entre deux expéditions
   while (e.candidats.length && e.roster.length < 4 && !J.recruter(e, 0)) { /* recrute */ }
   for (const h of e.roster) if (J.blesse(h)) J.soignerAuTemple(e, h.c.id);
   for (const b of ['temple', 'relais', 'salle', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);

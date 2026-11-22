@@ -27,6 +27,7 @@ body { font: 16px/1.5 var(--f-texte); padding-block: 0 48px; padding-left: max(1
 .page { max-width: 1180px; margin: 0 auto; }
 h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
 h2 { font: 700 15px/1.2 var(--f-etiq); letter-spacing: .12em; text-transform: uppercase; color: var(--laiton); display: flex; align-items: baseline; gap: 10px; }
+h2 .repos { margin-left: auto; font: 400 14px var(--f-texte); letter-spacing: 0; text-transform: none; }
 h2 small { font: 400 14px var(--f-texte); letter-spacing: 0; text-transform: none; color: var(--velin-2); }
 h3 { font-size: 18px; }
 p { margin: 0; }
@@ -161,8 +162,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .arene { --c: clamp(24px, calc((min(740px, 100vw) - 40px) / var(--w)), 52px); position: relative; display: grid; grid-template-columns: repeat(var(--w), var(--c)); grid-auto-rows: var(--c); width: max-content; margin: 0 auto; background: #2a2a1a; border: 2px solid var(--trait); }
 .arene > i { border: 1px solid rgb(0 0 0 / .18); background: radial-gradient(circle at 30% 30%, #3a3a22, #2b2b1b); }
 .pions { position: absolute; inset: 0; }
-.pion { position: absolute; width: var(--c); height: var(--c); left: calc(var(--x) * var(--c)); top: calc(var(--y) * var(--c)); transition: left .35s ease, top .35s ease, opacity .4s; display: grid; place-items: center; }
-.pion b { width: 76%; height: 76%; border-radius: 50%; display: grid; place-items: center; font: 700 calc(var(--c) * .3) var(--f-etiq); border: 2px solid; box-shadow: 0 2px 0 rgb(0 0 0 / .5); }
+.pion { position: absolute; width: calc(var(--n, 1) * var(--c)); height: calc(var(--n, 1) * var(--c)); left: calc(var(--x) * var(--c)); top: calc(var(--y) * var(--c)); transition: left .35s ease, top .35s ease, opacity .4s; display: grid; place-items: center; }
+.pion b { width: 76%; height: 76%; border-radius: 50%; display: grid; place-items: center; font: 700 calc(var(--n, 1) * var(--c) * .3) var(--f-etiq); border: 2px solid; box-shadow: 0 2px 0 rgb(0 0 0 / .5); }
 .pion.camp-heros b { background: var(--laiton); color: var(--suie); border-color: #f1d488; }
 .pion.camp-ennemi b { background: var(--sang); color: var(--velin); border-color: #e07a62; }
 .pion .pv { position: absolute; left: 10%; right: 10%; bottom: 1px; height: 4px; background: #3a1712; }

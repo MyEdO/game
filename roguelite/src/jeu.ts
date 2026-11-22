@@ -40,7 +40,7 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
   { id: 'peage', nom: 'Péage du pont', role: 'Revenu', paliers: [
     { cout: 0, trophees: 0, effet: 'Ruiné : aucun revenu' },
-    { cout: 90, trophees: 0, effet: '+10 CO à chaque retour' },
+    { cout: 90, trophees: 0, effet: '+10 CO par expédition qui franchit une salle' },
     { cout: 240, trophees: 1, effet: '+25 CO à chaque retour' },
     { cout: 480, trophees: 2, effet: '+50 CO à chaque retour' },
   ] },
@@ -268,15 +268,18 @@ export function avancer(e: Etat): RecitDeSalle {
     recit = { titre: 'Une cache oubliée', lignes: [`Sous des pierres descellées, une bourse : ${or} CO.`] };
   } else {
     const combattants = groupe.filter(valide);
+    const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
     const issue = jouerLeCombat(combattants.map((h) => h.c), salle.ennemis, e.graine++, d.lumiere);
     for (const apres of issue.groupe) {
       const h = groupe.find((g) => g.c.id === apres.id);
       if (h) h.c = apres;
     }
-    if (issue.issue !== 'victoire') {
-      recit = { titre: issue.issue === 'defaite' ? 'Déroute' : 'Retraite', lignes: [], combat: issue, fin: 'defaite' };
-      recit.lignes = terminerEnDeroute(e);
-      return recit;
+    for (const h of groupe) if (issue.morts.includes(h.c.id)) h.c.dead = true;
+    if (issue.issue === 'impasse') {
+      return { titre: 'Retraite', combat: issue, fin: 'defaite', lignes: ['Le combat s’enlise ; le groupe décroche en bon ordre.', ...rentrer(e, false)] };
+    }
+    if (issue.issue === 'defaite') {
+      return { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, destinAvant) };
     }
     const morts = groupe.filter((h) => h.c.dead);
     for (const h of morts) enterrer(e, h, d.nom);
@@ -307,12 +310,15 @@ function enterrer(e: Etat, h: Heros, ou: string): void {
 }
 
 /** Déroute : le butin est perdu. Chaque héros laissé pour mort brûle un point de Destin pour en réchapper ; sans
- *  Destin, il ne revient pas. LDB 17 l.31. */
-function terminerEnDeroute(e: Etat): string[] {
+ *  Destin, il ne revient pas. Qui en a déjà brûlé un pendant la rencontre (« Meurs un autre jour ») ne paie pas deux
+ *  fois. LDB 17 l.31. */
+function terminerEnDeroute(e: Etat, destinAvant: Map<string, number>): string[] {
   const d = destinationCourante(e)!;
   const lignes = ['Le groupe est submergé. Le butin de l’expédition est perdu.'];
   for (const h of herosDuGroupe(e)) {
-    if (h.c.dead || (h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if ((h.c.fate ?? 0) < (destinAvant.get(h.c.id) ?? 0)) { lignes.push(`${h.c.label} a déjà échappé à la mort pendant le combat (Destin brûlé, reste ${h.c.fate}).`); continue; }
+    if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h, d.nom); continue; }
     h.c.fate = (h.c.fate ?? 0) - 1;
     lignes.push(`${h.c.label} échappe de peu à la mort et rampe jusqu’au hameau (Destin −1, reste ${h.c.fate}).`);
   }
@@ -325,7 +331,7 @@ function terminerEnDeroute(e: Etat): string[] {
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
-  const peage = [0, 10, 25, 50][e.batiments.peage];
+  const peage = x.index > 0 ? [0, 10, 25, 50][e.batiments.peage] : 0;
   e.or += x.or + peage; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   const lignes = [`Retour à Grisefosse : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée(s)` : ''}${peage ? `, +${peage} CO du péage` : ''}.`];
@@ -333,6 +339,12 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   e.expedition = null;
   passerLaSemaine(e);
   return lignes;
+}
+
+/** Un jour de repos au hameau, sans expédition. */
+export function seReposer(e: Etat): void {
+  noter(e, 'La compagnie se repose au hameau.');
+  passerLaSemaine(e);
 }
 
 /** Un retour au hameau : une nuit de sommeil (guérison naturelle, LDB 18 l.296) et une journée de repos complet

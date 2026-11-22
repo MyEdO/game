@@ -13,6 +13,13 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   `victoire` ou `aneantissement`. C'est environ 30 lignes (`roguelite/src/combat.ts`, `jouerLeCombat`),
   que l'hôte texte, les bancs d'équilibrage et une simulation de masse réécriraient chacun.
   Idée : un `jouerJusquAIssue(partie, plafond)` dans `src/hote/partie.ts`, qui rend l'issue.
+- **Piège — la fin du combat n'est pas la fin de la rencontre.** À `battle.over`, les combattants du champ
+  portent encore l'état de la rencontre : `roundsAtZero`, `initiative`, `tookCriticalThisFight`,
+  `meleeThisRound`, `defensiveStance`, `soinRencontreUtilise`, une position. Un hôte qui les lit là et les
+  sauvegarde fait entrer ces champs dans la rencontre suivante. C'est la fermeture de la fenêtre `victoire`
+  (`fenetreFermer`) qui rend la main au noyau : retour en exploration, et `etat().party` débarrassé de ces
+  champs. Rien ne le dit à un hôte. Idée : une issue de rencontre explicite (`rencontreClose`, ou
+  `party` rendu par l'appel qui ferme), et le `jouerJusquAIssue` ci-dessus qui la rendrait.
 - **Friction — `fenetreDuJeu` hors de la surface du noyau.** La surface (`src/noyau/index.ts`) ne
   réexporte pas `fenetreDuJeu` (`src/noyau/combatAuto.ts`), alors qu'un hôte en a besoin pour piloter
   la cadence auto : l'hôte importe un module interne.
@@ -58,7 +65,9 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   des rencontres décide lui-même.
 - **Constat — après une déroute, personne n'est mort.** Les héros finissent Inconscients et
   Hémorragiques, `dead` reste faux : le noyau laisse l'issue de l'anéantissement à l'hôte. Ici, chaque
-  héros brûle un Destin pour revenir (LDB 17 l.31), ou meurt s'il n'en a plus.
+  héros brûle un Destin pour revenir (LDB 17 l.31), ou meurt s'il n'en a plus. Le noyau a pu en brûler un
+  pendant le combat (« Meurs un autre jour ») : l'hôte compare le Destin d'avant et d'après pour ne pas le
+  faire payer deux fois, faute d'une trace de cette dépense sur le héros rendu.
 
 ## Bundle navigateur
 

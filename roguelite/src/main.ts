@@ -117,7 +117,7 @@ function vueHameau() {
     </div>
   </section>
   <section class="bloc">
-    <h2>La compagnie <small>${etat.roster.length} héros</small></h2>
+    <h2>La compagnie <small>${etat.roster.length} héros</small><button class="discret repos" data-a="reposer">Se reposer un jour</button></h2>
     ${etat.roster.length ? `<div class="grille heros-liste">${etat.roster.map((h) => carteHeros(h, 'hameau')).join('')}</div>` : '<p class="vide">Personne. Recrutez au relais : quand la bourse est vide, un voyageur sert sans solde.</p>'}
   </section>
   <div class="deux">
@@ -265,6 +265,7 @@ function poserLePas(p: Pas, avant: Pas | null) {
       zone.append(el);
     }
     el.style.setProperty('--x', String(q.x));
+    el.style.setProperty('--n', String(q.cases));
     el.style.setProperty('--y', String(q.y));
     el.classList.toggle('hors', q.hors);
     (el.querySelector('.pv i') as HTMLElement).style.width = `${(100 * q.pv) / Math.max(1, q.max)}%`;
@@ -374,6 +375,7 @@ document.addEventListener('click', (ev) => {
       modale = { type: 'recit', recit: { titre: 'Retour au hameau', lignes } };
       return rendre();
     }
+    case 'reposer': return agir(() => { J.seReposer(etat); toast('Un jour passe. Les blessés récupèrent, de nouveaux voyageurs attendent au relais.'); });
     case 'fermer': modale = null; return rendre();
     case 'reset': modale = { type: 'reset' }; return rendre();
     case 'reset-ok': J.effacer(); etat = J.nouvellePartie(Date.now() % 100000); modale = null; congediement = null; return agir(() => null);
