@@ -14,9 +14,9 @@
 ## disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
 ## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
 ## que les suites ont ajouté depuis le début de la partie, `zones` : les lignes du journal, qu'une zone posée plus tard
-## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son
-## échéance. Chaque geste du joueur part en intention : celle de l'élément pressé (`Zone.geste` ; la fiche d'un
-## combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode `creation`), un clic du
+## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur après les parcours
+## qu'il attend et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
+## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode `creation`), un clic du
 ## champ (`vue.champ` : le verbe du clic, sur la case et, en combat, son occupant ; `null`, le champ ne se clique
 ## pas), ou un clic droit, qui montre la fiche de l'occupant de la case, lu dans `vue.occupants`. Une recette pose
 ## la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
@@ -310,7 +310,8 @@ func _recharger_sur(entree: String) -> void:
 
 
 func _reprendre(jeton: int) -> void:
-	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
+	if is_inside_tree():
+		_suivre(_pont.appeler("reprendre", {jeton = jeton}))
 
 
 ## Une première vue en préparation appartient déjà à la partie ouverte.
@@ -416,7 +417,7 @@ func _poser_la_suite(plan: Dictionary) -> void:
 	if not plan.aretes.is_empty():
 		_monde.volume.poser_les_aretes(plan.aretes.aretes, plan.aretes.cotesDeMarches, plan.aretes.faitieres)
 	_plateau.montrer(_vue)
-	_plateau.jouer_les_effets(reponse.effets)
+	var trajets := _plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau)
 	_musique.jouer(_vue.musique)
@@ -427,9 +428,21 @@ func _poser_la_suite(plan: Dictionary) -> void:
 		_ajouts.get_or_add(source, []).append_array(reponse.zones[source])
 	Zone.montrer_toutes(_zones, _vue.zones.merged(_ajouts))
 	for programme in reponse.programmes:
-		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
+		_armer_la_reprise(programme, trajets)
 	_salon.relire()
 	_publier_l_ecran()
+
+
+## Arme le délai de tenue d’un jeton après ses parcours joués, y compris quand un parcours est écourté ou remplacé.
+func _armer_la_reprise(programme: Dictionary, trajets: Dictionary[String, Tween]) -> void:
+	var attendus: Array[Tween] = []
+	for qui: String in programme.get("apresDeplacement", []):
+		if trajets.has(qui):
+			attendus.append(trajets[qui])
+	while is_inside_tree() and attendus.any(func(t: Tween) -> bool: return t.is_valid() and t.is_running()):
+		await get_tree().process_frame
+	if is_inside_tree():
+		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.

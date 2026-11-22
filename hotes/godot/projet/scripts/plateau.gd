@@ -147,9 +147,11 @@ func _marquer(id: String, lieu: Vector3, marques: Array, metres_par_case: float)
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
 ## effet (`Effets.cases_de`) : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
 ## d'un coup qui touche l'accuse à son arrivée, un combattant dessiné qui se déplace parcourt son chemin.
-func jouer_les_effets(effets: Array) -> void:
+## Rend les tweens des parcours démarrés par ces effets, par combattant.
+func jouer_les_effets(effets: Array) -> Dictionary[String, Tween]:
+	var trajets: Dictionary[String, Tween] = {}
 	if _vue.plateau == null:
-		return
+		return trajets
 	var lieux := {}
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
@@ -157,6 +159,10 @@ func jouer_les_effets(effets: Array) -> void:
 		for case: Dictionary in Effets.cases_de(effet):
 			lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
+	for effet: Dictionary in effets:
+		if effet.quoi == Noyau.Effet.DEPLACEMENT and _modeles.has(effet.qui):
+			trajets[effet.qui] = _modeles[effet.qui].trajet_en_cours()
+	return trajets
 
 
 ## L'auteur `de` d'un effet, s'il est encore dessiné, se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur
