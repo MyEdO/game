@@ -26,7 +26,7 @@ const bande = (y, h, nomNature, gauche, bois, parchemin) => [
   cadre(`bois-${nomNature}`, 792, y, 230, h, 'bois', `<div style="padding:18px 12px 0;color:var(--creme-2)">${bois}</div>`, { ruban: 'cible · bois' }),
   cadre(`parch-${nomNature}`, 1034, y, 230, h, 'parchemin', `<div style="padding:18px 12px 0;color:var(--encre-2)">${parchemin}</div>`, { ruban: 'cible · parchemin' }),
 ];
-const cibleLigne = (fond) => `
+const cibleLigne = () => `
   <div class="cible-ligne">${rubrique({ texte: 'Poursuivant' })}<span class="cible-val">Cogue pirate</span></div>
   <div class="cible-ligne" style="margin-top:4px">${rubrique({ texte: 'Blessures' })}<span class="cible-chiffres">10 / 14</span></div>
   ${nom('ligne courante · texte, chiffres')}
@@ -48,7 +48,7 @@ FEUILLES.textes = () => [
       ech('parchemin', `${css(FELLSC + 'font-size:13px;color:var(--rouille)', 'Blessures')} ${css('font-family:Chiffres;font-weight:600;font-size:14px', '10 / 10')}`, 'bl · 13 + Chiffres 14 · fiche'),
       ech('parchemin', `${css('font-family:Spectral;font-size:14.5px', 'Scène')} ${css('font-family:Spectral;font-size:14.5px', 'La Diligence')}`, 'prop · 14,5 · éditeurs'),
       ech('parchemin', `${css('font-family:Spectral;font-size:13.5px', 'Prix de base')} ${css('font-family:Chiffres;font-weight:600;font-size:13.5px', '2 CO')}`, 'tr · 13,5 · commerce')),
-    cibleLigne('bois'), cibleLigne('parchemin')),
+    cibleLigne(), cibleLigne()),
   ...bande(268, 140, 'rubrique',
     ligne(
       ech('parchemin', rubrique({ texte: 'Compétences' }), 'rub · 13/16 · fiche (142)'),
