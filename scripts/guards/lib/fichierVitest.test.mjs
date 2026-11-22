@@ -135,6 +135,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre } from './lister.mjs'
 import { codeSeul } from './codeSeul.mjs'
+import { positionsDesAncres } from './stock.mjs'
 
 const LIB = dirname(fileURLToPath(import.meta.url))
 const RACINE = join(LIB, '..', '..', '..')
@@ -197,17 +198,20 @@ test('le balayage voit la copie en ALTERNANCE, comme la copie en bloc', () => {
 const FRAGMENT = ['\\', '.', '[cm]?', '[jt]', 'sx?'].join('')
 /** Les copies ADMISES, une par site : le fichier, l'ancre que porte sa ligne, le nombre de sites. */
 const FRAGMENTS_ADMIS = [
-  { fichier: 'scripts/guards/lib/sourceCorpus.test.mjs', ancre: '!tests && /', sites: 1, raison: 'oracle `marcheNaive` indépendant du sujet' },
+  { fichier: 'scripts/guards/lib/sourceCorpus.test.mjs', ancre: "if (!tests && /\\.(test|bench|testkit)\\.[cm]?[jt]sx?$/.test(nom.name)) continue", sites: 1, raison: 'oracle `marcheNaive` indépendant du sujet', date: '2026-10-15' },
 ]
 /** Les lignes de CODE SEUL qui recopient le fragment, hors sites admis, et le compte vu par site admis. */
 const copiesDuFragment = (fichiers) => {
   const fautes = []
   const vus = FRAGMENTS_ADMIS.map(() => 0)
   for (const { rel, texte } of fichiers) {
+    const indices = new Map(FRAGMENTS_ADMIS.map((e, i) => [e, i])
+      .filter(([e]) => e.fichier === rel).map(([e, i]) => [e.ancre, i]))
+    const ancres = positionsDesAncres(rel, texte, indices.keys())
     codeSeul(texte).split(/\r?\n/).forEach((ligne, i) => {
       if (!ligne.includes(FRAGMENT)) return
-      const admis = FRAGMENTS_ADMIS.findIndex((e) => e.fichier === rel && ligne.includes(e.ancre))
-      if (admis < 0) fautes.push(`${rel}:${i + 1}`)
+      const admis = indices.get(ancres.get(i + 1))
+      if (admis === undefined) fautes.push(`${rel}:${i + 1}`)
       else vus[admis] += 1
     })
   }
@@ -226,8 +230,15 @@ test('le balayage du fragment voit une copie plantée, et l’exemption ne couvr
   const copie = `const x = /${FRAGMENT}$/`
   assert.deepEqual(copiesDuFragment([{ rel: 'scripts/x.mjs', texte: copie }]).fautes, ['scripts/x.mjs:1'])
   const oracle = FRAGMENTS_ADMIS[0]
-  const { fautes, vus } = copiesDuFragment([{ rel: oracle.fichier, texte: `if (${oracle.ancre}${FRAGMENT}$/.test(n)) f()\n${copie}` }])
-  assert.deepEqual(fautes, [`${oracle.fichier}:2`])
-  assert.deepEqual(vus, [1])
+  const mesure = (texte) => copiesDuFragment([{ rel: oracle.fichier, texte }])
+  assert.deepEqual(mesure(`// insertion sans rapport\n${oracle.ancre}\n${copie}`), {
+    fautes: [`${oracle.fichier}:3`], vus: [1],
+  })
+  assert.deepEqual(mesure(oracle.ancre.replace('continue', 'return')), {
+    fautes: [`${oracle.fichier}:1`], vus: [0],
+  })
+  assert.deepEqual(mesure(`${oracle.ancre}\n${oracle.ancre}`), {
+    fautes: [`${oracle.fichier}:1`, `${oracle.fichier}:2`], vus: [0],
+  })
   assert.deepEqual(copiesDuFragment([{ rel: 'scripts/x.mjs', texte: `new RegExp(\`\${MOTIF_D_EXTENSION}$\`)` }]).fautes, [])
 })

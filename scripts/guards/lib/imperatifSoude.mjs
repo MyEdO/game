@@ -7,10 +7,6 @@
 // PORTÉE : SOUDÉ, un verbe en `-ez` ou `-ons` ; DÉTACHÉ, un verbe en `-ez`, `-ons` ou `-e`. HORS
 // PORTÉE : un verbe en `-e` SOUDÉ à son pronom, où tombent des mots du livre (`cela`, `celui`,
 // `receleur`).
-//
-// EXEMPTIONS AU SITE, patron `mobilierExemptions.mjs` : `fichier` (chemin POSIX du `.md`), `motif` qui
-// tient au TEXTE de la ligne (jamais son numéro), `jetons` (le NOMBRE de sites qu'elle couvre sur sa
-// ligne, pas un de plus), `raison`. Posées par `exempter` de `scripts/raw/lib/mobilier.mjs`.
 
 const LETTRE = 'A-Za-zÀ-ÖØ-öø-ÿ'
 const PRONOMS = 'vous|nous|moi|toi|le|la|les|en|y|lui|leur'
@@ -18,9 +14,6 @@ const CLASSES = [
   ['soude', new RegExp(`(?<![${LETTRE}])[${LETTRE}]+(?:ez|ons)(?:${PRONOMS})(?![${LETTRE}-])`, 'g')],
   ['detache', new RegExp(`(?<![${LETTRE}])[${LETTRE}]+(?:ez|ons|e)- (?:${PRONOMS})(?![${LETTRE}-])`, 'g')],
 ]
-
-/** @type {{ fichier: string, motif: RegExp, jetons: number, raison: string }[]} */
-export const EXEMPTIONS_IMPERATIF_SOUDE = []
 
 /**
  * Sites d'UN texte, dans l'ordre de la ligne : `{ ligne, classe, jeton, texte }`. PURE.

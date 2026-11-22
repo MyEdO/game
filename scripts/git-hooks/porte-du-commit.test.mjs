@@ -45,7 +45,7 @@ import {
 } from './porte-du-commit.mjs'
 import { apportDeLaResolution, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
-import { lignesDuContenu } from '../guards/lib/stock.mjs'
+import { cleDeLigne, lignesDuContenu } from '../guards/lib/stock.mjs'
 import {
   GitIndisponible,
   INDEX,
@@ -1636,22 +1636,33 @@ test('soldesEmportes : 1 ou 3 soldes se lisent en autant de processus git (#2294
 
 test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée, ni périmée ni ambiguë', () => {
   assert.ok(EXEMPTIONS_TOMBALE.length <= 3, `stock d'exemption à ${EXEMPTIONS_TOMBALE.length} — il DÉCROÎT`)
-  for (const { site, raison } of EXEMPTIONS_TOMBALE) {
-    const [, fichier, ligne] = site.match(/^([\w./-]+) :: (.+)$/) ?? []
-    assert.ok(fichier && ligne, `exemption non ancrée à un SITE : "${site}" (jamais un fichier entier)`)
+  const sites = new Set()
+  for (const { fichier, ancre, raison, date } of EXEMPTIONS_TOMBALE) {
+    const site = cleDeLigne(fichier, ancre)
+    assert.match(fichier, /^[\w./-]+$/)
+    assert.ok(ancre.trim())
     assert.ok(raison.length >= 30, `exemption "${site}" sans raison lisible`)
+    assert.match(date, /^\d{4}-\d{2}-\d{2}$/)
     const porteurs = lignesDuContenu(fichier, readFileSync(join(RACINE, fichier), 'utf8'), site)
     assert.notEqual(porteurs.length, 0, `exemption PÉRIMÉE : "${site}" ne désigne plus aucune ligne`)
     assert.equal(porteurs.length, 1, `exemption AMBIGUË : "${site}" désigne les lignes ${porteurs.join(', ')}`)
+    assert.ok(!sites.has(site), `exemption déclarée deux fois : "${site}"`)
+    sites.add(site)
   }
-  assert.equal(new Set(EXEMPTIONS_TOMBALE.map((e) => e.site)).size, EXEMPTIONS_TOMBALE.length)
 })
 
-test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont ne déplace pas l’exemption, et chacune reste NÉCESSAIRE (#2200)', () => {
-  for (const { site } of EXEMPTIONS_TOMBALE) {
-    const fichier = site.split(' :: ')[0]
-    const numeros = [...site.matchAll(/#(\d+)/g)].map((m) => Number(m[1]))
+test('EXEMPTIONS_TOMBALE : seul le contenu unique reste exempté après un déplacement (#2200)', () => {
+  for (const { fichier, ancre } of EXEMPTIONS_TOMBALE) {
+    const site = cleDeLigne(fichier, ancre)
+    const numeros = [...ancre.matchAll(/#(\d+)/g)].map((m) => Number(m[1]))
     const src = readFileSync(join(RACINE, fichier), 'utf8')
+    const [origine] = lignesDuContenu(fichier, src, site)
+    const doublon = [src, src.split('\n')[origine - 1]].join('\n')
+    const positions = lignesDuContenu(fichier, doublon, site)
+    assert.equal(positions.length, 2)
+    const refuses = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => doublon })
+      .filter(({ ligne }) => positions.includes(ligne))
+    assert.deepEqual(refuses.map(({ ligne }) => ligne), positions, 'les deux porteurs ambigus restent fautifs')
     for (const texte of [src, `\n${src}`]) {
       const exemptee = lignesDuContenu(fichier, texte, site)
       const vues = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => texte }).filter((t) => exemptee.includes(t.ligne))

@@ -66,7 +66,9 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
-import { listProdFiles, programmeDesChamps, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
+import {
+  listProdFiles, programmeDesChamps, scanFieldReads, fieldOwnership, groupByField, libererCache, type FieldReadHit,
+} from '../guards/lib/fieldConsumers.mjs'
 import { CIBLES_DE_GRAMMAIRE, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 import { ciblesDeCatalogue } from '../guards/lib/schemaFieldConsumers.mjs'
 import { libererSessions, type SessionProgramme } from '../guards/lib/tsProgram.mjs'
@@ -78,11 +80,6 @@ const SRC_DIR = join(ROOT, 'src')
 const OUT = 'docs/consommateurs-de-champs.md'
 /** Mesure du rapport complet sur ce dépôt (Program, dérivation et scan de toutes les cibles). */
 const COUT_MESURE = '~26 s et ~2,2 Go de pic (mesure 2026-11-05)'
-
-/** `symbole` = déclaration nommée qui ENGLOBE la lecture : l'ancre stable d'un site (le `line` bouge
- *  au premier ajout de ligne en amont). Le rapport n'en publie que `file:line` — un humain relit un
- *  site, une garde s'ancre au symbole (`src/data/field-consumers.test.ts`, table `RECOUVRES`). */
-type Hit = { file: string; line: number; symbole: string }
 
 /** Une cible du rapport : le type nommé, son module de déclaration (l'identité), ses champs, et les
  *  catalogues dont il type l'entrée (vide pour une cible de grammaire seule). */
@@ -125,7 +122,7 @@ type Contexte = { racine?: string; programme?: SessionProgramme; definitions?: r
  * est libéré au retour avec le contexte de scan (`cache`), ce qui compte sous Vitest `isolate: false`.
  * `zeros` et `absents` rendus sont ceux HORS clés d'enveloppe : la matière des cliquets nominatifs.
  */
-export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), contexte: Contexte = {}): { md: string; byType: Map<string, Map<string, Hit[]>>; totalFields: number; totalUnread: number; zeros: string[]; absents: string[]; cibles: Cible[]; sorties: Sortie[] } {
+export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), contexte: Contexte = {}): { md: string; byType: Map<string, Map<string, FieldReadHit[]>>; totalFields: number; totalUnread: number; zeros: string[]; absents: string[]; cibles: Cible[]; sorties: Sortie[] } {
   const { racine = ROOT, programme, definitions = SCHEMA_DEFS, grammaire = CIBLES_DE_GRAMMAIRE } = contexte
   // Clés hétérogènes : le contexte de scan est clé par son Program (`fieldConsumers.mjs`).
   const cache = new Map<unknown, unknown>()
@@ -141,7 +138,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), 
   const herites: string[] = []
   const absents: string[] = []
   const zeros: string[] = []
-  const byType = new Map<string, Map<string, Hit[]>>()
+  const byType = new Map<string, Map<string, FieldReadHit[]>>()
   // Les TABLES s'accumulent à part : le paragraphe de FIDÉLITÉ qui les précède cite les totaux
   // MESURÉS, et un cardinal en dur y serait faux au premier champ qui gagne ou perd son lecteur.
   let tables = ``

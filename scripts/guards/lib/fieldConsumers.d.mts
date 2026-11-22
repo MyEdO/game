@@ -4,9 +4,10 @@ export interface FieldReadHit {
   field: string;
   file: string;
   line: number;
-  /** Déclaration NOMMÉE qui englobe la lecture (`'(module)'` à défaut) : l'ancre STABLE d'un site —
-   *  une ligne insérée en amont déplace `line`, jamais le symbole qui LIT le champ. */
+  /** Symbole nommé le plus proche de la lecture, dont un nom de propriété (`'(module)'` à défaut). */
   symbole: string;
+  /** Chaîne des fonctions nommées qui englobent la lecture, calculée par `englobanteDe`. */
+  englobante: string;
   /** Le site est DANS la déclaration qui déclare la propriété (le `superRefine` du schéma qui valide
    *  son propre champ) — identité par nœud, jamais par nom. */
   auDeclarant: boolean;

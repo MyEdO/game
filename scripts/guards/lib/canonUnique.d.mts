@@ -68,6 +68,8 @@ export const PREDICAT_D_OBJET: Construction;
 export const LECTURE_AU_CHEMIN: Construction;
 export const VIE_SUR_PID_LU: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
+export const EXEMPTION_PAR_LIGNE: Construction;
+export const COMPARATEUR_D_ANCRE_EN_LIGNE: Construction;
 export function constructionDeFragment(p: {
   nom: string;
   natures: readonly string[];
@@ -93,19 +95,13 @@ export function cleEnLigne(p: {
   separateurDeRemede: string;
   fonctionsDeCle: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
-/** Un site où l'appel au seam est ADMIS : fichier, déclarations englobantes (`englobanteDe`), fonction appelée. */
-export interface SiteAdmis {
-  readonly rel: string;
-  readonly englobante: string;
-  readonly appele: string;
-}
+export function englobanteDe(n: ts.Node): string;
 export function lectureBruteDeCollection(p: {
   nom: string;
   liaisons: readonly { readonly module: string; readonly exporte: string }[];
   json: string;
   seam: { readonly module: string; readonly fonctions: readonly string[] };
   dataset: string;
-  sitesAdmis?: readonly SiteAdmis[];
 }): Construction & { readonly indice: (texte: string) => boolean };
 export function appelReserve(p: {
   nom: string;

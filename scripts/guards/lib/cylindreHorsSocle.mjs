@@ -34,16 +34,91 @@ export const MOTIFS = [
   new RegExp(`(['"\`])${COTE}\\1\\s+in\\b`, 'g'),
 ];
 
-// Exemptions AU SITE : `fichier` + `motif` de la ligne + `raison`. Chacune doit toucher un site.
-// Les motifs écrivent le guillemet en classe (`['"]`) : ce module est lui-même balayé.
-const RAISON_MIGRATION = 'migration DATÉE, rejouée telle qu’écrite (`migrations:replay`) : une migration ne dépend pas du code applicatif — ';
+// #2175 #2235
+const RAISON_MIGRATION = "migration DATÉE, rejouée telle qu’écrite (`migrations:replay`) : une migration ne dépend pas du code applicatif — "
+const RAISON_EMPRISE_FOOT = RAISON_MIGRATION + "emprise FIGÉE à sa date (cylindres tous verticaux), lue seulement sur une recette à `foot` — aucune depuis"
+const RAISON_EMPRISE_MURALE = RAISON_MIGRATION + "emprise FIGÉE à sa date (cylindres tous verticaux), lue seulement avant son no-op"
+const RAISON_SELECTION = RAISON_MIGRATION + "sélectionne les cylindres dont elle RENOMME la cote, ne recalcule aucune géométrie"
+const RAISON_COTE = RAISON_MIGRATION + "marqueur d’idempotence : la PRÉSENCE de la cote renommée, jamais sa valeur"
 export const EXEMPTIONS = [
-  { fichier: 'scripts/migrations/2026-09-02-1507-recettes-en-metres.mjs', motif: /marques\(primitives, \(p\) => \(p\.kind === ['"]cylinder['"] \? ['"]radiusM['"] in p/, raison: `${RAISON_MIGRATION}marqueur d’idempotence de SA conversion d’unité, aucune géométrie` },
-  { fichier: 'scripts/migrations/2026-09-03-1509-foot-volumique-mort.mjs', motif: /^const d[xyh] = \(p\.kind === ['"]cylinder['"] \? p\.(radiusM|heightM) :/, raison: `${RAISON_MIGRATION}emprise FIGÉE à sa date (cylindres tous verticaux), lue seulement sur une recette à \`foot\` — aucune depuis` },
-  { fichier: 'scripts/migrations/2026-09-03-1509-murale-1x2.mjs', motif: /^const d[xyh] = \(p\.kind === ['"]cylinder['"] \? p\.(radiusM|heightM) :/, raison: `${RAISON_MIGRATION}emprise FIGÉE à sa date (cylindres tous verticaux), lue seulement avant son no-op` },
-  { fichier: 'scripts/migrations/2026-09-26-1343-cylindre-axe.mjs', motif: /p\?\.kind [!=]== ['"]cylinder['"]/, raison: `${RAISON_MIGRATION}sélectionne les cylindres dont elle RENOMME la cote, ne recalcule aucune géométrie` },
-  { fichier: 'scripts/migrations/2026-09-26-1343-cylindre-axe.mjs', motif: /^if \(k === ['"]heightM['"]\) sortie\W+longueur[M] = v;$/, raison: `${RAISON_MIGRATION}ÉCRIT la cote renommée, ne la lit pas` },
-  { fichier: 'scripts/migrations/2026-09-26-1343-cylindre-axe.mjs', motif: /^const est(Ancien|Migre) = \(p\) => /, raison: `${RAISON_MIGRATION}marqueur d’idempotence : la PRÉSENCE de la cote renommée, jamais sa valeur` },
+  {
+    fichier: "scripts/migrations/2026-09-02-1507-recettes-en-metres.mjs",
+    ancre: "['primitives (dimensions)', primitives.length, marques(primitives, (p) => (p.kind === '\u0063ylinder' ? 'radiusM' in p : dejaPoint(p.size)))],",
+    raison: RAISON_MIGRATION + "marqueur d’idempotence de SA conversion d’unité, aucune géométrie",
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-foot-volumique-mort.mjs",
+    ancre: "const dx = (p.kind === '\u0063ylinder' ? p.radiusM : p.size.xM / 2);",
+    raison: RAISON_EMPRISE_FOOT,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-foot-volumique-mort.mjs",
+    ancre: "const dy = (p.kind === '\u0063ylinder' ? p.radiusM : p.size.yM / 2);",
+    raison: RAISON_EMPRISE_FOOT,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-foot-volumique-mort.mjs",
+    ancre: "const dh = (p.kind === '\u0063ylinder' ? p.heightM : p.size.hM) / 2;",
+    raison: RAISON_EMPRISE_FOOT,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-murale-1x2.mjs",
+    ancre: "const dx = (p.kind === '\u0063ylinder' ? p.radiusM : p.size.xM / 2);",
+    raison: RAISON_EMPRISE_MURALE,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-murale-1x2.mjs",
+    ancre: "const dy = (p.kind === '\u0063ylinder' ? p.radiusM : p.size.yM / 2);",
+    raison: RAISON_EMPRISE_MURALE,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-03-1509-murale-1x2.mjs",
+    ancre: "const dh = (p.kind === '\u0063ylinder' ? p.heightM : p.size.hM) / 2;",
+    raison: RAISON_EMPRISE_MURALE,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "const cylindresDe = (e) => (e?.volume?.primitives ?? []).filter((p) => p?.kind === '\u0063ylinder');",
+    raison: RAISON_SELECTION,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "if (p?.kind !== '\u0063ylinder' || !estAncien(p)) return p;",
+    raison: RAISON_SELECTION,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "if (p?.kind !== '\u0063ylinder' || !estAncien(p)) {",
+    raison: RAISON_SELECTION,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "if (k === 'heightM') sortie.longueur\u004d = v;",
+    raison: RAISON_MIGRATION + "ÉCRIT la cote renommée, ne la lit pas",
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "const estAncien = (p) => 'heightM' in p && !('longueur\u004d' in p) && !('axis' in p);",
+    raison: RAISON_COTE,
+    date: "2026-09-26",
+  },
+  {
+    fichier: "scripts/migrations/2026-09-26-1343-cylindre-axe.mjs",
+    ancre: "const estMigre = (p) => !('heightM' in p) && 'longueur\u004d' in p && 'axis' in p;",
+    raison: RAISON_COTE,
+    date: "2026-09-26",
+  },
 ];
 
 /** Sites fautifs d'un texte : `[{ ligne, texte }]`, un par ligne où COMMENCE un motif, triés. PURE. */

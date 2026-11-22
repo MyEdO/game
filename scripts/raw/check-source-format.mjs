@@ -52,8 +52,8 @@
 //
 // TRAIT D'UNION VERBE-PRONOM (famille `imperatif-soude`, #1595) : sur tous les `.md` de tout dossier FR,
 // un pronom soudé à son verbe ou détaché d'une espace est un ROUGE NOMMÉ, sans stock — le geste est
-// de rendre le trait d'union au `.md`, puis `npm run raw:reanchor`. Le prédicat et ses exemptions au
-// site vivent dans `scripts/guards/lib/imperatifSoude.mjs`.
+// de rendre le trait d'union au `.md`, puis `npm run raw:reanchor`. Le prédicat est dans
+// `scripts/guards/lib/imperatifSoude.mjs`.
 //
 // Re-run    : node scripts/raw/check-source-format.mjs
 // Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs [--lot <#N …>] — le
@@ -77,10 +77,10 @@ import {
 } from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
 import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES, sansFolioDe } from './_lib.mjs'
-import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
+import { exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
-import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
+import { sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
@@ -382,6 +382,11 @@ export const grainDuDossier = (dir) => {
 /** Écarts au grain de TOUS les dossiers FR, dans l'ordre du corpus. */
 export const grainAll = (dossiers = dossiersFR()) => dossiers.flatMap((d) => grainDuDossier(d))
 
+const rougeDUnSite = (s) => ({
+  fichier: s.fichier,
+  ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}`,
+})
+
 /**
  * Les ROUGES de la famille `mobilier` pour des sites mesurés (`lib/mobilier.mjs#mobilierDuDossier`) :
  * chaque site NON exempté, puis chaque exemption qui ne couvre pas exactement ses `jetons` sites —
@@ -389,8 +394,8 @@ export const grainAll = (dossiers = dossiersFR()) => dossiers.flatMap((d) => gra
  * @returns {import('../guards/lib/stock.mjs').Site[]}
  */
 export const rougesAuSite = (sites, exemptions = EXEMPTIONS_MOBILIER) => [
-  ...sites.filter((s) => !s.exemption).map((s) => ({ fichier: s.fichier, ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}` })),
-  ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ fichier: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.motif}` })),
+  ...sites.filter((s) => !s.exemption).map(rougeDUnSite),
+  ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ fichier: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.ancre}` })),
 ]
 
 /**
@@ -408,15 +413,14 @@ export function mobilierAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_MOB
 }
 
 /**
- * TRAIT D'UNION VERBE-PRONOM de tous les `.md` des dossiers FR (`rougesAuSite`).
- * @param {string[]} [dossiers] @param {object[]} [exemptions] @param {(d: string) => { nom: string, texte: string }[]} [lire]
+ * TRAIT D'UNION VERBE-PRONOM de tous les `.md` des dossiers FR.
+ * @param {string[]} [dossiers] @param {(d: string) => { nom: string, texte: string }[]} [lire]
  */
-export function imperatifsSoudesAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_IMPERATIF_SOUDE, lire = lireDossier) {
-  const sites = dossiers.flatMap((d) => lire(d).flatMap(({ nom, texte }) => {
+export function imperatifsSoudesAll(dossiers = dossiersFR(), lire = lireDossier) {
+  return dossiers.flatMap((d) => lire(d).flatMap(({ nom, texte }) => {
     const fichier = `${cheminDe(d)}/${nom}`
-    return exempter(sitesImperatifSoude(texte).map((s) => ({ ...s, fichier })), fichier, exemptions)
+    return sitesImperatifSoude(texte).map((s) => rougeDUnSite({ ...s, fichier }))
   }))
-  return rougesAuSite(sites, exemptions)
 }
 
 /** Les ROUGES de la famille `titre-soude` d'UN dossier de livre, fichier par fichier dans l'ordre de sa

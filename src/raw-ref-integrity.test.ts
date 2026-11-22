@@ -4,8 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   scanBlindRefs, sitesAveugles, ecartDesRefsAveugles, lireEntreesDeSite, STOCK_PATH, isBlindRef,
-  chapterFile, readText, significantWords, SITE_EXEMPTIONS, WINDOW, MIN_WORD_LEN, regenerations,
-  type SiteExemption,
+  chapterFile, readText, significantWords, WINDOW, MIN_WORD_LEN, regenerations,
 } from '../scripts/guards/lib/rawRefIntegrity.mjs';
 import { cleDeSite, type Site } from '../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../scripts/guards/lib/stockDeSites.mjs';
@@ -72,8 +71,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
     expect(
       detail,
       'Réf(s) RAW citant une ligne VIDE dont la fenêtre ±2 ne porte rien du sujet : lire le Source/ et\n' +
-        'réancrer sur la ligne qui porte le passage (ou, si le site est irréductible, exemption AU SITE\n' +
-        `datée dans SITE_EXEMPTIONS) :\n${detail.join('\n')}`,
+        `réancrer sur la ligne qui porte le passage :\n${detail.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -85,10 +83,18 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
     const dir = mkdtempSync(join(tmpdir(), 'raw-ref-integrity-'));
     try {
       // 1. Réf sur une ligne VIDE du chapitre réel, contexte étranger → détectée, nominativement.
-      writeFileSync(join(dir, 'mut.ts'), fixtureLine('une regle inventee adossee', 17, 84));
+      const fichier = join(dir, 'mut.ts');
+      const citant = fixtureLine('une regle inventee adossee', 17, 84);
+      writeFileSync(fichier, citant);
       const vus = scanBlindRefs(dir);
-      expect(vus.map((b: { ref: string; row: number }) => `${b.row}:${b.ref}`)).toEqual([`1:${fixtureRef(17, 84)}`]);
-      expect(ecartDesRefsAveugles(vus, []).neuves.length).toBe(1);
+      expect(vus.map((b) => `${b.row}:${b.ref}`)).toEqual([`1:${fixtureRef(17, 84)}`]);
+      const ecart = ecartDesRefsAveugles(vus, []);
+      expect(ecart.neuves.length).toBe(1);
+
+      writeFileSync(fichier, `\n\n${citant}`);
+      const decalees = scanBlindRefs(dir);
+      expect(decalees).toEqual(vus.map((b) => ({ ...b, row: b.row + 2 })));
+      expect(ecartDesRefsAveugles(decalees, [])).toEqual(ecart);
 
       // 2. La MÊME ligne citée sur la ligne PLEINE qui porte la règle (l.24) → innocentée.
       writeFileSync(join(dir, 'mut.ts'), fixtureLine('une regle inventee adossee', 17, 24));
@@ -204,14 +210,6 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
       return !readText(cf.path).split('\n')[row - 1]?.includes(needle);
     }).map(([abbr, nn, row, needle]) => `${abbr} ${nn} l.${row} ne contient pas « ${needle} »`);
     expect(manquants, manquants.join('\n')).toEqual([]);
-  });
-
-  it('toute exemption AU SITE porte sa raison ET sa date (jamais une exemption au fichier)', () => {
-    const mal = SITE_EXEMPTIONS.filter(
-      (e: Partial<SiteExemption>) =>
-        !e.fichier || !e.row || !e.ref || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? ''),
-    );
-    expect(mal, `Exemption(s) incomplète(s) : ${JSON.stringify(mal)}`).toEqual([]);
   });
 
   it('le stock ne nomme que des fichiers src/ réellement présents', () => {

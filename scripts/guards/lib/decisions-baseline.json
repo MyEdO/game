@@ -1,38 +1,52 @@
 {
-  "contrat": "Baseline NOMINATIVE des signaux non bloquants du détecteur de commentaires (revendication d'autorité sans trace, affirmation RAW non ancrée). Une entrée déclare un SITE tenu pour intentionnel : le détecteur l'imprime sous BASELINE au lieu de NOUVEAU. Champs — fichier : chemin relatif POSIX ; motif : libellé court affiché ; ancre : fragment de la LIGNE de commentaire signalée, qui identifie le site (jamais un numéro de ligne, qui dérive) ; raison : pourquoi ce site reste en l'état ; date : AAAA-MM-JJ. Une entrée qui ne matche plus rien dans un fichier scanné est signalée « baseline périmée » et se PURGE.",
+  "contrat": "Baseline NOMINATIVE des signaux non bloquants du détecteur de commentaires (revendication d'autorité sans trace, affirmation RAW non ancrée). Une entrée déclare un SITE tenu pour intentionnel : le détecteur l'imprime sous BASELINE au lieu de NOUVEAU. Champs — fichier : chemin relatif POSIX ; motif : libellé court affiché ; ancre : texte exact de la ligne de commentaire, sans les blancs aux extrémités ; raison : pourquoi ce site reste en l'état ; date : AAAA-MM-JJ. Dans un fichier scanné, une ancre doit désigner une seule ligne et un seul signal, sinon l'entrée est signalée « baseline périmée ».",
   "sites": [
     {
       "fichier": "src/engine/magic.ts",
       "motif": "cumul RaM plus-fort-seul",
-      "ancre": "Cumul TRAIT↔TALENT : le plus FORT seul",
+      "ancre": "*  Cumul TRAIT↔TALENT : le plus FORT seul (arbitrage utilisateur 2026-08-03, verbatim au ticket",
       "raison": "option « pas de tag à poser » choisie par l'utilisateur au revirement du 2026-08-03 (#1040)",
       "date": "2026-08-03"
     },
     {
       "fichier": "scripts/docs/lib/structures-lexique.mts",
       "motif": "titre du commentaire #1463 cité en source",
-      "ancre": "Arbitrages de design L0",
+      "ancre": "* (#1463, commentaire « Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe",
+      "raison": "le fragment n'est pas une revendication d'autorité : c'est le TITRE VERBATIM du commentaire de l'issue #1463 du 2026-08-23 (« ## Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) »), cité pour ancrer les 3 sites (lot, strates, graphies enveloppantes) à leur source consultable — vérifié au `gh issue view 1463 --comments`",
+      "date": "2026-09-01"
+    },
+    {
+      "fichier": "scripts/docs/lib/structures-lexique.mts",
+      "motif": "titre du commentaire #1463 cité en source",
+      "ancre": "* Un concept vit dans UN SEUL lot sur TOUS ses porteurs (#1463, commentaire « Arbitrages de design L0",
+      "raison": "le fragment n'est pas une revendication d'autorité : c'est le TITRE VERBATIM du commentaire de l'issue #1463 du 2026-08-23 (« ## Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) »), cité pour ancrer les 3 sites (lot, strates, graphies enveloppantes) à leur source consultable — vérifié au `gh issue view 1463 --comments`",
+      "date": "2026-09-01"
+    },
+    {
+      "fichier": "scripts/docs/lib/structures-lexique.mts",
+      "motif": "titre du commentaire #1463 cité en source",
+      "ancre": "* `ref>id / historique`, jamais `id / cible` (#1463, commentaire « Arbitrages de design L0",
       "raison": "le fragment n'est pas une revendication d'autorité : c'est le TITRE VERBATIM du commentaire de l'issue #1463 du 2026-08-23 (« ## Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) »), cité pour ancrer les 3 sites (lot, strates, graphies enveloppantes) à leur source consultable — vérifié au `gh issue view 1463 --comments`",
       "date": "2026-09-01"
     },
     {
       "fichier": "scripts/docs/lib/zod-introspect.mts",
       "motif": "titre du commentaire #1463 cité en source",
-      "ancre": "SOURCE consultable, citée verbatim",
+      "ancre": "* SOURCE consultable, citée verbatim — #1463, commentaire « ## Arbitrages de design L0 (2026-08-23,",
       "raison": "le fragment n'est pas une revendication d'autorité : il CITE EN RÉFÉRENCE le commentaire GitHub de l'issue #1463 du 2026-08-23 (« ## Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) », point 3), qui motive le contrat de `choixDeclares` — point 3 vérifié au `gh issue view 1463 --comments` le 2026-09-14, il porte bien le verbatim cité (« une clé dont la valeur est un littéral d'enum zod (`kind/type/class/op`) n'ouvre jamais une référence »)",
       "date": "2026-09-14"
     },
     {
       "fichier": "src/data/schemas/defs-scenes/projet-schema.test.ts",
       "motif": "arbitrage #1552 cité à sa trace",
-      "ancre": "#1552 — arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi)",
+      "ancre": "// #1552 — arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi) : « Un projet se NOMME",
       "raison": "le verbatim cité (« Un projet se NOMME avant d'être enregistré (Recommandé) ») et sa date figurent au commentaire https://github.com/cgauche/game/issues/1552#issuecomment-5485711137 du 2026-08-31 (« Arbitrage produit rendu par AskUser (verbatim choisi : « Un projet se NOMME avant d'être enregistré (Recommandé) ») ») — vérifié par `gh api repos/cgauche/game/issues/1552/comments` le 2026-09-23 ; le site précède #1473 R1 (commit 0a9c46b53)",
       "date": "2026-09-23"
     },
     {
       "fichier": "src/data/schemas/defs-scenes/projet.ts",
       "motif": "arbitrage #1552 cité à sa trace",
-      "ancre": "arbitrage utilisateur 2026-08-31, AskUser verbatim",
+      "ancre": "* L'identité n'est plus facultative (arbitrage utilisateur 2026-08-31, AskUser verbatim : « Un projet",
       "raison": "le verbatim cité (« Un projet se NOMME avant d'être enregistré (Recommandé) ») et sa date figurent au commentaire https://github.com/cgauche/game/issues/1552#issuecomment-5485711137 du 2026-08-31 (« Arbitrage produit rendu par AskUser (verbatim choisi : « Un projet se NOMME avant d'être enregistré (Recommandé) ») ») — vérifié par `gh api repos/cgauche/game/issues/1552/comments` le 2026-09-23 ; le site précède #1473 R1 (commit 0a9c46b53)",
       "date": "2026-09-23"
     }

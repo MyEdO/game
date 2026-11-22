@@ -50,6 +50,7 @@ import * as ts from 'typescript/unstable/ast'
 import { SymbolFlags } from 'typescript/unstable/sync'
 import { join, relative, resolve, sep } from 'node:path'
 import { estModule } from './importGraph.mjs'
+import { englobanteDe } from './canonUnique.mjs'
 import { listerArbre, parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { repoProgram, libererSessions } from './tsProgram.mjs'
@@ -344,8 +345,7 @@ function cibleDe(ctx, type, home, fields) {
 
 /**
  * Nom du symbole PORTEUR d'un site : la première déclaration NOMMÉE qui l'englobe (fonction, méthode,
- * classe, variable, propriété), `'(module)'` à défaut. C'est l'ancre STABLE d'un site : une ligne
- * insérée plus haut dans le fichier déplace le `line`, jamais le symbole qui LIT le champ.
+ * classe, variable, propriété), `'(module)'` à défaut.
  * @returns {string}
  */
 function symboleEnglobant(node) {
@@ -377,7 +377,7 @@ function champsDuPorteur(ctx, site, fields, toutes) {
 
 /**
  * Sites de lecture de `fields` sur la cible `{ type, home }` (cibles de `build-field-consumers.mts`), à travers
- * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, auDeclarant, champsDuPorteur }]` — `file`
+ * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, englobante, auDeclarant, champsDuPorteur }]` — `file`
  * relatif à `rootDir` ; `auDeclarant` : le site est DANS la déclaration qui déclare la propriété (le
  * `superRefine` du schéma qui valide son propre champ, identité par nœud). Le `cache` porte le Program et l'index : le fournir une fois pour toutes les cibles
  * d'un rapport, et le laisser mourir avec l'appel. `programme` INJECTE le Program (fixtures en
@@ -413,7 +413,15 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
       }
       if (!resolue) continue
       if (!propreAuSite && !porteurDe(ctx, site).has(decl)) continue
-      hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node), auDeclarant, champsDuPorteur: champsDuPorteur(ctx, site, fields, toutes) })
+      hits.push({
+        field,
+        file: site.file,
+        line: site.line,
+        symbole: symboleEnglobant(site.node),
+        englobante: englobanteDe(site.node),
+        auDeclarant,
+        champsDuPorteur: champsDuPorteur(ctx, site, fields, toutes),
+      })
     }
   }
   // ORDRE TOTAL du résultat : (fichier en unités de code, ligne NUMÉRIQUE). L'ordre de récolte est

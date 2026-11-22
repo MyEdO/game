@@ -153,7 +153,8 @@ export function naissanceDu(quoi, familles) {
  */
 export const cleDeSite = (e) => CHAMPS_DE_CLE.map((c) => e[c]).join(SEPARATEUR_DE_CLE);
 
-const cleDeLigne = (rel, ligne) => `${rel}${SEPARATEUR_DE_CLE}${ligne.trim()}`;
+/** Clé de contenu d'une ligne déclarée. @param {string} rel @param {string} ligne */
+export const cleDeLigne = (rel, ligne) => `${rel}${SEPARATEUR_DE_CLE}${ligne.trim()}`;
 
 /** CLÉ DE CONTENU d'un site sans entrée de stock ni déclaration englobante (prose, ligne de
  *  commentaire, ligne qu'éteint une directive) : `fichier :: <ligne trimée>` — le contenu, jamais la
@@ -167,7 +168,40 @@ export function cleDeContenu(rel, texte, ligne) {
  *  plusieurs = exemption AMBIGUË. PURE. @param {string} rel @param {string} texte @param {string} cle
  *  @returns {number[]} */
 export function lignesDuContenu(rel, texte, cle) {
-  return texte.split('\n').flatMap((l, i) => (cleDeLigne(rel, l) === cle ? [i + 1] : []));
+  return lignesQuiCorrespondent(texte, (l) => cleDeLigne(rel, l) === cle);
+}
+
+const lignesQuiCorrespondent = (texte, correspond) =>
+  texte.split('\n').flatMap((ligne, i) => (correspond(ligne) ? [i + 1] : []));
+
+function lignesDuMotif(texte, ancre) {
+  const motif = new RegExp(ancre);
+  return lignesQuiCorrespondent(texte, (ligne) => {
+    motif.lastIndex = 0;
+    return motif.test(ligne);
+  });
+}
+
+/** Positions (1-based) désignées chacune par une seule ancre, elle-même limitée à cette ligne.
+ * Une chaîne désigne le contenu trimé et une regex reconnaît le texte de ligne fourni.
+ * @template {string | RegExp} A
+ * @param {string} rel @param {string} texte @param {Iterable<A>} ancres
+ * @returns {Map<number, A>}
+ */
+export function positionsDesAncres(rel, texte, ancres) {
+  const positions = new Map();
+  const revendiquees = new Set();
+  for (const ancre of ancres) {
+    const lignes = typeof ancre === 'string'
+      ? lignesDuContenu(rel, texte, cleDeLigne(rel, ancre))
+      : lignesDuMotif(texte, ancre);
+    for (const ligne of lignes) {
+      if (revendiquees.has(ligne)) positions.delete(ligne);
+      else if (lignes.length === 1) positions.set(ligne, ancre);
+      revendiquees.add(ligne);
+    }
+  }
+  return positions;
 }
 
 /** CLÉ DE GROUPE d'une entrée : sa clé de site sans l'occurrence — les homonymes d'un fichier. PURE.
