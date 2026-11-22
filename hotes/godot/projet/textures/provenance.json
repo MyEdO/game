@@ -677,37 +677,37 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
   },
-  "prop--bronze.jpg": {
+  "prop--bronze-patine.jpg": {
     "sha256": "c1b24ecd1e707dfd0cf738c6eba5036624cb3b0c128ad692baada82442848a3b",
-    "source": "https://ambientcg.com/view?id=Metal008 (Metal008_1K-JPG.zip : Metal008_1K-JPG_Color.jpg) ; dérivée de prop--bronze.neutre.jpg",
+    "source": "https://ambientcg.com/view?id=Metal008 (Metal008_1K-JPG.zip : Metal008_1K-JPG_Color.jpg) ; dérivée de prop--bronze-patine.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a6a34 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--bronze.neutre.jpg": {
+  "prop--bronze-patine.neutre.jpg": {
     "sha256": "dc9739801efde28c7bb00342318163ff4cd31e8cc0fe274c62618511bb36379c",
     "source": "https://ambientcg.com/view?id=Metal008 (Metal008_1K-JPG.zip : Metal008_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--bronze.normale.jpg": {
+  "prop--bronze-patine.normale.jpg": {
     "sha256": "c955e62c6d201ef3d5cb99d259171f4e1e6c6d91609f5c238fa6c2a185875544",
     "source": "https://ambientcg.com/view?id=Metal008 (Metal008_1K-JPG.zip : Metal008_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
   },
-  "prop--or.jpg": {
+  "prop--or-fin.jpg": {
     "sha256": "f01b46c9887129c8f06e06a9a9418a91e5c8cdfec02f1f9fa5eb5226af0af734",
-    "source": "https://ambientcg.com/view?id=Metal048C (Metal048C_1K-JPG.zip : Metal048C_1K-JPG_Color.jpg) ; dérivée de prop--or.neutre.jpg",
+    "source": "https://ambientcg.com/view?id=Metal048C (Metal048C_1K-JPG.zip : Metal048C_1K-JPG_Color.jpg) ; dérivée de prop--or-fin.neutre.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#d4a62a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--or.neutre.jpg": {
+  "prop--or-fin.neutre.jpg": {
     "sha256": "d47f7e146f720fd0df6b298a8837e09c84abd58e7ec43a5a5cd687708b74ad91",
     "source": "https://ambientcg.com/view?id=Metal048C (Metal048C_1K-JPG.zip : Metal048C_1K-JPG_Color.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--or.normale.jpg": {
+  "prop--or-fin.normale.jpg": {
     "sha256": "897762bc845cc3576cb593cba113adbe366c8dc32a72054f3dafe42643978b20",
     "source": "https://ambientcg.com/view?id=Metal048C (Metal048C_1K-JPG.zip : Metal048C_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",

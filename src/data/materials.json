@@ -441,7 +441,7 @@
     "metalness": 0.7
   },
   {
-    "id": "bronze",
+    "id": "bronze-patine",
     "type": "materials",
     "label": "Bronze",
     "domain": "prop",
@@ -450,7 +450,7 @@
     "metalness": 0.7
   },
   {
-    "id": "or",
+    "id": "or-fin",
     "type": "materials",
     "label": "Or",
     "domain": "prop",
