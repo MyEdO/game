@@ -62,9 +62,11 @@ moindre écart, puis écrit les options `--<pack>` et `--licence-<pack>` :
 ```sh
 node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py $(node scripts/personnage-3d/base/sources.mjs) --sortie /atelier/base/humanoide.glb
 ``` Vérifier unités, axes, échelle et pose de liaison de la base,
-sans les modifier dans l'élément. Une coupure ne coûte qu'une passe : chaque passe du point fixe des poids écrit une
-reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses écarts
-suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite.
+sans les modifier dans l'élément. Une coupure ne coûte qu'une passe ou une étape : chaque passe du point fixe des poids
+écrit une reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses
+écarts suivis et des arguments, puis le point fixe atteint (`point-fixe`), la passe des clips du pack (`membres`) et les
+clips à deux mains dérivés (`deux-mains`) ; relancer la même commande repart de la dernière, sans rejouer ce qui la
+précède, et `reprises-3d` s'efface une fois la sortie écrite.
 La passe des membres (`membres.py`) imprime une ligne `MEMBRES` par clip du pack et ne refuse jamais : lire ces lignes
 pour savoir quel clip est gardé ou rendu à sa source ; un clip dérivé (`deux_mains.py`) refusé arrête la construction.
 La construction juge les clips dérivés comme la garde `membres` sur chaque état du gabarit (`verdict_du_tronc.py`) et

@@ -1,5 +1,5 @@
-"""Les reprises de la construction de la base humanoïde (#3319, #3793) : une coupure de la machine ne coûte plus que la
-passe en cours du point fixe, et non les heures déjà calculées.
+"""Les reprises de la construction de la base humanoïde (#3319, #3793, #3280) : une coupure de la machine ne coûte plus
+que la passe en cours du point fixe, ou l'étape en cours après lui (`reprendre`), et non les heures déjà calculées.
 
 Une reprise est une étape écrite dans le dossier de la construction, `<git-common-dir>/reprises-3d/<empreinte>` : la
 scène (`sauver`, un `.blend`) et l'état de la boucle (pickle), puis le pointeur `courante`, remplacé d'un seul geste, qui
@@ -80,3 +80,12 @@ class Reprises:
                    if autre != self.dossier and time.time() - autre.stat().st_mtime > PEREMPTION_S]
         for dossier in [self.dossier, *perimes]:
             shutil.rmtree(dossier)
+
+
+def reprendre(etapes, faite, ecrire):
+    """Joue dans l'ordre les `etapes` (nom → geste) qui suivent l'étape `faite`, toutes si `faite` n'en nomme aucune,
+    chacune suivie de `ecrire(nom)` (#3280)."""
+    noms = list(etapes)
+    for nom in noms[noms.index(faite) + 1 if faite in etapes else 0:]:
+        etapes[nom]()
+        ecrire(nom)

@@ -41,7 +41,7 @@ import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 from glb import souder_les_normales_des_cibles  # noqa: E402
-from reprises import Reprises, dossier_de_construction  # noqa: E402
+from reprises import Reprises, dossier_de_construction, reprendre  # noqa: E402
 from materiaux_par_sexe import declarer_les_variantes, recoucher_les_variantes  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -262,8 +262,10 @@ def construire(args):
         dossier_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k != 'sortie'}),
         lambda chemin: bpy.ops.wm.save_as_mainfile(filepath=str(chemin), copy=True, relative_remap=False, compress=False),
         lambda chemin: bpy.ops.wm.open_mainfile(filepath=str(chemin), load_ui=False))
-    noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
-                       'peaux': [p.name for p in peaux], 'clips': [a.name for a in clips]}
+
+    def noms_des_objets():
+        return {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
+                'peaux': [p.name for p in peaux], 'clips': [a.name for a in clips]}
 
     def poser_les_silhouettes():
         clear_animation(squelette)
@@ -298,6 +300,7 @@ def construire(args):
     ressources = ExitStack()
     ecart_cles = 0
     etats = courantes = suites = None
+    passes = 0
 
     def ouvrir_la_phase():
         """Pose la phase `phase` sur la scène et en tire ses états et les déplacements courants des peaux."""
@@ -383,9 +386,9 @@ def construire(args):
                 'ecartCles': ecart_cles if ecart_cles > TOLERANCE_JUMEAUX_POSITION_M else 0}
 
     def ecrire_la_reprise(nom, passe):
-        """Écrit la reprise `nom` après la passe `passe` : en fin de phase, l'état de la boucle ; au milieu d'une phase,
-        aussi les états et déplacements de la phase et la suite de chaque correction."""
-        au_milieu = not a_preparer and phase != 'fini'
+        """Écrit la reprise `nom` après la passe `passe` : en fin de phase ou d'étape, l'état de la boucle ; au milieu d'une
+        phase, aussi les états et déplacements de la phase et la suite de chaque correction."""
+        au_milieu = not a_preparer and phase not in etapes
         if not au_milieu:
             ressources.close()
         clear_animation(squelette)
@@ -395,7 +398,7 @@ def construire(args):
                 image.pack()
         reprises.ecrire(nom, {'passe': passe, 'phase': phase, 'renouveler': renouveler, 'etats_silhouettes': etats_silhouettes,
                               'references': references, 'precedentes': precedentes, 'captures': captures,
-                              'contraintes': contraintes, 'objets': noms_des_objets, 'ecart_cles': ecart_cles,
+                              'contraintes': contraintes, 'objets': noms_des_objets(), 'ecart_cles': ecart_cles,
                               'etats': etats if au_milieu else None, 'courantes': courantes if au_milieu else None,
                               'suites': [{cle: etat[cle] for cle in SUITE_DE_CORRECTION} for _, _, etat in moteurs]
                               if au_milieu else None})
@@ -411,6 +414,30 @@ def construire(args):
                 erreurs.append(erreur)
         raise erreurs[0]
 
+    def tenir_le_point_fixe():
+        nonlocal passes
+        try:
+            passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser, depuis=passes + 1)
+        finally:
+            ressources.close()
+
+    def ecarter():
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        exporter_gabarit(peaux, references)
+        ecarter_les_membres(bpy, squelette, clips)
+
+    def deriver_les_deux_mains():
+        for action in deriver_sur_les_etats(bpy, squelette, reperes_des_prises(squelette), table, silhouettes(peaux), plantes):
+            preparer(action)
+            clips.append(action)
+
+    def ecrire_l_etape(nom):
+        nonlocal phase
+        phase = nom
+        ecrire_la_reprise(nom, passes)
+
+    etapes = {'point-fixe': tenir_le_point_fixe, 'membres': ecarter, 'deux-mains': deriver_les_deux_mains}
     reprise = reprises.lire()
     if reprise is not None:
         objets_lus = reprise['objets']
@@ -425,21 +452,8 @@ def construire(args):
         references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
         contraintes, passes = reprise['contraintes'], reprise['passe']
         etats, courantes, suites, ecart_cles = reprise['etats'], reprise['courantes'], reprise['suites'], reprise['ecart_cles']
-    if reprise is None or phase != 'fini':
-        try:
-            passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser, depuis=1 if reprise is None else passes + 1)
-        finally:
-            ressources.close()
-        phase = 'fini'
-        ecrire_la_reprise('point-fixe', passes)
+    reprendre(etapes, phase, ecrire_l_etape)
     print('SOL tenu en', passes, 'passe(s)', flush=True)
-    clear_animation(squelette)
-    bpy.context.view_layer.update()
-    exporter_gabarit(peaux, references)
-    ecarter_les_membres(bpy, squelette, clips)
-    for action in deriver_sur_les_etats(bpy, squelette, reperes_des_prises(squelette), table, silhouettes(peaux), plantes):
-        preparer(action)
-        clips.append(action)
     variantes = recoucher_les_variantes(bpy, squelette, peaux, squelette_f, objets_f, declaration.get('surfaces', []))
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
