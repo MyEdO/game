@@ -238,3 +238,40 @@ Choix d'interface, révisable (pas une règle de jeu). Questions posées sur la 
 3. Intertitre : « Nu + filet() (Recommandé) ». La rubrique ne porte plus de trait ; un séparateur voulu est un `filet()` posé par la disposition.
 
 Le nom (769 sites) n'était pas dans les questions : il se mesure dans son propre passage, après ce lot.
+
+## Application (2026-11-22)
+
+Appliqué en une passe, commits `c77ebcb454` et `2a0e16a601` sur `chantier/4585-catalogue`.
+
+- **Primitives** : `titre({ texte, cle, ecran })` et `rubrique({ texte, note, fin })` naissent au kit (`hotes/godot/cibles/propositions/sources/gestes.js`, `gestes.css`). `ruban(texte)` n'a plus qu'une forme. `ecran` donne à un titre de barre la forme du cartouche de titre (Compendium, éditeurs).
+- **Surcharges retirées** : toutes celles du relevé qui changeaient la forme d'un titre de ces rôles, dans 18 feuilles de famille. Il reste du placement : largeur, alignement, marges des intertitres.
+- **Rôles rangés au titre de panneau** : en plus des 26 rendus du relevé, les `.dr` qui nomment un sujet (critique, maladresse, sort, round annoncé, test de poursuite) et `#round` de la tête du combat.
+- **Exclus, avec le lot qui les traite** :
+  - `#epreuve .milieu .dr` et `#verdict .dr` : lot issue ;
+  - noms : passage `nom` ;
+  - titre libre et `bande` : titre libre ;
+  - noms de plaque : lot plaques ;
+  - rubriques `.t` des panneaux : lot sous-titres et rubriques ;
+  - `.rub` employé en note ou en étiquette : lot notes et étiquettes.
+- **Document** : le titre et le sous-titre de la donnée forment un seul `titre()` sur une ligne.
+- **Placement repris** :
+  - barre des éditeurs : 62 → 66 ;
+  - affiche de la nouvelle partie : le relevé `chevauche` disparaît ;
+  - format `bureau` : deux débordements présents avant le lot (carton des parts du voyage en mer, fiche d'identité du tour) disparaissent.
+
+### Preuve
+
+- **Passe** (16:9) : 57 écrans, 170 états, 6 planches, aucun rouge.
+- **Pixels contre `4ffccee6e0`** : 520 PNG diffèrent, soit 130 états × 4 formats. Ce sont exactement les 130 états attendus, dérivés du relevé avant toute édition (états qui portent au moins un site du lot dont la signature diffère de la cible) : aucun attendu inchangé, aucun changé hors liste.
+- **Sonde sur le rendu appliqué** :
+  - titre d'écran : 31 / 44, plus les seules tailles de la réduction par script ;
+  - ruban : une signature sur 252 sites ;
+  - titre de panneau : 28 / 40, une forme par fond. Les 11 sites posés dans une `colonne` ont une marge 0, celle de la place (`.colonne>.place>*`) ;
+  - intertitre : Fell SC 13 / 16. Ses marges sont du placement.
+- **Relevés 21:9, 16:10, `bureau`** : 59 relevés non vides. 57 sont identiques à ceux de `4ffccee6e0` rendus avec leurs polices. Les 2 autres ont perdu le débordement corrigé.
+
+### Hors lot, présent avant le lot
+
+- `bureau` : `habille` (« fond hors de sa boîte ») sur tous les états ; `croise: carton x fenetre` (`voyage-en-mer`, `mer-fuite-de-vapeur`).
+- 16:10 : `bataille-de-masse`, `le-bord`, `port` ; 21:9 : `port`.
+- Carton des parts du voyage en mer (`carton/parts`) : la ligne « Total » dépasse son panneau intérieur d'environ 3 px.
