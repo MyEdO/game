@@ -25,6 +25,8 @@ import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../
 import { gesteDuReglage, type ChoixNomme } from './reglages';
 import type { ReglageDu } from './reglagesDuJet';
 import type { ReactionDeBouclier } from './pendings';
+import { nomEnVue } from './visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 /** La réaction de la Défense : chaque mode offert porte la cible de son jet (`ligneDeDefense`), réglé comme le réglage
  *  `defense.reaction` le pose. */
@@ -96,7 +98,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
     const avantage = spendableAdvantage(s.battle, defenseur);
-    return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
+    return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: garanti(nomEnVue(s, defenseur.id), defenseur.id, 'défenseur'), avantage }) : null;
   };
   // LDB 10 l.1037
   const contre = pd.mode === 'parade' ? contreSurDefenseGagnee(defenseur, parade) : null;

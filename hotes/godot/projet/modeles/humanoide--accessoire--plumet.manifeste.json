@@ -12,15 +12,17 @@
   "surfaces": [
     {
       "nom": "plume",
-      "palette": "plume"
+      "palette": "plume",
+      "matiere": "prop--plume"
     },
     {
       "nom": "plume_rouge",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--plume"
     }
   ],
   "glb": {
-    "sha256": "39158c4173d10a0159e55ba7b63c06cbace4ef9a7e0421861465c3bcee8fc488",
+    "sha256": "f07627443296d1e84d19a9ed58ca34be440b2f539bb1499101b7e5699ce5febe",
     "octets": 91592
   }
 }

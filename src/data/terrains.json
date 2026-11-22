@@ -29,21 +29,6 @@
     "stops": {
       "0%": "#5a4a32",
       "100%": "#332a1a"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.07,
-      "speckle": {
-        "perM2": 0.5,
-        "rM": [
-          0.04,
-          0.1
-        ],
-        "colors": [
-          "#2e2414",
-          "#6a5638"
-        ]
-      }
     }
   },
   {
@@ -59,19 +44,7 @@
       "100%": "#241c18"
     },
     "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.06,
-      "speckle": {
-        "perM2": 0.4,
-        "rM": [
-          0.03,
-          0.08
-        ],
-        "colors": [
-          "#5a4a3e",
-          "#15100d"
-        ]
-      }
+      "tintVar": 0.06
     }
   },
   {
@@ -82,25 +55,10 @@
     "walkable": true,
     "priority": 4,
     "built": true,
-    "swatch": "#8d8a86",
+    "swatch": "#cec8b8",
     "stops": {
       "0%": "#a7a39d",
       "100%": "#7c7872"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.6,
-        "joint": "#6e6a63",
-        "jointW": 0.035,
-        "stagger": 0.5,
-        "blockWM": [
-          0.9,
-          1.4
-        ],
-        "edgeWobble": 0.01,
-        "paletteVar": 0.05
-      }
     },
     "kitDEscalier": "pierre"
   },
@@ -118,19 +76,7 @@
       "100%": "#234a74"
     },
     "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.03,
-      "speckle": {
-        "perM2": 0.25,
-        "rM": [
-          0.04,
-          0.09
-        ],
-        "colors": [
-          "#7ba7d4",
-          "#5a8fc0"
-        ]
-      }
+      "tintVar": 0.03
     }
   },
   {
@@ -147,7 +93,6 @@
       "100%": "#0c0a10"
     },
     "detail": {
-      "seedScope": "tile",
       "tintVar": 0.05
     }
   },
@@ -158,25 +103,10 @@
     "maison": "l’herbe rase d’une prairie ou d’une cour enherbée ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 1,
-    "swatch": "#3d6630",
+    "swatch": "#7b8a43",
     "stops": {
       "0%": "#4a7536",
       "100%": "#3a5c28"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.07,
-      "tufts": {
-        "perM2": 1.1,
-        "hM": [
-          0.1,
-          0.22
-        ],
-        "colors": [
-          "#5c8a40",
-          "#3a5c28"
-        ]
-      }
     }
   },
   {
@@ -193,19 +123,7 @@
       "100%": "#4a0e04"
     },
     "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.06,
-      "speckle": {
-        "perM2": 0.3,
-        "rM": [
-          0.03,
-          0.07
-        ],
-        "colors": [
-          "#ffb43c",
-          "#2a0a04"
-        ]
-      }
+      "tintVar": 0.06
     }
   },
   {
@@ -220,20 +138,6 @@
     "stops": {
       "0%": "#cbc6bd",
       "100%": "#a49e92"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.8,
-        "joint": "#8f897c",
-        "jointW": 0.025,
-        "stagger": 0.5,
-        "blockWM": [
-          1.4,
-          2.1
-        ],
-        "paletteVar": 0.03
-      }
     },
     "kitDEscalier": "pierre"
   },
@@ -269,21 +173,6 @@
     "stops": {
       "0%": "#eef2f8",
       "100%": "#b8c2d2"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.03,
-      "speckle": {
-        "perM2": 0.25,
-        "rM": [
-          0.02,
-          0.05
-        ],
-        "colors": [
-          "#ffffff",
-          "#9fb0c8"
-        ]
-      }
     }
   },
   {
@@ -299,19 +188,7 @@
       "100%": "#9a8c66"
     },
     "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.05,
-      "speckle": {
-        "perM2": 0.6,
-        "rM": [
-          0.04,
-          0.1
-        ],
-        "colors": [
-          "#e0d4ac",
-          "#7a6c48"
-        ]
-      }
+      "tintVar": 0.05
     }
   },
   {
@@ -327,21 +204,6 @@
       "0%": "#8f8d96",
       "100%": "#63616b"
     },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.42,
-        "joint": "#4f4d56",
-        "jointW": 0.03,
-        "stagger": 0.5,
-        "blockWM": [
-          0.45,
-          0.75
-        ],
-        "edgeWobble": 0.015,
-        "paletteVar": 0.07
-      }
-    },
     "kitDEscalier": "pierre"
   },
   {
@@ -352,25 +214,10 @@
     "walkable": true,
     "priority": 2,
     "built": true,
-    "swatch": "#4c505a",
+    "swatch": "#b9ad8a",
     "stops": {
       "0%": "#5c606a",
       "100%": "#3c4049"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.5,
-        "joint": "#2e323a",
-        "jointW": 0.035,
-        "stagger": 0.5,
-        "blockWM": [
-          0.7,
-          1.1
-        ],
-        "edgeWobble": 0.02,
-        "paletteVar": 0.05
-      }
     },
     "kitDEscalier": "pierre"
   },
@@ -382,24 +229,10 @@
     "walkable": true,
     "priority": 4,
     "built": true,
-    "swatch": "#7a5a30",
+    "swatch": "#886b52",
     "stops": {
       "0%": "#8a6638",
       "100%": "#6a4d28"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.3,
-        "joint": "#503a22",
-        "jointW": 0.028,
-        "stagger": 0.5,
-        "blockWM": [
-          1.6,
-          2.6
-        ],
-        "paletteVar": 0.06
-      }
     },
     "kitDEscalier": "bois"
   },
@@ -416,21 +249,6 @@
     "stops": {
       "0%": "#96743f",
       "100%": "#6a4d28"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.28,
-        "joint": "#4a3820",
-        "jointW": 0.03,
-        "stagger": 0.5,
-        "blockWM": [
-          1.3,
-          2.3
-        ],
-        "edgeWobble": 0.008,
-        "paletteVar": 0.07
-      }
     },
     "kitDEscalier": "bois"
   },
@@ -462,21 +280,6 @@
     "stops": {
       "0%": "#6e6a62",
       "100%": "#4a463e"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.05,
-      "speckle": {
-        "perM2": 0.4,
-        "rM": [
-          0.04,
-          0.09
-        ],
-        "colors": [
-          "#7d786e",
-          "#3a362e"
-        ]
-      }
     }
   },
   {
@@ -486,25 +289,10 @@
     "maison": "un chemin de terre battue tracé par le passage ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 3,
-    "swatch": "#8a744c",
+    "swatch": "#cac37b",
     "stops": {
       "0%": "#9a8358",
       "100%": "#7d6a45"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.05,
-      "speckle": {
-        "perM2": 0.4,
-        "rM": [
-          0.03,
-          0.07
-        ],
-        "colors": [
-          "#b09a6c",
-          "#6a5a3a"
-        ]
-      }
     }
   },
   {
@@ -518,21 +306,6 @@
     "stops": {
       "0%": "#cdb37a",
       "100%": "#a88a4e"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.04,
-      "speckle": {
-        "perM2": 0.3,
-        "rM": [
-          0.02,
-          0.05
-        ],
-        "colors": [
-          "#e0c68c",
-          "#8f7440"
-        ]
-      }
     }
   },
   {
@@ -548,19 +321,7 @@
       "100%": "#3a1010"
     },
     "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.06,
-      "speckle": {
-        "perM2": 0.5,
-        "rM": [
-          0.04,
-          0.11
-        ],
-        "colors": [
-          "#8a2a24",
-          "#2a0c0a"
-        ]
-      }
+      "tintVar": 0.06
     }
   },
   {
@@ -574,21 +335,6 @@
     "stops": {
       "0%": "#6b5d4f",
       "100%": "#52463a"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.05,
-      "speckle": {
-        "perM2": 0.35,
-        "rM": [
-          0.03,
-          0.07
-        ],
-        "colors": [
-          "#7d6e5c",
-          "#40362a"
-        ]
-      }
     }
   },
   {
@@ -598,25 +344,10 @@
     "maison": "la terre battue d’une cour ou d’un sol d’intérieur pauvre ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": true,
     "priority": 2,
-    "swatch": "#6b5436",
+    "swatch": "#ac906c",
     "stops": {
       "0%": "#7a5f3c",
       "100%": "#57452b"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.06,
-      "speckle": {
-        "perM2": 0.6,
-        "rM": [
-          0.03,
-          0.08
-        ],
-        "colors": [
-          "#8a7a5c",
-          "#4a3c26"
-        ]
-      }
     }
   },
   {
@@ -630,21 +361,6 @@
     "stops": {
       "0%": "#5b4a2c",
       "100%": "#332916"
-    },
-    "detail": {
-      "seedScope": "tile",
-      "tintVar": 0.06,
-      "speckle": {
-        "perM2": 0.5,
-        "rM": [
-          0.03,
-          0.08
-        ],
-        "colors": [
-          "#6a5732",
-          "#241d0e"
-        ]
-      }
     }
   },
   {

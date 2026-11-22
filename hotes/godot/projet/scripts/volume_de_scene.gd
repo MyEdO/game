@@ -51,8 +51,8 @@ const SANS_CASE := INF
 ## Les sortes de ce que le volume pose sur les arêtes, par catalogue des modèles servis (`MontageDeComposition.modeles`) :
 ## les arêtes (`aretes`, méthode `aretes`), étirées à la hauteur de leur mur, en boîte sans modèle lu qui ait leur pièce ;
 ## les côtés de marches (`escaliers`, `cotesDeMarches` de la méthode `aretes`), à la hauteur de leur modèle, rien sans
-## modèle lu qui ait leur pièce ; les faîtières (`toits`, `faitieres` de la méthode `aretes`), leur V ouvert à l'écart des
-## pentes de leurs deux pans, rien sans modèle lu qui ait leur pièce.
+## modèle lu qui ait leur pièce ; les pièces de toit (`toits`, `piecesDeToit` de la méthode `aretes`), à la longueur de
+## leur pièce au modèle, leur V ouvert à l'écart des pentes de leurs deux pans, rien sans modèle lu qui ait leur pièce.
 const SORTES := {
 	aretes = {echelle = "mur", repli = true},
 	escaliers = {echelle = "modele", repli = false},
@@ -188,20 +188,28 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
-## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor, chacune
-## à vrai si une nappe ou une couronne la porte : sa texture neutre sert (`_matiere`).
-static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
+## Les chemins des textures que les maillages des géométries reçues peuvent lire, y compris après remaillage d'un décor
+## (`textures_de_la_matiere` de chacune de leurs matières).
+static func textures_des_morceaux(recus: Dictionary) -> PackedStringArray:
 	var matieres := {}
 	for famille in ["volume", "toits", "couronnes"]:
 		for geometrie: Dictionary in recus.get(famille, []):
-			_relever_les_matieres(geometrie, matieres, famille != "volume")
-	return matieres
+			_relever_les_matieres(geometrie, matieres)
+	var chemins := PackedStringArray()
+	for nom: String in matieres:
+		chemins.append_array(textures_de_la_matiere(nom))
+	return chemins
 
 
-static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary, neutre: bool) -> void:
+## Les chemins des textures que lit une surface de la matière `nom` : son albédo (`albedo_de`) et son relief.
+static func textures_de_la_matiere(nom: String) -> PackedStringArray:
+	return PackedStringArray([albedo_de(nom), relief_de(nom)])
+
+
+static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary) -> void:
 	for surface: Dictionary in geometrie.surfaces:
 		if not surface.get("priseSeulement", false) and not surface.has("navire"):
-			matieres[surface.matiere] = matieres.get(surface.matiere, false) or neutre
+			matieres[surface.matiere] = true
 
 
 ## Le volume du manifeste `monde` (`{ monde, toits, couronnes }`) à l'échelle d'une unité par case, sa case (0, 0) sur
@@ -382,7 +390,7 @@ func _change_d_etat(groupe: Node3D) -> bool:
 
 
 ## Le texel de la case `c` (`{ x, y, z }`) de l'arête `a` dans la vision posée (`voir`), au plan de sa couche : le plan
-## `toit` pour une pièce posée sur une nappe (`nappe`, une faîtière), le plan `sol` sinon.
+## `toit` pour une pièce posée sur une nappe (`nappe`, une pièce de toit), le plan `sol` sinon.
 func _texel_de_vision(a: Dictionary, c: Dictionary) -> Vector2i:
 	var case := Vector2i(int(c.x), int(c.y))
 	if a.has("nappe"):
@@ -524,7 +532,7 @@ func _preparer_le_repli(decor: String, secours: Dictionary) -> bool:
 	var recus := pont.appeler("retablirDecors", secours.merged({prop = decor}))
 	if recus.get("ok") != true:
 		return false
-	var textures := await TexturesDeMatiere.preparer(self, matieres_des_morceaux(recus))
+	var textures := await TexturesDeMatiere.preparer_les_chemins(self, textures_des_morceaux(recus))
 	if not is_inside_tree() or secours != _secours_des_decors:
 		return false
 	_poser_le_repli(decor, recus)
@@ -731,10 +739,10 @@ func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 ## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud, un morceau si `masquee`, peut faire revenir.
 static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary, masquee: bool) -> void:
 	var matieres := {}
-	_relever_les_matieres(geometrie, matieres, not masquee)
+	_relever_les_matieres(geometrie, matieres)
 	var textures: Array[Texture2D] = []
 	for nom: String in matieres:
-		for chemin: String in [_albedo_de(nom, masquee), relief_de(nom)]:
+		for chemin: String in textures_de_la_matiere(nom):
 			var texture := TexturesDeMatiere.retenue(chemin)
 			if texture != null:
 				textures.append(texture)
@@ -750,7 +758,7 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 
 
-## Les arêtes `aretes`, les côtés de marches `cotes` et les faîtières `faitieres` (`CONTRAT.md`, méthode `aretes`),
+## Les arêtes `aretes`, les côtés de marches `cotes` et les pièces de toit `pieces_de_toit` (`CONTRAT.md`, méthode `aretes`),
 ## chacun sur le côté de sa case ou sur son faîte, debout à son pied (`_poses_de`), en groupes d'instances : les poses
 ## de même catalogue, `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM`, `ecart` et `palette`, dans l'ordre reçu, une instance chacune de chaque maillage de
 ## leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont réconciliés par clé (`reconcilier`) : un
@@ -759,22 +767,24 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 ## (`modele_servi`) ne se pose qu'une fois ce modèle lu : il se lit une fois les autres posées
 ## (`_lire_le_modele_d_arete`), et les poses reçues se reposent à sa lecture ; celle d'un modèle illisible se pose en
 ## boîte, sans relire le modèle, si sa sorte se replie (`SORTES`), sinon pas du tout.
-func poser_les_aretes(aretes: Array, cotes: Array, faitieres: Array) -> void:
-	_poser(_poses_de(aretes, cotes, faitieres))
+func poser_les_aretes(aretes: Array, cotes: Array, pieces_de_toit: Array) -> void:
+	_poser(_poses_de(aretes, cotes, pieces_de_toit))
 
 
 ## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
-## deux à son pied), celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
-## `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son `entree` à
-## sa `sortie` le long de son `sens`, toutes deux sans écart ; et celles des faîtières `faitieres`, chacune elle-même,
-## de son catalogue `toits`, son V ouvert de son `ecart`.
-static func _poses_de(aretes: Array, cotes: Array, faitieres: Array) -> Array:
+## deux à son pied, sans gradient), celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son
+## catalogue `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son
+## `entree` à sa `sortie` le long de son `sens` (`MiseEnPage.gradient_d_arete`), toutes deux sans écart ; et celles des
+## pièces de toit `pieces_de_toit`, chacune elle-même, de son catalogue `toits`, son V ouvert de son `ecart`, cisaillée
+## de son `gradient`.
+static func _poses_de(aretes: Array, cotes: Array, pieces_de_toit: Array) -> Array:
 	var a_plat := {ecart = 0.0}
-	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged(a_plat.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied})))
+	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged(a_plat.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied, gradient = {x = 0.0, y = 0.0}})))
 	for c: Dictionary in cotes:
+		var gradient := MiseEnPage.gradient_d_arete(Vector2(c.sens.x, c.sens.y), c.entree, c.sortie)
 		for piece: String in c.pieces:
-			poses.append(c.merged(a_plat.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0})))
-	for f: Dictionary in faitieres:
+			poses.append(c.merged(a_plat.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0, gradient = {x = gradient.x, y = gradient.y}})))
+	for f: Dictionary in pieces_de_toit:
 		poses.append(f.merged({catalogue = "toits", hauteurM = 0.0}))
 	return poses
 
@@ -883,6 +893,18 @@ func taille_du_modele_d_arete(modele: String) -> Vector3:
 	return _modeles_d_arete[modele].taille
 
 
+## La taille, en mètres, du nœud `noeud` (`noeud_de_la_piece`) du modèle d'arête lu `modele`, celle de sa boîte dans le
+## repère du modèle, à laquelle une pièce de toit s'étire : les pièces d'un kit de toit n'ont pas toutes une longueur.
+func taille_de_la_piece(modele: String, noeud: String) -> Vector3:
+	var lu: Dictionary = _modeles_d_arete[modele]
+	var tailles: Dictionary = lu.get_or_add("pieces", {})
+	if not tailles.has(noeud):
+		add_child(lu.scene)
+		tailles[noeud] = (MontageDeVehicule.boite(lu.scene.get_node(noeud), lu.scene) as AABB).size
+		remove_child(lu.scene)
+	return tailles[noeud]
+
+
 ## La taille, en mètres, de la scène `scene` d'un modèle : celle de sa boîte (`MontageDeVehicule.boite`), mesurée
 ## sous le volume le temps de la mesure.
 func _taille_du_modele(scene: Node3D) -> Vector3:
@@ -938,7 +960,7 @@ func _montrer_le_pose() -> void:
 
 
 ## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées et de pièces
-## de côtés de marches et de faîtières posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
+## de côtés de marches et de pièces de toit posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
 ## couronnes montrées.
 func ce_qui_est_pose() -> Dictionary:
 	var triangles := 0
@@ -952,7 +974,7 @@ func ce_qui_est_pose() -> Dictionary:
 		triangles = triangles,
 		aretes = poses.aretes.size(),
 		cotesDeMarches = poses.escaliers.size(),
-		faitieres = poses.toits.size(),
+		piecesDeToit = poses.toits.size(),
 		toits = _toits.get_child_count(),
 		couronnes = _couronnes.get_children().filter(func(couronne: Node3D) -> bool: return couronne.visible).size(),
 	}
@@ -1063,17 +1085,20 @@ func _retournes(tableau: Variant) -> Variant:
 ## de monde : texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets, liée à la vision posée
 ## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`), sa texture projetée sur les trois axes ;
 ## celle d'une nappe ou d'une couronne, jamais : sa texture de retrait reste la noire par défaut, rien ne s'y replie ; sa
-## texture est la neutre (`texture_neutre_de`), projetée sur le plan de chaque face et teinte par la couleur de ses
-## sommets (`nappe`, `art/monde.gdshader`).
+## texture est projetée sur le plan de chaque face (`nappe`, `art/monde.gdshader`). Une texture neutre (`albedo_de`) est
+## teinte par la couleur de ses sommets (`teinte_des_sommets`).
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	var reference := matieres.get(nom) as WeakRef
 	var matiere := reference.get_ref() as ShaderMaterial if reference != null else null
 	if matiere != null:
 		return matiere
-	var albedo := TexturesDeMatiere.retenue(_albedo_de(nom, masquee))
+	var chemin := albedo_de(nom)
+	var albedo := TexturesDeMatiere.retenue(chemin)
 	matiere = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
 	texturer(matiere, nom, albedo, true)
+	if albedo != null and chemin == texture_neutre_de(nom):
+		matiere.set_shader_parameter("teinte_des_sommets", 1.0)
 	if masquee:
 		matiere.set_shader_parameter("retrait", _retrait)
 	elif albedo != null:
@@ -1088,10 +1113,11 @@ static func texture_de(nom: String) -> String:
 	return "res://textures/%s.jpg" % nom
 
 
-## Le chemin de la texture que lit la matière `nom` d'un morceau (`masquee`), ou d'une nappe ou d'une couronne
-## (`_matiere`).
-static func _albedo_de(nom: String, masquee: bool) -> String:
-	return texture_de(nom) if masquee else texture_neutre_de(nom)
+## Le chemin de la texture que lit la matière `nom` sous la couleur de sa surface (`_matiere`, le sol du hors-carte de
+## `Lumiere`) : sa neutre si le projet la porte, que cette couleur teint, sinon sa texture.
+static func albedo_de(nom: String) -> String:
+	var neutre := texture_neutre_de(nom)
+	return neutre if ResourceLoader.exists(neutre, "Texture2D") else texture_de(nom)
 
 
 ## Le chemin du relief de la texture de la matière `nom` au projet.
@@ -1147,7 +1173,7 @@ func _groupe(aretes: Array) -> Node3D:
 	var socle := 0.0
 	if not noeud.is_empty():
 		var taille := taille_du_modele_d_arete(modele)
-		var etirement := MiseEnPage.echelle_de_faitiere(sens, a.ecart, taille.x, metres_par_case) if sorte.echelle == "pente" \
+		var etirement := MiseEnPage.echelle_de_faitiere(sens, a.ecart, taille_de_la_piece(modele, noeud).x, metres_par_case) if sorte.echelle == "pente" \
 			else MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM if sorte.echelle == "mur" else taille.y, taille.x, taille.y, metres_par_case)
 		groupe.scale = etirement
 		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
@@ -1253,7 +1279,7 @@ func _ecrire_les_instances(groupe: Node3D) -> void:
 		_du_fondu[groupe] = true
 
 
-## Si la pose `a` est cachée à la caméra (`cacher`) : une faîtière avec sa nappe (`nappe`), toute autre par sa clé.
+## Si la pose `a` est cachée à la caméra (`cacher`) : une pièce de toit avec sa nappe (`nappe`), toute autre par sa clé.
 func _cachee(a: Dictionary) -> bool:
 	return _cachees.toits.has(a.nappe) if a.has("nappe") else _cachees.aretes.has(a.cle)
 
@@ -1309,12 +1335,12 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 
 ## Le repère, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
 ## l'instance de la pose `a` : sa pièce posée au centre de l'arête (`MiseEnPage.centre_d_arete`, à son socle),
-## cisaillée autour de lui de sa pente le long de son sens (`MiseEnPage.pente_d_arete`), ses montants restant
+## cisaillée autour de lui de son gradient (`MiseEnPage.pente_de_gradient`), ses montants restant
 ## verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
 ## cisaillement au centre de l'arête sous `Aretes`, portant `posee` à cette place ; `lue`, sous les instances, à la place
 ## de `posee`.
 func transform_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Transform3D:
-	var pente := MiseEnPage.pente_d_arete(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, metres_par_case)
+	var pente := MiseEnPage.pente_de_gradient(Vector2(a.gradient.x, a.gradient.y), metres_par_case)
 	var place := Node3D.new()
 	var cisaillee := Node3D.new()
 	var posee := Node3D.new()

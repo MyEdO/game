@@ -8,7 +8,7 @@ import { projeter } from './projection';
 import { ACTIONS, dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
-import { choixPiegeLame } from '../noyau/combatFlow';
+import { choixPiegeLame, finishVictory } from '../noyau/combatFlow';
 import { choiceStep } from '../noyau/rollSeam';
 import { estUneCle, t } from '../i18n';
 import type { Bouton, Entite } from './elements';
@@ -22,6 +22,11 @@ import { emptyScene } from '../noyau/monde/scene';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
+import { fixtureText } from '../i18n/fixtureText';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { lancerLeScenario } from '../noyau/lancementDeScenario';
+import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
+import { testScenarios } from '../scenes/test-scenarios/index';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -169,10 +174,28 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
 });
 
 describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () => {
+  it.each([['hors de vue', false], ['en vue', true]] as const)('un Griffon vaincu %s : la ligne et la valeur de « Dépecer » le nomment comme la vue (#4017)', (_cas, enVue) => {
+    const banc = ouvrirLeBanc();
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((s) => s.id === 'melee-dans-le-noir')!, idsDeTest));
+    const battle = banc.getState().battle!;
+    const pres = battle.combatants.find((c) => (enVue ? c.kind !== 'ennemi' : c.kind === 'ennemi'))!;
+    const griffon = combattantDeTest({ id: 'griffon-de-test', label: 'Griffon', kind: 'ennemi', creatureId: 'griffon', pos: { ...pres.pos! } });
+    banc.setState({ battle: { ...battle, combatants: [...battle.combatants, griffon].map((c) => (c.kind === 'ennemi' ? { ...c, wounds: { ...c.wounds, current: 0 }, dead: true } : c)) } });
+    finishVictory(banc.getState, banc.setState);
+    const etat = banc.getState() as unknown as Jeu;
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const nom = enVue ? 'Griffon' : t('vision.horsDeVue');
+    expect(etat.pendingVictory!.defeated.find((d) => d.creatureId === 'griffon'), 'témoin : le Griffon est vaincu, sous la vue de sa case').toMatchObject({ nom, enVue });
+    const depecer = zones['fenetre.reglages'].find((g) => g.id === 'fenetreChoisir@victoire#depecer');
+    expect(depecer?.type === 'choix' ? depecer.valeurs.map((v) => v.libelle) : [], 'la valeur de « Dépecer » porte le nom de la ligne').toEqual([nom]);
+    expect(JSON.stringify(zones).includes('Griffon'), 'le nom du Griffon ne sort que s’il est en vue').toBe(enVue);
+    expect(JSON.stringify(zones).includes('Gobelin'), 'les gobelins, hors de vue, ne sont pas nommés').toBe(false);
+  });
+
   it('l’Expérience, l’argent, chaque adversaire vaincu et chaque message ; aucun dépeçage sans créature à dépecer', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
-      const etat: Jeu = { ...partie.etat(), pendingVictory: { xp: 30, gold: { gold: 0, silver: 5, brass: 0 }, defeated: [{ label: 'Gobelin', count: 2 }, { label: 'Chef', count: 1 }], messages: ['La foule acclame.'] } };
+      const etat: Jeu = { ...partie.etat(), pendingVictory: { xp: 30, gold: { gold: 0, silver: 5, brass: 0 }, defeated: [{ nom: fixtureText('Gobelin'), count: 2, enVue: true }, { nom: fixtureText('Chef'), count: 1, enVue: true }], messages: ['La foule acclame.'] } };
       const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
       expect(zones['fenetre.corps'], 'en puces ce qui est gagné, puis les vaincus et les messages').toMatchObject([
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
@@ -180,7 +203,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
       ]);
       const dessines = (z: typeof zones) => [...z['fenetre.gestes'], ...z['fenetre.reglages']].map((g) => g.id);
       expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victoire#depecer');
-      const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] } };
+      const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ nom: fixtureText('Griffon'), count: 1, creatureId: 'griffon', enVue: true }] } };
       const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null, SANS_ROSTER);
       expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victoire#depecer');
     } finally {

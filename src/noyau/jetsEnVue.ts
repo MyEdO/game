@@ -599,7 +599,7 @@ function etapeCourante(s: Jeu): CascadeStep | undefined {
 /** La ligne d'une rangée de bande (`BatchParticipant`). */
 function ligneDeBande(s: Jeu, part: BatchParticipant): LigneLue {
   const r = jete(part.result);
-  const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label ?? pool(s).find((c) => c.id === part.id)?.label : nomEnVue(s, part.id));
+  const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label : undefined) ?? nomEnVue(s, part.id);
   return ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee });
 }
 

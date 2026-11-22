@@ -397,7 +397,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityDef: ['rounds', 'stakeForm', 'unavailableIfExtenue'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
-  DetailRecipe: ['bands', 'courses', 'seedScope', 'speckle', 'timber', 'tufts'],
+  DetailRecipe: ['courses', 'timber'],
   DomainData: ['grantGroups'],
   EntreeDeGardeRobe: ['svg'],
   EtatData: ['severity'],

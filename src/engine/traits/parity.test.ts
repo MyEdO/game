@@ -180,7 +180,7 @@ const DISPATCH = new Set<string>([
   'Marque de Tzeentch',
   // Ogre (ADE II 2 l.708, folio 31) : `capabilities.encumbranceFactor`/`consumptionFactor` (donnée)
   // — lus par `combatFeatures/dispatch.traitEncumbranceFactor` (composé max talent/trait dans `items.maxEncumbrance`)
-  // et `provisions.traitConsumptionFactor` (composé dans `dailyFoodUpkeep`/`provisioningManifest`). Canal
+  // et `provisions.traitConsumptionFactor` (composé dans `dailyFoodUpkeep`). Canal
   // dispatch (capability lue par id, MÊME lecture ciblée `c.traits` que Marque de Khorne).
   'Ogre',
   // Pisteur (LDB 85 folio 341, #1011) : `passive` = `skillDRBonus{pistage, bonusOf:initiative}` — MÊME

@@ -110,24 +110,34 @@ export const CHAMPS_D_ENFANTS = Object.keys(ENFANTS_PAR_CHAMP) as readonly (keyo
  * de record, `{}` valeur de record, `|N` branche d'union, `&0`/`&1` côté gauche/droit d'intersection,
  * `[N]` élément de tuple, `[...]` reste de tuple, `''` enveloppe et cible d'un `lazy`.
  */
-export function enfantsDe(noeud: unknown): EnfantZod[] {
+export function enfantsDe(noeud: unknown): readonly EnfantZod[] {
   return enfantsAvec(noeud, declarationDEnfants(noeud)?.enfants);
 }
 
-/** Les enfants Zod puis les enfants déclarés retenus pour ce parcours. */
-function enfantsAvec(noeud: unknown, declares: readonly EnfantZod[] = []): EnfantZod[] {
+const SANS_DECLARES: readonly EnfantZod[] = [];
+/** Les enfants de chaque nœud, par liste d'enfants déclarés : un schéma construit ne change plus. */
+const ENFANTS_CALCULES = new WeakMap<object, Map<readonly EnfantZod[], readonly EnfantZod[]>>();
+
+/** Les enfants Zod puis les enfants déclarés retenus pour ce parcours. Un `lazy` dont le getter lève encore (module en
+ *  cours d'évaluation) n'est pas retenu, pour être relu au pas suivant. */
+function enfantsAvec(noeud: unknown, declares: readonly EnfantZod[] = SANS_DECLARES): readonly EnfantZod[] {
   const def = defDe(noeud);
-  if (!def) return [];
+  if (!def) return SANS_DECLARES;
+  const parDeclares = ENFANTS_CALCULES.get(noeud as object);
+  const connus = parDeclares?.get(declares);
+  if (connus) return connus;
   const enfants: EnfantZod[] = [];
   for (const champ of CHAMPS_D_ENFANTS) {
     const v = def[champ];
     if (v !== undefined && v !== null) enfants.push(...ENFANTS_PAR_CHAMP[champ](v));
   }
-  if (def.type === 'lazy') {
-    const cible = cibleDuLazy(noeud);
-    if (cible !== undefined) enfants.push({ noeud: cible, segment: '' });
-  }
+  const cible = def.type === 'lazy' ? cibleDuLazy(noeud) : undefined;
+  if (cible !== undefined) enfants.push({ noeud: cible, segment: '' });
   enfants.push(...declares);
+  if (def.type !== 'lazy' || cible !== undefined) {
+    if (parDeclares) parDeclares.set(declares, enfants);
+    else ENFANTS_CALCULES.set(noeud as object, new Map([[declares, enfants]]));
+  }
   return enfants;
 }
 

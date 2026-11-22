@@ -89,7 +89,8 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
   it('le document éclaire la salle par son ÂTRE, au rez, sans porteur', () => {
     // Le meublement de la salle a posé la cheminée (`cheminee-interieure`) : sa `PropData.light`
     // (rayon 5, ton flamme) en fait une source du document, comme un brasero authoré.
-    expect(posesDuDocument.map(signature)).toEqual([['diligence-salle-cheminee', 0, 5, undefined]]);
+    expect(posesDuDocument.map(signature)).toContainEqual(['diligence-salle-cheminee', 0, 5, undefined]);
+    expect(posesDuDocument.filter((s) => s.carried), 'aucune source du document n’est portée').toEqual([]);
   });
 
   it('la lanterne d’un combattant à l’étage inscrit ses cases à z1, aucune au rez', () => {

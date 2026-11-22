@@ -328,9 +328,10 @@ export interface CampaignVessel {
   /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
    *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués, en lots datés de la cale (`LotDeVivres`), mangés par
-   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`), le périssable pourri purgé par `purgeSurAvanceDHorloge`.
-   *  MDG 14 l.171, l.238, l.245-252. Absent = vivres de l'équipage non suivis. #245 ; #4058 */
+  /** VIVRES de bord embarqués, en lots datés de la cale (`LotDeVivres`), mangés en mer par l'équipage PNJ
+   *  (`consumeCrewProvisions`, `seaVoyageFlow.ts`) et par les héros (`runDailyUpkeep`), le périssable pourri purgé
+   *  par `purgeSurAvanceDHorloge`. MDG 14 l.171, l.238, l.245-252. Absent = vivres de bord non suivis, les héros
+   *  mangent leur sac. #245 ; #4058 ; #4453 */
   provisions?: import('../engine/provisions').LotDeVivres[];
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
@@ -341,7 +342,7 @@ export interface CampaignVessel {
   crewLost?: number;
   /** L'équipage PNJ, un porteur de maladies collectif lu et écrit par `porteursABord`.
    *  LDB 20 l.127-129 ; MDG 14 l.172, l.208-209, l.230-232 */
-  porteurDeLEquipage?: Omit<import('../engine/disease').PorteurDeMaladies, 'label'>;
+  porteurDeLEquipage?: import('../engine/disease').MaladiesDuPorteur;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];

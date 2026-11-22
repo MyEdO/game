@@ -25,7 +25,7 @@
  * Un camp tenu par un joueur y ouvre une étape de CHOIX ; un camp PNJ tranche par sa POLITIQUE
  * (`PursuitPolicy`, valeur maison éditable à l'Effet `startPursuit` — règle 7, jamais un MJ implicite).
  */
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { rollTest } from '../engine/tests';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -301,7 +301,7 @@ function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): Buil
     actorId: camp[0].id,
     // LDB 15 l.94
     options: [
-      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: h.label }), detail: t('opt.sarreteDetail') })),
+      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: nomDe(h) }), detail: t('opt.sarreteDetail') })),
       { key: 'ignorer', label: t('opt.ignorer', { who: pris.laggard.label }), detail: t('opt.ignorerDetail') },
     ],
   });
@@ -346,7 +346,7 @@ function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: 
     .filter((s) => s.kind === PURSUIT_MOVE_KIND)
     .flatMap((s) => (s.participants ?? []).map((r) => ({ actorId: r.id, sl: r.result?.sl ?? 0 })));
   const skillLabel = byId('skill', p.skill)?.label ?? p.skill;
-  const heros = runners(get, p.retires).map((h) => ({ id: h.id, label: h.label, m: pursuedMovement(h, p.partyRole) }));
+  const heros = runners(get, p.retires).map((h) => ({ id: h.id, label: nomDe(h), m: pursuedMovement(h, p.partyRole) }));
   // Plus lent de la course = min des Mouvements de TOUS les participants (héros + adversaires).
   const slowest = Math.min(...heros.map((h) => h.m), ...p.foes.map((f) => f.movement));
   const party: PursuitRunner[] = heros.map((h) => ({
@@ -525,7 +525,7 @@ export const TABLES = {
       const lines: string[] = [];
       for (const row of step.participants) {
         const dr = row.result?.sl ?? 0;
-        const who = actorIn(get(), row.id)?.label ?? row.id;
+        const who = nomOuAbsence(actorIn(get(), row.id), 'combattant', row.id);
         lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: drSigne(dr) }));
       }
       return { consequences: freeCons(lines) };

@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--diligence.glb",
+  "model_sha256": "8bc4b002ad60125aae1532e8e9b7719744d1e2c60caa7f2169481ccb62b6ac2b",
+  "importe_le": "2026-11-22",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

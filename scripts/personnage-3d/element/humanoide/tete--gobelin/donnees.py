@@ -21,10 +21,10 @@ MANIFESTE = {
     'couche': 'peau',
     'couvre': ['tete', 'visage', 'nez', 'oeil_g', 'oeil_d'],
 }
-MATERIAUX = {                            # gris de construction, sans couleur cuite
+MATERIAUX = {                            # peau et yeux : gris de construction, sans couleur cuite
     'peau': ('peau', ((0.62, 0.62, 0.62), 0.0, 0.8)),
     'yeux': ('yeux', ((0.35, 0.35, 0.35), 0.0, 0.3)),
-    'dents': ('corne', ((0.78, 0.78, 0.78), 0.0, 0.6)),   # aucune texture d'os au catalogue : gris de construction
+    'dents': ('corne', 'os'),
     'anneaux': ('metal', 'acier-battu'),
 }
 BUDGET_TRIANGLES = 2500                  # procédure, section 7 : tête

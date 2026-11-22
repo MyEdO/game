@@ -6,7 +6,7 @@
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecIntentionLocale, etatDeLaBarre, fenetreDuJeu, porteurParId,
+  DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecIntentionLocale, etatDeLaBarre, fenetreDuJeu, nomEnVue, porteurParId,
   quiTientLaMain, siegeDe, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { estObjet } from '../lib/objet.mjs';
@@ -135,7 +135,7 @@ export function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
 function laMain(etat: Jeu): string {
   const main = quiTientLaMain(etat);
   if (main === '*') return 'la fenêtre est à tous les sièges';
-  const nom = main && porteurParId(etat, main)?.label;
+  const nom = main && porteurParId(etat, main) ? nomEnVue(etat, main) : undefined;
   return `la main est à ${nom ?? main ?? 'l’hôte'}, siège ${siegeDe(etat, main)}`;
 }
 

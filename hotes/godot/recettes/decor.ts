@@ -15,9 +15,9 @@
  * `paletteDesAretes` : la palette que les recettes des arêtes donnent à leurs arêtes servies (`paletteDeLApparence`) ;
  * et `volee` : la réponse de `echantillon` sur le sol `SOL_A_MARCHES`, dont la recette des côtés de marches pose les
  * côtés (`projet/recettes/cotes-de-marches.gd`, #4471) ; et `toit` : par plateau de `PLATEAUX_DU_TOIT` mètres par case,
- * l'échantillon de la couverture `TOIT` à cette échelle (`echantillonDessine`), dont la recette des faîtières pose les
- * faîtières sur les nappes (`projet/recettes/faitieres.gd`, #4471), et, sous la clé `diligence`, la scène
- * `la-diligence` (`diligenceCampaign`) dessinée de même sans ses morceaux, dont des faîtes voisins se joignent bout à
+ * l'échantillon de la couverture `TOIT` à cette échelle (`echantillonDessine`), dont la recette des pièces de toit pose
+ * les pièces sur les nappes (`projet/recettes/pieces-de-toit.gd`, #4471), et, sous la clé `diligence`, la scène
+ * `la-diligence` (`diligenceCampaign`) dessinée de même sans ses morceaux, dont des arêtes voisines se joignent bout à
  * bout. L'atelier garde aussi chaque élément `escalier` et
  * `toit` du dossier.
  */
@@ -70,8 +70,8 @@ const LUMINEUX = 'lampadaire';
  *  recette des côtés de marches (`projet/recettes/cotes-de-marches.gd`, #4471). */
 const SOL_A_MARCHES = 'plancher';
 
-/** La couverture dont l'échantillon porte les faîtières que pose la recette des faîtières (`projet/recettes/faitieres.gd`,
- *  #4471), et les échelles de plateau, en mètres par case, où elle les pose. */
+/** La couverture dont l'échantillon porte les pièces de toit que pose la recette des pièces de toit
+ *  (`projet/recettes/pieces-de-toit.gd`, #4471), et les échelles de plateau, en mètres par case, où elle les pose. */
 const TOIT = 'toit-ardoise';
 const PLATEAUX_DU_TOIT = [2, 3] as const;
 

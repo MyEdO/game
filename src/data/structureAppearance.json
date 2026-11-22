@@ -5,7 +5,6 @@
     "label": "Mur",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -35,7 +34,6 @@
     "label": "Mur en bois",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -71,7 +69,6 @@
     "label": "Mur à ossature en bois",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -108,7 +105,6 @@
     "kit": "cloture",
     "wallHeightM": 1.25,
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -144,7 +140,6 @@
     "label": "Porte",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -177,7 +172,6 @@
     "label": "Porte blindée",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#54432e",
@@ -210,7 +204,6 @@
     "label": "Mur en pierre",
     "kit": "moellons",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.35,
         "joint": "#33302b",
@@ -222,18 +215,6 @@
         ],
         "edgeWobble": 0.025,
         "paletteVar": 0.08
-      },
-      "speckle": {
-        "perM2": 0.3,
-        "rM": [
-          0.05,
-          0.11
-        ],
-        "colors": [
-          "#5d6b52",
-          "#4c4841"
-        ],
-        "vBias": 1.6
       }
     },
     "face": "#6b6f76",
@@ -263,7 +244,6 @@
     "label": "Porte de ville",
     "kit": "porterie",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.35,
         "joint": "#33302b",
@@ -314,7 +294,6 @@
     "kit": "cloture",
     "wallHeightM": 1.25,
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.09,
         "joint": "#453c26",
@@ -362,7 +341,6 @@
     "label": "Mantelet de bois",
     "kit": "cloture",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.22,
         "joint": "#332c20",
@@ -388,7 +366,6 @@
     "label": "Mur de château",
     "kit": "moellons",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.4,
         "joint": "#2c2925",
@@ -400,18 +377,6 @@
         ],
         "edgeWobble": 0.015,
         "paletteVar": 0.07
-      },
-      "speckle": {
-        "perM2": 0.2,
-        "rM": [
-          0.05,
-          0.11
-        ],
-        "colors": [
-          "#5d6b52",
-          "#4c4841"
-        ],
-        "vBias": 1.4
       }
     },
     "face": "#767a80",
@@ -439,7 +404,6 @@
     "label": "Mur de forteresse naine",
     "kit": "moellons",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.5,
         "joint": "#1f1d1a",
@@ -478,7 +442,6 @@
     "label": "Mur de pierre (relais fortifié)",
     "kit": "moellons",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.32,
         "joint": "#2e2b24",
@@ -509,7 +472,6 @@
     "kit": "pierres-seches",
     "wallHeightM": 1,
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.28,
         "joint": "#5d5646",
@@ -537,7 +499,6 @@
     "label": "Palissade de pieux",
     "kit": "cloture",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.5,
         "joint": "#3a2f1c",
@@ -568,25 +529,12 @@
     "label": "Terrassement",
     "kit": "terrassement",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.55,
         "joint": "#4f4530",
         "jointW": 0.025,
         "edgeWobble": 0.07,
         "paletteVar": 0.08
-      },
-      "speckle": {
-        "perM2": 0.5,
-        "rM": [
-          0.04,
-          0.09
-        ],
-        "colors": [
-          "#7a8f52",
-          "#5c6b3e"
-        ],
-        "vBias": 1.8
       }
     },
     "face": "#6b5c3f",
@@ -600,7 +548,6 @@
     "label": "Solide porte en bois",
     "kit": "colombage",
     "detail": {
-      "seedScope": "edge",
       "courses": {
         "hM": 0.3,
         "joint": "#231a10",

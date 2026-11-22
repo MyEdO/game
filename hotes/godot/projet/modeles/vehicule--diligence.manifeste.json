@@ -1,0 +1,50 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "diligence"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "repos": "repos",
+    "marche": "marche"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "caisse",
+      "palette": "vet1",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "vitre",
+      "palette": "vitre",
+      "matiere": "prop--verre"
+    }
+  ],
+  "glb": {
+    "sha256": "8bc4b002ad60125aae1532e8e9b7719744d1e2c60caa7f2169481ccb62b6ac2b",
+    "octets": 153072
+  }
+}

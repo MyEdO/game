@@ -8,6 +8,7 @@
  * saisonnier, prix de base, Marchandage) NE SONT PAS dupliquées.
  */
 import type { FabriqueDId } from './fabriqueDId';
+import type { SansMarqueNonAffichable } from '../i18n/playerText';
 import cargoesJson from '../data/cargoes.json';
 import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as cargoesDef from '../data/schemas/defs/cargoes';
@@ -211,7 +212,7 @@ export type CarrierHull = 'jambes' | 'coque';
  *  (héros : `maxEncumbrance`/`totalEncumbrance` ; bête : `encPortee` ; véhicule : `chargement` ; navire :
  *  `ship.capacity`). L'Enc occupé se DÉRIVE (`carrierUsedEnc`) — jamais un 2ᵉ compteur à maintenir. */
 export interface CargoCarrier extends PorteurLocalise {
-  label: string;
+  label: SansMarqueNonAffichable;
   hull: CarrierHull;
   /** Capacité en Points d'Enc (source de la donnée du maillon). `Infinity` = non plafonné (convoi abstrait
    *  sans véhicule matérialisé : « information, pas plafond », landMarketFlow). */

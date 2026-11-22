@@ -302,6 +302,18 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
     expect(casesADenivele(scene, 0), 'le bord de la corniche').toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]);
   });
 
+  it('DÉNIVELÉS : un décor solide à l’étage n’offre aucune chute à ses voisins, et sa case n’est pas une case à dénivelé (#4576)', () => {
+    const scene = emptyScene('scene-test', 4, 3);
+    const tiles = [...scene.layers[0].tiles];
+    for (let y = 0; y < 3; y++) tiles[y * 4 + 3] = 'vide';
+    scene.layers.push({ z: 1, tiles, height: new Array(12).fill(3) });
+    scene.entities = [{ id: 'lit', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 2, y: 1 }, z: 1 }];
+    const visible = new Set([0, 1, 2].flatMap((y) => [0, 1, 2, 3].map((x) => `${x},${y},1`)));
+
+    expect(aretesUtilisables({ scene, visible, controleur: { x: 1, y: 1, z: 1 }, activeZ: 1 }), 'le voisin du décor, au milieu du plancher').toEqual([]);
+    expect(casesADenivele(scene, 1), 'le bord du plancher, hors de la case du décor').toEqual([{ x: 2, y: 0 }, { x: 2, y: 2 }]);
+  });
+
   it('BROUILLARD : une arête dont aucune extrémité n’est éclaircie n’existe pas', () => {
     const rien = new Set<string>();
     expect(aretesUtilisables({ scene: scèneGrimpable(), visible: rien, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 })).toEqual([]);

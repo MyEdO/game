@@ -27,6 +27,7 @@ import { refusDeCourse, refusDuBinome } from './refusDuTour';
 import { peutFuir, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
+import { nomDe } from '../engine/nom';
 
 const JEZAIL = 'jezail-a-malepierre';
 const BOUCLIER = 'bouclier-de-jezail';
@@ -209,7 +210,7 @@ describe('la fuite forcée du partenaire : le bouclier tombe au sol, il fuit —
     expect(Object.values(banc.getState().objetsAuSol).map((lot) => lot[0].trappingId)).toEqual([BOUCLIER]);
     expect(banc.getState().scene!.entities.some((e) => e.kind === 'prop' && e.pos.x === 6 && e.pos.y === 5)).toBe(true);
     expect(p.pos!.x).toBeLessThan(6);
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.bouclierLacheEnFuyant', { name: P.label, weapon: LIBELLE }));
+    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.bouclierLacheEnFuyant', { name: nomDe(P), weapon: LIBELLE }));
   });
 });
 

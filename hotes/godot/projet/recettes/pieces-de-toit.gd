@@ -1,30 +1,32 @@
 extends SceneTree
 
-## Les faîtières se posent en instances sur les faîtes (#4471, `hotes/godot/pont/CONTRAT.md`, méthode `aretes`,
-## `faitieres`) : celles des échantillons de toit figés par la sonde (`toit` de `hotes/godot/recettes/decor.ts`, une
-## couverture sur ses quatre profils à 2 m comme à 3 m par case, et La Diligence), une pièce par case, posées par le volume de la scène
-## (`VolumeDeScene.poser_les_aretes`) sur les nappes de ce même échantillon (`VolumeDeScene.poser`), du modèle de toit de
-## test (`_modele_de_test` : une `faitiere` longue de 2 m le long de X, Y à 0 sur l'arête du faîte, un V en travers dont
-## chaque bras descend d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de la réponse de
-## `modeles`). Chaque faîtière a son instance ; son arête court d'un bout du faîte à l'autre, à sa cote, et deux faîtières
-## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, le bout de chaque bras repose sur le plus haut
-## des triangles des nappes posées à son aplomb, quelle que soit sa nappe, sauf au bout libre INTÉRIEUR d'un faîte (aucune
-## faîtière voisine, et le toit continue une demi-case au-delà sur son axe, `_bout_interieur`), où le faîte finit sur
-## ses arêtiers ou ses noues : ces bras se comptent sans se sonder ; un bout de rive, que seul le débord prolonge, se sonde ;
-## cachée avec sa nappe
-## (`VolumeDeScene.cacher`), elle quitte les instances
-## vues, et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
+## Les pièces de toit se posent en instances sur les arêtes des toits (#4471, `hotes/godot/pont/CONTRAT.md`, méthode
+## `aretes`, `piecesDeToit`) : celles des échantillons de toit figés par la sonde (`toit` de `hotes/godot/recettes/decor.ts`,
+## une couverture sur ses quatre profils à 2 m comme à 3 m par case, et La Diligence), une pièce par case, faîtières,
+## arêtiers et noues, posées par le volume de la scène (`VolumeDeScene.poser_les_aretes`) sur les nappes de ce même
+## échantillon (`VolumeDeScene.poser`), du modèle de toit de test (`_modele_de_test` : une `faitiere` longue de `LONG`,
+## un `aretier` et une `noue` longs de `LONG_D_ARETE`, chacun le long de X, Y à 0 sur son arête, un V en travers dont
+## chaque bras descend, ou monte pour la noue, d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de
+## la réponse de `modeles`), chaque pièce que son kit porte. Chaque pièce a son instance ; son arête court d'un bout à
+## l'autre, à leurs cotes, cisaillée de son gradient, et deux pièces voisines se rejoignent au bout qu'elles partagent ;
+## au modèle de test, le bout de chaque bras de chaque pièce repose sur le plus haut des triangles des nappes posées à
+## son aplomb, quelle que soit sa nappe, sans exception : une arête recule à un nœud de ce dont sa pose y déborderait
+## (`src/noyau/monde/piecesDeToit.ts`) ; cachée avec sa nappe (`VolumeDeScene.cacher`), elle quitte les instances vues,
+## et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
 const RECETTE_AUTONOME := true
 ## La recette des arêtes au pied : ses volumes (`volume_neuf`).
 const ARETE := preload("res://recettes/arete-au-pied.gd")
 const FIGE := "res://recettes/vues/decor.json"
 const EPSILON := 0.001
-## Le modèle de test, servi à la famille des faîtières figées le temps de sa passe : sa faîtière longue de `LONG`, ses
-## bras larges de `BRAS` en travers, descendant d'autant.
+## Le modèle de test, servi à la famille des pièces de toit figées le temps de sa passe : sa faîtière longue de `LONG`,
+## son arêtier et sa noue longs de `LONG_D_ARETE` (la diagonale d'une case de 2 m), leurs bras larges de `BRAS` en
+## travers, descendant d'autant, montant d'autant pour la noue (`SENS_DES_BRAS`).
 const MODELE_DE_TOIT := "toit--test"
 const LONG := 2.0
+const LONG_D_ARETE := 2.0 * sqrt(2.0)
 const BRAS := 0.4
+const SENS_DES_BRAS := {faitiere = -1.0, aretier = -1.0, noue = 1.0}
 ## La part de la longueur de la pièce où se sondent les bouts de ses bras, en deçà de ses bouts.
 const SONDE := 0.8
 ## L'écart, en mètres, dont les rangs coplanaires des faces d'une nappe (`COPLANAR_BIAS_M` de
@@ -38,33 +40,35 @@ func _initialize() -> void:
 
 
 func _recetter() -> void:
-	print("[faitieres] version=", Engine.get_version_info().string)
+	print("[pieces-de-toit] version=", Engine.get_version_info().string)
 	var decor: Variant = JSON.parse_string(FileAccess.get_file_as_string(FIGE))
 	var echantillons: Dictionary = decor.get("toit", {}) if decor is Dictionary else {}
-	if echantillons.is_empty() or echantillons.values().any(func(e: Dictionary) -> bool: return e.faitieres.is_empty()):
-		push_error("[faitieres] %s : aucun échantillon de toit figé, ou un échantillon sans faîtière" % FIGE)
+	if echantillons.is_empty() or echantillons.values().any(func(e: Dictionary) -> bool: return e.piecesDeToit.is_empty()):
+		push_error("[pieces-de-toit] %s : aucun échantillon de toit figé, ou un échantillon sans pièce de toit" % FIGE)
 		quit(2)
 		return
 	var servis: Dictionary = decor.modeles.get("toits", {})
-	print("[faitieres] échantillons à %s m par case, modèles de toit servis au figé : %s" % [echantillons.keys(), servis])
+	print("[pieces-de-toit] échantillons à %s m par case, modèles de toit servis au figé : %s" % [echantillons.keys(), servis])
 	for cle: String in echantillons:
 		var echantillon: Dictionary = echantillons[cle]
 		var moment := "test, %s (%s m par case)" % [cle, echantillon.monde.metresParCase]
 		var volume := _volume_de_test(echantillon)
-		volume.poser_les_aretes([], [], echantillon.faitieres)
-		_des_faitieres(volume, echantillon.faitieres, moment, true)
-		_avec_leur_nappe(volume, echantillon.faitieres, moment)
+		volume.poser_les_aretes([], [], echantillon.piecesDeToit)
+		_des_pieces(volume, echantillon.piecesDeToit, moment, true)
+		_avec_leur_nappe(volume, echantillon.piecesDeToit, moment)
 	PontFige.poser(self, decor)
 	MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
 	var echantillon: Dictionary = echantillons.diligence
 	for servie: String in servis:
 		var volume := _volume(echantillon)
-		volume.poser_les_aretes([], [], echantillon.faitieres.map(func(f: Dictionary) -> Dictionary: return f.merged({famille = servie}, true)))
+		var pieces: Array = echantillon.piecesDeToit.map(func(f: Dictionary) -> Dictionary: return f.merged({famille = servie}, true))
+		volume.poser_les_aretes([], [], pieces)
 		await volume.attendre_les_aretes()
-		_des_faitieres(volume, echantillon.faitieres, "servi %s" % servis[servie], false)
+		var scene: Node = volume._modeles_d_arete[servis[servie]].scene
+		_des_pieces(volume, pieces.filter(func(f: Dictionary) -> bool: return not VolumeDeScene.noeud_de_la_piece(scene, f.piece, f.position).is_empty()), "servi %s" % servis[servie], false)
 	for faute in _fautes:
-		push_error("[faitieres] " + faute)
-	print("[faitieres] erreurs=", _fautes.size())
+		push_error("[pieces-de-toit] " + faute)
+	print("[pieces-de-toit] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
 
 
@@ -78,37 +82,40 @@ func _volume(echantillon: Dictionary) -> VolumeDeScene:
 	return volume
 
 
-## `_volume`, le modèle de test retenu, servi à la famille des faîtières de l'échantillon, et lu.
+## `_volume`, le modèle de test retenu, servi à la famille des pièces de toit de l'échantillon, et lu.
 func _volume_de_test(echantillon: Dictionary) -> VolumeDeScene:
-	var famille: String = echantillon.faitieres[0].famille
+	var famille: String = echantillon.piecesDeToit[0].famille
 	MontageDeComposition.retenir_les_modeles({toits = {famille: MODELE_DE_TOIT}, surfaces = {MODELE_DE_TOIT: []}}, {})
 	var volume := _volume(echantillon)
 	volume._modeles_d_arete[MODELE_DE_TOIT] = _modele_de_test()
 	return volume
 
 
-## Le modèle de test : un nœud racine `faitiere` à mesh, deux bras en V de `LONG` le long de X, de l'arête (Y = 0,
-## Z = 0) à leur bout (Y = −`BRAS`, Z = ±`BRAS`) ; et la taille du modèle.
+## Le modèle de test : un nœud racine à mesh par pièce de toit, deux bras en V le long de X, de l'arête (Y = 0, Z = 0)
+## à leur bout (Y = ±`BRAS` selon `SENS_DES_BRAS`, Z = ±`BRAS`), longs de `LONG` pour la faîtière, de `LONG_D_ARETE`
+## pour l'arêtier et la noue ; et la taille du modèle.
 static func _modele_de_test() -> Dictionary:
 	var scene := Node3D.new()
-	var maillage := MeshInstance3D.new()
-	maillage.name = Noyau.PieceDeToit.FAITIERE
-	var sommets := PackedVector3Array()
-	for cote: float in [-1.0, 1.0]:
-		var a := Vector3(-LONG / 2.0, 0.0, 0.0)
-		var b := Vector3(LONG / 2.0, 0.0, 0.0)
-		var c := Vector3(LONG / 2.0, -BRAS, cote * BRAS)
-		var d := Vector3(-LONG / 2.0, -BRAS, cote * BRAS)
-		sommets.append_array([a, b, c, a, c, d])
-	var tableaux := []
-	tableaux.resize(Mesh.ARRAY_MAX)
-	tableaux[Mesh.ARRAY_VERTEX] = sommets
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-	mesh.surface_set_material(0, StandardMaterial3D.new())
-	maillage.mesh = mesh
-	scene.add_child(maillage)
-	return {scene = scene, taille = Vector3(LONG, BRAS, 2.0 * BRAS)}
+	for piece: String in [Noyau.PieceDeToit.FAITIERE, Noyau.PieceDeToit.ARETIER, Noyau.PieceDeToit.NOUE]:
+		var long := LONG if piece == Noyau.PieceDeToit.FAITIERE else LONG_D_ARETE
+		var maillage := MeshInstance3D.new()
+		maillage.name = piece
+		var sommets := PackedVector3Array()
+		for cote: float in [-1.0, 1.0]:
+			var a := Vector3(-long / 2.0, 0.0, 0.0)
+			var b := Vector3(long / 2.0, 0.0, 0.0)
+			var c := Vector3(long / 2.0, SENS_DES_BRAS[piece] * BRAS, cote * BRAS)
+			var d := Vector3(-long / 2.0, SENS_DES_BRAS[piece] * BRAS, cote * BRAS)
+			sommets.append_array([a, b, c, a, c, d])
+		var tableaux := []
+		tableaux.resize(Mesh.ARRAY_MAX)
+		tableaux[Mesh.ARRAY_VERTEX] = sommets
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+		mesh.surface_set_material(0, StandardMaterial3D.new())
+		maillage.mesh = mesh
+		scene.add_child(maillage)
+	return {scene = scene, taille = Vector3(LONG_D_ARETE, 2.0 * BRAS, 2.0 * BRAS)}
 
 
 ## Le repère qui porte un point du modèle de la pose `pose`, posée dans `groupe`, au monde.
@@ -118,26 +125,19 @@ static func _au_monde(volume: VolumeDeScene, groupe: Node3D, pose: Dictionary) -
 	return vu.global_transform * volume.transform_d_instance(vu, pose) * dans_le_groupe.affine_inverse()
 
 
-## Les groupes des faîtières posées sur `volume`.
+## Les groupes des pièces de toit posées sur `volume`.
 static func _groupes(volume: VolumeDeScene) -> Array:
 	return volume.get_node("Aretes").get_children().filter(func(g: Node3D) -> bool: return g.get_meta("aretes")[0].catalogue == "toits")
 
 
-## Les faîtières `faitieres` posées sur `volume`, au moment `moment` : une instance chacune, son arête d'un bout du faîte
-## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le toit à son aplomb, hors
-## des bouts libres intérieurs.
-func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur_les_pans: bool) -> void:
+## Les pièces de toit `pieces` posées sur `volume`, au moment `moment` : une instance chacune, son arête d'un bout à
+## l'autre à leurs cotes, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le toit à son aplomb.
+func _des_pieces(volume: VolumeDeScene, pieces: Array, moment: String, sur_les_pans: bool) -> void:
 	var triangles := _triangles_des_nappes(volume)
-	var extremites := {}
-	for f: Dictionary in faitieres:
-		for cote: float in [-0.5, 0.5]:
-			var coin := Vector2(f.milieu.x + f.sens.x * cote, f.milieu.y + f.sens.y * cote)
-			var cle := Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON))
-			extremites[cle] = extremites.get(cle, 0) + 1
 	var bouts := {}
 	var poses := 0
 	var sondes := 0
-	var libres := 0
+	var par_piece := {}
 	var tolerance := EPSILON + RANGS_M / volume.metres_par_case
 	for groupe: Node3D in _groupes(volume):
 		var de_groupe: Array = groupe.get_meta("aretes")
@@ -146,8 +146,11 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 				_fautes.append("%s, groupe %s : %d instances pour %d poses" % [moment, groupe.name, vu.multimesh.instance_count, de_groupe.size()])
 		for pose: Dictionary in de_groupe:
 			poses += 1
+			par_piece[pose.piece] = par_piece.get(pose.piece, 0) + 1
 			var monde := _au_monde(volume, groupe, pose)
-			var long := volume.taille_du_modele_d_arete(VolumeDeScene.modele_servi("toits", pose.famille)).x / 2.0
+			var modele := VolumeDeScene.modele_servi("toits", pose.famille)
+			var noeud := VolumeDeScene.noeud_de_la_piece(volume._modeles_d_arete[modele].scene, pose.piece, pose.position)
+			var long := volume.taille_de_la_piece(modele, noeud).x / 2.0
 			var sens := Vector2(pose.sens.x, pose.sens.y)
 			var milieu := Vector2(pose.milieu.x, pose.milieu.y)
 			for bout: Array in [[-1.0, pose.entree], [1.0, pose.sortie]]:
@@ -155,45 +158,31 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 				var attendu := Vector3(coin.x + MiseEnPage.DEMI_CASE, bout[1] / volume.metres_par_case, coin.y + MiseEnPage.DEMI_CASE)
 				var lu: Vector3 = monde * Vector3(bout[0] * long, 0.0, 0.0)
 				if lu.distance_to(attendu) > EPSILON:
-					_fautes.append("%s, %s : bout %s du faîte à %s, attendu %s" % [moment, pose.cle, bout[0], lu, attendu])
+					_fautes.append("%s, %s : bout %s de l'arête à %s, attendu %s" % [moment, pose.cle, bout[0], lu, attendu])
 				bouts.get_or_add(Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON)), []).append(lu)
 			if sur_les_pans:
 				for le_long: float in [-SONDE, 0.0, SONDE]:
-					var bout_du_cote: Vector2 = milieu + sens * signf(le_long) / 2.0
-					var libre: bool = le_long != 0.0 and extremites.get(Vector2(snappedf(bout_du_cote.x, EPSILON), snappedf(bout_du_cote.y, EPSILON)), 0) == 1 \
-							and _bout_interieur(triangles, bout_du_cote, sens.normalized() * signf(le_long))
 					for cote: float in [-1.0, 1.0]:
-						if libre:
-							libres += 1
-							continue
-						var bras: Vector3 = monde * Vector3(le_long * LONG / 2.0, -BRAS, cote * BRAS)
+						var bras: Vector3 = monde * Vector3(le_long * long, SENS_DES_BRAS[pose.piece] * BRAS, cote * BRAS)
 						var pan := _pan_sous(triangles, bras)
 						sondes += 1
 						var sous := NAN if pan.is_empty() else _cote_du_plan(pan, bras)
 						if is_nan(sous) or absf(bras.y - sous) > tolerance:
 							_fautes.append("%s, %s : bras %s à %.4f, pan à %.4f" % [moment, pose.cle, cote, bras.y, sous])
-	if poses != faitieres.size():
-		_fautes.append("%s : %d faîtières posées, attendu %d" % [moment, poses, faitieres.size()])
+	if poses != pieces.size():
+		_fautes.append("%s : %d pièces de toit posées, attendu %d" % [moment, poses, pieces.size()])
 	var jointes := 0
 	for coin: Vector2 in bouts:
 		var points: Array = bouts[coin]
 		if points.size() > 1:
 			jointes += 1
 			if points.any(func(p: Vector3) -> bool: return p.distance_to(points[0]) > EPSILON):
-				_fautes.append("%s : au bout %s, les faîtières voisines s'arrêtent à %s" % [moment, coin, points])
-	if jointes == 0 and faitieres.size() > 1:
-		_fautes.append("%s : aucune faîtière voisine d'une autre, la continuité ne se recette pas" % moment)
+				_fautes.append("%s : au bout %s, les pièces voisines s'arrêtent à %s" % [moment, coin, points])
+	if jointes == 0 and pieces.size() > 1:
+		_fautes.append("%s : aucune pièce voisine d'une autre, la continuité ne se recette pas" % moment)
 	if sur_les_pans and sondes == 0:
 		_fautes.append("%s : aucun bras sondé sur son pan" % moment)
-	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d au bout libre intérieur d'un faîte" % [moment, poses, jointes, sondes, libres])
-
-
-## Le bout `coin` d'un faîte (repère des cases centrées), qui court vers `sens` à la cote `cote` (unités du plateau),
-## est-il INTÉRIEUR ? Une demi-case au-delà, sur son axe, le toit continue : la croupe passé les arêtiers, ou le pan que
-## les noues rejoignent. Au bout d'une rive, le débord s'arrête en deçà (tant qu'il reste plus court qu'une demi-case).
-static func _bout_interieur(triangles: Array, coin: Vector2, sens: Vector2) -> bool:
-	var au_dela := coin + sens * MiseEnPage.DEMI_CASE
-	return not _pan_sous(triangles, Vector3(au_dela.x + MiseEnPage.DEMI_CASE, 0.0, au_dela.y + MiseEnPage.DEMI_CASE)).is_empty()
+	print("[pieces-de-toit] %s : %d pièces %s, %d bouts joints, %d bras sondés" % [moment, poses, par_piece, jointes, sondes])
 
 
 ## Les triangles des nappes posées sur `volume`, au monde, ceux qui ne sont pas verticaux.
@@ -239,10 +228,10 @@ static func _pan_sous(triangles: Array, p: Vector3) -> Array:
 	return dessus
 
 
-## Chaque faîtière de `faitieres` posée sur `volume` cachée avec sa nappe (`cacher`), hors des instances vues de son
+## Chaque pièce de `pieces` posée sur `volume` cachée avec sa nappe (`cacher`), hors des instances vues de son
 ## groupe, et rendue avec elle.
-func _avec_leur_nappe(volume: VolumeDeScene, faitieres: Array, moment: String) -> void:
-	for f: Dictionary in faitieres:
+func _avec_leur_nappe(volume: VolumeDeScene, pieces: Array, moment: String) -> void:
+	for f: Dictionary in pieces:
 		volume.cacher([], [f.nappe], [])
 		if _vue(volume, f.cle):
 			_fautes.append("%s, %s : vue sous sa nappe %s cachée" % [moment, f.cle, f.nappe])

@@ -136,9 +136,9 @@ import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, manannBase, seaBoardEventById,
-  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, removeCargo, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
+  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, removeCargo, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
-  type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
+  type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import {
   navalMoveMod,
@@ -163,7 +163,6 @@ import {
   facteurDuVivreSeul,
   facteursDeVivreSeul,
   moraleBand,
-  weeklyCrewWageBrass,
   crewTalentDR,
   UNDERCREW_DR,
   capToSuccesMinime,
@@ -171,7 +170,7 @@ import {
   rudeEpreuveMoraleDelta,
   SUCCES_MINIME_CAP,
 } from '../engine/crewMorale';
-import { mangerLaCale, noterLeRepas, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
+import { mangerLaCale, noterLeRepas, rationsDeCale } from '../engine/provisions';
 import { toMoney, toBrass, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
@@ -189,7 +188,14 @@ import {
 } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { applyContraction, contractionDue, diseaseDefs, diseaseHasCapability, maladieDeclaree, type Disease } from '../engine/disease';
+import {
+  applyContraction,
+  contractionDue,
+  diseaseDefs,
+  diseaseHasCapability,
+  maladieDeclaree,
+  nomDuPorteurDeMaladies,
+} from '../engine/disease';
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
@@ -243,6 +249,7 @@ import { lierLeRetourDesMarins, referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `equipage-zero-dr-succes` comprise) dans
@@ -595,59 +602,12 @@ export function raisonDuRefusDAppareiller(refus: RefusDAppareiller): string {
   return refus.motif === 'cale' ? t('sv.refusCale', { pct: refus.ratioPct }) : t('sv.refusImmobile');
 }
 
-/** Blessures de coque d'un navire de campagne : maximum, courantes, à restaurer. SOURCE UNIQUE du
- *  dossier du navire et du devis de chantier. PUR. */
+/** Blessures de coque d'un navire de campagne : maximum, courantes, à restaurer. SOURCE UNIQUE du devis de
+ *  chantier et des réparations. PUR. */
 export function blessuresDeCoqueARestaurer(vessel: CampaignVessel): { max: number; current: number; missing: number } {
   const max = vessel.wounds?.max ?? findVehicleById(vessel.vehicleId)?.hull?.char.B ?? 0;
   const current = vessel.wounds?.current ?? max;
   return { max, current, missing: max - current };
-}
-
-/** Jours entiers où `bouches` mangent à leur faim à la cale depuis la minute `now`, péremption comprise (`mangerLaCale`). MDG 14 l.238 */
-function joursDeVivres(lots: readonly LotDeVivres[], bouches: number, now: number): number {
-  let cale = lots;
-  let jours = 0;
-  for (;;) {
-    const repas = mangerLaCale(cale, bouches, 1, now + jours * MINUTES_PER_DAY);
-    if (repas.manque > 0) return jours;
-    cale = repas.lots;
-    jours++;
-  }
-}
-
-/** Dossier d'un navire de campagne : coque, cale (MDG 12 l.70-75), refus d'appareiller, population
- *  embarquée (`shipboardSouls`, MDG 14 l.238), autonomies, soldes et maladies du porteur collectif de l'équipage
- *  (`CampaignVessel.porteurDeLEquipage`, MDG 14 l.172). Vue PURE lue par l'écran du dossier. */
-export interface DossierDuNavire {
-  woundsMax: number; woundsCur: number; missing: number;
-  capacity: number; cargoEnc: number; overload: CargoOverload; cargoMax: number; cargoMarks: number[];
-  refusDAppareiller: string | null;
-  heroes: number; crewCount: number; autonomyDays: number | null; provisionDays: number | null; weeklyWageBrass: number;
-  soldesParRole: { roleId: string; count: number; weeklyBrass: number }[];
-  maladiesDeLEquipage: Pick<Disease, 'id' | 'phase'>[];
-}
-
-/** `null` : le type du navire n'a pas de profil naval. */
-export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[], now: number): DossierDuNavire | null {
-  const vd = findVehicleById(vessel.vehicleId);
-  if (!vd?.ship) return null;
-  const { max: woundsMax, current: woundsCur, missing } = blessuresDeCoqueARestaurer(vessel);
-  const capacity = vd.ship.capacity;
-  const cargoEnc = cargoTotalEnc(vessel.cargo ?? []);
-  const refus = refusDAppareiller(vessel);
-  const { heroes, crew: crewCount } = shipboardSouls({ party, vessel });
-  const dailyWater = provisioningManifest(party, vessel.waterLitres, 1, now, { count: crewCount, provisions: vessel.provisions }).eauRequiseLitres;
-  return {
-    woundsMax, woundsCur, missing,
-    capacity, cargoEnc, overload: cargoOverload(cargoEnc, capacity), cargoMax: overloadMaxEnc(capacity), cargoMarks: overloadMarks(capacity),
-    refusDAppareiller: refus ? raisonDuRefusDAppareiller(refus) : null,
-    heroes, crewCount,
-    autonomyDays: vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null,
-    provisionDays: vessel.provisions != null && crewCount > 0 ? joursDeVivres(vessel.provisions, crewCount, now) : null,
-    weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
-    soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
-    maladiesDeLEquipage: (vessel.porteurDeLEquipage?.diseases ?? []).map(({ id, phase }) => ({ id, phase })),
-  };
 }
 
 /** Refus d'un départ en mer (`null` : le navire de campagne appareille) — les cas où `buildSeaPlan` rend
@@ -1367,7 +1327,7 @@ export function startFastVoyage(
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
-  log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
+  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -1426,8 +1386,6 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     patch.waterLitres = Math.max(0, vessel.waterLitres - souls * dailyWaterLitres('mediane') * fast.days);
   }
   if (vessel) set({ vessel: { ...vessel, ...patch } });
-  // Vivres de l'équipage PNJ sur toute la traversée rapide (MÊME couture que le détaillé).
-  log(get, set, consumeCrewProvisions(get, set, fast.days));
   const minutes = fast.days * MINUTES_PER_DAY;
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + minutes } });
   continuerLeTempsEnMer(get, set);
@@ -1444,6 +1402,13 @@ function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours
 function contagionPossibleABord(porteurs: ReturnType<typeof porteursABord>): boolean {
   return rule('maladie-mode') !== 'off' && porteurs.some((source) =>
     source.porteur.diseases?.some((maladie) => diseaseHasCapability(maladie, 'contagious')));
+}
+
+/** Minutes jusqu'au jour où le premier porteur à bord atteint un multiple de `JOURS_DU_MOIS` jours sans vivre
+ *  frais (`buildScurvySteps`). MDG 14 l.230 */
+function avantLeProchainMoisSansFrais(porteurs: ReturnType<typeof porteursABord>, debut: number): number {
+  const jours = Math.min(...porteurs.map(({ porteur }) => JOURS_DU_MOIS - ((porteur.regimeDeBord?.joursSansVivreFrais ?? 0) % JOURS_DU_MOIS)));
+  return (minutesUntilNext(debut, 0) || MINUTES_PER_DAY) + (jours - 1) * MINUTES_PER_DAY;
 }
 
 function prochaineEcheance(s: Jeu, maximum: number): number {
@@ -1488,20 +1453,39 @@ function suspendreLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: nu
   confierLaSuite(set, [{ verbe: 'reprendreLeTempsEnMer', borneDuPas, minutes, apresLesRounds }]);
 }
 
+/** La journée de mer en cours accoste-t-elle (ses milles achèvent la traversée) ? */
+function accosteAujourdhui(plan: TravelPlan, sea: SeaVoyageState): boolean {
+  return plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
+}
+
+/** Fin d'un pas d'horloge en mer : en voyage rapide, l'entretien des Rounds et du jour, et le scorbut au jour
+ *  franchi ; jour par jour, au dernier pas du jour d'arrivée, l'entretien des jours franchis, joué à bord, et le
+ *  scorbut de qui ce repas mène à un multiple de `JOURS_DU_MOIS`. MDG 14 l.230 ; #4453 */
 function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: number, apresLesRounds?: true): boolean {
-  if (get().travelPlan?.sea?.fast && minutes > 0) {
+  const jourFranchi = dayIndex(borneDuPas) > dayIndex(borneDuPas - minutes);
+  const plan = get().travelPlan;
+  const sea = plan?.sea;
+  if (sea?.fast && minutes > 0) {
     if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
       suspendreLePasEnMer(get, set, borneDuPas, minutes, true);
       return false;
     }
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
-    if (entretien.steps.length
-      && !jouerLesBandesDeSanteEnMer(get, set, entretien.steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+    const steps = [...entretien.steps, ...(jourFranchi ? buildScurvySteps(get, set) : [])];
+    if (steps.length
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+  } else if (plan && sea?.tempsEnMer && borneDuPas >= sea.tempsEnMer.fin && accosteAujourdhui(plan, sea)) {
+    const avant = joursSansFraisABord(get, set);
+    const entretien = preparerLEntretienQuotidien(get, set, minutes);
+    noteSeaLine(get, set, entretien.log);
+    const steps = [...entretien.steps, ...buildScurvySteps(get, set, avant)];
+    if (steps.length
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', 'Entretien quotidien')) return false;
   }
   return !checkPartyWiped(get, set);
 }
 
-/** LDB 20 l.12-13, l.206 ; MDG 14 l.208 ; MDG 15 l.25 */
+/** LDB 20 l.12-13, l.206 ; MDG 14 l.208, l.230 ; MDG 15 l.25 */
 export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeStep[]): void {
   if (doneSteps && !get().travelPlan?.sea?.fast) noteSeaLine(get, set, lignesResolues(doneSteps));
   for (;;) {
@@ -1521,9 +1505,10 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
     if (fin === undefined) {
       const porteurs = porteursABord(get, set);
       const restantes = temps.fin - debut;
-      const avantEntretien = sea.fast && contagionPossibleABord(porteurs) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
+      const avantEntretien = sea.fast && (contagionPossibleABord(porteurs) || get().vessel?.provisions != null) ? minutesUntilNext(debut, 0) || MINUTES_PER_DAY : restantes;
       const avantEcheance = prochaineEcheance(get(), restantes);
-      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance));
+      const avantScorbut = sea.fast ? avantLeProchainMoisSansFrais(porteurs, debut) : restantes;
+      const maximum = bornerParLeCycleDeLEquipage(porteurs, debut, Math.min(restantes, avantEntretien, avantEcheance, avantScorbut));
       const pas = calculerLePasDExposition(get, set, maximum, [porteurs]);
       fin = debut + pas.minutes;
       const steps = bandesDeContagion(get, set, pas.tests);
@@ -1539,6 +1524,7 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
       patchSea(get, set, { tempsEnMer: { fin: temps.fin } });
     }
     const minutes = fin - debut;
+    if (sea.fast) log(get, set, consumeCrewProvisions(get, set, dayIndex(fin) - dayIndex(debut)));
     const avant = comptePasDifferes(get());
     if (minutes > 0) get().avancerLHorloge(minutes);
     else fireScheduledEffects(get, set);
@@ -1743,12 +1729,13 @@ const JOURS_DE_SOUPE_REGULIERS = 15;
  * SCORBUT — UNE bande dont les porteurs à bord appelés sont les RANGÉES (`porteursABord` : PJ et équipage
  * collectif), comme le Mal de mer ci-dessus. Appelé : le porteur dont les jours sans vivre frais
  * (`regimeDeBord`) atteignent un multiple de `JOURS_DU_MOIS`. Difficulté de RANGÉE : Facile pour qui a mangé
- * `JOURS_DE_SOUPE_REGULIERS` jours de soupe de chou fermenté, Intermédiaire sinon. MDG 14 l.230-232
+ * `JOURS_DE_SOUPE_REGULIERS` jours de soupe de chou fermenté, Intermédiaire sinon. `avant` : les comptes d'avant un
+ * repas, seul appelé qui l'a vu changer. MDG 14 l.230-232
  */
-function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
-  const appeles = porteursABord(get, set).filter(({ porteur }) => {
+function buildScurvySteps(get: Get, set: Set, avant?: ReadonlyMap<string, number>): BuiltCascadeStep[] {
+  const appeles = porteursABord(get, set).filter(({ id, porteur }) => {
     const jours = porteur.regimeDeBord?.joursSansVivreFrais ?? 0;
-    return jours > 0 && jours % JOURS_DU_MOIS === 0 && contractionDue(porteur, 'scorbut');
+    return jours > 0 && jours % JOURS_DU_MOIS === 0 && avant?.get(id) !== jours && contractionDue(porteur, 'scorbut');
   });
   if (!appeles.length) return [];
   const bande = buildBand(get, {
@@ -1761,6 +1748,11 @@ function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
     }),
   });
   return bande ? [bande] : [];
+}
+
+/** Les jours sans vivre frais de chaque porteur à bord, par id de rangée (`buildScurvySteps`). */
+function joursSansFraisABord(get: Get, set: Set): Map<string, number> {
+  return new Map(porteursABord(get, set).map(({ id, porteur }) => [id, porteur.regimeDeBord?.joursSansVivreFrais ?? 0]));
 }
 
 /** Lignes de conclusion d'une séquence RÉSOLUE D'OFFICE (aucune fenêtre ne les a montrées) : celles des
@@ -1841,14 +1833,12 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   if (doneSteps) noteSeaLine(get, set, lignesResolues(doneSteps));
   const sea = plan.sea;
 
-  // Horloge : à l'ARRIVÉE au port, la journée entière passe (+24 h) — l'entretien du jour est rattrapé
-  // par le prochain `runDailyUpkeep` (garde `lastUpkeepDay`). Sinon (HALTE de nuit / activités en mer)
-  // la traversée s'arrête au crépuscule et la nuit de sommeil enjambe minuit : UN SEUL franchissement de
-  // jour par cycle jour+nuit (comme le voyage terrestre). L'ENTRETIEN (rations/faim, maladies,
-  // convalescence) n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans
-  // la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  const arrived = plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
-  const dayMinutes = arrived ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
+  // Horloge : à l'ARRIVÉE au port, la journée entière passe (+24 h) — l'entretien des jours franchis se joue
+  // à bord, au dernier pas (`terminerLePasEnMer`). Sinon (HALTE de nuit / activités en mer) la traversée
+  // s'arrête au crépuscule ; l'ENTRETIEN des jours franchis (rations/faim, maladies, convalescence), minuit
+  // passé en route compris, n'est jamais roulé en route (sinon la Faim s'installe avant le repas) : il se
+  // résout dans la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`, soins du soignant compris.
+  const dayMinutes = accosteAujourdhui(plan, sea) ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + dayMinutes } });
   continuerLeTempsEnMer(get, set);
 }
@@ -1868,7 +1858,7 @@ function jouerLaTemperatureDuJour(get: Get, set: Set): void {
     for (const h of get().party) {
       if (h.dead) continue;
       if (isWeatherWarded(h)) { // protection magique : aucun Test à jouer
-        tell(get, set, [t('sv.wardedExposure', { name: h.label, what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
+        tell(get, set, [t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
       const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
@@ -2120,13 +2110,13 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     if (step.drCible != null) {
       let etape = { total: 0, done: step.drCible <= 0 };
       for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(value, difficulty, rng), step.drCible);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      tell(get, set, [t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
       let t = rollTest(value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
-      tell(get, set, [tr('sv.engineRestart', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
+      tell(get, set, [tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
     }
   }
   return lastDR;
@@ -2153,7 +2143,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
+    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines]);
   }
 
   // Moteur détruit : l'Amélioration Propulsion à vapeur saute (à ré-installer au chantier) → le navire
@@ -2208,9 +2198,9 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
+    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines]);
   } else if (eng) {
-    tell(get, set, [t('sv.dodgedSteam', { name: eng.label })]);
+    tell(get, set, [t('sv.dodgedSteam', { name: nomDe(eng) })]);
   }
   if (get().travelPlan?.sea) continueSeaDayFromPostProgression(get, set);
 }
@@ -2262,7 +2252,7 @@ function coqueDuPont(get: Get): CoqueDuPont | null {
   const navireDeCampagne = estLeNavireDeCampagne(coque, vessel);
   return {
     ref: coque.creatureId,
-    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : coque.label,
+    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : nomDe(coque),
     navireDeCampagne,
   };
 }
@@ -3167,7 +3157,7 @@ export const TABLES = {
         if (porteur.regimeDeBord) porteur.regimeDeBord = { ...porteur.regimeDeBord, joursDeSoupe: 0 };
         // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
         if (applyContraction(porteur, 'scorbut', row.result.success, battleRng()).length) {
-          lignes.push({ text: t('sv.scurvyGot', { name: porteur.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+          lignes.push({ text: t('sv.scurvyGot', { name: nomDuPorteurDeMaladies(porteur), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
         }
         aLui.ecrire();
       }
@@ -3183,7 +3173,7 @@ export const TABLES = {
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
         if (!hero || !row.result || row.result.success) continue;
-        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: hero.label }), tone: 'echec' });
+        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: nomDe(hero) }), tone: 'echec' });
       }
       touchParty(get, set);
       return { consequences: freeCons(lignes) };
@@ -3195,7 +3185,7 @@ export const TABLES = {
       const lignes: FreeConsLine[] = [];
       for (const row of step.participants ?? []) {
         const verdict = contracterABord(get, set, row, diseaseId, battleRng());
-        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: verdict.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
+        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: nomDuPorteurDeMaladies(verdict.porteur), disease: diseaseLabel(diseaseId) }), tone: 'echec' });
       }
       return { consequences: freeCons(lignes) };
     },
@@ -3217,7 +3207,7 @@ export const TABLES = {
         // Succès sans effet (rien à ajouter) → aucune conséquence.
         if (!hero || !row.result || row.result.success) continue;
         addCondition(hero, 'extenue');
-        lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
+        lignes.push({ text: t('sv.exhaustionGot', { name: nomDe(hero), diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
       }
       set({ party: [...get().party] });
       return { consequences: freeCons(lignes) };
