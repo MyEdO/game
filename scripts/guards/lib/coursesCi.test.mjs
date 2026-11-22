@@ -521,14 +521,28 @@ test('motifDAnnulation : le message de la PREMIÈRE annotation `failure`, sinon 
   assert.equal(motifDAnnulation({ message: 'pas une liste' }), null)
 })
 
-test('verdictJuge : les jobs ne se lisent que sur une course ROUGE, sur son ESSAI ; illisibles, elle reste rouge et le dit', () => {
+test('verdictJuge #4197 : une course EN VOL se juge sur ses jobs déjà conclus, sur son ESSAI : un job rouge la dit rouge ; sans job rouge, annulés compris, ou jobs illisibles, elle reste en vol', () => {
+  const lus = []
+  const lire = (valeur) => (id, attempt) => { lus.push([id, attempt]); return valeur }
+  const enVol = course({ status: 'in_progress', conclusion: null, databaseId: 43444480744, attempt: 1 })
+  const rouge = verdictJuge([enVol], 'aaa', lire({ disponible: true, valeur: { rouges: ['suite 2/3'], annules: [], motif: null } }))
+  assert.deepEqual([rouge.etat, rouge.rouges, rouge.course.databaseId], ['rouge', ['suite 2/3'], 43444480744])
+  assert.equal(phraseDesJobs(rouge), 'jobs rouges : suite 2/3')
+  assert.deepEqual(lus, [[43444480744, 1]])
+  for (const jobs of [{ disponible: true, valeur: { rouges: [], annules: [], motif: null } }, { disponible: true, valeur: { rouges: [], annules: ['docs'], motif: 'm' } }, { disponible: false, raison: 'gh a rendu 1' }]) {
+    const vu = verdictJuge([enVol], 'aaa', lire(jobs))
+    assert.deepEqual(vu, { etat: 'en-vol', course: enVol }, JSON.stringify(jobs))
+  }
+})
+
+test('verdictJuge : les jobs ne se lisent que sur une course ROUGE ou en vol, sur son ESSAI ; illisibles, une course rouge reste rouge et le dit', () => {
   const lus = []
   const lire = (valeur) => (id, attempt) => { lus.push([id, attempt]); return valeur }
   for (const conclusion of ['success', 'cancelled']) {
     assert.equal(verdictJuge([course({ conclusion })], 'aaa', lire(null)).etat, conclusion === 'success' ? 'verte' : 'annulee')
   }
-  assert.equal(verdictJuge([course({ status: 'in_progress' })], 'aaa', lire(null)).etat, 'en-vol')
-  assert.deepEqual(lus, [], 'aucune lecture de jobs hors d’une course rouge')
+  assert.equal(verdictJuge([], 'aaa', lire(null)).etat, 'absente')
+  assert.deepEqual(lus, [], 'aucune lecture de jobs sur une course verte, annulée ou absente')
   const annulee = verdictJuge([course({ conclusion: 'failure', databaseId: 37365832262, attempt: 2 })], 'aaa',
     lire({ disponible: true, valeur: { rouges: [], annules: ['suite 2/3'], motif: 'm' } }))
   assert.deepEqual([annulee.etat, annulee.annules, annulee.motif], ['annulee', ['suite 2/3'], 'm'])

@@ -26,15 +26,15 @@ PRISE = 'main'
 MATERIAUX = {
     'couverture': ('cuir', 'cuir-tanne'),
     'plat': ('cuir', 'cuir-tanne'),
-    'pages': ('corne', ((0.75, 0.75, 0.75), 0.0, 0.9)),
+    'pages': ('corne', 'papier'),
     'metal': ('metal', 'acier-battu'),
     'cuir': ('cuir', 'cuir-tanne'),
 }
 """La couverture prend `cuir`, une reliure de cuir : `vet2` habille aussi les bandages et le rouleau de couchage, sable dans
 l'illustration, et le bleu-gris de la couverture n'a aucun emplacement libre dans le preset `pretre`. `SLOTS` n'a pas
 d'emplacement de parchemin : la tranche des pages prend `corne`, l'ivoire de l'os et de la corne, le plus proche de la
-tranche claire de l'illustration ; un preset qui ne le colore pas lui laisse son gris clair de construction. `plat` : le
-champ carré du plat avant, seule face du matériau, qui reçoit l'emblème du porteur (`BLASONS`)."""
+tranche claire de l'illustration, de `papier` ; un preset qui ne le colore pas lui laisse la couleur du papier.
+`plat` : le champ carré du plat avant, seule face du matériau, qui reçoit l'emblème du porteur (`BLASONS`)."""
 
 BLASONS = ('plat',)
 """Arbitrage de Laurent, 2026-11-10 (#3867) : « Oui y a l amulette qui a une forme et son livre de prière avec le

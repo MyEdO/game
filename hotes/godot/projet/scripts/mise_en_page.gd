@@ -177,17 +177,23 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
-## La pente, dans le plan du plateau, d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
-## (mètres) à son premier bout à la cote `sortie` à son second, sur un plateau de `par_case` mètres par case (#4471) :
-## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
-static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
-	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
+## Le gradient (mètres par case, en plan) d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
+## (mètres) à son premier bout à la cote `sortie` à son second (#4471) : sa seule montée le long de son sens.
+static func gradient_d_arete(sens: Vector2, entree: float, sortie: float) -> Vector2:
+	return sens.normalized() * (sortie - entree) / longueur_d_arete(sens)
 
 
-## L'échelle d'une faîtière d'un modèle de toit longue de `long` mètres, dont chaque bras descend d'une pente de 1,
-## posée sur un faîte qui court selon `sens` entre deux pans dont les pentes diffèrent de deux fois `ecart` (mètres par
-## case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la longueur du faîte,
-## en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
+## La pente, dans le plan du plateau, d'une pièce de gradient `gradient` (mètres par case, en plan), sur un plateau de
+## `par_case` mètres par case (#4471) : en X et en Z du plateau, ce dont monte un point de la pièce par unité de
+## plateau, ses montants gardés verticaux ; le cisaillement de sa pose.
+static func pente_de_gradient(gradient: Vector2, par_case: float) -> Vector2:
+	return Vector2(hauteur_au_plateau(gradient.x, par_case), hauteur_au_plateau(gradient.y, par_case))
+
+
+## L'échelle d'une pièce d'un modèle de toit longue de `long` mètres, dont chaque bras monte ou descend d'une pente de 1,
+## posée sur une arête de toit qui court selon `sens` en plan entre deux pans dont les pentes diffèrent de deux fois
+## `ecart` (mètres par case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la
+## longueur de l'arête en plan, en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
 static func echelle_de_faitiere(sens: Vector2, ecart: float, long: float, par_case: float) -> Vector3:
 	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(ecart, par_case) * echelle_metrique(par_case), echelle_metrique(par_case))
 
@@ -728,6 +734,25 @@ static func hauteur_vue_au_pivot(position: Vector3, fov: float) -> float:
 ## voit au pivot à l'échelle 1 (`hauteur_vue_au_pivot`).
 static func echelle_de_la_boite(taille: Vector3, hauteur_vue: float) -> float:
 	return taille.length() / hauteur_vue
+
+
+## La hauteur que vise, au pivot, l'axe d'une caméra posée en `position` autour de lui et inclinée de `inclinaison`
+## radians (négative : vers le bas), à l'échelle 1 de son orbite.
+static func hauteur_visee_au_pivot(position: Vector3, inclinaison: float) -> float:
+	return position.y + position.z * tan(inclinaison)
+
+
+## La hauteur dont le pivot de l'orbite monte au zoom minimal du cadre `cadre` pour que l'axe de la caméra, qui vise
+## la hauteur `visee` au pivot à l'échelle 1 (`hauteur_visee_au_pivot`), y passe à la hauteur `tete`.
+static func elevation_vers_la_tete(tete: float, cadre: float, visee: float) -> float:
+	return tete - ZOOM_MINIMAL * cadre * visee
+
+
+## Le pivot de l'orbite au-dessus de la racine posée en `racine`, à l'échelle `echelle` : sur elle à l'échelle `cadre`
+## du cadre posé et au-delà, il monte avec le zoom avant jusqu'à `elevation` au zoom minimal (`ZOOM_MINIMAL` fois
+## `cadre`).
+static func pivot_de_l_orbite(racine: Vector3, echelle: float, cadre: float, elevation: float) -> Vector3:
+	return racine + Vector3.UP * elevation * clampf((cadre - echelle) / (cadre - ZOOM_MINIMAL * cadre), 0.0, 1.0)
 
 
 ## L'échelle de l'orbite d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée de `ZOOM_MINIMAL` à

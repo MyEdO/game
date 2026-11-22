@@ -70,8 +70,8 @@ import {
   aretesDeLaScene,
   cotesDeMarchesDeLaCouche,
   cotesDeMarchesDeLaScene,
-  faitieresDeLaScene,
-  type Faitiere,
+  piecesDeToitDeLaScene,
+  type PieceDeToitPosee,
   type AreteDessinee,
   type CoteDeMarches,
   type Combatant,
@@ -130,6 +130,7 @@ import {
   type RetraitDuMonde,
   type VolumeDuMonde,
   cleDeLaVision,
+  combattantEnVue,
   porteurEnVue,
   visionDuMonde,
   type VisionDuMonde,
@@ -548,15 +549,16 @@ export interface VueDuPont {
   champ: typeof CLIC_DU_CHAMP | null;
   /**
    * donne, par case et couche `"x,y,z"`, l'id de l'occupant. En combat, le clic du champ désigne tout combattant
-   * posé, hors de combat exclus, hors de vue compris. En exploration, la case porte le PNJ connu qui a une fiche :
-   * le clic droit ouvre son statbloc, le clic du champ désigne la case.
+   * posé, hors de combat exclus, hors de vue compris. Pendant la désignation d'une personne par Colérique
+   * (`personneChoisie`), seuls les occupants en vue figurent ici. En exploration, la case porte le PNJ connu qui a
+   * une fiche : le clic droit ouvre son statbloc, le clic du champ désigne la case.
    */
   occupants: Record<string, string>;
   /**
    * donne, par id, la case `[x, y, z]` de chaque cible du combat :
    * celles de `combat.cibles` et celle de l'aperçu (`combat.apercu.cible`).
-   * En vue ou non, lue à `battle.combatants`.
-   * Vide hors combat.
+   * En vue ou non, lue à `battle.combatants`. Pendant `personneChoisie`, l'aperçu d'une cible hors de vue
+   * ne se projette pas. Vide hors combat.
    */
   casesDesCibles: Record<string, [number, number, number]>;
   /**
@@ -1075,6 +1077,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const etat = o.partie.etat();
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     const combat = projection.combat;
+    const choixDunePersonne = projection.fenetre?.etape?.genre === 'personneChoisie';
     const fenetre = fenetreADessiner(etat);
     const regard = regardDuJeu(o.regard, !!etat.battle);
     const selection = etat.scene ? selectionDe(etat.scene) : null;
@@ -1095,7 +1098,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries(etat.battle
-        ? etat.battle.combatants.flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))
+        ? etat.battle.combatants.flatMap((c) => {
+          if (!c.pos || horsCombat(c) || (choixDunePersonne && !combattantEnVue(etat, c))) return [];
+          return [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]];
+        })
         : (projection.exploration?.entites.liste ?? [])
           .filter((e) => e.genre === 'personnage' && enTeteDuPorteur(etat, e.id))
           .map((e) => [e.pos.join(','), e.id])),
@@ -1570,15 +1576,15 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
      * son pied, la cote de son milieu, et le bloc de sa case.
-     * `{ faitieres }` : `Faitiere[]` (`faitieresDeLaScene`), vides sans scène, sous la même clé de relecture
+     * `{ piecesDeToit }` : `PieceDeToitPosee[]` (`piecesDeToitDeLaScene`), vides sans scène, sous la même clé de relecture
      */
-    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; piecesDeToit: PieceDeToitPosee[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
       return {
         aretes: scene ? aretesDeLaScene(scene) : [],
         cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [],
-        faitieres: scene ? faitieresDeLaScene(scene) : [],
+        piecesDeToit: scene ? piecesDeToitDeLaScene(scene) : [],
       };
     },
     /**
@@ -2007,10 +2013,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, cotesDeMarches, faitieres, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * @returns `{ monde, aretes, cotesDeMarches, piecesDeToit, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
      * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
      * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
-     * plateau au regard `immersion`, ses côtés de marches et ses faîtières (`aretes`, section « Vue »), ses nappes de toit, ses
+     * plateau au regard `immersion`, ses côtés de marches et ses pièces de toit (`aretes`, section « Vue »), ses nappes de toit, ses
      * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme

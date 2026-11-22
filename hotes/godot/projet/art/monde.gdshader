@@ -16,8 +16,11 @@
 // face, u le long de l'horizontale de la face (l'égout d'un pan), v le long de sa plus grande pente, en mètres, pour que
 // les rangs restent horizontaux et se raccordent d'un pan à l'autre ; `TANGENT` et `BINORMAL` suivent ces axes, et le
 // relief avec eux. Sur une face d'axe, c'est la projection du code généré ; une face à normale verticale garde sa
-// projection sur `xz`. Sa texture, la neutre de sa matière (`VolumeDeScene.texture_neutre_de`), est teinte par la couleur
-// de ses sommets, multipliée en lumière linéaire comme la vision.
+// projection sur `xz`. `nappe` ne dit que cette projection et le plan `toit` de la vision.
+// Une texture neutre (`teinte_des_sommets` à 1, `VolumeDeScene.albedo_de` : morceau, nappe ou couronne) est teinte par
+// la couleur de ses sommets, multipliée en lumière linéaire comme la vision ; sur un sol horizontal d'un morceau, la
+// même neutre, relue à grande échelle (`RAPPORT_DU_GRAND_MOTIF`, non entier), module en plus sa luminance
+// (`AMPLEUR_DU_GRAND_MOTIF`, autour de `LUMINANCE_MOYENNE_DES_NEUTRES`) pour casser la répétition du motif.
 // `vertex()` sans branche, comme le code généré : sous une branche, le pilote arrondit autrement la projection des
 // textures ; la projection de nappe s'y mêle à la générée par le poids `nappe`.
 shader_type spatial;
@@ -32,11 +35,17 @@ uniform sampler2D normal_texture : hint_roughness_normal, filter_linear_mipmap, 
 uniform float uv1_triplanar_sharpness : hint_range(0.0, 150.0, 0.001);
 uniform vec3 uv1_scale = vec3(1.0);
 uniform float nappe : hint_range(0.0, 1.0) = 0.0;
+uniform float teinte_des_sommets : hint_range(0.0, 1.0) = 0.0;
 #include "res://art/vision.gdshaderinc"
 uniform float vision_cases_par_metre = 1.0;
 
+const float RAPPORT_DU_GRAND_MOTIF = 0.1371;
+const float AMPLEUR_DU_GRAND_MOTIF = 0.35;
+const float LUMINANCE_MOYENNE_DES_NEUTRES = 0.55;
+
 varying vec3 uv1_triplanar_pos;
 varying vec3 uv1_power_normal;
+varying float poids_du_grand_motif;
 varying vec2 vision_case;
 varying flat float vision_premiere_rangee;
 
@@ -57,6 +66,7 @@ void vertex() {
 	float pente = max(length(egout), 1e-4);
 	egout *= (2.0 * step(0.0, egout.x - egout.z) - 1.0) / pente;
 	float projetee_sur_la_face = nappe * step(0.01, pente);
+	poids_du_grand_motif = uv1_power_normal.y * (1.0 - nappe);
 	TANGENT = mix(TANGENT, egout, projetee_sur_la_face);
 	BINORMAL = mix(BINORMAL, (vec3(0.0, 1.0, 0.0) - NORMAL * NORMAL.y) / pente, projetee_sur_la_face);
 	uv1_power_normal = mix(uv1_power_normal, vec3(0.0, 1.0, 0.0), projetee_sur_la_face);
@@ -93,8 +103,11 @@ void fragment() {
 		if (normal_enabled) {
 			NORMAL_MAP = triplanar_texture(normal_texture, uv1_power_normal, uv1_triplanar_pos).rgb;
 		}
-		vec3 teinte = OUTPUT_IS_SRGB ? en_srgb(en_lineaire(ALBEDO) * en_lineaire(COLOR.rgb)) : ALBEDO * COLOR.rgb;
-		ALBEDO = mix(ALBEDO, teinte, nappe);
+		float grand_motif = texture(albedo_texture, uv1_triplanar_pos.xz * RAPPORT_DU_GRAND_MOTIF).r;
+		grand_motif = OUTPUT_IS_SRGB ? en_lineaire(vec3(grand_motif)).r : grand_motif;
+		float modulation = 1.0 + poids_du_grand_motif * AMPLEUR_DU_GRAND_MOTIF * (grand_motif / LUMINANCE_MOYENNE_DES_NEUTRES - 1.0);
+		vec3 teinte = OUTPUT_IS_SRGB ? en_srgb(en_lineaire(ALBEDO) * en_lineaire(COLOR.rgb) * modulation) : ALBEDO * COLOR.rgb * modulation;
+		ALBEDO = mix(ALBEDO, teinte, teinte_des_sommets);
 	} else {
 		ALBEDO = COLOR.rgb;
 	}

@@ -6,7 +6,8 @@
 ## squelette revient à sa pose de repos et l'atelier joue son clip de repos (`marche_arretee`). La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
 ## l'interface, et la suit ; l'atelier la cadre sur le corps posé, ou sur la boîte d'un véhicule (`cadrer_la_boite`), et le
-## zoom se borne autour de ce cadre.
+## zoom se borne autour de ce cadre ; plus près que le cadre d'un corps mesuré, le pivot monte vers sa tête
+## (`cadrer_le_corps`).
 class_name MarcheDeLAtelier
 extends Node
 
@@ -27,8 +28,12 @@ extends Node
 ## molette l'approche ou l'éloigne. La caméra de la scène cadre le corps neutre ; chaque gabarit posé, une fois mesuré
 ## au repos (`GabaritDuSquelette.mesures`), met l'orbite à l'échelle du sommet de ses os rapporté à celui du corps
 ## neutre (`MiseEnPage.echelle_de_cadrage`), le zoom repris de là ; sans gabarit, elle revient à la caméra de la
-## scène. Un cran de molette sur un contrôle de l'interface (`Viewport.gui_get_hovered_control`) ne zoome jamais, même
-## quand le défilement du panneau, en bout de course, le laisse passer.
+## scène. Plus près que ce cadre, le pivot de l'orbite monte de la racine vers la tête du corps mesuré, le sommet de
+## ses os au repos (`repos.sommet`) : nulle au cadre et au-delà, sa hauteur croît avec le zoom avant
+## (`MiseEnPage.pivot_de_l_orbite`) jusqu'à porter, au zoom minimal, l'axe de la caméra sur ce sommet
+## (`MiseEnPage.elevation_vers_la_tete`) ; sans mesure, comme autour de la boîte d'un véhicule ou d'un échantillon, le
+## pivot reste sur la racine. Un cran de molette sur un contrôle de l'interface (`Viewport.gui_get_hovered_control`) ne
+## zoome jamais, même quand le défilement du panneau, en bout de course, le laisse passer.
 
 ## La marche commence : l'atelier joue le clip `clip` à son lecteur.
 signal marche_commencee(clip: String)
@@ -56,11 +61,16 @@ var _vitesse := 0.0
 var _echelle_de_vitesse := VITESSE_NEUTRE
 var _en_marche := false
 var _echelle := CADRE_NEUTRE
-## L'échelle du dernier cadre posé (`cadrer`), autour de laquelle le zoom se borne.
+## L'échelle du dernier cadre posé (`_poser_le_cadre`), autour de laquelle le zoom se borne.
 var _cadre := CADRE_NEUTRE
 ## Les actions de la marche dont l'appui a atteint `_input`, tant qu'elles restent tenues.
 var _prises: Dictionary = {}
+## La hauteur dont le pivot monte au-dessus de la racine au zoom minimal du cadre posé (`cadrer_le_corps`), nulle sans
+## tête mesurée.
+var _elevation := 0.0
 var _position_de_la_camera := Vector3.ZERO
+## La hauteur que l'axe de la caméra de la scène vise au pivot (`MiseEnPage.hauteur_visee_au_pivot`).
+var _visee := 0.0
 ## La hauteur que la caméra de la scène voit au pivot (`MiseEnPage.hauteur_vue_au_pivot`).
 var _hauteur_vue := 0.0
 
@@ -68,6 +78,7 @@ var _hauteur_vue := 0.0
 func _ready() -> void:
 	_position_de_la_camera = camera.position
 	_hauteur_vue = MiseEnPage.hauteur_vue_au_pivot(camera.position, camera.fov)
+	_visee = MiseEnPage.hauteur_visee_au_pivot(camera.position, camera.rotation.x)
 
 
 ## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, `clip` qui rend le clip du rôle
@@ -120,7 +131,7 @@ func _process(delta: float) -> void:
 		var direction := Vector3(entree.x, 0.0, entree.y).normalized().rotated(Vector3.UP, orbite.rotation.y)
 		_racine.quaternion = Quaternion(Basis.looking_at(direction, Vector3.UP, true))
 		_racine.global_translate(MiseEnPage.pas_de_marche(direction, _vitesse, _echelle_de_vitesse, _lecteur.speed_scale, delta))
-	orbite.global_position = _racine.global_position
+	orbite.global_position = MiseEnPage.pivot_de_l_orbite(_racine.global_position, _echelle, _cadre, _elevation)
 
 
 func _arreter() -> void:
@@ -157,14 +168,27 @@ func echelle() -> float:
 	return _echelle
 
 
-## L'orbite à l'échelle `echelle` (`CADRE_NEUTRE` : la caméra de la scène, qui cadre le corps neutre), le zoom repris de là.
+## L'orbite à l'échelle `echelle` (`CADRE_NEUTRE` : la caméra de la scène, qui cadre le corps neutre), le zoom repris de
+## là, le pivot sur la racine à tout zoom.
 func cadrer(echelle: float) -> void:
+	_poser_le_cadre(echelle, 0.0)
+
+
+## L'orbite à l'échelle `echelle` qui cadre un corps dont la tête est à la hauteur `tete` au-dessus de sa racine, le zoom
+## repris de là : plus près que ce cadre, le pivot monte vers la tête (`MiseEnPage.pivot_de_l_orbite`), que l'axe de la
+## caméra atteint au zoom minimal (`MiseEnPage.elevation_vers_la_tete`).
+func cadrer_le_corps(echelle: float, tete: float) -> void:
+	_poser_le_cadre(echelle, MiseEnPage.elevation_vers_la_tete(tete, echelle, _visee))
+
+
+func _poser_le_cadre(echelle: float, elevation: float) -> void:
 	_cadre = echelle
 	_echelle = echelle
+	_elevation = elevation
 	camera.position = MiseEnPage.position_a_l_echelle(_position_de_la_camera, _echelle)
 
 
 ## L'orbite à l'échelle où la diagonale de `boite` tient dans la hauteur que la caméra de la scène voit au pivot
-## (`MiseEnPage.echelle_de_la_boite`).
+## (`MiseEnPage.echelle_de_la_boite`), le pivot sur la racine à tout zoom.
 func cadrer_la_boite(boite: AABB) -> void:
 	cadrer(MiseEnPage.echelle_de_la_boite(boite.size, _hauteur_vue))

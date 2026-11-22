@@ -1,10 +1,13 @@
 /**
  * L'ÉCHANTILLONNAGE D'UNE SCÈNE ANIMÉE (#2972, #3098) : pour chaque (clip, t) de la grille à pas fixe et des clés du clip, les positions monde déformées de chaque
- * sommet des meshes demandés (`getVertexPosition` : shape keys et skinning) et les matrices monde des os, joués par
+ * sommet des meshes demandés (`getVertexPosition` : shape keys et skinning, `positionsMonde`) et les matrices monde des os, joués par
  * `AnimationMixer` ; la même mesure sur la pose de repos, gabarit et silhouettes appliqués ; et la rotation locale d'un
  * os, tirée des matrices monde d'une pose (`rotationLocale`).
  */
-import { AnimationMixer, LoopOnce, Matrix4, Vector3, type AnimationClip, type Bone, type Mesh, type Object3D, type Quaternion } from 'three';
+import {
+  AnimationMixer, LoopOnce, Matrix4, Vector3, type AnimationClip, type Bone, type BufferAttribute, type InterleavedBufferAttribute, type Mesh, type Object3D,
+  type Quaternion, type SkinnedMesh,
+} from 'three';
 import { reposerGabarit, type GabaritPose } from './gabarit.ts';
 import seuils from './gardes/seuils.json';
 
@@ -26,22 +29,73 @@ export interface Echantillon extends Pose {
   readonly t: number;
 }
 
-const sommet = new Vector3();
+/** Les composantes de `attribut` à plat, `itemSize` par sommet, lues comme `fromBufferAttribute` les lit (`getX`…`getW`). */
+function aPlat(attribut: BufferAttribute | InterleavedBufferAttribute): ArrayLike<number> {
+  const brut = attribut as BufferAttribute & { readonly isFloat16BufferAttribute?: boolean };
+  if (!(attribut as InterleavedBufferAttribute).isInterleavedBufferAttribute && !attribut.normalized && !brut.isFloat16BufferAttribute) return brut.array;
+  const k = attribut.itemSize, lire = [attribut.getX, attribut.getY, attribut.getZ, attribut.getW].slice(0, k);
+  const sortie = new Float64Array(attribut.count * k);
+  for (let i = 0; i < attribut.count; i++) for (let c = 0; c < k; c++) sortie[i * k + c] = lire[c].call(attribut, i);
+  return sortie;
+}
+
+/** Les positions monde des sommets de `m`, à plat : `Mesh.getVertexPosition` (shape keys, puis skinning de
+ *  `SkinnedMesh.applyBoneTransform`) puis `matrixWorld`, dans la même suite d'opérations flottantes, la matrice de chaque
+ *  os (`bone.matrixWorld × boneInverse`) calculée une fois par pose au lieu d'une fois par sommet et par influence. */
+function positionsMonde(m: Mesh): Float32Array {
+  const g = m.geometry;
+  const n = g.attributes.position.count;
+  const position = aPlat(g.attributes.position);
+  const relatives = g.morphTargetsRelative;
+  const influences = m.morphTargetInfluences;
+  const morphes = g.morphAttributes.position && influences ? g.morphAttributes.position : undefined;
+  const formes = (morphes ?? []).flatMap((attribut, i) => (influences && influences[i] !== 0 ? [{ valeurs: aPlat(attribut), influence: influences[i] }] : []));
+  const s = m as SkinnedMesh;
+  const os = s.isSkinnedMesh ? s.skeleton.bones.map((b, i) => new Matrix4().multiplyMatrices(b.matrixWorld, s.skeleton.boneInverses[i]).elements) : [];
+  const indices = s.isSkinnedMesh ? aPlat(g.attributes.skinIndex) : [];
+  const poids = s.isSkinnedMesh ? aPlat(g.attributes.skinWeight) : [];
+  const lie = s.isSkinnedMesh ? s.bindMatrix.elements : [];
+  const delie = s.isSkinnedMesh ? s.bindMatrixInverse.elements : [];
+  const monde = m.matrixWorld.elements;
+  const p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    let x = position[i * 3], y = position[i * 3 + 1], z = position[i * 3 + 2];
+    if (morphes) {
+      let mx = 0, my = 0, mz = 0;
+      for (const { valeurs, influence } of formes) {
+        const fx = valeurs[i * 3], fy = valeurs[i * 3 + 1], fz = valeurs[i * 3 + 2];
+        if (relatives) { mx += fx * influence; my += fy * influence; mz += fz * influence; }
+        else { mx += (fx - x) * influence; my += (fy - y) * influence; mz += (fz - z) * influence; }
+      }
+      x += mx; y += my; z += mz;
+    }
+    if (s.isSkinnedMesh) {
+      const e = lie;
+      const bx = e[0] * x + e[4] * y + e[8] * z + e[12], by = e[1] * x + e[5] * y + e[9] * z + e[13];
+      const bz = e[2] * x + e[6] * y + e[10] * z + e[14], bw = e[3] * x + e[7] * y + e[11] * z + e[15];
+      x = 0; y = 0; z = 0;
+      for (let k = 0; k < 4; k++) {
+        const w = poids[i * 4 + k];
+        if (w === 0) continue;
+        const b = os[indices[i * 4 + k]];
+        x += (b[0] * bx + b[4] * by + b[8] * bz + b[12] * bw) * w;
+        y += (b[1] * bx + b[5] * by + b[9] * bz + b[13] * bw) * w;
+        z += (b[2] * bx + b[6] * by + b[10] * bz + b[14] * bw) * w;
+      }
+      const d = delie, q = 1 / (d[3] * x + d[7] * y + d[11] * z + d[15]);
+      [x, y, z] = [(d[0] * x + d[4] * y + d[8] * z + d[12]) * q, (d[1] * x + d[5] * y + d[9] * z + d[13]) * q, (d[2] * x + d[6] * y + d[10] * z + d[14]) * q];
+    }
+    const e = monde, q = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+    p[i * 3] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * q;
+    p[i * 3 + 1] = (e[1] * x + e[5] * y + e[9] * z + e[13]) * q;
+    p[i * 3 + 2] = (e[2] * x + e[6] * y + e[10] * z + e[14]) * q;
+  }
+  return p;
+}
 
 function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
   scene.updateMatrixWorld(true);
-  const positions = new Map<Mesh, Float32Array>();
-  for (const m of meshes) {
-    const n = m.geometry.attributes.position.count;
-    const p = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      m.getVertexPosition(i, sommet).applyMatrix4(m.matrixWorld);
-      p[i * 3] = sommet.x;
-      p[i * 3 + 1] = sommet.y;
-      p[i * 3 + 2] = sommet.z;
-    }
-    positions.set(m, p);
-  }
+  const positions = new Map<Mesh, Float32Array>(meshes.map((m) => [m, positionsMonde(m)]));
   const os = new Map<string, Matrix4>();
   scene.traverse((n) => { if ((n as Bone).isBone) os.set(n.name, n.matrixWorld.clone()); });
   return { positions, os };

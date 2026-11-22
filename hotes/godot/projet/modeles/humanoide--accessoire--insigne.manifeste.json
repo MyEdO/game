@@ -13,6 +13,7 @@
     {
       "nom": "champ",
       "palette": "vet2",
+      "matiere": "prop--emaille",
       "blason": true
     },
     {
@@ -22,7 +23,7 @@
     }
   ],
   "glb": {
-    "sha256": "da8c59017b5b387e7fc83cc7ad86d2c5f6d640dc26eddcd13bc60e702d311cae",
-    "octets": 61960
+    "sha256": "5f0c45ad378881514105e5046eeed4c4e856def525ac8af19f27c0d1f5a6953d",
+    "octets": 62012
   }
 }

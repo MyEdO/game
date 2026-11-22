@@ -263,8 +263,10 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
-  compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
-  traitement modifié et inscrit leurs sommes. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
+  compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
+  « fabriquée par ImageMagick, sans image source » et son générateur, graine `-seed` comprise, en tête du traitement
+  (`origineDe`, `hotes/godot/asset/texture.ts`). `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les
+  textures d'un traitement modifié, inscrit leurs sommes et imprime la commande de leur transfert. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
   pixel à 1024 px : une trame réelle tombe sous le pixel. Elle se réduit puis se tuile dans son traitement jusqu'à la
   plus petite période encore lisible, environ 4 px de la texture finale, soit environ 8 mm (#4527). Un relief fait
   512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024. Une couverture de toit
@@ -272,8 +274,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
   Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
-  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
-  un morceau de cette apparence garde la couleur de ses sommets (#4471).
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur (#4471).
+  Toute surface du monde dont la matière a sa neutre la lit et la teint de la couleur de ses sommets, morceau, nappe
+  ou couronne (`VolumeDeScene.albedo_de`, `teinte_des_sommets` de `art/monde.gdshader`) : un terrain la dérive de sa
+  texture (`; dérivée de terrain--<id>.jpg`), et son sol horizontal la relit à grande échelle pour casser la
+  répétition du motif.
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
@@ -531,13 +536,15 @@ publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport d
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte > /atelier/mesures/porte.txt
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
 gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
 déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
-moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
+moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>` et écrit son rapport
+(`porte.neutre.json`, `porte.feminin.json`…). Après une retouche, `--porte --temoin /atelier/mesures/porte.json` relit
+le rapport de chaque passe et ne sort que ses écarts neufs. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
@@ -617,8 +624,8 @@ retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON V
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
 Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : la capture du preset
-dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, sous
-`dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
+dans l'atelier, en natif, `npm run godot:regarder -- preset:<id>` (face, trois-quarts, profil, dos, puis `gros-plan` : le visage de face, au zoom
+minimal de la molette, sous `dist/godot-regards/preset-<id>/`), ou posé au clip `<clip>` à l'instant `<s>` par `preset:<id>:<clip>:<s>`, montrées à
 côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
@@ -768,8 +775,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de la branche de travail, qui porte les
-provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur empreinte), que
+GLB vont à la Release `modeles-3d` par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
+provenances neuves qui les épinglent, fabriquée par `npm run godot:transfert -- <nom> <fichier>...`, que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
 
 ## 10. Décor
@@ -998,22 +1005,42 @@ budget, coques closes, raccord) et compare chaque manifeste au publié. Une fami
 
 ## 13. Toit
 
-La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
-couverture de `src/data/materials.json`) se construit comme
+Les pièces qu'un hôte pose sur les arêtes d'un toit, la faîtière d'un faîte, l'arêtier d'une arête saillante montante et
+la noue d'une arête rentrante (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une couverture de
+`src/data/materials.json`), se construisent comme
 un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
 `scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
 ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
 nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
-`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+`toit/pieces.mjs`) : `faitiere`, `aretier` et `noue`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
 bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
 bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
 à trois brins sur son dos, baguettes de noisetier filées et croisées).
 
 **Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
 faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
-étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+étire Y à l'écart des pentes des deux pans qu'elle coiffe, et la cisaille de leur gradient moyen, nul sur un faîte
+symétrique. Rien n'y suppose donc une pente : le dessous
 de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
 levée au-dessus du pan), jamais d'équerre au pan.
+
+**Largeur.** Rien d'une pièce ne passe, en travers et en plan, la demi-largeur de pose `DEMI_LARGEUR_DE_POSE_M`
+(`src/noyau/monde/piecesDArete.ts`, 0,5 m) de son axe : à un nœud, l'hôte recule chaque arête de ce dont une pose
+aussi large déborderait sur le pan d'une voisine, sans pièce de nœud.
+
+**Arêtier.** X le long de l'arête en plan, de -L/2 à +L/2 avec L = 2√2 m, la diagonale d'une case de 2 m : -X est le
+bas (l'égout), +X le haut ; Y la hauteur, 0 sur l'arête ; Z en travers. Le modèle est horizontal : l'hôte l'étire en X
+à la longueur du tronçon en plan, et le cisaille de son gradient, montants verticaux, ce qui le fait monter le long de
+l'arête et l'allonge le long de la pente d'un facteur √(1 + s²) (s, la pente de l'arête : 1,29 à 0,816) ; les
+recouvrants le tolèrent, sans joint qui s'ouvre. Ce qui se recouvre le long recouvre vers le bas : l'élément du haut
+sur celui du bas. Le V se modèle sur deux pans qui descendent de l'arête d'une pente de 1 : l'hôte étire Y à l'écart
+des pentes des deux pans et le cisaille par Z au travers de leur gradient moyen, si bien que rien n'y suppose un V
+symétrique. Bouts francs, dans les plans X = ±L/2 : le bas s'arrête au coin du débord, l'about fermé sans rien
+au-delà ; le haut finit sous la faîtière, ou recule à un nœud.
+
+**Noue.** Le repère de l'arêtier, mais le V est creux : deux pans qui montent de l'arête d'une pente de 1, la pièce
+couchée dans le creux, au-dessus des pans, son épaisseur portée en hauteur. Ce qui se recouvre recouvre vers le bas.
+Bouts francs : la noue s'arrête au point d'égout, sans débord.
 
 **Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
 même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
@@ -1022,6 +1049,9 @@ tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin
 qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
 au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
 cases.
+
+Un tronçon d'arêtier ou de noue oblique s'étire autrement qu'à 45° : rien n'y dépend d'un nombre entier d'éléments par
+mètre.
 
 **Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
 couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
@@ -1038,12 +1068,17 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py
   --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
 ```
 
-`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
-elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
-trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
-comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
-kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
-compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+`toit/revue.py` rend chaque pièce du kit (`faitiere`, `aretier`, `noue`) teinte du `ridgeCap` de la couverture
+`--couverture` dont il est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus : une ligne
+par pièce, seule sur son toit d'école ; une ligne par faîte de `revue.FAITES`, trois faîtières bout à bout sur deux pans
+de même pente, un toit raide puis un toit plat, étirées en hauteur comme l'hôte les pose ; puis une ligne par toit de
+`toit/poses.mjs` (une croupe d'école, une croupe en L, une croupe en croix), ses pans et ses pièces que le noyau sert,
+posées comme l'hôte les pose, pour voir les arêtiers monter, les noues dans leur creux et leurs rencontres aux nœuds.
+`npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque kit deux fois aux mêmes octets et compare chaque manifeste
+au publié ; chaque kit qu'une couverture nomme y a son modèle, dont les nœuds racine sont exactement `PIECES_DE_TOIT`
+(lu par `toit/pieces.mjs`, avec `DEMI_LARGEUR_DE_POSE_M`). Il mesure chaque pièce : repère, longueur, aucune pièce au-delà
+de la demi-largeur de pose, coques closes, assise sur les pans du toit d'école, l'arêtier sur la croupe d'école et la noue
+dans son creux, section égale à ses deux bouts. Une couverture neuve entre
 d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 
@@ -1085,7 +1120,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<nom>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers épinglés ajoutés de force (GLB, textures du catalogue, sons) : `npm run godot:transfert -- <nom> <fichier>...` fabrique son commit sans toucher l'index et imprime le `git push` (`hotes/godot/asset/transfert.ts`) ; `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
 
 Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
 contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et

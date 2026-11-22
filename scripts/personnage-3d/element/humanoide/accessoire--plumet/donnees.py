@@ -23,11 +23,10 @@ MANIFESTE = {
     'couche': 'armure',
 }
 MATERIAUX = {
-    'plume': ('plume', ((0.6, 0.6, 0.6), 0.0, 0.95)),
-    'plume_rouge': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.95)),
+    'plume': ('plume', 'plume'),
+    'plume_rouge': ('accent', 'plume'),
 }
-"""Aucune matière de plume au catalogue : gris de construction, teinté par les emplacements `plume` (la blanche) et
-`accent` (la rouge)."""
+"""La matière `plume`, teinte par les emplacements `plume` (la blanche) et `accent` (la rouge)."""
 
 BUDGET_TRIANGLES = 800                  # procédure du skill, section 7 : accessoire
 

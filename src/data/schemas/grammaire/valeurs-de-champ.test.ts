@@ -347,7 +347,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',
-  'edge|tile|instance',
   'encounter|threatened',
   'ennemis|allies|tous',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',

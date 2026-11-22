@@ -1728,8 +1728,11 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
   return step.meta?.opsDeCtx?.casterId ?? (typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined);
 }
 
+type IdentitesDuChoix = { sceneId: string | null; ids: string[] };
+
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[]
+    | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | IdentitesDuChoix | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
    *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
    *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
@@ -1793,6 +1796,8 @@ export interface CascadeStepMeta {
   /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
    *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
   feuilleEnvers?: Flow;
+  /** Ids des personnes indexés par rang d'option et scène d'origine du choix (VDM 10 l.327, #4017). */
+  personnesEnOption?: IdentitesDuChoix;
   /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victime'` : le décideur
    *  est le porteur/attaquant `caster`, mais la branche `yes` vise la VICTIME — Déstabilisante : Test opposé
    *  contre la cible touchée). Id sérialisable, restauré en `ctx.target` par l'applier. Absent ⇒ la cible =

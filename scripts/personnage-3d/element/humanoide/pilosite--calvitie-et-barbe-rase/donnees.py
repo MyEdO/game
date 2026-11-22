@@ -25,8 +25,8 @@ MANIFESTE = {
     'couche': 'peau',
     'couvre': [],
 }
-MATERIAUX = {'poil': ('cheveux', ((0.6, 0.6, 0.6), 0.0, 0.95))}
-"""La surface de la coiffure publiée `humanoide--pilosite--barbe-courte` : `poil`, palette `cheveux`, gris de construction."""
+MATERIAUX = {'poil': ('cheveux', 'chevelure')}
+"""La surface de la coiffure : `poil`, palette `cheveux`, matière `chevelure`."""
 
 BUDGET_TRIANGLES = 3000                 # HYPOTHÈSE : au-dessus des 1 500 de la pilosité (procédure du skill, section 7). Le poil
                                         # est la peau de la tête MakeHuman sous le masque, en double nappe : 2 944 triangles
