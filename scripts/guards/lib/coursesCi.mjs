@@ -233,7 +233,8 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
 }
 
 /**
- * Le verdict d'une course `rouge` (`verdictDesRuns`) jugé sur ses JOBS (`jobsEnEchecDe`). PUR. Une course
+ * Le verdict d'une course `rouge` ou `en-vol` (`verdictDesRuns`) jugé sur ses JOBS (`jobsEnEchecDe`). PUR.
+ * Une course en vol dont un job est déjà rouge est `rouge` ; sans job rouge, elle reste en vol (#4197). Une course
  * conclue en échec dont AUCUN job n'est rouge et dont un job au moins est annulé (panne d'Actions) est
  * `annulee` : personne n'a jugé ce contenu, le geste est une relance. Sans job rouge ni annulé, elle reste
  * `rouge`, marquée `sansJobEnEchec`, pour que son lecteur le dise. Tout autre verdict passe tel quel. Le
@@ -242,6 +243,7 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
  * @returns {{etat:string, course?:object, rouges:string[], annules:string[], motif?:string|null, sansJobEnEchec?:true}}
  */
 export function verdictDesJobs(verdict, jobs) {
+  if (verdict.etat === 'en-vol') return jobs.rouges.length ? { ...verdict, ...jobs, etat: 'rouge' } : verdict
   if (verdict.etat !== 'rouge' || jobs.rouges.length) return { ...verdict, ...jobs }
   return jobs.annules.length ? { ...verdict, ...jobs, etat: 'annulee' } : { ...verdict, ...jobs, sansJobEnEchec: true }
 }
@@ -257,16 +259,17 @@ export function phraseDesJobs({ rouges = [], annules = [], motif = null, sansJob
 }
 
 /**
- * Le verdict JUGÉ d'un sha : `verdictDesRuns`, puis, sur une course `rouge`, ses jobs (`lireJobs(id, attempt)`,
- * une union de la forme de `jobsEnEchecDe`) par `verdictDesJobs`. Des jobs illisibles laissent la course
- * `rouge`, marquée `jobsIllisibles` (leur raison). PUR hors de `lireJobs`.
+ * Le verdict JUGÉ d'un sha : `verdictDesRuns`, puis, sur une course `rouge` ou `en-vol`, ses jobs (`lireJobs(id, attempt)`,
+ * une union de la forme de `jobsEnEchecDe`) par `verdictDesJobs`. Des jobs illisibles laissent une course `rouge`
+ * marquée `jobsIllisibles` (leur raison), et une course en vol en vol. PUR hors de `lireJobs`.
  * @param {object[]} courses @param {string} sha @param {(id:number, attempt:number|null) => object} lireJobs
  */
 export function verdictJuge(courses, sha, lireJobs) {
   const lu = verdictDesRuns(courses, sha)
-  if (lu.etat !== 'rouge') return lu
+  if (lu.etat !== 'rouge' && lu.etat !== 'en-vol') return lu
   const jobs = lireJobs(lu.course.databaseId, lu.course.attempt ?? null)
-  return jobs.disponible ? verdictDesJobs(lu, jobs.valeur) : { ...lu, jobsIllisibles: jobs.raison }
+  if (jobs.disponible) return verdictDesJobs(lu, jobs.valeur)
+  return lu.etat === 'rouge' ? { ...lu, jobsIllisibles: jobs.raison } : lu
 }
 
 /** L'argv `gh run view <id>` d'une course, sur l'ESSAI `attempt` quand il est nommé : sans lui, `gh` lit le
