@@ -9,7 +9,17 @@
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, vi } from 'vitest';
-import { DESIGNATIONS, creerPartie, etatInitialDuJeu, type Designation, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
+import {
+  DESIGNATIONS,
+  chargerLaSave,
+  creerPartie,
+  etatInitialDuJeu,
+  snapshotSave,
+  type Designation,
+  type EntreesDeLaPartie,
+  type Jeu,
+  type Partie,
+} from '../noyau/index';
 import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
@@ -22,6 +32,7 @@ import { gameDay } from '../noyau/merchantFlow';
 import { joursParSemaine } from '../engine/clock';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
+import { flowStakeRef } from '../data';
 
 /** L'état de la partie `dome` (graine 7) à son lancement, la pause de début de Round ouverte. */
 function auDebutDuRound<T>(faire: (etat: Jeu) => T): T {
@@ -145,20 +156,45 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     });
   });
 
-  it('Infirmerie : l’opération armée désigne la Blessure Critique à opérer, nommée avec sa Localisation', { timeout: 120_000 }, () => {
-    auDebutDuRound((etat) => {
-      const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
-      const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', drCible: 5, cumDR: 0, stake: {} } as never;
-      const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
+  it('Infirmerie : une opération restaurée présente la même Blessure Critique, nommée avec sa Localisation', { timeout: 120_000 }, () => {
+    const historique = auDebutDuRound((etat) => {
+      const traumas: Trauma[] = [
+        { uid: 'trauma-1', label: 'Bras broyé', location: 'brasG', needsSurgery: true },
+        { uid: 'trauma-2', label: 'Crâne fendu', location: 'tete', needsSurgery: true },
+        { uid: 'trauma-3', label: 'Doigt perdu', location: 'brasD' },
+      ];
+      const patient = { ...etat.party[0], traumas };
+      const surgery = {
+        kind: 'chirurgie', difficulty: 'intermediaire', healerName: fixtureText('Berta'), skill: 40, intBonus: 3,
+        traumaUid: 'trauma-2', drCible: 5, cumDR: 0, stake: flowStakeRef('chirurgie-test'),
+      } as const;
+      return snapshotSave({
+        ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)],
+        medic: { patientId: patient.id, surgery },
+      }, '2026-11-22T00:00:00.000Z');
+    });
+    const { etat, regles } = chargerLaSave(historique);
+    const partie = creerPartie(etat, { graine: 7, reglesMaison: regles, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} });
+    try {
+      const infirmerie = partie.etat();
+      const plaies = infirmerie.party[0].traumas!;
+      const bras = plaies.find((p) => p.location === 'brasG')!;
+      const crane = plaies.find((p) => p.location === 'tete')!;
+      expect(infirmerie.prochainId).toBe(historique.data.prochainId + 2);
+      expect(infirmerie.medic!.surgery!.traumaUid).toBe(crane.uid);
       const plaie = argumentDe(infirmerie, 'fenetreChoisir@infirmerie#plaie', 'valeur');
-      expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
-      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
+      expect(lignes(plaie)).toEqual(['choix', [
+        [bras.uid, t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })],
+        [crane.uid, t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })],
+      ]]);
+      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe(crane.uid);
       const choix = (cle: string) => fenetreADessiner(infirmerie)!.gestes.find((g) => g.cle === cle);
       expect(choix('fenetreChoisir@infirmerie#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
       expect(choix('fenetreChoisir@infirmerie#plaie')?.reglage, 'la plaie se reprend (`reprenable`)').toBe(true);
       expect(choix('fenetreChoisir@infirmerie#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
-    });
+    } finally {
+      partie.fermer();
+    }
   });
 
   it('Conseil de bord : la paie se choisit parmi les choix ouverts, chacun nommé par son facteur', { timeout: 120_000 }, () => {
