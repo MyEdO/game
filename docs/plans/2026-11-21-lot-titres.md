@@ -229,8 +229,12 @@ Non couvert par la mesure : la largeur d'un titre agrandi sur une ligne ; un tit
 - Planche : `hotes/godot/cibles/propositions/sources/kit/planche-titres.html` (feuille `titres` de `kit/planche.js`), rendue en code 0, relevé vide. Elle montre une sélection par taille : 9 des 20 rendus de titre de panneau sur parchemin, 4 des 6 sur bois, 6 tailles de nom sur parchemin ; le nom le plus fréquent (17,5 px sur bois, 247 sites, `rang`) n'y est pas.
 - Avant / après simulés (hors dépôt) : `document`, `interlude` (`interlude-en-ville`), `compendium` (`consultation`), `evenement-de-route`.
 
-## Questions à l'utilisateur
+## Réponses de l'utilisateur (2026-11-22)
 
-1. **Un seul ruban ?** La cible passe le ruban `rubrique` 14,5 px (46 sites, 16 écrans) en gothique 18 px. L'autre lecture garde deux rôles : gothique pour un cadre, rubrique pour un rail ou une section.
-2. **28 px pour tout titre de panneau, sur les deux fonds ?** Le document, l'événement de route et la fiche du Compendium perdent leurs 34 à 36 px ; la halle, le port et l'interlude gagnent 1 à 5 px.
-3. **Intertitre nu ?** Le trait du `h4` du journal et le trait haut de `titreDeBloc` disparaissent de l'intertitre et deviennent un `filet()` posé par le gabarit là où on le veut.
+Choix d'interface, révisable (pas une règle de jeu). Questions posées sur la planche et les quatre avant/après ; réponses verbatim :
+
+1. Un seul ruban : « Un seul, gothique 18 (Recommandé) ». Le ruban `rubrique` 14,5 px passe en gothique 18 px ; les onglets gardent leur forme.
+2. Titre de panneau : « 28 px partout (Recommandé) ». Une taille sur les deux fonds ; les sites qui ne tiennent pas se corrigent par leur disposition, jamais par une taille propre.
+3. Intertitre : « Nu + filet() (Recommandé) ». La rubrique ne porte plus de trait ; un séparateur voulu est un `filet()` posé par la disposition.
+
+Le nom (769 sites) n'était pas dans les questions : il se mesure dans son propre passage, après ce lot.
