@@ -13,10 +13,10 @@ import { depuisBase64 } from '../../../src/lib/base64';
 import {
   CLIC_DU_CHAMP,
   cotesDeMarchesDeLaScene,
-  faitieresDeLaScene,
+  piecesDeToitDeLaScene,
   type AreteDessinee,
   type CoteDeMarches,
-  type Faitiere,
+  type PieceDeToitPosee,
   type RetraitDuMonde,
 } from '../../../src/noyau/index';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
@@ -108,11 +108,11 @@ describe('l’exploration par le pont', () => {
     expect(servis).toEqual(cotesDeMarchesDeLaScene(testScenarios.find((s) => s.id === 'fenetre-ecuries')!.construire(idsDeTest).scene));
   });
 
-  it('`aretes` sert aussi les faîtières des nappes de la scène, sous la même clé de relecture (#4471)', () => {
+  it('`aretes` sert aussi les pièces de toit des nappes de la scène, sous la même clé de relecture (#4471)', () => {
     appel('quitter');
     drainer(appel, appel('demarrer', { scenario: 'zones-pieces', graine: 7 }));
-    const servies = (appel('aretes') as unknown as { faitieres: Faitiere[] }).faitieres;
-    expect(servies.length, 'les faîtes des pièces').toBeGreaterThan(0);
-    expect(servies).toEqual(faitieresDeLaScene(testScenarios.find((s) => s.id === 'zones-pieces')!.construire(idsDeTest).scene));
+    const servies = (appel('aretes') as unknown as { piecesDeToit: PieceDeToitPosee[] }).piecesDeToit;
+    expect(servies.length, 'les arêtes des toits des pièces').toBeGreaterThan(0);
+    expect(servies).toEqual(piecesDeToitDeLaScene(testScenarios.find((s) => s.id === 'zones-pieces')!.construire(idsDeTest).scene));
   });
 });

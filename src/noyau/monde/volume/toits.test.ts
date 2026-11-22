@@ -25,7 +25,7 @@ import { METRES_PER_LEVEL } from '../relief';
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
 import { ornementsDuBati } from './ornements';
-import { faitieresDeLaScene } from '../faitieres';
+import { piecesDeToitDeLaScene } from '../piecesDeToit';
 
 /**
  * Builder de TOITS du pivot : on teste la FUSION EN PANS CONTINUS (le fix de la cause racine « toit
@@ -1449,7 +1449,7 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     const m = effectiveArchitecture(sc).find((b) => b.id === 'corps')!.masses.find((x) => x.z === 1 && x.profile === 'gable')!;
     const cle = nappeKey('corps', m.id);
     const { cells, field } = resolveNappes(sc).get(cle)!;
-    return { cells, field, pans: pansDesNappes(sc).get(cle)!, faitieres: faitieresDeLaScene(sc).filter((f) => f.nappe === cle) };
+    return { cells, field, pans: pansDesNappes(sc).get(cle)!, faites: piecesDeToitDeLaScene(sc).filter((f) => f.nappe === cle && f.piece === 'faitiere') };
   };
   const ENVELOPPES = [
     { nom: 'corps alignés', sc: () => scene },
@@ -1480,9 +1480,9 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
   });
 
   it.each(ENVELOPPES)('$nom : aucun faîte ne naît sur la noue, chaque faîtière domine ses deux versants de la pente du champ commun', ({ sc }) => {
-    const { field, faitieres } = enveloppeDe(sc());
+    const { field, faites } = enveloppeDe(sc());
     const d = 0.25;
-    for (const f of faitieres) {
+    for (const f of faites) {
       const l = Math.hypot(f.sens.x, f.sens.y);
       const [nx, ny] = [-f.sens.y / l, f.sens.x / l];
       for (const cote of [-1, 1]) {
