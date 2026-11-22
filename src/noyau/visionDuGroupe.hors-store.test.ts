@@ -16,7 +16,9 @@ import { effetsDeLAppel, type Effet } from './effetsDeLAppel';
 import { lumiereDeLaScene } from './lumiereDeLaScene';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
-import type { SceneEntity } from './monde/scene';
+import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
+import { perimeterWallSegs } from './sceneEdit.testkit';
+import { METRES_PER_LEVEL } from './monde/relief';
 import type { Evenement } from './partie';
 import type { Jeu } from './etat';
 
@@ -90,7 +92,7 @@ describe('connaissanceDuGroupe, visionDuMonde — vue, explorée, inconnue', () 
     const scene = etat().scene!;
     const vision = visionDuMonde(avecScene());
     const { w, h } = scene.dimensions;
-    expect([vision.largeur, vision.rangees, vision.rangeesParPlan, depuisBase64(vision.masque).length]).toEqual([w, h * scene.layers.length, h, w * h * scene.layers.length]);
+    expect([vision.largeur, vision.rangees, vision.rangeesParPlan, depuisBase64(vision.masque).length]).toEqual([w, 2 * h * scene.layers.length, h, 2 * w * h * scene.layers.length]);
   });
 
   it('hors de la zone jouable, une case de la grille est au moins explorée, vue si la vue l’atteint (#4392)', () => {
@@ -212,5 +214,63 @@ describe('lumiereDeLaScene — les foyers tels que le groupe les voit', () => {
     const [vue, cachee] = ['posee/lampe-vue', 'posee/lampe-cachee'].map((k) => sources().find((s) => s.cle === k));
     expect(vue).toMatchObject({ visuel: 'feu', son: { id: 'crepitement' } });
     expect(cachee, 'sa lampe, sans flamme ni son').toMatchObject({ x: NON_VUE.x, y: NON_VUE.y, energie: vue!.energie, rayonCases: vue!.rayonCases, visuel: null, son: null });
+  });
+});
+
+/**
+ * #4471 — le plan `toit` du masque. Un corps clos de murs (rez) porte un étage (plancher z1) coiffé d'une masse ; le
+ * groupe se tient dans la cour, de jour. La nappe se lit à l'état de son pied, le plancher qu'elle coiffe gardant le sien.
+ */
+describe('visionDuMonde — le plan `toit` porte l’état du pied de chaque nappe (#4471)', () => {
+  const W = 20, H = 8;
+  const CORPS = { x: 3, y: 3, w: 4, h: 3 };
+  const dans = (x: number, y: number) => x >= CORPS.x && x < CORPS.x + CORPS.w && y >= CORPS.y && y < CORPS.y + CORPS.h;
+  const scene = (): Scene => {
+    const t1 = [...Array(W * H).keys()].map((i) => (dans(i % W, Math.floor(i / W)) ? 'plancher' : 'vide'));
+    const h1 = t1.map((t) => (t === 'plancher' ? METRES_PER_LEVEL : 0));
+    return {
+      ...emptyScene('toit-du-pied', W, H),
+      layers: [{ z: 0, tiles: new Array(W * H).fill('herbe') }, { z: 1, tiles: t1, height: h1 }],
+      walls: perimeterWallSegs([CORPS]),
+      architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [
+        { id: 'logis', z: 1, footprint: [CORPS], levels: 2, profile: 'hip', pitchDeg: 30, material: { id: 'tuile' } },
+      ] }],
+    } as unknown as Scene;
+  };
+  /** Les octets du masque, vu depuis `pos` (couche 0), de jour, avec `explored` en mémoire de carte. */
+  const octets = (pos: { x: number; y: number }, explored: string[] = []) => {
+    const sc = scene();
+    const vision = visionDuMonde({ scene: sc, battle: null, party: [], partyPos: pos, gameTime: 12 * 60, lightLevel: null, explored: { [sc.id]: explored } } as never);
+    const o = depuisBase64(vision.masque);
+    return { o, plan: (rang: number, x: number, y: number) => o[(rang * H + y) * W + x] };
+  };
+  const SOL_Z1 = 1, TOIT_Z0 = 2, TOIT_Z1 = 3;
+
+  it('depuis la cour, la nappe est vue sur toute son emprise ; le plancher qu’elle coiffe reste inconnu', () => {
+    const { plan } = octets({ x: 1, y: 1 });
+    for (let y = CORPS.y; y < CORPS.y + CORPS.h; y++)
+      for (let x = CORPS.x; x < CORPS.x + CORPS.w; x++) {
+        expect(plan(TOIT_Z1, x, y), `toit (${x},${y})`).toBe(255);
+        expect(plan(SOL_Z1, x, y), `plancher (${x},${y})`).toBe(0);
+      }
+  });
+
+  it('hors d’une nappe, le plan `toit` porte l’état du plan `sol`', () => {
+    const { plan } = octets({ x: 1, y: 1 });
+    for (const [x, y] of [[1, 1], [0, 7], [9, 0]]) {
+      expect(plan(TOIT_Z0, x, y), `(${x},${y}) z0`).toBe(plan(0, x, y));
+      expect(plan(TOIT_Z1, x, y), `(${x},${y}) z1`).toBe(plan(SOL_Z1, x, y));
+    }
+  });
+
+  it('un pied seulement exploré rend la nappe explorée ; aucun pied connu, inconnue', () => {
+    const loin = { x: W - 1, y: 0 };
+    const sc = scene();
+    const nuit = (explored: string[]) => {
+      const vision = visionDuMonde({ scene: sc, battle: null, party: [], partyPos: loin, gameTime: 0, lightLevel: null, explored: { [sc.id]: explored } } as never);
+      return depuisBase64(vision.masque)[(TOIT_Z1 * H + CORPS.y) * W + CORPS.x];
+    };
+    expect(nuit(['2,4,0'])).toBe(128);
+    expect(nuit(['0,7,0'])).toBe(0);
   });
 });

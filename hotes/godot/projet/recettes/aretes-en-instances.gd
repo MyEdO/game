@@ -99,7 +99,8 @@ func _poses_d_avant(scene: Node3D) -> void:
 	var octets := PackedByteArray()
 	for colonne in COLONNES:
 		octets.append(ETATS[colonne % ETATS.size()] if colonne < COLONNES - 1 else 255)
-	volume.voir({masque = Marshalls.raw_to_base64(octets), largeur = COLONNES, rangees = 1, rangeesParPlan = 1, teintes = TEINTES})
+	octets.append_array(octets)
+	volume.voir({masque = Marshalls.raw_to_base64(octets), largeur = COLONNES, rangees = 2, rangeesParPlan = 1, teintes = TEINTES})
 	var temoin := Node3D.new()
 	var noeud_des_aretes: Node3D = volume.get_node("Aretes")
 	temoin.transform = noeud_des_aretes.transform

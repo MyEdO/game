@@ -887,13 +887,9 @@ export function closureAppearance(
 
 /** Vérité de JEU pilotant le cutaway (PAS une caméra) : positions des ALLIÉS, ÉTAGE COMPRIS. Le `z`
  *  (défaut 0) n'est pas décoratif — c'est lui qui tranche la PIÈCE où se tient l'allié : deux pièces
- *  superposées portent des zones DISTINCTES, et une masse ne couvre que la plage `z-levels+1..z`.
- *
- *  `sight` = les cases `"x,y,z"` que le groupe VOIT (`noyau/monde/vision.ts`) : sans elle, aucune nappe
- *  n'est régie par la vision (éditeur, QC, POV). */
+ *  superposées portent des zones DISTINCTES, et une masse ne couvre que la plage `z-levels+1..z`. */
 export interface RoofView {
   allies?: { x: number; y: number; z?: number }[];
-  sight?: ReadonlySet<string>;
 }
 
 function panCells(face: Face, all: { x: number; y: number }[]): { x: number; y: number }[] {
@@ -962,8 +958,8 @@ export function massCovers(mass: Pick<BuildingMass, 'z'>, cells: ReadonlySet<str
  *  même colonne : une masse basse posée sur une butte a son égout plus HAUT qu'une masse haute posée
  *  dans le creux. C'est l'égout qui ARRÊTE la pluie (`isSheltered`), donc c'est SA masse que la météo
  *  doit interroger — sinon la vue répond pour une autre nappe et la pluie s'arrête encore en l'air
- *  (#1247). `sectionId` est la MASSE (`mass.id`), la clé même que lit la loi de dégagement
- *  (`cutawayForSection`, `seenSections`) : aucun second verdict n'est reposé. */
+ *  (#1247). `sectionId` est la MASSE (`mass.id`), la clé même des éléments de toit
+ *  (`RoofEl.sectionId`) : aucun second verdict n'est reposé. */
 export interface ShelterColumn { topZ: number; ceilingM: number; sectionId: string }
 
 /** Le couvert bâti de `scene` (`shelterField`), calculé. */
@@ -1026,38 +1022,20 @@ const espaceRetenu = memoByRefDeps<SceneDesToits, ClearedSpace>();
  *
  *  Un allié à ciel ouvert ne dégage rien — aucune pièce, aucune emprise ne le contient ni ne le coiffe.
  *
- *  Il dit ENFIN quelles nappes le groupe VOIT (`seenSections`, #950), depuis les cases que le moteur
- *  de vision lui donne (`sight`, `noyau/monde/vision.ts`) : la nappe d'un corps se peint quand le groupe
- *  voit le PIED de ce corps — une case de son emprise élargie d'1, à l'un des niveaux qu'il porte
- *  Un allié DEDANS — sa pièce, ou
- *  le volume d'une masse dont il occupe un niveau — n'en voit AUCUNE : on ne regarde pas au travers
- *  d'un plafond (`computeVisible` ne marque jamais une case au-dessus du viewer). Le porche et le
- *  passage couvert ne sont PAS dedans : la masse les coiffe sans les enfermer, la vue y reste ouverte
- *  de tous côtés. `sight` absente ⇒ `null` : la vue n'est régie par aucune vision (éditeur, QC, POV).
- *
- *  Résolu une fois par scène, par version des datasets, par cases des alliés et par vue (`memoByRefDeps`) : ses lecteurs d'un même pas (nappes,
+ *  Résolu une fois par scène, par version des datasets et par cases des alliés (`memoByRefDeps`) : ses lecteurs d'un même pas (nappes,
  *  arêtes, couvercle) reçoivent le même espace. */
-export function clearedSpace(
-  scene: SceneDesToits,
-  allies: readonly { x: number; y: number; z?: number }[],
-  sight?: ReadonlySet<string>,
-): ClearedSpace {
-  return espaceRetenu(scene, [sight, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => espaceDegage(scene, allies, sight));
+export function clearedSpace(scene: SceneDesToits, allies: readonly { x: number; y: number; z?: number }[]): ClearedSpace {
+  return espaceRetenu(scene, allies.flatMap((a) => [a.x, a.y, a.z]), () => espaceDegage(scene, allies));
 }
 
-function espaceDegage(
-  scene: SceneDesToits,
-  allies: readonly { x: number; y: number; z?: number }[],
-  sight?: ReadonlySet<string>,
-): ClearedSpace {
+function espaceDegage(scene: SceneDesToits, allies: readonly { x: number; y: number; z?: number }[]): ClearedSpace {
   const zoneIds = new Set<string>();
   const zoneCells = new Map<string, ReadonlySet<string>>();
   const roomlessCells = new Set<string>();
   const overheadCells = new Set<string>();
-  if (!allies.length) return { zoneIds, zoneCells, roomlessCells, overheadCells, seenSections: null };
+  if (!allies.length) return { zoneIds, zoneCells, roomlessCells, overheadCells };
   const masses = effectiveArchitecture(scene).flatMap((body) =>
     body.masses.map((mass) => ({ mass, cells: massFootprintCells(mass.footprint) })));
-  let openSky = false; // au moins un allié qui n'est enfermé dans aucun volume bâti
   const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`noyau/monde/rooms`)
   const couches = scene.layers.map((layer) => layer.z);
   for (const ally of allies) {
@@ -1071,34 +1049,16 @@ function espaceDegage(
         const [rx, ry] = key.split(',');
         for (const lz of couches) if (lz > z) overheadCells.add(`${rx},${ry},${lz}`);
       }
-    let dedans = rooms.size > 0;
     for (const { mass, cells } of masses) {
       if (!massCovers(mass, cells, x, y, z)) continue;
       const bottom = mass.z - mass.levels + 1;
-      if (z >= bottom) dedans = true; // dans le VOLUME de la masse, pas seulement sous son couvercle
       if (!rooms.size && z >= bottom) for (const key of massSpaceCells(mass, cells)) roomlessCells.add(key);
       for (let mz = Math.max(z + 1, bottom); mz <= mass.z; mz++)
         for (const key of cells) overheadCells.add(`${key},${mz}`);
     }
-    openSky ||= !dedans;
   }
   for (const id of zoneIds) zoneCells.set(id, tilesById.get(id) ?? new Set<string>());
-  const seenSections = sight
-    ? new Set(openSky ? masses.filter(({ mass, cells }) => footInSight(mass.z, cells, sight)).map(({ mass }) => mass.id) : [])
-    : null;
-  return { zoneIds, zoneCells, roomlessCells, overheadCells, seenSections };
-}
-
-/** Le PIED d'une masse est-il en vue ? Son emprise ÉLARGIE d'1 (on voit un bâtiment quand on voit le
- *  sol à son pied — l'intérieur, lui, est derrière ses murs), à l'un des niveaux qu'elle porte. */
-function footInSight(z: number, cells: ReadonlySet<string>, sight: ReadonlySet<string>): boolean {
-  for (const key of cells) {
-    const [x, y] = key.split(',').map(Number);
-    for (let dy = -1; dy <= 1; dy++)
-      for (let dx = -1; dx <= 1; dx++)
-        for (let lvl = 0; lvl <= z; lvl++) if (sight.has(`${x + dx},${y + dy},${lvl}`)) return true;
-  }
-  return false;
+  return { zoneIds, zoneCells, roomlessCells, overheadCells };
 }
 
 /** Forme résolue + emprise + `roomZoneIds` dérivés d'une masse — calcul PARTAGÉ par les nappes
@@ -1307,7 +1267,7 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       const forme = formeDeLaNappe(field);
       // Le dégagement se décide au CONTEXTE (espace dégagé, résolu une fois par appel) et non par
       // case de brouillard : une nappe ne porte pas de voile, elle est peinte ou elle ne l'est pas.
-      const space = { sectionId: mass.id, roomZoneIds, cells: massSpaceCells(mass, cells) };
+      const space = { roomZoneIds, cells: massSpaceCells(mass, cells) };
       const rule: ViewRule<ClearedSpace> = { kind: 'contexte', truth: (cleared) => cutawayForSection(space, cleared) === 'hidden' };
       const sectionCells = [...cells].map((key) => {
         const [x, y] = key.split(',').map(Number);
@@ -1395,7 +1355,7 @@ export const buildRoofs: (scene: SceneDesToits, view?: RoofView) => RoofEl[] = (
   const build = viewedBuilder<SceneDesToits, RoofEl, RoofView, ClearedSpace>({
     derive: roofGeometry,
     key: () => '', // la géométrie des nappes ne dépend d'AUCUN paramètre de vue
-    context: (scene, view) => clearedSpace(scene, view?.allies ?? [], view?.sight),
+    context: (scene, view) => clearedSpace(scene, view?.allies ?? []),
     withTruth: (off) => ({ ...off, states: { ...off.states, roofOccupied: true } }),
   });
   return (scene, view) => build(scene, undefined, view);

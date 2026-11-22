@@ -5,7 +5,8 @@
 // (`retrait`, `RetraitDuMonde`) : un sommet dont la case (`UV2`) est retirée se replie ; une case hors du masque lié
 // (aucun lié, avant le premier `VolumeDeScene.retirer`, après `retirer(null)` ou sur une nappe : la texture noire par
 // défaut) n'est pas lue, rien ne s'y replie ; et la vision du groupe (`vision`, `VisionDuMonde`, `VolumeDeScene.voir`) :
-// l'état de la case sous le fragment, lu au plan de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par
+// l'état de la case sous le fragment, lu au plan `sol` de sa couche (au plan `toit` pour une nappe ou une couronne,
+// `VisionDuMonde`) et fondu depuis la vision d'avant, multiplie l'albédo par
 // sa teinte, en lumière linéaire : sous `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le
 // linéarise après `fragment()` (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes
 // à 1 : rien n'est voilé ; la vision, sa part de lumière (`part_de_lumiere`), `en_lineaire` et `en_srgb` viennent de
@@ -65,7 +66,7 @@ void vertex() {
 	}
 	vision_case = VERTEX.xz * vision_cases_par_metre;
 	float rangees_par_plan = float(vision_rangees_par_plan);
-	vision_premiere_rangee = floor(UV2.y / (2.0 * rangees_par_plan)) * rangees_par_plan;
+	vision_premiere_rangee = floor(UV2.y / (2.0 * rangees_par_plan)) * rangees_par_plan + nappe * float(textureSize(vision, 0).y / 2);
 	ivec2 texel = ivec2(UV2);
 	ivec2 taille = textureSize(retrait, 0);
 	float lue = float(all(lessThan(texel, taille))) * texelFetch(retrait, min(texel, taille - 1), 0).r;

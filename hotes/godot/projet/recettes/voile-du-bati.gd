@@ -9,7 +9,8 @@ extends SceneTree
 ## peint) : la vision toute vue rend chaque pixel du témoin ; toute explorée, chacun à la part de lumière de l'explorée,
 ## toute inconnue, à celle de l'inconnue, et le mur et la boîte à la part du sol voisin (la part de lumière du
 ## shader de monde et sa jumelle de `MiseEnPage.teinte_d_instance`, tenues égales) ; la première couche vue et la seconde
-## explorée, le toit à la part de l'explorée : il lit le plan de sa couche ; la case d'un mur inconnue et sa voisine
+## inconnue (le plancher que le toit coiffe) et le plan `toit` de la seconde explorée, le toit à la part de l'explorée : il
+## lit le plan `toit` de sa couche, jamais le plancher qu'il coiffe ; la case d'un mur inconnue et sa voisine
 ## vue, le mur, cadré de près, rend la vision toute vue (sa teinte d'instance blanche, au moins `INTERIEUR_LISIBLE`
 ## pixels loin de son bord, identiques à ceux de la vision toute vue) ; à mi-fondu de la vue vers l'inconnue,
 ## chacun à mi-chemin, l'état de l'explorée, à la part qu'il y prend ; sous l'éclairage d'un extérieur du jeu, dont le
@@ -93,11 +94,12 @@ func _recetter() -> void:
 				if nom in ["mur", "boîte"] and absf(part - du_sol) > TOLERANCE:
 					_fautes.append("%s, %s : %s à la part %.3f, le sol voisin %.3f" % [regard, etat[2], nom, part, du_sol])
 		volume.voir(null)
-		volume.voir(_vision(func(_case: Vector2i, couche: int) -> int: return VUE if couche == 0 else EXPLOREE))
+		volume.voir(_vision(func(_case: Vector2i, couche: int) -> int: return VUE if couche == 0 else INCONNUE,
+			func(_case: Vector2i, couche: int) -> int: return VUE if couche == 0 else EXPLOREE))
 		var par_couche := PIXELS.part(temoin, await PIXELS.image(self), masques.toit)
-		print("[voile-du-bati] %s, première couche vue, seconde explorée : toit %.3f, à l'explorée %.3f" % [regard, par_couche, explorees.toit])
+		print("[voile-du-bati] %s, première couche vue, plancher de la seconde inconnu, son toit exploré : toit %.3f, à l'explorée %.3f" % [regard, par_couche, explorees.toit])
 		if absf(par_couche - explorees.toit) > TOLERANCE / 2.0:
-			_fautes.append("%s : le toit de la seconde couche à la part %.3f, pas à celle de l'explorée de son plan %.3f" % [regard, par_couche, explorees.toit])
+			_fautes.append("%s : le toit de la seconde couche à la part %.3f, pas à celle de l'explorée de son plan toit %.3f" % [regard, par_couche, explorees.toit])
 		volume.voir(null)
 		volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return VUE))
 		volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return INCONNUE))
@@ -239,14 +241,15 @@ func _objets(monde: Monde) -> Dictionary:
 
 
 ## La vision (`VisionDuMonde`) des deux couches, chaque case à l'état que `etat_de` lui donne (sa case et l'indice de sa
-## couche).
-func _vision(etat_de: Callable) -> Dictionary:
+## couche) au plan `sol`, et à celui que `toit_de` lui donne au plan `toit` (sans lui, celui du plan `sol`).
+func _vision(etat_de: Callable, toit_de: Variant = null) -> Dictionary:
 	var octets := PackedByteArray()
-	for couche in 2:
-		for y in HAUTEUR:
-			for x in LARGEUR:
-				octets.append(etat_de.call(Vector2i(x, y), couche))
-	return {masque = Marshalls.raw_to_base64(octets), largeur = LARGEUR, rangees = 2 * HAUTEUR, rangeesParPlan = HAUTEUR, teintes = TEINTES}
+	for plan: Callable in [etat_de, etat_de if toit_de == null else toit_de]:
+		for couche in 2:
+			for y in HAUTEUR:
+				for x in LARGEUR:
+					octets.append(plan.call(Vector2i(x, y), couche))
+	return {masque = Marshalls.raw_to_base64(octets), largeur = LARGEUR, rangees = 4 * HAUTEUR, rangeesParPlan = HAUTEUR, teintes = TEINTES}
 
 
 ## La géométrie du monde `cle` : les dalles des cases de `cases`, à `hauteur` mètres, de la matière `matiere` et du gris

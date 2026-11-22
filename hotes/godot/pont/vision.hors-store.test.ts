@@ -72,7 +72,7 @@ describe('siege-enceinte — les ennemis vus par la herse ou masqués par la cou
     const vision = visionDe(appel('vision'));
     expect(vue().vision, 'la clé de la vue : l’empreinte des octets du masque').toBe(hash32AuMillieme(depuisBase64(vision.masque)).toString(36));
     expect((appel('vue') as { vue: VueDuPont }).vue.vision, 'une relecture ne change pas la clé').toBe(vue().vision);
-    expect(vision.rangees, 'un plan de `rangeesParPlan` rangées par couche').toBe(vision.rangeesParPlan * mondeDe(appel).monde!.hauteurs.length);
+    expect(vision.rangees, 'un plan `sol` puis un plan `toit` de `rangeesParPlan` rangées par couche').toBe(2 * vision.rangeesParPlan * mondeDe(appel).monde!.hauteurs.length);
   });
 });
 
@@ -141,7 +141,7 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
   });
   afterAll(() => { appel('quitter'); });
 
-  it('le plan `i` du masque est la couche `hauteurs[i]` du monde : seule celle du groupe a des cases vues, la sienne comprise', () => {
+  it('le plan `i` du masque est la couche `hauteurs[i]` du monde : celle du groupe a des cases vues, la sienne comprise, une autre ne voit que par sa colonne', () => {
     const { hauteurs } = mondeDe(appel).monde!;
     const vision = visionDe(appel('vision'));
     const octets = depuisBase64(vision.masque);
@@ -149,9 +149,13 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
     const z = etage ?? 0;
     const plan = (i: number) => octets.subarray(i * vision.largeur * vision.rangeesParPlan, (i + 1) * vision.largeur * vision.rangeesParPlan);
     expect(hauteurs.length, 'une scène à deux couches').toBe(2);
-    expect(hauteurs.map((_, i) => plan(i).includes(255)), `les plans aux cases vues, couches ${hauteurs.map((h) => h.z).join(', ')}`).toEqual(hauteurs.map((h) => h.z === z));
     const i = hauteurs.findIndex((h) => h.z === z);
     expect(plan(i)[groupe[1] * vision.largeur + groupe[0]], 'la case du groupe, vue, au plan de sa couche').toBe(255);
+    hauteurs.forEach((h, j) => {
+      if (j === i) return;
+      const sansColonne = [...plan(j).keys()].filter((k) => plan(j)[k] === 255 && plan(i)[k] !== 255);
+      expect(sansColonne, `couche ${h.z} : une case vue sans sa colonne vue à la couche du groupe`).toEqual([]);
+    });
   });
 
   it('un pas change `vue.vision` ; chaque case vue que le pas quitte vaut 128, explorée', () => {
