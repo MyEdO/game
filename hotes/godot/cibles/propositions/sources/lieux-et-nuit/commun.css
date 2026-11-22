@@ -64,7 +64,6 @@
 .page{position:absolute}
 .page>.fond{display:flex;flex-direction:column;padding:24px 20px 13px}
 .page>.fond>.defile{flex:1 1 auto}
-.page h3{margin:0;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;letter-spacing:.3px}
 .page .sous{font-size:12px;color:#5a2a12}
 .page p{margin:0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18}
 .onglets{display:flex;gap:8px}

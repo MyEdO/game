@@ -5,8 +5,8 @@
    `user-doctrine-icone-identifie-survol-detaille`) ; `prix` chez un médecin payant, `ferme` quand personne ne peut le tenter */
 const acteDeSoin = (icone, nom, competence, texte, { pris = false, prix = '', ferme = false } = {}) => `<div class="soin ${pris ? 'pris' : ''} ${ferme ? 'ferme' : ''}" title="${texte}"><div class="ic">${picto(icone, 19, '#5a2a12')}</div><div class="t"><b>${nom}</b><span class="c">${competence}</span></div>${prix ? `<span class="px chiffres">${prix}</span>` : ''}</div>`;
 const pageDesSoins = ({ ruban: intitule, patient, blessures, max, mal = '', actes, paie = '', geste, note = '' }) => `<div id="soins" class="page cadre bois" data-piece="page"><div class="fond parchemin">${colonne('page', {
-  tete: `<div class="patient"><div class="etat"><div class="l"><h3 data-texte="patient">${patient}</h3><span class="sous rubrique">Blessures <span class="chiffres">${blessures} / ${max}</span></span></div>${jauge(blessures / max, { taille: 'forte' })}</div></div>`,
+  tete: `<div class="patient"><div class="etat"><div class="l">${titre({ texte: patient, cle: 'patient' })}<span class="sous rubrique">Blessures <span class="chiffres">${blessures} / ${max}</span></span></div>${jauge(blessures / max, { taille: 'forte' })}</div></div>`,
   corps: `${mal ? `<div class="mal">${sceau('goutte', 'menu')}<span>${mal}</span></div>` : ''}${filet()}${actes}`,
-  pied: paie && `<div class="paie">${paie}</div>`, geste, note })}</div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
+  pied: paie && `<div class="paie">${paie}</div>`, geste, note })}</div>${ruban(intitule)}${ferrures}</div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
 Object.assign(globalThis, { acteDeSoin, pageDesSoins });

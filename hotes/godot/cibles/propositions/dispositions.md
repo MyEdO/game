@@ -406,18 +406,18 @@ Choix d'ingénierie, révisable : un champ `role` au premier niveau, du même no
 | `BatailleDeMasse` :780 | `'bataille'` | `decor` `champ` |
 | `Interlude` :825 | `'interlude'` | `decor` `ville` |
 | `Nuit` :997 | `'nuit'` | `decor` `auberge`, `taverne`, `bivouac` |
-| `Soins` :1017 | `'soins'` | **forme** : `'actes' in e` (`R:1765`), `decor` `salle` partagé |
+| `Soins` :1017 | `'soins'` | **forme** : `'actes' in e` (`R:1764`), `decor` `salle` partagé |
 | `Commerce` :1155 | `'commerce'` | `decor` `halle`, `quai`, `relais` |
-| `Exploration` :1288 | `'exploration'` | **forme** : pas d'`actes` (`R:1765`) |
+| `Exploration` :1288 | `'exploration'` | **forme** : pas d'`actes` (`R:1764`) |
 | `CarteDuMonde` :1333 | `'carte-du-monde'` | `decor` `reikland` |
-| `Dossier` :1223 | `'dossier'` | **forme** : `'possession' in etat` (`R:1738`) |
-| `Creation` :1589 | `'creation'` | **forme** : `'etapes' in e` (`R:1721`) |
-| `FicheDuHeros` :1656 | `'fiche-du-heros'` | **forme** : `'sets' in e` (`R:1721`) |
-| `DepenseDExperience` :1725 | `'depense'` | **forme** : `'competences' in e` (`R:1721`) |
-| `ChangementDeCarriere` :1756 | `'changement'` | **forme** : aucun des trois (`R:1721`) |
-| `Options` :861 | `'options'` | **forme** : `'domaines' in etat` (`R:1785`) |
-| `Coop` :1974 | `'coop'` | **forme** : `'sieges' in etat` (`R:1786`) |
-| `Sauvegardes` :1870 | `'sauvegardes'` | **forme** : ni l'un ni l'autre (`R:1785-1787`) |
+| `Dossier` :1223 | `'dossier'` | **forme** : `'possession' in etat` (`R:1737`) |
+| `Creation` :1589 | `'creation'` | **forme** : `'etapes' in e` (`R:1720`) |
+| `FicheDuHeros` :1656 | `'fiche-du-heros'` | **forme** : `'sets' in e` (`R:1720`) |
+| `DepenseDExperience` :1725 | `'depense'` | **forme** : `'competences' in e` (`R:1720`) |
+| `ChangementDeCarriere` :1756 | `'changement'` | **forme** : aucun des trois (`R:1720`) |
+| `Options` :861 | `'options'` | **forme** : `'domaines' in etat` (`R:1784`) |
+| `Coop` :1974 | `'coop'` | **forme** : `'sieges' in etat` (`R:1785`) |
+| `Sauvegardes` :1870 | `'sauvegardes'` | **forme** : ni l'un ni l'autre (`R:1784-1786`) |
 | `Carnet` :1355 | `'carnet'` | `decor` `salle` de `gestion` |
 | `NouvellePartie` :1894 | `'nouvelle-partie'` | `decor` `compagnie` |
 | `FinDeSeance` :1849 | `'fin-de-seance'` | `decor` `jeu` de `gestion` |
@@ -425,10 +425,10 @@ Choix d'ingénierie, révisable : un champ `role` au premier niveau, du même no
 | `MenuDeLaPartie` :1798 | `'menu'` | `decor` `jeu` d'`ouverture` |
 | `Chapitre` :1835 | `'chapitre'` | `decor` `relais`, `altdorf` |
 | `Compendium` :1953 | `'compendium'` | `gabarit` |
-| `EditeurDeScene` :2032 | `'editeur-de-scene'` | **forme** : pas de `lieux` (`R:1800`) |
-| `EditeurDeLaCarte` :2055 | `'editeur-de-la-carte'` | **forme** : `'lieux' in etat` (`R:1800`) |
+| `EditeurDeScene` :2032 | `'editeur-de-scene'` | **forme** : pas de `lieux` (`R:1799`) |
+| `EditeurDeLaCarte` :2055 | `'editeur-de-la-carte'` | **forme** : `'lieux' in etat` (`R:1799`) |
 
-Les unions internes sans littéral reçoivent le leur dans le lot de leur gabarit. `rendu.js` les teste par leur forme à 23 endroits : `R:191`, `R:227`, `R:252-257`, `R:302`, `R:337`, `R:351`, `R:352`, `R:388`, `R:543-545`, `R:826`, `R:872`, `R:881`, `R:896`, `R:978`, `R:1008`, `R:1051`, `R:1055`, `R:1121`, `R:1225`, `R:1226`, `R:1420`, `R:1563`, `R:1725`.
+Les unions internes sans littéral reçoivent le leur dans le lot de leur gabarit. `rendu.js` les teste par leur forme à 23 endroits : `R:191`, `R:227`, `R:252-257`, `R:302`, `R:337`, `R:351`, `R:352`, `R:388`, `R:543-545`, `R:826`, `R:872`, `R:881`, `R:896`, `R:978`, `R:1008`, `R:1051`, `R:1055`, `R:1121`, `R:1225`, `R:1226`, `R:1419`, `R:1562`, `R:1724`.
 
 ## Dictionnaire des libellés (étape 2 de #4585, à valider)
 
@@ -448,19 +448,19 @@ Règle 4 du même plan.
 - **Forme** : id vers texte. L'id est en minuscules, par domaine puis par chose : `combat.fin-du-tour`. Le texte est un mot fixe, ou une phrase à trous nommés avec ses formes de nombre : `voyage.reste.km` vaut « {n} km avant {lieu} ». Le type de l'id est l'ensemble des clés du fichier : un id inconnu échoue au typage.
 - **Dans une donnée** : un champ de libellé porte l'id, plus un texte. `ouvrir: [{ id: 'dossier' }]` suffit, le mot vient de `ouvrir.dossier` (aujourd'hui l'état répète le mot : `libelle`, `M:678`).
 - **Dans une table** : `#id`, avec ses trous nourris par des champs : `#voyage.reste.{unite}(n ← frise.reste, lieu ← frise.vers)`.
-- **Dans une primitive** : un paramètre `libelle` reçoit le texte déjà résolu par le moteur. La primitive le place et n'écrit aucun mot. Au moins sept en écrivent aujourd'hui : `bourse` et `rangeeDeBourses` (`sources/gestes.js:407`, `:412`), `paginer` (`sources/gestes.js:378`), `ouiNon` (`sources/gestes.js:351`), `camp` (`sources/combat/jet.js:12-13`), `testeurs` (`sources/combat/jet.js:50`), `bandeau` (`sources/lieux-et-nuit/commun.js:60`). Le relevé n'est pas exhaustif.
+- **Dans une primitive** : un paramètre `libelle` reçoit le texte déjà résolu par le moteur. La primitive le place et n'écrit aucun mot. Au moins sept en écrivent aujourd'hui : `bourse` et `rangeeDeBourses` (`sources/gestes.js:411`, `:412`), `paginer` (`sources/gestes.js:382`), `ouiNon` (`sources/gestes.js:355`), `camp` (`sources/combat/jet.js:12-13`), `testeurs` (`sources/combat/jet.js:50`), `bandeau` (`sources/lieux-et-nuit/commun.js:60`). Le relevé n'est pas exhaustif.
 
 ### Dix mots en dur aujourd'hui
 
 | Mot | Écrit dans | Id proposé |
 |---|---|---|
 | « Fin du tour » | `R:427` | `combat.fin-du-tour` |
-| « Journal » | `R:516`, `R:1338` | `mot.journal` |
+| « Journal » | `R:516`, `R:1337` | `mot.journal` |
 | « Libre » | `R:447` | `mot.libre` |
-| « Bourses du groupe » | `sources/gestes.js:407` | `bourse.groupe` |
-| « Total » | `sources/gestes.js:407`, `:412` | `mot.total` |
-| « Page 1 sur N » | `sources/gestes.js:378` | `page.rang` : « Page {n} sur {sur} » |
+| « Bourses du groupe » | `sources/gestes.js:411` | `bourse.groupe` |
+| « Total » | `sources/gestes.js:411`, `:412` | `mot.total` |
+| « Page 1 sur N » | `sources/gestes.js:382` | `page.rang` : « Page {n} sur {sur} » |
 | « Testeur » | `sources/combat/jet.js:50` | `jet.testeur` |
 | « Réussite », « Échec », « Critique » | `sources/combat/jet.js:13`, `R:954` | `verdict.reussite`, `verdict.echec`, `verdict.critique` |
 | « Cadence du voyage », « Jour par jour », « Sous vos ordres » | `R:943-944` | `voyage.cadence`, `cadence.jourParJour`, `cadence.commande` |
-| « Nouveau héros », « Précédent » | `R:1499`, `R:1501` | `creation.nouveau-heros`, `creation.precedent` |
+| « Nouveau héros », « Précédent » | `R:1498`, `R:1500` | `creation.nouveau-heros`, `creation.precedent` |

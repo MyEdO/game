@@ -1,5 +1,4 @@
 /* Voyage (#3935, #4411) : les pièces de la famille au-dessus de la feuille commune ; leur place vit dans `../rendu.css`. */
-#titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
 #titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
 #trajet .fond{overflow:hidden}
 #trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
@@ -15,7 +14,6 @@
 #evenement .vignette{width:100%;height:100%;padding:5px;background:#2a1d12;box-shadow:0 2px 6px rgba(40,20,5,.6)}
 #evenement .vignette svg{display:block;width:100%;height:100%}
 #evenement .tete{display:flex;align-items:baseline;gap:14px}
-#evenement h2{margin:-9px 0 -7px;font-family:"Grenze Gotisch";font-weight:600;font-size:34px;line-height:50px;color:#3a1a10;letter-spacing:.3px;white-space:nowrap}
 #evenement .tete span{font-size:12.5px;color:#5a2a12}
 #evenement .defile{height:100%}
 #evenement .defile>p{margin:0;font-size:16px;line-height:22px;color:#2a1d12}

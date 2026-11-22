@@ -57,7 +57,6 @@
 /* ───────── l'éditeur ───────── */
 #barre .fond{display:flex;align-items:center;gap:12px;padding:0 16px 0 12px}
 #barre .medaillon{flex:none}
-#barre .nom{font-size:22px;line-height:30px;margin:-5px 0 -4px;color:#f4e8ca;white-space:nowrap}
 #barre .s{font-size:10.5px;color:var(--creme-2);white-space:nowrap}
 #barre .espace{flex:1}
 #barre .plaque{flex:none}
@@ -90,7 +89,6 @@
 #pied .v{margin-left:auto;color:var(--creme-2)}
 #inspecteur .fond{height:100%;box-sizing:border-box}
 #inspecteur .defile.corps{gap:0}
-#inspecteur h3{margin:-8px 0 -8px;font-size:30px;line-height:44px;font-weight:600;color:#3a1a10;white-space:nowrap}
 #inspecteur .sous{font-size:12.5px;color:#5a2a12;white-space:nowrap}
 #inspecteur .trait{margin:9px 0 3px}
 .prop{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:38px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12}
@@ -127,7 +125,7 @@
 /* la barre : le titre, retour et suivant, la recherche, le fil, la bascule de l'atelier, la croix au bout */
 #barre-du-compendium{position:absolute;display:flex;align-items:center;gap:10px;padding:0 25px 0 6px;box-sizing:border-box;border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 #barre-du-compendium .medaillon{flex:none}
-#barre-du-compendium .nom{font-size:24px;line-height:32px;margin:-6px 6px -4px 0;color:#f4e8ca;white-space:nowrap}
+#barre-du-compendium .titre{margin-right:6px}
 #barre-du-compendium>.fond{width:440px;flex:none;background:none}
 #barre-du-compendium .champ>b{height:32px;font-size:15px}
 #barre-du-compendium .fil{flex:1;min-width:0;font-size:13.5px;color:var(--creme-2);white-space:nowrap}
@@ -138,7 +136,6 @@
 /* la liste : sa tête et son compte, le filtre de livre, les rangées de 23 px qui défilent, le rail de lettres */
 #liste-du-compendium .fond{display:flex;flex-direction:column;padding:6px 0 0;box-sizing:border-box}
 .tete-de-liste{display:flex;align-items:baseline;gap:8px;height:34px;margin:0 8px;padding:0 10px;box-sizing:border-box;border-radius:2px;box-shadow:0 0 0 1px rgba(226,192,106,.45);background:rgba(0,0,0,.25)}
-.tete-de-liste span{font-size:22px;line-height:32px;color:#f4e8ca;white-space:nowrap}
 .tete-de-liste em{margin-left:auto;font-style:normal;font-size:12px;color:var(--creme-2)}
 .livres{display:flex;align-items:center;gap:8px;height:26px;margin:6px 10px 6px}
 .livres>span{font-size:12.5px;color:var(--creme-2)}
@@ -157,7 +154,6 @@
 /* la fiche : la tête sur toute la largeur ; le corps à gauche, les renvois à droite ; le pied de l'atelier sous le corps */
 #fiche-du-compendium .fond{box-sizing:border-box}
 #fiche-du-compendium>.fond>.tete{position:absolute;left:22px;right:22px;top:14px;display:flex;align-items:baseline;gap:14px;white-space:nowrap}
-#fiche-du-compendium>.fond>.tete .dom{font-size:36px;line-height:58px;margin:-12px 0 -10px;color:#3a1a10}
 #fiche-du-compendium>.fond>.tete .sous{font-size:14px;color:#6b1c10}
 #fiche-du-compendium>.fond>.tete .source{font-size:13px;padding:1px 8px 2px;border:1px solid rgba(60,40,20,.55);border-radius:2px;color:#2a1d12}
 #fiche-du-compendium>.fond>.tete .epingle{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:13px;color:#5a130b}
@@ -205,7 +201,6 @@
 #index-du-compendium{z-index:4}
 #index-du-compendium .fond{box-sizing:border-box}
 .tete-d-index{position:absolute;left:18px;right:18px;top:12px;display:flex;align-items:center;gap:18px}
-.tete-d-index>.gothique{font-size:30px;line-height:36px;color:#f4e8ca}
 .tete-d-index .champ{width:380px}
 .tete-d-index .champ>b{height:34px;font-size:15px}
 .tete-d-index>.rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}

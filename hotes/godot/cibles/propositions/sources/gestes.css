@@ -67,12 +67,11 @@ html,body{margin:0;background:var(--noir)}
 #titre .fond{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;column-gap:10px;padding:0 12px 0 14px}
 #titre .fond>:first-child{justify-self:center}
 #titre .fond>div:last-child{height:70px}
-#titre .n{font-size:31px;line-height:44px;margin:-6px 0 -5px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap}
+#titre .n,.titre.ecran{font-size:31px;line-height:44px;margin:-6px 0 -5px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap}
 #titre .s{font-size:12.5px;color:var(--creme-2);white-space:nowrap;margin-top:1px;display:flex;align-items:center;gap:6px}
 
-/* le ruban : centré sur son `left` */
-.ruban{position:absolute;z-index:1;left:50%;top:-9px;transform:translateX(-50%);padding:2px 26px 4px;font-size:14.5px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:0 2px 5px var(--ombre),inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
-.ruban.gothique{font-size:18px;padding:1px 34px 4px;letter-spacing:.6px}
+/* le ruban : le titre d'un cadre, centré sur son `left` */
+.ruban{position:absolute;z-index:1;left:50%;top:-9px;transform:translateX(-50%);padding:1px 34px 4px;font-size:18px;letter-spacing:.6px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:0 2px 5px var(--ombre),inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
 
 /* le portrait : camp, taille, choisi */
 .portrait{position:relative;flex:none;border-radius:3px;box-shadow:0 3px 7px var(--ombre-forte),0 0 0 1px var(--contour)}
@@ -108,6 +107,13 @@ html,body{margin:0;background:var(--noir)}
 .rang .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .parchemin .rang .nom{color:var(--sepia);text-shadow:none}
 .parchemin .rang .s{color:var(--rouille)}
+/* le titre d'un panneau ; sur parchemin, à l'encre */
+.titre{font-size:28px;line-height:40px;margin:-7px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+.parchemin .titre:not(.ecran){color:var(--sepia);text-shadow:none}
+/* l'intertitre d'un bloc et sa note ; sur un fond de bois, à la crème */
+.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:var(--rouille);white-space:nowrap}
+.fond.bois .rub{color:var(--creme-2)}
+.rub .note{font-family:"Spectral";font-style:italic;font-size:12.5px;letter-spacing:0;color:var(--encre-2)}
 /* le cartouche à la taille `ligne` : médaillon, nom, ce qu'il est */
 .cartouche{display:flex;align-items:center;gap:11px;min-width:0}
 .cartouche .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}

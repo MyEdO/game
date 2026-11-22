@@ -225,11 +225,11 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      vide ; `de` : le dé dont le chiffre est le jet, écrit dessous */
   const SCEAU = { menu: 12, petit: 15, moyen: 20, grand: 26, maitre: 32 };
   const sceau = (contenu, taille = 'petit', { etat = '', classe = '', de = '' } = {}) => `<div class="sceau ${taille} ${etat}${de ? ' de' : ''} ${classe}" data-primitive="sceau">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}${de ? `<i>${de}</i>` : ''}</div>`;
-  /* le ruban : centré sur son `left` ; `gothique` : le titre d'un panneau */
-  const ruban = (texte, { gothique = false, style = '' } = {}) => `<div class="ruban ${gothique ? 'gothique' : 'rubrique'}" data-primitive="ruban" style="${style}">${texte}</div>`;
-  /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
+  /* le ruban : le titre d'un cadre, centré sur son `left` */
+  const ruban = (texte, { style = '' } = {}) => `<div class="ruban gothique" data-primitive="ruban" style="${style}">${texte}</div>`;
+  /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban`,
      `tete` : ce qui se pose sur le bord haut ; `piece` : son rôle au relevé du rendu, son `id` sans autre rôle */
-  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '', piece = id } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-primitive="cadre" data-piece="${piece}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}" data-emplacement="contenu">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
+  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '', piece = id } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-primitive="cadre" data-piece="${piece}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}" data-emplacement="contenu">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre) : ''}</div>`;
   /* une rangée de cartes se lit en liste à partir de quatre, paginée, ou quand ses cartes n'y tiennent pas à 200 de large */
   const ranger = () => document.querySelectorAll('.cartes').forEach((r) => {
     const n = r.querySelectorAll(':scope>.carte').length;
@@ -307,9 +307,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est (`sous`, une ligne ou une liste de lignes) ; `taille` ligne, ou titre : celui de
      l'écran, dans son cadre au coin haut-gauche */
   const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne' }) => {
-    const titre = taille === 'titre';
-    const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => `<div class="s rubrique">${s}</div>`).join('')}</div>`;
-    return titre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche" data-primitive="cartouche">${corps}</div>`;
+    const deTitre = taille === 'titre';
+    const corps = `${medaillon(icone, deTitre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => `<div class="s rubrique">${s}</div>`).join('')}</div>`;
+    return deTitre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche" data-primitive="cartouche">${corps}</div>`;
   };
   /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,
      `fin` au bout du rang */
@@ -327,7 +327,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
      chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
   const onglets = (noms, active, cadre = '') => {
-    const onglet = (s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }));
+    const onglet = (s) => (s === active ? ruban(s) : plaque(s, { taille: 'petite' }));
     return `<div class="onglets" data-primitive="onglets">${cadre ? places(cadre, Object.fromEntries(noms.map((s, k) => [`onglet-${k + 1}`, s && onglet(s)]))) : noms.map(onglet).join('')}</div>`;
   };
   /* les sections d'un panneau en signets, au bord droit de son registre : `sections` = [{ nom, compte, marque }], le
@@ -344,6 +344,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* la bannière d'issue d'un combat, et sous elle, chacun à sa place (`issue/suite`, `issue/geste`), ce que l'issue
      laisse (`suite`) et sa sortie, une plaque d'appel */
   const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-primitive="issue" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${places('issue', { suite: suite && `<p class="ombre" data-texte="suite de l'issue">${suite}</p>`, geste: action && plaque(action, { armee: true, taille: 'appel' }) })}</div>`;
+  /* le titre d'un panneau, ou d'un écran hors cartouche (`ecran`, la forme du cartouche de titre) ; `cle` : son rôle au relevé */
+  const titre = ({ texte, cle = '', ecran = false }) => `<div class="titre${ecran ? ' ecran' : ''} gothique" data-primitive="titre"${cle ? ` data-texte="${cle}"` : ''}>${texte}</div>`;
+  /* l'intertitre d'un bloc, sa note et ce qui se pose à sa fin ; nu : un trait voulu est un `filet()` posé au-dessus */
+  const rubrique = ({ texte, note = '', fin = '' }) => `<div class="rub" data-primitive="rubrique">${texte}${note ? ` <span class="note">${note}</span>` : ''}${fin}</div>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
   const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}" data-primitive="filet">${losange ? '<i class="losange"></i>' : ''}</div>`;
   /* un choix parmi quelques valeurs nommées : la valeur tenue est dorée ; `egaux` : cases de même largeur */
@@ -418,7 +422,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, titre, rubrique, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

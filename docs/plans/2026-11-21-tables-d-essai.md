@@ -34,7 +34,7 @@ La grammaire est définie dans `dispositions.md`. Rappel de la notation des tabl
 Source : `R:973-982` (corps de `voyage`), ses aides `R:878-888`, `R:905-923`, `R:937-970` ; type `Voyage` `M:669-685`. Neuf états la traversent (`voyage-fluvial` 2, `voyage-en-mer` 4, `evenement-de-route` 3) ; dans les neuf, `groupe` et `fenetre` s'excluent (relevé par import des états).
 
 ```
-table voyage : Voyage            role = 'voyage'  (aujourd'hui : decor ∈ route | fleuve | traversee, R:1756-1758)
+table voyage : Voyage            role = 'voyage'  (aujourd'hui : decor ∈ route | fleuve | traversee, R:1755-1757)
 tables déclarées
   héros        ← état.groupe, clé id (nom, prénom [état 1])
   combattants  ← état.combattants
@@ -114,15 +114,15 @@ Clôture sur le relevé `brut` des neuf états (`dist/maquettes-passe/contenus/`
 
 ## Table `fiche-du-heros`
 
-Source : `R:1653-1668` (`ficheDuHeros`), aides `R:1622-1650` ; type `FicheDuHeros` `M:1656-1669`. Quatre états, tous sur la section `possessions`.
+Source : `R:1652-1667` (`ficheDuHeros`), aides `R:1621-1649` ; type `FicheDuHeros` `M:1656-1669`. Quatre états, tous sur la section `possessions`.
 
 ```
-table fiche-du-heros : FicheDuHeros          role = 'fiche-du-heros'  (aujourd'hui : 'sets' in e, R:1721)
+table fiche-du-heros : FicheDuHeros          role = 'fiche-du-heros'  (aujourd'hui : 'sets' in e, R:1720)
 tables déclarées
   héros     ← état.groupe, clé id
-  SECTIONS  ← 'attaques' | 'competences' | 'talents' | 'sorts' | 'possessions'   (kit, ordre fixe ; R:1652)
+  SECTIONS  ← 'attaques' | 'competences' | 'talents' | 'sorts' | 'possessions'   (kit, ordre fixe ; R:1651)
 
-fond                fond(matière 'bois')                                            (aujourd'hui `#mur` écrit sur place, R:1656)
+fond                fond(matière 'bois')                                            (aujourd'hui `#mur` écrit sur place, R:1655)
 identite            cadre(matière 'parchemin')
   /tete               identité(portrait ← identite.id, nom ← identite.nom, lignes ← [ identite.espece, identite.carriere ])
   /mesures            mesure(libellé #heros.blessures, compte ← identite.blessures, teinte 'cire', taille 'forte')
@@ -170,28 +170,28 @@ coins               coins()
 
 | # | Cas, source | Verdict |
 |---|---|---|
-| F1 | `ficheDuHeros` ne lit `f.ouverte` que pour l'onglet (`R:1665`) : seule la section des possessions est dessinée | constat, hors grammaire : la table ne peut pas inventer les quatre autres sections ; elles restent à maquetter |
-| F2 | Les onglets parcourent une liste fixe du rendu, filtrée par `sections`, et gardent le rang de chaque onglet absent (`R:1665`, `S/gestes.js:331`) | D3 + D5 ; l'appartenance `id ∈ sections` est une forme de D4 (désigné par une liste d'ids) |
-| F3 | `figure(1)` : la pose est une constante du rendu (`R:1659`) | champ d'état 8, ou illustration sans paramètre |
-| F4 | Main tenue, vide ou prise : `Main` vaut `null` (`M:1600`) et « Prise » vient d'un drapeau du set (`R:1637-1638`) | champ d'état 9 (un littéral par main) |
-| F5 | `o.ou`, sinon « × nombre » (`R:1640`) : alternative par présence | champ d'état 10, ou D1 |
-| F6 | `refus && survol` (`R:1639`, `R:1642`) | exprimable : deux optionnels emboîtés, un drapeau `true` ou absent vaut un discriminant à deux valeurs |
-| F7 | « Rompre : … » (`R:1648`), « N PX à dépenser » (`R:1646`), « N PX · acquis » (`R:1646`) | libellés à trous (dictionnaire) |
-| F8 | Le « + » d'une panoplie neuve est écrit sur place (`R:1661`) | variante `neuve` de la nature panoplie |
-| F9 | Le libellé de plaque reçoit la bulle de refus collée dans son texte (`R:1642`) | la plaque reçoit `refus` et `survol` en paramètres et pose elle-même la bulle |
+| F1 | `ficheDuHeros` ne lit `f.ouverte` que pour l'onglet (`R:1664`) : seule la section des possessions est dessinée | constat, hors grammaire : la table ne peut pas inventer les quatre autres sections ; elles restent à maquetter |
+| F2 | Les onglets parcourent une liste fixe du rendu, filtrée par `sections`, et gardent le rang de chaque onglet absent (`R:1664`, `S/gestes.js:331`) | D3 + D5 ; l'appartenance `id ∈ sections` est une forme de D4 (désigné par une liste d'ids) |
+| F3 | `figure(1)` : la pose est une constante du rendu (`R:1658`) | champ d'état 8, ou illustration sans paramètre |
+| F4 | Main tenue, vide ou prise : `Main` vaut `null` (`M:1600`) et « Prise » vient d'un drapeau du set (`R:1636-1637`) | champ d'état 9 (un littéral par main) |
+| F5 | `o.ou`, sinon « × nombre » (`R:1639`) : alternative par présence | champ d'état 10, ou D1 |
+| F6 | `refus && survol` (`R:1638`, `R:1641`) | exprimable : deux optionnels emboîtés, un drapeau `true` ou absent vaut un discriminant à deux valeurs |
+| F7 | « Rompre : … » (`R:1647`), « N PX à dépenser » (`R:1645`), « N PX · acquis » (`R:1645`) | libellés à trous (dictionnaire) |
+| F8 | Le « + » d'une panoplie neuve est écrit sur place (`R:1660`) | variante `neuve` de la nature panoplie |
+| F9 | Le libellé de plaque reçoit la bulle de refus collée dans son texte (`R:1641`) | la plaque reçoit `refus` et `survol` en paramètres et pose elle-même la bulle |
 
 Clôture sur le relevé `brut` des quatre états : `div.tete` → identité ; `div.bl` → mesure ; `div.c` ×12 → case de profil ; `div.niche` → niche ; `div.rub` → rubrique ; `div.sets` → panoplies ; `div.inventaire` → lignes de liste et objet ouvert. Aucun sélecteur sans nature.
 
 ## Table `creation`
 
-Source : `R:1611-1619` (`creation`), `R:1507-1610` (`ETAPES_DE_CREATION`), `R:1483-1501` ; type `Creation` `M:1589-1597`. Douze états, huit pages ; le littéral `page.etape` existe déjà (`M:1437`, `M:1454`…).
+Source : `R:1610-1618` (`creation`), `R:1506-1609` (`ETAPES_DE_CREATION`), `R:1482-1500` ; type `Creation` `M:1589-1597`. Douze états, huit pages ; le littéral `page.etape` existe déjà (`M:1437`, `M:1454`…).
 
 ```
-table creation : Creation                    role = 'creation'  (aujourd'hui : 'etapes' in e, R:1721)
+table creation : Creation                    role = 'creation'  (aujourd'hui : 'etapes' in e, R:1720)
 tables déclarées
   héros   ← état.groupe, clé id
   profil  ← page.profil, clé carac        (pages 'caracteristiques' et 'presentation')
-  PALIERS ← 0 | 3 | 5                     (kit ; R:1542)
+  PALIERS ← 0 | 3 | 5                     (kit ; R:1541)
 
 fond                fond(matière 'bois')
 etapes              cadre(matière 'bois') : chemin(étapes ← etapes, rang ← rang, variante 'etapes') ; croix(dans le panneau)
@@ -214,7 +214,7 @@ coins               coins()
 Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
 
 ```
-'caracteristiques'      ruban #creation.profil                                                       R:1508-1525
+'caracteristiques'      ruban #creation.profil                                                       R:1507-1524
   choix/rangee-1        rubrique(#creation.methode)
                         chaque page.methodes : ligneDeListe(puce ← id = page.methode, nom ← nom,                          D4
                                                             fin ← ? px : etiquette(valeur ← px format +PX, teinte ← 'or' si désignée))
@@ -240,7 +240,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                           'garder' | 'points' : filet('fondu-losange') ; prose(texte ← page.texte) }
                         chaque page.faits : ligne(libellé ← rubrique, valeur ← valeur, variante 'empilee')
 
-'signe'                 ruban ← page.page.constellation                                             R:1526-1534
+'signe'                 ruban ← page.page.constellation                                             R:1525-1533
   choix/rangee-1        tirage(sceau ← tirage.de, taille 'maitre', rubrique(#signe.au-d100, note #mot.tire),
                                ligneDeListe(puce cochée, nom ← tenu, fin : etiquette(valeur ← tirage.px format +PX, teinte 'or')),
                                note(#signe.garde))
@@ -257,7 +257,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                         chaque page.page.attributs : etiquette(suite[ carac, valeur format signé ], teinte ← ton [état 15])
                         prose(texte ← page.page.texte)
 
-'competencesDeRace'     ruban ← page.espece                                                         R:1535-1546
+'competencesDeRace'     ruban ← page.espece                                                         R:1534-1545
   choix/corps           rubrique(#race.competences, fin : plaque(libellé #race.repartition-par-defaut, taille 'petite'))
                         defile(chaque page.competences : ligneDeListe(marque : etiquette(carac, 'carac'), nom ← nom, précision ← precision ?,
                                    fin : chaque PALIERS : palier(valeur ← ., état ← paliers.{.} [état 16])), variante 'liste')     D3
@@ -269,7 +269,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                                               complétée à pris.sur par carteDeCompetence(variante 'a-choisir', #race.a-choisir)
                         illustration filigrane()
 
-'competencesDeCarriere' ruban ← page.niveau                                                         R:1547-1559
+'competencesDeCarriere' ruban ← page.niveau                                                         R:1546-1558
   choix/corps           rubrique(#carriere.competences, fin : plaque(libellé #carriere.repartition-simple, taille 'petite'))
                         defile(chaque page.competences : ligneDeListe(marque : etiquette(carac, 'carac'), nom, précision ?, choisie ← pressee,
                                    fin : palier(valeur ← race, variante 'race') ; clous(compte ← augmentations) ;
@@ -283,7 +283,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                         chaque page.page.specialisations : etiquette(texte ← ., variante 'pastille', prise ← . = précision)        D4
                         chaque page.page.texte : prose(texte ← .)
 
-'talents'               ruban #talents.de-carriere                                                  R:1560-1575
+'talents'               ruban #talents.de-carriere                                                  R:1559-1574
   choix/rangee-1        rubrique(#talents.de-race)
                         chaque page.race.acquis : ligneDeListe(puce cochée armée, nom ← ., fin : note(#mot.acquis))
   choix/rangee-2        rubrique(#mot.au-choix) ; chaque page.race.auChoix : table option
@@ -301,7 +301,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                                      chaque sorts : etiquette(texte ← nom, variante 'pastille', prise ← retenu, ? survol : raison(page.page.refus))
                                      prose(texte ← texte, variante 'pied') }
 
-'possessions'           ruban #creation.possessions                                                 R:1576-1587
+'possessions'           ruban #creation.possessions                                                 R:1575-1586
   choix/rangee-1        tirage(sceau ← bourse.de, taille 'maitre', rubrique(#mot.bourse), valeur ← bourse.somme format prix,
                                rubrique(#bourse.statut(statut ← bourse.statut), note ← bourse.formule))
   choix/rangee-2        rubrique(#bagage.au-choix(niveau ← auChoix.niveau), note #mot.un-seul) ; chaque auChoix.options : table option
@@ -312,7 +312,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                         chaque page.bagage : objet(illustration ← id, nom ← nom, note ← suite[ note ?, nombre ?, somme ? format prix ], choisi ← choisi)
                         cartouche(icone ← pris.icone, nom ← pris.nom, sous ← pris.sous) ; valeur ← pris.prix format prix
 
-'identite'              ruban #creation.identite                                                    R:1588-1598
+'identite'              ruban #creation.identite                                                    R:1587-1597
   choix/rangee-1        rubrique(#identite.sexe, fin : chaque sexe.valeurs : plaque(libellé ← ., armée ← rang = sexe.tenue, taille 'petite'))   D4
                         rubrique(#identite.nom, note #identite.nom.note, fin : plaque(libellé #identite.nom-aux-des, icone 'de20', taille 'petite'))
                         saisie(texte ← nom)
@@ -324,7 +324,7 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                         chaque page.ecrits : saisie(libellé ← nom, texte ← texte, en saisie ← saisi)
                         illustration signature() ; sceau(valeur ← marque, taille 'moyen')
 
-'presentation'          ruban ← page.carriere                                                       R:1599-1609
+'presentation'          ruban ← page.carriere                                                       R:1598-1608
   choix/corps           identité(portrait ← buste, nom ← nom, lignes ← [ espece, suite[ carriere, classe ] ],
                                  faits : chaque physique : ligne(libellé ← rubrique, valeur ← valeur, 'empilee'))
                         mesure(libellé #heros.blessures, compte ← blessures, taille 'forte')
@@ -337,25 +337,25 @@ Les huit pages, chacune avec ses places de `choix`, son ruban et son détail :
                         rubrique(#mot.talents)     ; chaque page.talents : etiquette(texte ← ., variante 'pastille')
 ```
 
-`table option` (partagée, `R:1473`) : `ligneDeListe(puce ← choisie, nom ← nom, précision ← precision ?, refusée ← refus ?, ? survol : raison(refus))`.
+`table option` (partagée, `R:1472`) : `ligneDeListe(puce ← choisie, nom ← nom, précision ← precision ?, refusée ← refus ?, ? survol : raison(refus))`.
 
 ### Ce que les cinq formes n'expriment pas, dans la création
 
 | # | Cas, source | Verdict |
 |---|---|---|
-| C1 | `rangee-${k + 3}` : les répartitions et les dotations coulent dans des places numérotées à partir de 3 (`R:1518`, `R:1582`) | déclaration D5 |
-| C2 | La ligne désignée par égalité d'id (`m.id === p.methode` `R:1513`, `x.carac === p.pressee` `R:1511`, `s === p.tenu` `R:1528`) ; par rang (`k === p.sexe.tenue` `R:1590`) ; par drapeau sur l'élément (`x.pressee` `R:1548`) | déclaration D4 ; les trois conventions de l'état se ramènent à une (champ d'état 20) |
-| C3 | `visee = p.profil.find(…)` (`R:1509`), `c = p.competences.find(…)` (`R:1548`) | référence par id sur une table locale à l'état : forme 5, la table est une liste de l'état |
-| C4 | −/+ ouverts par comparaison (`R:1511`, `R:1512`, `R:1551`) ; teinte du compte selon son reste (`R:1516`, `R:1543`) ; état d'un palier lu sur les autres lignes (`R:1536-1537`) ; `c.base + palier` (`R:1538`) ; teinte selon le signe (`R:1533`) | champs d'état 12, 13, 15, 16, 18 : ce sont des faits du jeu (un geste ouvert, un compte atteint), pas de l'affichage |
-| C5 | Les compétences groupées par palier, puis complétées par des cases « À choisir » (`R:1539-1540`) | le groupement : champ d'état 17 ; le complément : déclaration D5 (« complétée à ») |
-| C6 | `[0, 3, 5]` et `race(5)` écrits dans le rendu (`R:1542`, `R:1553`) | déclaration D3 (table `PALIERS`) |
-| C7 | `'sorts' in p.page` (`R:1563`) ; `typeof a.valeur === 'string'` et `a.valeur === undefined` (`R:1495-1497`) ; `x.origine ? … : points ? …` (`R:1510`) | champs d'état 21, 11, 14 |
-| C8 | Formules et phrases à nombres (`R:1521`, `R:1516`, `R:1552-1553`, `R:1545`) | libellés à trous, D7 |
-| C9 | L'étape faite, en cours ou à venir se déduit de `k` et de `rang` (`R:1483-1486`) | dans la primitive `chemin`, comme `rangDePas(pleins, total)` (`S/gestes.js:358`) : une primitive lit un rang, la table ne calcule rien |
-| C10 | Le rail se trace après montage, par mesure du DOM et écriture de `style` (`R:1487-1493`, `R:1713-1719`) | comportement de la primitive `chemin`, au kit, avec `suites` et `paginer` |
-| C11 | `classe: pan ${etape} ${classe}` : classe ouverte par page (`R:1615-1616`) | le moteur marque chaque cadre du littéral de son alternative ; la feuille de placement le cible |
-| C12 | Le pictogramme collé dans le libellé de la plaque (`R:1500-1501`) | paramètre `icone-de-fin` de la plaque (variante au catalogue) |
-| C13 | `h.nom ?? 'Nouveau héros'` (`R:1499`) | déclaration D1 |
+| C1 | `rangee-${k + 3}` : les répartitions et les dotations coulent dans des places numérotées à partir de 3 (`R:1517`, `R:1581`) | déclaration D5 |
+| C2 | La ligne désignée par égalité d'id (`m.id === p.methode` `R:1512`, `x.carac === p.pressee` `R:1510`, `s === p.tenu` `R:1527`) ; par rang (`k === p.sexe.tenue` `R:1589`) ; par drapeau sur l'élément (`x.pressee` `R:1547`) | déclaration D4 ; les trois conventions de l'état se ramènent à une (champ d'état 20) |
+| C3 | `visee = p.profil.find(…)` (`R:1508`), `c = p.competences.find(…)` (`R:1547`) | référence par id sur une table locale à l'état : forme 5, la table est une liste de l'état |
+| C4 | −/+ ouverts par comparaison (`R:1510`, `R:1511`, `R:1550`) ; teinte du compte selon son reste (`R:1515`, `R:1542`) ; état d'un palier lu sur les autres lignes (`R:1535-1536`) ; `c.base + palier` (`R:1537`) ; teinte selon le signe (`R:1532`) | champs d'état 12, 13, 15, 16, 18 : ce sont des faits du jeu (un geste ouvert, un compte atteint), pas de l'affichage |
+| C5 | Les compétences groupées par palier, puis complétées par des cases « À choisir » (`R:1538-1539`) | le groupement : champ d'état 17 ; le complément : déclaration D5 (« complétée à ») |
+| C6 | `[0, 3, 5]` et `race(5)` écrits dans le rendu (`R:1541`, `R:1552`) | déclaration D3 (table `PALIERS`) |
+| C7 | `'sorts' in p.page` (`R:1562`) ; `typeof a.valeur === 'string'` et `a.valeur === undefined` (`R:1494-1496`) ; `x.origine ? … : points ? …` (`R:1509`) | champs d'état 21, 11, 14 |
+| C8 | Formules et phrases à nombres (`R:1520`, `R:1515`, `R:1551-1552`, `R:1544`) | libellés à trous, D7 |
+| C9 | L'étape faite, en cours ou à venir se déduit de `k` et de `rang` (`R:1482-1485`) | dans la primitive `chemin`, comme `rangDePas(pleins, total)` (`S/gestes.js:362`) : une primitive lit un rang, la table ne calcule rien |
+| C10 | Le rail se trace après montage, par mesure du DOM et écriture de `style` (`R:1486-1492`, `R:1712-1718`) | comportement de la primitive `chemin`, au kit, avec `suites` et `paginer` |
+| C11 | `classe: pan ${etape} ${classe}` : classe ouverte par page (`R:1614-1615`) | le moteur marque chaque cadre du littéral de son alternative ; la feuille de placement le cible |
+| C12 | Le pictogramme collé dans le libellé de la plaque (`R:1499-1500`) | paramètre `icone-de-fin` de la plaque (variante au catalogue) |
+| C13 | `h.nom ?? 'Nouveau héros'` (`R:1498`) | déclaration D1 |
 
 Clôture sur le relevé `brut` des douze états : `div.suite` → chemin ; `div.rub` → rubrique ; `div.lignes`, `div.ligne`, `div.deux`, `div.trois` → lignes de liste (le nombre de colonnes est du placement) ; `div.tirage-c`, `div.tirage`, `div.tire`, `div.physique` → tirage ; `div.tete-l` → rubrique avec fin ; `div.page-c` → emplacement du détail ; `div.niche` → niche ; `div.acquis` → nom et lignes ; `div.comptes` → étiquettes et notes ; `div.dot` → ligne de liste ; `div.variante` → sceau, rubrique, étiquettes ; `div.ligne-ecrite` → saisie ; `div.tete`, `div.bl`, `div.faits` → identité, mesure, lignes ; `div.motivation` → prose. Aucun sélecteur sans nature.
 
@@ -372,20 +372,20 @@ Ce que le rendu calcule ou devine aujourd'hui et que la grammaire refuse de calc
 | 5 | `somme` | `reduce` des DR (`R:923`) | `ApercuDuTest` `M:555` |
 | 6 | `choix.role: 'cartes' \| 'paies'` | `a.choix.parts` (`R:965-967`) | `Arret` `M:654` |
 | 7 | `bas: 'groupe' \| 'fenetre'` | `v.fenetre ? … : …` (`R:980`) | `Voyage` `M:669`, et les types de lieu qui portent `fenetre?` |
-| 8 | `identite.pose` | `figure(1)` (`R:1659`) | `IdentiteDuHeros` `M:1642` |
-| 9 | `etat: 'tenue' \| 'vide' \| 'prise'` par main | `null` et `deuxMains` (`R:1637-1638`) | `Main` `M:1600`, `SetDArmes` `M:1604` |
-| 10 | `lieu.role: 'range' \| 'compte'` | `o.ou ? … : …` (`R:1640`) | `ObjetDuHeros` `M:1614` |
-| 11 | `role: 'retenu' \| 'compte' \| 'total'` | `typeof`, `undefined` (`R:1495-1497`) | `Acquis` `M:1395` |
-| 12 | `etat: 'a-tenir' \| 'a-corriger' \| 'epuise'` sur un compte montré | teinte par comparaison (`R:1516`, `R:1543`) | `Compte` `M:1373` |
-| 13 | `moins`, `plus` (ouverts ou non) | comparaisons (`R:1511`, `R:1512`, `R:1551`) | `CaseEnCreation` `M:1414`, `Repartition` `M:1426`, `CompetenceDeCarriere` `M:1481` |
-| 14 | `source: 'origine' \| 'points' \| 'de'` | `x.origine ? … : points ? …` (`R:1510`) | `CaseEnCreation` `M:1414` |
-| 15 | `ton: 'gain' \| 'perte'` | `a.valeur < 0` (`R:1533`) | attributs de `PageDuSigne` `M:1453` |
-| 16 | état de chaque palier d'une ligne | `pastille` (`R:1536-1537`) | `CompetenceDeRace` `M:1463` |
-| 17 | compétences rangées par palier | `filter` (`R:1539`) | `PageDesCompetencesDeRace` `M:1472` |
-| 18 | `valeur` | `c.base + palier` (`R:1538`) | `CompetenceDeRace` `M:1463` |
-| 19 | `plafond` | `c.augmentations.sur` lu sur la ligne pressée (`R:1552`) | `PageDesCompetencesDeCarriere` `M:1493` |
-| 20 | `pressee: id` sur la page | drapeau `pressee` sur l'élément (`R:1548`) | `PageDesCompetencesDeCarriere` `M:1493` |
-| 21 | `page.role: 'talent' \| 'sorts'` | `'sorts' in p.page` (`R:1563`) | `PageDesTalents` `M:1514` |
+| 8 | `identite.pose` | `figure(1)` (`R:1658`) | `IdentiteDuHeros` `M:1642` |
+| 9 | `etat: 'tenue' \| 'vide' \| 'prise'` par main | `null` et `deuxMains` (`R:1636-1637`) | `Main` `M:1600`, `SetDArmes` `M:1604` |
+| 10 | `lieu.role: 'range' \| 'compte'` | `o.ou ? … : …` (`R:1639`) | `ObjetDuHeros` `M:1614` |
+| 11 | `role: 'retenu' \| 'compte' \| 'total'` | `typeof`, `undefined` (`R:1494-1496`) | `Acquis` `M:1395` |
+| 12 | `etat: 'a-tenir' \| 'a-corriger' \| 'epuise'` sur un compte montré | teinte par comparaison (`R:1515`, `R:1542`) | `Compte` `M:1373` |
+| 13 | `moins`, `plus` (ouverts ou non) | comparaisons (`R:1510`, `R:1511`, `R:1550`) | `CaseEnCreation` `M:1414`, `Repartition` `M:1426`, `CompetenceDeCarriere` `M:1481` |
+| 14 | `source: 'origine' \| 'points' \| 'de'` | `x.origine ? … : points ? …` (`R:1509`) | `CaseEnCreation` `M:1414` |
+| 15 | `ton: 'gain' \| 'perte'` | `a.valeur < 0` (`R:1532`) | attributs de `PageDuSigne` `M:1453` |
+| 16 | état de chaque palier d'une ligne | `pastille` (`R:1535-1536`) | `CompetenceDeRace` `M:1463` |
+| 17 | compétences rangées par palier | `filter` (`R:1538`) | `PageDesCompetencesDeRace` `M:1472` |
+| 18 | `valeur` | `c.base + palier` (`R:1537`) | `CompetenceDeRace` `M:1463` |
+| 19 | `plafond` | `c.augmentations.sur` lu sur la ligne pressée (`R:1551`) | `PageDesCompetencesDeCarriere` `M:1493` |
+| 20 | `pressee: id` sur la page | drapeau `pressee` sur l'élément (`R:1547`) | `PageDesCompetencesDeCarriere` `M:1493` |
+| 21 | `page.role: 'talent' \| 'sorts'` | `'sorts' in p.page` (`R:1562`) | `PageDesTalents` `M:1514` |
 
 Le champ 3 est aussi une affaire de règle : le rendu décide seul qu'un jet réussit. Le jeu doit le dire, la maquette n'a pas à le recalculer.
 
@@ -399,4 +399,4 @@ L'hypothèse « la grammaire de table couvre tous les gabarits » tient sur ces 
   2. les compétences de race groupées et complétées (C5) : sans le champ 17 et « complétée à », c'est un filtre et une répétition ;
   3. les textes à nombres (V7, C8, F7) : sans libellés à trous, chaque phrase reste une concaténation.
 - **Ce qui sort de la table sans y revenir** : les peintres (décor, trajet, frise, ciel, filigrane, signature, figure), le rail tracé après montage (C10) et l'état d'une étape (C9). Les deux derniers vont dans la primitive `chemin` du kit ; ce sont des fonctions du kit, pas des fonctions d'écran.
-- **Limite de la preuve** : trois types d'état sur trente (`Voyage`, `FicheDuHeros`, `Creation`), 25 états sur 170, lus dans le code sans les exécuter. La fiche du héros n'a qu'une section dessinée (F1). `depense` et `changement` ne sont pas écrits ici ; leur lecture (`R:1686-1710`) ne montre pas de cas d'une autre sorte que C1 à C13. `dossier` (`R:1311`) n'a pas été lu.
+- **Limite de la preuve** : trois types d'état sur trente (`Voyage`, `FicheDuHeros`, `Creation`), 25 états sur 170, lus dans le code sans les exécuter. La fiche du héros n'a qu'une section dessinée (F1). `depense` et `changement` ne sont pas écrits ici ; leur lecture (`R:1685-1709`) ne montre pas de cas d'une autre sorte que C1 à C13. `dossier` (`R:1310`) n'a pas été lu.

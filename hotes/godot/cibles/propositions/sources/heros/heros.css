@@ -24,9 +24,6 @@
 .pan>.fond{padding:15px 19px 14px}
 .pan>.fond.bois{padding:14px 16px}
 .pan:has(>.onglets)>.fond{padding-top:26px}
-.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:var(--rouille);white-space:nowrap}
-.fond.bois .rub{color:var(--creme-2)}
-.rub .note{font-family:"Spectral";font-style:italic;font-size:12.5px;letter-spacing:0;color:var(--encre-2)}
 .pan .filet{margin:9px 26px}
 .tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
 .tete-l>.plaque{flex:none}
@@ -76,7 +73,7 @@
 /* le détail du milieu */
 .page-c{display:flex;flex-direction:column;align-items:center;height:100%}
 .page-c>*{flex:none}
-.page-c>.nom{font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:40px;color:var(--sepia);letter-spacing:.3px;white-space:nowrap;text-align:center;max-width:100%;overflow:hidden}
+.page-c>.titre{text-align:center;max-width:100%;overflow:hidden}
 .page-c>.sous{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
 .page-c>.filet{align-self:stretch;margin:7px 40px}
 .page-c>.rub{align-self:stretch;margin:10px 0 5px}
@@ -131,7 +128,6 @@
 .profil-c .v{font-family:"Chiffres";font-size:19px;line-height:23px;color:var(--encre)}
 .profil-c .pts{height:22px;display:grid;place-items:center;font-family:"Fell SC";font-size:10px;letter-spacing:.6px;color:var(--rouille)}
 .profil-c .pts.nb{font-family:"Chiffres";font-size:13.5px;font-weight:600;letter-spacing:0;color:var(--encre-2)}
-.caracteristiques .page-c>.nom{margin-top:4px}
 .jets{align-self:stretch;display:grid;grid-template-columns:repeat(5,1fr);justify-items:center;gap:2px 0}
 .jet{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border:2px solid transparent;border-radius:3px}
 .jet i{font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:.8px;color:var(--rouille)}
@@ -147,7 +143,6 @@
 .variante .pills{grid-column:1 / -1;gap:4px}
 .variante .pill{padding:0 7px;font-size:10.5px}
 .signe .page-c>.vignette{margin-top:2px}
-.signe .page-c>.nom{margin-top:4px}
 
 /* ───────── création : les Compétences ───────── */
 .competencesDeRace .ligne{height:28px}

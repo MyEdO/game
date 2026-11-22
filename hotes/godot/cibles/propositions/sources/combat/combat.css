@@ -3,7 +3,7 @@
 
 /* le round */
 #round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
-#round .n{width:96px;font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
+#round .titre{width:96px}
 #round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
@@ -97,7 +97,7 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-#round .n,#round .t{white-space:nowrap}
+#round .t{white-space:nowrap}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
@@ -107,18 +107,16 @@
 /* le coup critique */
 .camp.touche .c{color:#7c1f14}
 #critique{height:104px;padding:0 0 0 28px;border-left:1px solid rgba(60,40,20,.4)}
-#critique .dr{font-size:31px;line-height:36px;color:#3a1a10}
 #critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
 
 /* le titre d'un choix, à la place du héros */
 .annonce{height:92px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
-.annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
 .annonce .sous{font-size:13.5px;color:#4a3420}
 
 /* le journal entier */
-#journal-entier h4{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-weight:400;font-size:13px;color:#5a2a12}
-#journal-entier h4::after{content:"";flex:1;height:1px;background:rgba(60,40,20,.45)}
-#journal-entier p+h4{margin-top:13px}
+#journal-entier .filet{margin:0 0 6px}
+#journal-entier p+.filet{margin-top:13px}
+#journal-entier .rub{margin-bottom:6px}
 #journal-entier p{margin:0 0 6px;font-style:italic;font-size:14.5px;line-height:19px;color:#2a1d12;white-space:nowrap}
 
 /* la fiche au clic sur un portrait de l'ordre */

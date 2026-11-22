@@ -13,7 +13,6 @@
 #reikland .lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 var(--contour)}
 
 /* la destination : son nom, sa voie, ses étapes et leurs distances, ses moyens et ce qu'ils coûtent */
-#destination h3{margin:-6px 0 -5px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:42px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
 #destination .s{font-size:12px;color:var(--or)}
 #destination p{font-style:italic;font-size:13.5px;line-height:18px;color:var(--creme)}
 .etapes{display:flex;align-items:flex-start;margin:13px 2px 0}

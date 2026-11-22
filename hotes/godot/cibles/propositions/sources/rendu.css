@@ -21,7 +21,6 @@
 #jet #critique .defile p{margin-top:3px}
 /* ce que le jet vise : sa vie sous son rôle, la jauge à la largeur de sa colonne */
 #jet .visee .pv .jauge{width:auto}
-#jet .annonce .dr{line-height:normal}
 /* le centre d'un jet avant le dé tient entre les deux camps : une bascule passe à la ligne */
 #jet .place .bascules .bascule{white-space:normal}
 /* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
@@ -32,14 +31,11 @@
 #jet .place>.regle .options .plaque>div{padding:0 4px;letter-spacing:0;white-space:normal;line-height:11px}
 #verdict.surinc{grid-template-columns:minmax(0,1fr) 192px;column-gap:12px;height:auto;padding:0 6px 0 10px}
 #verdict.surinc .axe{grid-template-columns:52px 40px 1fr 40px}
-#verdict.surinc .sort .dr{font-size:26px;line-height:32px}
 #verdict.surinc .sort p{font-size:12px;line-height:16px}
 #jet .cibles-du-sort{padding-left:10px}
 #jet .c-s .n{font-size:16px}
 #critique .tete-c{display:flex;align-items:center;gap:18px}
-#critique .tete-c .dr{white-space:nowrap}
 #critique .tete-c .tirage{min-width:0}
-#critique .dr{line-height:normal}
 #critique .tirage .sceau b{font-size:14px}
 /* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
 #jet .rangees{max-width:272px;height:100%}
@@ -130,7 +126,6 @@
 /* les lignes du Test défilent entre sa tête et les gestes du pied */
 #verdict.tests{text-align:left;padding:0 6px;display:flex;flex-direction:column}
 #verdict.tests .tete{display:flex;align-items:baseline;gap:12px}
-#verdict.tests .tete .dr{font-size:24px;line-height:normal}
 #verdict.tests table{border-collapse:collapse;width:100%;margin-top:4px;font-size:12.5px;line-height:16px;color:#2a1d12}
 #verdict.tests td{padding:1px 0;border-top:1px solid rgba(60,40,20,.28)}
 #verdict.tests td:last-child{padding-left:10px;font-family:"Fell SC"}
@@ -180,7 +175,6 @@
 .lieu.gauche::after{left:26px}
 .lieu.droite{transform:translate(calc(-100% + 26px),-100%)}
 .lieu.droite::after{left:auto;right:21px}
-#lieu h3{font-size:23px;line-height:32px}
 #lieu .forces{font-size:11.5px;line-height:14px;color:var(--creme-2);white-space:nowrap}
 #lieu .activites-breves{display:flex;flex-wrap:wrap;gap:10px}
 #lieu .activite-breve{position:relative}
@@ -279,7 +273,6 @@
    l'avis dessous */
 #feuillets{position:absolute;gap:18px}
 .feuillet{flex:1 1 0;width:auto;min-width:0}
-.feuillet .lieu{font-size:24px;line-height:40px}
 .feuillet .date{font-size:13px}
 .feuillet .filet{margin:10px 30px}
 .feuillet .gestes .plaque{flex:1 1 0;min-width:0}

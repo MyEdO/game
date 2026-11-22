@@ -23,7 +23,6 @@
 
 /* la page du chargement et du lot, sur parchemin */
 #page .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
-#page h3{font-size:27px;line-height:42px;margin:-10px 0 -9px;white-space:nowrap}
 #page .tete .sous{white-space:nowrap}
 #page .r{font-family:"Fell SC";font-size:12.5px;letter-spacing:1.1px;color:#6b1c10}
 #page .note{font-size:12.5px;line-height:16px;color:#4a3420;text-align:center}

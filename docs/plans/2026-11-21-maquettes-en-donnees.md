@@ -55,7 +55,7 @@ Le détail et les sources sont dans la carte.
 - **Style** :
   - 179 règles hors `gestes.css` stylent une primitive, et 156 la stylent en contexte ;
   - des surcharges d'identité passent par un sélecteur de contexte (`#lieu .plaque.envoyer>div`, `#verdict .dr`) ;
-  - le DOM écrit aussi du style (`rendu.js:1821`, `n.style.fontSize`).
+  - le DOM écrit aussi du style (`rendu.js:1820`, `n.style.fontSize`).
 - **Peintres sous `#ui`** : `#plan` de l'éditeur, `#carte` de la ville, `#reikland`, `#trajet`, `#frise`. Ce sont des centaines de nœuds SVG, avec des mots en dur.
 - **Outillage** :
   - `rendre.mjs` sort en 1 sur tout relevé non vide et lance le navigateur épinglé (2026-11-21) ;

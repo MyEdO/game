@@ -42,8 +42,6 @@
    cachet */
 #document .fond{display:flex;flex-direction:column;padding:18px 34px 12px}
 #document .tete{display:flex;justify-content:space-between;align-items:baseline;gap:20px}
-#document h2{margin:0;font-family:"Grenze Gotisch";font-weight:600;font-size:34px;line-height:40px;color:var(--sepia);letter-spacing:.5px;white-space:nowrap}
-#document h2 span{font-size:24px}
 #document .tete .rubrique{font-size:12.5px;color:var(--rouille);white-space:nowrap}
 #document .filet{margin:4px 120px 6px}
 #document .texte{flex:1;overflow:hidden;line-height:22px}
@@ -57,7 +55,6 @@
 #document .pied .folio{position:absolute;right:96px}
 
 /* la fouille : ce qu'on trouve à gauche, le partage des objets à droite, une colonne par héros et « Laisser » */
-.fouille .trouve .n{font-size:24px;line-height:32px;color:var(--sepia);white-space:nowrap}
 .fouille .trouve .c{font-size:12.5px;color:var(--rouille);white-space:nowrap}
 .fouille .trouve p{margin:7px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:var(--encre)}
 .fouille .bourse{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--encre)}
@@ -86,7 +83,6 @@
 #rail .plaque .prix{margin-left:auto}
 #affaire>.fond{display:flex;flex-direction:column;padding:24px 28px 0}
 #affaire .tete{display:flex;justify-content:space-between;align-items:flex-end}
-#affaire h3{font-size:30px;line-height:42px;margin:-8px 0}
 #affaire .indice{display:flex;align-items:center;gap:10px}
 #affaire .indice b{font-size:24px;line-height:30px;color:var(--sepia);margin-right:6px}
 .chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--encre);border:1px solid var(--trait-encre);border-radius:2px;background:var(--voile)}

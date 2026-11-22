@@ -32,7 +32,7 @@ Premier lot de nature du plan `docs/plans/2026-11-21-maquettes-en-donnees.md` (r
 
 Les cinq dernières lignes ne sont pas des titres : chiffres en gothique (sceaux, disques, seuils, sommes), bande de caractéristiques, bannière et mot d'issue, noms dans une plaque (lot plaques), et 18 `.rub` qui sont des notes ou des étiquettes (`.rub` en Spectral, `.rub.designer`, `.consequence.rub` : lot notes et étiquettes).
 
-Ce que le DOM montre et que la carte (§ 9.2) n'avait pas : `.dom` à 36 et 28 px (compendium, options), `.dr` employé en titre de 24 à 34 px (critique, annonce, verdict), `.page-c > .nom` à 28 px, `.feuillet .lieu` rendu à 24 px (27 px déclarés à `sauvegardes.css:5`), les têtes du compendium (30, 24, 22 px), et le cartouche de titre rendu à 31, 30, 29, 27 et 21 px : 29 px est une surcharge de la famille voyage, 30, 27 et 21 px viennent de la réduction par script (`rendu.js:1821`).
+Ce que le DOM montre et que la carte (§ 9.2) n'avait pas : `.dom` à 36 et 28 px (compendium, options), `.dr` employé en titre de 24 à 34 px (critique, annonce, verdict), `.page-c > .nom` à 28 px, `.feuillet .lieu` rendu à 24 px (27 px déclarés à `sauvegardes.css:5`), les têtes du compendium (30, 24, 22 px), et le cartouche de titre rendu à 31, 30, 29, 27 et 21 px : 29 px est une surcharge de la famille voyage, 30, 27 et 21 px viennent de la réduction par script (`rendu.js:1820`).
 
 ### titre d’écran (cartouche) : 6 variantes, 70 sites, 70 états
 | Fond | Police | Taille | Interligne | Marge | Couleur | Inter-lettre | Ombre, trait | Sites | Lignes max | Écrans (sélecteur) |
@@ -173,7 +173,7 @@ Un rôle, une forme par fond. Les valeurs sont prises aux variantes existantes. 
 | Rôle | Primitive | Police | Taille / interligne | Marge | Boîte nette | Bois | Parchemin | Pris à |
 |---|---|---|---|---|---|---|---|---|
 | Titre d'écran | `cartouche({ taille: 'titre' })` | Grenze Gotisch 600, inter-lettre 0,3 | 31 / 44, une ligne | −6 0 −5 | 33 | `--ivoire`, ombre `0 2px 3px --noir` | sans objet : le cartouche de titre est sur bois | `gestes.css:70`, 42 états sur 70 |
-| Titre de cadre | `ruban` | Grenze Gotisch 600, inter-lettre 0,6 | 18, une ligne | — | — | `--ivoire` sur ruban lie-de-vin | le même ruban | `gestes.css:75`, 206 sites sur 252 |
+| Titre de cadre | `ruban` | Grenze Gotisch 600, inter-lettre 0,6 | 18, une ligne | — | — | `--ivoire` sur ruban lie-de-vin | le même ruban | `gestes.css:74`, 206 sites sur 252 |
 | Titre de panneau | `titre({ texte })`, à créer | Grenze Gotisch 600, inter-lettre 0,3 | 28 / 40, une ligne | −7 0 −5 | 28 | `--ivoire`, ombre `0 1px 2px --noir` | `--sepia`, sans ombre | 28 px existe sur les deux fonds (`carte.css:16`, `heros.css:79`) ; médiane de 22 à 36 |
 | Intertitre de bloc | `rubrique({ texte })`, à créer | Fell SC, inter-lettre 1,1 | 13 / 16, une ligne | 0 (l'écart est du placement) | 16 | `--creme-2` | `--rouille` | `heros.css:27-28`, 148 sites sur 154 |
 | Nom | `nom({ texte, taille })`, à créer | Grenze Gotisch 600, inter-lettre 0,3 | `grand` 22 / 30 · `moyen` 18 / 24 · `petit` 16 / 19 | 0 | 30 · 24 · 19 | `--ivoire` | `--sepia` | cartouche `ligne` 22, carte 16/19 ; 18 remplace 17, 17,5, 18,5, 19, 20, 21 |
@@ -181,9 +181,9 @@ Un rôle, une forme par fond. Les valeurs sont prises aux variantes existantes. 
 
 Ce que la cible retire :
 
-- **Titre d'écran** : l'interligne 50 de la famille accueil et système (même boîte nette, 33) et les 29 px de la famille voyage. La réduction par script d'un nom long (`rendu.js:1821`) reste, portée par la primitive : c'est la seule taille variable, de 31 à 20 px.
+- **Titre d'écran** : l'interligne 50 de la famille accueil et système (même boîte nette, 33) et les 29 px de la famille voyage. La réduction par script d'un nom long (`rendu.js:1820`) reste, portée par la primitive : c'est la seule taille variable, de 31 à 20 px.
 - **Titre de cadre** : le ruban `rubrique` 14,5 px (46 sites, 16 écrans) passe en gothique 18 px. Les onglets (`.onglets .ruban`) ne sont pas des titres et gardent leur forme.
-- **Titre de panneau** : les 26 rendus (22 à 36 px) deviennent un seul par fond. La simulation en couvre 19 ; les 7 autres sont les `.dr` employés en titre (5 rendus) et les deux titres de barre (Compendium 24 px, éditeur 22 px). `#lieu h3` est déclaré deux fois (`rendu.css:183` 23 / 32, `interlude.css:17` 26 / 36) : au rendu, les 4 `h3` de l'interlude sortent à 23 / 32, la déclaration à 26 px ne s'applique nulle part. Le sous-titre en taille 24 du document (`h2 > span`) prend la taille du titre. Les `.dr` de 24 à 34 px (critique, annonce de round, verdict) appartiennent à la primitive `verdict` et ne sont pas simulés ici.
+- **Titre de panneau** : les 26 rendus (22 à 36 px) deviennent un seul par fond. La simulation en couvre 19 ; les 7 autres sont les `.dr` employés en titre (5 rendus) et les deux titres de barre (Compendium 24 px, éditeur 22 px). `#lieu h3` est déclaré deux fois (`rendu.css:177` 23 / 32, `interlude.css:17` 26 / 36) : au rendu, les 4 `h3` de l'interlude sortent à 23 / 32, la déclaration à 26 px ne s'applique nulle part. Le sous-titre en taille 24 du document (`h2 > span`) prend la taille du titre. Les `.dr` de 24 à 34 px (critique, annonce de round, verdict) appartiennent à la primitive `verdict` et ne sont pas simulés ici.
 - **Intertitre** : `titreDeBloc` (12,5 px, trait haut), le `h4` du journal (trait à droite) et les cinq marges de `.rub` deviennent la rubrique nue ; un trait voulu se pose par `filet()`. `bande()` du carton de fin de chapitre (13,5 px, or, sur la scène) reste à trancher avec le titre libre.
 - **Nom** : proposé sur la planche, **non simulé** dans les écrans. Il touche 769 sites sur 147 états, des places de jet à largeur fixe aux lignes de liste : il se mesure dans son propre passage, après validation de l'échelle.
 
