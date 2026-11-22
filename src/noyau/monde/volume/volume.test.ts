@@ -67,6 +67,14 @@ function cheminDeRonde(): Scene {
   return s;
 }
 
+/** La couleur d'un sommet de la matière `matiere` (`<domaine>--<id>`) teintée à sa position `sommet`. */
+const teinteAuSommet = (matiere: string, sommet: { x: number; y: number; z: number }): string => {
+  const [domain, id] = matiere.split('--');
+  const m = { domain, id } as MaterialRef;
+  const k = tintVarFactor(recetteDeMatiere(m), sommet) / 255;
+  return [...parseHex(couleurDeMatiere(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1].join(',');
+};
+
 describe('volumeDuMonde (#3476)', () => {
   it('trois sommets par triangle : trois nombres par position et par normale, quatre par couleur opaque, trois nombres de case par triangle', () => {
     for (const m of volumeDuMonde(marche()).morceaux) {
@@ -91,17 +99,29 @@ describe('volumeDuMonde (#3476)', () => {
     expect(tris.filter((t) => t.ys.every((y) => y === 1.2)).every((t) => t.case[0] === 1), 'le dessus haut, à la case haute').toBe(true);
   });
 
-  it('le dessus d’une case : normale en haut, dans sa case, la couleur de son terrain à sa variance de teinte', () => {
+  it('le dessus d’une case : normale en haut, dans sa case, la couleur de son terrain à la variance de teinte de son sommet', () => {
     const s = emptyScene('scene-test', 1, 1);
     s.layers[0].tiles = ['herbe'];
     const v = volumeDuMonde(s);
-    const m = { domain: 'terrain' as const, id: 'herbe' };
-    const k = tintVarFactor(recetteDeMatiere(m), { x: 0, y: 0, z: 0 }) / 255;
-    const attendue = [...parseHex(couleurDeMatiere(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1];
     const dessus = trianglesDuVolume(v).filter((t) => t.normale[1] > 0.99);
     expect(dessus.length).toBeGreaterThan(0);
     expect(dessus.every((t) => t.xs.every((x) => Math.abs(x) <= v.metresParCase / 2 + 1e-3))).toBe(true);
-    expect(dessus.map((t) => t.couleur)).toContainEqual(attendue);
+    for (const t of dessus) expect(t.couleur.join(',')).toBe(teinteAuSommet('terrain--herbe', { x: t.xs[0], y: t.ys[0], z: t.zs[0] }));
+  });
+
+  it('la teinte d’une matière est continue : deux faces qui partagent un sommet y portent la même couleur', () => {
+    const s = emptyScene('scene-test', 3, 3);
+    s.layers[0].tiles = Array(9).fill('herbe');
+    const parSommet = new Map<string, Set<string>>();
+    for (const m of volumeDuMonde(s).morceaux) {
+      for (let i = 0; i < m.positions.length / 3; i++) {
+        const cle = m.positions.slice(i * 3, i * 3 + 3).join(',');
+        (parSommet.get(cle) ?? parSommet.set(cle, new Set()).get(cle)!).add(m.couleurs.slice(i * 4, i * 4 + 4).join(','));
+      }
+    }
+    const partages = [...parSommet.values()];
+    expect(new Set(partages.flatMap((c) => [...c])).size, 'la variance de teinte varie d’un sommet à l’autre').toBeGreaterThan(1);
+    expect(partages.filter((c) => c.size > 1).length, 'un sommet partagé porte deux couleurs : une couture').toBe(0);
   });
 
   it('chaque triangle porte la couche de sa case : le plancher de l’étage à z 1, le sol du rez à z 0', () => {
@@ -305,13 +325,6 @@ describe('retraitDuMonde (#3948)', () => {
 describe('volumeDuMonde, les faces hors de la carte (#3948)', () => {
   const bassin = (): Scene => buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau' });
   const surLaCarte = (s: Scene) => ([x, y]: readonly number[]) => x >= 0 && y >= 0 && x < s.dimensions.w && y < s.dimensions.h;
-  /** La couleur d'une face de la matière `matiere` (`<domaine>--<id>`) teintée à la case `cell`. */
-  const teinte = (matiere: string, cell: { x: number; y: number; z: number }): string => {
-    const [domain, id] = matiere.split('--');
-    const m = { domain, id } as MaterialRef;
-    const k = tintVarFactor(recetteDeMatiere(m), cell) / 255;
-    return [...parseHex(couleurDeMatiere(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1].join(',');
-  };
 
   it('un décor hors de la carte va à la case de la carte la plus proche, montré à sa couche', () => {
     for (const [pos, attendue, cle] of [[{ x: 17, y: 2 }, '15,2,0', 'pose/0/1/0'], [{ x: 2, y: 10 }, '2,8,0', 'pose/0/0/1']] as const) {
@@ -380,9 +393,7 @@ describe('volumeDuMonde, les faces hors de la carte (#3948)', () => {
       expect(masques.some((t) => t.surface.flottaison)).toBe(true);
       const parCase = mer.length / flottaison.size;
       expect(Number.isInteger(parCase), 'autant de triangles de mer par case').toBe(true);
-      const compte = (couleurs: string[]) => couleurs.reduce<Record<string, number>>((n, c) => ({ ...n, [c]: (n[c] ?? 0) + 1 }), {});
-      const attendues = [...flottaison.keys()].flatMap((k) => { const [cx, cy, cz] = k.split(',').map(Number); return Array<string>(parCase).fill(teinte(mer[0].matiere, { x: cx, y: cy, z: cz })); });
-      expect(compte(mer.map((t) => t.couleur.join(','))), `x=${x}, chaque case de mer à sa teinte`).toEqual(compte(attendues));
+      expect(mer.filter((t) => t.couleur.join(',') !== teinteAuSommet(t.matiere, { x: t.xs[0], y: t.ys[0], z: t.zs[0] })), `x=${x}, chaque sommet de mer à sa teinte`).toEqual([]);
     }
   });
 

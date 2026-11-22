@@ -47,7 +47,7 @@ export interface DetailRecipe {
   };
   /** Colombage : poteaux verticaux tous les `postEveryM` mètres + écharpes en X ou en V par travée. */
   timber?: { postEveryM: number; braces?: 'X' | 'V'; wM: number; color: string };
-  /** Variance de TEINTE de la surface ∈ [0,1] par case : la couleur de sommet est modulée par `tintVarFactor`. */
+  /** Variance de TEINTE de la surface ∈ [0,1] : la couleur de chaque sommet est modulée par `tintVarFactor`. */
   tintVar?: number;
 }
 

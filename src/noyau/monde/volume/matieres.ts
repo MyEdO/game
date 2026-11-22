@@ -139,16 +139,17 @@ export function recetteDeMatiere({ domain, id }: MaterialRef): DetailRecipe | un
   }
 }
 
-/** Variantes de variance de TEINTE par case (facteurs d'étalement du `tintVar` d'une recette) — dosage
- *  PARTAGÉ par tous les rendus : dégradés de terrain de l'affine, couleur de sommet du WebGL, volume du monde des hôtes.
- *  La variante se choisit au hash de l'identité MONDE de la case, jamais stockée. */
+/** Variantes de variance de TEINTE (facteurs d'étalement du `tintVar` d'une recette), choisies au hash de la position
+ *  MONDE d'un sommet, jamais stockée. */
 export const TINT_SPREAD = [-1, -0.4, 0.35, 1];
 
-/** Facteur de variance de TEINTE d'une surface à l'identité MONDE de sa case ∈ [1−tintVar, 1+tintVar] :
- *  variante `hash32('tint', x, y, z) % TINT_SPREAD.length`, facteur `1 + tintVar × TINT_SPREAD[k]` — la même nuance
- *  pour la même tuile dans tous les rendus. 1 sans `tintVar` (surface uniforme). */
-export function tintVarFactor(recipe: DetailRecipe | undefined, cell: { x: number; y: number; z: number }): number {
+/** Facteur de variance de TEINTE d'une surface au sommet `sommet` (en mètres) ∈ [1−tintVar, 1+tintVar] : variante
+ *  `hash32('tint', x, y, z) % TINT_SPREAD.length` sur sa position entière en millimètres, facteur
+ *  `1 + tintVar × TINT_SPREAD[k]`. Deux faces qui partagent un sommet y prennent le même facteur : la teinte s'interpole
+ *  d'un sommet à l'autre, sans couture entre deux cases. 1 sans `tintVar` (surface uniforme). */
+export function tintVarFactor(recipe: DetailRecipe | undefined, sommet: { x: number; y: number; z: number }): number {
   const tv = recipe?.tintVar;
   if (!tv) return 1;
-  return 1 + tv * TINT_SPREAD[hash32('tint', cell.x, cell.y, cell.z) % TINT_SPREAD.length];
+  const mm = (v: number) => Math.round(v * 1000);
+  return 1 + tv * TINT_SPREAD[hash32('tint', mm(sommet.x), mm(sommet.y), mm(sommet.z)) % TINT_SPREAD.length];
 }
