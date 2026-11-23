@@ -10,6 +10,11 @@ DEFINITIONS = ("baliste", "baliste-ade2")
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "cordage": ("cuir", "corde")}
 
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"baliste": 1300}
+
 PIVOT_Z = 0.84                  # dessus de la platine : pivot vertical de la baliste
 
 # Le tir (`clips.tirer`) : la détente fait cabrer l'arme sur son pivot (degrés), aux temps de `clips.coup` (secondes).

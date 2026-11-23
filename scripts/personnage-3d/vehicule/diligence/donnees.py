@@ -5,59 +5,44 @@ voiture du Vieux Monde, 4,4 m du train arrière à la pointe du timon, 1,9 m de 
 Repère de `maille.py` : le timon vers l'avant (-y) ; l'emprise est recentrée en x et y, z = 0 reste le sol.
 
 Ses parties. La voiture, modelée ici : châssis de deux longerons et trois traverses, un essieu par train sur ses cales,
-quatre roues à rais cerclées de fer, les grandes à l'arrière ; caisse close à membrure, une baie vitrée de chaque
-côté de la portière et dans celle-ci, poignée et marchepied ; toit de cuir débordant et sa galerie de fer ; coffre et
-siège du cocher, garde-corps, marchepied sur consoles ; plateau à bagages à l'arrière ; timon et palonnier. Hors du GLB :
-l'attelage (créatures), les bagages et les lanternes (décors de `src/data/props.json`), le cocher (un personnage).
+quatre roues à rais tournés cerclées de fer, les grandes à l'arrière ; caisse close à membrure, une baie vitrée de
+chaque côté de la portière et dans celle-ci, poignée et marchepied ; toit de cuir débordant et sa galerie de fer ;
+coffre et siège du cocher, garde-corps, marchepied sur consoles ; plateau à bagages à l'arrière ; timon et palonnier ;
+et ses accessoires fixes, une coque sans ponts n'ayant aucun plan qui pose des décors : deux malles sanglées de fer
+dans la galerie, deux lanternes de laiton aux coins de la caisse. Hors du GLB : l'attelage (créatures), le cocher (un
+personnage).
 Aucun poste : un poste monte une pièce de siège à un bord (`postesMontes`, `hotes/godot/pont/atelier.ts`), ce que le
 siège du cocher n'est pas.
 
 Matières : `bois-chene` pour le train et la caisse, le catalogue n'ayant pas de bois peint ; la caisse a son
 emplacement de palette, `vet1`, pour qu'une couleur d'apparence la peigne sans peindre le train."""
 
-DEFINITIONS = ("diligence",)
-
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {"bois": ("bois", "bois-chene"), "caisse": ("vet1", "bois-chene"), "cuir": ("cuir", "cuir-tanne"),
              "fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore"), "vitre": ("vitre", "verre")}
 
-# Les deux trains : y de l'essieu, puis la table de `maille.roue`. `tours` : tours de roue par boucle du clip de
-# déplacement ; le chemin d'une boucle, tours × circonférence, est le même aux deux trains.
-ROUE_ARRIERE = {
-    "voie": 0.83,
-    "segments": 20,
-    "bandage": (0.625, 0.660, 0.070),   # rayon intérieur, extérieur, largeur (fer)
-    "jante": (0.540, 0.625, 0.060),     # rayon intérieur, extérieur, largeur (bois)
-    "moyeu": (0.100, -0.12, 0.10),      # rayon, x intérieur et extérieur relatifs au plan (vers l'extérieur positif)
-    "chapeau": (0.070, 0.10, 0.13),     # frette de fer au bout du moyeu : rayon, x de début et de fin
-    "frette": (0.110, -0.11, -0.08),    # frette côté intérieur du moyeu
-    "rayons": 12,
-    "rayon_section": (0.045, 0.035),    # largeur tangentielle, épaisseur en x
-    "segments_moyeu": 10,
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"diligence": 6100}
+
+# Les deux trains (`roulant.py`), les grandes roues à l'arrière : nœuds `roue_avg`, `roue_avd`, `roue_arg`, `roue_ard`.
+# Les cales montent de l'essieu au milieu des longerons.
+TRAIN = {"voie": 0.83, "largeur": 0.07, "essieu": (0.045, 0.004), "fusee": (0.035, 0.12, 8)}
+TRAINS = {
+    "av": {**TRAIN, "y": -0.55, "rayon": 0.44, "pans": 18, "bandage": 0.03, "moyeu": (0.09, 0.10),
+           "cales": (0.40, 0.71, 0.07, 0.05), "tours": 3},
+    "ar": {**TRAIN, "y": 1.45, "rayon": 0.66, "pans": 20, "bandage": 0.035, "moyeu": (0.10, 0.10),
+           "cales": (0.40, 0.71, 0.07, 0.05), "tours": 2},
 }
-ROUE_AVANT = {
-    "voie": 0.83,
-    "segments": 18,
-    "bandage": (0.410, 0.440, 0.070),
-    "jante": (0.345, 0.410, 0.060),
-    "moyeu": (0.090, -0.12, 0.10),
-    "chapeau": (0.065, 0.10, 0.13),
-    "frette": (0.100, -0.11, -0.08),
-    "rayons": 10,
-    "rayon_section": (0.042, 0.035),
-    "segments_moyeu": 10,
-}
-TRAINS = {"arriere": {"y": 1.45, "roue": ROUE_ARRIERE, "tours": 2}, "avant": {"y": -0.55, "roue": ROUE_AVANT, "tours": 3}}
 
 CHASSIS = {
     "longerons": (0.40, 0.05, -1.30, 2.00, 0.66, 0.76),    # x du milieu, demi-largeur, y avant, y arrière, z bas, z haut
     "traverses": ([-1.25, 0.35, 1.95], 0.05, 0.67, 0.75),  # y, demi-profondeur, z bas, z haut
-    "essieu": (0.045, 0.72),                               # corps d'essieu de bois : demi-section, demi-longueur
-    "fusee": (0.035, 0.93),                                # essieu de fer : rayon, demi-longueur
-    "cale": (0.07, 0.05),                                  # cale entre l'essieu et le longeron : demi-profondeur, demi-largeur
 }
 
 CAISSE = {
+    "definitions": ("diligence",),
     "boite": (0.70, -0.50, 1.60, 0.76, 2.15),              # demi-largeur, y avant, y arrière, z bas, z haut
     "paroi": 0.03,                                         # épaisseur des parois et du plancher
     "baies": (1.57, 2.00),                                 # z de l'appui et du linteau des baies
@@ -76,6 +61,23 @@ TOIT = {
     "galerie": (0.65, -0.40, 1.50, 0.22),                  # demi-largeur, y avant, y arrière, hauteur de la lisse sur le toit
     "fer": (0.011, 5),                                     # rayon des fers de la galerie, côtés
     "montants": (5, 3),                                    # par long côté, par petit côté, coins compris
+}
+
+# Les bagages arrimés au toit (EDOC p.26), dans la galerie : par malle, son matériau, (x, y) de son centre, ses
+# demi-côtés en x et en y, sa hauteur ; `arete` : chanfrein de ses arêtes ; `sangles` : leur place le long de la malle
+# (parts de sa demi-longueur), leur demi-largeur, leur saillie sur la malle.
+BAGAGES = {
+    "malles": [("cuir", (-0.18, 0.10), (0.36, 0.42), 0.36), ("bois", (0.22, 1.02), (0.30, 0.34), 0.26)],
+    "arete": 0.012,
+    "sangles": ((-0.5, 0.5), 0.022, 0.006),
+}
+
+# Les lanternes : x de chaque côté, y et z de leur pied, au coin de la caisse devant le cocher ; rayon, hauteur et
+# côtés de leur corps tourné ; son profil (part de la hauteur, part du rayon).
+LANTERNES = {
+    "pied": (0.655, -0.545, 1.73),
+    "corps": (0.045, 0.16, 6),
+    "profil": ((0.0, 0.3), (0.1, 0.8), (0.2, 1.0), (0.7, 1.0), (0.8, 0.6), (1.0, 0.2)),
 }
 
 COCHER = {

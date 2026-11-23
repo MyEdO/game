@@ -1,44 +1,22 @@
 """Le campement (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
 (`gabarit.py`), dont il lit les cotes (`geometrie.pave`, `geometrie.rond`, `geometrie.rampant`) et où `Gabarit.rentrer`
-ramène le sommet qui en sortirait. Chaque pièce est une coque close : une roue à rais (`roue`) ; une virure, un
-plat-bord, une sole, un pignon de toile, une bâche, une gerbe et une meule, la coque de leurs sections ; une toile
-plissée, la coque de ses contours d'un rang à l'autre, un dais, des planches côte à côte, une section bosselée, une
-planche, une pièce profilée, tournée ou courbée, une cheville et un cercle, ceux de `geometrie` ; un tour de corde, le
-tore de `maille`. Chaque matériau du décor est un nœud à son nom. L'aléa est semé des codes de caractères de l'id du
-décor : deux constructions rendent les mêmes octets."""
+ramène le sommet qui en sortirait. Chaque pièce est une coque close : une roue à rais et un train (`geometrie.roue`,
+`geometrie.train`) ; une virure, un plat-bord, une sole, un pignon de toile, une bâche, une gerbe et une meule, la coque
+de leurs sections ; une toile plissée, la coque de ses contours d'un rang à l'autre, un dais, des planches côte à côte,
+une section bosselée, une planche, une pièce profilée, tournée ou courbée, une cheville et un cercle, ceux de
+`geometrie` ; un tour de corde, le tore de `maille`. Chaque matériau du décor est un nœud à son nom. L'aléa est semé des
+codes de caractères de l'id du décor : deux constructions rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, anneau, autour, bordage, cap, cercle, cheville,
-                       coque, courbee, lisse, normales, onde, pave, planche, profilee, rampant, rond, sous_le_rampant,
-                       tournee)
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, ROUE, X, Y, anneau, bordage, cap, cheville, coque,
+                       courbee, lisse, normales, onde, pave, planche, profilee, rampant, rond, roue,
+                       sous_le_rampant, tournee, train)
 from maille import lineaire, tore
 
 DECORS = ("charrette", "epave-carrosse", "barque", "etal-marche", "tente", "tas-foin", "cargaison-bachee", "hamac")
-
-
-def roue(m, primitive, dehors, large, R, manquants, moyeu):
-    """Une roue de bois autour de l'axe du cylindre `primitive` de la recette, d'après `R` : une jante de rayon
-    `dehors`, large de `R["largeur"]` de `large`, au nombre de pans de la primitive ; un moyeu tourné
-    `moyeu` (maille, matériau, rayon, demi-longueur) ; des rais tournés du moyeu à la jante, hors les rangs
-    `manquants`."""
-    centre, _, _ = rond(primitive)
-    axe, essieu = AXES[primitive["axis"]]
-    u, w = geometrie.repere(axe)
-    dedans = dehors * R["jante"]
-    cercle(m, axe, tuple(centre), (dedans + dehors) / 2, large * R["largeur"], dehors - dedans, primitive["sides"],
-           MAT)
-    noix, mat, rayon, demi = moyeu
-    tournee(noix, centre - essieu * demi, centre + essieu * demi, u, w, rayon, R["noix"], R["cotes"], mat)
-    for k in range(R["rais"]):
-        if k in manquants:
-            continue
-        tours = 2 * math.pi * (k + 1 / 2) / R["rais"]
-        d = autour(u, w, tours)
-        tournee(m, centre + d * (rayon * R["pied"]), centre + d * (dedans * R["tete"]), essieu, essieu.cross(d),
-                large / 2 * R["rai"], R["fuseau"], R["pans"])
 
 
 def charrette(D, G, pieces, a):
@@ -67,39 +45,35 @@ def charrette(D, G, pieces, a):
             for axe in lisses:
                 cheville(bois, Vector((pied.x, pied.y, axe.z)) + dehors * ((face - fond) / 2), dehors, rayon, a)
 
+    essieu = AXES[G.primitives[C["roues"][0][1]]["axis"]][1]
+    part, section = C["traverse"]
+    limons, pieds = [], []
+    for rang in C["brancards"]:
+        cb, (bx, by, bz) = pave(G.primitives[rang])
+        fil, long, large = (X, bx, by) if bx > by else (Y, by, bx)
+        avant = fil * math.copysign(1, (cb - c).dot(fil))
+        plateau = abs(fil.dot(Vector((lx, ly, 0))))
+        queue = cb + avant * ((c - cb).dot(avant) - (plateau / 2 - plateau * C["recul"]))
+        profilee(bois, queue, cb + avant * (long / 2), (large / 2, bz / 2), C["limon"], MAT, HAUT.cross(fil), HAUT)
+        limons.append((cb - avant * (long / 2 - long * part), large / 2 * section, bz / 2 * section))
+        pieds.append((cb, large / 2))
+    (p0, du, dv), (p1, _, _) = limons
+    planche(bois, p0, p1, (p1 - p0).normalized().cross(HAUT), HAUT, du, dv, dv * D["ARETE"])
+
     moyeux = []
     for bandage, jante, noix in C["roues"]:
         cercle_de_fer, boite = G.primitives[bandage], G.primitives[noix]
         ct, rt, lt = rond(cercle_de_fer)
         epais = rt * C["bandage"]
-        cercle(fer, AXES[cercle_de_fer["axis"]][0], tuple(ct), rt - epais / 2, lt, epais, cercle_de_fer["sides"],
-               "fer")
         cm, rm, lm = rond(boite)
-        roue(bois, G.primitives[jante], rt - epais / 2, lt, D["ROUE"], (),
-             (pieces["laiton"], "laiton", geometrie.apotheme(boite), lm / 2))
+        roue(bois, AXES[cercle_de_fer["axis"]][0], ct, rt - epais / 2, lt, G.primitives[jante]["sides"],
+             (pieces["laiton"], "laiton", geometrie.apotheme(boite), lm / 2), bandage=(fer, "fer", epais))
         moyeux.append((cm, rm))
     (gauche, rayon), (droite, _) = moyeux
     E = C["essieu"]
     demi = rayon * E["section"]
-    planche(bois, gauche, droite, (droite - gauche).normalized().cross(HAUT), HAUT, demi, demi, demi * D["ARETE"])
-
-    essieu = AXES[G.primitives[C["roues"][0][1]]["axis"]][1]
-    part, section = C["traverse"]
-    limons = []
-    for rang in C["brancards"]:
-        cb, (bx, by, bz) = pave(G.primitives[rang])
-        fil, long, large = (X, bx, by) if bx > by else (Y, by, bx)
-        avant = fil * math.copysign(1, (cb - c).dot(fil))
-        travers = HAUT.cross(fil)
-        plateau = abs(fil.dot(Vector((lx, ly, 0))))
-        queue = cb + avant * ((c - cb).dot(avant) - (plateau / 2 - plateau * C["recul"]))
-        profilee(bois, queue, cb + avant * (long / 2), (large / 2, bz / 2), C["limon"], MAT, travers, HAUT)
-        cale = gauche + essieu * (cb - gauche).dot(essieu)
-        planche(bois, cale, Vector((cale.x, cale.y, cb.z)), fil, travers, demi * E["cale"], large / 2,
-                demi * D["ARETE"])
-        limons.append((cb - avant * (long / 2 - long * part), large / 2 * section, bz / 2 * section))
-    (p0, du, dv), (p1, _, _) = limons
-    planche(bois, p0, p1, (p1 - p0).normalized().cross(HAUT), HAUT, du, dv, dv * D["ARETE"])
+    train(bois, gauche, droite, demi, demi * D["ARETE"],
+          [(gauche + essieu * (cb - gauche).dot(essieu), cb.z, demi * E["cale"], large) for cb, large in pieds])
 
 
 def carrosse(D, G, pieces, a):
@@ -178,13 +152,13 @@ def carrosse(D, G, pieces, a):
     for rang in K["roues"]:
         jante = G.primitives[rang]
         cr, r, l = rond(jante)
-        roue(bois, jante, r, l, D["ROUE"], a.sample(range(D["ROUE"]["rais"]), K["brises"]),
-             (bois, MAT, r * K["moyeu"][0], l / 2 * K["moyeu"][1]))
+        roue(bois, AXES[jante["axis"]][0], cr, r, l, jante["sides"],
+             (bois, MAT, r * K["moyeu"][0], l / 2 * K["moyeu"][1]), a.sample(range(ROUE["rais"]), K["brises"]))
         centres.append((cr, r * E["section"]))
     (gauche, demi), (droite, _), (seule, _) = (centres[rang] for rang in K["essieux"])
     moignon = seule - essieu * ((seule - c).dot(essieu) * (1 + E["moignon"]))
     for p0, p1 in ((gauche, droite), (seule, moignon)):
-        planche(bois, p0, p1, vers, HAUT, demi, demi, demi * D["ARETE"])
+        train(bois, p0, p1, demi, demi * D["ARETE"])
 
     ct, (tx, ty, tz) = pave(G.primitives[K["timon"]])
     file, demi_t = (X * (tx / 2), ty / 2) if tx > ty else (Y * (ty / 2), tx / 2)

@@ -33,7 +33,7 @@ def sabord(D):
                cadre, 2 * saillie, dehors, "bois")
         poutre(m, face + cote * s_ * (lo + cadre) / 2 - haut * ho / 2, face + cote * s_ * (lo + cadre) / 2 + haut * ho / 2, cadre, 2 * saillie,
                dehors, "bois")
-    objet("cadre", m, (0, 0, 0), 35)
+    objet("cadre", m, (0, 0, 0), D["ANGLE_LISSE"])
     for nom, angle in (("ferme", 0.0), ("ouvert", 70.0)):
         m = Maille(list(mats.values()))
         charniere = Vector((0, -(mur + saillie + 0.04), zc + ho / 2 + cadre))
@@ -47,7 +47,7 @@ def sabord(D):
         for t in (0.2, 0.8):   # pentures de fer
             a, b = p((-larg / 2 + 0.05, -ep - 0.012, -haut * t)), p((larg / 2 - 0.05, -ep - 0.012, -haut * t))
             poutre(m, a, b, 0.06, 0.02, tuple(rot @ Vector((0, 1, 0))), "fer")
-        objet(nom, m, (0, 0, 0), 35)
+        objet(nom, m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "postes"}
 
 
@@ -68,7 +68,7 @@ def figure_de_proue(D):
         N.espar(m, epaule, epaule + Vector((s * 0.05, 0.25, -0.35)), 0.07, 0.055, 6, "chair")
     for s in (1, -1):   # nageoire caudale contre l'étrave
         poutre(m, pied, pied + Vector((s * 0.35, 0.15, -0.4)), 0.25, 0.05, (0, 1, 0), "dorure")
-    objet("figure", m, (0, 0, 0), 35)
+    objet("figure", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -86,7 +86,7 @@ def ancre(D):
         bout = coude + Vector((0, s * 0.25, 0.45))
         N.espar(m, coude, bout, 0.08, 0.04, 6, "fer")
         poutre(m, coude + Vector((0, s * 0.05, 0.05)), bout - Vector((0, 0, 0.05)), 0.28, 0.03, (0, 1, 0), "fer")
-    objet("ancre", m, (0, 0, 0), 35)
+    objet("ancre", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -123,7 +123,7 @@ def belier(D):
     for t in (0.0, -0.9):   # colliers
         loft(m, [(t + 0.12, octogone(1.16, 1.62, -0.02, 0.1)), (t - 0.12, octogone(1.1, 1.5, -0.03, 0.12))], "bronze")
     poutre(m, Vector((0, 0.15, 0.55)), Vector((0, -0.45, 1.1)), 0.55, 0.12, (0, -1, 0.4), "bronze")   # coiffe d'étrave, sous la figure
-    objet("belier", m, (0, 0, 0), 35)
+    objet("belier", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -134,7 +134,7 @@ def nid_de_pie(D):
     hune = D["HUNE"]
     z0, z1 = hune[0][0], max(z for z, _ in hune)
     N.fuseau(m, (0, 0, 0), (0, 0, z1 - z0), [((z - z0) / (z1 - z0), r) for z, r in hune], D["COTES_HUNE"], "bois")
-    objet("hune", m, (0, 0, 0), 35)
+    objet("hune", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -163,7 +163,7 @@ def embarcation(D):
                z_fond + 0.2 - sur_poutre, (0, 0, 1), "bois")
     for s in (1, -1):              # avirons rangés
         N.espar(m, (s * 0.35, -2.0, z_fond + creux * 0.7), (s * 0.35, 2.0, z_fond + creux * 0.7), 0.04, 0.03, 6, "bois")
-    objet("canot", m, (0, 0, 0), 35)
+    objet("canot", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -180,7 +180,7 @@ def ralentisseurs(D):
     N.fuseau(m, (-0.4, 0, 0.3), (0.4, 0, 0.3), [(0, 0), (0, 0.12), (1, 0.12), (1, 0)], 8, "fer")   # axe, du bordé au pivot
     for x in (-0.4, 0.4):   # ferrures sur la préceinte
         poutre(m, (x, -0.25, 0.3), (x, 0.25, 0.3), 0.3, 0.08, (1, 0, 0), "fer")
-    objet("aileron", m, (0, 0, 0), 35)
+    objet("aileron", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -211,7 +211,7 @@ def clinfoc(D, C):
     ecoute = Vector((0, 6.5, -3.5))
     triangle_raye(m, amure, tete, ecoute, 0.45, D["RAYURES"])
     N.espar(m, ecoute, ecoute + Vector((0, 0.0, -0.01)) + (amure - ecoute) * 0.02, 0.04, 0.04, 4, "bois")
-    objet("foc", m, (0, 0, 0), 35)
+    objet("foc", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -293,8 +293,8 @@ def blindage(D, C, mat):
                     dd = (pb - pa).normalized()
                     poutre(m if libre(pa, pb, za, zb, rects) else sur, pa + dd * 0.02, pb - dd * 0.02, zb - za - 0.04, 0.05, nrm, mat)
             f = f1
-    objet("plaques", m, (0, 0, 0), 35)
-    objet("sans-sabord", sur, (0, 0, 0), 35)
+    objet("plaques", m, (0, 0, 0), D["ANGLE_LISSE"])
+    objet("sans-sabord", sur, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages", "selon": {"sabord": {}}}
 
 
@@ -336,8 +336,8 @@ def murs_blindes(D, C):
     plaques(m, (-xg, Y(sg[-1]) + 0.01), (xg, Y(sg[-1]) + 0.01), 1.85, z_haut, (0, 1, 0), "fer")
     x0 = lineaire(largeur, sg[0])
     plaques(m, (x0, Y(sg[0]) - 0.01), (-x0, Y(sg[0]) - 0.01), 4.35, z_haut, (0, -1, 0), "fer")
-    objet("plaques", m, (0, 0, 0), 35)
-    objet("sans-sabord", sur, (0, 0, 0), 35)
+    objet("plaques", m, (0, 0, 0), D["ANGLE_LISSE"])
+    objet("sans-sabord", sur, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages", "selon": {"sabord": {}}}
 
 
@@ -356,7 +356,7 @@ def bouteur(D, C):
         c = bas + (haut - bas) * t
         poutre(m, c - d * 0.06, c + d * 0.06, 1.0, 0.32, (1, 0, 0), "fer")
     N.espar(m, haut, haut + Vector((0, 0.3, 0.6)), 0.13, 0.11, 6, "bois")
-    objet("bouteur", m, (0, 0, 0), 35)
+    objet("bouteur", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -402,7 +402,7 @@ def proue_idole(D):
     q = pied + axe * 0.08
     aile(q, q + dos * 0.15 + axe * 0.75, q + axe * 0.35)                                                  # caudale contre l'étrave
     aile(q, q + dos * 0.1 - axe * 0.45, q + axe * 0.25)
-    objet("idole", m, (0, 0, 0), 35)
+    objet("idole", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -420,7 +420,7 @@ def safran(D, C):
     for t in (0.1, 0.3, 0.5, 0.7, 0.9):
         c = bas + (haut - bas) * t - Vector((0, 0.35, 0))
         poutre(m, c - d * 0.07, c + d * 0.07, 1.0, 0.42, (1, 0, 0), "fer")
-    objet("safran", m, (0, 0, 0), 35)
+    objet("safran", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -432,7 +432,7 @@ def fourquines(D):
     N.espar(m, Vector((0, 0, 0.1)), Vector((0, 0, 0.6)), 0.03, 0.025, 6, "fer")
     for s_ in (1, -1):
         N.espar(m, Vector((0, 0, 0.6)), Vector((0, s_ * 0.09, 0.8)), 0.022, 0.018, 5, "fer")
-    objet("fourquine", m, (0, 0, 0), 35)
+    objet("fourquine", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 
@@ -450,7 +450,7 @@ def propulsion(D):
         N.fuseau(m, tete - Vector((0, 0, 0.12)), tete - Vector((0, 0, 0.1)), [(0, 0), (0, 0.33), (1, 0.33), (1, 0)], 12, "ombre")
         for z in (3.0, 6.0):
             N.fuseau(m, pied + Vector((0, 0, z - 1.6)), pied + Vector((0, 0, z - 1.6 + 0.45)), [(0, 0.38), (1, 0.38)], 12, "peinture")
-    objet("vapeur", m, (0, 0, 0), 35)
+    objet("vapeur", m, (0, 0, 0), D["ANGLE_LISSE"])
     return {"montage": "ancrages"}
 
 

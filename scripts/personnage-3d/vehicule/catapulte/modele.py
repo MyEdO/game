@@ -5,7 +5,7 @@ import math
 
 import habillage
 from clips import REPOS, animer, cahoter, coup
-from maille import Maille, basculer, basculer_maille, boite, cylindre, objet, poutre, recentrer, tore, tour, treuil, tube
+from maille import Maille, basculer, basculer_maille, boite, cylindre, monter, poutre, tore, tour, treuil, tube
 
 
 def chassis(D, mats):
@@ -120,9 +120,7 @@ def construire(D, extremite):
         tip = crochet(D, br, bout)
         basculer_maille(br, pivot, angle)
         fronde(D, br, basculer(tip, pivot, angle))
-    dx, dy = recentrer([ch, br])
-    objet("chassis", ch, (0.0, 0.0, 0.0), 35)
-    objet("bras", br, (dx, pivot[0] + dy, pivot[1]), 35)
+    monter({"chassis": (ch, None), "bras": (br, (0.0, pivot[0], pivot[1]))}, D["ANGLE_LISSE"])
     return animer([REPOS, cahoter(["chassis", "bras"]), tir(D)])
 
 

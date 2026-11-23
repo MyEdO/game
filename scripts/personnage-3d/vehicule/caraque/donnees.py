@@ -57,6 +57,8 @@ SOUS_LES_PONTS = {
 # Muraille laissée au bout d'une pièce creusée devant une cloison du plan qui ne donne sur aucune pièce.
 MURAILLE = 0.15
 
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {"bois": ("bois", "bois-chene"), "toile": ("vet1", "toile-ecrue"), "rayure": ("vet2", "toile-rouge"),
              "fer": ("metal", "fer-noirci"), "cordage": ("cuir", "corde"), "dorure": ("accent", "laiton-dore")}
