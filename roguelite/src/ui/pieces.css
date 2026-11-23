@@ -115,3 +115,19 @@ abbr[data-bulle] { text-decoration: underline dotted rgba(168,132,47,.7); text-u
 .au-batiment > .medaillon { position: absolute; right: -9px; bottom: -7px; color: #f4e9d2; box-shadow: 0 2px 5px var(--ombre-forte), 0 0 10px rgba(196,222,206,.55); }
 .carte-heros .sejour-hospice > span:first-child { font-size: 13.5px; letter-spacing: 1px; color: #e4f1e4; }
 .carte-heros .ligne-etat .revient { color: #c3dccb; }
+/* le signe de la voie (Collège, dieu) au coin du portrait : un sceau à sa teinte, son emblème à l'encre ; sur une
+   carte, son nom en fanion à côté du sceau */
+.signe-de-voie { position: relative; z-index: 1; display: inline-grid; place-items: center; flex: none; width: 1.5em; height: 1.5em; border-radius: 50%; color: #1c120a; background: radial-gradient(circle at 35% 30%, #fff 0%, var(--teinte) 55%); box-shadow: 0 0 0 1px var(--contour), 0 0 0 2px var(--laiton), 0 0 0 3px var(--contour), 0 2px 4px var(--ombre-forte); vertical-align: -.3em; }
+.portrait .signe-de-voie svg, .signe-de-voie svg { display: block; width: 72%; height: 72%; fill: none; }
+.portrait > .voie-au-portrait { position: absolute; left: -5px; bottom: -5px; display: flex; align-items: center; font-size: 15px; }
+.portrait.affiche > .voie-au-portrait { font-size: 22px; left: -7px; bottom: -7px; }
+.portrait.petit > .voie-au-portrait { font-size: 11px; left: -4px; bottom: -4px; }
+.voie-au-portrait b { margin-left: -9px; padding: 0 6px 0 11px; border-radius: 0 9px 9px 0; font: 400 10.5px/16px "IM Fell English SC", serif; letter-spacing: .3px; white-space: nowrap; color: var(--ivoire); background: rgba(24,14,9,.94); box-shadow: 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or-vif), 0 2px 4px var(--ombre-forte); }
+.rang-heros.serre .voie-au-portrait b, .au-batiment .voie-au-portrait b { display: none; }
+/* la carte fermée dit pourquoi, à la place de son état : trois lignes serrées */
+.carte-heros:has(.ligne-etat.refus) .qui { gap: 1px; }
+.carte-heros .ligne-etat.refus { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 11px; line-height: 12px; font-style: normal; color: #ffb9a3; }
+.socle-compagnie .rang-heros.serre .ligne-etat.refus { display: -webkit-box; -webkit-line-clamp: 2; }
+.carte-heros:disabled:has(.ligne-etat.refus) { opacity: 1; }
+.carte-heros:disabled:has(.ligne-etat.refus) .portrait > div, .carte-heros:disabled:has(.ligne-etat.refus) .vie, .carte-heros:disabled:has(.ligne-etat.refus) .jauge, .carte-heros:disabled:has(.ligne-etat.refus) .nom-propre, .carte-heros:disabled:has(.ligne-etat.refus) .sous-titre { opacity: .5; filter: grayscale(.6); }
+.heros-en-tete .portrait > .voie-au-portrait { left: 0; }

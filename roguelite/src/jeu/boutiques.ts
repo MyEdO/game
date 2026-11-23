@@ -1,29 +1,72 @@
 /**
- * La forge et le relais : équipement et provisions.
+ * La forge et l'hospice : équipement, potions et remèdes.
  */
-import { refusDUsage, qualitesDites, doter, armureRapide, articleDuCatalogue, drPerdusSousLArmure, ARMURES_RAPIDES, type ArticleDuCatalogue, type ItemInstance, type PoidsDArmure, type Qualite } from '../noyau';
+import { refusDUsage, qualitesDites, doter, articleDuCatalogue, DISPONIBILITES, drPerdusSousLesPieces, maniement, objetsEnRayon, progression, protectionDesPieces, tenableEnMainSecondaire, type ArticleDuCatalogue, type ItemInstance, type ObjetEnRayon, type PoidsDArmure, type Qualite } from '../noyau';
 
-import { ARMES_DE_FORGE, ARMURES_DE_FORGE, ECHELLE_DES_PRIX, MAIN_SECONDAIRE, MUNITIONS, PROVISIONS } from './valeurs';
+import { ARMES_DE_LA_FORGE, ECHELLE_DES_PRIX, GROUPE_DES_REMEDES, GROUPES_SANS_COMPETENCE, MAIN_SECONDAIRE, MUNITIONS, PANOPLIES, REMEDES_DE_L_HOSPICE, disponibilitesDuPalier, type GroupeDeLaForge, type Panoplie } from './valeurs';
 import { Etat, Heros } from './etat';
+import { enRuine } from './village';
 import { auNoyau, heros } from './outils';
 
 export const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
-export const prixDArmure = (p: PoidsDArmure): number => Math.round({ legere: 2, moyenne: 5, lourde: 30 }[p] * ECHELLE_DES_PRIX); // LDB 63 l.95-103
 
-/** Où se tient une arme : une main du set de mêlée, ou le set de tir (une arme à portée). */
+/** Où se tient une arme : une main du set de mêlée, ou le set de tir (une arme à distance). */
 export type Tenue = 'main' | 'secondaire' | 'tir';
-const tenueDe = (a: ArticleDuCatalogue, id: string): Tenue => (MAIN_SECONDAIRE.has(id) ? 'secondaire' : a.portee ? 'tir' : 'main');
+const enMainSecondaire = (a: ArticleDuCatalogue, id: string): boolean =>
+  !!a.bouclier || MAIN_SECONDAIRE.armes.has(id) || (MAIN_SECONDAIRE.groupes.has(a.groupe ?? '') && (a.mains ?? 1) === 1);
+const tenueDe = (a: ArticleDuCatalogue, id: string): Tenue => (enMainSecondaire(a, id) ? 'secondaire' : a.categorie === 'distance' ? 'tir' : 'main');
 /** Un objet en vente : ce que le catalogue en dit, son prix au hameau, et où il se tient (arme). */
 export interface Article extends ArticleDuCatalogue { id: string; prix: number; tenue: Tenue }
 export const article = (id: string): Article => { const a = articleDuCatalogue(id); return { ...a, id, prix: prixDe(id), tenue: tenueDe(a, id) }; };
-export const armesEnVente = (e: Etat): Article[] => ARMES_DE_FORGE.slice(0, e.batiments.forge + 1).flat().map(article);
-export interface ArmureEnVente { poids: PoidsDArmure; label: string; prix: number; enc: number; pa: number; qualites: Qualite[] }
+
+/** Les objets `ids` que le catalogue vend (`objetsEnRayon`), rangés par Disponibilité puis par prix. */
+const rayon = (ids: readonly string[]): ObjetEnRayon[] =>
+  objetsEnRayon().filter((o) => ids.includes(o.id)).sort((a, b) => DISPONIBILITES.indexOf(a.disponibilite) - DISPONIBILITES.indexOf(b.disponibilite) || prixDe(a.id) - prixDe(b.id));
+const RAYON_DE_LA_FORGE = rayon(Object.values(ARMES_DE_LA_FORGE).flat());
+const RAYON_DE_L_HOSPICE = rayon(REMEDES_DE_L_HOSPICE);
+/** Les potions et remèdes du catalogue que l'hospice reconnaît au sac d'un héros, vendus ou non. */
+const REMEDES = new Set(objetsEnRayon().filter((o) => o.consommable && articleDuCatalogue(o.id).groupe === GROUPE_DES_REMEDES).map((o) => o.id));
+/** Les objets du rayon `r` de Disponibilité ouverte au palier `palier`. */
+const auPalier = (r: readonly ObjetEnRayon[], palier: number): string[] => {
+  const ouvertes = disponibilitesDuPalier(palier);
+  return r.filter((o) => ouvertes.includes(o.disponibilite)).map((o) => o.id);
+};
+/** Le héros manie-t-il l'arme `id` : un Groupe proposé à tous (`GROUPES_SANS_COMPETENCE`), ou que couvre pleinement
+ *  (`maniement`) une Compétence de Corps à corps ou de Projectiles de sa fiche ou de sa carrière (`progression`). */
+function manie(h: Pick<Heros, 'c'>, id: string): boolean {
+  if (GROUPES_SANS_COMPETENCE.has(articleDuCatalogue(id).groupe as GroupeDeLaForge)) return true;
+  const deCarriere = progression(h.c).competences.filter((k) => k.ref.id === 'corps-a-corps' || k.ref.id === 'projectiles');
+  const skills = [...h.c.skills, ...deCarriere.filter((k) => !h.c.skills.some((s) => s.id === k.ref.id && s.spec === k.ref.spec)).map((k) => ({ ...k.ref, characteristic: k.ref.id === 'projectiles' ? 'capacite-de-tir' as const : 'capacite-de-combat' as const, advances: 0 }))];
+  return maniement({ ...h.c, skills }, id).maitrise === 'complet';
+}
+/** Les armes que la forge vend au héros `h` à son palier : celles qu'il manie (`manie`). */
+export const armesEnVente = (e: Etat, h: Pick<Heros, 'c'>): Article[] => auPalier(RAYON_DE_LA_FORGE, e.batiments.forge).filter((id) => manie(h, id)).map(article);
+
+/** Les qualités `qs`, chacune une fois. */
+const sansDoublon = (qs: readonly Qualite[]): Qualite[] => qs.filter((q, i) => qs.findIndex((x) => x.nom === q.nom) === i);
+const DISPONIBILITE_EN_RAYON = new Map(objetsEnRayon().map((o) => [o.id, o.disponibilite]));
+/** La Disponibilité d'une panoplie : celle de sa pièce la plus rare. */
+const disponibiliteDe = (p: Panoplie) => DISPONIBILITES[Math.max(...p.pieces.map((id) => DISPONIBILITES.indexOf(DISPONIBILITE_EN_RAYON.get(id)!)))];
+/** Une panoplie en vente (`PANOPLIES`) : son prix, somme des prix de ses pièces, son Encombrement total, ses PA par zone
+ *  d'armure (`protectionDesPieces`), les pièces qu'elle revêt et leurs qualités, Défauts compris (LDB 63). */
+export interface ArmureEnVente { id: Panoplie['id']; label: string; prix: number; enc: number; pa: { zone: string; pa: number }[]; pieces: string[]; qualites: Qualite[] }
+const enVente = (p: Panoplie): ArmureEnVente => {
+  const articles = p.pieces.map(articleDuCatalogue);
+  return {
+    id: p.id, label: p.label, prix: p.pieces.reduce((n, id) => n + prixDe(id), 0), enc: articles.reduce((n, a) => n + a.enc, 0),
+    pa: protectionDesPieces(doter(p.pieces, 'essai')), pieces: articles.map((a) => a.label), qualites: sansDoublon(articles.flatMap((a) => a.qualites)),
+  };
+};
+/** Les panoplies que la forge vend : celles dont la Disponibilité est ouverte à son palier (`disponibilitesDuPalier`). */
 export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
-  ARMURES_DE_FORGE.slice(0, e.batiments.forge + 1).map((poids) => {
-    const a = ARMURES_RAPIDES[poids];
-    return { poids, label: a.label, prix: prixDArmure(poids), enc: a.enc, pa: a.pa, qualites: qualitesDites(a.qualites) };
-  });
-export const provisionsEnVente = (e: Etat): Article[] => PROVISIONS.slice(0, e.batiments.relais + 1).flat().map(article);
+  PANOPLIES.filter((p) => disponibilitesDuPalier(e.batiments.forge).includes(disponibiliteDe(p))).map(enVente);
+/** La panoplie que porte le héros, reconnue à ses pièces d'armure : exactement celles d'une panoplie. */
+export function panoplieDe(h: Pick<Heros, 'c'>): Panoplie | undefined {
+  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.trappingId ?? '').sort().join();
+  return PANOPLIES.find((p) => [...p.pieces].sort().join() === portees);
+}
+/** Les potions et remèdes de l'hospice, rien tant qu'il est en ruine. */
+export const provisionsEnVente = (e: Etat): Article[] => (enRuine(e.batiments, 'temple') ? [] : auPalier(RAYON_DE_L_HOSPICE, e.batiments.temple).map(article));
 
 const objetDe = (h: Pick<Heros, 'c'>, uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid) : undefined);
 
@@ -35,18 +78,13 @@ function sets(h: Pick<Heros, 'c'>) {
   return { melee: tous.find((l) => l !== tir), tir };
 }
 
-/** Ce que le héros tient : main principale, main secondaire (set de mêlée), armure portée et ses PA au corps. */
-export function equipement(h: Heros): { main?: string; secondaire?: string; armure?: string; pa: number } {
-  const lo = sets(h).melee;
-  return { main: objetDe(h, lo?.main)?.label, secondaire: objetDe(h, lo?.secondaire)?.label, armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
-}
-
 /** Une pièce portée, décrite : son nom, son article au catalogue (`id`), son Encombrement, et ce que le catalogue ou
  *  la pièce en disent (Dégâts, mains, allonge, portée, qualités) ; pour une arme de tir, les `munitions` qui restent.
  *  Les PA d'une armure se lisent par zone au héros. */
 export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[]; munitions?: { label: string; nombre: number } }
-/** La panoplie du héros : ses deux mains (set de mêlée), son arme à distance (set de tir) et son armure portée. */
-export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; tir?: PieceDecrite; armure?: PieceDecrite } {
+/** L'équipement du héros : ses deux mains (set de mêlée), son arme à distance (set de tir) et son armure portée, nommée
+ *  par sa panoplie (`panoplieDe`) quand elle en est une. */
+export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; tir?: PieceDecrite; armure?: PieceDecrite & { panoplie?: Panoplie['id'] } } {
   const { melee, tir } = sets(h);
   const arme = (uid?: string): PieceDecrite | undefined => {
     const it = objetDe(h, uid);
@@ -59,10 +97,13 @@ export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDec
       ...(munition ? { munitions: { label: articleDuCatalogue(munition).label, nombre: reste.reduce((n, i) => n + (i.qty ?? 1), 0) } } : {}),
     };
   };
-  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
+  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped), revetue = panoplieDe(h);
   return {
     main: arme(melee?.main), secondaire: arme(melee?.secondaire), tir: arme(tir?.main),
-    ...(portees.length ? { armure: { label: portees.map((i) => i.label).join(', '), enc: portees.reduce((n, i) => n + Number(i.enc ?? 0), 0), qualites: qualitesDites(portees.flatMap((i) => i.qualities ?? [])) } } : {}),
+    ...(portees.length ? { armure: {
+      label: revetue?.label ?? portees.map((i) => i.label).join(', '), enc: portees.reduce((n, i) => n + Number(i.enc ?? 0), 0),
+      qualites: sansDoublon(qualitesDites(portees.flatMap((i) => i.qualities ?? []))), ...(revetue ? { panoplie: revetue.id } : {}),
+    } } : {}),
   };
 }
 
@@ -73,7 +114,7 @@ const POIDS_DE_MATIERE: Record<string, PoidsDArmure> = { 'cuir-souple': 'legere'
 export function allure(h: Pick<Heros, 'c'>): Allure {
   const lo = sets(h), main = objetDe(h, lo.melee?.main), secondaire = objetDe(h, lo.melee?.secondaire), tir = objetDe(h, lo.tir?.main);
   const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
-  const poids = [...ARMURES_DE_FORGE].reverse().find((p) => portees.some((i) => POIDS_DE_MATIERE[i.subType ?? ''] === p));
+  const poids = (['lourde', 'moyenne', 'legere'] as const).find((p) => portees.some((i) => POIDS_DE_MATIERE[i.subType ?? ''] === p));
   const couvre = (zone: 'bras' | 'jambe') => portees.some((i) => i.locs?.some((l) => l.startsWith(zone)));
   return {
     ...(main?.shape ? { main: { forme: main.shape.id, mains: main.hands ?? 1 } } : {}), ...(secondaire?.shape ? { secondaire: secondaire.shape.id } : {}),
@@ -92,23 +133,24 @@ export function payer(e: Etat, h: Heros | undefined, prix: number): string | nul
 /** Le héros sait-il se battre à deux armes (Talent Maniement de deux armes) ? Sinon, la main secondaire ne tient qu'un
  *  bouclier ou ce qu'il portait déjà. */
 export const manieDeuxArmes = (h: Heros): boolean => (h.c.talents ?? []).some((t) => t.talentId === 'maniement-de-deux-armes');
-const estUnBouclier = (armeId: string) => /^bouclier/.test(armeId);
+const estUnBouclier = (armeId: string) => !!articleDuCatalogue(armeId).bouclier;
 
 /** Achète l'arme `armeId` au héros et la lui fait tenir : une arme à distance au set de tir, les autres au set de
  *  mêlée, qu'il garde en main hors du combat ; l'objet qu'elle remplace est laissé au forgeron. */
 export function acheterUneArme(e: Etat, id: string, armeId: string): string | null {
   const h = heros(e, id);
-  if (!armesEnVente(e).some((a) => a.id === armeId)) return 'La forge ne la vend pas encore.';
-  if (h && MAIN_SECONDAIRE.has(armeId) && !estUnBouclier(armeId) && !manieDeuxArmes(h)) return 'Une arme en main secondaire demande le Talent Maniement de deux armes.';
-  const refus = payer(e, h, prixDe(armeId));
-  if (refus || !h) return refus;
+  if (!h) return 'Héros introuvable.';
+  if (!armesEnVente(e, h).some((a) => a.id === armeId)) return 'La forge ne la lui vend pas.';
   const tenue = article(armeId).tenue;
-  const slot = tenue === 'secondaire' ? 'secondaire' : 'main';
+  if (tenue === 'secondaire' && !estUnBouclier(armeId) && !manieDeuxArmes(h)) return 'Une arme en main secondaire demande le Talent Maniement de deux armes.';
+  const refus = payer(e, h, prixDe(armeId));
+  if (refus) return refus;
   const { melee, tir } = sets(h);
   const lo = tenue === 'tir' ? tir : melee;
-  const ancien = lo?.[slot];
   const munition = MUNITIONS[armeId];
   const neufs = doter(munition && !h.c.items?.some((i) => i.trappingId === munition) ? [armeId, munition] : [armeId], `forge${e.graine++}`);
+  const slot = tenue === 'secondaire' || (tenue === 'tir' && secondeArmeDeTir(h, lo?.main, neufs[0])) ? 'secondaire' : 'main';
+  const ancien = lo?.[slot];
   const avant = h.c;
   h.c = { ...h.c, items: [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs] };
   // Hors du combat il garde en main son set de mêlée ; sans arme de mêlée, son set de tir.
@@ -123,13 +165,20 @@ export function acheterUneArme(e: Etat, id: string, armeId: string): string | nu
   return ligne || 'Le forgeron ne peut pas lui mettre cette arme en main.';
 }
 
+/** L'arme de tir `neuve` va-t-elle en main secondaire du set de tir, à côté de celle que tient sa main principale
+ *  (`tenue`) ? Seulement pour qui manie deux armes, les deux tenables d'une main (`tenableEnMainSecondaire`). LDB 14 l.138 */
+function secondeArmeDeTir(h: Heros, tenue: string | undefined, neuve: ItemInstance): boolean {
+  const principale = objetDe(h, tenue);
+  return !!principale && manieDeuxArmes(h) && tenableEnMainSecondaire(principale) && tenableEnMainSecondaire(neuve);
+}
+
 /** Une arme à une main libère la main secondaire : la dague ou le bouclier resté au sac y revient. */
 function reprendreLaMainSecondaire(e: Etat, h: Heros, loadout: string, armeId: string): void {
-  if (MAIN_SECONDAIRE.has(armeId) || articleDuCatalogue(armeId).mains === 2) return;
+  if (article(armeId).tenue === 'secondaire' || articleDuCatalogue(armeId).mains === 2) return;
   const lo = (h.c.loadouts ?? []).find((l) => l.id === loadout);
   if (!lo || lo.secondaire) return;
   const tenus = new Set((h.c.loadouts ?? []).flatMap((l) => [l.main, l.secondaire]));
-  const libre = (h.c.items ?? []).find((i) => i.trappingId && MAIN_SECONDAIRE.has(i.trappingId) && !tenus.has(i.uid));
+  const libre = (h.c.items ?? []).find((i) => i.trappingId && estUneArme(i) && article(i.trappingId).tenue === 'secondaire' && !tenus.has(i.uid));
   if (libre) auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, loadout, 'secondaire', libre.uid] }]);
 }
 
@@ -184,35 +233,38 @@ export function prendreSesArmes(e: Etat, h: Heros): void {
   if (gestes.length) auNoyau(e, h, gestes);
 }
 
-/** Achète l'armure `poids` des règles rapides au héros et la lui fait porter ; ses anciennes pièces sont reprises. */
-export function acheterUneArmure(e: Etat, id: string, poids: PoidsDArmure): string | null {
+/** Achète la panoplie `panoplieId` au héros : toute son armure est laissée au forgeron, sans reprise, et le noyau lui
+ *  fait revêtir les pièces de la panoplie (`tenirLesObjets`). */
+export function acheterUneArmure(e: Etat, id: string, panoplieId: string): string | null {
   const h = heros(e, id);
-  if (!armuresEnVente(e).some((a) => a.poids === poids)) return 'La forge ne la vend pas encore.';
-  const dr = h ? drPerdusSousLArmure(h.c, poids) : 0;
-  if (dr) return `${ARMURES_RAPIDES[poids].label} : −${dr} DR à ses Tests d’Incantation.`; // LDB 46 l.150-152
-  const refus = payer(e, h, prixDArmure(poids));
+  const offre = armuresEnVente(e).find((a) => a.id === panoplieId);
+  if (!offre) return 'La forge ne la vend pas encore.';
+  if (h && panoplieDe(h)?.id === panoplieId) return 'Il la porte déjà.';
+  const pieces = PANOPLIES.find((p) => p.id === panoplieId)!.pieces;
+  const dr = h ? drPerdusSousLesPieces(h.c, doter(pieces, 'essai')) : 0;
+  if (dr) return `${offre.label} : −${dr} DR à ses Tests d’Incantation.`; // LDB 46 l.150-152
+  const refus = payer(e, h, offre.prix);
   if (refus || !h) return refus;
-  const neuve = armureRapide(poids, `forge${e.graine++}-armure`);
-  h.c.items = [...(h.c.items ?? []).filter((i) => i.kind !== 'armor'), neuve];
-  auNoyau(e, h, [{ verbe: 'equiperLObjet', args: [neuve.uid] }]);
+  h.c = { ...h.c, items: (h.c.items ?? []).filter((i) => i.kind !== 'armor') };
+  tenirLesObjets(e, h, doter(pieces, `forge${e.graine++}`));
   return null;
 }
 
+/** Achète au héros la potion ou le remède `objetId` de l'hospice. */
 export function acheterUneProvision(e: Etat, id: string, objetId: string): string | null {
   const h = heros(e, id);
-  if (!provisionsEnVente(e).some((a) => a.id === objetId)) return 'Le relais n’en vend pas encore.';
+  if (!provisionsEnVente(e).some((a) => a.id === objetId)) return 'L’hospice n’en vend pas encore.';
   const refus = payer(e, h, prixDe(objetId));
   if (refus || !h) return refus;
-  h.c.items = [...(h.c.items ?? []), ...doter([objetId], `relais${e.graine++}`)];
+  h.c.items = [...(h.c.items ?? []), ...doter([objetId], `hospice${e.graine++}`)];
   return null;
 }
 
-/** Les provisions qu'un héros porte, regroupées : une entrée par objet du catalogue, avec un uid à utiliser. */
+/** Les potions et remèdes qu'un héros porte, regroupés : une entrée par objet du catalogue, avec un uid à utiliser. */
 export function provisionsPortees(h: Heros): { id: string; label: string; nombre: number; uid: string; refus: string | null }[] {
-  const ids = new Set(PROVISIONS.flat());
   const out = new Map<string, { id: string; label: string; nombre: number; uid: string; refus: string | null }>();
   for (const i of h.c.items ?? []) {
-    if (!i.trappingId || !ids.has(i.trappingId)) continue;
+    if (!i.trappingId || !REMEDES.has(i.trappingId)) continue;
     const prev = out.get(i.trappingId);
     if (prev) prev.nombre += i.qty ?? 1;
     else out.set(i.trappingId, { id: i.trappingId, label: i.label, nombre: i.qty ?? 1, uid: i.uid, refus: refusDUsage(h.c, i.uid) });

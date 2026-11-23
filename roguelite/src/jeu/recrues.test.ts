@@ -116,12 +116,14 @@ describe('forge : l’armure qui gêne l’Incantation', () => {
     return { e, h };
   }
 
-  it('un Alchimiste porte le métal, un Pyromancien se le voit refuser avec ses DR perdus', () => {
+  it('l’armure se refuse sur la panoplie entière : l’Alchimiste porte les mailles, le Chamane le cuir', () => {
     const alchimiste = mage('alchimiste');
     expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'moyenne')).toBeNull();
-    const pyromancien = mage('pyromancien');
-    const or = pyromancien.e.or;
-    expect(acheterUneArmure(pyromancien.e, pyromancien.h.c.id, 'moyenne')).toMatch(/−2 DR/);
-    expect(pyromancien.e.or).toBe(or);
+    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'legere')).toMatch(/^Armure de cuir : −1 DR/);
+    const chamane = mage('chamane');
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'legere')).toBeNull();
+    const or = chamane.e.or;
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'moyenne')).toMatch(/^Armure de mailles : −2 DR/);
+    expect(chamane.e.or).toBe(or);
   });
 });

@@ -6,7 +6,7 @@
  * lieu ; un carton (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
  */
 import * as J from '../jeu';
-import { ficheDuSort, nomDeCreature, partiesDuTest } from '../noyau';
+import { ficheDuSort, nomDeCreature, partiesDuTest, type Epreuve } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
@@ -119,25 +119,49 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
   }).join('')}</div>`;
 }
 
-/** La salle à choix ouverte, en carton : son annonce, chaque action et son Test, une plaque par action ; `choix` :
- *  l'action à jet qui attend son héros au socle. */
+/** Une pièce d'épreuve : sa marque (sceau, portrait, médaillon), sa rubrique et son corps ; avec un `geste`, un bouton. */
+const pieceDEpreuve = (classe: string, marque: string, rub: string, corps: string, geste = '') =>
+  `<${geste ? `button type="button" ${geste}` : 'article'} class="piece-epreuve ${classe}">${marque}<span class="dit"><span class="rub">${rub}</span>${corps}</span></${geste ? 'button' : 'article'}>`;
+
+/** Les Blessures que coûte l'échec d'une épreuve : celles que sa branche d'échec inflige. */
+function blessuresDeLEchec(ep: Epreuve): number {
+  const f = ep.flux.echec;
+  return f?.kind === 'effet' && f.effet.type === 'ops' ? f.effet.ops.reduce((n, o) => n + (o.op === 'wounds' && typeof o.amount === 'number' ? o.amount : 0), 0) : 0;
+}
+
+const PICTO_D_ACTION: Record<J.ActionDeSalle, string> = { fouiller: 'oeil', desarmer: 'systeme', passer: 'route' };
+
+/** La salle à choix ouverte, en carton : son annonce, puis une pièce par action, qui est son geste — son Test
+ *  (Compétence, Difficulté), ce que rapporte sa réussite et ce que coûte son échec, combien du groupe savent la
+ *  tenter ; `choix` : l'action à jet qui attend son héros au socle. */
 function salleAChoixEnCarton(e: J.Etat, choix: J.IdActionAJet | null): string {
   const x = e.expedition!;
   const cache = J.EPREUVES.tresor;
-  const ids = Object.keys(cache.actions) as J.IdActionAJet[];
-  const test = (id: J.IdActionAJet) => {
-    const parties = cache.actions[id].epreuves.map((ep) => partiesDuTest(ep.flux));
-    return `Test de ${parties.map((p) => p.competence).join(' ou de ')} ${parties[0].difficulte}`;
+  const groupe = J.herosDuGroupe(e);
+  const titre = (id: J.ActionDeSalle, libelle: string) => `<span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[id], 18, 1.8)}${esc(libelle)}</span>`;
+  const action = (id: J.IdActionAJet) => {
+    const a = cache.actions[id];
+    const parties = a.epreuves.map((ep) => partiesDuTest(ep.flux));
+    const savent = groupe.filter((h) => !J.refusDAction(h, id)).length;
+    const cout = blessuresDeLEchec(a.epreuves[0]);
+    return pieceDEpreuve(`action${choix === id ? ' choisi' : ''}`, '', `Test de ${esc(parties.map((p) => p.competence).join(' ou '))}`,
+      `${titre(id, a.libelle)}<span class="difficulte">${esc(parties[0].difficulte)}</span>
+      <span class="enjeu"><span class="gain">${picto('pieces', 15, 1.8)}Bourse cachée</span>${cout ? `<span class="risque">Raté −${cout} Blessures</span>` : ''}</span>
+      <span class="qui-peut${savent ? '' : ' personne'}">${savent === groupe.length ? 'Tous savent le tenter' : savent ? `${savent} sur ${groupe.length} sait le tenter`.replace(/^([2-9].*) sait/, '$1 savent') : 'Personne ne sait le tenter'}</span>`,
+      `data-a="action" data-k="${id}"${savent ? '' : ' disabled'}`);
   };
+  const passer = pieceDEpreuve('action passer', '', 'Sans Test',
+    `${titre('passer', cache.passer.libelle)}<span class="enjeu"><span>${esc(cache.passer.issue.replace(/^./, (c) => c.toUpperCase()))}</span></span>`, 'data-a="action" data-k="passer"');
   return carton({
     ruban: NOM_DE_SALLE.tresor, vignette: 'tresor', titre: cache.titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
-    texte: `<div class="recit"><p>${esc(cache.annonce)}</p>${ids.map((id) => `<p>${esc(`${cache.actions[id].libelle} : ${test(id)}.`)}</p>`).join('')}<p>${esc(`${cache.passer.libelle} : ${cache.passer.issue}.`)}</p></div>`,
-    gestes: ids.map((id) => plaque(cache.actions[id].libelle, `data-a="action" data-k="${id}"`, { armee: choix === id })).join('') + plaque(cache.passer.libelle, 'data-a="action" data-k="passer"'),
+    texte: `<div class="recit epreuve choix"><p>${esc(cache.annonce)}</p><div class="pieces-epreuve">${(Object.keys(cache.actions) as J.IdActionAJet[]).map(action).join('')}${passer}</div></div>`,
+    gestes: glose(choix ? 'Un second clic sur l’action y renonce.' : 'Choisissez une action.'),
   });
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une
- *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`), le socle demandant qui tente l'action `choix`. */
+ *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; tant qu'aucune action n'est prise, le socle
+ *  ouvre les fiches ; puis il demande qui tente l'action `choix`, chaque carte fermée disant pourquoi elle l'est. */
 export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choix: J.IdActionAJet | null): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
@@ -146,14 +170,14 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choi
   const valides = groupe.filter(J.valide).length;
   const aChoisir = !recit && J.salleAChoisir(e);
   const carte = aChoisir ? salleAChoixEnCarton(e, choix) : recit;
-  const socle: Socle = !aChoisir ? { heros: groupe, geste: 'heros', choisi: () => false }
-    : { heros: groupe, geste: 'tenter', choisi: () => false, refus: (h) => (choix ? J.refusDAction(h, choix) : 'Choisissez d’abord une action.'), ...(choix ? { consigne: J.EPREUVES.tresor.actions[choix].question } : {}) };
+  const socle: Socle = !aChoisir || !choix ? { heros: groupe, geste: 'heros', choisi: () => false }
+    : { heros: groupe, geste: 'tenter', choisi: () => false, refus: (h) => J.refusDAction(h, choix), consigne: J.EPREUVES.tresor.actions[choix].question };
   const annonce = salle.type === 'camp' ? 'Un abri se devine entre les arbres. Le groupe pourra y passer la nuit.'
     : salle.type === 'tresor' ? J.EPREUVES.tresor.annonce
     : `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`;
   const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' ? 'Approcher' : 'Engager le combat';
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
-  const scene = (!carte && fiche) || ecran({
+  const scene = (!recit && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
     cadres: carte ? titre + carte : `${titre}
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
@@ -174,14 +198,13 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choi
 function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
   const qui = (id: string) => heros.find((h) => h.c.id === id)!;
   const dr = `${x.dr >= 0 ? '+' : '−'}${Math.abs(x.dr)}`;
-  const piece = (classe: string, marque: string, rub: string, corps: string) => `<article class="piece-epreuve ${classe}">${marque}<div class="dit"><span class="rub">${rub}</span>${corps}</div></article>`;
-  let pieces = piece(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
+  let pieces = pieceDEpreuve(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
     `<span class="nom-propre moyen gothique">${esc(qui(x.testeur).c.label)}</span><span class="issue"><span class="etiquette rectangle cire">${x.reussite ? 'Réussi' : 'Raté'}</span>${x.difficulte ? `<span class="difficulte">${esc(x.difficulte)}</span>` : ''}</span>`);
   for (const v of x.victimes) {
     const h = qui(v.id);
-    pieces += piece('touche', portrait(busteDuHeros(h), 'heros', 'moyen'), 'Touché·e', `<span class="nom-propre moyen gothique">${esc(h.c.label)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
+    pieces += pieceDEpreuve('touche', portrait(busteDuHeros(h), 'heros', 'moyen'), 'Touché·e', `<span class="nom-propre moyen gothique">${esc(h.c.label)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
   }
-  if (x.or) pieces += piece('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
+  if (x.or) pieces += pieceDEpreuve('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
   return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p></div>`;
 }
 

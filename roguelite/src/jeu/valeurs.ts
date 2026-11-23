@@ -8,6 +8,9 @@ import {
   type Combatant,
   type Epreuve,
   type Identite,
+  munitionsDesArmes,
+  DISPONIBILITES,
+  type Disponibilite,
   type PoidsDArmure,
   type FluxDEpreuve,
 } from '../noyau';
@@ -24,16 +27,16 @@ export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.appo
 const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
 
 export const BATIMENTS: readonly Batiment[] = [
-  { id: 'relais', nom: 'Auberge relais', role: 'Recrues et provisions', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('fiole', 'potions de guérison')] },
-    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('fiole', 'potions de vitalité')] },
+  { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
+    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2')] },
+    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3')] },
     { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4')] },
   ] },
-  { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins et chirurgie', paliers: [
+  { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
     { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : seuls les héros restés au hameau se reposent')] },
-    { cout: 80, trophees: 0, apports: [apport('soin', 'Soins à 15 CO', '15 CO'), apport('lit', 'les sœurs pansent les plaies à l’hospice')] },
-    { cout: 220, trophees: 1, apports: [apport('soin', 'Soins à 5 CO', '5 CO'), apport('soin', 'un chirurgien opère'), apport('fiole', 'Larmes de Shallya')] },
-    { cout: 450, trophees: 2, apports: [apport('soin', 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus', '+1')] },
+    { cout: 80, trophees: 0, apports: [apport('soin', 'Soins à 15 CO', '15 CO'), apport('lit', 'les sœurs pansent les plaies à l’hospice'), apport('fiole', 'potions et remèdes communs et limités')] },
+    { cout: 220, trophees: 1, apports: [apport('soin', 'Soins à 5 CO', '5 CO'), apport('soin', 'un chirurgien opère'), apport('fiole', 'remèdes rares')] },
+    { cout: 450, trophees: 2, apports: [apport('soin', 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus', '+1'), apport('fiole', 'remèdes exotiques')] },
   ] },
   { id: 'salle', nom: 'Salle d’armes', role: 'Carrières', paliers: [
     { cout: 0, trophees: 0, apports: [apport('epee', 'Fermée : les PX attendent')] },
@@ -42,9 +45,10 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 500, trophees: 2, apports: [apport('epee', 'Jusqu’au niveau 4 de carrière', 'niveau 4')] },
   ] },
   { id: 'forge', nom: 'Forge', role: 'Armes et armures', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('hache', 'Armes communes, armure légère')] },
-    { cout: 110, trophees: 0, apports: [apport('hache', 'Lames et arcs de guerre, armure moyenne')] },
-    { cout: 280, trophees: 1, apports: [apport('hache', 'Armes lourdes, arc long, armure lourde')] },
+    { cout: 0, trophees: 0, apports: [apport('hache', 'Armes communes, armure de cuir')] },
+    { cout: 110, trophees: 0, apports: [apport('hache', 'Armes limitées : épée bâtarde, arc long ; armure de mailles')] },
+    { cout: 280, trophees: 1, apports: [apport('hache', 'Armes rares : pistolet, armes d’ingénierie ; harnois de plates')] },
+    { cout: 520, trophees: 2, apports: [apport('hache', 'Armes exotiques : arc elfique, long fusil d’Hochland')] },
   ] },
   { id: 'cartographe', nom: 'Cartographe', role: 'Destinations', paliers: [
     { cout: 0, trophees: 0, apports: [apport('carte', 'La lisière du Reikwald')] },
@@ -200,16 +204,48 @@ export const GUERISON_DE_L_HOSPICE = 45;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 
-/** Ce que vend la forge, par palier : armes du catalogue (`trappings.json`) et armures des règles rapides. */
-export const ARMES_DE_FORGE: readonly string[][] = [
-  ['dague', 'arme-simple', 'lance', 'baton-de-combat', 'bouclier', 'arc-court'],
-  ['rapiere', 'sabre', 'epee-batarde', 'fleau', 'hallebarde', 'arc', 'arbalete'],
-  ['grande-hache', 'marteau-de-guerre', 'zweihander', 'bouclier-grand', 'arc-long'],
+/** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
+export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);
+/** Une panoplie de la forge : les pièces d'armure du catalogue (`trappings.json`) qu'elle revêt d'un seul achat, et
+ *  qui occupent ensemble l'emplacement « armure ». Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+export interface Panoplie { id: PoidsDArmure; label: string; pieces: readonly string[] }
+export const PANOPLIES: readonly Panoplie[] = [
+  { id: 'legere', label: 'Armure de cuir', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir'] },
+  { id: 'moyenne', label: 'Armure de mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles'] },
+  { id: 'lourde', label: 'Harnois de plates', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume', 'brassards', 'plastron', 'jambieres-d-acier'] },
 ];
-export const ARMURES_DE_FORGE: readonly PoidsDArmure[] = ['legere', 'moyenne', 'lourde'];
-/** Les objets tenus dans la main secondaire ; les autres armes vont dans la main principale, ou au set de tir. */
-export const MAIN_SECONDAIRE = new Set(['dague', 'main-gauche', 'brise-epee', 'bouclier', 'bouclier-grand']);
+/** Le Groupe des potions et remèdes du catalogue, que l'hospice reconnaît au sac d'un héros. */
+export const GROUPE_DES_REMEDES = 'herbes-et-potions';
+/** Ce que l'hospice vend du Groupe des remèdes : ceux dont le combat et la route jouent l'effet, un au moins par
+ *  Disponibilité. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+export const REMEDES_DE_L_HOSPICE: readonly string[] = ['cataplasme-de-guerison', 'soude-commune', 'potion-de-guerison', 'potion-de-vitalite', 'racine-des-tombes', 'faxtoryll'];
+/** Les Groupes d'armes que la forge vend. */
+export type GroupeDeLaForge = 'base' | 'escrime' | 'parade' | 'deux-mains' | 'armes-d-hast' | 'fleau' | 'arc' | 'arbalete' | 'fronde' | 'poudre-noire' | 'ingenierie' | 'lancer' | 'entraves';
+/** Les armes que la forge vend, par Groupe : une sélection qui couvre chaque Disponibilité, sans armes d'ogre ni
+ *  lances de cavalerie. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+export const ARMES_DE_LA_FORGE: Readonly<Record<GroupeDeLaForge, readonly string[]>> = {
+  base: ['arme-simple', 'bouclier', 'pique-d-armes'],
+  escrime: ['rapiere'],
+  parade: ['main-gauche'],
+  'deux-mains': ['epee-batarde'],
+  'armes-d-hast': ['hallebarde'],
+  fleau: ['fleau'],
+  arc: ['arc', 'arc-long', 'arc-elfique'],
+  arbalete: ['arbalete'],
+  fronde: ['fronde'],
+  'poudre-noire': ['arquebuse', 'pistolet', 'long-fusil-d-hochland'],
+  ingenierie: ['pistolet-a-repetition', 'arquebus-a-repetition'],
+  lancer: ['hache-de-lancer'],
+  entraves: ['fouet'],
+};
+/** Les Groupes que la forge propose à tout héros, sans Compétence qui les couvre. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+export const GROUPES_SANS_COMPETENCE: ReadonlySet<GroupeDeLaForge> = new Set<GroupeDeLaForge>(['arbalete']);
+/** Les armes hors Boucliers tenues dans la main secondaire : celles de ces Groupes à une main, et ces armes-ci ; les
+ *  autres vont dans la main principale, ou au set de tir. */
+export const MAIN_SECONDAIRE = { groupes: new Set(['parade']), armes: new Set(['dague']) };
+/** La munition qu'une arme à distance reçoit quand sa fiche n'en nomme aucune, par famille (`ammoFamily`). */
+export const MUNITION_DE_FAMILLE: Readonly<Record<string, string>> = { arc: 'fleche', arbalete: 'carreau', fronde: 'projectile-de-pierre', 'poudre-ingenierie': 'balle-et-poudre' };
+/** La munition de chaque arme à distance du catalogue, `null` pour celle qui s'utilise seule (`munitionsDesArmes`). */
+export const MUNITION_DES_ARMES: Readonly<Record<string, string | null>> = munitionsDesArmes(MUNITION_DE_FAMILLE);
 /** Les munitions qu'une arme à projectiles réclame. */
-export const MUNITIONS: Record<string, string> = { fronde: 'projectile-de-pierre', 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau', pistolet: 'balle-et-poudre' };
-/** Les provisions du relais, par palier. */
-export const PROVISIONS: readonly string[][] = [['potion-de-guerison'], ['potion-de-vitalite']];
+export const MUNITIONS: Record<string, string> = Object.fromEntries(Object.entries(MUNITION_DES_ARMES).filter((e): e is [string, string] => e[1] !== null));

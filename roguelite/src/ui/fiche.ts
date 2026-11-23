@@ -8,10 +8,10 @@
  */
 import * as J from '../jeu';
 import { carac, ficheDeCompetence, ficheDuSort, libelleDeCarac, prixDuSort, protection, talentsAcquis, texteDeCarac, texteDuTalent, type CharKey } from '../noyau';
-import { picto, plaque, portrait } from '../kit';
+import { picto, plaque } from '../kit';
 import { CADRES, ecran } from './ecran';
 import {
-  achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats,
+  achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, cadreA, carriereDe, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats, portraitDeHeros,
   etiquettesDeSequelles, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets, sejourDe,
 } from './pieces';
 
@@ -115,8 +115,8 @@ function identite(ctx: Contexte, h: J.Heros, o: Offres, progresse: boolean) {
   const renvoi = e.expedition ? '' : `<div class="gestes-ident">${ctx.congediement === c.id
     ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
     : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
-  return `<div class="tete">${portrait(busteDuHeros(h), 'heros', 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
-    <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(J.nomDeCarriere(h.carriere))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
+  return `<div class="tete">${portraitDeHeros(h, 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
+    <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(carriereDe(h))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
     ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.retrait ? sejourDe(h) : ''}${etats(c)}${etiquettesDeSequelles(c)}${progression}${renvoi}`;
 }
 

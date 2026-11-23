@@ -14,16 +14,20 @@ import { lignesDuJournal, ouvrirEnAuto } from './partie';
 export type FluxDEpreuve = Extract<FlowDeScene, { kind: 'test' }>;
 /** `label` : le nom de l'action jouée, que le journal du noyau affiche. */
 export interface Epreuve { label: string; flux: FluxDEpreuve }
-/** `testeur` : l'id du héros qui a jeté ; `dr` : ses Degrés de Réussite. */
-export interface IssueDEpreuve { groupe: Combatant[]; reussite: boolean; testeur: string; dr: number; journal: string[] }
+/** Le Test résolu : `testeur`, l'id du héros qui a jeté ; `dr`, ses Degrés de Réussite. Sinon `refus` : le refus du
+ *  noyau, ou le groupe hors d'action avant le jet (`partyWiped`, `src/noyau/partyWipe.ts`). `groupe` : tel que le
+ *  noyau le laisse, dans les deux cas. */
+export type IssueDEpreuve = { groupe: Combatant[]; journal: string[] }
+  & ({ reussite: boolean; testeur: string; dr: number } | { refus: string });
 
 const ENTITE = 'epreuve';
 
 /** Joue l'`epreuve` sur le `groupe` à la graine `graine`. Rend le groupe tel que le noyau le laisse, l'issue du Test
- *  (`EVT.TEST_RESOLVED`) et les lignes du journal. */
+ *  (`EVT.TEST_RESOLVED`) ou ce qui l'a empêché, et les lignes du journal. */
 export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, graine: number): IssueDEpreuve {
   const journal: string[] = [];
   let resolu: TestResolu | null = null;
+  let refus: string | undefined;
   const { partie, envoyer, pomper } = ouvrirEnAuto(
     graine,
     () => {
@@ -34,17 +38,20 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
     (r) => {
       journal.push(...lignesDuJournal(r));
       for (const e of r.evenements) if (e.type === 'emis' && e.evt === EVT.TEST_RESOLVED) resolu = e.payload as TestResolu;
-      if (r.refus) journal.push(r.refus);
+      if (r.refus) { journal.push(r.refus); refus = r.refus; }
     },
   );
   pomper();
   envoyer('jouerAction', [ENTITE, ENTITE]);
   pomper();
-  const rendu = partie.etat().party.map((c) => structuredClone(c));
+  const { party, partyWiped } = partie.etat();
+  const rendu = party.map((c) => structuredClone(c));
   partie.fermer();
   const issue = resolu as TestResolu | null;
-  if (!issue) throw new Error(`Épreuve « ${epreuve.label} » sans Test résolu : ${journal.join(' ')}`);
-  return { groupe: rendu, reussite: issue.success, testeur: issue.actorId, dr: issue.sl, journal };
+  if (issue) return { groupe: rendu, reussite: issue.success, testeur: issue.actorId, dr: issue.sl, journal };
+  if (partyWiped) refus = `${rendu.map((c) => c.label).join(', ')} : hors d'action, le Test n'est pas joué.`;
+  if (refus) return { groupe: rendu, refus, journal };
+  throw new Error(`Épreuve « ${epreuve.label} » sans Test résolu ni refus : ${journal.join(' ')}`);
 }
 
 /** Le Test d'une épreuve en clair : la Compétence (`skills.json`) et la Difficulté (`DIFFICULTY_LABELS`). */

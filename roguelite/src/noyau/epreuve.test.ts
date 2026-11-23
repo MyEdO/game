@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve } from './index';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve, type IssueDEpreuve } from './index';
 import { EPREUVES, PROFILS } from '../jeu';
+import { addCondition, COND, hasCondition } from '../../../src/engine/conditions';
 
 const { fouiller, desarmer } = EPREUVES.tresor.actions;
 const FOUILLE = fouiller.epreuves[0];
+const DESARMER = desarmer.epreuves[0];
 const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite);
 const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
 
@@ -15,9 +17,14 @@ function blessuresDuPiege(ep: Epreuve): number {
   if (op?.op !== 'wounds' || typeof op.amount !== 'number') throw new Error('op hors forme');
   return op.amount;
 }
+/** L'issue d'un Test résolu, ou l'échec du test. */
+function resolue(r: IssueDEpreuve) {
+  if (!('reussite' in r)) throw new Error(`Test non résolu : ${r.refus}`);
+  return r;
+}
 /** La première graine de 1 à 60 où `jouer` rend l'issue `reussite`. */
-function graineOu<T extends { reussite: boolean }>(reussite: boolean, jouer: (graine: number) => T): number {
-  for (let g = 1; g <= 60; g++) if (jouer(g).reussite === reussite) return g;
+function graineOu(reussite: boolean, jouer: (graine: number) => IssueDEpreuve): number {
+  for (let g = 1; g <= 60; g++) { const r = jouer(g); if ('reussite' in r && r.reussite === reussite) return g; }
   throw new Error(`aucune graine ${reussite ? 'réussie' : 'ratée'}`);
 }
 
@@ -35,7 +42,7 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
 
   it('un héros seul : il jette, et le piège ne frappe que lui, même à 2 Blessures', () => {
     const seul = () => { const c = groupe()[2]; c.wounds.current = 2; return [c]; };
-    const r = jouerLEpreuve(seul(), FOUILLE, graineOu(false, (g) => jouerLEpreuve(seul(), FOUILLE, g)));
+    const r = resolue(jouerLEpreuve(seul(), FOUILLE, graineOu(false, (g) => jouerLEpreuve(seul(), FOUILLE, g))));
     expect(r.testeur).toBe(seul()[0].id);
     expect(r.groupe).toHaveLength(1);
     expect(r.groupe[0].wounds.current).toBe(Math.max(0, 2 - blessuresDuPiege(FOUILLE)));
@@ -43,7 +50,7 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
 
   it('réussite : le héros revient tel qu’il est parti', () => {
     const seul = () => [groupe()[1]];
-    const r = jouerLEpreuve(seul(), FOUILLE, graineOu(true, (g) => jouerLEpreuve(seul(), FOUILLE, g)));
+    const r = resolue(jouerLEpreuve(seul(), FOUILLE, graineOu(true, (g) => jouerLEpreuve(seul(), FOUILLE, g))));
     expect(r.dr).toBeGreaterThanOrEqual(0);
     expect(r.groupe).toEqual(seul());
   });
@@ -60,5 +67,26 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
     expect(epreuveTentable(chasseur, desarmer.epreuves)?.flux.test.skill).toEqual({ id: 'piegeage' });
     expect(epreuveTentable(soldat, desarmer.epreuves)).toBeUndefined();
     expect(epreuveTentable(soldat, fouiller.epreuves)).toBe(FOUILLE);
+  });
+
+  it('un héros à États qui ouvrent leurs Tests (Hémorragique, Empoisonné, Brisé) tente l’épreuve : le Test est résolu', () => {
+    for (const [etat, n] of [[COND.hemorragique, 1], [COND.empoisonne, 2], [COND.brise, 2]] as const) {
+      const c = groupe()[1]; addCondition(c, etat, n);
+      for (const g of [1, 2, 3]) expect(jouerLEpreuve([c], DESARMER, g)).toMatchObject({ testeur: c.id, reussite: expect.any(Boolean) });
+    }
+  });
+
+  it('un héros hors d’action avant le jet : l’épreuve rend le refus et le groupe tel que le noyau le laisse', () => {
+    const inconscient = groupe()[1]; addCondition(inconscient, COND.inconscient);
+    const r = jouerLEpreuve([inconscient], DESARMER, 1);
+    expect(r).toMatchObject({ refus: `${inconscient.label} : hors d'action, le Test n'est pas joué.` });
+    expect(r.groupe).toEqual([inconscient]);
+    // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
+    const saigne = groupe()[1]; saigne.wounds.current = 13; addCondition(saigne, COND.brise, 6); addCondition(saigne, COND.hemorragique, 2);
+    for (const g of [1, 2, 3]) {
+      const issue = jouerLEpreuve([saigne], DESARMER, g);
+      expect(issue).toHaveProperty('refus');
+      expect(hasCondition(issue.groupe[0], COND.inconscient)).toBe(true);
+    }
   });
 });

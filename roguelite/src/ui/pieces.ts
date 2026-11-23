@@ -6,9 +6,9 @@
  * (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
  */
 import * as J from '../jeu';
-import { articleDuCatalogue, encombrement, libelleDEtat, sequelles, type Combatant, type Qualite } from '../noyau';
+import { articleDuCatalogue, encombrement, libelleDEtat, nomDeSort, sequelles, type Combatant, type Qualite } from '../noyau';
 import { armeDuLibelle, buste, gabaritDuHeros } from '../figures';
-import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
+import { cadre, jauge, medaillon, picto, PICTOS, plaque, portrait } from '../kit';
 
 export const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 /** La note du kit : une précision, une aide (`courante`), ou un coût, un refus (`avertissement`). */
@@ -21,9 +21,50 @@ export const apercuDe = (a: Apercu) => ` data-apercu="${esc(JSON.stringify(a))}"
 
 // ─── Le héros ───────────────────────────────────────────────────────────────────────────────────────────────
 
-export const gabaritDe = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => gabaritDuHeros(h.carriere, h.espece, J.allure(h));
+type Porteur = Pick<J.Heros, 'carriere' | 'espece' | 'c'>;
+/** Le gabarit d'un héros. Une arme de mêlée que sa spécialisation nomme hache (« Arme simple (Hache) ») en prend la
+ *  forme, que le catalogue ne lui donne pas. */
+export function gabaritDe(h: Porteur) {
+  const allure = J.allure(h);
+  const tenue = (h.c.loadouts ?? []).map((l) => h.c.items?.find((i) => i.uid === l.main)).find((i) => i?.kind === 'melee');
+  return gabaritDuHeros(h.carriere, h.espece, allure.main && /^hache$/i.test(tenue?.spec ?? '') ? { ...allure, main: { ...allure.main, forme: 'hache' } } : allure, J.dieuDe(h.c));
+}
 /** Le portrait d'un héros : le buste de sa figurine. */
-export const busteDuHeros = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => buste(gabaritDe(h), 'heros');
+export const busteDuHeros = (h: Porteur) => buste(gabaritDe(h), 'heros');
+
+/** Le signe d'une voie de lanceur, par spécialisation (un Collège, un dieu) : sa teinte et son emblème, tracé 24 × 24. */
+const SIGNES_DE_VOIE: Record<string, { teinte: string; trace: string }> = {
+  feu: { teinte: '#e8693a', trace: PICTOS.feu },
+  lumiere: { teinte: '#fff3c4', trace: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v3.5M12 18v3.5M2.5 12H6M18 12h3.5M5.3 5.3l2.5 2.5M16.2 16.2l2.5 2.5M5.3 18.7l2.5-2.5M16.2 7.8l2.5-2.5"/>' },
+  vie: { teinte: '#6cc487', trace: '<path d="M4.5 19.5C4.5 10 10 4.5 19.5 4.5c0 9.5-5.5 15-15 15z"/><path d="M4.5 19.5L14 10"/>' },
+  bete: { teinte: '#d0903e', trace: '<path d="M6.5 3.5c1.5 5.5 1.2 11-1.5 17M12.5 3.5c1.5 5.5 1.2 11-1.5 17M18.5 3.5c1.5 5.5 1.2 11-1.5 17"/>' },
+  metal: { teinte: '#ecc64e', trace: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="1.8"/>' },
+  mort: { teinte: '#a67fd6', trace: PICTOS.crane },
+  sigmar: { teinte: '#e6c36a', trace: '<circle cx="16.5" cy="7.5" r="3.6"/><path d="M13.4 9.2L3.5 14.5M14.8 10.6L9 20.5"/>' },
+  ulric: { teinte: '#d3dde4', trace: '<path d="M4.5 3.5l4 4.5h7l4-4.5-.6 8.5L12 20.5 5.1 12z"/><path d="M9.3 12.2l1.4.8M14.7 12.2l-1.4.8"/>' },
+  myrmidia: { teinte: '#8fb0e6', trace: '<path d="M12 2v20M10 5l2-3 2 3"/><path d="M6.5 8Q12 6.5 17.5 8v5c0 3.6-5.5 6-5.5 6s-5.5-2.4-5.5-6z"/>' },
+  shallya: { teinte: '#f6efdc', trace: PICTOS.coeur },
+};
+/** La voie de lanceur d'un héros, lisible d'un coup d'œil : son `nom` court (la spécialisation, entre parenthèses
+ *  dans le libellé du Talent : « Feu », « Ulric »), son `signe`, et son `apercu` (les sorts que le noyau en joue). */
+export function voieLisible(h: Porteur): { nom: string; signe: string; apercu: Apercu } | undefined {
+  const voie = J.voieDe(h.carriere, h.c);
+  if (!voie) return undefined;
+  const nom = voie.nom.replace(/^[^(]*\(|\)$/g, '');
+  const s = SIGNES_DE_VOIE[voie.spec];
+  const signe = s ? `<i class="signe-de-voie" style="--teinte:${s.teinte}" aria-label="${esc(nom)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${s.trace}</svg></i>` : '';
+  return { nom, signe, apercu: { nom: voie.nom, nature: voie.talent === 'magie-des-arcanes' ? 'Collège de magie' : 'Culte', ...(voie.sorts.length ? { texte: voie.sorts.map(nomDeSort).join(' · ') } : {}) } };
+}
+/** La carrière d'un héros et, pour un lanceur, son Collège ou son dieu : « Pyromancien · Feu », « Prêtre-guerrier · Ulric ». */
+export function carriereDe(h: Porteur): string {
+  const carriere = J.nomDeCarriere(h.carriere), v = voieLisible(h);
+  return v && !carriere.includes(v.nom) ? `${carriere} · ${v.nom}` : carriere;
+}
+/** Le portrait d'un héros, le signe de sa voie à son coin ; `nomme` : le nom de la voie à côté du signe. */
+export function portraitDeHeros(h: Porteur, taille: 'petit' | 'moyen' | 'grand' | 'affiche', etat = '', nomme = false): string {
+  const v = voieLisible(h);
+  return portrait(busteDuHeros(h), 'heros', taille, etat).replace(/<\/div>$/, `${v?.signe ? `<span class="voie-au-portrait">${v.signe}${nomme ? `<b>${esc(v.nom)}</b>` : ''}</span>` : ''}</div>`);
+}
 export const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
 export const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire">${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
 
@@ -33,19 +74,25 @@ export const sejourDe = (h: J.Heros) => {
   return `<span class="vie sejour-hospice"><span>Hospice</span><span class="chiffres">${reste} j</span></span>${jauge(1 - reste / Math.max(reste, h.retraitTotal ?? reste), { teinte: 'or', taille: 'forte' })}`;
 };
 
-/** La carte d'un héros : portrait, nom, rôle et carrière, vie, état ; son identité au survol. `geste` : ce qu'un
- *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste ;
+/** La carte d'un héros : portrait, nom, rôle, carrière et voie, vie, état ; son identité au survol. `geste` : ce qu'un
+ *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste, dit
+ *  sur la carte à la place de son état ;
  *  `progresse` : il peut acheter un avancement. Un héros à l'hospice garde sa place et ses couleurs : sa carte porte
  *  la marque du bâtiment sur son portrait, et son séjour (jours restants, jauge) à la place de sa vie. */
 export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { refus?: string | null; progresse?: boolean } = {}) {
   const c = h.c;
   const role = J.roleDe(h.carriere);
   const r = role && J.ROLES[role];
-  const identite: Apercu = { nom: c.label, nature: [J.nomDeCarriere(h.carriere), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '), texte: J.deviseDe(h.carriere), ...(o.refus ? { pied: o.refus } : {}) };
+  const voie = voieLisible(h);
+  const lePortrait = portraitDeHeros(h, 'grand', choisi ? 'choisi' : '', true);
+  const identite: Apercu = {
+    nom: c.label, nature: [carriereDe(h), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '),
+    texte: [J.deviseDe(h.carriere), voie && [`**${voie.apercu.nom}**`, voie.apercu.texte].filter(Boolean).join(' : ')].filter(Boolean).join('\n\n'), ...(o.refus ? { pied: o.refus } : {}),
+  };
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${h.retrait ? ' retrait' : ''}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
-    ${h.retrait ? `<span class="au-batiment">${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${medaillon('soin', 'petit')}</span>` : portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
+    ${h.retrait ? `<span class="au-batiment">${lePortrait}${medaillon('soin', 'petit')}</span>` : lePortrait}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${h.retrait ? sejourDe(h) : ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `<span class="revient">de retour dans ${h.retrait} jour${h.retrait > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
+    ${h.retrait ? sejourDe(h) : ligneDeVie(c)}<span class="ligne-etat${o.refus && !h.retrait ? ' refus' : ''}">${o.refus && !h.retrait ? esc(o.refus) : c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `<span class="revient">de retour dans ${h.retrait} jour${h.retrait > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
   </button>`;
 }
 
@@ -54,8 +101,8 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
 export function herosEnTete(h: J.Heros, taille: 'grand' | 'affiche' = 'grand', mesure = ligneDeVie(h.c)): string {
   const role = J.roleDe(h.carriere);
   const r = role && J.ROLES[role];
-  return `<div class="heros-en-tete${J.valide(h) ? '' : ' hors'}">${portrait(busteDuHeros(h), 'heros', taille)}<div class="qui"><span class="nom-propre moyen gothique">${esc(h.c.label)}</span>
-    <span class="sous-titre">${r ? `${picto(r.picto, 13, 1.8)}${esc(r.nom)} · ` : ''}${esc(J.nomDeCarriere(h.carriere))}</span>${mesure}</div></div>`;
+  return `<div class="heros-en-tete${J.valide(h) ? '' : ' hors'}">${portraitDeHeros(h, taille)}<div class="qui"><span class="nom-propre moyen gothique">${esc(h.c.label)}</span>
+    <span class="sous-titre">${r ? `${picto(r.picto, 13, 1.8)}${esc(r.nom)} · ` : ''}${esc(carriereDe(h))}</span>${mesure}</div></div>`;
 }
 
 /** La carte d'un héros en ligne, là où il est déjà choisi (ses sacs) : la même grammaire que la carte,

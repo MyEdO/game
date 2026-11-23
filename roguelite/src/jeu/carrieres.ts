@@ -1,7 +1,7 @@
 /**
  * Les carrières : avancements et voies des lanceurs, joués par le noyau.
  */
-import { talentDeCombat, progression, type Progression } from '../noyau';
+import { COMPETENCES_DU_COMBAT, coutDesAugmentations, planDuNiveau, talentDeCombat, progression, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
 
 import { voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -15,16 +15,25 @@ export const niveauMaximal = (e: Etat): number => (e.batiments.salle ? e.batimen
 /** Les Talents qui agissent par la donnée mais hors d'un combat automatique : vie sociale, voyage, fuite, soins. */
 const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieux', 'voyageur-aguerri', 'fuite', 'sprinter', 'pansement-de-fortune']);
 
-/** Les offres de la carrière du héros : la voie du lanceur réduite à sa spécialisation, et les seuls Talents qui
- *  agissent dans un combat automatique (`talentDeCombat`). */
-export function offresDeCarriere(h: Heros): Progression & { talentAcquis: boolean } {
+/** Les Compétences que le roguelite fait jouer, en combat et dans les salles : un id (`skills.json`), ou `id:spec`
+ *  pour la seule spécialisation qui joue. */
+const COMPETENCES_UTILES: ReadonlySet<string> = new Set([
+  ...COMPETENCES_DU_COMBAT, 'langue:magick',
+  'perception', 'piegeage', 'crochetage', 'guerison', 'charme', 'escalade', 'discretion', 'pistage', 'survie-en-exterieur',
+]);
+
+const estUtile = (ref: { id: string; spec?: string }): boolean => COMPETENCES_UTILES.has(ref.id) || COMPETENCES_UTILES.has(`${ref.id}:${ref.spec}`);
+
+/** Les offres de la carrière du héros : chaque Compétence marquée `utile` (`COMPETENCES_UTILES`), la voie du lanceur
+ *  réduite à sa spécialisation, et les seuls Talents qui agissent dans un combat automatique (`talentDeCombat`). */
+export function offresDeCarriere(h: Heros): Omit<Progression, 'competences'> & { competences: (OffreDeCompetence & { utile: boolean })[]; talentAcquis: boolean } {
   const p = progression(h.c);
   const voie = voieDe(h.carriere, h.c);
   const talents = p.talents.flatMap((t) => {
     if (voie && t.ref.id === voie.talent) return t.ref.spec && t.ref.spec !== voie.spec ? [] : [{ ...t, ref: { id: voie.talent, spec: voie.spec }, label: voie.nom, aSpecifier: false }];
     return t.aSpecifier || !talentDeCombat(t.ref.id) || TALENTS_HORS_DU_COMBAT.has(t.ref.id) ? [] : [t];
   });
-  return { ...p, talentAcquis: p.talents.some((t) => t.possede > 0), talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
+  return { ...p, competences: p.competences.map((k) => ({ ...k, utile: estUtile(k.ref) })), talentAcquis: p.talents.some((t) => t.possede > 0), talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
 }
 
 /** Le héros peut-il acheter un avancement maintenant (au hameau, salle d'armes ouverte, assez de PX pour la moins
@@ -59,3 +68,58 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
 
 /** `null` si le geste a pris (`pris`), sinon la ligne du noyau qui dit pourquoi. */
 const messageDuNoyau = (ligne: string, pris: () => boolean): string | null => (pris() ? null : ligne || 'Le geste n’a rien changé.');
+
+/** Ce qu'un pas achète au plus : cinq Augmentations. */
+const PAS = 5;
+
+export type CibleDuPas = { genre: 'carac'; id: string } | { genre: 'competence'; ref: { id: string; spec?: string } };
+/** Ce qu'une suite d'achats a pris : combien de fois, les PX débités, et le refus du noyau qui l'a arrêtée. */
+export interface Achete { fois: number; cout: number; refus: string | null }
+
+/** Achète `a` jusqu'à `fois` fois, une par une par `acheter`, et s'arrête au premier refus. */
+function repeter(e: Etat, h: Heros, a: Achat, fois: number): Achete {
+  const xp = h.c.xp ?? 0;
+  let n = 0;
+  let refus: string | null = null;
+  while (n < fois && !(refus = acheter(e, h.c.id, a))) n++;
+  return { fois: n, cout: xp - (h.c.xp ?? 0), refus };
+}
+
+/** Ce que coûte un pas de `cible` au héros, `null` si sa carrière ne l'offre pas (`coutDesAugmentations`). */
+export function prixDuPas(h: Heros, cible: CibleDuPas): number | null {
+  const p = progression(h.c);
+  if (cible.genre === 'carac') {
+    const k = p.caracs.find((x) => x.id === cible.id);
+    return k ? coutDesAugmentations(k.augmentations, PAS, 'caracteristique') : null;
+  }
+  const k = p.competences.find((x) => x.ref.id === cible.ref.id && (x.ref.spec ?? '') === (cible.ref.spec ?? ''));
+  return k ? coutDesAugmentations(k.augmentations, PAS, 'competence', k.remise) : null;
+}
+
+/** Un pas : jusqu'à cinq Augmentations de `cible`, achetées une par une ; s'arrête net quand le noyau refuse. */
+export function acheterUnPas(e: Etat, heroId: string, cible: CibleDuPas): Achete {
+  const h = heros(e, heroId);
+  return h ? repeter(e, h, cible, PAS) : { fois: 0, cout: 0, refus: 'Héros introuvable.' };
+}
+
+/** Le plan conseillé du niveau courant (`planDuNiveau`) : les Compétences utiles d'abord, un Talent de combat
+ *  (`offresDeCarriere`) avant les autres ; chaque étape et son coût, et le total. */
+export function planVersLeNiveau(h: Heros): { etapes: EtapeDuPlan[]; total: number } {
+  const p = progression(h.c);
+  const etapes = planDuNiveau({ ...p, talents: [...offresDeCarriere(h).talents, ...p.talents] }, estUtile);
+  return { etapes, total: etapes.reduce((s, x) => s + x.cout, 0) };
+}
+
+/** Suit le plan conseillé dans l'ordre tant que le noyau accepte : les étapes prises (la dernière peut l'être en
+ *  partie), les PX débités, et le refus qui l'a arrêté. */
+export function suivreLePlan(e: Etat, heroId: string): { achats: EtapeDuPlan[]; cout: number; refus: string | null } {
+  const h = heros(e, heroId);
+  if (!h) return { achats: [], cout: 0, refus: 'Héros introuvable.' };
+  const achats: EtapeDuPlan[] = [];
+  for (const etape of planVersLeNiveau(h).etapes) {
+    const r = repeter(e, h, etape, etape.fois);
+    if (r.fois) achats.push({ ...etape, fois: r.fois, cout: r.cout });
+    if (r.refus) return { achats, cout: achats.reduce((s, x) => s + x.cout, 0), refus: r.refus };
+  }
+  return { achats, cout: achats.reduce((s, x) => s + x.cout, 0), refus: null };
+}

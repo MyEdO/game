@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { addCondition, COND, hasCondition } from '../../../src/engine/conditions';
 import { agirDansLaSalle, avancer, EPREUVES, herosDuGroupe, nouvellePartie, partir, recrue, refusDAction, salleAChoisir, PROFILS, type Etat, type RecitDeSalle } from './index';
 
 /** Une partie à la graine `graine`, sa compagnie partie au Reikwald, sa salle courante une cache ouverte par `avancer`,
@@ -82,5 +83,30 @@ describe('la cache piégée, salle à choix', () => {
         expect(typeof r === 'string' ? r : r.epreuve!.testeur, `${p.id} · ${action}`).toBe(refusDAction(h, action) ?? h.c.id);
       }
     }
+  });
+  it('un héros hors de combat n’est pas proposé : refusé sans rien jouer, la salle reste ouverte', () => {
+    const e = devantLaCache(7);
+    const h = e.roster[0];
+    addCondition(h.c, COND.inconscient);
+    expect(refusDAction(h, 'fouiller')).toBe('Hors de combat.');
+    expect(agirDansLaSalle(e, 'fouiller', h.c.id)).toBe('Hors de combat.');
+    expect(salleAChoisir(e)).toBe(true);
+  });
+
+  it('un Test que le noyau ne joue pas : ni bourse ni piège, le héros repris tel qu’il saigne, la salle reste au choix', () => {
+    const e = devantLaCache(8);
+    const h = e.roster[1];
+    // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
+    h.c.wounds.current = 13; addCondition(h.c, COND.brise, 6); addCondition(h.c, COND.hemorragique, 2);
+    const r = recit(agirDansLaSalle(e, 'desarmer', h.c.id));
+    const repris = herosDuGroupe(e).find((g) => g.c.id === h.c.id)!;
+    expect(r.epreuve).toBeUndefined();
+    expect(r.lignes[r.lignes.length - 1]).toBe(`${h.c.label} : hors d'action, le Test n'est pas joué.`);
+    expect(hasCondition(repris.c, COND.inconscient)).toBe(true);
+    expect(e.expedition!.or).toBe(0);
+    expect(e.expedition!.index).toBe(0);
+    expect(salleAChoisir(e)).toBe(true);
+    expect(refusDAction(repris, 'desarmer')).toBe('Hors de combat.');
+    expect(recit(agirDansLaSalle(e, 'fouiller', e.roster[0].c.id)).epreuve!.testeur).toBe(e.roster[0].c.id);
   });
 });

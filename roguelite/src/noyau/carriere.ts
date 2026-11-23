@@ -13,6 +13,7 @@ import { makeRNG } from '../../../src/engine/dice';
 import { availableChars, skillSlots, talentSlots, designationsFor, parseRefKey } from '../../../src/engine/careerSlots';
 import { effectiveChar } from '../../../src/engine/characteristics';
 import { testValue } from '../../../src/engine/skills';
+import { competenceEnCarriere } from '../../../src/engine/talentEffects';
 import { byId, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../src/data';
 import type { Combatant, CharKey, ItemInstance } from '../../../src/engine/types';
 import { libelleDeCarac } from './heros';
@@ -20,8 +21,9 @@ import { auHameau, type Geste } from './hameau';
 
 
 export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
-/** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`). */
-export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number; carac: string; valeur: number }
+/** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`) ; `remise` :
+ *  ce que chaque Augmentation coûte en moins (`competenceEnCarriere`). LDB 10 l.745 */
+export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number; remise: number; carac: string; valeur: number }
 /** `aSpecifier` : le Talent attend une spécialisation que la carrière laisse au choix (un domaine, un dieu) ;
  *  `auMaxi` : il ne se prend plus. LDB 10 */
 export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; auMaxi: boolean; aSpecifier?: boolean }
@@ -54,7 +56,8 @@ export function progression(c: Combatant): Progression {
     competences: refs(sSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const adv = c.skills.find((x) => x.id === ref.id && (x.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
       const k = byId('skill', ref.id)?.characteristic as CharKey | undefined;
-      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: advanceCost(adv, 'competence', true), carac: k ? libelleDeCarac(k).abr : '', valeur: testValue(c, { skill: ref }) };
+      const { remise } = competenceEnCarriere(c, sSlots, designations, ref.id, ref.spec);
+      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: advanceCost(adv, 'competence', true, remise), remise, carac: k ? libelleDeCarac(k).abr : '', valeur: testValue(c, { skill: ref }) };
     }),
     talents: refs(tSlots).map(({ aSpecifier, ...ref }) => {
       const fois = c.talents.filter((t) => t.talentId === ref.id && (aSpecifier || (t.spec ?? '') === (ref.spec ?? ''))).reduce((n, t) => n + t.times, 0);
@@ -63,8 +66,39 @@ export function progression(c: Combatant): Progression {
   };
 }
 
+/** Ce que coûtent `n` Augmentations de carrière d'une Caractéristique ou d'une Compétence qui en compte `depuis`,
+ *  `remise` déduite de chacune (`advanceCost`). */
+export const coutDesAugmentations = (depuis: number, n: number, genre: 'caracteristique' | 'competence', remise = 0): number =>
+  Array.from({ length: n }, (_, i) => advanceCost(depuis + i, genre, true, remise)).reduce((s, x) => s + x, 0);
+
+/** Une étape d'un plan de niveau : l'achat, combien de fois, son libellé et ce qu'il coûte en tout. */
+export type EtapeDuPlan = ({ genre: 'carac'; id: CharKey } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau' })
+  & { label: string; fois: number; cout: number };
+
+/** Les achats qui complètent les exigences du niveau `p`, dans l'ordre : chaque Caractéristique de carrière jusqu'à
+ *  l'exigence, des Compétences de carrière jusqu'à en tenir 8 à l'exigence (les `preferee` d'abord, puis les plus
+ *  avancées), le premier Talent de `p.talents` qui se prend si aucun n'est acquis, puis le niveau suivant.
+ *  LDB 07 l.118-131 */
+export function planDuNiveau(p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => false): EtapeDuPlan[] {
+  const etapes: EtapeDuPlan[] = [];
+  for (const k of p.caracs.filter((x) => x.augmentations < p.requis)) {
+    const fois = p.requis - k.augmentations;
+    etapes.push({ genre: 'carac', id: k.id, label: k.label, fois, cout: coutDesAugmentations(k.augmentations, fois, 'caracteristique') });
+  }
+  const tenues = p.competences.filter((k) => k.augmentations >= p.requis).length;
+  const rang = (k: OffreDeCompetence) => (preferee(k.ref) ? 1 : 0);
+  for (const k of p.competences.filter((x) => x.augmentations < p.requis).sort((x, y) => rang(y) - rang(x) || y.augmentations - x.augmentations).slice(0, Math.max(0, 8 - tenues))) {
+    const fois = p.requis - k.augmentations;
+    etapes.push({ genre: 'competence', ref: k.ref, label: k.label, fois, cout: coutDesAugmentations(k.augmentations, fois, 'competence', k.remise) });
+  }
+  const talent = p.talents.some((t) => t.possede > 0) ? undefined : p.talents.find((t) => !t.aSpecifier && !t.auMaxi);
+  if (talent) etapes.push({ genre: 'talent', ref: talent.ref, label: talent.label, fois: 1, cout: talent.cout });
+  if (p.suivant) etapes.push({ genre: 'niveau', label: p.suivant.titre, fois: 1, cout: p.suivant.cout });
+  return etapes;
+}
+
 /** Les Compétences qu'un combat automatique teste. */
-const COMPETENCES_DU_COMBAT = new Set(['corps-a-corps', 'projectiles', 'esquive', 'calme', 'resistance', 'focalisation', 'priere', 'athletisme', 'intimidation']);
+export const COMPETENCES_DU_COMBAT = new Set(['corps-a-corps', 'projectiles', 'esquive', 'calme', 'resistance', 'focalisation', 'priere', 'athletisme', 'intimidation']);
 /** Le Talent agit-il dans un combat automatique : effet de combat, passif, effets, trait conféré, domaine ou voie de
  *  lanceur, ou bonus non manuel à un Test qu'un combat lance (`talents.json`) ? */
 export function talentDeCombat(id: string): boolean {
@@ -98,23 +132,19 @@ export const prixDuSort = (c: Combatant, id: string): number | null => { const s
 export const nomDeSort = (id: string): string => findSpellById(id)?.label ?? id;
 
 /** La recrue `c` portée au niveau `niveau` de sa carrière par les achats du noyau (`auHameau`) : à chaque niveau, ce
- *  qu'il exige pour être complété, puis le niveau suivant, payés des seuls PX que ces achats coûtent. LDB 07 l.118-131 */
+ *  qu'il exige pour être complété (`planDuNiveau`), puis le niveau suivant, payés des seuls PX que ces achats coûtent. LDB 07 l.118-131 */
 export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Combatant {
   let porte = c;
   while ((porte.careerLevel ?? 1) < niveau) {
     const p = progression(porte);
-    const gestes: Geste[] = [];
-    let cout = 0;
-    for (const k of p.caracs) for (let a = k.augmentations; a < p.requis; a++) { gestes.push({ verbe: 'acheterLaCaracteristique', args: [porte.id, k.id] }); cout += advanceCost(a, 'caracteristique', true); }
-    const tenues = p.competences.filter((k) => k.augmentations >= p.requis).length;
-    for (const k of p.competences.filter((x) => x.augmentations < p.requis).sort((x, y) => y.augmentations - x.augmentations).slice(0, Math.max(0, 8 - tenues))) {
-      for (let a = k.augmentations; a < p.requis; a++) { gestes.push({ verbe: 'acheterLaCompetence', args: [porte.id, k.ref] }); cout += advanceCost(a, 'competence', true); }
-    }
-    const talent = p.talents.some((t) => t.possede > 0) ? undefined : p.talents.find((t) => !t.aSpecifier && !t.auMaxi);
-    if (talent) { gestes.push({ verbe: 'acheterLeTalent', args: [porte.id, talent.ref] }); cout += talent.cout; }
     const cible = p.niveau + 1;
-    gestes.push({ verbe: 'changerDeCarriere', args: [porte.id, porte.career, cible] });
-    cout += careerChangeCost(true);
+    const plan = planDuNiveau(p);
+    const gestes: Geste[] = plan.flatMap((x) => Array.from({ length: x.fois }, (): Geste => {
+      if (x.genre === 'carac') return { verbe: 'acheterLaCaracteristique', args: [porte.id, x.id] };
+      if (x.genre === 'niveau') return { verbe: 'changerDeCarriere', args: [porte.id, porte.career, cible] };
+      return { verbe: x.genre === 'talent' ? 'acheterLeTalent' : 'acheterLaCompetence', args: [porte.id, x.ref] };
+    }));
+    const cout = plan.reduce((s, x) => s + x.cout, 0);
     const xp = porte.xp ?? 0;
     const [rendu] = auHameau([{ ...porte, xp: xp + cout }], gestes, graine++).groupe;
     if ((rendu.careerLevel ?? 1) !== cible || (rendu.xp ?? 0) !== xp) throw new Error(`porterAuNiveau : ${porte.career} ${cible} rendu au niveau ${rendu.careerLevel}, ${(rendu.xp ?? 0) - xp} PX d'écart`);

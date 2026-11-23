@@ -111,8 +111,8 @@ document.addEventListener('click', (ev) => {
     case 'client': client = id; return rendre();
     case 'emplacement': emplacement = k as Emplacement; return rendre();
     case 'arme': return agir(() => J.acheterUneArme(etat, id, k!));
-    case 'armure': return agir(() => J.acheterUneArmure(etat, id, k as J.PoidsDArmure));
-    case 'provision': return agir(() => J.acheterUneProvision(etat, id, k!));
+    case 'armure': return agir(() => J.acheterUneArmure(etat, id, k!));
+    case 'provision': client = id; return agir(() => J.acheterUneProvision(etat, id, k!));
     case 'carac': return agir(() => J.acheter(etat, id, { genre: 'carac', id: k! }));
     case 'sort': return agir(() => J.acheter(etat, id, { genre: 'sort', id: k! }));
     case 'niveau': return agir(() => J.acheter(etat, id, { genre: 'niveau' }));
@@ -167,7 +167,7 @@ document.addEventListener('click', (ev) => {
       return;
     }
     case 'action': {
-      if (k !== 'passer') { choixDAction = k as J.IdActionAJet; return rendre(); }
+      if (k !== 'passer') { choixDAction = choixDAction === k ? null : k as J.IdActionAJet; return rendre(); }
       return raconterLAction(J.agirDansLaSalle(etat, 'passer'));
     }
     case 'tenter': return choixDAction ? raconterLAction(J.agirDansLaSalle(etat, choixDAction, id)) : undefined;

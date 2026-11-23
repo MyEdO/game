@@ -99,7 +99,9 @@ export function refusDAction(h: Heros, action: IdActionAJet): string | null {
 }
 
 /** Joue l'`action` choisie dans la salle ouverte : une action à jet se joue sur le seul héros `herosId`, testeur et
- *  cible du piège ; « passer » ne joue rien. Rend le récit, ou pourquoi l'action est refusée. */
+ *  cible du piège ; « passer » ne joue rien. Rend le récit, ou pourquoi l'action est refusée. Un Test que le noyau
+ *  ne joue pas (`IssueDEpreuve`, `refus`) laisse la salle ouverte : le héros revient tel que le noyau le laisse, et le
+ *  choix reste au joueur. */
 export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string): RecitDeSalle | string {
   const x = e.expedition;
   const salle = x?.salles[x.index];
@@ -115,6 +117,7 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
   const avant = h.c.wounds.current;
   const r = jouerLEpreuve([h.c], ep, e.graine++);
   h.c = r.groupe[0];
+  if ('refus' in r) return { titre: cache.titre, lignes: r.journal.includes(r.refus) ? r.journal : [...r.journal, r.refus] };
   const { competence, difficulte } = partiesDuTest(ep.flux);
   const victimes = h.c.wounds.current < avant ? [{ id: h.c.id, avant, apres: h.c.wounds.current, max: h.c.wounds.max }] : [];
   const d = destinationCourante(e)!;
