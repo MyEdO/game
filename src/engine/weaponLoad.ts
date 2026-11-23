@@ -75,7 +75,14 @@ export function reloadProgressOf(c: Combatant, weapon: Weapon): number {
   return loadRegister(c, weapon).reloadProgress ?? 0;
 }
 
-/** Objet équipé ou affecté à une arme du loadout actif. */
-export function isHeld(c: Combatant, it: ItemInstance): boolean {
-  return !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
+/** Une arme (par `uid` d'ItemInstance) est-elle ACTIVE dans le loadout courant ? Source de vérité = les
+ *  armes DÉRIVÉES `c.weapons` (elles gèrent déjà contrainte 2 mains, amputation, destruction). Remplace la
+ *  lecture de `it.equipped` pour les ARMES : « équipé » d'une arme = « tenue dans le set actif ». */
+export function isWeaponActive(c: { weapons?: readonly { uid?: string }[] }, uid?: string): boolean {
+  return uid != null && (c.weapons ?? []).some((w) => w.uid === uid);
+}
+
+/** Objet porté (`equipped`) ou tenu par une arme du loadout actif (`isWeaponActive`). */
+export function isHeld(c: { weapons?: readonly { uid?: string }[] }, it: Partial<Pick<ItemInstance, 'uid' | 'equipped'>>): boolean {
+  return !!it.equipped || isWeaponActive(c, it.uid);
 }

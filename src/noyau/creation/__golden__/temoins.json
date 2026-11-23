@@ -180,7 +180,7 @@
    },
    {
     "talentId": "maitre-artisan",
-    "spec": "alchimiste",
+    "spec": "embaumeur",
     "times": 1
    },
    {
@@ -242,7 +242,7 @@
    },
    {
     "id": "metier",
-    "spec": "alchimiste",
+    "spec": "embaumeur",
     "characteristic": "dexterite",
     "advances": 0
    },
@@ -649,7 +649,7 @@
    },
    {
     "talentId": "artiste",
-    "spec": "calligraphie",
+    "spec": "peinture",
     "times": 1
    },
    {
@@ -702,7 +702,7 @@
    },
    {
     "id": "art",
-    "spec": "calligraphie",
+    "spec": "peinture",
     "characteristic": "dexterite",
     "advances": 0
    },

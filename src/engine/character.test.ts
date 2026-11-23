@@ -10,13 +10,19 @@ import {
   firstLevel,
   careerLevels,
   species,
+  levelsForCareer,
 } from '../data';
+import { availableChars, candidatsDuSlot, designationsFor, skillSlots, talentSlots } from './careerSlots';
+import { isCareerLevelComplete, validateCareerChange } from './advancement';
+import { isHeld } from './weaponLoad';
+import { loadoutSetActive, recomputeLoadout } from './items';
 import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
 import { toBrass } from './money';
 import {
+  fluxDeCreation,
   speciesSkillDefaults,
   resolveSpeciesTalents,
   resolveSpeciesTalentsDetail,
@@ -73,16 +79,19 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
     expect(tirage(42)).toEqual(tirage(42));
   });
 
-  it('LDB 10 l.17 : une AUTRE utilisation possédée fait du tirage un doublon ; il prend la 1re utilisation non possédée', () => {
+  it('LDB 10 l.17 : une AUTRE utilisation possédée fait du tirage un doublon ; il prend une utilisation non possédée, tirée au dé', () => {
     const seed = Array.from({ length: 500 }, (_, i) => i + 1).find((s) => specPoolOf(talents.find((t) => t.id === tirage(s).ref.id)!).length > 1)!;
-    const tire = tirage(seed);
-    const pool = specPoolOf(talents.find((t) => t.id === tire.ref.id)!);
-    const [specA, specB] = pool;
-    expect(tire.ref).toEqual({ id: tire.ref.id, spec: specA });
-    expect(tirage(seed, [{ id: tire.ref.id, spec: specA }])).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: true });
-    const toutes = pool.map((spec) => ({ id: tire.ref.id, spec }));
-    expect(tirage(seed, toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
-    expect(tirage(seed, [], { randomSpecPicks: { [ADRESSE]: specB } })).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
+    const { id, spec } = tirage(seed).ref;
+    const pool = specPoolOf(talents.find((t) => t.id === id)!);
+    expect(pool).toContain(spec);
+    const autre = tirage(seed, [{ id, spec }]);
+    expect(autre.doublon).toBe(true);
+    expect(pool.filter((s) => s !== spec)).toContain(autre.ref.spec);
+    const toutes = tirage(seed, pool.map((s) => ({ id, spec: s })));
+    expect(toutes.doublon).toBe(true);
+    expect(pool).toContain(toutes.ref.spec);
+    const choisie = pool.find((s) => s !== spec)!;
+    expect(tirage(seed, [], { randomSpecPicks: { [ADRESSE]: choisie } })).toEqual({ ref: { id, spec: choisie }, doublon: false });
   });
 
   it('le tirage suit le `die` du document `talents-aleatoires`, jamais un d100 recopié (LDB 05 l.514 ; #3578)', () => {
@@ -98,23 +107,23 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
   });
 
   it('à graine égale, la suite des tirages est celle du d100 d’avant le document (témoin : b1acab5ac, `roll(1, 100)`)', () => {
-    // 6 tirages Reiklander, graines 1 à 12 ; « ! » = doublon.
+    // 6 tirages Reiklander, graines 1 à 12, Talents sans leur utilisation ; « ! » = doublon.
     const TEMOIN = [
-      'ame-pure lire-ecrire reflexes-foudroyants reflexes-foudroyants! costaud sens-aiguise(ouie)',
+      'ame-pure lire-ecrire reflexes-foudroyants reflexes-foudroyants! costaud sens-aiguise',
       'dur-a-cuire fuite imperturbable tres-resistant bonnes-jambes noblesse',
       'doigts-de-fee bonnes-jambes bonnes-jambes! oreille-absolue sens-de-l-orientation sens-de-l-orientation!',
-      'bonnes-jambes affable imperturbable resistance(chaos) doigts-de-fee doigts-de-fee!',
+      'bonnes-jambes affable imperturbable resistance doigts-de-fee doigts-de-fee!',
       'ame-pure sixieme-sens tres-resistant affinite-avec-les-animaux ame-pure! ame-pure!',
-      'affinite-avec-les-animaux affable artiste(calligraphie) resistance(chaos) tres-resistant vivacite',
+      'affinite-avec-les-animaux affable artiste resistance tres-resistant vivacite',
       'vision-nocturne doue-en-calcul ame-pure ame-pure! sixieme-sens fuite',
-      'resistance(chaos) affable oreille-absolue resistance(corruption)! sens-aiguise(ouie) sens-de-l-orientation',
-      'sens-aiguise(ouie) ame-pure ambidextre chanceux ame-pure! tres-resistant',
-      'lire-ecrire resistance(chaos) doigts-de-fee sixieme-sens reflexes-foudroyants chanceux',
-      'doue-en-calcul tres-resistant affable maitre-artisan(alchimiste) guerrier-ne doue-en-calcul!',
+      'resistance affable oreille-absolue resistance! sens-aiguise sens-de-l-orientation',
+      'sens-aiguise ame-pure ambidextre chanceux ame-pure! tres-resistant',
+      'lire-ecrire resistance doigts-de-fee sixieme-sens reflexes-foudroyants chanceux',
+      'doue-en-calcul tres-resistant affable maitre-artisan guerrier-ne doue-en-calcul!',
       'ame-pure vision-nocturne doigts-de-fee sixieme-sens imperturbable attirant',
     ];
     const suite = (seed: number) => resolveSpeciesTalentsDetail({ ...sp(), talents: [{ pick: 6, table: TABLE }] }, { seed })
-      .map((t) => `${t.ref.id}${t.ref.spec ? `(${t.ref.spec})` : ''}${t.tirage!.doublon ? '!' : ''}`).join(' ');
+      .map((t) => `${t.ref.id}${t.tirage!.doublon ? '!' : ''}`).join(' ');
     expect(TEMOIN.map((_, i) => suite(i + 1))).toEqual(TEMOIN);
   });
 });
@@ -122,17 +131,26 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
 describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   it('Reiklander : Destinée (fixe), un choix résolu, et 3 tirages à leur adresse', () => {
     const out = resolveSpeciesTalentsDetail(sp(), { seed: 7 });
-    // « Affable ou Perspicace » → 1er par défaut ; « Destinée » fixe ; « 3 Talent aléatoire »
     expect(out.map((t) => t.ref)).toContainEqual({ id: 'destinee' });
-    expect(out.map((t) => t.ref)).toContainEqual({ id: 'affable' });
     expect(out).toHaveLength(5);
     expect(out.flatMap((t) => (t.tirage ? [t.tirage.adresse] : []))).toEqual([0, 1, 2].map((j) => adresseDeCreation.especeTirage(2, j)));
+  });
+
+  it('LDB 05 l.484 : sans choix, l\'option « A ou B » est tirée au dé de la création, la même pour la même graine', () => {
+    const option = (seed: number) => resolveSpeciesTalents(sp(), { seed, talentsRolled: false })[0];
+    const graines = Array.from({ length: 40 }, (_, i) => i);
+    expect(new Set(graines.map((g) => option(g).id))).toEqual(new Set(['affable', 'perspicace']));
+    expect(graines.map(option)).toEqual(graines.map(option));
   });
 
   it('le choix « A ou B » est surchargeable, par adresse d\'emplacement', () => {
     const out = resolveSpeciesTalents(sp(), { seed: 7, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } } });
     expect(out).toContainEqual({ id: 'perspicace' });
     expect(out).not.toContainEqual({ id: 'affable' });
+  });
+
+  it('LDB 05 l.484 : une option hors des choix « A ou B » est refusée, jamais remplacée par un tirage', () => {
+    expect(() => resolveSpeciesTalents(sp(), { seed: 7, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'vision-nocturne' } } })).toThrow(/hors des options/);
   });
 
   // Graine 169 : Doué en calcul au tirage 0 puis au tirage 1.
@@ -264,7 +282,8 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('talent de carrière = talent d\'espèce → times 2 (LDB 05 l.535, LDB 10 l.9) ; Blessures avec Dur à cuire', () => {
     const hero = createHero({ idNeuf: idsDeTest,
-      speciesId: 'elfes-sylvains', // « Dur à cuire ou Seconde vue » (1re option), aucun Talent aléatoire
+      speciesId: 'elfes-sylvains', // « Dur à cuire ou Seconde vue », aucun Talent aléatoire
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(findSpeciesById('elfes-sylvains')!.talents.findIndex((t) => 'of' in t && t.of.some((o) => 'id' in o && o.id === 'dur-a-cuire')))]: { id: 'dur-a-cuire' } },
       careerId: 'milicien', // Niveau 1 propose « Dur à cuire »
       label: 'T',
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -492,5 +511,97 @@ describe('createHero — les Possessions du premier Échelon, argent, valeur et 
 
   it('un héros sans mention n’a pas de champ `mentions`', () => {
     expect('mentions' in heros('soldat')).toBe(false);
+  });
+});
+
+describe('createHero — recrue de Niveau N : chaque Niveau en dessous achevé par achats (LDB 07 l.124, l.137)', () => {
+  const recrue = (careerLevel: number) => createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'chasseur', label: 'Recrue', seed: 11, careerLevel });
+  const levels = levelsForCareer('chasseur');
+  const acheve = (h: Combatant, n: number) => isCareerLevelComplete(h, n, { skillSlots: skillSlots(levels, n), talentSlots: talentSlots(levels, n), careerChars: availableChars(levels, n), designations: designationsFor(h, 'chasseur') });
+  const ctx = (completed: boolean) => ({ completed, sameClass: true, targetLevelExists: true });
+
+  it('Chasseur 2 : Niveau 1 achevé, ses Caractéristiques de carrière à 5 Augmentations, le Niveau 2 à achever', () => {
+    const h = recrue(2);
+    expect(h.careerLevel).toBe(2);
+    expect(acheve(h, 1)).toBe(true);
+    expect(acheve(h, 2)).toBe(false);
+    expect(availableChars(levels, 1).map((k) => h.charAdvances?.[k])).toEqual(availableChars(levels, 1).map(() => 5));
+    expect(validateCareerChange(h, 'chasseur', 3, ctx(acheve(h, 2))).ok).toBe(false);
+  });
+
+  it('Chasseur 3 : Niveaux 1 et 2 achevés, le passage au Niveau 4 attend l\'achèvement du 3', () => {
+    const h = recrue(3);
+    expect([acheve(h, 2), acheve(h, 3)]).toEqual([true, false]);
+    expect(availableChars(levels, 2).every((k) => (h.charAdvances?.[k] ?? 0) >= 10)).toBe(true);
+    expect(validateCareerChange(h, 'chasseur', 4, ctx(acheve(h, 3))).ok).toBe(false);
+  });
+
+  it('les Valeurs suivent les Augmentations : chaque Augmentation achetée ajoute +1 (LDB 07 l.47)', () => {
+    const n1 = recrue(1);
+    const n2 = recrue(2);
+    for (const k of availableChars(levels, 1)) expect(n2.characteristics[k] - n1.characteristics[k]).toBe((n2.charAdvances?.[k] ?? 0) - (n1.charAdvances?.[k] ?? 0));
+  });
+
+  it('les Possessions de Classe et des Niveaux 1 à N, chacune dans la panoplie sans uid orphelin (LDB 05 l.572)', () => {
+    const h = recrue(2);
+    expect(['fronde', 'arc', 'cape'].every((id) => h.items?.some((i) => i.trappingId === id))).toBe(true);
+    const uids = new Set(h.items?.map((i) => i.uid));
+    expect((h.loadouts ?? []).flatMap((lo) => [lo.main, lo.secondaire]).filter((u) => u != null && !uids.has(u))).toEqual([]);
+  });
+
+  it('un Niveau absent de la carrière est refusé', () => {
+    expect(() => recrue(5)).toThrow(/Niveau 5/);
+    expect(() => recrue(0)).toThrow(/Niveau 0/);
+    expect(() => recrue(-1)).toThrow(/Niveau -1/);
+    expect(() => recrue(NaN)).toThrow(/Niveau NaN/);
+  });
+
+  it('LDB 05 l.535 ; LDB 07 l.124 : sans choix, le Talent de chaque Niveau est tiré au dé de la création', () => {
+    const graines = Array.from({ length: 40 }, (_, i) => i);
+    const duNiveau = (seed: number, n: number) => {
+      const h = createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'chasseur', label: 'Recrue', seed, careerLevel: 3, talentsRolled: false });
+      const offerts = new Set(talentSlots(levels, n).flatMap((s) => s.options.map((o) => o.optionId)));
+      return h.talents.filter((t) => offerts.has(t.talentId)).map((t) => t.talentId).sort().join('+');
+    };
+    for (const n of [1, 2]) expect(new Set(graines.map((g) => duNiveau(g, n))).size, `Niveau ${n}`).toBeGreaterThan(1);
+  });
+});
+
+describe('createHero — chaque choix du joueur absent est tiré au dé de la création (LDB 05 l.484, l.535)', () => {
+  const graines = Array.from({ length: 20 }, (_, i) => i);
+
+  it('les 3 Compétences d\'espèce à +5 et les 3 à +3, six distinctes de la liste, la même pour la même graine', () => {
+    const retenues = (seed: number) => {
+      const rng = fluxDeCreation(seed, 'competences-espece');
+      return speciesSkillDefaults(sp(), (n) => rng.int(0, n - 1));
+    };
+    const cle = (seed: number) => [...retenues(seed).plus5, ...retenues(seed).plus3].map((r) => `${r.id}:${r.spec ?? ''}`).join('+');
+    for (const g of graines) expect(new Set(cle(g).split('+')).size).toBe(6);
+    expect(new Set(graines.map(cle)).size).toBeGreaterThan(1);
+    expect(graines.map(cle)).toEqual(graines.map(cle));
+  });
+
+  it('la spécialisation d\'une Compétence de carrière « au choix » du Niveau 1', () => {
+    const duelliste = levelsForCareer('duelliste');
+    const [joker] = skillSlots(duelliste, 1).filter((s) => s.needsChoice && candidatsDuSlot(s).length > 1);
+    const designee = (seed: number) => designationsFor(createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'duelliste', label: 'Recrue', seed }), 'duelliste')[joker.key];
+    expect(new Set(graines.map(designee)).size).toBeGreaterThan(1);
+  });
+});
+
+describe('une arme de dotation se tient par la panoplie, elle ne naît pas portée (#4831)', () => {
+  const chasseur = () => createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'chasseur', label: 'Chasseur', seed: 7 });
+
+  it('aucune arme de dotation ne naît « équipée » ; la Fronde n\'est tenue que quand son set est actif', () => {
+    const h = chasseur();
+    const fronde = h.items!.find((i) => i.trappingId === 'fronde')!;
+    expect(h.items!.filter((i) => (i.kind === 'melee' || i.kind === 'distance') && i.equipped)).toEqual([]);
+    const set = h.loadouts!.find((lo) => lo.main === fronde.uid)!;
+    expect(h.activeLoadoutId).not.toBe(set.id);
+    expect(isHeld(h, fronde)).toBe(false);
+    loadoutSetActive(h, set.id);
+    recomputeLoadout(h);
+    expect(isHeld(h, fronde)).toBe(true);
+    expect(h.weapons.map((w) => w.uid)).toContain(fronde.uid);
   });
 });

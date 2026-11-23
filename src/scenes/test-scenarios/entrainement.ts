@@ -45,7 +45,6 @@ function tireur(idNeuf: FabriqueDId): Combatant {
     id: 'tr-tireur',
   });
   const arb = itemFromTrappingById('arbalete', idNeuf, undefined, contexteDeNaissanceDObjet(h))!; // Recharge 1 + Empaleuse
-  arb.equipped = true;
   const carreaux = itemFromTrappingById('carreau', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   const lant = itemFromTrappingById('lanterne', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)

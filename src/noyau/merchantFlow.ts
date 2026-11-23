@@ -11,6 +11,7 @@ import {
   recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
 } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
+import { isHeld } from '../engine/weaponLoad';
 import {
   bargainBuyFactor, bargainSellFactor, bargainPct, FACTEUR_DE_VENTE_SANS_MARCHANDAGE, issueDuMarchandage, type BargainOutcome,
 } from '../engine/bargain';
@@ -784,9 +785,9 @@ export function barterQuote(giveT: TrappingData | undefined, getT: TrappingData 
   return { ratio, giveAv, getAv, giveCount: Math.max(1, Math.ceil(giveValue / givePrice)) };
 }
 
-/** Exemplaires CÉDABLES au Troc d'un trapping chez un héros : instances NON équipées. */
+/** Exemplaires CÉDABLES au Troc d'un trapping chez un héros : instances ni portées ni tenues (`isHeld`). */
 function exemplairesCedables(hero: Combatant, trappingId: string): ItemInstance[] {
-  return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !i.equipped);
+  return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !isHeld(hero, i));
 }
 
 /** L'exemplaire du bien `trappingId` que `hero` cède au Troc (choix `marchand.trocCeder`) : le premier des
@@ -804,7 +805,7 @@ export interface OptionDeTroc { heroId: string; trappingId: string; label: strin
 export function optionsDeTroc(party: readonly Combatant[], resolveTrapping: TrappingResolver): OptionDeTroc[] {
   const out: OptionDeTroc[] = [];
   for (const h of party) {
-    const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !it.equipped ? [it.trappingId] : [])));
+    const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !isHeld(h, it) ? [it.trappingId] : [])));
     for (const trappingId of ids) {
       const trapping = resolveTrapping(trappingId);
       if (!trapping) continue;

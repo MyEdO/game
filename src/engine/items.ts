@@ -942,13 +942,6 @@ export function setNonCharge(c: Combatant, lo: WeaponLoadout): boolean {
   });
 }
 
-/** Une arme (par `uid` d'ItemInstance) est-elle ACTIVE dans le loadout courant ? Source de vérité = les
- *  armes DÉRIVÉES `c.weapons` (elles gèrent déjà contrainte 2 mains, amputation, destruction). Remplace la
- *  lecture de `it.equipped` pour les ARMES : « équipé » d'une arme = « tenue dans le set actif ». */
-export function isWeaponActive(c: Combatant, uid?: string): boolean {
-  return uid != null && (c.weapons ?? []).some((w) => w.uid === uid);
-}
-
 /** Résolution ALTERNATIVE d'attaque DÉRIVÉE (ADE II 8 l.233 : « Toutes les machines de guerre...
  *  utilisent... Projectiles [Machine de guerre], à l'exception du bélier, qui utilise Force ») — la SEULE
  *  arme de MÊLÉE du Groupe `machine-de-guerre` est le bélier : aucun id en dur, dérivé du Groupe + du type
@@ -1634,13 +1627,9 @@ export function inventaireDesDotations(
     items.push(it);
     for (let i = 1; i < (n ?? 1); i++) items.push(garanti(objet(), ref.id, 'unité de dotation'));
   }
-  // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
-  // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —
-  // LDB 63 : pas de « 2 armures de cuir »). Les doublons restent dans l'inventaire (déséquipés).
-  const melee = items.filter((i) => i.kind === 'melee');
-  const ranged = items.filter((i) => i.kind === 'distance');
-  if (melee.length) melee.sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0].equipped = true;
-  if (ranged.length) ranged[0].equipped = true;
+  // Port par défaut : les armures SANS conflit de couche (max une pièce par couche × localisation, meilleure PA
+  // d'abord — LDB 63 : pas de « 2 armures de cuir ») ; les doublons restent dans l'inventaire. Une arme de dotation se tient
+  // par la panoplie (`ensureDefaultLoadout`) : elle ne naît pas portée.
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
   const armours = items.filter((i) => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture')).sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
   for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;

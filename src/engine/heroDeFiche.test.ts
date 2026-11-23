@@ -134,7 +134,8 @@ describe('heroDeFiche — le héros d\'une fiche imprimée', () => {
     const gamelles = (h.items ?? []).filter((i) => i.label === 'Gamelles');
     expect(gamelles.map((i) => [i.kind, i.trappingId, i.enc])).toEqual([['misc', undefined, 0], ['misc', undefined, 0]]);
     expect(new Set(gamelles.map((i) => i.uid)).size).toBe(2);
-    expect(h.items?.find((i) => i.trappingId === 'fronde')?.equipped).toBe(true);
+    const fronde = h.items?.find((i) => i.trappingId === 'fronde');
+    expect(h.loadouts?.some((set) => set.main === fronde?.uid)).toBe(true);
   });
 
   // ZI 14 l.125

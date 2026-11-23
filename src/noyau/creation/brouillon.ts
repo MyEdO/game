@@ -60,6 +60,8 @@ import {
   cleDOption,
   optionsDesTalentsDEspece,
   baseDEspece,
+  SPECIES_SKILLS_PLUS5,
+  SPECIES_SKILLS_PLUS3,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
@@ -106,10 +108,6 @@ import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 export type CharMode = 'tire' | 'reassigne' | 'repartition';
 
 // ── Quotas d'allocation de la création (SOURCE UNIQUE : validation ET rendu les consomment) ──
-/** « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune » (LDB 05 l.484). */
-export const SPECIES_SKILLS_PLUS5 = 3;
-/** « …et 3 Compétences auxquelles ajouter 3 Augmentations à chacune » (LDB 05 l.484). */
-export const SPECIES_SKILLS_PLUS3 = 3;
 /** « répartir comme bon vous semble un total de 5 Augmentations entre les Caractéristiques » (LDB 05 l.459). */
 export const CAREER_CHAR_ADVANCES = 5;
 
@@ -545,7 +543,7 @@ export function speciesTalentChoiceEntries(d: CreatorDraft): { adresse: AdresseD
 }
 export function speciesTalentRandomTables(d: CreatorDraft): TirageDeTalents[] {
   const sp = draftSpecies(d);
-  return sp ? optionsDesTalentsDEspece(sp, d.speciesTalentChoices).filter((option) => 'table' in option) : [];
+  return sp ? optionsDesTalentsDEspece(sp, d.speciesTalentChoices).filter((option): option is TirageDeTalents => option != null && 'table' in option) : [];
 }
 
 export function speciesTalentRandomCount(d: CreatorDraft): number {
