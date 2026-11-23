@@ -42,7 +42,7 @@
     {
       "nom": "cuir",
       "palette": "cuir",
-      "matiere": "prop--cuir-tanne"
+      "matiere": "prop--cuir-use"
     },
     {
       "nom": "parchemin",
@@ -61,7 +61,7 @@
     }
   ],
   "glb": {
-    "sha256": "7d7f38ea3b25583e3e4b5a6c1776cbe1343c04f959ce5b238b4584629188a71d",
-    "octets": 775824
+    "sha256": "fcd3c4a05978e46dc536f30a2f118d4fba760bbc35c44aa13fc51263e88b8b9a",
+    "octets": 775836
   }
 }
