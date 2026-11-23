@@ -4322,7 +4322,7 @@ async function poserLInstant(clip, instant) {
   const { duree } = await atelier()
   assert.ok(instant <= duree, `--instant ${instant} : au plus la durée du clip ${clip}, ${duree} s`)
   const tour = (ecart) => ((ecart % duree) + duree) % duree
-  const suivante = async () => { await cliquerAmene('Image suivante', 1); return (await atelier()).instant }
+  const suivante = async () => { const avant = (await atelier()).instant; await cliquerAmene('Image suivante', 1); await attendreLAtelier(`a.instant !== ${avant}`); return (await atelier()).instant }
   const depart = (await atelier()).instant
   let posee = await suivante()
   const pas = tour(posee - depart)
