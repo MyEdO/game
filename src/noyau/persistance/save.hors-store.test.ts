@@ -105,12 +105,12 @@ describe('lireSave — format courant', () => {
 
   it('lit une save d’avant le meneur désigné à l’élection, sans la migration des couleurs (#4530)', () => {
     const courante = snapshotSave({ ...etatInitialDuJeu(), meneurChoisi: 'b' }, '2026-11-23T06:30:00.000Z');
-    const ancienne = sansLaCleDeJeu(exporterLaSauvegarde({ ...courante, version: '13d7e87f5552b95c' }), 'meneurChoisi');
+    const ancienne = sansLaCleDeJeu(exporterLaSauvegarde({ ...courante, version: '71dc897adac81733' }), 'meneurChoisi');
     const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
     onTestFinished(() => migrerLesCouleurs.mockRestore());
 
     const lue = lireSave(ancienne);
-    if (courante.version !== '4e815d28197d2c67') return void expect(lue).toBe('autreFormat');
+    if (courante.version !== 'e5850d7c5e152ce4') return void expect(lue).toBe('autreFormat');
     expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
