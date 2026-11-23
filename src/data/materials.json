@@ -292,6 +292,16 @@
     "type": "materials",
     "label": "Verre",
     "domain": "prop",
+    "color": "#b9d0d3",
+    "roughness": 0.1,
+    "metalness": 0,
+    "opacity": 0.16
+  },
+  {
+    "id": "miroir",
+    "type": "materials",
+    "label": "Miroir",
+    "domain": "prop",
     "color": "#4a5a63",
     "roughness": 0.1,
     "metalness": 0.5

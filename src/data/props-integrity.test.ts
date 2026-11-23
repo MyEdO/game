@@ -3,6 +3,7 @@ import { idDeFixture } from './idDeFixture.testkit';
 import { readFileSync } from 'node:fs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
+import { schema as materialsSchema } from './schemas/defs/materials';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
 import {
   aretesNonAppariees,
@@ -494,7 +495,7 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
       'albatre', 'feuillage', 'bois-mort', 'os', 'sang-repandu', 'eau-dormante', 'paille', 'toile-ecrue',
       'toile-chaos', 'pierre-chaos', 'rune-chaos', 'ombre', 'terre-battue', 'roseau', 'soie', 'ecaille',
       'chapeau-rouge', 'drap-terne', 'peau-morte', 'corde', 'cuir-tanne',
-      'laine', 'fourrure', 'acier-battu', 'mailles', 'verre', 'papier', 'cire', 'cire-a-cacheter', 'terre-cuite',
+      'laine', 'fourrure', 'acier-battu', 'mailles', 'verre', 'miroir', 'papier', 'cire', 'cire-a-cacheter', 'terre-cuite',
       'chitine', 'petale', 'toile-peinte', 'crin', 'corne', 'chevelure', 'chair-champignon', 'massette',
       'ecorce', 'ecorce-hetre', 'ecorce-pin',
       'cuivre', 'bronze-patine', 'or-fin', 'plume', 'osier', 'emaille', 'velours',
@@ -506,8 +507,17 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
       expect(m.metalness, m.id).toBeGreaterThanOrEqual(0);
       expect(m.metalness, m.id).toBeLessThanOrEqual(1);
       expect(m.domain, m.id).toBe('prop');
-      expect(Object.keys(m).sort(), m.id).toEqual(['color', 'domain', 'id', 'label', 'metalness', 'roughness', 'type']);
+      expect(Object.keys(m).filter((cle) => cle !== 'opacity').sort(), m.id).toEqual(['color', 'domain', 'id', 'label', 'metalness', 'roughness', 'type']);
     }
+  });
+
+  it('ne laisse voir à travers elle que la matière qui porte une opacité, strictement entre 0 et 1', () => {
+    expect(matieresDe('prop').filter((m) => m.opacity !== undefined).map((m) => [m.id, m.opacity])).toEqual([['verre', 0.16]]);
+    const brut = JSON.parse(readFileSync(new URL('./materials.json', import.meta.url), 'utf8')) as { id: string; opacity?: number }[];
+    const avec = (opacity: number | undefined) => materialsSchema.safeParse(brut.map((e) => (e.id === 'verre' ? { ...e, opacity } : e))).success;
+    for (const opacity of [0, 1, 1.2]) expect(avec(opacity), String(opacity)).toBe(false);
+    expect(avec(0.5)).toBe(true);
+    expect(avec(undefined)).toBe(true);
   });
 
   it('les braises ne portent AUCUNE émission — la lumière de cheminée vient de `light`', () => {

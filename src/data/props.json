@@ -6160,7 +6160,7 @@
             "yM": 0.02,
             "hM": 0.88
           },
-          "material": "verre"
+          "material": "miroir"
         }
       ]
     }
@@ -11521,7 +11521,7 @@
             "yM": 0.03,
             "hM": 0.64
           },
-          "material": "verre"
+          "material": "miroir"
         }
       ]
     }
