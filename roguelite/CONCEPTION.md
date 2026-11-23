@@ -28,6 +28,8 @@ l'utilisateur ».
 - **Le noyau d'abord** : toute règle se joue par le noyau ; ce qu'il ne joue pas va à `RETOURS.md`, jamais dans l'hôte.
 - **Bug majeur** (« En cas de bug majeur de ce genre, je t'autorise a lancer un agent pour le corriger »,
   2026-11-23) : un plantage ou une règle cassée en jeu se corrige aussitôt par un agent, sans attendre de feu vert.
+- **Fable coûte cher** (« mais arrete, Fable coute chere ! », 2026-11-23) : Fable ne reçoit que du dessin, sur un écran,
+  avec un brief qui part de l'écran existant ; aucune correction, aucun retour en arrière ni plomberie ne lui va.
 - **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
   as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
   du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par
