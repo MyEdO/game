@@ -61,6 +61,11 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
       await p.click('#combat-fin');
     }
     salles++;
+    if (await p.$('.carton [data-a="action"]')) {
+      await p.click('.carton [data-a="action"][data-k="fouiller"]');
+      constater(await p.isVisible('.socle-compagnie.a-choisir'), 'la cache demande qui fouille');
+      await p.click('.socle-compagnie .carte-heros:not([disabled])');
+    }
     if (await p.$('.carton')) {
       console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
       if (!aVuUnCarton) {

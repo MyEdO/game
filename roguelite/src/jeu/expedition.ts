@@ -1,9 +1,9 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
 
-import { DESTINATIONS, EPREUVES, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
+import { DESTINATIONS, EPREUVES, type IdActionAJet, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 
@@ -79,44 +79,72 @@ export function prier(e: Etat, id: string, cibleId: string): string {
 }
 
 /** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id), le Test, son issue et ses DR, chaque héros touché et ses
- *  Blessures avant et après, l'or pris. */
+ *  Blessures avant et après, l'or pris, et ce que dit l'issue. */
 export interface EpreuveDuRecit {
   testeur: string; competence: string; difficulte: string; reussite: boolean; dr: number;
-  victimes: { id: string; avant: number; apres: number; max: number }[]; or: number;
+  victimes: { id: string; avant: number; apres: number; max: number }[]; or: number; dit: string;
 }
 export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit }
 
-/** Franchit la salle courante. Chaque salle prend une journée. */
-export function avancer(e: Etat): RecitDeSalle {
+/** Une action d'une salle à choix : une action à jet, ou passer son chemin. */
+export type ActionDeSalle = IdActionAJet | 'passer';
+/** La salle courante attend-elle le choix d'une action ? */
+export const salleAChoisir = (e: Etat): boolean => !!e.expedition?.salles[e.expedition.index]?.ouverte;
+
+/** Pourquoi le héros `h` ne peut pas tenter l'`action` de la cache, ou `null` s'il le peut. LDB 09 l.30 */
+export function refusDAction(h: Heros, action: IdActionAJet): string | null {
+  if (!valide(h)) return 'Hors de combat.';
+  const { epreuves } = EPREUVES.tresor.actions[action];
+  return epreuveTentable(h.c, epreuves) ? null : `Ne sait tenter ni ${epreuves.map((ep) => partiesDuTest(ep.flux).competence).join(' ni ')}.`;
+}
+
+/** Joue l'`action` choisie dans la salle ouverte : une action à jet se joue sur le seul héros `herosId`, testeur et
+ *  cible du piège ; « passer » ne joue rien. Rend le récit, ou pourquoi l'action est refusée. */
+export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string): RecitDeSalle | string {
+  const x = e.expedition;
+  const salle = x?.salles[x.index];
+  if (!x || !salle?.ouverte) return 'Aucune action en attente.';
+  const cache = EPREUVES.tresor;
+  if (action === 'passer') return franchir(e, { titre: cache.titre, lignes: [cache.passer.recit] });
+  const h = herosDuGroupe(e).find((g) => g.c.id === herosId);
+  if (!h) return 'Choisissez un héros du groupe.';
+  const refus = refusDAction(h, action);
+  if (refus) return refus;
+  const a = cache.actions[action];
+  const ep = epreuveTentable(h.c, a.epreuves)!;
+  const avant = h.c.wounds.current;
+  const r = jouerLEpreuve([h.c], ep, e.graine++);
+  h.c = r.groupe[0];
+  const { competence, difficulte } = partiesDuTest(ep.flux);
+  const victimes = h.c.wounds.current < avant ? [{ id: h.c.id, avant, apres: h.c.wounds.current, max: h.c.wounds.max }] : [];
+  const d = destinationCourante(e)!;
+  const or = r.reussite ? d.or + tirer(e).int(0, d.or) : 0;
+  x.or += or;
+  const dit = r.reussite ? a.reussite : cache.declenche;
+  return franchir(e, { titre: cache.titre, lignes: [
+    `${h.c.label} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
+    dit,
+    ...victimes.map((v) => `${h.c.label} est touché·e : ${v.apres}/${v.max} Blessures.`),
+    ...(or ? [`La bourse cachée est prise : ${or} CO.`] : []),
+  ], epreuve: { testeur: r.testeur, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, dit } });
+}
+
+/** Entre dans la salle courante et la franchit ; une salle à choix (`tresor`) s'ouvre et attend son action
+ *  (`agirDansLaSalle`) : rend alors `null`. Chaque salle prend une journée. */
+export function avancer(e: Etat): RecitDeSalle | null {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const salle = x.salles[x.index];
+  if (salle.type === 'tresor') {
+    salle.ouverte = true;
+    return null;
+  }
   const groupe = herosDuGroupe(e);
   const rng = tirer(e);
   let recit: RecitDeSalle;
   if (salle.type === 'camp') {
     const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
     recit = { titre: 'Un abri pour la nuit', lignes: ['Le groupe établit un camp et monte la garde à tour de rôle.', ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] };
-  } else if (salle.type === 'tresor') {
-    const cache = EPREUVES.tresor;
-    const testeurs = groupe.filter(valide);
-    const avant = new Map(testeurs.map((h) => [h.c.id, h.c.wounds.current]));
-    const r = jouerLEpreuve(testeurs.map((h) => h.c), cache.epreuve, e.graine++);
-    for (const apres of r.groupe) {
-      const h = groupe.find((g) => g.c.id === apres.id);
-      if (h) h.c = apres;
-    }
-    const testeur = groupe.find((h) => h.c.id === r.testeur)?.c.label ?? r.testeur;
-    const { competence, difficulte } = partiesDuTest(cache.epreuve.flux);
-    const touches = r.groupe.filter((c) => c.wounds.current < (avant.get(c.id) ?? c.wounds.current));
-    const or = d.or + rng.int(0, d.or);
-    x.or += or;
-    recit = { titre: cache.titre, lignes: [
-      `${testeur} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
-      r.reussite ? cache.repere : cache.declenche,
-      ...touches.map((c) => `${c.label} est touché·e : ${c.wounds.current}/${c.wounds.max} Blessures.`),
-      `La bourse cachée est prise : ${or} CO.`,
-    ], epreuve: { testeur: r.testeur, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes: touches.map((c) => ({ id: c.id, avant: avant.get(c.id)!, apres: c.wounds.current, max: c.wounds.max })), or } };
   } else {
     const combattants = groupe.filter(valide);
     const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
@@ -140,10 +168,19 @@ export function avancer(e: Etat): RecitDeSalle {
     const lignes = [`Butin : ${or} CO · ${PX_PAR_SALLE[salle.type]} PX chacun.`, ...morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`)];
     recit = { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: issue };
   }
+  return franchir(e, recit);
+}
+
+/** La salle courante est franchie : ses PX, la suivante ; le maître vaincu ramène le groupe au hameau. */
+function franchir(e: Etat, recit: RecitDeSalle): RecitDeSalle {
+  const x = e.expedition!;
+  const d = destinationCourante(e)!;
+  const salle = x.salles[x.index];
   const px = PX_PAR_SALLE[salle.type];
   x.px += px;
   for (const h of herosDuGroupe(e)) h.c.xp = (h.c.xp ?? 0) + px;
   salle.faite = true;
+  delete salle.ouverte;
   x.index++;
   if (salle.type === 'boss') {
     x.trophees += 1 + (e.bossVaincus.includes(d.id) ? 0 : 1);

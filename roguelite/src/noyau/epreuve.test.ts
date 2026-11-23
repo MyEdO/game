@@ -1,87 +1,64 @@
 import { describe, expect, it } from 'vitest';
-import { jouerLeCombat, jouerLEpreuve, nouvelleRecrue } from './index';
-import { DIFFICULTY_LABELS } from '../../../src/engine/types';
-import { avancer, EPREUVES, nouvellePartie, partir, PROFILS, type Etat } from '../jeu';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve } from './index';
+import { EPREUVES, PROFILS } from '../jeu';
 
-const CACHE = EPREUVES.tresor.epreuve;
+const { fouiller, desarmer } = EPREUVES.tresor.actions;
+const FOUILLE = fouiller.epreuves[0];
 const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite);
 const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
-const GRAINE_REUSSIE = 7;
-const GRAINE_RATEE = 1;
-const GRAINE_DE_PARTIE_REUSSIE = 5;
-const GRAINE_DE_PARTIE_RATEE = 1;
 
 /** Les Blessures que la branche d'échec de la table retire, lues sur la table. */
-function blessuresDuPiege(): number {
-  const echec = CACHE.flux.echec;
+function blessuresDuPiege(ep: Epreuve): number {
+  const echec = ep.flux.echec;
   if (echec.kind !== 'effet' || echec.effet.type !== 'ops') throw new Error('branche d’échec hors forme');
   const op = echec.effet.ops[0];
   if (op?.op !== 'wounds' || typeof op.amount !== 'number') throw new Error('op hors forme');
   return op.amount;
 }
+/** La première graine de 1 à 60 où `jouer` rend l'issue `reussite`. */
+function graineOu<T extends { reussite: boolean }>(reussite: boolean, jouer: (graine: number) => T): number {
+  for (let g = 1; g <= 60; g++) if (jouer(g).reussite === reussite) return g;
+  throw new Error(`aucune graine ${reussite ? 'réussie' : 'ratée'}`);
+}
 
 describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
   it('rejoue la même issue à graine fixe', () => {
-    expect(jouerLEpreuve(groupe(), CACHE, GRAINE_RATEE)).toEqual(jouerLEpreuve(groupe(), CACHE, GRAINE_RATEE));
-    expect(jouerLEpreuve(groupe(), CACHE, GRAINE_REUSSIE)).toEqual(jouerLEpreuve(groupe(), CACHE, GRAINE_REUSSIE));
+    const seul = () => [groupe()[1]];
+    for (const g of [1, 7]) expect(jouerLEpreuve(seul(), FOUILLE, g)).toEqual(jouerLEpreuve(seul(), FOUILLE, g));
   });
 
-  it('réussite : un héros du groupe a jeté, le groupe revient tel qu’il est parti', () => {
+  it('la lame sans `on` frappe tout le groupe de l’épreuve', () => {
     const avant = groupe();
-    const r = jouerLEpreuve(avant, CACHE, GRAINE_REUSSIE);
-    expect(r.reussite).toBe(true);
+    const r = jouerLEpreuve(avant, FOUILLE, graineOu(false, (g) => jouerLEpreuve(groupe(), FOUILLE, g)));
+    expect(r.groupe.map((c, i) => avant[i].wounds.current - c.wounds.current)).toEqual(avant.map(() => blessuresDuPiege(FOUILLE)));
+  });
+
+  it('un héros seul : il jette, et le piège ne frappe que lui, même à 2 Blessures', () => {
+    const seul = () => { const c = groupe()[2]; c.wounds.current = 2; return [c]; };
+    const r = jouerLEpreuve(seul(), FOUILLE, graineOu(false, (g) => jouerLEpreuve(seul(), FOUILLE, g)));
+    expect(r.testeur).toBe(seul()[0].id);
+    expect(r.groupe).toHaveLength(1);
+    expect(r.groupe[0].wounds.current).toBe(Math.max(0, 2 - blessuresDuPiege(FOUILLE)));
+  });
+
+  it('réussite : le héros revient tel qu’il est parti', () => {
+    const seul = () => [groupe()[1]];
+    const r = jouerLEpreuve(seul(), FOUILLE, graineOu(true, (g) => jouerLEpreuve(seul(), FOUILLE, g)));
     expect(r.dr).toBeGreaterThanOrEqual(0);
-    expect(avant.map((c) => c.id)).toContain(r.testeur);
-    expect(r.groupe).toEqual(avant);
-  });
-
-  it('échec : le piège retire ses Blessures à exactement un héros, sans État résiduel', () => {
-    const avant = groupe();
-    const r = jouerLEpreuve(avant, CACHE, GRAINE_RATEE);
-    expect(r.reussite).toBe(false);
-    expect(avant.map((c) => c.id)).toContain(r.testeur);
-    const pertes = r.groupe.map((c) => avant.find((a) => a.id === c.id)!.wounds.current - c.wounds.current);
-    expect(pertes.filter((p) => p !== 0)).toEqual([blessuresDuPiege()]);
-    for (const c of r.groupe) expect(c.conditions).toEqual([]);
-    const victime = r.groupe.findIndex((_, i) => pertes[i] !== 0);
-    expect({ ...r.groupe[victime], wounds: avant[victime].wounds }).toEqual(avant[victime]);
+    expect(r.groupe).toEqual(seul());
   });
 
   it('un combat joué après l’épreuve démarre propre : seules les Blessures de la victime ont changé', () => {
-    const rendu = jouerLEpreuve(groupe(), CACHE, GRAINE_RATEE).groupe;
-    const temoin = groupe().map((c, i) => ({ ...c, wounds: rendu[i].wounds }));
+    const seul = () => [groupe()[0]];
+    const rendu = jouerLEpreuve(seul(), FOUILLE, graineOu(false, (g) => jouerLEpreuve(seul(), FOUILLE, g))).groupe;
+    const temoin = seul().map((c, i) => ({ ...c, wounds: rendu[i].wounds }));
     expect(jouerLeCombat(rendu, ['gobelin'], 3)).toEqual(jouerLeCombat(temoin, ['gobelin'], 3));
   });
-});
 
-/** Une partie neuve à la graine `graine`, sa compagnie partie au Reikwald, sa salle courante une cache. */
-function devantLaCache(graine: number): Etat {
-  const e = nouvellePartie(graine);
-  expect(partir(e, 'reikwald', e.roster.map((h) => h.c.id))).toBeNull();
-  e.expedition!.salles[0].type = 'tresor';
-  return e;
-}
-
-describe('avancer — la salle tresor porte son épreuve', () => {
-  it('échec : la victime avec ses Blessures avant et après, le testeur, le Test et l’or pris', () => {
-    const e = devantLaCache(GRAINE_DE_PARTIE_RATEE);
-    const avant = new Map(e.roster.map((h) => [h.c.id, h.c.wounds.current]));
-    const orAvant = e.expedition!.or;
-    const r = avancer(e).epreuve!;
-    expect(r.reussite).toBe(false);
-    expect([...avant.keys()]).toContain(r.testeur);
-    expect([r.competence, r.difficulte]).toEqual(['Perception', DIFFICULTY_LABELS.difficile]);
-    expect(r.victimes).toHaveLength(1);
-    const [v] = r.victimes;
-    const h = e.roster.find((x) => x.c.id === v.id)!;
-    expect(v).toEqual({ id: h.c.id, avant: avant.get(h.c.id), apres: h.c.wounds.current, max: h.c.wounds.max });
-    expect(v.avant - v.apres).toBe(blessuresDuPiege());
-    expect(r.or).toBe(e.expedition!.or - orAvant);
-  });
-
-  it('réussite : personne n’est touché', () => {
-    const r = avancer(devantLaCache(GRAINE_DE_PARTIE_REUSSIE)).epreuve!;
-    expect(r.reussite).toBe(true);
-    expect(r.victimes).toEqual([]);
+  it('epreuveTentable : Piégeage pour qui le possède, rien pour qui n’a ni Piégeage ni Crochetage (LDB 09 l.30)', () => {
+    const [soldat, chasseur] = groupe();
+    expect(epreuveTentable(chasseur, desarmer.epreuves)?.flux.test.skill).toEqual({ id: 'piegeage' });
+    expect(epreuveTentable(soldat, desarmer.epreuves)).toBeUndefined();
+    expect(epreuveTentable(soldat, fouiller.epreuves)).toBe(FOUILLE);
   });
 });

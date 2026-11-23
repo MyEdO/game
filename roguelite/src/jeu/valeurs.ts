@@ -1,7 +1,16 @@
 /**
  * Les valeurs d'adaptation du roguelite : bâtiments et paliers, carrières du roster, destinations, prix, gains.
  */
-import { nomDeCarriereDuLivre, nomDeTalent, sortsDeLaVoie, type Combatant, type Epreuve, type Identite, type PoidsDArmure } from '../noyau';
+import {
+  nomDeCarriereDuLivre,
+  nomDeTalent,
+  sortsDeLaVoie,
+  type Combatant,
+  type Epreuve,
+  type Identite,
+  type PoidsDArmure,
+  type FluxDEpreuve,
+} from '../noyau';
 
 import { profil } from './outils';
 
@@ -145,23 +154,33 @@ export const DESTINATIONS: readonly Destination[] = [
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
 ];
 
-/** Une salle jouée en épreuve par le noyau (`jouerLEpreuve`) : son titre, l'épreuve, et ce que le récit dit du piège
- *  repéré ou déclenché. */
-export interface SalleDEpreuve { titre: string; epreuve: Epreuve; repere: string; declenche: string }
+/** Une action à jet d'une salle à choix : son geste, la question au socle, ses épreuves (le héros choisi joue la
+ *  première qu'il peut tenter, `epreuveTentable`) et ce que dit sa réussite. */
+export interface ActionAJet { libelle: string; question: string; epreuves: readonly Epreuve[]; reussite: string }
+export type IdActionAJet = 'fouiller' | 'desarmer';
+/** Une salle à choix jouée par le noyau (`jouerLEpreuve`) : son titre, son annonce, ses actions à jet, « passer », et
+ *  ce que le récit dit d'un échec. */
+export interface SalleAChoix { titre: string; annonce: string; actions: Record<IdActionAJet, ActionAJet>; passer: { libelle: string; issue: string; recit: string }; declenche: string }
+
+/** La lame du piège : sans `on`, l'effet frappe le groupe de l'épreuve, réduit au héros qui la tente. */
+const LAME: FluxDEpreuve['echec'] = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'wounds', amount: 4 }] } };
+const epreuve = (label: string, skill: string, difficulty: NonNullable<FluxDEpreuve['test']['difficulty']>): Epreuve =>
+  ({ label, flux: { kind: 'test', test: { skill: { id: skill }, difficulty }, reussite: { kind: 'sequence', etapes: [] }, echec: LAME } });
+
 /** Valeurs d'adaptation : la cache piégée de la salle `tresor`. */
-export const EPREUVES: { tresor: SalleDEpreuve } = {
+export const EPREUVES: { tresor: SalleAChoix } = {
   tresor: {
     titre: 'Une cache piégée',
-    epreuve: {
-      label: 'Fouiller la cache',
-      flux: {
-        kind: 'test', test: { skill: { id: 'perception' }, difficulty: 'difficile' },
-        reussite: { kind: 'sequence', etapes: [] },
-        echec: { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'wounds', amount: 4 }] } },
-      },
+    annonce: 'Des pierres semblent avoir été déplacées : une bourse dessous, peut-être, et un piège avec elle.',
+    actions: {
+      fouiller: { libelle: 'Fouiller', question: 'Qui fouille la cache ?', epreuves: [epreuve('Fouiller la cache', 'perception', 'difficile')],
+        reussite: 'Un fil tendu court sous les pierres : le piège est repéré, la bourse dégagée.' },
+      desarmer: { libelle: 'Désarmer d’abord', question: 'Qui désarme le piège ?',
+        epreuves: [epreuve('Désarmer le piège', 'piegeage', 'intermediaire'), epreuve('Désarmer le piège', 'crochetage', 'intermediaire')],
+        reussite: 'Le mécanisme cède sans un bruit : le piège est désarmé, la cache se fouille sans risque.' },
     },
-    repere: 'Un fil tendu court sous les pierres : le piège est repéré et désarmé.',
-    declenche: 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche.',
+    passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni risque', recit: 'Le groupe laisse les pierres en place et poursuit sa route.' },
+    declenche: 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche, la bourse reste hors d’atteinte.',
   },
 };
 

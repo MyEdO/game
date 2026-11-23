@@ -6,6 +6,7 @@ import { arena } from '../../../src/scenes/test-scenarios/_shared';
 import { EVT, type TestResolu } from '../../../src/noyau/bus';
 import { DIFFICULTY_LABELS, type Combatant } from '../../../src/engine/types';
 import { skills } from '../../../src/data';
+import { peutTenter } from '../../../src/engine/skills';
 import type { FlowDeScene } from '../../../src/data/schemas/defs-scenes/effets';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
@@ -51,3 +52,7 @@ export function partiesDuTest(flux: FluxDEpreuve): { competence: string; difficu
   const { skill, difficulty } = flux.test;
   return { competence: skill ? skills.find((s) => s.id === skill.id)?.label ?? skill.id : '', difficulte: difficulty ? DIFFICULTY_LABELS[difficulty] : '' };
 }
+
+/** La première des `epreuves` que `heros` peut tenter, ou `undefined`. LDB 09 l.30 */
+export const epreuveTentable = (heros: Combatant, epreuves: readonly Epreuve[]): Epreuve | undefined =>
+  epreuves.find((ep) => peutTenter(heros, ep.flux.test.skill ? { skill: ep.flux.test.skill } : {}));

@@ -6,13 +6,13 @@
  * lieu ; un carton (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
  */
 import * as J from '../jeu';
-import { ficheDuSort, nomDeCreature } from '../noyau';
+import { ficheDuSort, nomDeCreature, partiesDuTest } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { jauge, medaillon, picto, plaque, portrait, rondMuet } from '../kit';
 import type { Vignette } from '../vignettes';
-import { CADRES, CADRES_DE_L_HOTE, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
+import { CADRES, CADRES_DE_L_HOTE, carton, ecran, TAILLES, tailleChoisie, type Socle, type Taille } from './ecran';
 import { busteDuHeros, cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
 
@@ -119,17 +119,39 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
   }).join('')}</div>`;
 }
 
-/** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). */
-export function ecranDeLExpedition(e: J.Etat, fiche: string, carte: string): string {
+/** La salle à choix ouverte, en carton : son annonce, chaque action et son Test, une plaque par action ; `choix` :
+ *  l'action à jet qui attend son héros au socle. */
+function salleAChoixEnCarton(e: J.Etat, choix: J.IdActionAJet | null): string {
+  const x = e.expedition!;
+  const cache = J.EPREUVES.tresor;
+  const ids = Object.keys(cache.actions) as J.IdActionAJet[];
+  const test = (id: J.IdActionAJet) => {
+    const parties = cache.actions[id].epreuves.map((ep) => partiesDuTest(ep.flux));
+    return `Test de ${parties.map((p) => p.competence).join(' ou de ')} ${parties[0].difficulte}`;
+  };
+  return carton({
+    ruban: NOM_DE_SALLE.tresor, vignette: 'tresor', titre: cache.titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
+    texte: `<div class="recit"><p>${esc(cache.annonce)}</p>${ids.map((id) => `<p>${esc(`${cache.actions[id].libelle} : ${test(id)}.`)}</p>`).join('')}<p>${esc(`${cache.passer.libelle} : ${cache.passer.issue}.`)}</p></div>`,
+    gestes: ids.map((id) => plaque(cache.actions[id].libelle, `data-a="action" data-k="${id}"`, { armee: choix === id })).join('') + plaque(cache.passer.libelle, 'data-a="action" data-k="passer"'),
+  });
+}
+
+/** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une
+ *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`), le socle demandant qui tente l'action `choix`. */
+export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choix: J.IdActionAJet | null): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
   const salle = x.salles[x.index];
   const groupe = J.herosDuGroupe(e);
   const valides = groupe.filter(J.valide).length;
+  const aChoisir = !recit && J.salleAChoisir(e);
+  const carte = aChoisir ? salleAChoixEnCarton(e, choix) : recit;
+  const socle: Socle = !aChoisir ? { heros: groupe, geste: 'heros', choisi: () => false }
+    : { heros: groupe, geste: 'tenter', choisi: () => false, refus: (h) => (choix ? J.refusDAction(h, choix) : 'Choisissez d’abord une action.'), ...(choix ? { consigne: J.EPREUVES.tresor.actions[choix].question } : {}) };
   const annonce = salle.type === 'camp' ? 'Un abri se devine entre les arbres. Le groupe pourra y passer la nuit.'
-    : salle.type === 'tresor' ? 'Des pierres semblent avoir été déplacées.'
+    : salle.type === 'tresor' ? J.EPREUVES.tresor.annonce
     : `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`;
-  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' ? 'Fouiller' : 'Engager le combat';
+  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' ? 'Approcher' : 'Engager le combat';
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const scene = (!carte && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
@@ -140,14 +162,14 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, carte: string): str
         <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>`, { classe: 'carte-salle' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
-    socle: { heros: groupe, geste: 'heros', choisi: () => false },
+    socle,
     vide: 'Personne.',
   });
   return `<div class="ecran expedition">${tableau(d.id, groupe, 'fond-expe')}${scene}</div>`;
 }
 
 /** Le récit d'une épreuve en pièces : le Test (qui le passe, sa Compétence et sa Difficulté, son issue et ses DR au sceau
- *  de cire), chaque touché à son portrait, ses Blessures avant et après et sa vie restante en jauge, la bourse prise en
+ *  de cire), chaque touché à son portrait, ses Blessures avant et après et sa vie restante en jauge, la bourse prise (s'il y en a une) en
  *  couronnes ; dessous, ce qu'il advient du piège. */
 function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
   const qui = (id: string) => heros.find((h) => h.c.id === id)!;
@@ -159,9 +181,8 @@ function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string
     const h = qui(v.id);
     pieces += piece('touche', portrait(busteDuHeros(h), 'heros', 'moyen'), 'Touché·e', `<span class="nom-propre moyen gothique">${esc(h.c.label)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
   }
-  pieces += piece('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
-  const piege = x.reussite ? J.EPREUVES.tresor.repere : J.EPREUVES.tresor.declenche;
-  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(piege)}</p></div>`;
+  if (x.or) pieces += piece('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
+  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p></div>`;
 }
 
 /** Le récit d'une salle franchie, ou du retour, en carton : une épreuve en pièces (`heros` : le groupe, qui lui donne

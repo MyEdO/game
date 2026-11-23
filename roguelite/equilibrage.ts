@@ -36,7 +36,12 @@ for (let exp = 0; exp < expeditions; exp++) {
   const err = J.partir(e, dest.id, e.roster.filter((h) => J.valide(h) && h.c.wounds.current >= h.c.wounds.max * 0.6).slice(0, 4).map((h) => h.c.id));
   if (err) { log('départ refusé', err, e.roster.length, e.or, J.attendreUneSemaine(e) ?? 'la compagnie attend une semaine'); continue; }
   while (e.expedition) {
-    const r = J.avancer(e);
+    const r = J.avancer(e) ?? (() => {
+      const g = J.herosDuGroupe(e);
+      const desarmeur = g.find((h) => !J.refusDAction(h, 'desarmer'));
+      const r = desarmeur ? J.agirDansLaSalle(e, 'desarmer', desarmeur.c.id) : J.agirDansLaSalle(e, 'fouiller', g.find(J.valide)?.c.id);
+      return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
+    })();
     const g = J.herosDuGroupe(e);
     const blesse = g.filter((h) => !h.c.dead).sort((a, b) => a.c.wounds.current - b.c.wounds.current)[0];
     for (const h of g) if (blesse && blesse.c.wounds.current < blesse.c.wounds.max && J.peutPrier(e, h)) J.prier(e, h.c.id, blesse.c.id);

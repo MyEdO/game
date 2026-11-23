@@ -26,6 +26,8 @@ let client: string | null = null;
 /** L'emplacement ouvert à la forge. */
 let emplacement: Emplacement = 'main';
 let congediement: string | null = null;
+/** L'action à jet de la salle ouverte qui attend son héros au socle. */
+let choixDAction: J.IdActionAJet | null = null;
 let panoramaCentre = false;
 
 function toast(msg: string | null) {
@@ -44,6 +46,16 @@ function agir(f: () => string | null | void) {
   if (err) toast(err);
 }
 
+/** Le récit de l'action jouée dans la salle ouverte (`J.agirDansLaSalle`), en carton ; son refus, en toast. */
+function raconterLAction(r: J.RecitDeSalle | string) {
+  if (typeof r === 'string') return toast(r);
+  choixDAction = null;
+  J.sauver(etat);
+  const x = etat.expedition!;
+  ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE.tresor, vignette: 'tresor', surTitre: `${J.destinationCourante(etat)!.nom} · salle ${x.index} sur ${x.salles.length} franchie`, terrain: x.destination };
+  rendre();
+}
+
 /** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le hameau. */
 const ficheOuverte = (): string => (panneau?.type === 'heros' ? ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet) : '');
 function serviceOuvert() {
@@ -58,7 +70,7 @@ const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? reco
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
-  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), vueDuCarton()) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
+  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), vueDuCarton(), choixDAction) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) {
     if (avant != null && panoramaCentre) pano.scrollLeft = avant;
@@ -144,6 +156,7 @@ document.addEventListener('click', (ev) => {
       const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length} franchie`;
       const recit = J.avancer(etat);
       J.sauver(etat);
+      if (!recit) { choixDAction = null; return rendre(); }
       const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: type, surTitre, terrain }; rendre(); };
       if (!recit.combat) return montrer();
       rendre();
@@ -153,6 +166,11 @@ document.addEventListener('click', (ev) => {
       return ouvrirLeRejeu(recit.combat, recit.fin ? '' : recit.lignes[0], raconter ? montrer : rendre, terrain, etat.roster);
       return;
     }
+    case 'action': {
+      if (k !== 'passer') { choixDAction = k as J.IdActionAJet; return rendre(); }
+      return raconterLAction(J.agirDansLaSalle(etat, 'passer'));
+    }
+    case 'tenter': return choixDAction ? raconterLAction(J.agirDansLaSalle(etat, choixDAction, id)) : undefined;
     case 'revoir': {
       if (ouvert?.type !== 'recit' || !ouvert.recit.combat) return;
       const m = ouvert;

@@ -11,7 +11,8 @@ import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques'
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number; retraitTotal?: number }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
-export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean }
+/** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`) et attend le choix de son action. */
+export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true }
 /** `prieres` : les Bénis qui ont déjà prié pour soigner pendant l'expédition. */
 /** `munitions` : les munitions de chaque héros au départ, par objet du catalogue ; elles sont ramassées au retour. */
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
