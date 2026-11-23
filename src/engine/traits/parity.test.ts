@@ -81,7 +81,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Dressé (Magie)', 'marqueur lu par le gate `startleCause` de Nerveux (exemption magie, données)'],
   // Porteurs de Groupe (#3045) : le Trait octroie son Groupe, le reste de la discipline reste narratif.
   ['Béni', 'Groupe `religion` (capabilities.grantGroups, lu par groupesDe) ; Bénédictions de PNJ sans liste de prières dans la donnée'],
-  ['Dressé (Monture)', 'Groupe `animaux-domestiques` (groupesDe) ; lève la capacité `refuseLeCavalier` de Belliqueux (`suppressesCapabilities`, LDB 85 l.112), lue par `accepteUnCavalier` : possession, `canMount`, `ridesEntityId`'],
+  ['Dressé (Monture)', 'Groupe `animaux-domestiques` (groupesDe) ; capacité `monture` (LDB 85 l.112 ; AA 09 l.23), lue par `accepteUnCavalier` : possession, `canMount`, `ridesEntityId`'],
   ['Dressé (Cavalerie de choc)', 'Groupe `animaux-domestiques` (groupesDe) ; charge en bon ordre (Aux Armes, formations) non modélisée'],
   ['Dressé (Rapporteur)', 'Groupe `animaux-domestiques` (groupesDe) ; discipline narrative (rapport)'],
   ['Dressé (Revenir à la maison)', 'Groupe `animaux-domestiques` (groupesDe) ; discipline narrative (retour au bercail)'],
