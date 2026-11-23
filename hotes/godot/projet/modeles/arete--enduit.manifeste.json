@@ -29,11 +29,6 @@
       "matiere": "prop--prop-ardoise"
     },
     {
-      "nom": "chevron",
-      "palette": "bois",
-      "matiere": "prop--bois-chene"
-    },
-    {
       "nom": "menuiserie",
       "palette": "accent",
       "matiere": "prop--bois-chene"
@@ -70,7 +65,7 @@
     }
   ],
   "glb": {
-    "sha256": "dd4213f6faac8f2d41485976c56597b16b9cb58d0e1084ccd1e00b88571bc2f4",
-    "octets": 649948
+    "sha256": "ab5bb4e3c26a5e5a14548944807f53f45456b28fef7eb2c085c7a04ae9b2d954",
+    "octets": 649476
   }
 }

@@ -9,9 +9,9 @@ import geometrie
 from geometrie import DROITE, GAUCHE, Repere, biais, noeud
 from maconnerie import JEU_DE_L_AME, PIERRE, Appareil
 from maille import lineaire
-from menuiserie import PORTE_DE_PLANCHES, croisee, echelle, vitre, volets
+from menuiserie import BARRES, PORTE_DE_PLANCHES, croisee, echelle, vitre, volets
 
-ENDUIT, CLAIRE, ARDOISE, CHEVRON = "enduit", "pierre-claire", "ardoise", "chevron"
+ENDUIT, CLAIRE, ARDOISE = "enduit", "pierre-claire", "ardoise"
 
 
 def prisme(m, R, contour, c, mat):
@@ -164,7 +164,7 @@ def ecu(m, R, axe, cote, c, E):
 def toit(m, R, alea, a, nu, haut, T):
     """Le petit toit d'ardoise `T` (`PORTAIL["toit"]`) entre les abscisses `a`, à deux pans sur la tête du mur, son
     faîte à la hauteur `haut` : par pan, ses rangs d'ardoises à recouvrement, les joints croisés d'un rang à l'autre,
-    le pied de chacune tiré, et ses chevrons sous elles ; sa faîtière."""
+    le pied de chacune tiré, et ses chevrons sous elles, du bois des barres d'un vantail ; sa faîtière."""
     egout, faite = (nu + T["debord"], T["egout"]), (0.0, haut - T["faitiere"][1])
     rampant = math.dist(egout, faite)
     pente = ((faite[0] - egout[0]) / rampant, (faite[1] - egout[1]) / rampant)
@@ -186,7 +186,7 @@ def toit(m, R, alea, a, nu, haut, T):
         for k in range(T["chevrons"]):
             x = a[0] + (a[1] - a[0]) * (k + 0.5) / T["chevrons"]
             pan.poutre(m, au_pan(0.02, -haut_c / 2 - 0.002), au_pan(rampant - 0.02, -haut_c / 2 - 0.002), haut_c,
-                       (x - large / 2, x + large / 2), CHEVRON)
+                       (x - large / 2, x + large / 2), BARRES)
     R.boite(m, a, (faite[1], haut), (-T["faitiere"][0] / 2, T["faitiere"][0] / 2), ARDOISE)
 
 

@@ -20,9 +20,9 @@ maçonnerie à nu, ses pierres au pied.
 Matières : l'enduit prend `terre-battue`, la pierre de l'encadrement et de la maçonnerie et ses gravats `pierre-atre`,
 le bandeau et l'écu `albatre`, la couverture `prop-ardoise`, ses chevrons, les vantaux et la croisée `bois-chene`, les
 ferrures `fer-noirci`, la vitre `verre`. L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
-La pierre prend la teinte `joint` de l'apparence, les chevrons sa teinte `bois` ; l'ardoise et la pierre claire
-nomment `vet2`, que la palette d'une arête ne teint pas (`paletteDeLApparence`) : elles gardent la couleur de leur
-matière.
+La pierre prend la teinte `joint` de l'apparence, les chevrons celle des barres des vantaux ; l'ardoise et la pierre
+claire nomment `vet2`, que la palette d'une arête ne teint pas (`paletteDeLApparence`) : elles gardent la couleur de
+leur matière.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
@@ -44,7 +44,6 @@ MATERIAUX = {
     "moellons": ("joint", "pierre-atre"),
     "pierre-claire": ("vet2", "albatre"),
     "ardoise": ("vet2", "prop-ardoise"),
-    "chevron": ("bois", "bois-chene"),
     "menuiserie": ("accent", "bois-chene"),
     "barres": ("planche", "bois-chene"),
     "croisee": ("vet1", "bois-chene"),
