@@ -236,7 +236,7 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
-  log.push(...syncDerivedConditions(target));
+  log.push(...syncDerivedConditions(target).lignes);
   return log;
 }
 

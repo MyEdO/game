@@ -30,8 +30,9 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource, tirerLaTable,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
+import { nomDeSource } from '../engine/faits';
 import { rule } from '../engine/policy';
 import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
@@ -597,7 +598,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
     return OPS_DIFFEREES;
   }
   const avant = comptePasDifferes(get());
-  const lignes = applyOps(c, rest, ctx);
+  const lignes = applyOps(c, rest, ctx).lignes;
   if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.text));
   if (comptePasDifferes(get()) <= avant) return lignes;
   set(touchActors(get()));
@@ -684,7 +685,7 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
 }
 
 function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx) {
-  const journal = applyOps(cible, ops, ctx);
+  const journal = applyOps(cible, ops, ctx).lignes;
   set(touchActors(get()));
   return { consequences: freeCons(journal) };
 }
@@ -1923,7 +1924,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping });
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes;
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
@@ -2162,7 +2163,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       });
       if (!cible) return;
       const apres = { ...cible };
-      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() });
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() }).lignes;
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
       for (const l of lines) env.log(l);
     },

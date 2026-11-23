@@ -981,7 +981,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
       if (r.ok && r.chaos) {
         const hero = actorIn(get(), heroId);
         if (hero) {
-          for (const l of gainCorruption(get, set, hero, 1)) get().ecrireAuJournal(l);
+          for (const l of gainCorruption(get, set, hero, 1).lignes) get().ecrireAuJournal(l);
           set(touchActors(get()));
         }
       }

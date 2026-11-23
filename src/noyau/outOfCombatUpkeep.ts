@@ -81,7 +81,7 @@ export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: Reprise
         roundActif = true;
         const avant = comptePasDifferes(get());
         const { forgerUnId, campaignNarratif } = get();
-        direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, undefined, objetDuNarratif(campaignNarratif)));
+        direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif)));
         if (comptePasDifferes(get()) > avant) {
           set(touchActors(get()));
           confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien } }]);

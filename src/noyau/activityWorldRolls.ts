@@ -63,7 +63,7 @@ export const TABLES = {
       if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'neutre' }]) };
       const lignes = applyOps(h, wr.ops, { idNeuf: get().forgerUnId,
         rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activite', id: def.id },
-      });
+      }).lignes;
       set({ party: [...get().party] });
       return { consequences: freeCons([{ text: wr.label, tone: 'echec' }, ...lignes.map((text) => ({ text, tone: 'echec' as const }))]) };
     },

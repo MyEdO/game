@@ -8,7 +8,7 @@ import {
   effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis,
   CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
-  type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
+  type ConsequenceEnVue, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
@@ -189,9 +189,20 @@ function lignesDeFenetre(f: FenetreTexte): string[] {
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
+/** Une conséquence appliquée : qui la subit, son genre (et l'État qu'elle nomme), sa valeur signée. */
+function texteDeConsequence(c: ConsequenceEnVue): string {
+  const etat = c.detail && 'id' in c.detail ? ` ${c.detail.id}` : '';
+  return `${c.qui ?? 'hors de vue'} ${c.genre}${etat} ${signe(c.valeur)}`;
+}
+
+/** Une ligne de jet, suivie des conséquences qu'il a appliquées. */
+function texteDeLigneDeJet(l: LigneDeJet): string {
+  return `${texteDuDeDeLigne(l)}${l.consequences ? ` ⇒ ${l.consequences.map(texteDeConsequence).join(', ')}` : ''}`;
+}
+
 /** Une ligne de jet : qui jette, quoi, puis le dé tombé (un Test : d100 sur la cible, DR, verdict ; une table : d100, la
  *  valeur lue et sa ligne ; un dé : naturel, total et lecture), ou ce qu'il reste à jeter. */
-function texteDeLigneDeJet(l: LigneDeJet): string {
+function texteDuDeDeLigne(l: LigneDeJet): string {
   const qui = l.qui ? `${l.qui} ` : '';
   switch (l.genre) {
     case 'test': {

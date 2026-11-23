@@ -30,7 +30,19 @@ import { bonusDe } from '../engine/characteristics';
 import { pionsRetirables, removeCondition, stacks } from '../engine/conditions';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
-import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, choiceStep, pousseSi, tableStep, type Consequence } from './rollSeam';
+import {
+  faitsDesConsequences,
+  freeCons,
+  resultLines,
+  rollStep,
+  monoStep,
+  displayStep,
+  bandStep,
+  choiceStep,
+  pousseSi,
+  tableStep,
+  type Consequence,
+} from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { toRecapLines, type RecapTone } from './recapLine';
 import { noteEvent } from './evenementDuJour';
@@ -58,7 +70,9 @@ import type { Jeu } from './etat';
 import type { TableStepDef } from './cascade';
 import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import {
+  stepDetail,
+} from './rollSeam';
 import { postingTenu } from '../engine/activities';
 import { refuserGesteDuSiege } from './refusVisible';
 import { ecrireActeur } from './monde/combatants';
@@ -414,14 +428,15 @@ export const TABLES = {
         const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
         const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
         part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
+        const faits = faitsDesConsequences(cons);
+        if (faits.length) part.faits = faits;
         for (const l of lines) get().ecrireAuJournal(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
       }
       set({ party: [...get().party] });
       return { consequences: [] };
     },
-    /** Test de RÉSISTANCE de traversée (l.86/127) : échec → Exténué (op `condition`, patron #338/#340), ligne
-     *  DÉRIVÉE (`resultLines`/`opConsequenceLine` case condition) SUR SA rangée (le portrait attribue). Succès →
-     *  aucune note (la rangée ✓ ±DR porte le verdict). */
+    /** Test de RÉSISTANCE de traversée (l.86/127) : échec → Exténué (op `condition`, patron #338/#340), son fait
+     *  et sa ligne SUR SA rangée (le portrait attribue). Succès → aucune note (la rangée ✓ ±DR porte le verdict). */
     resistanceALaMeteo: (get, set, step) => {
       if (!step.participants) return;
       for (const part of step.participants) {
@@ -429,9 +444,10 @@ export const TABLES = {
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.86/127
-        applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
-        const lines = resultLines([{ ops: [op] }]);
+        const applique = applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
+        const lines = resultLines([applique]);
         part.outcome = lines;
+        part.faits = applique.faits;
         for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set({ party: [...get().party] });

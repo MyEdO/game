@@ -843,7 +843,7 @@ function effetsDeLaSanction(
   get: Get, gameId: string, acteur: Combatant | undefined, ops: SequenceThrowerPenalty['ops'],
 ): string[] {
   if (!acteur || !ops?.length) return [];
-  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } });
+  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } }).lignes;
 }
 
 /** Le Test PROPRE d'une rangée de taverne : le verdict du d100 (`evaluateTest`, LDB 12 l.25-28), jamais

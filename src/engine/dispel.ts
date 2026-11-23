@@ -12,7 +12,8 @@
  * partent avec l'effet, par la réconciliation que `removeActiveEffects` clôt) — un État pur à durée
  * (`Condition.roundsLeft`) n'est pas marqué.
  */
-import { Combatant, ActiveEffect, type ConditionEmit } from './types';
+import { Combatant, ActiveEffect } from './types';
+import type { Applique } from './faits';
 import { removeActiveEffects } from './conditions';
 
 /** Un Sort PERMANENT actif et dissipable : identité + NI (le DR à atteindre) + porteurs de ses effets. */
@@ -51,12 +52,12 @@ export function isFromSpell(e: ActiveEffect, spellId: string, casterId: string):
 
 /** Retire de TOUS les combattants les effets actifs d'un Sort DISSIPÉ (réversion propre des octrois via
  *  `removeActiveEffects`, comme l'expiration naturelle). Renvoie le nombre de combattants nettoyés.
- *  `log`/`emit` recueillent ce que la réconciliation dit des États PORTÉS qui partent avec le Sort
- *  (#1695) : sans eux, trois États tomberaient sans une ligne ni une notification. */
-export function dissipateSpell(combatants: Combatant[], spellId: string, casterId: string, emit?: ConditionEmit, log?: string[]): number {
+ *  `recueil` reçoit ce que la réconciliation dit des États PORTÉS qui partent avec le Sort (#1695) :
+ *  sans lui, trois États tomberaient sans une ligne. */
+export function dissipateSpell(combatants: Combatant[], spellId: string, casterId: string, recueil?: Applique): number {
   let cleaned = 0;
   for (const c of combatants) {
-    if (removeActiveEffects(c, (e) => isFromSpell(e, spellId, casterId), emit, log).length) cleaned++;
+    if (removeActiveEffects(c, (e) => isFromSpell(e, spellId, casterId), recueil).length) cleaned++;
   }
   return cleaned;
 }

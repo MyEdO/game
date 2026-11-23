@@ -88,8 +88,8 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('journal de l\'op `wounds` : les Blessures réellement perdues, rien à 0 PB', () => {
     const c = ilyanweSaignee(1);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual([]);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([]);
   });
 });
 
