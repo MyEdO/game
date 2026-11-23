@@ -14,6 +14,11 @@
       "matiere": "prop--terre-battue"
     },
     {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "moellons",
       "palette": "joint",
       "matiere": "prop--pierre-atre"
@@ -70,7 +75,7 @@
     }
   ],
   "glb": {
-    "sha256": "9a8f5eff01d260afa05446cde52b6caaea70501110b5b625dd972138372140dc",
-    "octets": 650292
+    "sha256": "f790ae785627265429af6b3d87b60fb9a649ed7e42690bd7e5cc435a93686d6f",
+    "octets": 644128
   }
 }

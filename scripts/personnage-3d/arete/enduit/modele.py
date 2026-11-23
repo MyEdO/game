@@ -1,5 +1,6 @@
 """Le mur enduit (#4471) : le GLB `arete--enduit`, un nœud par pièce de `BATIR`, bâti d'après `donnees.py` dans le
-repère d'une arête (`geometrie.py`). Le corps du mur est d'enduit (`Enduit.pan_d_enduit`), une coque close par pan ;
+repère d'une arête (`geometrie.py`). Le corps du mur est d'enduit (`Enduit.pan_d_enduit`), une coque close par pan,
+sous sa tête de bois (`Enduit.poteau`, `Enduit.lisse`) ;
 ses pierres, à nu ou d'encadrement, sont celles de `maconnerie` (`Appareil.pierre`, `Appareil.pan`), posées en relief
 sur lui. Une porte cintrée (`Appareil.porte_cintree`) prend le porche d'enduit d'`Enduit.porche`. L'aléa d'une pièce
 est semé de son nom : deux constructions rendent les mêmes octets."""
@@ -11,7 +12,7 @@ from maconnerie import JEU_DE_L_AME, PIERRE, Appareil
 from maille import lineaire
 from menuiserie import BARRES, PORTE_DE_PLANCHES, croisee, echelle, vitre, volets
 
-ENDUIT, CLAIRE, ARDOISE, ECU = "enduit", "pierre-claire", "ardoise", "ecu"
+ENDUIT, BOIS, CLAIRE, ARDOISE, ECU = "enduit", "bois", "pierre-claire", "ardoise", "ecu"
 
 
 def prisme(m, R, contour, c, mat):
@@ -23,48 +24,58 @@ def prisme(m, R, contour, c, mat):
 
 
 class Enduit(Appareil):
-    """Le mur enduit d'une arête : l'appareil de ses pierres (`Appareil`), le corps d'enduit qui les porte et le
-    chaperon qui le coiffe, d'après `D["ENDUIT"]`, `D["CHAPERON"]` et `D["ENCADREMENT"]`."""
+    """Le mur enduit d'une arête : l'appareil de ses pierres (`Appareil`), le corps d'enduit qui les porte jusqu'à son
+    arase (`corps`) et la tête de bois qui le coiffe, d'après `D["ENDUIT"]`, `D["TETE_DE_BOIS"]` et
+    `D["ENCADREMENT"]` ; `entre` : les abscisses entre ses deux demi-poteaux de bout."""
 
     def __init__(self, D, m, alea):
         super().__init__(D, m, alea)
-        self.E, self.C, self.T = D["ENDUIT"], D["CHAPERON"], D["ENCADREMENT"]
+        self.E, self.B, self.T = D["ENDUIT"], D["TETE_DE_BOIS"], D["ENCADREMENT"]
         self.face = self.nu - self.E["retrait"]
-        self.flanc = self.haut - self.C["hauteur"]
         self.parement = self.face + self.T["saillie"]
+        self.entre = (self.B["poteau"][0] - self.demi, self.demi - self.B["poteau"][0])
+
+    def poteau(self, cote, tete=None):
+        """Le demi-poteau de bois du bout `cote` de l'arête (-1 le bout -X, 1 le bout +X), que celui de la pièce
+        voisine complète : du pied à la hauteur `tete`, sans elle jusqu'au-dessus de la lisse."""
+        self.R.boite(self.m, tuple(sorted((cote * self.demi, self.entre[cote > 0]))),
+                     (0.0, tete or self.haut - self.B["poteau"][1]), (-self.nu, self.nu), BOIS)
+
+    def lisse(self, a):
+        """La lisse de bois posée sur l'arase entre les abscisses `a`, et sa rangée de pics, leur pointe à la hauteur
+        du mur."""
+        P, dessus = self.B["pics"], self.corps + self.B["lisse"]
+        self.R.boite(self.m, a, (self.corps, dessus), (-self.nu, self.nu), BOIS)
+        nombre, demi = max(1, round((a[1] - a[0]) / P["pas"])), P["cote"] / 2
+        for k in range(nombre):
+            x = a[0] + (a[1] - a[0]) * (k + 0.5) / nombre
+            pied = [self.R.point(x + i * demi, dessus, j * demi) for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+            self.m.ajouter([*pied, self.R.point(x, self.haut, 0.0)],
+                           [[0, 1, 2, 3], *([i, (i + 1) % 4, 4] for i in range(4))], BOIS)
 
     def pan_d_enduit(self, a, pied=0.0, tete=None, pas=None):
         """Le corps d'enduit entre les abscisses `a`, une coque close : son dessous à la hauteur `pied` (m, ou
         `pied(abscisse)`), ses deux nus creusés d'un relief tiré, nul à ses deux bouts, sa tête plate à la hauteur
-        `tete`, ou sans elle le chaperon arrondi qui le déborde jusqu'à la hauteur du mur ; `pas` : le plus grand écart
-        (m) entre deux de ses sections, celui de l'enduit sans lui."""
-        E, C = self.E, self.C
+        `tete`, sans elle à l'arase du mur ; `pas` : le plus grand écart (m) entre deux de ses sections, celui de
+        l'enduit sans lui."""
+        E = self.E
         bas = pied if callable(pied) else (lambda _: pied)
         n = max(1, math.ceil((a[1] - a[0]) / (pas or E["pas"]) - 1e-9))
         stations = [a[0] + (a[1] - a[0]) * i / n for i in range(n + 1)]
-        flanc = self.flanc if tete is None else tete
+        flanc = tete or self.corps
         rangs = max(1, math.ceil((flanc - min(map(bas, stations))) / E["pas"] - 1e-9))
-        coiffe = []
-        if tete is None:
-            fleche, k = C["hauteur"] - C["bande"], C["segments"]
-            arrondi = [(-self.nu * math.cos(math.pi * i / k), flanc + C["bande"] + fleche * math.sin(math.pi * i / k))
-                       for i in range(1, k)]
-            coiffe = [(-self.nu, flanc), (-self.nu, flanc + C["bande"]), *arrondi, (self.nu, flanc + C["bande"]),
-                      (self.nu, flanc)]
         sommets = []
         for i, x in enumerate(stations):
             hauteurs = [bas(x) + (flanc - bas(x)) * r / rangs for r in range(rangs + 1)]
             nus = [self.face - (0.0 if i in (0, n) or r == rangs else self.alea.uniform(0.0, E["relief"]))
                    for _ in (-1, 1) for r in range(rangs + 1)]
-            section = [*((-c, h) for c, h in zip(nus, hauteurs)), *coiffe,
+            section = [*((-c, h) for c, h in zip(nus, hauteurs)),
                        *((c, h) for c, h in zip(nus[:rangs:-1], hauteurs[::-1]))]
             sommets += [self.R.point(x, h, c) for c, h in section]
         p = len(sommets) // (n + 1)
         faces = [[i * p + j, i * p + (j + 1) % p, (i + 1) * p + (j + 1) % p, (i + 1) * p + j]
                  for i in range(n) for j in range(p)]
-        corps = [*range(rangs + 1), *range(p - rangs - 1, p)]
-        bouts = [corps, list(range(rangs, p - rangs))] if coiffe else [corps]
-        faces += [[i * p + j for j in bout] for i in (0, n) for bout in bouts]
+        faces += [[i * p + j for j in range(p)] for i in (0, n)]
         self.m.ajouter(sommets, faces, ENDUIT)
 
     def tableau(self, bord, cote, h, harpe):
@@ -84,7 +95,8 @@ class Enduit(Appareil):
 
     def porche(self, axe, cotes, V):
         """Le porche d'enduit d'axe `axe` (abscisse de sa clef), d'après `V` (`PORTE`, `PORTAIL`) : de chaque côté de
-        `cotes` (-1 vers -X, 1 vers +X), le corps d'enduit du bout de l'arête à la clef, ouvert sous l'arc, le
+        `cotes` (-1 vers -X, 1 vers +X), le demi-poteau du bout de l'arête, le corps d'enduit de lui à la clef, ouvert
+        sous l'arc, le
         piédroit en harpe (`tableau`), les claveaux de l'arc, de queues alternées, la moitié de sa clef à l'axe, sa
         joue sous le bout de l'arête quand l'axe y est, son sommier au lit horizontal sur le piédroit, et le bandeau de
         pierre claire qui suit l'arc. Rend la hauteur de l'intrados à une abscisse."""
@@ -107,7 +119,8 @@ class Enduit(Appareil):
             prisme(self.m, self.R, contour, (-c, c), mat)
         for cote in cotes:
             raccord = self.tableau(axe + cote * portee, cote, (0.0, naissance), V["harpe"])
-            self.pan_d_enduit(tuple(sorted((cote * self.demi, raccord))), tete=V["tete"])
+            self.poteau(cote, V["tete"])
+            self.pan_d_enduit(tuple(sorted((self.entre[cote > 0], raccord))), tete=V["tete"])
             self.pan_d_enduit(tuple(sorted((raccord, axe))), lambda x: max(cercle(x, dos - T["jeu"]), naissance),
                               V["tete"], self.E["cintre"])
             pas = sorted(min(max(axe + cote * portee * k / nombre, -bout), bout) for k in range(nombre + 1))
@@ -130,17 +143,21 @@ class Enduit(Appareil):
 
 
 def mur(D, m, alea):
-    """Le mur plein : son corps d'enduit sous son chaperon."""
+    """Le mur plein : son corps d'enduit entre ses deux demi-poteaux, sous sa lisse et ses pics."""
     A = Enduit(D, m, alea)
-    A.pan_d_enduit((-A.demi, A.demi))
+    A.pan_d_enduit(A.entre)
+    for cote in (-1, 1):
+        A.poteau(cote)
+    A.lisse(A.entre)
 
 
 def porte(ouverte):
-    """La porte cintrée seule sur son arête, son vantail fermé dans la baie ou `ouverte` d'un quart de tour vers le
-    dedans."""
+    """La porte cintrée seule sur son arête, sous la lisse du mur, son vantail fermé dans la baie ou `ouverte` d'un
+    quart de tour vers le dedans."""
     def batir(D, m, alea):
-        P = D["PORTE"]
-        Enduit(D, m, alea).porte_cintree(0.0, (-1, 1), P["porche"], P["seuil"], P["jeu"], PORTE_DE_PLANCHES, ouverte)
+        A, P = Enduit(D, m, alea), D["PORTE"]
+        A.porte_cintree(0.0, (-1, 1), P["porche"], P["seuil"], P["jeu"], PORTE_DE_PLANCHES, ouverte)
+        A.lisse(A.entre)
     return batir
 
 
@@ -186,7 +203,8 @@ def toit(m, R, alea, a, nu, haut, T):
 
 
 def portail(ouverte, cote):
-    """L'arête de bout d'un portail de deux arêtes, celle de gauche (`cote` -1) ou de droite (1) : son piédroit, sa
+    """L'arête de bout d'un portail de deux arêtes, celle de gauche (`cote` -1) ou de droite (1) : son demi-poteau de
+    bout sous le toit, son piédroit, sa
     moitié de l'arc, du bandeau, de l'écu et du petit toit, et son vantail gondé au piédroit, sa tête cintrée sous
     l'arc, fermé ou `ouverte` d'un quart de tour vers le dedans."""
     def batir(D, m, alea):
@@ -206,8 +224,11 @@ def fenetre(close):
         demi_baie = F["baie"] * D["LONGUEUR"] / 2
         (haut_a, saillie_a, portee_a), (haut_l, portee_l) = F["pierre_d_appui"], F["linteau"]
         gauche, droite = (A.tableau(cote * demi_baie, cote, (F["appui"], F["tete"]), F["harpe"]) for cote in (-1, 1))
-        A.pan_d_enduit((-A.demi, gauche))
-        A.pan_d_enduit((droite, A.demi))
+        A.pan_d_enduit((A.entre[0], gauche))
+        A.pan_d_enduit((droite, A.entre[1]))
+        for cote in (-1, 1):
+            A.poteau(cote)
+        A.lisse(A.entre)
         A.pan_d_enduit((gauche, droite), tete=F["appui"] - A.T["jeu"])
         A.pan_d_enduit((gauche, droite), F["tete"] + haut_l / 2)
         A.R.boite(m, (-demi_baie - portee_a, demi_baie + portee_a), (F["appui"] - haut_a, F["appui"]),
@@ -222,20 +243,22 @@ def fenetre(close):
 
 
 def breche(D, m, alea):
-    """La brèche : le mur éventré d'après `BRECHE`, son enduit resté à ses deux bouts, sa maçonnerie à nu entre eux,
-    chaque pierre gardée si son milieu est sous la crête, ses pierres tombées au pied."""
+    """La brèche : le mur éventré d'après `BRECHE`, son enduit et sa tête de bois restés à ses deux bouts, sa
+    maçonnerie à nu entre eux, chaque pierre gardée si son milieu est sous la crête, ses pierres tombées au pied."""
     A, B = Enduit(D, m, alea), D["BRECHE"]
     gauche, droite = (part * A.demi for part in B["enduit"])
 
     def crete(x):
         return A.haut * lineaire(B["contour"], x / A.demi)
-    A.pan_d_enduit((-A.demi, gauche))
-    A.pan_d_enduit((droite, A.demi))
-    bords = [(x, min(max(crete(x), B["plancher"]), A.haut - JEU_DE_L_AME))
+    for cote, reste in ((-1, (A.entre[0], gauche)), (1, (droite, A.entre[1]))):
+        A.poteau(cote)
+        A.pan_d_enduit(reste)
+        A.lisse(reste)
+    bords = [(x, min(max(crete(x), B["plancher"]), A.corps - JEU_DE_L_AME))
              for x in (gauche, *(part * A.demi for part, _ in B["contour"] if gauche < part * A.demi < droite), droite)]
     for (g, tete_g), (d, tete_d) in zip(bords, bords[1:]):
         biais(m, (g, d), (0.0, tete_g), (0.0, tete_d), (B["ame"] - A.face, A.face - B["ame"]), PIERRE)
-    A.pan((gauche, droite), (0.0, A.haut), garde=lambda g, d, pied, tete: (pied + tete) / 2 <= crete((g + d) / 2),
+    A.pan((gauche, droite), (0.0, A.corps), garde=lambda g, d, pied, tete: (pied + tete) / 2 <= crete((g + d) / 2),
           recul=A.E["a_nu"])
     geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi)
 

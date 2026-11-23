@@ -8,7 +8,8 @@ Illustration directrice (hors dépôt) : la façade de La Diligence (EDO p4, `di
 devant enduit d'ocre, son portail en arc encadré de pierres grises, ses deux vantaux de bois, le petit toit d'ardoise
 et l'écu qui le coiffent.
 
-Le mur : un corps d'enduit uni au relief léger, coiffé d'un chaperon arrondi qui le déborde. La porte seule sur son arête est une porte cintrée, son encadrement de pierres de taille en
+Le mur : un corps d'enduit uni au relief léger entre deux demi-poteaux de bois, que ceux des murs voisins
+complètent, sous une lisse de bois hérissée de pics. La porte seule sur son arête est une porte cintrée, son encadrement de pierres de taille en
 harpe, piédroits et claveaux, en relief sur l'enduit. Dans une ouverture de deux arêtes (`PORTAIL`), chaque arête de
 bout porte la moitié du portail, la clef au joint des deux arêtes : son piédroit, sa moitié de l'arc, du bandeau de
 pierre claire qui le suit, de l'écu plaqué sur lui, son champ nu cerné d'une bordure de pierre, et du petit toit d'ardoise à deux pans qui coiffe le
@@ -17,11 +18,12 @@ un linteau, sa croisée et ses volets ceux de `menuiserie`. La brèche arrache l
 maçonnerie à nu, ses pierres au pied.
 
 Matières : l'enduit prend `terre-battue`, la pierre de l'encadrement et de la maçonnerie et ses gravats `pierre-atre`,
-le bandeau et le champ de l'écu `albatre`, la couverture `prop-ardoise`, ses chevrons, les vantaux et la croisée `bois-chene`, les
-ferrures `fer-noirci`, la vitre `verre`. L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
-La pierre prend la teinte `joint` de l'apparence, les chevrons celle des barres des vantaux ; l'ardoise, la pierre
-claire et le champ de l'écu nomment `vet2`, que la palette d'une arête ne teint pas (`paletteDeLApparence`) : elles gardent la couleur de
-leur matière.
+le bandeau et le champ de l'écu `albatre`, la couverture `prop-ardoise`, les poteaux, la lisse, les pics, les chevrons,
+les vantaux et la croisée `bois-chene`, les ferrures `fer-noirci`, la vitre `verre`. L'échelle dressée contre l'arête
+(`menuiserie.echelle`) prend `bois-chene`. La pierre prend la teinte `joint` de l'apparence, les poteaux, la lisse et
+les pics sa teinte `bois`, les chevrons celle des barres des vantaux ; l'ardoise, la pierre claire et le champ de
+l'écu nomment `vet2`, que la palette d'une arête ne teint pas (`paletteDeLApparence`) : ils gardent la couleur de leur
+matière.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
@@ -34,12 +36,13 @@ LONGUEUR = 2.0
 """`sceneMetresPerTile`, LDB 15 l.12."""
 HAUTEUR = hauteur(apparence(KIT, MUR))
 """La hauteur (m) des arêtes du mur."""
-EPAISSEUR = 0.5
-"""L'épaisseur (m) du mur à son chaperon, d'un bord à l'autre."""
+EPAISSEUR = 0.4
+"""L'épaisseur (m) du mur à ses poteaux et à sa lisse, d'un bord à l'autre."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
     "enduit": ("corps", "terre-battue"),
+    "bois": ("bois", "bois-chene"),
     "moellons": ("joint", "pierre-atre"),
     "pierre-claire": ("vet2", "albatre"),
     "ecu": ("vet2", "albatre"),
@@ -57,31 +60,35 @@ BUDGET_TRIANGLES = {"mur": 700, "porte-fermee": 3400, "porte-ouverte": 3400,
                     "fenetre": 2600, "fenetre-close": 2600, "breche": 2400, "echelle": 400}
 
 ANGLE_LISSE = 30
-"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le relief de l'enduit et l'arrondi du
-chaperon s'y fondent, les pierres gardent leurs arêtes."""
+"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le relief de l'enduit s'y fond, les
+pierres et les bois gardent leurs arêtes."""
+
+# Tête de bois du mur : la hauteur (m) de sa `lisse` posée sur l'arase ; ses `pics` : leur `hauteur` et le `cote` de
+# leur pied (m), leur plus grand `pas` (m) ; `poteau` : la demi-largeur d'un poteau de bout, celle que porte chaque
+# arête, et ce dont sa tête reste sous la pointe des pics (m).
+TETE_DE_BOIS = {"lisse": 0.12, "pics": {"hauteur": 0.22, "cote": 0.05, "pas": 0.2}, "poteau": (0.14, 0.06)}
 
 APPAREIL = {
     **assises(apparence(KIT, MUR)), **MOELLONS_MACONNES,
-    "moellon": {"relief": (0.0, 0.008), "chanfrein": (0.012, 0.02), "retrait": (0.025, 0.05)}}
-"""L'appareil des pierres du mur (`maconnerie`) ; `moellon` : la façon d'une pierre à nu dans sa brèche."""
+    "moellon": {"relief": (0.0, 0.008), "chanfrein": (0.012, 0.02), "retrait": (0.025, 0.05)},
+    "couronnement": {"hauteur": TETE_DE_BOIS["lisse"] + TETE_DE_BOIS["pics"]["hauteur"]}}
+"""L'appareil des pierres du mur (`maconnerie`) ; `moellon` : la façon d'une pierre à nu dans sa brèche ;
+`couronnement` : la hauteur (m) de la tête de bois, au-dessus de l'arase du corps du mur."""
 
-# Enduit : `retrait` : ce dont son nu recule sous le bord du chaperon, de chaque côté (m) ; `relief` : ce dont il se
+# Enduit : `retrait` : ce dont son nu recule sous celui des poteaux, de chaque côté (m) ; `relief` : ce dont il se
 # creuse encore par endroits (m, tiré jusqu'à cette borne) ; `pas` : le plus grand côté d'une de ses mailles (m) ;
-# `cintre` : ce pas le long d'un arc (m) ; `a_nu` : ce dont une pierre à nu recule sous le bord du chaperon (m).
-ENDUIT = {"retrait": 0.09, "relief": 0.012, "pas": 0.34, "cintre": 0.13, "a_nu": 0.07}
-
-# Chaperon : sa `hauteur` (m), dont celle de sa `bande` droite (m) sous son arrondi, et les `segments` de celui-ci.
-CHAPERON = {"hauteur": 0.36, "bande": 0.08, "segments": 8}
+# `cintre` : ce pas le long d'un arc (m) ; `a_nu` : ce dont une pierre à nu recule sous le nu des poteaux (m).
+ENDUIT = {"retrait": 0.05, "relief": 0.012, "pas": 0.34, "cintre": 0.13, "a_nu": 0.03}
 
 # Encadrement de pierres de taille d'une baie : sa `saillie` sur le nu de l'enduit (m) ; l'âme de pierre qui double
 # le tableau de la baie derrière ses joints : son `creux` sous le parement des pierres (m), son `retrait` sous le bout
 # de la plus courte (m), le `jeu` dont elle avance dans la baie devant elles et dont l'enduit entre sous elle (m).
-ENCADREMENT = {"saillie": 0.09, "creux": 0.02, "retrait": 0.02, "jeu": 0.003}
+ENCADREMENT = {"saillie": 0.05, "creux": 0.02, "retrait": 0.02, "jeu": 0.003}
 
 # Porche d'une porte cintrée (`modele.Enduit.porche`) : `portee` (m) ; `naissance` et `fleche` de l'arc (m) ; ses
 # `claveaux` par côté, leur `queue` (m), un sur deux la première puis la seconde, sa `clef` plus haute (m) ; `harpe` :
 # la longueur (m) des pierres d'un piédroit, une assise sur deux la première puis la seconde ; `tete` : la hauteur (m)
-# où le corps du mur s'arrête sous un toit, `None` sous son chaperon ; `bandeau` : la pierre claire qui suit l'arc
+# où le corps du mur s'arrête sous un toit, `None` à son arase ; `bandeau` : la pierre claire qui suit l'arc
 # au-dessus de la clef, sa distance à l'intrados et son épaisseur (m), la part de l'arc qu'elle couvre de chaque côté,
 # ses `segments` et sa saillie (m), `None` sans bandeau.
 # Porte seule sur son arête : `seuil` : sa hauteur (m) ; `jeu` du vantail à la pierre (m).
@@ -95,7 +102,7 @@ PORTE = {
 # `ecu` : son `pied` (m), sa demi-largeur et sa hauteur (`taille`, m), l'`epaisseur` de sa bordure et son `ecart` à
 # l'encadrement (m), son demi-`contour` de la tête à la pointe (fractions de sa taille), et son `champ` : la `marge`
 # que la bordure garde autour de lui et son `relief` sur elle (m).
-# `toit` : la hauteur (m) de son `egout` et son `debord` sur le bord du chaperon (m) ; sa `faitiere` (largeur,
+# `toit` : la hauteur (m) de son `egout` et son `debord` sur le nu des poteaux (m) ; sa `faitiere` (largeur,
 # hauteur, m) ; ses `rangs` d'ardoises par pan, leur `largeur` (m), leur `epaisseur` (m), leur `recouvrement` (longueur
 # en pureaux) et le `jeu` dont leur pied descend (m, tiré jusqu'à cette borne) ; ses `chevrons` par arête et leur
 # `section` (largeur, hauteur, m).
@@ -119,7 +126,7 @@ PORTAIL = {
 }
 
 # Fenêtre : `baie` : sa largeur (fraction de la longueur de l'arête) ; `appui`, `tete` : les hauteurs (m) du dessus de
-# son appui et du dessous de son linteau ; `pierre_d_appui` : sa hauteur, sa saillie sur le bord du chaperon et sa
+# son appui et du dessous de son linteau ; `pierre_d_appui` : sa hauteur, sa saillie sur le nu des poteaux et sa
 # portée sur chaque jambage (m) ; `linteau` : sa hauteur et sa portée sur chaque jambage (m) ; `harpe` : la longueur
 # (m) des pierres d'un jambage ; `jour` : ce dont un volet clos reste au-dessus de l'appui (m) ; `recouvrement` : ce
 # dont il déborde la baie sur le linteau (m) ; `volets` : leur écart à l'encadrement (m).
