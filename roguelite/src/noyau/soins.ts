@@ -12,7 +12,7 @@ import { MINUTES_PER_DAY } from '../../../src/engine/clock';
 import { corruptionThreshold } from '../../../src/engine/corruption';
 import { diseaseLabel, skills, symptomLabel } from '../../../src/data';
 import type { UpkeepDeferTest } from '../../../src/engine/types';
-import { applyHealWounds } from '../../../src/engine/healing';
+import { applyHealWounds, cappedHealAmount } from '../../../src/engine/healing';
 import { PA_PER_CO, toBrass } from '../../../src/engine/money';
 import { prixDeLOffre } from '../../../src/noyau/restFlow';
 import type { QualiteDeRepos } from '../../../src/data/schemas/grammaire/valeurs';
@@ -79,6 +79,8 @@ export const souillure = (c: Combatant): { points: number; seuil: number; mutati
 
 /** `pv` Points de Blessure regagnés par un soin (`applyHealWounds`) : un Inconscient guéri revient à lui. */
 export const soigner = (c: Combatant, pv: number): string[] => applyHealWounds(c, pv);
+/** Les Points de Blessure qu'un soin complet (`soigner(c, c.wounds.max)`) rend effectivement (`cappedHealAmount`). */
+export const blessuresARendre = (c: Combatant): number => cappedHealAmount(c, c.wounds.max);
 
 /** Les séquelles portées (`traumas`) et leur issue : jours de convalescence restants, chirurgie exigée (LDB 18 l.208,
  *  l.239), sinon permanente. */

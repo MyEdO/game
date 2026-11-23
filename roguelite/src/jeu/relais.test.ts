@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ameliorer, attendreUneSemaine, compagnieEpuisee, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
+  ameliorer, attendreUneSemaine, PRIX_DU_SOIN_PAR_BLESSURE, prixDuSoin, soignerAuTemple, compagnieEpuisee, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
   qualiteDeLaChambre, recruter, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
 import { prixDuSejourALAuberge, reposer } from '../noyau';
@@ -109,5 +109,41 @@ describe('le renvoi au relais', () => {
     for (const h of e.roster.slice(1)) expect(congedier(e, h.c.id)).toBeNull();
     expect(congedier(e, e.roster[0].c.id)).toBe('Le dernier héros de la compagnie ne se renvoie pas.');
     expect(e.roster).toHaveLength(1);
+  });
+});
+
+describe('le soin de l’hospice', () => {
+  /** Une partie riche, l'hospice au palier `palier`, le quatrième héros à `pb` Blessures. */
+  function aLHospice(palier: number, pb: number): { e: Etat; id: string } {
+    const { e, id } = avecUnBlesse(4);
+    e.trophees = 10;
+    for (let p = 0; p < palier; p++) expect(ameliorer(e, 'temple')).toBeNull();
+    e.or = 1000;
+    e.roster[3].c.wounds.current = pb;
+    return { e, id };
+  }
+
+  it('se paie au tarif du palier par Blessure que le soin rend', () => {
+    for (const palier of [1, 2]) {
+      const { e, id } = aLHospice(palier, 3);
+      const h = e.roster[3];
+      expect(prixDuSoin(e, h)).toBe(PRIX_DU_SOIN_PAR_BLESSURE[palier]! * (h.c.wounds.max - 3));
+      expect(soignerAuTemple(e, id)).toBeNull();
+      expect(h.c.wounds.current).toBe(h.c.wounds.max);
+      expect(1000 - e.or).toBe(PRIX_DU_SOIN_PAR_BLESSURE[palier]! * (h.c.wounds.max - 3));
+    }
+  });
+
+  it('est gratuit au dernier palier', () => {
+    const { e, id } = aLHospice(3, 0);
+    expect(prixDuSoin(e, e.roster[3])).toBe(0);
+    expect(soignerAuTemple(e, id)).toBeNull();
+    expect(e.or).toBe(1000);
+  });
+
+  it('le héros à 0 Blessure paie l’hospice du premier palier plus cher qu’une semaine en chambre piètre', () => {
+    const { e } = aLHospice(1, 0);
+    expect(qualiteDeLaChambre(e)).toBe('pietre');
+    expect(prixDuSoin(e, e.roster[3])).toBeGreaterThan(prixDeLaChambre(e));
   });
 });

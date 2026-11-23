@@ -87,6 +87,12 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 
 ## Hospice
 
+| Palier | Soin par Blessure rendue |
+|---|---|
+| 1 | 4 CO |
+| 2 | 2 CO |
+| 3 | 0 CO |
+
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)
 
 ## Destinations et adversaires

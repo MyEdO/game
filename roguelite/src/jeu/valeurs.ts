@@ -28,6 +28,12 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.apports.map((a) => a.texte).join(' ; ');
 const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
 
+/** Prix des actes de l'hospice, avant la remise du dernier palier. */
+export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
+/** Le prix du soin de l'hospice par Point de Blessure rendu, à chaque palier ; `null` : l'hospice fermé. */
+export const PRIX_DU_SOIN_PAR_BLESSURE: readonly (number | null)[] = [null, 4, 2, 0];
+const soinsDuPalier = (palier: number): string => `Soins à ${PRIX_DU_SOIN_PAR_BLESSURE[palier]} CO la Blessure`;
+
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
     { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'repos en chambre piètre')] },
@@ -36,8 +42,8 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
     { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : on ne se repose qu’en chambre à l’auberge')] },
-    { cout: 80, trophees: 0, apports: [apport('soin', 'Soins à 15 CO', '15 CO'), apport('lit', 'les sœurs pansent les plaies à l’hospice'), apport('fiole', 'potions et remèdes communs et limités')] },
-    { cout: 220, trophees: 1, apports: [apport('soin', 'Soins à 5 CO', '5 CO'), apport('soin', 'un chirurgien opère'), apport('fiole', 'remèdes rares')] },
+    { cout: 80, trophees: 0, apports: [apport('soin', soinsDuPalier(1), `${PRIX_DU_SOIN_PAR_BLESSURE[1]} CO`), apport('lit', 'les sœurs pansent les plaies à l’hospice'), apport('fiole', 'potions et remèdes communs et limités')] },
+    { cout: 220, trophees: 1, apports: [apport('soin', soinsDuPalier(2), `${PRIX_DU_SOIN_PAR_BLESSURE[2]} CO`), apport('soin', 'un chirurgien opère'), apport('fiole', 'remèdes rares')] },
     { cout: 450, trophees: 2, apports: [apport('soin', 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus', '+1'), apport('fiole', 'remèdes exotiques')] },
   ] },
   { id: 'salle', nom: 'Salle d’armes', role: 'Carrières', paliers: [
@@ -277,8 +283,6 @@ export const ECHELLE_DES_PRIX = 10;
 export const SEMAINE_DE_REPOS = 7;
 /** La Guérison des sœurs et du chirurgien de l'hospice. */
 export const GUERISON_DE_L_HOSPICE = 45;
-/** Prix des actes de l'hospice, avant la remise du dernier palier. */
-export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 /** La qualité de la chambre de l'Auberge relais à chaque palier, que le séjour d'une semaine paie au prix du noyau. */
 export const CHAMBRE_DU_RELAIS: readonly QualiteDeRepos[] = ['pietre', 'normale', 'grande'];
 /** Les bâtiments où un héros séjourne sans partir en expédition : le nom de son séjour, la marque de sa carte. */

@@ -1,14 +1,17 @@
 /**
  * L'hospice de Shallya : soins, plaies pansées, opération, Larmes de Shallya.
  */
-import { plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles } from '../noyau';
+import { blessuresARendre, plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles } from '../noyau';
 
-import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, SEMAINE_DE_REPOS } from './valeurs';
+import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, PRIX_DU_SOIN_PAR_BLESSURE, SEMAINE_DE_REPOS } from './valeurs';
 import { Etat, Heros } from './etat';
 import { heros, noter } from './outils';
 import { sejourDit } from './expedition';
 
-export const prixDuSoin = (e: Etat): number | null => [null, 15, 5, 0][e.batiments.temple] ?? null;
+/** Le prix du soin par Blessure rendue au palier de l'hospice, `null` s'il est fermé. */
+export const tarifDuSoin = (e: Etat): number | null => PRIX_DU_SOIN_PAR_BLESSURE[e.batiments.temple] ?? null;
+/** Le prix du soin du héros : le tarif du palier par Blessure que le soin lui rend. */
+export const prixDuSoin = (e: Etat, h: Heros): number | null => { const tarif = tarifDuSoin(e); return tarif == null ? null : tarif * blessuresARendre(h.c); };
 export const prixDeSequelle = (e: Etat): number | null => [null, null, 40, 20][e.batiments.temple] ?? null;
 export const blesse = (h: Heros): boolean => h.c.wounds.current < h.c.wounds.max || h.c.conditions.length > 0;
 /** Le héros attend l'hospice : blessé, ou marqué d'une séquelle. */
@@ -17,8 +20,8 @@ export const aSoigner = (h: Heros): boolean => blesse(h) || sequelles(h.c).lengt
 export const sequellesGuerissables = (h: Heros): number => sequelles(h.c).filter((s) => s.jours != null).length;
 
 export function soignerAuTemple(e: Etat, id: string): string | null {
-  const prix = prixDuSoin(e);
   const h = heros(e, id);
+  const prix = h ? prixDuSoin(e, h) : null;
   if (prix == null || !h) return 'L’hospice est fermé.';
   if (e.or < prix) return `Il faut ${prix} CO.`;
   e.or -= prix;

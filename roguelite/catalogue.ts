@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  ARMES_DE_LA_FORGE, CHAMBRE_DU_RELAIS, COMPETENCES_UTILES, DESTINATIONS, GROUPES_SANS_COMPETENCE, PANOPLIES, PROFILS, REMEDES_DE_L_HOSPICE, ROLES,
+  ARMES_DE_LA_FORGE, CHAMBRE_DU_RELAIS, COMPETENCES_UTILES, DESTINATIONS, GROUPES_SANS_COMPETENCE, PANOPLIES, PRIX_DU_SOIN_PAR_BLESSURE, PROFILS, REMEDES_DE_L_HOSPICE, ROLES,
   prixDUneChambre,
   SORTS_DES_VOIES, SORTS_MINEURS, TALENTS_HORS_DU_COMBAT, PRIERE_DE_SOIN,
 } from './src/jeu';
@@ -49,7 +49,7 @@ export function catalogue(): string {
     '## Talents de carrière écartés de la salle d’armes', '', [...TALENTS_HORS_DU_COMBAT].map((id) => talent({ id })).join(', '), '',
     '## Forge', '', forge, '', panoplies, '',
     '## Auberge relais', '', tableau(['Palier', 'Chambre', 'Prix de la semaine'], CHAMBRE_DU_RELAIS.map((q, i) => [String(i), q, `${prixDUneChambre(q)} CO`])), '',
-    '## Hospice', '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
+    '## Hospice', '', tableau(['Palier', 'Soin par Blessure rendue'], PRIX_DU_SOIN_PAR_BLESSURE.flatMap((p, i) => (p == null ? [] : [[String(i), `${p} CO`]]))), '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
     '## Destinations et adversaires', '', destinations, '',
   ].join('\n');
 }

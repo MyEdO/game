@@ -6,7 +6,7 @@
  * (relais, forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
+import { blessuresARendre, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { bourseDePX, caracteristiques, competences, niveauSuivant, sortsAApprendre, talentsDuNiveau } from './fiche';
@@ -231,6 +231,7 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const ruine = J.enRuine(e.batiments, 'temple') ? 'L’hospice est en ruine.' : null;
   const hospice = J.sejourDit(h);
   const actes = J.actesPossibles(h);
+  const tarif = J.tarifDuSoin(e);
   const soin = (o: { icone: string; nom: string; effet: string; duree: string; verbe: string; prix: number | null; attrs: string; refus: string | null }) => {
     const refus = ruine ?? (o.prix == null ? 'L’hospice agrandi l’offrira.' : hospice ?? o.refus);
     return `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette(o.icone, !!refus)}<div class="nom-propre moyen gothique">${esc(o.nom)}</div><p class="effet">${esc(o.effet)}</p><span class="sous-titre">${esc(o.duree)}</span>
@@ -243,7 +244,7 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
     classe: 'chapelle',
     corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
       <div class="etal ample" style="--colonnes:4">
-      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures` : 'en pleine santé', verbe: 'Soigner', prix: J.prixDuSoin(e), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
+      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures${tarif ? ` · ${blessuresARendre(h.c)} Blessures × ${tarif} CO` : ''}` : 'en pleine santé', verbe: 'Soigner', prix: J.prixDuSoin(e, h), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
       ${soin({ icone: 'lit', nom: 'Panser', effet: 'Les sœurs pansent les plaies : une déchirure mineure guérit plus vite, une fracture est réduite.', duree: 'dans la journée', verbe: 'Panser', prix: J.prixDeLHospice(e, 'panser'), attrs: `data-a="hospice" ${id} data-k="panser"`, refus: actes.includes('panser') ? null : 'Aucune plaie que les sœurs puissent panser.' })}
       ${soin({ icone: 'dague', nom: 'Opérer', effet: 'Le chirurgien opère les blessures qui l’exigent : plaie d’amputation, fracture majeure, artère.', duree: 'une semaine à l’hospice', verbe: 'Opérer', prix: J.prixDeLHospice(e, 'operer'), attrs: `data-a="hospice" ${id} data-k="operer"`, refus: actes.includes('operer') ? null : 'Rien à opérer.' })}
       ${soin({ icone: 'etoile', nom: 'Larmes de Shallya', effet: 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation.', duree: 'une séquelle', verbe: 'Prier', prix: J.prixDeSequelle(e), attrs: `data-a="sequelle" ${id}`, refus: J.sequellesGuerissables(h) ? null : 'Aucune séquelle que la prière puisse guérir.' })}
