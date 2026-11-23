@@ -16,8 +16,11 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 1. Débords connus : la forge et
    l'Hospice à la taille d'interface « grande » (la Salle d'armes à 20 sorts est réglée par le tri des sorts).
-2. Sorts, suite : un mage de niveau 2 ne pose aucun sort de sa voie en combat automatique (l'IA focalise, le combat
-   finit avant) ; les voies Vie, Bête, Métal n'ont que 2 ou 3 sorts à effet mesuré ; à creuser avec l'IA du noyau.
+2. Sorts, suite : un mage de niveau 2 ne pose aucun sort de sa voie en combat automatique : avec ses Caractéristiques
+   de départ il doit focaliser plusieurs tours et le combat finit avant (constat utilisateur : « Sans les bonnes stats,
+   c'est difficile de monter assez sa foca pour lancer un sort »). Ordonner chaque voie par ND : aux premiers niveaux,
+   des sorts de faible ND (Arme et Armure aethyriques ND 2, Carreau et Explosion ND 4, Embrasement ND 3, Écorce ND 3),
+   les ND 6 à 9 plus tard ; mesurer en combat simulé le taux de lancer par niveau.
 3. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
    refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
    Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche.
