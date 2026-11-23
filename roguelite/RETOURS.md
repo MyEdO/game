@@ -315,6 +315,10 @@ sur une arène générée.
   Classe de MyEdO/game#2689 (`cloturer` sous la modale du nœud `test`), commentée le 2026-11-23. L'hôte rend un refus
   (`IssueDEpreuve.refus`), sans contourner l'horloge.
 
+- **Manque — le noyau n'a pas d'édition 5e** (CRB 045 l.15, l.27, l.33-52, l.60 ; 048 l.43-45) : coûts des
+  Augmentations, Talents à 100 PX, cases 10/12/14. La salle d'armes présente « à la 5e » (pas de +5, plan conseillé)
+  et envoie au noyau des Augmentations de +1 au prix de `advanceCost` (4e).
+
 ## Corruption et maladies
 
 - **Trou — aucune couture « une journée de maladie, résolue sur place ».** `dailyDiseaseUpkeep` (`src/engine/rest.ts`)

@@ -5,6 +5,7 @@
  * (`./ui/ecran`) et montés sur les pièces du kit (`./ui/pieces`).
  */
 import * as J from './jeu';
+import type { CharKey } from './noyau';
 import type { Vignette } from './vignettes';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
@@ -126,14 +127,22 @@ document.addEventListener('click', (ev) => {
     case 'arme': return agir(() => J.acheterUneArme(etat, id, k!));
     case 'armure': return agir(() => J.acheterUneArmure(etat, id, k!));
     case 'provision': client = id; return agir(() => J.acheterUneProvision(etat, id, k!));
-    case 'carac': return agir(() => J.acheter(etat, id, { genre: 'carac', id: k! }));
+    case 'pas': {
+      const { g, s } = el.dataset;
+      const cible: J.CibleDuPas = g === 'carac' ? { genre: 'carac', id: k as CharKey } : { genre: 'competence', ref: { id: k!, ...(s ? { spec: s } : {}) } };
+      return agir(() => { const r = J.acheterUnPas(etat, id, cible); return [r.fois ? `+${r.fois} Augmentation${r.fois > 1 ? 's' : ''} pour ${r.cout} PX.` : '', r.refus ?? ''].filter(Boolean).join(' '); });
+    }
+    case 'plan': return agir(() => {
+      const r = J.suivreLePlan(etat, id);
+      const pris = r.achats.map((x) => (x.genre === 'carac' || x.genre === 'competence' ? `${x.label} +${x.fois}` : x.label));
+      return [pris.length ? `Pris : ${pris.join(', ')} (${r.cout} PX).` : '', r.refus ?? ''].filter(Boolean).join(' ');
+    });
     case 'sort': return agir(() => J.acheter(etat, id, { genre: 'sort', id: k! }));
     case 'niveau': return agir(() => J.acheter(etat, id, { genre: 'niveau' }));
-    case 'competence': case 'talent': {
+    case 'talent': {
       const h = etat.roster.find((x) => x.c.id === id);
-      const o = h && J.offresDeCarriere(h);
-      const ref = o && (a === 'competence' ? o.competences : o.talents)[Number(i)]?.ref;
-      return ref ? agir(() => J.acheter(etat, id, { genre: a, ref })) : undefined;
+      const ref = h && J.offresDeCarriere(h).talents[Number(i)]?.ref;
+      return ref ? agir(() => J.acheter(etat, id, { genre: 'talent', ref })) : undefined;
     }
     case 'utiliser': { const ligne = J.utiliserUneProvision(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
     case 'prier': { const ligne = J.prier(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }

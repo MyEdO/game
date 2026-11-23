@@ -83,11 +83,16 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]');
   const pxDe = async () => Number(await p.textContent('.bourse-px .chiffres'));
   const px = await pxDe();
-  await p.click('.page-service button.c.carr');
-  constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique contre des PX');
+  await p.click('.page-service .c.carr [data-a="pas"]');
+  constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique d’un pas de +5 contre des PX');
+  // « Suivre le plan » : un clic dépense des PX et remplit des crans.
+  const crans = () => p.$$eval('.page-service .crans i', (e) => e.reduce((s, x) => s + (x.classList.contains('plein') ? 1 : parseFloat(x.style.getPropertyValue('--part') || '0') / 100), 0));
+  const [pxAvantPlan, cransAvantPlan] = [await pxDe(), await crans()];
+  await p.click('.page-service [data-a="plan"]');
+  constater((await pxDe()) < pxAvantPlan && (await crans()) > cransAvantPlan, `« Suivre le plan » dépense des PX et remplit des crans (${await p.textContent('#toast')})`);
   await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
   const pxDeLaFiche = await pxDe();
-  await p.click('.competences [data-a="competence"]');
+  await p.click('.progression .achat [data-a="pas"]:not(:disabled)');
   constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
 
   await p.click('.croix-ecran');

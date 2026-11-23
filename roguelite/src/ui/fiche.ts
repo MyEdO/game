@@ -1,39 +1,65 @@
 /**
- * La fiche du héros, au gabarit commun (`./ecran`) et à la disposition de la fiche des maquettes : l'identité et ce
- * que son niveau exige, la bande des Caractéristiques, les Compétences (ou, en route, ce qui se fait entre deux
- * salles), Talents, Sorts et Équipement en onglets. Talents, sorts, provisions et prières sont des entrées
- * (`entree`), armes et armures des cases (`caseObjet`), toutes avec leur aperçu. Ce qui s'achète en PX (bourse,
- * Caractéristiques, Compétences, Talents, sorts, niveau suivant) est fait de blocs que la salle d'armes pose aussi
- * (`./services`) : chacun porte son geste d'achat (`achat`), prix compris.
+ * La fiche du héros, au gabarit commun (`./ecran`) et à la disposition de la fiche des maquettes : l'identité, la
+ * bande des Caractéristiques, les Compétences (ou, en route, ce qui se fait entre deux salles), Talents, Sorts et
+ * Équipement en onglets. Talents, sorts, provisions et prières sont des entrées (`entree`), armes et armures des cases
+ * (`caseObjet`), toutes avec leur aperçu. Ce qui s'achète en PX est un bloc unique (`progressionDuHeros`), que la
+ * salle d'armes (`./services`) et l'onglet Progression de la fiche posent tels quels.
  */
 import * as J from '../jeu';
-import { carac, ficheDeCompetence, ficheDuSort, libelleDeCarac, prixDuSort, protection, talentsAcquis, texteDeCarac, texteDuTalent, type CharKey } from '../noyau';
+import { carac, ficheDeCompetence, ficheDuSort, libelleDeCarac, PAS, prixDuSort, protection, talentsAcquis, texteDeCarac, texteDuTalent, type CharKey, type EtapeDuPlan } from '../noyau';
 import { picto, plaque } from '../kit';
-import { CADRES, ecran } from './ecran';
+import { CADRES, CADRES_DE_L_HOTE, ecran } from './ecran';
 import {
-  achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, cadreA, carriereDe, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats, portraitDeHeros,
+  achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, cadreA, carriereDe, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats, herosEnTete, portraitDeHeros,
   etiquettesDeSequelles, etiquettesDeSouillure, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets, sejourDe,
 } from './pieces';
 
-export type Onglet = 'talents' | 'sorts' | 'equipement';
+export type Onglet = 'progression' | 'talents' | 'sorts' | 'equipement';
 /** Ce que la fiche lit de l'interface : l'état du jeu, et le héros dont on confirme le renvoi. */
 export interface Contexte { e: J.Etat; congediement: string | null }
 type Offres = ReturnType<typeof J.offresDeCarriere>;
 
 const CARACS_DU_PROFIL: CharKey[] = ['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'intelligence', 'force-mentale', 'sociabilite'];
+/** Les Caractéristiques dont le Bonus compte en combat : Dégâts, Blessures. */
+const CARACS_A_BONUS: ReadonlySet<CharKey> = new Set(['force', 'endurance', 'force-mentale']);
 const coche = (fait: boolean) => (fait ? `<i class="trou plein">${picto('coche', 14, 2.4)}</i>` : '<i class="trou"></i>');
 const exige = (fait: boolean, texte: string, compte = '') => `<div class="exige">${coche(fait)}<span>${texte}</span>${compte ? `<span class="cpt chiffres">${compte}</span>` : ''}</div>`;
-/** Une Augmentation à acheter : « +1 · prix ». */
-const augmenter = (h: J.Heros, cout: number, attrs: string) => achat({ verbe: '+1', prix: cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `${attrs} data-id="${h.c.id}"`, taille: 'petite' });
+
+/** La marque des Augmentations, la même pour Caractéristiques et Compétences : un cran par pas de +5 que le niveau
+ *  exige, chacun rempli à sa part. */
+const marqueDesAugmentations = (augmentations: number, requis: number) =>
+  `<span class="crans" role="img" aria-label="+${augmentations} sur +${requis}">${Array.from({ length: requis / PAS }, (_, i) => {
+    const part = Math.max(0, Math.min(PAS, augmentations - i * PAS)) / PAS;
+    return part >= 1 ? '<i class="plein"></i>' : part > 0 ? `<i style="--part:${part * 100}%"></i>` : '<i></i>';
+  }).join('')}</span>`;
+
+/** Le geste d'un pas (« +5 · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat, lu par le
+ *  noyau (`J.effetDuPas`). */
+function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
+  const pas = J.pasDe(h, cible);
+  const effet = J.effetDuPas(h, cible);
+  if (!pas || !effet) return '';
+  const bouge = (x: { avant: number; apres: number }) => x.avant !== x.apres;
+  const lignes = cible.genre === 'competence'
+    ? effet.tests.map((t) => `Test ${t.avant} → ${t.apres}`)
+    : [
+      ...effet.tests.filter(bouge).map((t) => `${t.label} ${t.avant} → ${t.apres}`),
+      ...(CARACS_A_BONUS.has(cible.id) && bouge(effet.bonus) ? [`Bonus ${effet.bonus.avant} → ${effet.bonus.apres}`] : []),
+      ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
+    ];
+  const cibleAttrs = cible.genre === 'carac' ? `data-g="carac" data-k="${cible.id}"` : `data-g="competence" data-k="${cible.ref.id}"${cible.ref.spec ? ` data-s="${esc(cible.ref.spec)}"` : ''}`;
+  const apercu = apercuDe({ nom: `${nom} +${PAS}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
+  return achat({ verbe: `+${PAS}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
+}
 
 // ─── Ce qui s'achète en PX ──────────────────────────────────────────────────────────────────────────────────
 
 /** Les PX à dépenser, et le niveau de carrière où il en est. */
-export const bourseDePX = (h: J.Heros, o: Offres) =>
+const bourseDePX = (h: J.Heros, o: Offres) =>
   `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${h.c.xp ?? 0}</div></div><div><b>PX à dépenser</b>${glose(`${esc(J.nomDeCarriere(h.carriere))} · niveau ${o.niveau} : ${esc(o.titre)}`)}</div></div>`;
 
 /** Le niveau suivant : ce qu'il exige, où le héros en est, et son geste. LDB 07 l.124-131 */
-export function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
+function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
   const suivant = o.suivant;
   if (!suivant) return glose('Sommet de la carrière.');
   const caracsAFaire = o.caracs.filter((k) => k.augmentations < o.requis).map((k) => libelleDeCarac(k.id).abr);
@@ -48,36 +74,45 @@ export function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
     ${achat({ verbe: `Passer ${suivant.titre}`, prix: suivant.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="niveau" data-id="${h.c.id}"`, refus })}`;
 }
 
-/** Les Caractéristiques en cases : celles de la carrière, cernées de laiton, disent où elles en sont du niveau et
- *  s'augmentent d'un clic ; `toutes` : le profil entier (la bande de la fiche), sinon celles de la carrière. */
-export function caracteristiques(h: J.Heros, o: Offres, progresse: boolean, toutes: boolean): string {
-  const parCarac = new Map(o.caracs.map((k) => [k.id, k]));
+/** Le plan conseillé en un clic (`J.planVersLeNiveau`) : son total, et en aperçu ses étapes ; fermé avec sa raison
+ *  quand les PX ne paient pas sa première étape. */
+function planConseille(h: J.Heros): string {
+  const { etapes, total } = J.planVersLeNiveau(h);
+  if (!etapes.length) return '';
   const xp = h.c.xp ?? 0;
+  const ligne = (x: EtapeDuPlan) => `${x.genre === 'carac' ? libelleDeCarac(x.id).abr : x.label}${x.genre === 'carac' || x.genre === 'competence' ? ` +${PAS}` : ''} · ${x.cout} PX`;
+  const refus = xp < etapes[0].cout ? `Il faut ${etapes[0].cout} PX pour sa première étape.` : '';
+  return `<div class="plan"${apercuDe({ nom: 'Le plan conseillé', nature: `${etapes.length} étape${etapes.length > 1 ? 's' : ''} · ${total} PX`, texte: etapes.map(ligne).join('\n') })}>${achat({ verbe: 'Suivre le plan', prix: total, monnaie: 'PX', avoir: xp, attrs: `data-a="plan" data-id="${h.c.id}"`, refus })}</div>`;
+}
+
+/** Les Caractéristiques en cases : celles de la carrière, cernées de laiton, portent la marque de leurs Augmentations
+ *  et, à la progression (`achats`), le geste de leur pas ; `toutes` : le profil entier (la bande de la fiche). */
+function caracteristiques(h: J.Heros, o: Offres, toutes: boolean, achats: boolean): string {
+  const parCarac = new Map(o.caracs.map((k) => [k.id, k]));
   return (toutes ? CARACS_DU_PROFIL : o.caracs.map((k) => k.id)).map((k) => {
     const of = parCarac.get(k);
     const { abr, label } = libelleDeCarac(k);
     const cellule = `<span class="ab">${esc(abr)}</span><span class="v chiffres">${carac(h.c, k)}</span>`;
     const livre = (pied?: string) => apercuDe({ nom: label, nature: `Caractéristique · ${carac(h.c, k)}`, texte: texteDeCarac(k), ...(pied ? { pied } : {}) });
     if (!of) return `<div class="c"${livre()}>${cellule}</div>`;
-    const ou = `<span class="crans" aria-label="${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis}">${Array.from({ length: o.requis }, (_, i) => `<i class="${i < of.augmentations ? 'plein' : ''}"></i>`).join('')}</span>`;
-    const augs = `${label} : ${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis} pour ce niveau`;
-    if (!progresse) return `<div class="c carr"${livre(augs)}>${cellule}${ou}</div>`;
-    return `<button type="button" class="c carr${of.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" ${livre(xp < of.cout ? `${augs} · il manque ${of.cout - xp} PX` : augs)}${xp < of.cout ? ' disabled' : ''}>${cellule}${ou}<span class="etiquette compte ${xp >= of.cout ? 'or' : 'fer'}">+1 · ${of.cout} PX</span></button>`;
+    const augs = `${label} : +${of.augmentations} sur +${o.requis} pour ce niveau`;
+    return `<div class="c carr${of.augmentations >= o.requis ? ' faite' : ''}"${livre(augs)}>${cellule}${marqueDesAugmentations(of.augmentations, o.requis)}${achats ? pasAAcheter(h, { genre: 'carac', id: k }, label) : ''}</div>`;
   }).join('');
 }
 
-/** Les Compétences de la carrière, une ligne chacune : où elle en est du niveau, la valeur de son Test, son geste. */
 /** L'aperçu d'une Compétence : son texte du livre, la valeur de son Test, et où elle sert dans le roguelite. */
 const apercuDeCompetence = (k: Offres['competences'][number]): Apercu => {
   const f = ficheDeCompetence(k.ref.id);
   return { nom: k.label, nature: `Compétence · ${f.carac ? libelleDeCarac(f.carac).label : k.carac} · Test ${k.valeur}`, texte: f.texte, pied: `${k.augmentations} Augmentation${k.augmentations > 1 ? 's' : ''}` };
 };
 
-export const competences = (h: J.Heros, o: Offres) => o.competences.map((k, i) =>
-  `<div class="achat${k.augmentations >= o.requis ? ' faite' : ''}"><span class="fait">${k.augmentations >= o.requis ? picto('coche', 15, 2.4) : ''}</span>${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span><span class="aug chiffres">+${k.augmentations}/${o.requis}</span><span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${augmenter(h, k.cout, `data-a="competence" data-i="${i}"`)}</div>`).join('');
+/** Les Compétences que la salle d'armes montre (`J.competencesMontrees`), une ligne chacune : la marque de ses
+ *  Augmentations, la valeur de son Test et, à la progression (`achats`), le geste de son pas. */
+const competences = (h: J.Heros, o: Offres, achats: boolean) => J.competencesMontrees(h).map((k) =>
+  `<div class="achat${k.augmentations >= o.requis ? ' faite' : ''}">${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span>${k.pourLeNiveau ? '<span class="etiquette pour-le-niveau">pour le niveau</span>' : ''}${marqueDesAugmentations(k.augmentations, o.requis)}<span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${achats ? pasAAcheter(h, { genre: 'competence', ref: k.ref }, k.label) : ''}</div>`).join('');
 
 /** Les Talents du niveau qui agissent en combat : acquis, ou à apprendre. */
-export const talentsDuNiveau = (h: J.Heros, o: Offres) => o.talents.map((t, i) => entree({
+const talentsDuNiveau = (h: J.Heros, o: Offres) => o.talents.map((t, i) => entree({
   icone: t.possede ? 'etoile' : 'livre', nom: t.label, etat: t.possede ? `Acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : 'À apprendre', acquis: t.possede > 0,
   apercu: { nom: t.label, nature: 'Talent', texte: texteDuTalent(t.ref.id) },
   ...(t.auMaxi ? {} : { action: achat({ verbe: t.possede ? 'Renforcer' : 'Apprendre', prix: t.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, taille: 'petite' }) }),
@@ -87,7 +122,7 @@ const sort = (id: string, etat: string, action?: string) => { const f = ficheDuS
 
 /** Les sorts que la voie du héros lui ouvre, à apprendre : chacun avec son prix ; avant le Talent de la voie, ce
  *  qui les ouvrira. */
-export function sortsAApprendre(h: J.Heros): string {
+function sortsAApprendre(h: J.Heros): string {
   const voie = J.voieDe(h.carriere, h.c);
   if (!voie) return '';
   const appris = h.c.talents.some((t) => t.talentId === voie.talent);
@@ -99,19 +134,30 @@ export function sortsAApprendre(h: J.Heros): string {
   return `<div class="rub">${esc(voie.nom)}</div>${liste}`;
 }
 
-/** L'onglet des sorts : au hameau, ceux qui s'apprennent d'abord ; puis ceux qu'il connaît. */
-function ongletSorts(h: J.Heros, progresse: boolean): string {
+/** Le bloc de progression, unique : à gauche le héros, ses PX, son niveau suivant et le plan conseillé ; puis les
+ *  Caractéristiques de carrière, les Talents du niveau et les sorts de sa voie ; puis ses Compétences. La salle
+ *  d'armes et l'onglet Progression de la fiche le posent tel quel. */
+export function progressionDuHeros(e: J.Etat, h: J.Heros): string {
+  const o = J.offresDeCarriere(h);
+  return `<div class="progression"><div class="porteur">${herosEnTete(h)}${bourseDePX(h, o)}${niveauSuivant(e, h, o)}${planConseille(h)}</div>
+    <div class="colonne"><div class="rub">Caractéristiques</div><div class="caracs">${caracteristiques(h, o, false, true)}</div>
+      <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}${sortsAApprendre(h)}</div>
+    <div class="colonne"><div class="rub">Compétences ${glose('celles qui servent ici')}</div><div class="deux-colonnes">${competences(h, o, true)}</div></div></div>`;
+}
+
+/** L'onglet des sorts : ceux qu'il connaît, et la voie que la salle d'armes enseigne. */
+function ongletSorts(h: J.Heros): string {
   const voie = J.voieDe(h.carriere, h.c);
   const connus = `<div class="rub">Connus ${glose('lancés seuls en combat')}</div>${(h.c.spells ?? []).map((id) => sort(id, ficheDuSort(id).nature || 'Connu')).join('') || glose('aucun')}`;
-  return progresse ? `${sortsAApprendre(h)}${connus}` : `${connus}${voie ? `<div class="rub">${esc(voie.nom)}</div>${glose(`Au hameau, la salle d’armes enseigne ${esc(voie.nom)}.`)}` : ''}`;
+  return `${connus}${voie ? `<div class="rub">${esc(voie.nom)}</div>${glose(`Au hameau, la salle d’armes enseigne ${esc(voie.nom)}.`)}` : ''}`;
 }
 
 // ─── La fiche ───────────────────────────────────────────────────────────────────────────────────────────────
 
-function identite(ctx: Contexte, h: J.Heros, o: Offres, progresse: boolean) {
+function identite(ctx: Contexte, h: J.Heros, progresse: boolean) {
   const { e } = ctx;
   const c = h.c;
-  const progression = progresse ? `${bourseDePX(h, o)}${niveauSuivant(e, h, o)}` : e.expedition ? '' : glose('Relevez la salle d’armes pour dépenser les PX.');
+  const progression = progresse || e.expedition ? '' : glose('Relevez la salle d’armes pour dépenser les PX.');
   const refusDeRenvoi = J.refusDeRenvoi(e, h);
   const renvoi = e.expedition ? '' : `<div class="gestes-ident">${refusDeRenvoi ? glose(esc(refusDeRenvoi)) : ctx.congediement === c.id
     ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
@@ -142,18 +188,17 @@ function entreDeuxSalles(e: J.Etat, h: J.Heros) {
 function panneauGauche(e: J.Etat, h: J.Heros, o: Offres, enRoute: boolean, progresse: boolean) {
   if (enRoute) return entreDeuxSalles(e, h);
   if (!progresse) return glose(e.expedition ? 'Ce héros attend au hameau.' : 'Relevez la salle d’armes pour augmenter les Compétences.');
-  return `<div class="defile">${competences(h, o)}</div>`;
+  return `<div class="defile">${competences(h, o, false)}</div>`;
 }
 
-/** Les Talents : au hameau, ceux du niveau à acheter ; sinon ceux qu'il porte. Seuls ceux qui agissent en combat. */
-function ongletTalents(e: J.Etat, h: J.Heros, o: Offres, progresse: boolean) {
-  if (progresse) return `<div class="rub">Du niveau ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}`;
+/** Les Talents qu'il porte, seuls ceux qui agissent en combat ; hors du hameau ou salle fermée, où les apprendre. */
+function ongletTalents(e: J.Etat, h: J.Heros, progresse: boolean) {
   const acquis = talentsAcquis(h.c);
   const autres = acquis.filter((t) => !t.combat).length;
   return `<div class="rub">Acquis ${glose('ceux qui agissent en combat')}</div>${acquis.filter((t) => t.combat).map((t) => entree({
     icone: 'etoile', nom: t.label, etat: t.fois > 1 ? `Acquis ×${t.fois}` : 'Acquis', acquis: true, apercu: { nom: t.label, nature: 'Talent', texte: texteDuTalent(t.id) },
   })).join('')}${autres ? glose(`Et ${autres} autre${autres > 1 ? 's' : ''}, sans effet en combat.`) : ''}
-    ${glose(e.expedition ? 'Les Talents s’achètent au hameau.' : 'Relevez la salle d’armes pour en apprendre d’autres.')}`;
+    ${progresse ? '' : glose(e.expedition ? 'Les Talents s’achètent au hameau.' : 'Relevez la salle d’armes pour en apprendre d’autres.')}`;
 }
 
 /** L'équipement : quatre cases (mains, arme à distance, armure), l'encombrement, le sac. */
@@ -174,6 +219,8 @@ function ongletEquipement(e: J.Etat, h: J.Heros) {
     ${e.expedition ? '' : `<div class="pied-equipement">${plaque('Aller à la forge', `data-a="batiment" data-id="forge" data-client="${h.c.id}"`, { icone: 'enclume', taille: 'petite', armee: true })}</div>`}`;
 }
 
+/** La fiche : quand la salle d’armes est ouverte au héros, l’onglet Progression pose son bloc à la place de la salle
+ *  d’armes (`CADRES_DE_L_HOTE.batiment`), étiré comme elle. */
 export function ecranDuHeros(ctx: Contexte, id: string, onglet: Onglet | null): string {
   const { e } = ctx;
   const h = e.roster.find((x) => x.c.id === id);
@@ -182,13 +229,14 @@ export function ecranDuHeros(ctx: Contexte, id: string, onglet: Onglet | null): 
   const progresse = !e.expedition && J.niveauMaximal(e) > 0;
   const o = J.offresDeCarriere(h);
   const lanceur = !!J.voieDe(h.carriere, h.c) || (h.c.spells ?? []).length > 0;
-  const noms: [Onglet, string][] = [['talents', 'Talents'], ...(lanceur ? [['sorts', 'Sorts'] as [Onglet, string]] : []), ['equipement', 'Équipement']];
-  const actif: Onglet = onglet && noms.some(([k]) => k === onglet) ? onglet : progresse ? 'talents' : 'equipement';
-  const droite = actif === 'talents' ? ongletTalents(e, h, o, progresse) : actif === 'sorts' ? ongletSorts(h, progresse) : ongletEquipement(e, h);
+  const noms: [Onglet, string][] = [...(progresse ? [['progression', 'Progression'] as [Onglet, string]] : []), ['talents', 'Talents'], ...(lanceur ? [['sorts', 'Sorts'] as [Onglet, string]] : []), ['equipement', 'Équipement']];
+  const actif: Onglet = onglet && noms.some(([k]) => k === onglet) ? onglet : progresse ? 'progression' : 'equipement';
+  const droite = actif === 'talents' ? ongletTalents(e, h, progresse) : actif === 'sorts' ? ongletSorts(h) : ongletEquipement(e, h);
   return ecran({
     nom: h.c.label,
-    cadres: `${cadreA(CADRES.identite, identite(ctx, h, o, progresse), { classe: 'ident' })}
-      ${cadreA(CADRES.bande, caracteristiques(h, o, progresse, true), { ruban: 'Caractéristiques', classe: 'bande' })}
+    cadres: actif === 'progression' ? cadreA(CADRES_DE_L_HOTE.batiment, progressionDuHeros(e, h), { classe: 'progresser', tete: onglets(noms, actif), etire: true })
+      : `${cadreA(CADRES.identite, identite(ctx, h, progresse), { classe: 'ident' })}
+      ${cadreA(CADRES.bande, caracteristiques(h, o, true, false), { ruban: 'Caractéristiques', classe: 'bande' })}
       ${cadreA(CADRES.gauche, panneauGauche(e, h, o, enRoute, progresse), { ruban: enRoute ? 'Entre deux salles' : 'Compétences', classe: 'competences' })}
       ${cadreA(CADRES.droite, droite, { classe: 'droite', tete: onglets(noms, actif) })}`,
     socle: { heros: enRoute ? J.herosDuGroupe(e) : e.roster, geste: 'heros', choisi: (x) => x.c.id === h.c.id, progresse: (x) => J.peutProgresser(e, x) },

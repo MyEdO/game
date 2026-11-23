@@ -1,7 +1,7 @@
 /**
  * Les carrières : avancements et voies des lanceurs, joués par le noyau.
  */
-import { coutDesAugmentations, planDuNiveau, talentDeCombat, progression, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
+import { augmentationsDuPas, coutDesAugmentations, effetDesAugmentations, ficheDeCompetence, planDuNiveau, talentDeCombat, progression, type CharKey, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
 
 import { COMPETENCES_UTILES, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -67,10 +67,7 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
 /** `null` si le geste a pris (`pris`), sinon la ligne du noyau qui dit pourquoi. */
 const messageDuNoyau = (ligne: string, pris: () => boolean): string | null => (pris() ? null : ligne || 'Le geste n’a rien changé.');
 
-/** Ce qu'un pas achète au plus : cinq Augmentations. */
-const PAS = 5;
-
-export type CibleDuPas = { genre: 'carac'; id: string } | { genre: 'competence'; ref: { id: string; spec?: string } };
+export type CibleDuPas = { genre: 'carac'; id: CharKey } | { genre: 'competence'; ref: { id: string; spec?: string } };
 /** Ce qu'une suite d'achats a pris : combien de fois, les PX débités, et le refus du noyau qui l'a arrêtée. */
 export interface Achete { fois: number; cout: number; refus: string | null }
 
@@ -83,21 +80,45 @@ function repeter(e: Etat, h: Heros, a: Achat, fois: number): Achete {
   return { fois: n, cout: xp - (h.c.xp ?? 0), refus };
 }
 
-/** Ce que coûte un pas de `cible` au héros, `null` si sa carrière ne l'offre pas (`coutDesAugmentations`). */
-export function prixDuPas(h: Heros, cible: CibleDuPas): number | null {
+/** Le pas de `cible` qu'offre la carrière du héros : ses Augmentations (`augmentationsDuPas`) et son prix
+ *  (`coutDesAugmentations`) ; `null` si sa carrière ne l'offre pas. */
+export function pasDe(h: Heros, cible: CibleDuPas): { fois: number; prix: number } | null {
   const p = progression(h.c);
-  if (cible.genre === 'carac') {
-    const k = p.caracs.find((x) => x.id === cible.id);
-    return k ? coutDesAugmentations(k.augmentations, PAS, 'caracteristique') : null;
-  }
-  const k = p.competences.find((x) => x.ref.id === cible.ref.id && (x.ref.spec ?? '') === (cible.ref.spec ?? ''));
-  return k ? coutDesAugmentations(k.augmentations, PAS, 'competence', k.remise) : null;
+  const k = cible.genre === 'carac' ? p.caracs.find((x) => x.id === cible.id) : p.competences.find((x) => x.ref.id === cible.ref.id && (x.ref.spec ?? '') === (cible.ref.spec ?? ''));
+  if (!k) return null;
+  const fois = augmentationsDuPas(k.augmentations);
+  return { fois, prix: 'remise' in k ? coutDesAugmentations(k.augmentations, fois, 'competence', k.remise) : coutDesAugmentations(k.augmentations, fois, 'caracteristique') };
 }
 
-/** Un pas : jusqu'à cinq Augmentations de `cible`, achetées une par une ; s'arrête net quand le noyau refuse. */
+/** Ce que coûte un pas de `cible` au héros (`pasDe`), `null` si sa carrière ne l'offre pas. */
+export const prixDuPas = (h: Heros, cible: CibleDuPas): number | null => pasDe(h, cible)?.prix ?? null;
+
+/** Un pas : les Augmentations de `cible` jusqu'au prochain multiple de cinq (`pasDe`), achetées une par une ;
+ *  s'arrête net quand le noyau refuse. */
 export function acheterUnPas(e: Etat, heroId: string, cible: CibleDuPas): Achete {
   const h = heros(e, heroId);
-  return h ? repeter(e, h, cible, PAS) : { fois: 0, cout: 0, refus: 'Héros introuvable.' };
+  const pas = h && pasDe(h, cible);
+  if (!h) return { fois: 0, cout: 0, refus: 'Héros introuvable.' };
+  return pas ? repeter(e, h, cible, pas.fois) : { fois: 0, cout: 0, refus: 'Sa carrière ne l’offre pas.' };
+}
+
+/** Ce qu'un pas de `cible` change au héros en combat, lu par le noyau (`effetDesAugmentations`) : le Test de la
+ *  Compétence, ou ceux des Compétences utiles de sa carrière que la Caractéristique porte ; son Bonus et ses
+ *  Blessures. `null` si sa carrière ne l'offre pas. */
+export function effetDuPas(h: Heros, cible: CibleDuPas) {
+  const pas = pasDe(h, cible);
+  if (!pas) return null;
+  const tests = cible.genre === 'competence' ? [cible.ref]
+    : offresDeCarriere(h).competences.filter((k) => k.utile && ficheDeCompetence(k.ref.id).carac === cible.id).map((k) => k.ref);
+  return effetDesAugmentations(h.c, cible, pas.fois, tests);
+}
+
+/** Les Compétences que la Salle d'armes montre : les utiles de la carrière, puis les autres que le plan conseillé
+ *  prend pour compléter le niveau (`pourLeNiveau`). */
+export function competencesMontrees(h: Heros): (ReturnType<typeof offresDeCarriere>['competences'][number] & { pourLeNiveau: boolean })[] {
+  const plan = planVersLeNiveau(h).etapes;
+  const prise = (ref: { id: string; spec?: string }) => plan.some((x) => x.genre === 'competence' && x.ref.id === ref.id && (x.ref.spec ?? '') === (ref.spec ?? ''));
+  return offresDeCarriere(h).competences.filter((k) => k.utile || prise(k.ref)).map((k) => ({ ...k, pourLeNiveau: !k.utile }));
 }
 
 /** Le plan conseillé du niveau courant (`planDuNiveau`) : les Compétences utiles d'abord, un Talent de combat

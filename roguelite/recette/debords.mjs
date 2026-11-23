@@ -42,7 +42,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     // Le lanceur passé au niveau 2 : ses Compétences et les sorts de sa voie tiennent à la salle d'armes.
     await geste(p, 'batiment', 'salle'); await p.click('.socle-compagnie .carte-heros >> nth=3');
     for (let n = 0; n < 80 && await p.$('.salle [data-a="niveau"]:disabled'); n++) {
-      const augmentation = await p.$('.salle button.c.carr:not(.faite):not(:disabled), .salle .achat:not(.faite) [data-a="competence"]:not(:disabled)');
+      const augmentation = await p.$('.salle :is(.c.carr, .achat):not(.faite) [data-a="pas"]:not(:disabled)');
       if (!augmentation) break;
       await augmentation.click();
     }
@@ -52,7 +52,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     await geste(p, 'chronique'); await relever('chronique'); await geste(p, 'fermer-panneau');
     await geste(p, 'batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await relever('départ');
     await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
-    for (const o of ['talents', 'sorts', 'equipement']) { const t = await p.$(`[data-a="onglet"][data-k="${o}"]`); if (t) await t.click(); await relever(`fiche ${o}`); }
+    for (const o of ['progression', 'talents', 'sorts', 'equipement']) { const t = await p.$(`[data-a="onglet"][data-k="${o}"]`); if (t) await t.click(); await relever(`fiche ${o}`); }
     await p.click('.croix-ecran'); await geste(p, 'attendre'); await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]'); await p.click('[data-a="partir"]'); await relever('expédition');
     await p.click('[data-a="avancer"]');
     if (await p.isVisible('#combat')) { await p.waitForTimeout(800); await relever('rejeu'); await p.click('[data-v="0"]'); await relever('issue'); await p.click('#combat-fin'); }

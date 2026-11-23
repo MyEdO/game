@@ -9,7 +9,7 @@ import * as J from '../jeu';
 import { blessuresARendre, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
-import { bourseDePX, caracteristiques, competences, niveauSuivant, sortsAApprendre, talentsDuNiveau } from './fiche';
+import { progressionDuHeros } from './fiche';
 import {
   achat, apercuDe, sejours, apercuDeProvision, cadreA, carriereDe, casesDuSac, encombrementDe, esc, etats, etiquettesDeQualites, etiquettesDeSequelles, glose, herosEnTete,
   iconeDArme, iconeDeProvision, portraitDeHeros, voieLisible,
@@ -259,19 +259,11 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   };
 }
 
-/** La salle d'armes pour le héros servi : ses PX et son niveau suivant, puis tout ce qui s'achète — Caractéristiques,
- *  Talents, sorts de sa voie, Compétences sur deux colonnes — chacun avec son prix. */
+/** La salle d'armes pour le héros servi : son bloc de progression (`progressionDuHeros`). */
 function pageDeLaSalle({ e, servi: h }: Lecture): Page {
   if (!J.niveauMaximal(e)) return { classe: 'rangee', corps: placard('epee', 'En ruine', 'Les PX attendent : il faut relever la salle d’armes pour les dépenser.') };
   if (!h) return { classe: 'rangee', corps: placard('epee', 'Personne à entraîner') };
-  const o = J.offresDeCarriere(h);
-  return {
-    classe: 'salle',
-    corps: `<div class="porteur">${herosEnTete(h)}${bourseDePX(h, o)}${niveauSuivant(e, h, o)}</div>
-      <div class="colonne"><div class="rub">Caractéristiques</div><div class="caracs">${caracteristiques(h, o, true, false)}</div>
-        <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}${sortsAApprendre(h)}</div>
-      <div class="colonne"><div class="rub">Compétences</div><div class="deux-colonnes">${competences(h, o)}</div></div>`,
-  };
+  return { classe: 'salle', corps: progressionDuHeros(e, h) };
 }
 
 /** Le cartographe : chaque route en carte — ce qui l'attend, son maître, et le geste qui la prépare. */

@@ -43,8 +43,8 @@
 .recrue .effet { font-style: italic; color: var(--encre-2); }
 
 /* un héros servi à gauche, son étal à droite */
-.corps-service:is(.forge, .chapelle, .salle) { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; overflow: hidden; }
-.corps-service.salle { grid-template-columns: 300px minmax(0, 1fr) minmax(0, 2fr); }
+.corps-service:is(.forge, .chapelle) { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; overflow: hidden; }
+.corps-service.salle { display: grid; overflow: hidden; }
 .porteur { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding-right: 16px; border-right: 1px solid var(--filet-encre); overflow-y: auto; scrollbar-width: thin; }
 .etal { display: grid; grid-template-columns: repeat(var(--colonnes, 4), minmax(0, 1fr)); gap: 10px; align-content: start; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .etal.ample { grid-auto-rows: minmax(0, 1fr); align-content: stretch; }
@@ -104,21 +104,6 @@
 .remedes { align-items: stretch; text-align: left; }
 .provisions { display: grid; gap: 10px; }
 
-/* la salle d'armes */
-.salle .colonne { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
-.salle .colonne .rub { margin-top: 4px; white-space: normal; }
-.salle .colonne .rub:first-child { margin-top: 0; }
-.salle .talent { margin-top: 0; padding: 0 8px; gap: 8px; }
-.salle .talent .medaillon { width: 26px; height: 26px; }
-.salle .talent .medaillon svg { width: 14px; height: 14px; }
-.salle .talent .t i { display: none; }
-.salle .talent .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.salle .colonne { gap: 3px; }
-.salle .deux-colonnes { columns: 2; column-gap: 18px; }
-.salle .achat { break-inside: avoid; }
-.salle .achat :is(.fait, .val) { display: none; }
-.salle .bourse-px { margin-top: 4px; }
-
 /* le départ */
 .emporte { align-items: stretch; text-align: left; gap: 10px; }
 .emporte .cases-sac { min-height: 62px; }
@@ -143,8 +128,7 @@
   .tete-service { flex-wrap: wrap; }
   .tete-service .paliers { flex-basis: 100%; order: 2; }
   .corps-service.rangee { flex-wrap: wrap; }
-  .corps-service:is(.forge, .chapelle, .salle) { grid-template-columns: minmax(0, 1fr); overflow: visible; }
-  .porteur { padding-right: 0; border-right: 0; }
+  .corps-service:is(.forge, .chapelle, .salle) { grid-template-columns: minmax(0, 1fr); overflow: visible; }  .porteur { padding-right: 0; border-right: 0; }
   .etal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chronique { columns: 1; }
   .corps-service { container-type: normal; }

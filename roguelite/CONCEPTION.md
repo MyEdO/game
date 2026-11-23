@@ -119,7 +119,7 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
    à la taille d'interface par défaut.
 5. **Une forme par concept** : la vie en jauge ; une chose possédée en entrée ou en case ; un choix d'un bâtiment en
    carte (une recrue, un soin, une arme, une route) ; le héros en carte. **Un prix ne se lit que dans le geste qui le
-   paie** : une plaque « verbe · prix » (« Acheter · 8 CO », « Engager · 15 CO », « +1 · 10 PX » ; `achat` de
+   paie** : une plaque « verbe · prix » (« Acheter · 8 CO », « Engager · 15 CO », « +5 · 50 PX » ; `achat` de
    `pieces.ts`), dorée quand on peut payer, fermée avec sa raison au survol sinon ; la bourse est en tête du bâtiment.
 6. **Une offre se compare à ce que le héros porte** : à la forge, chaque arme dit la valeur de son Test d'attaque et
    ses Dégâts entre les mains du héros servi, son allonge ou sa portée, avec le sens de l'écart (▲ ▼ =) face à

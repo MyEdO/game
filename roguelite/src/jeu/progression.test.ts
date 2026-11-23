@@ -1,50 +1,72 @@
 import { describe, expect, it } from 'vitest';
-import { acheterUnPas, ameliorer, nouvellePartie, offresDeCarriere, planVersLeNiveau, prixDuPas, recrue, suivreLePlan, PROFILS, type Etat, type Heros } from './index';
-import { porterAuNiveau } from '../noyau';
+import { acheter, acheterUnPas, ameliorer, competencesMontrees, nouvellePartie, offresDeCarriere, planVersLeNiveau, prixDuPas, recrue, suivreLePlan, PROFILS, type CibleDuPas, type Etat, type Heros } from './index';
+import { porterAuNiveau, progression } from '../noyau';
 import { advanceCost } from '../../../src/engine/advancement';
 
-/** Un Soldat recruté au niveau `niveau`, la salle d'armes bâtie par le jeu (`ameliorer`) jusqu'à enseigner le niveau 3. */
-function soldat(niveau: number, xp: number): { e: Etat; h: Heros } {
+/** Une recrue de `carriere` portée au niveau `niveau`, la salle d'armes bâtie par le jeu (`ameliorer`) jusqu'à
+ *  enseigner le niveau 3. */
+function recrueDe(carriere: string, niveau: number, xp: number): { e: Etat; h: Heros } {
   const e = nouvellePartie(7);
   e.or = 10_000; e.trophees = 10;
   expect(ameliorer(e, 'salle')).toBeNull();
   expect(ameliorer(e, 'salle')).toBeNull();
-  const h = recrue(e, PROFILS.find((p) => p.id === 'soldat')!);
+  const h = recrue(e, PROFILS.find((p) => p.id === carriere)!);
   h.c = porterAuNiveau(h.c, niveau, 99);
   h.c.xp = xp;
   e.roster.push(h);
   return { e, h };
 }
+const soldat = (niveau: number, xp: number) => recrueDe('soldat', niveau, xp);
 
-const corpsACorps = { genre: 'competence', ref: { id: 'corps-a-corps', spec: 'base' } } as const;
-const augmentations = (h: Heros) => h.c.skills.find((s) => s.id === 'corps-a-corps' && s.spec === 'base')!.advances;
+const CC: CibleDuPas = { genre: 'carac', id: 'capacite-de-combat' };
+const augsCC = (h: Heros) => h.c.charAdvances?.['capacite-de-combat'] ?? 0;
+const prixNoyau = (depuis: number, n: number) => Array.from({ length: n }, (_, i) => advanceCost(depuis + i, 'caracteristique', true)).reduce((s, x) => s + x, 0);
 
 describe('progression : pas de +5', () => {
-  it('un pas coûte la somme des cinq prix du noyau et monte la Compétence de 5', () => {
-    const { e, h } = soldat(1, 1000);
-    const avant = augmentations(h);
-    const prix = Array.from({ length: 5 }, (_, i) => advanceCost(avant + i, 'competence', true)).reduce((s, x) => s + x, 0);
-    expect(prixDuPas(h, corpsACorps)).toBe(prix);
-    expect(acheterUnPas(e, h.c.id, corpsACorps)).toEqual({ fois: 5, cout: prix, refus: null });
-    expect(augmentations(h)).toBe(avant + 5);
-    expect(h.c.xp).toBe(1000 - prix);
+  it('de +3 à +5, un pas achète 2 Augmentations au prix du noyau ; de +5 à +10, il en achète 5', () => {
+    const { e, h } = soldat(1, 5000);
+    while (augsCC(h) % 5 !== 3) expect(acheter(e, h.c.id, CC)).toBeNull();
+    const trois = augsCC(h);
+    expect(prixDuPas(h, CC)).toBe(prixNoyau(trois, 2));
+    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 2, cout: prixNoyau(trois, 2), refus: null });
+    expect(augsCC(h)).toBe(trois + 2);
+    expect(prixDuPas(h, CC)).toBe(prixNoyau(trois + 2, 5));
+    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 5, cout: prixNoyau(trois + 2, 5), refus: null });
+    expect(augsCC(h)).toBe(trois + 7);
   });
 
-  it('PX insuffisants : le pas s’arrête et ne débite que ce qui a été acheté', () => {
+  it('PX insuffisants : le pas s’arrête au refus du noyau et ne débite que ce qui a été acheté', () => {
     const { e, h } = soldat(1, 0);
-    const avant = augmentations(h);
-    const deux = advanceCost(avant, 'competence', true) + advanceCost(avant + 1, 'competence', true);
-    h.c.xp = deux + 1;
-    const r = acheterUnPas(e, h.c.id, corpsACorps);
-    expect(r).toMatchObject({ fois: 2, cout: deux });
+    const avant = augsCC(h);
+    h.c.xp = advanceCost(avant, 'caracteristique', true) + 1;
+    const r = acheterUnPas(e, h.c.id, CC);
+    expect(r).toMatchObject({ fois: 1, cout: advanceCost(avant, 'caracteristique', true) });
     expect(r.refus).toBeTruthy();
-    expect(augmentations(h)).toBe(avant + 2);
+    expect(augsCC(h)).toBe(avant + 1);
     expect(h.c.xp).toBe(1);
   });
 });
 
 describe('progression : plan conseillé', () => {
-  it('le plan d’un Soldat de niveau 1, suivi avec assez de PX, le passe au niveau 2 au prix annoncé', () => {
+  it('chaque étape de Caractéristique ou de Compétence est un pas, qui finit sur un multiple de cinq', () => {
+    for (const p of PROFILS) {
+      const { h } = recrueDe(p.id, 1, 0);
+      const augs = new Map<string, number>([
+        ...progression(h.c).caracs.map((k) => [k.id, k.augmentations] as [string, number]),
+        ...progression(h.c).competences.map((k) => [`${k.ref.id}:${k.ref.spec ?? ''}`, k.augmentations] as [string, number]),
+      ]);
+      for (const x of planVersLeNiveau(h).etapes) {
+        if (x.genre !== 'carac' && x.genre !== 'competence') continue;
+        const cle = x.genre === 'carac' ? x.id : `${x.ref.id}:${x.ref.spec ?? ''}`;
+        const fin = augs.get(cle)! + x.fois;
+        expect(x.fois, `${p.id} ${x.label}`).toBeLessThanOrEqual(5);
+        expect(fin % 5, `${p.id} ${x.label}`).toBe(0);
+        augs.set(cle, fin);
+      }
+    }
+  });
+
+  it('suivi en un clic avec assez de PX, il passe un Soldat de niveau 1 au niveau 2 au prix annoncé', () => {
     const { e, h } = soldat(1, 2000);
     const plan = planVersLeNiveau(h);
     expect(plan.etapes[plan.etapes.length - 1]).toMatchObject({ genre: 'niveau' });
@@ -78,5 +100,20 @@ describe('progression : plan conseillé', () => {
     expect(etapes.filter((r) => !offertes.find((k) => k.ref.id === r.id && k.ref.spec === r.spec)?.utile)).toEqual([]);
     expect(competences).not.toContain('musicien');
     expect(competences).not.toContain('pari');
+  });
+});
+
+describe('progression : Compétences montrées', () => {
+  it('seules les utiles, plus celles « pour le niveau » que le plan conseillé prend', () => {
+    for (const p of PROFILS) {
+      const { h } = recrueDe(p.id, 1, 0);
+      const plan = planVersLeNiveau(h).etapes.flatMap((x) => (x.genre === 'competence' ? [`${x.ref.id}:${x.ref.spec ?? ''}`] : []));
+      for (const k of competencesMontrees(h)) {
+        expect(k.utile !== k.pourLeNiveau, `${p.id} ${k.label}`).toBe(true);
+        if (k.pourLeNiveau) expect(plan, `${p.id} ${k.label}`).toContain(`${k.ref.id}:${k.ref.spec ?? ''}`);
+      }
+      const montrees = competencesMontrees(h).map((k) => `${k.ref.id}:${k.ref.spec ?? ''}`);
+      expect(offresDeCarriere(h).competences.filter((k) => k.utile).every((k) => montrees.includes(`${k.ref.id}:${k.ref.spec ?? ''}`))).toBe(true);
+    }
   });
 });
