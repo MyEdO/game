@@ -74,9 +74,8 @@ describe('le camp, salle à choix', () => {
     const soldat = du(e, 'soldat');
     const medecin = du(e, 'medecin');
     soldat.c.wounds.current = 2;
-    const chasseur = du(e, 'chasseur');
-    expect(refusDuSoigneur(e, chasseur)).toBe('Ne sait pas tenter la Guérison.');
-    expect(agirDansLaSalle(e, 'soigner', chasseur.c.id, soldat.c.id)).toBe('Ne sait pas tenter la Guérison.');
+    expect(refusDuSoigneur(e, soldat)).toBe('Ne sait pas tenter la Guérison.');
+    expect(agirDansLaSalle(e, 'soigner', soldat.c.id, medecin.c.id)).toBe('Ne sait pas tenter la Guérison.');
     medecin.c.wounds.current = 2;
     expect(agirDansLaSalle(e, 'soigner', medecin.c.id, medecin.c.id)).toBe('Le soigneur soigne un autre héros.');
     medecin.c.wounds.current = medecin.c.wounds.max;

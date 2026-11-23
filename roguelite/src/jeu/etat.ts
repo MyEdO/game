@@ -4,7 +4,7 @@
 import { dotationDesNiveaux, generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
 import { ESPECES, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
-import { choisir, noter, profil, tirer } from './outils';
+import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
 
 /** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
@@ -41,11 +41,21 @@ export function nouvellePartie(graine: number): Etat {
     batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0, memorial: 0 },
     roster: [], candidats: [], cimetiere: [], expedition: null, bossVaincus: [], journal: [],
   };
-  const college = choisir(tirer(e), PROFILS.filter((p) => p.role === 'lanceur' && p.relais === 0));
-  for (const p of [profil('soldat')!, profil('chasseur')!, profil('nonne')!, college]) e.roster.push(recrue(e, p));
+  for (const p of compagnieDeDepart(e)) e.roster.push(recrue(e, p));
   renouvelerLesCandidats(e);
   noter(e, 'Quatre aventuriers descendent de la diligence à Grisefosse. Le hameau est en ruines ; tout reste à bâtir.');
   return e;
+}
+
+/** La compagnie de départ : le front et le soigneur ouverts au relais 0, puis deux autres carrières de ce palier tirées
+ *  sans doublon. */
+function compagnieDeDepart(e: Etat): Profil[] {
+  const ouvertes = PROFILS.filter((p) => p.relais === 0);
+  const fixes = (['front', 'soigneur'] as const).map((r) => ouvertes.find((p) => p.role === r)!);
+  const rng = tirer(e);
+  const autres = ouvertes.filter((p) => !fixes.includes(p));
+  const premier = choisir(rng, autres);
+  return [...fixes, premier, choisir(rng, autres.filter((p) => p !== premier))];
 }
 
 /** Une recrue de la carrière `p` : une espèce que sa carrière admet (`tirerUneEspece`), son dieu tiré parmi ceux du

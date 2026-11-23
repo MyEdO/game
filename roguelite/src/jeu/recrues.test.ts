@@ -75,15 +75,26 @@ describe('recrues du relais', () => {
     expect(tenue(melee().secondaire)?.trappingId).toBe('arme-simple');
   });
 
-  it('le lanceur est une carrière de Collège, sa voie la Magie des Arcanes de son domaine, et la partie en tire un au relais 0', () => {
+  it('le lanceur est une carrière de Collège, sa voie la Magie des Arcanes de son domaine', () => {
     const colleges = PROFILS.filter((p) => p.role === 'lanceur');
     expect(colleges.map((p) => p.id).sort()).toEqual(['alchimiste', 'chamane', 'druide', 'hierophante', 'pyromancien', 'spirite']);
     for (const palier of [0, 1, 2]) expect(colleges.some((p) => p.relais === palier)).toBe(true);
     const feu = voieDe('pyromancien', { talents: [] })!;
     expect(feu).toMatchObject({ talent: 'magie-des-arcanes', spec: 'feu' });
     expect(feu.sorts).toContainEqual({ id: 'cauteriser', niveau: 2 });
-    const tires = new Set(Array.from({ length: 12 }, (_, g) => nouvellePartie(g).roster[3].carriere));
-    expect([...tires].sort()).toEqual(colleges.filter((p) => p.relais === 0).map((p) => p.id).sort());
+  });
+
+  it('la compagnie de départ : le Soldat et la Nonne, puis deux autres carrières du relais 0 tirées sans doublon', () => {
+    const compositions = new Set<string>();
+    for (let graine = 1; graine <= 40; graine++) {
+      const carrieres = nouvellePartie(graine).roster.map((h) => h.carriere);
+      expect(carrieres).toHaveLength(4);
+      expect(carrieres.slice(0, 2)).toEqual(['soldat', 'nonne']);
+      expect(new Set(carrieres).size).toBe(4);
+      for (const id of carrieres) expect(profilDe(id).relais).toBe(0);
+      compositions.add([...carrieres].sort().join(','));
+    }
+    expect(compositions.size).toBeGreaterThanOrEqual(3);
   });
 
   it('le Prêtre-guerrier tire son dieu parmi Sigmar, Ulric et Myrmidia ; son Béni et sa voie le suivent', () => {

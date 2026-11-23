@@ -4,7 +4,7 @@ import { agirDansLaSalle, EPREUVES, herosDuGroupe, nouvellePartie, recrue, refus
 import { blessures, devant, recit } from './salles.testkit';
 
 /** La nonne de Shallya : ni la meilleure en Perception, ni la première du groupe. */
-const NONNE = 2;
+const NONNE = 1;
 
 describe('la cache piégée, salle à choix', () => {
   it('entrer ouvre la salle sans rien jouer, et l’attente survit au rechargement', () => {
@@ -53,8 +53,8 @@ describe('la cache piégée, salle à choix', () => {
   });
 
   it('désarmer : refusé à qui n’a ni Piégeage ni Crochetage, sans rien jouer ; tenté par le Chasseur', () => {
-    const e = devant('tresor', 5);
-    const [soldat, chasseur] = e.roster;
+    const e = devant('tresor', 5, ['chasseur']);
+    const [soldat, chasseur] = [e.roster[0], herosDuGroupe(e).find((h) => h.carriere === 'chasseur')!];
     expect(refusDAction(soldat, 'desarmer')).toBe('Ne sait tenter ni Piégeage ni Crochetage.');
     expect(agirDansLaSalle(e, 'desarmer', soldat.c.id)).toBe(refusDAction(soldat, 'desarmer'));
     expect(salleAChoisir(e)).toBe(true);
@@ -84,8 +84,8 @@ describe('la cache piégée, salle à choix', () => {
   });
 
   it('un Test que le noyau ne joue pas : ni bourse ni piège, le héros repris tel qu’il saigne, la salle reste au choix', () => {
-    const e = devant('tresor', 8);
-    const h = e.roster[1];
+    const e = devant('tresor', 8, ['chasseur']);
+    const h = herosDuGroupe(e).find((g) => g.carriere === 'chasseur')!;
     // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
     h.c.wounds.current = 13; addCondition(h.c, COND.brise, 6); addCondition(h.c, COND.hemorragique, 2);
     const r = recit(agirDansLaSalle(e, 'desarmer', h.c.id));
