@@ -132,6 +132,7 @@ import {
   type VolumeDuMonde,
   cleDeLaVision,
   combattantEnVue,
+  coquesEnVue,
   porteurEnVue,
   visionDuMonde,
   type VisionDuMonde,
@@ -275,9 +276,10 @@ export interface CorpsDuCombat {
    */
   vehicules: Record<string, CorpsDuVehicule>;
   /**
-   * pour chaque coque que la scène porte et qui se montre par le monde (`coquesDeLaScene`, `src/noyau/planDeNavire.ts` :
-   * un navire dont elle pose les ponts, #3686, ou une coque terrestre, #4471) et dont le dernier `modeles` sert un
-   * élément `vehicule` de même `definition`, par l'id de son entité : sa pose (`CoqueServie`).
+   * pour chaque coque que la scène porte et qui se montre par le monde, que le groupe voit (`coquesEnVue`,
+   * `src/noyau/visionDuGroupe.ts` : un navire dont elle pose les ponts, #3686, ou une coque terrestre, #4471, en vue) et
+   * dont le dernier `modeles` sert un élément `vehicule` de même `definition`, par l'id de son entité : sa pose
+   * (`CoqueServie`).
    */
   coques: Record<string, CoqueServie>;
   /**
@@ -996,9 +998,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     valider(!jonction, `${methode} : un salon se rejoint ; quitter le salon d’abord`);
   };
 
-  /** Par id de son entité, chaque coque de `scene` dont un élément `vehicule` est servi (`CoqueServie`), un navire posé
-   *  par ses ponts avec ses stations et sa flottaison : le jeu et l'éditeur les montrent tous deux. */
-  const coquesServies = (scene: Scene): Record<string, CoqueServie> => Object.fromEntries(coquesDeLaScene(scene).flatMap(({ id, vehicule, centre }) => {
+  /** Par id de son entité, chaque coque `coques` de `scene` dont un élément `vehicule` est servi (`CoqueServie`), un
+   *  navire posé par ses ponts avec ses stations et sa flottaison : le jeu celles que le groupe voit (`coquesEnVue`),
+   *  l'éditeur toutes (`coquesDeLaScene`). */
+  const coquesServies = (scene: Scene, coques: readonly CoqueDeLaScene[]): Record<string, CoqueServie> => Object.fromEntries(coques.flatMap(({ id, vehicule, centre }) => {
     const corps = modeles && corpsDuVehicule(vehicule, modeles);
     if (!modeles || !corps) return [];
     if (!estPoseParSesPonts(scene, id)) return [[id, { corps, centre }]];
@@ -1073,7 +1076,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         const corps = vehicule && modeles && !coques.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
         return corps ? [[id, corps]] : [];
       })),
-      coques: scene ? coquesServies(scene) : {},
+      coques: scene ? coquesServies(scene, coquesEnVue(etat, scene)) : {},
       decors: scene && selection ? decorsServis(scene, selection, currentSeason(etat.gameTime)) : {},
     };
   };
@@ -2156,7 +2159,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           retrait: retraitDuMonde(vue, session.z),
           aretes: aretesDeLaCouche(vue, session.z),
           cotesDeMarches: cotesDeMarchesDeLaCouche(vue, session.z),
-          coques: coquesServies(vue),
+          coques: coquesServies(vue, coquesDeLaScene(vue)),
           decors: decorsServis(vue, selection, null),
         } : {}),
         ...(depot ? { depot } : {}),

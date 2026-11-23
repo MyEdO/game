@@ -1,7 +1,8 @@
 /**
  * CE QUE LE GROUPE CONNAÎT (#3950) : les lecteurs de la loi de visibilité (`visibilityOf`, `src/noyau/visibility.ts`)
  * sur la vue du groupe (`computeStateVisible`) et la mémoire de carte de la scène (`explored`). Ils disent ce qui se
- * MONTRE : un combattant en vue, une entité connue, un nom, le masque du monde et les personnes déjà vues (#4017).
+ * MONTRE : un combattant en vue, une entité connue, une coque montrée par le monde, un nom, le masque du monde et les
+ * personnes déjà vues (#4017).
  */
 import type { Combatant } from '../engine/types';
 import type { Visibility } from '../data/ambiance.types';
@@ -25,6 +26,8 @@ import { caseDansGrille } from './monde/opacite';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { resolveNappes } from './monde/volume/toits';
 import { visibilityOf } from './visibility';
+import { coquesDeLaScene, estPoseParSesPonts, type CoqueDeLaScene } from './planDeNavire';
+import { garanti } from '../lib/garanti';
 import { computeStateVisible, type VisionInput } from './visionState';
 
 /** La tranche d'état que lisent les lecteurs : les entrées de la vue du groupe et la mémoire de carte. */
@@ -109,6 +112,17 @@ export function entiteConnue(etat: EntreesDeLaConnaissance, e: SceneEntity): boo
   if (enEmbuscade(e)) return false;
   const v = connaissanceDuGroupe(etat)(spaceCellKey(e.pos.x, e.pos.y, e.z ?? 0));
   return e.kind === 'personnage' ? v === 'visible' : v !== 'unknown';
+}
+
+/** Les coques que `scene` montre par le monde (`coquesDeLaScene`) que le groupe voit : un navire posé par ses ponts,
+ *  qui est le plateau, toujours ; une coque terrestre par son combattant en vue (`combattantEnVue`) au combat, sinon
+ *  connue (`entiteConnue`), jamais en embuscade. */
+export function coquesEnVue(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaissance, scene: Scene): CoqueDeLaScene[] {
+  return coquesDeLaScene(scene).filter(({ id }) => {
+    if (estPoseParSesPonts(scene, id)) return true;
+    const c = inBattleId(etat.battle, id);
+    return c ? combattantEnVue(etat, c) : entiteConnue(etat, garanti(scene.entities.find((e) => e.id === id), id, 'entité de coque'));
+  });
 }
 
 /** Le nom du porteur que le groupe voit. */

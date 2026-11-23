@@ -15,7 +15,11 @@ import { occupied } from './monde/combatGeometry';
 import { tileKey } from './monde/path';
 import { placeCombatant } from './monde/spawn';
 import { translaterFormation } from './monde/shipPostes';
-import { capEnCombat } from './planDeNavire';
+import { capEnCombat, coquesDeLaScene } from './planDeNavire';
+import { bassinDeLaCaraque } from './planDeNavire.testkit';
+import { coquesEnVue } from './visionDuGroupe';
+import { buildScene } from './mapSpec';
+import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 
 /** Une coque qui n'est PAS un navire (`profilNavalDe` : pas de facette `ship`) — EDOC 07 l.334, MDG 13 l.656. */
@@ -88,7 +92,6 @@ describe('coque routière au combat : la scène porte son corps, qui ne bouge pa
 
   it('une avance refusée et nommée : la diligence reste en place, ses cases tenues par la scène seule', () => {
     const { dil, heros } = auCombat();
-    banc.setState({ facing: { ...banc.getState().facing, dil: 'E' } });
     expect(banc.getState().avancerLeNavire('dil', 3)).toBe(0);
     const s = banc.getState();
     expect(dil.pos).toMatchObject(ANCRE);
@@ -110,5 +113,43 @@ describe('coque routière au combat : la scène porte son corps, qui ne bouge pa
     expect([banc.getState().facing.dil, capEnCombat(banc.getState(), 'dil')]).toEqual([undefined, 'N']);
     banc.getState().orienterVers('dil', dil.pos!, heros.pos!);
     expect([banc.getState().facing.dil, capEnCombat(banc.getState(), 'dil')]).toEqual([undefined, 'N']);
+  });
+});
+
+describe('le groupe ne voit une coque terrestre que là où il la voit (#4471)', () => {
+  const heros = () => [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })];
+  /** Un pré où une rencontre pose une diligence et un brigand, en embuscade ou non, sous `lumiere`. */
+  const pre = (hidden: boolean, lumiere: 'jour' | 'nuit', x: number): Scene => buildScene({
+    id: 'pre', label: 'Pré', size: [30, 8], terrain: 'herbe', ambientLight: lumiere, heroStart: [1, 4],
+    encounters: [{ id: 'emb', hidden, enemies: [
+      { vehicule: { id: 'diligence' }, pos: { x, y: 3 }, label: 'Diligence' },
+      { creature: { id: 'humain' }, pos: { x: 3, y: 4 }, label: 'Brigand' },
+    ] }],
+  });
+  const lancer = (scene: Scene) => {
+    banc = ouvrirLeBanc();
+    banc.setState({ party: heros() });
+    banc.getState().lancerLaScene(scene);
+    return garanti(banc.getState().scene!.entities.find((e) => e.vehicule), 'diligence', 'entité de la rencontre').id;
+  };
+
+  it('en exploration, connue, elle se montre', () => {
+    const vue = lancer(pre(false, 'jour', 18));
+    expect(coquesEnVue(banc.getState(), banc.getState().scene!).map((c) => c.id)).toEqual([vue]);
+  });
+
+  it('en exploration, en embuscade, jamais', () => {
+    lancer(pre(true, 'jour', 18));
+    expect(coquesEnVue(banc.getState(), banc.getState().scene!)).toEqual([]);
+  });
+
+  it('au combat, hors de vue de nuit, elle ne se montre pas ; un navire posé par ses ponts, le plateau, toujours', () => {
+    const id = lancer(pre(false, 'nuit', 26));
+    banc.getState().lancerLeCombat('emb', undefined, { noSurprise: true });
+    expect(coquesDeLaScene(banc.getState().scene!).map((c) => c.id)).toEqual([id]);
+    expect(coquesEnVue(banc.getState(), banc.getState().scene!)).toEqual([]);
+    const bassin = bassinDeLaCaraque('N');
+    const enEmbuscade = { ...bassin, entities: bassin.entities.map((e) => (e.vehicule ? { ...e, combat: { hiddenUntilCombat: true } } : e)) };
+    expect(coquesEnVue(banc.getState(), enEmbuscade).map((c) => c.id)).toEqual(['c1']);
   });
 });
