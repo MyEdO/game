@@ -129,7 +129,8 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   je le vois plus comme un tank et le maitre de l'épée un combat spécialisé dans le combat a l'arme a 2 main. Mais
   surement qu'il fait doublon avec le tueur et le soldat » ; « Il faut un tank au début, le soldat même rang 1 sait se
   défendre avec un bouclier ». — Soldat : tank du relais 0, niveau 1, un bouclier d'adaptation à son recrutement ;
-  Tueur : deux haches, la grande hache à son niveau 2 ; Joueur d'épée : la deux-mains.
+  Tueur : deux haches, la grande hache à son niveau 2 ; Joueur d'épée : la deux-mains. « N'oublie pas, les
+  personnages progresse » : une identité se juge sur les quatre niveaux de la carrière, pas au seul recrutement.
 
 ## Les phases
 
