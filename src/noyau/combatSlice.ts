@@ -1952,7 +1952,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
       const flow = consommableDe(it, objetDuNarratif(s.campaignNarratif));
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
-      if (refuseSi(get, set, () => refusDeConsommer(porteur, it, flow))) return;
+      if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));

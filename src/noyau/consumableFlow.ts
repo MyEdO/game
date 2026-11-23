@@ -17,9 +17,9 @@
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
 import { consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
-import { executerFlow, type ArretDeFlow, type ConditionCtx } from '../engine/flowCore';
+import { evalCondition, executerFlow, type ArretDeFlow, type ConditionCtx } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { condCtx } from './bourseFlow';
+import { conditionCtxDe, type EtatDesConditions } from './bourseFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
@@ -29,13 +29,14 @@ import { battleRng } from './battleRng';
 import type { Get, Set as SetFn } from './flowTypes';
 import { t } from '../i18n';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
+import { nomDe } from '../engine/nom';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
  *  s'évaluent sur LUI, les Conditions de scène (flags/horloge/bourse) restent celles du monde. */
-function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
+function drinkerCtx(s: EtatDesConditions, hero: Combatant): ConditionCtx {
   const view = buildActorView(hero);
-  return { ...condCtx(get), target: view, caster: view };
+  return { ...conditionCtxDe(s), target: view, caster: view };
 }
 
 /** Hôte de SCÈNE (`executerFlow`) du Flow baké d'un consommable — comme `runFlow`, mais : feuilles appliquées au
@@ -47,7 +48,7 @@ function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
 function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flow, label: string, source?: EffectSource): void {
   const fini: ArretDeFlow<void> = { arret: undefined };
   executerFlow<Effect, void>(flow, {
-    conditions: () => drinkerCtx(get, hero),
+    conditions: () => drinkerCtx(get(), hero),
     feuille: (node, reste) => {
       if (node.effet.type !== 'ops') return undefined;
       const lines = applyLeafOps(get, set, hero, node.effet, { idNeuf: get().forgerUnId,
@@ -70,7 +71,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       return undefined;
     },
     test: (node, reste) => {
-      const cc = drinkerCtx(get, hero);
+      const cc = drinkerCtx(get(), hero);
       // Test non joué (Bonnet de fou : `exceptGroups: ['peau-verte']`, LDB 71 l.20) : la séquence
       // continue dans CETTE exécution.
       if (!resoudreFlowTest(node.test, { cc, sujet: hero }).joue) return undefined;
@@ -90,27 +91,30 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
   });
 }
 
-/** Les ops que le Flow d'un consommable pose à son buveur quand tout réussit (Tests réussis, toutes les
- *  branches `si` et `choix`), ou `null` si une feuille n'est pas une op : son effet ne se lit pas en ops. */
-function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
+/** Les ops que le Flow d'un consommable pose à son buveur, chaque `si` jugé sur lui (`cc`) et chaque `choix` par ses
+ *  deux branches : à la réussite de ses Tests (`issues: 'reussite'`), ou à l'une quelconque de leurs issues
+ *  (`'toutes'`) ; `null` si une feuille atteinte n'est pas une op : son effet ne se lit pas en ops. */
+function opsAtteintes(f: Flow, cc: ConditionCtx, issues: 'reussite' | 'toutes'): GameOp[] | null {
   const de = (fs: (Flow | undefined)[]): GameOp[] | null => {
-    const parts = fs.filter((x): x is Flow => !!x).map(opsDeReussiteDuFlow);
+    const parts = fs.filter((x): x is Flow => !!x).map((x) => opsAtteintes(x, cc, issues));
     return parts.some((p) => p == null) ? null : parts.flatMap((p) => p!);
   };
   switch (f.kind) {
     case 'effet': return f.effet.type === 'ops' ? f.effet.ops : null;
     case 'sequence': return de(f.etapes);
-    case 'si': return de([f.alors, f.sinon]);
-    case 'test': return de([f.reussite]);
+    case 'si': return de([evalCondition(f.condition, cc) ? f.alors : f.sinon]);
+    case 'test': return de(issues === 'reussite' ? [f.reussite] : [f.reussite, f.echec]);
     case 'choix': return de([f.oui, f.non]);
   }
 }
 
-/** Refus de consommer `item` quand son effet réussi n'aurait rien à changer à `hero` (`reussiteSansObjet`,
- *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE d'`utiliserLObjet`, avant toute
- *  consommation. */
-export function refusDeConsommer(hero: Combatant, item: ItemInstance, flow: Flow): string | null {
-  const ops = opsDeReussiteDuFlow(flow);
+/** Refus de consommer `item` quand son Flow ne poserait rien à `hero` (ses conditions jugées sur lui), ou quand son
+ *  effet réussi n'aurait rien à lui changer (`reussiteSansObjet`, jugée avant le Test au boire) : l'objet n'est pas
+ *  perdu pour rien. Verdict UNIQUE d'`utiliserLObjet`, avant toute consommation. LDB 72 l.24 */
+export function refusDeConsommer(s: EtatDesConditions, hero: Combatant, item: ItemInstance, flow: Flow): string | null {
+  const cc = drinkerCtx(s, hero);
+  if (opsAtteintes(flow, cc, 'toutes')?.length === 0) return t('cs.consommableSansEffet', { name: nomDe(hero), item: item.label });
+  const ops = opsAtteintes(flow, cc, 'reussite');
   const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;

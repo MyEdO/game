@@ -13,6 +13,7 @@ import {
 } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { setDataset } from '../data/overrides';
+import { effectiveArmourAt } from '../engine/characteristics';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { trappings, findTrappingById } from '../data';
@@ -256,7 +257,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const uid = it.uid;
     const { get, set } = makeHarness([hero]);
 
-    equiperLObjet(get, set, uid);
+    equiperLObjet(get, set, uid, true);
 
     const after = get().party[0];
     expect((after.items ?? []).find((i) => i.uid === uid)?.equipped).toBe(true);
@@ -268,11 +269,34 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const mule = makeMulePossession([it]);
     const { get, set } = makeHarness([], [mule]);
 
-    equiperLObjet(get, set, 'selle');
+    equiperLObjet(get, set, 'selle', true);
 
     const after = get().possessions[0];
     expect(after.items.find((i) => i.uid === 'selle')?.equipped).toBe(true);
     expect((after as unknown as Combatant).weapons).toBeUndefined(); // aucun loadout dérivé sur une possession
+  });
+
+  it('equiperLObjet rejoué ne change rien : une armure née portée le reste, ses PA comprises ; ôtée, elle tombe', () => {
+    const it = itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!;
+    it.equipped = true;
+    const hero = blessuresSurLeProfil({
+      id: 'h1', name: 'Test', kind: 'heros', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
+      items: [it], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+    }) as unknown as Combatant;
+    recomputeLoadout(hero);
+    const { get, set } = makeHarness([hero]);
+    const pa = () => effectiveArmourAt(get().party[0], 'corps');
+    const porte = () => get().party[0].items!.find((i) => i.uid === it.uid)!.equipped;
+    const paPortee = pa();
+    expect(paPortee, 'témoin : le justaucorps protège le corps').toBeGreaterThan(0);
+
+    equiperLObjet(get, set, it.uid, true);
+    equiperLObjet(get, set, it.uid, true);
+    expect([porte(), pa()]).toEqual([true, paPortee]);
+
+    equiperLObjet(get, set, it.uid, false);
+    equiperLObjet(get, set, it.uid, false);
+    expect([porte(), pa()]).toEqual([false, 0]);
   });
 
   it('transmettreLObjet héros→possession : déplace l’item, met à jour les deux porteurs (recompute héros seulement)', () => {
