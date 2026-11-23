@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as attendre } from 'node:timers/promises'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { commandeDImport, construction, lancer, ordreDuLot, trianglesParEmpreinte } from './integrer.mjs'
 
 const BURE = 'humanoide/vetement--bure'
@@ -58,7 +59,7 @@ test('trianglesParEmpreinte lit les lignes GLB d’un élément sur base comme d
 /** Le processus `pid` est-il encore vivant, après au plus `delaiMs` d'attente de sa fin ? */
 async function vivant(pid, delaiMs) {
   for (const fin = Date.now() + delaiMs; Date.now() < fin; await attendre(50)) {
-    try { process.kill(pid, 0) } catch { return false }
+    if (!estPidVivant(pid)) return false
   }
   return true
 }
