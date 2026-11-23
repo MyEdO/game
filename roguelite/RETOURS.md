@@ -268,3 +268,9 @@ sur une arène générée.
   (le chien générique) alors que le Bestiaire a `chien-de-ratier`. Progression et armure de la bête : la possession
   porte déjà `charsRolled`, `learnedTraits` et `items` ; il manque des verbes de fiche qui les visent.
 
+- **Défaut — l'horloge d'une action d'entité passe avant son Test.** `jouerAction` pose `pendingTest`, puis la clôture
+  `avancerHorloge` (`src/noyau/interactionsDExploration.ts:317-318`, 10 min) joue tout de suite 10 Rounds d'entretien
+  hors combat (`outOfCombatUpkeep`) : un héros Hémorragique 2 saigne jusqu'à l'Inconscience avant son jet, l'anéantis-
+  sement prend la main et le Test n'est jamais résolu (graine 15 : 13/19 → 1 Blessure, Inconscient, `partyWiped`).
+  Classe de MyEdO/game#2689 (`cloturer` sous la modale du nœud `test`), commentée le 2026-11-23. L'hôte rend un refus
+  (`IssueDEpreuve.refus`), sans contourner l'horloge.
