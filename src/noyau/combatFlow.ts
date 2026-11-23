@@ -219,7 +219,8 @@ import {
   composantLie,
   prendUnComposant,
   castInfoIsPrayer,
-  focusSkillFor,
+  focusDRExpectation,
+  niRestantAFocaliser,
   castLandProbability,
   malevolentInfluenceSeverity,
   malepierreItemOf,
@@ -6409,8 +6410,9 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     // et pose `spell.id` sur le lien → Unicité (plus de re-invocation en boucle). La `target.kind='area'` d'un
     // tel sort (Réanimation) est COSMÉTIQUE — `applySummon` place les invoqués près du lanceur.
     const hasAllySummon = spellOps(data.effects, 'caster').some((o) => o.op === 'summon' && o.allyOfCaster !== false);
+    const drParRound = !ready && !hasAllySummon && isArcaneSpell(data) ? focusDRExpectation(enemy, data) : null;
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
-      : (!hasAllySummon && landProb < 0.5 && isArcaneSpell(data) && !!focusSkillFor(enemy, data)) ? 'focusable'
+      : drParRound ? { rounds: Math.ceil(niRestantAFocaliser(enemy, data) / drParRound), landProbNI0: castLandProbability({ ...enemy, focus: { spell: data.id, dr: niSansFocalisation(data, enemy) } }, data) }
         : 'none';
     const radius = hasAllySummon || ancreDeLaZdE(data) === 'target' ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'

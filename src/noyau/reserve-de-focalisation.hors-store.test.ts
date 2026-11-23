@@ -11,7 +11,8 @@ import { buildAiInput, castSpell, withPreRollFixedDie } from './combatFlow';
 import type { BattleState } from './etat';
 import { emptyScene } from './monde/scene';
 import { spawnEnemy } from './monde/spawn';
-import { niSansFocalisation, focalisationAboutie } from '../engine/magic';
+import { niSansFocalisation, focalisationAboutie, focusDRExpectation } from '../engine/magic';
+import type { CastableSpell } from './monde/ai';
 import { canCastFromGrimoire } from '../engine/grimoire';
 import { findSpellById } from '../data';
 
@@ -41,7 +42,7 @@ describe('réserve de Focalisation — focaliser puis lancer un autre sort du m�
 });
 
 describe('IA : la Focalisation est prête au NI sans réserve (LDB 46 l.128, l.132)', () => {
-  function pretPour(dr: number, option = false): string | undefined {
+  function pretPour(dr: number, option = false): CastableSpell['focusState'] | undefined {
     setRule('magie-vdm-incantation', option);
     const w: Combatant = { ...sorciere(), kind: 'ennemi', pos: { x: 5, y: 5 }, focus: { spell: 'coeurs-ardents', dr } };
     const h: Combatant = { ...sorciere(), id: 'h', kind: 'heros', pos: { x: 1, y: 1 } };
@@ -61,6 +62,27 @@ describe('IA : la Focalisation est prête au NI sans réserve (LDB 46 l.128, l.1
 
   it('option active : DR sous le NI imprimé → pas prêt, même au-dessus du NI réduit (VDM 02 l.131-133)', () => {
     expect(pretPour(5, true)).not.toBe('ready');
+  });
+});
+
+describe('IA : Rounds de Focalisation espérés jusqu’au NI 0 (LDB 46 l.130, l.132 ; VDM 02 l.131, l.133)', () => {
+  function plan(focus: { spellId: string; dr: number }, option: boolean) {
+    setRule('magie-vdm-incantation', option);
+    const { lanceur } = auCombat(focus);
+    const coeurs = buildAiInput(lanceur, banc.getState).spells.find((s) => s.id === 'coeurs-ardents')!;
+    return { focusState: coeurs.focusState, parRound: focusDRExpectation(lanceur, coeurs.data)! };
+  }
+
+  it('option active : 2 DR sur Cautériser, Cœurs ardents (NI 8) reste à 6', () => {
+    const { focusState, parRound } = plan({ spellId: 'cauteriser', dr: 2 }, true);
+    expect(Math.ceil(6 / parRound)).not.toBe(Math.ceil(8 / parRound));
+    expect(focusState).toMatchObject({ rounds: Math.ceil(6 / parRound) });
+  });
+
+  it('option désactivée : 3 DR sur Cœurs ardents (NI 8) restent acquis, 5 à focaliser', () => {
+    const { focusState, parRound } = plan({ spellId: 'coeurs-ardents', dr: 3 }, false);
+    expect(Math.ceil(5 / parRound)).not.toBe(Math.ceil(8 / parRound));
+    expect(focusState).toMatchObject({ rounds: Math.ceil(5 / parRound) });
   });
 });
 

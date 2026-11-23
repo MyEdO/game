@@ -1204,7 +1204,6 @@ export const fr = {
   'ecran.voyage.premierJour': '1ᵉʳ jour de route',
   'ecran.voyage.jourDeRoute': '{jour}ᵉ jour de route',
   'ecran.voyage.titre': 'La route de {arrivee}',
-  'ecran.voyage.reste': 'km',
   'ecran.voyage.cadence': 'Cadence du voyage',
   'ecran.echoppe.article': '{nom} · {prix}',
   'ecran.echoppe.panier': 'Panier',
@@ -3238,6 +3237,10 @@ export const fr = {
   'trm.continuer': 'Continuer le voyage',
   'trm.ouvrirCarte': 'Ouvrir la carte',
   'trm.restants': '{distance} restants',
+  // Une distance et chaque unité (`libelleDeDistance`, `engine/travel.ts`).
+  'distance.valeur': '{valeur} {unite}',
+  'distance.km': 'km',
+  'distance.milles': 'milles',
   'trm.route': 'Parti {de}{depart} pour {vers} · {distance}, {mode}',
   'trm.jour': 'Jour {n} — {distance} en {heures} h de route',
   'trm.auxPortes': 'aux portes de {lieu}',

@@ -143,15 +143,14 @@ import {
 import {
   ErreurDeGeste,
   entreesDuJeu,
-  nouvelEntete,
   nouvellesEntrees,
   ouvrirAuGroupe,
-  ouvrirLaPartie,
   ouvrirLeLancement,
   valider,
   type CategorieDErreur,
   type PartieAuGroupe,
 } from '../../../src/hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../../../src/hote/partieDeTest';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, horsCombat, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';

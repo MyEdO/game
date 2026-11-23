@@ -14,7 +14,7 @@ import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { itemFromTrappingById } from '../engine/items';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import { ouvrirLaPartie, nouvelEntete } from '../hote/partie';
+import { ouvrirLaPartie, nouvelEntete } from '../hote/partieDeTest';
 import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
 import { ouvrirLeBanc } from './banc.testkit';
 import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';

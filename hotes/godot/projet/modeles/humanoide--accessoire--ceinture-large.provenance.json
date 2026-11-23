@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--accessoire--ceinture-large.glb",
+  "model_sha256": "90edc430ce9ea1b9da9d229ab4a86e4b3f2cd3d0f9303c453016c5398a95e349",
+  "importe_le": "2026-11-22",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -5,29 +5,13 @@ import math
 
 from mathutils import Vector
 
-from maille import Maille, cylindre, objet, poutre, tour
+from maille import Maille, cylindre, objet, poutre, tore, tour
 
 
 def incliner(m, yc, angle):
     """Tourne les sommets de `m` autour de l'axe z passant par (0, `yc`) : le haut (-y) part vers +x."""
     c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
     m.v = [(x * c - (y - yc) * s, yc + x * s + (y - yc) * c, z) for x, y, z in m.v]
-
-
-def maillon(m, centre, tangente, normale, R, r, n, k, mat):
-    """Anneau de rayon `R` et de section `r`, centré sur `centre`, dans le plan de `tangente` et normal à `normale`."""
-    e1 = tangente
-    e2 = normale.cross(tangente)
-    sommets = []
-    for i in range(n):
-        t = 2 * math.pi * i / n
-        radial = e1 * math.cos(t) + e2 * math.sin(t)
-        for j in range(k):
-            s = 2 * math.pi * j / k
-            sommets.append(tuple(centre + radial * (R + r * math.cos(s)) + normale * (r * math.sin(s))))
-    faces = [[i * k + j, ((i + 1) % n) * k + j, ((i + 1) % n) * k + (j + 1) % k, i * k + (j + 1) % k]
-             for i in range(n) for j in range(k)]
-    m.ajouter(sommets, faces, mat)
 
 
 def chaine(m, C):
@@ -44,7 +28,7 @@ def chaine(m, C):
         suivant = poses[min(i + 1, len(poses) - 1)] - poses[max(i - 1, 0)]
         d = suivant.normalized()
         normale = plan if i % 2 == 0 else d.cross(plan).normalized()
-        maillon(m, p, d, normale, C['maillon'], C['section'], C['segments'], C['cotes'], 'metal')
+        tore(m, (normale, d, normale.cross(d)), p, C['maillon'], C['section'], C['segments'], C['cotes'], 'metal')
 
 
 def construire(D, materiaux):

@@ -8,6 +8,7 @@ import {
   toDate,
   fromDate,
   formatImperial,
+  jourImperial,
   campaignStart,
   dayPhase,
   isNight,
@@ -16,6 +17,7 @@ import {
   duskMinute,
   DAY_PHASES,
   ancreDePhase,
+  type ImperialDate,
 } from './clock';
 import { setDataset } from '../data/overrides';
 import { calendarMonths } from '../data';
@@ -45,15 +47,18 @@ describe('clock — calendrier impérial', () => {
   });
 
   it('toDate/fromDate font un aller-retour (époque = Hexenstag 2512 00:00)', () => {
-    for (const min of [0, 1440, 33 * 1440, 400 * 1440, 400 * 1440 + 17 * 60 + 30]) {
-      expect(fromDate(toDate(min))).toBe(min);
+    const retour = (d: ImperialDate): number => fromDate(d.intercalaire
+      ? { year: d.year, hour: d.hour, minute: d.minute, intercalaire: d.intercalaire.id }
+      : { year: d.year, hour: d.hour, minute: d.minute, mois: d.mois.index, day: d.day });
+    for (const min of [0, 1440, 33 * 1440, 66 * 1440, 400 * 1440, 400 * 1440 + 17 * 60 + 30, campaignStart()]) {
+      expect(retour(toDate(min))).toBe(min);
     }
   });
 
-  it('les jours intercalaires sont HORS du cycle hebdomadaire (weekday = null)', () => {
-    expect(toDate(0).weekday).toBeNull(); // Hexenstag
-    expect(toDate(66 * MINUTES_PER_DAY).weekday).toBeNull(); // Mitterfruhl
-    expect(toDate(MINUTES_PER_DAY).weekday).toBe('Wellentag'); // 1 Nachhexen 2512 (ancre)
+  it('les jours intercalaires sont HORS du cycle hebdomadaire (semaine = null)', () => {
+    expect(toDate(0).semaine).toBeNull(); // Hexenstag
+    expect(toDate(66 * MINUTES_PER_DAY).semaine).toBeNull(); // Mitterfruhl
+    expect(toDate(MINUTES_PER_DAY).semaine).toEqual({ id: 'wellentag', nom: 'Wellentag' }); // 1 Nachhexen 2512 (ancre)
   });
 
   it('la semaine enjambe les intercalaires sans les compter (canon : « bridge uninterrupted »)', () => {
@@ -61,28 +66,30 @@ describe('clock — calendrier impérial', () => {
     const lastJahrdrung = toDate(65 * MINUTES_PER_DAY); // 33 Jahrdrung
     const festival = toDate(66 * MINUTES_PER_DAY); // Mitterfruhl
     const firstPflugzeit = toDate(67 * MINUTES_PER_DAY); // 1 Pflugzeit
-    expect(festival.weekday).toBeNull();
+    expect(festival.semaine).toBeNull();
     // Les deux jours de mois de part et d'autre de la fête ont des jours de semaine CONSÉCUTIFS.
-    const i = WEEKDAYS.findIndex((w) => w.label === lastJahrdrung.weekday);
-    expect(WEEKDAYS[(i + 1) % WEEKDAYS.length].label).toBe(firstPflugzeit.weekday);
+    const i = WEEKDAYS.findIndex((w) => w.id === lastJahrdrung.semaine?.id);
+    expect(WEEKDAYS[(i + 1) % WEEKDAYS.length].id).toBe(firstPflugzeit.semaine?.id);
   });
 
   it('minute 0 = Hexenstag 2512 (jour intercalaire de Nouvel An)', () => {
     const d = toDate(0);
     expect(d.year).toBe(2512);
-    expect(d.intercalary).toBe('Hexenstag');
-    expect(d.month).toBeNull();
+    expect(d.intercalaire?.id).toBe('hexenstag');
+    expect(d.mois).toBeNull();
+    expect(d.semaine).toBeNull();
+    expect(jourImperial(d)).toBe('Hexenstag 2512 CI');
   });
 
   it('le 1er jour après Hexenstag = 1 Nachhexen 2512, 00:00', () => {
     const d = toDate(1 * MINUTES_PER_DAY);
-    expect(d).toMatchObject({ year: 2512, monthName: 'Nachhexen', day: 1, hour: 0, minute: 0, intercalary: null });
+    expect(d).toMatchObject({ year: 2512, mois: { id: 'nachhexen', nom: 'Nachhexen', index: 0 }, day: 1, hour: 0, minute: 0, intercalaire: null });
   });
 
   it('franchit l’intercalaire Mitterfruhl entre Jahrdrung et Pflugzeit', () => {
     // Hexenstag(1) + Nachhexen(32) + Jahrdrung(33) = 66 jours → jour 66 = Mitterfruhl
     const d = toDate(66 * MINUTES_PER_DAY);
-    expect(d.intercalary).toBe('Mitterfruhl');
+    expect(d.intercalaire).toEqual({ id: 'mitterfruhl', nom: 'Mitterfruhl' });
   });
 
   it('formatImperial affiche date + heure françaises', () => {
@@ -93,7 +100,8 @@ describe('clock — calendrier impérial', () => {
 
   it('campaignStart() = fin Jahrdrung 2512 08:00', () => {
     const d = toDate(campaignStart());
-    expect(d).toMatchObject({ year: 2512, monthName: 'Jahrdrung', day: 33, hour: 8, minute: 0 });
+    expect(d).toMatchObject({ year: 2512, mois: { id: 'jahrdrung', index: 1 }, day: 33, hour: 8, minute: 0 });
+    expect(d.semaine?.id).toBe('wellentag');
   });
 });
 

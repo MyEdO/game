@@ -11,10 +11,9 @@ import math
 
 import numpy as np
 from maille import lineaire
+from tente import HAUT
 from tissu import (Maillage, emprunter, enveloppe_convexe, joindre, lisser, porteur_de, rayon_a_l_enveloppe,
                    repere_de_plan, voisinage)
-
-HAUT = np.array([0.0, 0.0, 1.0])
 
 
 def enveloppes(D, b, coude, axe, u, v, manches):

@@ -334,6 +334,15 @@
     "metalness": 0
   },
   {
+    "id": "encre-noire",
+    "type": "materials",
+    "label": "Encre noire",
+    "domain": "prop",
+    "color": "#1a140e",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
     "id": "terre-cuite",
     "type": "materials",
     "label": "Terre cuite",
@@ -502,6 +511,24 @@
     "domain": "prop",
     "color": "#6e1f2e",
     "roughness": 1,
+    "metalness": 0
+  },
+  {
+    "id": "fer-rouille",
+    "type": "materials",
+    "label": "Fer rouillé",
+    "domain": "prop",
+    "color": "#8a8580",
+    "roughness": 0.6,
+    "metalness": 0.5
+  },
+  {
+    "id": "cuir-use",
+    "type": "materials",
+    "label": "Cuir usé",
+    "domain": "prop",
+    "color": "#73513a",
+    "roughness": 0.85,
     "metalness": 0
   },
   {

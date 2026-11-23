@@ -229,6 +229,11 @@ describe('buildSeaPlan — appareillage sur le navire de campagne', () => {
   it('jette sans défaut silencieux si la route mer n\'a pas de seaHeading (#416, pit #408)', () => {
     expect(() => buildSeaPlan(get, 'r1', 'A', 'B', { km: 550 })).toThrow(/seaHeading/);
   });
+
+  it('la traversée en vue compte en milles, la distance de la route telle quelle (MDG 13/15 l.57-78)', () => {
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
+    expect(voyageEnVue(get())).toMatchObject({ voie: 'maritime', unite: 'milles', km: 550, fait: 0 });
+  });
 });
 
 describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-divergence)', () => {

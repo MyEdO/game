@@ -8,6 +8,7 @@ import math
 import numpy as np
 
 from robe import COU, TRONC, Nappe, piece_de
+from tente import HAUT
 from tissu import anneau, centre_de, direction, emprunter, porteur_de, toucher, unitaire, viser
 
 ZONES = TRONC + COU + ['bras_haut_g', 'bras_haut_d']
@@ -77,7 +78,7 @@ def construire(D, materiaux, b):
             ligne = [haut[devant]]
             for f in D['TRAVERSE_DE_BRETELLE']:
                 p = a + f * (bb - a)
-                touche = viser(tronc, np.array([p[0], p[1], p[2] - 0.5]), np.array([0.0, 0.0, 1.0]), 1.0)[0]
+                touche = viser(tronc, np.array([p[0], p[1], p[2] - 0.5]), HAUT, 1.0)[0]
                 if touche is None:
                     raise ValueError(f'bretelle : aucune épaule sous {tuple(p)}')
                 q = np.array([p[0], p[1], max(p[2], touche.z + D['JEU_DE_BRETELLE'])])
@@ -109,7 +110,7 @@ def poitrine(D, b, M):
     if touche is None:
         raise ValueError(f'poitrine : aucun plastron en ({x}, {z})')
     p, nz = touche[0], unitaire(touche[1])
-    ny = unitaire(np.array([0.0, 0.0, 1.0]) - nz[2] * nz)
+    ny = unitaire(HAUT - nz[2] * nz)
     nx = np.cross(ny, nz)
     w = emprunter(p, plastron)[0]
     b.offrir('poitrine', w, p, (nx, ny, nz))
