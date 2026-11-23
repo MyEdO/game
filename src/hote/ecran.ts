@@ -132,7 +132,7 @@ import {
  * Les gestes sont des éléments : un `bouton` porte l'intention qu'il joue (`jeu` : `{ type, args }`, le verbe et ses
  * arguments, le flux et l'id désigné posés, celui qu'une offre déclare compris, `{ suite }`, les verbes d'un geste
  * d'exploration, `{ fiche }` ou `{ creation }`, l'entrée de la méthode du même nom), `presse`, `focus` (le geste que la
- * fenêtre joue à l'Entrée : le geste `attendu` de sa politique s'il prend le focus, une rangée de choix n'en prenant
+ * fenêtre joue à l'Entrée : le geste `attendu` de son drive s'il prend le focus, une rangée de choix n'en prenant
  * pas, à défaut le premier bouton) et `refus` (pourquoi il ne se joue pas, dit sous lui ; le geste désactivé) ; un
  * `choix` ou une `liste` porte son `refus` et chacune de ses valeurs en bouton, refusée avec lui ; un `formulaire`
  * porte son verbe, son `refus` et ses saisies dans l'ordre de ses paramètres (`fixe`, posée par la fenêtre,

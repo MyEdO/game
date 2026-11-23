@@ -29,11 +29,11 @@ MANIFESTE = {
 MATERIAUX = {
     'parchemin': ('corne', 'papier'),
     'cire': ('accent', 'cire'),
-    'encre': (None, ((0.02, 0.015, 0.01), 0.0, 0.8)),
+    'encre': (None, 'encre-noire'),
 }
 """Illustration : parchemin écru, l'emplacement `corne` des pages du livre (`rigide--livre`) ; cire rouge, l'emplacement
-`accent` du preset (`tissu-rouge`). L'encre, brun noir, n'a ni emplacement ni matière au catalogue : sa couleur est
-celle du GLB."""
+`accent` du preset (`tissu-rouge`). L'encre, brun noir (`encre-noire`, celle du masque du Gladiateur), n'a pas
+d'emplacement : sa couleur est celle de sa matière, cuite au GLB."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 

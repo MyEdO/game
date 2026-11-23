@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as fiches from '../noyau/ficheDuPorteur';
-import { nouvelEntete, ouvrirLaPartie } from './partie';
+import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 import { lignesDuJournal, TETE_DU_ROUND_SUIVANT, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';

@@ -1,5 +1,6 @@
 // Environnement Python épinglé de la chaîne de production 3D (#2948) : un venv CPython hors de l'arbre, à la
-// version du marqueur `python_version` de `requirements.txt`, rempli par `pip --require-hashes` depuis `requirements.txt`, puis la primitive demandée lancée dedans.
+// version du marqueur `python_version` de `requirements.txt`, rempli par `pip --require-hashes` depuis `requirements.txt`, puis la primitive demandée lancée dedans,
+// sous OpenBLAS à un fil et à noyau épinglé (`OPENBLAS_CORETYPE`) : sa sortie ne dépend pas du processeur.
 //
 //   node scripts/personnage-3d/environnement.mjs                       installe (ou vérifie) l'environnement
 //   node scripts/personnage-3d/environnement.mjs <script.py> [args…]   installe puis lance le script dans le venv
@@ -79,8 +80,8 @@ if (import.meta.main) {
   if (!script) {
     process.stdout.write(`[personnage-3d] environnement prêt : ${PYTHON_DU_VENV}\n`)
   } else {
-    // #3104 issuecomment-6570150971
-    const env = { ...process.env, OPENBLAS_NUM_THREADS: '1' }
+    // #3104 issuecomment-6570150971 ; #4394
+    const env = { ...process.env, OPENBLAS_NUM_THREADS: '1', OPENBLAS_CORETYPE: 'Zen' }
     const vu = spawnSync(PYTHON_DU_VENV, ['-X', 'utf8', '-u', script, ...args], { stdio: 'inherit', env })
     if (vu.error) throw vu.error
     process.exit(vu.status ?? 1)

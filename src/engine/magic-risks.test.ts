@@ -74,10 +74,10 @@ describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () =
   const cuir: ItemInstance = { uid: 'a2', name: 'Veste de cuir', subType: 'cuir-souple', kind: 'armor', enc: 1, equipped: true, pa: 1, locs: ['corps'], qualities: [] } as never;
   const chaosArmour: ItemInstance = { uid: 'a3', name: 'Armure du Chaos', subType: 'armure-du-chaos', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [] } as never;
   const plastron: ItemInstance = { uid: 'a4', name: 'Plastron de cuir', subType: 'cuir-bouilli', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [] } as never;
-  it('−1 DR par PA sur la Localisation la mieux protégée : PA cumulés à la Localisation (LDB 63 l.50)', () => {
+  it('−1 DR par PA sur la Localisation la mieux protégée : PA cumulés à la Localisation, cuir souple compris (LDB 63 l.50, l.60)', () => {
     expect(armourCastDRPenalty(wiz())).toBe(0);
     expect(armourCastDRPenalty(wiz({ items: [mailles, cuir] }))).toBe(3);
-    expect(armourCastDRPenalty(wiz({ items: [plastron, cuir] }))).toBe(2);
+    expect(armourCastDRPenalty(wiz({ items: [plastron, cuir] }))).toBe(3);
     expect(armourCastDRPenalty(wiz({ items: [mailles, { ...cuir, locs: ['brasG'] }] }))).toBe(2);
   });
   it('Magie des Arcanes (Métal) ignore le métal ; (Bêtes) ignore le cuir — inconditionnel', () => {

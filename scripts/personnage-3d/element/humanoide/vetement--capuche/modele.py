@@ -68,9 +68,9 @@ def capuchon(D, b, surfaces):
     return M
 
 
-def echarpe(D, b, surfaces, capuchon_):
+def echarpe(D, b, surfaces, coiffure, capuchon_):
     """Les rangs de l'écharpe, du haut (au jeu des `surfaces` et du capuchon) au bord (un point par colonne), et son
-    centre."""
+    centre ; chaque point reste aussi au `jeu_a_la_coiffure` de la `coiffure`."""
     e = D['ECHARPE']
     O = np.array(b.tete(e['os_du_centre'])) + np.asarray(e['centre'], float)
     m, R = e['colonnes'], e['rangs']
@@ -78,8 +78,10 @@ def echarpe(D, b, surfaces, capuchon_):
     autour = porteur_de(*joindre_les_surfaces([(surfaces['P'], surfaces['T'], surfaces['W']), capuchon_]))
     rangs = [[] for _ in range(R + 1)]
     hauts = [O + np.array([0.0, 0.0, selon(e['haut'], 360.0 * j / m)]) for j in range(m)]
-    rayons = np.array([exterieur(D, autour if abs((360.0 * j / m + 180.0) % 360.0 - 180.0) <= e['sous_la_retombee'] else surfaces,
-                                 A, direction_spatiale(360.0 * j / m), e['portee_du_haut'], e['jeu']) for j, A in enumerate(hauts)])
+    rayons = np.array([max(exterieur(D, autour if abs((360.0 * j / m + 180.0) % 360.0 - 180.0) <= e['sous_la_retombee'] else surfaces,
+                                     A, direction_spatiale(360.0 * j / m), e['portee_du_haut'], e['jeu']),
+                           exterieur(D, coiffure, A, direction_spatiale(360.0 * j / m), e['portee_du_haut'], selon(e['jeu_a_la_coiffure'], 360.0 * j / m), plancher=0.0))
+                       for j, A in enumerate(hauts)])
     for _ in range(e['passes_du_haut']):
         rayons = np.maximum(rayons, 0.25 * np.roll(rayons, 1) + 0.5 * rayons + 0.25 * np.roll(rayons, -1))
     for j in range(m):
@@ -90,17 +92,22 @@ def echarpe(D, b, surfaces, capuchon_):
         ampleur = e['ampleur'] * (1.0 + e['inegalite'] * math.sin(math.radians(2.0 * psi) + 1.3))
         for k in range(1, R + 1):
             rangs[k].append(pose(D, surfaces, O, psi, haut + (bas - haut) * k / R, e['x_max'], e['jeu'],
-                                 ampleur * 0.5 * (1.0 - math.cos(2 * math.pi * e['plis'] * k / R))))
+                                 ampleur * 0.5 * (1.0 - math.cos(2 * math.pi * e['plis'] * k / R)),
+                                 (coiffure, selon(e['jeu_a_la_coiffure'], psi))))
     return rangs, O
 
 
-def pose(D, surfaces, O, psi, polaire, x_max, jeu, relief):
+def pose(D, surfaces, O, psi, polaire, x_max, jeu, relief, ecartee=None):
     """Le point de la demi-droite d'azimut `psi` et d'angle polaire `polaire` depuis `O`, le plus extérieur au `jeu` des
-    `surfaces`, plus `relief` ; la marche part en dedans de `x_max`, hors des bras."""
+    `surfaces` et, pour `ecartee` (surfaces, jeu), au sien, plus `relief` ; la marche part en dedans de `x_max`, hors des
+    bras."""
     p = math.radians(polaire)
     d = math.sin(p) * direction_spatiale(psi) + np.array([0.0, 0.0, math.cos(p)])
     portee = min(D['PORTEE'], x_max / abs(d[0])) if abs(d[0]) > 1e-9 else D['PORTEE']
-    return O + (exterieur(D, surfaces, O, d, portee, jeu) + relief) * d
+    r = exterieur(D, surfaces, O, d, portee, jeu)
+    if ecartee:
+        r = max(r, exterieur(D, ecartee[0], O, d, portee, ecartee[1], plancher=0.0))
+    return O + (r + relief) * d
 
 
 def pan(D, surfaces, O, e):
@@ -155,7 +162,7 @@ def construire(D, materiaux, b):
     capuchon_ = (X, np.array(orientes), W)
 
     autres = porteur_de(*joindre_les_surfaces([robe, coiffure, tete] + corps))
-    rangs, O = echarpe(D, b, autres, capuchon_)
+    rangs, O = echarpe(D, b, autres, porteur_de(*coiffure), capuchon_)
     ref = O + np.array([0.0, 0.0, -0.10])
     for M in (nappe_des_rangs(rangs, ref, True),
               nappe_des_rangs(pan(D, autres, O, e), ref, False)):

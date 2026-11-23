@@ -15,7 +15,7 @@ import { brouillonComplet } from './creation/engagement.testkit';
 import { rubriquesDeLaPage } from './creation/vueDeLaCreation';
 import { pickAttackWeaponList } from './mount';
 import { rejouer } from '../hoteTexte/partieTexte';
-import { nouvelEntete } from '../hote/partie';
+import { nouvelEntete } from '../hote/partieDeTest';
 import { ouvrirLeBanc } from './banc.testkit';
 
 /** Ids consommés au compteur de la partie (`prochainId`, #2907) par `lecture`. */

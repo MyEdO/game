@@ -1,0 +1,28 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "plumet-simple"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "couche": "armure",
+  "surfaces": [
+    {
+      "nom": "plume",
+      "palette": "plume",
+      "matiere": "prop--plume"
+    },
+    {
+      "nom": "hampe",
+      "palette": "corne",
+      "matiere": "prop--os"
+    }
+  ],
+  "glb": {
+    "sha256": "877511d464dc5933f214b62551a620f65c1c801d591bf0ca05449d9d28a92806",
+    "octets": 68820
+  }
+}
