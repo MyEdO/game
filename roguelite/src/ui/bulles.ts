@@ -7,6 +7,38 @@
  */
 import type { Apercu } from './pieces';
 
+/** Le sens des abréviations du livre que l'interface affiche, en bulle au survol. */
+const GLOSSAIRE: Record<string, string> = {
+  BF: 'Bonus de Force', BE: 'Bonus d’Endurance', PA: 'Points d’Armure', PB: 'Points de Blessures', DR: 'Degrés de Réussite',
+  CC: 'Capacité de Combat', CT: 'Capacité de Tir', Ag: 'Agilité', Dex: 'Dextérité', Int: 'Intelligence', FM: 'Force Mentale',
+  Soc: 'Sociabilité', PX: 'Points d’Expérience', CO: 'Couronnes d’or', 'Enc.': 'Encombrement',
+};
+const ABREVIATION = new RegExp(`(?<![\\p{L}\\d])(${Object.keys(GLOSSAIRE).map((k) => k.replace('.', '\\.')).join('|')})(?![\\p{L}\\d])`, 'gu');
+const PRESENTE = new RegExp(ABREVIATION.source, 'u');
+
+/** Pose sa bulle sur chaque abréviation du glossaire dans les textes de `racine`. */
+export function gloserDans(racine: ParentNode): void {
+  const marcheur = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.parentElement?.closest('[data-bulle], svg, .bulle-du-jeu, .apercu-du-jeu') || !PRESENTE.test(n.nodeValue ?? '') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  const noeuds: Text[] = [];
+  while (marcheur.nextNode()) noeuds.push(marcheur.currentNode as Text);
+  for (const n of noeuds) {
+    const morceaux = document.createDocumentFragment();
+    let fin = 0;
+    for (const m of (n.nodeValue ?? '').matchAll(ABREVIATION)) {
+      morceaux.append(n.nodeValue!.slice(fin, m.index));
+      const abbr = document.createElement('abbr');
+      abbr.textContent = m[0];
+      abbr.dataset.bulle = GLOSSAIRE[m[0]];
+      morceaux.append(abbr);
+      fin = m.index! + m[0].length;
+    }
+    morceaux.append(n.nodeValue!.slice(fin));
+    n.replaceWith(morceaux);
+  }
+}
+
 const bulle = document.createElement('span');
 bulle.className = 'bulle-refus parchemin bulle-du-jeu';
 const apercu = document.createElement('div');

@@ -8,6 +8,7 @@ import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlate
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
+import { gloserDans } from './bulles';
 import { busteDuHeros, esc } from './pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
@@ -208,6 +209,7 @@ function poserLePas(p: Pas, anime = true) {
     if (/Victoire|Défaite/.test(l)) li.className = 'fort';
     else if (/CRITIQUE|hors de combat|s'effondre/.test(l)) li.className = 'rouge';
     j.append(li);
+    gloserDans(li);
   }
   j.scrollTop = j.scrollHeight;
 }

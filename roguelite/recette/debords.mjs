@@ -32,8 +32,8 @@ const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       if (dehors.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : hors de l'écran → ${dehors.join(', ')}`); }
     };
     await relever('hameau');
-    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) { await geste(p, 'batiment', id); await relever(id); }
-    await geste(p, 'chronique'); await relever('chronique');
+    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) { await geste(p, 'batiment', id); await relever(id); await geste(p, 'fermer-panneau'); }
+    await geste(p, 'chronique'); await relever('chronique'); await geste(p, 'fermer-panneau');
     await geste(p, 'batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await relever('départ');
     await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
     for (const o of ['talents', 'sorts', 'equipement']) { const t = await p.$(`[data-a="onglet"][data-k="${o}"]`); if (t) await t.click(); await relever(`fiche ${o}`); }

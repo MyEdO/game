@@ -11,7 +11,7 @@ import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
 import { panneauDeService } from './ui/services';
 import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
-import { installerLesSurvols } from './ui/bulles';
+import { gloserDans, installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
@@ -63,6 +63,7 @@ function rendre() {
   }
   ajusterLaScene();
   ajusterLesTableaux();
+  gloserDans($('#jeu'));
 }
 
 // ─── Gestes ─────────────────────────────────────────────────────────────────────────────────────────────────

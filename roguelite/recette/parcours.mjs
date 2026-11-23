@@ -51,7 +51,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     await image(p, '2-identite', l);
     await p.mouse.move(0, 0); await image(p, '6-retour-hameau', l);
     await clic(p, 'button[data-a="batiment"][data-id="temple"]'); await image(p, '6-chapelle', l);
-    await clic(p, 'button[data-a="batiment"][data-id="cartographe"]'); await clic(p, '[data-a="preparer"]');
+    await clic(p, '[data-a="fermer-panneau"]'); await clic(p, 'button[data-a="batiment"][data-id="cartographe"]'); await clic(p, '[data-a="preparer"]');
     await p.hover('.socle-compagnie .carte-heros >> nth=3'); await p.waitForTimeout(400);
     if (l === 1280) constater(((await p.textContent('.apercu-du-jeu').catch(() => '')) ?? '').includes('hospice'), '8 : la raison d’une carte fermée au survol');
     await image(p, '8-depart', l);
@@ -79,7 +79,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     if (l === 1280) constater((await p.textContent('.carton').catch(() => '')).includes('ne revient pas'), '9 : la mort se raconte au carton');
     if (await p.$('.carton')) await p.click('.carton [data-a="fermer"]');
     await clic(p, 'button[data-a="batiment"][data-id="memorial"]'); await image(p, '9-jardin', l);
-    await clic(p, 'button[data-a="batiment"][data-id="relais"]'); await image(p, '9-relais', l);
+    await clic(p, '[data-a="fermer-panneau"]'); await clic(p, 'button[data-a="batiment"][data-id="relais"]'); await image(p, '9-relais', l);
     await p.context().close();
   }
   // 10. La fin : tous les maîtres vaincus, l'Autel compris.

@@ -72,3 +72,4 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .carte-heros .sous-titre svg { vertical-align: -1px; margin-right: 4px; }
 .pastille-progres { position: absolute; left: 50px; top: 4px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c8, var(--or-eclat) 45%, var(--or-moyen)); box-shadow: 0 0 0 1px var(--contour), 0 0 10px var(--halo-vif); animation: pouls 1.6s ease-in-out infinite; pointer-events: none; }
 .carte-heros .ligne-etat .marque { color: #f0a48e; font-style: normal; }
+abbr[data-bulle] { text-decoration: underline dotted rgba(168,132,47,.7); text-underline-offset: 2px; cursor: help; }

@@ -18,6 +18,12 @@ export const CADRES = {
   gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
 } satisfies Record<string, Rect>;
 
+/** Les rectangles propres à l'hôte, faute de rôle dans les maquettes : un bâtiment s'ouvre sur toute la largeur
+ *  au-dessus du socle, à la manière de Darkest Dungeon, sans rien cacher qu'on doive voir en même temps. */
+export const CADRES_DE_L_HOTE = {
+  batiment: [24, 20, 1232, 524],
+} satisfies Record<string, Rect>;
+
 
 /** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
  *  largeur du titre ; les gestes, au pied, se centrent sur toute la largeur du carton. */

@@ -25,6 +25,17 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (`src/noyau/bus.ts`), que `Partie` relaie dans `evenements`. Le type et le nom de l'événement ne sont pas dans la
   surface (`src/noyau/index.ts`) : l'hôte importe `bus.ts`. Sans eux, il devrait relire le texte du journal. Le
   résultat d'un sort (`CastResult`) n'a pas la même forme que celui d'une arme (`AttackResult`), l'hôte normalise.
+- **Piège — l'arme lâchée par un héros tombé reste sur la scène après la rencontre.** Un héros qui tombe
+  Inconscient perd la pièce qu'il tenait : après `fenetreFermer`, elle n'est plus dans ses `items` ni dans sa
+  panoplie (constaté : groupe de quatre, un héros à 1 Blessure contre deux gobelins, victoire, sa main vide).
+  Un hôte sans scène persistante (combat en arène jetable) perd l'objet pour de bon, sans que rien ne le dise.
+  Contournement de l'hôte : `ramasser` (`roguelite/src/noyau/combat.ts`) remet au vainqueur les pièces disparues,
+  chacune dans sa main. Idée : que l'issue de rencontre liste ce qui est resté au sol, par porteur, ou un verbe
+  « ramasser tout » à la clôture d'une victoire.
+- **Piège — `Combatant.weapons` ne suit pas la panoplie.** Un Chasseur né avec sa dotation de carrière porte une
+  Fronde équipée (`items`, panoplie) que `weapons` ne liste pas, et le combat s'en sert (23 coups à distance sur 24
+  sur six rencontres). Un hôte qui affiche `weapons` montre une arme de mêlée à un tireur. Lire la panoplie
+  (`loadouts`, `activeLoadoutId`, `items`) ; idée : retirer `weapons` de ce qu'un hôte peut lire, ou le dériver.
 - **Friction — `fenetreDuJeu` hors de la surface du noyau.** La surface (`src/noyau/index.ts`) ne
   réexporte pas `fenetreDuJeu` (`src/noyau/combatAuto.ts`), alors qu'un hôte en a besoin pour piloter
   la cadence auto : l'hôte importe un module interne.
@@ -95,6 +106,11 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (« n'attend aucune Aide Médicale ») demande `refusDeConsommer` (`src/noyau/consumableFlow.ts`) et `consommableDe`
   (`src/engine/consumables.ts`) : ni l'un ni l'autre n'est dans `src/noyau/index.ts`. `gestesDeLObjet` les compose, mais
   rend des gestes de fiche, pas un verdict par objet.
+- **Friction — rien ne dit qu'un consommable n'a d'effet que dans une mécanique que l'hôte ne joue pas.** Le
+  Cataplasme de guérison porte `preventInfection` et `aideMedicale` : utiles avec l'infection et les Tests de soin
+  du noyau, inertes dans un hôte qui ne les joue pas. L'hôte l'a vendu longtemps comme un soin. Idée : un lecteur
+  public des ops d'un consommable (par famille : soin, état, infection, aide médicale), pour qu'un hôte filtre ce
+  qu'il propose.
 - **Trou — le repos du noyau ne récupère rien sur une arène.** `ouvrirLeRepos` sur une scène générée (`restPlaces`
   `maison`) fait passer la nuit (« Le groupe dort jusqu'à l'aube »), mais aucun Point de Blessure ne revient et aucune
   ligne ne dit pourquoi (pitance, privation ?). L'hôte joue donc le repos par les primitives du moteur, `restRecovery` et

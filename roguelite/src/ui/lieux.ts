@@ -79,23 +79,23 @@ function partir(e: J.Etat): string {
   return `<div class="partir"><div><div class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${J.victoireFinale(e) ? 'les routes restent ouvertes' : `${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}`}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
 }
 
-/** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, coins, socle) ; au
- *  coin haut-droit, le départ, ou le panneau du service ouvert. Une fiche ouverte le couvre ; un carton n'y laisse
- *  que le cartouche et le socle. */
+/** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins,
+ *  socle). Un bâtiment ouvert s'y pose en grand au-dessus du socle ; une fiche le couvre ; un carton n'y laisse que
+ *  le cartouche et le socle. */
 export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeService | null, carte: string): string {
   const titre = cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const socleDuHameau = { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
   const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
-    cadres: carte ? titre + carte : `${titre}
+    cadres: carte ? titre + carte : service ? service.cadre : `${titre}
       <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${service ? service.cadre : cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
+      ${cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>`,
     socle: !carte && service ? service.socle : socleDuHameau,
     vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
   });
   return `<div class="ecran hameau">
-    <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
+    <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte || service ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
     ${J.victoireFinale(e) ? '<div class="bandeau-victoire gothique">L’Autel du Chaos est tombé</div>' : ''}
     ${scene}
   </div>`;

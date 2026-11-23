@@ -11,7 +11,8 @@
 .cartouche-lieu-fixe > .fond { display: flex; align-items: center; padding: 10px 16px; }
 .page-service > .fond { padding-top: 30px; overflow-y: auto; scrollbar-width: thin; gap: 8px; }
 .place-cadre > .page-service > .fond { overflow: hidden; }
-.corps-service { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: grid; gap: 6px; align-content: start; }
+.corps-service { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px 28px; align-content: start; }
+.corps-service > :is(.rub, .glose, .chronique, .emporte, p) { grid-column: 1 / -1; }
 .page-service .talent { margin-top: 0; }
 .page-service .talent .plaque { width: auto; min-width: 94px; }
 .cartouche-lieu-fixe .titre, .cartouche-lieu-fixe .sous-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -20,3 +21,4 @@
 .chronique { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14.5px; line-height: 1.45; }
 .chronique li { padding-left: 12px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
 .chronique li:first-child { color: var(--encre); }
+.bourse-service { position: absolute; right: 56px; top: 14px; display: flex; gap: 6px; }

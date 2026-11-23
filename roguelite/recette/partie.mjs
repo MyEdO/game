@@ -23,7 +23,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
   constater(porte.includes('Épée bâtarde') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
 
-  await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]'); await p.click('.page-service [data-a="heros"]');
+  await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]'); await p.click('.page-service [data-a="heros"]');
   const px = Number(await p.textContent('.bourse-px .chiffres'));
   await p.click('button.c.carr');
   constater(Number(await p.textContent('.bourse-px .chiffres')) < px, 'la fiche augmente une Caractéristique contre des PX');

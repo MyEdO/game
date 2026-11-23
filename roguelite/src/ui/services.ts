@@ -1,13 +1,13 @@
 /**
- * Les services du hameau : un seul panneau posé sur le village, au coin haut-droit du panneau d'activité (`page`),
- * les enseignes restant cliquables pour passer d'un bâtiment à l'autre. En tête, le bâtiment (son palier, ce qu'il
- * deviendra) ; puis sa page ; au pied, l'action principale. Le socle dit ce qu'un clic fait : servir ce héros (forge,
+ * Les services du hameau : un bâtiment s'ouvre en grand sur le village, au-dessus du socle, comme dans Darkest
+ * Dungeon. En tête, le bâtiment (son palier, ce qu'il deviendra) ; puis sa page, en colonnes ; au pied, l'action
+ * principale ; la croix rend le village. Le socle dit ce qu'un clic fait : servir ce héros (forge,
  * chapelle, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
 import { carac, nomDeCreature } from '../noyau';
 import { medaillon, plaque } from '../kit';
-import { CADRES, type Socle } from './ecran';
+import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { exigencesDuNiveau } from './fiche';
 import {
   apercuDe, apercuDePiece, apercuDeProvision, iconeDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, etiquettesDeSequelles, glose, herosEnLigne,
@@ -70,7 +70,7 @@ function pageDeLaForge({ e, servi: h }: Lecture): Page {
     <div><div class="rub">${titre}</div><div class="offres">${offres}</div></div></section>`;
   const offreDArme = (a: J.Article) => offre({
     nom: a.label, essentiel: [a.degats, a.mains === 2 ? '2 mains' : ''].filter(Boolean).join(' · '), prix: a.prix, or: e.or, portee: a.label === p.main?.label || a.label === p.secondaire?.label,
-    apercu: { nom: a.label, nature: `Arme · ${a.prix} CO · Enc. ${a.enc}`, texte: [a.degats && `Dégâts ${a.degats}`, a.mains === 2 && 'deux mains', a.allonge && `allonge ${a.allonge.toLowerCase()}`, a.portee && `portée ${a.portee} m`, a.qualites.join(' · ')].filter(Boolean).join('\n') },
+    apercu: { ...(a.mains === 2 && p.secondaire ? { pied: `Prend les deux mains : ${p.secondaire.label} reste au forgeron.` } : {}), nom: a.label, nature: `Arme · ${a.prix} CO · Enc. ${a.enc}`, texte: [a.degats && `Dégâts ${a.degats}`, a.mains === 2 && 'deux mains', a.allonge && `allonge ${a.allonge.toLowerCase()}`, a.portee && `portée ${a.portee} m`, a.qualites.join(' · ')].filter(Boolean).join('\n') },
     attrs: `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`,
   });
   const armures = J.armuresEnVente(e).map((a) => offre({
@@ -165,7 +165,7 @@ export function panneauDeService(ctx: Contexte, service: Service): PanneauDeServ
     : destination ? `<p class="effet">${esc(destination.recit)}</p><div class="ligne-tete"><span class="effet">Maître : ${esc(destination.boss.map(nomDeCreature).join(' et '))}</span>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { taille: 'petite' })}</div>` : '';
   const pour = pourQui ? `<div class="pour-qui"><span class="rub">Pour</span>${herosEnLigne(pourQui)}${glose('un autre : cliquez sa carte au socle')}</div>` : '';
   return {
-    cadre: cadreA(CADRES.page, `${tete ? `<div class="tete-service">${tete}</div>` : ''}${pour}<div class="corps-service">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}
+    cadre: cadreA(CADRES_DE_L_HOTE.batiment, `<div class="ressources bourse-service"><span class="etiquette compte or">${e.or} CO</span><span class="etiquette compte or">${e.trophees} trophée${e.trophees > 1 ? 's' : ''}</span></div>${tete ? `<div class="tete-service">${tete}</div>` : ''}${pour}<div class="corps-service">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}
       <button type="button" class="croix-panneau" data-a="fermer-panneau" aria-label="Fermer" data-bulle="Fermer">×</button>`, { ruban: esc(ruban), classe: 'page-service' }),
     socle,
   };
