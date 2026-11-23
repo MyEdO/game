@@ -32,6 +32,7 @@ import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
 import { conditionIds, eyes, findVehicleById, species, type TrappingData } from '../../data/index';
 import { vehicleCombatant } from '../../engine/vehicle';
+import { heroCombatMount } from '../../engine/mountTravel';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
@@ -100,6 +101,22 @@ describe('lireSave — format courant', () => {
     }, courante.savedAt);
     expect(lireSave(exporterLaSauvegarde(avecCale))).toEqual(avecCale);
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
+  it('relit sans transformation une save d’avant `sansCavalier` (#4804) : la même bête porte le héros', () => {
+    const h = combattantDeTest({ id: 'cavalier', kind: 'heros' });
+    const etat: EtatDeJeu = {
+      ...etatInitialDuJeu(),
+      party: [h],
+      possessions: [{ uid: 'pos-1', ownerId: h.id, nature: 'bete', ref: { id: 'cheval-de-trait' }, location: { kind: 'avec-le-groupe' }, items: [] }],
+    };
+    const courante = snapshotSave(etat, '2026-11-23T08:00:00.000Z');
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+    const relue = lireSave(exporterLaSauvegarde({ ...courante, version: '493f6f1a6bc9e9de' }));
+    expect(relue).toEqual(courante.version === '5650bd1da7ce9918' ? courante : 'autreFormat');
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+    if (typeof relue !== 'string') expect(heroCombatMount(h, relue.data.possessions)?.uid).toBe('pos-1');
   });
 
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {

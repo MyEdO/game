@@ -307,7 +307,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
@@ -9394,8 +9394,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   }
   // Combat monté (LDB 14) : un PNJ à pied, non Engagé, adjacent à une monture LIBRE de son camp décide
   // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
+  // Le groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
-  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy)) {
+  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(battle, scene, enemy);
     if (freeMount) {
       mountUp(enemy, freeMount);

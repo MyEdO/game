@@ -75,12 +75,18 @@ export interface PartyMount {
   profile: MountProfile;
 }
 
-/** Bêtes possédées `avec-le-groupe` d'un héros qui le portent (`possessionRideable`, `accepteUnCavalier`), dans
- *  l'ordre du registre (`possessions` = tout le registre du store, filtré par `ownerId`). */
-function betesQuiLePortent(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
+/** Bêtes possédées par `h` que leur profil laisse le porter (`accepteUnCavalier`), où qu'elles soient et quel que
+ *  soit leur état, dans l'ordre du registre (`possessions` = tout le registre du store, filtré par `ownerId`). */
+export function betesQuiPeuventLePorter(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
   return possessions.filter((p): p is Possession & { nature: 'bete' } =>
-    p.ownerId === h.id && p.nature === 'bete' && p.location.kind === 'avec-le-groupe'
-    && possessionRideable(p) && accepteUnCavalier(profilDeLaBete(p), h));
+    p.ownerId === h.id && p.nature === 'bete' && accepteUnCavalier(profilDeLaBete(p), h));
+}
+
+/** Bêtes qui peuvent porter `h` (`betesQuiPeuventLePorter`), `avec-le-groupe`, montables (`possessionRideable`) et
+ *  qu'il n'a pas laissées sans cavalier (`sansCavalier`, #4804). */
+function betesQuiLePortent(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
+  return betesQuiPeuventLePorter(h, possessions).filter((p) =>
+    p.location.kind === 'avec-le-groupe' && !p.sansCavalier && possessionRideable(p));
 }
 
 /** Monture UTILISABLE d'un héros : première bête qui le porte (`betesQuiLePortent`) au profil EDOC. */

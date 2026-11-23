@@ -127,7 +127,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
-  remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
+  remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte', monterLaBete: 'hôte', quitterLaSelle: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
   ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', ouvrirEntretienDuNavire: 'hôte',

@@ -85,6 +85,12 @@ export function porteurParId(s: Jeu, id: string): Combatant | undefined {
   return inBattleId(s.battle, id) ?? combattantsDeLaSerie(s).find((c) => c.id === id) ?? s.party.find((c) => c.id === id);
 }
 
+/** `c` est-il un héros du groupe ou une de ses possessions en jeu (`uid` du registre) ? Le groupe choisit sa monture
+ *  hors combat (#4804). */
+export function choisitSaMontureHorsCombat(s: Pick<Jeu, 'party' | 'possessions'>, c: Combatant): boolean {
+  return s.party.some((h) => h.id === c.id) || s.possessions.some((p) => p.uid === c.id);
+}
+
 /** Une rencontre est-elle engagée : une bataille, ou une série d'attaques subies (`serieSubie`, #3892) ? */
 export function rencontreEngagee(s: Pick<Jeu, 'battle' | 'serieSubie'>): boolean {
   return !!(s.battle || s.serieSubie);

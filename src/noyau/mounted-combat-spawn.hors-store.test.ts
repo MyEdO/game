@@ -53,6 +53,19 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     expect(heroCombatant.mountId).toBe('pos-cheval-1');
   });
 
+  it('un cheval dont le héros est descendu hors combat n’est pas monté en rencontre (#4804)', () => {
+    const hero = makeHero();
+    banc.setState({ party: [hero], battle: null });
+    banc.getState().lancerLaScene(testScene());
+    banc.setState({ possessions: [{ uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] }] });
+    banc.getState().quitterLaSelle('pos-cheval-1');
+    banc.getState().lancerLeCombat('enc-mutants');
+
+    const battle = banc.getState().battle!;
+    expect(inBattleId(battle, hero.id)?.mountId).toBeUndefined();
+    expect(inBattleId(battle, 'pos-cheval-1')).toBeUndefined();
+  });
+
   it('une MULE (Belliqueuse absente de ses traits, Dressé (Monture) inné) est spawnée en allié', () => {
     const hero = makeHero();
     const mule: Possession = {

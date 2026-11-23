@@ -69,6 +69,7 @@ export type Possession = PossessionCommon &
         appearanceSeed?: string;
         wounds?: { current: number; max: number }; // max re-dérivé à chaque projection (clamp)
         mountInjury?: MountInjury; // EDOC 07 Incidents de Monte
+        sansCavalier?: true; // LDB 85 l.112, #4804
         learnedTraits?: string[]; // dresse-* appris (LDB 23 → LDB 85)
       }
     | {
