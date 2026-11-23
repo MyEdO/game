@@ -125,7 +125,7 @@ describe('lireSave — format courant', () => {
     applyOps(porteur, [{ op: 'grantTrait', trait: { id: 'armure', value: 2, matiere: 'peau' }, durationRounds: 1 }], {
       idNeuf: idsDeTest, rng: makeRNG(1), source: { kind: 'trait', id: 'metamorphose' },
     });
-    expect(damageArmour(porteur, 'corps')).toBe(true);
+    expect(damageArmour(porteur, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     lacherLArme(ours, arme);
 
     const save = snapshotSave(etat, '2026-11-21T06:30:00.000Z');

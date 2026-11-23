@@ -798,16 +798,16 @@ describe('Dégâts d’armure (LDB 63 l.19-21)', () => {
   it('damageArmour (héros) : endommage la pièce la plus solide + re-dérive', () => {
     const c = heroWith([item({ kind: 'armor', pa: 3, locs: ['corps'], equipped: true })]);
     recomputeLoadout(c);
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', objet: { armure: 'corps' }, valeur: -1, issue: 'usee' });
     expect(c.armour.corps).toBe(2);
   });
   it('damageArmour (ennemi sans items : armure plate) : décrément direct', () => {
     const enemy = { armour: { ...emptyArmour(), tete: 2 } } as unknown as Combatant;
-    expect(damageArmour(enemy, 'tete')).toBe(true);
+    expect(damageArmour(enemy, 'tete')).toMatchObject({ genre: 'objet', objet: { armure: 'tete' }, valeur: -1, issue: 'usee' });
     expect(enemy.armour.tete).toBe(1);
   });
   it('damageArmour : pas d’armure utilisable → false', () => {
-    expect(damageArmour({ armour: emptyArmour() } as unknown as Combatant, 'corps')).toBe(false);
+    expect(damageArmour({ armour: emptyArmour() } as unknown as Combatant, 'corps')).toBeNull();
   });
 });
 
@@ -913,7 +913,7 @@ describe('damageArmour — armure dérivée d’un héros sans pièce à la Loca
 
   it('le PA de mutation usé persiste après recalcul', () => {
     const c = heros([mutationAP('peau', 2)]);
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     recomputeLoadout(c);
     expect(c.armour.corps).toBe(1);
     expect(c.armour.tete).toBe(2);
@@ -921,14 +921,14 @@ describe('damageArmour — armure dérivée d’un héros sans pièce à la Loca
   it('un PA déviable s’use d’abord ; le PA hors Déviation reste, non déviable', () => {
     const c = heros([mutationAP('ecailles', 1, true), mutationAP('peau', 1)]);
     expect(deviatableArmourAt(c, 'corps')).toBe(true);
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     recomputeLoadout(c);
     expect(c.armour.corps).toBe(1);
     expect(deviatableArmourAt(c, 'corps')).toBe(false);
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     recomputeLoadout(c);
     expect(c.armour.corps).toBe(0);
-    expect(damageArmour(c, 'corps')).toBe(false);
+    expect(damageArmour(c, 'corps')).toBeNull();
   });
 });
 

@@ -130,7 +130,7 @@ import {
   Weapon,
   locationLabel,
 } from './types';
-import { constaterDans, emettreDans, faitDArgent, nomDeSource, type Applique, type FaitAvecLigne } from './faits';
+import { constaterDans, emettreDans, faitDArgent, faitDObjet, nomDeSource, type Applique, type FaitAvecLigne } from './faits';
 import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
@@ -1704,6 +1704,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'damageArmour': {
         const loc = damageLeatherArmour(target);
+        if (loc) constaterDans(sortie, faitDObjet(target, { armure: loc }, 'usee'));
         lines.push(loc
           ? t('op.cuirRetreci', { name: nomDe(target), loc: HIT_LOCATION_LABELS[loc] })
           : t('op.sansCuirAPourrir', { name: nomDe(target) }));
