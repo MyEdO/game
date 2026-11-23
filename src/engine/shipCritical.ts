@@ -307,7 +307,7 @@ export function applyHullCritical(
   lines.push(crit.log);
   // Effets de coque en `GameOp` : États navals (Voie d'eau / En flammes) ET « Canon perdu » (op
   // `removeShipPoste`, qui démancipe le chef via `crew`). On capte leurs lignes de journal.
-  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }));
+  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }).lignes);
 
   // Coup à l'équipage consécutif au Critique (`crewHit` data-driven) : l'équipage d'un poste tiré au
   // sort (MDG 13 l.763), les PRÉSENCES nommées (MDG 13 l.680/l.714/l.730/l.751, MSRC 07 l.78/l.82/
@@ -332,7 +332,7 @@ export function applyHullCritical(
   }
   for (let i = 0; i < crit.shrapnel && i < exposed.length; i++) {
     const sailor = exposed[i];
-    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }));
+    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }).lignes);
     shrapnel.push({ crewId: sailor.id });
   }
   if (shrapnel.length) {

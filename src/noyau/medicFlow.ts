@@ -120,14 +120,14 @@ function appliquerLaPasse(get: Get, set: Set): void {
       // expirent ENSEMBLE) — `defaultUntilTime` fournit la même échéance à toutes les ops sans durée propre.
       if (penalty.length) {
         const now = get().gameTime;
-        log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
+        log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }).lignes);
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
       finishPlayerAction(get, set, log, 'soin');
       return;
     }
     if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
-    log.push(...releaseConditionLocks(patient, 'surgery')); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
+    log.push(...releaseConditionLocks(patient, 'surgery').lignes); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'soin');
     // Test d'infection du PATIENT (LDB 10 l.184) : Résistance Accessible (+20) — plus un jet SILENCIEUX

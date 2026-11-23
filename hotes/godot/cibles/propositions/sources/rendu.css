@@ -19,11 +19,6 @@
 #jet .visee .pv .jauge{width:auto}
 /* le centre d'un jet avant le dé tient entre les deux camps : une bascule passe à la ligne */
 #jet .place .bascules .bascule{white-space:normal}
-/* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
-#jet .place>.regle{gap:6px}
-#jet .place>.regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}
-#jet .place>.regle>.options{flex:none}
-#jet .place>.regle .options{gap:4px}
 #verdict.surinc{grid-template-columns:minmax(0,1fr) 192px;column-gap:12px;height:auto;padding:0 6px 0 10px}
 #verdict.surinc .axe{grid-template-columns:52px 40px 1fr 40px}
 #verdict.surinc .sort p{font-size:12px;line-height:16px}
@@ -33,16 +28,14 @@
 #critique .tirage .sceau b{font-size:14px}
 /* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
 #jet .rangees{max-width:272px;height:calc(100% + 4px);margin-top:-4px}
-#jet .rangees .rangee{height:32px}
 /* une ligne de butin à la hauteur de ses portraits */
 #jet .ligne-b{height:34px}
 #jet .enjeu{padding-left:14px;height:100%}
 /* les deux natures d'une Corruption tiennent dans leur colonne : les cartes s'y partagent la largeur, leur ligne passe à la ligne */
 #jet .nature .carte{min-width:0}
 #jet .nature .carte .qui{white-space:normal}
-#jet .enjeu table{font-size:13px;line-height:17px}
-#jet .enjeu td:first-child{white-space:nowrap;padding-right:8px}
-#jet .enjeu td:last-child{font-size:12px;white-space:normal}
+/* l'effet d'une issue passe à la ligne serré, sa rangée au plus de deux lignes */
+#jet .enjeu td.valeur{white-space:normal;line-height:17px}
 
 /* 2. Gestion : le cartouche 24 / 20, la croix 22 / 18, le panneau de commande à gauche sous le cartouche, jusqu'à 24
    du bas puis il défile ; le registre tendu jusqu'aux signets, au bord droit, et à 24 du bas (80 sous une action de
@@ -87,21 +80,13 @@
 /* chaque hôte à la case de son genre, en colonne comme en deux colonnes : l'enseigne (son nom seul), le porteur et ce
    qu'il porte, l'offre dépliée, l'accueil ou le constructeur (le corps qui défile, les gestes au pied) ; la colonne en
    montre quatre, deux enseignes et deux porteurs (la halle à la vente), la suite défile */
-#scene-du-commerce .hote{flex:none;height:196px}
+#scene-du-commerce .hote{flex:none;height:204px}
 #scene-du-commerce .hote.enseigne{height:76px}
-#scene-du-commerce .hote.charge{height:156px}
+#scene-du-commerce .hote.charge{height:170px}
 #page .porteur{padding-top:5px;padding-bottom:6px}
 #page .porteur span{margin-bottom:4px}
-/* une ligne à régler : son complément sous son nom, le prix et la quantité à droite des deux */
-#page .lignes .ligne{grid-template-columns:minmax(0,1fr) 84px 96px;height:auto;min-height:27px;padding-top:2px;padding-bottom:2px}
-#page .lignes .ligne .c{grid-column:1;line-height:13px;margin-top:-3px}
-#page .lignes .ligne .px{grid-column:2;grid-row:1 / span 2}
-#page .lignes .ligne>:is(.moins-plus,.n){grid-column:3;grid-row:1 / span 2}
 /* des lignes qui ne se règlent pas : deux par rang, le prix et le nombre à droite du nom */
 #page .lignes.deux{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
-#page .lignes.deux .ligne{grid-template-columns:minmax(0,1fr) auto 18px;column-gap:8px;min-height:28px;padding-top:0;padding-bottom:0}
-#page .lignes.deux .ligne>*{grid-row:1}
-#page .lignes.deux .ligne>b{grid-column:1}
 /* pendant le Marchandage, la quantité est arrêtée : son curseur se retire, le compte la dit */
 #ui:has(>#jet) #page :is(.quantite,.r:has(+.quantite),.filet:has(+.r+.quantite)){display:none}
 
@@ -109,15 +94,10 @@
    bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau ; le carton d'un arrêt
    au rect `carton` (`rendu.js`) */
 #apercu-test .apercu{left:576px;top:270px;--pointe:124px}
-#verdict.tests td:last-child{text-align:right;white-space:nowrap}
 /* les lignes du Test défilent entre sa tête et les gestes du pied */
 #verdict.tests{text-align:left;padding:0 6px;display:flex;flex-direction:column}
 #verdict.tests .tete{display:flex;align-items:baseline;gap:12px}
-#verdict.tests table{border-collapse:collapse;width:100%;margin-top:4px;font-size:12.5px;line-height:16px;color:#2a1d12}
-#verdict.tests td{padding:1px 0;border-top:1px solid rgba(60,40,20,.28)}
-#verdict.tests td:last-child{padding-left:10px;font-family:"Fell SC"}
-#verdict.tests tr.courant td{color:#7c1f14;font-weight:600}
-#verdict.tests tr.somme td{font-weight:600}
+#verdict.tests table{margin-top:4px}
 #verdict.tests .lanceurs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:6px}
 #verdict.tests .lanceur{display:flex;align-items:center;gap:6px;height:44px;padding:0 6px;border:1px solid rgba(60,40,20,.35);border-radius:3px;color:#2a1d12}
 #verdict.tests .lanceur.courant{border:2px solid #a8842f;background:rgba(255,240,190,.5);padding:0 5px}
@@ -128,11 +108,7 @@
 
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
-#panneau.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
-#panneau .ligne.distance{align-items:center}
-#panneau .ligne.distance .jauge{flex:1}
 #panneau .issues{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-.jouera.joue span{color:#eadfc4}
 .poste.scene{width:230px}
 .scene .postes-de-scene{align-self:stretch;min-height:58px;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
 .scene .et{width:100%;padding:8px 12px 9px}
@@ -183,7 +159,6 @@
    haut, au-dessus du Mouvement qu'ils annulent */
 #barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px;z-index:1}
 #ecran #barre #etat{left:13px;top:10px;width:282px;grid-template-columns:150px 114px;column-gap:18px;row-gap:5px}
-#etat .mesure .jauge{margin-top:4px}
 #etat .pas{margin-top:5px}
 #etat .jeton{margin-top:0}
 #etat .jeton .v{font-size:13px;white-space:nowrap}
@@ -200,14 +175,14 @@
 #liste{left:calc(50% - 480px + 460px);bottom:160px;width:300px}
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
-#apercu-sort td:first-child,#apercu-sort td:last-child,#billet-du-bord td:last-child,#apercu-scene td:last-child{white-space:normal}
+#apercu-sort td:last-child,#billet-du-bord td:last-child,#apercu-scene td:last-child{white-space:normal}
 #apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
 #journal-entier .fond{position:relative;display:flex;flex-direction:column;padding:28px 20px 12px}
 #journal-entier p{white-space:normal}
 /* la fiche d'un combattant : réduite et décalée, entre la borne du round et la croix, au-dessus du journal */
 #fiche-lue #f-identite{left:246px;top:16px;width:230px;height:420px}
 #fiche-lue #f-identite .fond{padding:16px 15px 0}
-#fiche-lue #f-identite .mesure{margin-top:14px}
+#fiche-lue #f-identite .libelle-valeur.mesure{margin-top:14px}
 #fiche-lue #f-identite .filet{margin:12px 8px}
 #fiche-lue #f-identite .en-reserve{flex-wrap:wrap;justify-content:center;gap:12px 24px}
 #fiche-lue #f-profil{left:486px;top:16px;width:714px;height:80px}

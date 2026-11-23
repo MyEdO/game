@@ -24,6 +24,7 @@ import { cleDEmplacement } from '../../../src/hote/sauvegardes';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, SaisonOfferte } from './pont';
 import { figerUnePartie } from '../recettes/atelier';
 import { facadeFeatureViz } from '../../../src/noyau/monde/facades';
+import { findPropById } from '../../../src/data';
 import { scenario as scenarioDiligence } from '../../../src/scenes/test-scenarios/diligence';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 
@@ -106,24 +107,26 @@ describe('les décors de la scène en cours', () => {
 });
 
 describe('les ornements du bâti de la scène en cours (#4471)', () => {
-  it('sert chaque cheminée et chaque enseigne des façades de la Diligence, l’une portée avec sa nappe', () => {
+  it('sert la souche de chaque foyer et chaque enseigne des façades de la Diligence, l’une portée avec sa nappe', () => {
     const { appel: jeu } = table();
     suiteDe(jeu('demarrer', { scenario: 'diligence', graine: 7 }));
     try {
-      const { architecture } = scenarioDiligence.construire(idsDeTest).scene;
-      const deLaDonnee = (prop: string) => (architecture ?? []).flatMap((corps) => corps.facades.flatMap((section) =>
+      const { architecture, entities } = scenarioDiligence.construire(idsDeTest).scene;
+      const enseignes = (architecture ?? []).flatMap((corps) => corps.facades.flatMap((section) =>
         (section.features ?? [])
           .filter((f) => {
             const viz = facadeFeatureViz(section.appearance, f.kind);
-            return viz !== undefined && (f.appearance ?? viz.prop) === prop;
+            return viz !== undefined && (f.appearance ?? viz.prop) === 'enseigne';
           })
-          .map((f) => `architecture/${corps.id}:${section.id}:${f.id}`))).sort();
+          .map((f) => `architecture/${corps.id}:${section.id}:${f.id}`)));
+      const souches = entities.filter((e) => e.kind === 'prop' && findPropById(e.decor?.id)?.conduit).map((e) => `souche/${e.id}`);
+      const deLaDonnee: Record<string, string[]> = { cheminee: souches.sort(), enseigne: enseignes.sort() };
       servirLesModeles(jeu, COMMITES, avecLesSeulsDecors(COMMITES, 'cheminee', 'enseigne'));
       const { decors } = vueDe(jeu('vue')).corps;
-      const servies = (prop: string) => (decors[prop]?.poses ?? []).filter((p) => p.cle.startsWith('architecture/'));
+      const servies = (prop: string) => (decors[prop]?.poses ?? []).filter((p) => /^(architecture|souche)\//.test(p.cle));
       for (const prop of ['cheminee', 'enseigne']) {
-        expect(deLaDonnee(prop).length, `${prop} : la donnée de la Diligence en porte`).toBeGreaterThan(0);
-        expect(servies(prop).map((p) => p.cle).sort(), prop).toEqual(deLaDonnee(prop));
+        expect(deLaDonnee[prop].length, `${prop} : la donnée de la Diligence en porte`).toBeGreaterThan(0);
+        expect(servies(prop).map((p) => p.cle).sort(), prop).toEqual(deLaDonnee[prop]);
       }
       const portees = [...servies('cheminee'), ...servies('enseigne')].filter((p) => p.nappe);
       expect(portees.length, 'une cheminée assise sur un toit').toBeGreaterThan(0);

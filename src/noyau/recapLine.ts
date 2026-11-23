@@ -1,5 +1,6 @@
 import type { Equipe } from '../engine/relations';
 import type { IconId } from '../data/icons';
+import type { FaitApplique } from '../engine/faits';
 /**
  * VOCABULAIRE PARTAGÉ d'une ligne de récap structurée (#349) — remplace le `string` brut des
  * chroniques (récap de voyage, note de cascade). Module LEAF (aucune dépendance de valeur) pour éviter tout
@@ -11,6 +12,26 @@ import type { IconId } from '../data/icons';
  * src/hote/elements.ts).
  */
 export type RecapTone = 'reussite' | 'echec' | 'neutre';
+
+/** Le sens du fait pour sa cible : gain (Blessures et Avantage regagnés, État retiré, Corruption retirée ou
+ *  écartée, argent reçu), perte (dont la Localisation qu'une Blessure critique frappe), ou `null` pour un fait sans
+ *  variation hors Corruption écartée. */
+function sensPourLaCible(f: FaitApplique): 'gain' | 'perte' | null {
+  if (f.genre === 'localisation') return 'perte';
+  if (f.genre === 'corruption' && 'contre' in f) return 'gain';
+  if (f.valeur === 0) return null;
+  const gain = f.genre === 'etat' || f.genre === 'corruption' ? f.valeur < 0 : f.valeur > 0;
+  return gain ? 'gain' : 'perte';
+}
+
+/** LE ton d'un fait appliqué, d'après le camp de sa cible (#4574) : un gain du groupe ou une perte d'un hostile est
+ *  une `reussite`, l'inverse un `echec` ; un fait sans variation ou sur un neutre est `neutre`. Seule dérivation,
+ *  lue par `resultLines` et par la projection des conséquences. */
+export function tonDuFait(f: FaitApplique): RecapTone {
+  const sens = sensPourLaCible(f);
+  if (sens == null || f.camp === 'neutre') return 'neutre';
+  return (sens === 'gain') === (f.camp === 'groupe') ? 'reussite' : 'echec';
+}
 
 /** Camp d'un SEGMENT de texte — même vocabulaire que la narration de combat (`NarratedSegment.team`,
  *  classes `.nm-ally`/`.nm-foe`) : les noms se colorent par camp, allié / ennemi. */

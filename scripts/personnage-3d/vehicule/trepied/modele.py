@@ -5,7 +5,7 @@ import math
 
 import habillage
 from clips import REPOS, animer, cahoter, tirer
-from maille import Maille, boite, cylindre, objet, plaque, poutre, recentrer, tore, tour, tube
+from maille import Maille, boite, cylindre, monter, plaque, poutre, tore, tour, tube
 
 
 def trepied(D, mats):
@@ -102,10 +102,8 @@ def construire(D, materiaux, piece):
     mats = habillage.materiaux(materiaux)
     mailles, tir = piece(D, mats)
     pied = trepied(D, mats)
-    dx, dy = recentrer([*mailles.values(), pied])
-    objet("trepied", pied, (0.0, 0.0, 0.0), 35)
-    for nom, maille in mailles.items():
-        objet(nom, maille, (dx, dy, D["FOURCHE"]["tourillons_z"]), 35)
+    pivot = (0.0, 0.0, D["FOURCHE"]["tourillons_z"])
+    monter({"trepied": (pied, None), **{nom: (maille, pivot) for nom, maille in mailles.items()}}, D["ANGLE_LISSE"])
     return animer([REPOS, cahoter(["trepied", *mailles]), tirer(tir, D["TIR"], [], mailles)])
 
 

@@ -66,6 +66,7 @@ import { rule } from '../engine/policy';
 import { WORLD_STEP_OWNER, type BatchParticipant, type CascadeStepMeta } from './pendings';
 import type { BandPorteur } from './rollSeam';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { Applique } from '../engine/faits';
 import { nomDe } from '../engine/nom';
 
 /**
@@ -371,11 +372,11 @@ export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, 
   const combatants = get().battle?.combatants ?? get().party;
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c));
   const lines: string[] = [t('crew.shantyStart', { name: nomDe(singer), shanty: shanty.label, min: minutes })];
-  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
+  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes);
   if (shanty.captainOps?.length) {
     const roles = shipDefaultRoles(crew, 'manoeuvre', navigationDuNavire(get, ship));
     const captain = crew.find((c) => roles.get(c.id) === 'capitaine');
-    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
+    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes);
     else lines.push(t('crew.noCaptain'));
   }
   singer.singingShanty = { shantyId, label };
@@ -392,9 +393,9 @@ export function endShanty(get: Get, singer: Combatant): string[] {
   if (!song) return [];
   delete singer.singingShanty;
   const combatants = get().battle?.combatants ?? get().party;
-  const porte: string[] = []; // États PORTÉS par la chanson (#1695) : ils partent avec elle, et ça se dit
-  for (const c of combatants) removeActiveEffects(c, (e) => e.effectId === song.shantyId, undefined, porte);
-  return [t('crew.shantyEnd', { name: nomDe(singer) }), ...porte];
+  const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par la chanson (#1695) : ils partent avec elle, et ça se dit
+  for (const c of combatants) removeActiveEffects(c, (e) => e.effectId === song.shantyId, porte);
+  return [t('crew.shantyEnd', { name: nomDe(singer) }), ...porte.lignes];
 }
 
 /**

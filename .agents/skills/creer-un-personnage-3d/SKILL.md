@@ -15,7 +15,7 @@ Valider le manifeste et son GLB par **`npm run godot:valider -- <element.json> <
 un décor, un véhicule ou une Amélioration, sans base, par **`npm run godot:valider -- <element.json> <element.glb>`** (#2987).
 Un élément sur base se construit dans le dépôt, `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
 (`donnees.py`, `modele.py`), par le constructeur commun `element/construire.py` : section 3 de la procédure.
-Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/construire.py vehicule/<type>` : chapitre 9
+Un véhicule (navire, engin de siège, coque terrestre) se construit par `scripts/personnage-3d/construire.py vehicule/<type>` : chapitre 9
 de la procédure ; un décor de `src/data/props.json`, par `construire.py decor/<modele>`, dans le gabarit de sa recette :
 chapitre 10 ; les pièces d'arête d'un kit (mur, porte, fenêtre, brèche, échelle), par `construire.py arete/<kit>` :
 chapitre 11 ; les pièces d'escalier d'un kit (limon, rampe), par `construire.py escalier/<famille>` : chapitre 12 ;

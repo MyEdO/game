@@ -31,6 +31,10 @@ export function isVehicle(c: Pick<Combatant, 'bodyShape'>): boolean {
   return c.bodyShape === 'vehicule';
 }
 
+/** La coque `vehiculeId` (`vehicles.json`) est-elle terrestre (`hull.propulsion`) ? EDOC 07 l.184. */
+export const estCoqueTerrestre = (vehiculeId: string | undefined): boolean =>
+  findVehicleById(vehiculeId ?? '')?.hull?.propulsion === 'terrestre';
+
 /** Profil NAVAL (facette `ship`, MDG 12) de ce combattant-coque ; `undefined` = une coque qui n'est PAS
  *  un navire (véhicule routier, EDOC 07 l.184). */
 export function profilNavalDe(c: Pick<Combatant, 'bodyShape' | 'creatureId'>): NonNullable<VehicleData['ship']> | undefined {

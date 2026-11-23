@@ -535,6 +535,8 @@ export const fr = {
   'ecran.jauge.blessures': 'Blessures',
   'ecran.jauge.mouvement': 'Mouvement',
   'ecran.avantage': 'Avantage',
+  'ecran.corruption': 'Corruption',
+  'ecran.argent': 'Argent',
   'ecran.action': 'Action',
   'ecran.action.libre': 'disponible',
   'ecran.action.prise': 'jouée',
@@ -1896,13 +1898,6 @@ export const fr = {
   'out.healHarm': 'Le soin blesse {name} ({n} PB).',
   'out.healNone': 'Le soin de {name} reste sans effet.',
 
-  // Conséquences post-jet (`resultLine`, #295) — SANS roll/target/sl/won (montant déjà résolu, la
-  // rangée de jet porte seule le verdict ; garde i18n.test.ts).
-  'out.consWounds': '{n} Blessure(s) perdue(s).',
-  'out.consHeal': '{n} Blessure(s) récupérée(s).',
-  // État gagné, DÉRIVÉ de l'op `condition` réellement appliqué (opConsequenceLine, comme wounds/heal) —
-  // sans nom d'acteur (la tuile de la rangée porte l'attribution).
-  'out.consCondition': 'État {cond} subi.',
   // Activité de voyage SANS Test exécutée (EDOC 8 l.131) — le nom est porté en var (la rangée batch/poste
   // n'a pas toujours d'actorId pour l'attribution).
   'out.activityDone': '{name} — {activity} (effectué).',
@@ -2026,6 +2021,7 @@ export const fr = {
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',
   'cs.refusFormationBloquee': 'La formation ne passe pas : une case d’arrivée est occupée ou hors de la carte.',
+  'cs.refusCorpsImmobile': '{name} ne bouge pas : son corps tient à la scène.',
   'cs.refusBordeeHorsPortee': 'Cible hors de portée des pièces de {ship}.',
   'cs.refusTirArmeDeMelee': '{weapon} n’est pas une arme à distance.',
   'cs.runStumble': '{name} trébuche dans sa Course : sur place.',
@@ -4039,7 +4035,6 @@ export const fr = {
   // ── #1318 V8c₄ — CORRUPTION (`noyau/corruptionFlow.ts`, `cor.*`, LDB 19 l.70-87 / LDB 17 l.67). La
   // NATURE de la mutation était l'id interpolé (`physique`/`mentale`) : elle passe par ses deux clés.
   'cor.phaWard': '{name} : la lumière sacrée de Phâ écarte la Corruption (aucun gain).',
-  'cor.gain': '{name} : +{n} Point{s} de Corruption (total {total}).',
   'cor.threshold': '{name} : la Corruption déborde son seuil — Test {de}.',
   'cor.contained': '{name} contient sa Corruption — pour cette fois.',
   'cor.thresholdFail': '{name} échoue à contenir sa Corruption — la mutation menace…',

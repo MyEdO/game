@@ -1,0 +1,4 @@
+[
+  { "nom": "diligence-tactique", "regard": "tactique", "case": { "x": 7, "y": 4 }, "lacet": 45, "zoom": 12 },
+  { "nom": "diligence-immersion", "regard": "immersion", "case": { "x": 2, "y": 4 }, "lacet": 90, "tangage": -10 }
+]

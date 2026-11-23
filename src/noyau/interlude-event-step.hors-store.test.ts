@@ -15,7 +15,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 import { INTERLUDE_EVENT_TABLE } from './interludeFlow';
 import { INTERLUDE_EVENTS, interludeEventFor } from '../data/interludeEvents';
-import { rollTableStep, stepInteraction, tableStepDef } from './cascade';
+import { applierDe, rollTableStep, stepInteraction, tableStepDef } from './cascade';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
@@ -28,6 +28,8 @@ import { canFixDie } from './netOwnership';
 import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
 import { pratiquer } from './interlude.testkit';
+import { faitsDeLEtape } from './jetsEnVue';
+import { faitsDesConsequences, resultLines } from './rollSeam';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -286,7 +288,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   });
 
   it('les bourses du groupe annoncent leurs pertes avant « Continuer », qui les applique telles quelles', () => {
-    groupe();
+    const party = groupe();
     banc.getState().ouvrirLInterlude(2);
     banc.getState().jetImposerLeResultat('cascadeTirage', PREVOT, steps()[0].id);
     banc.getState().jetValider('cascade');
@@ -296,11 +298,15 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(bourses.kind).toBe('bourseDInterlude');
     const annonce = (bourses.outcome ?? []).map((l) => l.text);
     expect(annonce, 'le Prévôt frappe chaque bourse, dit avant d’appliquer').toEqual([expect.stringContaining('La bourse de A perd 30 %'), expect.stringContaining('La bourse de B perd 30 %')]);
+    const prevus = faitsDeLEtape(banc.getState(), bourses);
+    expect(bourses.faits, 'aucun fait stocké avant l’application').toBeUndefined();
+    expect(prevus.map((f) => [f.genre, f.cible]), 'un fait d’argent par bourse frappée').toEqual([['argent', party[0].id], ['argent', party[1].id]]);
     const avant = toBrass(partyMoneyTotal(banc.getState));
     banc.setState({ journal: [] });
-    banc.getState().jetValider('cascade');
-    expect(banc.getState().journal, 'ce que « Continuer » applique est ce que la fenêtre annonçait').toEqual(annonce);
-    expect(toBrass(partyMoneyTotal(banc.getState)), 'et les bourses le paient').toBeLessThan(avant);
+    const applique = applierDe('bourseDInterlude')!(banc.getState, banc.setState, bourses, undefined, { steps: steps(), index: 2 });
+    expect(faitsDesConsequences(applique?.consequences ?? []), 'les faits appliqués sont les faits annoncés').toEqual(prevus);
+    expect(resultLines(applique?.consequences ?? []).map((l) => l.text), 'ce que « Continuer » applique est ce que la fenêtre annonçait').toEqual(annonce);
+    expect(toBrass(partyMoneyTotal(banc.getState)) - avant, 'et les bourses paient leur somme').toBe(prevus.reduce((n, f) => n + (f.valeur as number), 0));
   });
 
   it('#973 : la ligne du DÉNOUEMENT de groupe ne porte pas « (dé fixé) » — aucun dé n’y est jeté', () => {

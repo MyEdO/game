@@ -8,6 +8,11 @@ DEFINITIONS = ("trebuchet-ade2",)
 MATERIAUX = {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "corde": ("cuir", "corde"),
              "cuir": ("cuir", "cuir-tanne")}
 
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
+
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"trebuchet": 1100}
+
 BASE = {
     "longerons": (0.75, -3.00, 3.10, 0.30, 0.30),       # x du milieu, y avant, y arrière, largeur, hauteur
     "traverses": [(-2.70, 0.28), (1.80, 0.24), (2.85, 0.28)],   # y, profondeur ; entre les longerons

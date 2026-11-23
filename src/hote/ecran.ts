@@ -42,6 +42,9 @@ import {
   documentEnVue,
   lieuEnVue,
   formatMoney,
+  fromBrass,
+  faitsDeLEtape,
+  tonDuFait,
   fenetreDAttaque,
   fenetreDIncantation,
   fenetreDeDefense,
@@ -51,6 +54,7 @@ import {
   gestesDeLObjet,
   interludeEnVue,
   porteurParId,
+  locationLabel,
   recitEnVue,
   refLabel,
   reposEnVue,
@@ -58,6 +62,7 @@ import {
   nomEnVue,
   porteurEnVue,
   type CombatEvent,
+  type FaitApplique,
   type Equipe,
   type EntreeDeLaFiche,
   type IconId,
@@ -928,24 +933,32 @@ function destinEnJeu(etat: Jeu, cle: string): Element[] {
   return [ligne(`${cle}/enjeu`, t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce(`${cle}/points`, t('ecran.destin'), String(heros.fate ?? 0))];
 }
 
-/** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…). Un Coup
- *  Critique dit sa localisation, les Blessures perdues s'il en coûte et chaque État infligé en puces, sur un héros en
- *  `echec`, sur un adversaire en `reussite` ; toute autre révélation, chacune de ses lignes. Puis chacun de ses effets,
- *  son explication au détail. Ses lignes vont aussi au journal, où ses effets ne se lisent qu'au survol. */
+/** La puce d'un fait que révèle l'étape courante, sous l'espace `cle`, au ton de son fait (`tonDuFait`). */
+function puceDuFait(etat: Jeu, cle: string, f: FaitApplique, i: number): Puce {
+  const ton = tonDuFait(f);
+  switch (f.genre) {
+    case 'localisation': return puce(`${cle}/localisation`, t('ecran.critique.localisation'), locationLabel(f.valeur, porteurParId(etat, f.cible)?.bodyShape), null, ton);
+    case 'blessures': return puce(`${cle}/blessures/${i}`, t('ecran.jauge.blessures'), avecSigne(f.valeur), null, ton);
+    case 'avantage': return puce(`${cle}/avantage/${i}`, t('ecran.avantage'), avecSigne(f.valeur), null, ton);
+    case 'etat': return puce(`${cle}/etat/${f.id}/${i}`, conditionLabel(f.id), avecSigne(f.valeur), null, ton);
+    case 'corruption': return puce(`${cle}/corruption/${i}`, t('ecran.corruption'), avecSigne(f.valeur), null, ton);
+    case 'argent': return puce(`${cle}/argent/${i}`, t('ecran.argent'), `${f.valeur < 0 ? '−' : '+'}${formatMoney(fromBrass(Math.abs(f.valeur)))}`, null, ton);
+  }
+}
+
+/** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…) : chacun de
+ *  ses faits en puce (`faitsDeLEtape` : appliqués, ou prévus par sa fenêtre), puis ses lignes, qu'aucun fait ne lit, et
+ *  chacun de ses effets, son explication au détail. Une Blessure critique ne montre pas ses lignes : son en-tête dit sa
+ *  ligne de table, et ses effets disent le reste. */
 function revelationDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
-  const r = pc?.participants[pc.cursor]?.reveal;
-  if (!r) return [];
-  const crit = r.kind === 'critique' ? r.crit : undefined;
-  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'heros' ? 'echec' : 'reussite';
-  const prefixe = crit ? 'critique' : 'revelation';
+  const etape = pc?.participants[pc.cursor];
+  const r = etape?.reveal;
+  if (!etape || !r) return [];
   return [
-    ...(crit ? [
-      puce('critique/localisation', t('ecran.critique.localisation'), crit.location, null, ton),
-      ...(crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-crit.woundsLost), null, ton)] : []),
-      ...(crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
-    ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
-    ...(r.details ?? []).map((d, i) => ligne(`${prefixe}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
+    ...faitsDeLEtape(etat, etape).map((f, i) => puceDuFait(etat, r.kind, f, i)),
+    ...(r.kind === 'critique' ? [] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
+    ...(r.details ?? []).map((d, i) => ligne(`${r.kind}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
 }
 

@@ -3548,13 +3548,14 @@
      "id": "p35",
      "kind": "prop",
      "pos": {
-      "x": 4,
-      "y": 28
+      "x": 3,
+      "y": 31
      },
      "decor": {
-      "id": "feu-camp"
+      "id": "foyer-de-forge"
      },
-     "label": "Le foyer"
+     "label": "Le foyer",
+     "facing": "E"
     },
     {
      "id": "p36",
@@ -6534,18 +6535,6 @@
        "appearance": "forge",
        "roomZoneIds": [
         "piece-forge"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge-du-bourg",
-         "kind": "chimney",
-         "edge": {
-          "x": 2,
-          "y": 31,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       }
      ],

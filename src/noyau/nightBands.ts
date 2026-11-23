@@ -26,7 +26,17 @@ import type { Get, Set } from './flowTypes';
 import { isNightTestKind } from '../engine/types';
 import type { CascadeApplier } from './cascade';
 import { actorIn } from './monde/combatants';
-import { resultLines, bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type Consequence, type BandSpec } from './rollSeam';
+import {
+  faitsDesConsequences,
+  resultLines,
+  bandStep,
+  bandRowOfStep,
+  bandCommonMeta,
+  makeBandFactory,
+  refusePorte,
+  type Consequence,
+  type BandSpec,
+} from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
@@ -135,6 +145,8 @@ export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): 
       const out = rowFn(get, set, step, row, hero, ctx);
       const lines = out?.consequences ? resultLines(out.consequences) : [];
       row.outcome = lines;
+      const faits = faitsDesConsequences(out?.consequences ?? []);
+      if (faits.length) row.faits = faits;
       for (const l of lines) get().ecrireAuJournal(l.text);
       if (out?.insert?.length) insert.push(...out.insert);
     }

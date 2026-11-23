@@ -485,7 +485,7 @@ func _publier_l_ecran() -> void:
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
 ## vision se fond encore (`VolumeDeScene.part_du_fondu`), si un combattant dessiné se déplace (`Plateau.marche`), la part
 ## de la fenêtre que l'ossature laisse à la scène (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
-## combattant dessiné (`Plateau.corps`), les navires posés (`Plateau.navires`) et si les arêtes sont toutes posées
+## combattant dessiné (`Plateau.corps`), les coques posées (`Plateau.coques`) et si les arêtes sont toutes posées
 ## (`VolumeDeScene.aretes_en_lecture`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
@@ -494,7 +494,7 @@ func _ecran_publie() -> Dictionary:
 		boutons = PontDuNoyau.boutons_a_l_ecran(racines), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
 		fondu = _monde.volume.part_du_fondu() != 1.0, marche = _plateau.marche(),
-		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), coques = _plateau.coques(),
 		aretes_lues = not _monde.volume.aretes_en_lecture(),
 		compendium = {zones = _compendium.vues()},
 	}

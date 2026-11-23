@@ -565,27 +565,6 @@ export interface ConditionLocks {
  *  `magic` = soin magique (qui compte AUSSI comme Aide Médicale, LDB 18 l.311 → lève aussi `medicalAid`). */
 export type ConditionUnlock = 'medicalAid' | 'surgery' | 'magic';
 
-/**
- * NOTIFICATION qu'une LIGNE DE JOURNAL vient d'être écrite en NOMMANT un État (#1330) : lequel
- * (`stateId`, jamais son libellé), dans quel sens elle le nomme, sur qui. Le moteur NOTIFIE — il
- * n'écrit rien et ne compose aucun texte : la ligne FR reste seule maîtresse du journal, l'id voyage
- * À CÔTÉ d'elle. Appariement 1:1 avec la ligne poussée au même instant (l'émetteur les pose ensemble).
- *
- * ATTENTION : c'est un appariement LIGNE↔ID, PAS un delta d'état : n'en dérivez aucun compteur d'États portés.
- * Contre-exemple qui le prouve — une op `condition` à `perRound` notifie à l'ANNONCE (« X subit 1 État
- * Y par Round ») alors qu'AUCUN État n'est encore posé : les poses réelles tomberont à chaque fin de
- * Round et notifieront chacune la leur. Un consommateur qui compterait les `gain` double-compterait.
- */
-export interface ConditionChange {
-  stateId: string;
-  change: 'gain' | 'loss';
-  targetId: string;
-}
-
-/** Récepteur de `ConditionChange` — branché par la couche state ; absent en moteur pur/tests (les ops
- *  sont alors strictement inchangées, lignes comprises). */
-export type ConditionEmit = (e: ConditionChange) => void;
-
 /** Pénalité/blocage d'incantation temporisé (contrecoups des tables d'Imparfaites /
  *  Colère des dieux — LDB 46 l.34-80, LDB 40 l.52-89). Une seule des deux durées :
  *  `roundsLeft` (échelle tactique) ou `untilTime` (minutes d'horloge `gameTime`). */

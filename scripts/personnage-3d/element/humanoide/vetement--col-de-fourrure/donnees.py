@@ -22,7 +22,7 @@ MANIFESTE = {
     'couvre': [],
 }
 """`couvre` vide : la pèlerine ne cache aucune zone entière (le cou se voit au-dessus, le bas du torse dessous)."""
-MATERIAUX = {'fourrure': ('fourrure', 'fourrure')}   # gris de construction, sans couleur cuite
+MATERIAUX = {'fourrure': ('fourrure', 'fourrure')}
 
 CONTOURNE = {'bure': 'humanoide--vetement--bure', 'baudrier': 'humanoide--accessoire--baudrier-sur-robe'}
 MATIERES = {'bure': ['robe'], 'baudrier': ['sangle']}

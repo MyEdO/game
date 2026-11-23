@@ -186,6 +186,7 @@ import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
+import type { Applique } from '../engine/faits';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
 import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
@@ -3007,7 +3008,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) }).lignes;
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attaque', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -3025,7 +3026,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!a) return;
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines = sr.struggleDamage != null
-        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: a })
+        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: a }).lignes
         : [];
       const removed = recoveredStacks(sr.netSL, stacks(a, sr.state), sr.success); // 1 + DR, borné
       if (removed > 0) removeCondition(a, sr.state, removed);
@@ -3274,7 +3275,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
       // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
-      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid'));
+      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid').lignes);
       finishPlayerAction(get, set, log, 'soin'); // sortie commune combat / hors combat
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `cast`) — Résilience (forceSuccess/setForcedRoll) plus bas.
@@ -3447,7 +3448,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const res = garanti(pd.result, pd.casterId, 'jet de Dissipation');
       const { sl: ownSl, step } = progresDeDissipation(pd, caster);
       const { total, done } = garanti(step, pd.spellId, 'jet de Dissipation');
-      const logLines = [t('cs.dispelRoll', { name: nomDe(caster), spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
+      const logLines: string[] = [t('cs.dispelRoll', { name: nomDe(caster), spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
       if (done) {
         // Réussite (DR cumulé ≥ NI, LDB 46 l.160) : retire les effets du sort de tous ses porteurs.
         // Dissipation COMMUNE combat/hors-combat (couture D, #461) : le porteur du sort peut être
@@ -3455,9 +3456,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         caster.dispel = undefined;
         const b = get().battle;
         // Les États PORTÉS par le Sort partent à ce geste (#1695) : leurs lignes rejoignent CELLES de
-        // l'Action (`finishPlayerAction` ci-dessous). Pas de récepteur `ConditionEmit` ici : le canal
-        // déclaré du store (`pendingLogQueue.stateId`, `noyau/etat.ts:496`) n'a encore AUCUN producteur.
-        const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, undefined, logLines);
+        // l'Action (`finishPlayerAction` ci-dessous).
+        const portes: Applique = { lignes: [], faits: [] };
+        const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, portes);
+        logLines.push(...portes.lignes);
         set(touchActors(get()));
         logLines.push(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' }));
       } else {

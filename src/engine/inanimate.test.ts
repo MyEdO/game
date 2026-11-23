@@ -32,13 +32,13 @@ describe('structureCombatant (adaptateur destructible — ADE II 8)', () => {
 });
 
 describe('vehicleCombatant (adaptateur destructible — MDG 12-13)', () => {
-  it('Barge : coque {E,B} + empreinte de navire reportée', () => {
+  it('Barge : coque {E,B} + empreinte de coque reportée', () => {
     const v = findVehicleById('barge-fluviale')!;
     const c = vehicleCombatant(v)!;
     expect(c.bodyShape).toBe('vehicule');
     expect(c.characteristics.endurance).toBe(v.hull!.char.endurance); // 45
     expect(c.wounds.max).toBe(v.hull!.char.B);        // 60
-    expect(c.footprint).toBe(v.ship!.footprint);       // empreinte de grille (2)
+    expect(c.footprint).toBe(v.hull!.footprint);       // empreinte de grille (2)
   });
 });
 

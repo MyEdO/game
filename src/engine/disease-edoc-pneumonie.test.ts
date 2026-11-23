@@ -157,7 +157,7 @@ describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC
     // L'État *Exténué* que le Malaise PORTE (LDB 20 l.188) est posé d'avance : il n'appartient pas à
     // la chaîne d'aggravation, et ce test-ci ne juge QU'elle.
     syncDerivedConditions(c);
-    const log = applyOps(c, onFail(), { idNeuf: idsDeTest, rng: seq([]) });
+    const log = applyOps(c, onFail(), { idNeuf: idsDeTest, rng: seq([]) }).lignes;
     expect(symptomIds(c), 'sans Fièvre, la chaîne ne descend pas jusqu’à Toxine').not.toContain('toxine');
     expect(log, 'rien à journaliser non plus').toEqual([]);
   });

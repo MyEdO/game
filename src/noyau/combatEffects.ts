@@ -30,8 +30,9 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource, tirerLaTable,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
+import { nomDeSource, type FaitApplique } from '../engine/faits';
 import { rule } from '../engine/policy';
 import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
@@ -212,10 +213,10 @@ export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => 
 export function pushReveal(
   set: SetFn,
   entry: RevealEntry,
-  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean },
+  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean; faits?: FaitApplique[] },
 ): void {
   const site = opts?.purpose ?? 'affichage';
-  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }),
+  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table, faits: opts?.faits }),
     (s) => (sequenceDuPiloteAContexteHorsCombat(s) ? site : revealPurpose(site, !!opts?.own)(s)));
 }
 
@@ -597,7 +598,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
     return OPS_DIFFEREES;
   }
   const avant = comptePasDifferes(get());
-  const lignes = applyOps(c, rest, ctx);
+  const lignes = applyOps(c, rest, ctx).lignes;
   if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.text));
   if (comptePasDifferes(get()) <= avant) return lignes;
   set(touchActors(get()));
@@ -623,20 +624,10 @@ function crochetDuChoixDeTrait(get: Get, set: SetFn): NonNullable<OpsCtx['onChoi
   };
 }
 
-/**
- * REFUS NOMMÉ d'un contexte que la reprise ne saurait pas rebâtir (#1508) — les hooks classés
- * `OPS_CTX_HORS_CANAL` ne survivent ni à une sauvegarde ni au réseau, et aucun chemin nommé ne les
- * redonne. Un contexte qui en porte un ne se PORTE donc pas (feuille à dé, Test ou choix surfacé) : il
- * lève ICI plutôt que de s'appliquer plus tard AMPUTÉ. Leur portée : `engine/ops` `OPS_CTX_HORS_CANAL`.
- * `onOpposingAdvantage` se rebâtit sur le porteur : sans lui, il lève aussi.
- */
-function refuserSiHorsCanal(ctx: OpsCtx): void {
+/** REFUS NOMMÉ d'un contexte que la reprise ne saurait pas rebâtir (#1508) : `onOpposingAdvantage` se rebâtit sur le
+ *  porteur ; porté sans lui, il lève ICI plutôt que de s'appliquer plus tard AMPUTÉ. */
+function refuserSiNonRebatissable(ctx: OpsCtx): void {
   if (ctx.onOpposingAdvantage && !ctx.caster) throw new Error('#1508 — `onOpposingAdvantage` porté sans porteur `caster` : la reprise ne saurait pas le rebâtir.');
-  const portes = OPS_CTX_HORS_CANAL.filter((k) => ctx[k] !== undefined);
-  if (portes.length) {
-    throw new Error(`#1508 — contexte PORTÉ (feuille à dé, Test ou choix surfacé) non rebâtissable : ${portes.join(', ')}. `
-      + "La reprise l'appliquerait sans ces hooks (cf. OPS_CTX_HORS_CANAL) — instruire le chemin avant de le porter.");
-  }
 }
 
 /**
@@ -684,7 +675,7 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
 }
 
 function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx) {
-  const journal = applyOps(cible, ops, ctx);
+  const journal = applyOps(cible, ops, ctx).lignes;
   set(touchActors(get()));
   return { consequences: freeCons(journal) };
 }
@@ -693,9 +684,9 @@ function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: Ga
 const groupeDe = (s: CascadeStep): string => (typeof s.meta?.opsDeGroupe === 'string' ? s.meta.opsDeGroupe : s.id);
 
 /** PORTE l'`OpsCtx` d'une feuille jusqu'à sa reprise (`OpsCtxPorte`) — pendant d'écriture de `ctxRepris`.
- *  Un hook `OPS_CTX_HORS_CANAL` lève ici (`refuserSiHorsCanal`). */
+ *  Un contexte non rebâtissable lève ici (`refuserSiNonRebatissable`). */
 export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
-  refuserSiHorsCanal(ctx);
+  refuserSiNonRebatissable(ctx);
   return {
     gele: gelerOpsCtx(ctx),
     ...(ctx.caster ? { casterId: ctx.caster.id } : {}),
@@ -1923,7 +1914,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping });
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes;
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
@@ -2162,7 +2153,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       });
       if (!cible) return;
       const apres = { ...cible };
-      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() });
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() }).lignes;
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
       for (const l of lines) env.log(l);
     },

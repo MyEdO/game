@@ -66,20 +66,5 @@
 .onglet span{font-size:11.5px;color:#4a3420;white-space:nowrap}
 .onglet.actif{background:linear-gradient(180deg,#f3dc93,#c9a44c);border-color:#5d4313;box-shadow:0 2px 5px rgba(60,35,5,.5)}
 .onglet.actif span{color:#2a1a08}
-.soin{display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:3px;border:1px solid rgba(60,40,20,.35);background:rgba(255,245,215,.2);margin-top:8px}
-.soin.pris{border:2px solid #a8842f;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:8px 10px}
-.soin .ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(60,40,20,.6);background:rgba(60,40,20,.08)}
-.soin .t{flex:1;min-width:0}
-.soin .t i{display:block;font-size:12.5px;line-height:16px;color:#4a3420}
-.soin .t .c{font-family:"Fell SC";font-size:11.5px;letter-spacing:1px;color:#6b1c10}
-.soin .px{flex:none;font-size:14px;font-weight:600;color:#2a1d12;white-space:nowrap}
-table.compte{width:100%;border-collapse:collapse;font-size:13.5px;color:#2a1d12}
-.compte td{padding:2px 0}
-.compte td:last-child{text-align:right;font-weight:600;white-space:nowrap}
-.compte tr.total td{font-family:"Grenze Gotisch";font-size:21px;line-height:24px;font-weight:600;color:#3a1a10}
-.compte tr.total td:last-child{font-family:"Chiffres";font-size:17px;letter-spacing:.2px}
 .heros .qui>.etiquette{margin-top:9px}
 
-/* ce qui se jouera : une ligne par jet annoncé, son rond, qui le porte */
-.jouera{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13.5px;color:#eadfc4}
-.jouera span{margin-left:auto;font-size:11.5px;color:var(--creme-2);white-space:nowrap}

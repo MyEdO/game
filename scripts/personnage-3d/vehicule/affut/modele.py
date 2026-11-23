@@ -5,7 +5,8 @@ import math
 
 import habillage
 from clips import REPOS, animer, rouler, tirer
-from maille import Maille, basculer_maille, boite, cylindre, lineaire, objet, plaque, poutre, recentrer, roue, tore, tour, tube
+from maille import Maille, basculer_maille, boite, cylindre, lineaire, monter, plaque, poutre, tore, tour, tube
+from roulant import roulement, trains
 
 
 def coupe(profil, y):
@@ -59,11 +60,10 @@ def mortier(D, mats):
 
 
 def affut_et_roues(D, mats):
-    """L'affût (flasques ferrés, entretoises, coin de mire, essieu, sabot, mascarons) et ses deux roues."""
+    """L'affût (flasques ferrés, entretoises, coin de mire, sabot, mascarons), son train et ses deux roues
+    (`roulant.trains`)."""
     bronze, bois, fer = mats["bronze"], mats["bois"], mats["fer"]
-    A, R, zE = D["AFFUT"], D["ROUE"], D["ESSIEU_Z"]
-    roues = {nom: (roue(R, signe * R["voie"], zE, signe, bois, fer), (signe * R["voie"], 0.0, zE))
-             for nom, signe in (("roue_g", 1), ("roue_d", -1))}
+    A = D["AFFUT"]
     affut = Maille([bois, fer, bronze])
     profil, table, ep = A["flasque"], A["flasque_x"], A["flasque_epaisseur"]
     for signe in (1, -1):
@@ -87,14 +87,10 @@ def affut_et_roues(D, mats):
         boite(affut, (-demi, y - prof / 2, z0), (demi, y + prof / 2, z1), "bois")
     y, z0, z1, larg, prof = A["coin"]
     boite(affut, (-larg / 2, y - prof / 2, z0), (larg / 2, y + prof / 2, z1), "bois")
-    demi, z0, z1, prof = A["corps_essieu"]
-    boite(affut, (-demi, -prof / 2, z0), (demi, prof / 2, z1), "bois")
-    rf, lf = A["fusee"]
-    cylindre(affut, -lf, lf, rf, "x", (0, 0, zE), 8, "fer")
     y0, y1, sep = A["sabot"]
     demi = lineaire(table, y1) + ep / 2 + 0.01
     boite(affut, (-demi, y0, 0.0), (demi, y1, sep), "fer")
-    return affut, roues
+    return affut, trains(D["TRAINS"], affut, bois, fer)
 
 
 def construire(D, materiaux, piece):
@@ -103,15 +99,11 @@ def construire(D, materiaux, piece):
     mats = habillage.materiaux(materiaux)
     mailles, tir = piece(D, mats)
     affut, roues = affut_et_roues(D, mats)
-    dx, dy = recentrer([*mailles.values(), affut] + [r for r, _ in roues.values()])
     ty, tz = D["AFFUT"]["tourillons"]
-    objet("affut", affut, (0.0, 0.0, 0.0), 35)
-    for nom, maille in mailles.items():
-        objet(nom, maille, (dx, ty + dy, tz), 35)
-    for nom_roue, (r, c) in roues.items():
-        objet(nom_roue, r, (c[0] + dx, c[1] + dy, c[2]), 35)
-    rayon = D["ROUE"]["bandage"][1]
-    return animer([REPOS, rouler(rayon, roues), tirer(tir, D["TIR"], ["affut"], mailles, roues, rayon)])
+    monter({"affut": (affut, None), **{nom: (maille, (0.0, ty, tz)) for nom, maille in mailles.items()}, **roues},
+           D["ANGLE_LISSE"])
+    roule = roulement(D["TRAINS"])
+    return animer([REPOS, rouler(roule), tirer(tir, D["TIR"], ["affut"], mailles, roule)])
 
 
 def feu_d_enfer(D, mats):

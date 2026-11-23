@@ -151,7 +151,7 @@ describe('tables migrées — sweep d\'application', () => {
       for (let seed = 0; seed < 120; seed++) {
         const c = hero();
         const r = rollMiscast(sev, makeRNG(seed), sev === 'colere' ? seed % 6 : 0);
-        const lines = applyOps(c, r.ops, { idNeuf: idsDeTest, rng: makeRNG(seed + 1), label: r.label, now: 0 });
+        const lines = applyOps(c, r.ops, { idNeuf: idsDeTest, rng: makeRNG(seed + 1), label: r.label, now: 0 }).lignes;
         expect(Array.isArray(lines)).toBe(true);
       }
     }
@@ -308,7 +308,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
    *  `noyau/combatFlow.ts` ligne `label: m.label` de `finishMiscast`). */
   function palier(seed: number) {
     const c = hero();
-    const log = applyOps(c, opsDuPalier(), { idNeuf: idsDeTest, rng: makeRNG(seed), label: 'Purifier la chair' });
+    const log = applyOps(c, opsDuPalier(), { idNeuf: idsDeTest, rng: makeRNG(seed), label: 'Purifier la chair' }).lignes;
     const cause = (c.activeEffects ?? []).find((e) => e.opsPerRound)!;
     return { c, cause, log: log.join('\n') };
   }
@@ -353,7 +353,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('une op gatée sur son propre État, posée HORS rejeu, annonce une POSE (Filet) — et une RE-POSE au rejeu', () => {
     const c = hero();
     const filet: GameOp = { op: 'condition', id: { id: 'empetre' }, value: 1, unlessCondition: { id: 'empetre' } };
-    expect(applyOps(c, [filet], { idNeuf: idsDeTest, label: 'Filet', rng: makeRNG(1) }), 'PREMIÈRE pose : le gate n’a rien retenu')
+    expect(applyOps(c, [filet], { idNeuf: idsDeTest, label: 'Filet', rng: makeRNG(1) }).lignes, 'PREMIÈRE pose : le gate n’a rien retenu')
       .toEqual(['Cobaye reçoit 1 État Empêtré.']);
     removeCondition(c, 'empetre');
     c.activeEffects = [{ label: 'Filet', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [filet] }];
@@ -380,7 +380,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   });
 
   it('la récurrence se compte en ROUNDS : `perRound` + durée d’horloge est REFUSÉ nommément', () => {
-    expect(() => applyOps(hero(), [{ op: 'condition', id: { id: 'inconscient' }, perRound: true, durationMinutes: 30 }], { idNeuf: idsDeTest, rng: makeRNG(1), now: 0 }))
+    expect(() => applyOps(hero(), [{ op: 'condition', id: { id: 'inconscient' }, perRound: true, durationMinutes: 30 }], { idNeuf: idsDeTest, rng: makeRNG(1), now: 0 }).lignes)
       .toThrow(/« perRound » ne se combine qu'avec « durationRounds »/);
   });
 

@@ -14,8 +14,9 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
-export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
-export { formatMoney, libelleDuStatut } from '../engine/money';
+export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, locationLabel, type Difficulty, type FireArc } from '../engine/types';
+export { formatMoney, fromBrass, libelleDuStatut } from '../engine/money';
+export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
 export { currentSeason } from '../engine/travelStages';
@@ -103,11 +104,12 @@ export {
   capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
-  naviresDeLaScene,
+  coquesDeLaScene,
+  seMontreParLeMonde,
   stationsDuNavire,
   TYPES_DE_NAVIRE,
   type EmprisesDesCases,
-  type NavireDeLaScene,
+  type CoqueDeLaScene,
   type StationDeNavire,
 } from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
@@ -316,11 +318,12 @@ export {
 } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurentEnVue, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
-export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
+export { cleDeLaVision, combattantEnVue, coquesEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
 export { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 export { meteoDuRegard, type MeteoDuRegard } from './monde/meteo';
-export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
+export { consequencesDeLEtape, faitsDeLEtape, jetsEnVue, type ConsequenceEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
+export { tonDuFait } from './recapLine';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncantation';
 export { fenetreDuSoin } from './soin';

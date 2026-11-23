@@ -466,6 +466,33 @@
     }
   },
   {
+    "id": "mur-enduit",
+    "type": "structureAppearance",
+    "label": "Mur enduit",
+    "kit": "enduit",
+    "detail": {
+      "courses": {
+        "hM": 0.32,
+        "joint": "#898889",
+        "jointW": 0.028,
+        "stagger": 0.5,
+        "blockWM": [
+          0.3,
+          0.6
+        ],
+        "edgeWobble": 0.02,
+        "paletteVar": 0.05
+      }
+    },
+    "face": "#e4c494",
+    "post": "#7b5944",
+    "rubble": "#6f6a5c",
+    "rubbleHi": "#8a8370",
+    "window": {
+      "frame": "#5a4632"
+    }
+  },
+  {
     "id": "mur-en-pierres-seches",
     "type": "structureAppearance",
     "label": "Mur en pierres sèches",

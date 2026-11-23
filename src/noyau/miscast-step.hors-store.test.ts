@@ -330,7 +330,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   });
 
   it('SONDE A bis — les Points de Sorcellerie tombent UN PAR UN : le Test de seuil s’ouvre AU gain qui franchit', () => {
-    // LDB 19 l.70 : le Test `corrompu` se joue à chaque gain — `sorceryCorruptionLines` appelle
+    // LDB 19 l.70 : le Test `corrompu` se joue à chaque gain — `sorceryCorruption` appelle
     // `gainCorruption(…, 1)` N fois.
     const seuilDe = (c: Combatant) => bonus(effectiveChar(c, 'force-mentale')) + bonus(effectiveChar(c, 'endurance'));
 
@@ -348,10 +348,9 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     expect(loin.corruption, 'le jet de la relance n’a pas versé le sien').toBe(2);
     expect(banc.getState().pendingCorruption, 'un Test de seuil loin du seuil').toBeNull();
     const gains = banc.getState().pendingCascade!.participants
-      .flatMap((s) => (s.outcome ?? []).map((l) => l.text))
-      .filter((t) => /Points? de Corruption/.test(t)); // « Points » au pluriel = un gain GROUPÉ, à voir
-    expect(gains.length, `gains rendus : ${gains.join(' | ')}`).toBe(2);
-    for (const g of gains) expect(g, 'un gain groupé au lieu d’un gain par jet').toMatch(/\+1 Point de Corruption/);
+      .flatMap((s) => s.faits ?? [])
+      .filter((f) => f.genre === 'corruption');
+    expect(gains.map((f) => f.valeur), 'un fait de Corruption de +1 par jet, jamais un gain groupé').toEqual([1, 1]);
 
     // (a bis) OPTION ÉTEINTE : le chemin est LE MÊME (les dés se tirent à leur étape au lieu de s'y
     // poser), donc l'exigence « un par un » tient sans qu'AUCUN dénouement ne porte deux jets — c'est

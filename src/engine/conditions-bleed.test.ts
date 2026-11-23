@@ -54,7 +54,10 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('atteindre 0 par un coup → Inconscient (et À Terre)', () => {
     const c = ilyanweSaignee();
-    expect(loseWounds(c, 10)).toBe(3);
+    expect(loseWounds(c, 10)).toEqual({ perdues: 3, faits: [
+      { genre: 'etat', cible: c.id, camp: 'groupe', id: 'a-terre', valeur: 1 },
+      { genre: 'etat', cible: c.id, camp: 'groupe', id: 'inconscient', valeur: 1 },
+    ] });
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(hasCondition(c, 'a-terre')).toBe(true);
   });
@@ -88,8 +91,8 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('journal de l\'op `wounds` : les Blessures réellement perdues, rien à 0 PB', () => {
     const c = ilyanweSaignee(1);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual([]);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([]);
   });
 });
 

@@ -9,7 +9,7 @@ import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import type { ModLine } from '../../engine/types';
 import { findPropById } from '../../data';
-import { propFootTiles } from './footprint';
+import { entiteFootTiles, estCoqueTerrestrePosee } from './footprint';
 import { memoByRefDeps } from './sceneMemo';
 import { actionsAuthorees } from './usable';
 
@@ -51,41 +51,43 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
  *  passable. Couvre combat ET exploration (via `isWalkable`). */
 export const propIsSolid = (ref: string | undefined): boolean => !!ref && !!findPropById(ref)?.solid;
 
-/** Index O(1) des cases couvertes par une empreinte de décor (`entityBlockedAt`), bâti UNE fois par
- *  identité de `scene.entities` : un décor ne bloque que s'il est interactif ou solide (cf. JSDoc
- *  `entityBlockedAt` ci-dessous). */
-function buildEntityBlockIndex(entities: SceneEntity[], mpt: number): Set<string> {
+/** L'entité a-t-elle un CORPS SOLIDE, dont toutes les cases (`entiteFootTiles`) bloquent ? Un décor interactif ou solide
+ *  par son type, ou une coque terrestre que la scène porte (`estCoqueTerrestrePosee`). Une créature n'en a pas, ni une coque de mer ou de rivière (#4471).
+ *  Décor : la porte est l'interaction ou la solidité, l'empreinte dérivée ne fournit que l'ÉTENDUE des cases (une
+ *  cheminée, une enseigne NON solides ne murent pas leur case). « Interactif » = les actions AUTHORÉES de l'instance,
+ *  sans drapeau d'épuisement : un coffre vidé bloque toujours sa case. */
+function aUnCorpsSolide(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean {
+  if (e.kind === 'prop') return actionsAuthorees(e).length > 0 || propIsSolid(e.decor?.id);
+  return estCoqueTerrestrePosee(scene, e);
+}
+
+/** Index O(1) des cases des entités à corps solide (`aUnCorpsSolide`, `entityBlockedAt`), bâti UNE fois par identité de
+ *  `scene.entities`. */
+function buildEntityBlockIndex(scene: SceneDuVolume, mpt: number): Set<string> {
   const blocked = new Set<string>();
-  for (const e of entities) {
-    if (e.kind !== 'prop') continue;
-    // LA PORTE de blocage : l'interaction ou la solidité disent si un décor bloque — l'empreinte dérivée
-    // ne fournit que l'ÉTENDUE des cases. Sans cette séparation, cheminée/enseigne/clocheton/applique
-    // (recettes NON solides) se mettraient à murer leur case.
-    // « utilisable » ici = l'objet a un CORPS à heurter, pas « il reste du butin » : un coffre vidé
-    // bloque toujours sa case. La porte lit donc les actions AUTHORÉES de l'instance, sans drapeau
-    // d'épuisement.
-    if (!actionsAuthorees(e).length && !propIsSolid(e.decor?.id)) continue;
+  for (const e of scene.entities) {
+    if (!aUnCorpsSolide(scene, e)) continue;
     const z = e.z ?? 0;
-    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, mpt)) blocked.add(`${t.x},${t.y},${z}`);
+    for (const t of entiteFootTiles(e, mpt)) blocked.add(`${t.x},${t.y},${z}`);
   }
   return blocked;
 }
 /** Mémoïsé par IDENTITÉ de `scene.entities` — PAS `scene` : `scene` reste souvent la MÊME réf entre
  *  deux rendus (aucun champ ne change), tandis que `entities` est TOUJOURS une NOUVELLE réf à chaque
  *  ajout/retrait en production (`.filter`/`.map`/spread — jamais `.push`/`.splice` hors fixtures de
- *  test) : la clé la plus fine est le tableau lui-même. L'ÉCHELLE entre en DÉPENDANCE (`memoByRefDeps`)
- *  parce que l'empreinte dérivée en dépend (#1509) : la même liste d'entités à une autre échelle ne
- *  couvre pas les mêmes cases. Le mémo est daté par la version des datasets (`memoByRef`) : solidité et empreinte se
- *  lisent au catalogue des décors (`propIsSolid`, `propFootTiles`). */
+ *  test) : la clé la plus fine est le tableau lui-même. L'ÉCHELLE et les DIMENSIONS entrent en DÉPENDANCE
+ *  (`memoByRefDeps`) : l'empreinte dérivée d'un décor dépend de l'échelle (#1509), la pose des ponts d'une coque de
+ *  l'échelle et de la carte (`rectangleDesPontsPoses`). Le mémo est daté par la version des datasets (`memoByRef`) :
+ *  solidité et empreinte se lisent aux catalogues (`propIsSolid`, `entiteFootTiles`). */
 const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
 
-/** La case (x,y) est-elle couverte par l'empreinte d'un décor qui bloque ? Pour la walkability.
- *  Un décor ne bloque PAS — SAUF s'il est :
+/** La case (x,y) est-elle tenue par le corps solide d'une entité (`aUnCorpsSolide`) ? Pour la walkability.
+ *  Une coque terrestre hors de ses ponts bloque toutes ses cases. Un décor ne bloque PAS — SAUF s'il est :
  *   • INTERACTIF (coffre, stèle, dépouille fouillable…) : on ne se tient pas SUR lui, on l'aborde en
  *     case adjacente (exploration P5 comme combat « Ramasser », `ramassage` de `actions.json`) ; ou
  *   • SOLIDE par son TYPE (`props.json` `solid` : feu de camp, brasero, statue, tonneau…) : objet
  *     plein infranchissable. */
 export function entityBlockedAt(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   const mpt = sceneMetresPerTile(scene);
-  return entityBlockIndex(scene.entities, [mpt], () => buildEntityBlockIndex(scene.entities, mpt)).has(`${x},${y},${z}`);
+  return entityBlockIndex(scene.entities, [mpt, scene.dimensions], () => buildEntityBlockIndex(scene, mpt)).has(`${x},${y},${z}`);
 }

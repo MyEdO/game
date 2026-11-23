@@ -47,7 +47,7 @@ describe('op rollTable — variante table (tables.json)', () => {
     expect(catalogue.some((table) => table.id === id)).toBe(true);
     setDataset('effectTables', catalogue.filter((table) => table.id !== id));
     try {
-      expect(() => applyOps(dummy(), [{ op: 'rollTable', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }))
+      expect(() => applyOps(dummy(), [{ op: 'rollTable', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }).lignes)
         .toThrow(/table d'effets « allure-demoniaque-nurgle » introuvable/);
     } finally {
       setDataset('effectTables', catalogue);
@@ -100,7 +100,7 @@ describe('op rollTable — variante table (tables.json)', () => {
 describe('op rollMutation — durée du Sort par défaut, permanent en option (EDOC 13 l.276-277)', () => {
   it('ctx à durée → mutation attachée + ActiveEffect porteur qui la détache à l’expiration', () => {
     const c = dummy();
-    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 });
+    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 }).lignes;
     expect((c.mutations ?? []).length).toBe(1);
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedMutation);
     expect(eff).toHaveLength(1);
@@ -113,7 +113,7 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
 
   it('ctx SANS durée → mutation PERMANENTE (aucun ActiveEffect porteur) — parité chemin Corruption', () => {
     const c = dummy();
-    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1) });
+    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1) }).lignes;
     expect((c.mutations ?? []).length).toBe(1);
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false);
     expect(lines.some((l) => /mutation permanente/.test(l))).toBe(true);
@@ -132,7 +132,7 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
     expect(catalogue.some((table) => table.id === id)).toBe(true);
     setDataset('mutationTables', catalogue.filter((table) => table.id !== id));
     try {
-      expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }))
+      expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: { id } }], { idNeuf: idsDeTest, rng: fixed(1) }).lignes)
         .toThrow(/table « edoc-phys-nurgle » introuvable/);
     } finally {
       setDataset('mutationTables', catalogue);

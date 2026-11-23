@@ -19,7 +19,7 @@ import { nomDe } from '../engine/nom';
  *  d'Étape relit) et ses `Consequence[]` STRUCTURÉES (#295) :
  *   - Activité sans Test → `out.activityDone` ; spec FERMÉE sans Test → son refus nommé (#2588) ;
  *   - `onSuccess` → ops appliqués par `applyOps` ;
- *   - `failExtenue` → op `condition` Exténué, ligne dérivée par `opConsequenceLine` (EDOC 8 l.133) ;
+ *   - `failExtenue` → op `condition` Exténué, ses faits appliqués (EDOC 8 l.133) ;
  *   - `reverseToken` → jeton d'inversion de la Compétence pratiquée (EDOC 8 l.172 ; décision de règle
  *     2026-11-03, #3059) ;
  *   - issues individuelles (`countsAsRest`/`gatherInfo`) → notes narratives. */
@@ -39,11 +39,10 @@ export function appliquerIssueActivite(
     ? [{ op: 'grantReverseToken', skill: spec.test.skill }]
     : [];
   const ops = [...r.ops, ...jetonDePratique];
-  if (ops.length) cons.push(...freeCons(applyOps(hero, ops, opsCtx)));
+  if (ops.length) cons.push(...freeCons(applyOps(hero, ops, opsCtx).lignes));
   if (r.extenue) {
     const extenue: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 };
-    applyOps(hero, [extenue], opsCtx);
-    cons.push({ ops: [extenue] });
+    cons.push(applyOps(hero, [extenue], opsCtx));
   }
   if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: nomDe(hero) })]));
   else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: nomDe(hero) })]));

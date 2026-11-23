@@ -42,9 +42,9 @@ import type { PlayerText } from '../i18n/playerText';
 import type { CrewRoleRoll } from './pendings';
 import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
-import { footprintTiles, footprintN } from './monde/footprint';
+import { footprintTiles, footprintN, porteParLaScene } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
-import { capEnCombat, estPoseParSesPonts } from './planDeNavire';
+import { capEnCombat, estPoseParSesPonts, seMontreParLeMonde } from './planDeNavire';
 import { nomDe } from '../engine/nom';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
@@ -268,24 +268,29 @@ export function maneuverShip(get: Get, set: Set, shipId: string, turnSteps: numb
 export function creerActionsDeManoeuvre(get: Get, set: Set) {
   return {
     virerLeNavire: (shipId, turnSteps) => {
-      const { facing, battle, scene } = get();
-      if (estPoseParSesPonts(scene, shipId)) return;
-      const cur = facing[shipId];
+      const etat = get();
+      const { facing, battle, scene } = etat;
+      if (seMontreParLeMonde(scene, shipId)) return;
+      const cur = capEnCombat(etat, shipId);
       if (!cur) return; // navire sans cap initial → rien à virer
       const next = rotateDir8(cur, turnSteps);
       set({ facing: { ...facing, [shipId]: next } });
-      // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
+      // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent son cap (`capEnCombat`).
       const ship = garanti(inBattleId(battle, shipId), shipId, 'navire viré');
       get().ecrireAuJournal(t('store.shipTack', { ship: nomDe(ship), dir: next }));
       bus.emit(EVT.SCENE_DIRTY);
     },
     avancerLeNavire: (shipId, cases) => {
       const etat = get();
-      const { facing, battle, scene } = etat;
+      const { battle, scene } = etat;
       if (estPoseParSesPonts(scene, shipId)) return 0;
-      const dir = facing[shipId];
+      const dir = capEnCombat(etat, shipId);
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
+      if (porteParLaScene(hull)) {
+        refuserGeste(get, set, t('cs.refusCorpsImmobile', { name: nomDe(hull) }));
+        return 0;
+      }
       const d = DIR8_DELTA[dir];
       // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
       // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).

@@ -8,6 +8,7 @@ import type { CascadeTableDone, RevealEntry } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import { toRecapLines } from './recapLine';
 import type { IconIdGenerated as IconId } from '../data/icones.generated';
+import type { FaitApplique } from '../engine/faits';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */
 const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {
@@ -32,11 +33,14 @@ const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {
  *  `opts.label`/`opts.icon` : l'EN-TÊTE de l'étape quand la situation qui la pousse la nomme plus
  *  précisément que la révélation elle-même (une Imparfaite est titrée « Incantation Imparfaite » dans
  *  sa charge, « Imparfaite » sur la rangée de séquence ; son icône dit la sévérité). La charge `reveal`
- *  n'est pas touchée : ces deux champs sont l'affichage de l'étape, jamais une seconde vérité. */
+ *  n'est pas touchée : ces deux champs sont l'affichage de l'étape, jamais une seconde vérité.
+ *
+ *  `opts.faits` : les faits que la situation révélée a APPLIQUÉS (#4574), posés sur l'étape (`CascadeStep.faits`) ;
+ *  leurs lignes ne sont pas dans `entry.lines`. */
 export function revealToStep(
   entry: RevealEntry,
   index: number,
-  opts?: { table?: CascadeTableDone; label?: string; icon?: IconId },
+  opts?: { table?: CascadeTableDone; label?: string; icon?: IconId; faits?: FaitApplique[] },
 ): BuiltCascadeStep {
   return {
     id: `cons-${entry.kind}-${index}`,
@@ -47,6 +51,7 @@ export function revealToStep(
     outcome: toRecapLines(entry.lines),
     reveal: entry,
     table: opts?.table,
+    ...(opts?.faits?.length ? { faits: opts.faits } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : minteur `revealToStep` — forger l'étape de révélation est son corps de métier.
   } as BuiltCascadeStep;
 }

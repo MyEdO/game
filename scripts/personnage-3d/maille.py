@@ -1,7 +1,7 @@
 """Primitives de maillage des éléments rigides (#2987, #3743), communes aux modèles de `vehicule/<modele>/modele.py`,
 de `decor/<modele>/modele.py` et d'`element/<base>/<id>/modele.py` : la maille accumulée en coordonnées du monde, l'interpolation des tables de forme, les
-solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final ; les UV en mètres d'un élément sur base
-(`poser_les_uv_en_metres`, #4313).
+solides (révolution, boîte, poutre, tube, tore, treuil), l'objet Blender final et le montage des nœuds d'un engin à son
+emprise recentrée (`monter`) ; les UV en mètres d'un élément sur base (`poser_les_uv_en_metres`, #4313).
 
 Repère Blender d'un véhicule : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
 haut) place l'avant vers +z. Un décor, de même, le front de sa recette vers -y (`decor/gabarit.py`). Un élément tenu se
@@ -215,29 +215,6 @@ def tore(maille, axe, centre, grand, petit, n_grand, n_petit, mat):
     maille.ajouter(sommets, faces, mat)
 
 
-def roue(R, x, essieu_z, signe, bois, fer):
-    """Roue de bois cerclée de fer dans le plan `x`, d'axe x à la hauteur `essieu_z`, son moyeu tourné vers l'extérieur
-    selon `signe` (+1 vers +x) : bandage, jante, moyeu frotté et rayons, d'après la table `R` (`affut/donnees.py`)."""
-    roue = Maille([bois, fer])
-    s = R["segments"]
-    ri, ro, w = R["bandage"]
-    tour(roue, [(x - w / 2, ri), (x + w / 2, ri), (x + w / 2, ro), (x - w / 2, ro)], "x", (0, 0, essieu_z), s, fer.name, ferme=True)
-    ri, ro, w = R["jante"]
-    tour(roue, [(x - w / 2, ri), (x + w / 2, ri), (x + w / 2, ro), (x - w / 2, ro)], "x", (0, 0, essieu_z), s, bois.name, ferme=True)
-    rm, xi, xo = R["moyeu"]
-    a, b = sorted((x + signe * xi, x + signe * xo))
-    cylindre(roue, a, b, rm, "x", (0, 0, essieu_z), R["segments_moyeu"], bois.name)
-    for (rf, f0, f1) in (R["chapeau"], R["frette"]):
-        a, b = sorted((x + signe * f0, x + signe * f1))
-        cylindre(roue, a, b, rf, "x", (0, 0, essieu_z), R["segments_moyeu"], fer.name)
-    largeur, epaisseur = R["rayon_section"]
-    for k in range(R["rayons"]):
-        t = 2 * math.pi * (k + 0.5) / R["rayons"]
-        d = (0, math.cos(t), math.sin(t))
-        poutre(roue, (x, rm * 0.9 * d[1], essieu_z + rm * 0.9 * d[2]), (x, (R["jante"][0] + 0.02) * d[1], essieu_z + (R["jante"][0] + 0.02) * d[2]), largeur, epaisseur, (1, 0, 0), bois.name)
-    return roue
-
-
 def treuil(m, T, pied):
     """Treuil de bois sur deux chevalets posés à la hauteur `pied`, barres de manœuvre à chaque bout, d'après la table
     `T` (`catapulte/donnees.py`)."""
@@ -323,3 +300,11 @@ def objet(nom, maille, origine, angle_lisse):
     obj.location = origine
     bpy.context.scene.collection.objects.link(obj)
     return obj
+
+
+def monter(noeuds, angle_lisse):
+    """Les objets des `noeuds` {nom: (maille, pivot)}, dans leur ordre, l'emprise de toutes leurs mailles recentrée en
+    x et y (`recentrer`) : chacun à son pivot, déplacé d'autant, ou à l'origine du monde sans pivot."""
+    dx, dy = recentrer([maille for maille, _ in noeuds.values()])
+    for nom, (maille, pivot) in noeuds.items():
+        objet(nom, maille, (pivot[0] + dx, pivot[1] + dy, pivot[2]) if pivot else (0.0, 0.0, 0.0), angle_lisse)

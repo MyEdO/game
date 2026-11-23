@@ -222,7 +222,7 @@ export function cappedHealAmount(target: Combatant, delta: number): number {
 export function applyHealWounds(target: Combatant, delta: number, opts: HealWoundsOptions = {}): string[] {
   const { wake = true, log: customLog } = opts;
   if (delta < 0) {
-    const lost = loseWounds(target, -delta); // perte centralisée (−Avantage + À Terre à 0)
+    const lost = loseWounds(target, -delta).perdues; // perte centralisée (−Avantage + À Terre à 0)
     return [t('heal.backfire', { name: nomDe(target), lost })];
   }
   if (delta === 0) return customLog ? customLog(0) : [t('heal.nothing', { name: nomDe(target) })];
@@ -236,7 +236,7 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
-  log.push(...syncDerivedConditions(target));
+  log.push(...syncDerivedConditions(target).lignes);
   return log;
 }
 

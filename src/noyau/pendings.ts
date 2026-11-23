@@ -27,6 +27,7 @@ import type { TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
+import type { FaitApplique } from '../engine/faits';
 import type { RollLineParts } from './ligneDeJet';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
@@ -783,9 +784,6 @@ export interface RevealEntry {
   /** Effets détaillés (table des Critiques) AVEC leur explication RAW — pour qu'on sache « à quoi ça
    *  correspond » (plus de simple texte gris). */
   details?: { text: string; note?: string }[];
-  /** Données du Coup Critique pour une modale COMPLÈTE : localisation (FR), Blessures infligées (ignore
-   *  Endurance + Armure), États appliqués. */
-  crit?: { location: string; woundsLost: number; conditions?: { id: string; value: number }[] };
 }
 /** Exposition à une Influence corruptrice (LDB 19 l.23-75) ou seuil « Corrompu » (LDB 19 l.70). Lancer →
  *  Chance → Appliquer (gainCorruption). */
@@ -839,11 +837,13 @@ export interface DeviationCtx {
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
  *  `crit` = la Blessure tirée à sa fenêtre ; `deviation` = la voie tranchée ; `auto` = tranchée par
- *  l'automate (`tenuParUnHumain` faux), sa révélation reste due. */
+ *  l'automate (`tenuParUnHumain` faux), sa révélation reste due ; `etape` = l'étape de la fenêtre qui l'a tranchée,
+ *  qui reçoit les faits de la Blessure quand la reprise les applique (#4574). */
 export interface DecisionDeCritique {
   crit?: CriticalResolved;
   deviation?: 'devier' | 'subir';
   auto?: true;
+  etape?: string;
 }
 
 /** LE COUP qu'une fenêtre de Blessure critique suspend, et que sa reprise RÉ-ENTRE avec les décisions
@@ -1936,6 +1936,8 @@ export interface BatchParticipant extends RollParticipant {
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
+  /** Les faits appliqués dont `outcome` est la lecture (#4574), posés avec lui. */
+  faits?: FaitApplique[];
   /** Le dé de la rangée, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter
    *  (`EchecSansJet`, posée par le monteur `rollStep` avec `refus`) : aucun dé, aucune influence. */
   result: CascadeRoll | EchecSansJet | null;
@@ -2202,6 +2204,8 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Conséquence appliquée à la validation (journal) — gardée pour rester lisible dans la pile.
    *  Ligne STRUCTURÉE (#349) : `RecapLine[]`, rendue par le renderer partagé `ui/RecapLine.tsx`. */
   outcome?: RecapLine[];
+  /** Les faits appliqués dont `outcome` est la lecture (#4574), posés avec lui à la validation. */
+  faits?: FaitApplique[];
   /** Charge RICHE d'une étape d'affichage (Coup Critique, entretien de Round, mutation, effet
    *  d'auteur, entrée de zone) — rendue par le panneau partagé `ui/RevealBody.tsx`, routé par `kind`. */
   reveal?: RevealEntry;
