@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## L'occupant d'une case que le modèle d'un navire rogne se tient à sa station (#3767, `hotes/godot/pont/CONTRAT.md`,
-## section « Vue », `navires[id].stations`) : le monde (`scripts/monde.gd`, `lieu`) le pose au point de sa station, sur
+## section « Vue », `coques[id].stations`) : le monde (`scripts/monde.gd`, `lieu`) le pose au point de sa station, sur
 ## le sol de sa case, et au centre de toute autre case ; une nouvelle pose des stations (`poser_les_stations`) remplace
 ## les précédentes.
 

@@ -5,10 +5,10 @@
 ## (`GET source/<book>/<ch>.md`) et revient au pont. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
-## servir le corps de chaque navire ; non retenus, il n'ouvre rien. Le monde rendu va au monde (`Monde.poser`) : son
+## servir le corps de chaque coque ; non retenus, il n'ouvre rien. Le monde rendu va au monde (`Monde.poser`) : son
 ## manifeste, et la géométrie de ses seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
-## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`), les navires
-## de la scène, chacun sous le modèle de son corps, et ses décors servis, chacun sous le modèle de son élément
+## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`), les coques
+## de la scène, chacune sous le modèle de son corps, et ses décors servis, chacun sous le modèle de son élément
 ## (`MontageDesModeles`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
@@ -32,7 +32,7 @@ extends Node
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés et retenus
 ## (`MontageDeComposition.indexer_les_modeles`, rien d'ouvert sans eux), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
-## (`VolumeDeScene.poser_les_aretes`), ses navires, chacun sous le modèle de son corps, et ses décors servis (`decors`),
+## (`VolumeDeScene.poser_les_aretes`), ses coques (`coques`), chacune sous le modèle de son corps, et ses décors servis (`decors`),
 ## chacun sous le modèle de son élément, comme au plateau (`MontageDesModeles`), la surcouche en plaques sur le sol de
 ## ses cases (`Monde.peindre`) : le contour de la zone jouable (`surcouche.zoneJouable`) sous tout le reste, chaque
 ## zone nommée au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
@@ -188,7 +188,7 @@ func _poser_la_reponse(plan: Dictionary) -> void:
 			_monde.poser(plan.monde, plan.recus)
 			_monde.volume.retirer(reponse.retrait)
 		_monde.volume.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches, [])
-		_modeles.poser(reponse.navires, reponse.decors, {}, reponse.monde.metresParCase)
+		_modeles.poser(reponse.coques, reponse.decors, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
 	_monde.choisir_l_arete(_surcouche.arete)

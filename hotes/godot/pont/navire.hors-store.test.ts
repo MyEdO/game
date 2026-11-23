@@ -20,12 +20,12 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
   });
 
   it('sans élément de son type servi, aucun navire ; servi, son corps au centre de ses ponts, à sa taille réelle', () => {
-    expect(vueDe(appel('vue')).corps.navires).toEqual({});
+    expect(vueDe(appel('vue')).corps.coques).toEqual({});
     servirLesModeles(appel, COMMITES);
-    const { navires } = vueDe(appel('vue')).corps;
-    expect(Object.keys(navires)).toEqual(['caraque']);
-    expect(navires.caraque).toMatchObject({ centre: { x: 10.5, y: 4 }, corps: { element: 'vehicule--caraque', taille: 'reelle', cap: 'E' } });
-    expect(navires.caraque.corps.ameliorations.map((a) => a.element)).toEqual(expect.arrayContaining(['amelioration--embarcation-de-bord', 'amelioration--nid-de-pie']));
+    const { coques } = vueDe(appel('vue')).corps;
+    expect(Object.keys(coques)).toEqual(['caraque']);
+    expect(coques.caraque).toMatchObject({ centre: { x: 10.5, y: 4 }, corps: { element: 'vehicule--caraque', taille: 'reelle', cap: 'E' } });
+    expect(coques.caraque.corps.ameliorations.map((a) => a.element)).toEqual(expect.arrayContaining(['amelioration--embarcation-de-bord', 'amelioration--nid-de-pie']));
   });
 
   it('le monde garde le sol des ponts pour le pointage, sans le peindre ; le plateau ne dessine aucune de leurs arêtes', () => {
@@ -41,12 +41,12 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     const surfaces = morceauxDe(appel, 'partie', mondeDe(appel).monde!).flatMap((m) => m.surfaces);
     expect(new Set(surfaces.filter((s) => s.flottaison !== undefined).map(({ matiere, flottaison }) => `${matiere} ${flottaison}`))).toEqual(new Set(['terrain--eau caraque']));
     const { projection, corps } = vueDe(appel('vue'));
-    expect(Object.keys(corps.navires)).toEqual(['caraque']);
+    expect(Object.keys(corps.coques)).toEqual(['caraque']);
     expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('caraque');
   });
 
   it('l’occupant d’une case que le modèle rogne se tient au centre de son emprise libre, dans sa case (#3767)', () => {
-    const { stations } = vueDe(appel('vue')).corps.navires.caraque;
+    const stations = vueDe(appel('vue')).corps.coques.caraque.stations!;
     expect(stations).toHaveLength(Object.keys((COMMITES.manifestes['vehicule--caraque'] as { cases: object }).cases).length);
     expect(stations.filter(({ x, y, point }) => Math.abs(point.x - x) > 0.5 || Math.abs(point.y - y) > 0.5)).toEqual([]);
     // la case du grand mât, (9, 2) du pont supérieur, libre devant le mât sur [9 ; 9,375] × [2 ; 3] : au cap E, la case

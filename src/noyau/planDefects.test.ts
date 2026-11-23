@@ -23,6 +23,7 @@ import {
 import { perimeterWallSegs } from './sceneEdit.testkit';
 import { terrainWalkable } from './monde/terrain';
 import { validateScene } from './validateScene';
+import { laRue } from './monde/volume/ornements.testkit';
 
 function makeScene(w: number, h: number, layers: { z: number; tiles: string[]; height?: number[] }[], zones: SceneEffectZone[], walls: WallSeg[] = []): Scene {
   return {
@@ -223,8 +224,16 @@ function sceneCloisonEnImpasse(): Scene {
   return makeScene(w, h, [{ z: 0, tiles: new Array(w * h).fill('plancher') }], [], [...perimeterWallSegs([{ x: 1, y: 1, w: 5, h: 5 }]), ...refend]);
 }
 
+/** La rue du test (`laRue`) dont la façade sur la rue porte un épi de faîtage sur un gouttereau, qu'aucun pignon ne
+ *  prolonge. */
+function sceneFaiteHorsPignon(): Scene {
+  const s = laRue();
+  s.architecture![0].facades[0].features = [{ id: 'epi-du-gouttereau', kind: 'faitage', edge: { x: 4, y: 5, side: 'N' } }];
+  return s;
+}
+
 describe('validateScene — AUCUNE famille ne peut cesser d’atteindre l’éditeur', () => {
-  const warnings = [scenePerFamily(), sceneEnceinteAuRas(), scenePorteOrpheline(), sceneCloisonEnImpasse(), sceneSuspensionHorsSaut()]
+  const warnings = [scenePerFamily(), sceneEnceinteAuRas(), scenePorteOrpheline(), sceneCloisonEnImpasse(), sceneSuspensionHorsSaut(), sceneFaiteHorsPignon()]
     .flatMap((scene) => validateScene([scene]))
     .filter((wa) => wa.scope === 'plan');
 

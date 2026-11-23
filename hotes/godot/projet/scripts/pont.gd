@@ -173,7 +173,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   [x, y]>, glisse: boolean, fondu: boolean, marche: boolean, cadre: [x, y, largeur, hauteur],
 ##   panneaux: [x, y, largeur, hauteur][],
 ##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
-##   couleurs: Record<string, Record<string, string>> }>, navires: string[], aretes_lues: boolean, compendium: { zones }
+##   couleurs: Record<string, Record<string, string>> }>, coques: string[], aretes_lues: boolean, compendium: { zones }
 ##   }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
@@ -183,7 +183,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   marche, puis à la fin de chaque déplacement), la part de la fenêtre que l'ossature de l'interface laisse à la scène
 ##   (`Monde.cadre`, vide avant la première mise en page), sur laquelle des panneaux se posent, l'emprise de chaque
 ##   panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
-##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, si aucun modèle
+##   coques de la scène dont le modèle est posé (`Plateau.coques`), republiés à chaque modèle posé, si aucun modèle
 ##   d'arête n'est en lecture (`VolumeDeScene.aretes_en_lecture` : ses arêtes ne sont pas posées), republié à chaque
 ##   modèle d'arête lu, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de

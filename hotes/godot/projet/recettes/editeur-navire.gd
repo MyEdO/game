@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Le navire dans l'éditeur de carte (#3772, `hotes/godot/pont/CONTRAT.md`, section « Éditeur », `navires`) : l'éditeur
+## Le navire dans l'éditeur de carte (#3772, `hotes/godot/pont/CONTRAT.md`, section « Éditeur », `coques`) : l'éditeur
 ## (`scripts/editeur.gd`) ouvert sur un pont figé (`PontFige`, sur l'éditeur du navire figé par la sonde,
 ## `hotes/godot/recettes/editeur.ts`), qui sert le listage et les GLB du projet et répond à chaque entrée de `editer`
 ## et de `morceaux` que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,

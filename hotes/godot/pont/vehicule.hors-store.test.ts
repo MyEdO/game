@@ -28,12 +28,12 @@ describe('le véhicule des combattants dans la vue', () => {
   it('sans élément de sa fiche servi, ni véhicule ni navire ; servi, la coque que la scène pose par ses ponts est un navire, à sa taille réelle, même sous refus de base', () => {
     const sansBarge = Object.fromEntries(Object.entries(COMMITES.manifestes).filter(([id]) => id !== 'vehicule--barge-fluviale'));
     servir(sansBarge);
-    expect([vueDe(appel('vue')).corps.vehicules, vueDe(appel('vue')).corps.navires]).toEqual([{}, {}]);
+    expect([vueDe(appel('vue')).corps.vehicules, vueDe(appel('vue')).corps.coques]).toEqual([{}, {}]);
     servir({ ...sansBarge, 'barge-fluviale': vehiculeDeTest('barge-fluviale'), nain: baseDeTest('nain') });
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
     expect(corps.vehicules).toEqual({});
-    const navire = corps.navires[barge.id];
+    const navire = corps.coques[barge.id];
     expect(navire.centre).toEqual({ x: 3.5, y: 7 });
     expect(navire.corps).toEqual({ element: 'barge-fluviale', empreinte: 2, taille: 'reelle', cap: barge.vehicule!.cap, palette: {}, postes: [], ameliorations: [], caches: [], clips: {} });
   });

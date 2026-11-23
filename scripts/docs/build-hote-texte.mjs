@@ -83,7 +83,7 @@ const PROVENANCE = [
   ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
-  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des navires posés par leurs ponts (estPoseParSesPonts)'],
+  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des coques qui se montrent par le monde (seMontreParLeMonde) ; la carte, hors des seuls navires posés par leurs ponts (estPoseParSesPonts)'],
   ['carte hors combat : trajets', 'trajetsDepuis le lieuDuGroupe : destination, distance, modes, devis, gestes et refus aux réglages de départ par défaut'],
   ['carte hors combat : cadence de voyage', 'cadenceAUnEffet, CADENCES_AU_CHOIX et DEFAULT_VOYAGE_ORDERS.cadence'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],

@@ -49,7 +49,7 @@ interface Reponse {
   ok: boolean;
   vue: { zones: Record<string, (Bouton | Choix | { type: string; id: string })[]> };
   monde?: NonNullable<MondeDuPont['monde']>;
-  navires?: Record<string, { centre: { x: number; y: number } }>;
+  coques?: Record<string, { centre: { x: number; y: number } }>;
   surcouche: { zoneJouable: { x: number; y: number; z: number }[] };
 }
 
@@ -122,7 +122,7 @@ export function figerLEditeurDuNavire(listage: Listage) {
   derouler(GESTES);
   const touches = casesDuPontDuDessus([...poses.values()]);
   derouler(GESTES_DE_LA_ZONE);
-  const servis = reponses.flatMap(([, r]) => (r.navires && Object.keys(r.navires).length ? [r.navires] : []));
+  const servis = reponses.flatMap(([, r]) => (r.coques && Object.keys(r.coques).length ? [r.coques] : []));
   const [id] = Object.keys(servis[0]);
   if (!reponses[GESTES.length][1].monde) throw new Error('éditeur figé : le pont du dessus choisi sans monde servi');
   const contour = reponses[reponses.length - 1][1].surcouche.zoneJouable;

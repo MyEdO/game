@@ -33,8 +33,7 @@ def primitives(bpy, G):
         mesh = bpy.data.meshes.new(f"primitive-{i}")
         mesh.from_pydata(sommets, [], [list(range(d, d + len(f))) for d, f in zip(debuts, faces)])
         nom = p["material"]
-        mat = bpy.data.materials.get(nom) or habillage.materiau(nom, habillage.couleur_lineaire(matieres[nom]["color"]),
-                                                                  matieres[nom]["metalness"], matieres[nom]["roughness"])
+        mat = bpy.data.materials.get(nom) or habillage.materiau_de(nom, matieres[nom])
         mesh.materials.append(mat)
         obj = bpy.data.objects.new(f"primitive-{i}", mesh)
         bpy.context.scene.collection.objects.link(obj)
