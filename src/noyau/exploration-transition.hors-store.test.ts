@@ -100,9 +100,11 @@ describe('aucun état transitoire n’entre dans l’exploré', () => {
 });
 
 describe('coop : parité hôte / invité', () => {
-  /** Joue la marche de six pas dans le noir sur un banc du siège `mode`, et rend l'exploré et les instantanés de chaque pas. */
+  /** Joue la marche de six pas dans le noir sur un banc du siège `mode`, siège du monde qui fait marcher le groupe (l'hôte,
+   *  l'invité au siège MJ, #4530), et rend l'exploré et les instantanés de chaque pas. */
   const jouer = (mode: 'hote' | 'invite') => surUnBancHorsTest((banc) => {
-    poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0, net: { ...initialNet(), mode, mySeat: mode === 'hote' ? 0 : 1 } });
+    const net = mode === 'hote' ? { mode, mySeat: 0 } : { mode, mySeat: 1, gmSeat: 1 };
+    poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0, net: { ...initialNet(), ...net } });
     const instantanes: Record<string, unknown>[] = [];
     banc.subscribe((etat) => { instantanes.push(instantaneDeLaCoop(etat)); });
     banc.actions.cliquerLaCase({ x: 6, y: 0, z: 0 });

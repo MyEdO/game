@@ -55,11 +55,11 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 ## coop-la-main
 - État `la-main` de l'écran `halle` : la halle vue du siège d'un invité, la page de l'achat composée par l'hôte. « La main est à l'hôte » (qui la tient, ce qu'il fait, le code de la partie)
   à la place de la rumeur ; les gestes sur la bourse et la cale sont en fer, avec la raison du jeu : « L'hôte seul engage la bourse et la cale du groupe. »
-  (`src/noyau/intentionsDeSiege.ts:154-161`, `src/noyau/halle.hors-store.test.ts:130`).
+  (`src/noyau/intentionsDeSiege.ts:156-163`, `src/noyau/halle.hors-store.test.ts:130`).
 - « Bourses du groupe » montre la part de chacun sans − ni + (`bourse({ reglable: false })`) : l'invité ne règle rien.
 - Chaque héros du bandeau dit qui le joue : « Lena (vous) » en laiton, les autres en fer, « Otto » marqué du sceau du
   réseau, en reconnexion.
-- Qui tient la main : `src/noyau/netOwnership.ts:713` (le concerné de la modale, sinon le combattant actif, sinon
+- Qui tient la main : `src/noyau/netOwnership.ts:718` (le concerné de la modale, sinon le combattant actif, sinon
   l'hôte).
 - À valider : « la main » posée à la place de la rumeur, sur tout écran joué à plusieurs ; la page qui défile quand
   elle est composée, sa raison au pied ; le nom du joueur sous chaque héros du

@@ -67,62 +67,62 @@ describe('estDebout — prédicat canonique', () => {
 
 describe('meneurDuMonde — le premier DEBOUT, à défaut le premier du roster', () => {
   it('groupe entier valide → le premier du roster', () => {
-    expect(meneurDuMonde({ party: [hero('a'), hero('b')] })?.id).toBe('a');
+    expect(meneurDuMonde({ meneurChoisi: null, party: [hero('a'), hero('b')] })?.id).toBe('a');
   });
 
   it('premier du roster à 0 Blessure → le premier DEBOUT derrière lui', () => {
-    expect(meneurDuMonde({ party: [hero('a', { wounds: 0 }), hero('b')] })?.id).toBe('b');
+    expect(meneurDuMonde({ meneurChoisi: null, party: [hero('a', { wounds: 0 }), hero('b')] })?.id).toBe('b');
   });
 
   it('premier du roster MORT → le premier DEBOUT derrière lui', () => {
-    expect(meneurDuMonde({ party: [hero('a', { dead: true }), hero('b')] })?.id).toBe('b');
+    expect(meneurDuMonde({ meneurChoisi: null, party: [hero('a', { dead: true }), hero('b')] })?.id).toBe('b');
   });
 
   it('groupe ENTIER à terre → repli sur le premier du roster (un jeton reste dessiné)', () => {
-    expect(meneurDuMonde({ party: [hero('a', { wounds: 0 }), hero('b', { dead: true })] })?.id).toBe('a');
+    expect(meneurDuMonde({ meneurChoisi: null, party: [hero('a', { wounds: 0 }), hero('b', { dead: true })] })?.id).toBe('a');
   });
 
   it('premier du roster INCONSCIENT (8 Blessures) → le premier DEBOUT derrière lui', () => {
-    expect(meneurDuMonde({ party: [inconscient('a'), hero('b')] })?.id).toBe('b');
+    expect(meneurDuMonde({ meneurChoisi: null, party: [inconscient('a'), hero('b')] })?.id).toBe('b');
   });
 
   it('groupe VIDE → aucun meneur', () => {
-    expect(meneurDuMonde({ party: [] })).toBeUndefined();
+    expect(meneurDuMonde({ meneurChoisi: null, party: [] })).toBeUndefined();
   });
 });
 
 describe('meneurDeboutDuMonde — le même meneur, SANS le dernier repli', () => {
   it('un héros debout → le même que le meneur', () => {
     const party = [hero('a', { wounds: 0 }), hero('b')];
-    expect(meneurDeboutDuMonde({ party })).toBe(meneurDuMonde({ party }));
-    expect(meneurDeboutDuMonde({ party })?.id).toBe('b');
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party })).toBe(meneurDuMonde({ meneurChoisi: null, party }));
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party })?.id).toBe('b');
   });
 
   it('groupe ENTIER à terre → aucun meneur (le geste se refuse, il ne le fait pas faire à un corps au sol)', () => {
-    expect(meneurDeboutDuMonde({ party: [hero('a', { wounds: 0 }), hero('b', { dead: true })] })).toBeUndefined();
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party: [hero('a', { wounds: 0 }), hero('b', { dead: true })] })).toBeUndefined();
   });
 
   it('groupe VIDE → aucun meneur', () => {
-    expect(meneurDeboutDuMonde({ party: [] })).toBeUndefined();
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party: [] })).toBeUndefined();
   });
 
   it('groupe ENTIER inconscient → aucun meneur debout (personne ne grimpe)', () => {
-    expect(meneurDeboutDuMonde({ party: [inconscient('a'), inconscient('b')] })).toBeUndefined();
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party: [inconscient('a'), inconscient('b')] })).toBeUndefined();
   });
 });
 
 describe('signature par ÉTAT — `meneurDuMonde` / `meneurDeboutDuMonde`', () => {
   it('rendent le MÊME meneur — l’objet du roster, pas une copie (aucune seconde définition)', () => {
     const party = [inconscient('a'), hero('b')];
-    expect(meneurDuMonde({ party })).toBe(party[1]);
-    expect(meneurDeboutDuMonde({ party })).toBe(meneurDuMonde({ party }));
-    expect(meneurDuMonde({ party })?.id).toBe('b');
+    expect(meneurDuMonde({ meneurChoisi: null, party })).toBe(party[1]);
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party })).toBe(meneurDuMonde({ meneurChoisi: null, party }));
+    expect(meneurDuMonde({ meneurChoisi: null, party })?.id).toBe('b');
   });
 
   it('groupe entier à terre : le meneur existe, le meneur DEBOUT non', () => {
     const party = [hero('a', { wounds: 0 }), inconscient('b')];
-    expect(meneurDuMonde({ party })?.id).toBe('a');
-    expect(meneurDeboutDuMonde({ party })).toBeUndefined();
+    expect(meneurDuMonde({ meneurChoisi: null, party })?.id).toBe('a');
+    expect(meneurDeboutDuMonde({ meneurChoisi: null, party })).toBeUndefined();
   });
 });
 
