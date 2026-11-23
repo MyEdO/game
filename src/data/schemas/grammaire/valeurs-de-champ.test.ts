@@ -98,7 +98,7 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement|enduit',
   // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
   'bois|pierre',
   // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
