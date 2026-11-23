@@ -155,7 +155,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
+import { acteursEnJeu, actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
@@ -863,10 +863,10 @@ export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite)
 }
 
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
- *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
+ *  dans le bon ensemble (`acteursEnJeu`). `hero` = celui désigné par
  *  `heroId` (défaut : 1er vivant) ; `party` = tous les héros vivants. SOURCE UNIQUE (pas de dup). */
 export function effectTargets(get: Get, target: 'groupe' | 'heros', heroId?: string): Combatant[] {
-  const pool = get().battle?.combatants ?? get().party;
+  const pool = acteursEnJeu(get());
   if (target === 'heros') {
     const id = heroId || pool.find((c) => c.kind === 'heros' && !c.dead)?.id;
     return pool.filter((c) => c.id === id);
@@ -1129,10 +1129,9 @@ export function openSkillTest(
   const cause = decision.allegePar;
   const easedBy = cause ? ('skill' in cause ? refLabel('skills', cause.skill) : refLabel('talents', { id: cause.talent })) : undefined;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
-  // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
-  // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
-  const battle = get().battle;
-  const pool = battle?.combatants ?? get().party;
+  // Pool des acteurs (`acteursEnJeu`) ; l'adjacence se lit sur la file (`adjacentAuMeneur`). Même patron que
+  // `effectTargets` ci-dessus.
+  const pool = acteursEnJeu(get());
   // Deux populations DISTINCTES (elles l'étaient sous un seul filtre, ce qui annulait le Soutien dès
   // qu'un acteur était imposé) : `living` = qui peut SOUTENIR (LDB 12 l.187-200 — le meneur imposé ou
   // non, les autres membres capables de SON camp l'assistent) ; `runners` = qui peut LANCER (restreint par
@@ -1144,9 +1143,8 @@ export function openSkillTest(
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
-    // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
-    // via `distanceDeContact`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && distanceDeContact(get().scene, actor, c) <= 1 : undefined);
+    // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196) : `adjacentAuMeneur`.
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, adjacentAuMeneur(get(), actor));
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
@@ -1432,8 +1430,19 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
   };
 }
 
+/** Le filtre d'adjacence du Soutien autour de `meneur`, lu sur les positions de la file de combat, après le report
+ *  compris (#4860) ; `undefined` hors combat. LDB 12 l.196 */
+function adjacentAuMeneur(s: Jeu, meneur: Combatant): ((c: Combatant) => boolean) | undefined {
+  const lui = inBattleId(s.battle, meneur.id);
+  if (!lui?.pos) return undefined;
+  return (c) => {
+    const lautre = inBattleId(s.battle, c.id);
+    return !!lautre?.pos && distanceDeContact(s.scene, lui, lautre) <= 1;
+  };
+}
+
 function choisirHeros(s: Jeu, heroId: string | undefined, pick?: (heros: Combatant[]) => number): Combatant | null {
-  const heros = s.party.map((h) => inBattleId(s.battle, h.id) ?? h);
+  const heros = s.party.map((h) => actorIn(s, h.id) ?? h);
   const idx = heroId ? heros.findIndex((h) => h.id === heroId) : pick ? pick(heros) : 0;
   return heros[idx] ?? null;
 }
@@ -1911,9 +1920,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const targets = combatantsWithinRadius(center, e.radius, pool, (c) => !c.dead);
       if (!targets.length) return;
       const resolveTrapping = objetDuNarratif(env.get().campaignNarratif);
-      // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
+      // La géométrie se lit sur le pool ci-dessus ; les Effets s'appliquent à l'acteur en jeu par id (`actorIn`, #4860).
       const lines = targets.flatMap((c) => {
-        const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
+        const real = actorIn(env.get(), c.id) ?? c;
         return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes;
       });
       env.set(touchActors(env.get()));
@@ -2416,13 +2425,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
-      // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Adjacence (l.196) : même
-      // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
-      const battle = env.get().battle;
-      const pool = battle?.combatants.filter((c) => c.kind === 'heros') ?? env.get().party;
+      // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Pool et adjacence (l.196) :
+      // ceux d'`openSkillTest` (`acteursEnJeu`, `adjacentAuMeneur`).
+      const pool = acteursEnJeu(env.get()).filter((c) => c.kind === 'heros');
       const leader = partyBest(pool, e)?.actor;
-      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(env.get().scene, leader, c) <= 1 : undefined;
-      const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
+      const best = leader ? partyAssisted(pool, e, undefined, adjacentAuMeneur(env.get(), leader)) : null;
       if (!best) return;
       const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), sujet: best.actor, groupe: env.get().party });
       if (!joue) return;

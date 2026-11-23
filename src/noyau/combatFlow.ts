@@ -7883,8 +7883,8 @@ export function releaseSeatsOfCombatants<S extends Scene | null>(
 
 /** Fin de combat : réécrit l'état persistant de chaque héros (Blessures, critiques, mort, États
  *  persistants) vers `party`. Idempotent ; les champs non persistants du membre party sont conservés.
- *  Les JETS HÉROS de fin de combat (maladie/Corruption) sont résolus AVANT (cascade `openCombatEndCascade`
- *  ou inline) — ici, on ne fait QUE le writeback (les marqueurs ont déjà été consommés). */
+ *  Après ce report (`battle.over`, `apresLeReport`), `party` fait seul foi : toute recherche d'un héros rend sa copie
+ *  du groupe et toute écriture la touche (`acteursEnJeu`), fenêtres de fin encore ouvertes comprises. #4860 */
 export function finalizeBattle(get: Get, set: SetFn): void {
   const { battle, party } = get();
   if (!battle) return;
@@ -8016,6 +8016,8 @@ function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, 
 
 export function checkBattleOver(get: Get, set: SetFn): boolean {
   if (!get().battle || get().battle!.over) return true;
+  // LDB 17 l.29-32 ; #4860 : un Destin en suspens peut retourner l'issue, le report attend son choix.
+  if (get().pendingFateSave) return true;
   // Structure EFFONDRÉE (AA 10 l.127) : BRÈCHE et retrait, APRÈS le `set` de clôture de toute résolution.
   for (const s of get().battle!.combatants.filter((c) => c.effondree)) collapseStructure(get, set, s);
   const battle = get().battle;
@@ -8103,8 +8105,6 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     return true;
   }
   if (!heroesAlive) {
-    // Défaite : tous les héros hors d'action → les Tests de fin de combat se résolvent inline (aucun héros
-    // interactif → pas de cascade), puis writeback. Pas d'écran de victoire à gater.
     openCombatEndCascade(get, set);
     finalizeBattle(get, set);
     set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defaite'))] } });
@@ -8122,7 +8122,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
 export function finishVictory(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  finalizeBattle(get, set); // writeback AVANT onVictory (qui ajoute XP/butin au groupe)
+  finalizeBattle(get, set);
   set({ battle: { ...get().battle!, over: 'victoire', log: [...get().battle!.log, ev('information', tr('cf.victoire'))] } });
   bus.emit(EVT.BATTLE_OVER, { victory: true }); // gong audio + hooks futurs
   // Capture des récompenses pour l'écran de victoire : on mesure ce que onVictory octroie (XP/or/butin)
@@ -8166,15 +8166,15 @@ export function finishVictory(get: Get, set: SetFn): void {
   }]);
 }
 
-/** Continuation à la FERMETURE de la cascade de fin de combat (`combatEndBoundary`) : l'écran de victoire
- *  suit les Tests de fin de combat influencés. Re-dérive l'issue depuis l'état COURANT (une damnation par
- *  mutation a pu tuer un héros) : ennemis tous hors d'action → victoire ; sinon (héros tombé) → défaite. */
+/** Continuation à la FERMETURE de la cascade de fin de combat (`combatEndBoundary`) : re-dérive l'issue depuis l'état
+ *  COURANT — un héros encore en action → victoire ; sinon → défaite. Les fenêtres de fin encore ouvertes (seuil de Corruption,
+ *  renoncement, mutation) se résolvent après ce report, sur `party` (#4860). */
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
   const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !isOutOfAction(c));
   if (heroesAlive) { finishVictory(get, set); return; }
-  // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
+  // Aucun héros en action à la fermeture de la cascade → défaite.
   finalizeBattle(get, set);
   set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defaite'))] } });
 }

@@ -44,7 +44,7 @@ import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
-import { actorIn } from './monde/combatants';
+import { actorIn, inBattleId } from './monde/combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
 import { testValue } from '../engine/skills';
@@ -143,10 +143,11 @@ export function gainDeLExposition(pc: PendingCorruption): number {
 
 /** Le fait du gain de `n` Points de Corruption par `hero` sur l'état `s`, sans rien appliquer : aucun pour qui ne la
  *  reçoit pas (LDB 19 l.29, l.70), écarté sous la protection d'une Zone `noCorruption` (LDB 48 l.393), sinon `n` Points
- *  et le total qu'ils portent. Lu par `gainCorruption` et par la fenêtre qui le prévoit. */
+ *  et le total qu'ils portent. La position se lit sur la file de combat, après le report compris (#4860). Lu par
+ *  `gainCorruption` et par la fenêtre qui le prévoit. */
 export function faitDuGainDeCorruption(s: Pick<Jeu, 'battle'>, hero: Combatant, n: number): FaitDeCorruption | null {
   if (!recoitLaCorruption(hero)) return null;
-  const pos = hero.pos;
+  const pos = inBattleId(s.battle, hero.id)?.pos ?? hero.pos;
   if (n > 0 && pos && (s.battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, pos))) {
     return { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: 0, contre: 'protection' };
   }
@@ -352,6 +353,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
+  set({ ...touchActors(get()) });
   journaliser(get, set, lines, 'information', { actorId: hero.id });
   releaseCorruptionSlot(get, set);
 }
@@ -406,13 +408,15 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
   set({ ...touchActors(get()) });
 }
 
-/** Cible désignée et éligible ou, sans désignation, premier personnage vivant éligible. */
+/** Cible désignée et éligible ou, sans désignation, premier personnage vivant éligible, choisi sur la file de combat
+ *  (`outOfRencontre`) et rendu dans les acteurs en jeu (`actorIn`, #4860). */
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   if (heroId) {
     const actor = actorIn(s, heroId);
     return actor && recoitLaCorruption(actor) ? actor : undefined;
   }
-  return (s.battle?.combatants ?? s.party).find((c) => !c.dead && !c.outOfRencontre && recoitLaCorruption(c));
+  const elu = (s.battle?.combatants ?? s.party).find((c) => !c.dead && !c.outOfRencontre && recoitLaCorruption(c));
+  return elu && actorIn(s, elu.id);
 }
 
 /** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */

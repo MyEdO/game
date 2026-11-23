@@ -246,9 +246,11 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption?.heroId, 'la décision rendue, le seuil en file reçoit SA fenêtre').toBe(H[1].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue).toEqual([]);
-    expect(porteurs[0].resilience, '1 Point de Résilience dépensé').toBe(1);
-    expect(porteurs[0].mutations ?? [], 'refusée').toHaveLength(0);
-    expect(porteurs[1].mutations ?? [], 'et le second n’a toujours rien subi sans son Test').toHaveLength(0);
+    // Après le report (`battle.over`), la décision s'écrit sur `party` (#4860).
+    const [premier, second] = H.map((h) => g().party.find((x) => x.id === h.id)!);
+    expect(premier.resilience, '1 Point de Résilience dépensé').toBe(1);
+    expect(premier.mutations ?? [], 'refusée').toHaveLength(0);
+    expect(second.mutations ?? [], 'et le second n’a toujours rien subi sans son Test').toHaveLength(0);
   });
 });
 
