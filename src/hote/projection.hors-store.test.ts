@@ -1,6 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { nouvelEntete, ouvrirLaPartie } from './partie';
+import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 import { projeter } from './projection';
 import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { frenzyTarget } from '../noyau/combatFlow';
