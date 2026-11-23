@@ -26,6 +26,9 @@ qui contredit une ligne ci-dessous est un défaut, pas une option. Le détail et
 l'utilisateur ».
 
 - **Le noyau d'abord** : toute règle se joue par le noyau ; ce qu'il ne joue pas va à `RETOURS.md`, jamais dans l'hôte.
+- **Agents en parallèle** (« Tu sais tu n'as pas vraiment de limite d'agent ici », 2026-11-23) : les lots du roguelite
+  sans fichier commun avancent en même temps, chacun dans un worktree isolé quand ils touchent les mêmes fichiers ;
+  chaque agent garde son budget et son horloge.
 - **Bug majeur** (« En cas de bug majeur de ce genre, je t'autorise a lancer un agent pour le corriger »,
   2026-11-23) : un plantage ou une règle cassée en jeu se corrige aussitôt par un agent, sans attendre de feu vert.
 - **Fable coûte cher** (« mais arrete, Fable coute chere ! », 2026-11-23) : Fable ne reçoit que du dessin, sur un écran,
