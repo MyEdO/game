@@ -193,7 +193,6 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * Elle ne joue pas les Rounds de la nuit : #4855.
  */
 export function sleepParty(
   get: Get,
@@ -867,7 +866,6 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
       return;
     }
   }
-  if (checkPartyWiped(get, set)) return;
   const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
   const remaining = nightsLeft - 1;
   // La halte de voyage (travelHalt) reprend la route à la clôture — SEULEMENT sur la DERNIÈRE nuit du
@@ -879,6 +877,8 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
       title: t(TITRE_DE_LA_NUIT[toitDeLaNuit(p, get().party)]), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
       travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
     });
+  } else if (checkPartyWiped(get, set)) {
+    return;
   } else if (remaining > 0) {
     // `buildNightCascade` a DÉJÀ journalisé le titre + tout ce qui suit l'entretien (#216) — rien à
     // influencer cette nuit-ci (PB pleins, pas de campement) → enchaîne directement la suivante.

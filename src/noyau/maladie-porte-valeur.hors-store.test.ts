@@ -9,7 +9,7 @@
  * de la nuit, comme en jeu — jamais `deferredUpkeepSteps` appelé seul) :
  *  (i)   le Test de cycle du VER DE CARIE (MSRC 16 l.90 : « Test d'Endurance Accessible (+20) chaque
  *        jour ») est une ÉTAPE influençable dont la valeur est celle de la porte — Endurance NUE,
- *        passif du ver compté (MSRC 16 l.86) ;
+ *        États comptés (LDB 16 l.90) et passif du ver (MSRC 16 l.86) ;
  *  (ii)  le `dailyTest` de la PNEUMONIE (EDOC 08 l.104 : « Test de Résistance Intermédiaire (+0) »)
  *        teste la COMPÉTENCE Résistance, pas l'Endurance — la donnée le NOMME, la porte le calcule ;
  *  (iii) le sommeil MULTI-JOURS (`sleepParty` — clôture d'interlude, triche de recette) monte les MÊMES
@@ -27,7 +27,7 @@ import { battleRng } from './battleRng';
 import { contractDisease, tickDisease } from '../engine/disease';
 import { porteEntretien, applique } from '../engine/upkeepPorte.testkit';
 import { testValue, skillBaseValue } from '../engine/skills';
-import { stacks, syncDerivedConditions } from '../engine/conditions';
+import { addCondition, stacks, syncDerivedConditions } from '../engine/conditions';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant } from '../engine/types';
 import { creditBourse } from './bourseFlow';
@@ -80,24 +80,28 @@ beforeEach(() => {
 });
 
 describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE', () => {
-  it('ver de carie (MSRC 16 l.90) : étape influençable, cible = `testValue` d’ENDURANCE, passif compté', () => {
+  it('ver de carie (MSRC 16 l.90) : étape influençable, cible = `testValue` d’ENDURANCE, États comptés', () => {
     // J+7 : la cadence du ver (`afterDays: 7`) démarre — le Test tombe alors chaque jour.
     const h = rendMalade('h1', 'vers-de-carie', 8);
+    addCondition(h, 'extenue', 2); // LDB 16 l.90
+    banc.setState((s) => ({ party: [...s.party] }));
+    // Valeurs du soir : LDB 18 l.296.
+    const nue = skillBaseValue(h, { characteristic: 'endurance' });
+    const jetee = testValue(h, { characteristic: 'endurance' });
 
     const steps = dort();
     const tick = steps.find((s) => s.kind === 'maladie-test-quotidien' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
     expect(tick, 'le Test de cycle du ver est une ÉTAPE de la nuit (pas un jet du moteur)').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
-    const nue = skillBaseValue(h, { characteristic: 'endurance' });
-    const jetee = testValue(h, { characteristic: 'endurance' });
-    // Le témoin qui rend le test PROBANT : sans pénalité, base et valeur jetée seraient égales. Le passif du
-    // ver (MSRC 16 l.86) pèse, et la porte le compte.
-    expect(jetee, 'le passif du ver sépare la nue de la valeur jetée').toBeLessThan(nue);
+    // Le témoin qui rend le test PROBANT : sans pénalité, base et valeur jetée seraient égales. Deux
+    // sources pèsent ici, et la porte les compte TOUTES DEUX : les 2 États Exténué (LDB 16 l.90) et
+    // le passif du ver lui-même (MSRC 16 l.86).
+    expect(jetee, 'États + passif du ver doivent séparer la nue de la valeur jetée').toBe(nue - 30);
     expect(r.base, 'base = Endurance NUE (l’Endurance est ce que le nœud NOMME)').toBe(nue);
     expect(r.target, 'cible = valeur de la porte + Accessible (+20)')
       .toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.accessible).target);
-    expect((r.mods ?? []).reduce((s, m) => s + m.value, 0), 'tout l’écart est NOMMÉ, rien d’anonyme').toBe(jetee - nue);
+    expect((r.mods ?? []).reduce((s, m) => s + m.value, 0), 'tout l’écart est NOMMÉ, rien d’anonyme').toBe(-30);
     // Contre-cible MESURÉE : une valeur qui compterait les avances de Résistance et ignorerait les États
     // (le régime que #1685 nomme) donnerait 40 + 12 + 20 ; la porte n'y passe pas.
     expect(r.target).not.toBe(clampTarget(40 + 12 + DIFFICULTY_MODIFIERS.accessible).target);

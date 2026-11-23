@@ -65,6 +65,13 @@ describe('le repos sur une scène générée récupère, ou dit pourquoi', () =>
     expect(g().lastNightDay, 'la nuit passe pour le groupe').toBe(dayIndex(g().gameTime));
   });
 
+  it('tout le groupe à 0 PB sans saigner : il sombre dans la nuit et se réveille à l’aube (LDB 18 l.15, l.296)', () => {
+    surLArene([heros('a', { wounds: blessuresDeBase(14, 0) }), heros('b', { wounds: blessuresDeBase(14, 0) })], { maison: true });
+    dormir();
+    expect(g().partyWiped, 'aucune défaite avant la récupération de l’aube').toBeFalsy();
+    expect(g().party.every((h) => h.wounds.current > 0)).toBe(true);
+  });
+
   it('un Round qui attend son jet (Empoisonné) suspend la nuit, qui reprend après lui (LDB 16 l.76)', () => {
     surLArene([heros('a', { conditions: [{ id: 'empoisonne', value: 1 }] }), heros('b')], { maison: true });
     dormir();
