@@ -10,7 +10,7 @@ import { chargerScene } from './chargement.ts';
 import { peauDeLaTenue } from './corps.ts';
 import { COUCHES, type Couche } from '../element.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
-import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
+import { etendreLaPortee, evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
 import {
   appliquerGabarit,
   bindsAuGabarit,
@@ -946,6 +946,14 @@ describe('libellesDesMeshes (#3229)', () => {
     expect(sous.ecarts).toEqual(complete.ecarts.filter((e) => deLaPortee(e, new Set(sous.portee))));
     expect(sous.ecarts.map((e) => e.garde)).toEqual(['budget']);
     expect(complete.ecarts.length).toBeGreaterThan(sous.ecarts.length);
+  });
+
+  it('la portée gagne la couche qui suit une pièce de la portée, puis celle qui suit ce suiveur ; jamais le corps (#4814)', () => {
+    const [corps, cape, chemise, gilet, ceinture] = [null, 0, 1, 2, 3].map((element) => ({ element }));
+    const retenues = new Map([[gilet, [chemise]], [corps, [chemise, cape]], [chemise, [cape]], [ceinture, []], [cape, []]]);
+    expect(etendreLaPortee([0], retenues)).toEqual(new Set([0, 1, 2]));
+    expect(etendreLaPortee([1], retenues)).toEqual(new Set([1, 2]));
+    expect(etendreLaPortee([3], retenues)).toEqual(new Set([3]));
   });
 });
 

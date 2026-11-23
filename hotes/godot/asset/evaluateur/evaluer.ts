@@ -181,7 +181,7 @@ export const poidsDesFormesDe = (manifeste: ManifesteDeBase | null, facteurs: Ga
 
 /** Les rangs des éléments `portee` et de ceux dont la pile fait retenir une pièce par l'une des leurs (`retenues`,
  *  `ResolutionDePile`), de proche en proche ; le corps, sans rang, n'en est pas (#4814). */
-function etendreLaPortee<P extends { readonly element: number | null }>(portee: readonly number[], retenues: ReadonlyMap<P, readonly P[]>): Set<number> {
+export function etendreLaPortee<P extends { readonly element: number | null }>(portee: readonly number[], retenues: ReadonlyMap<P, readonly P[]>): Set<number> {
   const rangs = new Set(portee);
   for (let ajout = true; ajout;) {
     ajout = false;
