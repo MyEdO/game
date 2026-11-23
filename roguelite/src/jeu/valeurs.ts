@@ -83,7 +83,7 @@ export const PROFILS: readonly Profil[] = [
 export const nomDeCarriere = (id: string): string => profil(id)?.nom ?? nomDeCarriereDuLivre(id);
 export const voieDe = (carriere: string): Voie | undefined => profil(carriere)?.voie;
 export const deviseDe = (carriere: string): string => profil(carriere)?.devise ?? '';
-/** Le rôle d'une carrière du roster ; une carrière hors du roster (un héros d'une ancienne sauvegarde) n'en a pas. */
+/** Le rôle d'une carrière, s'il est au roster (`PROFILS`). */
 export const roleDe = (carriere: string): Role | undefined => profil(carriere)?.role;
 
 export const ESPECES: Record<string, { nom: string; race: 'humain' | 'nain' | 'halfling' }> = {
