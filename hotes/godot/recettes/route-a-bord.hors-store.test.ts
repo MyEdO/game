@@ -14,7 +14,7 @@ import { scenario as caraque } from '../../../src/scenes/test-scenarios/a-bord-d
 import { walkReachableFrom } from '../../../src/noyau/monde/path';
 import { heightAt, isWalkable, startOf } from '../../../src/noyau/monde/scene';
 import type { Scene } from '../../../src/noyau/monde/scene';
-import { naviresDeLaScene, poserLesNavires, stationsDuNavire, type EmprisesDesCases } from '../../../src/noyau/planDeNavire';
+import { coquesDeLaScene, poserLesNavires, stationsDuNavire, type EmprisesDesCases } from '../../../src/noyau/planDeNavire';
 import { DOSSIER_DES_MODELES, manifestesDesModeles } from '../asset/release';
 import { masqueDuRegard } from '../../../src/noyau/monde/aretes';
 import { volumeDuMonde } from '../../../src/noyau/monde/volume/volume';
@@ -75,7 +75,7 @@ const MANIFESTES_DE_VEHICULE = new Map(manifestesDesModeles(DOSSIER_DES_MODELES)
 
 /** Le point (en cases, la case centrée sur l'entier) où l'hôte publie chaque case de `scene` : la station de chaque case
  *  que le modèle de son navire rogne (`stationsDuNavire`), par sa clé `x,y,z`. */
-const stationsDe = (scene: Scene): Map<string, { x: number; y: number }> => new Map(naviresDeLaScene(scene).flatMap(({ id, vehicule }) =>
+const stationsDe = (scene: Scene): Map<string, { x: number; y: number }> => new Map(coquesDeLaScene(scene).flatMap(({ id, vehicule }) =>
   stationsDuNavire(scene, id, MANIFESTES_DE_VEHICULE.get(vehicule.definition)?.cases ?? {}).map((s) => [cle(s), s.point] as const)));
 
 /** La case du triangle le plus haut des triangles `tris` à la verticale du point (`x`, `z`) du monde (m), et sa hauteur. */

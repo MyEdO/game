@@ -2,7 +2,16 @@ import { describe, it, expect, vi } from 'vitest';
 import * as mapSpec from './mapSpec';
 import { buildScene } from './mapSpec';
 import { bumperDataset } from '../data/versionDataset';
-import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, poserUnNavire, provenanceDesNavires, stationsDuNavire } from './planDeNavire';
+import {
+  PLANS_DE_NAVIRE,
+  coquesDeLaScene,
+  estPoseParSesPonts,
+  poserLesNavires,
+  poserUnNavire,
+  provenanceDesNavires,
+  seMontreParLeMonde,
+  stationsDuNavire,
+} from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 import { heightAt, isWalkable, sceneMetresPerTile, tileAt, wallBetween, type Scene } from './monde/scene';
@@ -49,7 +58,7 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
   it('à une autre échelle, celle de la mer, aucun pont ne se pose', () => {
     const enMer = authored('O', 10);
     expect(poserLesNavires(enMer)).toEqual(enMer);
-    expect(naviresDeLaScene(enMer)).toEqual([]);
+    expect(coquesDeLaScene(enMer)).toEqual([]);
   });
 
   /** `scene` dont la caraque `c1` est au cap `NE`, comme un JSON écrit hors de l'éditeur la porterait. */
@@ -282,12 +291,33 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
         appearance: { ...e.appearance, apparencesObjets: { [id]: { id: 'hache_naine' } } },
       }),
     };
-    expect(naviresDeLaScene(avecInventaire)).toEqual(naviresDeLaScene(s));
+    expect(coquesDeLaScene(avecInventaire)).toEqual(coquesDeLaScene(s));
   });
 
   it('le navire se montre par son modèle : le véhicule de sa fiche à sa taille réelle, au centre de ses ponts', () => {
-    expect(naviresDeLaScene(s)).toEqual([{ id: 'c1', vehicule: expect.objectContaining({ definition: 'caraque', taille: 'reelle', cap: 'O', ameliorations: expect.arrayContaining(['embarcation-de-bord']) }), centre: { x: 11.5, y: 4 } }]);
-    expect(naviresDeLaScene(bassinDeLaCaraque('N'))).toMatchObject([{ centre: { x: 5, y: 10.5 }, vehicule: { cap: 'N' } }]);
+    expect(coquesDeLaScene(s)).toEqual([{ id: 'c1', vehicule: expect.objectContaining({ definition: 'caraque', taille: 'reelle', cap: 'O', ameliorations: expect.arrayContaining(['embarcation-de-bord']) }), centre: { x: 11.5, y: 4 } }]);
+    expect(coquesDeLaScene(bassinDeLaCaraque('N'))).toMatchObject([{ centre: { x: 5, y: 10.5 }, vehicule: { cap: 'N' } }]);
+  });
+});
+
+describe('une coque terrestre que la scène porte se montre par le monde (#4471)', () => {
+  const pre = (facing?: Dir4): Scene => buildScene({
+    id: 'pre', label: 'Pré', size: [12, 8], terrain: 'herbe', heroStart: [1, 1],
+    entities: [
+      { id: 'dil', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { x: 6, y: 3 }, ...(facing ? { facing } : {}) },
+      { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } },
+    ],
+  });
+
+  it('au centre de son empreinte, le véhicule de sa fiche à sa taille réelle et à son cap, le nord sans cap', () => {
+    expect(coquesDeLaScene(pre('E'))).toEqual([{ id: 'dil', vehicule: expect.objectContaining({ definition: 'diligence', empreinte: 2, taille: 'reelle', cap: 'E' }), centre: { x: 6.5, y: 3.5 } }]);
+    expect(coquesDeLaScene(pre())).toMatchObject([{ vehicule: { cap: 'N' } }]);
+  });
+
+  it('elle seule se montre par le monde, sans être posée par des ponts', () => {
+    const s = pre('E');
+    expect(s.entities.filter((e) => seMontreParLeMonde(s, e)).map((e) => e.id)).toEqual(['dil']);
+    expect(estPoseParSesPonts(s, 'dil')).toBe(false);
   });
 });
 
@@ -305,7 +335,7 @@ describe('les ponts d’un navire se compilent une fois par scène (#3975)', () 
   const lireLesPonts = (scene: Scene) => {
     poserLesNavires(scene);
     provenanceDesNavires(scene);
-    naviresDeLaScene(scene);
+    coquesDeLaScene(scene);
     stationsDuNavire(scene, 'c1', {});
   };
 

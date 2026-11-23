@@ -197,7 +197,7 @@ func _vue(voisins: Array, cibles: Dictionary) -> Dictionary:
 	return {
 		projection = {combat = {actif = null, voisins = {liste = voisins}, cibles = {liste = cibles.keys()}, apercu = null}, exploration = null},
 		plateau = {regard = "tactique", toitsLeves = [], couronnesAbattues = [], aretesDegagees = [], coupesDesNavires = {}, metresParCase = METRES_PAR_CASE},
-		corps = {navires = {}, decors = {}, refus = "aucun corps", combattants = {}, vehicules = {}},
+		corps = {coques = {}, decors = {}, refus = "aucun corps", combattants = {}, vehicules = {}},
 		marques = {}, zonesQuiDurent = [], cases = [], champ = null, casesDesCibles = cibles,
 	}
 

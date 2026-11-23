@@ -103,11 +103,12 @@ export {
   capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
-  naviresDeLaScene,
+  coquesDeLaScene,
+  seMontreParLeMonde,
   stationsDuNavire,
   TYPES_DE_NAVIRE,
   type EmprisesDesCases,
-  type NavireDeLaScene,
+  type CoqueDeLaScene,
   type StationDeNavire,
 } from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';

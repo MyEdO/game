@@ -24,7 +24,7 @@ import {
   stepInteraction,
   porteesDuTour,
   tileFromKey,
-  estPoseParSesPonts,
+  seMontreParLeMonde,
   capEnCombat,
   fermeturesDeLaFenetre,
   libelleDeLaFermeture,
@@ -161,7 +161,7 @@ export interface Projection {
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
     /** Les entités de la scène que le groupe connaît (`entiteConnue`), chacune à sa case : décors, PNJ, objets ; hors
-     *  des navires posés par leurs ponts (`estPoseParSesPonts`), qui ne tiennent aucune case. */
+     *  des coques qui se montrent par le monde (`seMontreParLeMonde`). */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
   refus: { texte: string; nonce: number } | null;
@@ -350,7 +350,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           cap: capDuGroupe(etat),
           heros: etat.party.map((h) => ({ ...combattant(etat, h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
+          entites: tranche(etat.scene.entities.filter((e) => !seMontreParLeMonde(etat.scene!, e) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,

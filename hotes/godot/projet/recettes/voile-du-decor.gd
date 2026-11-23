@@ -228,7 +228,7 @@ func _avant_apres(pont: PontDuDecor) -> bool:
 		return false
 	var avant: Image
 	if await _poser_le_volume(pont):
-		_modeles.poser(_vue.corps.navires, {}, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
+		_modeles.poser(_vue.corps.coques, {}, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
 		_verifier(_modeles.poses().is_empty(), "sans décors servis, %d modèles encore posés" % _modeles.poses().size())
 		var triangles_recette: int = _monde.volume.ce_qui_est_pose().triangles - triangles_servis
 		if _verifier(triangles_recette > 0, "sans décors servis, aucun triangle supplémentaire peint par les recettes"):
@@ -238,7 +238,7 @@ func _avant_apres(pont: PontDuDecor) -> bool:
 		return false
 	if not await _poser_le_volume(pont):
 		return false
-	_modeles.poser(_vue.corps.navires, _vue.corps.decors, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
+	_modeles.poser(_vue.corps.coques, _vue.corps.decors, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
 	_verifier(_monde.volume.ce_qui_est_pose().triangles == triangles_servis, "les décors servis de nouveau, le volume n'a pas retrouvé ses %d triangles peints" % triangles_servis)
 	var limite := Time.get_ticks_msec() + int(ATTENTE_S * 1000.0)
 	while Time.get_ticks_msec() < limite and _modeles.poses().size() != _poses_servies():

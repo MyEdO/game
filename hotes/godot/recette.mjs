@@ -276,7 +276,7 @@
  * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
- * chaque navire de la vue (`navires`) et la base de chaque corps dessiné (`corps`), puis prend le regard de chaque
+ * chaque coque de la vue (`coques`) et la base de chaque corps dessiné (`corps`), puis prend le regard de chaque
  * vue nommée du fichier à la touche du regard, la pose par `wfrpCadrer`, écrit au journal le plan de sa couche, l'œil
  * posé marqué (`plan`), et la capture sous son nom ; les vues de la caraque sont
  * `hotes/godot/cadrages/a-bord-de-la-caraque.json`.
@@ -1354,17 +1354,17 @@ async function parcoursVehicule() {
   }
 }
 
-/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`), la base de chaque corps dessiné
+/** Le monde posé : le modèle de chaque coque de la vue (`wfrpEcran.coques`), la base de chaque corps dessiné
  *  (`wfrpEcran.corps`) et les modèles des arêtes (`wfrpEcran.aretes_lues`), que Godot tire en GLB, chacun lu d'un bloc
  *  sur le fil de la page. */
 async function attendreLeMonde() {
   const v = await vue()
-  const navires = Object.keys(v.corps.navires)
+  const coques = Object.keys(v.corps.coques)
   const bases = Object.fromEntries(Object.entries(v.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
-  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && e.aretes_lues
-    && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
+  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.coques && e.aretes_lues
+    && ${JSON.stringify(coques)}.every((id) => e.coques.includes(id))
     && Object.entries(e.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null)) })()`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
-  noter(`monde posé : navires ${navires.join(', ') || 'aucun'}, corps ${Object.keys((await ecran()).corps).join(', ') || 'aucun'}`)
+  noter(`monde posé : coques ${coques.join(', ') || 'aucun'}, corps ${Object.keys((await ecran()).corps).join(', ') || 'aucun'}`)
 }
 
 /** Les vues nommées du fichier `fichier` : un tableau non vide d'objets, chacun un `nom` de fichier unique et le

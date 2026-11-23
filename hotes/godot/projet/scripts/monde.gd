@@ -206,11 +206,12 @@ func lieu(case: Vector2i, z := 0) -> Vector3:
 	return MiseEnPage.point_de_la_carte(station.x, station.y, sol(case, z))
 
 
-## Les stations des navires servis (`navires`, `vue.corps.navires`, chacun ses `stations`), à la place des précédentes.
-func poser_les_stations(navires: Dictionary) -> void:
+## Les stations des navires servis parmi les coques `coques` (`vue.corps.coques`, un navire posé par ses ponts portant
+## ses `stations`), à la place des précédentes.
+func poser_les_stations(coques: Dictionary) -> void:
 	_stations = {}
-	for id: String in navires:
-		for s: Dictionary in navires[id].stations:
+	for id: String in coques:
+		for s: Dictionary in coques[id].get("stations", []):
 			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
