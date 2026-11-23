@@ -414,7 +414,10 @@ de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posen
 la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
 pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe : la profondeur où il s'enfonce derrière
 un vêtement qu'il traverse, quelle que soit la longueur qui ressort devant ; tout entier derrière, comme sous une cape,
-il ne le traverse pas. Une pose isolée se demande à
+il ne le traverse pas. La pose rangée de chaque rigide de la tenue, par silhouette déclarée, se lit par
+`npm run godot:evaluer -- --tenue <preset> [--local <id>=<glb>]... --base <base.glb> --manifeste <base.manifeste.json> --clips A_TPose --poses-rangees` :
+une pièce locale se compare à la publiée, et `BASCULE` signale celle dont la pose saute (#4806) ; toute retouche d'un rigide
+rangé s'y contrôle avant la porte. Une pose isolée se demande à
 `node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
 chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
@@ -560,14 +563,20 @@ et c'est ainsi que la traversée des couches se mesure : évaluer la tenue (têt
 pièce seule. Depuis la racine du dépôt, `node hotes/godot/asset/recuperer-modeles.mjs` dépose les GLB
 publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport doit déjà exister :
 
+La tenue d'un preset ne s'écrit pas à la main : `--tenue <preset>` (qui vaut `--preset <preset>`) la met en tête des GLB,
+dans l'ordre où le jeu la monte, prise au dossier du manifeste de base ; `--local <id>=<glb>` (répétable, syntaxe de
+`element/construire.py --local`) y substitue une pièce locale, une pièce que le preset ne monte pas venant après la tenue ;
+d'autres GLB se donnent encore en positionnels, après elle.
+
 ```sh
+npm run godot:evaluer -- --tenue gladiateur --local humanoide--rigide--grande_hache=/atelier/hache/humanoide--rigide--grande_hache/humanoide--rigide--grande_hache.glb --base hotes/godot/projet/modeles/humanoide.glb --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --clips A_TPose,Idle_Loop
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
 ```
 
-La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
-gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
+La troisième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
+gabarit/surcharge requise. La quatrième est la porte d'un élément : le corps neutre puis chaque silhouette
 déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>` et écrit son rapport
 (`porte.neutre.json`, `porte.feminin.json`…). Après une retouche, `--porte --temoin /atelier/mesures/porte.json` relit
@@ -576,7 +585,9 @@ rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips faut
 Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
 retouche se juge sur eux. Le témoin se mesure sur les mêmes `<glb>` dans le même ordre, les éléments neufs à la fin : le
-libellé `élément k` d'un mesh est sa position.
+libellé `élément k` d'un mesh est sa position ; `--tenue` avec les mêmes `--local` le garantit.
+Les triangles de chaque mesh s'impriment en tête de chaque rapport ; ceux de chaque GLB bâti, à chaque ligne de
+`npm run personnage-3d:integrer`.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
@@ -643,9 +654,12 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts, profil et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
+d'un preset (`--input <base.glb> --tenue <preset> [--local <id>=<glb>]...`, comme l'évaluateur ; ou un `--element` par GLB
+avec `--preset`), la colore et y range ses rigides comme le jeu, masque les zones couvertes de la base et des éléments comme
+le jeu, la cadre entière, rigides compris, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
-plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
+plans. Un rigide se rend seul par `rendu.py --input <rigide.glb> --preset <preset> [--illustration …] [--cadre …]` :
+dressé, de face, de profil et de dos. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
