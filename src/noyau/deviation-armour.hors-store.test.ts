@@ -111,11 +111,11 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
     const c = hero({ items: [piece] });
     expect(deviatableArmourAt(c, 'corps')).toBe(true);
     expect(impenetrableAt(c, 'corps')).toBe(true);
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'brisee' });
     expect(piece.damageTaken).toBe(2);
     expect(deviatableArmourAt(c, 'corps')).toBe(false);
     expect(impenetrableAt(c, 'corps')).toBe(false);
-    expect(damageArmour(c, 'corps')).toBe(false);
+    expect(damageArmour(c, 'corps')).toBeNull();
   });
 });
 

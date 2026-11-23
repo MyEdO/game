@@ -105,11 +105,13 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
   });
 
   it('arme SANS Atout Salve : aucun jet/branchement sur la Table par Salve (misfire générique inchangé)', () => {
-    const gun: Weapon = { name: 'Arbalète', label: 'Arbalète', type: 'distance', damage: { flat: 8, plusBF: false }, qualities: [] } as unknown as Weapon;
+    const gun: Weapon = { name: 'Arbalète', label: 'Arbalète', trappingId: 'arbalete', type: 'distance', damage: { flat: 8, plusBF: false }, qualities: [] } as unknown as Weapon;
     const chef = mkHero('chef');
     const { get, set } = setup(chef);
     const issue = applyOups(get, set, chef, gun, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' });
-    expect(issue, 'aucun dé à ouvrir : la Maladresse s’applique sur place').toBeUndefined();
+    expect(issue, 'aucun dé à ouvrir : la Maladresse s’applique sur place, l’arme brisée en fait').toEqual({
+      faits: [{ genre: 'objet', cible: 'chef', camp: 'groupe', objet: { arme: 'arbalete' }, valeur: -1, issue: 'brisee' }],
+    });
     expect(banc.getState().pendingCascade, 'aucune étape ouverte').toBeNull();
     const log = get().battle!.log.map((l) => l.text ?? l).join(' | ');
     expect(log).not.toContain('Salve');

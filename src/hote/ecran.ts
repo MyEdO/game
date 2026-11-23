@@ -943,6 +943,7 @@ function puceDuFait(etat: Jeu, cle: string, f: FaitApplique, i: number): Puce {
     case 'etat': return puce(`${cle}/etat/${f.id}/${i}`, conditionLabel(f.id), avecSigne(f.valeur), null, ton);
     case 'corruption': return puce(`${cle}/corruption/${i}`, t('ecran.corruption'), avecSigne(f.valeur), null, ton);
     case 'argent': return puce(`${cle}/argent/${i}`, t('ecran.argent'), `${f.valeur < 0 ? '−' : '+'}${formatMoney(fromBrass(Math.abs(f.valeur)))}`, null, ton);
+    case 'objet': return puce(`${cle}/objet/${i}`, 'arme' in f.objet ? t('ecran.objet.arme') : t('ecran.objet.armure', { lieu: locationLabel(f.objet.armure, porteurParId(etat, f.cible)?.bodyShape) }), t(`ecran.objet.${f.issue}`), null, ton);
   }
 }
 

@@ -190,10 +190,12 @@ function lignesDeFenetre(f: FenetreTexte): string[] {
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
-/** Une conséquence : qui la subit, son genre (et l'État qu'elle nomme), sa valeur signée ou l'id qu'elle désigne. */
+/** Une conséquence : qui la subit, son genre (et l'État ou l'objet qu'elle nomme, avec son issue), sa valeur signée ou
+ *  l'id qu'elle désigne. */
 function texteDeConsequence(c: ConsequenceEnVue): string {
-  const etat = c.detail && 'id' in c.detail ? ` ${c.detail.id}` : '';
-  return `${c.qui ?? 'hors de vue'} ${c.genre}${etat} ${typeof c.valeur === 'number' ? signe(c.valeur) : c.valeur}`;
+  const d = c.detail;
+  const nomme = !d ? '' : 'id' in d ? ` ${d.id}` : 'objet' in d ? ` ${'arme' in d.objet ? d.objet.arme : `armure ${d.objet.armure}`} ${d.issue}` : '';
+  return `${c.qui ?? 'hors de vue'} ${c.genre}${nomme} ${typeof c.valeur === 'number' ? signe(c.valeur) : c.valeur}`;
 }
 
 /** Une ligne de jet, suivie des conséquences qu'il a appliquées. */

@@ -136,9 +136,19 @@ import {
   meleeReachTiles,
 } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
-import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
+import { avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
-import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
+import {
+  avantageDuCoup,
+  avantagesAuJet,
+  appliquerLAvantage,
+  campGain,
+  campAdvantageHooks,
+  campSpend,
+  etatDAvantage,
+  spendableAdvantage,
+  roundEndAdvantageTransfer,
+} from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
@@ -157,9 +167,6 @@ import {
 } from './triggeredEffects';
 import {
   reloadGrantsAssessAdvantage,
-  hasStealAdvantage,
-  stealsOneAdvantage,
-  shieldAdvantageLevel,
   shieldReactionCost,
   contreSurDefenseGagnee,
   contresEpuisees,
@@ -256,7 +263,16 @@ import {
 } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
 import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
-import { lignesHorsDesFaits, nomDeSource, type Applique as LignesEtFaits, type FaitApplique, type FaitDEtat } from '../engine/faits';
+import {
+  faitDObjet,
+  lignesHorsDesFaits,
+  nomDeSource,
+  type Applique as LignesEtFaits,
+  type FaitApplique,
+  type FaitDEtat,
+  type FaitDObjet,
+  type IssueDObjet,
+} from '../engine/faits';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -285,6 +301,7 @@ import {
   cibleMesuree,
   estJete,
   reverseRoll,
+  SL_ASTOUNDING,
   type VainqueurOppose,
 } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
@@ -616,8 +633,13 @@ import {
   frozenOpposedBatchStep,
   simpleBatchTestStep,
 } from './combat/triggeredTest';
-// Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
-import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
+// Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE) : SITE UNIQUE
+// des sauvegardes de touche (applyAttackResult, applyCast), et leur prévision (`faitsAuJet`).
+import {
+  runHitModifiers,
+  toucheAuJet,
+  toucheSauvee,
+} from './combat/hitModifiers';
 import {
   bestDefenseMode,
   hasFreeWeaponAttack,
@@ -2254,6 +2276,11 @@ function recueillirLaReprise(reprise: () => void): FaitApplique[][] {
   return recueillis.parRang;
 }
 
+/** Pose `faits` au rang courant de la reprise en cours (`recueillirLaReprise`) ; hors d'une reprise, rien. */
+function versLaReprise(faits: readonly FaitApplique[]): void {
+  if (faitsDeLaReprise) (faitsDeLaReprise.parRang[faitsDeLaReprise.rang] ??= []).push(...faits);
+}
+
 /** LES OPS d'une Blessure critique appliquées à `cible` : le SEUL `applyOps` de ses ops, partagé par l'application
  *  (`applyCriticalToTarget`) et la prévision (`faitsSansDe`). `location` : main affectée par l'op `disarm` (#153) ;
  *  `now` : horloge de jeu des effets d'horloge (#153). */
@@ -2426,7 +2453,7 @@ export function applyCriticalToTarget(
     }
   }
   // Sous la révélation déjà montrée (fenêtre de Déviation), les faits vont à l'étape que la reprise valide.
-  if (suppressReveal && faitsDeLaReprise) (faitsDeLaReprise.parRang[faitsDeLaReprise.rang] ??= []).push(...faits);
+  if (suppressReveal) versLaReprise(faits);
   // « Un jet = une modale » : modale de Coup Critique COMPLÈTE (qui inflige + arme + dé + localisation +
   // Blessures + États + effets expliqués), au niveau de la modale d'attaque. (Sautée si la modale de
   // déviation l'a déjà affichée — la déviation fusionne choix ET révélation sur une seule modale.)
@@ -2638,10 +2665,17 @@ export function previewCritEntry(target: Combatant, crit: CriticalResolved, orig
 /** Dévier 1 PA pour IGNORER le Critique (LDB 63 l.30) : sacrifie 1 PA à `location`. RETOURNE false si
  *  aucune PA sacrifiable → la Déviation n'a pas lieu. Les Blessures du coup à PA−1 sont celles de son compte
  *  (`planifierLesCritiques`). */
-function deflectCrit(target: Combatant, location: HitLocation, log: string[]): boolean {
-  if (!damageArmour(target, location)) return false;
-  log.push(tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) }));
-  return true;
+function deflectCrit(target: Combatant, location: HitLocation, log: string[]): FaitDObjet | null {
+  const fait = damageArmour(target, location);
+  if (fait) log.push(tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) }));
+  return fait;
+}
+
+/** « Dévier » tranché à une fenêtre (`deflectCrit`) : le fait d'objet de l'armure va à l'étape que la reprise valide. */
+function devierALaReprise(target: Combatant, location: HitLocation, log: string[]): boolean {
+  const fait = deflectCrit(target, location, log);
+  if (fait) versLaReprise([fait]);
+  return !!fait;
 }
 
 /** Triptyque PARTAGÉ d'application d'un Critique (mêlée/opposé/magie) : applique la table puis finalise
@@ -2673,13 +2707,14 @@ function autoDeviate(
 ): boolean {
   if (!rule('combat-deviation-critique')) return false;
   if (!deviatableArmourAt(target, location)) return false;
-  if (!deflectCrit(target, location, log)) return false;
+  const armure = deflectCrit(target, location, log);
+  if (!armure) return false;
   if (heroConcerned)
     pushReveal(set, {
       kind: 'critique', title: tr('cf.titreDuCritiqueDevie'), dice: roll,
       lines: [tr('cf.revelationDuCritiqueDevie', { loc: locationLabel(location, target.bodyShape) }), tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) })],
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon,
-    }, { faits: [{ genre: 'localisation', cible: target.id, camp: campOf(target), valeur: location }] });
+    }, { faits: [{ genre: 'localisation', cible: target.id, camp: campOf(target), valeur: location }, armure] });
   return true;
 }
 
@@ -2918,7 +2953,7 @@ function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Com
 }
 
 /** Ce que le plan des Blessures critiques d'un coup lit — arme ou Projectile. */
-interface PlanDesCritiques<C extends CompteDuCoup> {
+interface PlanDesCritiques {
   attacker: Combatant;
   target: Combatant;
   /** Le coup que la fenêtre suspend, et que sa reprise ré-entre. */
@@ -2928,11 +2963,6 @@ interface PlanDesCritiques<C extends CompteDuCoup> {
   /** Sous-attaque, porteur non tenu : aucune étape ; Surpris conservé (LDB 16 l.139 ; LDB 63 l.30). */
   sousAttaque: boolean;
   twice: boolean;
-  /** Le compte après `n` Déviations, sur la cible intacte (`apresDeviations`). */
-  recompter: (n: number) => C;
-  /** Une Déviation de plus est-elle possible à `lieu` après `n` Déviations, la pièce Bâclée cassée sous
-   *  `cassee` ? LDB 63 l.30 ; LDB 60 l.50 ; #1595 c.6228496170 Q1. */
-  deviable: (lieu: HitLocation, n: number, cassee: boolean) => boolean;
 }
 
 const libelleDuCoup = (coup: CoupSuspendu): string | undefined => {
@@ -2953,43 +2983,93 @@ const libelleDuCoup = (coup: CoupSuspendu): string | undefined => {
  * `critSeverityInSeam` : sous la variante Aux Armes la sévérité se résout sur les tables AA, non déclarées
  * en étapes — l'étape n'y porte que la décision, sur un Critique tiré au mint.
  */
-function planifierLesCritiques<C extends CompteDuCoup>(
-  get: Get, set: SetFn, p: PlanDesCritiques<C>,
-): { plan: DecisionDeCritique[]; compte: C } | null {
+function planifierLesCritiques(get: Get, set: SetFn, p: PlanDesCritiques): { plan: DecisionDeCritique[]; compte: CompteDuCoup } | null {
   const { target, twice } = p;
+  const { plan, compte, fenetre } = deroulerLesCritiques(get(), p);
+  if (!fenetre) return { plan, compte };
+  const { entree, lieu: cloc, deviable } = fenetre;
+  const charge = { attackerId: p.attacker.id, targetId: target.id, decides: plan };
+  if (critSeverityInSeam(twice)) {
+    pushDeviationStep(set, {
+      targetId: target.id, offerte: deviable,
+      severite: {
+        decl: critSeverityDecl(target, cloc, entree.overkill, twice),
+        charge: { ...p.coup, ...charge, location: cloc, overkill: entree.overkill, origine: entree.origine, twice },
+        label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),
+      },
+    });
+    return null; // suspendu — la résolution part de l'applier 'deviation'
+  }
+  const crit = resolveCritSeverity(target, cloc, entree.overkill, twice).crit;
+  const reveal = previewCritEntry(target, crit, entree.origine, { attackerId: p.attacker.id, weapon: libelleDuCoup(p.coup) });
+  pushDeviationStep(set, { targetId: target.id, offerte: true, pretire: { ...p.coup, ...charge, crit, reveal, resumeAfter: true } });
+  return null; // suspendu — la résolution part de l'applier 'deviation'
+}
+
+/** La première fenêtre du déroulé : la Blessure critique de rang `plan.length`, sa Localisation, la Déviation offerte. */
+interface FenetreDuPlan { entree: CompteDuCoup['compte']['critiques'][number]; lieu: HitLocation; deviable: boolean }
+
+/** LE DÉROULÉ des Blessures critiques d'un coup jusqu'à sa première fenêtre, sans rien pousser ni muter : le compte
+ *  après les Déviations décidées (`recompteurDuCoup`), les Déviations de l'automate, les entrées sans fenêtre. PUR ;
+ *  partagé par le plan (`planifierLesCritiques`) et la prévision (`faitsAuJet`). LDB 18 l.53 ; LDB 63 l.30, l.32 ;
+ *  LDB 60 l.50 ; #1595 c.6228496170 Q1. */
+function deroulerLesCritiques(s: Jeu, p: PlanDesCritiques): { plan: DecisionDeCritique[]; compte: CompteDuCoup; fenetre: FenetreDuPlan | null } {
+  const { target } = p;
   const regime = regimeDePorteur(target);
-  const tenu = tenuParUnHumain(get(), target.id);
+  const tenu = tenuParUnHumain(s, target.id);
+  const recompter = recompteurDuCoup(p.attacker, target, p.coup);
   const plan: DecisionDeCritique[] = [...p.decides];
   const devies = (): number => plan.filter((d) => d.deviation === 'devier').length;
   const subieLetale = (): boolean => plan.some((d) => d.deviation !== 'devier' && !!d.crit?.lethal); // LDB 18 l.53
-  let compte = p.recompter(devies());
-  for (; compte.compte.critiques[plan.length] && !subieLetale(); compte = p.recompter(devies())) {
+  let compte = recompter(devies());
+  for (; compte.compte.critiques[plan.length] && !subieLetale(); compte = recompter(devies())) {
     const entree = compte.compte.critiques[plan.length];
-    const cloc = compte.lieu;
+    const lieu = compte.lieu;
     // La casse suit le Coup Critique : l'entrée qui le porte voit encore sa pièce (`appliquerLesCritiques`).
-    const cassee = compte.coupCritique && !compte.compte.critiques.slice(plan.length).some((c) => estUnCoupCritique(c.origine));
-    const deviable = regime.fenetre && !!rule('combat-deviation-critique') && p.deviable(cloc, devies(), cassee);
+    const casse = compte.coupCritique && !compte.compte.critiques.slice(plan.length).some((c) => estUnCoupCritique(c.origine));
+    const deviable = regime.fenetre && !!rule('combat-deviation-critique') && deviatableArmourAt(apresDeviations(target, lieu, devies(), { casse }), lieu);
     if (deviable && !tenu) { plan.push({ deviation: 'devier', auto: true }); continue; }
-    if (!regime.fenetre || (p.sousAttaque && !tenu)) { plan.push({}); continue; }
-    const fenetre = { attackerId: p.attacker.id, targetId: target.id, decides: plan };
-    if (critSeverityInSeam(twice)) {
-      pushDeviationStep(set, {
-        targetId: target.id, offerte: deviable,
-        severite: {
-          decl: critSeverityDecl(target, cloc, entree.overkill, twice),
-          charge: { ...p.coup, ...fenetre, location: cloc, overkill: entree.overkill, origine: entree.origine, twice },
-          label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),
-        },
-      });
-      return null; // suspendu — la résolution part de l'applier 'deviation'
-    }
-    if (!deviable) { plan.push({}); continue; }
-    const crit = resolveCritSeverity(target, cloc, entree.overkill, twice).crit;
-    const reveal = previewCritEntry(target, crit, entree.origine, { attackerId: p.attacker.id, weapon: libelleDuCoup(p.coup) });
-    pushDeviationStep(set, { targetId: target.id, offerte: true, pretire: { ...p.coup, ...fenetre, crit, reveal, resumeAfter: true } });
-    return null; // suspendu — la résolution part de l'applier 'deviation'
+    if (!regime.fenetre || (p.sousAttaque && !tenu) || !(deviable || critSeverityInSeam(p.twice))) { plan.push({}); continue; }
+    return { plan, compte, fenetre: { entree, lieu, deviable } };
   }
-  return { plan, compte };
+  return { plan, compte, fenetre: null };
+}
+
+/** L'Atout Taille entame l'armure du coup : LDB 62 l.307. */
+const entameLArmure = (res: AttackResult, arme: Weapon): boolean => toucheAvecPrise(res) && hasQuality(arme, 'taille');
+
+/**
+ * LES FAITS AU JET d'une touche d'arme (#4574), ceux que son application posera. La touche passe d'abord par les
+ * modificateurs de touche sans rien écrire (`toucheAuJet`), puis par l'Empoignade déclarée (`coupAApplique`) : sa
+ * Localisation, les Blessures que la cible perdra et l'armure qu'entame l'Atout Taille, lus du déroulé de ses Blessures
+ * critiques (`deroulerLesCritiques`) sur une copie de la cible, les Blessures d'un tiers qui encaisse à sa place, puis
+ * son Avantage (`avantagesAuJet`). Une Déviation qu'un humain tranche borne la touche à sa Localisation ; un dé de
+ * sauvegarde à tirer la borne aussi, avec l'Avantage de la touche seul. Une mort automatique perd les Blessures
+ * courantes. PUR. LDB 13 l.161 ; LDB 14 l.159 ; LDB 16 l.113 ; LDB 18 l.53 ; LDB 60 l.50 ; LDB 62 l.307 ;
+ * LDB 63 l.30, l.32 ; LDB 85 l.98, l.278 ; LDB 43 l.107.
+ */
+export function faitsAuJet(s: Jeu, jete: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, grapple: boolean | undefined, differe: boolean): FaitApplique[] {
+  const blessures = (c: Combatant, n: number): FaitApplique[] => (n > 0 ? [{ genre: 'blessures', cible: c.id, camp: campOf(c), valeur: -n }] : []);
+  const localisation = (valeur: HitLocation): FaitApplique => ({ genre: 'localisation', cible: cible.id, camp: campOf(cible), valeur });
+  const touche = toucheAuJet(s, { attacker: attaquant, target: cible, weapon: arme, attaque: arme.type === 'melee' ? 'melee' : 'distance', res: jete });
+  const res = coupAApplique(touche.res, grapple, cible);
+  if (touche.suspendu) {
+    const avantage = res.hit && res.autoKill ? [] : avantageDuCoup('touche', res, arme, attaquant, cible, etatDAvantage(s.battle, attaquant, cible), differe).faits;
+    return [...(res.hit ? [localisation(compteDuCoup(res, arme, attaquant, cible, 0).lieu)] : []), ...avantage];
+  }
+  if (res.hit && res.autoKill) return [localisation(res.location ?? 'corps'), ...blessures(cible, cible.wounds.current)];
+  const tiers = touche.encaisses.flatMap(({ porteur, pb }) => blessures(porteur, Math.min(pb, porteur.wounds.current)));
+  const p: PlanDesCritiques = { attacker: attaquant, target: cible, coup: { mode: 'melee', weapon: arme, res }, decides: [], sousAttaque: false, twice: critRollTwiceFor(attaquant) };
+  let d = deroulerLesCritiques(s, p);
+  for (; d.fenetre && !d.fenetre.deviable; d = deroulerLesCritiques(s, { ...p, decides: [...d.plan, {}] }));
+  const aTirer = { ...d.compte.compte, critiques: d.compte.compte.critiques.filter((_, i) => d.plan[i]?.deviation !== 'devier') };
+  const avantages = avantagesAuJet(s.battle, res, arme, attaquant, cible, aTirer, differe);
+  if (!res.hit) return avantages;
+  const { compte, lieu, coupCritique } = d.compte;
+  if (d.fenetre) return [localisation(lieu), ...tiers, ...avantages];
+  const devies = d.plan.filter((x) => x.deviation === 'devier').length;
+  const taille = entameLArmure(res, arme) ? damageArmour(structuredClone(apresDeviations(cible, lieu, devies, { casse: coupCritique })), lieu) : null;
+  return [localisation(lieu), ...blessures(cible, Math.min(compte.blessures, cible.wounds.current)), ...(taille ? [taille] : []), ...tiers, ...avantages];
 }
 
 /** Ce que l'application des Blessures critiques planifiées lit. */
@@ -3032,13 +3112,14 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     const entree = compte.critiques[i];
     const coupCritiqueEntree = estUnCoupCritique(entree.origine);
     if (coupCritiqueEntree) lancerDuTableau = decision.crit?.naturel;
+    // Les faits de la décision de rang `i` vont au rang `i` de la reprise (`recueillirLaReprise`).
+    if (faitsDeLaReprise) faitsDeLaReprise.rang = i;
     const devie = decision.deviation === 'devier' && (decision.auto
       ? autoDeviate(a.set, target, lieu, { attackerId: ctx.attackerId, weapon: ctx.weapon }, a.roll, log, heroConcerne)
-      : deflectCrit(target, lieu, log));
+      : devierALaReprise(target, lieu, log));
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
-      // (pose du dé, #942 L4) garde sa révélation. Ses faits vont au rang `i` de la reprise (`recueillirLaReprise`).
-      if (faitsDeLaReprise) faitsDeLaReprise.rang = i;
+      // (pose du dé, #942 L4) garde sa révélation.
       issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(issue, entree.origine);
       if (issue !== 'aucune') infligees++;
@@ -3137,10 +3218,7 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
   const lignes: string[] = [];
   if (!touche.hit) return lignes;
   const twice = critRollTwiceFor(attaquant);
-  const planifie = planifierLesCritiques(get, set, {
-    attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice, recompter: recompteurDuCoup(attaquant, marin, coup),
-    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
-  });
+  const planifie = planifierLesCritiques(get, set, { attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice });
   if (!planifie) return null;
   if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.blessures', { name: nomDe(marin), n: planifie.compte.compte.blessures, mitig: '' }));
   encaisserLeCoup({
@@ -3239,7 +3317,7 @@ function appliquerLaTouche(
   // cible avant (ni Empoignade, ni mort-auto, ni Critique), exactement comme la fenêtre de Déviation
   // ci-dessous. L'applier de l'étape RÉ-ENTRE ici avec la décision portée par la touche (`res.sauvegarde`).
   const apresModifiers = runHitModifiers({
-    get, set, attacker, target, weapon, res, sink: () => {},
+    get, attacker, target, weapon, res,
     attaque: weapon.type === 'melee' ? 'melee' : 'distance',
     encaisse: (c) => { tiersLog.push(...checkFocusInterruption(get, set, c)); },
     ouvrirSauvegarde: (seuils, courant) => {
@@ -3286,8 +3364,6 @@ function appliquerLaTouche(
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
-    recompter: recompteurDuCoup(attacker, target, suspendu),
-    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(target, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
   const { plan, compte: coupCompte } = planifie;
@@ -3306,19 +3382,10 @@ function appliquerLaTouche(
   // Critique (LDB 13 l.177, après les étapes 2 et 3) : un déclencheur `onCrit` lit ainsi la MÊME réserve
   // que `onHit`, et l'offre à X Avantages qu'il pose (Taillade, AA 08 l.87) est abordable comme le store
   // l'entend à l'application (`spendableAdvantage` reste l'unique source des deux verdicts).
-  if (res.advantageTo === 'attaquant' && !deferAttackerAdvantage) {
-    // Renversement : « au lieu de gagner +1, prendre l'Avantage adverse ». LDB 10 → tout l'Avantage
-    // individuel de la cible (quand c'est mieux que +1) ; variante « Avantage de groupe » (AA 13 l.92-98) →
-    // 1 dans la réserve adverse. Sinon +1 au vainqueur du Test opposé (per-combattant OU réserve du camp).
-    if (weapon.type === 'melee' && stealsOneAdvantage(attacker)) {
-      if (reversalStealOne(get, attacker, target)) critLog.push(tr('cf.renversement', { name: nomDe(attacker) }));
-    } else if (weapon.type === 'melee' && hasStealAdvantage(attacker) && (target.advantage ?? 0) > 1) {
-      gainAdvantage(attacker, target.advantage);
-      target.advantage = 0;
-      critLog.push(tr('cf.renversement', { name: nomDe(attacker) }));
-    } else campGain(get, attacker);
-    attacker.gainedAdvThisRound = true;
-  }
+  const touche = avantageDuCoup('touche', res, weapon, attacker, target, etatDAvantage(get().battle, attacker, target), !!deferAttackerAdvantage);
+  appliquerLAvantage(get, touche.faits, [attacker, target]);
+  if (touche.renversement) critLog.push(tr('cf.renversement', { name: nomDe(attacker) }));
+  if (touche.aGagne) attacker.gainedAdvThisRound = true;
   // LDB 14 l.159 — pose APRÈS `engage`.
   if (res.sansPrise === 'empoignade') {
     applyOps(target, GRAPPLE.init, { idNeuf: get().forgerUnId, rng: battleRng(), caster: attacker, source: GRAPPLE_SOURCE });
@@ -3392,7 +3459,7 @@ function appliquerLaTouche(
   // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
   for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
   // LDB 62 l.307.
-  if (toucheAvecPrise(res) && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
+  if (entameLArmure(res, weapon)) damageArmour(target, lieu);
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
   const firedAmmo = weapon.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(objetDuNarratif(get().campaignNarratif), attacker, weapon) : undefined;
   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
@@ -3419,24 +3486,10 @@ function appliquerLaTouche(
     for (const w of target.weapons ?? []) if (reloadProgressOf(target, w) > 0) setReloadProgress(target, w, 0);
     if ((target.mannedPoste?.reloadProgress ?? 0) > 0) setReloadProgress(target, undefined, 0, target.mannedPoste);
   }
-  // LDB 13 l.123 ; LDB 14 l.219
-  if (res.advantageTo === 'defenseur') {
-    // Renversement côté défenseur (même règle qu'à l'attaque : voler l'Avantage adverse, ou +1).
-    if (weapon.type === 'melee' && stealsOneAdvantage(target)) {
-      if (reversalStealOne(get, target, attacker)) critLog.push(tr('cf.renversement', { name: nomDe(target) }));
-    } else if (weapon.type === 'melee' && hasStealAdvantage(target) && (attacker.advantage ?? 0) > 1) {
-      gainAdvantage(target, attacker.advantage);
-      critLog.push(tr('cf.renversement', { name: nomDe(target) }));
-    } else campGain(get, target);
-    target.gainedAdvThisRound = true;
-    if (!groupAdvantage()) attacker.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
-  }
-  if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
-  // Porte-Bouclier (LDB 10 l.972)
-  if (res.advantageTo === 'attaquant') {
-    const shieldAdv = shieldAdvantageLevel(target, res.parryWeapon);
-    if (shieldAdv) { campGain(get, target, shieldAdv); target.gainedAdvThisRound = true; }
-  }
+  const apres = avantageDuCoup('apresCoup', res, weapon, attacker, target, etatDAvantage(get().battle, attacker, target), !!deferAttackerAdvantage);
+  appliquerLAvantage(get, apres.faits, [attacker, target]);
+  if (apres.renversement) critLog.push(tr('cf.renversement', { name: nomDe(target) }));
+  if (apres.aGagne) target.gainedAdvThisRound = true;
   const kind = weapon.type === 'distance' ? 'distance' : 'melee';
   const defense = weapon.type === 'distance' ? 'aucune' : bestDefenseMode(target);
   // Orientation : l'attaquant se tourne vers la cible, le défenseur vers l'attaquant (frappe offensive).
@@ -3783,26 +3836,25 @@ function ouvrirLeRound(get: Get, set: SetFn): void {
   maybeRunEnemyTurn(get, set);
 }
 
-/** CE QUE L'USURE A FAIT DE L'ARME (patron `IssueDeTouche`) : `intacte` (Incassable), `sauvee` (la
- *  Sauvegarde Solide a tenu sur son dé, LDB 60 l.30-32), `imperdable` (sauvée sans dé), `brisee`
- *  (inutilisable) ou `usee` (1 Dégât d'arme). Le site qui JOURNALISE la casse lit cette issue — il ne
- *  la re-déduit pas de l'état de l'arme. */
-type IssueDUsure = 'intacte' | 'sauvee' | 'imperdable' | 'brisee' | 'usee';
-
 /** Ce que l'usure DIT au journal d'elle-même : la sauvegarde imperdable, qu'aucun dé n'a écrite
  *  (`LDB 60 l.30`) — par l'écriture unique des lignes de Solide (`engine/oups.ligneDeSolide`). */
-function ditLUsure(weapon: Weapon, issue: IssueDUsure): string[] {
+function ditLUsure(weapon: Weapon, f: FaitDObjet): string[] {
   const indice = solideSaveThreshold(weapon);
-  return issue === 'imperdable' && indice != null ? [ligneDeSolide(weapon.label, { indice, source: SOURCE_SOLIDE })] : [];
+  return f.issue === 'imperdable' && indice != null ? [ligneDeSolide(weapon.label, { indice, source: SOURCE_SOLIDE })] : [];
 }
 
 /** Use/détruit l'arme sur l'ItemInstance SOURCE (héros → persiste, `recomputeLoadout` re-dérive),
- *  sinon sur le Weapon actif (ennemi/figurant, transient). Respecte Incassable (LDB 62 l.262).
+ *  sinon sur le Weapon actif (ennemi/figurant, transient). Respecte Incassable (LDB 62 l.262). Rend ce que l'usure a
+ *  fait de l'arme : le site qui JOURNALISE la casse lit son issue, il ne la re-déduit pas de l'état de l'arme.
  *
  *  `deSolide` = le 1d10 de la Sauvegarde Solide, TOMBÉ À LA PORTE (#1508 T3b-4) : cette écriture ne
  *  jette plus rien, elle DÉCIDE avec le dé reçu (LDB 60 l.30-32). Une arme Solide dont la destruction
  *  est demandée SANS dé est une grappe mal servie : le refus est nommé, jamais une casse en silence. */
-function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSolide?: number): IssueDUsure {
+function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSolide?: number): FaitDObjet {
+  return faitDObjet(c, { arme: weaponIdentity(weapon) }, usure(c, weapon, destroy, deSolide));
+}
+
+function usure(c: Combatant, weapon: Weapon, destroy: boolean, deSolide?: number): IssueDObjet {
   if (!destroy) return endommagerLArmeTenue(c, weapon);
   const it = objetSourceDeLArme(c, weapon);
   if (isUnbreakable(it ?? weapon)) return 'intacte'; // Incassable : ni dégât ni destruction (LDB 62 l.262)
@@ -3860,6 +3912,24 @@ function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse
   }, revealPurpose('sequence', false));
 }
 
+/** Ce que l'Oups `r` fait de l'arme : la casse que décide sa Sauvegarde Solide (`des`), puis le Dégât d'arme de son
+ *  résultat. Partagé par l'application (`applyOups`) et la prévision (`faitsPrevusDeLOups`). LDB 14 l.21-30, l.34 ;
+ *  LDB 60 l.30-32, l.50. */
+function usureDeLOups(c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number>): { casse?: FaitDObjet; faits: FaitDObjet[] } {
+  const casse = casseSurMaladresse(weapon, r) ? wearActiveWeapon(c, weapon, true, des.get(CLE_SOLIDE)) : undefined;
+  const usure = r.kind === 'weaponDamageActLast' ? wearActiveWeapon(c, weapon, false) : undefined;
+  return { ...(casse ? { casse } : {}), faits: [casse, usure].filter((f): f is FaitDObjet => !!f) };
+}
+
+/** LA PRÉVISION de la Maladresse tirée (#4574) : les faits d'objet que son application posera (`usureDeLOups`), sur une
+ *  copie du porteur et de l'arme ; aucun tant qu'un dé de sa grappe reste à jeter (`desDOups`). */
+export function faitsPrevusDeLOups(s: Jeu, porteurId: string | undefined, weapon: Weapon, r: OupsResolved): FaitDObjet[] {
+  const c = porteurId ? porteurParId(s, porteurId) : undefined;
+  if (!c || desDOups(c, weapon, r).length) return [];
+  const copie = structuredClone({ c, weapon });
+  return usureDeLOups(copie.c, copie.weapon, r, new Map()).faits;
+}
+
 /**
  * Applique l'effet du Tableau des Oups ! au combattant `c` (mute + journalise). LDB 14 l.21-30.
  * Le chiffre des unités du jet sert de DR pour les touches (l.30).
@@ -3870,7 +3940,7 @@ function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse
  * `des` = les dés DÉJÀ TOMBÉS de la grappe, par clé ; `coup` = la queue du coup qui l'a déclenchée,
  * emportée par la charge pour être jouée à la reprise (le site appelant l'a rendue suspendue).
  */
-export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number> = new Map(), coup?: QueueDuCoup): Applique {
+export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number> = new Map(), coup?: QueueDuCoup): typeof OPS_DIFFEREES | { faits: FaitDObjet[] } {
   const reste = desDOups(c, weapon, r).filter((d) => !des.has(d.cle));
   if (reste.length) {
     ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
@@ -3880,8 +3950,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   const log: string[] = [tr('cf.oups', { name: nomDe(c), effet: r.label })];
   // UNE Sauvegarde Solide par Maladresse (`engine/oups.desDOups`, #1764) : l'issue se DÉCIDE une fois,
   // et chaque cause de cassure la LIT — Bâclé (LDB 60 l.50), Incident de tir (LDB 14 l.34), Salve.
-  const casse = casseSurMaladresse(weapon, r) ? wearActiveWeapon(c, weapon, true, des.get(CLE_SOLIDE)) : undefined;
-  if (casse) log.push(...ditLUsure(weapon, casse));
+  const { casse: faitDeCasse, faits } = usureDeLOups(c, weapon, r, des);
+  if (faitDeCasse) log.push(...ditLUsure(weapon, faitDeCasse));
+  const casse = faitDeCasse?.issue;
   // L'arme BRISÉE disparaît des mains du porteur : le journal le dit UNE fois, par la PREMIÈRE cause
   // (Bâclé ici, sinon la ligne de l'Incident), sans quoi elle s'évapore en silence.
   if (casse === 'brisee' && hasQuality(weapon, 'bacle')) log.push(tr('store.toolBroken', { tool: weapon.label, name: nomDe(c) }));
@@ -3893,7 +3964,6 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (c.wounds.current <= 0) applyZeroWounds(c);
       break;
     case 'weaponDamageActLast':
-      wearActiveWeapon(c, weapon, false); // 1 Dégât d'arme, persisté sur l'ItemInstance source
       c.actLastNextRound = true;
       break;
     case 'actionPenalty':
@@ -3982,7 +4052,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
-  return undefined;
+  return { faits };
 }
 
 /** L'ARME dont CETTE grappe joue la casse, quel que soit le point d'application qui reprendra.
@@ -5117,7 +5187,7 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
     return;
   }
   const log: string[] = [];
-  if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
+  if (deviate) devierALaReprise(target, dev.location, log); // −1 PA, Critique ignoré
   else {
     const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
     const issue = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
@@ -6759,7 +6829,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     // (`noyau/combat/hitModifiers`), et c'est SON site unique : Démoniaque/Protection (LDB 85 l.98),
     // Dôme (LDB 47 l.410, qui nomme les attaques magiques), Martyr.
     const apresModifiers = runHitModifiers({
-      get, set, attacker: caster, target: cible, res: sauvegarde ? { ...coup, sauvegarde } : coup, attaque: 'magique', sink: () => {},
+      get, attacker: caster, target: cible, res: sauvegarde ? { ...coup, sauvegarde } : coup, attaque: 'magique',
       encaisse: (c) => { lignes.push(...checkFocusInterruption(get, set, c)); },
       ouvrirSauvegarde: (seuils) => { pousserSauvegarde(set, cible.id, seuils, { mode: 'projectile', touche: ch }); },
     });
@@ -6777,8 +6847,6 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const suspendu: CoupSuspendu = { mode: 'projectile', touche };
   const planifie = planifierLesCritiques(get, set, {
     attacker: caster, target: cible, coup: suspendu, decides: ch.critiques ?? [], sousAttaque: false, twice,
-    recompter: recompteurDuCoup(caster, cible, suspendu),
-    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(cible, lieu, n, { casse }), lieu),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
@@ -8140,9 +8208,9 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   if (!drop) return undefined;
   const netSL = defenderSL + bt.defSL - bt.attackerSL; // marge nette du défenseur vainqueur (LDB 62 l.280)
   let line: string;
-  let brisee = false;
+  let usee: FaitDObjet | undefined;
   const usure: string[] = [];
-  if (netSL >= 6) {
+  if (netSL >= SL_ASTOUNDING) {
     // Succès Stupéfiant : la lame est BRISÉE, à moins qu'elle ne possède l'Atout Incassable (l.280).
     // Sa Sauvegarde Solide (LDB 60 l.30) est un dé COMME UN AUTRE : il part à la porte AVANT toute
     // mutation, et la reprise ré-entre ici avec lui. Le DÉSARMEMENT, lui, ne dépend pas de ce dé.
@@ -8154,10 +8222,9 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
     // L'ISSUE fait foi, jamais l'état de `drop` : sur un porteur à `ItemInstance`, la casse est portée
     // par l'item et `recomputeLoadout` reconstruit `attacker.weapons` — le `Weapon` tenu ici est alors
     // une lecture PÉRIMÉE, qui dirait « résiste » d'une lame brisée.
-    const issue = wearActiveWeapon(attacker, drop, true, des.get('piege-a-lame-solide'));
-    usure.push(...ditLUsure(drop, issue));
-    brisee = issue === 'brisee';
-    line = brisee
+    usee = wearActiveWeapon(attacker, drop, true, des.get('piege-a-lame-solide'));
+    usure.push(...ditLUsure(drop, usee));
+    line = usee.issue === 'brisee'
       ? tr('cf.lameBrisee', { name: nomDe(attacker), weapon: drop.label })
       : tr('cf.lameResiste', { weapon: drop.label, name: nomDe(attacker) });
   } else {
@@ -8166,8 +8233,10 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Gantelet verrouillé (AA folio 94) : anti-lâcher — la lame DÉTRUITE échappe à cette grâce (un gantelet
   // ne sauve pas une arme brisée). Sinon, la 1re fois dans la période le porteur GARDE l'arme (−20/1 Round) ;
   // le 2e évènement de lâcher la fait tomber. Capacité lue en DONNÉE (`preventForcedDrop`), jamais par nom.
+  const brisee = usee?.issue === 'brisee';
   if (!brisee && lockedGauntletHolds(attacker, drop, get().battle?.round)) {
-    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: nomDe(attacker), weapon: drop.label })]) });
+    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: nomDe(attacker), weapon: drop.label })]),
+      ...(usee ? { faits: [usee] } : {}) });
     set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
@@ -8177,7 +8246,8 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   if (tombe) crochetDuSol(get, set).onLacher(attacker, tombe);
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
-  pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]) });
+  pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]),
+    faits: [brisee && usee ? usee : faitDObjet(attacker, { arme: weaponIdentity(drop) }, 'lachee')] });
   set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
@@ -9725,12 +9795,13 @@ export const TABLES = {
       // `applyBladeTrap`) journalise ses propres lignes PENDANT cet applier, donc le goulot — qui écrit
       // après lui — les placerait derrière. `dejaDites` dit au goulot que c'est fait (l'étape les affiche).
       journaliser(get, set, lignes, 'information', { actorId: step.actorId });
-      const dit = (extra: string[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
+      const dit = (extra: string[] = [], faits: FaitApplique[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
         journaliser(get, set, extra, 'information', { actorId: step.actorId });
-        const consequences = freeCons([...lignes, ...extra]);
+        const dites = freeCons([...lignes, ...extra]);
+        const consequences = faits.length ? [...dites, { lignes: [], faits }] : dites;
         // RIEN à désigner — l'étape à TABLE n'a pas de ligne de seuil, sa conclusion est la LIGNE TIRÉE,
         // écrite par l'application. Le drapeau ne protège alors aucune écriture : il ne se pose pas.
-        return consequences.length ? { consequences, dejaDites: true } : {};
+        return dites.length ? { consequences, dejaDites: true } : consequences.length ? { consequences } : {};
       };
       const demande = demandesDeLaCasse(get, casse).filter((d) => !des.has(d.cle))[0];
       if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
@@ -9749,7 +9820,7 @@ export const TABLES = {
       // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
       // Rien ne suit que la conclusion du dé de casse : un après-coup qui tient la main emporte sa queue.
       if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? OPS_DIFFEREES : undefined);
-      return dit();
+      return dit([], issue === OPS_DIFFEREES ? [] : issue.faits);
     },
     /** Applier UNIQUE de l'étape « Blessure critique » (#1426) : le Critique est celui que le PLI post-dé a
      *  posé (ou celui du mint quand aucune table n'est déclarée). L'étape offrait-elle ses voies ?

@@ -241,8 +241,9 @@ export type Verdict = 'reussite' | 'echec' | 'critique';
 export type SorteDeTest = 'simple' | 'oppose' | 'etendu';
 
 /** Ce qu'une conséquence change : la Localisation touchée, des Blessures, de l'Avantage, un prix en pourcent, des Points
- *  de Corruption, un État, un Sort lancé ou dissipé, un retard en jours. */
-export type GenreDeConsequence = 'localisation' | 'blessures' | 'avantage' | 'prix' | 'corruption' | 'etat' | 'sort' | 'dissipation' | 'retard';
+ *  de Corruption, un État, un Sort lancé ou dissipé, un retard en jours, un objet (arme ou armure) entamé, brisé ou
+ *  lâché. */
+export type GenreDeConsequence = 'localisation' | 'blessures' | 'avantage' | 'prix' | 'corruption' | 'etat' | 'sort' | 'dissipation' | 'retard' | 'objet';
 
 /** Une conséquence d'un jet tombé, la forme que le noyau projette (#4574) : son genre, sa valeur (un nombre signé, ou
  *  l'id de ce qu'elle désigne), le combattant qu'elle vise, l'icône que la donnée lui donne, son ton pour celui qui

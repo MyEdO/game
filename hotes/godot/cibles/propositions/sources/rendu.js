@@ -274,7 +274,7 @@
   /* le pictogramme qui identifie chaque genre de conséquence ; un genre sans pictogramme écrit son nom et le signale
      (`../combat.md`, « À valider ») */
   const PICTO_DE_LA_CONSEQUENCE = { localisation: 'cible', avantage: 'competence', prix: 'pieces', sort: 'sort', retard: 'sablier' };
-  const NOM_DE_LA_CONSEQUENCE = { localisation: 'Localisation', blessures: 'Blessures', avantage: 'Avantage', prix: 'Prix', corruption: 'Points de Corruption', etat: 'État', sort: 'Sort lancé', dissipation: 'Sort dissipé', retard: 'Retard' };
+  const NOM_DE_LA_CONSEQUENCE = { localisation: 'Localisation', blessures: 'Blessures', avantage: 'Avantage', prix: 'Prix', corruption: 'Points de Corruption', etat: 'État', sort: 'Sort lancé', dissipation: 'Sort dissipé', retard: 'Retard', objet: 'Objet' };
   const NOM_DE_LA_ZONE = { tete: 'Tête', corps: 'Corps', brasD: 'Bras droit', brasG: 'Bras gauche', jambeD: 'Jambe droite', jambeG: 'Jambe gauche' };
   const UNITE_DE_LA_CONSEQUENCE = { prix: ' %', retard: ' j' };
   /* une conséquence en pièce du kit : son pictogramme (celui de la donnée, sinon celui de son genre), sa valeur signée ou

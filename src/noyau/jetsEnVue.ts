@@ -24,7 +24,7 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
-import { attackWeaponOf, faitsPrevusDeLaFuite, faitsPrevusDuCritique } from './combatFlow';
+import { attackWeaponOf, faitsPrevusDeLaFuite, faitsPrevusDeLOups, faitsPrevusDuCritique } from './combatFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
 import { faitsAnnonces, maladresseCourante, resoudreOppositionDeCascade, stepOpposedFreeze, tableStepDef } from './cascade';
@@ -34,7 +34,7 @@ import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme, parryWeaponOf } from './rollFlowSpecs';
 import { JET_FIGE, jetFigeRevele } from './netOwnership';
 import { tonDuFait, type RecapTone } from './recapLine';
-import type { DureeDEtat, FaitApplique, MitigationDesBlessures } from '../engine/faits';
+import type { DureeDEtat, FaitApplique, IssueDObjet, MitigationDesBlessures } from '../engine/faits';
 import type { CodexTarget } from '../engine/ruleRefs';
 import { nomEnVue, porteurEnVue } from './visionDuGroupe';
 import { mancheOpposeeDeTaverneEnVue } from './tavernFlow';
@@ -130,6 +130,18 @@ export interface DetailDeCorruption {
 
 /**
  * @contrat Vue
+ * Le détail d'une conséquence de genre `objet`.
+ */
+export interface DetailDObjet {
+  /** L'objet : `arme` (son id), ou `armure` (la Localisation qu'elle protège). */
+  objet: { arme: string } | { armure: HitLocation };
+  /** Ce que la conséquence en fait : `usee`, `brisee`, `lachee`, `intacte` (Incassable), `sauvee` (Sauvegarde Solide
+   *  tenue sur son dé) ou `imperdable` (sauvée sans dé). */
+  issue: IssueDObjet;
+}
+
+/**
+ * @contrat Vue
  * Le détail propre au genre d'une conséquence (`ConsequenceEnVue.detail`, #4574) ; l'argent n'en porte aucun.
  */
 export type DetailDeConsequence =
@@ -140,7 +152,9 @@ export type DetailDeConsequence =
   /** Genre `etat`. */
   | DetailDEtat
   /** Genre `corruption`. */
-  | DetailDeCorruption;
+  | DetailDeCorruption
+  /** Genre `objet`. */
+  | DetailDObjet;
 
 /**
  * @contrat Vue
@@ -149,10 +163,10 @@ export type DetailDeConsequence =
  * (`jetFigeRevele` faux) n'en publie aucune.
  */
 export interface ConsequenceEnVue {
-  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption`, `argent` ou `localisation`. */
+  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption`, `argent`, `localisation` ou `objet`. */
   genre: FaitApplique['genre'];
-  /** Un nombre signé (Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre), ou l'id de ce que la
-   *  conséquence désigne (`localisation` : l'id de la Localisation frappée). */
+  /** Un nombre signé (Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre, −1 d'un objet entamé ou
+   *  brisé), ou l'id de ce que la conséquence désigne (`localisation` : l'id de la Localisation frappée). */
   valeur: number | HitLocation;
   /** L'id du combattant qui subit le fait, `null` s'il est hors de la vue du groupe. */
   qui: string | null;
@@ -412,10 +426,10 @@ export function oppositionDuCoup(res: AttackResult): OppositionEnVue | null {
   return res.defenderDetail ? { gagnante: res.advantageTo === 'attaquant' ? 0 : res.advantageTo === 'defenseur' ? 1 : null, drNet: res.netSL } : null;
 }
 
-/** Coup d'attaque : la ligne de l'attaquant, celle du défenseur au Test opposé. */
-function lireCoup(flux: FlowKey, de: string, contre: string, res: AttackResult, attaque: ReferenceDeJet | null, defense: ReferenceDeJet | null): JetLuEnVue | null {
+/** Coup d'attaque : la ligne de l'attaquant, qui porte les faits du coup (`faits`), celle du défenseur au Test opposé. */
+function lireCoup(flux: FlowKey, de: string, contre: string, res: AttackResult, attaque: ReferenceDeJet | null, defense: ReferenceDeJet | null, faits: FaitApplique[] = []): JetLuEnVue | null {
   if (!res.attackerDetail) return null;
-  const lignes = [ligneDuDetail('attaquant', de, res.attackerDetail, attaque)];
+  const lignes: LigneLue[] = [{ ...ligneDuDetail('attaquant', de, res.attackerDetail, attaque), ...(faits.length ? { faits } : {}) }];
   if (res.defenderDetail) lignes.push(ligneDuDetail('defenseur', contre, res.defenderDetail, defense));
   const oppose = lignes.some((l) => l.masque || (l.genre === 'test' && l.jet?.dr === null)) ? null : oppositionDuCoup(res);
   return vue(flux, lignes, oppose, undefined, res.defenderDetail ? 'oppose' : 'simple');
@@ -441,7 +455,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     if (pa.result) {
       const mode = pa.result.defenderDetail?.mode;
       const test = cible && mode ? defenseTestOf(cible, mode, pa.result.parryWeapon) : undefined;
-      return lireCoup('attaque', pa.attackerId, pa.targetId, pa.result, referenceAttaque, referenceDuSujet(test));
+      return lireCoup('attaque', pa.attackerId, pa.targetId, pa.result, referenceAttaque, referenceDuSujet(test), fenetreDAttaque(s)?.issue?.faits);
     }
     const annonce = fenetreDAttaque(s);
     if (!annonce?.jet || !('pending' in annonce.jet)) return null;
@@ -465,7 +479,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     const test = defenseur && defenseTestOf(defenseur, pd.result?.defenderDetail?.mode ?? pd.mode,
       pd.result?.parryWeapon ?? parryWeaponOf(defenseur, pd), pd.substituteSkillId);
     const referenceDefense = referenceDuSujet(test || undefined);
-    if (pd.result) return lireCoup('defense', pd.attackerId, pd.defenderId, pd.result, referenceAttaque, referenceDefense);
+    if (pd.result) return lireCoup('defense', pd.attackerId, pd.defenderId, pd.result, referenceAttaque, referenceDefense, fenetreDeDefense(s)?.issue?.faits);
     const revele = jetFigeRevele(s, JET_FIGE.defense(pd));
     const attaque = lectureDeLAttaqueFigee(pd);
     const lignes = [ligne(pd.attackerId, libelleDeLAttaqueFigee(pd), attaque.jet, undefined,
@@ -539,7 +553,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     const m = maladresseCourante(s.pendingCascade);
     if (!m) return null;
     const r = m.maladresse.result;
-    return vue('maladresse', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
+    return vue('maladresse', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null,
+      ...faitsPublies(s, m, faitsDeLEtape(s, m)) }]);
   },
   cascadeEnBande: (s) => {
     const cur = etapeCourante(s);
@@ -695,11 +710,13 @@ function etapeCourante(s: Jeu): CascadeStep | undefined {
 
 /** Les faits d'une étape : ceux qu'elle a appliqués (`step.faits`), sinon, tant qu'elle attend sa validation, ceux que
  *  son application prévoit — la Blessure critique de sa fenêtre de Déviation (`faitsPrevusDuCritique`), les États
- *  Brisés de sa Fuite (`faitsPrevusDeLaFuite`), son annonce (`faitsAnnonces`). Un fait stocké est un fait appliqué. */
+ *  Brisés de sa Fuite (`faitsPrevusDeLaFuite`), l'arme de sa Maladresse tirée (`faitsPrevusDeLOups`), son annonce
+ *  (`faitsAnnonces`). Un fait stocké est un fait appliqué. */
 export function faitsDeLEtape(s: Jeu, step: CascadeStep): FaitApplique[] {
   if (step.faits || step.committed) return step.faits ?? [];
   if (step.deviation && step.options) return faitsPrevusDuCritique(s, step.deviation);
   if (step.fuite) return faitsPrevusDeLaFuite(s, step.fuite);
+  if (step.maladresse?.result) return faitsPrevusDeLOups(s, step.actorId, step.maladresse.weapon, step.maladresse.result);
   return faitsAnnonces(s, step);
 }
 
