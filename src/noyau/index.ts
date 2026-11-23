@@ -122,7 +122,7 @@ export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY 
 export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { Combatant } from '../engine/types';
+export type { Combatant, ItemInstance } from '../engine/types';
 export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
@@ -130,7 +130,7 @@ export { quiTientLaMain, withActingSeat } from './netOwnership';
 export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { GUEST_INTENTS } from './intentionsDeSiege';
-export { DESIGNATIONS, type Designation } from './designations';
+export { DESIGNATIONS, type Designation, type IdDEntiteDeScene, type IdDeHeros } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, meneurDuMonde, porteurParId, PARTY_MAX } from './monde/combatants';
