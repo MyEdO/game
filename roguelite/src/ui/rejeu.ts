@@ -4,7 +4,7 @@
  * la vitesse. Le combat est déjà joué : ce module ne fait que le montrer.
  */
 import type * as J from '../jeu';
-import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
+import { annonceDuCoupSurUnAllie, libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
@@ -115,10 +115,10 @@ function jouerLeCoup(c: Coup, vitesse: number) {
   const [x1, y1] = pos(vers);
   const impact = 300 / vitesse;
   const allie = de.classList.contains('camp-ennemi') === vers.classList.contains('camp-ennemi');
-  // LDB 21 l.19-20 (Animosité)
-  if (allie && c.genre !== 'spell') {
-    flotter(de, 'Animosité !', 'querelle');
-    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.dataset.bulle ?? '')} cède à son Animosité contre ${esc(vers.dataset.bulle ?? '')}</span>`;
+  const annonce = annonceDuCoupSurUnAllie(c, allie);
+  if (annonce) {
+    if (annonce.flash) flotter(de, annonce.flash, 'sur-allie');
+    $('#tour').innerHTML = `<span class="ruban gothique">${esc(annonce.ruban)}</span>`;
   }
   vers.classList.add('cible');
   setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
@@ -137,7 +137,7 @@ function jouerLeCoup(c: Coup, vitesse: number) {
     animer(de, 'fente');
   }
   setTimeout(() => {
-    if (c.touche && allie) {
+    if (c.touche && allie && c.genre === 'spell') {
       flotter(vers, c.sort ?? 'Sort', 'etat');
     } else if (c.touche) {
       animer(vers, 'frappe');

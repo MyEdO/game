@@ -25,6 +25,13 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (`src/noyau/bus.ts`), que `Partie` relaie dans `evenements`. Le type et le nom de l'événement ne sont pas dans la
   surface (`src/noyau/index.ts`) : l'hôte importe `bus.ts`. Sans eux, il devrait relire le texte du journal. Le
   résultat d'un sort (`CastResult`) n'a pas la même forme que celui d'une arme (`AttackResult`), l'hôte normalise.
+- **Trou — la cause d'un coup sur un allié n'est pas typée.** `ChargeDAttaque` dit qui frappe qui, pas pourquoi :
+  un tir dévié dans la mêlée (LDB 14 l.116) ne se lit que dans le texte `ajouts` de l'`AttackResult`
+  (`cf.touchePerdueEnMelee`), et une attaque que l'Animosité porte sur un allié (LDB 21 l.19-20) ne laisse au journal
+  qu'une ligne de Round (« est en proie à sa psychologie (Animosité) »), jamais rattachée au coup. Le rejeu inférait
+  donc l'Animosité de tout coup sur son camp, et l'affichait pour la flèche du Chasseur. L'hôte montre désormais le
+  fait (« Touche un allié ! ») et la ligne du noyau (`ligneDuCoup`, `annonceDuCoupSurUnAllie`). Idée : une cause typée
+  dans la charge du coup (tir dévié, pulsion psychologique, zone), ticket #4830.
 - **Piège — l'arme lâchée par un héros tombé reste sur la scène après la rencontre.** Un héros qui tombe
   Inconscient perd la pièce qu'il tenait : après `fenetreFermer`, elle n'est plus dans ses `items` ni dans sa
   panoplie (constaté : groupe de quatre, un héros à 1 Blessure contre deux gobelins, victoire, sa main vide).

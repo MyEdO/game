@@ -8,6 +8,7 @@ import { arena, setEncounters } from '../../../src/scenes/test-scenarios/_shared
 import { fenetreDuJeu } from '../../../src/noyau/combatAuto';
 import { EVT, type ChargeDAttaque } from '../../../src/noyau/bus';
 import { footprintN } from '../../../src/noyau/monde/footprint';
+import { ligneDuCoup } from '../../../src/engine/combat';
 import { findCreatureById } from '../../../src/data';
 import type { Combatant } from '../../../src/engine/types';
 import { jouerLaFenetre, ouvrirEnAuto } from './partie';
@@ -15,8 +16,9 @@ import { nomDeSort } from './carriere';
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
 export interface PionDuPlateau { id: string; label: string; camp: 'heros' | 'ennemi'; creature?: string; arme?: string; pv: number; max: number; x: number; y: number; cases: number; hors: boolean }
-/** Un coup tel que le noyau l'annonce au rendu (`EVT.ANIM_ATTACK`, `ChargeDAttaque`). */
-export interface Coup { de: string; vers: string; genre: 'melee' | 'distance' | 'creature' | 'spell'; touche: boolean; blessures: number; critique: boolean; defense: 'parade' | 'esquive' | 'aucune'; sort?: string }
+/** Un coup tel que le noyau l'annonce au rendu (`EVT.ANIM_ATTACK`, `ChargeDAttaque`). `ligne` : la ligne que le noyau
+ *  journalise pour un coup d'arme (`ligneDuCoup`), qui dit, elle, ce qui a porté le coup sur sa cible (tir dévié…). */
+export interface Coup { de: string; vers: string; genre: 'melee' | 'distance' | 'creature' | 'spell'; touche: boolean; blessures: number; critique: boolean; defense: 'parade' | 'esquive' | 'aucune'; sort?: string; ligne?: string }
 /** Un État qu'un combattant gagne pendant le pas (`etatGagne` de la partie). */
 export interface EtatGagne { porteur: string; etat: string }
 /** Un pas du rejeu : les lignes du journal, le plateau, les coups portés, l'actif et l'ordre du round. */
@@ -42,7 +44,15 @@ function coupDe(a: ChargeDAttaque): Coup {
     return { ...base, touche, blessures: a.projectile ? a.result.woundsLost ?? 0 : 0, critique: r.isCritical, sort: nomDeSort(a.spell) };
   }
   if (a.kind === 'creature') return { ...base, touche: true, blessures: 0, critique: false };
-  return { ...base, touche: a.result.hit, blessures: a.result.woundsLost ?? 0, critique: !!a.result.critical };
+  return { ...base, touche: a.result.hit, blessures: a.result.woundsLost ?? 0, critique: !!a.result.critical, ligne: ligneDuCoup(a.result) };
+}
+
+/** Ce que le rejeu annonce d'un coup d'arme porté sur une figure de son propre camp (`allie`), `null` pour tout autre
+ *  coup : le fait (`flash`, s'il touche), et pour ruban la ligne que le noyau journalise de ce coup, seule à en dire la
+ *  cause (tir dévié…) ; le noyau ne type pas cette cause (#4830). */
+export function annonceDuCoupSurUnAllie(c: Coup, allie: boolean): { flash: string | null; ruban: string } | null {
+  if (!allie || c.genre === 'spell' || c.de === c.vers || !c.ligne) return null;
+  return { flash: c.touche ? 'Touche un allié !' : null, ruban: c.ligne };
 }
 
 /** Plafond de pas : un combat qui ne se ferme pas s'arrête en impasse plutôt que de boucler. */
