@@ -196,7 +196,7 @@ import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { consommableDe } from '../engine/consumables';
-import { refusDeConsommer, runConsumable } from './consumableFlow';
+import { consignerLaDose, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
   isOutOfAction,
@@ -1955,6 +1955,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
       if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
+      consignerLaDose(get(), porteur, it);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
       journaliser(get, set, [t('cs.useConsumable', { name: nomDe(porteur), item: it.label })], 'objet', { actorId: porteur.id });

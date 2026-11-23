@@ -1371,6 +1371,13 @@ export const consumableDurationSchema = nommerChamps(z.strictObject({
   days: formulaSchema.optional(),
 }), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
 
+/** `PeriodeDeDose` (`src/engine/consumables.ts`). LDB 72 l.22-30 ; #4839 */
+export const periodeDeDoseSchema = enumNomme({
+  rencontre: 'Une par rencontre',
+  jour: 'Une par jour',
+  blessureCritique: 'Une par Blessure Critique',
+});
+
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
  *  termes de jet, refusés nominativement. */

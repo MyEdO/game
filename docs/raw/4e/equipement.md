@@ -242,6 +242,8 @@ Toutes ces substances ont **Enc 0**.
 
 ### Effets
 
+Lecture de la **Dose** arbitrée au ticket #4839 (2026-11-23) : une limite d'usage par buveur et par période (rencontre, jour, Blessure Critique) ; « 1 par personne » (Belladone) dit la quantité qui suffit, sans limite. Lecture d'ingénierie en vigueur, à arbitrer à #4863 : la rencontre court d'une entrée en combat à la suivante, comme pour le soin de Guérison (LDB 09 l.260, `soinRencontreUtilise`) ; le jour est le jour de jeu (`dayIndex`) ; la Blessure Critique est celle que le journal des Critiques subies compte (`critEntriesSuffered`).
+
 #### Belladone (3 CO, Rare)
 Plonge la victime dans un profond sommeil au bout de 2-3 heures, sauf si elle réussit
 un Test de **Résistance**.
@@ -534,8 +536,11 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 | `LDB 62 l.28` | `src/engine/items.ts` l.269 | Mains nues : +BF+0, Personnelle, Inoffensive |
 | `LDB 63 l.18-21` | `src/engine/items.ts` l.481 / `damageArmour` | PA nette = PA − dégâts pris ; endommagement armure |
 | `LDB 72 l.20` | `src/engine/ops.ts` : `opSansObjet` (`preventInfection`) | Cataplasme de guérison : ne panse qu'une Blessure Critique de la rencontre |
-| `LDB 72 l.24` | `src/data/trappings.json` (`potion-de-guerison`) ; `src/noyau/consumableFlow.ts` : `refusDeConsommer` | Potion de guérison : Bonus d'Endurance de Blessures au-delà de 0 Blessure, refusée sans effet |
+| `LDB 72 l.22` | `src/data/trappings.json` (`faxtoryll`, `dose`) ; `src/engine/consumables.ts` : `doseDejaPrise` | Faxtoryll : une dose par Blessure Critique subie |
+| `LDB 72 l.24` | `src/data/trappings.json` (`potion-de-guerison`) ; `src/noyau/consumableFlow.ts` : `refusDeConsommer` | Potion de guérison : Bonus d'Endurance de Blessures au-delà de 0 Blessure, refusée sans effet, une dose par rencontre |
 | `LDB 72 l.26` | `src/data/trappings.json` (`potion-de-vitalite`) | Potion de vitalité : retire tout *Exténué* |
+| `LDB 72 l.28` | `src/data/trappings.json` (`racine-de-terre`, `dose`) ; `src/engine/consumables.ts` : `doseDejaPrise` | Racine de terre : une dose par jour de jeu |
+| `LDB 72 l.30` | `src/data/trappings.json` (`soude-commune`, `dose`) ; `src/engine/persistence.ts` : `REPORT_DE_COMBATTANT` (`dosesDeRencontre`) | Soude commune : une dose par rencontre |
 | `LDB 74 l.41` | `src/engine/healing.ts` : `stopBleedOutcome` | Bandages : +1 pion *Hémorragique* retiré (pas « tout ») |
 | `LDB 18 l.263` | `src/engine/items.ts` l.309 | Amputation → pas d'arme à 2 mains |
 

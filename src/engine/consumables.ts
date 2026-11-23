@@ -21,6 +21,29 @@ export interface ConsumableDuration {
   days?: Formula;
 }
 
+/** Période d'une Dose (`TrappingData.dose`). LDB 72 l.22-30 ; #4839 */
+export type PeriodeDeDose = 'rencontre' | 'jour' | 'blessureCritique';
+
+type PorteurDeDoses = Pick<Combatant, 'dosesDeRencontre' | 'marquesDeDose' | 'critEntriesSuffered'>;
+
+/** Marque de la période en cours d'une Dose datée : le jour de jeu, ou le compte des Blessures Critiques subies. */
+function marqueDeDose(periode: Exclude<PeriodeDeDose, 'rencontre'>, c: PorteurDeDoses, jour: number): number {
+  return periode === 'jour' ? jour : (c.critEntriesSuffered ?? []).length;
+}
+
+/** `c` a-t-il déjà pris sa dose de l'objet `trappingId` dans la période en cours ? LDB 72 l.22-30 */
+export function doseDejaPrise(c: PorteurDeDoses, trappingId: string, periode: PeriodeDeDose, jour: number): boolean {
+  return periode === 'rencontre'
+    ? (c.dosesDeRencontre ?? []).includes(trappingId)
+    : c.marquesDeDose?.[trappingId] === marqueDeDose(periode, c, jour);
+}
+
+/** Consigne sur `c` la dose de l'objet `trappingId` prise dans la période en cours. LDB 72 l.22-30 */
+export function prendreLaDose(c: PorteurDeDoses, trappingId: string, periode: PeriodeDeDose, jour: number): void {
+  if (periode === 'rencontre') c.dosesDeRencontre = [...(c.dosesDeRencontre ?? []), trappingId];
+  else c.marquesDeDose = { ...c.marquesDeDose, [trappingId]: marqueDeDose(periode, c, jour) };
+}
+
 /** Flow de consommation jouable, issu de la fiche courante de l'objet. #2967 */
 export function consommableDe(item: Pick<ItemInstance, 'trappingId'>, resolveTrapping: TrappingResolver): Flow | undefined {
   const flow = ficheDObjetPorte(item, resolveTrapping)?.consumable;

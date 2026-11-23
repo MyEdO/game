@@ -45,7 +45,7 @@ import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi 
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import {
   findTrappingById,
   trappingsInstanciables,
@@ -1103,11 +1103,6 @@ function openAppraise(
   } });
 }
 
-/** Indice du jour depuis l'origine de l'horloge de jeu. */
-export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
-  return Math.floor(s.gameTime / MINUTES_PER_DAY);
-}
-
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
  *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
@@ -1149,7 +1144,7 @@ export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigne
   if (porteurDeLObjet(get(), aEvaluer) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, aEvaluer)))) return;
   const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
-  if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
+  if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, dayIndex(s.gameTime)))) return;
   openAppraise(get, set, cible.target, cible.cible.label, mode, cible.fiche, cible.cible);
 }
 
@@ -1222,7 +1217,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   }
   if (!pa.success) {
     // LDB 12 l.94
-    if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
+    if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: dayIndex(get().gameTime) });
     get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;
   }
