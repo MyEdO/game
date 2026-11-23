@@ -1924,7 +1924,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping });
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes;
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
