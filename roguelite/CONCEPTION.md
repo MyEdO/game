@@ -143,7 +143,9 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   inutilisable dans le jeu ou non implémenté (sorts/miracles), et je ne veux pas pouvoir choisir, ca reste aléatoire,
   mais juste bien les flagger comme il faut car ils ne se jouent pas tous de la même maniere ». — Le Collège d'un
   sorcier et le dieu d'un prêtre se tirent au recrutement, parmi ceux que le noyau joue (mesure :
-  `docs/sorts-implementation.md`), et la carte du héros les affiche.
+  `docs/sorts-implementation.md`), et la carte du héros les affiche. « Les sorciers de Vents de magie seront plus
+  adapté d'ailleurs que le sorcier générique » : le lanceur du roster est une carrière de Collège (VDM ch. 4 à 11 :
+  pyromancien, hierophante, druide, chamane, alchimiste, spirite), tirée au recrutement.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
