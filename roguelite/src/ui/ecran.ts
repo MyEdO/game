@@ -54,7 +54,9 @@ export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) =
 /** `classe` : `lieu` est la scène même du hameau ou de
  *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
 export function ecran(o: { nom: string; classe?: 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
-  const cartes = o.socle.heros.map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, { refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h) })).join('');
+  // Les héros disponibles d'abord ; puis les hors de combat ; puis ceux qui sont à l'hospice.
+  const rang = (h: J.Heros) => (h.retrait ? 2 : J.valide(h) ? 0 : 1);
+  const cartes = [...o.socle.heros].sort((a, b) => rang(a) - rang(b)).map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, { refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h) })).join('');
   const lieu = o.classe === 'lieu';
   return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}
