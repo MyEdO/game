@@ -14,7 +14,7 @@ Trois nappes jointes en une pièce :
   l'avant-bras ; le dessus suit le bras, le dessous pend en poche sous l'avant-bras, évasée en cloche, creusée de
   godets depuis le coude, le bord en dents galonné ; fermée à l'épaule par un cône dans le corps.
 Poids : le corsage et la manche jusqu'au coude empruntent au corps, sommet par sommet, lissés ; au-delà, la manche suit
-le tour de la manche de la base, et sa poche, ses brins (`tissu.Manche`) ; les jupes prennent les os des deux brins
+l'os du tube de la manche de la base, et sa poche, ses brins (`tissu.Manche`) ; les jupes prennent les os des deux brins
 voisins du filet (`tissu.Filet`). Silhouettes et clés `gabarit_*` transférées.
 """
 import math
@@ -182,7 +182,7 @@ def construire(D, materiaux, b):
 def manches(D, b, materiaux):
     """Les deux manches, double nappe à l'envers en doublure : anneaux perpendiculaires à l'axe du bras (`MANCHE`), aux
     azimuts `AZIMUTS_DE_MANCHE`, serrés dessous. Le dessus suit le bras à son aisance ; dessous, la poche pend en lobe.
-    Jusqu'au coude, la manche emprunte ses poids au bras, sommet par sommet. Au-delà, l'anneau suit le tour de la manche
+    Jusqu'au coude, la manche emprunte ses poids au bras, sommet par sommet. Au-delà, l'anneau suit l'os du tube de la manche
     de la base et la poche pend à ses brins (`tissu.Manche.pendre`), de plus en plus bas, évasée en cloche vers le bas,
     ses godets creusés une colonne sur deux ; le bord en dents, galonné."""
     toile = Toile()

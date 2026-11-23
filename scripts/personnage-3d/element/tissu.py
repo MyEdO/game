@@ -32,11 +32,24 @@ CHARNIERE_M = 0.10
 """Hauteur, en mètres, sous les racines d'un filet, sur laquelle une nappe passe du corps au filet (`Filet.part`)."""
 FONDU_D_OS_M = 0.12
 """Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
-(`Filet.poids`)."""
+(`le_long_du_brin`)."""
 EGALITE_DE_ZONE_M = 1e-5
 """Écart de distance, en mètres, sous lequel deux zones sont aussi proches d'une face (`Base.zones_des_faces`) : le
 point le plus proche d'une face posée sur la couture de deux zones est sur leurs deux bords, à des distances que
 l'arrondi de la machine départage (la robe de #4002 : 61 faces à égalité, écarts de 1e-8 à 3e-7 m)."""
+
+
+def le_long_du_brin(w, os_, hauteurs, indice_os, z, reste):
+    """Ajoute aux poids `w` la part `reste` d'un point de hauteur `z` le long du brin d'os `os_`, d'articulations aux
+    hauteurs `hauteurs` (K+1) : d'un os au suivant autour de leur articulation, sur `FONDU_D_OS_M` ou sur la hauteur de
+    l'os s'il est plus court."""
+    for k, nom in enumerate(os_):
+        sous = 0.0
+        if k + 1 < len(os_):
+            fondu_d_os = min(FONDU_D_OS_M, float(hauteurs[k] - hauteurs[k + 1]))
+            sous = fondu((hauteurs[k + 1] + fondu_d_os / 2 - z) / fondu_d_os)
+        w[indice_os[nom]] += reste * (1 - sous)
+        reste *= sous
 
 
 def direction(theta):
@@ -101,20 +114,17 @@ class Filet:
 
     def poids(self, z, theta):
         """Les poids du point (`z`, `theta`) : entre ses deux brins voisins selon l'azimut, le long de chacun d'un os au
-        suivant sur `FONDU_D_OS_M` autour de leur articulation."""
+        suivant (`le_long_du_brin`)."""
         _, i, j, part = self.point(z, theta)
         w = np.zeros(len(self.indice_os))
         for s, reste in ((i, 1 - part), (j, part)):
-            for k, os_ in enumerate(self.os[s]):
-                sous = fondu((self.brins[s, k + 1, 2] + FONDU_D_OS_M / 2 - z) / FONDU_D_OS_M) if k + 1 < len(self.os[s]) else 0.0
-                w[self.indice_os[os_]] += reste * (1 - sous)
-                reste *= sous
+            le_long_du_brin(w, self.os[s], self.brins[s, :, 2], self.indice_os, z, reste)
         return w
 
 
 class Manche:
     """Une manche de la base au repos (`manches_au_repos`, `base/filets.py`) sous la poche qui la suit : l'os qui
-    tourne son tube autour de l'avant-bras d'une portion du tour de la manche, que suit son dessus (`tour`) ; ses
+    tourne son tube autour de l'avant-bras d'une portion du tour de la manche, que suit son dessus (`dessus`) ; ses
     poids, par os de la base, en un point de la poche (`poids`)."""
 
     def __init__(self, repos, indice_os):
@@ -134,12 +144,12 @@ class Manche:
 
     def pendre(self, tube, pans):
         """La poche qui pend sous l'anneau `tube` de la manche, bras tendu : chaque point descend d'aplomb de son pan de
-        `pans`, ses poids passent du tour de la manche à ses brins. Rend les points et leurs poids."""
+        `pans`, ses poids passent de l'os du tube de la manche à ses brins. Rend les points et leurs poids."""
         points = [np.asarray(p) + pan * np.array([0.0, 0.0, -1.0]) for p, pan in zip(tube, pans)]
-        return points, [(1 - self.part(pan)) * self.tour(p) + self.part(pan) * self.poids(q)
+        return points, [(1 - self.part(pan)) * self.dessus(p) + self.part(pan) * self.poids(q)
                         for p, q, pan in zip(tube, points, pans)]
 
-    def tour(self, p):
+    def dessus(self, p):
         """Les poids du point `p` du dessus de la manche : de l'avant-bras, au coude, à l'os du tube, le long de
         l'avant-bras."""
         vers = min(1.0, max(0.0, float((np.asarray(p) - self.coude) @ self.axe) / self.part_du_tube))
@@ -154,8 +164,7 @@ class Manche:
 
     def poids(self, p):
         """Les poids du point `p` de la poche : entre les deux stations voisines le long de l'avant-bras, à chacune entre
-        son brin d'arrière et son brin d'avant, le long de chaque brin d'un os au suivant autour de leur articulation,
-        sur `FONDU_D_OS_M` ou sur la longueur de l'os s'il est plus court."""
+        son brin d'arrière et son brin d'avant, le long de chaque brin d'un os au suivant (`le_long_du_brin`)."""
         part = float((np.asarray(p) - self.coude) @ self.axe)
         j = int(np.clip(np.searchsorted(self.stations, part) - 1, 0, len(self.stations) - 2))
         vers = min(1.0, max(0.0, (part - self.stations[j]) / (self.stations[j + 1] - self.stations[j])))
@@ -165,13 +174,7 @@ class Manche:
             travers = avant - arriere
             en_avant = min(1.0, max(0.0, float((np.asarray(p) - arriere) @ travers / (travers @ travers))))
             for s, reste in zip(self.faces[station], (reste_de_station * (1 - en_avant), reste_de_station * en_avant)):
-                for k, os_ in enumerate(self.os[s]):
-                    sous = 0.0
-                    if k + 1 < len(self.os[s]):
-                        fondu_d_os = min(FONDU_D_OS_M, float(self.brins[s, k, 2] - self.brins[s, k + 1, 2]))
-                        sous = fondu((self.brins[s, k + 1, 2] + fondu_d_os / 2 - p[2]) / fondu_d_os)
-                    w[self.indice_os[os_]] += reste * (1 - sous)
-                    reste *= sous
+                le_long_du_brin(w, self.os[s], self.brins[s, :, 2], self.indice_os, p[2], reste)
         return w
 
 

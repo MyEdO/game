@@ -10,8 +10,8 @@ Une double nappe `robe`, d'un seul pan, fermée :
   fermée à l'épaule par un cône dans le corps, le bord en lambeaux si `LAMBEAUX_MANCHE`.
 Poids : le corsage et le raccord des manches à l'épaule empruntent au corps, sommet par sommet ; au-delà de
 `RACCORD_EPAULE`, la manche suit d'un bloc les os de la peau à `COUPE_DES_POIDS`, sans lissage ; passé le coude, un
-anneau qui porte un pan suit le tour de la manche de la base, et son pan, ses brins (`tissu.Manche`) ; la jupe prend les
-os des deux brins voisins du filet (`tissu.Filet`), jamais les cuisses.
+anneau qui porte un pan suit l'os du tube de la manche de la base, et son pan, ses brins (`tissu.Manche`) ; la jupe
+prend les os des deux brins voisins du filet (`tissu.Filet`), jamais les cuisses.
 Silhouettes et clés `gabarit_*` transférées. Chaque emplacement de `EMPLACEMENTS_DEPLACES` passe de la peau de la base
 à la surface de la robe (`Base.offrir_sur`).
 
@@ -221,22 +221,27 @@ def fermer_a_l_epaule(nappe, liste, porteur):
 def manches(D, b, robe, porteurs):
     """Chaque manche de `robe`, anneaux perpendiculaires à `upperarm` (`MANCHE`), fermée à l'épaule par un cône dans le
     corps. Un pan pend en lobe sous le bras tendu : jusqu'au coude, il suit le bras ; au-delà, il pend à la manche de la
-    base (`tissu.Manche.pendre`), dont l'anneau suit le tour."""
+    base (`tissu.Manche.pendre`), dont l'anneau suit l'os du tube."""
     s = D['SEGMENTS_MANCHE']
     phis = tour(s)
     lobe = [max(0.0, -math.cos(math.radians(t))) ** 2 for t in phis]
     for c, signe in (('g', 1.0), ('d', -1.0)):
         _, anneau_de_bras = bras_de(D, b, c, signe, phis)
-        poids_du_bras = bloc_du_bras(D, anneau_de_bras, s, porteurs[c])
+        poids_du_bras = None
         manche = b.manche(c) if any(f > 1 and pend for f, _, pend in D['MANCHE']) else None
         liste = []
         for f, e, pend in D['MANCHE']:
             pendu = f > 1 and pend > 0
             pts, centre, _ = anneau_de_bras(f, [e + (0.0 if pendu else pend * l) for l in lobe])
             raccord = f < D['RACCORD_EPAULE']
-            poids = [emprunter(p, porteurs[c])[0] for p in pts] if raccord else [poids_du_bras] * s
             if pendu:
                 pts, poids = manche.pendre(pts, [pend * l for l in lobe])
+            elif raccord:
+                poids = [emprunter(p, porteurs[c])[0] for p in pts]
+            else:
+                if poids_du_bras is None:
+                    poids_du_bras = bloc_du_bras(D, anneau_de_bras, s, porteurs[c])
+                poids = [poids_du_bras] * s
             liste.append((robe.poser(pts, poids, fixes=not raccord), centre))
         if 'LAMBEAUX_MANCHE' in D:
             # Le bord en lambeaux : chaque colonne du dernier anneau recule le long de la manche de la profondeur que lui

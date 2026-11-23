@@ -120,7 +120,7 @@ EVASEMENT_DE_LA_POCHE = 0.2
 plan médian. Illustration : la manche s'ouvre en cloche, plus large en bas qu'au bras (HYPOTHÈSE : l'ouverture, de face,
 ne se voit pas ; 0,2 donne ~21 cm de large à mi-hauteur de la poche, pour ~17 cm au bras)."""
 RACCORD_AU_BRAS = 1.0              # fraction sous laquelle un anneau emprunte ses poids au bras, sommet par sommet ; au-delà,
-                                   # il suit le tour de la manche de la base, et sa poche, ses brins
+                                   # il suit l'os du tube de la manche de la base, et sa poche, ses brins
 GODETS = {'creux': 0.05, 'debut': 0.85, 'colonnes': [4, 6, 8, 10]}
 """Illustration : la poche tombe en godets qui partent du coude. `colonnes` : les colonnes du dessous creusées (une sur
 deux) vers le plan médian de la manche, de `creux` au bord, de rien à la fraction `debut` (HYPOTHÈSE : 5 cm)."""

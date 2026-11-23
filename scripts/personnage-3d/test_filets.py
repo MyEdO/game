@@ -1,11 +1,14 @@
 """filets.draper sur une base synthétique exportée en GLB : un squelette aux os de la base, un corps en tubes par zone,
-un clip qui lève la cuisse gauche. Les os des filets et des manches joints à la peau, leurs pistes LINEAR image par
+un clip qui lève la cuisse gauche, un clip d'hampe où la main droite balaie de son fût la manche droite. Les os des filets et des manches joints à la peau, leurs pistes LINEAR image par
 image, les racines autour du corps, la cape par-dessus la jupe, le brin de devant levé par la cuisse et celui de
 derrière au repos, le même GLB quand on le drape deux fois, ce qu'une nappe lit du filet au repos (`tissu.Filet`), et
 l'image d'un filet monté (`Monte.etat`) : debout ou couché, de l'un à l'autre sur ses images voisines, et sous ce que
 le bras balaie d'un instant voisin. Les manches : leurs brins d'aplomb sous l'avant-bras tendu, enfants de leur tour ; sous un avant-bras qui roule,
-le tour qui ramène la manche à son côté bas, le tube qui n'en prend qu'une portion, et les brins qui restent d'aplomb ; les liens de ses brins voisins ; le tour lissé d'un demi-tour ; le fût
-d'une hampe qui écarte un brin ; le brin qu'un obstacle lâche, rendu à l'aplomb sur ses images voisines ; ce qu'une poche lit de la manche au repos (`tissu.Manche`)."""
+le tour qui ramène la manche à son côté bas, le tube qui n'en prend qu'une portion, et les brins qui restent d'aplomb ;
+les liens de ses brins voisins ; le tour lissé d'une image à ses voisines ; le fût d'une hampe qui écarte un brin ; le
+brin qu'un obstacle lâche, qui retombe peu à peu sans y rentrer, à un ou trois instants par image, et le clip en
+boucle qui se referme ; les os d'une
+manche hors du fût qui la traverse dans un clip d'hampe ; ce qu'une poche lit de la manche au repos (`tissu.Manche`). `tour` : le demi-tour."""
 import math
 import sys
 import tempfile
@@ -21,8 +24,8 @@ sys.path[:0] = [str(Path(__file__).resolve().parent / dossier) for dossier in ('
 from animation import assign_action, clear_animation  # noqa: E402
 import tente  # noqa: E402
 import pendant  # noqa: E402
-from filets import (COUCHE_SOUS_LE_SOL_M, FILETS, FUT_DE_HAMPE, MANCHES, Manche, Monte, Peau, Squelette, autour, draper,  # noqa: E402
-                    filets_au_repos, manches_au_repos, os_du_tour, os_du_tube, repere_de_prise)
+from filets import (COUCHE_SOUS_LE_SOL_M, FILETS, FUT_DE_HAMPE, JEU_LISSE_M, LISSAGE, MANCHES, Manche, Monte, Peau,  # noqa: E402
+                    Squelette, autour, draper, filets_au_repos, manches_au_repos, os_du_tour, os_du_tube, repere_de_prise, tour)
 from pistes import sacs  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from tissu import CHARNIERE_M, Filet  # noqa: E402
@@ -66,6 +69,10 @@ LEVEE = math.radians(70)
 IMAGES = 12
 PRISE = {'os': 'hand_r', 'position': [0.0, 0.05, 0.0], 'rotation': [0.0, 0.0, 0.0]}
 """La prise `main`, à 5 cm sur l'os de la main droite, son +Y le long de l'os."""
+HAMPES = {'Hampe'}
+PLONGEE, BALAYAGE_DU_FUT = math.radians(45), math.radians(25)
+"""Le clip `Hampe` : la main droite plonge le talon du fût de `PLONGEE` sous l'avant-bras, et le balaie de
+`BALAYAGE_DU_FUT` d'un côté à l'autre de la manche."""
 
 
 def tube(nom, centres, rayon, os_, rig):
@@ -90,8 +97,8 @@ def tube(nom, centres, rayon, os_, rig):
 
 
 def construire(chemin):
-    """Exporte en `chemin` le squelette `OS`, le corps `Corps-<zone>` de `TUBES` et le clip `Pas`, qui lève la cuisse
-    gauche de `LEVEE` vers l'avant à mi-chemin de ses `IMAGES` images."""
+    """Exporte en `chemin` le squelette `OS`, le corps `Corps-<zone>` de `TUBES`, le clip `Pas`, qui lève la cuisse
+    gauche de `LEVEE` vers l'avant à mi-chemin de ses `IMAGES` images, et le clip `Hampe`, de `IMAGES` images."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig = bpy.data.objects.new('Rig', bpy.data.armatures.new('Rig'))
     bpy.context.scene.collection.objects.link(rig)
@@ -104,18 +111,26 @@ def construire(chemin):
     bpy.ops.object.mode_set(mode='OBJECT')
     for zone, (centres, rayon, os_) in TUBES.items():
         tube(f'Corps-{zone}', centres, rayon, os_, rig)
-    action = bpy.data.actions.new('Pas')
-    assign_action(rig, action)
-    cuisse = rig.pose.bones['thigh_l']
-    cuisse.rotation_mode = 'QUATERNION'
-    vers_l_avant = cuisse.bone.matrix_local.to_3x3().inverted() @ Quaternion((1.0, 0.0, 0.0), -LEVEE).to_matrix() @ cuisse.bone.matrix_local.to_3x3()
-    for image, rotation in ((0, Quaternion()), (IMAGES // 2, vers_l_avant.to_quaternion()), (IMAGES, Quaternion())):
-        cuisse.rotation_quaternion = rotation
-        cuisse.keyframe_insert('rotation_quaternion', frame=image)
-    for sac in sacs(action):
-        for courbe in sac.fcurves:
-            for cle in courbe.keyframe_points:
-                cle.interpolation = 'LINEAR'
+    def clip(nom, os_, poses):
+        """Le clip `nom` : l'os `os_` tourné, dans le repère de l'armature, de chaque rotation de `poses` (image, rotation)."""
+        action = bpy.data.actions.new(nom)
+        clear_animation(rig)
+        assign_action(rig, action)
+        pose = rig.pose.bones[os_]
+        pose.rotation_mode = 'QUATERNION'
+        au_repos = pose.bone.matrix_local.to_3x3()
+        for image, rotation in poses:
+            pose.rotation_quaternion = (au_repos.inverted() @ rotation.to_matrix() @ au_repos).to_quaternion()
+            pose.keyframe_insert('rotation_quaternion', frame=image)
+        for sac in sacs(action):
+            for courbe in sac.fcurves:
+                for cle in courbe.keyframe_points:
+                    cle.interpolation = 'LINEAR'
+        return action
+
+    plongee = Quaternion((0.0, 1.0, 0.0), PLONGEE)
+    clip('Hampe', 'hand_r', [(0, Quaternion((0.0, 0.0, 1.0), BALAYAGE_DU_FUT) @ plongee), (IMAGES, Quaternion((0.0, 0.0, 1.0), -BALAYAGE_DU_FUT) @ plongee)])
+    action = clip('Pas', 'thigh_l', [(0, Quaternion()), (IMAGES // 2, Quaternion((1.0, 0.0, 0.0), -LEVEE)), (IMAGES, Quaternion())])
     clear_animation(rig)
     assign_action(rig, action)
     bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
@@ -130,7 +145,7 @@ class Filets(unittest.TestCase):
         cls.addClassCleanup(cls.dossier.cleanup)
         cls.chemin = Path(cls.dossier.name) / 'base.glb'
         construire(cls.chemin)
-        cls.chaines = draper(cls.chemin, 'Corps', PRISE, set())
+        cls.chaines = draper(cls.chemin, 'Corps', PRISE, HAMPES)
         cls.squelette = Squelette(cls.chemin)
         cls.repos = filets_au_repos(cls.chemin)
         cls.manches = manches_au_repos(cls.chemin)
@@ -147,7 +162,7 @@ class Filets(unittest.TestCase):
         parent = lambda os_: self.squelette.noeuds[self.squelette.parent[self.squelette.indice[os_]]]['name']
         for manche in MANCHES:
             repos = self.manches[manche['nom']]
-            self.assertEqual((repos['porteur'], repos['tube'], repos['part_du_tube']), (manche['porteur'], os_du_tube(manche), 0.1))
+            self.assertEqual((repos['porteur'], repos['tube'], repos['part_du_tube']), (manche['porteur'], os_du_tube(manche), manche['tube'][0]))
             self.assertEqual([parent(os_du_tube(manche)), parent(os_du_tour(manche))], [manche['porteur']] * 2)
             for brin in repos['os']:
                 self.assertEqual([parent(os_) for os_ in brin], [os_du_tour(manche), *brin[:-1]])
@@ -226,7 +241,7 @@ class Filets(unittest.TestCase):
         sur_le_dos = np.eye(4)
         sur_le_dos[:3, :3] = [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
         couche = sur_le_dos @ mondes['pelvis']
-        np.testing.assert_allclose(jupe.aplombs([mondes['pelvis'], couche], False), [1 - 22 / 64, 22 / 64], atol=1e-9)
+        np.testing.assert_allclose(jupe.aplombs([mondes['pelvis'], couche], False), [LISSAGE[:4].sum(), LISSAGE[:3].sum()], atol=1e-9)
         (_, _, Q, _, sol), _ = jupe.etat(mondes, sommets, [], [], 1.0)
         np.testing.assert_allclose(Q, np.eye(3), atol=1e-6)
         self.assertAlmostEqual(sol, tente.SOL_M)
@@ -243,7 +258,7 @@ class Filets(unittest.TestCase):
         chute = jupe.aplombs([debout] * 6 + [couche] * 6, False)
         np.testing.assert_allclose(chute[[0, 1, 2, -3, -2, -1]], [1, 1, 1, 0, 0, 0], atol=1e-9)
         self.assertAlmostEqual(float(-np.diff(chute).max()), 0.0)
-        self.assertAlmostEqual(float(-np.diff(chute).min()), 20 / 64)
+        self.assertAlmostEqual(float(-np.diff(chute).min()), LISSAGE.max())
         boucle = jupe.aplombs([debout] * 4 + [couche] * 4 + [debout], True)
         self.assertEqual(boucle[0], boucle[-1])
         self.assertLess(boucle[0], 1.0)
@@ -259,7 +274,7 @@ class Filets(unittest.TestCase):
 
     def test_draper_deux_fois_rend_le_meme_filet(self):
         pistes = self.squelette.pistes('Pas')
-        self.assertEqual(draper(self.chemin, 'Corps', PRISE, set()), self.chaines)
+        self.assertEqual(draper(self.chemin, 'Corps', PRISE, HAMPES), self.chaines)
         encore = Squelette(self.chemin)
         self.assertEqual(len(encore.noeuds), len(self.squelette.noeuds))
         self.assertEqual(encore.peau['joints'], self.squelette.peau['joints'])
@@ -295,15 +310,15 @@ class Filets(unittest.TestCase):
         roule[:3, :3] = autour(np.array([1.0, 0.0, 0.0]), np.radians(120))
         roule[:3, 3] = coude - roule[:3, :3] @ coude
         pose = roule @ mondes['lowerarm_l']
-        x, rotations = (image[0] for image in manche.cuire([({'lowerarm_l': pose}, [pendant.Sol(tente.SOL_M)])], False))
+        x, rotations = (image[0] for image in manche.cuire([({'lowerarm_l': pose}, [pendant.Sol(tente.SOL_M)])], 1, False))
         np.testing.assert_allclose(x[:, 0], manche.repos[:, 0], atol=1e-6)
         np.testing.assert_allclose(x, manche.repos, atol=1e-6)
         tours = [2 * np.degrees(np.arccos(abs(rotations[os_][3]))) for os_ in (os_du_tour(MANCHES[0]), os_du_tube(MANCHES[0]))]
-        np.testing.assert_allclose(tours, [120.0, 0.5 * 120.0], atol=1e-4)
+        np.testing.assert_allclose(tours, [120.0, MANCHES[0]['tube'][1] * 120.0], atol=1e-4)
         dresse = np.eye(4)
         dresse[:3, :3] = autour(np.array([0.0, 1.0, 0.0]), np.radians(90))
         dresse[:3, 3] = coude - dresse[:3, :3] @ coude
-        x, rotations = (image[0] for image in manche.cuire([({'lowerarm_l': dresse @ mondes['lowerarm_l']}, [pendant.Sol(tente.SOL_M)])], False))
+        x, rotations = (image[0] for image in manche.cuire([({'lowerarm_l': dresse @ mondes['lowerarm_l']}, [pendant.Sol(tente.SOL_M)])], 1, False))
         np.testing.assert_allclose(rotations[os_du_tour(MANCHES[0])], [0, 0, 0, 1], atol=1e-6)
         np.testing.assert_allclose(x[:, 1:, :2], x[:, :1, :2].repeat(3, axis=1), atol=1e-6)
 
@@ -326,49 +341,99 @@ class Filets(unittest.TestCase):
             m[:3, 3] = coude - m[:3, :3] @ coude
             return {'lowerarm_l': m @ mondes['lowerarm_l']}, [pendant.Sol(tente.SOL_M)]
 
-        _, rotations = manche.cuire([roule(0)] * 6 + [roule(120)] * 6, False)
+        _, rotations = manche.cuire([roule(0)] * 6 + [roule(120)] * 6, 1, False)
         angles = np.array([2 * np.degrees(np.arccos(abs(image[os_du_tour(MANCHES[0])][3]))) for image in rotations])
         np.testing.assert_allclose(angles[[0, 1, 2, -3, -2, -1]], [0, 0, 0, 120, 120, 120], atol=1e-4)
         self.assertTrue((np.diff(angles) >= -1e-9).all())
-        self.assertLess(np.diff(angles).max(), 120 * 20 / 64 + 1e-4)
+        self.assertLess(np.diff(angles).max(), 120 * LISSAGE.max() + 1e-4)
 
-
-    def test_un_brin_qu_un_obstacle_lache_revient_a_l_aplomb_sur_ses_images_voisines(self):
+    def test_un_brin_qu_un_obstacle_lache_retombe_peu_a_peu_sans_y_rentrer_et_un_clip_en_boucle_se_referme(self):
         manche, peau, (mondes, sommets) = self.manche_montee()
         bout = manche.repos[-1, -1]
         fut = pendant.Fut(bout + [0.0, -0.5, 0.05], bout + [0.0, 0.5, 0.05], 0.05)
         sol = pendant.Sol(tente.SOL_M)
         pris, libre = ({'lowerarm_l': mondes['lowerarm_l']}, [fut, sol]), ({'lowerarm_l': mondes['lowerarm_l']}, [sol])
-        poses, _ = manche.cuire([pris] * 6 + [libre] * 6, False)
-        bouts = np.array([x[-1, -1] for x in poses])
-        ecart = np.linalg.norm(bouts[0] - bouts[-1])
-        self.assertGreater(ecart, 0.05)
-        np.testing.assert_allclose(bouts[-1], bout, atol=1e-6)
-        self.assertLess(np.linalg.norm(np.diff(bouts, axis=0), axis=1).max(), 0.4 * ecart)
-        longueurs = np.linalg.norm(np.diff(np.array(poses), axis=2), axis=3)
+        demi = len(LISSAGE) // 2
+        poses = np.array(manche.cuire([pris] * 8 + [libre] * 8, 1, False)[0])
+        np.testing.assert_allclose(poses[:8 - demi], poses[:1].repeat(8 - demi, axis=0), atol=1e-3)
+        angles = np.arccos((poses[:, -1, -1] - poses[:, -1, -2]) / manche.longueurs[-1, -1] @ pendant.BAS)
+        self.assertGreater(np.degrees(angles[0]), 20.0)
+        self.assertTrue((np.diff(angles) < 1e-6).all())
+        self.assertLess(-np.diff(angles).min(), pendant.RETOUR * angles[0])
+        self.assertLess(angles[-1], angles[0] * (1 - pendant.RETOUR) ** 5)
+        points = poses[:8, :, :-1, None, :] + np.linspace(0, 1, 6)[None, None, None, :, None] * (poses[:8, :, 1:] - poses[:8, :, :-1])[:, :, :, None, :]
+        au_fut = np.hypot(points[..., 0] - fut.a[0], points[..., 2] - fut.a[2])
+        self.assertGreater(au_fut.min(), fut.r + JEU_LISSE_M - 0.005)
+        self.assertLess(au_fut[:8 - demi].min(), fut.r + pendant.JEU_M + 0.005)
+        self.assertGreater(au_fut[:8 - demi].min(), fut.r + pendant.JEU_M - 0.005)
+        longueurs = np.linalg.norm(np.diff(poses, axis=2), axis=3)
         np.testing.assert_allclose(longueurs, np.broadcast_to(manche.longueurs, longueurs.shape), atol=1e-9)
+        par_tiers = np.array(manche.cuire([pris] * 22 + [libre] * 24, 3, False)[0])
+        np.testing.assert_allclose(par_tiers, poses, atol=5e-3)
+        boucle = np.array(manche.cuire([libre] * 4 + [pris] * 4 + [libre], 1, True)[0])
+        np.testing.assert_allclose(boucle[0], boucle[-1], atol=1e-9)
+        self.assertGreater(np.abs(boucle[0] - manche.repos).max(), 0.005)
 
     def test_le_fut_d_une_hampe_ecarte_le_brin_qu_il_croise(self):
         manche, peau, (mondes, sommets) = self.manche_montee()
         racine = manche.repos[4, 0]
         fut = pendant.Fut(racine + [0.0, -1.0, -0.2], racine + [0.0, 1.0, -0.2], FUT_DE_HAMPE[2])
-        libres, _ = manche.cuire([(mondes, [pendant.Peaux(*peau.orientee(sommets))])], False)
-        ecartes, _ = manche.cuire([(mondes, [pendant.Peaux(*peau.orientee(sommets)), fut])], False)
+        libres, _ = manche.cuire([(mondes, [pendant.Peaux(*peau.orientee(sommets))])], 1, False)
+        ecartes, _ = manche.cuire([(mondes, [pendant.Peaux(*peau.orientee(sommets)), fut])], 1, False)
         np.testing.assert_allclose(libres[0], manche.repos, atol=1e-6)
         points = ecartes[0][4, :-1, None, :] + np.linspace(0, 1, 6)[None, :, None] * (ecartes[0][4, 1:] - ecartes[0][4, :-1])[:, None, :]
         self.assertGreater(np.hypot(points[..., 0] - racine[0], points[..., 2] - racine[2] + 0.2).min(), FUT_DE_HAMPE[2] + pendant.JEU_M - 0.005)
         prise = repere_de_prise({'os': 'hand_r', 'position': [0.1, 0.2, 0.3], 'rotation': [np.pi / 2, 0.0, 0.0]})
         np.testing.assert_allclose(prise, [[1, 0, 0, 0.1], [0, 0, -1, 0.2], [0, 1, 0, 0.3], [0, 0, 0, 1]], atol=1e-9)
 
-    def test_une_poche_lit_sur_la_manche_son_tour_et_ses_poids(self):
+    def test_dans_un_clip_d_hampe_les_os_d_une_manche_restent_hors_du_fut_qui_la_traverse(self):
+        manche = MANCHES[1]
+        repos = self.manches[manche['nom']]
+        pistes = self.squelette.pistes('Hampe')
+        dans_la_main = repere_de_prise(PRISE)
+        parts = np.linspace(0, 1, 6)
+        longueurs = np.array([longueur / manche['os'] for *_, longueur in manche['brins']])
+        parcourus = (np.arange(manche['os'])[None, :, None] + parts[None, None, :]) * longueurs[:, None, None]
+        jeux = FUT_DE_HAMPE[2] + JEU_LISSE_M * np.clip(parcourus / pendant.DEPART_M, 0.0, 1.0)
+
+        def au_fut(points, main):
+            fut = main @ dans_la_main
+            depuis = points - (fut[:3, 3] + FUT_DE_HAMPE[0] * fut[:3, 1])
+            le_long = np.clip(depuis @ fut[:3, 1], 0.0, FUT_DE_HAMPE[1] - FUT_DE_HAMPE[0])
+            return np.linalg.norm(depuis - le_long[..., None] * fut[:3, 1], axis=-1)
+
+        au_repos = repos['brins'][:, :-1, None, :] + parts[None, None, :, None] * (repos['brins'][:, 1:] - repos['brins'][:, :-1])[:, :, None, :]
+        traverses, ecartes = set(), set()
+        for image in range(IMAGES + 1):
+            mondes = self.squelette.monde(pistes, image / IMAGES_PAR_SECONDE, [os_ for brin in repos['os'] for os_ in brin] + [PRISE['os']])
+            tetes = np.array([[mondes[os_][:3, 3] for os_ in brin] for brin in repos['os']])
+            directions = np.array([[mondes[os_][:3, 1] for os_ in brin] for brin in repos['os']])
+            np.testing.assert_allclose(tetes[:, 1:], (tetes + longueurs[:, None, None] * directions)[:, :-1], atol=1e-5)
+            points = tetes[:, :, None, :] + parcourus[:, :1, :, None] * directions[:, :, None, :]
+            self.assertTrue((au_fut(points, mondes[PRISE['os']]) > jeux - 0.005).all(), image)
+            traverses |= set(np.flatnonzero((au_fut(au_repos, mondes[PRISE['os']]) < FUT_DE_HAMPE[2]).any(axis=(1, 2))).tolist())
+            ecartes |= set(np.flatnonzero((directions @ pendant.BAS < math.cos(math.radians(5))).any(axis=1)).tolist())
+        self.assertGreaterEqual(len(traverses), 2)
+        self.assertLessEqual(traverses, ecartes)
+
+    def test_un_demi_tour_porte_un_unitaire_sur_son_oppose(self):
+        for a in ([0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [0.6, 0.0, -0.8], np.array([1.0, 2.0, 3.0]) / math.sqrt(14.0)):
+            a = np.array(a)
+            np.testing.assert_allclose(tour(a, -a) @ a, -a, atol=1e-12)
+            quart = tour(a, -a, 0.5) @ a
+            self.assertAlmostEqual(float(quart @ a), 0.0)
+            self.assertAlmostEqual(float(np.linalg.norm(quart)), 1.0)
+        np.testing.assert_allclose(tour(np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0])), autour(np.array([0.0, 0.0, 1.0]), math.pi / 2), atol=1e-12)
+
+    def test_une_poche_lit_sur_la_manche_son_dessus_et_ses_poids(self):
         repos = self.manches['manche_g']
         poche = PocheDeManche(repos, self.squelette.indice)
         indice = self.squelette.indice
         coude, avant_bras = repos['coude'], repos['poignet'] - repos['coude']
         portes = lambda w: {self.squelette.noeuds[i]['name']: round(float(x), 6) for i, x in enumerate(w) if x > 1e-6}
-        self.assertEqual(portes(poche.tour(coude - 0.1 * avant_bras)), {'lowerarm_l': 1.0})
-        self.assertEqual(portes(poche.tour(coude + 0.05 * avant_bras)), {'lowerarm_l': 0.5, 'manche_g_tube': 0.5})
-        self.assertEqual(portes(poche.tour(coude + 0.9 * avant_bras)), {'manche_g_tube': 1.0})
+        self.assertEqual(portes(poche.dessus(coude - 0.1 * avant_bras)), {'lowerarm_l': 1.0})
+        self.assertEqual(portes(poche.dessus(coude + 0.05 * avant_bras)), {'lowerarm_l': 0.5, 'manche_g_tube': 0.5})
+        self.assertEqual(portes(poche.dessus(coude + 0.9 * avant_bras)), {'manche_g_tube': 1.0})
         self.assertEqual([poche.part(0.0), poche.part(CHARNIERE_M)], [0.0, 1.0])
         brins = repos['brins']
         milieu_avant = [s for s, noms in enumerate(repos['os']) if noms[0] == 'manche_g_milieu_avant_01'][0]

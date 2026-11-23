@@ -84,4 +84,3 @@ MANCHE = [(_COTES_DE_MANCHE[0], AISANCE_COUTURE, 0.0)] + \
 # `feminin`). À 20 mm, ou en côte à -0,05 de `upperarm`, l'emmanchure s'étirait sous la hotte (`accessoire--hotte`)
 # jusqu'à 4,8 fois sa longueur.
 RACCORD_EPAULE = 2.0               # au-delà du dernier anneau : la manche entière emprunte au bras, sommet par sommet
-COUPE_DES_POIDS = 0.7              # #3743 (sans effet : aucun anneau n'est pris d'un bloc)

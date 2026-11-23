@@ -47,16 +47,22 @@ la manche dont tourne cet os)` ; `brins` : `(nom, part de l'avant-bras du coude 
 l'avant-bras, du dessous du bras tendu vers l'avant, longueur en mètres)`. Le tube ne prend qu'une portion du tour,
 que ses arêtes passent au coude sans s'étirer au-delà de la porte (#4697 : au tour entier, `arete-etiree` de la robe
 sous `carrure_plus` en 38 clips) ; les brins de la poche, qui pendent, le prennent en entier."""
-FUT_DE_HAMPE = (-0.6, 1.2, 0.02)
-"""Le fût d'une arme d'hampe dans le repère de la prise `main` : ses deux bouts sur le +Y, en mètres, et son rayon. Les
-bouts du bâton, l'arme d'hampe la plus courte (`element/humanoide/rigide--baton/donnees.py`) ; le rayon de la hampe la
-plus forte, celle de la grande hache."""
+FUT_DE_HAMPE = (-0.6, 1.2, 0.0175)
+"""Le fût d'une arme d'hampe dans le repère de la prise `main` : ses deux bouts sur le +Y, en mètres, et son rayon. Ceux
+du bâton (`element/humanoide/rigide--baton/donnees.py`), l'arme d'hampe la plus courte : son talon à
+`PRISE_DEPUIS_TALON` sous la prise, sa tête à `LONGUEUR` du talon, et le rayon de ses bagues, qui dépassent son fût."""
 DRESSE = 0.5
 """Poids du dessous de la manche au repos devant le côté le plus bas de l'avant-bras, quand il se dresse
 (`Manche.bas`)."""
 LISSAGE = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
 """Poids des images voisines, de trois avant à trois après, dans l'aplomb d'un filet, l'angle du tour d'une manche et
-la direction de ses os."""
+la direction où tendent ses os."""
+JEU_LISSE_M = pendant.JEU_M / 2
+"""Écart, en mètres, qu'un os de manche garde à ce qu'il longe quand il tend vers sa direction lissée (`Manche.cuire`) :
+le lissage rogne le jeu, jamais l'obstacle."""
+POSE = 12
+"""Fois où les os d'une manche, partis de l'aplomb, se posent sur le premier instant d'un clip avant qu'il ne joue
+(`Manche.cuire`)."""
 JEU_RACINE_M = 0.02
 """Écart, en mètres, entre la peau au repos et le polygone des racines."""
 CHEVILLE_M = 0.1
@@ -71,7 +77,8 @@ racines (`Monte.surface`)."""
 BALAYAGE = 3
 """Instants par image où se lit la peau du dehors d'une image à ses voisines : le tissu d'une image passe sous tout ce
 que la main balaie depuis l'image d'avant et jusqu'à celle d'après, et le tissu d'entre deux images, fondu des deux,
-reste sous elle."""
+reste sous elle. Instants par image, aussi, où pendent les manches d'un clip d'hampe : le fût, plus mince que ce dont
+il bouge d'une image à la suivante, ne passe au travers d'aucun brin."""
 APLOMB = (0.2, 0.7)
 """Hauteurs de l'axe vertical du porteur (son +Z au repos, 1 : debout) entre lesquelles il passe de couché à debout :
 les plans des brins, de ceux du porteur à l'aplomb, et le sol, de `COUCHE_SOUS_LE_SOL_M` à `tente.SOL_M`. Le passage
@@ -110,20 +117,20 @@ def quaternion(m):
     return unitaire(np.array(q))
 
 
+def autour(axe, angle):
+    """La rotation de `angle` radians autour de l'unitaire `axe`."""
+    K = np.array([[0, -axe[2], axe[1]], [axe[2], 0, -axe[0]], [-axe[1], axe[0], 0]])
+    return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * K @ K
+
+
 def tour(a, b, part=1.0):
     """La rotation la plus courte de l'unitaire `a` vers l'unitaire `b`, ou sa fraction `part` ; d'un demi-tour, celle
-    d'axe le plus proche de l'axe du repère le moins aligné sur `a`."""
+    d'axe perpendiculaire à `a` et à l'axe du repère le moins aligné sur lui."""
     v = np.cross(a, b)
     s, c = np.linalg.norm(v), float(np.dot(a, b))
     if s < 1e-9:
-        if c > 0:
-            return np.eye(3)
-        v = np.cross(a, np.eye(3)[np.abs(a).argmin()])
-        s = np.linalg.norm(v)
-    k = v / s
-    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-    angle = np.arctan2(s, c) * part
-    return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * K @ K
+        return np.eye(3) if c > 0 else autour(unitaire(np.cross(a, np.eye(3)[np.abs(a).argmin()])), np.pi * part)
+    return autour(v / s, np.arctan2(s, c) * part)
 
 
 def orthonormer(m):
@@ -487,12 +494,6 @@ def os_du_tube(manche):
     return f"{manche['nom']}_tube"
 
 
-def autour(axe, angle):
-    """La rotation de `angle` radians autour de l'unitaire `axe`."""
-    K = np.array([[0, -axe[2], axe[1]], [axe[2], 0, -axe[0]], [-axe[1], axe[0], 0]])
-    return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * K @ K
-
-
 class Manche:
     """Une manche montée sur la base : l'os de son tour et celui de son tube, posés sur son porteur, qui la tournent
     autour de l'avant-bras ; ses brins, posés au repos d'aplomb sous l'avant-bras tendu, enfants du tour ; ses racines,
@@ -546,34 +547,34 @@ class Manche:
         vers = couche * bas + DRESSE * (1 - couche * couche) * self.dessous
         return np.arctan2(self.axe @ np.cross(self.dessous, vers), self.dessous @ vers)
 
-    def cuire(self, images, boucle):
-        """Les articulations de la manche à chaque image d'un clip et, par os, ses quaternions locaux. `images` : par
-        image, les matrices monde et les obstacles (`pendant`). Le tour de la manche suit son côté bas, déroulé d'une
-        image à la suivante ; lui et la direction de chaque os pendu se lissent sur leurs voisines (`LISSAGE`), celles de
-        l'autre bout d'un clip en `boucle`. Le tube tourne de sa portion du tour."""
-        porteurs = [mondes[self.filet['porteur']] for mondes, _ in images]
-        rotations_des_porteurs = [orthonormer(porteur[:3, :3]) for porteur in porteurs]
-        angles = np.unwrap([self.bas(rotation) for rotation in rotations_des_porteurs])
-        n = len(angles)
-        rampe = 2 * np.pi * np.round((angles[-1] - angles[0]) / (2 * np.pi)) * np.arange(n) / max(n - 1, 1) if boucle else 0.0
-        angles = lisser(angles - rampe, boucle) + rampe
-        tournees, racines, directions = [], [], []
-        for porteur, rotation, angle, (_, obstacles) in zip(porteurs, rotations_des_porteurs, angles, images):
-            tournee = rotation @ autour(self.axe, angle)
-            x = pendant.pendre(self.locales @ tournee.T + porteur[:3, 3], self.longueurs, self.degagements @ tournee.T, obstacles, self.liens)
-            tournees.append(tournee)
-            racines.append(x[:, 0])
-            directions.append((x[:, 1:] - x[:, :-1]) / self.longueurs[:, :, None])
-        directions = lisser(np.array(directions), boucle)
-        directions /= np.linalg.norm(directions, axis=3, keepdims=True)
-        poses, rotations = [], []
-        for tournee, angle, racine, d in zip(tournees, angles, racines, directions):
-            x = np.concatenate([racine[:, None], racine[:, None] + np.cumsum(self.longueurs[:, :, None] * d, axis=1)], axis=1)
-            poses.append(x)
-            rotations.append({os_du_tube(self.filet): quaternion(autour(self.axe, self.filet['tube'][1] * angle)),
-                              os_du_tour(self.filet): quaternion(autour(self.axe, angle)),
-                              **rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, tournee @ self.porteur_au_repos.T, tournee)})
-        return poses, rotations
+    def cuire(self, instants, pas, boucle):
+        """Les articulations de la manche à chaque image d'un clip et, par os, ses quaternions locaux. `instants` : par
+        instant du clip, `pas` par image, les matrices monde et les obstacles (`pendant`). Le tour de la manche suit son
+        côté bas, déroulé d'une image à la suivante et lissé sur ses voisines (`LISSAGE`), celles de l'autre bout d'un
+        clip en `boucle`. Ses os pendent d'abord d'un instant au suivant (`pendant.vers_l_aplomb`) : partis de l'aplomb,
+        ils se posent sur le premier instant, `POSE` fois, ou jouent une fois le clip en `boucle`, qui se referme. La
+        direction de chaque os se lisse ensuite sur ses images voisines, et l'os qui tend vers elle pend hors des
+        obstacles de son image, à `JEU_LISSE_M`. Le tube tourne de sa portion du tour."""
+        porteurs = [mondes[self.filet['porteur']] for mondes, _ in instants]
+        angles = lisser(np.unwrap([self.bas(orthonormer(porteur[:3, :3])) for porteur in porteurs[::pas]]), boucle)
+        tournees = [orthonormer(porteur[:3, :3]) @ autour(self.axe, angle)
+                    for porteur, angle in zip(porteurs, np.interp(np.arange(len(instants)) / pas, np.arange(len(angles)), angles))]
+        degagements = [self.degagements @ tournee.T for tournee in tournees]
+
+        def directions(i, vers, jeu):
+            x = pendant.pendre(self.locales @ tournees[i].T + porteurs[i][:3, 3], self.longueurs, vers, degagements[i], instants[i][1], self.liens, jeu)
+            return (x[:, 1:] - x[:, :-1]) / self.longueurs[:, :, None], x
+
+        d, suite = self.directions, []
+        for i in [*(range(len(instants) - 1) if boucle else [0] * POSE), *range(len(instants))]:
+            d, _ = directions(i, pendant.vers_l_aplomb(d, degagements[i], 1 / pas), pendant.JEU_M)
+            suite.append(d)
+        lisses = lisser(np.array(suite[-len(instants)::pas]), boucle)
+        poses = [directions(i * pas, lisse, JEU_LISSE_M)[1] for i, lisse in enumerate(lisses / np.linalg.norm(lisses, axis=3, keepdims=True))]
+        return poses, [{os_du_tube(self.filet): quaternion(autour(self.axe, self.filet['tube'][1] * angle)),
+                        os_du_tour(self.filet): quaternion(autour(self.axe, angle)),
+                        **rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, tournee @ self.porteur_au_repos.T, tournee)}
+                       for x, tournee, angle in zip(poses, tournees[::pas], angles)]
 
 
 def repere_de_prise(prise):
@@ -591,7 +592,8 @@ def repere_de_prise(prise):
 def draper(chemin, corps, prise, hampes):
     """Pose sur le GLB `chemin` de la base les os des filets et des manches et, dans chaque clip, leurs pistes, une clé
     par image de `IMAGES_PAR_SECONDE`. `corps` : le nom de l'objet du corps ; `prise` : l'attache de la prise `main`
-    (`os`, `position`, `rotation`) ; `hampes` : les clips où elle tient une arme d'hampe, dont le fût écarte les manches.
+    (`os`, `position`, `rotation`) ; `hampes` : les clips où elle tient une arme d'hampe, dont le fût écarte les manches,
+    drapées là à `BALAYAGE` instants par image.
     Rend le manifeste `chaines` : par filet ses os, et `manche`, ceux des deux manches."""
     squelette = Squelette(chemin)
     peau = Peau(squelette, corps)
@@ -625,15 +627,18 @@ def draper(chemin, corps, prise, hampes):
             etats = [monte.etat(mondes, sommets, [(montes[n], poses[n][i]) for n in monte.filet['sur']], voisines(i), aplombs[i]) for i, (mondes, sommets) in enumerate(corps_poses)]
             poses[nom], rotations = monte.cuire(etats, temps, boucle)
             cles.update({os_: [image[os_] for image in rotations] for os_ in rotations[0]})
-        images = []
-        for mondes, sommets in corps_poses:
-            obstacles = [pendant.Peaux(*peau.orientee(sommets)), sol]
-            if clip in hampes:
-                fut = mondes[prise['os']] @ dans_la_main
-                obstacles.append(pendant.Fut(*(fut[:3, 3] + cote * fut[:3, 1] for cote in FUT_DE_HAMPE[:2]), FUT_DE_HAMPE[2]))
-            images.append((mondes, obstacles))
+        pas = BALAYAGE if clip in hampes else 1
+        pendus = []
+        for i, pose in enumerate(corps_poses):
+            entre = [peau.poser(squelette, pistes, temps[i - 1] + k / (pas * IMAGES_PAR_SECONDE), porteurs) for k in range(1, pas)] if i else []
+            for mondes, sommets in [*entre, pose]:
+                obstacles = [pendant.Peaux(*peau.orientee(sommets)), sol]
+                if clip in hampes:
+                    fut = mondes[prise['os']] @ dans_la_main
+                    obstacles.append(pendant.Fut(*(fut[:3, 3] + cote * fut[:3, 1] for cote in FUT_DE_HAMPE[:2]), FUT_DE_HAMPE[2]))
+                pendus.append((mondes, obstacles))
         for manche in manches:
-            _, rotations = manche.cuire(images, boucle)
+            _, rotations = manche.cuire(pendus, pas, boucle)
             cles.update({os_: [image[os_] for image in rotations] for os_ in rotations[0]})
         for os_, quaternions in cles.items():
             for i in range(1, len(quaternions)):
