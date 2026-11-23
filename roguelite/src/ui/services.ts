@@ -345,7 +345,7 @@ export function panneauDeService(ctx: Contexte, service: Service): PanneauDeServ
   return {
     cadre: cadreA(CADRES_DE_L_HOTE.batiment, `<div class="tete-service">${tete}<div class="ressources bourse-service"><span class="etiquette compte or">${e.or} CO</span><span class="etiquette compte or">${pluriel(e.trophees, 'trophée')}</span></div>
       <button type="button" class="croix-panneau" data-a="fermer-panneau" aria-label="Fermer" data-bulle="Fermer">×</button></div>
-      ${destination ? '' : railDesBatiments(e, service)}<div class="corps-service ${page.classe}">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(b ? b.nom : destination ? destination.nom : 'Chronique'), classe: 'page-service', etire: true }),
+      ${destination || e.expedition ? '' : railDesBatiments(e, service)}<div class="corps-service ${page.classe}">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(b ? b.nom : destination ? destination.nom : 'Chronique'), classe: 'page-service', etire: true }),
     socle,
   };
 }

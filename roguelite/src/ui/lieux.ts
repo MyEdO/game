@@ -205,10 +205,11 @@ function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle 
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une
- *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; tant qu'aucune action n'est prise, le socle
+ *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; sinon le panneau `service` ouvert (la
+ *  chronique) s'y pose sur la salle, le socle restant au groupe. Tant qu'aucune action n'est prise, le socle
  *  ouvre les fiches ; puis il demande qui tente l'action `choix` (`socleDuChoix`), chaque carte fermée disant
  *  pourquoi elle l'est. */
-export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choix: ChoixDeSalle | null): string {
+export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeService | null, recit: string, choix: ChoixDeSalle | null): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -225,7 +226,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choi
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const scene = (!recit && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
-    cadres: carte ? titre + carte : `${titre}
+    cadres: carte ? titre + carte : service ? service.cadre : `${titre}
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
         ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}

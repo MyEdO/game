@@ -7,6 +7,20 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   const erreurs = [];
   const echecs = [];
   const constater = (ok, quoi) => { if (!ok) echecs.push(quoi); console.log(`${ok ? '✓' : '✗'} ${quoi}`); };
+  // En expédition, sur une partie neuve : la Chronique s'ouvre sur la salle, sans le rail du hameau, et se ferme
+  // (croix, Échap) en rendant la salle.
+  const q = await ouvrir(b, [1366, 768], null, erreurs);
+  await geste(q, 'ouvrir-depart'); await q.click('[data-a="preparer"]'); await q.click('[data-a="partir"]');
+  for (const fermer of [() => q.click('[data-a="fermer-panneau"]'), () => q.keyboard.press('Escape')]) {
+    await q.click('[data-a="chronique"]');
+    const ouverte = await q.isVisible('.chronique');
+    constater(ouverte && !(await q.$('.rail-batiments')), 'la Chronique s’ouvre en expédition, sans le rail du hameau');
+    if (!ouverte) break;
+    await q.screenshot({ path: `${CAPTURES}/partie-chronique-expedition.png` });
+    await fermer();
+    constater(await q.isVisible('[data-a="avancer"]') && !(await q.$('.chronique')), 'la Chronique fermée rend la salle');
+  }
+  await q.close();
   const p = await ouvrir(b, [1366, 768], () => {
     const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
     e.or = 900; e.trophees = 4;

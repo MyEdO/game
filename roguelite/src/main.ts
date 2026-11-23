@@ -63,7 +63,7 @@ function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: 
   ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
 }
 
-/** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le hameau. */
+/** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le lieu (hameau, ou salle de l'expédition). */
 const ficheOuverte = (): string => (panneau?.type === 'heros' ? ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet) : '');
 function serviceOuvert() {
   if (!panneau || panneau.type === 'heros') return null;
@@ -77,7 +77,7 @@ const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? reco
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
-  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), vueDuCarton(), choixDAction) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
+  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), serviceOuvert(), vueDuCarton(), choixDAction) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) {
     if (avant != null && panoramaCentre) pano.scrollLeft = avant;
