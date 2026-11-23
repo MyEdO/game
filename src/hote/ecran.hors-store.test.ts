@@ -34,6 +34,8 @@ import { addCondition } from '../engine/conditions';
 import { itemFromTrappingById } from '../engine/items';
 import { resetRule, setRule } from '../engine/policy';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+import { ouvrirDialogue } from '../noyau/dialogue';
+import type { Dialogue } from '../noyau/monde/scene';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -442,5 +444,28 @@ describe('la nuit à régler à l’écran (`Projection.repos`, #4574)', () => {
 
   it('trois nuits chez soi, de piètre qualité : la tête de la scène les dit', () => {
     expect(nuit({ places: { maison: true }, days: 3, quality: 'pietre' })).toEqual({ corps: [['scene/moment', 'Nuit chez soi — Le relais · 3 nuits · piètre', 'neutre']], alertes: [] });
+  });
+});
+
+describe('la conversation à l’écran (`Projection.conversation`, #4574)', () => {
+  it('chaque réponse en bouton : son Test annoncé, son libellé, puis son coût ; l’orateur par son nom', () => {
+    const gustav = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gustav', seed: 11 }), { gold: 0, silver: 0, brass: 0 }, idsDeTest);
+    const scene = { ...emptyScene('s', 4, 4), entities: [{ id: 'aubergiste', kind: 'personnage', label: 'Isolde', pos: { x: 1, y: 1 } }] } as Jeu['scene'];
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: [gustav], scene } as Partial<Jeu> });
+    const sonder = { kind: 'test', test: { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Quelque chose cloche' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } };
+    const dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une chambre ?', choices: [
+      { id: 'sonder', label: 'La sonder', flow: sonder },
+      { id: 'chambre', label: 'Prendre une chambre', cost: { silver: 5 } },
+      { id: 'partir', label: 'Partir' },
+    ] }] } as unknown as Dialogue;
+    banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue, 'aubergiste') });
+    const etat = banc.getState();
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    expect(zones['dialogue.orateur'].map((l) => l.texte)).toEqual(['Isolde']);
+    expect(zones['dialogue.reponses'].map((b) => [b.id, b.libelle, b.refus])).toEqual([
+      ['reponse/sonder', '[Intuition — Difficile (−20)] La sonder', null],
+      ['reponse/chambre', 'Prendre une chambre 5/–', 'Pas assez d’argent pour cette option.'],
+      ['reponse/partir', 'Partir', null],
+    ]);
   });
 });

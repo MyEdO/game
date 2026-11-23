@@ -18,6 +18,7 @@ import {
   raisonDuRefusDAchatDeCargaison,
   refusDeBradageALaHalle,
   vendreALaHalle,
+  type LandOffer,
 } from './landMarketFlow';
 import { bulkCarriers, CAMPAIGN_VESSEL_CARRIER_ID, primaryCargoCarrier } from './carriers';
 import type { CargoCarrier } from '../engine/cargo';
@@ -33,7 +34,7 @@ export interface BrouillonDAchat { offre: IdDOffreDeCargaison; porteur: IdDePort
 
 /** Les offres, les porteurs, le brouillon d'achat et les corps d'une formule de marché. */
 export interface FormuleDeMarche {
-  offres: (s: Pick<Jeu, 'port' | 'landMarket'>) => readonly { cargoId: string; label: string; enc: number; basePrice: number; wine?: boolean; wineTier?: string; wineEvalOk?: boolean }[];
+  offres: (s: Pick<Jeu, 'port' | 'landMarket'>) => readonly ({ cargoId: string; label: string; enc: number; basePrice: number } & Partial<Pick<LandOffer, 'wine' | 'qualiteSecreteDuVin' | 'vinEvalue'>>)[];
   /** Les porteurs qui chargent un achat et dont les lots se vendent ici. */
   porteurs: (s: Jeu) => CargoCarrier[];
   devis: (s: Jeu, porteurId: IdDePorteurDeCargaison, cargoId: IdDOffreDeCargaison, enc?: number) => DevisDeCargaison;

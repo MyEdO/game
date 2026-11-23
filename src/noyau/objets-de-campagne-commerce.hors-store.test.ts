@@ -1,18 +1,15 @@
 /** #2967 ; LDB 59 l.54, l.60, l.66 ; LDB 62 l.135 ; LDB 73 l.23 */
 import { describe, expect, it } from 'vitest';
 import { findTrappingById } from '../data';
-import { bourseOf, withBourseMoney } from '../engine/bourse';
+import { bourseOf } from '../engine/bourse';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { formatMoney, fromBrass, toBrass } from '../engine/money';
+import { fromBrass, toBrass } from '../engine/money';
 import { t } from '../i18n';
 import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
-import { ouvrirLeBanc } from './banc.testkit';
 import { applyEffects, applyEffectsLoot } from './combatEffects';
-import { troquer } from './marchand.testkit';
+import { armurierDuRelais, troquer } from './marchand.testkit';
 import { marchandEnVue } from './marchandEnVue';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { emptyScene } from './monde/scene';
 import { nomDe } from '../engine/nom';
 
 const bien = objetDeCampagne({ id: 'lame-du-relais', label: 'Lame du relais', availability: 'commune', price: fromBrass(480) });
@@ -20,26 +17,14 @@ const relique = objetDeCampagne({ ...bien, id: 'relique-du-relais', label: 'Reli
 const prothese = objetDeCampagne({ ...findTrappingById('fausse-jambe')!, id: 'jambe-du-relais', label: 'Jambe du relais' });
 
 function jouer(...objets: (typeof bien)[]) {
-  const banc = ouvrirLeBanc();
   const hero = combattantDeTest({
     id: 'h', label: 'H', kind: 'heros', items: [], xp: 300,
     skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }],
   });
-  const scene = emptyScene('relais', 5, 5);
-  scene.entities.push(
-    { id: 'depart', kind: 'heroStart', pos: { x: 1, y: 1 } },
-    { id: 'artisan', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 }, merchant: { archetype: { id: 'armurier' }, settlement: 'ville', resaleRate: 0.5 } },
-  );
-  const { getState: get, setState: set } = banc;
-  set({ party: [withBourseMoney(hero, fromBrass(960), idsDeTest)] });
-  get().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif: { ...emptyNarratif(), objets }, projet: null });
+  const { get, set, ouvrir } = armurierDuRelais(hero, { ...emptyNarratif(), objets });
   applyEffects(get, set, objets.map(({ id }) => ({ type: 'giveTrapping', objet: { id }, heroId: hero.id })));
   const item = (id: string) => get().party[0].items!.find((it) => it.trappingId === id)!;
   const bourse = () => toBrass(bourseOf(get().party[0]));
-  const ouvrir = () => {
-    set({ merchantStocks: { artisan: { stock: [{ id: 'dague', qty: 3 }], rolledAt: get().gameTime } } });
-    get().jouerAction('artisan', 'commercer');
-  };
   return { get, set, hero, item, bourse, ouvrir };
 }
 
@@ -48,7 +33,7 @@ describe('lectures marchandes des possessions de campagne (#2967)', () => {
     const { get, hero, item, bourse, ouvrir } = jouer(bien, relique);
     ouvrir();
     const vente = marchandEnVue(get())!.vente.heros.find(({ id }) => id === hero.id)!.possessions;
-    expect(vente).toContainEqual(expect.objectContaining({ uid: item(bien.id).uid, gain: formatMoney(fromBrass(120)), refus: null }));
+    expect(vente).toContainEqual(expect.objectContaining({ uid: item(bien.id).uid, objet: bien.id, gain: fromBrass(120), refus: null }));
     expect(vente.find(({ uid }) => uid === item(relique.id).uid)?.refus).toContain(relique.label);
     get().fenetreChoisir('marchand', 'ajouterALaVente', item(relique.id).uid);
     expect(get().merchant!.sellCart ?? []).toHaveLength(0);

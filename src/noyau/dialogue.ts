@@ -2,15 +2,16 @@
  * DIALOGUE — ce qu'une réponse OFFRE et ce qu'elle ANNONCE viennent de sa DONNÉE (#1869).
  *
  * Des fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des surfaces qui servent
- * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-reponse-N` (`state/clavier/keybindings`) et
- * l'écran d'un hôte du noyau (`conversationEnVue`) :
+ * une réponse — le choix `dialogue.reponse` (`choixDeFenetre.ts`), ses désignations (`designations.ts`) et la
+ * conversation en vue d'un hôte (`conversationEnVue`) :
  *  · `ouvrirDialogue` — la SEULE fabrique d'un état de conversation : tout ouvreur y passe, et la
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
  *  · `reponsesDuNoeud` — la liste VISIBLE des réponses : filtre `when`, rang d'affichage 1..n,
  *    verdict d'offre (le siège qui décide, la bourse du groupe). Le RANG est celui de la liste
  *    visible, l'`id` celui de la donnée (c'est lui que reçoit le choix `dialogue.reponse`) ;
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
- *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
+ *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre pour l'hôte qui
+ *    l'affiche.
  */
 import type { IconId } from '../data/icons';
 import type { CharKey, Difficulty } from '../engine/types';
@@ -58,8 +59,8 @@ export function ouvrirDialogue(
 
 /**
  * LA CONVERSATION RÉPOND-ELLE ? Prédicat NOMMÉ, UNIQUE, de toutes les portes par lesquelles une
- * réponse se choisit — le choix `dialogue.reponse` (donc aussi l'intent coop appliqué par l'hôte) et
- * les touches `dialogue-reponse-N`. Trois termes, aucun recopié ailleurs :
+ * réponse se choisit — le choix `dialogue.reponse`, donc aussi l'intent coop appliqué par l'hôte.
+ * Trois termes, aucun recopié ailleurs :
  *  · une conversation est OUVERTE ;
  *  · CE siège décide pour le groupe (décision de groupe, #1262) ;
  *  · aucune surface ne tient la main (`surfaceTientLaMain`, l'arbitre) — la conversation est CE
@@ -83,13 +84,13 @@ export interface TestAnnonce {
 export interface ReponseDeDialogue {
   /** Id STABLE de la réponse dans la DONNÉE (`DialogueChoice.id`) — la valeur du choix `dialogue.reponse`. */
   id: IdDeReponseDeDialogue;
-  /** Rang 1..n dans la liste VISIBLE — le numéro affiché, et la touche qui l'adresse. */
+  /** Rang 1..n dans la liste VISIBLE — le numéro affiché. */
   rang: number;
   label: string;
   icon?: IconId;
   /** Coût normalisé de la réponse payante (affiché, et payé par le choix `dialogue.reponse`). */
   cost?: ReturnType<typeof toMoney>;
-  /** La réponse est-elle OFFERTE ? Verdict PARTAGÉ par le clic et par la touche. */
+  /** La réponse est-elle OFFERTE ? Verdict du choix `dialogue.reponse`. */
   enabled: boolean;
   /** TEXTE du refus d'une réponse non offerte — ce siège ne décide pas pour le groupe (coop, #1262), ou
    *  réponse payante que la bourse du groupe ne couvre pas : la fenêtre l'affiche, le choix `dialogue.reponse` le dit. */
@@ -99,8 +100,8 @@ export interface ReponseDeDialogue {
 
 /**
  * Les réponses VISIBLES du nœud courant, dans l'ordre de la donnée. Une réponse dont le `when` est
- * faux n'est pas rendue et ne consomme PAS de rang : la touche 3 choisit la 3ᵉ réponse À L'ÉCRAN.
- * Hors dialogue (ou sur un nœud introuvable) : aucune réponse — la touche n'a rien à adresser.
+ * faux n'est pas rendue et ne consomme PAS de rang : le rang 3 est la 3ᵉ réponse À L'ÉCRAN.
+ * Hors dialogue (ou sur un nœud introuvable) : aucune réponse.
  */
 export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   const etat = s.dialogue;
@@ -169,8 +170,8 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
 /**
  * Ce que la réponse ANNONCE, en clair : « Compétence — Difficulté », plus le DR CUMULÉ d'un Test ÉTENDU. Les ids
  * STABLES viennent du FLUX (`testAnnonce`) ; ici, et ici seulement, ils se résolvent en libellés au registre
- * (`testSkillLabel`, `DIFFICULTY_LABELS`) — un auteur n'écrit JAMAIS la Compétence dans le libellé de sa réponse
- * (garde `scripts/guards/lib/dialogueLabelTest.mjs`).
+ * (`testSkillLabel`, `DIFFICULTY_LABELS`), pour l'hôte qui l'affiche (`hote/ecran.ts`) — un auteur n'écrit JAMAIS la
+ * Compétence dans le libellé de sa réponse (garde `scripts/guards/lib/dialogueLabelTest.mjs`).
  */
 export function libelleDuTestAnnonce(test: TestAnnonce): string {
   const quoi = testSkillLabel(test) ?? '';
@@ -178,39 +179,42 @@ export function libelleDuTestAnnonce(test: TestAnnonce): string {
   return test.drCible != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.drCible }) : t('dlg.testTag', { quoi, diff });
 }
 
-/** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */
+/** Une réponse en vue : la réponse visible (son Test annoncé, `test`, son coût, son refus) et le geste qui la choisit. */
 export interface ReponseEnVue extends ReponseDeDialogue {
-  annonce: string | null;
   geste: { verbe: 'fenetreChoisir'; args: ['dialogue', 'reponse', IdDeReponseDeDialogue] };
 }
 
 /** La conversation en vue, pour un hôte qui la dessine. */
 export interface ConversationEnVue {
-  /** Le nom de l'interlocuteur du nœud (`nomDeLInterlocuteur`) ; `null` sans interlocuteur nommé. */
-  orateur: string | null;
+  /** L'interlocuteur du nœud (`interlocuteur`) : son id d'entité et son nom ; `null` sans interlocuteur nommé. */
+  orateur: { id: string; nom: string } | null;
   /** La réplique du nœud, en Markdown verbatim ; `null` sans réplique. */
   replique: string | null;
   reponses: ReponseEnVue[];
 }
 
-/** Le nom de l'interlocuteur du nœud courant : l'entité du nœud, à défaut celle de la conversation (`speakerEntity`),
- *  nommée par `nomDEntite` ; `undefined` hors dialogue ou sans interlocuteur nommé. */
-export function nomDeLInterlocuteur(s: Jeu): string | undefined {
+/** L'interlocuteur du nœud courant : l'entité du nœud, à défaut celle de la conversation (`speakerEntity`), son id et
+ *  son nom (`nomDEntite`) ; `undefined` hors dialogue ou sans interlocuteur nommé. */
+function interlocuteur(s: Jeu): { id: string; nom: string } | undefined {
   const etat = s.dialogue;
   const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
   const locuteur = etat && node && speakerEntity(s.scene?.entities ?? [], node, etat);
-  return locuteur ? nomDEntite(locuteur, presetDuNarratif(s.campaignNarratif)) : undefined;
+  const nom = locuteur && nomDEntite(locuteur, presetDuNarratif(s.campaignNarratif));
+  return locuteur && nom ? { id: locuteur.id, nom } : undefined;
 }
 
+/** Le nom de l'interlocuteur du nœud courant (`interlocuteur`) ; `undefined` hors dialogue ou sans interlocuteur nommé. */
+export const nomDeLInterlocuteur = (s: Jeu): string | undefined => interlocuteur(s)?.nom;
+
 /** LA CONVERSATION EN VUE : l'interlocuteur et la réplique du nœud courant, et chaque réponse visible
- *  (`reponsesDuNoeud`) avec ce qu'elle annonce et le geste qui la choisit. `null` hors dialogue. */
+ *  (`reponsesDuNoeud`) avec le geste qui la choisit. `null` hors dialogue. */
 export function conversationEnVue(s: Jeu): ConversationEnVue | null {
   const etat = s.dialogue;
   const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
   if (!etat || !node) return null;
   return {
-    orateur: nomDeLInterlocuteur(s) ?? null,
+    orateur: interlocuteur(s) ?? null,
     replique: node.desc ?? null,
-    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'fenetreChoisir', args: ['dialogue', 'reponse', r.id] } })),
+    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, geste: { verbe: 'fenetreChoisir', args: ['dialogue', 'reponse', r.id] } })),
   };
 }
