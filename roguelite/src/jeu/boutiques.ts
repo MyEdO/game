@@ -22,9 +22,12 @@ export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
   });
 export const provisionsEnVente = (e: Etat): Article[] => PROVISIONS.slice(0, e.batiments.relais + 1).flat().map(article);
 
+/** Le set d'armes que le héros a en main. */
+const setActif = (h: Pick<Heros, 'c'>) => (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+
 /** Ce que le héros tient : main principale, main secondaire (du set actif), armure portée et ses PA au corps. */
 export function equipement(h: Heros): { main?: string; secondaire?: string; armure?: string; pa: number } {
-  const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+  const lo = setActif(h);
   const nom = (uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid)?.label : undefined);
   return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
 }
@@ -34,7 +37,7 @@ export function equipement(h: Heros): { main?: string; secondaire?: string; armu
 export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[] }
 /** La panoplie du héros : ses deux mains (set actif) et son armure portée, décrites. */
 export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; armure?: PieceDecrite } {
-  const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+  const lo = setActif(h);
   const arme = (uid?: string): PieceDecrite | undefined => {
     const it = uid ? h.c.items?.find((i) => i.uid === uid) : undefined;
     if (!it) return undefined;
@@ -45,6 +48,23 @@ export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDec
   return {
     main: arme(lo?.main), secondaire: arme(lo?.secondaire),
     ...(portees.length ? { armure: { label: portees.map((i) => i.label).join(', '), enc: portees.reduce((n, i) => n + Number(i.enc ?? 0), 0), qualites: qualitesDites(portees.flatMap((i) => i.qualities ?? [])) } } : {}),
+  };
+}
+
+/** Ce qui se voit du héros équipé : la forme (`shape.id`) de ce que tiennent ses mains et combien de mains prend son
+ *  arme, la forme de l'arme de tir d'un autre set, le poids de son armure la plus lourde et les membres couverts. */
+export interface Allure { main?: { forme: string; mains: number }; secondaire?: string; tir?: string; armure?: { poids: PoidsDArmure; bras: boolean; jambes: boolean } }
+const POIDS_DE_MATIERE: Record<string, PoidsDArmure> = { 'cuir-souple': 'legere', 'cuir-bouilli': 'legere', mailles: 'moyenne', plate: 'lourde' };
+export function allure(h: Pick<Heros, 'c'>): Allure {
+  const objet = (uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid) : undefined);
+  const lo = setActif(h), main = objet(lo?.main), secondaire = objet(lo?.secondaire);
+  const tir = (h.c.loadouts ?? []).map((l) => objet(l.main)).find((i) => i && i !== main && i.kind === 'distance');
+  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
+  const poids = [...ARMURES_DE_FORGE].reverse().find((p) => portees.some((i) => POIDS_DE_MATIERE[i.subType ?? ''] === p));
+  const couvre = (zone: 'bras' | 'jambe') => portees.some((i) => i.locs?.some((l) => l.startsWith(zone)));
+  return {
+    ...(main?.shape ? { main: { forme: main.shape.id, mains: main.hands ?? 1 } } : {}), ...(secondaire?.shape ? { secondaire: secondaire.shape.id } : {}),
+    ...(tir?.shape ? { tir: tir.shape.id } : {}), ...(poids ? { armure: { poids, bras: couvre('bras'), jambes: couvre('jambe') } } : {}),
   };
 }
 
@@ -69,7 +89,7 @@ export function acheterUneArme(e: Etat, id: string, armeId: string): string | nu
   const refus = payer(e, h, prixDe(armeId));
   if (refus || !h) return refus;
   const slot = MAIN_SECONDAIRE.has(armeId) ? 'secondaire' : 'main';
-  const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+  const lo = setActif(h);
   const ancien = lo?.[slot];
   const munition = MUNITIONS[armeId];
   const neufs = doter(munition && !h.c.items?.some((i) => i.trappingId === munition) ? [armeId, munition] : [armeId], `forge${e.graine++}`);

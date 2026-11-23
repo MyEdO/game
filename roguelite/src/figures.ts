@@ -2,8 +2,10 @@
  * Les figurines du combat et leurs bustes : des pions peints à plat, cernés d'encre, que la silhouette suffit à
  * nommer (coiffe, arme, bouclier, barbe, cornes). Pied en (0, 0), boîte -50 -130 100 150, regard vers la droite.
  */
+import type { Allure } from './jeu';
 
-type Signe = 'plastron' | 'masque' | 'cape' | 'coeur' | 'comete' | 'creves' | 'chaines' | 'tatouages' | 'tentacule' | 'carquois';
+type Signe = 'masque' | 'cape' | 'coeur' | 'comete' | 'creves' | 'chaines' | 'tatouages' | 'tentacule';
+type Arme = 'epee' | 'hache' | 'baton' | 'arc' | 'arbalete' | 'fronde' | 'lance' | 'hallebarde' | 'fleau' | 'grande-epee' | 'massue' | 'marteau' | 'dague';
 
 export interface Gabarit {
   taille: number;
@@ -13,8 +15,16 @@ export interface Gabarit {
   cheveux?: string;
   barbe?: boolean;
   coiffe?: 'casque' | 'chapeau' | 'capuche' | 'crete' | 'heaume' | 'cornes' | 'casque-a-cornes' | 'capotain' | 'pointu' | 'plume' | 'beret' | 'feutre' | 'tonsure';
-  arme?: 'epee' | 'hache' | 'baton' | 'arc' | 'arbalete' | 'fronde' | 'lance' | 'fleau' | 'grande-epee' | 'massue' | 'marteau' | 'dague';
-  bouclier?: boolean;
+  arme?: Arme;
+  /** La forme précise de l'arme d'un héros (`shape.id`), qui distingue les armes d'une même famille. */
+  forme?: string;
+  /** Comment un héros tient `arme` ; sans prise (les créatures), le bras pend et l'arme suit la main. */
+  prise?: 'une-main' | 'deux-mains';
+  /** Ce que tient l'autre main. */
+  secondaire?: 'ecu' | 'pavois' | 'dague';
+  /** L'arme de tir portée hors des mains : l'arc et l'arbalète au dos, la fronde à la ceinture. */
+  portee?: 'arc' | 'arbalete' | 'fronde';
+  armure?: Allure['armure'];
   corps?: 'tunique' | 'robe' | 'voute' | 'os' | 'torse-nu' | 'armure' | 'brute';
   bete?: 'loup' | 'rat';
   /** La tête d'une engeance ; sans elle, un visage d'homme. */
@@ -25,22 +35,22 @@ export interface Gabarit {
 }
 
 const TENUES: Record<string, Partial<Gabarit>> = {
-  soldat: { tenue: 'f-rouge', coiffe: 'casque', signes: ['plastron'] },
-  chasseur: { tenue: 'f-vert', coiffe: 'feutre', signes: ['cape', 'carquois'] },
+  soldat: { tenue: 'f-rouge', coiffe: 'casque' },
+  chasseur: { tenue: 'f-vert', coiffe: 'feutre', signes: ['cape'] },
   'hors-la-loi': { tenue: 'f-cuir', coiffe: 'capuche', signes: ['masque', 'cape'] },
   pretre: { tenue: 'f-os', corps: 'robe', coiffe: 'capuche', signes: ['coeur'] },
   sorcier: { tenue: 'f-rouge', corps: 'robe', coiffe: 'pointu' },
   tueur: { tenue: 'f-cuir', corps: 'torse-nu', coiffe: 'crete', cheveux: '#e8701c', barbe: true, signes: ['tatouages'] },
   repurgateur: { tenue: 'f-noir', coiffe: 'capotain', signes: ['cape'] },
-  'pretre-guerrier': { tenue: 'f-acier', corps: 'armure', coiffe: 'tonsure', signes: ['cape', 'comete'] },
+  'pretre-guerrier': { tenue: 'f-os', coiffe: 'tonsure', signes: ['cape', 'comete'] },
   duelliste: { tenue: 'f-robe', coiffe: 'plume', signes: ['cape'] },
-  'joueur-d-epee': { tenue: 'f-or', coiffe: 'beret', signes: ['creves', 'plastron'] },
+  'joueur-d-epee': { tenue: 'f-or', coiffe: 'beret', signes: ['creves'] },
   flagellant: { tenue: 'f-os', corps: 'torse-nu', cheveux: '#6a5a48', barbe: true, signes: ['chaines'] },
   'chasseur-de-primes': { tenue: 'f-fourrure', coiffe: 'chapeau', signes: ['masque'] },
 };
 
 /** La famille d'une arme d'après son libellé, pour sa figure et son pictogramme. */
-export function armeDuLibelle(libelle = ''): Gabarit['arme'] {
+export function armeDuLibelle(libelle = ''): Arme {
   const l = libelle.toLowerCase();
   if (/zweih|bâtarde|batarde|grande épée/.test(l)) return 'grande-epee';
   if (/arbal/.test(l)) return 'arbalete';
@@ -56,13 +66,25 @@ export function armeDuLibelle(libelle = ''): Gabarit['arme'] {
   return 'epee';
 }
 
-/** Le gabarit d'un héros : sa carrière l'habille et le coiffe, son espèce lui donne sa taille, ses armes sa main. */
-export function gabaritDuHeros(carriere: string, espece: string, armes: string[]): Gabarit {
+/** La famille dessinée d'une forme d'objet du catalogue (`shape.id`). */
+const FORMES: Record<string, Arme> = {
+  epee: 'epee', rapiere: 'epee', sabre: 'epee', dague: 'dague', epee_batarde: 'grande-epee', zweihander: 'grande-epee', grande_hache: 'hache',
+  marteau_guerre: 'marteau', fleau: 'fleau', lance: 'lance', hallebarde: 'hallebarde', baton: 'baton', arc: 'arc', arc_court: 'arc', arc_long: 'arc',
+  arbalete: 'arbalete', fronde: 'fronde',
+};
+const SECONDAIRES: Record<string, Gabarit['secondaire']> = { rond: 'ecu', grand: 'pavois', dague: 'dague' };
+const TIRS: Record<string, Gabarit['portee']> = { arc: 'arc', arc_court: 'arc', arc_long: 'arc', arbalete: 'arbalete', fronde: 'fronde' };
+
+/** Le gabarit d'un héros : sa carrière l'habille et le coiffe, son espèce lui donne sa taille, son équipement
+ *  (`allure`) ses mains, son dos, sa ceinture et son armure. */
+export function gabaritDuHeros(carriere: string, espece: string, allure: Allure): Gabarit {
   const nain = espece === 'nains', halfling = espece === 'halflings';
+  const arme = allure.main && FORMES[allure.main.forme], secondaire = allure.secondaire && SECONDAIRES[allure.secondaire], portee = allure.tir && TIRS[allure.tir];
   return {
     taille: nain ? 0.8 : halfling ? 0.7 : 1, carrure: nain ? 1.3 : 1, tenue: 'f-cuir', peau: nain ? '#c99a7a' : '#d6b596',
     cheveux: nain ? '#8a3a12' : halfling ? '#7a4a22' : '#4a2f1b', barbe: nain, chef: nain ? 1.18 : halfling ? 1.22 : 1,
-    ...TENUES[carriere], arme: armeDuLibelle(armes[0]), bouclier: armes.some((a) => /bouclier/i.test(a)),
+    ...TENUES[carriere], prise: allure.main?.mains === 2 ? 'deux-mains' : 'une-main',
+    ...(arme ? { arme, forme: allure.main!.forme } : {}), ...(secondaire ? { secondaire } : {}), ...(portee ? { portee } : {}), ...(allure.armure ? { armure: allure.armure } : {}),
   };
 }
 
@@ -78,15 +100,15 @@ export function gabaritDeCreature(id: string): Gabarit {
   if (/sorcier|necromancien/.test(id)) return { ...base, tenue: 'f-noir', peau: '#c9c2a8', corps: 'robe', coiffe: 'capuche', arme: 'baton', barbe: true, cheveux: '#b9b3a4' };
   if (/snotling/.test(id)) return { ...vert, taille: 0.55, peau: '#9ab06a', chef: 1.3, arme: 'massue' };
   if (/chamane/.test(id)) return { ...vert, taille: 0.75, tenue: 'f-noir', corps: 'robe', coiffe: 'cornes', chef: 1.15, arme: 'baton' };
-  if (/gobelin/.test(id)) return { ...vert, taille: 0.75, tenue: 'f-noir', coiffe: 'capuche', chef: 1.15, arme: 'lance', bouclier: true };
+  if (/gobelin/.test(id)) return { ...vert, taille: 0.75, tenue: 'f-noir', coiffe: 'capuche', chef: 1.15, arme: 'lance', secondaire: 'ecu' };
   if (/orc/.test(id)) return { ...vert, taille: 1.05, tenue: 'f-orc', peau: '#6f8a52', corps: 'brute', arme: 'hache' };
   if (/troll/.test(id)) return { ...base, taille: 1.1, tenue: 'f-troll', peau: '#7d8c7a', corps: 'brute', museau: 'troll', cheveux: undefined, arme: 'massue' };
   if (/minotaure/.test(id)) return { ...bouc, taille: 1.08, carrure: 1.1, peau: '#5a3a26', corps: 'brute', chef: 1.2, arme: 'hache' };
   if (/ungor/.test(id)) return { ...bouc, taille: 0.88, carrure: 0.9, peau: '#8a6a48', arme: 'lance' };
-  if (/gor/.test(id)) return { ...bouc, carrure: 1.15, peau: '#6b4a30', chef: 1.1, arme: 'hache', bouclier: true };
-  if (/chaos/.test(id)) return { ...base, taille: 1.1, carrure: 1.2, tenue: 'f-chaos', corps: 'armure', coiffe: 'casque-a-cornes', arme: 'hache', bouclier: true, signes: ['cape'] };
-  if (/chevalier/.test(id)) return { ...base, carrure: 1.1, tenue: 'f-noir', corps: 'armure', coiffe: 'heaume', arme: 'epee', bouclier: true };
-  if (/squelette/.test(id)) return { ...base, tenue: 'f-rouge', peau: '#d8d2bf', corps: 'os', museau: 'crane', cheveux: undefined, bouclier: true };
+  if (/gor/.test(id)) return { ...bouc, carrure: 1.15, peau: '#6b4a30', chef: 1.1, arme: 'hache', secondaire: 'ecu' };
+  if (/chaos/.test(id)) return { ...base, taille: 1.1, carrure: 1.2, tenue: 'f-chaos', corps: 'armure', coiffe: 'casque-a-cornes', arme: 'hache', secondaire: 'ecu', signes: ['cape'] };
+  if (/chevalier/.test(id)) return { ...base, carrure: 1.1, tenue: 'f-noir', corps: 'armure', coiffe: 'heaume', arme: 'epee', secondaire: 'ecu' };
+  if (/squelette/.test(id)) return { ...base, tenue: 'f-rouge', peau: '#d8d2bf', corps: 'os', museau: 'crane', cheveux: undefined, secondaire: 'ecu' };
   if (/goule|necrophage/.test(id)) return { ...base, tenue: 'f-zombie', peau: '#a9b09a', corps: 'voute', museau: 'mort', cheveux: undefined, arme: undefined };
   if (/zombie/.test(id)) return { ...base, tenue: 'f-cuir', peau: '#8a9a7a', corps: 'voute', museau: 'mort', arme: undefined };
   if (/cultiste/.test(id)) return { ...base, tenue: 'f-rouge', corps: 'robe', coiffe: 'capuche', arme: 'dague', signes: ['masque'] };
@@ -114,22 +136,33 @@ const TEINTES: Record<string, [string, string]> = {
   'f-chaos': ['#6a4a5a', '#141018'], 'f-zombie': ['#7a806a', '#2a2e24'], 'f-or': ['#e0b24e', '#7a4a16'],
 };
 
+/** La fronde pendue par ses lanières depuis (13.5, -35), sa pierre dans la poche. */
+const FRONDE = cerne('M13.5,-35C10.6,-28 11.6,-22 15.4,-17.6M13.5,-35C17.4,-28 19.4,-23 18.4,-17.6', '#d8c39a', 0.9)
+  + p('M13.4,-18.6Q17,-15.4 20.4,-18.6Q19.6,-12.6 16.8,-12.4Q14,-12.6 13.4,-18.6Z', '#6b4a2a') + rond(16.9, -17.6, 2.5, '#a8a294', C);
+
 // ——— les armes, tenues par la main droite en (13.5, -35) ———
 function arme(g: Gabarit): string {
   const lame = (d: string) => p(d, LAME, 'stroke="#2a2c30" stroke-width=".7" stroke-linejoin="round"');
   switch (g.arme) {
-    case 'epee': return lame('M13.2,-38.6L16,-37.6L22.8,-63L22.4,-67.4L19.6,-64Z') + cerne('M11,-36.6L18.2,-39.4', BRONZE, 1.6) + cerne('M12.4,-31.6L14.2,-37', '#3a2c1a', 1.8);
+    case 'epee': return g.forme === 'rapiere'
+      ? lame('M13.8,-38.4L15.4,-37.8L23.4,-67.6L23.6,-72.6L21.8,-68.4Z') + cerne('M12.4,-31.6L14.2,-37', '#3a2c1a', 1.8) + p('M10.8,-37.4Q14.6,-33.4 18.4,-39.6Q14.4,-40.6 10.8,-37.4Z', BRONZE)
+      : g.forme === 'sabre'
+        ? lame('M13,-38.6L16.4,-37.6C21,-47 25.4,-57 22.6,-69C20.4,-58 16.6,-48 13,-38.6Z') + cerne('M11,-36.6L18.2,-39.4', BRONZE, 1.6) + cerne('M12.4,-31.6L14.2,-37', '#3a2c1a', 1.8) + trait('M11.4,-36.4Q8.6,-33 11.8,-31.4', BRONZE, 1.1)
+        : lame('M13.2,-38.6L16,-37.6L22.8,-63L22.4,-67.4L19.6,-64Z') + cerne('M11,-36.6L18.2,-39.4', BRONZE, 1.6) + cerne('M12.4,-31.6L14.2,-37', '#3a2c1a', 1.8);
     case 'dague': return lame('M13.4,-38.4L15.8,-37.6L19.4,-50L19.2,-53L17,-50.6Z') + cerne('M11.6,-37L17.4,-39', BRONZE, 1.4) + cerne('M12.6,-32.4L14.2,-37', '#3a2c1a', 1.8);
-    case 'grande-epee': return lame('M13.6,-44.6L17.4,-43.6L25,-83L24.4,-88L21,-84Z') + cerne('M9.4,-42L21.6,-46.4', BRONZE, 1.9) + cerne('M11.2,-26L15,-43', '#3a2c1a', 2) + rond(11, -25, 1.8, BRONZE, C);
+    case 'grande-epee': return (g.forme === 'epee_batarde' ? lame('M13.8,-44.6L17.2,-43.6L22.6,-71L22.2,-76L19.4,-72Z') : lame('M13.6,-44.6L17.4,-43.6L25,-83L24.4,-88L21,-84Z') + lame('M14.4,-50.6L10.6,-53.4L15.4,-54.4ZM18.4,-49.6L22.6,-50.4L19.2,-53.6Z'))
+      + cerne('M9.4,-42L21.6,-46.4', BRONZE, 1.9) + cerne('M11.2,-26L15,-43', '#3a2c1a', 2) + rond(11, -25, 1.8, BRONZE, C);
     case 'hache': return cerne('M10.6,-20L19.4,-66', HAMPE, 2.4) + lame('M17.6,-67C25,-72.4 34,-67 34.6,-55C29,-58.6 24,-58 19.4,-55.4Z') + trait('M20.6,-64.6C25,-66.6 29.6,-64 31.6,-59.6', '#f4f6f8', 0.8);
     case 'marteau': return cerne('M10.6,-20L19.4,-64', HAMPE, 2.4) + p('M12.4,-70.4L27.6,-66.6L25.6,-57L10.4,-60.8Z', ACIER) + trait('M19.6,-68.6L17.8,-59', BRONZE, 1.6);
     case 'massue': return p('M11.6,-24L15.6,-23L24.6,-55C26,-61 19,-64 16.6,-58.4Z', '#6a4c2e') + trait('M17.4,-56l-3.4,-1.2M21.6,-48.6l3.6,.6M17,-47l-3.4,-.4M22.6,-57l3,-1.6', '#cfc7b0', 1.5);
     case 'lance': return cerne('M9.6,1L19.4,-86', HAMPE, 1.9) + lame('M19.2,-83.4L15.6,-88.4L20.6,-98L23.4,-87.4Z');
+    case 'hallebarde': return cerne('M9.6,1L19.4,-86', HAMPE, 1.9) + lame('M19.2,-83.4L16.6,-87.4L20.8,-100L22.6,-87.4Z')
+      + lame('M18.2,-72.6L19.8,-85.6C26,-90 33.4,-85 33.6,-74.6C28.6,-77.4 23.6,-76.4 18.2,-72.6Z') + lame('M18.6,-80.4L11,-82.6L18.2,-76.4Z');
     case 'baton': return cerne('M9.6,1L18.6,-80', '#5a4226', 2.2) + trait('M18.6,-80C16,-88 22,-92.6 25.6,-88.4', '#5a4226', 2.2)
       + rond(21, -86.4, 7, g.tenue === 'f-noir' ? '#7adf6a' : '#ffb347', 'opacity=".3"') + rond(21, -86.4, 3.2, g.tenue === 'f-noir' ? '#b6f59a' : '#ffd778', C);
-    case 'arc': return cerne('M8,-63Q21.5,-35.5 8,-8', '#7a5230', 2.2) + trait('M8,-63L8,-8', '#e9dcc0', 0.6);
+    case 'arc': return `<g transform="translate(0,-35.5) scale(1,${g.forme === 'arc_court' ? 0.74 : g.forme === 'arc_long' ? 1.24 : 1}) translate(0,35.5)">${cerne('M8,-63Q21.5,-35.5 8,-8', '#7a5230', 2.2) + trait('M8,-63L8,-8', '#e9dcc0', 0.6)}</g>`;
     case 'arbalete': return cerne('M6,-36L26,-41.6', '#6b4a2a', 3) + cerne('M23,-53Q31.6,-42.6 25,-30.6', '#3a3c42', 1.8) + trait('M23,-53L12,-37.6L25,-30.6', '#e9dcc0', 0.6);
-    case 'fronde': return trait('M13.5,-35C12,-28 14,-22 17,-18M13.5,-35C16,-28 18,-23 17,-18', '#5a3f26', 1.1) + rond(17, -17, 3.2, '#8a8478', C);
+    case 'fronde': return FRONDE;
     case 'fleau': return cerne('M11,-27L17,-52', '#4a3a28', 2.2) + trait('M17,-52Q23,-60 27,-51', '#8a8e96', 1.3, 'stroke-dasharray="1.6 1.3"')
       + p('M27,-51l2.2,-5.4 1.2,3.6 4,-1.4 -2.2,3.6 3,2.4 -4,.6 .2,4.2 -3,-2.8 -3.4,2 1.2,-3.8 -3,-2Z', '#5a5e66');
     default: return '';
@@ -139,23 +172,24 @@ function arme(g: Gabarit): string {
 /** Le bouclier au bras gauche : l'écu des gens d'armes, la rondache des engeances. */
 function bouclier(g: Gabarit): string {
   const x = -13 * g.carrure;
+  const grand = g.secondaire === 'pavois' ? ' translate(0,-38) scale(1.3) translate(0,38)' : '';
   if (g.museau || g.coiffe === 'casque-a-cornes') {
     const chaos = g.tenue === 'f-chaos';
     return `<ellipse cx="${x}" cy="-37" rx="10.6" ry="12.6" fill="${chaos ? '#2a1a22' : '#6f4d30'}" ${C}/><ellipse cx="${x}" cy="-37" rx="7.6" ry="9.4" fill="none" stroke="${chaos ? BRONZE : '#3a2a1a'}" stroke-width="1.1"/>`
       + (chaos ? trait(`M${x},-46v18M${x - 7},-37h14M${x - 5},-43.4l10,12.8M${x + 5},-43.4l-10,12.8`, BRONZE, 0.9) : rond(x, -37, 2.8, '#9a9488', C));
   }
-  return `<g transform="translate(${x},0)">${p('M-9.4,-50Q0,-52.6 9.4,-50V-38C9.4,-30 0,-24.4 0,-24.4C0,-24.4 -9.4,-30 -9.4,-38Z', `url(#${g.tenue === 'f-acier' ? 'f-rouge' : g.tenue})`)}${p('M0,-51.4V-24.4C0,-24.4 9.4,-30 9.4,-38V-50Q4.6,-51.2 0,-51.4Z', '#e9dcc0', 'opacity=".85"')}${p('M-9.4,-50Q0,-52.6 9.4,-50V-38C9.4,-30 0,-24.4 0,-24.4C0,-24.4 -9.4,-30 -9.4,-38Z', 'none', 'stroke="#15100c" stroke-width="1.5" stroke-linejoin="round"')}${rond(0, -40, 2, BRONZE, C)}</g>`;
+  return `<g transform="translate(${x},0)${grand}">${p('M-9.4,-50Q0,-52.6 9.4,-50V-38C9.4,-30 0,-24.4 0,-24.4C0,-24.4 -9.4,-30 -9.4,-38Z', `url(#${g.tenue === 'f-os' ? 'f-rouge' : g.tenue})`)}${p('M0,-51.4V-24.4C0,-24.4 9.4,-30 9.4,-38V-50Q4.6,-51.2 0,-51.4Z', '#e9dcc0', 'opacity=".85"')}${p('M-9.4,-50Q0,-52.6 9.4,-50V-38C9.4,-30 0,-24.4 0,-24.4C0,-24.4 -9.4,-30 -9.4,-38Z', 'none', 'stroke="#15100c" stroke-width="1.5" stroke-linejoin="round"')}${rond(0, -40, 2, BRONZE, C)}</g>`;
 }
 
 // ——— les têtes, dessinées autour de leur centre (0, 0) ———
 function visage(g: Gabarit): string {
   const o = assombrir(g.peau, 0.72);
-  let s = p('M-6.2,-2C-6.4,4 -3.6,8.4 0,8.4C3.6,8.4 6.4,4 6.2,-2C6.2,-9.6 -6.2,-9.6 -6.2,-2Z', g.peau)
-    + p('M-6.2,-2C-6.4,4 -3.6,8.4 0,8.4C-2.6,5 -3.8,0 -3,-8C-5,-7 -6.2,-5 -6.2,-2Z', '#000', 'opacity=".13"');
-  if (g.museau === 'mort') return s + `<ellipse cx="-2.6" cy="-.4" rx="1.9" ry="2.1" fill="#1a1410"/><ellipse cx="2.8" cy="-.4" rx="1.9" ry="2.1" fill="#1a1410"/>${rond(-2.4, -0.2, 0.6, '#e9e2c0')}${rond(3, -0.2, 0.6, '#e9e2c0')}`
+  let s = p('M-6.2,-2C-6.4,4 -3.6,8.4 0,8.4C3.6,8.4 6.4,4 6.2,-2C6.2,-9.6 -6.2,-9.6 -6.2,-2Z', g.peau);
+  if (g.museau === 'mort') return s + p('M-6.2,-2C-6.4,4 -3.6,8.4 0,8.4C-2.6,5 -3.8,0 -3,-8C-5,-7 -6.2,-5 -6.2,-2Z', '#000', 'opacity=".13"') + `<ellipse cx="-2.6" cy="-.4" rx="1.9" ry="2.1" fill="#1a1410"/><ellipse cx="2.8" cy="-.4" rx="1.9" ry="2.1" fill="#1a1410"/>${rond(-2.4, -0.2, 0.6, '#e9e2c0')}${rond(3, -0.2, 0.6, '#e9e2c0')}`
     + p('M-2.6,4.2Q0,3.2 2.8,4.2Q2,7.4 0,7.4Q-2,7.4 -2.6,4.2Z', '#1a1410', '') + trait('M-1.4,4.2v1.2M1.4,4.2v1.2', '#e9e2c0', 0.7);
-  s += trait('M-3.5,.2h1.9M1.9,.2h1.9', '#1a110b', 1.25) + trait('M-4.3,-1.9l3,.7M4.7,-1.9l-3,.7', '#2a1c12', 0.6)
-    + trait('M.5,.8l.9,2.5l-1.6,.3', o, 0.7) + trait('M-1.5,5.3q1.6,.6 3.2,0', '#6a3222', 0.7);
+  s += rond(-3.8, 3.1, 1.5, '#c8553a', 'opacity=".16"') + rond(3.8, 3.1, 1.5, '#c8553a', 'opacity=".16"')
+    + rond(-2.6, 0.3, 0.85, '#2a1a12') + rond(2.6, 0.3, 0.85, '#2a1a12') + trait('M-3.8,-1.8q1.2,-.7 2.4,0M1.4,-1.8q1.2,-.7 2.4,0', assombrir(g.cheveux ?? '#4a2f1b', 0.8), 0.6)
+    + trait('M.3,1.5q.9,1.2 -.5,1.6', o, 0.7) + trait('M-1.4,4.9q1.4,.8 2.8,0', '#8a4632', 0.7);
   if (g.signes?.includes('masque')) s += p('M-6.3,1.8Q0,3.8 6.3,1.8C6.2,5.4 3.6,8.6 0,8.6C-3.6,8.6 -6.2,5.4 -6.3,1.8Z', '#6a1c12');
   if (g.barbe) {
     const b = g.cheveux ?? '#8a3a12';
@@ -223,36 +257,100 @@ const JUPE = 'M-11,-34.6L-12.8,-20.6Q0,-18 12.8,-20.6L11,-34.6Q0,-32.6 -11,-34.6
 const BRAS_G = 'M-9.6,-54.6C-15,-52 -16.4,-43 -15,-35.4L-10.8,-36C-11.4,-42 -10.4,-48 -8,-51Z';
 const BRAS_D = 'M9.6,-54.6C15,-52.6 17,-45 15.8,-37L11.6,-37C11.6,-43 10.6,-48.6 8,-51Z';
 
+const CUIR = '#8a5a34', MAILLE = '#9a9fa8';
+const EPAULES = 'M-10,-56C-17.6,-57.6 -19.6,-50 -16,-45.6L-8.6,-49ZM10,-56C17.6,-57.6 19.6,-50 16,-45.6L8.6,-49Z';
+const COL = 'M-7,-57Q0,-52.4 7,-57L8.6,-53.2Q0,-47.6 -8.6,-53.2Z';
+
+/** L'armure portée sur le torse, du cuir à la plate ; ses tassettes quand elle couvre les jambes. */
+function cuirasse(g: Gabarit): string {
+  const mailles = (d: string) => trait(d, '#4a4e56', 1, 'stroke-dasharray="1.1 .9"');
+  switch (g.armure?.poids) {
+    case 'legere': return p(HAUT, CUIR) + p(COL, assombrir(CUIR, 0.75)) + trait('M0,-52V-35', '#3a2414', 0.8) + trait('M-1.8,-49h3.6M-1.8,-45h3.6M-1.8,-41h3.6M-1.8,-37.4h3.6', '#e6d2a6', 0.7);
+    case 'moyenne': return p(JUPE, MAILLE) + p(HAUT, MAILLE) + p(COL, MAILLE)
+      + mailles('M-10.6,-50.6Q0,-48 10.6,-50.6M-11.6,-46.6Q0,-44 11.6,-46.6M-11.8,-42.6Q0,-40 11.8,-42.6M-11.4,-38.6Q0,-36 11.4,-38.6M-11.8,-30Q0,-27.6 11.8,-30M-12.2,-26Q0,-23.6 12.2,-26M-7.6,-55Q0,-50.6 7.6,-55');
+    case 'lourde': return (g.armure.jambes ? p(JUPE, '#8a8e96') + trait('M-4.4,-33.4L-5,-20.4M4.4,-33.4L5,-20.4M-12.2,-27Q0,-24.6 12.2,-27', '#3a3e46', 0.8) : '')
+      + p(HAUT, ACIER) + p(COL, '#c6cad0') + trait('M0,-51V-35M-10.8,-41Q0,-39 10.8,-41', '#3a3e46', 0.8) + trait('M-6.6,-51C-7.8,-47 -7.6,-44 -7,-41.6', '#f4f6f8', 1, 'opacity=".7"');
+    default: return '';
+  }
+}
+
+/** L'armure aux épaules, par-dessus les bras, quand elle les couvre. */
+const epaulieres = (g: Gabarit): string => (!g.armure?.bras || g.armure.poids === 'moyenne' ? '' : p(EPAULES, g.armure.poids === 'lourde' ? ACIER : assombrir(CUIR, 0.8)));
+
+/** Ce qu'on porte au dos : le carquois de l'arc et de l'arbalète, et l'arme de tir qu'on ne tient pas. */
+function auDos(g: Gabarit): string {
+  const tir = [g.arme, g.portee];
+  return (g.portee === 'arc' ? cerne('M-19,-71Q7,-52 17,-17', '#7a5230', 2.2) : '')
+    + (g.portee === 'arbalete' ? cerne('M-3,-41L-22,-30', HAMPE, 3) + cerne('M-16.6,-42Q-28.6,-33 -23.6,-20.6', '#3a3c42', 1.8) + trait('M-16.6,-42L-23.6,-20.6', '#e9dcc0', 0.6) : '')
+    + (tir.includes('arc') || tir.includes('arbalete') ? p('M-13.6,-60L-7,-40L-3,-41.6L-9.6,-61.6Z', '#5a3d2a') + trait('M-12.6,-61l-1.6,-5M-10.6,-61.6l-.6,-5.6', '#e9dcc0', 1.1) : '');
+}
+
+/** Ce qui pend à la ceinture ou barre la poitrine : la fronde, la corde de l'arc porté au dos. */
+const aLaCeinture = (g: Gabarit): string => (g.portee === 'fronde' ? `<g transform="translate(-19.5,1.6)">${FRONDE}</g>` : g.portee === 'arc' ? trait('M-9.4,-55.6L11.6,-34', '#e9dcc0', 0.7) : '');
+
+/** Où chaque dessin d'arme se tient, et de combien il penche sur la verticale. */
+const POIGNEES: Partial<Record<Arme, [number, number, number]>> = {
+  epee: [13.5, -35, 15], dague: [13.5, -35, 16], fleau: [12.9, -35, 13.5], fronde: [13.5, -35, 0], arc: [14.7, -35.5, 0], arbalete: [8, -36.6, 74],
+  hache: [12.5, -30, 10.8], marteau: [12.6, -30.4, 11.3], 'grande-epee': [12.15, -30.25, 12.6], lance: [13.9, -37, 6.4], hallebarde: [13.9, -37, 6.4], baton: [13.85, -37, 6.3],
+};
+const HASTES: ReadonlySet<Arme> = new Set(['lance', 'hallebarde', 'baton']);
+
+/** Les bras d'un héros et ce qu'ils tiennent : `[le bras gauche, l'arme et le bras droit]`. La garde dans le poing,
+ *  la lame vers le haut ; l'arme à deux mains tenue des deux, la main gauche en travers du corps. */
+function enArmes(g: Gabarit): [string, string] {
+  const dx = 10.5 * (g.carrure - 1), bras = g.armure?.bras;
+  const manche = bras ? { legere: CUIR, moyenne: MAILLE, lourde: '#b4b8c0' }[g.armure!.poids] : g.corps === 'torse-nu' ? g.peau : `url(#${g.tenue})`;
+  const membre = (cote: 1 | -1, coude: [number, number], poing: [number, number]) => {
+    const d = `M${cote * (10.5 + dx)},-52.5L${coude}L${poing}`;
+    return trait(d, ENCRE, 6) + trait(d, manche, 4.4) + rond(poing[0], poing[1], 2.5, g.peau, C);
+  };
+  const poser = (a: Arme, [x, y]: [number, number], pente: number) => {
+    const [ax, ay, a0] = POIGNEES[a]!;
+    return `<g transform="translate(${(x - ax).toFixed(1)},${(y - ay).toFixed(1)}) rotate(${(pente - a0).toFixed(1)},${ax},${ay})">${arme({ ...g, arme: a })}</g>`;
+  };
+  const auRepos = (cote: 1 | -1) => membre(cote, [cote * (14.6 + dx), -44.5], [cote * (14 + dx), -36]);
+  const leve: [number, number] = [19 + dx, -50], coude: [number, number] = [15.6 + dx, -43];
+  const bas: [number, number] = [17.6 + dx, -39.6];
+  const gauche = g.secondaire === 'dague' ? `<g transform="scale(-1,1)">${poser('dague', bas, 38)}${membre(1, [16.4 + dx, -45.6], bas)}</g>` : auRepos(-1);
+  const a = g.arme;
+  if (!a) return [gauche, auRepos(1)];
+  if (a === 'arc') { const poing: [number, number] = [21 + dx, -43]; return [gauche, poser(a, poing, 0) + membre(1, [16 + dx, -46.4], poing)]; }
+  if (g.prise === 'une-main') return [gauche, poser(a, leve, a === 'fronde' ? 0 : 10) + membre(1, coude, leve)];
+  const pente = HASTES.has(a) || a === 'arbalete' ? POIGNEES[a]![2] : 24, r = (pente * Math.PI) / 180;
+  const pied: [number, number] = [(HASTES.has(a) ? 14.5 : 8) + dx, -37], haut: [number, number] = [pied[0] + 11 * Math.sin(r), pied[1] - 11 * Math.cos(r)];
+  return ['', poser(a, pied, pente) + membre(1, [17.4 + dx, -43.4], haut) + membre(-1, [-8 - dx, -41], pied)];
+}
+
 /** Le corps debout : `[derrière la tenue, la tenue, par-dessus la main armée]`. */
 function debout(g: Gabarit): [string, string, string] {
   const t = `url(#${g.tenue})`, a = (s: Signe) => g.signes?.includes(s), nu = g.corps === 'torse-nu', armure = g.corps === 'armure';
-  const chair = nu ? g.peau : t, sombre = TEINTES[g.tenue]?.[1] ?? '#2a1d14';
+  const chair = nu ? g.peau : t, sombre = TEINTES[g.tenue]?.[1] ?? '#2a1d14', greves = g.armure?.jambes && g.armure.poids !== 'legere';
   let dos = '';
-  if (a('cape')) dos += p('M-10.6,-55C-18.6,-42 -19,-20 -16.4,-5Q0,-9.6 16.4,-5C19,-20 18.6,-42 10.6,-55Z', g.tenue === 'f-acier' ? '#7c1f14' : assombrir(sombre, 0.85));
-  if (a('carquois') || g.arme === 'arc' || g.arme === 'arbalete') dos += p('M-13.6,-60L-7,-40L-3,-41.6L-9.6,-61.6Z', '#5a3d2a') + trait('M-12.6,-61l-1.6,-5M-10.6,-61.6l-.6,-5.6', '#e9dcc0', 1.1);
-  let s = p(JAMBES, armure ? '#7a7e86' : g.museau === 'bouc' ? assombrir(g.peau, 0.8) : '#3d2e24') + p(BOTTES, armure ? '#5a5e66' : '#1e1510');
-  s += a('tentacule') ? trait('M-9,-46C-20,-48 -27,-40 -23,-31C-20,-25 -14,-28 -16.4,-33', '#8a4a6a', 4.4) : p(BRAS_G, chair) + rond(-12.9, -33.6, 2.3, g.peau, C);
+  if (a('cape')) dos += p('M-10.6,-55C-18.6,-42 -19,-20 -16.4,-5Q0,-9.6 16.4,-5C19,-20 18.6,-42 10.6,-55Z', a('comete') ? '#7c1f14' : assombrir(sombre, 0.85));
+  dos += auDos(g);
+  let s = p(JAMBES, armure || greves ? '#7a7e86' : g.museau === 'bouc' ? assombrir(g.peau, 0.8) : '#3d2e24') + p(BOTTES, armure || greves ? '#5a5e66' : '#1e1510');
+  if (!g.prise) s += a('tentacule') ? trait('M-9,-46C-20,-48 -27,-40 -23,-31C-20,-25 -14,-28 -16.4,-33', '#8a4a6a', 4.4) : p(BRAS_G, chair) + rond(-12.9, -33.6, 2.3, g.peau, C);
   s += p(JUPE, t) + p(HAUT, chair);
   if (nu) s += trait('M-7,-46.4Q-3.4,-44 0,-46.4Q3.4,-44 7,-46.4M0,-46V-37', assombrir(g.peau, 0.7), 0.7);
   if (a('tatouages')) s += trait('M-6.6,-51q3.4,2.6 .4,6M6,-51q-3.4,2 -1,5.6M-4,-40q2,-2 4,0', '#35568a', 1);
+  s += cuirasse(g);
   if (a('chaines')) s += trait('M-9.6,-52L9,-37', '#8a8e96', 1.7, 'stroke-dasharray="1.7 1.2"') + trait('M-5,-49l2,4M3,-50l-1.6,3.6M5,-44l-2,2', '#8a2a1c', 0.7);
   if (armure) s += trait('M-10.6,-41Q0,-39 10.6,-41M-12,-27.6Q0,-25 12,-27.6M0,-56V-34', '#00000066', 0.8) + p('M-10,-56C-17.6,-57.6 -19.6,-50 -16,-45.6L-8.6,-49ZM10,-56C17.6,-57.6 19.6,-50 16,-45.6L8.6,-49Z', t);
-  if (a('plastron')) s += p('M-7.6,-54.4C-9.4,-48 -8.8,-41 -7.6,-36.6Q0,-35 7.6,-36.6C8.8,-41 9.4,-48 7.6,-54.4Q0,-57 -7.6,-54.4Z', ACIER) + trait('M0,-56V-36', '#5a5e66', 0.7);
   if (a('creves')) s += p('M-9,-56C-17,-57 -19,-48 -15.6,-43L-8.6,-47ZM9,-56C17,-57 19,-48 15.6,-43L8.6,-47Z', t) + trait('M-14.6,-53l2,6M-11.6,-54.4l1.4,5.6M14.6,-53l-2,6M11.6,-54.4l-1.4,5.6', '#7c1f14', 1);
   if (a('coeur')) s += p('M0,-45.6c-2.6,-3.6 -6,-1 -3.6,2.2L0,-40L3.6,-43.4C6,-46.6 2.6,-49.2 0,-45.6Z', '#b0352a');
   if (a('comete')) s += rond(2, -48.6, 2, BRONZE, C) + p('M.8,-47L-5.4,-39.6L-1.6,-43L-2.6,-37.6L2.4,-46Z', BRONZE, 'stroke="#15100c" stroke-width=".4"');
   s += trait('M-11.1,-34.4Q0,-32.4 11.1,-34.4', '#24170e', 2.4) + `<rect x="-1.6" y="-35.2" width="3.2" height="3.2" fill="${BRONZE}" stroke="${ENCRE}" stroke-width=".5"/>`;
-  return [dos, s, p(BRAS_D, chair) + rond(13.6, -35, 2.4, g.peau, C)];
+  return [dos, s + aLaCeinture(g), g.prise ? '' : p(BRAS_D, chair) + rond(13.6, -35, 2.4, g.peau, C)];
 }
 
 function enRobe(g: Gabarit): [string, string, string] {
   const t = `url(#${g.tenue})`;
-  let s = p('M-9.6,-54.6C-16,-52 -18.4,-42 -17.4,-33L-10.6,-34.6C-11,-42 -10.4,-48 -8,-51Z', t) + rond(-14, -32, 2.3, g.peau, C)
+  let s = (g.prise ? '' : p('M-9.6,-54.6C-16,-52 -18.4,-42 -17.4,-33L-10.6,-34.6C-11,-42 -10.4,-48 -8,-51Z', t) + rond(-14, -32, 2.3, g.peau, C))
     + p('M-10,-55C-13,-45 -13.4,-24 -15.6,-2.4Q0,2.8 15.6,-2.4C13.4,-24 13,-45 10,-55Q0,-58.4 -10,-55Z', t)
     + trait('M-5,-30L-6.8,-2M5,-30L6.8,-2M-1,-30L-1.4,0', '#000', 0.8, 'opacity=".22"') + trait('M-15,-6Q0,-.6 15,-6', g.tenue === 'f-os' ? '#b0352a' : BRONZE, 1.3, 'opacity=".8"')
-    + trait('M-11.7,-35.4Q0,-33 11.7,-35.4M3.4,-33.8L4.8,-24', '#8a6a3a', 1.6);
+    + cuirasse(g) + trait('M-11.7,-35.4Q0,-33 11.7,-35.4M3.4,-33.8L4.8,-24', '#8a6a3a', 1.6);
   if (g.signes?.includes('coeur')) s += p('M0,-45.6c-2.6,-3.6 -6,-1 -3.6,2.2L0,-40L3.6,-43.4C6,-46.6 2.6,-49.2 0,-45.6Z', '#b0352a');
-  return ['', s, p('M9.6,-54.6C16,-52.6 19,-44 17.8,-35L11.2,-37C11.6,-43 10.6,-48.6 8,-51Z', t) + rond(13.6, -35, 2.4, g.peau, C)];
+  return [auDos(g), s + aLaCeinture(g), g.prise ? '' : p('M9.6,-54.6C16,-52.6 19,-44 17.8,-35L11.2,-37C11.6,-43 10.6,-48.6 8,-51Z', t) + rond(13.6, -35, 2.4, g.peau, C)];
 }
 
 function squelette(g: Gabarit): [string, string, string] {
@@ -288,11 +386,14 @@ const CORPS: Record<NonNullable<Gabarit['corps']>, (g: Gabarit) => [string, stri
 function humanoide(g: Gabarit): string {
   const corps = g.corps ?? 'tunique', [hx, hy] = tete(g), c = g.carrure, derriere = g.arme === 'lance' || g.arme === 'baton';
   const [dos, tenue, main] = CORPS[corps](g);
-  const enMain = `<g transform="translate(${(13.5 * (c - 1)).toFixed(1)},0) ${MAIN[corps] ?? ''}">${arme(g)}</g>`;
+  const figure = `<g transform="translate(${hx},${hy}) scale(${g.chef ?? 1})">${g.museau && g.museau !== 'mort' ? MUSEAUX[g.museau](g) : visage(g)}${coiffe(g)}</g>`;
   const large = (s: string) => (c === 1 ? s : `<g transform="scale(${c},1)">${s}</g>`);
-  return large(dos) + (derriere ? enMain : '') + large(tenue)
-    + `<g transform="translate(${hx},${hy}) scale(${g.chef ?? 1})">${g.museau && g.museau !== 'mort' ? MUSEAUX[g.museau](g) : visage(g)}${coiffe(g)}</g>`
-    + (g.bouclier ? bouclier(g) : '') + (derriere ? '' : enMain) + large(main);
+  if (g.prise) {
+    const [gauche, armes] = enArmes(g);
+    return large(dos) + large(tenue) + figure + gauche + (g.secondaire && g.secondaire !== 'dague' ? bouclier(g) : '') + armes + large(epaulieres(g));
+  }
+  const enMain = `<g transform="translate(${(13.5 * (c - 1)).toFixed(1)},0) ${MAIN[corps] ?? ''}">${arme(g)}</g>`;
+  return large(dos) + (derriere ? enMain : '') + large(tenue) + figure + (g.secondaire ? bouclier(g) : '') + (derriere ? '' : enMain) + large(main);
 }
 
 function bete(g: Gabarit): string {

@@ -6,10 +6,10 @@
 import type * as J from '../jeu';
 import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
-import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
+import { buste, figurine, gabaritDeCreature } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
 import { gloserDans } from './bulles';
-import { busteDuHeros, esc } from './pieces';
+import { busteDuHeros, esc, gabaritDe } from './pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 
@@ -20,8 +20,7 @@ let rejeu: { issue: IssueDuCombat; suite: string; i: number; vitesse: number; mi
 function gabaritDuPion(q: PionDuPlateau) {
   if (q.camp === 'heros') {
     const h = roster.find((x) => x.c.id === q.id);
-    if (h) return gabaritDuHeros(h.carriere, h.espece, h.c.weapons.map((w) => w.label));
-    return gabaritDeCreature(q.creature ?? '');
+    if (h) return gabaritDe(h);
   }
   return gabaritDeCreature(q.creature ?? '');
 }

@@ -20,7 +20,7 @@ export const apercuDe = (a: Apercu) => ` data-apercu="${esc(JSON.stringify(a))}"
 
 // ─── Le héros ───────────────────────────────────────────────────────────────────────────────────────────────
 
-export const gabaritDe = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => gabaritDuHeros(h.carriere, h.espece, h.c.weapons.map((w) => w.label));
+export const gabaritDe = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => gabaritDuHeros(h.carriere, h.espece, J.allure(h));
 /** Le portrait d'un héros : le buste de sa figurine. */
 export const busteDuHeros = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => buste(gabaritDe(h), 'heros');
 export const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
