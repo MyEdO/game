@@ -54,7 +54,7 @@ JEU = 0.005
 """HYPOTHÈSE : l'envers du cuir à 5 mm de la robe, mesurés le long de chaque rayon ; le cuir ponte les creux (l'ouverture
 de la robe de dessus), jamais plus près de l'axe que la corde de ses deux sections voisines, en `PASSES_DE_PONT` passes."""
 PASSES_DE_PONT = 3
-PORTEE = 0.6                      # m : départ des visées vers la robe, depuis l'axe du corps
+PORTEE = 0.45                     # m : départ des visées vers la robe, depuis l'axe du corps, en deçà des poches de ses manches
 
 BOUCLE = {'largeur': 0.085, 'hauteur': 0.088, 'barre': 0.014, 'epaisseur': 0.010}
 """Illustration : la boucle, un cadre rectangulaire de ~42 px de large et ~45 px de haut, qui dépasse le cuir en haut et

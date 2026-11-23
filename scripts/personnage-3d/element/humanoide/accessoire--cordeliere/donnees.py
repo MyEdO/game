@@ -55,7 +55,7 @@ LISSAGE_POIDS = 0
 """Les poids empruntés à la bure, sans lissage : sur la base #4002, la bure pend au filet `jupe` sous la taille, et ses
 sommets passaient devant une corde aux poids lissés quand la hanche plie (porte, 7 clips accroupis ou roulés : 24 lignes
 `couche-traversee` jusqu'à 19 mm à 2 passes, 17 lignes jusqu'à 12 mm sans lissage, 24 jusqu'à 14 mm à une passe)."""
-PORTEE = 0.6                      # m : départ des visées vers la bure, depuis l'axe du corps
+PORTEE = 0.45                     # m : départ des visées vers la bure, depuis l'axe du corps, en deçà des pans de ses manches
 
 NOEUD = {'rayon': 0.016, 'longueur': 0.03, 'segments': 8, 'angle': 45}
 """Illustration : le nœud, un renflement d'environ 14 px (3,2 cm) ; HYPOTHÈSE : un fuseau de 3 cm de long, 1,6 cm de rayon,

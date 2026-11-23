@@ -24,7 +24,7 @@ MANIFESTE = {
     'liaison': {'mode': 'squelette'},
     'couche': 'tenue',
     'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d'],
-    'chaines': ['jupe'],
+    'chaines': ['jupe', 'manche'],
 }
 """`couvre` : sous l'ourlet ouvert et en dents, pieds écartés, le mollet se voit (procédure, section 2, #3743) ; la cloche
 des manches laisse l'avant-bras sortir, bandé."""
@@ -99,31 +99,33 @@ lisibles à taille de jeu) ; les crêtes restent au jeu sur le filet : en sailli
 tombe sur lui (`couche-traversee`, 22 cm en Sprint_Loop)."""
 
 # --- Manches : anneaux perpendiculaires à l'axe du bras, (fraction de `upperarm`, au-delà de 1 passé le coude ; aisance du
-# dessus ; poche) ; `poche` : ce dont le dessous pend sous le bras, en lobe (cos^`GALBE_DE_LA_POCHE`) vers
-# `ANGLE_DE_LA_POCHE` dans le plan de l'anneau, incliné de `INCLINAISON_DE_LA_POCHE` sur l'axe du bras ---
+# dessus ; poche) ; `poche` : ce dont le dessous pend sous le bras tendu, en lobe (cos^`GALBE_DE_LA_POCHE`) autour du
+# dessous du bras ; passé le coude, d'aplomb, sur la manche de la base (`tissu.Manche`) ---
 COUPE_MIN = 0.06                   # fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
 RAYON_DE_COUPE_MAX = 0.12          # rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
 AZIMUTS_DE_MANCHE = [0.0, 40.0, 80.0, 110.0, 132.0, 150.0, 166.0, 180.0, 194.0, 210.0, 228.0, 250.0, 280.0, 320.0]
 """Azimuts des colonnes (0 = dessus du bras en T, 180 = dessous) : serrées dessous, où la poche pend et se plisse."""
-MANCHE = [(-0.10, 0.024, 0.0), (0.25, 0.028, 0.03), (0.55, 0.032, 0.05), (0.85, 0.036, 0.07), (1.15, 0.040, 0.10),
-          (1.34, 0.046, 0.26), (1.62, 0.055, 0.44)]
+MANCHE = [(-0.10, 0.024, 0.0), (0.25, 0.028, 0.017), (0.55, 0.032, 0.03), (0.75, 0.035, 0.035), (1.15, 0.040, 0.035),
+          (1.40, 0.046, 0.26), (1.62, 0.055, 0.44)]
 """Illustration (bras droit tendu) : le dessus de la manche suit le bras ; dessous, le tissu pend en poche sous
 l'avant-bras et s'ouvre au poignet sur ~230 px de haut (contrat : ~45 cm), à mi-avant-bras (1,62 fois `upperarm` aux
-pointes). La poche reste courte jusqu'au coude (10 cm à 1,15) : plus longue là, la bande qui passe le coude, du bras à
-l'avant-bras, s'étirerait au-delà de la porte coude plié (HYPOTHÈSE). Aisances du dessus : HYPOTHÈSE."""
-GALBE_DE_LA_POCHE = 1.0            # HYPOTHÈSE : en entonnoir, l'ouverture ronde sous le bras, pas une lame
-ANGLE_DE_LA_POCHE = 180.0          # le dessous du bras en T : la poche pend droit bras tendu (illustration)
-INCLINAISON_DE_LA_POCHE = 35.0
-"""Angle de la poche sur l'axe du bras : à 90°, elle pend droit sous le bras tendu (illustration) ; à 0°, elle prolonge
-la manche, comme elle tombe bras baissé. La manche suit l'avant-bras sans chaîne d'os qui la fasse tomber : à 60°, la
-poche de l'illustration, bras tendu, traverse le ventre et les hanches bras baissés (Idle_Loop, vu au rendu) ; à 25°,
-elle tombe le long du bras au repos et n'est plus qu'un pan en T. HYPOTHÈSE : 35°, entre les deux."""
+pointes). Jusqu'au coude passé (1,15), elle n'est qu'un creux de 2 à 3,5 cm, et la bande qui passe le coude, de 0,75
+à 1,15, fait 11 cm : la manche de la base y pend et y tourne, et une bande de 8 cm sous une poche de 10 cm s'y
+étirait au-delà de la porte coude plié sous `carrure_plus` (`arete-etiree`, 3,8 pour 3,51, #4697). La poche se creuse
+de 1,15 à 1,40 : le dessus y suit le tube, le dessous les brins, et sur 5 cm (1,15 à 1,34) l'arête qui les joint
+s'étirait de 3,77 bras tombant (Hampe_Mort, `carrure_plus`). Aisances du dessus : HYPOTHÈSE."""
+GALBE_DE_LA_POCHE = 1.0            # HYPOTHÈSE : les colonnes du dessous réparties le long des deux pans de la poche
+EVASEMENT_DE_LA_POCHE = 0.2
+"""Ce dont un pan de la poche s'écarte du plan médian de la manche, par mètre pendu, au bord de la manche ; nul sur le
+plan médian. Illustration : la manche s'ouvre en cloche, plus large en bas qu'au bras (HYPOTHÈSE : l'ouverture, de face,
+ne se voit pas ; 0,2 donne ~21 cm de large à mi-hauteur de la poche, pour ~17 cm au bras)."""
 RACCORD_AU_BRAS = 1.0              # fraction sous laquelle un anneau emprunte ses poids au bras, sommet par sommet ; au-delà,
-                                   # la manche suit l'avant-bras d'un bloc
-COUPE_DES_POIDS = 1.5              # fraction dont la peau donne les poids de la manche passé le coude (l'avant-bras)
+                                   # il suit l'os du tube de la manche de la base, et sa poche, ses brins
 GODETS = {'creux': 0.05, 'debut': 0.85, 'colonnes': [4, 6, 8, 10]}
 """Illustration : la poche tombe en godets qui partent du coude. `colonnes` : les colonnes du dessous creusées (une sur
-deux), de `creux` au bord, de rien à la fraction `debut` (HYPOTHÈSE : 5 cm)."""
-LAMBEAUX_MANCHE = {'profondeur': 0.05, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--manche-'}
-"""Illustration : le bord des cloches est déchiqueté ; contrat : dents lisibles à taille de jeu (HYPOTHÈSE : 5 cm, sous
-les 7 cm de la dernière bande de la manche, galonnée)."""
+deux) vers le plan médian de la manche, de `creux` au bord, de rien à la fraction `debut` (HYPOTHÈSE : 5 cm)."""
+LAMBEAUX_MANCHE = {'profondeur': 0.03, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--manche-'}
+"""Illustration : le bord des cloches est déchiqueté ; contrat : dents lisibles à taille de jeu (HYPOTHÈSE : 3 cm). La
+dernière bande de la manche, galonnée, fait 7 cm, et le recul d'une dent en laisse 4 : à 5 cm de recul, ses arêtes de
+2 cm, entre les brins du milieu et ceux du poignet, s'étiraient au-delà de la porte (`arete-etiree`, Hampe_Attaque,
+#4697)."""

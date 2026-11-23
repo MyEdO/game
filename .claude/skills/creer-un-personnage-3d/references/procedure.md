@@ -397,7 +397,26 @@ s'allonge. Une pièce lit le filet au repos par `Base.filet(nom)` (`tissu.Filet`
 rayon du filet (`Filet.point`) et la pondère aux os de ses deux brins voisins (`Filet.poids`), fondue du corps au filet
 sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet ouvert, au-delà duquel rien ne la
 porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
-mouvement viennent du filet. Une doublure reprend les colonnes et les poids de la nappe
+mouvement viennent du filet. Une manche ample ne se pondère pas d'un bloc à l'avant-bras : sa poche se pose sur la
+chaîne `manche` de la base (`MANCHES` de `base/filets.py`, drapé `base/pendant.py`), par avant-bras un os de tour qui
+garde le dessous du bras vers le bas, un os de tube qui n'en prend qu'une portion, et six brins de trois os (coude,
+milieu, poignet ; avant, arrière), enfants du tour, qui pendent d'aplomb et s'écartent du corps, de la tête, du sol et
+du bâton tenu à deux mains (clips `hampe`). D'une image à la suivante, chaque os garde sa direction, revient vers
+l'aplomb d'une part (`pendant.RETOUR`), puis sort de ce qu'il rencontre : il ne rentre dans aucun obstacle et reste du
+côté où il était ; un clip en boucle se joue une fois avant de se cuire, et se referme ; un clip d'hampe se drape à
+`filets.BALAYAGE` instants par image, pour que le fût ne traverse aucun brin entre deux instants du calcul ; ses pistes
+n'en gardent qu'une clé par image, que l'hôte interpole. La direction de
+chaque os se lisse ensuite sur ses images voisines (`filets.LISSAGE`), et l'os qui tend vers elle pend hors des
+obstacles de son image à un jeu moindre (`filets.JEU_LISSE_M`) : le lissage rogne le jeu, jamais l'obstacle. Deux brins
+voisins ne s'écartent pas de plus de `tente.ETIREMENT_MAX` fois leur écart au repos.
+Une pièce la lit par `Base.manche(c)` (`tissu.Manche`) : l'anneau du tube suit l'os de tube (`Manche.dessus`), la poche
+pend d'aplomb sous lui (`Manche.pendre`), pondérée aux brins voisins de sa station et de sa face (`Manche.poids`), et
+la pièce déclare `manche` dans `chaines`. Le dernier anneau lié au bras se tient à 10 cm au moins du premier anneau de
+l'avant-bras (robe du Sorcier : 10,0 cm ; bure : 10,8 cm), et l'anneau où le pan passe aux brins à 6 cm au moins de
+l'anneau qui suit encore le tube, pour un pan de 26 cm (robe du Sorcier : 6,3 cm ; à 4,8 cm, `arete-etiree` de 3,77
+bras tombant sous `carrure_plus`), à 10 cm pour un pan de 42 cm (bure : 10,0 cm ; à 6,3 cm, `arete-etiree` de 3,95) :
+plus près, les arêtes qui les joignent s'étirent au-delà de la porte, coude plié ou bras tombant.
+Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 
