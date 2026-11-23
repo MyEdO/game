@@ -113,15 +113,34 @@ function longueursDe(base: Pose, mesh: Mesh, liste: Uint32Array, p0: Float32Arra
   return l;
 }
 
-/** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`. */
-function parcourir(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, pose: Pose, visiter: (mesh: Mesh, a: number, b: number, rapport: number) => void): void {
+/** La marge relative, très au-delà de l'écart d'arrondi entre `Math.sqrt` d'une somme de carrés et `Math.hypot`, ou
+ *  `Math.exp` et `Math.log`, sous laquelle un rapport approché reste dans un intervalle (#4753). */
+const MARGE_D_APPROCHE = 1e-9;
+
+/** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`,
+ *  sauf si son rapport approché tombe dans l'intervalle `sansEffet()`, à `MARGE_D_APPROCHE` près, relu après chaque
+ *  visite (#4753). */
+function parcourir(
+  aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, pose: Pose, sansEffet: () => Intervalle,
+  visiter: (mesh: Mesh, a: number, b: number, rapport: number) => void,
+): void {
+  let bas = 0, haut = 0;
+  const relire = (): void => { const [b, h] = sansEffet(); bas = b * (1 + MARGE_D_APPROCHE); haut = h * (1 - MARGE_D_APPROCHE); };
+  relire();
   for (const [mesh, liste] of aretes) {
     const p0 = base.positions.get(mesh);
     const p = pose.positions.get(mesh);
     if (!p0 || !p) continue;
     const l0 = longueursDe(base, mesh, liste, p0);
     for (let k = 0; k < liste.length; k += 2) {
-      if (l0[k / 2] > 0) visiter(mesh, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l0[k / 2]);
+      const l = l0[k / 2];
+      if (!(l > 0)) continue;
+      const a = liste[k] * 3, b = liste[k + 1] * 3;
+      const dx = p[a] - p[b], dy = p[a + 1] - p[b + 1], dz = p[a + 2] - p[b + 2];
+      const approche = Math.sqrt(dx * dx + dy * dy + dz * dz) / l;
+      if (approche > bas && approche < haut) continue;
+      visiter(mesh, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l);
+      relire();
     }
   }
 }
@@ -150,7 +169,12 @@ function decompte(bornes: Intervalle, codes: Codes) {
 export function mesurerEtirement(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
   const hors = decompte(ETIREMENT_EN_CLIP, CODES_EN_CLIP);
   const meilleures: { readonly r: RapportDArete; readonly g: number }[] = [];
-  parcourir(aretes, base, e, (mesh, a, b, rapport) => {
+  const sansEffet = (): Intervalle => {
+    if (meilleures.length < PIRES_ARETES_PAR_CLIP) return [1, 1];
+    const g = meilleures[PIRES_ARETES_PAR_CLIP - 1].g;
+    return [Math.max(ETIREMENT_EN_CLIP[0], Math.exp(-g)), Math.min(ETIREMENT_EN_CLIP[1], Math.exp(g))];
+  };
+  parcourir(aretes, base, e, sansEffet, (mesh, a, b, rapport) => {
     hors.compter(mesh, rapport);
     const g = gravite(rapport);
     if (meilleures.length === PIRES_ARETES_PAR_CLIP && g <= meilleures[PIRES_ARETES_PAR_CLIP - 1].g) return;
@@ -195,7 +219,7 @@ export function gardeEtirement(mesures: readonly MesureDEtirement[], libelle: Li
  *  l_k/l_b hors de `ETIREMENT_AU_REPOS`. */
 export function gardeEtirementAuRepos(aretes: ReadonlyMap<Mesh, Uint32Array>, libelle: LibelleDeMesh, base: Pose, repos: Pose): Ecart[] {
   const hors = decompte(ETIREMENT_AU_REPOS, CODES_AU_REPOS);
-  parcourir(aretes, base, repos, (mesh, _a, _b, rapport) => hors.compter(mesh, rapport));
+  parcourir(aretes, base, repos, () => ETIREMENT_AU_REPOS, (mesh, _a, _b, rapport) => hors.compter(mesh, rapport));
   const [bas, haut] = ETIREMENT_AU_REPOS;
   return hors.horsBornes().map((h) => ({
     garde: 'etirement', code: h.code, mesh: libelle(h.mesh), valeur: h.pire, seuil: h.seuil,

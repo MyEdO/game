@@ -6,7 +6,7 @@
  */
 import {
   AnimationMixer, LoopOnce, Matrix4, Vector3, type AnimationClip, type Bone, type BufferAttribute, type InterleavedBufferAttribute, type Mesh, type Object3D,
-  type Quaternion, type SkinnedMesh,
+  type Quaternion, type Skeleton, type SkinnedMesh,
 } from 'three';
 import { reposerGabarit, type GabaritPose } from './gabarit.ts';
 import seuils from './gardes/seuils.json';
@@ -39,10 +39,23 @@ function aPlat(attribut: BufferAttribute | InterleavedBufferAttribute): ArrayLik
   return sortie;
 }
 
+const produit = new Matrix4();
+
+/** Les matrices `bone.matrixWorld × boneInverse` des os de `squelette`, 16 éléments chacune, à plat. */
+function matricesDesOs(squelette: Skeleton): Float64Array {
+  const os = new Float64Array(squelette.bones.length * 16);
+  squelette.bones.forEach((b, i) => {
+    const e = produit.multiplyMatrices(b.matrixWorld, squelette.boneInverses[i]).elements;
+    for (let k = 0; k < 16; k++) os[i * 16 + k] = e[k];
+  });
+  return os;
+}
+
 /** Les positions monde des sommets de `m`, à plat : `Mesh.getVertexPosition` (shape keys, puis skinning de
  *  `SkinnedMesh.applyBoneTransform`) puis `matrixWorld`, dans la même suite d'opérations flottantes, la matrice de chaque
- *  os (`bone.matrixWorld × boneInverse`) calculée une fois par pose au lieu d'une fois par sommet et par influence. */
-function positionsMonde(m: Mesh): Float32Array {
+ *  os (`bone.matrixWorld × boneInverse`) calculée une fois par pose et par squelette (`matrices`, #4753) au lieu d'une
+ *  fois par sommet et par influence. */
+function positionsMonde(m: Mesh, matrices: Map<Skeleton, Float64Array>): Float32Array {
   const g = m.geometry;
   const n = g.attributes.position.count;
   const position = aPlat(g.attributes.position);
@@ -51,7 +64,8 @@ function positionsMonde(m: Mesh): Float32Array {
   const morphes = g.morphAttributes.position && influences ? g.morphAttributes.position : undefined;
   const formes = (morphes ?? []).flatMap((attribut, i) => (influences && influences[i] !== 0 ? [{ valeurs: aPlat(attribut), influence: influences[i] }] : []));
   const s = m as SkinnedMesh;
-  const os = s.isSkinnedMesh ? s.skeleton.bones.map((b, i) => new Matrix4().multiplyMatrices(b.matrixWorld, s.skeleton.boneInverses[i]).elements) : [];
+  const os = s.isSkinnedMesh ? (matrices.get(s.skeleton) ?? matricesDesOs(s.skeleton)) : new Float64Array(0);
+  if (s.isSkinnedMesh) matrices.set(s.skeleton, os);
   const indices = s.isSkinnedMesh ? aPlat(g.attributes.skinIndex) : [];
   const poids = s.isSkinnedMesh ? aPlat(g.attributes.skinWeight) : [];
   const lie = s.isSkinnedMesh ? s.bindMatrix.elements : [];
@@ -77,13 +91,16 @@ function positionsMonde(m: Mesh): Float32Array {
       for (let k = 0; k < 4; k++) {
         const w = poids[i * 4 + k];
         if (w === 0) continue;
-        const b = os[indices[i * 4 + k]];
-        x += (b[0] * bx + b[4] * by + b[8] * bz + b[12] * bw) * w;
-        y += (b[1] * bx + b[5] * by + b[9] * bz + b[13] * bw) * w;
-        z += (b[2] * bx + b[6] * by + b[10] * bz + b[14] * bw) * w;
+        const o = indices[i * 4 + k] * 16;
+        x += (os[o] * bx + os[o + 4] * by + os[o + 8] * bz + os[o + 12] * bw) * w;
+        y += (os[o + 1] * bx + os[o + 5] * by + os[o + 9] * bz + os[o + 13] * bw) * w;
+        z += (os[o + 2] * bx + os[o + 6] * by + os[o + 10] * bz + os[o + 14] * bw) * w;
       }
       const d = delie, q = 1 / (d[3] * x + d[7] * y + d[11] * z + d[15]);
-      [x, y, z] = [(d[0] * x + d[4] * y + d[8] * z + d[12]) * q, (d[1] * x + d[5] * y + d[9] * z + d[13]) * q, (d[2] * x + d[6] * y + d[10] * z + d[14]) * q];
+      const dx = (d[0] * x + d[4] * y + d[8] * z + d[12]) * q, dy = (d[1] * x + d[5] * y + d[9] * z + d[13]) * q;
+      z = (d[2] * x + d[6] * y + d[10] * z + d[14]) * q;
+      x = dx;
+      y = dy;
     }
     const e = monde, q = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
     p[i * 3] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * q;
@@ -95,7 +112,8 @@ function positionsMonde(m: Mesh): Float32Array {
 
 function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
   scene.updateMatrixWorld(true);
-  const positions = new Map<Mesh, Float32Array>(meshes.map((m) => [m, positionsMonde(m)]));
+  const matrices = new Map<Skeleton, Float64Array>();
+  const positions = new Map<Mesh, Float32Array>(meshes.map((m) => [m, positionsMonde(m, matrices)]));
   const os = new Map<string, Matrix4>();
   scene.traverse((n) => { if ((n as Bone).isBone) os.set(n.name, n.matrixWorld.clone()); });
   return { positions, os };

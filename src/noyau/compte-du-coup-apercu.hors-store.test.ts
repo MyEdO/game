@@ -135,9 +135,7 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
       c.pos = { x: 12, y: 12 };
       c.activeEffects = [{ label: 'Bouclier', bonus: 0, arrowWard: { radiusMeters: 4 } }] as unknown as Combatant['activeEffects'];
       const fleche = { ...arc, organicProjectile: true } as Weapon;
-      return hitModifiers().find((h) => h.id === 'arrow-ward')!.apply({
-        get: banc.getState, set: banc.setState, attacker: H, target: c, weapon: fleche, attaque: 'distance', res: r, sink: () => {}, ouvrirSauvegarde: () => {},
-      });
+      return hitModifiers().find((h) => h.id === 'arrow-ward')!.toucher({ etat: banc.getState(), attacker: H, target: c, weapon: fleche, attaque: 'distance', res: r }).res;
     }],
   ] as const) it(nom + ' : un coup sans prise qui porte un critLocation ne relance pas, 0 Blessure (LDB 14 l.159 ; LDB 85 l.98 ; LDB 47)', () => {
     const { seed, lieu } = jetRelanceHorsDuCorps(44);
@@ -280,6 +278,6 @@ describe("aperçu au jet = application : la touche déviée se compte sur celui 
     expect(applique).toEqual(attendu);
     expect(surLaCibleVisee).toEqual({ blessures: 0, critiques: 0 });
     expect(ligneAppliquee).toBeTruthy();
-    expect(apercu).toEqual({ genre, ligne: ligneAppliquee });
+    expect(apercu).toMatchObject({ genre, ligne: ligneAppliquee });
   });
 });
