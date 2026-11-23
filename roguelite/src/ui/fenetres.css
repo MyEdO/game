@@ -1,0 +1,10 @@
+/* Les fenêtres (`main.ts`) : récit d'une salle, confirmation. */
+.boite-objet { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--laiton); border-radius: 4px; color: var(--sepia); font: inherit; background: radial-gradient(90% 80% at 50% 35%, rgba(255,246,208,.95), rgba(228,203,134,.85)); box-shadow: 0 0 0 1px var(--contour), 0 2px 5px var(--brou); }
+.boite-objet:disabled { cursor: default; opacity: .5; filter: grayscale(.6); }
+.boite-objet em { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font-style: normal; font-size: 11px; line-height: 18px; color: var(--ivoire); background: #5a1a10; box-shadow: 0 0 0 1px var(--contour); }
+.modale { position: fixed; inset: 0; z-index: 20; background: rgba(5,3,2,.72); display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top, 0px)) var(--gouttiere-d) max(16px, env(safe-area-inset-bottom, 0px)) var(--gouttiere-g); }
+.boite { width: min(600px, 100%); max-height: calc(100% - 10px); display: flex; flex-direction: column; }
+.boite > .fond { overflow: auto; display: grid; gap: 14px; padding-top: 30px; }
+.recit { display: grid; gap: 8px; font-size: 16px; }
+.recit.defaite p:first-child { color: var(--sang); }
+.illustration { width: 100%; aspect-ratio: 16 / 7; border-radius: 2px; box-shadow: 0 0 0 1px var(--trait-encre), 0 4px 10px var(--ombre); }

@@ -1,0 +1,45 @@
+/* Le socle de la page : polices, boutons, et les pièces du kit (`kit.css`) remises dans le flux du jeu. */
+html, body { height: 100%; background: #0d0b1e; color: var(--creme); color-scheme: dark; overflow: hidden; }
+body { font: 16px/1.5 "Spectral", Georgia, serif; }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--or-eclat); outline-offset: 3px; }
+.gothique { font-family: "Grenze Gotisch", serif; }
+p { margin: 0; }
+#jeu, .ecran { position: fixed; inset: 0; }
+:root { --bandeau: 132px; --gouttiere-g: max(16px, env(safe-area-inset-left, 0px)); --gouttiere-d: max(16px, env(safe-area-inset-right, 0px)); }
+.cadre { position: relative; padding: 9px; }
+.cadre > .fond { height: auto; padding: 22px 18px 18px; }
+.cadre > .fond:not(.parchemin) { background: radial-gradient(130% 120% at 50% 0%, rgba(59,39,24,.75), rgba(13,8,6,.94)); }
+.ruban { font-family: "Grenze Gotisch", serif; font-weight: 600; }
+button.plaque { border: 0; cursor: pointer; color: inherit; font: inherit; flex: none; }
+button.plaque > div { width: 100%; }
+button.plaque:hover:not(:disabled) > div { color: var(--or-eclat); box-shadow: inset 0 0 0 1px var(--filet-or-vif), inset 0 1px 0 var(--reflet); }
+button.plaque.armee:hover:not(:disabled) > div { color: var(--encre); filter: brightness(1.06); }
+button.plaque:disabled { cursor: not-allowed; }
+.plaque .prix { margin-left: 10px; }
+.parchemin { color: var(--encre); }
+.parchemin .glose, .parchemin .sous-titre { color: var(--encre-2); }
+.parchemin .nom-propre { color: var(--sepia); text-shadow: none; }
+.lien { background: none; border: 0; padding: 4px 2px; font-family: "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.gestes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.gestes.colonne { flex-direction: column; align-items: stretch; }
+.etats { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.niveaux { display: inline-flex; gap: 5px; margin-top: 4px; }
+.niveaux i { width: 9px; height: 9px; transform: rotate(45deg); box-shadow: inset 0 0 0 1px var(--trait-encre); }
+.niveaux i.plein { background: linear-gradient(135deg, var(--or-eclat), var(--laiton)); box-shadow: 0 0 0 1px var(--laiton-ombre); }
+.vie { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-family: "IM Fell English SC", serif; letter-spacing: .6px; color: var(--creme-2); }
+.vie .chiffres { font-family: "Open Sans", sans-serif; letter-spacing: 0; color: var(--ivoire); }
+.parchemin .vie { color: var(--encre-2); }
+.parchemin .vie .chiffres { color: var(--encre); }
+.cartouche { display: flex; align-items: center; gap: 12px; }
+.cartouche .titre { font-size: 30px; line-height: 1.05; margin: 0; white-space: normal; }
+.ressources { display: flex; flex-wrap: wrap; gap: 6px; }
+.outil { background: none; border: 0; padding: 0; cursor: pointer; display: grid; justify-items: center; gap: 4px; }
+.outil .bouton-rond { display: block; }
+.outil .bouton-rond > span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, var(--chene), var(--chene-nuit) 70%); box-shadow: inset 0 0 0 1px var(--ombre-forte), inset 0 2px 5px var(--ombre-forte); }
+.outil .libelle { font: 11.5px "IM Fell English SC", serif; letter-spacing: .7px; color: var(--creme); text-shadow: 0 1px 3px #000; }
+.outil:hover .bouton-rond { box-shadow: 0 4px 8px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 12px var(--halo); }
+.glose.consigne { font-size: 16px; line-height: 1.45; }
+#toast { position: fixed; z-index: 40; left: 50%; bottom: calc(var(--bandeau) + 30px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 3px; color: var(--encre);
+  background: var(--parchemin); background-image: var(--tex-parchemin); background-blend-mode: multiply; box-shadow: 0 8px 20px var(--ombre-forte), inset 0 0 0 1px var(--trait-encre); }
+#chargement { padding: 60px 16px; text-align: center; font-style: italic; color: var(--creme-2); }

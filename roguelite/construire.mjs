@@ -1,6 +1,6 @@
 // Construit l'hôte roguelite pour le navigateur : `dist/noyau.js` (la façade du noyau, `src/noyau/`, et tout ce
 // qu'elle tire du dépôt), `dist/jeu.js` (l'interface et la boucle de jeu), qui importe la façade par `./noyau.js`,
-// la page et le kit des maquettes (`kit.css`).
+// la page, sa feuille `jeu.css` et le kit des maquettes (`kit.css`).
 // Usage : node roguelite/construire.mjs
 import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -25,6 +25,9 @@ await build({
     },
   }],
 });
+// La feuille du jeu : celle de chaque module de l'interface, à côté de lui, recollées dans l'ordre de la cascade.
+const FEUILLES = ['base', 'ecran', 'pieces', 'fiche', 'services', 'lieux', 'fenetres', 'rejeu'];
+writeFileSync(join(dist, 'jeu.css'), FEUILLES.map((f) => readFileSync(join(ici, `src/ui/${f}.css`), 'utf8')).join('\n'));
 for (const f of ['index.html', 'kit.css']) copyFileSync(join(ici, f), join(dist, f));
 // La page de recette (`recette/`) : la page enveloppée comme l'hôte des artefacts l'enveloppe, jamais publiée.
 writeFileSync(join(dist, 'recette.html'), `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${readFileSync(join(ici, 'index.html'), 'utf8')}</body></html>`);

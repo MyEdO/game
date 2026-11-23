@@ -1,0 +1,26 @@
+/* Le gabarit des écrans (`ecran.ts`) : la scène fixe de 1280 × 720, ses cadres placés, le socle de la compagnie,
+   la croix, le retour ; sur un écran étroit, les cadres s'empilent. */
+.ecran-plein { position: fixed; inset: 0; z-index: 20; background: radial-gradient(120% 90% at 50% 30%, #2a1d14, #0d0907 70%); }
+.scene-fixe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+.place-cadre { position: absolute; display: flex; }
+.place-cadre > .cadre { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.place-cadre > .cadre > .fond { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; }
+.socle-compagnie > .fond { padding: 8px 10px; }
+.socle-compagnie .rang-heros { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 24px) / 4); gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scroll-snap-type: x mandatory; }
+.socle-compagnie .carte-heros { max-width: none; scroll-snap-align: start; }
+@media (max-width: 899px) {
+  .ecran-plein { overflow-y: auto; }
+  .scene-fixe { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
+  .place-cadre { position: relative; left: auto !important; top: auto !important; width: auto !important; height: auto !important; margin: 0 16px 14px; }
+  .place-cadre > .cadre > .fond { overflow: visible; }
+  .place-cadre > .cadre.bande > .fond { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 6px; padding: 18px 6px 8px; }
+  .socle-compagnie .rang-heros { grid-auto-columns: 78%; }
+  .ecran-plein .croix-ecran { position: fixed; left: auto; right: 16px; top: 12px; z-index: 3; }
+}
+.croix-ecran { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; line-height: 1; color: var(--encre); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen) 55%, var(--laiton)); box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 2px var(--laiton-ombre); }
+.pan>.fond{padding:15px 19px 14px}
+.pan>.fond.bois{padding:14px 16px}
+.pan:has(>.onglets)>.fond{padding-top:26px}
+.pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
+.retour { position: absolute; }
+@media (max-width: 899px) { .retour { position: static; margin: 0 16px 12px; } }

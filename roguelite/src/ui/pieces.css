@@ -1,0 +1,58 @@
+/* Les pièces partagées par les écrans (`pieces.ts`) : cartes de héros, entrées (talents, sorts), cases d'objets,
+   offres, emplacements, séquelles, et la bulle et l'aperçu du survol (`bulles.ts`). */
+.rang-heros { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: thin; }
+.carte-heros { flex: 1 0 236px; max-width: 290px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 3px; cursor: pointer; text-align: left;
+  background: linear-gradient(180deg, rgba(59,39,24,.5), rgba(27,16,10,.7)); box-shadow: inset 0 0 0 1px var(--filet-or); }
+.carte-heros:hover { box-shadow: inset 0 0 0 1px var(--filet-or-vif), 0 0 14px var(--halo); }
+.carte-heros.choisi { background: linear-gradient(180deg, rgba(168,132,47,.55), rgba(74,52,16,.75)); box-shadow: inset 0 0 0 2px var(--laiton), 0 0 16px var(--halo-vif); }
+.carte-heros:disabled { cursor: default; opacity: .6; }
+.carte-heros .qui { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.carte-heros .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-heros .ligne-etat { font-size: 12.5px; font-style: italic; color: var(--creme-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-heros.hors .portrait > div { filter: grayscale(.8) brightness(.6); }
+.carte-heros.hors .ligne-etat { color: var(--cire-clair); }
+.vide { margin: 4px 8px; }
+.talent.acquis { background: rgba(201,161,74,.16); }
+.talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
+.talent .t{flex:1;min-width:0}
+.talent .t i{display:block;font-family:"IM Fell English SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
+.talent .plaque{flex:none;width:94px}
+.talent.clos .nom-propre{color:rgba(42,29,18,.6)}
+.case-objet { display: grid; justify-items: center; gap: 3px; min-width: 0; }
+.case-objet.grande .boite-objet { width: 64px; height: 64px; }
+button.boite-objet { cursor: pointer; }
+button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 0 0 10px var(--halo-vif); }
+.case-objet.vide .boite-objet { border: 1.5px dashed var(--trait-encre); background: rgba(60,40,20,.06); box-shadow: none; }
+.nom-objet { max-width: 100%; font: 11px "IM Fell English SC", serif; letter-spacing: .5px; color: var(--encre-2); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-objet.grande .nom-objet { font-size: 12px; white-space: normal; line-height: 14px; }
+.cases-sac { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: flex-start; }
+.cases-sac .case-objet { width: 66px; }
+.cases-sac .nom-objet { white-space: normal; line-height: 12px; }
+.essentiels { display: grid; gap: 1px; margin-top: 6px; font-size: 12.5px; color: var(--encre-2); text-align: center; }
+.sacs { display: grid; gap: 8px; }
+.sac-heros { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.sac-heros .portrait.hors { filter: grayscale(1); opacity: .6; }
+.bulle-du-jeu { position: fixed; z-index: 50; transform: none; bottom: auto; pointer-events: none; }
+.bulle-du-jeu[hidden] { display: none; }
+.apercu-du-jeu { position: fixed; z-index: 50; pointer-events: none; }
+.apercu-du-jeu[hidden] { display: none; }
+.apercu-du-jeu .corps-apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 14; overflow: hidden; margin-top: 4px; }
+.apercu-du-jeu .corps-apercu p { margin: 0 0 4px; font-style: normal; font-size: 13.5px; line-height: 18px; color: var(--encre); }
+.apercu-du-jeu .corps-apercu ul { margin: 0 0 4px; padding-left: 16px; font-size: 13.5px; line-height: 18px; }
+.emplacement { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--filet-encre); }
+.emporte { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--filet-encre); }
+.emporte .offres { justify-content: flex-end; }
+.offres { display: flex; flex-wrap: wrap; gap: 5px; }
+.offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
+.offre b { font-size: 13.5px; color: var(--sepia); }
+.offre span { grid-column: 1; font-size: 12px; color: var(--encre-2); }
+.offre .prix { grid-row: 1 / span 2; grid-column: 2; align-self: center; font: 13px "IM Fell English SC", serif; font-style: normal; color: var(--rouille); }
+.offre:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--rouille); background: var(--voile-fort); }
+.offre:disabled { opacity: .5; cursor: default; }
+.offre.actuelle { opacity: 1; background: rgba(201,161,74,.18); box-shadow: inset 0 0 0 1px rgba(201,161,74,.7); }
+.emplacement { margin: 8px 0; }
+.emplacement header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.emplacement header b { font-size: 14px; color: var(--sepia); }
+.etiquettes-sequelles { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.etiquette.sequelle { cursor: help; padding: 2px 8px; border-radius: 10px; font-size: 12.5px; background: rgba(124,31,20,.1); color: #7c1f14; box-shadow: inset 0 0 0 1px rgba(124,31,20,.35); }
+.etiquette.sequelle.permanente { background: #5a1a10; color: #f4e6cf; }
