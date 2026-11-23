@@ -11,9 +11,9 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Relais de diligence', role: 'Recrues et provisions', paliers: [
-    { cout: 0, trophees: 0, effet: '2 candidats ; cataplasmes de guérison' },
-    { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de guérison' },
-    { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite ; potions de vitalité' },
+    { cout: 0, trophees: 0, effet: '2 candidats ; potions de guérison' },
+    { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de vitalité' },
+    { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite' },
   ] },
   { id: 'temple', nom: 'Chapelle de Shallya', role: 'Soins et hospice', paliers: [
     { cout: 0, trophees: 0, effet: 'Fermée : seuls les héros restés au hameau se reposent' },
@@ -144,4 +144,4 @@ export const MAIN_SECONDAIRE = new Set(['dague', 'bouclier', 'bouclier-grand']);
 /** Les munitions qu'une arme à projectiles réclame. */
 export const MUNITIONS: Record<string, string> = { 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau' };
 /** Les provisions du relais, par palier. */
-export const PROVISIONS: readonly string[][] = [['cataplasme-de-guerison'], ['potion-de-guerison'], ['potion-de-vitalite']];
+export const PROVISIONS: readonly string[][] = [['potion-de-guerison'], ['potion-de-vitalite']];

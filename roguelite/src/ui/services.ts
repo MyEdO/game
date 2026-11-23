@@ -1,18 +1,17 @@
 /**
- * Les services du hameau, au gabarit des lieux des maquettes (`commerce/port-recrutement`, `commerce/halle-achat`) :
- * le cartouche du lieu, la colonne des services de Grisefosse (on passe de l'un à l'autre sans ressortir), l'hôte posé
- * sur le décor (le bâtiment, son palier, ce qu'il deviendra), la page du service, le socle de la compagnie et le
- * retour. Le socle dit ce qu'un clic fait : servir ce héros (forge, chapelle, salle d'armes), l'emmener (départ), ou
- * ouvrir sa fiche (ailleurs).
+ * Les services du hameau : un seul panneau posé sur le village, au coin haut-droit du panneau d'activité (`page`),
+ * les enseignes restant cliquables pour passer d'un bâtiment à l'autre. En tête, le bâtiment (son palier, ce qu'il
+ * deviendra) ; puis sa page ; au pied, l'action principale. Le socle dit ce qu'un clic fait : servir ce héros (forge,
+ * chapelle, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
 import { carac, nomDeCreature } from '../noyau';
-import { medaillon, plaque, rond } from '../kit';
-import { CADRES, CADRES_DE_L_HOTE, ecran } from './ecran';
+import { medaillon, plaque } from '../kit';
+import { CADRES, type Socle } from './ecran';
 import { exigencesDuNiveau } from './fiche';
 import {
-  apercuDePiece, apercuDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, etiquettesDeSequelles, glose, herosEnLigne,
-  iconeDArme, offre, place, soinsDuHeros,
+  apercuDe, apercuDePiece, apercuDeProvision, iconeDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, etiquettesDeSequelles, glose, herosEnLigne,
+  iconeDArme, offre, soinsDuHeros,
 } from './pieces';
 
 /** Ce que les services lisent de l'interface : l'état, le héros servi, et au départ la route et ceux qu'on emmène. */
@@ -27,14 +26,8 @@ const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="p
 /** Le cartouche du lieu : son pictogramme, son nom, ce qu'il est. */
 export const cartouche = (icone: string, nom: string, sous: string) => `<div class="cartouche">${medaillon(icone, 'grand')}<div><div class="titre gothique">${esc(nom)}</div><div class="sous-titre">${esc(sous)}</div></div></div>`;
 
-/** La colonne des services : une plaque par bâtiment, l'actif armé ; la chronique au pied. */
-function colonneDesServices(e: J.Etat, actif: Service) {
-  const plaques = J.BATIMENTS.map((b) => plaque(J.enRuine(e.batiments, b.id) ? `${b.nom} · en ruine` : b.nom, `data-a="batiment" data-id="${b.id}"`, { icone: PICTO_DU_BATIMENT[b.id], armee: actif === b.id, taille: 'petite' })).join('');
-  return `<div class="services">${plaques}${plaque('Chronique', 'data-a="chronique"', { icone: 'livre', armee: actif === 'chronique', taille: 'petite' })}</div>`;
-}
-
-/** L'hôte : le bâtiment à son palier, et ce que l'agrandir lui apporterait. */
-function hoteDuBatiment(e: J.Etat, b: J.Batiment) {
+/** La tête du panneau : le bâtiment à son palier, et ce que l'agrandir lui apporterait. */
+function teteDuBatiment(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
   const suivant = b.paliers[n + 1];
   const peut = !!suivant && e.or >= suivant.cout && e.trophees >= suivant.trophees;
@@ -138,7 +131,7 @@ function pageDuDepart({ e, choix }: Lecture): Page {
   const vente = J.provisionsEnVente(e);
   const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="emporte">${herosEnLigne(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>
-    <div class="offres">${vente.map((a) => offre({ nom: `+ ${a.label}`, essentiel: '', prix: a.prix, apercu: apercuDeProvision(a.id), attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`, or: e.or })).join('')}</div></section>`).join('');
+    <div class="ajouts">${vente.map((a) => plaque('+', `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"${apercuDe({ ...apercuDeProvision(a.id), pied: `${a.prix} CO, dans son sac` })}`, { icone: iconeDeProvision(a.id), prix: `${a.prix} CO`, taille: 'petite', fermee: e.or < a.prix })).join('')}</div></section>`).join('');
   return {
     corps: `<div class="rub">Le groupe ${glose('choisissez jusqu’à quatre héros au socle')}</div>${groupe || glose('Personne pour l’instant.')}`,
     pied: `${plaque(`Partir avec ${choix.size} héros`, 'data-a="partir"', { icone: 'route', armee: choix.size > 0, fermee: !choix.size })}${glose('Pendant l’expédition, seuls ceux qui restent au hameau se reposent.')}`,
@@ -153,31 +146,27 @@ const PAGES: Record<Service, (l: Lecture) => Page> = {
 
 // ─── L'écran ────────────────────────────────────────────────────────────────────────────────────────────────
 
-export function ecranDeService(ctx: Contexte, service: Service): string {
+/** Le panneau d'un service, et le socle qui le sert. */
+export interface PanneauDeService { cadre: string; socle: Socle }
+
+export function panneauDeService(ctx: Contexte, service: Service): PanneauDeService {
   const { e } = ctx;
   const servi = e.roster.find((h) => h.c.id === ctx.client) ?? (service === 'temple' ? e.roster.find(J.aSoigner) : undefined) ?? e.roster[0];
   const b = J.BATIMENTS.find((x) => x.id === service);
   const destination = service === 'depart' ? J.DESTINATIONS.find((x) => x.id === ctx.dest) : undefined;
-  const titre = b ? b.nom : destination ? destination.nom : 'Chronique';
-  const sous = b ? `${b.role} · jour ${e.jour}` : destination ? `Départ · ${destination.salles} salles` : `Grisefosse · jour ${e.jour}`;
-  const icone = b ? PICTO_DU_BATIMENT[b.id] : destination ? 'route' : 'livre';
   const pourQui = SERVENT_UN_HEROS.has(service) ? servi : undefined;
   const page = PAGES[service]({ e, servi, choix: ctx.choix });
-  const ruban = pourQui ? pourQui.c.label : b ? b.role : destination ? 'Le départ' : 'Chronique';
+  const ruban = b ? b.nom : destination ? destination.nom : 'Chronique';
   const progresse = (h: J.Heros) => J.peutProgresser(e, h);
-  const socle = service === 'depart'
-    ? { heros: e.roster, geste: 'choisir', choisi: (h: J.Heros) => ctx.choix.has(h.c.id), refus: J.refusDeDepart }
-    : pourQui ? { heros: e.roster, geste: 'client', choisi: (h: J.Heros) => h.c.id === pourQui.c.id, progresse } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
-  const hote = b ? hoteDuBatiment(e, b)
-    : destination ? `<p class="effet">${esc(destination.recit)}</p><p class="effet">Maître : ${esc(destination.boss.map(nomDeCreature).join(' et '))}</p>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { taille: 'petite' })}` : '';
-  return ecran({
-    nom: titre, classe: 'service',
-    cadres: `${cadreA(CADRES.cartouche, cartouche(icone, titre, sous), { fond: '', classe: 'cartouche-lieu-fixe' })}
-      ${cadreA(CADRES['colonne-gauche'], colonneDesServices(e, service), { ruban: 'Services de Grisefosse', classe: 'colonne-services' })}
-      ${cadreA(CADRES.note, `<div class="ressources"><span class="etiquette compte or">${e.or} CO</span><span class="etiquette compte or">${e.trophees} trophée${e.trophees > 1 ? 's' : ''}</span></div>${glose(pourQui ? 'Choisissez au socle le héros à servir.' : 'On passe d’un service à l’autre sans ressortir.')}`, { classe: 'note-lieu' })}
-      ${hote ? cadreA(CADRES_DE_L_HOTE.batiment, hote, { fond: '', classe: 'hote' }) : ''}
-      ${cadreA(CADRES.page, `<div class="corps-service">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(ruban), classe: 'page-service' })}
-      <div class="retour" ${place(CADRES.retour)}>${rond('route', 'Retour au hameau', 'data-a="fermer-panneau"')}</div>`,
+  const socle: Socle = service === 'depart'
+    ? { heros: e.roster, geste: 'choisir', choisi: (h) => ctx.choix.has(h.c.id), refus: J.refusDeDepart }
+    : pourQui ? { heros: e.roster, geste: 'client', choisi: (h) => h.c.id === pourQui.c.id, progresse } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
+  const tete = b ? teteDuBatiment(e, b)
+    : destination ? `<p class="effet">${esc(destination.recit)}</p><div class="ligne-tete"><span class="effet">Maître : ${esc(destination.boss.map(nomDeCreature).join(' et '))}</span>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { taille: 'petite' })}</div>` : '';
+  const pour = pourQui ? `<div class="pour-qui"><span class="rub">Pour</span>${herosEnLigne(pourQui)}${glose('un autre : cliquez sa carte au socle')}</div>` : '';
+  return {
+    cadre: cadreA(CADRES.page, `${tete ? `<div class="tete-service">${tete}</div>` : ''}${pour}<div class="corps-service">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}
+      <button type="button" class="croix-panneau" data-a="fermer-panneau" aria-label="Fermer" data-bulle="Fermer">×</button>`, { ruban: esc(ruban), classe: 'page-service' }),
     socle,
-  });
+  };
 }

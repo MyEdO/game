@@ -1,12 +1,12 @@
 // Chaque écran, à trois tailles : aucun cadre qui doit tenir (cartouche, socle, note, frise, colonne des services,
-// pied d'une page, bande des Caractéristiques, borne du round, barre de l'actif) ne rogne son contenu, et aucun
+// pied d'une page, bande des Caractéristiques) ne rogne son contenu, et aucun
 // bouton ni son libellé ne sort de l'écran. Les cadres de liste défilent, c'est voulu.
 import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
 
 /** La taille de l'interface éprouvée (`petite`, `moyenne`, `grande`), quatrième argument ; `moyenne` par défaut. */
 const TAILLE = process.argv[4] ?? 'moyenne';
 
-const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .note-lieu > .fond, .frise-route > .fond, .colonne-services > .fond, .pied-service, .bande > .fond, .carte-partir > .fond, .borne-round > .fond, .barre-rejeu > .fond';
+const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .pied-service, .bande > .fond, .carte-partir > .fond';
 
 (async () => {
   const b = await chromium.launch();
@@ -39,7 +39,7 @@ const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     for (const o of ['talents', 'sorts', 'equipement']) { const t = await p.$(`[data-a="onglet"][data-k="${o}"]`); if (t) await t.click(); await relever(`fiche ${o}`); }
     await p.click('.croix-ecran'); await geste(p, 'attendre'); await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]'); await p.click('[data-a="partir"]'); await relever('expédition');
     await p.click('[data-a="avancer"]');
-    if (await p.isVisible('#combat')) { await p.waitForTimeout(800); await relever('rejeu'); await p.click('.fin-rejeu [data-v="0"]'); await relever('issue'); await p.click('#combat-fin'); }
+    if (await p.isVisible('#combat')) { await p.waitForTimeout(800); await relever('rejeu'); await p.click('[data-v="0"]'); await relever('issue'); await p.click('#combat-fin'); }
     if (await p.$('.carton')) await relever('carton');
     await p.screenshot({ path: `${CAPTURES}/debords-${taille.join('x')}.png` });
     await p.context().close();

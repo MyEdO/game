@@ -2,8 +2,8 @@
  * Les deux lieux où l'on se tient, au gabarit commun (`./ecran`, classe `lieu`) posé sur leur décor : le hameau (son
  * panorama et ses enseignes) et l'expédition (la cour du terrain, le groupe debout). Le cartouche, la route, la salle,
  * les sacs et le socle de la compagnie sont aux rectangles des maquettes, les mêmes que ceux des services et de la
- * fiche : rien ne saute d'un écran à l'autre. Un écran ouvert (service, fiche) remplace la scène du lieu ; un carton
- * (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
+ * fiche : rien ne saute d'un écran à l'autre. Un service ouvert se pose en panneau sur le hameau, une fiche couvre le
+ * lieu ; un carton (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
  */
 import * as J from '../jeu';
 import { ficheDuSort, nomDeCreature } from '../noyau';
@@ -13,26 +13,46 @@ import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { medaillon, plaque, rondMuet } from '../kit';
 import { CADRES, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
 import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
-import { cartouche, PICTO_DU_BATIMENT } from './services';
+import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
 export function tableau(terrain: string, heros: J.Heros[], classe: string): string {
   const c = dessinerLaCour(7, 4, terrain);
+  const places = heros.map((_, i) => c.centre(2 + (i % 2) * 2, i, 1));
   const figs = heros.map((h, i) => {
-    const [px, py] = c.centre(2 + (i % 2) * 2, i, 1);
+    const [px, py] = places[i];
     return `<div class="fig camp-heros${J.valide(h) ? '' : ' hors'}" style="left:${px - 50}px;top:${py - 130}px;z-index:${Math.round(py)}">${figurine(gabaritDe(h), 'heros')}</div>`;
   }).join('');
   const { x, y, largeur, hauteur } = c.cadrage;
-  return `<div class="tableau ${classe}" data-cadrage="${x} ${y} ${largeur} ${hauteur}" aria-hidden="true"><div class="cour" style="width:${c.largeur}px;height:${c.hauteur}px">${c.svg}<div class="figures">${figs}</div></div></div>`;
+  const [gx, gy] = places.length ? [places.reduce((t, p) => t + p[0], 0) / places.length, places.reduce((t, p) => t + p[1], 0) / places.length - 50] : [x + largeur / 2, y + hauteur / 2];
+  return `<div class="tableau ${classe}" data-cadrage="${x} ${y} ${largeur} ${hauteur}" data-groupe="${gx} ${gy}" aria-hidden="true"><div class="cour" style="width:${c.largeur}px;height:${c.hauteur}px">${c.svg}<div class="figures">${figs}</div></div></div>`;
 }
 
-/** Cadre chaque tableau : il couvre son fond (`fond-expe`) ou tient dans sa vignette. */
+/** Où se tient le groupe d'un fond, en part de la place au-dessus du socle : entre les colonnes des cadres. */
+const CENTRE_DU_GROUPE = [0.5, 0.5];
+/** La hauteur d'une figurine du fond, en part de la place libre. */
+const HAUTEUR_DE_FIGURINE = 0.24;
+
+/** Cadre chaque tableau : un fond (`fond-expe`) couvre l'écran, le groupe au centre de la place libre ; une vignette
+ *  tient sa cour entière. */
 export function ajusterLesTableaux(): void {
   document.querySelectorAll<HTMLElement>('.tableau').forEach((t) => {
     const [x, y, l, h] = (t.dataset.cadrage ?? '').split(' ').map(Number);
-    const couvre = t.classList.contains('fond-expe');
-    const k = (couvre ? Math.max : Math.min)(t.clientWidth / l, t.clientHeight / h);
-    t.querySelector<HTMLElement>('.cour')!.style.transform = `translate(${(t.clientWidth - l * k) / 2}px, ${(t.clientHeight - h * k) / 2}px) scale(${k}) translate(${-x}px, ${-y}px)`;
+    const cour = t.querySelector<HTMLElement>('.cour')!;
+    const W = t.clientWidth;
+    const H = t.clientHeight;
+    if (!t.classList.contains('fond-expe')) {
+      const k = Math.min(W / l, H / h);
+      cour.style.transform = `translate(${(W - l * k) / 2}px, ${(H - h * k) / 2}px) scale(${k}) translate(${-x}px, ${-y}px)`;
+      return;
+    }
+    const [gx, gy] = (t.dataset.groupe ?? '').split(' ').map(Number);
+    const libre = H - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bas')) || 0);
+    // Une figurine (150 px de haut) ne passe pas le quart de la place libre ; la cour couvre l'écran quand elle le peut.
+    const k = Math.min(Math.max(W / l, H / h), (libre * HAUTEUR_DE_FIGURINE) / 150);
+    const tx = W * CENTRE_DU_GROUPE[0] - (gx - x) * k;
+    const ty = libre * CENTRE_DU_GROUPE[1] - (gy - y) * k;
+    cour.style.transform = `translate(${tx}px, ${ty}px) scale(${k}) translate(${-x}px, ${-y}px)`;
   });
 }
 
@@ -59,20 +79,23 @@ function partir(e: J.Etat): string {
   return `<div class="partir"><div><div class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${J.victoireFinale(e) ? 'les routes restent ouvertes' : `${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}`}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
 }
 
-/** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins, socle). */
-export function ecranDuHameau(e: J.Etat, ouvert: string, carte: string): string {
+/** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, coins, socle) ; au
+ *  coin haut-droit, le départ, ou le panneau du service ouvert. Une fiche ouverte le couvre ; un carton n'y laisse
+ *  que le cartouche et le socle. */
+export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeService | null, carte: string): string {
   const titre = cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' });
-  const scene = (!carte && ouvert) || ecran({
+  const socleDuHameau = { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
+  const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : `${titre}
       <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
+      ${service ? service.cadre : cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>`,
-    socle: { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h) => J.peutProgresser(e, h) },
+    socle: !carte && service ? service.socle : socleDuHameau,
     vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
   });
   return `<div class="ecran hameau">
-    <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${ouvert || carte ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
+    <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
     ${J.victoireFinale(e) ? '<div class="bandeau-victoire gothique">L’Autel du Chaos est tombé</div>' : ''}
     ${scene}
   </div>`;
@@ -97,7 +120,7 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). */
-export function ecranDeLExpedition(e: J.Etat, ouvert: string, carte: string): string {
+export function ecranDeLExpedition(e: J.Etat, fiche: string, carte: string): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -108,7 +131,7 @@ export function ecranDeLExpedition(e: J.Etat, ouvert: string, carte: string): st
     : `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`;
   const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' ? 'Fouiller' : 'Engager le combat';
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
-  const scene = (!carte && ouvert) || ecran({
+  const scene = (!carte && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
     cadres: carte ? titre + carte : `${titre}
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}

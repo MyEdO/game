@@ -75,7 +75,7 @@ export const medaillon = (nom: string, taille: 'grand' | 'moyen' | 'petit' = 'mo
 export const jauge = (part: number, { teinte = 'cire', taille = 'fine' } = {}): string =>
   `<div class="jauge ${teinte} ${taille}"><i style="width:${Math.max(0, Math.min(1, part)) * 100}%"></i></div>`;
 
-/** Le bouton rond du kit, sans libellé : son nom en bulle (les coins, la tête du journal). */
+/** Le bouton rond du kit, sans libellé : son nom en bulle (les coins). */
 export const rondMuet = (nom: string, libelle: string, attrs: string, taille: 'petit' | 'moyen' | 'grand' = 'grand'): string =>
   `<button type="button" class="bouton-rond laiton ${taille}" ${attrs} aria-label="${libelle}" data-bulle="${libelle}"><div>${picto(nom, { petit: 15, moyen: 20, grand: 24 }[taille])}</div></button>`;
 

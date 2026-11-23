@@ -1,24 +1,20 @@
 /**
- * Le rejeu d'un combat, pas à pas, depuis les relevés du noyau (`IssueDuCombat`), au gabarit « Combat » des
- * maquettes : la cour du terrain en fond, les figurines à leurs cases, les coups (fente ou trait, touche, parade,
- * esquive, Critique, sort) ; la borne du round, l'ordre du tour (l'actif en bas, le round suivant au-delà de sa
- * borne), la barre de l'actif au socle, le journal sur le champ, « Passer » à la place de la fin du tour, et l'issue.
- * Le combat est déjà joué : ce module ne fait que le montrer.
+ * Le rejeu d'un combat, pas à pas, depuis les relevés du noyau (`IssueDuCombat`) : la cour du terrain, les figurines
+ * à leurs cases, les coups (fente ou trait, touche, parade, esquive, Critique, sort), l'ordre du round, le journal et
+ * la vitesse. Le combat est déjà joué : ce module ne fait que le montrer.
  */
-import * as J from '../jeu';
+import type * as J from '../jeu';
 import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
-import { jauge, plaque, portrait, rond, rondMuet } from '../kit';
-import { CADRES, CADRES_DE_L_HOTE, ajusterLaScene, echelleDeLaScene } from './ecran';
-import { busteDuHeros, cadreA, esc, place } from './pieces';
+import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
+import { busteDuHeros, esc } from './pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 
 /** Les héros du groupe, pour les figurines et les portraits du rejeu. */
 let roster: J.Heros[] = [];
 let rejeu: { issue: IssueDuCombat; suite: string; i: number; vitesse: number; minuteur: number; fin: () => void } | null = null;
-const VITESSES = [1, 2, 4];
 
 function gabaritDuPion(q: PionDuPlateau) {
   if (q.camp === 'heros') {
@@ -31,42 +27,38 @@ function gabaritDuPion(q: PionDuPlateau) {
 
 let cour: Cour | null = null;
 
-/** La cour tient dans le champ que laissent la borne du round, l'ordre du tour et le socle ; elle couvre l'écran
- *  au-delà de son cadrage. */
+/** L'échelle de la cour : elle tient dans l'écran sur un bureau ; sur un écran étroit, elle garde une taille lisible et défile. */
 export function mettreALEchelle() {
-  const champ = document.querySelector<HTMLElement>('#combat .champ-rejeu');
-  if (!champ || !cour) return;
-  ajusterLaScene();
+  const cadreCour = document.querySelector<HTMLElement>('#combat .cour-cadre');
+  if (!cadreCour || !cour) return;
   const { x, y, largeur, hauteur } = cour.cadrage;
-  const ks = echelleDeLaScene();
-  const etroit = window.innerWidth < 900;
-  const [g, h, b] = etroit ? [8, 60, 250] : [170 * ks, 90 * ks, 170 * ks];
-  const l = window.innerWidth - 2 * g;
-  const H = window.innerHeight - h - b;
-  const k = Math.min(l / largeur, H / hauteur);
-  const ox = g + (l - largeur * k) / 2;
-  const oy = h + (H - hauteur * k) / 2;
-  champ.querySelector<HTMLElement>('.cour')!.style.transform = `translate(${ox}px, ${oy}px) scale(${k}) translate(${-x}px, ${-y}px)`;
+  const dispo = Math.max(240, window.innerHeight - 290);
+  const k = Math.max(0.62, Math.min(1.25, (window.innerWidth - 32) / largeur, dispo / hauteur));
+  cadreCour.style.setProperty('--k', String(k));
+  cadreCour.style.width = `${largeur * k}px`;
+  cadreCour.style.height = `${hauteur * k}px`;
+  cadreCour.querySelector<HTMLElement>('.cour')!.style.transform = `scale(${k}) translate(${-x}px, ${-y}px)`;
 }
 
-/** Ouvre le rejeu de `issue` ; `suite` dit ce que l'issue laisse (butin, morts), sous sa bannière ; `fin` rend la main. */
+/** Ouvre le rejeu de `issue` ; `suite` dit ce que l'issue laisse (le butin), sous sa bannière ; `fin` rend la main. */
 export function ouvrirLeRejeu(issue: IssueDuCombat, suite: string, fin: () => void, terrain: string, heros: J.Heros[]) {
   roster = heros;
   const scene = $('#combat');
   scene.hidden = false;
   cour = dessinerLaCour(issue.largeur, issue.hauteur, terrain);
-  scene.innerHTML = `<div class="ecran-plein rejeu" role="dialog" aria-label="Combat">
-    <div class="champ-rejeu" aria-hidden="true"><div class="cour" style="width:${cour.largeur}px;height:${cour.hauteur}px">${cour.svg}<div class="figures"></div></div></div>
-    <div class="scene-fixe">
-      ${cadreA(CADRES.round, '<div class="n gothique" id="round-n"></div><div class="t rubrique" id="round-t"></div>', { fond: '', classe: 'borne-round' })}
-      <div class="ordre-rejeu" ${place(CADRES.ordre)} aria-label="Ordre du tour"></div>
-      <div class="journal-rejeu" ${place(CADRES.journal)}><div class="tete rubrique ombre">Journal ${rondMuet('livre', 'Le journal entier', 'data-j aria-pressed="false"', 'petit')}</div><ol class="journal"></ol></div>
-      ${cadreA(CADRES['journal-entier'], '<ol class="journal"></ol>', { ruban: 'Journal', classe: 'journal-entier' })}
-      ${cadreA(CADRES.socle, '<div class="barre-actif"></div>', { fond: '', classe: 'socle-compagnie barre-rejeu' })}
-      <div class="fin-rejeu" ${place(CADRES['fin-du-tour'])}>${rond('sablier', 'Passer', 'data-v="0"')}</div>
-      <div class="vitesse-rejeu" ${place(CADRES_DE_L_HOTE['vitesse-du-rejeu'])}>${rond('etoile', '×1', 'data-v="vitesse"', 'moyen')}</div>
-      <div class="issue-rejeu" ${place(CADRES.issue)}></div>
+  scene.innerHTML = `<div class="combat-ecran">
+    <header class="combat-tete">
+      ${cadre(`<div class="cartouche">${medaillon('epee', 'grand')}<div><div class="titre gothique">Combat</div><div class="sous-titre" id="round">Round 1</div></div></div>`, { balise: 'div', classe: 'cartouche-combat' })}
+      <ol class="ordre" aria-label="Ordre du round"></ol>
+      <div class="vitesse" role="group" aria-label="Vitesse">${[1, 2, 4].map((v) => `<button type="button" class="plaque petite laiton${v === 1 ? ' armee' : ''}" data-v="${v}"><div>×${v}</div></button>`).join('')}<button type="button" class="plaque petite laiton" data-v="0"><div>Passer</div></button></div>
+    </header>
+    <div class="tour" id="tour" aria-live="polite"></div>
+    <div class="champ"><div class="cour-cadre"><div class="cour" style="width:${cour.largeur}px;height:${cour.hauteur}px">${cour.svg}<div class="figures"></div></div></div></div>
+    <div class="combat-pied">
+      ${cadre(`<button type="button" class="agrandir-journal" data-j aria-pressed="false" data-bulle="Agrandir ou réduire le journal">${picto('livre', 16, 1.7)}</button><ol class="journal"></ol>`, { fond: 'parchemin', balise: 'div', classe: 'panneau-journal' })}
+      <div class="rang-heros vivant"></div>
     </div>
+    <div class="issue-place" id="combat-fin-place"></div>
   </div>`;
   mettreALEchelle();
   rejeu = { issue, suite, i: 0, vitesse: 1, minuteur: 0, fin };
@@ -126,6 +118,7 @@ function jouerLeCoup(c: Coup, vitesse: number) {
   // LDB 21 l.19-20 (Animosité)
   if (allie && c.genre !== 'spell') {
     flotter(de, 'Animosité !', 'querelle');
+    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.dataset.bulle ?? '')} cède à son Animosité contre ${esc(vers.dataset.bulle ?? '')}</span>`;
   }
   vers.classList.add('cible');
   setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
@@ -192,65 +185,38 @@ function poserLePas(p: Pas, anime = true) {
     p.etats.forEach((e, k) => setTimeout(() => flotter(figureDe(e.porteur), libelleDEtat(e.etat, 1), 'etat'), apres + k * 160));
   }
   const actif = p.pions.find((q) => q.id === p.actif);
-  const parId = new Map(p.pions.map((q) => [q.id, q]));
-  const ordre = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q);
-  const debout = ordre.filter((q) => !q.hors);
-  const rang = Math.max(0, ordre.findIndex((q) => q.id === p.actif));
-  $('#round-n').textContent = `Round ${p.round}`;
-  $('#round-t').innerHTML = actif ? `tour ${debout.indexOf(actif) + 1}<br>sur ${debout.length}` : 'le round<br>débute';
-  const suivants = ordre.slice(rang + 1);
-  $('#combat .ordre-rejeu').innerHTML = [
-    ...(actif ? [rangDe(actif, 'actif')] : []),
-    ...suivants.map((q) => rangDe(q, q.hors ? 'hors' : '')),
-    `<div class="borne"><span class="disque fer petit"><span>${p.round + 1}</span></span><span class="rubrique ombre">Round ${p.round + 1}</span><i></i></div>`,
-    ...debout.slice(0, debout.indexOf(actif!) + 1).map((q, k) => rangDe(q, k ? 'fantome loin' : 'fantome')),
-  ].join('');
-  $('#combat .barre-actif').innerHTML = actif ? barreDe(actif, p) : '';
-  for (const j of document.querySelectorAll<HTMLElement>('#combat .journal')) {
-    for (const l of p.lignes) {
-      const li = document.createElement('li');
-      li.textContent = l;
-      if (/Victoire|Défaite/.test(l)) li.className = 'fort';
-      else if (/CRITIQUE|hors de combat|s'effondre/.test(l)) li.className = 'rouge';
-      j.append(li);
-    }
-    j.scrollTop = j.scrollHeight;
+  const champ = document.querySelector<HTMLElement>('#combat .champ');
+  if (actif && champ && champ.scrollWidth > champ.clientWidth) {
+    const k = Number(document.querySelector<HTMLElement>('#combat .cour-cadre')?.style.getPropertyValue('--k')) || 1;
+    champ.scrollTo({ left: (Number(figureDe(actif.id)!.dataset.px) - cour!.cadrage.x) * k - champ.clientWidth / 2, behavior: anime ? 'smooth' : 'auto' });
   }
-}
-
-const bustePion = (q: PionDuPlateau) => {
-  const h = q.camp === 'heros' ? roster.find((x) => x.c.id === q.id) : undefined;
-  return h ? busteDuHeros(h) : buste(gabaritDuPion(q), q.camp);
-};
-
-/** Un combattant de l'ordre du tour (`combattant` des maquettes) : l'actif en grand, les fantômes du round suivant. */
-function rangDe(q: PionDuPlateau, classe: string): string {
-  const fantome = classe.includes('fantome');
-  return `<div class="rang ${q.camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(bustePion(q), q.camp, classe === 'actif' ? 'moyen' : 'petit', classe === 'actif' ? 'choisi' : '')}
-    <div class="qui"><div class="nom ${classe === 'actif' ? 'gothique' : 'rubrique'} ombre">${esc(q.label)}</div>${fantome ? '' : `<div class="ligne">${jauge(q.pv / Math.max(1, q.max))}<span class="pv ombre">${q.pv} / ${q.max}</span></div>`}</div></div>`;
-}
-
-/** Le rôle d'un héros sous son nom, comme sur sa carte. */
-function roleDuPion(q: PionDuPlateau): string {
-  const h = q.camp === 'heros' ? roster.find((x) => x.c.id === q.id) : undefined;
-  const role = h && J.roleDe(h.carriere);
-  return role ? `<div class="sous-titre">${esc(J.ROLES[role].nom)}</div>` : '';
-}
-
-/** La barre de l'actif : ses Blessures à gauche, son portrait au centre, ce qu'il fait à droite. */
-function barreDe(q: PionDuPlateau, p: Pas): string {
-  return `<div class="mesure-actif"><div class="tete rubrique"><span>Blessures</span><b>${q.pv} / ${q.max}</b></div>${jauge(q.pv / Math.max(1, q.max), { taille: 'forte' })}</div>
-    <div class="portrait-actif">${portrait(bustePion(q), q.camp, 'grand', 'choisi')}<div class="nom-propre gothique">${esc(q.label)}</div>${roleDuPion(q)}</div>
-    <div class="action-actif"><div class="rubrique">${q.camp === 'heros' ? 'Au tour du héros' : 'Tour adverse'}</div>${p.lignes.slice(0, 2).map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
+  $('#round').textContent = `Round ${p.round}`;
+  $('#tour').innerHTML = actif ? `<span class="ruban gothique">${actif.camp === 'heros' ? 'Au tour de' : 'Tour adverse :'} ${esc(actif.label)}</span>` : '';
+  $('#tour').className = `tour ${actif?.camp ?? ''}`;
+  const parId = new Map(p.pions.map((q) => [q.id, q]));
+  $('#combat .ordre').innerHTML = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q).map((q) => {
+    return `<li class="${q.id === p.actif ? 'actif' : ''}${q.hors ? ' hors' : ''}" data-bulle="${esc(q.label)}">${portrait(buste(gabaritDuPion(q), q.camp), q.camp, 'petit')}</li>`;
+  }).join('');
+  $('#combat .rang-heros').innerHTML = p.pions.filter((q) => q.camp === 'heros').map((q) => {
+    const h = roster.find((x) => x.c.id === q.id);
+    return `<div class="carte-heros${q.hors ? ' hors' : ''}${q.id === p.actif ? ' choisi' : ''}">${h ? portrait(busteDuHeros(h), 'heros', 'moyen') : ''}<span class="qui"><span class="nom-propre petit gothique">${esc(q.label)}</span><span class="vie"><span>Blessures</span><span class="chiffres">${q.pv} / ${q.max}</span></span>${jauge(q.pv / Math.max(1, q.max), { taille: 'forte' })}</span></div>`;
+  }).join('');
+  const j = $('#combat .journal');
+  for (const l of p.lignes) {
+    const li = document.createElement('li');
+    li.textContent = l;
+    if (/Victoire|Défaite/.test(l)) li.className = 'fort';
+    else if (/CRITIQUE|hors de combat|s'effondre/.test(l)) li.className = 'rouge';
+    j.append(li);
+  }
+  j.scrollTop = j.scrollHeight;
 }
 
 function terminerLeRejeu() {
-  const place = $('#combat .issue-rejeu');
+  const place = $('#combat-fin-place');
   if (!place || place.innerHTML || !rejeu) return;
   const victoire = rejeu.issue.issue === 'victoire';
-  place.innerHTML = `<div class="banniere-issue ${victoire ? 'victoire' : 'defaite'}"><span class="gothique">${victoire ? 'Victoire' : rejeu.issue.issue === 'defaite' ? 'Déroute' : 'Le combat s’enlise'}</span></div>
-    <p class="suite-issue ombre">${esc(rejeu.suite)}</p>${plaque('Continuer', 'id="combat-fin"', { armee: true, taille: 'appel' })}`;
-  document.querySelector('#combat .fin-rejeu')?.classList.add('ferme');
+  place.innerHTML = `<div class="banniere-issue ${victoire ? 'victoire' : 'defaite'}"><span class="gothique">${victoire ? 'Victoire' : rejeu.issue.issue === 'defaite' ? 'Déroute' : 'Le combat s’enlise'}</span></div>${rejeu.suite ? `<p class="suite-issue">${esc(rejeu.suite)}</p>` : ''}${plaque('Continuer', 'id="combat-fin"', { armee: true, taille: 'appel' })}`;
   $('#combat-fin').focus();
 }
 
@@ -266,7 +232,7 @@ function passer() {
 /** Ferme le rejeu depuis son issue ; avant elle, y saute (« Échap » ne fait jamais manquer l'issue). */
 export function fermerLeRejeu() {
   if (!rejeu) return;
-  if (!$('#combat .issue-rejeu').innerHTML) return passer();
+  if (!$('#combat-fin-place').innerHTML) return passer();
   clearTimeout(rejeu.minuteur);
   const fin = rejeu.fin;
   rejeu = null;
@@ -274,25 +240,25 @@ export function fermerLeRejeu() {
   fin();
 }
 
-/** Les clics propres au rejeu (vitesse, « Passer », fin, journal entier) ; vrai s'il en a traité un. */
+/** Les clics propres au rejeu (vitesse, « Passer », fin, journal agrandi) ; vrai s'il en a traité un. */
 export function cliquerDansLeRejeu(cible: Element): boolean {
   const v = cible.closest<HTMLElement>('[data-v]');
   if (v && rejeu) {
-    if (v.dataset.v === 'vitesse') {
-      rejeu.vitesse = VITESSES[(VITESSES.indexOf(rejeu.vitesse) + 1) % VITESSES.length];
-      v.querySelector('.libelle')!.textContent = `×${rejeu.vitesse}`;
+    const n = Number(v.dataset.v);
+    if (n === 0) passer();
+    else {
+      rejeu.vitesse = n;
+      document.querySelectorAll('#combat [data-v]').forEach((b) => b.classList.toggle('armee', b === v));
       planifier();
-      return true;
     }
-    if (v.dataset.v === '0') passer();
     return true;
   }
   if (cible.closest('#combat-fin')) { fermerLeRejeu(); return true; }
   const j = cible.closest<HTMLElement>('[data-j]');
   if (j) {
-    const ouvert = $('#combat .rejeu').classList.toggle('journal-ouvert');
+    const ouvert = j.closest('.panneau-journal')!.classList.toggle('ouvert');
     j.setAttribute('aria-pressed', String(ouvert));
-    const liste = $('#combat .journal-entier .journal');
+    const liste = $('#combat .journal');
     liste.scrollTop = liste.scrollHeight;
     return true;
   }

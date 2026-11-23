@@ -47,14 +47,16 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 1. **Une scène fixe pour tous les écrans** (vue de référence 1280 × 720), échelle jamais au-dessus de 1 ; lieux et
    services ancrés aux bords (`placeDe` des maquettes), écrans de gestion en bloc centré.
 2. **Un rôle, un rectangle**, ceux de la table `CADRES` des maquettes (`rendu.js`), recopiés tels quels dans
-   `CADRES` d'`ecran.ts` ; un rectangle qui n'en vient pas vit dans `CADRES_DE_L_HOTE`, avec sa raison.
+   `CADRES` d'`ecran.ts`.
 3. **Le socle de la compagnie au même endroit sur tous les écrans**, défilant au-delà de quatre héros ; un clic y fait
    une seule chose par écran.
 4. **Le contenu s'adapte au cadre** : ce qui ne tient pas défile, l'action principale est au pied fixe du cadre.
 5. **Une forme par concept** : la vie en jauge ; une chose possédée en entrée ou en case ; une offre de boutique ; un
    prix d'une seule forme ; le héros en carte.
 6. **Le détail au survol, jamais en ligne** : bulle pour un mot, aperçu pour une chose (texte du livre rendu).
-7. **Sortir** : « Retour » pour un lieu de service, la croix pour un écran de gestion.
+7. **Sortir** : la croix du panneau d'un service, la croix d'un écran de gestion.
+8. **Une partie se joue avant d'être dite finie** : à la taille d'écran du joueur, à la souris, en regardant chaque
+   écran ; une recette verte ne prouve pas qu'un écran sert.
 
 ## Les écrans et leur but
 
@@ -81,7 +83,7 @@ carton ; une déroute ou une retraite passe de l'issue au carton qui raconte le 
 | 2 | Rôle en pictogramme sur la carte ; identité (carrière, rôle, espèce, devise) au survol | `2-identite` | tient |
 | 3 | Destinations : salles et maître ; départ : sacs et provisions par héros | `8-depart` | tient |
 | 4 | Frise de la route sur le champ ; panneau de la salle, action au pied ; sacs | `4-expedition` | tient |
-| 5 | Rejeu au gabarit Combat (ordre, barre de l'actif, journal, issue) | `rejeu.mjs` | tient |
+| 5 | Rejeu : ordre du tour, « Au tour de… », coups sur la cour, journal, cartes des héros, issue et butin | `rejeu.mjs` | tient |
 | 6 | Récit du retour (or, trophées, PX) ; pastille rouge de la Chapelle ; la Chapelle sert d'abord le blessé ; séquelle sur la carte | `6-retour-hameau`, `6-chapelle` | tient |
 | 7 | Pastille sur le héros qui peut progresser ; prochaine étape de chaque axe à son écran | `2-identite` | tient |
 | 8 | Raison d'une carte fermée au survol ; hospice et séquelles sur la carte | `8-depart` | tient |

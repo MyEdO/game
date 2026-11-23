@@ -1,5 +1,5 @@
 /**
- * Le gabarit d'écran commun à la fiche et aux services : la scène fixe des maquettes (1280 × 720, `CADRES`), ses
+ * Le gabarit d'écran commun aux lieux et à la fiche : la scène fixe des maquettes (1280 × 720, `CADRES`), ses
  * cadres posés, le socle des cartes de héros, la croix. La scène tient l'écran, réduite d'un bloc et centrée ; sous
  * 900 px de large, ses cadres s'empilent et défilent.
  */
@@ -14,17 +14,10 @@ export const CADRES = {
   cartouche: [24, 20, 372, 96], recit: [32, 136, 340, 112], 'colonne-gauche': [24, 136, 372, 304], note: [24, 456, 372, 100],
   page: [776, 20, 480, 480], 'colonne-droite': [896, 20, 360, 420], vignette: [896, 20, 360, 180], frise: [180, 508, 920, 44],
   coins: [1198, 579, 52, 118], identite: [26, 20, 340, 536], bande: [384, 20, 800, 96],
-  socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], retour: [30, 592, 124, 94], carton: [160, 222, 960, 278],
-  issue: [360, 190, 560, 150], round: [22, 16, 214, 66], ordre: [22, 96, 134, 616], 'fin-du-tour': [1133, 582, 104, 116],
-  journal: [956, 316, 300, 132], 'journal-entier': [856, 70, 400, 236],
+  socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], carton: [160, 222, 960, 278],
   gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
 } satisfies Record<string, Rect>;
 
-/** Les rectangles propres à l'hôte, faute de rôle dans les maquettes : le bâtiment d'un service (son effet, son
- *  palier, court : le décor paie le reste de la place des hôtes) ; la vitesse du rejeu, à côté de « Passer ». */
-export const CADRES_DE_L_HOTE = {
-  batiment: [412, 20, 340, 300], 'vitesse-du-rejeu': [1072, 604, 52, 88],
-} satisfies Record<string, Rect>;
 
 /** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
  *  largeur du titre ; les gestes, au pied, se centrent sur toute la largeur du carton. */
@@ -47,14 +40,14 @@ export function carton(o: Carton): string {
  *  une carte est fermée à ce geste, `progresse` si le héros peut acheter un avancement. */
 export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean }
 
-/** `classe` : `service` laisse voir le décor du hameau derrière la scène ; `lieu` est la scène même du hameau ou de
+/** `classe` : `lieu` est la scène même du hameau ou de
  *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
-export function ecran(o: { nom: string; classe?: 'service' | 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
+export function ecran(o: { nom: string; classe?: 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
   const cartes = o.socle.heros.map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, { refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h) })).join('');
   const lieu = o.classe === 'lieu';
   return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}
-    ${cadreA(CADRES.socle, cartes ? `<div class="rang-heros">${cartes}</div>` : `<p class="glose courante vide">${esc(o.vide ?? '')}</p>`, { fond: '', classe: 'socle-compagnie' })}
+    ${cadreA(CADRES.socle, cartes ? `<div class="rang-heros${o.socle.heros.length > 4 ? ' serre' : ''}" style="--n:${Math.min(6, Math.max(4, o.socle.heros.length))}">${cartes}</div>` : `<p class="glose courante vide">${esc(o.vide ?? '')}</p>`, { fond: '', classe: 'socle-compagnie' })}
     ${o.classe ? '' : `<button type="button" class="croix-ecran" ${place(CADRES.fermer)} data-a="fermer-panneau" aria-label="Fermer">×</button>`}
   </div></div>`;
 }
@@ -78,22 +71,24 @@ export function choisirLaTaille(t: Taille): void {
 
 /** Pose la scène fixe sur l'écran, à l'échelle de la taille choisie (sans jamais dépasser la vue de référence
  *  1280 × 720). La scène prend toute la vue ; chaque pièce à `data-rect` s'ancre en hauteur au bord le plus proche de
- *  son centre (le socle en bas partout). En largeur, un lieu ou un service ancre chaque pièce au bord le plus proche,
+ *  son centre (le socle en bas partout). En largeur, un lieu ancre chaque pièce au bord le plus proche,
  *  ou la centre si elle l'est, et le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ;
  *  `placeDe` de `rendu.js`) ; la fiche garde ses cadres groupés au centre. Sous 900 px de large, les cadres s'empilent. */
 export function ajusterLaScene(): void {
   document.querySelectorAll<HTMLElement>('.scene-fixe').forEach(ajuster);
+  // Le décor des lieux s'arrête au haut du socle (`--bas`, en pixels de l'écran).
+  document.documentElement.style.setProperty('--bas', `${window.innerWidth < 900 ? 0 : Math.round((720 - CADRES.socle[1]) * echelleDeLaScene())}px`);
 }
 
 /** L'échelle de la scène fixe sur l'écran (1 sous 900 px de large, où les cadres s'empilent). */
-export const echelleDeLaScene = (): number => (window.innerWidth < 900 ? 1 : Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / TAILLES[tailleChoisie()]));
+const echelleDeLaScene = (): number => (window.innerWidth < 900 ? 1 : Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / TAILLES[tailleChoisie()]));
 
 function ajuster(s: HTMLElement): void {
   if (window.innerWidth < 900) return void Object.assign(s.style, { transform: '', width: '', height: '' });
   const k = echelleDeLaScene();
   const largeur = window.innerWidth / k;
   const hauteur = window.innerHeight / k;
-  const ancreLaLargeur = !!s.closest('.service, .lieu, .rejeu');
+  const ancreLaLargeur = !!s.closest('.lieu');
   Object.assign(s.style, { transform: `scale(${k})`, width: `${largeur}px`, height: `${hauteur}px` });
   s.querySelectorAll<HTMLElement>('[data-rect]').forEach((el) => {
     const [x, y, l = 0, h = 0] = (el.dataset.rect ?? '').split(' ').map(Number);

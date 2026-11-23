@@ -53,6 +53,23 @@ const PLAFOND_DE_PAS = 4000;
 /** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`.
  *  `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
  *  l'horloge et le premier jour tombe de nuit. */
+/** Les pièces d'équipement qu'un héros a lâchées à terre pendant la rencontre (on lâche ce qu'on tient en tombant
+ *  Inconscient) : le groupe vainqueur les ramasse, chacune revient dans la main où elle était. */
+function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] {
+  const piece = (k?: string) => k === 'melee' || k === 'ranged' || k === 'armor' || k === 'shield';
+  return apres.map((c) => {
+    const a = avant.find((x) => x.id === c.id);
+    const perdues = (a?.items ?? []).filter((i) => piece(i.kind) && !(c.items ?? []).some((j) => j.uid === i.uid));
+    if (!a || !perdues.length) return c;
+    const revient = (uid?: string | null) => !!uid && perdues.some((i) => i.uid === uid);
+    const loadouts = (c.loadouts ?? []).map((l) => {
+      const la = (a.loadouts ?? []).find((x) => x.id === l.id);
+      return la ? { ...l, main: l.main ?? (revient(la.main) ? la.main : l.main), secondaire: l.secondaire ?? (revient(la.secondaire) ? la.secondaire : l.secondaire) } : l;
+    });
+    return { ...c, items: [...(c.items ?? []), ...perdues], loadouts };
+  });
+}
+
 export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
   const largeur = 14;
   const hauteur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
@@ -132,7 +149,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     if (fin === 'victoire' || fin === 'defaite') {
       issue = fin;
       morts = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros' && c.dead).map((c) => c.id);
-      groupeFinal = clore();
+      groupeFinal = fin === 'victoire' ? ramasser(groupe, clore()) : clore();
       break;
     }
     if (!jouerLaFenetre(partie, recevoir, releve)) break;

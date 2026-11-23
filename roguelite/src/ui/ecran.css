@@ -6,8 +6,11 @@
 .place-cadre > .cadre { flex: 1; display: flex; min-height: 0; min-width: 0; }
 .place-cadre > .cadre > .fond { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; }
 .socle-compagnie > .fond { padding: 8px 10px; }
-.socle-compagnie .rang-heros { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 24px) / 4); gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scroll-snap-type: x mandatory; }
+.socle-compagnie .rang-heros { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - (var(--n, 4) - 1) * 8px) / var(--n, 4)); gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scroll-snap-type: x mandatory; }
 .socle-compagnie .carte-heros { max-width: none; scroll-snap-align: start; }
+.socle-compagnie .rang-heros.serre .carte-heros { gap: 6px; padding: 6px; }
+.socle-compagnie .rang-heros.serre .carte-heros .portrait { width: 56px; height: 70px; }
+.socle-compagnie .rang-heros.serre .ligne-etat { display: none; }
 @media (max-width: 899px) {
   .ecran-plein { overflow-y: auto; }
   .scene-fixe { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
@@ -22,8 +25,6 @@
 .pan>.fond.bois{padding:14px 16px}
 .pan:has(>.onglets)>.fond{padding-top:26px}
 .pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
-.retour { position: absolute; }
-@media (max-width: 899px) { .retour { position: static; margin: 0 16px 12px; } }
 /* le carton : ses places au fond, le texte qui défile entre le titre et les gestes du pied */
 .carton > .fond { position: relative; padding: 0; overflow: hidden; }
 .place-carton { position: absolute; min-width: 0; }

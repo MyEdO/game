@@ -31,7 +31,7 @@ await p.click('[data-a="avancer"]');
 if (await p.isVisible('#combat')) {
   await p.waitForTimeout(1500); await image('combat');
   if (await p.isVisible('[data-j]')) { await p.click('[data-j]'); await image('combat-journal'); await p.click('[data-j]'); }
-  await p.click('.fin-rejeu [data-v="0"]'); await p.waitForTimeout(600); await image('combat-issue'); await p.click('#combat-fin');
+  await p.click('[data-v="0"]'); await p.waitForTimeout(600); await image('combat-issue'); await p.click('#combat-fin');
 }
 if (await p.$('.carton')) { await image('recit'); await p.click('.carton [data-a="fermer"]'); }
 await p.click('[data-a="rentrer"]'); await image('retour');

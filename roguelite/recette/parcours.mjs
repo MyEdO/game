@@ -74,7 +74,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     });
     await p.reload(); await p.waitForSelector('[data-a="avancer"]');
     await clic(p, '[data-a="avancer"]');
-    if (await p.isVisible('#combat')) { await p.click('.fin-rejeu [data-v="0"]'); await p.click('#combat-fin'); }
+    if (await p.isVisible('#combat')) { await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
     await image(p, '9-carton', l);
     if (l === 1280) constater((await p.textContent('.carton').catch(() => '')).includes('ne revient pas'), '9 : la mort se raconte au carton');
     if (await p.$('.carton')) await p.click('.carton [data-a="fermer"]');

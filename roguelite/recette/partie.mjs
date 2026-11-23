@@ -17,20 +17,20 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
 
   await geste(p, 'batiment', 'forge');
   const avant = await or();
-  await p.click('.hote [data-a="ameliorer"]');
+  await p.click('.tete-service [data-a="ameliorer"]');
   constater((await or()) < avant, 'la forge s’agrandit et coûte de l’or');
   await p.click('.offre[data-k="moyenne"]'); await p.click('.offre[data-k="epee-batarde"]');
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
   constater(porte.includes('Épée bâtarde') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
 
-  await p.click('.services [data-id="salle"]'); await p.click('.hote [data-a="ameliorer"]'); await p.click('.page-service [data-a="heros"]');
+  await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]'); await p.click('.page-service [data-a="heros"]');
   const px = Number(await p.textContent('.bourse-px .chiffres'));
   await p.click('button.c.carr');
   constater(Number(await p.textContent('.bourse-px .chiffres')) < px, 'la fiche augmente une Caractéristique contre des PX');
 
-  await p.click('.croix-ecran'); await geste(p, 'batiment', 'temple'); await p.click('.hote [data-a="ameliorer"]'); await geste(p, 'fermer-panneau');
+  await p.click('.croix-ecran'); await geste(p, 'batiment', 'temple'); await p.click('.tete-service [data-a="ameliorer"]'); await geste(p, 'fermer-panneau');
   await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]');
-  await p.click('.emporte .offre');
+  await p.click('.emporte [data-a="provision"]');
   constater((await p.$$eval('.emporte .case-objet', (e) => e.length)) > 0, 'le départ approvisionne un héros');
   const partirVisible = await p.$eval('[data-a="partir"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
@@ -45,9 +45,9 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     let suite = '';
     if (await p.isVisible('#combat')) {
       await p.waitForTimeout(600);
-      constater(await p.isVisible('.ordre-rejeu .rang.actif') && await p.isVisible('.barre-actif .portrait-actif'), 'le rejeu montre l’ordre du tour et la barre de l’actif');
-      await p.click('.fin-rejeu [data-v="0"]');
-      suite = await p.textContent('.suite-issue');
+      constater(await p.isVisible('.ordre li.actif') && await p.isVisible('#combat .rang-heros .carte-heros'), 'le rejeu montre l’ordre du tour et les cartes des héros');
+      await p.click('[data-v="0"]');
+      suite = (await p.$('.suite-issue')) ? await p.textContent('.suite-issue') : '';
       constater(await p.isVisible('#combat-fin'), 'l’issue du combat porte son geste');
       await p.click('#combat-fin');
     }
@@ -61,7 +61,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
         const auPied = await p.$eval('.carton [data-a="fermer"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
         constater(auPied, '« Continuer » est au pied du carton');
         if (await p.$('.carton [data-a="revoir"]')) {
-          await p.click('.carton [data-a="revoir"]'); await p.waitForTimeout(400); await p.click('.fin-rejeu [data-v="0"]'); await p.click('#combat-fin');
+          await p.click('.carton [data-a="revoir"]'); await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin');
           constater(await p.isVisible('.carton [data-a="fermer"]'), 'revoir le combat rend le carton');
         }
       }

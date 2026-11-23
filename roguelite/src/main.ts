@@ -8,7 +8,7 @@ import * as J from './jeu';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
 import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
-import { ecranDeService } from './ui/services';
+import { panneauDeService } from './ui/services';
 import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { installerLesSurvols } from './ui/bulles';
@@ -41,11 +41,12 @@ function agir(f: () => string | null | void) {
   if (err) toast(err);
 }
 
-function pageOuverte(): string {
-  if (!panneau) return '';
-  if (panneau.type === 'heros') return ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet);
+/** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le hameau. */
+const ficheOuverte = (): string => (panneau?.type === 'heros' ? ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet) : '');
+function serviceOuvert() {
+  if (!panneau || panneau.type === 'heros') return null;
   const ctx = { e: etat, client, dest: panneau.type === 'depart' ? panneau.dest : null, choix: panneau.type === 'depart' ? panneau.choix : new Set<string>() };
-  return ecranDeService(ctx, panneau.type === 'batiment' ? panneau.id : panneau.type);
+  return panneauDeService(ctx, panneau.type === 'batiment' ? panneau.id : panneau.type);
 }
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -54,14 +55,14 @@ const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? reco
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
-  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, pageOuverte(), vueDuCarton()) : ecranDuHameau(etat, pageOuverte(), vueDuCarton());
+  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), vueDuCarton()) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) {
     if (avant != null && panoramaCentre) pano.scrollLeft = avant;
     else { pano.scrollLeft = (pano.scrollWidth - pano.clientWidth) * 0.42; panoramaCentre = true; }
   }
-  ajusterLesTableaux();
   ajusterLaScene();
+  ajusterLesTableaux();
 }
 
 // ─── Gestes ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -129,7 +130,7 @@ document.addEventListener('click', (ev) => {
       const x = etat.expedition;
       const terrain = x.destination;
       const type = x.salles[x.index].type;
-      const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`;
+      const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length} franchie`;
       const recit = J.avancer(etat);
       J.sauver(etat);
       const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], picto: PICTO_DE_SALLE[type], surTitre, terrain }; rendre(); };
@@ -175,8 +176,8 @@ document.addEventListener('keydown', (ev) => {
 
 window.addEventListener('resize', () => {
   mettreALEchelle();
-  ajusterLesTableaux();
   ajusterLaScene();
+  ajusterLesTableaux();
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) pano.scrollLeft = (pano.scrollWidth - pano.clientWidth) * 0.42;
 });

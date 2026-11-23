@@ -27,10 +27,10 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   await p.reload(); await p.waitForSelector('[data-a="avancer"]');
   await p.click('[data-a="avancer"]');
   await p.waitForSelector('#combat:not([hidden])');
-  await p.click('.vitesse-rejeu [data-v="vitesse"]'); await p.click('.vitesse-rejeu [data-v="vitesse"]');
+  await p.click('[data-v="4"]'); await p.click('[data-v="4"]');
   let capture = false;
-  for (let t = 0; t < 240 && !(await p.$('#combat .issue-rejeu .banniere-issue')); t++) {
-    if (!capture && await p.$('.ordre-rejeu .rang.hors')) { capture = true; await p.screenshot({ path: `${CAPTURES}/rejeu-a-terre-${l}.png` }); }
+  for (let t = 0; t < 240 && !(await p.$('#combat .banniere-issue')); t++) {
+    if (!capture && await p.$('.ordre li.hors')) { capture = true; await p.screenshot({ path: `${CAPTURES}/rejeu-a-terre-${l}.png` }); }
     await p.waitForTimeout(500);
   }
   if (!capture) await p.screenshot({ path: `${CAPTURES}/rejeu-fin-${l}.png` });
