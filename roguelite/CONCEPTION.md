@@ -139,6 +139,11 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
 - **2026-11-23, l'ingénieur** : « L'ingénieur je l'aime car il utilise des armes d'ingénieurie et a poudre noire que
   le repurgateur n'utilisera âs forcement ». — Ingénieur au relais 2, recruté au niveau 2 (Projectiles (Ingénierie)) ;
   sa dotation n'a aucune arme à feu : une arquebuse à répétition (LDB p. 295) lui est donnée, valeur d'adaptation.
+- **2026-11-23, Collèges et dieux** : « Pour et les dieux, il ne faut pas forcement tout proposer car certains sont
+  inutilisable dans le jeu ou non implémenté (sorts/miracles), et je ne veux pas pouvoir choisir, ca reste aléatoire,
+  mais juste bien les flagger comme il faut car ils ne se jouent pas tous de la même maniere ». — Le Collège d'un
+  sorcier et le dieu d'un prêtre se tirent au recrutement, parmi ceux que le noyau joue (mesure :
+  `docs/sorts-implementation.md`), et la carte du héros les affiche.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
