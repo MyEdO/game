@@ -66,7 +66,7 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 | Fiche du héros | Lire le héros, dépenser ses PX, utiliser ses provisions en route | 2, 7, 8 |
 | Expédition | Avancer, utiliser les sacs, rentrer | 4 |
 | Récit d'une salle | Lire l'issue, revoir le combat, continuer | 5, 6 |
-| Rejeu du combat | Voir le combat joué | 5 |
+| Rejeu du combat | Voir le combat joué : qui agit, dans quel ordre, ce que chaque coup fait ; son issue | 5 |
 | Recommencer | Confirmer l'effacement | — |
 
 Le récit et Recommencer sont un **carton** (`carton` d'`ecran.ts`, gabarit « Récit, document et issue ») : la scène du
@@ -104,7 +104,7 @@ Les scripts de `recette/` se jouent contre le jeu construit (`node roguelite/con
 statique sur `roguelite/dist`) :
 
 - `partie.mjs` : une partie de bout en bout (bâtir, équiper, progresser, partir, quatre salles, rentrer) ;
-- `debords.mjs` : chaque écran, à trois tailles, sans cadre qui rogne ce qui doit tenir ;
+- `debords.mjs` : chaque écran, à trois tailles, sans cadre qui rogne ce qui doit tenir ni bouton hors de l'écran ;
 - `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables ;
 - `instantanes.mjs` (avec `partie-fixe.ts`) : le HTML de chaque écran sur une partie fixe, à comparer avant et après
   une refonte qui ne doit rien changer ;

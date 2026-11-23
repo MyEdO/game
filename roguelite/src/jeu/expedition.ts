@@ -1,7 +1,7 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { jouerLeCombat, reposer, horsDeCombat, nomDeCreature, auHameau, type IssueDuCombat } from '../noyau';
+import { jouerLeCombat, reposer, horsDeCombat, auHameau, type IssueDuCombat } from '../noyau';
 
 import { DESTINATIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
@@ -91,7 +91,7 @@ export function avancer(e: Etat): RecitDeSalle {
     const or = Math.round(d.or * (salle.type === 'boss' ? 4 : salle.type === 'elite' ? 2 : 1) * (0.75 + rng.int(0, 50) / 100));
     x.or += or;
     if (salle.type === 'elite') x.trophees += rng.int(1, 100) <= 35 ? 1 : 0;
-    const lignes = [`Victoire contre ${salle.ennemis.map(nomDeCreature).join(', ')}. Butin : ${or} CO.`, ...morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`)];
+    const lignes = [`Butin : ${or} CO · ${PX_PAR_SALLE[salle.type]} PX chacun.`, ...morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`)];
     recit = { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: issue };
   }
   const px = PX_PAR_SALLE[salle.type];

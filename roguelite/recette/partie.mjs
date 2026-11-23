@@ -38,23 +38,35 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   constater(await p.isVisible('[data-a="avancer"]'), 'l’expédition commence');
 
   let salles = 0;
+  let aVuUnCarton = false;
   for (let n = 0; n < 7; n++) {
     if (!(await p.$('[data-a="avancer"]:not([disabled])'))) break;
     await p.click('[data-a="avancer"]');
-    if (await p.isVisible('#combat')) { await p.waitForTimeout(600); await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
-    salles++;
-    console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
-    if (n === 0) {
-      await p.click('.socle-compagnie .carte-heros');
-      constater(await p.isVisible('.carton') && !(await p.$('.ident')), 'le carton ouvert ignore un clic au socle');
-      const auPied = await p.$eval('.carton [data-a="fermer"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
-      constater(auPied, '« Continuer » est au pied du carton');
-      if (await p.$('.carton [data-a="revoir"]')) {
-        await p.click('.carton [data-a="revoir"]'); await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin');
-        constater(await p.isVisible('.carton [data-a="fermer"]'), 'revoir le combat rend le carton');
-      }
+    let suite = '';
+    if (await p.isVisible('#combat')) {
+      await p.waitForTimeout(600);
+      constater(await p.isVisible('.ordre-rejeu .rang.actif') && await p.isVisible('.barre-actif .portrait-actif'), 'le rejeu montre l’ordre du tour et la barre de l’actif');
+      await p.click('.fin-rejeu [data-v="0"]');
+      suite = await p.textContent('.suite-issue');
+      constater(await p.isVisible('#combat-fin'), 'l’issue du combat porte son geste');
+      await p.click('#combat-fin');
     }
-    await p.click('.carton [data-a="fermer"]');
+    salles++;
+    if (await p.$('.carton')) {
+      console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
+      if (!aVuUnCarton) {
+        aVuUnCarton = true;
+        await p.click('.socle-compagnie .carte-heros');
+        constater(await p.isVisible('.carton') && !(await p.$('.ident')), 'le carton ouvert ignore un clic au socle');
+        const auPied = await p.$eval('.carton [data-a="fermer"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
+        constater(auPied, '« Continuer » est au pied du carton');
+        if (await p.$('.carton [data-a="revoir"]')) {
+          await p.click('.carton [data-a="revoir"]'); await p.waitForTimeout(400); await p.click('.fin-rejeu [data-v="0"]'); await p.click('#combat-fin');
+          constater(await p.isVisible('.carton [data-a="fermer"]'), 'revoir le combat rend le carton');
+        }
+      }
+      await p.click('.carton [data-a="fermer"]');
+    } else console.log('  salle : issue ·', suite);
     const c = await p.$('.colonne-sacs button.boite-objet:not(:disabled)');
     if (c) { await c.click(); console.log('  sac :', await p.textContent('#toast')); }
   }

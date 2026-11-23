@@ -1,24 +1,72 @@
-/* Le rejeu du combat (`rejeu.ts`) : la carte du noyau en terrain, les figurines, l'ordre du tour, le journal. */
-#combat { position: fixed; inset: 0; z-index: 30; overflow: auto; background: #0b0a0e; }
-.combat-ecran { min-height: 100%; display: grid; grid-template-rows: auto auto 1fr auto; gap: 8px; padding: max(12px, env(safe-area-inset-top, 0px)) var(--gouttiere-d) max(12px, env(safe-area-inset-bottom, 0px)) var(--gouttiere-g); position: relative;
-  background: #0b0b12; }
-.combat-tete { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.cartouche-combat .fond { padding: 8px 14px; }
-.cartouche-combat .titre { font-size: 26px; margin: 0; line-height: 1.1; }
-.ordre { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; flex: 1; justify-content: center; }
-.ordre li { transition: transform .2s; }
-.ordre li.actif { transform: translateY(-4px); }
-.ordre li.actif .portrait { box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 16px var(--halo-vif); }
-.ordre li.hors { opacity: .35; filter: grayscale(1); }
-.vitesse { display: flex; gap: 6px; }
-.vitesse .plaque { min-width: 52px; }
-.tour { min-height: 34px; display: flex; justify-content: center; }
-.tour .ruban { position: static; transform: none; display: inline-block; font-size: 19px; }
-.tour.ennemi .ruban { background: linear-gradient(180deg, #4a1a12, #24090a); }
-.champ { display: grid; place-items: center; min-height: 0; overflow-x: auto; scrollbar-width: thin; }
-.cour-cadre { position: relative; flex: none; overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 9%, #000 90%, transparent); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 9%, #000 90%, transparent); mask-composite: intersect; }
+/* Le rejeu du combat (`rejeu.ts`), au gabarit « Combat » des maquettes : la cour en fond, les figurines, la borne du
+   round, l'ordre du tour, la barre de l'actif, le journal, l'issue. */
+#combat { position: fixed; inset: 0; z-index: 30; background: #0b0a0e; }
+.ecran-plein.rejeu { background: #0b0a0e; overflow: hidden; }
+.champ-rejeu { position: absolute; inset: 0; overflow: hidden; }
+.champ-rejeu .cour { -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); mask-composite: intersect; }
+.place-cadre > .borne-round > .fond { flex-direction: row; display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+.borne-round .n { width: 96px; font-size: 30px; line-height: 30px; color: #f1e4c4; text-shadow: 0 2px 3px #000; white-space: nowrap; }
+.borne-round .t { font-size: 13.5px; line-height: 16px; color: var(--creme-2); }
+.ordre-rejeu { position: absolute; display: flex; flex-direction: column-reverse; gap: 8px; overflow: hidden; }
+.ordre-rejeu .rang { flex: none; }
+.ordre-rejeu .rang .nom { white-space: normal; line-height: normal; overflow-wrap: anywhere; }
+.ordre-rejeu .rang .jauge { flex: none; width: 38px; margin-top: 5px; }
+.ordre-rejeu .rang.actif { flex-direction: column; align-items: flex-start; gap: 4px; }
+.ordre-rejeu .rang.actif .nom { font-size: 16px; }
+.ordre-rejeu .rang.actif .jauge { width: 74px; }
+.rang .pv { font-family: "IM Fell English SC", serif; font-size: 11.5px; color: var(--creme-2); margin-left: 8px; white-space: nowrap; }
+.rang .ligne { display: flex; align-items: center; }
+.rang.fantome { opacity: .42; }
+.rang.fantome.loin { opacity: .22; }
+.borne { display: flex; align-items: center; gap: 9px; margin: 1px 0 1px 3px; }
+.borne span.rubrique { font-size: 12px; color: var(--creme-2); }
+.borne i { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(201,185,149,.6), rgba(201,185,149,0)); }
+.journal-rejeu { position: absolute; display: flex; flex-direction: column; text-align: right; pointer-events: auto; }
+.journal-rejeu .tete { height: 34px; flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 9px; font-size: 13.5px; color: #f0e2c2; }
+.journal-rejeu .bouton-rond { border: 0; padding: 0; cursor: pointer; }
+.journal { margin: 0; padding: 0; list-style: none; overflow-y: auto; scrollbar-width: none; }
+.journal-rejeu .journal { flex: 1; min-height: 0; -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%); mask-image: linear-gradient(180deg, transparent, #000 40%); }
+.journal-rejeu .journal li { margin: 0 0 5px; font-style: italic; font-size: 14.5px; line-height: 19px; color: #e6dabd; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+.journal li.rouge { color: #f0a48e; }
+.journal li.fort { font-family: "Grenze Gotisch", serif; font-style: normal; font-size: 18px; }
+.rejeu:not(.journal-ouvert) .place-cadre:has(> .journal-entier) { display: none; }
+.rejeu.journal-ouvert .journal-rejeu .journal { visibility: hidden; }
+.journal-entier .journal { flex: 1; min-height: 0; scrollbar-width: thin; }
+.journal-entier .journal li { margin: 0 0 4px; font-size: 14px; line-height: 19px; color: var(--encre); }
+.journal-entier .journal li.rouge { color: var(--sang); }
+.barre-rejeu > .fond { padding: 0; }
+.barre-actif { position: relative; height: 100%; display: grid; grid-template-columns: 1fr 200px 1fr; align-items: center; gap: 20px; padding: 0 24px; }
+.mesure-actif .tete { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--creme-2); }
+.mesure-actif .tete b { font-family: "IM Fell English SC", serif; font-weight: 400; font-size: 14px; color: #f0e2c2; letter-spacing: .8px; }
+.mesure-actif .jauge { margin-top: 7px; }
+.portrait-actif { align-self: end; display: grid; justify-items: center; margin-top: -40px; padding-bottom: 8px; }
+.portrait-actif .nom-propre { font-size: 20px; line-height: 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.portrait-actif .sous-titre { font-size: 12px; color: var(--creme-2); }
+.action-actif { display: grid; gap: 4px; align-content: center; min-width: 0; }
+.action-actif .rubrique { color: var(--or-moyen); font-size: 12px; letter-spacing: 1px; }
+.action-actif p { margin: 0; font-style: italic; font-size: 13.5px; line-height: 18px; color: var(--creme); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fin-rejeu, .vitesse-rejeu { position: absolute; display: grid; place-items: center; }
+.fin-rejeu.ferme { opacity: .35; pointer-events: none; }
+.issue-rejeu { position: absolute; display: grid; justify-items: center; align-content: start; gap: 10px; z-index: 200; }
+.issue-rejeu:empty { display: none; }
+.banniere-issue { width: 100%; height: 150px; display: grid; place-items: center; background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or), 0 10px 30px rgba(0,0,0,.7); clip-path: polygon(0 0,100% 0,calc(100% - 26px) 50%,100% 100%,0 100%,26px 50%); animation: apparait .5s ease-out; }
+.banniere-issue span { font-size: 60px; color: var(--ivoire); text-shadow: 0 3px 4px rgba(0,0,0,.8); }
+.banniere-issue.defaite { background: linear-gradient(180deg, #2a1a1a, #120a0a); }
+.suite-issue { min-height: 26px; margin: 4px 0 0; font-size: 16px; color: var(--creme); text-align: center; }
+#combat-fin { width: 254px; }
+@keyframes apparait { from { opacity: 0; transform: scale(.9); } }
+@media (max-width: 899px) {
+  .ecran-plein.rejeu .scene-fixe { position: absolute; left: 0; right: 0; bottom: 0; top: auto; padding: 0 0 8px; pointer-events: none; }
+  .ecran-plein.rejeu .scene-fixe > * { pointer-events: auto; }
+  .ordre-rejeu, .journal-rejeu, .vitesse-rejeu { display: none; }
+  .rejeu .borne-round { position: fixed !important; top: 8px !important; left: 8px !important; width: 230px !important; height: 56px !important; margin: 0; }
+  .barre-actif { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .portrait-actif { order: -1; justify-items: start; margin: 0; padding: 0; }
+  .portrait-actif .portrait { display: none; }
+  .fin-rejeu { position: fixed !important; right: 8px; left: auto !important; top: 8px !important; width: auto !important; height: auto !important; margin: 0; }
+  .issue-rejeu { position: fixed !important; left: 16px !important; right: 16px; top: 22% !important; width: auto !important; height: auto !important; margin: 0; }
+  .banniere-issue { height: 100px; } .banniere-issue span { font-size: 42px; }
+}
 .cour { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .cour-sol { position: absolute; inset: 0; display: block; }
 .cour-sol .flamme { animation: flamme .9s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
@@ -63,26 +111,4 @@
 .flottant.querelle { top: -2%; font: 600 20px "Grenze Gotisch", serif; color: #ff9a3a; }
 .flottant.etat { top: 34%; font: italic 16px "Spectral", serif; color: var(--or-eclat); }
 @keyframes monte { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
-.combat-pied { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 12px; align-items: end; }
-.panneau-journal > .fond { position: relative; padding: 12px 16px; }
-.panneau-journal.ouvert .journal { height: min(52vh, 460px); }
-.agrandir-journal { position: absolute; right: 8px; top: 6px; z-index: 1; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: var(--sepia); background: rgba(255,246,208,.6); box-shadow: 0 0 0 1px var(--filet-encre); }
-.panneau-journal.ouvert .agrandir-journal { background: var(--or-moyen); color: var(--encre); }
-.journal { margin: 0; padding: 0; list-style: none; height: 92px; overflow-y: auto; display: grid; align-content: start; gap: 2px; font-size: 13.5px; line-height: 1.35; color: var(--encre-2); white-space: pre-line; scrollbar-width: thin; }
-.journal li.rouge { color: var(--sang); }
-.journal li.fort { color: var(--encre); font-family: "Grenze Gotisch", serif; font-size: 18px; }
-.rang-heros.vivant { display: flex; gap: 8px; overflow-x: auto; padding: 4px; }
-.rang-heros.vivant .carte-heros { flex: 1 0 200px; max-width: 260px; cursor: default; }
-.issue-place { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 18px; z-index: 200; width: min(560px, calc(100vw - 32px)); }
-.issue-place:empty { display: none; }
-.banniere-issue { width: 100%; padding: 22px 0; display: grid; place-items: center; background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or), 0 10px 30px rgba(0,0,0,.7); clip-path: polygon(0 0,100% 0,calc(100% - 26px) 50%,100% 100%,0 100%,26px 50%); animation: apparait .5s ease-out; }
-.banniere-issue span { font-size: clamp(36px, 8vw, 60px); color: var(--ivoire); text-shadow: 0 3px 4px rgba(0,0,0,.8); }
-.banniere-issue.defaite { background: linear-gradient(180deg, #2a1a1a, #120a0a); }
-@keyframes apparait { from { opacity: 0; transform: scale(.9); } }
-#combat-fin { width: min(360px, 100%); }
 @media (prefers-reduced-motion: reduce) { .fig, .fig .silhouette, .fig .pv-fig i { transition: none; } .fig .silhouette, .flottant, .trait, .pastille-batir, .fig.actif::before { animation: none !important; } .flottant { opacity: 1; } }
-@media (max-width: 900px) {
-  .combat-pied { grid-template-columns: 1fr; }
-  .ordre { order: 3; flex-basis: 100%; justify-content: flex-start; }
-  .champ { place-items: center start; }
-}

@@ -13,6 +13,8 @@ export const CADRES = {
   hote: [412, 20, 340, 300], page: [776, 20, 480, 520], 'colonne-droite': [896, 20, 360, 420], frise: [180, 480, 920, 70], coins: [1160, 470, 100, 230],
   identite: [26, 20, 340, 536], bande: [384, 20, 800, 96], gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
   socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], retour: [30, 592, 124, 94], carton: [160, 222, 960, 278],
+  issue: [360, 190, 560, 150], round: [22, 16, 214, 66], ordre: [22, 96, 134, 616], 'fin-du-tour': [1133, 582, 104, 116],
+  journal: [956, 316, 300, 132], 'journal-entier': [856, 70, 400, 236], 'outils-du-tour': [1072, 604, 52, 88],
 } satisfies Record<string, [number, number, number, number]>;
 
 /** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
@@ -57,13 +59,18 @@ const HAUTEUR_DE_VUE = 840;
  *  ou la centre si elle l'est, et le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ;
  *  `placeDe` de `rendu.js`) ; la fiche garde ses cadres groupés au centre. Sous 900 px de large, les cadres s'empilent. */
 export function ajusterLaScene(): void {
-  const s = document.querySelector<HTMLElement>('.scene-fixe');
-  if (!s) return;
+  document.querySelectorAll<HTMLElement>('.scene-fixe').forEach(ajuster);
+}
+
+/** L'échelle de la scène fixe sur l'écran (1 sous 900 px de large, où les cadres s'empilent). */
+export const echelleDeLaScene = (): number => (window.innerWidth < 900 ? 1 : Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / HAUTEUR_DE_VUE));
+
+function ajuster(s: HTMLElement): void {
   if (window.innerWidth < 900) return void Object.assign(s.style, { transform: '', width: '', height: '' });
-  const k = Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / HAUTEUR_DE_VUE);
+  const k = echelleDeLaScene();
   const largeur = window.innerWidth / k;
   const hauteur = window.innerHeight / k;
-  const ancreLaLargeur = !!s.closest('.service, .lieu');
+  const ancreLaLargeur = !!s.closest('.service, .lieu, .rejeu');
   Object.assign(s.style, { transform: `scale(${k})`, width: `${largeur}px`, height: `${hauteur}px` });
   s.querySelectorAll<HTMLElement>('[data-rect]').forEach((el) => {
     const [x, y, l = 0, h = 0] = (el.dataset.rect ?? '').split(' ').map(Number);

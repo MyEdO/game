@@ -133,14 +133,17 @@ document.addEventListener('click', (ev) => {
       const recit = J.avancer(etat);
       J.sauver(etat);
       const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], picto: PICTO_DE_SALLE[type], surTitre, terrain }; rendre(); };
-      if (recit.combat) { rendre(); ouvrirLeRejeu(recit.combat, montrer, terrain, etat.roster); } else montrer();
+      if (!recit.combat) return montrer();
+      rendre();
+      // Une victoire se clôt à son issue ; une déroute, une retraite ou le maître vaincu racontent ensuite le retour.
+      return recit.fin ? ouvrirLeRejeu(recit.combat, '', montrer, terrain, etat.roster) : ouvrirLeRejeu(recit.combat, recit.lignes.join(' '), rendre, terrain, etat.roster);
       return;
     }
     case 'revoir': {
       if (ouvert?.type !== 'recit' || !ouvert.recit.combat) return;
       const m = ouvert;
       ouvert = null; rendre();
-      return ouvrirLeRejeu(m.recit.combat!, () => { ouvert = m; rendre(); }, m.terrain, etat.roster);
+      return ouvrirLeRejeu(m.recit.combat!, '', () => { ouvert = m; rendre(); }, m.terrain, etat.roster);
     }
     case 'rentrer': {
       if (!etat.expedition) return;
