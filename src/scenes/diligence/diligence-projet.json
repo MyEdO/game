@@ -13722,67 +13722,7 @@
       "x": 21,
       "y": 38
      },
-     "facing": "N",
-     "label": "Diligence",
-     "usable": {
-      "actions": [
-       {
-        "id": "monter-a-bord",
-        "label": "Monter à bord",
-        "unique": true,
-        "flow": {
-         "kind": "sequence",
-         "etapes": [
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setFlag",
-            "flag": "edo-ch1-depart"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "clearObjective",
-            "id": "edo-ch1-place-a-bord"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "journal",
-            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.251 · l.255"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setObjective",
-            "id": "edo-ch1-route",
-            "desc": "Se rendre à Altdorf.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.247"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "openWorldMap"
-           }
-          }
-         ]
-        }
-       }
-      ]
-     }
+     "facing": "N"
     },
     {
      "id": "prop-0",
@@ -15796,6 +15736,77 @@
       "y": 30
      },
      "facing": "S"
+    },
+    {
+     "id": "diligence-cour-diligence",
+     "kind": "personnage",
+     "vehicule": {
+      "id": "diligence"
+     },
+     "pos": {
+      "x": 24,
+      "y": 29
+     },
+     "facing": "N",
+     "usable": {
+      "actions": [
+       {
+        "id": "monter-a-bord",
+        "label": "Monter à bord",
+        "unique": true,
+        "flow": {
+         "kind": "sequence",
+         "etapes": [
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setFlag",
+            "flag": "edo-ch1-depart"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "clearObjective",
+            "id": "edo-ch1-place-a-bord"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "journal",
+            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.251 · l.255"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setObjective",
+            "id": "edo-ch1-route",
+            "desc": "Se rendre à Altdorf.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.247"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "openWorldMap"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
     }
    ],
    "dialogues": [],
