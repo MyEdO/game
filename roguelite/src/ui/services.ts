@@ -6,7 +6,7 @@
  * (forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent } from '../noyau';
+import { encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque, portrait } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { bourseDePX, caracteristiques, competences, niveauSuivant, sortsAApprendre, talentsDuNiveau } from './fiche';
@@ -99,6 +99,13 @@ const tendance = (ecart: number): Tendance => (ecart > 0 ? 'hausse' : ecart < 0 
 const mesure = (nom: string, valeur: string | number, ecart?: number, o: { chiffre?: boolean; bulle?: string } = {}) =>
   `<div class="mesure${typeof valeur === 'string' ? ' mot' : ''} ${ecart == null ? '' : tendance(ecart)}"${o.bulle ? ` data-bulle="${esc(o.bulle)}"` : ''}><span class="sous-titre">${nom}</span><b class="chiffres">${valeur}</b>${ecart ? `<i class="chiffres">${ecart > 0 ? '▲' : '▼'}${o.chiffre ? `${ecart > 0 ? '+' : '−'}${Math.abs(ecart)}` : ''}</i>` : ecart === 0 ? '<i class="chiffres">=</i>' : ''}</div>`;
 
+/** Ce que dit l'étiquette d'une arme mal maîtrisée : sans sa Spécialisation (Caractéristique seule), ou maniée par une
+ *  autre Spécialisation de Tir qui lui fait perdre ses Atouts. LDB 62 l.180-184 */
+const MAITRISE: Partial<Record<Maniement['maitrise'], { mot: string; bulle: string }>> = {
+  aucun: { mot: 'Non entraîné', bulle: 'sa Compétence ne couvre pas ce Groupe d’armes, il tire sur la Caractéristique seule' },
+  degrade: { mot: 'Sans ses Atouts', bulle: 'une autre Spécialisation de Tir garde son bonus, l’arme perd ses Atouts' },
+};
+
 /** La forge pour le héros servi : à gauche ce qu'il porte — ses deux mains, son arme à distance, qu'il tire de loin
  *  en gardant l'arme de mêlée pour le corps à corps, son armure —, un emplacement ouvert ; à droite ce que la forge
  *  propose pour cet emplacement, chaque offre mesurée entre ses mains et face à ce qu'il tient. */
@@ -117,7 +124,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
     const t = tenue?.id ? maniement(h.c, tenue.id) : undefined;
     const allonge = a.portee ? mesure('Portée', `${a.portee} m`, tenue?.portee ? a.portee - tenue.portee : undefined)
       : a.allonge ? mesure('Allonge', esc(a.allonge.toLowerCase()), t && !tenue?.portee && m.rangDAllonge != null && t.rangDAllonge != null ? m.rangDAllonge - t.rangDAllonge : undefined) : '';
-    return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test de ${m.test}${m.entraine ? '' : ' — non entraîné : sa Compétence ne couvre pas ce Groupe d’armes'}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
+    return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test de ${m.test}${MAITRISE[m.maitrise]?.bulle ? ` — ${MAITRISE[m.maitrise]!.bulle}` : ''}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
   };
   const armure = protection(h.c);
   const mesuresDArmure = (pa?: number) => armure.map((z) => mesure(esc(z.zone), pa ?? z.pa, pa == null ? undefined : pa - z.pa)).join('');
@@ -152,7 +159,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
     ? J.armuresEnVente(e).filter((a) => a.label !== p.armure?.label).map((a) => article('armure', a.label, mesuresDArmure(a.pa), `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"`, taille: 'petite' })))
     : armes.map(({ a, m }) => article(iconeDArme(a.label), a.label, mesuresDArme(a, tenue),
-      `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${m.entraine ? '' : `<span class="etiquette rectangle qualite defaut suite" data-bulle="Sa Compétence ne couvre pas ce Groupe d’armes : ${esc(m.test)}">Non entraîné</span>`}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
+      `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${MAITRISE[m.maitrise] ? `<span class="etiquette rectangle qualite defaut suite" data-bulle="${esc(`${MAITRISE[m.maitrise]!.bulle} : ${m.test}`)}">${MAITRISE[m.maitrise]!.mot}</span>` : ''}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite', ...(emplacement === 'secondaire' && deuxMains ? { refus: `${p.main!.label} prend les deux mains.` } : {}) })));
   return {
     classe: 'forge',

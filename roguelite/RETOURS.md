@@ -253,3 +253,18 @@ sur une arène générée.
   foudroyants (17) agissent sur une valeur ou un seuil sans ligne à eux. Un hôte qui veut montrer « ce Talent a servi »
   n'a pas de signal : il faudrait que le détail d'un jet (`ligne.mods`) nomme ses sources jusqu'au journal ou à
   l'événement.
+- **Idée — la bête de combat d'un héros, par le chemin des montures.** Le noyau sait déjà faire entrer en combat la
+  bête possédée par un héros : `combatSlice.ts:1701-1720` la fait naître alliée (`spawnEnemy` sur sa créature,
+  `kind: 'heros'`, id `pos-<uid>`), avec ses Blessures, ses Caractéristiques tirées et ses Traits appris, et
+  `finalizeBattle` réécrit son état dans la possession (#618). Deux filtres la réservent aux montures :
+  `heroCombatMount` (`engine/mountTravel.ts:106`) ne prend que la bête qui accepte un cavalier
+  (`possessionCombatRideable`), et `mountUp` la soude au cavalier (même case). Un chien n'en diffère que par là : il
+  peut porter une créature plus petite que lui, et sinon il combat à côté de son maître. Modification proposée :
+  - naître alliée pour **toute** bête de combat possédée avec le groupe, pas seulement la première montable ;
+  - n'appeler `mountUp` que si la bête porte effectivement ce héros (taille, `possessionCombatRideable`) ;
+  - sinon la poser sur une case voisine de son maître, avec son propre tour d'Initiative et son IA d'allié.
+  Ce qui reste à trancher au livre : quelle bête combat (Trait Dressé, Guerre ou Garde ?) et si la Peur ou la Terreur
+  de Taille la font fuir quand elle est dressée. Ce qu'il faut côté données : la dotation `ratier-1` désigne `chien`
+  (le chien générique) alors que le Bestiaire a `chien-de-ratier`. Progression et armure de la bête : la possession
+  porte déjà `charsRolled`, `learnedTraits` et `items` ; il manque des verbes de fiche qui les visent.
+
