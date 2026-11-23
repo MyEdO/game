@@ -24,7 +24,7 @@
     {
       "nom": "metal",
       "palette": "metal",
-      "matiere": "prop--acier-battu"
+      "matiere": "prop--fer-rouille"
     },
     {
       "nom": "bois",
@@ -43,7 +43,7 @@
     }
   ],
   "glb": {
-    "sha256": "41c41fcb46d3d26cd7b91cd74fbd1c886ddcf9f0fc72dc5dcede3f79713d5f9e",
-    "octets": 145088
+    "sha256": "7539e8a5ca754a25320079006f299466dfd304c3ec78fc69a92ed9d40d03ada0",
+    "octets": 152760
   }
 }
