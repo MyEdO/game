@@ -3,7 +3,7 @@
  */
 import { refusDUsage, qualitesDesPieces, doter, articleDuCatalogue, DISPONIBILITES, drPerdusSousLesPieces, encombrementDesPieces, maniement, objetsEnRayon, progression, protectionDesPieces, tenableEnMainSecondaire, type ArticleDuCatalogue, type ItemInstance, type ObjetEnRayon, type PoidsDArmure, type Qualite } from '../noyau';
 
-import { ARMES_DE_LA_FORGE, ECHELLE_DES_PRIX, GROUPE_DES_REMEDES, GROUPES_SANS_COMPETENCE, MAIN_SECONDAIRE, MUNITIONS, PANOPLIES, REMEDES_DE_L_HOSPICE, disponibilitesDuPalier, type Composition, type GroupeDeLaForge, type Panoplie } from './valeurs';
+import { ARMES_DE_LA_FORGE, ECHELLE_DES_PRIX, GROUPE_DES_REMEDES, GROUPES_SANS_COMPETENCE, MAIN_SECONDAIRE, MUNITIONS, PANOPLIES, REMEDES_DE_L_HOSPICE, disponibilitesDuPalier, type GroupeDeLaForge, type Panoplie } from './valeurs';
 import { Etat, Heros } from './etat';
 import { enRuine } from './village';
 import { auNoyau, heros } from './outils';
@@ -43,31 +43,26 @@ function manie(h: Pick<Heros, 'c'>, id: string): boolean {
 export const armesEnVente = (e: Etat, h: Pick<Heros, 'c'>): Article[] => auPalier(RAYON_DE_LA_FORGE, e.batiments.forge).filter((id) => manie(h, id)).map(article);
 
 const DISPONIBILITE_EN_RAYON = new Map(objetsEnRayon().map((o) => [o.id, o.disponibilite]));
-/** La Disponibilité d'une composition : celle de sa pièce la plus rare. */
-const disponibiliteDe = (p: Composition) => DISPONIBILITES[Math.max(...p.pieces.map((id) => DISPONIBILITES.indexOf(DISPONIBILITE_EN_RAYON.get(id)!)))];
-/** La composition de la panoplie `p` que la forge vend au héros `h` : la première qu'il porte sans perdre de DR à
- *  l'Incantation (`drPerdusSousLesPieces`), à défaut la plus légère, que l'achat lui refuse. LDB 46 l.150-152 */
-const compositionPour = (p: Panoplie, h: Pick<Heros, 'c'>): Composition =>
-  p.compositions.find((x) => !drPerdusSousLesPieces(h.c, doter(x.pieces, 'essai'))) ?? p.compositions[0];
+/** La Disponibilité d'une panoplie : celle de sa pièce la plus rare. */
+const disponibiliteDe = (p: Panoplie) => DISPONIBILITES[Math.max(...p.pieces.map((id) => DISPONIBILITES.indexOf(DISPONIBILITE_EN_RAYON.get(id)!)))];
 /** Une panoplie en vente (`PANOPLIES`) : son prix, somme des prix de ses pièces, son Encombrement une fois
  *  revêtue (`encombrementDesPieces`), ses PA par zone d'armure (`protectionDesPieces`), les pièces qu'elle revêt et leurs
  *  qualités, Défauts et pénalités de port totales compris (`qualitesDesPieces`, LDB 63). */
 export interface ArmureEnVente { id: Panoplie['id']; label: string; prix: number; enc: number; pa: { zone: string; pa: number }[]; pieces: string[]; qualites: Qualite[] }
-const enVente = (id: Panoplie['id'], p: Composition): ArmureEnVente => {
+const enVente = (p: Panoplie): ArmureEnVente => {
   const articles = p.pieces.map(articleDuCatalogue), pieces = doter(p.pieces, 'essai');
   return {
-    id, label: p.label, prix: p.pieces.reduce((n, id) => n + prixDe(id), 0), enc: encombrementDesPieces(pieces),
+    id: p.id, label: p.label, prix: p.pieces.reduce((n, id) => n + prixDe(id), 0), enc: encombrementDesPieces(pieces),
     pa: protectionDesPieces(pieces), pieces: articles.map((a) => a.label), qualites: qualitesDesPieces(pieces),
   };
 };
-/** Les panoplies que la forge vend au héros `h`, chacune dans sa composition pour lui (`compositionPour`) : celles dont la
- *  Disponibilité est ouverte à son palier (`disponibilitesDuPalier`). */
-export const armuresEnVente = (e: Etat, h: Pick<Heros, 'c'>): ArmureEnVente[] =>
-  PANOPLIES.map((p) => ({ id: p.id, x: compositionPour(p, h) })).filter(({ x }) => disponibilitesDuPalier(e.batiments.forge).includes(disponibiliteDe(x))).map(({ id, x }) => enVente(id, x));
-/** La panoplie que porte le héros, reconnue à ses pièces d'armure : exactement celles d'une de ses compositions. */
-export function panoplieDe(h: Pick<Heros, 'c'>): (Composition & { id: Panoplie['id'] }) | undefined {
+/** Les panoplies que la forge vend : celles dont la Disponibilité est ouverte à son palier (`disponibilitesDuPalier`). */
+export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
+  PANOPLIES.filter((p) => disponibilitesDuPalier(e.batiments.forge).includes(disponibiliteDe(p))).map(enVente);
+/** La panoplie que porte le héros, reconnue à ses pièces d'armure : exactement les siennes. */
+export function panoplieDe(h: Pick<Heros, 'c'>): Panoplie | undefined {
   const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.trappingId ?? '').sort().join();
-  return PANOPLIES.flatMap((p) => p.compositions.map((x) => ({ ...x, id: p.id }))).find((x) => [...x.pieces].sort().join() === portees);
+  return PANOPLIES.find((p) => [...p.pieces].sort().join() === portees);
 }
 /** Les potions et remèdes de l'hospice, rien tant qu'il est en ruine. */
 export const provisionsEnVente = (e: Etat): Article[] => (enRuine(e.batiments, 'temple') ? [] : auPalier(RAYON_DE_L_HOSPICE, e.batiments.temple).map(article));
@@ -242,10 +237,10 @@ export function prendreSesArmes(e: Etat, h: Heros): void {
 export function acheterUneArmure(e: Etat, id: string, panoplieId: string): string | null {
   const h = heros(e, id);
   if (!h) return 'Héros introuvable.';
-  const offre = armuresEnVente(e, h).find((a) => a.id === panoplieId);
+  const offre = armuresEnVente(e).find((a) => a.id === panoplieId);
   if (!offre) return 'La forge ne la vend pas encore.';
   if (panoplieDe(h)?.id === panoplieId) return 'Il la porte déjà.';
-  const pieces = compositionPour(PANOPLIES.find((p) => p.id === panoplieId)!, h).pieces;
+  const pieces = PANOPLIES.find((p) => p.id === panoplieId)!.pieces;
   const dr = drPerdusSousLesPieces(h.c, doter(pieces, 'essai'));
   if (dr) return `${offre.label} : −${dr} DR à ses Tests d’Incantation.`; // LDB 46 l.150-152
   const refus = payer(e, h, offre.prix);

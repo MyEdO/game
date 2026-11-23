@@ -74,9 +74,8 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 | Cuir souple (pa-1) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir) |
 | Mailles (pa-2) | Heaume ouvert (heaume-ouvert), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles) |
 | Mailles sur cuir (pa-3) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir), Heaume ouvert (heaume-ouvert), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles) |
-| Plates et cuir bouilli sur mailles (pa-4) | Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron de cuir (plastron-de-cuir), Jambières d'acier (jambieres-d-acier) |
 | Plates sur mailles (pa-4) | Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron (plastron), Jambières d'acier (jambieres-d-acier) |
-| Harnois complet (pa-5) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir), Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron de cuir (plastron-de-cuir), Jambières d'acier (jambieres-d-acier) |
+| Harnois complet (pa-5) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir), Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron (plastron), Jambières d'acier (jambieres-d-acier) |
 
 ## Auberge relais
 

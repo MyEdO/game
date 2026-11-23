@@ -5,6 +5,7 @@ import {
 } from './index';
 import { articleDuCatalogue, doter, objetsEnRayon, porterAuNiveau, protection } from '../noyau';
 import { equipConflicts, wornArmourPoints } from '../../../src/engine/items';
+import { findTrappingById } from '../../../src/data';
 
 /** Les Disponibilités qu'ouvre chaque palier de la forge et de l'hospice (arbitrage du 2026-11-23, `CONCEPTION.md`). */
 const OUVERTES = [['commune'], ['commune', 'limitee'], ['commune', 'limitee', 'rare'], ['commune', 'limitee', 'rare', 'exotique']];
@@ -124,22 +125,20 @@ describe('panoplies de la forge', () => {
   };
 
   it('chaque panoplie s’ouvre au palier de la Disponibilité de sa pièce la plus rare', () => {
-    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e, soldat(e)).map((a) => a.id); })).toEqual([
+    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e).map((a) => a.id); })).toEqual([
       ['pa-1'], ['pa-1', 'pa-2', 'pa-3'], ['pa-1', 'pa-2', 'pa-3', 'pa-4', 'pa-5'], ['pa-1', 'pa-2', 'pa-3', 'pa-4', 'pa-5'],
     ]);
   });
 
-  it('chaque composition de la panoplie pa-N porte N PA sur chaque localisation, sans pièce de même couche sur une même localisation', () => {
+  it('la panoplie pa-N porte N PA sur chaque localisation, sans pièce de même couche sur une même localisation', () => {
     for (const [n, p] of PANOPLIES.entries()) {
       expect(p.id).toBe(`pa-${n + 1}`);
-      for (const x of p.compositions) {
-        const portees: ReturnType<typeof doter> = [];
-        for (const piece of doter(x.pieces, p.id)) {
-          expect(equipConflicts({ items: portees }, { ...piece, equipped: true })).toEqual([]);
-          portees.push({ ...piece, equipped: true });
-        }
-        expect([x.label, wornArmourPoints(portees)]).toEqual([x.label, { tete: n + 1, brasG: n + 1, brasD: n + 1, corps: n + 1, jambeG: n + 1, jambeD: n + 1 }]);
+      const portees: ReturnType<typeof doter> = [];
+      for (const piece of doter(p.pieces, p.id)) {
+        expect(equipConflicts({ items: portees }, { ...piece, equipped: true })).toEqual([]);
+        portees.push({ ...piece, equipped: true });
       }
+      expect([p.id, wornArmourPoints(portees)]).toEqual([p.id, { tete: n + 1, brasG: n + 1, brasD: n + 1, corps: n + 1, jambeG: n + 1, jambeD: n + 1 }]);
       const e = auHameau(1, 2);
       const h = soldat(e);
       expect(acheterUneArmure(e, h.c.id, p.id)).toBeNull();
@@ -147,37 +146,30 @@ describe('panoplies de la forge', () => {
     }
   });
 
-  it('au guerrier, la forge vend à chaque niveau la composition la plus légère : le niveau 4 ne pèse pas plus que le 5', () => {
-    const e = auHameau(1, 2);
-    const offres = armuresEnVente(e, soldat(e));
-    const [pa4, pa5] = ['pa-4', 'pa-5'].map((id) => offres.find((a) => a.id === id)!);
-    expect(pa4.label).toBe(PANOPLIES.find((p) => p.id === 'pa-4')!.compositions[0].label);
-    expect(pa4.enc).toBeLessThanOrEqual(pa5.enc);
-    expect(pa4.prix).toBeLessThanOrEqual(pa5.prix);
+  it('chaque pièce d’une panoplie est de cuir souple, de mailles ou de plates', () => {
+    const matieres = PANOPLIES.flatMap((p) => p.pieces.map((id) => `${p.id} ${id} ${findTrappingById(id)?.subType?.id}`));
+    expect(matieres.filter((m) => !/ (cuir-souple|mailles|plate)$/.test(m))).toEqual([]);
   });
 
-  it('à l’Alchimiste, la forge vend le niveau 4 tout métal, qu’il porte sans perdre de DR', () => {
-    const { e, h } = mage('alchimiste');
-    const pa4 = armuresEnVente(e, h).find((a) => a.id === 'pa-4')!;
-    const metal = PANOPLIES.find((p) => p.id === 'pa-4')!.compositions.find((x) => x.label === pa4.label)!;
-    expect(metal.pieces.map((id) => articleDuCatalogue(id).groupe).filter((g) => g !== 'mailles' && g !== 'plate')).toEqual([]);
-    expect(acheterUneArmure(e, h.c.id, 'pa-4')).toBeNull();
-    expect(panoplieDe(h)).toMatchObject({ id: 'pa-4', label: pa4.label });
+  it('le niveau 4 ne pèse pas plus que le 5', () => {
+    const offres = armuresEnVente(auHameau(1, 2));
+    const [pa4, pa5] = ['pa-4', 'pa-5'].map((id) => offres.find((a) => a.id === id)!);
+    expect(pa4.enc).toBeLessThanOrEqual(pa5.enc);
   });
 
   it('l’offre dit le prix de ses pièces, leur Encombrement une fois revêtues, et leurs Défauts', () => {
     const e = auHameau(1, 2);
-    const harnois = armuresEnVente(e, soldat(e)).find((a) => a.id === 'pa-5')!;
-    const pieces = PANOPLIES.find((p) => p.id === 'pa-5')!.compositions[0].pieces;
+    const harnois = armuresEnVente(e).find((a) => a.id === 'pa-5')!;
+    const pieces = PANOPLIES.find((p) => p.id === 'pa-5')!.pieces;
     expect(harnois.prix).toBe(pieces.reduce((n, id) => n + prixDe(id), 0));
-    expect(harnois.enc).toBe(10);
+    expect(harnois.enc).toBe(11);
     expect(harnois.qualites.filter((q) => q.defaut).map((q) => q.nom)).toContain('Points faibles');
     expect(new Set(harnois.qualites.map((q) => q.nom)).size).toBe(harnois.qualites.length);
   });
 
   it('l’offre dit les pénalités de port que le noyau cumule pièce à pièce, chacune une fois par Compétence', () => {
-    const { e, h } = mage('alchimiste');
-    const noms = armuresEnVente(e, h).find((a) => a.id === 'pa-4')!.qualites.map((q) => q.nom);
+    const e = auHameau(1, 2);
+    const noms = armuresEnVente(e).find((a) => a.id === 'pa-4')!.qualites.map((q) => q.nom);
     expect(noms.filter((n) => n.includes('% en'))).toEqual(['-70 % en discretion', '-20 % en perception']);
   });
 
@@ -186,17 +178,17 @@ describe('panoplies de la forge', () => {
     const h = soldat(e);
     expect(h.c.items!.some((i) => i.trappingId === 'plastron-de-cuir')).toBe(true);
     const or = e.or;
-    const mailles = armuresEnVente(e, h).find((a) => a.id === 'pa-2')!;
+    const mailles = armuresEnVente(e).find((a) => a.id === 'pa-2')!;
     expect(acheterUneArmure(e, h.c.id, 'pa-2')).toBeNull();
     expect(e.or).toBe(or - mailles.prix);
     const armures = h.c.items!.filter((i) => i.kind === 'armor');
-    expect(armures.map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-2')!.compositions[0].pieces].sort());
+    expect(armures.map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-2')!.pieces].sort());
     expect(armures.every((i) => i.equipped)).toBe(true);
     expect(protection(h.c)).toEqual(mailles.pa);
     expect(panoplie(h).armure).toMatchObject({ label: 'Mailles', panoplie: 'pa-2', enc: mailles.enc });
     expect(acheterUneArmure(e, h.c.id, 'pa-2')).toBe('Il la porte déjà.');
     expect(acheterUneArmure(e, h.c.id, 'pa-1')).toBeNull();
-    expect(h.c.items!.filter((i) => i.kind === 'armor').map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-1')!.compositions[0].pieces].sort());
+    expect(h.c.items!.filter((i) => i.kind === 'armor').map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-1')!.pieces].sort());
     expect(panoplieDe(h)?.id).toBe('pa-1');
   });
 
@@ -206,7 +198,7 @@ describe('panoplies de la forge', () => {
       return PANOPLIES.map((p) => acheterUneArmure(structuredClone(e), h.c.id, p.id)?.match(/−\d DR/)?.[0] ?? null);
     };
     expect(refus('pyromancien')).toEqual(['−1 DR', '−2 DR', '−3 DR', '−4 DR', '−5 DR']);
-    expect(refus('alchimiste')).toEqual(['−1 DR', null, '−1 DR', null, '−3 DR']);
+    expect(refus('alchimiste')).toEqual(['−1 DR', null, '−1 DR', null, '−1 DR']);
   });
 });
 

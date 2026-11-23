@@ -213,7 +213,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   const armes = emplacement === 'armure' ? [] : J.armesEnVente(e, h).filter((a) => a.tenue === emplacement && a.id !== tenue?.id && (emplacement !== 'secondaire' || /^bouclier/.test(a.id) || J.manieDeuxArmes(h)))
     .map((a) => ({ a, m: maniement(h.c, a.id) })).sort((x, y) => y.m.attaque - x.m.attaque || y.m.degats - x.m.degats);
   const offres = emplacement === 'armure'
-    ? J.armuresEnVente(e, h).filter((a) => a.id !== p.armure?.panoplie).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
+    ? J.armuresEnVente(e).filter((a) => a.id !== p.armure?.panoplie).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite' })))
     : armes.map(({ a, m }) => article(iconeDArme(a.label), a.label, mesuresDArme(a, tenue),
       `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${MAITRISE[m.maitrise] ? `<span class="etiquette rectangle qualite defaut suite" data-bulle="${esc(`${MAITRISE[m.maitrise]!.bulle} : ${m.test}`)}">${MAITRISE[m.maitrise]!.mot}</span>` : ''}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,

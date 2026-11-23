@@ -287,24 +287,18 @@ export type LieuDeSejour = keyof typeof LIEUX_DE_SEJOUR;
 
 /** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
 export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);
-/** Une composition de panoplie : les pièces d'armure du catalogue (`trappings.json`) qu'elle revêt d'un seul achat, et
- *  qui occupent ensemble l'emplacement « armure ». */
-export interface Composition { label: string; pieces: readonly string[] }
-/** Une panoplie de la forge : son id dit les PA qu'elle porte sur chaque localisation ; ses compositions, sans conflit
- *  de couche (`equipConflicts`), vont de l'Encombrement porté le plus faible, puis du prix, au plus fort. La forge vend
- *  au héros la première qu'il porte sans perdre de DR à l'Incantation (`drPerdusSousLesPieces`). Arbitrages du
- *  2026-11-23, `CONCEPTION.md`. LDB 46 l.150-152 */
+/** Une panoplie de la forge : son id dit les PA qu'elle porte sur chaque localisation ; ses pièces d'armure du catalogue
+ *  (`trappings.json`), de cuir souple, de mailles ou de plates, sans conflit de couche (`equipConflicts`), revêtues d'un
+ *  seul achat, sont la composition la plus légère portée (`itemsEncumbrance`), puis la moins chère. Arbitrages du
+ *  2026-11-23, `CONCEPTION.md`. */
 export type IdDePanoplie = 'pa-1' | 'pa-2' | 'pa-3' | 'pa-4' | 'pa-5';
-export interface Panoplie { id: IdDePanoplie; compositions: readonly Composition[] }
+export interface Panoplie { id: IdDePanoplie; label: string; pieces: readonly string[] }
 export const PANOPLIES: readonly Panoplie[] = [
-  { id: 'pa-1', compositions: [{ label: 'Cuir souple', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir'] }] },
-  { id: 'pa-2', compositions: [{ label: 'Mailles', pieces: ['heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] }] },
-  { id: 'pa-3', compositions: [{ label: 'Mailles sur cuir', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] }] },
-  { id: 'pa-4', compositions: [
-    { label: 'Plates et cuir bouilli sur mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron-de-cuir', 'jambieres-d-acier'] },
-    { label: 'Plates sur mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
-  ] },
-  { id: 'pa-5', compositions: [{ label: 'Harnois complet', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron-de-cuir', 'jambieres-d-acier'] }] },
+  { id: 'pa-1', label: 'Cuir souple', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir'] },
+  { id: 'pa-2', label: 'Mailles', pieces: ['heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
+  { id: 'pa-3', label: 'Mailles sur cuir', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
+  { id: 'pa-4', label: 'Plates sur mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
+  { id: 'pa-5', label: 'Harnois complet', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
 ];
 /** Le Groupe des potions et remèdes du catalogue, que l'hospice reconnaît au sac d'un héros. */
 export const GROUPE_DES_REMEDES = 'herbes-et-potions';

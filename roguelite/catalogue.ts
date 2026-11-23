@@ -33,7 +33,7 @@ export function catalogue(): string {
     Object.entries(paliers).map(([niveau, ids]) => `niv. ${niveau} : ${ids.map(sort).join(', ')}`).join(' ; ')]));
   const forge = tableau(['Groupe', 'Armes'], Object.entries(ARMES_DE_LA_FORGE).map(([g, ids]) =>
     [`${nomme(nomDeGroupe(g), g)}${GROUPES_SANS_COMPETENCE.has(g as keyof typeof ARMES_DE_LA_FORGE) ? ', sans Compétence' : ''}`, ids.map(objet).join(', ')]));
-  const panoplies = tableau(['Panoplie', 'Pièces'], PANOPLIES.flatMap((p) => p.compositions.map((x) => [nomme(x.label, p.id), x.pieces.map(objet).join(', ')])));
+  const panoplies = tableau(['Panoplie', 'Pièces'], PANOPLIES.map((p) => [nomme(p.label, p.id), p.pieces.map(objet).join(', ')]));
   const destinations = tableau(['Destination', 'Palier', 'Salles', 'Meutes', 'Élites', 'Maître'], DESTINATIONS.map((d) => [
     nomme(d.nom, d.id), String(d.palier), String(d.salles), d.meutes.map(creatures).join(' ; '), d.elites.map(creatures).join(' ; '), creatures(d.boss),
   ]));
