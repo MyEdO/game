@@ -34,6 +34,12 @@ l'utilisateur ».
   2026-11-23) : vitest ciblé (`node scripts/lancer-local.mjs vitest --cwd roguelite -- vitest run <fichiers>`),
   `node roguelite/construire.mjs`, `tsc -p roguelite` par `lancer-local`, et les recettes concernées. Jamais
   `test:perimetre` ni `docs:check`, qui ne jouent aucun test du roguelite et attendent un verrou partagé.
+- **Le catalogue du roguelite** (« tu dois avoir le controle sur ce que le roguelite propose, que ce soit dans les
+  sorts, les compétences, les talents, les carrières, l'équipement, etc ... Et tout ça maintenu dans un document et/ou
+  un fichier au format de ton choix », 2026-11-23) : tout ce que le jeu offre (carrières et leurs voies, sorts,
+  Compétences utiles, Talents mis en avant, armes, panoplies, remèdes, provisions, destinations et adversaires) vit
+  dans UNE source de code, `roguelite/src/jeu/valeurs.ts`, et `roguelite/CATALOGUE.md` en est la vue lisible, produite
+  par `npx tsx roguelite/catalogue.ts` : jamais écrit à la main, régénéré dans le commit qui change le catalogue.
 - **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
   as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
   du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par
