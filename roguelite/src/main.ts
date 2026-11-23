@@ -5,11 +5,12 @@
  * (`./ui/ecran`) et montés sur les pièces du kit (`./ui/pieces`).
  */
 import * as J from './jeu';
+import type { Vignette } from './vignettes';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
 import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
 import { panneauDeService } from './ui/services';
-import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
+import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { gloserDans, installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
@@ -18,7 +19,7 @@ const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => r
 type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string; onglet: Onglet | null } | { type: 'depart'; dest: string; choix: Set<string> } | { type: 'chronique' };
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
-type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; picto: string; surTitre: string; terrain: string };
+type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; vignette: Vignette; surTitre: string; terrain: string };
 let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
 /** Le héros que servent la forge et le relais. */
 let client: string | null = null;
@@ -134,7 +135,7 @@ document.addEventListener('click', (ev) => {
       const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length} franchie`;
       const recit = J.avancer(etat);
       J.sauver(etat);
-      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], picto: PICTO_DE_SALLE[type], surTitre, terrain }; rendre(); };
+      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: type, surTitre, terrain }; rendre(); };
       if (!recit.combat) return montrer();
       rendre();
       // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
@@ -156,7 +157,7 @@ document.addEventListener('click', (ev) => {
       const surTitre = J.destinationCourante(etat)!.nom;
       const lignes = J.rentrer(etat, false);
       J.sauver(etat);
-      ouvert = { type: 'recit', recit: { titre: 'Retour au hameau', lignes }, ruban: 'Retour', picto: 'route', surTitre, terrain };
+      ouvert = { type: 'recit', recit: { titre: 'Retour au hameau', lignes }, ruban: 'Retour', vignette: 'retour', surTitre, terrain };
       return rendre();
     }
     case 'attendre': return agir(() => J.attendreUneSemaine(etat));

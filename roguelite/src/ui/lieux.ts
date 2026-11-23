@@ -11,6 +11,7 @@ import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { medaillon, plaque, rondMuet } from '../kit';
+import type { Vignette } from '../vignettes';
 import { CADRES, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
 import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
@@ -102,7 +103,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
 }
 
 export const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', boss: 'Maître' };
-export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'epee', elite: 'bouclier', camp: 'tente', tresor: 'bourse', boss: 'couronne' };
+export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'duel', elite: 'bouclier', camp: 'tente', tresor: 'coffre', boss: 'couronne' };
 
 /** Les sacs du groupe : une rangée par héros ; un clic sur une case utilise l'objet ; la Bénédiction de Guérison d'un
  *  Béni est une case de plus, une fois par expédition, sur le plus blessé. */
@@ -147,9 +148,9 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, carte: string): str
 }
 
 /** Le récit d'une salle franchie, ou du retour, en carton ; la défaite colore sa première ligne. */
-export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; picto: string; surTitre: string }): string {
+export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: Vignette; surTitre: string }): string {
   return carton({
-    ruban: o.ruban, picto: o.picto, titre: r.titre, surTitre: o.surTitre,
+    ruban: o.ruban, vignette: o.vignette, titre: r.titre, surTitre: o.surTitre,
     texte: `<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`,
     gestes: `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
   });
@@ -160,7 +161,7 @@ export function reglagesEnCarton(): string {
   const noms: Record<Taille, string> = { petite: 'Petite', moyenne: 'Moyenne', grande: 'Grande' };
   const actuelle = tailleChoisie();
   return carton({
-    ruban: 'Réglages', picto: 'systeme', titre: 'Réglages', surTitre: 'Grisefosse',
+    ruban: 'Réglages', vignette: 'reglages', titre: 'Réglages', surTitre: 'Grisefosse',
     texte: `<div class="rub">Taille de l’interface</div><div class="gestes">${(Object.keys(TAILLES) as Taille[]).map((t) => plaque(noms[t], `data-a="taille" data-k="${t}"`, { armee: t === actuelle, taille: 'petite' })).join('')}</div>
       <div class="rub">La partie</div><div class="gestes">${plaque('Recommencer…', 'data-a="reset"', { icone: 'sablier', taille: 'petite' })}</div>`,
     gestes: plaque('Fermer', 'data-a="fermer"', { armee: true }),
@@ -171,7 +172,7 @@ export function reglagesEnCarton(): string {
 export function recommencerEnCarton(): string {
   return carton({
     ruban: 'Recommencer', titre: 'Recommencer ?', surTitre: 'Grisefosse',
-    picto: 'sablier',
+    vignette: 'recommencer',
     texte: '<div class="recit"><p>Le hameau, la compagnie et le Jardin de Morr seront effacés.</p></div>',
     gestes: `${plaque('Garder ma partie', 'data-a="fermer"', { armee: true })}${plaque('Tout effacer', 'data-a="reset-ok"')}`,
   });

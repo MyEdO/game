@@ -4,7 +4,7 @@
  * 900 px de large, ses cadres s'empilent et défilent.
  */
 import * as J from '../jeu';
-import { medaillon } from '../kit';
+import { vignetteDeSalle, type Vignette } from '../vignettes';
 import { cadreA, carteDeHeros, esc, place } from './pieces';
 
 type Rect = [number, number, number, number];
@@ -31,13 +31,13 @@ const PLACES_DU_CARTON = { vignette: [20, 24, 140, 140], tete: [184, 22, 734, 34
 
 /** Un carton : récit, confirmation. Il s'ouvre au-dessus du socle, qui reste ; la scène du lieu ne garde que son
  *  cartouche. `texte` défile entre le titre et les gestes, qui restent au pied. */
-export interface Carton { ruban: string; picto: string; titre: string; surTitre: string; texte: string; gestes: string }
+export interface Carton { ruban: string; vignette: Vignette; titre: string; surTitre: string; texte: string; gestes: string }
 export function carton(o: Carton): string {
   const ici = (nom: keyof typeof PLACES_DU_CARTON, contenu: string) => {
     const [x, y, l, h] = PLACES_DU_CARTON[nom];
     return `<div class="place-carton" data-place="${nom}" style="left:${x}px;top:${y}px;width:${l}px;height:${h}px">${contenu}</div>`;
   };
-  return cadreA(CADRES.carton, ici('vignette', medaillon(o.picto, 'grand'))
+  return cadreA(CADRES.carton, ici('vignette', vignetteDeSalle(o.vignette))
     + ici('tete', `<span class="nom-propre grand gothique">${esc(o.titre)}</span><span class="sous-titre">${esc(o.surTitre)}</span>`)
     + ici('texte', o.texte) + ici('gestes', `<div class="gestes">${o.gestes}</div>`), { ruban: o.ruban, classe: 'carton' });
 }
