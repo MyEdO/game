@@ -232,7 +232,7 @@ import {
   retirerUnBandage,
   IDS_DU_TEST_DE_SOIN,
 } from '../engine/healing';
-import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
+import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuSoigneur, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
@@ -2335,6 +2335,13 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         if (!ph) return;
         if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
         set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
+      },
+      /** Jugé par `refusDuSoigneur` ; l'acte recalcule son soin entier autour du soigneur choisi (`soinDeLActe`). */
+      soigneur: (soigneurId) => {
+        const ph = garanti(get().pendingHeal, soigneurId, 'soin du soigneur');
+        if (refuseSi(get, set, () => refusDuSoigneur(get(), soigneurId))) return;
+        const medic = { ...garanti(get().medic, soigneurId, 'infirmerie du soigneur'), soigneurId };
+        set({ medic, pendingHeal: { ...soinDeLActe({ medic, party: get().party }, ph.mode), bandagesDe: ph.bandagesDe } });
       },
     },
     incantation: {

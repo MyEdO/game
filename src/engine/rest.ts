@@ -38,6 +38,7 @@ import { applyHealWounds } from './healing';
 import { diseaseLabel } from '../data';
 import { t, type MsgKey } from '../i18n';
 import { nomDe } from './nom';
+import { garanti } from '../lib/garanti';
 
 /** États qui empêchent un repos réparateur. LDB 16 l.105 */
 function unstable(c: Combatant): boolean {
@@ -49,13 +50,32 @@ function soinEmpoisonne(c: Combatant): boolean {
   return hasCondition(c, 'empoisonne') && c.wounds.current === 0;
 }
 
-/** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0
- *  Blessure (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. Verdict de `needsRecoveryRoll`,
- *  du soin d'`applyRecoveryDay` et de la modale de Repos. LDB 16 l.74, l.105 ; LDB 18 l.338 */
+/** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0 Blessure
+ *  (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. LDB 16 l.74, l.105 ; LDB 18 l.338 */
+function sansRecuperation(c: Combatant): 'instable' | 'empoisonne' | 'prive' | null {
+  if (unstable(c)) return 'instable';
+  if (soinEmpoisonne(c)) return 'empoisonne';
+  return isDeprived(c) ? 'prive' : null;
+}
+
+/** L'alerte courte de `sansRecuperation`, `null` sans elle : verdict de `needsRecoveryRoll`, du soin
+ *  d'`applyRecoveryDay` et de la modale de Repos. */
 export function refusDeRecuperation(c: Combatant): string | null {
-  if (unstable(c)) return t('rest.refus.instable');
-  if (soinEmpoisonne(c)) return t('rest.refus.empoisonne');
-  return isDeprived(c) ? t('rest.refus.prive') : null;
+  const raison = sansRecuperation(c);
+  return raison && t(`rest.refus.${raison}`);
+}
+
+/** Le constat qu'une nuit écrit pour un dormeur que le repos ne soigne pas (`sansRecuperation`), sans son nom :
+ *  le message et ses paramètres ; `null` s'il récupère. Partagé par la nuit d'un bloc (`restRecovery`) et la
+ *  nuit en cascade (`buildNightCascade`). */
+export function constatSansRecuperation(c: Combatant): { cle: MsgKey; params?: Record<string, string> } | null {
+  if (c.dead || c.outOfRencontre) return null;
+  switch (sansRecuperation(c)) {
+    case 'instable': return { cle: 'rest.noRest' };
+    case 'empoisonne': return { cle: 'rest.empoisonneSansRepos' };
+    case 'prive': return { cle: 'rest.deprived', params: { etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') } };
+    case null: return null;
+  }
 }
 
 /**
@@ -167,7 +187,7 @@ export interface RestRoll {
 /** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté, refusé par
  *  `refusDeRecuperation`, ou PB plein.) Sépare la DÉCISION du jet (pour différer en cascade) de son application. */
 export function needsRecoveryRoll(c: Combatant): boolean {
-  return !c.dead && !c.outOfRencontre && refusDeRecuperation(c) === null && c.wounds.current < c.wounds.max;
+  return !c.dead && !c.outOfRencontre && sansRecuperation(c) === null && c.wounds.current < c.wounds.max;
 }
 
 /**
@@ -192,7 +212,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   const removable = starving ? 0 : Math.max(0, fat - derives);
   if (removable > 0) removeCondition(c, 'extenue', removable);
   const dayStartPB = c.wounds.current;
-  const soin = refusDeRecuperation(c) === null;
+  const soin = sansRecuperation(c) === null;
   // volet a : DR + BE sur réussite (une fois par jour). SOURCE UNIQUE `applyHealWounds` — plafonné
   // par munition Empaleuse logée (LDB 62 l.250) comme les autres chemins ; ni verrou « soin de
   // rencontre » (Guérison seulement) ni réveil ici — le réveil du repos (+ À Terre) reste géré
@@ -223,9 +243,10 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
     journal.push(t(cle, { ...params, name: nomDe(c) }));
     if (bilan) bilan.notes.push(t(cle, { ...params, name: '' }).trimStart());
   };
-  // LDB 16 l.105
+  // LDB 16 l.105 : un dormeur à stabiliser ne se repose pas du tout (ni Exténué, ni cauchemars).
   if (unstable(c)) {
-    ajouter('rest.noRest');
+    const sans = garanti(constatSansRecuperation(c), c.id, 'dormeur à stabiliser');
+    ajouter(sans.cle, sans.params);
     return journal;
   }
 
@@ -259,7 +280,8 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
   const span = days > 1 ? t('rest.spanDays', { n: days }) : t('rest.spanNight');
   if (healed > 0) ajouter('rest.healed', { n: healed, span });
   if (wokeUp) ajouter('heal.awake');
-  if (isDeprived(c)) ajouter('rest.deprived', { etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') });
+  const sans = constatSansRecuperation(c);
+  if (sans) ajouter(sans.cle, sans.params);
   if (hadFatigue && stacks(c, 'extenue') === 0) ajouter('rest.fatigueGone');
   if (nightmareNights > 0) ajouter('rest.nightmares', { n: nightmareNights, total: days, s: days > 1 ? 's' : '' });
   return journal;

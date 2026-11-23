@@ -19,7 +19,7 @@ import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwai
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
 import { rule } from './policy';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
 import type { RNG } from './dice';
 import { isStructure } from './structures';
 import { possesses } from './skills';
@@ -89,13 +89,12 @@ export function hasSurgerySkill(c: Combatant): boolean {
   return hasSurgery(c);
 }
 
-/** Cible soignable par la Guérison : blessée (PB perdus) OU porteuse d'≥1 État Hémorragique OU avec une déchirure
- *  traitable ; ni morte ni éjectée, ni Structure (AA 10 l.134). Les cibles Inconscientes/À Terre sont valides
- *  (1 PB lève l'inconscience, LDB 18 l.15). */
+/** Cible soignable par la Guérison : un des actes de soin (`HEAL_MODES`) y trouve ce qu'il traite (`besoinDuMode`) ;
+ *  ni morte ni éjectée, ni Structure (AA 10 l.134). Les cibles Inconscientes/À Terre sont valides (1 PB lève
+ *  l'inconscience, LDB 18 l.15). */
 export function isHealable(c: Combatant): boolean {
   if (c.dead || c.outOfRencontre || isStructure(c)) return false;
-  return c.wounds.current < c.wounds.max || stacks(c, 'hemorragique') > 0 || hasTreatableTrauma(c)
-    || hasSurgeryTrauma(c) || hasRecoverableTrauma(c) || hasLimbAwaitingAid(c) || hasSurgeryLockedCondition(c);
+  return HEAL_MODES.some((mode) => besoinDuMode(c, mode));
 }
 
 /** Un soin MAGIQUE (Sort, Miracle) rend-il des Blessures à `c` ? Toujours, hors Structure : règle maison
@@ -111,24 +110,29 @@ export type HealMode = 'blessures' | 'hemorragie' | 'traumatisme' | 'chirurgie' 
 /** Tous les modes de soin, dans l'ordre où l'infirmerie les présente. */
 export const HEAL_MODES: readonly HealMode[] = ['blessures', 'hemorragie', 'munition', 'traumatisme', 'chirurgie', 'reeducation'];
 
+/** `target` porte-t-il ce que l'acte de soin `mode` traite ? */
+export function besoinDuMode(target: Combatant, mode: HealMode): boolean {
+  switch (mode) {
+    case 'blessures': return target.wounds.current < target.wounds.max;
+    case 'hemorragie': return stacks(target, 'hemorragique') > 0;
+    case 'traumatisme': return hasTreatableTrauma(target);
+    case 'chirurgie': return hasSurgeryTrauma(target) || hasSurgeryLockedCondition(target); // LDB 10 l.184, LDB 18
+    case 'reeducation': return hasRecoverableTrauma(target) || hasLimbAwaitingAid(target); // LDB 18 l.120/179
+    case 'munition': return lodgedAmmoCount(target) > 0; // LDB 62 l.250
+  }
+}
+
+/** Ce que dit l'acte `mode` d'un patient qui ne porte rien qu'il traite (`besoinDuMode`). */
+const SANS_BESOIN = {
+  blessures: 'heal.raisonPleinesBlessures', hemorragie: 'heal.raisonSansHemorragie', traumatisme: 'heal.raisonSansDechirure',
+  chirurgie: 'heal.raisonSansChirurgie', reeducation: 'heal.raisonSansMembre', munition: 'heal.raisonSansMunition',
+} as const satisfies Record<HealMode, MsgKey>;
+
 /** Pourquoi `target` n'offre pas le mode de soin `mode` : la raison affichée, ou `null` (le mode s'offre).
  *  Verdict du PATIENT seul — le soigneur, l'offre et la bourse relèvent de `refusDeLActeALInfirmerie` (noyau). */
 export function raisonDeModeDeSoin(target: Combatant, mode: HealMode): string | null {
-  switch (mode) {
-    case 'blessures':
-      if (target.wounds.current >= target.wounds.max) return t('heal.raisonPleinesBlessures');
-      return target.soinRencontreUtilise ? t('heal.raisonSoinDejaRecu') : null; // LDB 09 l.233
-    case 'hemorragie':
-      return stacks(target, 'hemorragique') > 0 ? null : t('heal.raisonSansHemorragie');
-    case 'traumatisme':
-      return hasTreatableTrauma(target) ? null : t('heal.raisonSansDechirure');
-    case 'chirurgie': // LDB 10 l.184, LDB 18
-      return hasSurgeryTrauma(target) || hasSurgeryLockedCondition(target) ? null : t('heal.raisonSansChirurgie');
-    case 'reeducation': // LDB 18 l.120/179
-      return hasRecoverableTrauma(target) || hasLimbAwaitingAid(target) ? null : t('heal.raisonSansMembre');
-    case 'munition': // LDB 62 l.250
-      return lodgedAmmoCount(target) > 0 ? null : t('heal.raisonSansMunition');
-  }
+  if (!besoinDuMode(target, mode)) return t(SANS_BESOIN[mode]);
+  return mode === 'blessures' && target.soinRencontreUtilise ? t('heal.raisonSoinDejaRecu') : null; // LDB 09 l.260
 }
 
 /** Modes disponibles pour soigner `target` : ceux dont `raisonDeModeDeSoin` est `null`. Le mode `traumatisme`

@@ -232,6 +232,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     const party = groupeVitrineDeScenario(idsDeTest);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: infirmerie, battle: null, pendingHeal: null, medic: null });
+    creditBourse(banc.getState, banc.setState, party[1].id, { gold: 0, silver: 5, brass: 0 }); // l'acte tarifé s'offre
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: { id: 'soigneur' } }]);
     const m = banc.getState().medic!;
     expect(m.npc!.id).toBe('soigneur');
