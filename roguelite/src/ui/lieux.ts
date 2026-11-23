@@ -88,7 +88,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
   const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
-      <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
+      <div class="recit-lieu" ${place(CADRES_DE_L_HOTE['carnet-du-hameau'])}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p>${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,

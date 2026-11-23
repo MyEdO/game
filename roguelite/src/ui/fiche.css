@@ -42,7 +42,7 @@ button.c:disabled { cursor: default; opacity: .7; }
 .droite .rub { margin-top: 9px; }
 .droite .rub:first-child { margin-top: 0; }
 .pied-equipement { margin-top: auto; padding-top: 10px; }
-.cases-equipement { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.cases-equipement { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
 .achat .plaque{flex:none}
 .achat .aug{flex:none;width:44px;text-align:right;font-size:12px;color:var(--encre-2)}
 .achat.faite .aug{color:var(--vert);font-weight:600}

@@ -22,8 +22,10 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   constater((await p.textContent('.article [data-a="arme"]')).includes('CO'), 'chaque offre de la forge porte son prix dans son geste');
   await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="moyenne"]');
   await p.click('.emplacement[data-k="main"]'); await p.click('[data-a="arme"][data-k="epee-batarde"]');
+  await p.click('.emplacement[data-k="tir"]'); await p.click('[data-a="arme"][data-k="arc-court"]');
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
   constater(porte.includes('Épée bâtarde') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
+  constater(porte.includes('Épée bâtarde') && porte.includes('Arc court'), 'l’arme à distance a son emplacement : l’arme de mêlée reste en main');
 
   await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]');
   const pxDe = async () => Number(await p.textContent('.bourse-px .chiffres'));

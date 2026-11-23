@@ -10,9 +10,12 @@ import { auNoyau, heros } from './outils';
 export const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
 export const prixDArmure = (p: PoidsDArmure): number => Math.round({ legere: 2, moyenne: 5, lourde: 30 }[p] * ECHELLE_DES_PRIX); // LDB 63 l.95-103
 
-/** Un objet en vente : ce que le catalogue en dit, son prix au hameau, et la main où il se tient (arme). */
-export interface Article extends ArticleDuCatalogue { id: string; prix: number; tenue: 'main' | 'secondaire' }
-export const article = (id: string): Article => ({ ...articleDuCatalogue(id), id, prix: prixDe(id), tenue: MAIN_SECONDAIRE.has(id) ? 'secondaire' : 'main' });
+/** Où se tient une arme : une main du set de mêlée, ou le set de tir (une arme à portée). */
+export type Tenue = 'main' | 'secondaire' | 'tir';
+const tenueDe = (a: ArticleDuCatalogue, id: string): Tenue => (MAIN_SECONDAIRE.has(id) ? 'secondaire' : a.portee ? 'tir' : 'main');
+/** Un objet en vente : ce que le catalogue en dit, son prix au hameau, et où il se tient (arme). */
+export interface Article extends ArticleDuCatalogue { id: string; prix: number; tenue: Tenue }
+export const article = (id: string): Article => { const a = articleDuCatalogue(id); return { ...a, id, prix: prixDe(id), tenue: tenueDe(a, id) }; };
 export const armesEnVente = (e: Etat): Article[] => ARMES_DE_FORGE.slice(0, e.batiments.forge + 1).flat().map(article);
 export interface ArmureEnVente { poids: PoidsDArmure; label: string; prix: number; enc: number; pa: number; qualites: Qualite[] }
 export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
@@ -22,43 +25,53 @@ export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
   });
 export const provisionsEnVente = (e: Etat): Article[] => PROVISIONS.slice(0, e.batiments.relais + 1).flat().map(article);
 
-/** Le set d'armes que le héros a en main. */
-const setActif = (h: Pick<Heros, 'c'>) => (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
+const objetDe = (h: Pick<Heros, 'c'>, uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid) : undefined);
 
-/** Ce que le héros tient : main principale, main secondaire (du set actif), armure portée et ses PA au corps. */
+/** Les deux sets d'armes du héros, reconnus à ce qu'ils tiennent et non au set en main, que le combat change : le
+ *  set de tir tient une arme à distance (à défaut, le second set, vide) ; l'autre est le set de mêlée. */
+function sets(h: Pick<Heros, 'c'>) {
+  const tous = h.c.loadouts ?? [];
+  const tir = tous.find((l) => objetDe(h, l.main)?.kind === 'distance') ?? tous.find((l, i) => i > 0 && !l.main);
+  return { melee: tous.find((l) => l !== tir), tir };
+}
+
+/** Ce que le héros tient : main principale, main secondaire (set de mêlée), armure portée et ses PA au corps. */
 export function equipement(h: Heros): { main?: string; secondaire?: string; armure?: string; pa: number } {
-  const lo = setActif(h);
-  const nom = (uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid)?.label : undefined);
-  return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
+  const lo = sets(h).melee;
+  return { main: objetDe(h, lo?.main)?.label, secondaire: objetDe(h, lo?.secondaire)?.label, armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
 }
 
 /** Une pièce portée, décrite : son nom, son article au catalogue (`id`), son Encombrement, et ce que le catalogue ou
- *  la pièce en disent (Dégâts, mains, allonge, portée, qualités). Les PA d'une armure se lisent par zone au héros. */
-export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[] }
-/** La panoplie du héros : ses deux mains (set actif) et son armure portée, décrites. */
-export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; armure?: PieceDecrite } {
-  const lo = setActif(h);
+ *  la pièce en disent (Dégâts, mains, allonge, portée, qualités) ; pour une arme de tir, les `munitions` qui restent.
+ *  Les PA d'une armure se lisent par zone au héros. */
+export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[]; munitions?: { label: string; nombre: number } }
+/** La panoplie du héros : ses deux mains (set de mêlée), son arme à distance (set de tir) et son armure portée. */
+export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; tir?: PieceDecrite; armure?: PieceDecrite } {
+  const { melee, tir } = sets(h);
   const arme = (uid?: string): PieceDecrite | undefined => {
-    const it = uid ? h.c.items?.find((i) => i.uid === uid) : undefined;
+    const it = objetDe(h, uid);
     if (!it) return undefined;
     const a = it.trappingId ? articleDuCatalogue(it.trappingId) : undefined;
-    return { label: it.label, enc: Number(it.enc ?? 0), qualites: a?.qualites ?? [], ...(it.trappingId ? { id: it.trappingId } : {}), ...(a?.degats ? { degats: a.degats } : {}), ...(a?.mains ? { mains: a.mains } : {}), ...(a?.allonge ? { allonge: a.allonge } : {}), ...(a?.portee ? { portee: a.portee } : {}) };
+    const munition = MUNITIONS[it.trappingId ?? ''];
+    const reste = (h.c.items ?? []).filter((i) => i.trappingId === munition);
+    return {
+      label: it.label, enc: Number(it.enc ?? 0), qualites: a?.qualites ?? [], ...(it.trappingId ? { id: it.trappingId } : {}), ...(a?.degats ? { degats: a.degats } : {}), ...(a?.mains ? { mains: a.mains } : {}), ...(a?.allonge ? { allonge: a.allonge } : {}), ...(a?.portee ? { portee: a.portee } : {}),
+      ...(munition ? { munitions: { label: articleDuCatalogue(munition).label, nombre: reste.reduce((n, i) => n + (i.qty ?? 1), 0) } } : {}),
+    };
   };
   const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
   return {
-    main: arme(lo?.main), secondaire: arme(lo?.secondaire),
+    main: arme(melee?.main), secondaire: arme(melee?.secondaire), tir: arme(tir?.main),
     ...(portees.length ? { armure: { label: portees.map((i) => i.label).join(', '), enc: portees.reduce((n, i) => n + Number(i.enc ?? 0), 0), qualites: qualitesDites(portees.flatMap((i) => i.qualities ?? [])) } } : {}),
   };
 }
 
-/** Ce qui se voit du héros équipé : la forme (`shape.id`) de ce que tiennent ses mains et combien de mains prend son
- *  arme, la forme de l'arme de tir d'un autre set, le poids de son armure la plus lourde et les membres couverts. */
+/** Ce qui se voit du héros équipé : la forme (`shape.id`) de ce que tiennent ses mains (set de mêlée) et combien de
+ *  mains prend son arme, la forme de son arme de tir, le poids de son armure la plus lourde et les membres couverts. */
 export interface Allure { main?: { forme: string; mains: number }; secondaire?: string; tir?: string; armure?: { poids: PoidsDArmure; bras: boolean; jambes: boolean } }
 const POIDS_DE_MATIERE: Record<string, PoidsDArmure> = { 'cuir-souple': 'legere', 'cuir-bouilli': 'legere', mailles: 'moyenne', plate: 'lourde' };
 export function allure(h: Pick<Heros, 'c'>): Allure {
-  const objet = (uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid) : undefined);
-  const lo = setActif(h), main = objet(lo?.main), secondaire = objet(lo?.secondaire);
-  const tir = (h.c.loadouts ?? []).map((l) => objet(l.main)).find((i) => i && i !== main && i.kind === 'distance');
+  const lo = sets(h), main = objetDe(h, lo.melee?.main), secondaire = objetDe(h, lo.melee?.secondaire), tir = objetDe(h, lo.tir?.main);
   const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
   const poids = [...ARMURES_DE_FORGE].reverse().find((p) => portees.some((i) => POIDS_DE_MATIERE[i.subType ?? ''] === p));
   const couvre = (zone: 'bras' | 'jambe') => portees.some((i) => i.locs?.some((l) => l.startsWith(zone)));
@@ -76,28 +89,33 @@ export function payer(e: Etat, h: Heros | undefined, prix: number): string | nul
   return null;
 }
 
-/** Achète l'arme `armeId` au héros et la lui met en main ; l'objet qu'elle remplace est laissé au forgeron. */
 /** Le héros sait-il se battre à deux armes (Talent Maniement de deux armes) ? Sinon, la main secondaire ne tient qu'un
  *  bouclier ou ce qu'il portait déjà. */
 export const manieDeuxArmes = (h: Heros): boolean => (h.c.talents ?? []).some((t) => t.talentId === 'maniement-de-deux-armes');
 const estUnBouclier = (armeId: string) => /^bouclier/.test(armeId);
 
+/** Achète l'arme `armeId` au héros et la lui fait tenir : une arme à distance au set de tir, les autres au set de
+ *  mêlée, qu'il garde en main hors du combat ; l'objet qu'elle remplace est laissé au forgeron. */
 export function acheterUneArme(e: Etat, id: string, armeId: string): string | null {
   const h = heros(e, id);
   if (!armesEnVente(e).some((a) => a.id === armeId)) return 'La forge ne la vend pas encore.';
   if (h && MAIN_SECONDAIRE.has(armeId) && !estUnBouclier(armeId) && !manieDeuxArmes(h)) return 'Une arme en main secondaire demande le Talent Maniement de deux armes.';
   const refus = payer(e, h, prixDe(armeId));
   if (refus || !h) return refus;
-  const slot = MAIN_SECONDAIRE.has(armeId) ? 'secondaire' : 'main';
-  const lo = setActif(h);
+  const tenue = article(armeId).tenue;
+  const slot = tenue === 'secondaire' ? 'secondaire' : 'main';
+  const { melee, tir } = sets(h);
+  const lo = tenue === 'tir' ? tir : melee;
   const ancien = lo?.[slot];
   const munition = MUNITIONS[armeId];
   const neufs = doter(munition && !h.c.items?.some((i) => i.trappingId === munition) ? [armeId, munition] : [armeId], `forge${e.graine++}`);
   const avant = h.c;
   h.c = { ...h.c, items: [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs] };
-  const ligne = lo ? auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }]) : 'Ce héros n’a pas de panoplie.';
+  // Hors du combat il garde en main son set de mêlée ; sans arme de mêlée, son set de tir.
+  const enMain = tenue !== 'main' && !melee?.main && (tenue === 'tir' || tir?.main) ? tir : melee;
+  const ligne = lo && enMain ? auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }, { verbe: 'prendreLaPanoplie', args: [h.c.id, enMain.id] }]) : 'Ce héros n’a pas de panoplie.';
   if ((h.c.loadouts ?? []).some((l) => l[slot] === neufs[0].uid)) {
-    reprendreLaMainSecondaire(e, h, lo!.id, armeId);
+    if (tenue !== 'tir') reprendreLaMainSecondaire(e, h, lo!.id, armeId);
     return null;
   }
   h.c = avant;

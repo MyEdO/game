@@ -26,18 +26,25 @@ export const busteDuHeros = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => b
 export const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
 export const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire">${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
 
+/** Le séjour d'un héros à l'hospice, à la place de sa vie : les jours qui restent, et la jauge du séjour écoulé. */
+export const sejourDe = (h: J.Heros) => {
+  const reste = h.retrait ?? 0;
+  return `<span class="vie sejour-hospice"><span>Hospice</span><span class="chiffres">${reste} j</span></span>${jauge(1 - reste / Math.max(reste, h.retraitTotal ?? reste), { teinte: 'or', taille: 'forte' })}`;
+};
+
 /** La carte d'un héros : portrait, nom, rôle et carrière, vie, état ; son identité au survol. `geste` : ce qu'un
  *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste ;
- *  `progresse` : il peut acheter un avancement. */
+ *  `progresse` : il peut acheter un avancement. Un héros à l'hospice garde sa place et ses couleurs : sa carte porte
+ *  la marque du bâtiment sur son portrait, et son séjour (jours restants, jauge) à la place de sa vie. */
 export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { refus?: string | null; progresse?: boolean } = {}) {
   const c = h.c;
   const role = J.roleDe(h.carriere);
   const r = role && J.ROLES[role];
   const identite: Apercu = { nom: c.label, nature: [J.nomDeCarriere(h.carriere), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '), texte: J.deviseDe(h.carriere), ...(o.refus ? { pied: o.refus } : {}) };
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${h.retrait ? ' retrait' : ''}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
-    ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
+    ${h.retrait ? `<span class="au-batiment">${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${medaillon('soin', 'petit')}</span>` : portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `<span class="au-repos">${picto('soin', 12, 1.8)} hospice · ${h.retrait} j</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
+    ${h.retrait ? sejourDe(h) : ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `<span class="revient">de retour dans ${h.retrait} jour${h.retrait > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
   </button>`;
 }
 
@@ -58,12 +65,8 @@ export function herosEnLigne(h: J.Heros): string {
 }
 
 /** Ceux qui sont à l'hospice : chacun, ses jours restants et la jauge de son séjour ; un clic ouvre sa fiche. */
-export function hospice(e: J.Etat): string {
-  return e.roster.filter((h) => h.retrait).map((h) => {
-    const total = Math.max(h.retrait!, h.retraitTotal ?? h.retrait!);
-    return `<button type="button" class="sejour" data-a="heros" data-id="${h.c.id}">${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><span class="nom-propre petit gothique">${esc(h.c.label)}</span><span class="vie"><span>Hospice</span><span class="chiffres">encore ${h.retrait} j</span></span>${jauge(1 - h.retrait! / total, { teinte: 'or' })}</span></button>`;
-  }).join('');
-}
+export const hospice = (e: J.Etat): string => e.roster.filter((h) => h.retrait).map((h) =>
+  `<button type="button" class="sejour" data-a="heros" data-id="${h.c.id}">${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><span class="nom-propre petit gothique">${esc(h.c.label)}</span>${sejourDe(h)}</span></button>`).join('');
 
 /** L'encombrement porté et sa jauge ; au-delà de la capacité, ses pénalités. LDB 61 l.35-40 */
 export function encombrementDe(c: Combatant) {

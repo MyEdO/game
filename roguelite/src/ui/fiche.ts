@@ -12,7 +12,7 @@ import { picto, plaque, portrait } from '../kit';
 import { CADRES, ecran } from './ecran';
 import {
   achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats,
-  etiquettesDeSequelles, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets,
+  etiquettesDeSequelles, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets, sejourDe,
 } from './pieces';
 
 export type Onglet = 'talents' | 'sorts' | 'equipement';
@@ -117,7 +117,7 @@ function identite(ctx: Contexte, h: J.Heros, o: Offres, progresse: boolean) {
     : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
   return `<div class="tete">${portrait(busteDuHeros(h), 'heros', 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
     <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(J.nomDeCarriere(h.carriere))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
-    ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${etats(c)}${etiquettesDeSequelles(c)}${progression}${renvoi}`;
+    ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.retrait ? sejourDe(h) : ''}${etats(c)}${etiquettesDeSequelles(c)}${progression}${renvoi}`;
 }
 
 /** En route : les provisions du héros et sa prière, en entrées. */
@@ -155,7 +155,7 @@ function ongletTalents(e: J.Etat, h: J.Heros, o: Offres, progresse: boolean) {
     ${glose(e.expedition ? 'Les Talents s’achètent au hameau.' : 'Relevez la salle d’armes pour en apprendre d’autres.')}`;
 }
 
-/** L'équipement : trois cases (mains, armure), l'encombrement, le sac. */
+/** L'équipement : quatre cases (mains, arme à distance, armure), l'encombrement, le sac. */
 function ongletEquipement(e: J.Etat, h: J.Heros) {
   const p = J.panoplie(h);
   const deuxMains = p.main?.mains === 2 && !p.secondaire;
@@ -165,8 +165,9 @@ function ongletEquipement(e: J.Etat, h: J.Heros) {
   return `<div class="rub">Porté ${glose('le détail au survol')}</div>
     <div class="cases-equipement">${piece('Main principale', p.main, iconeDArme(p.main?.label ?? ''))}
       ${deuxMains ? caseObjet({ nom: 'Prise à deux mains', apercu: { nom: 'Main secondaire', texte: 'Prise par l’arme à deux mains.' }, taille: 'grande' }) : piece('Main secondaire', p.secondaire, iconeDArme(p.secondaire?.label ?? ''))}
+      ${piece('À distance', p.tir, iconeDArme(p.tir?.label ?? ''), p.tir?.munitions ? `${p.tir.munitions.label} × ${p.tir.munitions.nombre}` : '')}
       ${piece('Armure', p.armure, 'armure', zones)}</div>
-    <div class="essentiels">${p.main ? `<span>${esc(essentielDe(p.main))}</span>` : ''}<span>${esc(zones)}</span></div>
+    <div class="essentiels">${[p.main, p.tir].map((x) => (x ? `<span>${esc(`${x.label} · ${essentielDe(x)}`)}</span>` : '')).join('')}<span>${esc(zones)}</span></div>
     ${encombrementDe(h.c)}
     <div class="rub">Sac</div><div class="cases-sac">${sac || glose('Aucune provision : le relais en vend au départ.')}</div>
     ${e.expedition ? '' : `<div class="pied-equipement">${plaque('Aller à la forge', `data-a="batiment" data-id="forge" data-client="${h.c.id}"`, { icone: 'enclume', taille: 'petite', armee: true })}</div>`}`;

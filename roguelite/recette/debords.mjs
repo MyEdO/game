@@ -36,7 +36,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     await relever('hameau');
     for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) {
       await geste(p, 'batiment', id); await relever(id);
-      if (id === 'forge') for (const k of ['secondaire', 'armure']) { await p.click(`.emplacement[data-k="${k}"]`); await relever(`forge ${k}`); }
+      if (id === 'forge') for (const k of ['secondaire', 'tir', 'armure']) { await p.click(`.emplacement[data-k="${k}"]`); await relever(`forge ${k}`); }
       await geste(p, 'fermer-panneau');
     }
     // Le lanceur passé au niveau 2 : ses Compétences et les sorts de sa voie tiennent à la salle d'armes.

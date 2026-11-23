@@ -56,7 +56,7 @@ const PLAFOND_DE_PAS = 4000;
 /** Les pièces d'équipement qu'un héros a lâchées à terre pendant la rencontre (on lâche ce qu'on tient en tombant
  *  Inconscient) : le groupe vainqueur les ramasse, chacune revient dans la main où elle était. */
 function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] {
-  const piece = (k?: string) => k === 'melee' || k === 'ranged' || k === 'armor' || k === 'shield';
+  const piece = (k?: string) => k === 'melee' || k === 'distance' || k === 'armor';
   return apres.map((c) => {
     const a = avant.find((x) => x.id === c.id);
     const perdues = (a?.items ?? []).filter((i) => piece(i.kind) && !(c.items ?? []).some((j) => j.uid === i.uid));

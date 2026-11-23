@@ -15,8 +15,8 @@ import {
   iconeDArme, iconeDeProvision,
 } from './pieces';
 
-/** L'emplacement que la forge garnit : une main, ou l'armure. */
-export type Emplacement = 'main' | 'secondaire' | 'armure';
+/** L'emplacement que la forge garnit : une main, l'arme à distance, ou l'armure. */
+export type Emplacement = J.Tenue | 'armure';
 /** Ce que les services lisent de l'interface : l'état, le héros servi, l'emplacement ouvert à la forge, et au départ
  *  la route et ceux qu'on emmène. */
 export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string> }
@@ -36,11 +36,12 @@ export const cartouche = (icone: string, nom: string, sous: string) => `<div cla
  *  au survol. */
 function batir(e: J.Etat, b: J.Batiment, taille: 'petite' | 'moyenne' = 'moyenne') {
   const suivant = b.paliers[e.batiments[b.id] + 1];
+  const manque = [e.or < suivant.cout ? `${suivant.cout - e.or} CO` : '', e.trophees < suivant.trophees ? pluriel(suivant.trophees - e.trophees, 'trophée') : ''].filter(Boolean);
+  const refus = manque.length ? `Il manque ${manque.join(' et ')}.` : null;
   return achat({
-    verbe: J.enRuine(e.batiments, b.id) ? 'Relever' : 'Bâtir', prix: suivant.cout, avoir: e.or, taille, icone: 'enclume',
-    attrs: `data-a="ameliorer" data-id="${b.id}"${apercuDe({ nom: `Palier ${e.batiments[b.id] + 2}`, nature: b.nom, texte: suivant.effet })}`,
+    verbe: J.enRuine(e.batiments, b.id) ? 'Relever' : 'Bâtir', prix: suivant.cout, avoir: e.or, taille, icone: 'enclume', refus,
+    attrs: `data-a="ameliorer" data-id="${b.id}"${apercuDe({ nom: `Palier ${e.batiments[b.id] + 2}`, nature: b.nom, texte: suivant.effet, ...(refus ? { pied: refus } : {}) })}`,
     ...(suivant.trophees ? { suite: pluriel(suivant.trophees, 'trophée') } : {}),
-    ...(e.or >= suivant.cout && e.trophees < suivant.trophees ? { refus: `Il manque ${pluriel(suivant.trophees - e.trophees, 'trophée')}.` } : {}),
   });
 }
 
@@ -98,8 +99,9 @@ const tendance = (ecart: number): Tendance => (ecart > 0 ? 'hausse' : ecart < 0 
 const mesure = (nom: string, valeur: string | number, ecart?: number, o: { chiffre?: boolean; bulle?: string } = {}) =>
   `<div class="mesure${typeof valeur === 'string' ? ' mot' : ''} ${ecart == null ? '' : tendance(ecart)}"${o.bulle ? ` data-bulle="${esc(o.bulle)}"` : ''}><span class="sous-titre">${nom}</span><b class="chiffres">${valeur}</b>${ecart ? `<i class="chiffres">${ecart > 0 ? '▲' : '▼'}${o.chiffre ? `${ecart > 0 ? '+' : '−'}${Math.abs(ecart)}` : ''}</i>` : ecart === 0 ? '<i class="chiffres">=</i>' : ''}</div>`;
 
-/** La forge pour le héros servi : à gauche ce qu'il porte, un emplacement ouvert ; à droite ce que la forge propose
- *  pour cet emplacement, chaque offre mesurée entre ses mains et face à ce qu'il tient. */
+/** La forge pour le héros servi : à gauche ce qu'il porte — ses deux mains, son arme à distance, qu'il tire de loin
+ *  en gardant l'arme de mêlée pour le corps à corps, son armure —, un emplacement ouvert ; à droite ce que la forge
+ *  propose pour cet emplacement, chaque offre mesurée entre ses mains et face à ce qu'il tient. */
 function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   if (!h) return { classe: 'rangee', corps: placard('enclume', 'Personne à équiper') };
   const p = J.panoplie(h);
@@ -120,25 +122,37 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   const armure = protection(h.c);
   const mesuresDArmure = (pa?: number) => armure.map((z) => mesure(esc(z.zone), pa ?? z.pa, pa == null ? undefined : pa - z.pa)).join('');
 
-  const tuile = (k: Emplacement, titre: string, porte: J.PieceDecrite | undefined, icone: string, mesures: string, vide: string) =>
-    `<button type="button" class="emplacement${k === emplacement ? ' choisi' : ''}" data-a="emplacement" data-k="${k}"><span class="boite-objet${porte ? '' : ' sans-objet'}">${porte ? picto(icone, 26, 1.6) : ''}</span>
-      <span class="t"><span class="sous-titre">${titre}</span><span class="nom-objet">${esc(porte?.label ?? vide)}</span>${mesures ? `<span class="mesures">${mesures}</span>` : ''}${porte?.qualites.length ? `<span class="traits">${etiquettesDeQualites(porte.qualites)}</span>` : ''}</span></button>`;
+  /** Un emplacement du porteur : ce qu'il y tient ; ouvert, ses mesures, ses qualités et ses munitions ; fermé, ses
+   *  mesures en une ligne (`resume`). */
+  const tuile = (k: Emplacement, titre: string, porte: J.PieceDecrite | undefined, icone: string, mesures: string, resume: string, vide: string) => {
+    const ouvert = k === emplacement;
+    const reste = porte?.munitions;
+    const traits = porte && (porte.qualites.length || reste) ? `<span class="traits">${etiquettesDeQualites(porte.qualites)}${reste ? `<span class="etiquette rectangle qualite ${reste.nombre ? 'neutre' : 'defaut'}">${esc(reste.label)} × ${reste.nombre}</span>` : ''}</span>` : '';
+    return `<button type="button" class="emplacement${ouvert ? ' choisi' : ''}" data-a="emplacement" data-k="${k}"><span class="boite-objet${porte ? '' : ' sans-objet'}">${porte ? picto(icone, ouvert ? 26 : 22, 1.6) : ''}</span>
+      <span class="t"><span class="sous-titre">${titre}</span><span class="nom-objet">${esc(porte?.label ?? vide)}</span>${ouvert ? `${mesures ? `<span class="mesures">${mesures}</span>` : ''}${traits}` : resume ? `<span class="resume chiffres">${esc(resume)}</span>` : ''}</span></button>`;
+  };
+  const tuileDArme = (k: J.Tenue, titre: string, vide: string) => {
+    const x = p[k];
+    const m = x?.id ? maniement(h.c, x.id) : undefined;
+    return tuile(k, titre, x, iconeDArme(x?.label ?? ''), x ? mesuresDArme(x) : '', m ? `Attaque ${m.attaque} · Dégâts ${m.degats}${x?.portee ? ` · ${x.portee} m` : ''}` : '', vide);
+  };
   const deuxMains = p.main?.mains === 2;
   const gauche = `${herosEnTete(h, 'grand', encombrementDe(h.c))}
-    ${tuile('main', 'Main principale', p.main, iconeDArme(p.main?.label ?? ''), p.main ? mesuresDArme(p.main) : '', 'Vide')}
-    ${tuile('secondaire', 'Main secondaire', p.secondaire, iconeDArme(p.secondaire?.label ?? ''), p.secondaire ? mesuresDArme(p.secondaire) : '', deuxMains ? 'Prise par l’arme à deux mains' : 'Vide')}
-    ${tuile('armure', 'Armure', p.armure, 'armure', mesuresDArmure(), 'Sans armure')}`;
+    ${tuileDArme('main', 'Main principale', 'Vide')}
+    ${tuileDArme('secondaire', 'Main secondaire', deuxMains ? 'Prise par l’arme à deux mains' : 'Vide')}
+    ${tuileDArme('tir', 'À distance', 'Aucune arme de tir')}
+    ${tuile('armure', 'Armure', p.armure, 'armure', mesuresDArmure(), `PA · ${armure.map((z) => `${z.zone} ${z.pa}`).join(' · ')}`, 'Sans armure')}`;
 
   const article = (icone: string, nom: string, mesures: string, traits: string, geste: string) =>
     `<article class="carte-service article"><header><span class="boite-objet">${picto(icone, 26, 1.6)}</span><span class="nom-propre petit gothique">${esc(nom)}</span></header><div class="mesures">${mesures}</div><div class="traits">${traits}</div>${geste}</article>`;
-  const tenue = emplacement === 'secondaire' ? p.secondaire : p.main;
+  const tenue = emplacement === 'armure' ? undefined : p[emplacement];
   const armes = emplacement === 'armure' ? [] : J.armesEnVente(e).filter((a) => a.tenue === emplacement && a.id !== tenue?.id && (emplacement !== 'secondaire' || /^bouclier/.test(a.id) || J.manieDeuxArmes(h)))
     .map((a) => ({ a, m: maniement(h.c, a.id) })).sort((x, y) => y.m.attaque - x.m.attaque || y.m.degats - x.m.degats);
   const offres = emplacement === 'armure'
     ? J.armuresEnVente(e).filter((a) => a.label !== p.armure?.label).map((a) => article('armure', a.label, mesuresDArmure(a.pa), `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.poids}"`, taille: 'petite' })))
     : armes.map(({ a, m }) => article(iconeDArme(a.label), a.label, mesuresDArme(a, tenue),
-      `${a.mains === 2 ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${m.entraine ? '' : `<span class="etiquette rectangle qualite defaut suite" data-bulle="Sa Compétence ne couvre pas ce Groupe d’armes : ${esc(m.test)}">Non entraîné</span>`}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
+      `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${m.entraine ? '' : `<span class="etiquette rectangle qualite defaut suite" data-bulle="Sa Compétence ne couvre pas ce Groupe d’armes : ${esc(m.test)}">Non entraîné</span>`}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="arme" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite', ...(emplacement === 'secondaire' && deuxMains ? { refus: `${p.main!.label} prend les deux mains.` } : {}) })));
   return {
     classe: 'forge',

@@ -139,9 +139,9 @@ export const ARMES_DE_FORGE: readonly string[][] = [
   ['grande-hache', 'marteau-de-guerre', 'zweihander', 'bouclier-grand', 'arc-long'],
 ];
 export const ARMURES_DE_FORGE: readonly PoidsDArmure[] = ['legere', 'moyenne', 'lourde'];
-/** Les objets tenus dans la main secondaire ; les autres armes vont dans la main principale. */
+/** Les objets tenus dans la main secondaire ; les autres armes vont dans la main principale, ou au set de tir. */
 export const MAIN_SECONDAIRE = new Set(['dague', 'bouclier', 'bouclier-grand']);
 /** Les munitions qu'une arme à projectiles réclame. */
-export const MUNITIONS: Record<string, string> = { 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau' };
+export const MUNITIONS: Record<string, string> = { fronde: 'projectile-de-pierre', 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau' };
 /** Les provisions du relais, par palier. */
 export const PROVISIONS: readonly string[][] = [['potion-de-guerison'], ['potion-de-vitalite']];
