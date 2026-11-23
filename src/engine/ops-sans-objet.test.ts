@@ -58,7 +58,7 @@ describe('opSansObjet ≡ applyOps ne change rien', () => {
     const c = FICHES[fiche]();
     const avant = JSON.stringify(c);
     const raison = opSansObjet(c, o, ctx());
-    const lignes = applyOps(c, [o], ctx());
+    const lignes = applyOps(c, [o], ctx()).lignes;
     const change = JSON.stringify(c) !== avant;
     expect(raison == null, `sans objet = ${raison != null}, la fiche change = ${change}`).toBe(change);
     if (raison) expect(lignes, 'une op sans objet ne produit aucune ligne').toEqual([]);

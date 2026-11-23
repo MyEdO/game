@@ -51,6 +51,7 @@ import {
   gestesDeLObjet,
   interludeEnVue,
   porteurParId,
+  locationLabel,
   recitEnVue,
   refLabel,
   reposEnVue,
@@ -937,11 +938,12 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   const r = pc?.participants[pc.cursor]?.reveal;
   if (!r) return [];
   const crit = r.kind === 'critique' ? r.crit : undefined;
-  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'heros' ? 'echec' : 'reussite';
+  const sujet = r.subjectId ? porteurParId(etat, r.subjectId) : undefined;
+  const ton: Ton = sujet?.kind === 'heros' ? 'echec' : 'reussite';
   const prefixe = crit ? 'critique' : 'revelation';
   return [
     ...(crit ? [
-      puce('critique/localisation', t('ecran.critique.localisation'), crit.location, null, ton),
+      puce('critique/localisation', t('ecran.critique.localisation'), locationLabel(crit.location, sujet?.bodyShape), null, ton),
       ...(crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-crit.woundsLost), null, ton)] : []),
       ...(crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
     ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),

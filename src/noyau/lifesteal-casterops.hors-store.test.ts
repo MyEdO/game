@@ -56,7 +56,7 @@ describe('zone de soin (op:heal) — Sang de la Terre', () => {
     const caster = herosDeScenario(idsDeTest, 'sorcier'); // BFM connu via ses caracs
     const victim = blessuresSurLeProfil({ ...caster, id: 'v', label: 'V', wounds: blessuresDeBase(30, 5) }) as Combatant;
     const bfm = Math.floor(caster.characteristics['force-mentale'] / 10);
-    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sang de la Terre' });
+    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sang de la Terre' }).lignes;
     expect(victim.wounds.current).toBe(5 + bfm);
     expect(log.join(' ')).toContain('regagne');
   });

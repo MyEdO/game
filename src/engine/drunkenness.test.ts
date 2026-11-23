@@ -22,7 +22,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
  *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUpDissipate`). */
-const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { idNeuf: idsDeTest, rng: desDuTest, effectId: 'ivresse' });
+const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { idNeuf: idsDeTest, rng: desDuTest, effectId: 'ivresse' }).lignes;
 
 function hero(E = 30): Combatant {
   return blessuresSurLeProfil({

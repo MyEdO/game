@@ -39,6 +39,7 @@ import { entree as spellEntreeSchema } from '../data/schemas/defs/spells';
 import type { Combatant, ActiveEffect } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import type { Applique } from '../engine/faits';
 
 const CHAMON = 'transmutation-de-chamon';
 const ETATS = ['aveugle', 'assourdi', 'sonne'] as const;
@@ -153,16 +154,15 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     expect(lignes.join(' | '), 'les trois États sont tombés sans une ligne').toContain('perd l’État Sonné');
   });
 
-  it('la DISSIPATION (LDB 46 l.158-162) emporte les trois États, avec leur ligne et leur notification', () => {
+  it('la DISSIPATION (LDB 46 l.158-162) emporte les trois États, avec leur ligne et leur fait', () => {
     lancerChamon(mage, cible);
-    const log: string[] = [];
-    const vus: { stateId: string; change: string }[] = [];
-    expect(dissipateSpell([vue(cible.id)], CHAMON, mage.id, (e) => vus.push(e), log)).toBe(1);
+    const recueil: Applique = { lignes: [], faits: [] };
+    expect(dissipateSpell([vue(cible.id)], CHAMON, mage.id, recueil)).toBe(1);
     const c = vue(cible.id);
     for (const id of ETATS) expect(stacks(c, id), `l’État ${id} a survécu à la Dissipation`).toBe(0);
-    expect(log.join(' | ')).toContain('perd l’État Assourdi');
-    expect(log, 'la Dissipation retire trois États en silence').toHaveLength(3);
-    expect(vus.map((e) => `${e.stateId}:${e.change}`).sort()).toEqual(['assourdi:loss', 'aveugle:loss', 'sonne:loss']);
+    expect(recueil.lignes.join(' | ')).toContain('perd l’État Assourdi');
+    expect(recueil.lignes, 'la Dissipation retire trois États en silence').toHaveLength(3);
+    expect(recueil.faits.map((f) => (f.genre === 'etat' ? `${f.id}:${f.valeur}` : f.genre)).sort()).toEqual(['assourdi:-1', 'aveugle:-1', 'sonne:-1']);
   });
 
   it('la Surincantation de Durée (+2 pas) fait tenir les pions ×3 Rounds (×(1+n), LDB 47)', () => {
@@ -329,7 +329,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
 
   it('« carried » sans DURÉE de contexte ne pose RIEN, et le dit au journal', () => {
     const c = mk('heros', 'seul');
-    const lines = applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) });
+    const lines = applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) }).lignes;
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
     expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');

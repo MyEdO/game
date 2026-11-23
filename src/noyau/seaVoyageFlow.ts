@@ -2141,7 +2141,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   if (b.compartmentDamage != null && eng) {
     const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }], uid: 'chaudiere' }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
 
-    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
+    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' }).lignes;
     set({ party: [...get().party] });
     tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines]);
   }
@@ -2196,7 +2196,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   const eng = get().party.find((h) => h.id === p.actorId);
   // Le jet est DÉJÀ affiché par la rangée de `SteamSaveModal` (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
   if (eng && !p.success) {
-    const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
+    const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime }).lignes;
     set({ party: [...get().party] });
     tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines]);
   } else if (eng) {

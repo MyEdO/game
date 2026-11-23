@@ -94,7 +94,7 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const h = heros(45);
     h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
     expect(bourseOf(h)).toEqual({ gold: 0, silver: 0, brass: 0 });
-    const lignes = applyOps(h, [{ op: 'money', montant: { brass: 37 } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mendier' });
+    const lignes = applyOps(h, [{ op: 'money', montant: { brass: 37 } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mendier' }).lignes;
     expect(bourseBrass(h)).toBe(37);
     expect(h.items!.some((i) => i.trappingId === 'bourse')).toBe(true);
     expect(lignes.join(' ')).toContain('Mendiant');
@@ -104,7 +104,7 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const h = heros(45);
     h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
     applyOps(h, [{ op: 'money', montant: { brass: 10 } }], { idNeuf: idsDeTest, rng: makeRNG(1) });
-    const lignes = applyOps(h, [{ op: 'money', montant: { brass: -50 } }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+    const lignes = applyOps(h, [{ op: 'money', montant: { brass: -50 } }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes;
     expect(bourseBrass(h)).toBe(0);
     // Le solde ne descend pas sous 0 : la ligne annonce les 10 sous réellement retirés, pas les 50 demandés.
     expect(lignes.join(' ')).toContain('10 sc');

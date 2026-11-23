@@ -511,8 +511,8 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
       party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
     expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest,
-      hull: coque(), onCondition: () => {},
-    })).toThrow(/onCondition/);
+      hull: coque(), surLigne: () => {},
+    })).toThrow(/surLigne/);
   });
 
   it('`onOpposingAdvantage` (`onTurnStart`) se porte et se rebâtit sur son porteur ; sans porteur, il lève', () => {
@@ -1188,7 +1188,7 @@ describe('(xiv) OP `fall` SANS TABLE : le refus est NOMMÉ, jamais un silence', 
 
   it('`applyOps` LÈVE de la même façon — aucune Blessure posée à moitié', () => {
     const c = victime();
-    expect(() => applyOps(c, sansTable(), { idNeuf: idsDeTest, rng: desDuTest })).toThrow(/table de hauteur inconnue/);
+    expect(() => applyOps(c, sansTable(), { idNeuf: idsDeTest, rng: desDuTest }).lignes).toThrow(/table de hauteur inconnue/);
     expect(c.wounds.current, 'rien n’a été appliqué avant le refus').toBe(200);
   });
 });

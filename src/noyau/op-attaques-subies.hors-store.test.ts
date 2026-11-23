@@ -26,7 +26,7 @@ describe('op `attaquesSubies`', () => {
 
   it('est inerte dans `applyOps` et rangée parmi les ops impures', () => {
     const op = gameOpSchema.parse(attaques);
-    expect(applyOps(combattantDeTest(), [op], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
+    expect(applyOps(combattantDeTest(), [op], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toEqual([]);
     expect(flowHasImpureOp({ kind: 'effet', effet: { type: 'ops', ops: [op] } })).toBe(true);
   });
 

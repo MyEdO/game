@@ -10,7 +10,6 @@ import {
   ConditionInstance,
   effectRef,
   type ModLine,
-  type ConditionEmit,
   type ConditionLocks,
   type Difficulty,
   type Main,
@@ -23,6 +22,8 @@ import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
+import { emettreDans, type Applique } from './faits';
+import { campOf } from './relations';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
@@ -287,16 +288,17 @@ export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionU
 /** Applique un acte de soin `act` : RETIRE tout État dont le verrou `unlockBy` est levé par cet acte (LDB 18 :
  *  « ne peut être retiré QUE par [acte] » ⇒ l'acte est ce qui le soigne). SOURCE UNIQUE appelée à chaque point
  *  de soin (`receiveMedicalAid`/soin magique → medicalAid/magic ; fin de Chirurgie → surgery). Pur ; renvoie le journal. */
-export function releaseConditionLocks(c: Combatant, act: import('./types').ConditionUnlock, emit?: ConditionEmit): string[] {
-  const log: string[] = [];
+export function releaseConditionLocks(c: Combatant, act: import('./types').ConditionUnlock): Applique {
+  const sortie: Applique = { lignes: [], faits: [] };
   for (const inst of [...c.conditions]) {
     if (inst.unlockBy == null || !actLifts(inst.unlockBy, act)) continue;
     delete inst.unlockBy; // le verrou tombe → removeCondition n'est plus inerte
-    removeCondition(c, inst.id, inst.value); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
-    log.push(t('cond.lockReleased', { name: nomDe(c), cond: conditionLabel(inst.id) }));
-    emit?.({ stateId: inst.id, change: 'loss', targetId: c.id });
+    const avant = inst.value;
+    removeCondition(c, inst.id, avant); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
+    const apres = c.conditions.find((x) => x.id === inst.id)?.value ?? 0;
+    emettreDans(sortie, c, { genre: 'etat', cible: c.id, camp: campOf(c), id: inst.id, valeur: apres - avant, verrouLeve: true });
   }
-  return log;
+  return sortie;
 }
 
 /** Le porteur a-t-il un État dont le retrait est VERROUILLÉ par la Chirurgie (LDB 18 : Hémorragie interne) ?
@@ -440,19 +442,19 @@ const reconciliationEnCours = new WeakSet<Combatant>();
  * la source qui l'a posé (#1695).
  *
  * IDEMPOTENTE : rejouée sans changement du fait source, elle n'écrit rien et rend un journal vide.
- * Mute `c`, renvoie le journal ; `emit` reçoit l'appariement ligne↔id (`ConditionChange`).
+ * Mute `c`, renvoie le journal et ses faits.
  */
-export function syncDerivedConditions(c: Combatant, emit?: ConditionEmit): string[] {
-  if (reconciliationEnCours.has(c)) return [];
+export function syncDerivedConditions(c: Combatant): Applique {
+  if (reconciliationEnCours.has(c)) return { lignes: [], faits: [] };
   reconciliationEnCours.add(c);
   try {
-    return reconcilierEtatsDerives(c, emit);
+    return reconcilierEtatsDerives(c);
   } finally {
     reconciliationEnCours.delete(c);
   }
 }
 
-function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
+function reconcilierEtatsDerives(c: Combatant): Applique {
   const cible = new Map<string, { stacks: number; src?: CodexTarget }>();
   for (const m of passiveMods(c)) {
     if (m.op.op !== 'condition') continue;
@@ -461,7 +463,7 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     if (e) e.stacks += n;
     else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
   }
-  const log: string[] = [];
+  const sortie: Applique = { lignes: [], faits: [] };
   // `?? []` : un porteur FORGÉ (coque de navire, sonde de test) peut n'avoir aucune liste d'États — la
   // réconciliation reste inerte sur lui, elle ne lève pas.
   const portees = c.conditions ?? [];
@@ -486,21 +488,19 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     // Le porteur du NOM à l'écran : l'émetteur courant s'il y en a un (pose), sinon celui MÉMORISÉ par
     // l'instance (retrait — le fait vient de disparaître, il ne peut plus se nommer lui-même).
     const src = voulu?.src ?? porte?.src;
-    const source = src ? refLabel(src.category, { id: src.id }) : t('cond.derivedSrcFallback');
+    const fait = { genre: 'etat', cible: c.id, camp: campOf(c), id, porte: src ? { src } : {} } as const;
     if (cibleN > porteN) {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
       poserEtat(c, id, cibleN - porteN, { derivedFrom: { stacks: cibleN, ...(src ? { src } : {}) } });
-      log.push(t('cond.derivedGain', { name: nomDe(c), cond: conditionLabel(id), src: source }));
-      emit?.({ stateId: id, change: 'gain', targetId: c.id });
+      emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
       continue;
     }
     retireEtat(c, id, porteN - cibleN, true); // la réconciliation EST la source du pion marqué : rien ne l'arrête
     const apres = c.conditions.find((x) => x.id === id);
     if (apres) apres.derivedFrom = cibleN > 0 ? { stacks: cibleN, ...(src ? { src } : {}) } : undefined;
-    log.push(t('cond.derivedLoss', { name: nomDe(c), cond: conditionLabel(id), src: source }));
-    emit?.({ stateId: id, change: 'loss', targetId: c.id });
+    emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
   }
-  return log;
+  return sortie;
 }
 
 /** Sommeil MAGIQUE (sort Sommeil → Inconscient À DURÉE ; Belladone/Fleur de lune → Inconscient d'horloge) :
@@ -847,7 +847,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit, resolveTrapping?: TrappingResolver): string[] {
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveTrapping?: TrappingResolver): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -875,13 +875,13 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: C
     // L'ancrage du re-jeu est celui MEMORISE sur l'effet a sa pose (`applyOps` l'y stampe) : il se relaie,
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
-      label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
+      label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId,
       rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
-    }).forEach((l) => log.push(l));
+    }).lignes.forEach((l) => log.push(l));
   }
   // Décrément des durées (effets/États de sort/contrecoups) — SOURCE UNIQUE extraite, même emplacement
   // qu'avant (fin d'`endOfRound`, après les ops récurrentes). RNG-free.
-  tickDurations(c, emit).forEach((l) => log.push(l));
+  tickDurations(c).forEach((l) => log.push(l));
   return log;
 }
 
@@ -890,9 +890,9 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: C
  *  SOURCE UNIQUE du retrait d'effets actifs : expiration en Rounds (`tickDurations`), horloge, et
  *  DISSIPATION (LDB 46 l.158-162, `engine/dispel`). Renvoie les effets retirés (pour le journal).
  *  Un effet retiré emporte les États qu'il PORTAIT (`ActiveEffect.passive`, #1695, LDB 48 l.495) : la
- *  réconciliation clôt donc CE point unique, jamais chaque appelant. `emit`/`log` recueillent ce
- *  qu'elle dit — un appelant qui n'a pas de journal les omet (l'État part quand même). */
-export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boolean, emit?: ConditionEmit, log?: string[]): ActiveEffect[] {
+ *  réconciliation clôt donc CE point unique, jamais chaque appelant. `recueil` reçoit ce qu'elle dit,
+ *  lignes et faits — un appelant qui n'a pas de journal l'omet (l'État part quand même). */
+export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boolean, recueil?: Applique): ActiveEffect[] {
   if (!c.activeEffects?.length) return [];
   const removed = c.activeEffects.filter(pred);
   if (!removed.length) return [];
@@ -905,8 +905,9 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   dropExpiredGrantedPsych(c, removed); // Traits psy accordés (op grantPsychTrait à durée) retirés APRÈS la restitution : un Trait échu pendant une suspension n'est pas rendu
   // États PORTÉS par l'effet (#1695) : ils partent au MÊME geste. IDEMPOTENTE. La réconciliation est
   // INCONDITIONNELLE — un `log?.push(...sync())` l'aurait court-circuitée chez tout appelant sans journal.
-  const portes = syncDerivedConditions(c, emit);
-  log?.push(...portes);
+  const portes = syncDerivedConditions(c);
+  recueil?.lignes.push(...portes.lignes);
+  recueil?.faits.push(...portes.faits);
   c.wounds = blessuresReconciliees(c);
   return removed;
 }
@@ -943,9 +944,9 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
     e.duration = { scale: 'rounds', left: 1 };
     return [t('cond.effectExtended', { name: nomDe(c), label: e.label })];
   }
-  const porte: string[] = []; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
-  const removed = removeActiveEffects(c, (x) => x === e, undefined, porte);
-  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte];
+  const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
+  const removed = removeActiveEffects(c, (x) => x === e, porte);
+  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte.lignes];
 }
 
 /**
@@ -955,7 +956,7 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
  * RNG-FREE (décrément + filtre + retraits) → n'altère pas le flux déterministe.
  * Rejoué hors combat par `outOfCombatUpkeep` (les durées en Rounds tickent aussi à l'horloge).
  */
-export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
+export function tickDurations(c: Combatant): string[] {
   const log: string[] = [];
   // Effets magiques temporisés (Bénédictions, Sorts de bonus) : décrément des durées en Rounds.
   // `tickRound` n'agit que sur l'échelle `rounds` ; les durées d'horloge/permanentes sont inertes ici
@@ -969,16 +970,16 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
     for (const e of c.activeEffects) {
       if (e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension && spellDurationPlusSource(e)) e.awaitingExtension = true;
     }
-    const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
-    const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, emit, porte);
+    const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
+    const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, porte);
     for (const e of expired) log.push(t('cond.effectExpire', { name: nomDe(c), label: e.label }));
-    log.push(...porte);
+    log.push(...porte.lignes);
   }
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
     const done = c.conditions.filter((x) => x.roundsLeft != null && x.roundsLeft <= 0);
-    for (const x of done) { log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) })); emit?.({ stateId: x.id, change: 'loss', targetId: c.id }); }
+    for (const x of done) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
     c.conditions = c.conditions.filter((x) => !(x.roundsLeft != null && x.roundsLeft <= 0));
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
@@ -991,7 +992,7 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
   // Un effet qui vient d'EXPIRER peut avoir porté (ou levé) un fait source d'État dérivé : la fenêtre de
   // Détermination de LDB 20 l.170 se referme ici, et l'État repart. Point d'appel de la frontière de
   // Round (`endOfRound` chaîne ici) ET de toute expiration en Rounds — jamais une copie de la logique.
-  syncDerivedConditions(c, emit).forEach((l) => log.push(l));
+  syncDerivedConditions(c).lignes.forEach((l) => log.push(l));
   return log;
 }
 

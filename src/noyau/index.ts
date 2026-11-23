@@ -14,7 +14,7 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
-export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
+export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, locationLabel, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney, libelleDuStatut } from '../engine/money';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
@@ -321,7 +321,7 @@ export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, v
 export { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 export { meteoDuRegard, type MeteoDuRegard } from './monde/meteo';
-export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
+export { jetsEnVue, type ConsequenceEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncantation';
 export { fenetreDuSoin } from './soin';

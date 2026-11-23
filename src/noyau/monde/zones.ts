@@ -214,7 +214,7 @@ export function crossZones(
     if (!path.some((p) => zoneCovers(z, p))) continue;
     if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label })); continue; }
     lines.push(t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }));
-    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }));
+    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }).lignes);
   }
   return lines;
 }
@@ -236,7 +236,7 @@ export function zonesRoundTick(
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
       if (!zoneCovers(z, c.pos) || !zoneTargets(z, c) || zoneSansEffetSur(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
-      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label, resolveTrapping })) out.push({ line, combatant: c });
+      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label, resolveTrapping }).lignes) out.push({ line, combatant: c });
     }
   }
   return out;

@@ -79,7 +79,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
   });
   it("op ignoreStatePenalties : pose l'effet actif à la durée du sort + journal", () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 }).lignes;
     expect(c.activeEffects?.[0]).toMatchObject({ label: 'Endurance de l’anachorète', ignoreStatePenalties: true, duration: { scale: 'rounds', left: 3 } });
     expect(lines.join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
   });
@@ -142,7 +142,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
       psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }, { type: 'phobie', cible: ciblePsy.groupe('serpent'), indice: 1 }],
       psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }],
     });
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 }).lignes;
     expect(c.psychTraits).toEqual([]);
     expect(c.psychState).toEqual([]);
     const eff = c.activeEffects?.find((e) => e.suppressedPsych);
@@ -160,7 +160,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
   });
   it('cible sans Trait psy : journal honnête, pas d’effet porteur', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 }).lignes;
     expect(c.activeEffects?.some((e) => e.suppressedPsych) ?? false).toBe(false);
     expect(lines.join(' ')).toMatch(/aucun Trait/i);
   });
@@ -220,13 +220,13 @@ describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisati
   } as unknown as ItemInstance);
   it('endommage de 1 PA une pièce de cuir portée (et re-dérive l’armure)', () => {
     const c = mk({ items: [leather()] });
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' }).lignes;
     expect(c.items![0].damageTaken).toBe(1);
     expect(lines.join(' ')).toMatch(/racornit|pourrit/i);
   });
   it('sans cuir porté : rien d’endommagé, journal honnête', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' }).lignes;
     expect(lines.join(' ')).toMatch(/pas de cuir|aucun cuir/i);
   });
 });
