@@ -191,7 +191,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Pose le rôle MJ au siège `siege` (`null` : l'IA) (`poserLeSiegeMJ`) ; refusé, et dit, par `refusDuSiegeMJ`
    *  (`noyau/sieges.ts`). */
   affecterLeSiegeMJ: (siege: number | null) => void;
-  equiperLObjet: (uid: IdDObjet) => void;
+  /** Porte (`porte`) ou ôte un objet de son porteur ; rejoué, il ne change rien (`partyFlow.equiperLObjet`). */
+  equiperLObjet: (uid: IdDObjet, porte: boolean) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;

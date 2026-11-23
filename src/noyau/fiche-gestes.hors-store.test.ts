@@ -226,7 +226,7 @@ describe('equiperLObjet — le verrou (`refusDInventaire`) est celui du geste', 
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const armure = (lu().items ?? []).find((i) => i.kind === 'armor' && i.equipped);
       expect(armure, 'témoin : le héros du duel porte une armure').toBeTruthy();
-      partie.envoyer({ type: 'equiperLObjet', args: [armure!.uid] });
+      partie.envoyer({ type: 'equiperLObjet', args: [armure!.uid, false] });
       expect(lu().items!.find((i) => i.uid === armure!.uid)!.equipped, 'l’armure a été retirée en plein combat').toBe(true);
       expect(partie.etat().refus?.texte).toBe(refusDInventaire(partie.etat()));
     });

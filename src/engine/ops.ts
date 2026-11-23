@@ -76,7 +76,7 @@ import {
   avecSequelles,
   type SequelleNeuve,
 } from './trauma';
-import { applyHealWounds, soinMagiqueOperant } from './healing';
+import { applyHealWounds, cappedHealAmount, plaieAPanser, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
 import {
@@ -889,7 +889,7 @@ function rangDuTraitARetirer(c: Combatant, o: Extract<GameOp, { op: 'removePsych
 
 /** Le contexte où se juge une op de retrait : DR et source de l'application ; `avantLeJet` juge l'op avant le
  *  Test qui l'échelonne, un compte qui croît avec le DR restant alors possible. */
-export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source' | 'affliction'> & { avantLeJet?: boolean };
+export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source' | 'affliction' | 'sourceSpellId'> & { avantLeJet?: boolean };
 
 /** Les afflictions de `c` auxquelles `o` met fin : l'instance du contexte (`instance`, par son identité de
  *  ciblage), ou celles du type ; une affliction ciblée seulement si elle est ACTIVE. */
@@ -909,8 +909,15 @@ function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRe
   return base + slBonus(ctx.sl, perSL) > 0 || (!!ctx.avantLeJet && !!perSL && perSL.amount > 0 && !perSL.onFailure);
 }
 
-/** La raison pour laquelle l'op de RETRAIT `o` n'a rien à ôter à `c` sous `ctx` (État, Trait accordé, état ou
- *  Trait psychologique, maladie, Blessure critique, Péché), ou `null` : l'op changerait la fiche. Prédicat
+/** L'acte de soin `act` lèverait-il quelque chose chez `c` : une séquelle qui attend l'Aide Médicale, un État qu'il
+ *  déverrouille ? LDB 18 l.308-311 */
+function aideOperante(c: Combatant, act: 'medicalAid' | 'magic'): boolean {
+  return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, act);
+}
+
+/** La raison pour laquelle l'op de RETRAIT ou de SOIN `o` n'a rien à ôter ni à rendre à `c` sous `ctx` (État, Trait
+ *  accordé, état ou Trait psychologique, maladie, Blessure critique, Péché, Blessures, Aide Médicale, pansement), ou
+ *  `null` : l'op changerait la fiche. Prédicat
  *  UNIQUE : `applyOps` saute sans un mot l'op sans objet, les verdicts des gestes délibérés disent sa raison. */
 export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}): string | null {
   switch (o.op) {
@@ -940,7 +947,11 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
       return o.oncePerDisease || raccourcit ? null : t('rest.diseaseUnchanged', { name: nomDe(c), disease: diseaseLabel(dz.id) });
     }
     case 'aideMedicale':
-      return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: nomDe(c) });
+      return aideOperante(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: nomDe(c) });
+    case 'heal':
+      return (soinMagiqueOperant(c) && cappedHealAmount(c, 1) > 0) || aideOperante(c, ctx.sourceSpellId != null ? 'magic' : 'medicalAid') ? null : t('op.sansSoinAApporter', { name: nomDe(c) });
+    case 'preventInfection':
+      return plaieAPanser(c) ? null : t('op.sansCritiqueAPanser', { name: nomDe(c) });
     default: return null;
   }
 }

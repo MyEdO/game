@@ -259,9 +259,14 @@ export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoi
   return log;
 }
 
-/** SOURCE UNIQUE de l'application d'un soin de Blessures (Guérison) : delta BI+DR appliqué (mutation),
- *  + Infection Mineure sur Échec Stupéfiant (DR ≤ −6, LDB 09) ; réussi sous Bandages, aucune Infection
- *  (LDB 09 l.260, `woundDressed`). Partagée par le soin de combat, le médecin payant ET la chirurgie.
+/** `c` porte-t-il une Blessure Critique de la rencontre qu'aucun pansement ne couvre encore ? LDB 09 l.260, LDB 72 l.20 */
+export function plaieAPanser(c: Pick<Combatant, 'tookCriticalThisFight' | 'woundDressed'>): boolean {
+  return !!c.tookCriticalThisFight && !c.woundDressed;
+}
+
+/** SOURCE UNIQUE de l'application d'un soin de Blessures (Guérison, mode `blessures`, en combat comme à
+ *  l'infirmerie) : delta BI+DR appliqué (mutation), + Infection Mineure sur Échec Stupéfiant (DR ≤ −6, LDB 09) ;
+ *  réussi sous Bandages, la Blessure Critique de la rencontre est pansée (`plaieAPanser`, LDB 09 l.260).
  *  Renvoie le journal + le nombre de PB rendus. */
 export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: number, success: boolean, rng: RNG, bandages: boolean): { log: string[]; healed: number } {
   // « Un patient ne peut bénéficier que d'UN JET de Guérison après chaque rencontre » (LDB 09
@@ -269,7 +274,7 @@ export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: numbe
   target.soinRencontreUtilise = true;
   const healed = healWoundsDelta(intBonus, sl, success);
   const log = applyHealWounds(target, healed);
-  if (success && bandages) target.woundDressed = true;
+  if (success && bandages && plaieAPanser(target)) target.woundDressed = true;
   if (isAstoundingFailure(success, sl)) {
     const dz = contractDisease('infection-mineure', rng);
     if (dz && !(target.diseases ?? []).some((d) => d.id === dz.id)) {
