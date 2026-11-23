@@ -41,12 +41,20 @@ qu'avec elles.
 joue déjà : elles marquent le retour d'expédition (soins, séquelles, qui repart) et nourrissent des rencontres à
 choix (un autel profané, un puits souillé, un blessé contagieux).
 
-## 5. Une progression qu'on sent
+## 5. La forge améliore les armes
+
+« Un truc que je voudrais voir plus tard chez le forgeron, c'est des améliorations type "De qualité" et/ou "Magique"
+sinon certains monstres dans le futur vont etre dure. Y'a pas 36 qualité qui fonctionnent sur les objets de qualité mais
+bon, il y en a au moins une » (2026-11-23). Le forgeron confère à une arme ou une armure une qualité d'artisanat du
+livre (atouts que le noyau applique) et, plus tard, la rend Magique (contre les créatures qui l'exigent), à un palier
+de forge élevé. À mesurer : quelles qualités le noyau joue, quels adversaires exigent une arme magique.
+
+## 6. Une progression qu'on sent
 
 Montrer l'effet d'un achat en combat (« +5 % de chances de toucher »). À intégrer à la progression « à la 5e »
 validée le 2026-11-23 (`CONCEPTION.md`).
 
-## 6. L'économie sur une campagne entière
+## 7. L'économie sur une campagne entière
 
 À mesurer pendant une partie complète : le péage et les petites routes suffisent-ils à tout financer ? Le hameau
 se bâtit-il trop vite quand on rentre souvent ?
