@@ -101,8 +101,10 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
   </div>`;
 }
 
-export const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', boss: 'Maître' };
-export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'duel', elite: 'bouclier', camp: 'tente', tresor: 'coffre', boss: 'couronne' };
+export const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', rencontre: 'Rencontre', boss: 'Maître' };
+export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'duel', elite: 'bouclier', camp: 'tente', tresor: 'coffre', rencontre: 'balance', boss: 'couronne' };
+/** La gravure d'une salle : la rencontre se tient au campement des voyageurs. */
+export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = { combat: 'combat', elite: 'elite', camp: 'camp', tresor: 'tresor', rencontre: 'camp', boss: 'boss' };
 
 /** Les sacs du groupe : une rangée par héros ; un clic sur une case utilise l'objet ; la Bénédiction de Guérison d'un
  *  Béni est une case de plus, une fois par expédition, sur le plus blessé. */
@@ -129,40 +131,84 @@ function blessuresDeLEchec(ep: Epreuve): number {
   return f?.kind === 'effet' && f.effet.type === 'ops' ? f.effet.ops.reduce((n, o) => n + (o.op === 'wounds' && typeof o.amount === 'number' ? o.amount : 0), 0) : 0;
 }
 
-const PICTO_D_ACTION: Record<J.ActionDeSalle, string> = { fouiller: 'oeil', desarmer: 'systeme', passer: 'route' };
+const PICTO_D_ACTION: Record<J.ActionDeSalle, string> = {
+  fouiller: 'oeil', desarmer: 'systeme', parlementer: 'balance', intimider: 'duel', passer: 'route', reposer: 'lune', soigner: 'soin',
+};
+
+/** L'action que la salle ouverte attend au socle : l'action à jet et son héros, ou le soin du camp, son soigneur puis
+ *  son blessé. */
+export interface ChoixDeSalle { action: J.ActionDeSalle; soigneur?: string }
+
+/** Une action de la salle ouverte, en pièce : son Test (rubrique, Difficulté), ce que rapporte sa réussite et ce que
+ *  coûte son échec ; `savent` : combien du groupe peuvent la tenter, absent pour une action sans héros. */
+interface Offre { id: J.ActionDeSalle; libelle: string; rub: string; difficulte?: string; gain?: string; picto?: string; risque?: string; savent?: number }
+
+/** La salle à choix ouverte : son titre, son annonce et ses offres. */
+function offresDeLaSalle(e: J.Etat): { titre: string; annonce: string; offres: Offre[] } {
+  const x = e.expedition!;
+  const groupe = J.herosDuGroupe(e);
+  const type = x.salles[x.index].type;
+  if (type === 'camp') {
+    return { titre: J.CAMP.titre, annonce: J.CAMP.annonce, offres: [
+      { id: 'soigner', libelle: J.CAMP.soigner.libelle, rub: 'Test de Guérison',
+        gain: 'Blessures rendues', picto: 'soin', savent: groupe.filter((h) => !J.refusDuSoigneur(h)).length },
+      { id: 'reposer', libelle: J.CAMP.reposer.libelle, rub: 'Sans Test', gain: J.CAMP.reposer.issue },
+    ] };
+  }
+  const s = J.EPREUVES[type as J.SalleAJet];
+  const d = J.destinationCourante(e)!;
+  const offre = (id: J.IdActionAJet): Offre => {
+    const a = J.ACTIONS_A_JET[id];
+    const parties = a.epreuves.map((ep) => partiesDuTest(ep.flux));
+    const blessures = blessuresDeLEchec(a.epreuves[0]);
+    const c = a.consequence;
+    const risque = c?.type === 'combat' ? 'Raté : un combat' : c?.type === 'bourse' ? `Raté −${Math.round(c.part * d.or)} CO au plus` : blessures ? `Raté −${blessures} Blessures` : undefined;
+    return { id, libelle: a.libelle, rub: `Test de ${parties.map((p) => p.competence).join(' ou ')}`, difficulte: parties[0].difficulte, gain: s.gain.libelle, picto: 'pieces', risque, savent: groupe.filter((h) => !J.refusDAction(h, id)).length };
+  };
+  return { titre: s.titre, annonce: s.annonce, offres: [
+    ...(Object.keys(s.actions) as J.IdActionAJet[]).map(offre),
+    { id: 'passer', libelle: s.passer.libelle, rub: 'Sans Test', gain: s.passer.issue.replace(/^./, (c) => c.toUpperCase()) },
+  ] };
+}
 
 /** La salle à choix ouverte, en carton : son annonce, puis une pièce par action, qui est son geste — son Test
  *  (Compétence, Difficulté), ce que rapporte sa réussite et ce que coûte son échec, combien du groupe savent la
- *  tenter ; `choix` : l'action à jet qui attend son héros au socle. */
-function salleAChoixEnCarton(e: J.Etat, choix: J.IdActionAJet | null): string {
+ *  tenter ; `choix` : l'action qui attend son héros au socle. */
+function salleAChoixEnCarton(e: J.Etat, choix: ChoixDeSalle | null): string {
   const x = e.expedition!;
-  const cache = J.EPREUVES.tresor;
+  const type = x.salles[x.index].type;
   const groupe = J.herosDuGroupe(e);
-  const titre = (id: J.ActionDeSalle, libelle: string) => `<span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[id], 18, 1.8)}${esc(libelle)}</span>`;
-  const action = (id: J.IdActionAJet) => {
-    const a = cache.actions[id];
-    const parties = a.epreuves.map((ep) => partiesDuTest(ep.flux));
-    const savent = groupe.filter((h) => !J.refusDAction(h, id)).length;
-    const cout = blessuresDeLEchec(a.epreuves[0]);
-    return pieceDEpreuve(`action${choix === id ? ' choisi' : ''}`, '', `Test de ${esc(parties.map((p) => p.competence).join(' ou '))}`,
-      `${titre(id, a.libelle)}<span class="difficulte">${esc(parties[0].difficulte)}</span>
-      <span class="enjeu"><span class="gain">${picto('pieces', 15, 1.8)}Bourse cachée</span>${cout ? `<span class="risque">Raté −${cout} Blessures</span>` : ''}</span>
-      <span class="qui-peut${savent ? '' : ' personne'}">${savent === groupe.length ? 'Tous savent le tenter' : savent ? `${savent} sur ${groupe.length} sait le tenter`.replace(/^([2-9].*) sait/, '$1 savent') : 'Personne ne sait le tenter'}</span>`,
-      `data-a="action" data-k="${id}"${savent ? '' : ' disabled'}`);
-  };
-  const passer = pieceDEpreuve('action passer', '', 'Sans Test',
-    `${titre('passer', cache.passer.libelle)}<span class="enjeu"><span>${esc(cache.passer.issue.replace(/^./, (c) => c.toUpperCase()))}</span></span>`, 'data-a="action" data-k="passer"');
+  const { titre, annonce, offres } = offresDeLaSalle(e);
+  const piece = (o: Offre) => pieceDEpreuve(`action${o.savent === undefined ? ' passer' : ''}${choix?.action === o.id ? ' choisi' : ''}`, '', esc(o.rub),
+    `<span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[o.id], 18, 1.8)}${esc(o.libelle)}</span>${o.difficulte ? `<span class="difficulte">${esc(o.difficulte)}</span>` : ''}
+    <span class="enjeu">${o.gain ? `<span${o.picto ? ' class="gain"' : ''}>${o.picto ? picto(o.picto, 15, 1.8) : ''}${esc(o.gain)}</span>` : ''}${o.risque ? `<span class="risque">${esc(o.risque)}</span>` : ''}</span>
+    ${o.savent === undefined ? '' : `<span class="qui-peut${o.savent ? '' : ' personne'}">${o.savent === groupe.length ? 'Tous savent le tenter' : o.savent ? `${o.savent} sur ${groupe.length} sait le tenter`.replace(/^([2-9].*) sait/, '$1 savent') : 'Personne ne sait le tenter'}</span>`}`,
+    `data-a="action" data-k="${o.id}"${o.savent === 0 ? ' disabled' : ''}`);
   return carton({
-    ruban: NOM_DE_SALLE.tresor, vignette: 'tresor', titre: cache.titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
-    texte: `<div class="recit epreuve choix"><p>${esc(cache.annonce)}</p><div class="pieces-epreuve">${(Object.keys(cache.actions) as J.IdActionAJet[]).map(action).join('')}${passer}</div></div>`,
+    ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
+    texte: `<div class="recit epreuve choix"><p>${esc(annonce)}</p><div class="pieces-epreuve">${offres.map(piece).join('')}</div></div>`,
     gestes: glose(choix ? 'Un second clic sur l’action y renonce.' : 'Choisissez une action.'),
   });
 }
 
+/** Ce que le socle demande pour le `choix` en attente : qui tente l'action, qui soigne, puis qui est soigné. */
+function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle {
+  const base = { heros: groupe, geste: 'tenter', choisi: (h: J.Heros) => h.c.id === choix.soigneur };
+  if (choix.action !== 'soigner') {
+    const id = choix.action as J.IdActionAJet;
+    return { ...base, refus: (h) => J.refusDAction(h, id), consigne: J.ACTIONS_A_JET[id].question };
+  }
+  const soigneur = groupe.find((h) => h.c.id === choix.soigneur);
+  return soigneur
+    ? { ...base, refus: (h) => J.refusDuPatient(e, soigneur, h), consigne: J.CAMP.soigner.patient }
+    : { ...base, refus: J.refusDuSoigneur, consigne: J.CAMP.soigner.soigneur };
+}
+
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une
  *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; tant qu'aucune action n'est prise, le socle
- *  ouvre les fiches ; puis il demande qui tente l'action `choix`, chaque carte fermée disant pourquoi elle l'est. */
-export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choix: J.IdActionAJet | null): string {
+ *  ouvre les fiches ; puis il demande qui tente l'action `choix` (`socleDuChoix`), chaque carte fermée disant
+ *  pourquoi elle l'est. */
+export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choix: ChoixDeSalle | null): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -170,12 +216,12 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choi
   const valides = groupe.filter(J.valide).length;
   const aChoisir = !recit && J.salleAChoisir(e);
   const carte = aChoisir ? salleAChoixEnCarton(e, choix) : recit;
-  const socle: Socle = !aChoisir || !choix ? { heros: groupe, geste: 'heros', choisi: () => false }
-    : { heros: groupe, geste: 'tenter', choisi: () => false, refus: (h) => J.refusDAction(h, choix), consigne: J.EPREUVES.tresor.actions[choix].question };
-  const annonce = salle.type === 'camp' ? 'Un abri se devine entre les arbres. Le groupe pourra y passer la nuit.'
-    : salle.type === 'tresor' ? J.EPREUVES.tresor.annonce
+  const socle: Socle = !aChoisir || !choix ? { heros: groupe, geste: 'heros', choisi: () => false } : socleDuChoix(e, groupe, choix);
+  const annonce = salle.type === 'camp' ? J.CAMP.annonce
+    : salle.type === 'tresor' || salle.type === 'rencontre' ? J.EPREUVES[salle.type].annonce
     : `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`;
-  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' ? 'Approcher' : 'Engager le combat';
+  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' || salle.type === 'rencontre' ? 'Approcher' : 'Engager le combat';
+
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const scene = (!recit && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
@@ -193,23 +239,23 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, recit: string, choi
 }
 
 /** Le récit d'une épreuve en pièces : le Test (qui le passe, sa Compétence et sa Difficulté, son issue et ses DR au sceau
- *  de cire), chaque touché à son portrait, ses Blessures avant et après et sa vie restante en jauge, la bourse prise (s'il y en a une) en
- *  couronnes ; dessous, ce qu'il advient du piège. */
+ *  de cire), chaque touché à son portrait (s'il est encore du groupe), ses Blessures avant et après et sa vie restante
+ *  en jauge, la bourse prise ou perdue (s'il y en a une) en couronnes ; dessous, ce qu'il advient, et la suite de la
+ *  conséquence (combat, retour). */
 function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
-  const qui = (id: string) => heros.find((h) => h.c.id === id)!;
   const dr = `${x.dr >= 0 ? '+' : '−'}${Math.abs(x.dr)}`;
   let pieces = pieceDEpreuve(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
-    `<span class="nom-propre moyen gothique">${esc(qui(x.testeur).c.label)}</span><span class="issue"><span class="etiquette rectangle cire">${x.reussite ? 'Réussi' : 'Raté'}</span>${x.difficulte ? `<span class="difficulte">${esc(x.difficulte)}</span>` : ''}</span>`);
+    `<span class="nom-propre moyen gothique">${esc(x.nom)}</span><span class="issue"><span class="etiquette rectangle cire">${x.reussite ? 'Réussi' : 'Raté'}</span>${x.difficulte ? `<span class="difficulte">${esc(x.difficulte)}</span>` : ''}</span>`);
   for (const v of x.victimes) {
-    const h = qui(v.id);
-    pieces += pieceDEpreuve('touche', portrait(busteDuHeros(h), 'heros', 'moyen'), 'Touché·e', `<span class="nom-propre moyen gothique">${esc(h.c.label)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
+    const h = heros.find((g) => g.c.id === v.id);
+    pieces += pieceDEpreuve('touche', h ? portrait(busteDuHeros(h), 'heros', 'moyen') : '', 'Touché·e', `<span class="nom-propre moyen gothique">${esc(v.nom)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
   }
-  if (x.or) pieces += pieceDEpreuve('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
-  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p></div>`;
+  if (x.or) pieces += pieceDEpreuve('bourse', '', esc(x.or > 0 ? x.bourse : 'Perdu'), `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">${x.or > 0 ? '+' : '−'}${Math.abs(x.or)}</b> CO</span>`);
+  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p>${x.suite.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
 }
 
 /** Le récit d'une salle franchie, ou du retour, en carton : une épreuve en pièces (`heros` : le groupe, qui lui donne
- *  ses noms et ses portraits), tout autre récit en lignes ; la défaite colore sa première ligne. */
+ *  ses portraits), tout autre récit en lignes ; la défaite colore sa première ligne. */
 export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: Vignette; surTitre: string }, heros: readonly J.Heros[]): string {
   return carton({
     ruban: o.ruban, vignette: o.vignette, titre: r.titre, surTitre: o.surTitre,
@@ -217,6 +263,7 @@ export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: V
     gestes: `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
   });
 }
+
 
 /** Les réglages : la taille de l'interface, et Recommencer. */
 export function reglagesEnCarton(): string {

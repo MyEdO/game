@@ -194,9 +194,19 @@ sur une arène générée.
   `jetLancer('soins')` et `jetValider('soins')` : le soigneur et l'acte (`blessures`) sont choisis d'office
   (`pendingHeal.healerId`), le jet suit la graine (« Hans : +3 PB (6/9) » ; ailleurs « le soin tourne mal — 1 Blessure(s)
   en plus »). L'infirmerie reste ouverte après (`fenetreFermer('infirmerie')`). Il faut un héros qui possède Guérison
-  (`refusDeSoins`, `peutTenter`) : aucune des 12 carrières du roster ne l'a au niveau 1 (le Prêtre l'a au niveau 2),
-  et l'acheter hors carrière est refusé (« « Guérison » hors carrière, non acquérable »). Précise l'entrée
+  (`refusDeSoins`, `peutTenter`), et l'acheter hors carrière est refusé (« « Guérison » hors carrière, non acquérable »). Précise l'entrée
   « l'infirmerie du noyau suppose un joueur » : le drive manque, mais deux verbes suffisent.
+- **Friction — aucun réglage du soigneur à l'infirmerie.** Le soin du camp (`soignerUnCompagnon`) ouvre l'infirmerie
+  sur le seul couple choisi : le noyau confie l'acte au meilleur en Guérison des deux (`bestHealerFor`), l'autre le
+  soutient (constaté : soigneur voulu à 39, patient à 48, `healerId` = le patient, `support` +10 du soigneur voulu).
+  `jetRegler('soins')` règle `mode`, `test` et `bandages`, jamais le soigneur : l'hôte refuse donc, avant tout jet, le soin
+  que le noyau confierait à un autre. Idée : un réglage `soigneur` du flux `soins`, offert aux héros qui peuvent tenter
+  la Guérison. Constaté aussi : le noyau laisse un héros se soigner lui-même (le camp le refuse : le soigneur soigne
+  un autre héros) ; après un soin, aucun brouillon ne se repose sur le même patient dans la même partie, mais rien ne
+  survit à la partie : l'hôte plafonne à un soin par blessé et par camp. Une recrue de chaque carrière tirée à la
+  graine 7 : la Nonne, le Tueur, le Répurgateur, le Médecin, le Duelliste et le Prêtre-guerrier tentent la Guérison,
+  aucune n'a Chirurgie ; l'opération (`jetLancer('chirurgie')`, `jetValider('chirurgie')` par passe) n'est pas jouée
+  au camp.
 - **Trou — aucun compagnon dans le noyau.** Le Ratier reçoit `{ "id": "chien", "type": "creature" }` : la partie le sème
   en possession `bete` (`seedStartingPossessions`, `ref: { id: 'chien' }`, le Chien du bestiaire, Taille Petite, pas
   `chien-de-ratier`), attachée au héros, mais seule une monture entre en combat (`heroCombatMount`,

@@ -35,8 +35,16 @@ for (let exp = 0; exp < expeditions; exp++) {
   while (e.expedition) {
     const r = J.avancer(e) ?? (() => {
       const g = J.herosDuGroupe(e);
-      const desarmeur = g.find((h) => !J.refusDAction(h, 'desarmer'));
-      const r = desarmeur ? J.agirDansLaSalle(e, 'desarmer', desarmeur.c.id) : J.agirDansLaSalle(e, 'fouiller', g.find(J.valide)?.c.id);
+      const x = e.expedition!;
+      if (x.salles[x.index].type === 'camp') {
+        // Au camp : le premier soigneur soigne chaque blessé que le noyau lui confie, puis le groupe se repose.
+        const soigneur = g.find((h) => !J.refusDuSoigneur(h));
+        if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
+        return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
+      }
+      const [action, repli] = x.salles[x.index].type === 'rencontre' ? ['parlementer', 'parlementer'] as const : ['desarmer', 'fouiller'] as const;
+      const tenteur = g.find((h) => !J.refusDAction(h, action));
+      const r = tenteur ? J.agirDansLaSalle(e, action, tenteur.c.id) : J.agirDansLaSalle(e, repli, g.find(J.valide)?.c.id);
       return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
     })();
     const g = J.herosDuGroupe(e);

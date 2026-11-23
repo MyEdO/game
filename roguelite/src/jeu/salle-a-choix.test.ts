@@ -37,7 +37,7 @@ describe('la cache piégée, salle à choix', () => {
       for (const [id, w] of blessures(e)) if (id !== choisi) expect(w).toBe(avant.get(id));
       expect(r.or > 0).toBe(r.reussite);
       expect(e.expedition!.or).toBe(r.or);
-      expect(r.dit).toBe(r.reussite ? EPREUVES.tresor.actions.fouiller.reussite : EPREUVES.tresor.declenche);
+      expect(r.dit).toBe(r.reussite ? EPREUVES.tresor.actions.fouiller.reussite : EPREUVES.tresor.actions.fouiller.echec);
     }
     expect(issues).toEqual(new Set([true, false]));
   });

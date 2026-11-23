@@ -10,11 +10,9 @@ Ordre : 1, puis 2 et 3 ensemble, puis 4.
 
 « rien ne doit etre automatique, on doit choisir nos actions dans les salles ».
 
-- **Chaque salle hors combat propose des actions** entre lesquelles le joueur choisit, chacune jouée par le noyau
-  (Test du héros choisi ou du meilleur du groupe, conséquences en effets de scène). La cache piégée se joue
-  aujourd'hui seule : elle passe au choix (« fouiller », « désarmer d'abord », « passer »).
-- **Le camp** : le soigneur du groupe passe par l'infirmerie du noyau (Guérison, Chirurgie) ; qui veille, qui soigne.
-- **Rencontres à choix** : en partie sociales (Charme, Intimidation, Commandement) ; pièges sur d'autres Compétences.
+- **Le camp** : qui veille ; la chirurgie du soigneur qui l'a.
+- **Rencontres à choix** : Commandement ; une réussite qui rapporte une information ou un objet ; pièges sur d'autres
+  Compétences.
 - **Un risque à doser** : choix de chemin entre deux salles, ressource qui s'use au fil de l'expédition.
 - **Provisions de route à l'Auberge relais** (« Rations, torches, cordes, clairement ca peut servir pour plus tard »,
   2026-11-23) : objets du noyau achetés avant de partir, qui ouvrent ou facilitent des actions de salle (corde pour

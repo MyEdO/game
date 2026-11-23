@@ -174,7 +174,7 @@ export const nomDEspece = (id: string): string => ESPECES[id]?.nom ?? id;
 /** La prière utilitaire d'un Béni entre deux salles, une fois par expédition. */
 export const PRIERE_DE_SOIN = 'benediction-de-guerison';
 
-export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'boss';
+export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'rencontre' | 'boss';
 export interface Destination {
   id: string; nom: string; recit: string; palier: number; salles: number;
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
@@ -198,38 +198,75 @@ export const DESTINATIONS: readonly Destination[] = [
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
 ];
 
+/** Ce que coûte l'échec d'une action, en plus de la branche d'échec de son Test (`flux.echec`) : une meute de la
+ *  destination à combattre (`Destination.meutes`), ou la part `part` de l'or de l'étape (`Destination.or`) prise sur
+ *  la bourse de l'expédition. */
+export type Consequence = { type: 'combat' } | { type: 'bourse'; part: number };
 /** Une action à jet d'une salle à choix : son geste, la question au socle, ses épreuves (le héros choisi joue la
- *  première qu'il peut tenter, `epreuveTentable`) et ce que dit sa réussite. */
-export interface ActionAJet { libelle: string; question: string; epreuves: readonly Epreuve[]; reussite: string }
-export type IdActionAJet = 'fouiller' | 'desarmer';
+ *  première qu'il peut tenter, `epreuveTentable`), ce que disent sa réussite et son échec, et la conséquence de
+ *  l'échec. */
+export interface ActionAJet { libelle: string; question: string; epreuves: readonly Epreuve[]; reussite: string; echec: string; consequence?: Consequence }
 /** Une salle à choix jouée par le noyau (`jouerLEpreuve`) : son titre, son annonce, ses actions à jet, « passer », et
- *  ce que le récit dit d'un échec. */
-export interface SalleAChoix { titre: string; annonce: string; actions: Record<IdActionAJet, ActionAJet>; passer: { libelle: string; issue: string; recit: string }; declenche: string }
+ *  le gain d'une réussite : la part `part` d'un tirage entre une et deux fois l'or de l'étape (`Destination.or`). */
+export interface SalleAChoix<A extends string> {
+  titre: string; annonce: string; actions: Record<A, ActionAJet>; gain: { libelle: string; part: number };
+  passer: { libelle: string; issue: string; recit: string };
+}
 
 /** La lame du piège : sans `on`, l'effet frappe le groupe de l'épreuve, réduit au héros qui la tente. */
 const LAME: FluxDEpreuve['echec'] = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'wounds', amount: 4 }] } };
-const epreuve = (label: string, skill: string, difficulty: NonNullable<FluxDEpreuve['test']['difficulty']>): Epreuve =>
-  ({ label, flux: { kind: 'test', test: { skill: { id: skill }, difficulty }, reussite: { kind: 'sequence', etapes: [] }, echec: LAME } });
+const RIEN: FluxDEpreuve['echec'] = { kind: 'sequence', etapes: [] };
+const epreuve = (label: string, skill: string, difficulty: NonNullable<FluxDEpreuve['test']['difficulty']>, echec: FluxDEpreuve['echec'] = LAME): Epreuve =>
+  ({ label, flux: { kind: 'test', test: { skill: { id: skill }, difficulty }, reussite: RIEN, echec } });
 
-/** Valeurs d'adaptation : la cache piégée de la salle `tresor`. */
-export const EPREUVES: { tresor: SalleAChoix } = {
+const DECLENCHE = 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche, la bourse reste hors d’atteinte.';
+/** Valeurs d'adaptation : la cache piégée de la salle `tresor`, les voyageurs de la salle `rencontre`. */
+export const EPREUVES = {
   tresor: {
     titre: 'Une cache piégée',
     annonce: 'Des pierres semblent avoir été déplacées : une bourse dessous, peut-être, et un piège avec elle.',
     actions: {
       fouiller: { libelle: 'Fouiller', question: 'Qui fouille la cache ?', epreuves: [epreuve('Fouiller la cache', 'perception', 'difficile')],
-        reussite: 'Un fil tendu court sous les pierres : le piège est repéré, la bourse dégagée.' },
+        reussite: 'Un fil tendu court sous les pierres : le piège est repéré, la bourse dégagée.', echec: DECLENCHE },
       desarmer: { libelle: 'Désarmer d’abord', question: 'Qui désarme le piège ?',
         epreuves: [epreuve('Désarmer le piège', 'piegeage', 'intermediaire'), epreuve('Désarmer le piège', 'crochetage', 'intermediaire')],
-        reussite: 'Le mécanisme cède sans un bruit : le piège est désarmé, la cache se fouille sans risque.' },
+        reussite: 'Le mécanisme cède sans un bruit : le piège est désarmé, la cache se fouille sans risque.', echec: DECLENCHE },
     },
+    gain: { libelle: 'Bourse cachée', part: 1 },
     passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni risque', recit: 'Le groupe laisse les pierres en place et poursuit sa route.' },
-    declenche: 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche, la bourse reste hors d’atteinte.',
   },
+  rencontre: {
+    titre: 'Des voyageurs sur la route',
+    annonce: 'Un colporteur et deux gardes font halte au bord du chemin. Ils toisent le groupe, la main près de la ceinture.',
+    actions: {
+      parlementer: { libelle: 'Parlementer', question: 'Qui parlemente ?', epreuves: [epreuve('Parlementer', 'charme', 'intermediaire', RIEN)],
+        reussite: 'On parle de la route et des bêtes qui la hantent : le colporteur paie bien les nouvelles du hameau.',
+        echec: 'Le marchandage tourne court : le colporteur vous soulage de quelques pièces avant de repartir.', consequence: { type: 'bourse', part: 0.5 } },
+      intimider: { libelle: 'Intimider', question: 'Qui intimide ?', epreuves: [epreuve('Intimider', 'intimidation', 'difficile', RIEN)],
+        reussite: 'Les gardes baissent les yeux : le colporteur lâche sa bourse pour passer son chemin.',
+        echec: 'Les gardes ne plient pas et le ton monte ; le vacarme attire ce qui rôde, et la rencontre tourne au combat.', consequence: { type: 'combat' } },
+    },
+    gain: { libelle: 'Bourse du colporteur', part: 0.5 },
+    passer: { libelle: 'Ignorer', issue: 'ni gain ni risque', recit: 'Le groupe salue de loin et poursuit sa route.' },
+  },
+} satisfies { tresor: SalleAChoix<'fouiller' | 'desarmer'>; rencontre: SalleAChoix<'parlementer' | 'intimider'> };
+/** Les salles à choix dont les actions se jouent par un Test (`EPREUVES`). */
+export type SalleAJet = keyof typeof EPREUVES;
+export type IdActionAJet = { [S in SalleAJet]: keyof (typeof EPREUVES)[S]['actions'] }[SalleAJet];
+/** Toutes les actions à jet, par id. */
+export const ACTIONS_A_JET: Record<IdActionAJet, ActionAJet> = { ...EPREUVES.tresor.actions, ...EPREUVES.rencontre.actions };
+
+/** Valeurs d'adaptation : le camp, salle à choix. Chaque blessé y reçoit un soin au plus (`Salle.soignes`) ; le repos
+ *  lève le camp. */
+export const CAMP = {
+  titre: 'Un abri pour la nuit',
+  annonce: 'Un abri se devine entre les arbres. Le groupe peut y passer la nuit, et ses blessés y être soignés.',
+  reposer: { libelle: 'Se reposer', issue: 'Une nuit de repos pour tous, puis la route', recit: 'Le groupe établit un camp et monte la garde à tour de rôle.' },
+  soigner: { libelle: 'Soigner un blessé', titre: 'Les soins du camp', soigneur: 'Qui soigne ?', patient: 'Qui est soigné ?' },
 };
 
 /** PX gagnés par salle franchie, par type. */
-export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10 };
+export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
 export const OR_INITIAL = 100;
 export const PRIX_DE_RECRUE = [15, 30, 50];
 /** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */

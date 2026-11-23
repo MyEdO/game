@@ -10,7 +10,7 @@ import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
 import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
 import { panneauDeService, type Emplacement } from './ui/services';
-import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
+import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton, VIGNETTE_DE_SALLE, type ChoixDeSalle } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { gloserDans, installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
@@ -26,8 +26,8 @@ let client: string | null = null;
 /** L'emplacement ouvert à la forge. */
 let emplacement: Emplacement = 'main';
 let congediement: string | null = null;
-/** L'action à jet de la salle ouverte qui attend son héros au socle. */
-let choixDAction: J.IdActionAJet | null = null;
+/** L'action de la salle ouverte qui attend son héros (son soigneur, puis son blessé) au socle. */
+let choixDAction: ChoixDeSalle | null = null;
 let panoramaCentre = false;
 
 function toast(msg: string | null) {
@@ -46,14 +46,21 @@ function agir(f: () => string | null | void) {
   if (err) toast(err);
 }
 
-/** Le récit de l'action jouée dans la salle ouverte (`J.agirDansLaSalle`), en carton ; son refus, en toast. */
-function raconterLAction(r: J.RecitDeSalle | string) {
+/** Joue l'action choisie dans la salle ouverte (`J.agirDansLaSalle`) et raconte son récit en carton ; son refus, en
+ *  toast. La salle, sa route et son rang se lisent avant l'action, qui peut ramener le groupe au hameau. */
+function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: string) {
+  const x = etat.expedition!;
+  const type = x.salles[x.index].type;
+  const terrain = x.destination;
+  const route = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`;
+  const r = J.agirDansLaSalle(etat, action, herosId, patientId);
   if (typeof r === 'string') return toast(r);
   choixDAction = null;
   J.sauver(etat);
-  const x = etat.expedition!;
-  ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE.tresor, vignette: 'tresor', surTitre: `${J.destinationCourante(etat)!.nom} · salle ${x.index} sur ${x.salles.length} franchie`, terrain: x.destination };
+  const montrer = () => { ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain }; rendre(); };
+  if (!r.combat) return montrer();
   rendre();
+  ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
 }
 
 /** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le hameau. */
@@ -158,7 +165,7 @@ document.addEventListener('click', (ev) => {
       const recit = J.avancer(etat);
       J.sauver(etat);
       if (!recit) { choixDAction = null; return rendre(); }
-      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: type, surTitre, terrain }; rendre(); };
+      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain }; rendre(); };
       if (!recit.combat) return montrer();
       rendre();
       // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
@@ -168,10 +175,18 @@ document.addEventListener('click', (ev) => {
       return;
     }
     case 'action': {
-      if (k !== 'passer') { choixDAction = choixDAction === k ? null : k as J.IdActionAJet; return rendre(); }
-      return raconterLAction(J.agirDansLaSalle(etat, 'passer'));
+      const action = k as J.ActionDeSalle;
+      if (action === 'passer' || action === 'reposer') return raconterLAction(action);
+      choixDAction = choixDAction?.action === action ? null : { action };
+      return rendre();
     }
-    case 'tenter': return choixDAction ? raconterLAction(J.agirDansLaSalle(etat, choixDAction, id)) : undefined;
+    case 'tenter': {
+      if (!choixDAction || !id) return;
+      if (choixDAction.action !== 'soigner') return raconterLAction(choixDAction.action, id);
+      if (choixDAction.soigneur) return raconterLAction('soigner', choixDAction.soigneur, id);
+      choixDAction = { action: 'soigner', soigneur: id };
+      return rendre();
+    }
     case 'revoir': {
       if (ouvert?.type !== 'recit' || !ouvert.recit.combat) return;
       const m = ouvert;

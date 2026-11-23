@@ -12,8 +12,9 @@ export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
-/** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`) et attend le choix de son action. */
-export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true }
+/** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`, `CAMP`) et attend le choix de son action ;
+ *  `soignes` : les héros déjà soignés au camp. */
+export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true; soignes?: string[] }
 /** `prieres` : les Bénis qui ont déjà prié pour soigner pendant l'expédition. */
 /** `munitions` : les munitions de chaque héros au départ, par objet du catalogue ; elles sont ramassées au retour. */
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }

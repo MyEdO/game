@@ -1,9 +1,23 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, refusDuSoin, saitSoigner, soignerUnCompagnon, type IssueDuCombat } from '../noyau';
 
-import { DESTINATIONS, EPREUVES, type IdActionAJet, LIEUX_DE_SEJOUR, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
+import {
+  DESTINATIONS,
+  EPREUVES,
+  type IdActionAJet,
+  LIEUX_DE_SEJOUR,
+  MUNITIONS,
+  PRIERE_DE_SOIN,
+  PX_PAR_SALLE,
+  SEMAINE_DE_REPOS,
+  TAILLE_DU_GROUPE,
+  TypeDeSalle,
+  ACTIONS_A_JET,
+  CAMP,
+  type SalleAJet,
+} from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 
@@ -27,7 +41,8 @@ export function partir(e: Etat, destinationId: string, groupe: string[]): string
   const salles: Salle[] = [];
   for (let i = 0; i < d.salles - 1; i++) {
     const t = rng.int(1, 100);
-    const type: TypeDeSalle = i === 0 ? 'combat' : t <= 50 ? 'combat' : t <= 70 ? 'elite' : t <= 85 ? 'camp' : 'tresor';
+    const type: TypeDeSalle = i === 0 ? 'combat' : t <= 50 ? 'combat' : t <= 70 ? 'elite' : t <= 85 ? 'camp'
+      : t <= 93 && !salles.some((s) => s.type === 'rencontre') ? 'rencontre' : 'tresor';
     salles.push({ type, ennemis: type === 'combat' ? choisir(rng, d.meutes) : type === 'elite' ? choisir(rng, d.elites) : [], faite: false });
   }
   salles.push({ type: 'boss', ennemis: d.boss, faite: false });
@@ -81,100 +96,141 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   return r.journal.slice(-2).join(' ');
 }
 
-/** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id), le Test, son issue et ses DR, chaque héros touché et ses
- *  Blessures avant et après, l'or pris, et ce que dit l'issue. */
+/** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id et nom), le Test, son issue et ses DR, chaque héros touché et
+ *  ses Blessures avant et après, l'or pris (perdu, s'il est négatif) et le nom de la bourse, ce que dit l'issue, et la suite de sa conséquence
+ *  (combat, retour). */
 export interface EpreuveDuRecit {
-  testeur: string; competence: string; difficulte: string; reussite: boolean; dr: number;
-  victimes: { id: string; avant: number; apres: number; max: number }[]; or: number; dit: string;
+  testeur: string; nom: string; competence: string; difficulte: string; reussite: boolean; dr: number;
+  victimes: { id: string; nom: string; avant: number; apres: number; max: number }[]; or: number; bourse: string; dit: string; suite: string[];
 }
 export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit }
 
-/** Une action d'une salle à choix : une action à jet, ou passer son chemin. */
-export type ActionDeSalle = IdActionAJet | 'passer';
+/** Une action d'une salle à choix : une action à jet, passer son chemin, ou au camp se reposer et soigner. */
+export type ActionDeSalle = IdActionAJet | 'passer' | 'reposer' | 'soigner';
 /** La salle courante attend-elle le choix d'une action ? */
 export const salleAChoisir = (e: Etat): boolean => !!e.expedition?.salles[e.expedition.index]?.ouverte;
 
-/** Pourquoi le héros `h` ne peut pas tenter l'`action` de la cache, ou `null` s'il le peut. LDB 09 l.30 */
+/** Pourquoi le héros `h` ne peut pas tenter l'`action`, ou `null` s'il le peut. LDB 09 l.30 */
 export function refusDAction(h: Heros, action: IdActionAJet): string | null {
   if (!valide(h)) return 'Hors de combat.';
-  const { epreuves } = EPREUVES.tresor.actions[action];
+  const { epreuves } = ACTIONS_A_JET[action];
   return epreuveTentable(h.c, epreuves) ? null : `Ne sait tenter ni ${epreuves.map((ep) => partiesDuTest(ep.flux).competence).join(' ni ')}.`;
 }
 
-/** Joue l'`action` choisie dans la salle ouverte : une action à jet se joue sur le seul héros `herosId`, testeur et
- *  cible du piège ; « passer » ne joue rien. Rend le récit, ou pourquoi l'action est refusée. Un Test que le noyau
- *  ne joue pas (`IssueDEpreuve`, `refus`) laisse la salle ouverte : le héros revient tel que le noyau le laisse, et le
- *  choix reste au joueur. */
-export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string): RecitDeSalle | string {
+/** Pourquoi le héros `h` ne peut pas soigner au camp, ou `null` s'il le peut. LDB 09 l.30 */
+export const refusDuSoigneur = (h: Heros): string | null =>
+  !valide(h) ? 'Hors de combat.' : saitSoigner(h.c) ? null : 'Ne sait pas tenter la Guérison.';
+
+/** Pourquoi le `soigneur` ne peut pas soigner le héros `h` au camp courant, ou `null` s'il le peut : le soigneur, un
+ *  autre héros que lui, un soin par blessé et par camp, puis le verdict de l'infirmerie du noyau (`refusDuSoin`). */
+export function refusDuPatient(e: Etat, soigneur: Heros, h: Heros): string | null {
+  const salle = e.expedition?.salles[e.expedition.index];
+  if (salle?.type !== 'camp' || !salle.ouverte) return 'Aucun camp dressé.';
+  return refusDuSoigneur(soigneur) ?? (h.c.id === soigneur.c.id ? 'Le soigneur soigne un autre héros.'
+    : salle.soignes?.includes(h.c.id) ? 'Déjà soigné·e à ce camp.' : refusDuSoin(soigneur.c, h.c));
+}
+
+/** Joue l'`action` choisie dans la salle ouverte. Une action à jet se joue sur le seul héros `herosId`, testeur et
+ *  cible de l'échec ; au camp, « soigner » fait soigner le héros `patientId` par le héros `herosId` et laisse le camp
+ *  ouvert ; « passer » et « se reposer » ne jouent aucun Test. Rend le récit, ou pourquoi l'action est refusée. Un Test
+ *  que le noyau ne joue pas (`IssueDEpreuve`, `refus`) laisse la salle ouverte : le héros revient tel que le noyau le
+ *  laisse, et le choix reste au joueur. */
+export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string, patientId?: string): RecitDeSalle | string {
   const x = e.expedition;
   const salle = x?.salles[x.index];
   if (!x || !salle?.ouverte) return 'Aucune action en attente.';
-  const cache = EPREUVES.tresor;
-  if (action === 'passer') return franchir(e, { titre: cache.titre, lignes: [cache.passer.recit] });
-  const h = herosDuGroupe(e).find((g) => g.c.id === herosId);
+  const groupe = herosDuGroupe(e);
+  if (salle.type === 'camp') {
+    if (action === 'reposer') {
+      const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
+      return franchir(e, { titre: CAMP.titre, lignes: [CAMP.reposer.recit, ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] });
+    }
+    if (action !== 'soigner') return 'Action inconnue ici.';
+    const soigneur = groupe.find((g) => g.c.id === herosId);
+    const patient = groupe.find((g) => g.c.id === patientId);
+    if (!soigneur || !patient) return 'Choisissez le soigneur et le blessé.';
+    const refus = refusDuPatient(e, soigneur, patient);
+    if (refus) return refus;
+    const r = soignerUnCompagnon(soigneur.c, patient.c, e.graine++);
+    for (const c of r.groupe) { const h = groupe.find((g) => g.c.id === c.id); if (h) h.c = c; }
+    if ('refus' in r) return r.refus;
+    salle.soignes = [...(salle.soignes ?? []), patient.c.id];
+    return { titre: CAMP.soigner.titre, lignes: r.journal.length ? r.journal : [`${patient.c.label} : le soin n’apporte rien.`] };
+  }
+  const s = EPREUVES[salle.type as SalleAJet];
+  if (action === 'passer') return franchir(e, { titre: s.titre, lignes: [s.passer.recit] });
+  if (!(action in s.actions)) return 'Action inconnue ici.';
+  const h = groupe.find((g) => g.c.id === herosId);
   if (!h) return 'Choisissez un héros du groupe.';
-  const refus = refusDAction(h, action);
+  const id = action as IdActionAJet;
+  const refus = refusDAction(h, id);
   if (refus) return refus;
-  const a = cache.actions[action];
+  const a = ACTIONS_A_JET[id];
   const ep = epreuveTentable(h.c, a.epreuves)!;
   const avant = h.c.wounds.current;
   const r = jouerLEpreuve([h.c], ep, e.graine++);
   h.c = r.groupe[0];
-  if ('refus' in r) return { titre: cache.titre, lignes: r.journal.includes(r.refus) ? r.journal : [...r.journal, r.refus] };
+  if ('refus' in r) return { titre: s.titre, lignes: r.journal.includes(r.refus) ? r.journal : [...r.journal, r.refus] };
   const { competence, difficulte } = partiesDuTest(ep.flux);
-  const victimes = h.c.wounds.current < avant ? [{ id: h.c.id, avant, apres: h.c.wounds.current, max: h.c.wounds.max }] : [];
+  const nom = h.c.label;
+  const victimes = h.c.wounds.current < avant ? [{ id: h.c.id, nom, avant, apres: h.c.wounds.current, max: h.c.wounds.max }] : [];
   const d = destinationCourante(e)!;
-  const or = r.reussite ? d.or + tirer(e).int(0, d.or) : 0;
+  const perte = !r.reussite && a.consequence?.type === 'bourse' ? Math.min(x.or, Math.round(a.consequence.part * d.or)) : 0;
+  const or = r.reussite ? Math.round(s.gain.part * (d.or + tirer(e).int(0, d.or))) : perte ? -perte : 0;
   x.or += or;
-  const dit = r.reussite ? a.reussite : cache.declenche;
-  return franchir(e, { titre: cache.titre, lignes: [
-    `${h.c.label} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
-    dit,
-    ...victimes.map((v) => `${h.c.label} est touché·e : ${v.apres}/${v.max} Blessures.`),
-    ...(or ? [`La bourse cachée est prise : ${or} CO.`] : []),
-  ], epreuve: { testeur: r.testeur, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, dit } });
+  const ligneDuTest = `${nom} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`;
+  const dit = r.reussite ? a.reussite : a.echec;
+  const lignes = [ligneDuTest, dit, ...victimes.map((v) => `${v.nom} est touché·e : ${v.apres}/${v.max} Blessures.`),
+    ...(or > 0 ? [`${s.gain.libelle} : ${or} CO.`] : or < 0 ? [`Perdu : ${-or} CO.`] : [])];
+  const epreuve = (suite: string[]): EpreuveDuRecit => ({ testeur: r.testeur, nom, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, bourse: s.gain.libelle, dit, suite });
+  if (r.reussite || a.consequence?.type !== 'combat') return franchir(e, { titre: s.titre, lignes, epreuve: epreuve([]) });
+  const c = combattre(e, choisir(tirer(e), d.meutes));
+  if (c.fin) return { ...c.fin, titre: s.titre, lignes: [...lignes, ...c.fin.lignes], epreuve: epreuve(c.fin.lignes) };
+  return franchir(e, { titre: s.titre, lignes: [...lignes, ...c.lignes], combat: c.issue, epreuve: epreuve(c.lignes) });
 }
 
-/** Entre dans la salle courante et la franchit ; une salle à choix (`tresor`) s'ouvre et attend son action
- *  (`agirDansLaSalle`) : rend alors `null`. Chaque salle prend une journée. */
+/** Le groupe valide combat les `ennemis` (`jouerLeCombat`) : chacun revient tel que le noyau le laisse, les morts sont
+ *  enterrés. Une impasse ou une défaite ramène le groupe au hameau : `fin` est alors le récit de la rencontre. */
+function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: string[]; fin?: RecitDeSalle } {
+  const d = destinationCourante(e)!;
+  const groupe = herosDuGroupe(e);
+  const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
+  const issue = jouerLeCombat(groupe.filter(valide).map((h) => h.c), ennemis, e.graine++, d.lumiere);
+  for (const apres of issue.groupe) {
+    const h = groupe.find((g) => g.c.id === apres.id);
+    if (h) h.c = apres;
+  }
+  for (const h of groupe) if (issue.morts.includes(h.c.id)) h.c.dead = true;
+  if (issue.issue === 'impasse') {
+    return { issue, lignes: [], fin: { titre: 'Retraite', combat: issue, fin: 'defaite', lignes: ['Le combat s’enlise ; le groupe décroche en bon ordre.', ...rentrer(e, false)] } };
+  }
+  if (issue.issue === 'defaite') return { issue, lignes: [], fin: { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, destinAvant) } };
+  const morts = groupe.filter((h) => h.c.dead);
+  for (const h of morts) enterrer(e, h, d.nom);
+  return { issue, lignes: morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`) };
+}
+
+/** Les salles à choix : le camp (`CAMP`) et celles de `EPREUVES`. */
+const SALLES_A_CHOIX: ReadonlySet<TypeDeSalle> = new Set<TypeDeSalle>(['camp', ...(Object.keys(EPREUVES) as SalleAJet[])]);
+
+/** Entre dans la salle courante et la franchit ; une salle à choix s'ouvre et attend son action (`agirDansLaSalle`) :
+ *  rend alors `null`. Chaque salle prend une journée. */
 export function avancer(e: Etat): RecitDeSalle | null {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const salle = x.salles[x.index];
-  if (salle.type === 'tresor') {
+  if (SALLES_A_CHOIX.has(salle.type)) {
     salle.ouverte = true;
     return null;
   }
-  const groupe = herosDuGroupe(e);
   const rng = tirer(e);
-  let recit: RecitDeSalle;
-  if (salle.type === 'camp') {
-    const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
-    recit = { titre: 'Un abri pour la nuit', lignes: ['Le groupe établit un camp et monte la garde à tour de rôle.', ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] };
-  } else {
-    const combattants = groupe.filter(valide);
-    const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
-    const issue = jouerLeCombat(combattants.map((h) => h.c), salle.ennemis, e.graine++, d.lumiere);
-    for (const apres of issue.groupe) {
-      const h = groupe.find((g) => g.c.id === apres.id);
-      if (h) h.c = apres;
-    }
-    for (const h of groupe) if (issue.morts.includes(h.c.id)) h.c.dead = true;
-    if (issue.issue === 'impasse') {
-      return { titre: 'Retraite', combat: issue, fin: 'defaite', lignes: ['Le combat s’enlise ; le groupe décroche en bon ordre.', ...rentrer(e, false)] };
-    }
-    if (issue.issue === 'defaite') {
-      return { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, destinAvant) };
-    }
-    const morts = groupe.filter((h) => h.c.dead);
-    for (const h of morts) enterrer(e, h, d.nom);
-    const or = Math.round(d.or * (salle.type === 'boss' ? 4 : salle.type === 'elite' ? 2 : 1) * (0.75 + rng.int(0, 50) / 100));
-    x.or += or;
-    if (salle.type === 'elite') x.trophees += rng.int(1, 100) <= 35 ? 1 : 0;
-    const lignes = [`Butin : ${or} CO · ${PX_PAR_SALLE[salle.type]} PX chacun.`, ...morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`)];
-    recit = { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: issue };
-  }
-  return franchir(e, recit);
+  const c = combattre(e, salle.ennemis);
+  if (c.fin) return c.fin;
+  const or = Math.round(d.or * (salle.type === 'boss' ? 4 : salle.type === 'elite' ? 2 : 1) * (0.75 + rng.int(0, 50) / 100));
+  x.or += or;
+  if (salle.type === 'elite') x.trophees += rng.int(1, 100) <= 35 ? 1 : 0;
+  const lignes = [`Butin : ${or} CO · ${PX_PAR_SALLE[salle.type]} PX chacun.`, ...c.lignes];
+  return franchir(e, { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: c.issue });
 }
 
 /** La salle courante est franchie : ses PX, la suivante ; le maître vaincu ramène le groupe au hameau. */

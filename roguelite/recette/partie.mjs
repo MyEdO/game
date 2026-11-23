@@ -59,6 +59,15 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');
   constater(await p.isVisible('[data-a="avancer"]'), 'l’expédition commence');
+  // Un camp et une rencontre après la première salle, et un blessé à y soigner.
+  await p.evaluate(() => {
+    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+    e.expedition.salles.splice(1, 0, { type: 'camp', ennemis: [], faite: false }, { type: 'rencontre', ennemis: [], faite: false });
+    const blesse = e.roster.find((h) => h.carriere === 'soldat');
+    blesse.c.wounds.current = 2;
+    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
+  });
+  await p.reload(); await p.waitForSelector('[data-a="avancer"]');
 
   let salles = 0;
   let aVuUnCarton = false;
@@ -76,9 +85,27 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     }
     salles++;
     if (await p.$('.carton [data-a="action"]')) {
-      await p.click('.carton [data-a="action"][data-k="fouiller"]');
-      constater(await p.isVisible('.socle-compagnie.a-choisir'), 'la cache demande qui fouille');
-      await p.click('.socle-compagnie .carte-heros:not([disabled])');
+      const salle = await p.textContent('.carton .ruban');
+      // La cache se fouille, la rencontre se parlemente, le camp se lève par le repos.
+      const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="parlementer"]') ? 'parlementer' : 'reposer';
+      if (k === 'reposer' && await p.$('.carton [data-a="action"][data-k="soigner"]:not([disabled])')) {
+        await p.click('.carton [data-a="action"][data-k="soigner"]');
+        const consigne = () => p.textContent('.socle-compagnie').catch(() => '');
+        constater((await consigne()).includes('Qui soigne'), 'le camp demande qui soigne');
+        await p.click('.socle-compagnie .carte-heros:not([disabled])');
+        constater((await consigne()).includes('Qui est soigné'), 'puis qui est soigné');
+        await p.click('.socle-compagnie .carte-heros:not([disabled])');
+        console.log('  camp :', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 160));
+        constater((await p.textContent('.carton').catch(() => '')).includes('Les soins du camp'), 'le soin du camp se raconte au carton');
+        await p.click('.carton [data-a="fermer"]');
+        constater(!!(await p.$('.carton [data-a="action"][data-k="reposer"]')), 'le camp reste dressé après le soin');
+      }
+      await p.click(`.carton [data-a="action"][data-k="${k}"]`);
+      if (k !== 'reposer') {
+        constater(await p.isVisible('.socle-compagnie.a-choisir'), `${salle} : le socle demande qui tente l’action`);
+        await p.click('.socle-compagnie .carte-heros:not([disabled])');
+      }
+      if (await p.isVisible('#combat')) { await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
     }
     if (await p.$('.carton')) {
       console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
