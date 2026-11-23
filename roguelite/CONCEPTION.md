@@ -136,6 +136,9 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   défendre avec un bouclier ». — Soldat : tank du relais 0, niveau 1, un bouclier d'adaptation à son recrutement ;
   Tueur : deux haches, la grande hache à son niveau 2 ; Joueur d'épée : la deux-mains. « N'oublie pas, les
   personnages progresse » : une identité se juge sur les quatre niveaux de la carrière, pas au seul recrutement.
+- **2026-11-23, l'ingénieur** : « L'ingénieur je l'aime car il utilise des armes d'ingénieurie et a poudre noire que
+  le repurgateur n'utilisera âs forcement ». — Ingénieur au relais 2, recruté au niveau 2 (Projectiles (Ingénierie)) ;
+  sa dotation n'a aucune arme à feu : une arquebuse à répétition (LDB p. 295) lui est donnée, valeur d'adaptation.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
