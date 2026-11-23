@@ -25,28 +25,24 @@
 .ecran-plein.lieu .place-cadre, .ecran-plein.lieu .coins, .ecran-plein.lieu .recit-lieu { pointer-events: auto; }
 .ecran-plein.lieu .recit-lieu { position: absolute; margin: 0; display: grid; gap: 8px; }
 .recit-lieu p { margin: 0; }
-.coins { position: absolute; display: grid; gap: 10px; justify-items: center; }
-.coins .outil { width: 100px; }
+.coins { position: absolute; display: grid; gap: 14px; justify-items: center; align-content: end; }
+.coins .bouton-rond, .journal-rejeu .bouton-rond { border: 0; cursor: pointer; }
+.coins .bouton-rond:hover, .journal-rejeu .bouton-rond:hover { box-shadow: 0 4px 8px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 12px var(--halo); }
 .carte-partir > .fond { padding: 26px 16px 12px; justify-content: center; }
 .carte-salle > .fond { padding: 18px 18px 14px; gap: 10px; }
+.carte-salle .pied-salle { margin-top: auto; }
 .colonne-sacs > .fond { padding: 26px 14px 12px; overflow-y: auto; }
-.frise-route > .fond { display: flex; align-items: center; justify-content: center; padding: 0 16px; }
-.frise-route .piste { display: flex; align-items: center; gap: 26px; margin: 0; padding: 0; list-style: none; }
-.frise-route .piste li { position: relative; display: grid; place-items: center; }
-.frise-route .piste li + li::before { content: ""; position: absolute; right: calc(100% + 3px); top: 50%; width: 20px; height: 2px; background: var(--laiton); opacity: .6; }
-.frise-route .piste li.faite { opacity: .55; }
 @media (max-width: 899px) { .ecran-plein.lieu { overflow: visible; } .ecran-plein.lieu .scene-fixe { position: absolute; top: auto; bottom: 0; left: 0; right: 0; max-height: 34dvh; overflow-y: auto; padding: 10px 0 12px; pointer-events: auto; background: linear-gradient(180deg, rgba(8,5,3,0), rgba(8,5,3,.85) 18%); } .coins { position: static; display: flex; margin: 0 16px 12px; } .ecran-plein.lieu .recit-lieu { position: static; margin: 0 16px 12px; } }
+.frise-route { position: absolute; display: flex; align-items: center; justify-content: center; gap: 34px; margin: 0; padding: 0; list-style: none; }
+.frise-route li { position: relative; display: grid; place-items: center; }
+.frise-route li + li::before { content: ""; position: absolute; right: calc(100% + 2px); top: 50%; width: 30px; height: 2px; background: var(--laiton); opacity: .6; }
+.frise-route li.faite { opacity: .55; }
+.frise-route li.ici .medaillon { transform: scale(1.3); box-shadow: 0 3px 6px var(--ombre-forte), 0 0 18px var(--halo-vif); }
 .tableau { overflow: hidden; }
 .tableau:not(.fond-expe) { position: relative; }
 .tableau .cour { pointer-events: none; }
 .fond-expe { position: absolute; inset: 0; width: 100%; height: 100%; }
 .expedition::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 40%, rgba(0,0,0,.55)); pointer-events: none; z-index: 1; }
-.piste { list-style: none; margin: 0; padding: 4px 0 0; display: flex; justify-content: space-between; gap: 8px; position: relative; }
-.piste::before { content: ""; position: absolute; left: 8%; right: 8%; top: 31px; height: 2px; background: var(--filet-or); }
-.piste li { position: relative; display: grid; justify-items: center; gap: 4px; flex: 1; }
-.piste li .medaillon.moyen { margin-top: 7px; }
-.piste li.ici .sous-titre { color: var(--or-eclat); }
-.piste li.ici .medaillon { box-shadow: 0 3px 6px var(--ombre-forte), 0 0 18px var(--halo-vif); }
 @media (max-width: 900px) {
   .outil { width: 76px; }
   .outil .libelle { font-size: 10.5px; letter-spacing: .3px; }

@@ -11,8 +11,8 @@ const BASE = process.argv[3] ?? 'http://localhost:8765';
 const CAPTURES = process.argv[2] ?? '.';
 
 /** Une page neuve à la taille `[largeur, hauteur]` (ou un appareil nommé), sur une partie neuve que `regler` ajuste
- *  avant le rechargement (or, bâtiments, PX…). Les erreurs de page s'accumulent dans `erreurs`. */
-async function ouvrir(navigateur, taille, regler, erreurs) {
+ *  avant le rechargement (or, bâtiments, PX…), avec `argument`. Les erreurs de page s'accumulent dans `erreurs`. */
+async function ouvrir(navigateur, taille, regler, erreurs, argument) {
   const contexte = typeof taille === 'string' ? await navigateur.newContext({ ...devices[taille] }) : await navigateur.newContext({ viewport: { width: taille[0], height: taille[1] } });
   const p = await contexte.newPage();
   p.on('pageerror', (e) => erreurs.push(e.message));
@@ -21,7 +21,7 @@ async function ouvrir(navigateur, taille, regler, erreurs) {
   await p.reload();
   await p.waitForSelector('.enseigne');
   if (regler) {
-    await p.evaluate(regler);
+    await p.evaluate(regler, argument);
     await p.reload();
     await p.waitForSelector('.enseigne');
   }

@@ -36,6 +36,13 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', ferme
   </button>`;
 }
 
+/** La carte d'un héros en ligne, là où il est déjà choisi (ses sacs, le départ) : la même grammaire que la carte,
+ *  portrait, nom, vie et état hors de combat, sans geste. */
+export function herosEnLigne(h: J.Heros): string {
+  const c = h.c;
+  return `<div class="heros-en-ligne${J.valide(h) ? '' : ' hors'}">${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max))}</span></div>`;
+}
+
 /** L'encombrement porté et sa jauge ; au-delà de la capacité, ses pénalités. LDB 61 l.35-40 */
 export function encombrementDe(c: Combatant) {
   const e = encombrement(c);
@@ -96,7 +103,7 @@ export const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPorte
 /** Une offre de boutique en pastille : le nom, l'essentiel, le prix ; l'aperçu au survol. Fermée faute d'or, ou si
  *  c'est ce que le héros porte déjà. */
 export const offre = (o: { nom: string; essentiel: string; prix: number; apercu: Apercu; attrs: string; or: number; portee?: boolean }) =>
-  `<button type="button" class="offre${o.portee ? ' actuelle' : ''}" ${o.attrs}${apercuDe(o.apercu)}${o.portee || o.or < o.prix ? ' disabled' : ''}><b>${esc(o.nom)}</b><span>${esc(o.essentiel)}</span><i class="prix">${o.portee ? 'porté' : o.prix}</i></button>`;
+  `<button type="button" class="offre${o.portee ? ' actuelle' : ''}" ${o.attrs}${apercuDe(o.apercu)}${o.portee || o.or < o.prix ? ' disabled' : ''}><b>${esc(o.nom)}</b><span>${esc(o.essentiel)}</span><span class="prix chiffres">${o.portee ? 'porté' : `${o.prix} CO`}</span></button>`;
 
 /** Ce que la chapelle offre au héros : soins complets, plaies pansées, opération, Larmes de Shallya. */
 export function soinsDuHeros(e: J.Etat, h: J.Heros) {

@@ -46,8 +46,8 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 
 1. **Une scène fixe pour tous les écrans** (vue de référence 1280 × 720), échelle jamais au-dessus de 1 ; lieux et
    services ancrés aux bords (`placeDe` des maquettes), écrans de gestion en bloc centré.
-2. **Un rôle, un rectangle**, ceux de la table `CADRES` des maquettes (`rendu.js`) ; un rectangle qui n'en vient pas
-   est nommé comme une valeur de l'hôte.
+2. **Un rôle, un rectangle**, ceux de la table `CADRES` des maquettes (`rendu.js`), recopiés tels quels dans
+   `CADRES` d'`ecran.ts` ; un rectangle qui n'en vient pas vit dans `CADRES_DE_L_HOTE`, avec sa raison.
 3. **Le socle de la compagnie au même endroit sur tous les écrans**, défilant au-delà de quatre héros ; un clic y fait
    une seule chose par écran.
 4. **Le contenu s'adapte au cadre** : ce qui ne tient pas défile, l'action principale est au pied fixe du cadre.
@@ -65,8 +65,9 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 | Départ | Choisir le groupe, l'approvisionner, partir | 3, 8 |
 | Fiche du héros | Lire le héros, dépenser ses PX, utiliser ses provisions en route | 2, 7, 8 |
 | Expédition | Avancer, utiliser les sacs, rentrer | 4 |
-| Récit d'une salle | Lire l'issue, revoir le combat, continuer | 5, 6 |
+| Récit d'une salle | Lire ce que la salle laisse, revoir le combat quand il s'y raconte, continuer | 5, 6 |
 | Rejeu du combat | Voir le combat joué : qui agit, dans quel ordre, ce que chaque coup fait ; son issue | 5 |
+| Réglages | Régler la taille de l'interface, recommencer | — |
 | Recommencer | Confirmer l'effacement | — |
 
 Le récit et Recommencer sont un **carton** (`carton` d'`ecran.ts`, gabarit « Récit, document et issue ») : la scène du
@@ -104,7 +105,10 @@ Les scripts de `recette/` se jouent contre le jeu construit (`node roguelite/con
 statique sur `roguelite/dist`) :
 
 - `partie.mjs` : une partie de bout en bout (bâtir, équiper, progresser, partir, quatre salles, rentrer) ;
-- `debords.mjs` : chaque écran, à trois tailles, sans cadre qui rogne ce qui doit tenir ni bouton hors de l'écran ;
+- `debords.mjs` : chaque écran, à trois tailles d'écran et pour une taille d'interface donnée (`petite`, `moyenne`,
+  `grande`), sans cadre qui rogne ce qui doit tenir ni bouton hors de l'écran ;
+- `rejeu.mjs` : une mêlée nombreuse (Animosité, chamane) jouée en entier, les héros à terre gardés dans l'ordre du
+  tour, « Échap » qui mène à l'issue avant de fermer ;
 - `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables ;
 - `instantanes.mjs` (avec `partie-fixe.ts`) : le HTML de chaque écran sur une partie fixe, à comparer avant et après
   une refonte qui ne doit rien changer ;

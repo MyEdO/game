@@ -9,8 +9,8 @@ import type * as J from '../jeu';
 import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
-import { jauge, picto, plaque, portrait, rond } from '../kit';
-import { CADRES, ajusterLaScene, echelleDeLaScene } from './ecran';
+import { jauge, plaque, portrait, rond, rondMuet } from '../kit';
+import { CADRES, CADRES_DE_L_HOTE, ajusterLaScene, echelleDeLaScene } from './ecran';
 import { busteDuHeros, cadreA, esc, place } from './pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
@@ -60,11 +60,11 @@ export function ouvrirLeRejeu(issue: IssueDuCombat, suite: string, fin: () => vo
     <div class="scene-fixe">
       ${cadreA(CADRES.round, '<div class="n gothique" id="round-n"></div><div class="t rubrique" id="round-t"></div>', { fond: '', classe: 'borne-round' })}
       <div class="ordre-rejeu" ${place(CADRES.ordre)} aria-label="Ordre du tour"></div>
-      <div class="journal-rejeu" ${place(CADRES.journal)}><div class="tete rubrique ombre">Journal <button type="button" class="bouton-rond laiton petit" data-j aria-pressed="false" data-bulle="Le journal entier">${picto('livre', 15)}</button></div><ol class="journal"></ol></div>
+      <div class="journal-rejeu" ${place(CADRES.journal)}><div class="tete rubrique ombre">Journal ${rondMuet('livre', 'Le journal entier', 'data-j aria-pressed="false"', 'petit')}</div><ol class="journal"></ol></div>
       ${cadreA(CADRES['journal-entier'], '<ol class="journal"></ol>', { ruban: 'Journal', classe: 'journal-entier' })}
       ${cadreA(CADRES.socle, '<div class="barre-actif"></div>', { fond: '', classe: 'socle-compagnie barre-rejeu' })}
       <div class="fin-rejeu" ${place(CADRES['fin-du-tour'])}>${rond('sablier', 'Passer', 'data-v="0"')}</div>
-      <div class="vitesse-rejeu" ${place(CADRES['outils-du-tour'])}>${rond('etoile', '×1', 'data-v="vitesse"', 'moyen')}</div>
+      <div class="vitesse-rejeu" ${place(CADRES_DE_L_HOTE['vitesse-du-rejeu'])}>${rond('etoile', '×1', 'data-v="vitesse"', 'moyen')}</div>
       <div class="issue-rejeu" ${place(CADRES.issue)}></div>
     </div>
   </div>`;
@@ -126,7 +126,6 @@ function jouerLeCoup(c: Coup, vitesse: number) {
   // LDB 21 l.19-20 (Animosité)
   if (allie && c.genre !== 'spell') {
     flotter(de, 'Animosité !', 'querelle');
-    $('#tour').innerHTML = `<span class="ruban gothique">${esc(de.dataset.bulle ?? '')} cède à son Animosité contre ${esc(vers.dataset.bulle ?? '')}</span>`;
   }
   vers.classList.add('cible');
   setTimeout(() => vers.classList.remove('cible'), impact + 500 / vitesse);
@@ -194,16 +193,17 @@ function poserLePas(p: Pas, anime = true) {
   }
   const actif = p.pions.find((q) => q.id === p.actif);
   const parId = new Map(p.pions.map((q) => [q.id, q]));
-  const ordre = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q && !q.hors);
+  const ordre = p.ordre.map((id) => parId.get(id)).filter((q): q is PionDuPlateau => !!q);
+  const debout = ordre.filter((q) => !q.hors);
   const rang = Math.max(0, ordre.findIndex((q) => q.id === p.actif));
   $('#round-n').textContent = `Round ${p.round}`;
-  $('#round-t').innerHTML = actif ? `tour ${rang + 1}<br>sur ${ordre.length}` : 'le round<br>débute';
+  $('#round-t').innerHTML = actif ? `tour ${debout.indexOf(actif) + 1}<br>sur ${debout.length}` : 'le round<br>débute';
   const suivants = ordre.slice(rang + 1);
   $('#combat .ordre-rejeu').innerHTML = [
     ...(actif ? [rangDe(actif, 'actif')] : []),
-    ...suivants.map((q) => rangDe(q, '')),
+    ...suivants.map((q) => rangDe(q, q.hors ? 'hors' : '')),
     `<div class="borne"><span class="disque fer petit"><span>${p.round + 1}</span></span><span class="rubrique ombre">Round ${p.round + 1}</span><i></i></div>`,
-    ...ordre.slice(0, rang + 1).map((q, k) => rangDe(q, k ? 'fantome loin' : 'fantome')),
+    ...debout.slice(0, debout.indexOf(actif!) + 1).map((q, k) => rangDe(q, k ? 'fantome loin' : 'fantome')),
   ].join('');
   $('#combat .barre-actif').innerHTML = actif ? barreDe(actif, p) : '';
   for (const j of document.querySelectorAll<HTMLElement>('#combat .journal')) {
@@ -247,8 +247,19 @@ function terminerLeRejeu() {
   $('#combat-fin').focus();
 }
 
+/** Pose le dernier pas sans jouer ses coups, et l'issue. */
+function passer() {
+  if (!rejeu) return;
+  clearTimeout(rejeu.minuteur);
+  for (let i = rejeu.i + 1; i < rejeu.issue.pas.length; i++) poserLePas(rejeu.issue.pas[i], false);
+  rejeu.i = rejeu.issue.pas.length - 1;
+  terminerLeRejeu();
+}
+
+/** Ferme le rejeu depuis son issue ; avant elle, y saute (« Échap » ne fait jamais manquer l'issue). */
 export function fermerLeRejeu() {
   if (!rejeu) return;
+  if (!$('#combat .issue-rejeu').innerHTML) return passer();
   clearTimeout(rejeu.minuteur);
   const fin = rejeu.fin;
   rejeu = null;
@@ -266,12 +277,7 @@ export function cliquerDansLeRejeu(cible: Element): boolean {
       planifier();
       return true;
     }
-    if (v.dataset.v === '0') {
-      clearTimeout(rejeu.minuteur);
-      for (let i = rejeu.i + 1; i < rejeu.issue.pas.length; i++) poserLePas(rejeu.issue.pas[i], false);
-      rejeu.i = rejeu.issue.pas.length - 1;
-      terminerLeRejeu();
-    }
+    if (v.dataset.v === '0') passer();
     return true;
   }
   if (cible.closest('#combat-fin')) { fermerLeRejeu(); return true; }

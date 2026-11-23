@@ -7,9 +7,9 @@
 import * as J from './jeu';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
-import { ajusterLaScene } from './ui/ecran';
+import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
 import { ecranDeService } from './ui/services';
-import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton } from './ui/lieux';
+import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
@@ -19,7 +19,7 @@ type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: str
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; picto: string; surTitre: string; terrain: string };
-let ouvert: Recit | { type: 'reset' } | null = null;
+let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
 /** Le héros que servent la forge et le relais. */
 let client: string | null = null;
 let congediement: string | null = null;
@@ -50,7 +50,7 @@ function pageOuverte(): string {
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : recitEnCarton(ouvert.recit, ouvert));
+const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton() : recitEnCarton(ouvert.recit, ouvert));
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
@@ -135,8 +135,10 @@ document.addEventListener('click', (ev) => {
       const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], picto: PICTO_DE_SALLE[type], surTitre, terrain }; rendre(); };
       if (!recit.combat) return montrer();
       rendre();
-      // Une victoire se clôt à son issue ; une déroute, une retraite ou le maître vaincu racontent ensuite le retour.
-      return recit.fin ? ouvrirLeRejeu(recit.combat, '', montrer, terrain, etat.roster) : ouvrirLeRejeu(recit.combat, recit.lignes.join(' '), rendre, terrain, etat.roster);
+      // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
+      // racontent ensuite au carton.
+      const raconter = !!recit.fin || recit.lignes.length > 1;
+      return ouvrirLeRejeu(recit.combat, recit.fin ? '' : recit.lignes[0], raconter ? montrer : rendre, terrain, etat.roster);
       return;
     }
     case 'revoir': {
@@ -158,6 +160,8 @@ document.addEventListener('click', (ev) => {
     case 'attendre': return agir(() => J.attendreUneSemaine(etat));
     case 'fermer': ouvert = null; return rendre();
     case 'reset': ouvert = { type: 'reset' }; return rendre();
+    case 'reglages': ouvert = { type: 'reglages' }; return rendre();
+    case 'taille': choisirLaTaille(k as Taille); mettreALEchelle(); return rendre();
     case 'reset-ok': J.effacer(); etat = J.nouvellePartie(Date.now() % 100000); ouvert = null; panneau = null; congediement = null; return agir(() => null);
   }
 });
@@ -165,7 +169,7 @@ document.addEventListener('click', (ev) => {
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (rejeuOuvert()) return fermerLeRejeu();
-  if (ouvert?.type === 'reset') { ouvert = null; return rendre(); }
+  if (ouvert?.type === 'reset' || ouvert?.type === 'reglages') { ouvert = null; return rendre(); }
   if (panneau) { panneau = null; rendre(); }
 });
 

@@ -35,6 +35,7 @@ if (await p.isVisible('#combat')) {
 }
 if (await p.$('.carton')) { await image('recit'); await p.click('.carton [data-a="fermer"]'); }
 await p.click('[data-a="rentrer"]'); await image('retour');
-await p.click('.carton [data-a="fermer"]'); await p.click('[data-a="reset"]'); await image('recommencer');
+await p.click('.carton [data-a="fermer"]'); await p.click('[data-a="reglages"]'); await image('reglages');
+await p.click('.carton [data-a="reset"]'); await image('recommencer');
 console.log('images écrites · erreurs de page :', erreurs.length ? erreurs : 'aucune');
 await b.close();

@@ -7,15 +7,24 @@ import * as J from '../jeu';
 import { medaillon } from '../kit';
 import { cadreA, carteDeHeros, esc, place } from './pieces';
 
-/** Les rectangles des cadres, ceux des maquettes. */
+type Rect = [number, number, number, number];
+
+/** Les rectangles des cadres, tels quels de la table `CADRES` des maquettes (`rendu.js`) : un rôle, un rectangle. */
 export const CADRES = {
   cartouche: [24, 20, 372, 96], recit: [32, 136, 340, 112], 'colonne-gauche': [24, 136, 372, 304], note: [24, 456, 372, 100],
-  hote: [412, 20, 340, 300], page: [776, 20, 480, 520], 'colonne-droite': [896, 20, 360, 420], frise: [180, 480, 920, 70], coins: [1160, 470, 100, 230],
-  identite: [26, 20, 340, 536], bande: [384, 20, 800, 96], gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
+  page: [776, 20, 480, 480], 'colonne-droite': [896, 20, 360, 420], vignette: [896, 20, 360, 180], frise: [180, 508, 920, 44],
+  coins: [1198, 579, 52, 118], identite: [26, 20, 340, 536], bande: [384, 20, 800, 96],
   socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], retour: [30, 592, 124, 94], carton: [160, 222, 960, 278],
   issue: [360, 190, 560, 150], round: [22, 16, 214, 66], ordre: [22, 96, 134, 616], 'fin-du-tour': [1133, 582, 104, 116],
-  journal: [956, 316, 300, 132], 'journal-entier': [856, 70, 400, 236], 'outils-du-tour': [1072, 604, 52, 88],
-} satisfies Record<string, [number, number, number, number]>;
+  journal: [956, 316, 300, 132], 'journal-entier': [856, 70, 400, 236],
+  gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
+} satisfies Record<string, Rect>;
+
+/** Les rectangles propres à l'hôte, faute de rôle dans les maquettes : le bâtiment d'un service (son effet, son
+ *  palier, court : le décor paie le reste de la place des hôtes) ; la vitesse du rejeu, à côté de « Passer ». */
+export const CADRES_DE_L_HOTE = {
+  batiment: [412, 20, 340, 300], 'vitesse-du-rejeu': [1072, 604, 52, 88],
+} satisfies Record<string, Rect>;
 
 /** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
  *  largeur du titre ; les gestes, au pied, se centrent sur toute la largeur du carton. */
@@ -49,11 +58,24 @@ export function ecran(o: { nom: string; classe?: 'service' | 'lieu'; cadres: str
   </div></div>`;
 }
 
-/** La hauteur de vue, en pixels logiques, que l'écran montre : un écran plus haut agrandit la scène, un plus bas la
- *  réduit. Valeur de l'hôte : les maquettes visent 720, où la densité des écrans lite paraît trop grosse. */
-const HAUTEUR_DE_VUE = 840;
+/** La taille de l'interface, réglage du joueur : la hauteur de vue, en pixels logiques, que l'écran montre (les
+ *  maquettes visent 720). Gardée hors de la sauvegarde, que Recommencer n'efface pas. */
+export const TAILLES = { petite: 960, moyenne: 840, grande: 720 } as const;
+export type Taille = keyof typeof TAILLES;
+const CLE_DE_TAILLE = 'grisefosse-taille';
+let taille: Taille = (() => {
+  try {
+    const t = localStorage.getItem(CLE_DE_TAILLE);
+    return t && t in TAILLES ? (t as Taille) : 'moyenne';
+  } catch { return 'moyenne'; }
+})();
+export const tailleChoisie = (): Taille => taille;
+export function choisirLaTaille(t: Taille): void {
+  taille = t;
+  try { localStorage.setItem(CLE_DE_TAILLE, t); } catch { /* stockage refusé : le réglage ne survit pas au rechargement */ }
+}
 
-/** Pose la scène fixe sur l'écran, à l'échelle de `HAUTEUR_DE_VUE` (sans jamais dépasser la vue de référence
+/** Pose la scène fixe sur l'écran, à l'échelle de la taille choisie (sans jamais dépasser la vue de référence
  *  1280 × 720). La scène prend toute la vue ; chaque pièce à `data-rect` s'ancre en hauteur au bord le plus proche de
  *  son centre (le socle en bas partout). En largeur, un lieu ou un service ancre chaque pièce au bord le plus proche,
  *  ou la centre si elle l'est, et le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ;
@@ -63,7 +85,7 @@ export function ajusterLaScene(): void {
 }
 
 /** L'échelle de la scène fixe sur l'écran (1 sous 900 px de large, où les cadres s'empilent). */
-export const echelleDeLaScene = (): number => (window.innerWidth < 900 ? 1 : Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / HAUTEUR_DE_VUE));
+export const echelleDeLaScene = (): number => (window.innerWidth < 900 ? 1 : Math.min(window.innerWidth / 1280, window.innerHeight / 720, window.innerHeight / TAILLES[tailleChoisie()]));
 
 function ajuster(s: HTMLElement): void {
   if (window.innerWidth < 900) return void Object.assign(s.style, { transform: '', width: '', height: '' });

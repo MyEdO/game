@@ -38,6 +38,7 @@ export const PICTOS: Record<string, string> = {
   "des": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2.500\"/><circle cx=\"8.500\" cy=\"8.500\" r=\".8\"/><circle cx=\"15.500\" cy=\"15.500\" r=\".8\"/><circle cx=\"12\" cy=\"12\" r=\".8\"/><circle cx=\"15.500\" cy=\"8.500\" r=\".8\"/><circle cx=\"8.500\" cy=\"15.500\" r=\".8\"/>",
   "enclume": "<path d=\"M4 8h13c0 2-1.500 3.500-4 3.500v3.500h3v4H7v-4h3v-3.500C7 11.500 4 10.500 4 8zM17 8h3.500\"/>",
   "livre": "<path d=\"M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6\"/>",
+  "systeme": "<circle cx=\"12\" cy=\"12\" r=\"3.2\"/><path d=\"M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1\"/>",
   "etoile": "<path d=\"M12 3l2.300 6.200 6.700.3-5.200 4.100 1.800 6.400L12 16.300 6.400 20l1.800-6.400L3 9.500l6.700-.3z\"/>"
 };
 
@@ -73,6 +74,10 @@ export const medaillon = (nom: string, taille: 'grand' | 'moyen' | 'petit' = 'mo
 /** La jauge du kit (`cire` : la vie). */
 export const jauge = (part: number, { teinte = 'cire', taille = 'fine' } = {}): string =>
   `<div class="jauge ${teinte} ${taille}"><i style="width:${Math.max(0, Math.min(1, part)) * 100}%"></i></div>`;
+
+/** Le bouton rond du kit, sans libellé : son nom en bulle (les coins, la tête du journal). */
+export const rondMuet = (nom: string, libelle: string, attrs: string, taille: 'petit' | 'moyen' | 'grand' = 'grand'): string =>
+  `<button type="button" class="bouton-rond laiton ${taille}" ${attrs} aria-label="${libelle}" data-bulle="${libelle}"><div>${picto(nom, { petit: 15, moyen: 20, grand: 24 }[taille])}</div></button>`;
 
 /** Le bouton rond du kit, à pictogramme, et son libellé dessous (l'« outil » du kit). */
 export const rond = (nom: string, libelle: string, attrs: string, taille: 'moyen' | 'grand' = 'grand'): string =>

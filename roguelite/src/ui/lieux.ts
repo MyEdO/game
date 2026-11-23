@@ -10,9 +10,9 @@ import { ficheDuSort, nomDeCreature } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
-import { medaillon, plaque, portrait, rond } from '../kit';
-import { CADRES, carton, ecran } from './ecran';
-import { busteDuHeros, cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, place } from './pieces';
+import { medaillon, plaque, rondMuet } from '../kit';
+import { CADRES, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
+import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
@@ -47,16 +47,26 @@ function enseigne(e: J.Etat, b: J.Batiment) {
     ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}</button>`;
 }
 
+/** Le panneau d'activité du hameau : les routes ouvertes et leur choix ; quand personne n'est en état de partir,
+ *  l'attente d'une semaine à sa place. */
+function partir(e: J.Etat): string {
+  const ouvertes = J.destinationsOuvertes(e).length;
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+  if (J.compagnieEpuisee(e)) {
+    return `<div class="partir"><div><div class="nom-propre petit gothique">Personne n’est en état de partir</div><div class="sous-titre">la compagnie panse ses plaies</div></div>${plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true })}</div>`;
+  }
+  return `<div class="partir"><div><div class="nom-propre petit gothique">${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}</div><div class="sous-titre">${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''}</div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
+}
+
 /** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins, socle). */
 export function ecranDuHameau(e: J.Etat, ouvert: string, carte: string): string {
-  const ouvertes = J.destinationsOuvertes(e).length;
   const titre = cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const scene = (!carte && ouvert) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : `${titre}
       <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${cadreA([CADRES['colonne-droite'][0], 20, 360, 150], `<div class="partir"><div><div class="nom-propre petit gothique">${ouvertes} route${ouvertes > 1 ? 's' : ''} ouverte${ouvertes > 1 ? 's' : ''}</div><div class="sous-titre">${e.bossVaincus.length} maître${e.bossVaincus.length > 1 ? 's' : ''} vaincu${e.bossVaincus.length > 1 ? 's' : ''}</div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`, { ruban: 'Partir', classe: 'carte-partir' })}
-      <div class="coins" ${place(CADRES.coins)}>${J.compagnieEpuisee(e) ? rond('lune', 'Attendre une semaine', 'data-a="attendre"', 'moyen') : ''}${rond('livre', 'Chronique', 'data-a="chronique"', 'moyen')}${rond('sablier', 'Recommencer', 'data-a="reset"', 'moyen')}</div>`,
+      ${cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
+      <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>`,
     socle: { heros: e.roster, geste: 'heros', choisi: () => false },
     vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
   });
@@ -81,7 +91,7 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
       ...(plusBlesse ? { attrs: `data-a="prier" data-id="${h.c.id}" data-k="${plusBlesse.c.id}"` } : {}),
       refus: !J.peutPrier(e, h) ? 'Déjà priée pendant cette expédition, ou le Béni est hors de combat.' : !plusBlesse || plusBlesse.c.wounds.current >= plusBlesse.c.wounds.max ? 'Personne n’est blessé.' : null,
     }) : '';
-    return `<div class="sac-heros">${portrait(busteDuHeros(h), 'heros', 'petit', J.valide(h) ? '' : 'hors')}<div class="cases-sac">${casesDuSac(h, true) + priere || glose('sac vide')}</div></div>`;
+    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere || glose('sac vide')}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -101,10 +111,10 @@ export function ecranDeLExpedition(e: J.Etat, ouvert: string, carte: string): st
     nom: d.nom, classe: 'lieu',
     cadres: carte ? titre + carte : `${titre}
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
-      ${cadreA([CADRES['colonne-droite'][0], 20, 360, 300], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
-        <div class="gestes colonne">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>
-        ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}`, { classe: 'carte-salle' })}
-      ${cadreA(CADRES.frise, `<ol class="piste">${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], i === x.index ? 'moyen' : 'petit', s.faite)}</li>`).join('')}</ol>`, { fond: '', classe: 'frise-route' })}`,
+      ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
+        ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
+        <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>`, { classe: 'carte-salle' })}
+      <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
     socle: { heros: groupe, geste: 'heros', choisi: () => false },
     vide: 'Personne.',
   });
@@ -117,6 +127,18 @@ export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; picto: stri
     ruban: o.ruban, picto: o.picto, titre: r.titre, surTitre: o.surTitre,
     texte: `<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`,
     gestes: `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
+  });
+}
+
+/** Les réglages : la taille de l'interface, et Recommencer. */
+export function reglagesEnCarton(): string {
+  const noms: Record<Taille, string> = { petite: 'Petite', moyenne: 'Moyenne', grande: 'Grande' };
+  const actuelle = tailleChoisie();
+  return carton({
+    ruban: 'Réglages', picto: 'systeme', titre: 'Réglages', surTitre: 'Grisefosse',
+    texte: `<div class="rub">Taille de l’interface</div><div class="gestes">${(Object.keys(TAILLES) as Taille[]).map((t) => plaque(noms[t], `data-a="taille" data-k="${t}"`, { armee: t === actuelle, taille: 'petite' })).join('')}</div>
+      <div class="rub">La partie</div><div class="gestes">${plaque('Recommencer…', 'data-a="reset"', { icone: 'sablier', taille: 'petite' })}</div>`,
+    gestes: plaque('Fermer', 'data-a="fermer"', { armee: true }),
   });
 }
 

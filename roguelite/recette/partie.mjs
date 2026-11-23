@@ -77,7 +77,13 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     await p.click('.carton [data-a="fermer"]');
   }
   constater(await p.isVisible('.enseigne'), 'retour au hameau');
-  await p.click('[data-a="reset"]'); await p.click('.carton [data-a="fermer"]');
+  const largeurDuSocle = () => p.$eval('.socle-compagnie', (e) => e.getBoundingClientRect().width);
+  const socleAvant = await largeurDuSocle();
+  await p.click('[data-a="reglages"]'); await p.click('.carton [data-a="taille"][data-k="grande"]');
+  const grande = await largeurDuSocle();
+  await p.click('.carton [data-a="taille"][data-k="moyenne"]');
+  constater(grande > socleAvant && await largeurDuSocle() === socleAvant, `la taille de l’interface se règle (${Math.round(socleAvant)} → ${Math.round(grande)} px)`);
+  await p.click('.carton [data-a="reset"]'); await p.click('.carton [data-a="fermer"]');
   constater(await p.isVisible('.enseigne') && !(await p.$('.carton')), 'Recommencer se refuse sans rien effacer');
   await p.screenshot({ path: `${CAPTURES}/partie-fin.png` });
 

@@ -7,11 +7,11 @@
  */
 import * as J from '../jeu';
 import { carac, nomDeCreature } from '../noyau';
-import { medaillon, plaque, portrait, rond } from '../kit';
-import { CADRES, ecran } from './ecran';
+import { medaillon, plaque, rond } from '../kit';
+import { CADRES, CADRES_DE_L_HOTE, ecran } from './ecran';
 import { exigencesDuNiveau } from './fiche';
 import {
-  apercuDePiece, apercuDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, etiquettesDeSequelles, glose,
+  apercuDePiece, apercuDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, etiquettesDeSequelles, glose, herosEnLigne,
   iconeDArme, offre, place, soinsDuHeros,
 } from './pieces';
 
@@ -136,7 +136,7 @@ const pageDeLaChronique = ({ e }: Lecture): Page => ({ corps: `<ol class="chroni
 /** Le départ : ceux qu'on emmène (choisis au socle), une rangée chacun (son sac, ses provisions à acheter). */
 function pageDuDepart({ e, choix }: Lecture): Page {
   const vente = J.provisionsEnVente(e);
-  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="emporte">${portrait(busteDuHeros(h), 'heros', 'petit')}
+  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="emporte">${herosEnLigne(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>
     <div class="offres">${vente.map((a) => offre({ nom: `+ ${a.label}`, essentiel: '', prix: a.prix, apercu: apercuDeProvision(a.id), attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`, or: e.or })).join('')}</div></section>`).join('');
   return {
@@ -174,7 +174,7 @@ export function ecranDeService(ctx: Contexte, service: Service): string {
     cadres: `${cadreA(CADRES.cartouche, cartouche(icone, titre, sous), { fond: '', classe: 'cartouche-lieu-fixe' })}
       ${cadreA(CADRES['colonne-gauche'], colonneDesServices(e, service), { ruban: 'Services de Grisefosse', classe: 'colonne-services' })}
       ${cadreA(CADRES.note, `<div class="ressources"><span class="etiquette compte or">${e.or} CO</span><span class="etiquette compte or">${e.trophees} trophée${e.trophees > 1 ? 's' : ''}</span></div>${glose(pourQui ? 'Choisissez au socle le héros à servir.' : 'On passe d’un service à l’autre sans ressortir.')}`, { classe: 'note-lieu' })}
-      ${hote ? cadreA(CADRES.hote, hote, { fond: '', classe: 'hote' }) : ''}
+      ${hote ? cadreA(CADRES_DE_L_HOTE.batiment, hote, { fond: '', classe: 'hote' }) : ''}
       ${cadreA(CADRES.page, `<div class="corps-service">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(ruban), classe: 'page-service' })}
       <div class="retour" ${place(CADRES.retour)}>${rond('route', 'Retour au hameau', 'data-a="fermer-panneau"')}</div>`,
     socle,
