@@ -3638,8 +3638,6 @@ export const fr = {
   'sv.cap': 'Cap',
   'sv.ventRelatif': 'Vent relatif',
   'sv.distance': 'Distance',
-  'sv.milesLeft': '{miles} milles',
-  'sv.daysLeft': '{miles} milles · ~{days} j',
   'sv.manann': 'Manann',
   'sv.passerJourParJour': 'Passer en jour-par-jour',
   'sv.passerJourParJourTitre': "Reprendre la main : chaque Test d'équipage ouvrira sa modale.",

@@ -519,7 +519,7 @@ export const TABLES = {
       const categorie = CATEGORIES_DE_RENCONTRE.find((c) => tableDeRencontre(c) === step.table?.tableId);
       const entree = tiree && categorie && encounterTable(categorie).find((e) => e.id === tiree.id);
       if (!tiree || !categorie || !entree) return;
-      const j = [noteEvent(get, set, { title: entree.label, text: entree.desc, roll: tiree.die, tone: TON_DE_RENCONTRE[categorie] })];
+      const j = [noteEvent(get, set, { source: { table: tableDeRencontre(categorie), id: entree.id }, title: entree.label, text: entree.desc, jet: { naturel: tiree.roll, effectif: tiree.die }, tone: TON_DE_RENCONTRE[categorie] })];
       if (entree.stageOutcome === 'fullRecovery') {
         for (const h of get().party.filter((x) => !x.dead)) {
           // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.

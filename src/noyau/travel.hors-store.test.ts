@@ -23,10 +23,11 @@ import { trajetsDepuis } from './carteEnVue';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { encounterTable } from '../engine/travelTables';
 import { noteEvent } from './evenementDuJour';
+import { recitEnVue } from './recitEnVue';
 
 /** La ligne de journal de chaque Rencontre tirable, telle que l'écrit son seul écrivain `noteEvent` (sans trajet : rien n'est noté). */
-const LIGNES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c))
-  .map((e) => noteEvent(() => ({ travelPlan: null }) as never, () => {}, { title: e.label, text: e.desc }));
+const LIGNES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c)
+  .map((e) => noteEvent(() => ({ travelPlan: null }) as never, () => {}, { source: { table: `rencontres-${c}`, id: e.id }, title: e.label, text: e.desc })));
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -268,7 +269,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     setup(map());
     banc.setState({
       travelRecap: {
-        fromLabel: 'Village A', toLabel: 'Bourg B', mode: 'pied', status: 'interrupted', km: 12, kmDone: 6, days: [],
+        depart: 'pa', arrivee: 'pb', route: 'r1', mode: 'pied', status: 'interrupted', km: 12, kmDone: 6, days: [],
         then: { kind: 'ambush', scene: 'lieu-a-scene', encounter: 'enc-test', noSurprise: true },
       },
     });
@@ -319,11 +320,17 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     drainCascade(); // péripétie du jour en cascade travelDay → drainer, puis recap d'arrivée
     const r = banc.getState().travelRecap!;
     expect(r.status).toBe('arrived');
-    expect(r.fromLabel).toBe('Village A');
-    expect(r.toLabel).toBe('Bourg B');
+    expect([r.depart, r.arrivee, r.route]).toEqual(['pa', 'pb', 'r1']);
     expect(r.kmDone).toBeCloseTo(12);
     expect(r.days.length).toBe(1); // 12 km à M4 = 3 h
     expect(r.days[0].lines.some((l) => l.text.includes('colporteur'))).toBe(true);
+    expect(recitEnVue(banc.getState()), 'le récit en données : les lieux par id et par nom, le mode, la distance, la durée, chaque journée').toEqual({
+      issue: 'arrivee', depart: 'pa', arrivee: 'pb', route: 'r1', de: 'Village A', vers: 'Bourg B', mode: { id: 'pied', nom: 'À pied' },
+      distance: { valeur: 12, unite: 'km' }, reste: null, dureeMin: 180,
+      journees: [{
+        depuis: 0, jusqua: r.days[0].kmTo, heures: r.days[0].hours, meteo: null, lignes: r.days[0].lines, evenements: [], entrees: r.days[0].entries ?? [], mer: null,
+      }],
+    });
     banc.getState().fenetreFermer('recitDeVoyage');
     expect(banc.getState().travelRecap).toBeNull();
   });
@@ -688,7 +695,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     const carte = map({ modes: ['pied', 'monture'] });
     setup(carte, [h], [mountPossession('m1', h.id)]);
     const [trajet] = trajetsDepuis(banc.getState(), carte, carte.places[0]);
-    expect(trajet.modes.map(({ mode, refus }) => ({ mode, refus }))).toEqual([
+    expect(trajet.modes.map(({ mode, refus }) => ({ mode: mode.id, refus }))).toEqual([
       { mode: 'pied', refus: null },
       { mode: 'monture', refus: null },
     ]);

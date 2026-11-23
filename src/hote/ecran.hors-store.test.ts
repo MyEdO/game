@@ -335,3 +335,62 @@ describe('l’établissement fermé à l’écran du lieu (`fenetre.corps`, #427
     ]);
   });
 });
+
+describe('le récit du voyage à l’écran (`Projection.recit`, #4574)', () => {
+  const recit = (travelRecap: Jeu['travelRecap']) => {
+    const banc = ouvrirLeBanc();
+    banc.setState({
+      scene: emptyScene('bourg', 2, 2), mode: 'exploration', battle: null, travelRecap,
+      worldMap: {
+        id: 'carte', label: 'Carte',
+        places: [
+          { id: 'pa', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'bourg' } },
+          { id: 'pb', label: 'Bourg B', pos: { x: 10, y: 0 }, scene: { id: 'bourg' } },
+        ],
+        routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 30, modes: ['pied'] }],
+      },
+    });
+    const etat = banc.getState();
+    const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
+    return corps.filter((e) => e.id.startsWith('recit/')).map((e) => e.type === 'entite'
+      ? [e.id, e.nom, e.elements.map((l) => (l.type === 'ligne' ? [l.texte, l.ton] : l.type))]
+      : [e.id, ...(e.type === 'ligne' ? [e.texte, e.ton] : [e.type])]);
+  };
+  const base = { depart: 'pa', arrivee: 'pb', route: 'r1', mode: 'pied' } as const;
+  const jour = { kmFrom: 0, kmTo: 11.7, hours: 5.6, lines: [{ text: 'Une ornière casse l’allure.', tone: 'echec' as const }, { text: 'La route est calme.' }] };
+
+  it('arrivée : le titre, la route élidée, la durée exacte du voyage, sans les journées ni la suite', () => {
+    expect(recit({ ...base, status: 'arrived', km: 30, kmDone: 30, days: [jour], dureeMin: 160 })).toEqual([
+      ['recit/issue', 'Arrivée à Bourg B', 'reussite'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 30 km, à pied', 'neutre'],
+      ['recit/duree', 'Voyage de 2 h 40 min.', 'neutre'],
+    ]);
+  });
+
+  it('interruption à moins d’un demi-km : aux portes de l’arrivée, chaque journée et ses lignes à leur ton, la suite', () => {
+    expect(recit({ ...base, status: 'interrupted', km: 12, kmDone: 11.7, days: [jour] })).toEqual([
+      ['recit/issue', 'Voyage interrompu !', 'alerte'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 12 km, à pied · aux portes de Bourg B', 'neutre'],
+      ['recit/jour/0', 'Jour 1 — 12 km en 6 h de route', [['Une ornière casse l’allure.', 'echec'], ['La route est calme.', 'neutre']]],
+      ['recit/suite', 'Le voyage pourra reprendre depuis la carte du monde.', 'neutre'],
+    ]);
+  });
+
+  it('arrêt : ce qui reste, arrondi, et la surcharge', () => {
+    expect(recit({ ...base, status: 'stalled', km: 30, kmDone: 12.5, days: [] })).toEqual([
+      ['recit/issue', "Le convoi s'arrête", 'alerte'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 30 km, à pied · 18 km restants', 'neutre'],
+      ['recit/suite', 'Le groupe est trop chargé pour avancer — allégez les sacs, puis reprenez depuis la carte.', 'neutre'],
+    ]);
+  });
+
+  it('embuscade : le titre, ce qui reste, la journée, et il faut faire face', () => {
+    const then = { kind: 'ambush', scene: 'bourg', encounter: 'enc', noSurprise: true } as const;
+    expect(recit({ ...base, status: 'interrupted', km: 24, kmDone: 11.7, days: [jour], then })).toEqual([
+      ['recit/issue', 'Embuscade en chemin !', 'echec'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 24 km, à pied · 12 km restants', 'neutre'],
+      ['recit/jour/0', 'Jour 1 — 12 km en 6 h de route', [['Une ornière casse l’allure.', 'echec'], ['La route est calme.', 'neutre']]],
+      ['recit/suite', 'Impossible de poursuivre : il faut faire face. Le voyage pourra reprendre ensuite depuis la carte.', 'neutre'],
+    ]);
+  });
+});

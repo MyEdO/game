@@ -29,6 +29,7 @@ import {
   formatJourImperial,
   jourImperial,
   libelleDeDistance,
+  clockLabel,
   marchandEnVue,
   marcheEnVue,
   VERBE_DE_CHOIX,
@@ -53,7 +54,6 @@ import {
   interludeEnVue,
   porteurParId,
   locationLabel,
-  recitEnVue,
   refLabel,
   reposEnVue,
   toneOf,
@@ -84,7 +84,7 @@ import {
   ordreDuRoundSuivant,
   type Renvoyable,
 } from '../noyau/index';
-import { estUneCle, pluriel, t } from '../i18n';
+import { elision, estUneCle, pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
@@ -479,7 +479,7 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
     ...echoppe(etat),
     ...marche(etat),
     ...voyage(etat, p),
-    ...recitDuVoyage(etat),
+    ...recitDuVoyage(p),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
     ...nuitDuRepos(etat, p, cle),
@@ -497,7 +497,7 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
  *  route, fermé avec sa raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
 const departDuTrajet = (tr: TrajetEnVue): Choix => ({
   type: 'choix', id: tr.route, ton: 'neutre', focus: false, refus: null, libelle: libelleDeDistance(tr.distance),
-  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
+  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode.id, m.jours === null ? m.mode.nom : t('ecran.carte.mode', { mode: m.mode.nom, jours: m.jours }), m.geste, m.refus)),
 });
 
 /** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
@@ -665,20 +665,39 @@ function nuitDuRepos(etat: Jeu, p: Projection, cle: string): Element[] {
   ];
 }
 
-/** Le ton de chaque issue d'un récit de voyage. */
-const TON_DU_RECIT = { arrivee: 'reussite', interruption: 'alerte', arret: 'alerte', embuscade: 'echec' } as const satisfies Record<NonNullable<ReturnType<typeof recitEnVue>>['issue'], Ton>;
+type Recit = NonNullable<Projection['recit']>;
 
-/** Le récit du trajet que le groupe vient de faire (`recitEnVue`) : son issue au ton de l'issue, la route faite, puis la
- *  durée du voyage arrivé, ou chaque journée en entité avec ce qui s'y est passé, et ce qui permet de repartir. */
-function recitDuVoyage(etat: Jeu): Element[] {
-  const r = recitEnVue(etat);
+/** Le ton de chaque issue d'un récit de voyage. */
+const TON_DU_RECIT = { arrivee: 'reussite', interruption: 'alerte', arret: 'alerte', embuscade: 'echec' } as const satisfies Record<Recit['issue'], Ton>;
+const TITRE_DU_RECIT = { arrivee: 'trm.titreArrivee', interruption: 'trm.titreInterrompu', arret: 'trm.titreArret', embuscade: 'trm.titreEmbuscade' } as const satisfies Record<Recit['issue'], string>;
+const SUITE_DU_RECIT = { arrivee: null, interruption: 'trm.piedInterrompu', arret: 'trm.piedSurcharge', embuscade: 'trm.piedEmbuscade' } as const satisfies Record<Recit['issue'], string | null>;
+
+/** La route d'un récit : d'où, vers où, sa longueur et son mode, puis hors d'une arrivée ce qui reste, ou les portes
+ *  de l'arrivée quand il en reste moins d'une unité. */
+function routeDuRecit(r: Recit): string {
+  const route = t('trm.route', { de: elision('de', r.de), depart: r.de, vers: r.vers, distance: libelleDeDistance(r.distance), mode: r.mode.nom.toLowerCase() });
+  const reste = r.reste && (Math.round(r.reste.valeur) > 0 ? t('trm.restants', { distance: libelleDeDistance(r.reste) }) : t('trm.auxPortes', { lieu: r.vers }));
+  return [route, ...(reste ? [reste] : [])].join(t('ecran.separateur'));
+}
+
+/** Le récit du trajet que le groupe vient de faire (`Projection.recit`) : son issue au ton de l'issue, la route faite,
+ *  puis la durée du voyage arrivé, ou chaque journée en entité (sa longueur, ses heures de route, ses lignes à leur
+ *  ton), et ce qui permet de repartir. */
+function recitDuVoyage(p: Projection): Element[] {
+  const r = p.recit;
   if (!r) return [];
+  const duree = r.dureeMin ? clockLabel(r.dureeMin, { exact: true }) : undefined;
+  const suite = SUITE_DU_RECIT[r.issue];
   return [
-    ligne('recit/issue', r.titre, TON_DU_RECIT[r.issue]),
-    ligne('recit/route', r.route),
-    ...(r.duree ? [ligne('recit/duree', r.duree)] : []),
-    ...r.journees.map((j, i): Entite => ({ type: 'entite', id: `recit/jour/${i}`, ton: 'neutre', nom: j.libelle, elements: j.lignes.map((l, k) => ligne(String(k), l)) })),
-    ...(r.suite ? [ligne('recit/suite', r.suite)] : []),
+    ligne('recit/issue', t(TITRE_DU_RECIT[r.issue], { lieu: r.vers }), TON_DU_RECIT[r.issue]),
+    ligne('recit/route', routeDuRecit(r)),
+    ...(duree ? [ligne('recit/duree', t('trm.dureeVoyage', { duree }))] : []),
+    ...(r.issue === 'arrivee' ? [] : r.journees.map((j, i): Entite => ({
+      type: 'entite', id: `recit/jour/${i}`, ton: 'neutre',
+      nom: t('trm.jour', { n: i + 1, distance: libelleDeDistance({ valeur: j.jusqua - j.depuis, unite: r.distance.unite }), heures: Math.round(j.heures) }),
+      elements: j.lignes.map((l, k) => ligne(String(k), l.text, l.tone ?? 'neutre')),
+    }))),
+    ...(suite ? [ligne('recit/suite', t(suite))] : []),
   ];
 }
 
@@ -753,7 +772,7 @@ const avantDuPaysage = (voie: Voyage['voie'], t: Teinte, meteo: Voyage['meteo'] 
 type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
 
 /** L'équipage du trajet : le navire en mer, la barge au fleuve ; sur la route, les marcheurs, les cavaliers ou l'attelage. */
-const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
+const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode.id === 'pied' ? 'pied' : v.mode.id === 'monture' ? 'monture' : 'attelage');
 
 /** L'objet du temps d'une scène : `ciel`, la couche du ciel de son arche ; `moment`, ce qui se dit du moment ; `meteo`,
  *  le pictogramme de la météo du jour (`null` : sans) ; `jourDeRoute`, le jour du trajet (`null` : hors d'un trajet). */
@@ -799,7 +818,7 @@ function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit
 function friseDuVoyage(v: Voyage): Plan {
   const point = (id: string, nom: string, km: number, ton: Ton, elements: Element[] = []): Plan['points'][number] => ({ type: 'point', id, nom, x: v.km > 0 ? km / v.km : 1, y: 0, ton, elements });
   const nuit: Icone = { type: 'icone', id: 'nuit', icone: 'voyage/nuit-passee' };
-  const faits = [point('depart', v.de, 0, 'neutre'), ...v.nuits.map((n, i) => point(`nuit/${i}`, '', n, 'neutre', [nuit])), point('ici', '', v.fait, 'reussite')];
+  const faits = [point('depart', v.de, 0, 'neutre'), ...v.journees.map((j, i) => point(`nuit/${i}`, '', j.jusqua, 'neutre', [nuit])), point('ici', '', v.fait, 'reussite')];
   const points = [...faits, point('arrivee', v.vers, v.km, 'neutre')];
   return { type: 'plan', id: 'voyage/frise', points, traits: points.slice(1).map((p, i) => ({ id: p.id, de: points[i].id, vers: p.id, ton: i < faits.length - 1 ? 'alerte' : 'neutre' })) };
 }
@@ -833,7 +852,7 @@ function voyage(etat: Jeu, p: Projection): Element[] {
   if (!v) return [];
   const m = p.temps.moment;
   const moment = v.meteo ? t('ecran.voyage.moment', { moment: m.nom, meteo: v.meteo.nom.toLocaleLowerCase('fr') }) : m.nom;
-  const temps: Temps = { ciel: `arche-${m.id}`, moment, meteo: v.meteo && ICONE_DE_LA_METEO[v.meteo.id], jourDeRoute: v.nuits.length + 1 };
+  const temps: Temps = { ciel: `arche-${m.id}`, moment, meteo: v.meteo && ICONE_DE_LA_METEO[v.meteo.id], jourDeRoute: v.journees.length + 1 };
   return [
     ...(reposEnVue(etat) ? [] : scene(p.temps, paysageDuVoyage(v, m.id), temps)),
     ligne('voyage/titre', t('ecran.voyage.titre', { arrivee: v.vers })),

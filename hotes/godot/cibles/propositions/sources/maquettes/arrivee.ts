@@ -1,6 +1,6 @@
 /**
  * L'arrivée (#4411) : l'écran du lieu où le trajet s'achève, dont la première ligne est le récit du trajet, ses services
- * et le départ qu'il offre (`../../voyage.md`, section `arrivee`). Récit : `src/noyau/recitEnVue.ts` ; un seul départ :
+ * et le départ qu'il offre (`../../voyage.md`, section `arrivee`). Récit : composé par `recitDuVoyage` (`src/hote/ecran.ts`) ; un seul départ :
  * `src/noyau/worldMap.ts:176` ; place de diligence : LDB 51 l.184, `src/engine/travel.ts:170`, EDO 01 l.142. Un état par
  * enceinte du lieu, le reste de l'écran inchangé : mur de bois ou de pierre, ou aucun, EDO 01 l.27.
  */

@@ -204,7 +204,7 @@ import {
   type NavalTraitRef,
   type ContexteDeTest,
 } from '../engine/types';
-import type { PendingSteamSave, PendingCascade, CascadeStep, CascadeStepMeta } from './pendings';
+import type { PendingSteamSave, PendingCascade, CascadeStep, CascadeStepMeta, CascadeTableResult } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
@@ -346,11 +346,11 @@ export interface SeaVoyageState {
   forcedEventId?: string;
 }
 
-/** Instantané d'un jour de mer pour l'ÉCRAN DE TRAVERSÉE (`SeaVoyageScreen`) : rose des vents + jauges
- *  compactes + distance restante. Self-contained (le plan est parfois déjà annulé au moment du rendu). */
+/** Instantané d'un jour de mer clos (#4574) : sa météo par axe (`SeaWeather`), le vent et le cap, l'état du bord et les
+ *  jours de mer estimés qui restent (`joursDeMer`, à la vitesse de croisière). Self-contained (le plan est parfois déjà
+ *  annulé au moment de le lire). */
 export interface SeaRecapChrome {
-  weatherLabel: string;
-  windForce: SeaWeather['vent'];
+  meteo: SeaWeather;
   windFrom: WindDirection;
   heading: WindDirection;
   /** DELTA de Blessures de coque du jour clos (négatif = coque endommagée, positif = réparée). L'état
@@ -360,8 +360,6 @@ export interface SeaRecapChrome {
   morale: number;
   manann: number;
   waterLitres?: number;
-  /** Milles restants à parcourir et estimation de jours de mer restants (à la vitesse de croisière). */
-  milesLeft: number;
   daysLeft: number;
 }
 
@@ -1969,11 +1967,10 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   const dayEntries = get().travelPlan!.procesVerbal ?? [];
   const hull = plan.vehicle!;
   const chrome: SeaRecapChrome = {
-    weatherLabel: seaWeatherLabel(sea.weather), windForce: sea.weather.vent, windFrom: sea.windFrom, heading: sea.heading,
+    meteo: sea.weather, windFrom: sea.windFrom, heading: sea.heading,
     hullDelta: hull.wounds.current - sea.hullAtDayStart,
     morale: shipMoraleScore(get, hull), manann: vesselManann(get().vessel).score,
     waterLitres: get().vessel?.waterLitres,
-    milesLeft: Math.max(0, Math.round(plan.km - kmDone)),
     daysLeft: joursDeMer(plan.km - kmDone, mDeCroisiere(navireDeLaCoque(hull))),
   };
   // Météo du LENDEMAIN, sous les météos imposées au navire.
@@ -2477,11 +2474,11 @@ export function localisationAleatoire(rng: RNG): ShipCritKey {
  *  `sea-events.json`) — son écriture appartient à l'appelant : la conséquence de l'étape d'événement de
  *  bord. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
-function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, roll?: number): string {
+function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, tiree: CascadeTableResult | null | undefined): string {
   // MDG 15 l.89, l.228
   const vessel = get().vessel;
   if (vessel?.modificateurs?.some((m) => m.jusqua === 'evenementDeBord')) set({ vessel: { ...vessel, modificateurs: modificateursApresUnEvenement(vessel.modificateurs) } });
-  const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
+  const ligne = noteEvent(get, set, { source: { table: SEA_BOARD_EVENT_TABLE, id: event.id }, title: event.label, text: event.desc, ...(tiree ? { jet: { naturel: tiree.roll, effectif: tiree.die } } : {}) });
   if (!event.consequence) return ligne;
   if (!event.infligeUsure || !vessel) {
     jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
@@ -3129,7 +3126,7 @@ export const TABLES = {
       // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `etape-meteo`), qui rend
       // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
       // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
-      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree?.die)]) };
+      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree)]) };
     },
     /** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
      *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
