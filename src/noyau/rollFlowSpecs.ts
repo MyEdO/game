@@ -1133,18 +1133,18 @@ export const FLOWS = paresseux({
         const t = actorIn(s, p.targetId); const spell = effectiveSpellOf(p);
         if (!actor || !t || !spell || !p.result) return null;
         const sl = tr.sl + castTestDRMods(actor, 'incantation', { success: tr.success, spell, sea: seaMagicContext(s) });
-        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl }, p.missile, p.focused, 0));
+        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl }, p.missile, 0));
       },
       // Voie RÉSILIENCE : le point acheté fait PARTIR le sort (DR ≥ NI, LDB 17 l.75), et la Malepierre
       // (LDB 46 l.173, INCONDITIONNELLE) se re-calcule sur CE DR — celle figée au jet d'origine est périmée.
       resilience: (s, p, actor, _g, tr) => {
         const t = actorIn(s, p.targetId); const spell = effectiveSpellOf(p);
         if (!actor || !t || !spell || !p.result) return null;
-        const ni = castingNumberOf(spell, p.focused, {}, [], actor);
+        const ni = castingNumberOf(spell, {}, [], actor);
         const sl0 = tr.sl + castTestDRMods(actor, 'incantation', { success: tr.success, spell, sea: seaMagicContext(s) });
         const malepierreConsumed = malepierreDR(Math.max(0, sl0), malepierreReserveOf(actor));
         const sl = sl0 + malepierreConsumed;
-        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl, malepierreConsumed }, p.missile, p.focused, Math.max(0, ni - sl)));
+        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl, malepierreConsumed }, p.missile, Math.max(0, ni - sl)));
       },
     },
     resolve: (s, p, actor, _get, forced) => {
@@ -1153,7 +1153,7 @@ export const FLOWS = paresseux({
       if (!actor || !target || !spell) return null;
       if (forced) {
         // — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) —
-        const ni = castingNumberOf(spell, p.focused, {}, [], actor);
+        const ni = castingNumberOf(spell, {}, [], actor);
         // FENÊTRE PRÉ-JET : sans jet posé, la cible du dé choisi est celle que le jet naturel aurait
         // employée — `castTestTarget` (miroir de `resolveCasting`) avec le MÊME ward et la MÊME
         // Difficulté que la branche de jet normal ci-dessous. Jet posé : sa cible fait foi.
@@ -1176,7 +1176,7 @@ export const FLOWS = paresseux({
         const cur = p.result ?? { cast: false, roll: cDie, target: tgt, sl: cSL, isCritical: false, isFumble: false, log: '', malepierreConsumed };
         // `Math.max(0, …)` : le DR du MEILLEUR dé suffit — un +1 fantôme au-dessus du maximum
         // nourrirait la Surincantation (LDB 47) sans rien dans la source pour le justifier.
-        return castRelance(s, p, rederiveCastSL(actor, target, spell, { ...cur, roll: cDie, target: tgt, sl: cSL }, p.missile, p.focused, Math.max(0, ni - cSL)));
+        return castRelance(s, p, rederiveCastSL(actor, target, spell, { ...cur, roll: cDie, target: tgt, sl: cSL }, p.missile, Math.max(0, ni - cSL)));
       }
       // — Jet NORMAL (relance Chance/Pacte) : re-jet complet — wards recalculés (Sorcière LDB 42 + Aqshy LDB 48). —
       // Ward = pénalité « Sorcière » (LDB 42) + bonus conditionnel de Domaine (Aqshy près des flammes,
@@ -1187,8 +1187,8 @@ export const FLOWS = paresseux({
       const discreet = !!p.discreet && castInfoIsPrayer(spell) && !!rule('priere-conviction');
       const difficulty = discreetPrayerDifficulty('intermediaire', discreet);
       const res = p.missile
-        ? resolveMagicMissile(actor, target, spell, battleRng(), p.focused, ward, seaMagicContext(s))
-        : resolveCasting(actor, spell, battleRng(), difficulty, p.focused, ward, seaMagicContext(s));
+        ? resolveMagicMissile(actor, target, spell, battleRng(), ward, seaMagicContext(s))
+        : resolveCasting(actor, spell, battleRng(), difficulty, ward, seaMagicContext(s));
       return castRelance(s, p, res);
     },
     // Issue CANONIQUE = d100 propre réussi (LDB 12 l.25-28) — relance/Pacte alignés sur le jet propre.
@@ -1200,7 +1200,7 @@ export const FLOWS = paresseux({
         const spell = effectiveSpellOf(p);
         if (!target || !spell) return null;
         const courant = p.result!;
-        const result = rederiveCastSL(actor, target, spell, courant, p.missile, p.focused, 1);
+        const result = rederiveCastSL(actor, target, spell, courant, p.missile, 1);
         return castRelance(s, p, courant.slPropre == null ? result : { ...result, slPropre: courant.slPropre + 1 });
       },
     },

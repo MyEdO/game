@@ -20,7 +20,7 @@ import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { ciblesBasculees } from './reglagesDuJet';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
-import { castInfo, incantationArcane, isMagicMissile, missileDamage, focalisationAboutie } from '../engine/magic';
+import { castInfo, incantationArcane, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
@@ -300,7 +300,6 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   if (horsAtteinte) return horsAtteinte.reason === 'cible-invalide' ? { kind: 'none' } : { kind: 'invalid', reason: horsAtteinte.reason };
   const pv = previewCast(active, spell, {
     missile,
-    focused: focalisationAboutie(active, spell),
     // L'affordance de survol vise une CIBLE désignée : elle annonce la cible réelle (protection de
     // la victime + Domaine/environnement), la même que la modale et que le jet.
     ctx: { s: get(), target },

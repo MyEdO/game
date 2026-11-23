@@ -55,7 +55,7 @@ const cr = (sl: number): CastResult =>
 function castMissile(caster: Combatant, target: Combatant): string[] {
   const spell = missileSpell();
   const mres = evaluateMissile(caster, target, spell, cr(4));
-  applyCast(banc.getState, banc.setState, caster, [target], spell, mres, true, false, undefined, undefined);
+  applyCast(banc.getState, banc.setState, caster, [target], spell, mres, true, undefined, undefined);
   return draineEtLit(banc.getState);
 }
 

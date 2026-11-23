@@ -48,7 +48,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   function frozenCast(W: Combatant, target: Combatant) {
     banc.setState({
       pendingCast: {
-        casterId: W.id, targetId: target.id, spellId: 'chute', missile: false, focused: false,
+        casterId: W.id, targetId: target.id, spellId: 'chute', missile: false,
         result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
       },
     });

@@ -17,7 +17,7 @@ import { spells } from './index';
 import { arcanePhenomena } from './arcanePhenomena';
 import { castingNumberOf } from '../engine/magic';
 import { effectiveCastingNumber, type CastingNumberMod } from '../engine/castingNumber';
-import { GRIMOIRE_NI_MODS } from '../noyau/combatFlow';
+import { GRIMOIRE_NI_MODS } from '../engine/grimoire';
 
 /** Entrée de sort RÉELLE (Caresse de Laniph), re-taguée Rituel — même forme que la donnée committée. */
 const asRituel = () => {
@@ -48,8 +48,8 @@ describe('NI — une portée `kinds:[\'rituel\']` MORD sur une entrée taguée',
 
   it('grimoire (`VDM 12 l.646-647`) : ×2 pour un Sort, ×4 pour un Rituel', () => {
     const base = asRituel().cn as number;
-    expect(castingNumberOf(sort(), false, {}, GRIMOIRE_NI_MODS)).toBe(base * 2);
-    expect(castingNumberOf(asRituel(), false, {}, GRIMOIRE_NI_MODS)).toBe(base * 4);
+    expect(castingNumberOf(sort(), {}, GRIMOIRE_NI_MODS)).toBe(base * 2);
+    expect(castingNumberOf(asRituel(), {}, GRIMOIRE_NI_MODS)).toBe(base * 4);
   });
 
   it('complexe Cairnapan (`VDM 14 l.489`) : le NI des Rituels de Ghyran est divisé, celui des Sorts NON', () => {
