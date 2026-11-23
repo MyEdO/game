@@ -8,7 +8,8 @@ import { isIndoor, sceneMetresPerTile } from './scene';
 import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import type { ModLine } from '../../engine/types';
-import { findPropById, findVehicleById } from '../../data';
+import { findPropById } from '../../data';
+import { estCoqueTerrestre } from '../../engine/coque';
 import { entiteFootTiles } from './footprint';
 import { rectangleDesPontsPoses } from '../../data/poseDesPonts';
 import { memoByRefDeps } from './sceneMemo';
@@ -60,7 +61,7 @@ export const propIsSolid = (ref: string | undefined): boolean => !!ref && !!find
  *  sans drapeau d'épuisement : un coffre vidé bloque toujours sa case. */
 function aUnCorpsSolide(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean {
   if (e.kind === 'prop') return actionsAuthorees(e).length > 0 || propIsSolid(e.decor?.id);
-  return e.vehicule !== undefined && findVehicleById(e.vehicule.id)?.hull?.propulsion === 'terrestre' && rectangleDesPontsPoses(scene, e) === null;
+  return e.vehicule !== undefined && estCoqueTerrestre(e.vehicule.id) && rectangleDesPontsPoses(scene, e) === null;
 }
 
 /** Index O(1) des cases des entités à corps solide (`aUnCorpsSolide`, `entityBlockedAt`), bâti UNE fois par identité de

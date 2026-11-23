@@ -22,6 +22,7 @@ import type { CustomStatblock } from '../../engine/statblock';
 import type { Pt } from './path';
 import { areteSepareLeCoupEntre, plafondDe, sceneMetresPerTile, wallOnSight, type Scene, type SceneEntity } from './scene';
 import { isStructure } from '../../engine/structures';
+import { estCoqueTerrestre, isVehicle } from '../../engine/coque';
 import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
 
@@ -170,8 +171,14 @@ export function distanceDeCombat(scene: Scene | null, a: Combatant, b: Combatant
   return Math.max(horizontal, vertical);
 }
 
-/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
-export const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
+/** La `pos` de `c` n'est-elle qu'une ancre, sa géométrie étant celle de la scène : une structure de siège (ses arêtes), un
+ *  navire sur ses ponts (leurs cloisons) ? */
+const ancreDeLaScene = (c: Pick<Combatant, 'bodyShape' | 'surSesPonts'>): boolean => isStructure(c) || !!c.surSesPonts;
+
+/** Le corps de `c` est-il porté par la scène, qui tient ses cases et ne le déplace pas : une ancre de la scène
+ *  (`ancreDeLaScene`), ou une coque terrestre, que l'index de la scène bloque (`aUnCorpsSolide`, #4471) ? */
+export const porteParLaScene = (c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'surSesPonts'>): boolean =>
+  ancreDeLaScene(c) || (isVehicle(c) && estCoqueTerrestre(c.creatureId));
 
 /** Un corps posé : son ancre (coin NO) et ce dont `footprintN` tire son côté, lus sur le MÊME objet. */
 export interface Corps { pos: Pt; size?: SizeCategory; footprint?: number }
@@ -196,10 +203,10 @@ export function pairesEnRegard(a: Corps, b: Corps): [Pt, Pt][] {
 
 /** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
  *  nulle arête ne sépare pour le coup (`wallOnSight` sous `areteSepareLeCoupEntre`, à la couche la plus haute des deux) ; `Infinity` s'il n'y en a aucune.
- *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
+ *  Une ancre de la scène (`ancreDeLaScene`) n'est séparée de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
 function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aPos: Pt, bPos: Pt): number {
   const an = footprintN(a), bn = footprintN(b);
-  if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
+  if (!scene?.walls?.length || ancreDeLaScene(a) || ancreDeLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
   const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
   let best = Infinity;
   const separe = (ax: number, ay: number, bx: number, by: number) => areteSepareLeCoupEntre(scene, ax, ay, bx, by, z);

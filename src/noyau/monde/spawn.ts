@@ -47,6 +47,7 @@ import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
 import { type Scene, heightAt, tileAt } from './scene';
+import { porteParLaScene } from './footprint';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
@@ -98,10 +99,11 @@ export function positionPosee(scene: Scene | null | undefined, p: { x: number; y
 /**
  * Pose la position d'un combattant (`positionPosee`) et re-dérive ses drapeaux positionnels — SOURCE UNIQUE de la
  * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
- * chute, avance navale).
+ * chute, avance navale). Un corps que la scène porte (`porteParLaScene`) ne quitte pas sa case : `false`, rien ne bouge.
  */
-export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean; bodyShape?: Combatant['bodyShape']; creatureId?: string }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): boolean {
   const z = p.z ?? 0;
+  if (c.pos && porteParLaScene(c) && (c.pos.x !== p.x || c.pos.y !== p.y || (c.pos.z ?? 0) !== z)) return false;
   c.pos = positionPosee(scene, p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
@@ -112,6 +114,7 @@ export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?:
   // Drapeau POSITIONNEL « navire sur ses ponts » (#3686) : re-dérivé au même chokepoint.
   if (scene && estPoseParSesPonts(scene, c.id)) c.surSesPonts = true;
   else if (c.surSesPonts) delete c.surSesPonts;
+  return true;
 }
 
 /** Terrain de la case, tolérant une scène absente : PAS de scène = pas de tuile, donc le terrain que le

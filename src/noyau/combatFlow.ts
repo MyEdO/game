@@ -4865,7 +4865,7 @@ function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant,
   const r = pullToward(get().scene!, attacker.pos, tgt.pos, chebyshev(attacker.pos, tgt.pos), { blocked: occupied(b, tgt) });
   if (r.pulled <= 0) return [];
   const from = { ...tgt.pos };
-  placeCombatant(tgt, get().scene, r.dest);
+  if (!placeCombatant(tgt, get().scene, r.dest)) return [];
   bus.emit(EVT.ANIM_MOVE, { id: tgt.id, path: [{ ...r.dest }] });
   applyZoneCrossings(get, set, tgt, [...tilesBetween(from, r.dest), { ...r.dest }]); // une traction TRAVERSE (Mur de feu, L11)
   return [tr('cs.tonguePull', { name: nomDe(attacker), foe: nomDe(tgt) })];
@@ -7043,7 +7043,7 @@ export function applyCast(
           const r = pushAway(get().scene!, caster.pos, t.pos, pushTiles, { blocked: occupied(battle, t) });
           if (r.pushed > 0) {
             const fromPos = { ...t.pos };
-            placeCombatant(t, get().scene, r.dest);
+            if (!placeCombatant(t, get().scene, r.dest)) continue;
             bus.emit(EVT.ANIM_MOVE, { id: t.id, path: [{ ...r.dest }] });
             logLines.push(tr('cf.pousse', { name: nomDe(t), m: r.pushed * sceneMetresPerTile(get().scene) }));
             applyZoneCrossings(get, set, t, [...tilesBetween(fromPos, r.dest), { ...r.dest }]); // une poussée TRAVERSE (Mur de feu, L11)
