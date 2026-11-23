@@ -51,7 +51,7 @@ l'utilisateur ».
   sont utiles. On s'autorise a en ouvrir plus plus tard avec l'évolution du jeu » (2026-11-23) : chaque voie (Collège,
   dieu) offre une courte liste choisie de sorts que le noyau applique et qui servent en combat ou en salle.
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
-- **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
+- **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L’armure est une panoplie parmi cinq
   (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.
   La forge ouvre ce qu'elle vend par Disponibilité ; une recrue part avec la dotation du livre ; le meilleur s'achète.
 - **Progression** : présentation « à la 5e » (pas de +5, plan conseillé en un clic, Compétences utiles seules) ;
@@ -217,7 +217,10 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   armure), si on gere l'armure a l'unité ca va etre un enfer, en plus avec les régles sur l'empilement des armures,
   sur ces personnages qu'on va créer en grand nombre, ca va etre l'enfer ». — La forge vend des panoplies : un
   ensemble cohérent de pièces du noyau, acheté en un clic, qui occupe l'emplacement « armure » ; le noyau en calcule
-  les PA par localisation.
+  les PA par localisation. Puis : « On peut proposer les 5 niveaux (1, 2, 3, 4, 5) pour tout le monde, (en mélangeant
+  ou non les 3 matieres), c'est important pour l'encombrement ». — Cinq panoplies, une par niveau de PA (1 à 5), faites
+  de cuir souple, de mailles et de plates superposés selon LDB 63 l.60 et l.74 ; chacune montre son Encombrement et ses
+  malus, pour arbitrer protection contre encombrement.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
