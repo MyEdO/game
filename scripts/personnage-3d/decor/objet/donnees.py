@@ -37,7 +37,7 @@ FER = {"fer": ("metal", "fer-noirci")}
 LAITON = {"laiton": ("metal2", "laiton-dore")}
 CORDE = {"corde": ("accent", "corde")}
 MATERIAUX = {
-    "miroir": {**BOIS, "glace": ("corps", "verre")},
+    "miroir": {**BOIS, "glace": ("corps", "miroir")},
     "mannequin": {**BOIS, "toile": ("vet1", "toile-ecrue"), "paille": ("vegetal", "paille"), **CORDE, **LAITON, **FER},
     "mannequin-couturier": {**BOIS, "toile": ("vet1", "toile-rouge"), **LAITON},
     "plante-pot": {**BOIS, "pot": ("corps", "terre-cuite"), "terre": ("corps", "terre-battue"),
