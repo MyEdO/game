@@ -16,6 +16,9 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_lue`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## La priorité de rendu d'une matière qui laisse voir ce qui est derrière elle (`scene_lue`) : dessinée avant les
+## autres surfaces en mélange, le voile de son mesh compris (`art/voile.gdshader`), qui la voile avec ce qu'elle montre.
+const PRIORITE_DE_CE_QUI_LAISSE_VOIR := -1
 ## La `forme` d'un listage dont chaque modèle se sert en scène fabriquée de son GLB (`FabriqueDeModeles`), que Godot
 ## charge telle quelle ; sous `glb`, il se sert en GLB, lu à l'exécution (`hotes/godot/pont/CONTRAT.md`, « Atelier 3D »).
 const FORME_SCENE := "scene"
@@ -378,7 +381,8 @@ static func _paquet_lu(id: String, octets: PackedByteArray, recueil: Array[Strin
 
 
 ## Les `octets` du GLB du modèle `id` en scène, `MATERIAUX` posé à sa racine, `null` (et une erreur à `recueil`) s'ils ne
-## se lisent pas. Chaque mesh y porte ses niveaux de détail (`poser_les_niveaux`). Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## se lisent pas. Chaque mesh y porte ses niveaux de détail (`poser_les_niveaux`). Chaque matière qui laisse voir
+## (`opacity` de sa matière, #4471) s'y dessine à `PRIORITE_DE_CE_QUI_LAISSE_VOIR`. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
 ## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp` `_create_skins`,
 ## `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
 static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String]) -> Node3D:
@@ -398,6 +402,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 	var par_nom := {}
 	for materiau in etat.get_materials():
 		par_nom[materiau.resource_name] = materiau
+		if (materiau as BaseMaterial3D).transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			materiau.render_priority = PRIORITE_DE_CE_QUI_LAISSE_VOIR
 	scene.set_meta(MATERIAUX, par_nom)
 	return scene
 
@@ -1349,7 +1355,7 @@ func habiller_la_base() -> void:
 ## `reliefs` donne à ce nom un facteur autre que 1, qui multiplie son `normal_scale` (#4002) : celle-ci
 ## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc, de sa texture neutre si `palette` colore la
 ## surface et qu'elle est au projet (#4313), lue aux UV du mesh si `par_uv` et que la surface n'est pas `blason`,
-## projetée sur les trois axes sinon ; la couleur remplace l'albédo du GLB, texture comprise,
+## projetée sur les trois axes sinon ; la couleur remplace l'albédo du GLB, texture comprise, son opacité gardée,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
@@ -1390,11 +1396,11 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 					if neutre != null:
 						albedo = neutre
 				VolumeDeScene.texturer(local, surface.matiere, albedo, surface.get("blason", false) or not par_uv, motif)
-				local.albedo_color = Color.WHITE
+				local.albedo_color = Color(Color.WHITE, local.albedo_color.a)
 			elif couleur != null:
 				local.albedo_texture = null
 			if couleur != null:
-				local.albedo_color = Color(couleur)
+				local.albedo_color = Color(Color(couleur), local.albedo_color.a)
 			local.normal_scale = MiseEnPage.relief_au_facteur(local.normal_scale, relief)
 			if blason:
 				local.detail_enabled = true

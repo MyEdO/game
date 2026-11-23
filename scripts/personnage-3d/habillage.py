@@ -4,9 +4,9 @@ palette, matière)}`.
 
 La matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` : la surface du manifeste la déclare
 `"matiere": "prop--<id>"`, et l'hôte l'habille de sa texture et de son relief du catalogue
-(`hotes/godot/projet/textures/`) ; le GLB n'embarque aucune texture, son matériau porte la couleur, la rugosité et le
-métal de la matière. À défaut de matière, `(couleur linéaire, métal, rugosité)` ; un emplacement `None` laisse le
-matériau hors des `surfaces`.
+(`hotes/godot/projet/textures/`) ; le GLB n'embarque aucune texture, son matériau porte la couleur, la rugosité, le
+métal et l'opacité de la matière (`opacity`, absente : opaque). À défaut de matière, `(couleur linéaire, métal,
+rugosité)` ; un emplacement `None` laisse le matériau hors des `surfaces`.
 """
 import json
 from pathlib import Path
@@ -28,17 +28,27 @@ def couleur_lineaire(hexa):
     return tuple(canal(int(hexa[i:i + 2], 16) / 255) for i in (1, 3, 5))
 
 
-def materiau(nom, couleur, metal, rugosite):
-    """Matériau `nom` du GLB, de couleur linéaire `couleur`."""
+def materiau(nom, couleur, metal, rugosite, opacite=1.0):
+    """Matériau `nom` du GLB, de couleur linéaire `couleur` ; d'opacité `opacite` sous 1, il laisse voir à travers lui
+    (`alphaMode` `BLEND` et alpha du facteur de couleur à l'export)."""
     import bpy
     mat = bpy.data.materials.new(nom)
     bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
-    mat.diffuse_color = (*couleur, 1)
+    mat.diffuse_color = (*couleur, opacite)
     bsdf.inputs["Base Color"].default_value = (*couleur, 1)
+    bsdf.inputs["Alpha"].default_value = opacite
     bsdf.inputs["Metallic"].default_value = metal
     bsdf.inputs["Roughness"].default_value = rugosite
     mat.use_backface_culling = False
+    if opacite < 1:
+        mat.surface_render_method = "BLENDED"
     return mat
+
+
+def materiau_de(nom, matiere):
+    """Matériau `nom` de la matière `matiere` du `catalogue`."""
+    return materiau(nom, couleur_lineaire(matiere["color"]), matiere["metalness"], matiere["roughness"],
+                    matiere.get("opacity", 1.0))
 
 
 def materiaux(table):
@@ -47,8 +57,7 @@ def materiaux(table):
     sortie = {}
     for nom, (_, matiere) in table.items():
         if isinstance(matiere, str):
-            m = matieres[matiere]
-            sortie[nom] = materiau(nom, couleur_lineaire(m["color"]), m["metalness"], m["roughness"])
+            sortie[nom] = materiau_de(nom, matieres[matiere])
         else:
             sortie[nom] = materiau(nom, *matiere)
     return sortie
