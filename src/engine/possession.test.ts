@@ -337,4 +337,15 @@ describe('accepteUnCavalier — LDB 85 l.112 ; AA 09 l.23 ; arbitrages du 2026-1
     expect(accepteUnCavalier(monture('blaireau'), cavalier('halflings'))).toBe(false);
     expect(accepteUnCavalier(monture('blaireau'), cavalier('halflings', { spec: 'blaireau', advances: 5 }))).toBe(true);
   });
+  it.each([
+    ['hyppogriffe', 'griffon', 'cheval'],
+    ['loup-blanc', 'grand-loup', 'loup'],
+    ['carnosaure', 'carnosaure', 'griffon'],
+    ['cornu', 'cornu', 'cheval'],
+  ])('%s dressé exige Chevaucher (%s), arbitrage #4842 du 2026-11-23', (id, exigee, autre) => {
+    const bete = monture(id, ['dresse-monture']);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander'))).toBe(false);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander', { spec: autre, advances: 10 }))).toBe(false);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander', { spec: exigee, advances: 5 }))).toBe(true);
+  });
 });

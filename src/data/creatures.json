@@ -2266,7 +2266,11 @@
     "grantGroups": [
       "bete",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "griffon"
+    }
   },
   {
     "id": "hydre",
@@ -10556,7 +10560,11 @@
     "grantGroups": [
       "bete",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "cornu"
+    }
   },
   {
     "id": "carnosaure",
@@ -10666,7 +10674,11 @@
       "bete",
       "predateur",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "carnosaure"
+    }
   },
   {
     "id": "chat-sauvage",
@@ -12348,6 +12360,10 @@
     },
     "appearance": {
       "species": "loup"
+    },
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "grand-loup"
     }
   },
   {
