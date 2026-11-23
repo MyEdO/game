@@ -8,25 +8,40 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Compagnon animal et montures dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lot A en PR brouillon ; lot B1 (cavalier choisi hors combat, IA, voyage) codé, finition en cours (tests de l'IA alliée, preuves par mutation), puis juge ; ensuite B2 (compagnon en rencontre), C (Blessures) |
-| Le cuir souple ajoute ses PA (MyEdO/game#4820), puis cinq panoplies de 1 à 5 PA | `.wt-4820-cuir-souple`, puis `jeu/valeurs.ts` | codeur du noyau en cours |
-| Un mage pose les sorts de sa voie en combat automatique : réserve de Focalisation VDM (MyEdO/game#865), l'IA qui focalise (MyEdO/game#4821) | `.wt-865`, `.wt-4821` | #865 : design jugé, lot 1 (la réserve) en codage, lot 2 (Interruption volontaire, évacuation, Maladresse VDM) ensuite ; #4821 en codage |
+| Cinq panoplies de 1 à 5 PA, prix, encombrement et pénalités (le cuir souple s'additionne depuis MyEdO/game#4824, fusionné) | `jeu/valeurs.ts`, `jeu/boutiques.ts` | codeur en cours |
+| Montures et compagnon dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lots A et B1 en file de fusion ; ensuite B2 (le compagnon en rencontre : le chien du Ratier membre du groupe), C (Blessures des bêtes gardées et soignées). La règle de monte « Dressé (Monture) exigé » (#4816) est tenue par un autre fil |
+| Réserve de Focalisation VDM (MyEdO/game#865) | `.wt-865`, PR MyEdO/game#4838 | lot 1 jugé, en réalignement sur `main` (l'IA qui focalise de #4837) ; lot 2 : Interruption volontaire (VDM 02 l.139), évacuation sûre (l.141), Maladresse de Focalisation (l.149), cas du sort octroyé lu au grimoire |
 
 ## Ensuite, dans l'ordre
 
 1. Dès que MyEdO/game#4847 est sur `main` : remplacer la boucle de `roguelite/src/noyau/combat.ts` (`jouerLeCombat`, `clore`, la comparaison de Destin) par `jouerLaRencontre` (`src/hote/rencontre.ts`), le résultat du lancement en second argument ; répondre au courrier https://github.com/MyEdO/game/pull/4767#issuecomment-7109565373 sur #4847.
-2. Débords connus : la forge et
-   l'Hospice à la taille d'interface « grande » (la Salle d'armes à 20 sorts est réglée par le tri des sorts).
-3. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
+2. Le mage en combat automatique, une fois #4838 fusionnée : remesurer le taux de lancer des sorts de voie par niveau, avec et sans `magie-vdm-incantation` ; rouvrir Arme et Armure aethyriques et Explosion si l'IA les lance ; Lumière, Métal et Mort n'offrent que Carreau au niveau 2.
+3. Débords connus : la forge et l'Hospice à la taille d'interface « grande ».
+4. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
    refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
-   Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche.
-4. Choisir hors combat qui monte sa monture (après le lot B de #4804) ; le roguelite le propose avant la rencontre.
-5. Placement du groupe, consigne par héros (doctrine de l'IA), cartes tactiques.
-6. Corruption et maladies, en rencontres à choix.
-7. Équilibrage : les hardes et le Minotaure trop durs avec le nouveau roster ; les Collèges au niveau 1 n'ont que
-   leurs sorts mineurs ; plus de morts depuis les potions à l'Hospice.
-8. Jouer une partie complète à 1829×1029, puis publier la v30 de l'artefact.
+   Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche. Y montrer
+   l'effet d'un achat en combat (piste 6).
+5. Choisir hors combat qui monte sa monture : le roguelite le propose avant la rencontre (gestes `monterLaBete`,
+   `quitterLaSelle` du noyau, lot B1).
+6. Salles à choix, suite : la chirurgie au camp (aucune recrue n'a Chirurgie), « qui veille », les récompenses
+   information et objet, des pièges sur d'autres Compétences, le choix de chemin entre deux salles, une ressource qui
+   s'use. Le choix réel du soigneur attend le noyau (`RETOURS.md`, « aucun réglage du soigneur »).
+7. Provisions de route à l'Auberge relais : rations, torches, cordes, qui ouvrent ou facilitent des actions de salle.
+8. Placement du groupe, consigne par héros (doctrine de l'IA), cartes tactiques.
+9. Corruption et maladies, en rencontres à choix.
+10. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
+11. Équilibrage : les hardes, le Minotaure, et Guerrier du Chaos + Troll trop durs (0 sur 6 au balayage) ; les
+    Collèges au niveau 1 n'ont que leurs sorts mineurs ; plus de morts depuis les potions à l'Hospice ; l'économie
+    sur une campagne entière (piste 7).
+12. Jouer une partie complète à 1829×1029, puis publier la v30 de l'artefact.
+
+## Tickets du noyau ouverts en chemin, sans preneur
+
+- MyEdO/game#4825 : Perforante et Ulgu additionnent toutes les pièces portées, le reste la meilleure par couche.
+- MyEdO/game#4827 : une monture perdue en cours de journée ouvre un budget à pied neuf (12 h de route le même jour).
 
 ## Attend l'utilisateur
 
-Rien.
+- Une créature invoquée alliée peut enfourcher en combat le cheval d'un héros descendu : l'arbitrage « une monture
+  peut avoir un cavalier ou non, choisi hors combat » protège-t-il aussi la monture contre tout cavalier non choisi ?
+  (commentaire sur MyEdO/game#4804).
