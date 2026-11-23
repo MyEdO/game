@@ -1,10 +1,11 @@
 """Pièce skinnée sur une base (#3743) : ce qu'un vêtement emprunte à la base au repos, pour le `modele.py` d'un élément
 de liaison `squelette` que bâtit `element/construire.py`.
 
-`Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
-(positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface) et des formes
-propres de la tête contournée (de cette tête au plus près), découpe de la pièce par zone. Le reste se compose dans le
+`Filet` et `Manche` lisent de la base au repos ses filets et ses manches. `Base` ouvre la base au repos avec ses zones
+(un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses (positions, triangles, poids par os), coupes planes
+des zones, éléments publiés qu'une pièce contourne, transfert des silhouettes et des clés `gabarit_*` (du corps au plus
+près, des éléments publiés par liaison de surface) et des formes propres de la tête contournée (de cette tête au plus
+près), découpe de la pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
@@ -17,7 +18,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 from anatomie import AXES_DU_PERSONNAGE, attache
-from filets import filets_au_repos, unitaire  # noqa: F401
+from filets import filets_au_repos, manches_au_repos, unitaire  # noqa: F401
 from formes import (aretes_des_triangles, aux_noeuds, decalages, decalages_monde, noms_des_cles, poser_la_cle, rapports,
                     region_locale, retournees_par, transferer_les_cles)
 from maille import tirage
@@ -34,11 +35,24 @@ CHARNIERE_M = 0.10
 """Hauteur, en mètres, sous les racines d'un filet, sur laquelle une nappe passe du corps au filet (`Filet.part`)."""
 FONDU_D_OS_M = 0.12
 """Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
-(`Filet.poids`)."""
+(`le_long_du_brin`)."""
 EGALITE_DE_ZONE_M = 1e-5
 """Écart de distance, en mètres, sous lequel deux zones sont aussi proches d'une face (`Base.zones_des_faces`) : le
 point le plus proche d'une face posée sur la couture de deux zones est sur leurs deux bords, à des distances que
 l'arrondi de la machine départage (la robe de #4002 : 61 faces à égalité, écarts de 1e-8 à 3e-7 m)."""
+
+
+def le_long_du_brin(w, os_, hauteurs, indice_os, z, reste):
+    """Ajoute aux poids `w` la part `reste` d'un point de hauteur `z` le long du brin d'os `os_`, d'articulations aux
+    hauteurs `hauteurs` (K+1) : d'un os au suivant autour de leur articulation, sur `FONDU_D_OS_M` ou sur la hauteur de
+    l'os s'il est plus court."""
+    for k, nom in enumerate(os_):
+        sous = 0.0
+        if k + 1 < len(os_):
+            fondu_d_os = min(FONDU_D_OS_M, float(hauteurs[k] - hauteurs[k + 1]))
+            sous = fondu((hauteurs[k + 1] + fondu_d_os / 2 - z) / fondu_d_os)
+        w[indice_os[nom]] += reste * (1 - sous)
+        reste *= sous
 
 
 def direction(theta):
@@ -108,14 +122,67 @@ class Filet:
 
     def poids(self, z, theta):
         """Les poids du point (`z`, `theta`) : entre ses deux brins voisins selon l'azimut, le long de chacun d'un os au
-        suivant sur `FONDU_D_OS_M` autour de leur articulation."""
+        suivant (`le_long_du_brin`)."""
         _, i, j, part = self.point(z, theta)
         w = np.zeros(len(self.indice_os))
         for s, reste in ((i, 1 - part), (j, part)):
-            for k, os_ in enumerate(self.os[s]):
-                sous = fondu((self.brins[s, k + 1, 2] + FONDU_D_OS_M / 2 - z) / FONDU_D_OS_M) if k + 1 < len(self.os[s]) else 0.0
-                w[self.indice_os[os_]] += reste * (1 - sous)
-                reste *= sous
+            le_long_du_brin(w, self.os[s], self.brins[s, :, 2], self.indice_os, z, reste)
+        return w
+
+
+class Manche:
+    """Une manche de la base au repos (`manches_au_repos`, `base/filets.py`) sous la poche qui la suit : l'os qui
+    tourne son tube autour de l'avant-bras d'une portion du tour de la manche, que suit son dessus (`dessus`) ; ses
+    poids, par os de la base, en un point de la poche (`poids`)."""
+
+    def __init__(self, repos, indice_os):
+        self.brins, self.os, self.indice_os = repos['brins'], repos['os'], indice_os
+        self.porteur, self.tube, self.part_du_tube = indice_os[repos['porteur']], indice_os[repos['tube']], repos['part_du_tube']
+        self.coude, avant_bras = repos['coude'], repos['poignet'] - repos['coude']
+        self.axe = avant_bras / (avant_bras @ avant_bras)
+        self.stations = sorted(set(repos['parts'].tolist()))
+        self.faces = [[int(np.flatnonzero((repos['parts'] == part) & (repos['avant'] == avant))[0]) for avant in (False, True)]
+                      for part in self.stations]
+        self.median = self.brins[:, 0].mean(axis=0)
+        self.travers = unitaire(sum(self.brins[avant, 0] - self.brins[arriere, 0] for arriere, avant in self.faces))
+
+    def ecart(self, p):
+        """L'écart du point `p` au plan médian de la manche, positif vers l'avant du bras tendu."""
+        return float((np.asarray(p) - self.median) @ self.travers)
+
+    def pendre(self, tube, pans):
+        """La poche qui pend sous l'anneau `tube` de la manche, bras tendu : chaque point descend d'aplomb de son pan de
+        `pans`, ses poids passent de l'os du tube de la manche à ses brins. Rend les points et leurs poids."""
+        points = [np.asarray(p) + pan * np.array([0.0, 0.0, -1.0]) for p, pan in zip(tube, pans)]
+        return points, [(1 - self.part(pan)) * self.dessus(p) + self.part(pan) * self.poids(q)
+                        for p, q, pan in zip(tube, points, pans)]
+
+    def dessus(self, p):
+        """Les poids du point `p` du dessus de la manche : de l'avant-bras, au coude, à l'os du tube, le long de
+        l'avant-bras."""
+        vers = min(1.0, max(0.0, float((np.asarray(p) - self.coude) @ self.axe) / self.part_du_tube))
+        w = np.zeros(len(self.indice_os))
+        w[self.porteur], w[self.tube] = 1 - vers, vers
+        return w
+
+    def part(self, profondeur):
+        """Part de la manche dans un point qui pend de `profondeur` sous le dessus de la manche : nulle à son départ,
+        entière `CHARNIERE_M` plus bas."""
+        return fondu(profondeur / CHARNIERE_M)
+
+    def poids(self, p):
+        """Les poids du point `p` de la poche : entre les deux stations voisines le long de l'avant-bras, à chacune entre
+        son brin d'arrière et son brin d'avant, le long de chaque brin d'un os au suivant (`le_long_du_brin`)."""
+        part = float((np.asarray(p) - self.coude) @ self.axe)
+        j = int(np.clip(np.searchsorted(self.stations, part) - 1, 0, len(self.stations) - 2))
+        vers = min(1.0, max(0.0, (part - self.stations[j]) / (self.stations[j + 1] - self.stations[j])))
+        w = np.zeros(len(self.indice_os))
+        for station, reste_de_station in ((j, 1 - vers), (j + 1, vers)):
+            arriere, avant = (self.brins[s, 0] for s in self.faces[station])
+            travers = avant - arriere
+            en_avant = min(1.0, max(0.0, float((np.asarray(p) - arriere) @ travers / (travers @ travers))))
+            for s, reste in zip(self.faces[station], (reste_de_station * (1 - en_avant), reste_de_station * en_avant)):
+                le_long_du_brin(w, self.os[s], self.brins[s, :, 2], self.indice_os, p[2], reste)
         return w
 
 
@@ -164,6 +231,10 @@ class Base:
     def filet(self, nom):
         """Le filet `nom` de la base au repos."""
         return Filet(filets_au_repos(self.glb)[nom], self.indice_os)
+
+    def manche(self, c):
+        """La manche du bras `c` (`g`, `d`) de la base au repos."""
+        return Manche(manches_au_repos(self.glb)[f'manche_{c}'], self.indice_os)
 
     def tete(self, nom):
         """La tête de l'os `nom`, monde, au repos."""

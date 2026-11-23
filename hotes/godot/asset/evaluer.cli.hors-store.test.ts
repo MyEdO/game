@@ -43,6 +43,18 @@ test('--etats-gabarit évalue chaque état de `etatsDuGabarit` sous ses facteurs
   }
 }, 120_000);
 
+for (const [nom, options, motif] of [
+  ['--tenue refuse --preset, qu’elle implique', ['--tenue', 'gladiateur', '--preset', 'gladiateur'], /--tenue : implique --preset, à ne pas donner/],
+  ['--local exige --tenue', ['--local', 'a=a.glb'], /--local : --tenue requis/],
+  ['--tenue exige la base et son manifeste', ['--tenue', 'gladiateur'], /--tenue : --base et --manifeste requis/],
+  ['--poses-rangees exige un seul clip', ['--tenue', 'gladiateur', '--base', 'b.glb', '--manifeste', 'm.json', '--poses-rangees', '--clips', 'A,B'], /--poses-rangees : --tenue ou --preset requis, un seul clip/],
+  ['--poses-rangees exige un preset', ['--base', 'b.glb', '--manifeste', 'm.json', '--poses-rangees', '--clips', 'A'], /--poses-rangees : --tenue ou --preset requis/],
+] as const) test(nom, () => {
+  const resultat = spawnSync(process.execPath, [script, ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });
+  expect(resultat.status, resultat.stderr).toBe(2);
+  expect(resultat.stderr).toMatch(motif);
+});
+
 test('--porte exige un manifeste et refuse --silhouettes', () => {
   for (const options of [[], ['--manifeste', 'manifeste.json', '--silhouettes', 'feminin=1']]) {
     const resultat = spawnSync(process.execPath, [script, 'base.glb', '--porte', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });

@@ -6,16 +6,17 @@ Une double nappe `robe`, d'un seul pan, fermée :
   cou ;
 - la jupe, rangées de `RANGEES_JUPE` jusqu'à `OURLET_ROBE`, posée au jeu sur le filet `jupe` de la base au repos, jamais à
   moins du dégagement des jambes, l'ourlet en lambeaux si `LAMBEAUX_ROBE` ;
-- chaque manche de `MANCHE` (vide pour une jupe), anneaux perpendiculaires à `upperarm`, un pan incliné sur l'axe du
-  bras, fermée à l'épaule par un cône dans le corps, le bord en lambeaux si `LAMBEAUX_MANCHE`.
+- chaque manche de `MANCHE` (vide pour une jupe), anneaux perpendiculaires à `upperarm`, un pan en lobe sous le bras,
+  fermée à l'épaule par un cône dans le corps, le bord en lambeaux si `LAMBEAUX_MANCHE`.
 Poids : le corsage et le raccord des manches à l'épaule empruntent au corps, sommet par sommet ; au-delà de
-`RACCORD_EPAULE`, la manche suit d'un bloc les os de la peau à `COUPE_DES_POIDS`, sans lissage ; la jupe prend les os
-des deux brins voisins du filet (`tissu.Filet`), jamais les cuisses.
+`RACCORD_EPAULE`, la manche suit d'un bloc les os de la peau à `COUPE_DES_POIDS`, sans lissage ; passé le coude, un
+anneau qui porte un pan suit l'os du tube de la manche de la base, et son pan, ses brins (`tissu.Manche`) ; la jupe
+prend les os des deux brins voisins du filet (`tissu.Filet`), jamais les cuisses.
 Silhouettes et clés `gabarit_*` transférées. Chaque emplacement de `EMPLACEMENTS_DEPLACES` passe de la peau de la base
 à la surface de la robe (`Base.offrir_sur`).
 
 Un vêtement d'une autre coupe compose les mêmes pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
-`anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de`.
+`anneaux`, `rangee`, `bras_de`, `bloc_du_bras`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de`.
 """
 import math
 
@@ -175,11 +176,11 @@ def rangee(nappe, filet, zs, thetas, rayons):
             np.array([filet.axe[0], filet.axe[1], float(np.mean(zs))]))
 
 
-def bras_de(D, b, c, signe, phis, porteur):
+def bras_de(D, b, c, signe, phis):
     """Le bras `c` sous une manche d'anneaux perpendiculaires à `upperarm`, un sommet par azimut de `phis` (degrés) dans
     leur plan : son axe ; `anneau_de_bras(f, aisances)`, l'anneau à la fraction `f` de l'os (au-delà de 1 passé le
     coude), ses points à leurs aisances, son centre et la peau de la coupe, prise à `COUPE_MIN` en deçà et sans ce qui
-    passe `RAYON_DE_COUPE_MAX` ; les poids d'un bloc, moyenne de ceux de `porteur` sous la peau à `COUPE_DES_POIDS`."""
+    passe `RAYON_DE_COUPE_MAX`."""
     o0, o1 = (np.array(b.tete(o)) for o in OS_BRAS[c])
     axe = unitaire(o1 - o0)
     u, v = repere_de_plan(axe, HAUT, signe)
@@ -194,8 +195,13 @@ def bras_de(D, b, c, signe, phis, porteur):
         return ([O + p[0] * u + p[1] * v for p in anneau(P, centre, dirs, aisances, D['DEGAGEMENT_MIN'])],
                 O + centre[0] * u + centre[1] * v, [Oc + p[0] * u + p[1] * v for p in P])
 
-    peau = anneau_de_bras(D['COUPE_DES_POIDS'], [0.0] * len(dirs))[2]
-    return axe, anneau_de_bras, np.mean([emprunter(q, porteur)[0] for q in peau], axis=0)
+    return axe, anneau_de_bras
+
+
+def bloc_du_bras(D, anneau_de_bras, n, porteur):
+    """Les poids d'un bloc de manche : la moyenne de ceux de `porteur` sous la peau de l'anneau à `COUPE_DES_POIDS`,
+    d'un anneau de `n` sommets."""
+    return np.mean([emprunter(q, porteur)[0] for q in anneau_de_bras(D['COUPE_DES_POIDS'], [0.0] * n)[2]], axis=0)
 
 
 def dents_de_manche(D, c, n):
@@ -215,19 +221,28 @@ def fermer_a_l_epaule(nappe, liste, porteur):
 
 def manches(D, b, robe, porteurs):
     """Chaque manche de `robe`, anneaux perpendiculaires à `upperarm` (`MANCHE`), fermée à l'épaule par un cône dans le
-    corps."""
+    corps. Un pan pend en lobe sous le bras tendu : jusqu'au coude, il suit le bras ; au-delà, il pend à la manche de la
+    base (`tissu.Manche.pendre`), dont l'anneau suit l'os du tube."""
     s = D['SEGMENTS_MANCHE']
     phis = tour(s)
-    lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DU_PAN']))) ** 2 for t in phis]
-    radial, axial = math.sin(math.radians(D['INCLINAISON_DU_PAN'])), math.cos(math.radians(D['INCLINAISON_DU_PAN']))
+    lobe = [max(0.0, -math.cos(math.radians(t))) ** 2 for t in phis]
     for c, signe in (('g', 1.0), ('d', -1.0)):
-        axe, anneau_de_bras, poids_du_bras = bras_de(D, b, c, signe, phis, porteurs[c])
+        _, anneau_de_bras = bras_de(D, b, c, signe, phis)
+        poids_du_bras = None
+        manche = b.manche(c) if any(f > 1 and pend for f, _, pend in D['MANCHE']) else None
         liste = []
         for f, e, pend in D['MANCHE']:
-            pts, centre, _ = anneau_de_bras(f, [e + pend * radial * l for l in lobe])
-            pts = [p + pend * axial * l * axe for p, l in zip(pts, lobe)]
+            pendu = f > 1 and pend > 0
+            pts, centre, _ = anneau_de_bras(f, [e + (0.0 if pendu else pend * l) for l in lobe])
             raccord = f < D['RACCORD_EPAULE']
-            poids = [emprunter(p, porteurs[c])[0] for p in pts] if raccord else [poids_du_bras] * s
+            if pendu:
+                pts, poids = manche.pendre(pts, [pend * l for l in lobe])
+            elif raccord:
+                poids = [emprunter(p, porteurs[c])[0] for p in pts]
+            else:
+                if poids_du_bras is None:
+                    poids_du_bras = bloc_du_bras(D, anneau_de_bras, s, porteurs[c])
+                poids = [poids_du_bras] * s
             liste.append((robe.poser(pts, poids, fixes=not raccord), centre))
         if 'LAMBEAUX_MANCHE' in D:
             # Le bord en lambeaux : chaque colonne du dernier anneau recule le long de la manche de la profondeur que lui

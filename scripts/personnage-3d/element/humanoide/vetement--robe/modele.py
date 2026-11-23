@@ -11,11 +11,11 @@ Trois nappes jointes en une pièce :
   l'ourlet plus bas, en dents profondes ; elle monte au ras du tronc jusqu'à la taille, puis en bande sous l'ouverture
   du corsage ;
 - `manches`, double nappe, l'envers en doublure : par bras, anneaux perpendiculaires au bras, de l'épaule à
-  l'avant-bras ; le dessus suit le bras, le dessous pend en poche sous l'avant-bras, creusée de godets depuis le coude,
-  ouverte en entonnoir, le bord en dents galonné ; fermée à l'épaule par un cône dans le corps.
+  l'avant-bras ; le dessus suit le bras, le dessous pend en poche sous l'avant-bras, évasée en cloche, creusée de
+  godets depuis le coude, le bord en dents galonné ; fermée à l'épaule par un cône dans le corps.
 Poids : le corsage et la manche jusqu'au coude empruntent au corps, sommet par sommet, lissés ; au-delà, la manche suit
-l'avant-bras d'un bloc ; les jupes prennent les os des deux brins voisins du filet (`tissu.Filet`). Silhouettes et clés
-`gabarit_*` transférées.
+l'os du tube de la manche de la base, et sa poche, ses brins (`tissu.Manche`) ; les jupes prennent les os des deux brins
+voisins du filet (`tissu.Filet`). Silhouettes et clés `gabarit_*` transférées.
 """
 import math
 
@@ -181,30 +181,35 @@ def construire(D, materiaux, b):
 
 def manches(D, b, materiaux):
     """Les deux manches, double nappe à l'envers en doublure : anneaux perpendiculaires à l'axe du bras (`MANCHE`), aux
-    azimuts `AZIMUTS_DE_MANCHE`, serrés dessous. Le dessus suit le bras à son aisance ; dessous, la poche pend en lobe vers
-    `ANGLE_DE_LA_POCHE`, de plus en plus bas passé le coude, ses godets creusés une colonne sur deux ; le bord en dents,
-    galonné. Jusqu'au coude, la manche emprunte ses poids au bras, sommet par sommet ; au-delà, elle suit l'avant-bras
-    d'un bloc."""
+    azimuts `AZIMUTS_DE_MANCHE`, serrés dessous. Le dessus suit le bras à son aisance ; dessous, la poche pend en lobe.
+    Jusqu'au coude, la manche emprunte ses poids au bras, sommet par sommet. Au-delà, l'anneau suit l'os du tube de la manche
+    de la base et la poche pend à ses brins (`tissu.Manche.pendre`), de plus en plus bas, évasée en cloche vers le bas,
+    ses godets creusés une colonne sur deux ; le bord en dents, galonné."""
     toile = Toile()
     M, G, phis = D['MANCHE'], D['GODETS'], D['AZIMUTS_DE_MANCHE']
     s = len(phis)
-    lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DE_LA_POCHE']))) ** D['GALBE_DE_LA_POCHE'] for t in phis]
-    radial, axial = math.sin(math.radians(D['INCLINAISON_DE_LA_POCHE'])), math.cos(math.radians(D['INCLINAISON_DE_LA_POCHE']))
+    lobe = [max(0.0, -math.cos(math.radians(t))) ** D['GALBE_DE_LA_POCHE'] for t in phis]
     for c, signe in (('g', 1.0), ('d', -1.0)):
         porteur = b.porteur(['torse'] + BRAS[c])
-        axe, anneau_de_bras, poids_de_l_avant_bras = bras_de(D, b, c, signe, phis, porteur)
+        axe, anneau_de_bras = bras_de(D, b, c, signe, phis)
+        manche = b.manche(c)
         dents = dents_de_manche(D, c, s)
         liste = []
         for k, (f, dessus, poche) in enumerate(M):
-            godet = G['creux'] * min(1.0, max(0.0, (f - G['debut']) / (M[-1][0] - G['debut'])))
-            aisances = [max(dessus, dessus + poche * radial * l - (godet if i in G['colonnes'] else 0.0))
-                        for i, l in enumerate(lobe)]
-            pts, milieu, _ = anneau_de_bras(f, aisances)
-            recul = [D['LAMBEAUX_MANCHE']['profondeur'] - d if k == len(M) - 1 else 0.0 for d in dents]
-            pts = [p + (poche * axial * l - r) * axe for p, l, r in zip(pts, lobe, recul)]
-            au_bras = f < D['RACCORD_AU_BRAS']
-            poids = [emprunter(p, porteur)[0] for p in pts] if au_bras else [poids_de_l_avant_bras] * s
-            liste.append((toile.poser(pts, poids, fixes=not au_bras), milieu))
+            pendue = f >= D['RACCORD_AU_BRAS']
+            pts, milieu, _ = anneau_de_bras(f, [dessus + (0.0 if pendue else poche * l) for l in lobe])
+            if pendue:
+                large = max(abs(manche.ecart(p)) for p in pts)
+                godet = G['creux'] * min(1.0, max(0.0, (f - G['debut']) / (M[-1][0] - G['debut'])))
+                ecarts = [manche.ecart(p) * (1 + D['EVASEMENT_DE_LA_POCHE'] * poche * l / large) for p, l in zip(pts, lobe)]
+                ecarts = [math.copysign(max(abs(e) - godet, 0.0), e) if i in G['colonnes'] else e for i, e in enumerate(ecarts)]
+                pts = [p + (e - manche.ecart(p)) * manche.travers for p, e in zip(pts, ecarts)]
+                pts, poids = manche.pendre(pts, [poche * l for l in lobe])
+            else:
+                poids = [emprunter(p, porteur)[0] for p in pts]
+            if k == len(M) - 1:
+                pts = [p - (D['LAMBEAUX_MANCHE']['profondeur'] - d) * axe for p, d in zip(pts, dents)]
+            liste.append((toile.poser(pts, poids, fixes=pendue), milieu))
         for k, ((A, ca), (B, cb)) in enumerate(zip(liste, liste[1:])):
             toile.relier(A, B, (ca + cb) / 2, s, range(s) if k == len(liste) - 2 else ())
         fermer_a_l_epaule(toile, liste, porteur)
