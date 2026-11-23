@@ -308,7 +308,7 @@ function terminerEnDeroute(e: Etat, destinAvant: Map<string, number>): string[] 
   const lignes = ['Le groupe est submergé. Le butin de l’expédition est perdu.'];
   for (const h of herosDuGroupe(e)) {
     if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
-    if ((h.c.fate ?? 0) < (destinAvant.get(h.c.id) ?? 0)) { lignes.push(`${h.c.label} a déjà échappé à la mort pendant le combat (Destin brûlé, reste ${h.c.fate}).`); continue; }
+    if ((h.c.fate ?? 0) < (destinAvant.get(h.c.id) ?? 0)) { lignes.push(`${h.c.label} a échappé à la mort pendant le combat (Destin −1, reste ${h.c.fate}).`); continue; }
     if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h, d.nom); continue; }
     h.c.fate = (h.c.fate ?? 0) - 1;
     lignes.push(`${h.c.label} échappe de peu à la mort et rampe jusqu’au hameau (Destin −1, reste ${h.c.fate}).`);
