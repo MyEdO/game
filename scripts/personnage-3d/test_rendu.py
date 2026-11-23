@@ -1,17 +1,22 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
 `corpulence` ; une matière sans texture au catalogue laisse le matériau ; le relief projeté pose la normale du jeu
-(#4527) ; un rigide rangé se pose à la transformation que le jeu lui donne, hors de son os (#4351)."""
+(#4527) ; un rigide rangé se pose à la transformation que le jeu lui donne, hors de son os (#4351) ; le cadre tient les
+rigides, les zones couvertes se masquent sur la base comme sur les éléments, un rigide seul se dresse (#4338)."""
 import argparse
 import tempfile
+import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy
 
 from glb import ecrire_glb, lire_glb
-from rendu import (accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, habiller_le_modele, importer, lire_cadre,
-                   matrice_du_noeud, ranger)
+from habillage import couleur_lineaire
+from rendu import (HAUTEUR_DE_VUE, LARGEUR_DE_VUE, accuser_le_relief, cadrage, deplacements_des_os, deplacer_les_os, dresser,
+                   facteur_de_relief, habiller_le_modele, importer, lire_cadre, masquer_les_zones_couvertes, matrice_du_noeud, preset_du_jeu,
+                   ranger)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -101,6 +106,46 @@ class LireCadre(unittest.TestCase):
         for texte in ('0,0,0.6', '0,0,0.6,1,2', '0,0,haut,1', '0,0,0.6,0', '0,0,0.6,-1', '0,0,nan,1', '0,0,0.6,inf', ''):
             with self.subTest(texte=texte), self.assertRaises(argparse.ArgumentTypeError):
                 lire_cadre(texte)
+
+
+class Maillage(dict):
+    """Un mesh de la scène, réduit à ce que lit `masquer_les_zones_couvertes` : son type, ses propriétés (`zone`) et
+    `hide_render`."""
+    type = 'MESH'
+    hide_render = False
+
+
+COUCHES = {'COUCHES': ['peau', 'dessous', 'tenue', 'armure', 'manteau'], 'RANG_DU_CORPS': -1}
+"""`couches_du_jeu`, figées pour le banc."""
+
+
+class MasquerLesZonesCouvertes(unittest.TestCase):
+    """Une chemise (`dessous`, torse et col) sous un pourpoint (`tenue`, torse) sur une base (torse, cou, jambes) : la base
+    se masque sous toute couche, la chemise sous le pourpoint, chacun garde ce que rien de plus extérieur ne couvre."""
+
+    def test_chaque_zone_se_masque_sous_une_couche_plus_exterieure(self):
+        base = {zone: Maillage(zone=zone) for zone in ('torse', 'cou', 'jambes')}
+        chemise = {zone: Maillage(zone=zone) for zone in ('torse', 'col')}
+        pourpoint = {'torse': Maillage(zone='torse')}
+        sans_zone = Maillage()
+        masquer_les_zones_couvertes([(list(base.values()) + [sans_zone], {'base': 'humanoide'}),
+                                     (list(chemise.values()), {'couche': 'dessous', 'couvre': ['torse', 'cou']}),
+                                     (list(pourpoint.values()), {'couche': 'tenue', 'couvre': ['torse']})], COUCHES)
+        masques = {(porteur, zone) for porteur, meshes in (('base', base), ('chemise', chemise), ('pourpoint', pourpoint))
+                   for zone, mesh in meshes.items() if mesh.hide_render}
+        self.assertEqual(masques, {('base', 'torse'), ('base', 'cou'), ('chemise', 'torse')})
+        self.assertFalse(sans_zone.hide_render)
+
+
+class PresetDuJeu(unittest.TestCase):
+    def test_chaque_glb_prend_la_palette_du_preset_completee_de_celle_de_sa_teinte(self):
+        reponse = {'sans': [], 'glbs': ['/a.glb', '/b.glb'], 'elements': [None, None], 'silhouettes': {},
+                   'palette': {'metal': '#808080', 'tissu': '#202020'}, 'palettes': [{}, {'metal': '#ff8a3a', 'cuir': '#5a2410'}]}
+        with mock.patch('rendu.lancer', return_value=json.dumps(reponse)):
+            jeu = preset_du_jeu('base.glb', 'base.manifeste.json', [], 'p', {})
+        preset = {'metal': couleur_lineaire('#808080'), 'tissu': couleur_lineaire('#202020')}
+        self.assertEqual(jeu['palette'], preset)
+        self.assertEqual(jeu['palettes'], [preset, {**preset, 'metal': couleur_lineaire('#ff8a3a'), 'cuir': couleur_lineaire('#5a2410')}])
 
 
 class Rangement(unittest.TestCase):
@@ -196,6 +241,43 @@ class DansBlender(unittest.TestCase):
                  for nom, m in materiaux.items()}
         self.assertAlmostEqual(force['Peau'], 0.4, places=6)
         self.assertAlmostEqual(force['Cheveux'], 0.8, places=6)
+
+    def test_le_cadre_d_un_personnage_tient_les_rigides_qui_depassent_son_corps(self):
+        bpy = self.bpy
+        _, corps_haut, _ = cadrage(bpy, [self.corps])
+        for nom, sommets in (('hampe dressée', [(0, 0, -0.5), (0.02, 0, 3), (0, 0.02, 3)]),
+                             ('lance couchée', [(-4, 0, 0.5), (4, 0, 0.5), (4, 0.02, 0.52)])):
+            with self.subTest(nom):
+                maillage = bpy.data.meshes.new(nom)
+                maillage.from_pydata(sommets, [], [(0, 1, 2)])
+                objet = bpy.data.objects.new(nom, maillage)
+                bpy.context.scene.collection.objects.link(objet)
+                bas, haut, etendue = cadrage(bpy, [self.corps, objet])
+                for sommet in sommets:
+                    self.assertTrue(all(b - 1e-6 <= c <= h + 1e-6 for b, c, h in zip(bas, sommet, haut)), sommet)
+                self.assertGreaterEqual(etendue, haut.z - bas.z - 1e-6)
+                self.assertGreaterEqual(etendue * LARGEUR_DE_VUE / HAUTEUR_DE_VUE, numpy.hypot(*(haut - bas)[:2]) - 1e-6)
+                bpy.data.objects.remove(objet)
+        self.assertLess(corps_haut.z, 3)
+
+    def test_un_rigide_seul_se_dresse_hors_de_son_os_sa_forme_d_os_masquee(self):
+        from mathutils import Matrix
+        bpy = self.bpy
+        lame = bpy.data.objects.new('lame', bpy.data.meshes.new('lame'))
+        lame.data.materials.append(bpy.data.materials.new('acier'))
+        forme = bpy.data.objects.new('forme', bpy.data.meshes.new('forme'))
+        for objet in (lame, forme):
+            bpy.context.scene.collection.objects.link(objet)
+            objet.parent, objet.parent_type, objet.parent_bone = self.rig, 'BONE', 'main'
+        bpy.context.view_layer.update()
+        self.assertEqual(dresser([self.rig, lame, forme]), [lame])
+        bpy.context.view_layer.update()
+        self.assertIsNone(lame.parent)
+        numpy.testing.assert_allclose(numpy.array(lame.matrix_world), numpy.array(Matrix.Rotation(numpy.pi / 2, 4, 'X')), atol=1e-6)
+        self.assertTrue(forme.hide_render)
+        self.assertFalse(lame.hide_render)
+        for objet in (lame, forme):
+            bpy.data.objects.remove(objet)
 
     def test_une_matiere_sans_texture_au_catalogue_laisse_le_materiau(self):
         bpy = self.bpy

@@ -3,7 +3,8 @@
 // se construit par le constructeur de sa base (`CONSTRUCTEURS`) dans un dossier temporaire, borné à 270 s, puis chaque
 // dossier de production qu'il écrit s'importe par `hotes/godot/importer.mjs --sans-publier` (`commandeDImport`) et son GLB
 // entre au cache des modèles sous son empreinte (`enCacheOuTire`), où le constructeur du suivant le lit. Une ligne par id
-// importé : id, empreinte, octets, triangles. Au premier échec, la fin de son journal, et le code 1.
+// importé : id, empreinte, octets, triangles. Au premier échec, la fin de son journal, le dossier temporaire gardé, et le
+// code 1.
 // `--transfert <nom>` fabrique ensuite, sans toucher l'index ni l'arbre de travail, le commit fils de HEAD qui ajoute les
 // manifestes et provenances importés du lot et, de force, ses GLB (`fabriquerTransfert`, `hotes/godot/asset/transfert.ts`),
 // et imprime la commande qui le pousse en `transfert/<nom>` (`.github/workflows/transfert.yml`) sans la lancer.
@@ -73,15 +74,15 @@ export const commandeDImport = (dossier, id, dejaImporte) =>
 export const trianglesParEmpreinte = (journal) =>
   new Map([...journal.matchAll(/^GLB \S+ \d+ ([0-9a-f]{64}) TRIANGLES (\d+)/gm)].map((m) => [m[1], Number(m[2])]))
 
-/** Lance `node <commande>` depuis la racine, borné à `BORNE_MS` arbre compris (`spawnBorne`), son journal écrit sous
- *  `journal` ; au premier échec, imprime `geste`, la fin du journal et le diagnostic d'arrêt, et sort en 1, le dossier
- *  du journal gardé. Rend la sortie standard. */
-async function lancer(commande, journal, geste) {
-  const vu = await spawnBorne({ argv: commande, fichier: journal, limiteMs: BORNE_MS, cwd: RACINE, fluxDistincts: true, maxBuffer: 1 << 28 })
+/** Lance `node <commande>` depuis la racine, borné à `limiteMs` arbre compris (`spawnBorne`), son journal écrit sous
+ *  `journal` ; rend la sortie standard. Au premier échec, lève l'erreur qui nomme `geste`, la borne dépassée ou le code,
+ *  et la fin du journal, le diagnostic d'arrêt en `diagnostic`. */
+export async function lancer(commande, journal, geste, limiteMs = BORNE_MS) {
+  const vu = await spawnBorne({ argv: commande, fichier: journal, limiteMs, cwd: RACINE, fluxDistincts: true, maxBuffer: 1 << 28 })
   if (vu.code === 0) return vu.stdout
-  console.error(`ÉCHEC ${geste} (${vu.expiree ? `au-delà de ${BORNE_MS} ms` : `code ${vu.code}`}) ; journal ${journal} :\n${vu.sortie.trimEnd().split('\n').slice(-20).join('\n')}`)
-  diagnosticArret(vu, console.error, '[integrer] ')
-  process.exit(1)
+  const diagnostic = []
+  diagnosticArret(vu, (ligne) => diagnostic.push(ligne), '[integrer] ')
+  throw Object.assign(new Error(`${geste} (${vu.expiree ? `au-delà de ${limiteMs} ms` : `code ${vu.code}`}) ; journal ${journal} :\n${vu.sortie.trimEnd().split('\n').slice(-20).join('\n')}`), { diagnostic })
 }
 
 if (import.meta.main) {
@@ -125,12 +126,11 @@ if (import.meta.main) {
       }
     }
   } catch (erreur) {
-    console.error(`ÉCHEC intégration : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
-    process.exitCode = 1
-  } finally {
-    rmSync(temporaire, { recursive: true, force: true })
+    console.error(`ÉCHEC ${erreur instanceof Error ? erreur.message : String(erreur)}`)
+    for (const ligne of erreur.diagnostic ?? []) console.error(ligne)
+    process.exit(1)
   }
-  if (process.exitCode) process.exit()
+  rmSync(temporaire, { recursive: true, force: true })
   if (transfert) {
     try {
       console.log(transfert.commandeDEnvoi(transfert.fabriquerTransfert({ fichiers: importes, nom: values.transfert }), values.transfert))

@@ -123,7 +123,7 @@ export function resoudreLaPileDUneTenue(json: string): string {
     });
     const peaux = demande.peau.map((s) => new Float32Array(octetsDe(s.positions)));
     const neutres = demande.peau.map((s) => new Float32Array(octetsDe(s.neutres ?? s.positions)));
-    const bilan = resoudreLaPile(pieces, ordreDesCouches(neutres), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) }, peaux);
+    const { bilan } = resoudreLaPile(pieces, ordreDesCouches(neutres), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) }, peaux);
     reponse = { ok: true, bilan, pieces: pieces.map((p) => ({ maillages: p.maillages.map(ecrire) })) };
   } catch (erreur) {
     reponse = { ok: false, erreur: { categorie: 'validation', message: `pile : demande illisible (${erreur instanceof Error ? erreur.message : String(erreur)})` } };

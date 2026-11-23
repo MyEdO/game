@@ -3,7 +3,7 @@
  * montés de l'évaluateur.
  */
 import { BufferAttribute, Matrix3, Skeleton, Vector3, type Bone, type Mesh, type SkinnedMesh } from 'three';
-import { resoudreLaPile, type BilanDePile, type MaillageDePile } from '../pile.ts';
+import { resoudreLaPile, type MaillageDePile, type ResolutionDePile } from '../pile.ts';
 import { indicesDe } from './gardes/traversee.ts';
 
 const INFLUENCES = 4;
@@ -22,18 +22,18 @@ function maillageDe(m: SkinnedMesh, repos: Float32Array): MaillageDePile {
 
 /** Résout la pile des `pieces` (les meshes de chacune) sur `fondue`, leurs positions monde au repos, formes posées, sans
  *  gabarit : ce que le montage fond. Rend à chaque mesh ses sommets reculés, ses poids, les os qu'il y gagne et ses
- *  triangles encore dessinés. `osDeChaine` nomme les os des chaînes de la base, `peaux` les meshes de la peau de la tenue
- *  (`peauDeLaTenue`, `corps.ts`). */
+ *  triangles encore dessinés ; rend le bilan et les pièces qui retiennent chacune (`ResolutionDePile`). `osDeChaine`
+ *  nomme les os des chaînes de la base, `peaux` les meshes de la peau de la tenue (`peauDeLaTenue`, `corps.ts`). */
 export function poserLaPile<P extends { readonly meshes: readonly SkinnedMesh[] }>(
   pieces: readonly P[], couvre: (e: P, f: P) => boolean, fondue: ReadonlyMap<Mesh, Float32Array>, osDeChaine: ReadonlySet<string>, peaux: readonly Mesh[],
-): BilanDePile {
+): ResolutionDePile<P> {
   const maillages = new Map<SkinnedMesh, MaillageDePile>();
   const piles = pieces.map((de) => ({ de, maillages: de.meshes.map((m) => { const mm = maillageDe(m, fondue.get(m) as Float32Array); maillages.set(m, mm); return mm; }) }));
   const avant = new Map([...maillages].map(([m, mm]) => [m, { positions: Float32Array.from(mm.positions), triangles: mm.indices.length }]));
   const os = new Map<string, readonly [Bone, SkinnedMesh, number]>();
   for (const m of maillages.keys()) m.skeleton.bones.forEach((b, i) => { if (!os.has(b.name)) os.set(b.name, [b, m, i]); });
   const parents = new Map([...os.values()].flatMap(([b]) => ((b.parent as Bone | null)?.isBone ? [[b.name, (b.parent as Bone).name] as const] : [])));
-  const bilan = resoudreLaPile(piles, (e, f) => couvre(e.de, f.de), { parents, osDeChaine }, peaux.map((m) => fondue.get(m) as Float32Array));
+  const { bilan, retenues } = resoudreLaPile(piles, (e, f) => couvre(e.de, f.de), { parents, osDeChaine }, peaux.map((m) => fondue.get(m) as Float32Array));
   for (const [m, mm] of maillages) {
     const a = avant.get(m) as { positions: Float32Array; triangles: number };
     const n = mm.positions.length / 3;
@@ -56,5 +56,5 @@ export function poserLaPile<P extends { readonly meshes: readonly SkinnedMesh[] 
       m.bind(new Skeleton([...m.skeleton.bones, ...neufs.map(([b]) => b)], [...m.skeleton.boneInverses, ...neufs.map(([, de, i]) => de.skeleton.boneInverses[i])]), m.bindMatrix);
     }
   }
-  return bilan;
+  return { bilan, retenues: new Map([...retenues].map(([f, par]) => [f.de, par.map((e) => e.de)])) };
 }

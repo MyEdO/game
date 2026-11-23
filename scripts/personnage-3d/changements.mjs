@@ -11,7 +11,7 @@ import { ECRIT_LU } from '../gates/toutes.mjs'
 import { SUIVI, TRAVAIL, ceQuiChange, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
 
 /** Les chemins suivis changés de `base` à l'arbre de travail, et les non-suivis non ignorés, triés. */
-function cheminsChanges(base) {
+export function cheminsChanges(base) {
   const depot = depotDe(process.cwd())
   const suivis = new Set(listerImage(depot, SUIVI))
   const nonSuivis = listerImage(depot, TRAVAIL).filter((chemin) => !suivis.has(chemin))

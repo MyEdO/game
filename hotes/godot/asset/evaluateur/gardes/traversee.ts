@@ -8,8 +8,9 @@
  * `visiterLaCouverture`, qui donne son écart signé e, positif derrière : la doublure d'une double nappe ne couvre rien,
  * et un sommet de doublure se lit de son dehors (`dehorsDesSommets`).
  *
- * Au repos, chaque sommet se lie au triangle couvrant le plus proche dont il est derrière : le point lié p, aux
- * coordonnées barycentriques de la projection, suit la couverture. À chaque échantillon, l'écart signé e(v) = (p − v)·n,
+ * Au repos, chaque sommet dont le rayon sortant traverse l'endroit de la couverture à `PORTEE_DE_COUVERTURE_M` au
+ * plus (`croiserLaCouverture`, #4338) se lie au triangle couvrant le plus proche dont il est derrière : le point lié p,
+ * aux coordonnées barycentriques de la projection, suit la couverture. À chaque échantillon, l'écart signé e(v) = (p − v)·n,
  * n la normale de la couverture posée au point lié : `couche-traversee` si un sommet a e(v) < −`ECART_DE_SUIVI_M`, un
  * écart par (sujet, couverture, clip), à son pire instant. Cette normale est celle de la surface, les normales de
  * sommet de l'endroit fondues aux barycentres (`normaleFondue`), là où au repos elle regarde du côté du triangle lié
@@ -32,7 +33,15 @@ import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { RANG_DU_CORPS } from '../../element.ts';
-import { couvertureDe, croiserLaCouverture, dehorsDesSommets, normalesDesSommets, visiterLaCouverture, type Couverture } from '../../pile.ts';
+import {
+  couvertureDe,
+  croiserLaCouverture,
+  dehorsDesSommets,
+  normalesDesSommets,
+  PORTEE_DE_COUVERTURE_M,
+  visiterLaCouverture,
+  type Couverture,
+} from '../../pile.ts';
 
 const GARDE = 'traversee';
 /** L'écart, en part d'une arête, sous lequel deux triangles voisins de la couverture sont traversés au même point. */
@@ -133,6 +142,10 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
     });
     if (retenu < 0) continue;
     derriere[s] = auPlusPresDerriere;
+    const [x, y, z] = [ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2]], k = PORTEE_DE_COUVERTURE_M / Math.hypot(ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2]);
+    let croise = false;
+    croiserLaCouverture(x, y, z, x + k * ns[s * 3], y + k * ns[s * 3 + 1], z + k * ns[s * 3 + 2], surface, () => { croise = true; });
+    if (!croise) continue;
     const [a, b, c] = [surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]];
     sommets.push(s);
     triangles.push(a, b, c);
@@ -222,14 +235,16 @@ function releverDans(pose: Pick<Pose, 'positions'>, corps: ReadonlySet<Mesh>, en
 }
 
 /** Les couches de `corps` et des meshes skinnés de chacun des `elements` liées dans la pose `repos` ; `couvre(e, f)` dit
- *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`), `endroit` rend celui d'un mesh d'élément (`endroitDe`). */
+ *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`), `endroit` rend celui d'un mesh d'élément (`endroitDe`),
+ *  `liee(sujet, couverture)` dit si une paire se relève (toutes par défaut, #4814). */
 export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh[] }>(
   corps: readonly Mesh[], elements: readonly E[], repos: Pick<Pose, 'positions'>, couvre: (e: E, f: E) => boolean, endroit: (m: Mesh) => ArrayLike<number>,
+  liee: (sujet: Mesh, couverture: Mesh) => boolean = () => true,
 ): CouchesAuRepos {
   const relever = releverDans(repos, new Set(corps), endroit);
   const parPaire = elements.flatMap((e) => {
     const sujets = [...corps, ...elements.filter((f) => couvre(e, f)).flatMap((f) => f.meshes)];
-    return e.meshes.flatMap((couverture) => sujets.map((sujet) => relever(sujet, couverture)));
+    return e.meshes.flatMap((couverture) => sujets.flatMap((sujet) => (liee(sujet, couverture) ? [relever(sujet, couverture)] : [])));
   });
   return {
     liaisons: parPaire.flatMap((r) => r.liaison ?? []),
