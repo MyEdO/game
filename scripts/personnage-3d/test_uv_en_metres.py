@@ -1,7 +1,8 @@
 """UV en mètres d'un élément sur base (`maille.poser_les_uv_en_metres`, #4313) : sur un cube d'un mètre décalé de
 l'origine, chaque face porte en UV ses deux coordonnées hors de l'axe de sa normale, en mètres ; une face dont la brique
-a donné les UV (`maille.objet`) les garde ; un pentagone oblique se projette sur le plan de l'axe dominant de sa
-normale."""
+a donné les UV (`maille.objet`) les garde, les autres sortent de `maille.objet` à (0, 0) (un modèle sans
+`poser_les_uv_en_metres`, véhicule ou décor, les exporte telles) ; un pentagone oblique se projette sur le plan de l'axe
+dominant de sa normale."""
 import sys
 import unittest
 from pathlib import Path
@@ -78,6 +79,16 @@ class UvEnMetres(unittest.TestCase):
                 np.testing.assert_allclose(uvs, [np.array(me.vertices[v].co)[[a for a in range(3) if a != axe]]
                                                  for v in poly.vertices], atol=1e-6)
         self.assertEqual(vus, 2)
+
+    def test_une_face_sans_uv_de_sa_brique_sort_de_objet_a_zero(self):
+        """#4394. Une face dont la brique ne donne pas les UV sort de `maille.objet` à (0, 0), pas au dépliage par face
+        d'une couche neuve de Blender : ses coutures doubleraient les sommets des modèles exportés sans
+        `poser_les_uv_en_metres`."""
+        cube_ = cube_de_la_brique()
+        for poly, uvs in zip(cube_.data.polygons, uv_de(cube_)):
+            coins = [tuple(np.round(np.array(cube_.data.vertices[v].co) - ORIGINE, 6)) for v in poly.vertices]
+            if not all(c[0] == 1.0 for c in coins):
+                np.testing.assert_array_equal(uvs, [(0.0, 0.0)] * len(uvs))
 
     def test_une_face_oblique_se_projette_sur_le_plan_de_son_axe_dominant(self):
         sommets = [(0, 0, 0), (1, 0, 0.2), (1.2, 1, 0.5), (0.4, 1.3, 0.4), (-0.2, 0.6, 0.1)]

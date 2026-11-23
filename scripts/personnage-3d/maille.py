@@ -303,7 +303,7 @@ def objet(nom, maille, origine, angle_lisse):
     donnees.from_pydata([(x - ox, y - oy, z - oz) for x, y, z in maille.v], [], maille.f)
     for poly, m in zip(donnees.polygons, maille.m):
         poly.material_index = renum[m]
-    couche = donnees.uv_layers.new(name="UVMap")
+    couche = donnees.uv_layers.new(name="UVMap", do_init=False)
     for poly, coins in zip(donnees.polygons, maille.uv):
         for boucle, uv in zip(poly.loop_indices, coins or ()):
             couche.data[boucle].uv = uv
