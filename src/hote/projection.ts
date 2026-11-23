@@ -350,7 +350,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           cap: capDuGroupe(etat),
           heros: etat.party.map((h) => ({ ...combattant(etat, h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.filter((e) => !seMontreParLeMonde(etat.scene!, e) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
+          entites: tranche(etat.scene.entities.filter((e) => !seMontreParLeMonde(etat.scene, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,

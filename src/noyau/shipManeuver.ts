@@ -44,7 +44,7 @@ import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { footprintTiles, footprintN, porteParLaScene } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
-import { capEnCombat, estPoseParSesPonts } from './planDeNavire';
+import { capEnCombat, estPoseParSesPonts, seMontreParLeMonde } from './planDeNavire';
 import { nomDe } from '../engine/nom';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
@@ -269,7 +269,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
   return {
     virerLeNavire: (shipId, turnSteps) => {
       const { facing, battle, scene } = get();
-      if (estPoseParSesPonts(scene, shipId)) return;
+      if (seMontreParLeMonde(scene, shipId)) return;
       const cur = facing[shipId];
       if (!cur) return; // navire sans cap initial → rien à virer
       const next = rotateDir8(cur, turnSteps);

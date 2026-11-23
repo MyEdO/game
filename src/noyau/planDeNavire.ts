@@ -127,9 +127,26 @@ const capDuNavirePose = (scene: SceneDesNavires | null | undefined, id: string):
 export const estPoseParSesPonts = (scene: SceneDesNavires | null | undefined, id: string): boolean =>
   capDuNavirePose(scene, id) !== undefined;
 
-/** Le cap du plateau pour une coque à ponts matérialisés, l'orientation en jeu pour les corps mobiles. */
+/** Les coques terrestres que `scene` porte (`estCoqueTerrestrePosee`), par id. */
+const coquesTerrestresParId = memoByRef((scene: SceneDesNavires) =>
+  new Map(scene.entities.filter((e) => estCoqueTerrestrePosee(scene, e)).map((e) => [e.id, e])));
+
+/** Le cap que `scene` donne au corps `id` qu'elle montre par le monde (`coquesDeLaScene`) : celui de la pose de ses
+ *  ponts, ou celui de son entité, le nord sans cap ; `undefined` pour un corps mobile. */
+const capDeLaScene = (scene: SceneDesNavires | null | undefined, id: string): Dir8 | undefined => {
+  if (!scene) return undefined;
+  const coque = coquesTerrestresParId(scene).get(id);
+  return capDuNavirePose(scene, id) ?? (coque && (coque.facing ?? 'N'));
+};
+
+/** Le corps `id` se montre-t-il par le monde, sous le modèle de sa coque (`coquesDeLaScene`), au cap de la scène ? */
+export const seMontreParLeMonde = (scene: SceneDesNavires | null | undefined, id: string): boolean =>
+  capDeLaScene(scene, id) !== undefined;
+
+/** Le cap que la scène donne à un corps qu'elle montre par le monde (`capDeLaScene`), l'orientation en jeu pour les
+ *  corps mobiles. */
 export const capEnCombat = (etat: { scene?: SceneDesNavires | null; facing?: Readonly<Record<string, Dir8>> }, id: string): Dir8 | undefined =>
-  capDuNavirePose(etat.scene, id) ?? etat.facing?.[id];
+  capDeLaScene(etat.scene, id) ?? etat.facing?.[id];
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
 function versLaScene(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): (x: number, y: number) => Pt {
@@ -296,10 +313,6 @@ const vehiculeDeLaCoque = (coque: SceneEntity, cap: Dir8 | undefined): VehiculeD
   return { ...garanti(vehiculeDuCombattant(fiche, cap), coque.id, 'fiche de véhicule'), taille: 'reelle' };
 };
 
-/** L'entité `e` de `scene` se montre-t-elle par le monde, sous le modèle de sa coque (`coquesDeLaScene`) ? */
-export const seMontreParLeMonde = (scene: SceneDesNavires, e: SceneEntity): boolean =>
-  estPoseParSesPonts(scene, e.id) || estCoqueTerrestrePosee(scene, e);
-
 /** Les coques de `scene` qu'un hôte montre par le monde : ses navires posés par leurs ponts, puis ses coques
  *  terrestres. PUR. */
 export function coquesDeLaScene(scene: Scene): CoqueDeLaScene[] {
@@ -308,7 +321,7 @@ export function coquesDeLaScene(scene: Scene): CoqueDeLaScene[] {
     vehicule: vehiculeDeLaCoque(garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire'), pose.cap),
     centre: versLaScene(navire, pose)((navire.dimensions.w - 1) / 2, (navire.dimensions.h - 1) / 2),
   }));
-  const terrestres = scene.entities.filter((e) => estCoqueTerrestrePosee(scene, e)).map((e) => {
+  const terrestres = [...coquesTerrestresParId(scene).values()].map((e) => {
     const demi = (coteDeLEmpreinte(e) - 1) / 2;
     return { id: e.id, vehicule: vehiculeDeLaCoque(e, e.facing), centre: { x: e.pos.x + demi, y: e.pos.y + demi } };
   });

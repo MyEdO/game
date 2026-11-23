@@ -5,11 +5,12 @@ import { chebyshev } from '../engine/grid';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
-import { estPoseParSesPonts } from './planDeNavire';
+import { seMontreParLeMonde } from './planDeNavire';
 
-/** Les orientations que le geste peut écrire dans l'état de combat, pour les seuls corps mobiles. */
+/** Les orientations que le geste peut écrire dans l'état de combat, pour les seuls corps mobiles : un corps que la
+ *  scène montre par le monde garde son cap (`capEnCombat`). */
 export function avecLesCapsDuGeste(etat: { scene: Scene | null; facing: Record<string, Dir8> }, caps: Record<string, Dir8>): { facing: Record<string, Dir8> } {
-  const mobiles = Object.entries(caps).filter(([id]) => !estPoseParSesPonts(etat.scene, id));
+  const mobiles = Object.entries(caps).filter(([id]) => !seMontreParLeMonde(etat.scene, id));
   return { facing: mobiles.length ? { ...etat.facing, ...Object.fromEntries(mobiles) } : etat.facing };
 }
 
@@ -23,13 +24,14 @@ export function creerActionsDOrientation(get: Get, set: Set) {
       if (!path || path.length < 2) return;
       get().orienterVers(id, path[0], path[path.length - 1]);
     },
-    // Orientation à l'entrée en combat : valeur authored (entité de scène) sinon vers l'ennemi le plus proche.
+    // Orientation à l'entrée en combat : un corps que la scène montre par le monde garde son cap (`capEnCombat`) ;
+    // sinon la valeur authored (entité de scène), sinon vers l'ennemi le plus proche.
     orienterLesCombattants: () => {
       const { battle, scene, facing } = get();
       if (!battle) return;
       const next: Record<string, Dir8> = { ...facing };
       for (const c of battle.combatants) {
-        if (estPoseParSesPonts(scene, c.id)) {
+        if (seMontreParLeMonde(scene, c.id)) {
           delete next[c.id];
           continue;
         }

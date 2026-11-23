@@ -316,7 +316,7 @@ describe('une coque terrestre que la scène porte se montre par le monde (#4471)
 
   it('elle seule se montre par le monde, sans être posée par des ponts', () => {
     const s = pre('E');
-    expect(s.entities.filter((e) => seMontreParLeMonde(s, e)).map((e) => e.id)).toEqual(['dil']);
+    expect(s.entities.filter((e) => seMontreParLeMonde(s, e.id)).map((e) => e.id)).toEqual(['dil']);
     expect(estPoseParSesPonts(s, 'dil')).toBe(false);
   });
 });

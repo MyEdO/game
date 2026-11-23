@@ -15,6 +15,7 @@ import { occupied } from './monde/combatGeometry';
 import { tileKey } from './monde/path';
 import { placeCombatant } from './monde/spawn';
 import { translaterFormation } from './monde/shipPostes';
+import { capEnCombat } from './planDeNavire';
 import { t } from '../i18n';
 
 /** Une coque qui n'est PAS un navire (`profilNavalDe` : pas de facette `ship`) — EDOC 07 l.334, MDG 13 l.656. */
@@ -102,5 +103,12 @@ describe('coque routière au combat : la scène porte son corps, qui ne bouge pa
     expect(translaterFormation(battle!.combatants, scene, dil, [], { x: 1, y: 0 })).toBeNull();
     expect(placeCombatant(dil, scene, { x: 9, y: 9 })).toBe(false);
     expect(dil.pos).toMatchObject(ANCRE);
+  });
+
+  it('son cap est celui de la scène : sans cap d’auteur, le nord, jamais tournée vers l’ennemi ni par un geste', () => {
+    const { dil, heros } = auCombat();
+    expect([banc.getState().facing.dil, capEnCombat(banc.getState(), 'dil')]).toEqual([undefined, 'N']);
+    banc.getState().orienterVers('dil', dil.pos!, heros.pos!);
+    expect([banc.getState().facing.dil, capEnCombat(banc.getState(), 'dil')]).toEqual([undefined, 'N']);
   });
 });
