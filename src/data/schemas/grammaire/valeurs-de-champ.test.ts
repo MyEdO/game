@@ -148,7 +148,7 @@ const NOMMES = [
   'corps|least',
   'fortune|fate',
   'floor|ceil',
-  'gable|stone-entry|chimney|sign|window-band|belfry',
+  'gable|stone-entry|sign|window-band|belfry|faitage',
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',

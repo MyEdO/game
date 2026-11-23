@@ -20,9 +20,9 @@ import {
   type SceneDuVolume,
   type WallSeg,
   CHAMPS_DES_COURONNES,
-  CHAMPS_DES_TOITS,
+  CHAMPS_DU_BATI,
   type SceneDesCouronnes,
-  type SceneDesToits,
+  type SceneDuBati,
 } from '../scene';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { decorDuTerrain, terrainAbsent, terrainsAvecGlyphe } from '../terrain';
@@ -48,7 +48,7 @@ import { edgeKey, facadeEdges } from '../facades';
 import { WALL_H_M } from '../iso';
 import { biasPoly, centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, trianglesDuPolygone, trianglesOrientes, type Tri } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
-import { ornementsDuBati } from './ornements';
+import { ornementsDuBati, type OrnementDuBati } from './ornements';
 import { spaceCellKey } from './architectureVisibility';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
 import { memoByDeps, memoByRef, memoByRefDeps } from '../sceneMemo';
@@ -191,7 +191,8 @@ export interface MorceauDuMonde extends GeometrieDuMonde {
  * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
  * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`decorDuTerrain`,
  * les arbres du bois), les entités `prop` de la scène et les ornements de son bâti (`ornementsDuBati`,
- * `src/noyau/monde/volume/ornements.ts` : décors de façade et d'identité de bâtiment) hors de ceux
+ * `src/noyau/monde/volume/ornements.ts` : décors de façade, souches des foyers à conduit et décors d'identité de
+ * bâtiment) hors de ceux
  * qu'une nappe porte (`PoseDeDecor.nappe`, dans leur nappe), à la couleur de leur matériau de décor
  * (matière `prop--<id>`).
  * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·
@@ -387,8 +388,9 @@ type DecorPose = PoseAuVolume & Readonly<{ faces: readonly Face[] }>;
 export interface PoseDeDecor {
   /**
    * son identité dans le monde : `entite/<id>` pour une entité `prop`, `terrain/<x,y,z>` de sa case pour le terrain,
-   * `architecture/<corps>:<section>:<ornement>` pour un ornement de façade et `ornement/<corps>:<masse>:<rang>`
-   * pour un ornement d'identité de bâtiment (`ornementsDuBati`, `OrnementDuBati.id`).
+   * `architecture/<corps>:<section>:<ornement>` pour un ornement de façade, `ornement/<corps>:<masse>:<rang>`
+   * pour un ornement d'identité de bâtiment et `souche/<entité>` pour la souche d'un foyer (`ornementsDuBati`,
+   * `OrnementDuBati.id`).
    */
   cle: string;
   /** l'id de son type de décor (`props.json`), celui que porte `decor` de ses surfaces. */
@@ -446,11 +448,14 @@ const poser = (
   return [{ pose: { cle: cle(surLaCarte), prop: resolu.prop.id, cap: resolu.cap, case: surLaCarte, ...a }, cell }];
 };
 
+/** Le préfixe de la clé de pose (`PoseDeDecor.cle`) d'un ornement du bâti, par sa source. */
+const PREFIXE_DE_CLE = { architecture: 'architecture', ornament: 'ornement', souche: 'souche' } as const satisfies Record<OrnementDuBati['source'], string>;
+
 /** Les ornements du bâti de `scene` qui portent un cap (`ornementsDuBati`), posés (`poser`), chacun sur sa nappe
  *  porteuse s'il en a une. PUR. */
-const posesDuBati = (scene: SceneDesToits): PoseAuVolume[] =>
+const posesDuBati = (scene: SceneDuBati): PoseAuVolume[] =>
   ornementsDuBati(scene).flatMap((o) => o.cap ? poser(scene, {
-    cle: () => `${o.source === 'architecture' ? 'architecture' : 'ornement'}/${o.id}`, ref: o.prop, facing: o.cap,
+    cle: () => `${PREFIXE_DE_CLE[o.source]}/${o.id}`, ref: o.prop, facing: o.cap,
     ancre: o.ancre, piedM: o.solM + o.sureleveM, cell: o.case, ...(o.nappe ? { nappe: o.nappe } : {}),
   }) : []);
 
@@ -726,7 +731,7 @@ export function retraitDuMonde(scene: Scene, activeZ?: number, couvercle?: Reado
 }
 
 /** Les dernières nappes de toit calculées, par la version des datasets (`versionDesDatasets`) et les champs de la
- *  scène qu'elles lisent (`CHAMPS_DES_TOITS`) et les ids triés des décors servis. */
+ *  scène que lisent les ornements du bâti qu'elles portent (`CHAMPS_DU_BATI`, ceux des toits compris) et les ids triés des décors servis. */
 const toitsRetenus = memoByDeps<NappeDuMonde[]>();
 const toitsParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
 
@@ -734,9 +739,9 @@ const toitsParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
  *  faces des ornements du bâti qu'elle porte (`posesDuBati`, `PoseDeDecor.nappe`) hors de `decorsServis`, et son
  *  empreinte. Mémoïsées par scène, version des datasets et contenu de `decorsServis` (`memoByRefDeps`). PUR. */
 export function toitsDuMonde(scene: Scene, decorsServis?: ReadonlySet<string>): NappeDuMonde[] {
-  const vue: SceneDesToits = scene;
+  const vue: SceneDuBati = scene;
   const selection = decorsServis ? [...decorsServis].sort() : [];
-  return toitsParScene(scene, selection, () => toitsRetenus([versionDesDatasets(), ...CHAMPS_DES_TOITS.map((c) => vue[c]), ...selection], () => {
+  return toitsParScene(scene, selection, () => toitsRetenus([versionDesDatasets(), ...CHAMPS_DU_BATI.map((c) => vue[c]), ...selection], () => {
     const parNappe = new Map<string, FaceListee[]>();
     for (const el of buildRoofs(vue)) {
       const cle = nappeKey(el.bodyId!, el.sectionId!);

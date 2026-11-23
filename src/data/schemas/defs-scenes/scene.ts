@@ -364,14 +364,14 @@ export const architectureStoreySchema = nommerChamps(z.strictObject({
   roomZoneIds: refs(PIECES_DE_LA_SCENE),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, z: { label: "étage" }, parts: { label: "parties" }, roomZoneIds: { label: "pièces" , texte: { regime: "technique"} } });
 /** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`noyau/monde/facades`) portent le libellé
- *  du prop que le catalogue de façades leur pose (`data/props.json`). */
+ *  du prop que le catalogue de façades leur pose par défaut (`data/props.json`). */
 export const facadeFeatureKindSchema = enumNomme({
   gable: 'Pignon',
   'stone-entry': 'Entrée de pierre',
-  chimney: 'Cheminée',
   sign: 'Enseigne',
   'window-band': 'Bande de fenêtres',
   belfry: 'Clocheton',
+  faitage: 'Épi de faîtage',
 });
 /** `FacadeFeature` — ornement posé sur une arête de façade. */
 export const facadeFeatureSchema = nommerChamps(z.strictObject({

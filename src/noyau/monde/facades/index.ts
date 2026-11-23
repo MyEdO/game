@@ -16,8 +16,10 @@ export interface FacadeFeatureViz {
    *  `'toit'` = la COUVERTURE à l'aplomb de l'ancre, lue sur le champ des nappes
    *  (`resolveNappes`/`fieldHeightAt`, source unique des hauteurs de toit) : un `liftM` négatif
    *  ENCASTRE alors le décor dans la couverture qu'il perce. Aucune nappe ne couvre l'ancre ⇒ repli
-   *  DÉCLARÉ sur le sol, sans décalage — un décalage relatif à une couverture ne se lit pas sans elle. */
-  base?: 'sol' | 'toit';
+   *  DÉCLARÉ sur le sol, sans décalage — un décalage relatif à une couverture ne se lit pas sans elle.
+   *  `'faite'` = le SOMMET du pignon que l'arête borde (`sommetDuPignon`), qui donne l'ancre et la hauteur :
+   *  l'`offset` de la feature ne compte pas, et une arête qui ne borde aucun pignon ne pose rien. */
+  base?: 'sol' | 'toit' | 'faite';
   liftM?: number;
   scale?: number;
 }
@@ -45,7 +47,7 @@ export const FACADE_APPEARANCE_IDS: readonly string[] = DEFINITIONS.map((definit
  * par CONSTRUCTION : sans lui, une apparence posée par l'auteur ferait sortir la même feature
  * DEUX fois — sa géométrie de décor et un panneau plaqué sur la façade (#1624).
  */
-export const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['chimney', 'sign', 'belfry']);
+export const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['sign', 'belfry', 'faitage']);
 
 /** Les apparences que l'`appearance` d'une ouverture de sorte `kind` nomme, chacune son id et son libellé : un décor
  *  du catalogue (`props`) pour un kind rendu en décor (`KINDS_DE_DECOR`), une apparence de structure
@@ -57,11 +59,18 @@ export function facadeAppearance(id?: string): FacadeAppearanceDef | undefined {
   return id ? BY_ID.get(id) : undefined;
 }
 
+/** Les vignettes que toute façade pose à une sorte de feature, sauf celle que son apparence déclare : l'épi au faîte. */
+const VIGNETTES_COMMUNES: Partial<Record<FacadeFeature['kind'], FacadeFeatureViz>> = {
+  faitage: { prop: 'epi-de-faite', base: 'faite', liftM: 0 },
+};
+
+/** La vignette d'une feature de sorte `kind` sur la façade d'apparence `facadeId` : celle que l'apparence déclare,
+ *  sinon la vignette commune de la sorte (`VIGNETTES_COMMUNES`). */
 export function facadeFeatureViz(
   facadeId: string,
   kind: FacadeFeature['kind'],
 ): FacadeFeatureViz | undefined {
-  return facadeAppearance(facadeId)?.features[kind];
+  return facadeAppearance(facadeId)?.features[kind] ?? VIGNETTES_COMMUNES[kind];
 }
 
 export function facadeWallFeatureAppearance(
