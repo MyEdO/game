@@ -659,7 +659,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
-                            les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
+                            les GLB vivent dans les Releases `modeles-3d-<c>`, nommés par leur SHA-256 dont `<c>` est le premier caractère (#4823), que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import) ;
                             depuis le cloud, une branche `transfert/<nom>` qui porte les fichiers et leur provenance
                             (`asset/transfert.ts`, `npm run godot:transfert`) les y verse au push
