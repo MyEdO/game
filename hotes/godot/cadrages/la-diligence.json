@@ -1,5 +1,9 @@
 [
   { "nom": "portail-dehors", "regard": "immersion", "case": { "x": 24, "y": 2 }, "lacet": 180, "tangage": -5 },
+  { "nom": "portail-enceinte-de-face", "regard": "immersion", "case": { "x": 24, "y": 0 }, "lacet": 180, "tangage": 0 },
+  { "nom": "facade-nord-entiere-ouest", "regard": "immersion", "case": { "x": 16, "y": 6 }, "lacet": 180, "tangage": 10 },
+  { "nom": "facade-nord-entiere-centre", "regard": "immersion", "case": { "x": 25, "y": 6 }, "lacet": 180, "tangage": 10 },
+  { "nom": "facade-nord-entiere-est", "regard": "immersion", "case": { "x": 33, "y": 6 }, "lacet": 180, "tangage": 10 },
   { "nom": "facade-depuis-la-route", "regard": "tactique", "case": { "x": 24, "y": 10 }, "lacet": 180, "zoom": 30 },
   { "nom": "toits-depuis-la-route", "regard": "immersion", "case": { "x": 22, "y": 1 }, "lacet": 195, "tangage": 18 },
   { "nom": "girouette-du-portier", "regard": "immersion", "case": { "x": 18, "y": 2 }, "lacet": 228, "tangage": 25 },
