@@ -81,7 +81,7 @@ describe('deux établissements d’un même type dans un lieu', () => {
     ['lits-miteux', 'Les lits miteux', LITS_MITEUX],
   ])('l’auberge « %s » s’ouvre par son id : le repos porte SON nom et SES offres', (id, nom, offres) => {
     g().ouvrirLeRepos(id);
-    expect([g().pendingRest?.lieu, g().pendingRest?.places, g().pendingRest?.offres]).toEqual([nom, { auberge: true }, offres]);
+    expect([g().pendingRest?.lieu, g().pendingRest?.places, g().pendingRest?.offres]).toEqual([{ nom }, { auberge: true }, offres]);
   });
 
   it('un id qui n’est pas un hébergement du lieu : le repos et les rumeurs sont refusés, et le refus est dit', () => {
@@ -112,6 +112,6 @@ describe('une auberge sans nom d’auteur', () => {
 
   it('la nuit se passe au lieu, nommé par son libellé', () => {
     g().ouvrirLeRepos('chambres');
-    expect(g().pendingRest?.lieu).toBe('Ubersreik');
+    expect(g().pendingRest?.lieu).toEqual({ nom: 'Ubersreik' });
   });
 });

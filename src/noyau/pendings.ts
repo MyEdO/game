@@ -1365,8 +1365,6 @@ export interface PendingCast {
   spellId: string;
   /** Projectile magique (résolution façon attaque) vs autre sort / prière. */
   missile: boolean;
-  /** Sort focalisé à NI 0 (consommé à l'application). */
-  focused: boolean;
   /** Résultat figé du jet d'incantation (null = pas encore lancé). */
   result: (CastResult & Partial<MissileResult>) | null;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */

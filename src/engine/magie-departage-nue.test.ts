@@ -54,7 +54,7 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
   it('CONTRAT (a) : `resolveCasting.base` est la NUE — insensible à l’Avantage, au ward et à la Difficulté', () => {
     const nu = resolveCasting(mage(48, 15), ARCANE, makeRNG(7), 'difficile');
     // 2 Avantage (+20) ET un ward de circonstance (+15, `extraMod`) : la cible bouge, la Compétence non.
-    const charge = resolveCasting(mage(48, 15, { advantage: 2 }), ARCANE, makeRNG(7), 'difficile', false, 15);
+    const charge = resolveCasting(mage(48, 15, { advantage: 2 }), ARCANE, makeRNG(7), 'difficile', 15);
     expect(nu.base).toBe(63);
     expect(charge.base, 'l’Avantage/le ward ont fui dans la valeur nue').toBe(63);
     expect(charge.target, 'ils restent, eux, dans la cible testée').toBe(63 + 20 + 15 - 20);

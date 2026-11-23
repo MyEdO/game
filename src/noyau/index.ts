@@ -1,11 +1,12 @@
 /**
- * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
+ * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie et les événements de ses appels, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
  * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
-export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
+export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
+export type { ChargeDAttaque, TestResolu } from './bus';
 export type { LancementDeScenario } from './lancementDeScenario';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';
@@ -20,6 +21,7 @@ export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
 export { libelleDeDistance } from '../engine/travel';
+export { clockLabel } from '../engine/duration';
 export { currentSeason } from '../engine/travelStages';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
@@ -339,10 +341,11 @@ export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue, type VoyageEnVue } from './voyageEnVue';
 export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
-export { recitEnVue } from './recitEnVue';
+export { recitEnVue, type RecitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
-export { reposEnVue } from './reposEnVue';
+export { reposEnVue, type ReposEnVue } from './reposEnVue';
+export { TITRE_DE_LA_NUIT } from './restFlow';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
 export {

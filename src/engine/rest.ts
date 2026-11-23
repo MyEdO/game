@@ -50,27 +50,24 @@ function soinEmpoisonne(c: Combatant): boolean {
   return hasCondition(c, 'empoisonne') && c.wounds.current === 0;
 }
 
-/** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0 Blessure
- *  (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. LDB 16 l.74, l.105 ; LDB 18 l.338 */
-function sansRecuperation(c: Combatant): 'instable' | 'empoisonne' | 'prive' | null {
+/** Le motif d'un repos qui ne rend aucune Blessure (`rest.refus.<motif>`). */
+export type MotifDeRefusDeRecuperation = 'instable' | 'empoisonne' | 'prive';
+
+/** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0
+ *  Blessure (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. Verdict de `needsRecoveryRoll`,
+ *  du soin d'`applyRecoveryDay` et des alertes du repos en vue. LDB 16 l.74, l.105 ; LDB 18 l.338 */
+export function refusDeRecuperation(c: Combatant): MotifDeRefusDeRecuperation | null {
   if (unstable(c)) return 'instable';
   if (soinEmpoisonne(c)) return 'empoisonne';
   return isDeprived(c) ? 'prive' : null;
 }
 
-/** L'alerte courte de `sansRecuperation`, `null` sans elle : verdict de `needsRecoveryRoll`, du soin
- *  d'`applyRecoveryDay` et de la modale de Repos. */
-export function refusDeRecuperation(c: Combatant): string | null {
-  const raison = sansRecuperation(c);
-  return raison && t(`rest.refus.${raison}`);
-}
-
-/** Le constat qu'une nuit écrit pour un dormeur que le repos ne soigne pas (`sansRecuperation`), sans son nom :
+/** Le constat qu'une nuit écrit pour un dormeur que le repos ne soigne pas (`refusDeRecuperation`), sans son nom :
  *  le message et ses paramètres ; `null` s'il récupère. Partagé par la nuit d'un bloc (`restRecovery`) et la
  *  nuit en cascade (`buildNightCascade`). */
 export function constatSansRecuperation(c: Combatant): { cle: MsgKey; params?: Record<string, string> } | null {
   if (c.dead || c.outOfRencontre) return null;
-  switch (sansRecuperation(c)) {
+  switch (refusDeRecuperation(c)) {
     case 'instable': return { cle: 'rest.noRest' };
     case 'empoisonne': return { cle: 'rest.empoisonneSansRepos' };
     case 'prive': return { cle: 'rest.deprived', params: { etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') } };
@@ -187,7 +184,7 @@ export interface RestRoll {
 /** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté, refusé par
  *  `refusDeRecuperation`, ou PB plein.) Sépare la DÉCISION du jet (pour différer en cascade) de son application. */
 export function needsRecoveryRoll(c: Combatant): boolean {
-  return !c.dead && !c.outOfRencontre && sansRecuperation(c) === null && c.wounds.current < c.wounds.max;
+  return !c.dead && !c.outOfRencontre && refusDeRecuperation(c) === null && c.wounds.current < c.wounds.max;
 }
 
 /**
@@ -212,7 +209,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   const removable = starving ? 0 : Math.max(0, fat - derives);
   if (removable > 0) removeCondition(c, 'extenue', removable);
   const dayStartPB = c.wounds.current;
-  const soin = sansRecuperation(c) === null;
+  const soin = refusDeRecuperation(c) === null;
   // volet a : DR + BE sur réussite (une fois par jour). SOURCE UNIQUE `applyHealWounds` — plafonné
   // par munition Empaleuse logée (LDB 62 l.250) comme les autres chemins ; ni verrou « soin de
   // rencontre » (Guérison seulement) ni réveil ici — le réveil du repos (+ À Terre) reste géré

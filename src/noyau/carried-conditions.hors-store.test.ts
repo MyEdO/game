@@ -80,7 +80,7 @@ function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {
   const spell = findSpellById(CHAMON)!;
   const ocDur = overcastDurationParts(overcastSourceOf(spell), steps);
   const res = evaluateMissile(caster, cible, spell, cr());
-  applyCast(banc.getState, banc.setState, caster, [cible], spell, res, true, false, undefined, {
+  applyCast(banc.getState, banc.setState, caster, [cible], spell, res, true, undefined, {
     durationMult: ocDur.mult, durationBonusRounds: ocDur.bonusRounds, overcastDurationSteps: steps,
   });
 }
@@ -180,7 +180,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     const spell = findSpellById('grands-feux-d-u-zhul')!;
     const ocDur = overcastDurationParts(overcastSourceOf(spell), steps);
     const res = evaluateMissile(caster, cible, spell, cr());
-    applyCast(banc.getState, banc.setState, caster, [cible], spell, res, true, false, undefined, {
+    applyCast(banc.getState, banc.setState, caster, [cible], spell, res, true, undefined, {
       durationMult: ocDur.mult, durationBonusRounds: ocDur.bonusRounds, overcastDurationSteps: steps,
     });
   }
@@ -199,7 +199,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     const res = evaluateMissile(mage, cible, spell, cr());
     // `overcastDurationParts` DÉCOMPOSE la Surincantation en `mult` ET `bonusRounds` : la zone lit les
     // deux, comme la branche non-zone (`base × mult + bonus`) — sinon le bonus se perdait en route.
-    applyCast(banc.getState, banc.setState, mage, [cible], spell, res, true, false, undefined, {
+    applyCast(banc.getState, banc.setState, mage, [cible], spell, res, true, undefined, {
       durationMult: 1, durationBonusRounds: 6, overcastDurationSteps: 1,
     });
     expect(banc.getState().battle!.zones![0].rounds, 'le bonus de Rounds n’atteint pas la zone').toBe(3 + 6);

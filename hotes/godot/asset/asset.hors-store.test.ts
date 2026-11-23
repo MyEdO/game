@@ -340,6 +340,17 @@ describe('import et chargement des modèles modulaires', () => {
     const charges = await recupererModeles({ dossier: destination, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
     expect(charges.map((m) => [m.id, m.empreinte])).toEqual([['epee', sha256(GLB_D_ELEMENT)], ['humanoide', sha256(octets)]]);
   });
+  it('garde au remplacement la date d’import de la provenance aux mêmes octets, et date du jour un GLB changé', () => {
+    const destination = baseEtElement();
+    const dateDImport = () => JSON.parse(readFileSync(join(destination, 'humanoide.provenance.json'), 'utf8')).importe_le;
+    const avant = dateDImport();
+    expect(avant).not.toBe('2026-10-29');
+    const memes = reimporter(productionDeTest(temporaire(), baseDeTest(), GLB_DE_BASE), destination, true);
+    expect(memes.ok ? memes.provenance.importe_le : memes.refus).toBe(avant);
+    expect(dateDImport()).toBe(avant);
+    expect(reimporter(reexport().dossier, destination, true).ok).toBe(true);
+    expect(dateDImport()).toBe('2026-10-29');
+  });
   it.each([
     ['dont l’os que l’élément porte disparaît', () => reexport('hanche'), /^\[remplacement-casse\] epee : \[/],
     ['qui change le nom de la base', () => reexport('root', 'autre'), /^\[base-absente\] epee : humanoide$/],

@@ -12,6 +12,9 @@ import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { applyEffects } from '../noyau/combatEffects';
 import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { voyageEnVue } from '../noyau/voyageEnVue';
+import { recitEnVue } from '../noyau/recitEnVue';
+import { reposEnVue } from '../noyau/reposEnVue';
+import { fixtureText } from '../i18n/fixtureText';
 import { carteEnVue } from '../noyau/carteEnVue';
 import { dayPhase, toDate } from '../engine/clock';
 import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
@@ -160,6 +163,24 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.voyage).not.toBeNull();
     expect(vue.voyage).toEqual(voyageEnVue(banc.getState()));
     expect(vue.carte).toBeNull();
+    expect(vue.recit, 'en route, aucun récit').toBeNull();
+    expect(vue.repos, 'en route, aucune nuit à régler').toBeNull();
+  });
+
+  it('la nuit à régler : le repos du lecteur, en données', () => {
+    const { banc } = surLaCarte(20 * 60);
+    banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.repos).toMatchObject({ lieu: { nom: 'Ici' }, toit: 'campement', nuits: 1 });
+    expect(vue.repos).toEqual(reposEnVue(banc.getState()));
+  });
+
+  it('le récit d’un trajet qui tient la main : le récit du lecteur, en données', () => {
+    const { banc, route } = surLaCarte(8 * 60);
+    banc.setState({ travelRecap: { depart: route.a.id, arrivee: route.b.id, route: route.id, mode: 'pied', status: 'interrupted', km: route.km, kmDone: 3.5, days: [] } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.recit).toMatchObject({ issue: 'interruption', depart: route.a.id, route: route.id, reste: { valeur: route.km - 3.5, unite: 'km' } });
+    expect(vue.recit).toEqual(recitEnVue(banc.getState()));
   });
 
   it('la carte ouverte : la carte du lecteur, et aucun voyage', () => {

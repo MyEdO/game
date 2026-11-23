@@ -67,7 +67,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     // Pose l'état figé : zone non posée + centre auto-choisi sur le paquet (8,8).
     banc.setState({
       pendingCast: {
-        casterId: 'caster', targetId: 'caster', spellId: spell.id, missile: true, focused: false,
+        casterId: 'caster', targetId: 'caster', spellId: spell.id, missile: true,
         result: okCast() as never,
         zone: { center: null, radius: 1, r0m: 2, autoCenter: { x: 8, y: 8 } },
       } as never,
@@ -148,7 +148,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     banc.setState({ battle, scene, party: [] });
     banc.setState({
       pendingCast: {
-        casterId: w.id, targetId: w.id, spellId: spell.id, missile: true, focused: false,
+        casterId: w.id, targetId: w.id, spellId: spell.id, missile: true,
         result: okCast() as never,
         zone: { center: null, radius: 1, r0m: 2 }, // PAS d'autoCenter (pose joueur)
       } as never,

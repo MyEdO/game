@@ -250,7 +250,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     model: fichiers.glb,
     model_sha256: empreinte,
     ...(sources[0] ? { source_sha256: sha256(readFileSync(join(dossier, sources[0]))) } : {}),
-    importe_le: date,
+    importe_le: epingles.modeles.find((m) => m.id === id)?.empreinte === empreinte ? (lireJson(join(destination, fichiers.provenance)) as Provenance).importe_le : date,
     licences: licencesDe(brut),
     licences_de_pack: [...licencesDePack.values()],
     packs_sources: packs.packs,

@@ -2,8 +2,8 @@
  * `opSansObjet` ≡ « `applyOps` change-t-il la fiche ? » sur la CLASSE des ops de retrait : sur chaque fiche de
  * la matrice, une op est sans objet exactement quand l'appliquer ne change rien, et `applyOps` ne produit
  * alors rien, ni effet ni ligne ; la raison ne se dit qu'au verdict d'un geste délibéré. Un raccourcissement
- * de maladie n'allonge jamais une maladie. LDB 16, LDB 18 l.15, LDB 20, LDB 40 l.36, ADE II 09 l.33,
- * MSRC 04 l.184-186
+ * de maladie n'allonge jamais une maladie. LDB 16, LDB 18 l.15, LDB 18 l.308-311, LDB 20, LDB 40 l.36, LDB 72 l.20,
+ * ADE II 09 l.33, MSRC 04 l.184-186
  */
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -39,6 +39,10 @@ const FICHES: Record<string, () => Combatant> = {
   maladeAuDernierJour: () => ({ ...FICHES.vierge(), diseases: [maladie(MINUTES_PER_DAY)] }),
   maladeDepuisDesHeures: () => ({ ...FICHES.vierge(), diseases: [maladie(6 * 60)] }),
   fracture: () => ({ ...FICHES.vierge(), traumas: [{ uid: 't1', label: 'Fracture', location: 'brasG' as const, kind: 'fracture' as const }] }),
+  blesse: () => { const c = FICHES.vierge(); c.wounds = { ...c.wounds, current: c.wounds.max - 3 }; return c; },
+  plaieOuverte: () => ({ ...FICHES.vierge(), traumas: [{ uid: 't1', label: 'Fracture', location: 'brasG' as const, kind: 'fracture' as const, awaitingMedicalAid: true }] }),
+  critiqueDeRencontre: () => ({ ...FICHES.vierge(), tookCriticalThisFight: true }),
+  critiquePansee: () => ({ ...FICHES.vierge(), tookCriticalThisFight: true, woundDressed: true }),
 };
 
 const OPS: GameOp[] = [
@@ -50,6 +54,7 @@ const OPS: GameOp[] = [
   { op: 'removeTrait', trait: { id: 'amphibie' } },
   { op: 'cureDisease' }, { op: 'reduceDiseaseDays', days: 1 }, { op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }, { op: 'reduceDiseaseDays', days: 0 },
   { op: 'cureCriticalWound' },
+  { op: 'heal', amount: 2 }, { op: 'aideMedicale' }, { op: 'preventInfection' },
 ];
 
 describe('opSansObjet ≡ applyOps ne change rien', () => {

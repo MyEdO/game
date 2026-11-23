@@ -16,10 +16,18 @@ import { rule } from '../engine/policy';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
 
-/** Un mode de voyage d'un trajet : son nom, le verbe qui part (`geste`, sans cadence : la traversée prend les ordres
+/** Un mode de voyage par son id et son nom. */
+export interface ModeEnVue { id: TravelMode; nom: string }
+
+/** Le mode `mode` en vue. PUR. */
+export function modeEnVue(mode: TravelMode): ModeEnVue {
+  return { id: mode, nom: garanti(travelModeLabels()[mode], mode, 'mode de voyage') };
+}
+
+/** Un mode de voyage d'un trajet : son id et son nom, le verbe qui part (`geste`, sans cadence : la traversée prend les ordres
  *  par défaut et se règle en route, `fixerLaCadence`), pourquoi il ne part pas maintenant (`refus`, `null` s'il part)
  *  et les jours de route que son devis prévoit (`null` : aucun plan, en mer). */
-export interface ModeDuTrajet { mode: TravelMode; libelle: string; geste: GesteDuNoyau; refus: string | null; jours: number | null }
+export interface ModeDuTrajet { mode: ModeEnVue; geste: GesteDuNoyau; refus: string | null; jours: number | null }
 
 /** Un trajet depuis le lieu du groupe : sa route, sa destination (`destination`, son id ; `vers`, son nom), sa
  *  longueur (`distanceDeRoute`), et chacun de ses modes. */
@@ -48,7 +56,6 @@ export function modesDuTrajet(modes: readonly TravelMode[], groupeMonte: boolean
 
 /** Chaque trajet que la carte trace depuis le lieu `ici` (`routesCliquables`) et ses modes. PUR. */
 export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue[] {
-  const libelles = travelModeLabels();
   const groupeMonte = !!rule('voyage-allures') && partyFullyMounted(s.party, s.possessions);
   return routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({
     route: route.id,
@@ -56,8 +63,7 @@ export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue
     vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
     distance: distanceDeRoute(route.km, route.sea),
     modes: modesDuTrajet(route.modes, groupeMonte).map((mode) => ({
-      mode,
-      libelle: garanti(libelles[mode], mode, 'mode de voyage'),
+      mode: modeEnVue(mode),
       geste: { verbe: 'partirEnVoyage', args: [route.id, mode] },
       refus: refusDeDepart(s, route.id, mode),
       jours: devisDeTrajet(s, route, ici.id, mode).plan?.days ?? null,

@@ -53,7 +53,7 @@ beforeEach(() => {
     party: [A],
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
+    pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, result: ENEMY_CAST },
   } as never);
 });
 

@@ -57,7 +57,7 @@ const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'h
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
  *  `null` sans lui ou sans l'objet. PUR. */
-export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif'>, porteurId: string, uid: string): GestesDeLObjet | null {
+export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif' | 'flags' | 'etats'>, porteurId: string, uid: string): GestesDeLObjet | null {
   const porteur = resolveCarrier(s, porteurId);
   const items = !porteur ? [] : porteur.kind === 'heros' ? (porteur.hero.items ?? []) : porteur.possession.items;
   const it = items.find((i) => i.uid === uid);
@@ -80,7 +80,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   };
   const inconnu = hero && it.identified === false;
   return {
-    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid]), porte: it.equipped } : null,
+    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid, !it.equipped]), porte: it.equipped } : null,
     mains: set ? { set: set.id, main: main('main'), secondaire: main('secondaire') } : null,
     ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [uid, c.uid] } })) } : null,
     sortir: it.inside ? sur('rangerLObjet', [uid, null]) : null,
@@ -89,7 +89,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
       return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, id] } };
     }) } : null,
     poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
-    utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it, consommable)) : null,
+    utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(s, hero, it, consommable)) : null,
     evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', gameDay(s))) : null,
     detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', gameDay(s))) : null,
   };

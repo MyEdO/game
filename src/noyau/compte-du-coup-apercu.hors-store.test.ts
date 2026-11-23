@@ -182,7 +182,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       cible.wounds = blessuresDeBase(20, current, cible);
       cible.important = true;
       if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
-      banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
+      banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, result: null } as never });
       banc.getState().jetLancer('incantation');
       const jet = banc.getState().pendingCast!.result!;
       if (!jet.cast || jet.isCritical || jet.isFumble) continue;

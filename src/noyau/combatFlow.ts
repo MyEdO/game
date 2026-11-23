@@ -220,6 +220,7 @@ import {
   prendUnComposant,
   castInfoIsPrayer,
   focusDRExpectation,
+  niRestantAFocaliser,
   castLandProbability,
   malevolentInfluenceSeverity,
   malepierreItemOf,
@@ -228,6 +229,9 @@ import {
   castOvercastBudget,
   castingNumberOf,
   focalisationAboutie,
+  niSansFocalisation,
+  reserveDeFocalisation,
+  incantationFocaliseeEchouee,
   sortInfligeDesDegats,
   type CastResult,
   type CritChoice,
@@ -281,10 +285,9 @@ import { corruptionGain, EXPOSURE_LADDER, recoitLaCorruption, type ExposureLevel
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { critiqueDie } from '../data/criticals';
-import { canCastFromGrimoire } from '../engine/grimoire';
+import { canCastFromGrimoire, GRIMOIRE_NI_MODS } from '../engine/grimoire';
 import { sortsDisponibles } from '../engine/sortsDuPnj';
 import { effectiveCastingNumber } from '../engine/castingNumber';
-import type { CastingNumberMod } from '../engine/castingNumber';
 import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, categorieDesLignesDeLaTable, MISCAST_TABLES, MISCAST_DATASETS,
   type MiscastSeverity, type MiscastResult,
@@ -324,7 +327,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
@@ -1544,7 +1547,7 @@ export function previewCast(
   caster: Combatant,
   spell: NonNullable<ReturnType<typeof findSpell>>,
   opts?: {
-    missile?: boolean; focused?: boolean;
+    missile?: boolean;
     /** Le jet est tombé : les Vents Tourbillonnants s'y lisent, révélés ou non (`ventsAnnonces`). */
     jete?: boolean;
     /** CONTEXTE du jet (état + cible visée) : l'aperçu annonce alors la CIBLE RÉELLE — protection de
@@ -1560,7 +1563,7 @@ export function previewCast(
   const windsLine = opts?.ctx ? ventsAnnonces(opts.ctx.s.battle, !!opts.jete) : null;
   const windsMod = windsLine?.value ?? 0;
   const isPrayer = !ci.requireNI; // la branche de résolution, pas un proxy sur `cn`
-  const ni = castingNumberOf(spell, opts?.focused, {}, [], caster);
+  const ni = castingNumberOf(spell, {}, [], caster);
   const ctx = opts?.ctx ? castContextMods(opts.ctx.s, caster, opts.ctx.target, spell, { skipWard: opts.ctx.skipWard }) : null;
   const mods: ModLine[] = [
     ...(advLine ? [advLine] : []),
@@ -5720,8 +5723,8 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
   const discreet = !!pc.discreet && castInfoIsPrayer(spell) && !!rule('priere-conviction');
   const difficulty = discreetPrayerDifficulty('intermediaire', discreet);
   const res = pc.missile && !unplacedZone
-    ? resolveMagicMissile(caster, target, spell, battleRng(), pc.focused, ward, seaMagicContext(get()))
-    : resolveCasting(caster, spell, battleRng(), difficulty, pc.focused, ward, seaMagicContext(get()));
+    ? resolveMagicMissile(caster, target, spell, battleRng(), ward, seaMagicContext(get()))
+    : resolveCasting(caster, spell, battleRng(), difficulty, ward, seaMagicContext(get()));
   if (sigmar) get().ecrireAuJournal(tr('cs.sigmarWard', { name: nomDe(caster) }));
   if (aqshy) get().ecrireAuJournal(tr('cs.aqshyBonus', { name: nomDe(caster), n: aqshy }));
   // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
@@ -5818,11 +5821,10 @@ export function castSpell(
     castRefused(get, set, caster, horsAtteinte.detail);
     return;
   }
-  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: target.id, spellId: spell.id, missile: breathSpell ? false : isMagicMissile(spell),
-      focused: focusedNI0, result: null, ...(fromGrimoire ? { grimoire: true } : {}),
+      result: null, ...(fromGrimoire ? { grimoire: true } : {}),
     },
   });
   openCastCascade(get, set, caster); // « Une situation = une modale » : hôte la situation d'incantation dans la cascade
@@ -6158,11 +6160,10 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
     castRefused(get, set, caster, refus);
     return true; // c'était bien une zone — l'entrée est consommée (refus signalé)
   }
-  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: caster.id, spellId: spell.id, missile: isMagicMissile(spell),
-      focused: focusedNI0, result: null,
+      result: null,
       zone: { center: null, radius: zoneRadiusTilesAt(r0m, 0, sceneMetresPerTile(get().scene)), r0m },
     },
   });
@@ -6317,7 +6318,7 @@ export function resoudreLeSortDeZone(
     ? cascBefore.cursor : -1;
   set({ pendingCast: null }); // ferme le jet ; cascade d'incantation conservée
   const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-  applyCast(get, set, caster, targets, spell, r1, pc.missile, pc.focused, pc.critChoice, {
+  applyCast(get, set, caster, targets, spell, r1, pc.missile, pc.critChoice, {
     durationMult: ocDur.mult,
     durationBonusRounds: ocDur.bonusRounds,
     overcastDurationSteps: pc.overcast?.duration ?? 0,
@@ -6400,9 +6401,8 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     const data = resolveSpell(id);
     if (!data) continue;
     const cn = data.cn ?? 0;
-    // Focalisation prête (DR cumulé ≥ NI) → fiabilité calculée à NI 0 ; sinon fiabilité normale.
-    const ready = enemy.focus?.spell === data.id && (enemy.focus?.dr ?? 0) >= cn;
-    const landProb = castLandProbability(enemy, data, ready);
+    const ready = focalisationAboutie(enemy, data);
+    const landProb = castLandProbability(enemy, data);
     // Un sort dont le payload est une INVOCATION alliée (`op:summon on:caster`) est routé 'self' (et JAMAIS
     // 'focusable' : on ne focalise pas une invocation, on la LANCE) AVANT toute logique de zone — la machinerie
     // `castArea` = zone de DÉGÂTS (centre sur un paquet d'ennemis) ne convient pas (un summon sans ennemi dans
@@ -6412,7 +6412,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     const hasAllySummon = spellOps(data.effects, 'caster').some((o) => o.op === 'summon' && o.allyOfCaster !== false);
     const drParRound = !ready && !hasAllySummon && isArcaneSpell(data) ? focusDRExpectation(enemy, data) : null;
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
-      : drParRound ? { rounds: Math.ceil(Math.max(0, cn - (enemy.focus?.spell === data.id ? enemy.focus.dr : 0)) / drParRound), landProbNI0: castLandProbability(enemy, data, true) }
+      : drParRound ? { rounds: Math.ceil(niRestantAFocaliser(enemy, data) / drParRound), landProbNI0: castLandProbability({ ...enemy, focus: { spell: data.id, dr: niSansFocalisation(data, enemy) } }, data) }
         : 'none';
     const radius = hasAllySummon || ancreDeLaZdE(data) === 'target' ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'
@@ -6558,23 +6558,6 @@ export function overcastTargetCandidates(
   });
 }
 
-/** NI d'un Sort lu au grimoire (LDB 47 l.21, `VDM 12 l.646-647`) — modificateurs en donnée, passés
- *  par la primitive UNIQUE `effectiveCastingNumber` comme tout autre porteur. */
-export const GRIMOIRE_NI_MODS: CastingNumberMod[] = [
-  {
-    multiply: 2,
-    scope: { kinds: ['sort'] },
-    source: { book: 'vents-de-la-magie', page: 164 },
-    desc: 'Lors du lancement de Sort son NI est doublé.',
-  },
-  {
-    multiply: 4,
-    scope: { kinds: ['rituel'] },
-    source: { book: 'vents-de-la-magie', page: 164 },
-    desc: "Dans le cas d'un Rituel, son NI est quadruplé.",
-  },
-];
-
 /** Sort effectif d'un pendingCast : NI DOUBLÉ pour une lecture au grimoire (LDB 47 l.21), QUADRUPLÉ
  *  pour un Rituel (`VDM 12 l.647`, `VDM 02 l.369`). */
 export function effectiveSpellOf(pc: { spellId: string; grimoire?: boolean }): ReturnType<typeof findSpell> {
@@ -6625,7 +6608,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   if (out.dispelled) {
     next = { ...res, cast: false, dispelled: true, hit: false, damage: undefined, woundsLost: undefined, defenderDefeated: false, log: `${out.log}` };
   } else {
-    next = rederiveCastSL(caster, target, spell, res, pc.missile && !unplacedZone, pc.focused, out.casterNetSL - res.sl);
+    next = rederiveCastSL(caster, target, spell, res, pc.missile && !unplacedZone, out.casterNetSL - res.sl);
     next.log = `${out.log} ${next.log}`;
   }
   next = { ...next, slPropre: res.slPropre ?? res.sl };
@@ -6684,7 +6667,7 @@ function sourceDissipableDe(spell: SortJoue, caster: Combatant): OpsCtx['sourceS
   if (castInfoIsPrayer(spell)) return undefined;
   const zdeDiam = zdeDiameterMeters(spell.target, caster);
   return {
-    spellId: spell.id, ni: castingNumberOf(spell, false, {}, [], caster), casterId: caster.id, label: spell.label,
+    spellId: spell.id, ni: niSansFocalisation(spell, caster), casterId: caster.id, label: spell.label,
     ...(zdeDiam != null ? { zde: { diametreM: zdeDiam, rayonM: zoneRadiusMeters(spell, caster)! } } : {}),
   };
 }
@@ -6988,7 +6971,6 @@ export function applyCast(
   spell: NonNullable<ReturnType<typeof findSpell>>,
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
-  focusedNI0: boolean,
   critChoice?: CritChoice,
   extras?: {
     durationMult?: number;
@@ -7003,6 +6985,9 @@ export function applyCast(
   },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
+  const reserveServie = reserveDeFocalisation(caster, spell) > 0;
+  // La réserve servie est consommée au lancement, avant toute touche. LDB 46 l.132 ; VDM 02 l.133
+  if (reserveServie) caster.focus = undefined;
   const affects = extras?.pose ? undefined : filtreHorsPoseDuSort(spell);
   const targets = affects
     ? ciblesDuLancer.filter((c) => evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) })))
@@ -7079,7 +7064,7 @@ export function applyCast(
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
   const jetReussi = evaluateTest(res.roll, res.target).success;
-  const echecApresFocalisation = focusedNI0 && !jetReussi; // LDB 46 l.132
+  const echecApresFocalisation = reserveServie && incantationFocaliseeEchouee(res);
   const malevolent = malevolentInfluenceSeverity(res.roll, jetReussi, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
   /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
@@ -7347,8 +7332,6 @@ export function applyCast(
     logLines.push(...contrecoup('colere'));
   }
 
-  // Le sort focalisé est consommé après le lancement.
-  if (focusedNI0) caster.focus = undefined;
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).
@@ -9484,8 +9467,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   }
   // Combat monté (LDB 14) : un PNJ à pied, non Engagé, adjacent à une monture LIBRE de son camp décide
   // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
+  // Le groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
-  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy)) {
+  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(battle, scene, enemy);
     if (freeMount) {
       mountUp(enemy, freeMount);

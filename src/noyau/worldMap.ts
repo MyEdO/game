@@ -40,7 +40,7 @@ import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, semencesDeScene } from '../data';
+import { findNavalPortById, findLieuServiceById, libelleOuAbsence, semencesDeScene } from '../data';
 import { colonneDeLaTaille } from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 
@@ -263,6 +263,11 @@ export function lieuDeLaScene(map: WorldMap | null | undefined, sceneId: string 
 
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
+}
+
+/** Le nom du lieu `id` de la carte `map`, son absence nommée sans carte ni lieu (`libelleOuAbsence`). */
+export function nomDuLieu(map: WorldMap | null | undefined, id: string) {
+  return libelleOuAbsence(map ? placeById(map, id) : undefined, 'lieu', id);
 }
 
 /** La Taille du lieu `place`, MSRC 13 l.44-50 : celle de son port résolu, sinon la sienne ; `undefined` hors

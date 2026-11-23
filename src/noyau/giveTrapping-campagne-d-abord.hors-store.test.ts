@@ -219,7 +219,7 @@ describe('#2967 — flux des objets portés de campagne', () => {
     });
     ouvrir(manteau);
     const manteauPorte = remettre(manteau.id);
-    if (porte) banc.getState().equiperLObjet(manteauPorte.uid);
+    if (porte) banc.getState().equiperLObjet(manteauPorte.uid, true);
     expect(trouver(manteau.id)?.equipped).toBe(porte);
     banc.getState().avancerLeTemps(MINUTES_PER_DAY);
     expect(trouver('corde')?.label).toBe(porte ? 'Corde' : undefined);
@@ -270,7 +270,7 @@ describe('#2967 — flux des objets portés de campagne', () => {
       }],
     } satisfies NarratifBlock['objets'][number];
     ouvrir(manteau, ...narratif.objets);
-    banc.getState().equiperLObjet(remettre(manteau.id).uid);
+    banc.getState().equiperLObjet(remettre(manteau.id).uid, true);
     expect(trouver(LAME_CAMPAGNE)).toBeUndefined();
     banc.getState().avancerLeTemps(MINUTES_PER_DAY);
     expect(trouver(LAME_CAMPAGNE)).toMatchObject({ label: 'Lame maudite', kind: 'melee' });

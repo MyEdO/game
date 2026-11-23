@@ -219,7 +219,7 @@ describe('fenetreChoisir', () => {
       banc.setState({
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] },
         pendingLoot: { title: 'Coffre', gear },
-        pendingRest: { places: { camp: true }, lieu: 'x', quality: 'normale', days: 1, perHero: { [a]: { lodging: 'dehors', food: 'rien' }, [b]: { lodging: 'dehors', food: 'rien' } }, phase: 'setup' },
+        pendingRest: { places: { camp: true }, lieu: { nom: 'x' }, quality: 'normale', days: 1, perHero: { [a]: { lodging: 'dehors', food: 'rien' }, [b]: { lodging: 'dehors', food: 'rien' } }, phase: 'setup' },
         merchant: {
           entityId: 'm', archetype: 'x', settlement: 'village', resaleRate: 0.5, stock: [{ id: 'corde', qty: 3 }], cart: [{ id: 'corde', qty: 1 }], bargainLocked: false,
           pendingDistribution: [{ uid: 'D0', item: { uid: 'u2', label: 'Corde', kind: 'misc', qualities: [], enc: 0 }, heroId: a }],

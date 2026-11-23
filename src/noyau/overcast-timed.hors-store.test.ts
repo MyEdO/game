@@ -131,7 +131,7 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
 describe('Surincantation (LDB 47 l.28-31)', () => {
   it('un réglage d’après le jet (`apresLeJet`) joué avant le dé se refuse au journal, avec ce qui le ferme', () => {
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
-    banc.setState({ party: [wiz] as Combatant[], pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: null } });
+    banc.setState({ party: [wiz] as Combatant[], pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, result: null } });
     banc.getState().jetRegler('incantation', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.jetNonLance'));
@@ -142,7 +142,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
     // Armure Aethyrique : NI 2 ; DR 6 → surplus 4 → budget 2 allocations.
-    banc.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
+    banc.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
     banc.getState().jetRegler('incantation', 'surincantationDuree', 3); // refusé : budget épuisé
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
     banc.getState().jetRegler('incantation', 'surincantationDuree', 2);
@@ -154,7 +154,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
   it('les Bénédictions surincantent sur le DR ENTIER (LDB 41 « Degrés de Réussite ») : +4 DR → 2 allocations', () => {
     const { priest, ally } = pair();
     banc.setState({ party: [priest, ally] as Combatant[] });
-    banc.setState({ pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-bataille', missile: false, focused: false, result: okRes(4) } });
+    banc.setState({ pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-bataille', missile: false, result: okRes(4) } });
     banc.getState().jetRegler('incantation', 'surincantationDuree', 1);
     banc.getState().jetRegler('incantation', 'surincantationCibles', 2); // refusé : budget 2 épuisé
     banc.getState().jetRegler('incantation', 'surincantationCibles', 1);
@@ -168,7 +168,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
     const sort = { ...findSpellById('benediction-de-bataille')!, family: 'arcane' as const, cn: 0 }; // gabarit +10 CC 6 rounds en SORT
-    applyCast(banc.getState, banc.setState, wiz, [priest, ally], sort, okRes(4), false, false, undefined, { durationMult: 2 });
+    applyCast(banc.getState, banc.setState, wiz, [priest, ally], sort, okRes(4), false, undefined, { durationMult: 2 });
     const p = banc.getState().party.find((h) => h.id === priest.id)!;
     const a = banc.getState().party.find((h) => h.id === ally.id)!;
     expect(p.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // 6 ×2

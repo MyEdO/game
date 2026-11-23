@@ -51,7 +51,6 @@ import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   charKeySchema,
   natureDeMentionSchema,
-  raceKeySchema,
   type NatureDeMention,
   type harvestRaritySchema,
   type harvestDangerSchema,
@@ -218,7 +217,6 @@ import lightLevelsJson from './lightLevels.json';
 import lightTonesJson from './lightTones.json';
 import rendusJson from './rendus.json';
 import propsJson from './props.json';
-import { COLONNES_AVANT_REFERENCES_DE_CREATION, COULEURS_AVANT_REFERENCES_DE_CREATION } from './couleursAvantReferencesDeCreation';
 import eyesJson from './eyes.json';
 import hairsJson from './hairs.json';
 import calendarMonthsJson from './calendarMonths.json';
@@ -1547,7 +1545,6 @@ export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tab
 
 type TableDeCouleur = 'eyes' | 'hairs';
 const rangeeDeCouleur = { eyes: indexParId('eyes', eyes), hairs: indexParId('hairs', hairs) };
-const tablesDeCouleur = { eyes, hairs };
 
 const celluleDeCouleur = (color: Readonly<Partial<Record<RaceKey, string>>>, colonne: RaceKey): string =>
   color[colonne] ?? color.humain ?? '';
@@ -1558,45 +1555,6 @@ export function libelleDeCouleur(table: TableDeCouleur, choix: CouleurDePersonna
   if ('label' in choix) return dataLabel(choix.label);
   const rangee = rangeeDeCouleur[table](choix.id);
   return rangee ? dataLabel(celluleDeCouleur(rangee.color, choix.colonne)) : null;
-}
-
-function couleurHistorique(table: TableDeCouleur, label: string | undefined, colonne: RaceKey | undefined): CouleurDePersonnage | undefined {
-  if (label === undefined) return undefined;
-  if (colonne === undefined) return { label };
-  const candidates = COULEURS_AVANT_REFERENCES_DE_CREATION[table].filter((r) => celluleDeCouleur(r.color, colonne) === label);
-  if (candidates.length !== 1) return { label };
-  const [{ id }] = candidates;
-  if (!rangeeDeCouleur[table](id)) return { label };
-  const contradictoire = tablesDeCouleur[table].some((r) => r.id !== id && celluleDeCouleur(r.color, colonne) === label);
-  return contradictoire ? { label } : { id, colonne };
-}
-
-function couleurPossible(table: TableDeCouleur, label: string | undefined, colonne: RaceKey): boolean {
-  return label === undefined
-    || COULEURS_AVANT_REFERENCES_DE_CREATION[table].some((r) => celluleDeCouleur(r.color, colonne) === label)
-    || tablesDeCouleur[table].some((r) => celluleDeCouleur(r.color, colonne) === label);
-}
-
-/** Un héros peut garder son physique en changeant d'espèce. Sa colonne doit aussi être établie par les anciennes couleurs. */
-export function couleursHistoriques(
-  libelles: { eyes: string | undefined; hair: string | undefined },
-  espece: unknown,
-  colonneAttestee: boolean,
-): { eyes: CouleurDePersonnage | undefined; hair: CouleurDePersonnage | undefined } {
-  let colonne: RaceKey | undefined;
-  if (typeof espece === 'string') {
-    const avant = COLONNES_AVANT_REFERENCES_DE_CREATION.get(espece) ?? raceKeySchema.safeParse(espece).data;
-    const courante = findSpeciesById(espece)?.refChar;
-    if (avant && (!courante || courante === avant)) colonne = avant;
-  }
-  if (!colonneAttestee && colonne !== undefined) {
-    const possibles = raceKeySchema.options.filter((c) => couleurPossible('eyes', libelles.eyes, c) && couleurPossible('hairs', libelles.hair, c));
-    if (possibles.length !== 1 || possibles[0] !== colonne) colonne = undefined;
-  }
-  return {
-    eyes: couleurHistorique('eyes', libelles.eyes, colonne),
-    hair: couleurHistorique('hairs', libelles.hair, colonne),
-  };
 }
 
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */

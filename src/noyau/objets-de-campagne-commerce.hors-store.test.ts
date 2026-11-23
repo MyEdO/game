@@ -104,7 +104,7 @@ it('une prothèse du narratif acquiert ses paliers et annonce son entraînement 
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(300);
   expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisNotTrainable', { name: nomDe(hero) }));
-  get().equiperLObjet(uid);
+  get().equiperLObjet(uid, true);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(200);
   expect(item(prothese.id).prosthesisMoveTrained).toBe(true);

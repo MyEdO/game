@@ -60,7 +60,7 @@ import { ALL_MAGIC, Combatant, DIFFICULTE_PAR_DEFAUT, HitLocation, Difficulty, C
 import { findTraitById, findTalentById, findDomainById, findGodById, findSpellById, matiereDuGroupe, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
-import { ritualReduction, type RitualReduced } from './grimoire';
+import { ritualReduction, canCastFromGrimoire, GRIMOIRE_NI_MODS, type RitualReduced } from './grimoire';
 import { traceLineOf } from './traceLine';
 import { spellOps, type Flow } from './flowCore';
 
@@ -352,9 +352,41 @@ export function focusValueOf(c: Combatant, spell: SpellLike): number | null {
   return sk ? focalisationValue(c, { id: 'focalisation', spec: sk.spec }) : null;
 }
 
-/** La Focalisation de `c` a-t-elle atteint le NI de `spell` : le Sort se lance au NI 0. LDB 46 l.128, l.132 */
+/** La Focalisation de `c` a-t-elle atteint le NI de `spell`, réserve exclue. LDB 46 l.128, l.132 */
 export function focalisationAboutie(c: Combatant, spell: SpellLike): boolean {
-  return !!c.focus && c.focus.spell === spell.id && c.focus.dr >= castingNumberOf(spell, false, {}, [], c);
+  return !!c.focus && c.focus.spell === spell.id && c.focus.dr >= niSansFocalisation(spell, c);
+}
+
+/** La Focalisation en cours de `c` sert-elle `spell` : même Sort (LDB 46 l.130), même Vent sous
+ *  `magie-vdm-incantation` (VDM 02 l.131) — Vent = Compétence Focalisation qui roule le Test. */
+export function focalisationPour(c: Combatant, spell: SpellLike): boolean {
+  const focus = c.focus;
+  if (!focus) return false;
+  if (rule('magie-vdm-incantation') !== true) return focus.spell === spell.id;
+  const source = findSpellById(focus.spell);
+  const vent = isArcaneSpell(spell) && source ? focusSkillFor(c, spell) : undefined;
+  return !!vent && vent === focusSkillFor(c, source!);
+}
+
+/** Réserve de Focalisation de `c` que le lancement de `spell` consomme, en points de NI. LDB 46 l.132 :
+ *  illimitée (NI 0) si la Focalisation est aboutie, comme `malepierreReserveOf` ; VDM 02 l.131, l.133. */
+export function reserveDeFocalisation(c: Combatant, spell: SpellLike): number {
+  if (!focalisationPour(c, spell)) return 0;
+  if (rule('magie-vdm-incantation') === true) return c.focus!.dr;
+  return focalisationAboutie(c, spell) ? Infinity : 0;
+}
+
+/** NI qui reste à focaliser avant que `c` lance `spell` au NI 0 : DR du Test étendu accumulé sur ce Sort
+ *  (LDB 46 l.130, l.132) ; sous `magie-vdm-incantation`, NI réduit par la réserve du Vent (VDM 02 l.131, l.133). */
+export function niRestantAFocaliser(c: Combatant, spell: SpellLike): number {
+  if (rule('magie-vdm-incantation') === true) return castingNumberOf(spell, {}, [], c);
+  return Math.max(0, niSansFocalisation(spell, c) - (focalisationPour(c, spell) ? c.focus!.dr : 0));
+}
+
+/** Le lancement qu'une réserve de Focalisation a servi échoue-t-il : LDB 46 l.132 ; sous
+ *  `magie-vdm-incantation`, DR sous le NI réduit compris, dissipation exclue (VDM 02 l.48, l.135, l.178). */
+export function incantationFocaliseeEchouee(res: CastResult): boolean {
+  return rule('magie-vdm-incantation') === true ? !res.cast && !res.dispelled : !evaluateTest(res.roll, res.target).success;
 }
 
 /** Compétence Focalisation utilisable pour CE sort (LDB 46 ; `refCouvre`, LDB 09 l.44). Sort sans
@@ -608,9 +640,9 @@ export interface CastResult {
 
 /**
  * NIVEAU D'INCANTATION EFFECTIF d'un Sort au moment de sa résolution — SITE UNIQUE de lecture du NI.
- * `focusedNI0` force 0 (Sort focalisé, LDB 46 l.128). Sinon le NI imprimé traverse les modificateurs
- * du LIEU (`environmentNIMods`) puis ceux que l'appelant apporte (objet porté, breuvage, support de
- * lecture, Activité) — `effectiveCastingNumber` fait toute l'arithmétique. Le NI IMPRIMÉ de départ
+ * Le NI imprimé traverse les modificateurs du LIEU (`environmentNIMods`), ceux que l'appelant apporte
+ * (objet porté, breuvage, support de lecture, Activité), puis la réserve de Focalisation du lanceur
+ * (`reserveDeFocalisation`) — `effectiveCastingNumber` fait toute l'arithmétique. Le NI IMPRIMÉ de départ
  * est celui de la parenthèse quand le lanceur est fourni et que le Rituel lui ouvre sa valeur
  * réduite (`VDM 02 l.398`, `ritualReduction`) : c'est une autre valeur de BASE, pas un
  * modificateur — la clause vise les Domaines du LANCEUR, là où `CastingNumberSubject.domainId`
@@ -618,12 +650,35 @@ export interface CastResult {
  */
 export function castingNumberOf(
   spell: SpellLike,
-  focusedNI0 = false,
   env: MagicEnvironment = {},
   niMods: readonly CastingNumberMod[] = [],
   caster?: Combatant,
 ): number {
-  if (focusedNI0) return 0;
+  const reserve = caster ? reserveDeFocalisation(caster, spell) : 0;
+  return niDuSort(spell, env, reserve > 0 ? [...niMods, modDeReserve(reserve)] : niMods, caster);
+}
+
+/** NI de `spell` tel que `caster` le lance, sans sa réserve de Focalisation : cible de la Focalisation
+ *  (LDB 46 l.130, l.132) et NI à dissiper (LDB 46 l.158). Lu au grimoire quand seul le grimoire le
+ *  lui ouvre (LDB 47 l.21), depuis l'entrée du catalogue : `spell` peut déjà porter ce NI doublé. */
+export function niSansFocalisation(spell: SpellLike, caster: Combatant): number {
+  const catalogue = spell.id === undefined ? undefined : findSpellById(spell.id);
+  return catalogue && canCastFromGrimoire(caster, catalogue)
+    ? niDuSort(catalogue, {}, GRIMOIRE_NI_MODS, caster)
+    : niDuSort(spell, {}, [], caster);
+}
+
+/** VDM 02 l.133 */
+function modDeReserve(reserve: number): CastingNumberMod {
+  return {
+    delta: -reserve,
+    min: 0,
+    source: { book: 'VDM', page: 22 },
+    desc: "Chaque DR obtenu de cette manière réduit le NI d'un Sort de 1, jusqu'à un minimum de 0.",
+  };
+}
+
+function niDuSort(spell: SpellLike, env: MagicEnvironment, niMods: readonly CastingNumberMod[], caster: Combatant | undefined): number {
   const subject: CastingNumberSubject = {
     id: spell.id,
     domainId: spell.domainId?.id,
@@ -718,15 +773,12 @@ export function withCastTestDRMods(caster: Combatant, kind: CastTestKind, t: Tes
   return adj ? { ...t, sl: t.sl + adj } : t;
 }
 
-/**
- * Test d'Incantation / de Prière. `focusedNI0` force le NI à 0 (Sort focalisé).
- */
+/** Test d'Incantation / de Prière. */
 export function resolveCasting(
   caster: Combatant,
   spell: SpellLike,
   rng: RNG,
   difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
-  focusedNI0 = false,
   /** Modificateur ponctuel au Test, calculé par l'ÉTAT qui connaît la géométrie (ex.
    *  « N'écoutez point la Sorcière », LDB 42 : −20 si le Sort cible la zone du prêtre). */
   extraMod = 0,
@@ -764,7 +816,7 @@ export function resolveCasting(
   // l'écriture de la réserve (`consumeMalepierre`) vit au site de résolution (state layer), sur
   // `malepierreConsumed` figé sur le résultat.
   const malepierreConsumed = jet.success ? malepierreDR(Math.max(0, jet.sl + delta), malepierreReserveOf(caster)) : 0;
-  const res = evaluateCasting(caster, spell, delta + malepierreConsumed ? { ...jet, sl: jet.sl + delta + malepierreConsumed } : jet, focusedNI0, !!sea.atSea, env, niMods);
+  const res = evaluateCasting(caster, spell, delta + malepierreConsumed ? { ...jet, sl: jet.sl + delta + malepierreConsumed } : jet, !!sea.atSea, env, niMods);
   return malepierreConsumed ? { ...res, malepierreConsumed } : res;
 }
 
@@ -790,17 +842,16 @@ export function castTestTarget(
  * Énumère les 100 jets possibles sans RNG — AUCUN effet de bord. Miroir exact de `resolveCasting` :
  * même `value`, mêmes modificateurs propres (`castTestDRMods`), même doublement de malepierre
  * portée (`malepierreDR`),
- * même condition `cast`.
- * `focusedNI0 = true` → NI forcé à 0 (Sort focalisé, identique à `resolveCasting`).
+ * même condition `cast`, même NI (`castingNumberOf`, réserve de Focalisation comprise).
  */
-export function castLandProbability(caster: Combatant, spell: SpellLike, focusedNI0 = false, wind: WindContext = {}, env: MagicEnvironment = {}, niMods: readonly CastingNumberMod[] = []): number {
+export function castLandProbability(caster: Combatant, spell: SpellLike, wind: WindContext = {}, env: MagicEnvironment = {}, niMods: readonly CastingNumberMod[] = []): number {
   const info = castInfo(spell);
   if (!knowsCastingSkill(caster, info.skill)) return 0;
   const policy = getTestPolicy();
   const value = castingValue(caster, info);
   const delta = castTestDRMods(caster, 'incantation', { spell, wind, env });
   const reserve = malepierreReserveOf(caster);
-  const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
+  const ni = castingNumberOf(spell, env, niMods, caster);
   let lands = 0;
   for (let r = 1; r <= 100; r++) {
     const t = evaluateTest(r, value, value, policy);
@@ -819,7 +870,6 @@ export function evaluateCasting(
   caster: Combatant,
   spell: SpellLike,
   jet: TestResult,
-  focusedNI0 = false,
   /** Bête/Ghur en mer (MDG 02 l.180) : Critique/Maladresse déclenchés aussi sur un résultat
    *  finissant par 0 (en plus des doubles). */
   atSea = false,
@@ -835,7 +885,7 @@ export function evaluateCasting(
   if (castInfoIsPrayer(spell) && jet.success && jet.sl > 0 && prayerMaxZeroDR(caster)) {
     jet = { ...jet, sl: 0 };
   }
-  const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
+  const ni = castingNumberOf(spell, env, niMods, caster);
   const cast = jet.success && (!info.requireNI || jet.sl >= ni);
   const widenSea = domainSeaWidensCritFumble(spell, atSea) && jet.roll % 10 === 0;
   const widenEnv = environmentWidensCrit(env) && jet.roll % 10 === 0;
@@ -1038,7 +1088,6 @@ export function resolveMagicMissile(
   target: Combatant,
   spell: SpellLike,
   rng: RNG,
-  focusedNI0 = false,
   extraMod = 0,
   /** Magie des mers (MDG 02 l.178-186) : le Projectile magique EST un Test d'Incantation
    *  (LDB 46 l.24 : « Pour lancer un Sort, effectuez un Test de Langue (Magick) ») — même contexte que `resolveCasting`. */
@@ -1048,7 +1097,7 @@ export function resolveMagicMissile(
   /** Magie ENVIRONNEMENTALE (`VDM 14`) — même contexte que `resolveCasting`. */
   env: MagicEnvironment = {},
 ): MissileResult {
-  const cr = resolveCasting(caster, spell, rng, 'intermediaire', focusedNI0, extraMod, sea, wind, env);
+  const cr = resolveCasting(caster, spell, rng, 'intermediaire', extraMod, sea, wind, env);
   return evaluateMissile(caster, target, spell, cr);
 }
 
@@ -1172,7 +1221,6 @@ export function rederiveCastSL(
   spell: SpellLike,
   current: CastResult & Partial<MissileResult>,
   missile: boolean,
-  focusedNI0 = false,
   bonusSL = 1,
 ): CastResult & Partial<MissileResult> {
   const t: TestResult = {
@@ -1182,7 +1230,7 @@ export function rederiveCastSL(
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };
-  const cr = evaluateCasting(caster, spell, t, focusedNI0);
+  const cr = evaluateCasting(caster, spell, t);
   const res = missile ? evaluateMissile(caster, target, spell, cr) : cr;
   return current.malepierreConsumed ? { ...res, malepierreConsumed: current.malepierreConsumed } : res;
 }
@@ -1271,10 +1319,7 @@ export function resolveFocus(
   return { dr, success: jet.success, isCritical, isFumble, roll: jet.roll, target: jet.target, sl: jet.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
 }
 
-/** DR accumulé après une Focalisation Critique — LDB 46 l.136 : le Sort devient lançable
- *  immédiatement, quel que soit le DR déjà accumulé. Sous `VDM 02 l.145` : le lanceur ajoute
- *  au Test étendu un DR bonus égal à son Bonus de Force Mentale, sans compléter d'un coup.
- *  Point de lecture UNIQUE du delta (option `magie-vdm-incantation`). */
+/** DR accumulé après une Focalisation Critique. LDB 46 l.136 ; VDM 02 l.145 (option `magie-vdm-incantation`) */
 export function focusCriticalDR(caster: Combatant, dr: number, ni: number): number {
   return rule('magie-vdm-incantation') === true
     ? dr + bonus(effectiveChar(caster, 'force-mentale'))
