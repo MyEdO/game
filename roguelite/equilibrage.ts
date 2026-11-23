@@ -1,6 +1,6 @@
 // Équilibrage : joue des expéditions entières sous node, sans interface, avec une stratégie simple (recruter,
-// soigner, bâtir, équiper, suivre le plan conseillé de carrière, partir vers la destination la plus lointaine avec des
-// potions, prier et boire entre les salles, rentrer sous 2 héros valides).
+// soigner, loger, bâtir, équiper, suivre le plan conseillé de carrière, partir vers la destination la plus lointaine
+// avec des potions, prier et boire entre les salles, rentrer sous 2 héros valides).
 // L'état passe par JSON entre deux expéditions, comme une sauvegarde relue. Finit par la part de chaque carrière parmi
 // les candidats proposés et parmi les recrues engagées, par palier du relais.
 // Usage : npx tsx roguelite/equilibrage.ts <graine> <expéditions> [parties] — plusieurs parties : graines consécutives, sans journal.
@@ -9,6 +9,8 @@ const [graine0, expeditions, parties] = [42, 8, 1].map((d, i) => Number(process.
 const log = parties > 1 ? () => {} : console.log;
 const proposes = new Map<string, number>(), engages = new Map<string, number>(), vus = new Set<string>();
 const compter = (m: Map<string, number>, cle: string) => m.set(cle, (m.get(cle) ?? 0) + 1);
+/** En état de partir : valide, à 60 % de ses Blessures au moins ; les autres prennent une chambre. */
+const partant = (h: J.Heros) => J.valide(h) && h.c.wounds.current >= h.c.wounds.max * 0.6;
 const voir = (e: J.Etat) => { for (const c of e.candidats) if (!vus.has(c.c.id)) { vus.add(c.c.id); compter(proposes, `${e.batiments.relais}|${c.carriere}`); } };
 for (let partie = 0; partie < parties; partie++) {
 let e = J.nouvellePartie(graine0 + partie);
@@ -17,6 +19,7 @@ for (let exp = 0; exp < expeditions; exp++) {
   voir(e);
   while (e.candidats.length && e.roster.length < 4) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); }
   for (const h of e.roster) if (J.blesse(h)) J.soignerAuTemple(e, h.c.id);
+  for (const h of e.roster) if (!partant(h)) J.prendreUneChambre(e, h.c.id);
   for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);
   voir(e);
   for (const h of e.roster) {
@@ -27,7 +30,7 @@ for (let exp = 0; exp < expeditions; exp++) {
     while (niveauPasse) niveauPasse = J.suivreLePlan(e, h.c.id).achats.some((a) => a.genre === 'niveau');
   }
   const dest = J.destinationsOuvertes(e).at(-1)!;
-  const err = J.partir(e, dest.id, e.roster.filter((h) => J.valide(h) && h.c.wounds.current >= h.c.wounds.max * 0.6).slice(0, 4).map((h) => h.c.id));
+  const err = J.partir(e, dest.id, e.roster.filter((h) => J.disponible(h) && partant(h)).slice(0, 4).map((h) => h.c.id));
   if (err) { log('départ refusé', err, e.roster.length, e.or, J.attendreUneSemaine(e) ?? 'la compagnie attend une semaine'); continue; }
   while (e.expedition) {
     const r = J.avancer(e) ?? (() => {

@@ -3,7 +3,7 @@
  */
 import { prixDuSejourALAuberge, type QualiteDeRepos } from '../noyau';
 
-import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, PRIME_PAR_PX, SEMAINE_DE_REPOS, nomDeCarriere, phraseDuPalier } from './valeurs';
+import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_REPOS, nomDeCarriere, phraseDuPalier } from './valeurs';
 import { Etat, Heros, renouvelerLesCandidats } from './etat';
 import { blesse } from './soins';
 import { sejourDit } from './expedition';
@@ -68,24 +68,19 @@ export function prendreUneChambre(e: Etat, id: string): string | null {
   return null;
 }
 
-/** La prime de départ du héros renvoyé : une part de ses PX en or. */
-export const primeDeDepart = (h: Heros): number => Math.floor((h.c.xp ?? 0) * PRIME_PAR_PX);
-
 /** Pourquoi le héros ne peut pas être renvoyé (dernier de la compagnie, en expédition), `null` s'il le peut. */
 export function refusDeRenvoi(e: Etat, h: Heros): string | null {
   if (e.roster.length <= 1) return 'Le dernier héros de la compagnie ne se renvoie pas.';
   return enExpedition(e, h) ? `${h.c.label} est en expédition.` : null;
 }
 
-/** Renvoie le héros de la compagnie contre sa prime de départ (`primeDeDepart`), créditée à la bourse. */
+/** Renvoie le héros de la compagnie, sans rien en retour. */
 export function congedier(e: Etat, id: string): string | null {
   const h = heros(e, id);
   if (!h) return 'Héros introuvable.';
   const refus = refusDeRenvoi(e, h);
   if (refus) return refus;
-  const prime = primeDeDepart(h);
-  e.or += prime;
   e.roster = e.roster.filter((x) => x !== h);
-  noter(e, `${h.c.label} quitte la compagnie${prime ? ` ; sa prime de départ rapporte ${prime} CO` : ''}.`);
+  noter(e, `${h.c.label} quitte la compagnie.`);
   return null;
 }

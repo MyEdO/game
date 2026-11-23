@@ -31,12 +31,12 @@ const apport = (picto: string, texte: string, chiffre?: string): Apport => (chif
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'chambre piètre')] },
-    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('lit', 'chambre normale')] },
-    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4'), apport('lit', 'chambre de grande qualité')] },
+    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'repos en chambre piètre')] },
+    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('lit', 'repos en chambre normale')] },
+    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4'), apport('lit', 'repos en chambre de grande qualité')] },
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : seuls les héros restés au hameau se reposent')] },
+    { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : on ne se repose qu’en chambre à l’auberge')] },
     { cout: 80, trophees: 0, apports: [apport('soin', 'Soins à 15 CO', '15 CO'), apport('lit', 'les sœurs pansent les plaies à l’hospice'), apport('fiole', 'potions et remèdes communs et limités')] },
     { cout: 220, trophees: 1, apports: [apport('soin', 'Soins à 5 CO', '5 CO'), apport('soin', 'un chirurgien opère'), apport('fiole', 'remèdes rares')] },
     { cout: 450, trophees: 2, apports: [apport('soin', 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus', '+1'), apport('fiole', 'remèdes exotiques')] },
@@ -242,8 +242,6 @@ export const CHAMBRE_DU_RELAIS: readonly QualiteDeRepos[] = ['pietre', 'normale'
 /** Les bâtiments où un héros séjourne sans partir en expédition : le nom de son séjour, la marque de sa carte. */
 export const LIEUX_DE_SEJOUR = { temple: { nom: 'Hospice', picto: 'soin' }, relais: { nom: 'Auberge', picto: 'chope' } } as const;
 export type LieuDeSejour = keyof typeof LIEUX_DE_SEJOUR;
-/** La prime de départ d'un héros renvoyé : CO par PX qu'il n'a pas dépensés. */
-export const PRIME_PAR_PX = 0.1;
 
 /** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
 export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);

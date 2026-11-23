@@ -83,8 +83,6 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 | 1 | normale | 39 CO |
 | 2 | grande | 77 CO |
 
-Prime de départ d’un héros renvoyé : 0.1 CO par PX non dépensé.
-
 ## Hospice
 
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)

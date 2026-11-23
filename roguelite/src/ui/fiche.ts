@@ -115,7 +115,7 @@ function identite(ctx: Contexte, h: J.Heros, o: Offres, progresse: boolean) {
   const refusDeRenvoi = J.refusDeRenvoi(e, h);
   const renvoi = e.expedition ? '' : `<div class="gestes-ident">${refusDeRenvoi ? glose(esc(refusDeRenvoi)) : ctx.congediement === c.id
     ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
-    : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie · prime ${J.primeDeDepart(h)} CO</button>`}</div>`;
+    : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
   return `<div class="tete">${portraitDeHeros(h, 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
     <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(carriereDe(h))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
     ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.sejour ? sejourDe(h.sejour) : ''}${etats(c)}${etiquettesDeSequelles(c)}${progression}${renvoi}`;

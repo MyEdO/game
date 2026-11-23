@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ameliorer, attendreUneSemaine, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
-  primeDeDepart, qualiteDeLaChambre, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
+  qualiteDeLaChambre, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
 import { prixDuSejourALAuberge, reposer } from '../noyau';
 
@@ -39,11 +39,21 @@ describe('la chambre de l’Auberge relais', () => {
     const attendu = structuredClone(h.c);
     const graine = e.graine;
     expect(attendreUneSemaine(e)).toBeNull();
-    reposer(attendu, graine + e.roster.indexOf(h), SEMAINE_DE_REPOS);
+    reposer(attendu, graine, SEMAINE_DE_REPOS);
     expect(h.sejour).toBeUndefined();
     expect(disponible(h)).toBe(true);
     expect(h.c.wounds.current).toBe(attendu.wounds.current);
     expect(h.c.wounds.current).toBeGreaterThan(1);
+  });
+
+  it('sans chambre ni hospice, le blessé resté au hameau ne récupère pas en une semaine', () => {
+    const { e, id } = avecUnBlesse(7);
+    const h = e.roster.find((x) => x.c.id === id)!;
+    for (const x of e.roster) if (x !== h) x.c.wounds.current = 0;
+    const jour = e.jour;
+    expect(attendreUneSemaine(e)).toBeNull();
+    expect(e.jour).toBe(jour + SEMAINE_DE_REPOS);
+    expect(h.c.wounds.current).toBe(1);
   });
 
   it('refuse le héros sans blessure ni fatigue, celui déjà à l’hospice, et la bourse trop maigre', () => {
@@ -67,14 +77,13 @@ describe('la chambre de l’Auberge relais', () => {
 });
 
 describe('le renvoi au relais', () => {
-  it('crédite la prime de départ, une part des PX, et retire le héros', () => {
+  it('retire le héros sans rien rapporter à la bourse', () => {
     const { e } = avecUnBlesse(5);
     const h = e.roster[1];
     h.c.xp = 250;
     const or = e.or;
-    expect(primeDeDepart(h)).toBe(25);
     expect(congedier(e, h.c.id)).toBeNull();
-    expect(e.or).toBe(or + 25);
+    expect(e.or).toBe(or);
     expect(e.roster).not.toContain(h);
   });
 

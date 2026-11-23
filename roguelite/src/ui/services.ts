@@ -108,21 +108,20 @@ interface Page { classe: string; corps: string; pied?: string }
 interface Lecture { e: J.Etat; servi: J.Heros | undefined; emplacement: Emplacement; choix: ReadonlySet<string>; congediement: string | null }
 
 /** La chambre du relais pour le héros servi : une semaine au lit, au prix et à la qualité du palier, et pourquoi elle
- *  est refusée ; puis son renvoi contre sa prime, confirmé avant d'agir. LDB 66 */
+ *  est refusée ; puis son renvoi, confirmé avant d'agir. LDB 66 */
 function servicesDuRelais(e: J.Etat, h: J.Heros, congediement: string | null): string {
   const id = `data-id="${h.c.id}"`;
   const refus = J.refusDeChambre(e, h);
   const qualite = J.qualiteDeLaChambre(e);
   const chambre = `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette('lit', !!refus)}<div class="nom-propre moyen gothique">Chambre ${esc(NOM_DE_QUALITE[qualite])}</div>
-    <p class="effet">${esc(h.c.label)} ne part pas une semaine et se repose au lit, jour après jour : Blessures et fatigue. L’hospice, lui, soigne d’un coup, panse et opère.</p><span class="sous-titre">une semaine à l’auberge</span>
+    <p class="effet">${esc(h.c.label)} ne part pas une semaine et se repose au lit, jour après jour : Blessures et fatigue. Au hameau, on ne se repose qu’ici ou à l’hospice, qui soigne d’un coup, panse et opère.</p><span class="sous-titre">une semaine à l’auberge</span>
     ${achat({ verbe: 'Louer', prix: J.prixDeLaChambre(e), avoir: e.or, attrs: `data-a="chambre" ${id}`, refus })}</article>`;
   const refusDeRenvoi = J.refusDeRenvoi(e, h);
-  const prime = J.primeDeDepart(h);
   const geste = congediement === h.c.id
     ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" ${id}`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
-    : plaque(`Renvoyer · +${prime} CO`, `data-a="congedier" ${id}`, { armee: !refusDeRenvoi, fermee: !!refusDeRenvoi, titre: esc(refusDeRenvoi ?? '') });
+    : plaque('Renvoyer', `data-a="congedier" ${id}`, { armee: !refusDeRenvoi, fermee: !!refusDeRenvoi, titre: esc(refusDeRenvoi ?? '') });
   const renvoi = `<article class="carte-service soin${refusDeRenvoi ? ' clos' : ''}">${vignette('pieces', !!refusDeRenvoi)}<div class="nom-propre moyen gothique">Renvoyer</div>
-    <p class="effet">${esc(h.c.label)} quitte la compagnie ; sa prime de départ rapporte ${prime} CO, une part de ses ${h.c.xp ?? 0} PX.</p><span class="sous-titre">sans retour</span>${geste}</article>`;
+    <p class="effet">${esc(h.c.label)} quitte la compagnie, sans rien en retour.</p><span class="sous-titre">sans retour</span>${geste}</article>`;
   return `${chambre}${renvoi}`;
 }
 const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', normale: 'normale', grande: 'de grande qualité' };

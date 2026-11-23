@@ -221,9 +221,9 @@ function terminerEnDeroute(e: Etat, destinAvant: Map<string, number>): string[] 
   return lignes;
 }
 
-/** Retour au hameau, le butin en poche. Chaque salle franchie a pris un jour : seuls les héros restés au hameau
- *  se sont reposés ; ceux qui rentrent portent leurs blessures. Rentrer sans avoir franchi une salle ne fait passer
- *  aucun jour. */
+/** Retour au hameau, le butin en poche. Chaque salle franchie a pris un jour, que les héros en séjour ont passé à se
+ *  reposer ; ceux qui rentrent portent leurs blessures. Rentrer sans avoir franchi une salle ne fait passer aucun
+ *  jour. */
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
@@ -242,11 +242,11 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 }
 
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
- *  attend une semaine que les blessés se relèvent : jamais d'impasse, faute d'or pour l'hospice. */
+ *  attend une semaine : ceux en séjour s'y reposent. */
 export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
-  noter(e, 'Personne n’est en état de partir : la compagnie panse ses plaies une semaine durant.');
+  noter(e, 'Personne n’est en état de partir : la compagnie attend une semaine.');
   passerDesJours(e, SEMAINE_DE_REPOS, new Set());
   return null;
 }
@@ -254,16 +254,18 @@ export function attendreUneSemaine(e: Etat): string | null {
 /** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle. */
 const DURABLES = new Set(['extenue', 'inconscient']);
 
-/** `jours` journées passent : les héros restés au hameau (hors `absents`) se reposent (`reposer`) ; les États de la
- *  rencontre retombent chez eux. De nouveaux voyageurs arrivent. */
+/** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent ;
+ *  seuls ceux en séjour (chambre de l'auberge, hospice) se reposent (`reposer`), le temps qui reste à leur séjour.
+ *  De nouveaux voyageurs arrivent. */
 function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of e.roster) {
     if (absents.has(h.c.id)) continue;
-    if (h.sejour) h.sejour.reste -= jours;
-    if (h.sejour && h.sejour.reste <= 0) delete h.sejour;
     h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
-    reposer(h.c, e.graine++, jours);
+    if (!h.sejour) continue;
+    reposer(h.c, e.graine++, Math.min(jours, h.sejour.reste));
+    h.sejour.reste -= jours;
+    if (h.sejour.reste <= 0) delete h.sejour;
   }
   renouvelerLesCandidats(e);
   if (e.roster.length === 0 && e.or < Math.min(...e.candidats.map((c) => c.prix))) noter(e, 'La compagnie est vide et la bourse aussi : un voyageur accepte de servir sans solde.');

@@ -47,7 +47,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   constater((await or()) < orAvantChambre && (await p.textContent(`${carteAuRelais} .sejour-hospice`)).includes('Auberge'), 'le relais loue une chambre au blessé : sa carte porte l’auberge et ses jours restants');
   const orAvantRenvoi = await or();
   await p.click(`[data-a="congedier"][data-id="${blesse}"]`); await p.click(`[data-a="congedier-ok"][data-id="${blesse}"]`);
-  constater((await or()) > orAvantRenvoi && !(await p.$(`.socle-compagnie [data-id="${blesse}"]`)), 'le relais renvoie le héros, confirmé, contre sa prime');
+  constater((await or()) === orAvantRenvoi && !(await p.$(`.socle-compagnie [data-id="${blesse}"]`)), 'le relais renvoie le héros, confirmé, sans rien rapporter');
   await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'temple'); await p.click('.tete-service [data-a="ameliorer"]');
   const orAvantRemede = await or();
   await p.click('.remedes [data-a="provision"]');
