@@ -5,7 +5,7 @@
  * qu'elle qualifie, dessous s'il manque la place ; l'aperçu à sa droite, à gauche s'il manque la place ; tous deux
  * restent dans l'écran.
  */
-import type { Apercu } from './pieces';
+import type { Apercu, TableDApercu } from './pieces';
 
 /** Le sens des abréviations du livre que l'interface affiche, en bulle au survol. */
 const GLOSSAIRE: Record<string, string> = {
@@ -93,8 +93,25 @@ function corpsDuTexte(texte: string): HTMLElement {
   return corps;
 }
 
+/** Le tableau d'un aperçu : ses en-têtes, ses lignes, la ligne actuelle et la prochaine marquées. */
+function tableDe(t: TableDApercu): HTMLElement {
+  const table = document.createElement('table');
+  table.className = 'table-apercu';
+  const tete = table.createTHead().insertRow();
+  for (const c of t.colonnes) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = c; tete.append(th); }
+  const corps = table.createTBody();
+  for (const l of t.lignes) {
+    const tr = corps.insertRow();
+    if (l.marque) tr.className = l.marque;
+    if (l.marque === 'actuel') tr.setAttribute('aria-current', 'true');
+    for (const c of l.cellules) tr.insertCell().append(...enLigne(c));
+  }
+  return table;
+}
+
 function poserLApercu(porteur: HTMLElement, a: Apercu) {
   apercu.replaceChildren();
+  apercu.classList.toggle('large', !!a.table);
   const tete = document.createElement('div');
   tete.className = 'tete';
   const nom = document.createElement('div');
@@ -104,18 +121,22 @@ function poserLApercu(porteur: HTMLElement, a: Apercu) {
   apercu.append(tete);
   if (a.nature) { const n = document.createElement('div'); n.className = 'sous-titre'; n.textContent = a.nature; apercu.append(n); }
   if (a.texte) apercu.append(corpsDuTexte(a.texte));
+  if (a.table) apercu.append(tableDe(a.table));
   if (a.pied) { const p = document.createElement('div'); p.className = 'pied glose avertissement'; p.textContent = a.pied; apercu.append(p); }
   apercu.hidden = false;
   const r = porteur.getBoundingClientRect();
   const q = apercu.getBoundingClientRect();
-  const aDroite = r.right + 14 + q.width <= window.innerWidth - 6;
-  const x = aDroite ? r.right + 14 : Math.max(6, r.left - 14 - q.width);
-  const y = Math.max(6, Math.min(window.innerHeight - q.height - 6, r.top + r.height / 2 - 30));
-  apercu.classList.toggle('vers-gauche', aDroite);
-  apercu.classList.toggle('vers-droite', !aDroite);
+  const cote = r.right + 14 + q.width <= window.innerWidth - 6 ? 'vers-gauche' : r.left - 14 - q.width >= 6 ? 'vers-droite'
+    : r.bottom + 14 + q.height <= window.innerHeight - 6 ? 'vers-haut' : 'vers-bas';
+  const lateral = cote === 'vers-gauche' || cote === 'vers-droite';
+  const x = cote === 'vers-gauche' ? r.right + 14 : cote === 'vers-droite' ? r.left - 14 - q.width
+    : Math.max(6, Math.min(window.innerWidth - q.width - 6, r.left + r.width / 2 - q.width / 2));
+  const y = lateral ? Math.max(6, Math.min(window.innerHeight - q.height - 6, r.top + r.height / 2 - 30))
+    : cote === 'vers-haut' ? r.bottom + 14 : Math.max(6, r.top - 14 - q.height);
+  for (const c of ['vers-gauche', 'vers-droite', 'vers-haut', 'vers-bas']) apercu.classList.toggle(c, c === cote);
   apercu.style.left = `${x}px`;
   apercu.style.top = `${y}px`;
-  apercu.style.setProperty('--pointe', `${Math.max(10, Math.min(q.height - 26, r.top + r.height / 2 - y - 8))}px`);
+  apercu.style.setProperty('--pointe', `${lateral ? Math.max(10, Math.min(q.height - 26, r.top + r.height / 2 - y - 8)) : Math.max(10, Math.min(q.width - 26, r.left + r.width / 2 - x - 8))}px`);
 }
 
 function montrer(cible: EventTarget | null) {

@@ -32,33 +32,51 @@ const maitres = (d: J.Destination) => [...new Set(d.boss)].map((id) => { const n
 /** Le cartouche du lieu : son pictogramme, son nom, ce qu'il est. */
 export const cartouche = (icone: string, nom: string, sous: string) => `<div class="cartouche">${medaillon(icone, 'grand')}<div><div class="titre gothique">${esc(nom)}</div><div class="sous-titre">${esc(sous)}</div></div></div>`;
 
-/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme ; ce qu'il apporte
- *  au survol. */
-function batir(e: J.Etat, b: J.Batiment, taille: 'petite' | 'moyenne' = 'moyenne') {
+/** Ce qui manque pour bâtir le palier suivant d'un bâtiment (or, trophées), ou rien. */
+function manqueAuPalier(e: J.Etat, b: J.Batiment): string | null {
   const suivant = b.paliers[e.batiments[b.id] + 1];
+  if (!suivant) return null;
   const manque = [e.or < suivant.cout ? `${suivant.cout - e.or} CO` : '', e.trophees < suivant.trophees ? pluriel(suivant.trophees - e.trophees, 'trophée') : ''].filter(Boolean);
-  const refus = manque.length ? `Il manque ${manque.join(' et ')}.` : null;
-  return achat({
-    verbe: J.enRuine(e.batiments, b.id) ? 'Relever' : 'Bâtir', prix: suivant.cout, avoir: e.or, taille, icone: 'enclume', refus,
-    attrs: `data-a="ameliorer" data-id="${b.id}"${apercuDe({ nom: `Palier ${e.batiments[b.id] + 2}`, nature: b.nom, texte: suivant.effet, ...(refus ? { pied: refus } : {}) })}`,
-    ...(suivant.trophees ? { suite: pluriel(suivant.trophees, 'trophée') } : {}),
+  return manque.length ? `Il manque ${manque.join(' et ')}.` : null;
+}
+
+/** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang,
+ *  son prix et ce qu'il offre, l'actuel et le prochain marqués ; au pied, ce qui manque pour bâtir. */
+function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
+  const n = e.batiments[b.id];
+  const refus = manqueAuPalier(e, b);
+  return apercuDe({
+    nom: b.nom, nature: `Palier ${n + 1} sur ${b.paliers.length}${J.enRuine(e.batiments, b.id) ? ' · en ruine' : ''}`,
+    table: {
+      colonnes: ['Palier', 'Prix', 'Ce qu’il offre'],
+      lignes: b.paliers.map((p, i) => ({
+        cellules: [`${i + 1}${i === n ? ' · **actuel**' : i === n + 1 ? ' · **prochain**' : ''}`, i === 0 ? 'de départ' : [`${p.cout} CO`, p.trophees ? pluriel(p.trophees, 'trophée') : ''].filter(Boolean).join(' + '), p.effet],
+        ...(i === n ? { marque: 'actuel' as const } : i === n + 1 ? { marque: 'prochain' as const } : {}),
+      })),
+    },
+    ...(refus ? { pied: refus } : {}),
   });
 }
 
-/** Les paliers d'un bâtiment, au survol de son palier actuel : chacun, son prix et ce qu'il offre. */
-const tableDesPaliers = (e: J.Etat, b: J.Batiment) => apercuDe({
-  nom: b.nom, nature: `Palier ${e.batiments[b.id] + 1} sur ${b.paliers.length}`,
-  texte: b.paliers.map((p, i) => `- **Palier ${i + 1}**${i === e.batiments[b.id] ? ' *(actuel)*' : ''} · ${i === 0 ? 'de départ' : `${p.cout} CO${p.trophees ? ` · ${pluriel(p.trophees, 'trophée')}` : ''}`} — ${p.effet}`).join('\n'),
-});
+/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme ; tous les paliers
+ *  au survol. */
+function batir(e: J.Etat, b: J.Batiment, taille: 'petite' | 'moyenne' = 'moyenne') {
+  const suivant = b.paliers[e.batiments[b.id] + 1];
+  return achat({
+    verbe: J.enRuine(e.batiments, b.id) ? 'Relever' : 'Bâtir', prix: suivant.cout, avoir: e.or, taille, icone: 'enclume', refus: manqueAuPalier(e, b),
+    attrs: `data-a="ameliorer" data-id="${b.id}"${apercuDesPaliers(e, b)}`,
+    ...(suivant.trophees ? { suite: pluriel(suivant.trophees, 'trophée') } : {}),
+  });
+}
 
 /** La tête du panneau, sur une ligne : le bâtiment, son palier actuel et ce qu'il offre (tous les paliers au survol),
  *  et le geste qui l'agrandit. */
 function teteDuBatiment(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
-  const suivant = b.paliers[n + 1];
-  return `<div class="enseigne-service"${tableDesPaliers(e, b)}>${medaillon(PICTO_DU_BATIMENT[b.id], 'moyen', J.enRuine(e.batiments, b.id))}<div><div class="nom-propre petit gothique">Palier ${n + 1} sur ${b.paliers.length}</div>${niveaux(n, b.paliers.length)}</div></div>
-    <div class="paliers"><p class="effet-actuel">${esc(b.paliers[n].effet)}</p></div>
-    ${suivant ? batir(e, b) : '<span class="etiquette rectangle or">Achevé</span>'}`;
+  const paliers = apercuDesPaliers(e, b);
+  return `<div class="enseigne-service"${paliers}>${medaillon(PICTO_DU_BATIMENT[b.id], 'moyen', J.enRuine(e.batiments, b.id))}<div><div class="nom-propre petit gothique">Palier ${n + 1} sur ${b.paliers.length}</div>${niveaux(n, b.paliers.length)}</div></div>
+    <div class="paliers"><p class="effet-actuel"${paliers}>${esc(b.paliers[n].effet)}</p></div>
+    ${b.paliers[n + 1] ? batir(e, b) : '<span class="etiquette rectangle or">Achevé</span>'}`;
 }
 
 /** La vignette d'une carte : son pictogramme en grand, sur un fond sombre. */

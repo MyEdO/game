@@ -153,4 +153,5 @@
 .rail-batiments .plaque { flex: 1 1 0; min-width: 0; }
 .rail-batiments .plaque span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tete-service .effet-actuel { margin: 0; font-size: 17px; line-height: 23px; color: var(--encre); }
-.enseigne-service[data-apercu] { cursor: help; }
+.enseigne-service[data-apercu], .effet-actuel[data-apercu] { cursor: help; }
+.tete-service .effet-actuel { justify-self: start; }

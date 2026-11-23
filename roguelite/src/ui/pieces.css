@@ -43,6 +43,16 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .bulle-du-jeu[hidden] { display: none; }
 .apercu-du-jeu { position: fixed; z-index: 50; pointer-events: none; }
 .apercu-du-jeu[hidden] { display: none; }
+.apercu-du-jeu.large { width: min(500px, calc(100vw - 12px)); }
+.table-apercu { margin-top: 8px; font-size: 14px; line-height: 19px; color: var(--encre); }
+.table-apercu th { padding: 0 8px 4px; text-align: left; font-weight: 400; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-2); border-bottom: 1px solid rgba(60,40,20,.45); white-space: nowrap; }
+.apercu .table-apercu td { padding: 5px 8px; vertical-align: top; text-align: left; font: inherit; white-space: normal; border-bottom: 1px solid rgba(60,40,20,.14); }
+.apercu .table-apercu td:first-child, .apercu .table-apercu td:nth-child(2) { white-space: nowrap; }
+.apercu .table-apercu td:nth-child(2) { font-variant-numeric: tabular-nums; }
+.table-apercu tr.actuel td { background: rgba(168,132,47,.26); box-shadow: inset 0 1px 0 var(--laiton-ombre), inset 0 -1px 0 var(--laiton-ombre); font-weight: 600; }
+.table-apercu tr.prochain td { background: rgba(255,246,218,.75); }
+.table-apercu tr.prochain td:first-child { box-shadow: inset 3px 0 0 var(--laiton); }
+.table-apercu tr.prochain b { color: var(--sepia); }
 .apercu-du-jeu .corps-apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 14; overflow: hidden; margin-top: 4px; }
 .apercu-du-jeu .corps-apercu p { margin: 0 0 4px; font-style: normal; font-size: 13.5px; line-height: 18px; color: var(--encre); }
 .apercu-du-jeu .corps-apercu ul { margin: 0 0 4px; padding-left: 16px; font-size: 13.5px; line-height: 18px; }
