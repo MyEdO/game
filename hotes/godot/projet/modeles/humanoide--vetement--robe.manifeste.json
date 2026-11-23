@@ -20,7 +20,8 @@
     "genou_d"
   ],
   "chaines": [
-    "jupe"
+    "jupe",
+    "manche"
   ],
   "silhouettes": [
     "feminin",
@@ -51,7 +52,7 @@
     }
   ],
   "glb": {
-    "sha256": "56967351901de99355476a7ea604e492683ad8e7e74efadfb0710f7d7fc5eef9",
-    "octets": 960464
+    "sha256": "6f1f99c44c00be349cb24c7ee13da7f7573f72d3669d03565e0d9434c96c67d8",
+    "octets": 946964
   }
 }
