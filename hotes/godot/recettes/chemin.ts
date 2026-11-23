@@ -28,8 +28,8 @@ export function figerLeChemin(listage: Listage) {
       if (pas > 10) throw new Error(`fenêtres sans fin : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
       s = jouer('jouer', s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
     }
-    const [porte, ...autres] = s.vue.zones['exploration.gestes'];
-    if (!porte || autres.length) throw new Error(`la porte fermée, seul geste d’exploration attendu : ${JSON.stringify(s.vue.zones['exploration.gestes'])}`);
+    const [porte, ...autres] = s.vue.zones['exploration.gestes'].filter((g) => 'suite' in g.jeu && g.jeu.suite.some((j) => j.type === 'actionnerLaPorte'));
+    if (!porte || autres.length) throw new Error(`la porte fermée, seul geste de porte attendu : ${JSON.stringify(s.vue.zones['exploration.gestes'])}`);
     const avant = jouer('jouer', porte.jeu);
     const monde = appel('monde') as unknown as MondeDuPont;
     const morceaux = appel('morceaux', toutesLesCles(monde));
