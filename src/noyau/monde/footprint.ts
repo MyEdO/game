@@ -25,6 +25,7 @@ import { isStructure } from '../../engine/structures';
 import { estCoqueTerrestre, isVehicle } from '../../engine/coque';
 import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
+import { rectangleDesPontsPoses } from '../../data/poseDesPonts';
 
 /** Côté N de l'empreinte carrée pour une Taille créature (défaut Moyenne = 1). */
 export function sizeFootprint(size?: SizeCategory): number {
@@ -179,6 +180,11 @@ const ancreDeLaScene = (c: Pick<Combatant, 'bodyShape' | 'surSesPonts'>): boolea
  *  (`ancreDeLaScene`), ou une coque terrestre, que l'index de la scène bloque (`aUnCorpsSolide`, #4471) ? */
 export const porteParLaScene = (c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'surSesPonts'>): boolean =>
   ancreDeLaScene(c) || (isVehicle(c) && estCoqueTerrestre(c.creatureId));
+
+/** L'entité `e` est-elle une coque terrestre (`hull.propulsion`) que `scene` porte, hors d'une pose par ses ponts
+ *  (`rectangleDesPontsPoses`, #4471) ? */
+export const estCoqueTerrestrePosee = (scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean =>
+  e.kind === 'personnage' && e.vehicule !== undefined && estCoqueTerrestre(e.vehicule.id) && rectangleDesPontsPoses(scene, e) === null;
 
 /** Un corps posé : son ancre (coin NO) et ce dont `footprintN` tire son côté, lus sur le MÊME objet. */
 export interface Corps { pos: Pt; size?: SizeCategory; footprint?: number }

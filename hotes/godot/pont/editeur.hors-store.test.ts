@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
-import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
+import type { CoqueServie, DecorServi, MondeDuPont, MorceauxDuPont } from './pont';
 import {
   UNITES_DU_PLAN_DE_CARTE,
   cotesDeMarchesDeLaCouche,
@@ -49,7 +49,7 @@ interface Edition {
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
   cotesDeMarches?: CoteDeMarches[];
-  navires?: Record<string, NavireServi>;
+  coques?: Record<string, CoqueServie>;
   decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
@@ -1697,7 +1697,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
-    expect(ouverte.navires).toEqual({});
+    expect(ouverte.coques).toEqual({});
     const outil = presser(boutonDe(ouverte, 'outil/navire'));
     expect(valeursDe(outil, 'navires').map((b) => [b.id, b.libelle, b.refus])).toEqual([['navire/caraque', 'Caraque', null], ['navire/barge-fluviale', 'Barge fluviale', null]]);
     expect(valeursDe(outil, 'navire/cap').map((b) => b.id)).toEqual(['navire/cap/N', 'navire/cap/E', 'navire/cap/S', 'navire/cap/O']);
@@ -1707,12 +1707,12 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(refusee.monde).toBeUndefined();
     expect(boutonDe(refusee, 'annuler').refus).toBe('Rien à annuler');
     const posee = essayer(7);
-    expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
-    expect(posee.navires!['navire-0'].centre).toEqual({ x: 8.5, y: 8 });
+    expect(Object.keys(posee.coques!)).toEqual(['navire-0']);
+    expect(posee.coques!['navire-0'].centre).toEqual({ x: 8.5, y: 8 });
     const capNord = boutonDe(posee, 'entite/cap/N');
     expect(capNord.refus).toMatch(/ponts du navire hors de la carte/);
     expect(erreurDe(appel('editer', capNord.jeu)).categorie).toBe('regle');
-    expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
+    expect(posee.coques!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
     const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
     expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
     expect(surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
@@ -1774,7 +1774,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(posee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'equipage'), 'son équipage exposé').toBe(true);
     expect(JSON.stringify(posee.vue.zones['editeur.inspecteur']), 'ses Améliorations, au formulaire tiré du schéma').toContain('"upgrades"');
     const tournee = presser(boutonDe(posee, 'entite/cap/O'));
-    expect(tournee.navires!['navire-0'].corps.cap).toBe('O');
+    expect(tournee.coques!['navire-0'].corps.cap).toBe('O');
     expect(erreurDe(appel('editer', { edition: { geste: 'entite', patch: { facing: 'NE' } } })).categorie, 'aucun bouton n’offre un cap de biais').toBe('validation');
   });
 

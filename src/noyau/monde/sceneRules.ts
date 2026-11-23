@@ -9,9 +9,7 @@ import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import type { ModLine } from '../../engine/types';
 import { findPropById } from '../../data';
-import { estCoqueTerrestre } from '../../engine/coque';
-import { entiteFootTiles } from './footprint';
-import { rectangleDesPontsPoses } from '../../data/poseDesPonts';
+import { entiteFootTiles, estCoqueTerrestrePosee } from './footprint';
 import { memoByRefDeps } from './sceneMemo';
 import { actionsAuthorees } from './usable';
 
@@ -54,14 +52,13 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
 export const propIsSolid = (ref: string | undefined): boolean => !!ref && !!findPropById(ref)?.solid;
 
 /** L'entité a-t-elle un CORPS SOLIDE, dont toutes les cases (`entiteFootTiles`) bloquent ? Un décor interactif ou solide
- *  par son type, ou une coque terrestre (`hull.propulsion`) que la scène ne pose pas par ses ponts
- *  (`rectangleDesPontsPoses`). Une créature n'en a pas, ni une coque de mer ou de rivière (#4471).
+ *  par son type, ou une coque terrestre que la scène porte (`estCoqueTerrestrePosee`). Une créature n'en a pas, ni une coque de mer ou de rivière (#4471).
  *  Décor : la porte est l'interaction ou la solidité, l'empreinte dérivée ne fournit que l'ÉTENDUE des cases (une
  *  cheminée, une enseigne NON solides ne murent pas leur case). « Interactif » = les actions AUTHORÉES de l'instance,
  *  sans drapeau d'épuisement : un coffre vidé bloque toujours sa case. */
 function aUnCorpsSolide(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean {
   if (e.kind === 'prop') return actionsAuthorees(e).length > 0 || propIsSolid(e.decor?.id);
-  return e.vehicule !== undefined && estCoqueTerrestre(e.vehicule.id) && rectangleDesPontsPoses(scene, e) === null;
+  return estCoqueTerrestrePosee(scene, e);
 }
 
 /** Index O(1) des cases des entités à corps solide (`aUnCorpsSolide`, `entityBlockedAt`), bâti UNE fois par identité de

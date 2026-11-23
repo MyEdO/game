@@ -29,11 +29,6 @@ var _posees := {}
 var _journal: Control
 
 
-class PontDeLInspection extends PontEspion:
-	func parametre(cle: String) -> String:
-		return "dialogue-multi" if cle == "scenario" else super(cle)
-
-
 func _initialize() -> void:
 	_recetter.call_deferred()
 
@@ -68,7 +63,8 @@ func _recetter() -> void:
 
 ## La case de Gustav pointée dans le monde, le clic droit ouvre ses zones de statbloc sans jouer de geste.
 func _recetter_l_inspection() -> void:
-	var pont := PontDeLInspection.new()
+	var pont := PontEspion.new()
+	pont.scenario = "dialogue-multi"
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _fautes.append("inspection : " + message))
 	pont.refus.connect(func(message: String) -> void: _fautes.append("inspection : " + message))

@@ -9,7 +9,7 @@
  * se dérivent au chargement d'une scène en jeu (`poserLesNavires`, `registerScene`) et dans la vue de l'éditeur
  * (`vueDeLaScene`), qui les pose (`poserUnNavire`) ; ce qu'ils posent garde le
  * navire d'où il vient (`provenanceDesNavires`), que l'hôte montre par le modèle 3D de son type posé au centre de
- * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`pontsDeLaFiche.ts`) ; l'occupant d'une
+ * ses ponts (`coquesDeLaScene`), le repère du plan étant celui du modèle (`pontsDeLaFiche.ts`) ; l'occupant d'une
  * case que ce modèle rogne s'y tient au centre de son emprise libre (`stationsDuNavire`, #3767).
  */
 import type { NavalTraitRef } from '../engine/types';
@@ -24,7 +24,7 @@ import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene
 import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
 import { edgeKey } from './monde/facades';
 import type { Pt } from './monde/path';
-import { propFootTiles } from './monde/footprint';
+import { coteDeLEmpreinte, estCoqueTerrestrePosee, propFootTiles } from './monde/footprint';
 import { estAbsent } from './monde/terrain';
 import { vehiculeDuCombattant, type VehiculeDuCombattant } from './apparence/combattant';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -127,9 +127,26 @@ const capDuNavirePose = (scene: SceneDesNavires | null | undefined, id: string):
 export const estPoseParSesPonts = (scene: SceneDesNavires | null | undefined, id: string): boolean =>
   capDuNavirePose(scene, id) !== undefined;
 
-/** Le cap du plateau pour une coque à ponts matérialisés, l'orientation en jeu pour les corps mobiles. */
+/** Les coques terrestres que `scene` porte (`estCoqueTerrestrePosee`), par id. */
+const coquesTerrestresParId = memoByRef((scene: SceneDesNavires) =>
+  new Map(scene.entities.filter((e) => estCoqueTerrestrePosee(scene, e)).map((e) => [e.id, e])));
+
+/** Le cap que `scene` donne au corps `id` qu'elle montre par le monde (`coquesDeLaScene`) : celui de la pose de ses
+ *  ponts, ou celui de son entité, le nord sans cap ; `undefined` pour un corps mobile. */
+const capDeLaScene = (scene: SceneDesNavires | null | undefined, id: string): Dir8 | undefined => {
+  if (!scene) return undefined;
+  const coque = coquesTerrestresParId(scene).get(id);
+  return capDuNavirePose(scene, id) ?? (coque && (coque.facing ?? 'N'));
+};
+
+/** Le corps `id` se montre-t-il par le monde, sous le modèle de sa coque (`coquesDeLaScene`), au cap de la scène ? */
+export const seMontreParLeMonde = (scene: SceneDesNavires | null | undefined, id: string): boolean =>
+  capDeLaScene(scene, id) !== undefined;
+
+/** Le cap que la scène donne à un corps qu'elle montre par le monde (`capDeLaScene`), l'orientation en jeu pour les
+ *  corps mobiles. */
 export const capEnCombat = (etat: { scene?: SceneDesNavires | null; facing?: Readonly<Record<string, Dir8>> }, id: string): Dir8 | undefined =>
-  capDuNavirePose(etat.scene, id) ?? etat.facing?.[id];
+  capDeLaScene(etat.scene, id) ?? etat.facing?.[id];
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
 function versLaScene(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): (x: number, y: number) => Pt {
@@ -258,7 +275,7 @@ export function flottaisonDuNavire(scene: Pick<Scene, 'metresPerTile'>, entite: 
 
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes
  *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
- *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
+ *  (`coquesDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
  *  plus bas, la mer qui borde sa coque, sa flottaison étant à la hauteur 0 de la scène. */
 export function provenanceDesNavires(scene: SceneDesNavires): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
   const cases = new Map<string, string>();
@@ -279,27 +296,36 @@ export function aretesHorsDesNavires(scene: SceneDesNavires & Pick<Scene, 'walls
   return (scene.walls ?? []).filter((seg) => !aretes.has(edgeKey(seg)));
 }
 
-/** Un navire de la scène tel qu'un hôte le montre : l'id de son entité, son véhicule (`vehiculeDuCombattant` de sa
- *  fiche, à son cap, à sa taille réelle, celle du plateau de ses ponts), le point de la scène (en cases continues, la
- *  case centrée sur l'entier) sous l'origine de son modèle 3D, le centre de ses ponts ; la flottaison du modèle est à
- *  la hauteur 0 de la scène, celle de son plan. */
-export interface NavireDeLaScene {
+/** Une coque que la scène porte, telle qu'un hôte la montre par le monde : l'id de son entité, son véhicule
+ *  (`vehiculeDuCombattant` de sa fiche, à son cap, à sa taille réelle), le point de la scène (en cases continues, la
+ *  case centrée sur l'entier) sous l'origine de son modèle 3D, sa base à la hauteur 0 de la scène. Un navire posé par
+ *  ses ponts se centre sur ses ponts ; une coque terrestre (`estCoqueTerrestrePosee`, #4471) sur son empreinte
+ *  (`coteDeLEmpreinte`). */
+export interface CoqueDeLaScene {
   id: string;
   vehicule: VehiculeDuCombattant;
   centre: Pt;
 }
 
-/** Les navires de `scene` tels qu'un hôte les montre. PUR. */
-export function naviresDeLaScene(scene: Scene): NavireDeLaScene[] {
-  return naviresPoses(scene).map(({ pose, navire }) => {
-    const coque = garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire');
-    const fiche = ficheDEntite({ ...coque, inventaire: undefined }, () => undefined);
-    return {
-      id: pose.id,
-      vehicule: { ...garanti(vehiculeDuCombattant(fiche, pose.cap), pose.id, 'fiche de véhicule'), taille: 'reelle' },
-      centre: versLaScene(navire, pose)((navire.dimensions.w - 1) / 2, (navire.dimensions.h - 1) / 2),
-    };
+/** Le véhicule de la coque `coque`, au cap `cap`, à sa taille réelle. */
+const vehiculeDeLaCoque = (coque: SceneEntity, cap: Dir8 | undefined): VehiculeDuCombattant => {
+  const fiche = ficheDEntite({ ...coque, inventaire: undefined }, () => undefined);
+  return { ...garanti(vehiculeDuCombattant(fiche, cap), coque.id, 'fiche de véhicule'), taille: 'reelle' };
+};
+
+/** Les coques de `scene` qu'un hôte montre par le monde : ses navires posés par leurs ponts, puis ses coques
+ *  terrestres. PUR. */
+export function coquesDeLaScene(scene: Scene): CoqueDeLaScene[] {
+  const navires = naviresPoses(scene).map(({ pose, navire }) => ({
+    id: pose.id,
+    vehicule: vehiculeDeLaCoque(garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire'), pose.cap),
+    centre: versLaScene(navire, pose)((navire.dimensions.w - 1) / 2, (navire.dimensions.h - 1) / 2),
+  }));
+  const terrestres = [...coquesTerrestresParId(scene).values()].map((e) => {
+    const demi = (coteDeLEmpreinte(e) - 1) / 2;
+    return { id: e.id, vehicule: vehiculeDeLaCoque(e, e.facing), centre: { x: e.pos.x + demi, y: e.pos.y + demi } };
   });
+  return [...navires, ...terrestres];
 }
 
 /** L'emprise libre des cases des ponts d'un navire que son modèle rogne (`cases` du manifeste de son élément `vehicule`,

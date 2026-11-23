@@ -65,7 +65,7 @@ interface Provenance {
   /**
    * l'id de l'entité du navire dont les ponts posent ses faces (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) :
    * le monde la touche (`cases`, rayon du pointeur, marche de l'œil) sans la peindre (`VolumeDeScene._maillage_de`),
-   * le navire se montrant par son modèle (section « Corps d'un combattant », `navires`) ; ses décors n'en portent pas.
+   * le navire se montrant par son modèle (section « Corps d'un combattant », `coques`) ; ses décors n'en portent pas.
    */
   navire?: string;
   /**

@@ -86,7 +86,6 @@ var _sortie := ""
 
 ## Le pont espion sur la partie du scénario `scenario` : il garde chaque morceau reçu.
 class PontDuNavire extends PontEspion:
-	var scenario := ""
 	var morceaux: Array = []
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
@@ -94,9 +93,6 @@ class PontDuNavire extends PontEspion:
 		if methode == "morceaux":
 			morceaux.append_array(reponse.get("volume", []))
 		return reponse
-
-	func parametre(cle: String) -> String:
-		return scenario if cle == "scenario" else super(cle)
 
 
 ## Le scénario de la recette, que chaque recette d'un navire donne.
@@ -155,9 +151,9 @@ func _demarrer(scenario: String) -> Node:
 	_monde = plateau.get_node("Monde")
 	_navires = plateau.get_node("Modeles")
 	var limite := Time.get_ticks_msec() + int(ATTENTE_S * 1000.0)
-	while Time.get_ticks_msec() < limite and _signales.is_empty() and (plateau.navires().is_empty() or _monde.volume.get("_vision") == null):
+	while Time.get_ticks_msec() < limite and _signales.is_empty() and (plateau.coques().is_empty() or _monde.volume.get("_vision") == null):
 		await process_frame
-	if plateau.navires().is_empty() or _monde.volume.get("_vision") == null:
+	if plateau.coques().is_empty() or _monde.volume.get("_vision") == null:
 		_fautes.append("%s : navire ou vision non posés (%s)" % [_nom, _signales])
 		combat.queue_free()
 		await process_frame
@@ -175,7 +171,7 @@ func _demarrer(scenario: String) -> Node:
 	environnement.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	environnement.volumetric_fog_enabled = false
 	_vue = combat.get("_vue")
-	_id = plateau.navires()[0]
+	_id = plateau.coques()[0]
 	_servi = pont.reponses.vision
 	_hauteurs = pont.reponses.monde.monde.hauteurs
 	_couches = _monde.couches()
@@ -225,7 +221,7 @@ func _metres_par_case() -> float:
 
 ## La caméra du regard `regard` (`tactique` ou `plateau`) centrée sur le navire servi.
 func _cadrer(regard: String) -> void:
-	var centre: Dictionary = _vue.corps.navires[_id].centre
+	var centre: Dictionary = _vue.corps.coques[_id].centre
 	_monde.regarder(regard)
 	_monde.cadrer(MiseEnPage.point_de_la_carte(centre.x - 0.5, centre.y - 0.5, 0.0), MiseEnPage.lacet_de_l_azimut(30.0), DISTANCE[_nom])
 
@@ -584,7 +580,7 @@ func _coupe() -> void:
 			coupe = minf(coupe, _hauteurs[_couches.size() - 2].rangees[c.y][c.x])
 	_monde.volume.voir(null)
 	var entier := await PIXELS.image(self)
-	_navires.poser(_vue.corps.navires, _vue.corps.decors, {_id: coupe}, _metres_par_case())
+	_navires.poser(_vue.corps.coques, _vue.corps.decors, {_id: coupe}, _metres_par_case())
 	var coupee := await PIXELS.image(self)
 	_montage().scene.visible = false
 	var sans := await PIXELS.image(self)
@@ -603,7 +599,7 @@ func _coupe() -> void:
 		if autres > 0:
 			_fautes.append("%s, coupé, état %d : %d pixels découverts voilés" % [_nom, etat, autres])
 	_monde.volume.voir(null)
-	_navires.poser(_vue.corps.navires, _vue.corps.decors, _vue.plateau.coupesDesNavires, _metres_par_case())
+	_navires.poser(_vue.corps.coques, _vue.corps.decors, _vue.plateau.coupesDesNavires, _metres_par_case())
 	await process_frame
 
 
