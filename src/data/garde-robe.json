@@ -398,6 +398,15 @@
     }
   },
   {
+    "id": "brassards-cloutes",
+    "type": "garde-robe",
+    "label": "Brassards cloutés",
+    "kind": "variante",
+    "piece": {
+      "id": "brassards"
+    }
+  },
+  {
     "id": "masque-de-cuir",
     "type": "garde-robe",
     "label": "Masque de cuir rapiécé",
@@ -428,6 +437,15 @@
     "id": "baudrier-sur-robe",
     "type": "garde-robe",
     "label": "Baudrier sur robe",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
+    "id": "baudrier-sur-torse-nu",
+    "type": "garde-robe",
+    "label": "Baudrier sur torse nu",
     "kind": "variante",
     "piece": {
       "id": "baudrier"
