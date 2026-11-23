@@ -196,6 +196,11 @@ sur une arène générée.
   en plus »). L'infirmerie reste ouverte après (`fenetreFermer('infirmerie')`). Il faut un héros qui possède Guérison
   (`refusDeSoins`, `peutTenter`), et l'acheter hors carrière est refusé (« « Guérison » hors carrière, non acquérable »). Précise l'entrée
   « l'infirmerie du noyau suppose un joueur » : le drive manque, mais deux verbes suffisent.
+- **Constat — l'infirmerie se tait sur un blessé qu'elle ne soigne pas.** Une recette du camp a montré un patient
+  blessé (6/8) pour qui `ouvrirLeMedecin` ne pose ni `pendingHeal` ni refus : le noyau ne dit pas pourquoi (son message
+  « {name} n’a rien à soigner. », `src/i18n/messages/fr.ts:3955`, n'est pas émis). L'hôte se rabat sur sa propre phrase
+  (`roguelite/src/noyau/soins.ts`, `ouvrirLeSoin`) ; la liste des patients du camp lit ce même verdict (`verdictDuSoin`),
+  donc l'écran ne propose plus ce patient. Cause à mesurer dans `src/noyau/medicFlow`.
 - **Friction — aucun réglage du soigneur à l'infirmerie.** Le soin du camp (`soignerUnCompagnon`) ouvre l'infirmerie
   sur le seul couple choisi : le noyau confie l'acte au meilleur en Guérison des deux (`bestHealerFor`), l'autre le
   soutient (constaté : soigneur voulu à 39, patient à 48, `healerId` = le patient, `support` +10 du soigneur voulu).

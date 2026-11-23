@@ -38,7 +38,7 @@ for (let exp = 0; exp < expeditions; exp++) {
       const x = e.expedition!;
       if (x.salles[x.index].type === 'camp') {
         // Au camp : le premier soigneur soigne chaque blessé que le noyau lui confie, puis le groupe se repose.
-        const soigneur = g.find((h) => !J.refusDuSoigneur(h));
+        const soigneur = g.find((h) => !J.refusDuSoigneur(e, h));
         if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
         return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
       }

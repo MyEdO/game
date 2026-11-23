@@ -151,7 +151,7 @@ function offresDeLaSalle(e: J.Etat): { titre: string; annonce: string; offres: O
   if (type === 'camp') {
     return { titre: J.CAMP.titre, annonce: J.CAMP.annonce, offres: [
       { id: 'soigner', libelle: J.CAMP.soigner.libelle, rub: 'Test de Guérison',
-        gain: 'Blessures rendues', picto: 'soin', savent: groupe.filter((h) => !J.refusDuSoigneur(h)).length },
+        gain: 'Blessures rendues', picto: 'soin', savent: groupe.filter((h) => !J.refusDuSoigneur(e, h)).length },
       { id: 'reposer', libelle: J.CAMP.reposer.libelle, rub: 'Sans Test', gain: J.CAMP.reposer.issue },
     ] };
   }
@@ -201,7 +201,7 @@ function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle 
   const soigneur = groupe.find((h) => h.c.id === choix.soigneur);
   return soigneur
     ? { ...base, refus: (h) => J.refusDuPatient(e, soigneur, h), consigne: J.CAMP.soigner.patient }
-    : { ...base, refus: J.refusDuSoigneur, consigne: J.CAMP.soigner.soigneur };
+    : { ...base, refus: (h) => J.refusDuSoigneur(e, h), consigne: J.CAMP.soigner.soigneur };
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une

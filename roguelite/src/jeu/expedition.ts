@@ -1,7 +1,7 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, refusDuSoin, saitSoigner, soignerUnCompagnon, type IssueDuCombat } from '../noyau';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, saitSoigner, soignerUnCompagnon, verdictDuSoin, type IssueDuCombat } from '../noyau';
 
 import {
   DESTINATIONS,
@@ -117,17 +117,25 @@ export function refusDAction(h: Heros, action: IdActionAJet): string | null {
   return epreuveTentable(h.c, epreuves) ? null : `Ne sait tenter ni ${epreuves.map((ep) => partiesDuTest(ep.flux).competence).join(' ni ')}.`;
 }
 
-/** Pourquoi le héros `h` ne peut pas soigner au camp, ou `null` s'il le peut. LDB 09 l.30 */
-export const refusDuSoigneur = (h: Heros): string | null =>
+/** Pourquoi le héros `h` ne sait pas soigner, ou `null` s'il le sait. LDB 09 l.30 */
+const refusDeLaGuerison = (h: Heros): string | null =>
   !valide(h) ? 'Hors de combat.' : saitSoigner(h.c) ? null : 'Ne sait pas tenter la Guérison.';
 
+/** Pourquoi le héros `h` ne peut pas soigner au camp courant, ou `null` s'il le peut : il sait soigner, et un autre
+ *  héros du groupe peut recevoir son soin (`refusDuPatient`). LDB 09 l.30 */
+export const refusDuSoigneur = (e: Etat, h: Heros): string | null =>
+  refusDeLaGuerison(h) ?? (herosDuGroupe(e).some((p) => !refusDuPatient(e, h, p)) ? null : 'Personne à soigner.');
+
 /** Pourquoi le `soigneur` ne peut pas soigner le héros `h` au camp courant, ou `null` s'il le peut : le soigneur, un
- *  autre héros que lui, un soin par blessé et par camp, puis le verdict de l'infirmerie du noyau (`refusDuSoin`). */
+ *  autre héros que lui, un soin par blessé et par camp, puis le verdict de l'infirmerie du noyau (`verdictDuSoin`). */
 export function refusDuPatient(e: Etat, soigneur: Heros, h: Heros): string | null {
   const salle = e.expedition?.salles[e.expedition.index];
   if (salle?.type !== 'camp' || !salle.ouverte) return 'Aucun camp dressé.';
-  return refusDuSoigneur(soigneur) ?? (h.c.id === soigneur.c.id ? 'Le soigneur soigne un autre héros.'
-    : salle.soignes?.includes(h.c.id) ? 'Déjà soigné·e à ce camp.' : refusDuSoin(soigneur.c, h.c));
+  const refus = refusDeLaGuerison(soigneur) ?? (h.c.id === soigneur.c.id ? 'Le soigneur soigne un autre héros.'
+    : salle.soignes?.includes(h.c.id) ? 'Déjà soigné·e à ce camp.' : null);
+  if (refus) return refus;
+  const verdict = verdictDuSoin(soigneur.c, h.c);
+  return 'refus' in verdict ? verdict.refus : null;
 }
 
 /** Joue l'`action` choisie dans la salle ouverte. Une action à jet se joue sur le seul héros `herosId`, testeur et

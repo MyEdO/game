@@ -14,7 +14,6 @@ import type { Combatant } from '../../../src/engine/types';
 import { peutTenter } from '../../../src/engine/skills';
 import { HEAL_SKILL, type HealMode } from '../../../src/engine/healing';
 import { estOperation } from '../../../src/noyau/acteDeSoin';
-import { refusDeSoins } from '../../../src/noyau/medicFlow';
 import { arena } from '../../../src/scenes/test-scenarios/_shared';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
@@ -87,21 +86,19 @@ export const prixDuSejourALAuberge = (qualite: QualiteDeRepos, nuits: number): n
 /** Le héros peut-il tenter la Guérison ? LDB 09 l.30 */
 export const saitSoigner = (c: Combatant): boolean => peutTenter(c, { skill: { id: HEAL_SKILL } });
 
-/** Pourquoi le noyau refuse d'ouvrir l'infirmerie sur `patient` soigné par `soigneur` (`refusDeSoins`), ou `null`. */
-export const refusDuSoin = (soigneur: Combatant, patient: Combatant): string | null =>
-  refusDeSoins({ battle: null, party: [soigneur, patient] }, patient.id);
+/** L'acte que l'infirmerie du noyau jouerait : le soigneur et le patient qu'elle retient, l'acte du brouillon. Sinon
+ *  `refus` : l'infirmerie refusée, le soin confié par le noyau à un autre que le soigneur choisi, ou une opération. */
+export type VerdictDuSoin = { soigneur: string; patient: string; acte: HealMode } | { refus: string };
 
-/** Un soin joué : le groupe tel que le noyau le laisse, son journal ; le soigneur, le patient et l'acte que le noyau a
- *  retenus. Sinon `refus` : l'infirmerie refusée, le soin confié par le noyau à un autre que le soigneur choisi, ou
- *  une opération, aucun jet tiré. */
-export type IssueDuSoin = { groupe: Combatant[]; journal: string[] }
-  & ({ soigneur: string; patient: string; acte: HealMode } | { refus: string });
+/** Un soin joué : le groupe tel que le noyau le laisse, son journal, et son verdict (`VerdictDuSoin`), aucun jet tiré
+ *  sur un refus. */
+export type IssueDuSoin = { groupe: Combatant[]; journal: string[] } & VerdictDuSoin;
 
-/** Le `soigneur` soigne le `patient` par l'infirmerie du noyau, sur une place dégagée : `ouvrirLeMedecin`, l'acte
- *  du brouillon (`brouillonTenu`), `jetLancer('soins')` et `jetValider('soins')`. Le noyau confie l'acte au meilleur
- *  soigneur des deux (`bestHealerFor`), l'autre le soutient : si ce n'est pas le soigneur choisi, rien ne se joue. Une
- *  opération (`estOperation`) ne se joue pas ici. LDB 09 l.30 */
-export function soignerUnCompagnon(soigneur: Combatant, patient: Combatant, graine: number): IssueDuSoin {
+/** Ouvre l'infirmerie du noyau sur une place dégagée, le `soigneur` et le `patient` seuls au groupe : `ouvrirLeMedecin`
+ *  puis l'acte du brouillon (`pendingHeal`). Le noyau confie l'acte au meilleur soigneur des deux (`bestHealerFor`),
+ *  l'autre le soutient : si ce n'est pas le soigneur choisi, le verdict est un refus. Une opération (`estOperation`)
+ *  ne se joue pas au camp. LDB 09 l.30 */
+function ouvrirLeSoin(soigneur: Combatant, patient: Combatant, graine: number) {
   const groupe = [soigneur, patient];
   const journal: string[] = [];
   let refus: string | undefined;
@@ -110,19 +107,35 @@ export function soignerUnCompagnon(soigneur: Combatant, patient: Combatant, grai
     () => ({ party: groupe.map((c) => structuredClone(c)), scene: arena({ id: 'camp', label: 'Camp', w: 8, h: 8 }), projet: null }),
     (r) => { journal.push(...lignesDuJournal(r)); if (r.refus) refus ??= r.refus; },
   );
-  const rendre = () => { const g = partie.etat().party.map((c) => structuredClone(c)); partie.fermer(); return g; };
+  const rendre = (): Combatant[] => { const g = partie.etat().party.map((c) => structuredClone(c)); partie.fermer(); return g; };
   pomper();
   envoyer('ouvrirLeMedecin', [patient.id]);
   pomper();
   const brouillon = partie.etat().pendingHeal;
-  if (refus || !brouillon) return { groupe: rendre(), journal, refus: refus ?? journal[journal.length - 1] ?? `${patient.label} : rien à soigner.` };
-  if (brouillon.healerId !== soigneur.id) {
-    const meilleur = groupe.find((c) => c.id === brouillon.healerId)?.label ?? brouillon.healerName;
-    return { groupe: rendre(), journal, refus: `${meilleur} est meilleur·e en Guérison : à lui ou à elle de soigner.` };
-  }
-  if (estOperation(brouillon.mode)) return { groupe: rendre(), journal, refus: `Il ne reste à ${patient.label} qu’une opération, que le camp ne permet pas.` };
+  const verdict: VerdictDuSoin = refus || !brouillon
+    ? { refus: refus ?? journal[journal.length - 1] ?? `${patient.label} : rien à soigner.` }
+    : brouillon.healerId !== soigneur.id
+      ? { refus: `${groupe.find((c) => c.id === brouillon.healerId)?.label ?? brouillon.healerName} est meilleur·e en Guérison : à lui ou à elle de soigner.` }
+      : estOperation(brouillon.mode)
+        ? { refus: `Il ne reste à ${patient.label} qu’une opération, que le camp ne permet pas.` }
+        : { soigneur: brouillon.healerId, patient: brouillon.targetId, acte: brouillon.mode };
+  return { verdict, journal, envoyer, pomper, rendre };
+}
+
+/** Le verdict de l'infirmerie du noyau sur le soin du `patient` par le `soigneur` (`ouvrirLeSoin`), sans jet. */
+export function verdictDuSoin(soigneur: Combatant, patient: Combatant): VerdictDuSoin {
+  const { verdict, rendre } = ouvrirLeSoin(soigneur, patient, 0);
+  rendre();
+  return verdict;
+}
+
+/** Le `soigneur` soigne le `patient` par l'infirmerie du noyau : le verdict d'`ouvrirLeSoin`, puis s'il retient l'acte
+ *  `jetLancer('soins')` et `jetValider('soins')`. LDB 09 l.30 */
+export function soignerUnCompagnon(soigneur: Combatant, patient: Combatant, graine: number): IssueDuSoin {
+  const { verdict, journal, envoyer, pomper, rendre } = ouvrirLeSoin(soigneur, patient, graine);
+  if ('refus' in verdict) return { groupe: rendre(), journal, ...verdict };
   envoyer('jetLancer', ['soins']);
   envoyer('jetValider', ['soins']);
   pomper();
-  return { groupe: rendre(), journal, soigneur: brouillon.healerId, patient: brouillon.targetId, acte: brouillon.mode };
+  return { groupe: rendre(), journal, ...verdict };
 }

@@ -1,23 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../src/engine/conditions';
 import { soignerUnCompagnon } from '../noyau';
-import { agirDansLaSalle, avancer, CAMP, DESTINATIONS, EPREUVES, herosDuGroupe, nouvellePartie, partir, recrue, refusDuSoigneur, salleAChoisir, PROFILS, type Etat, type Heros, type RecitDeSalle, type TypeDeSalle } from './index';
+import { HEAL_SKILL } from '../../../src/engine/healing';
+import { agirDansLaSalle, CAMP, DESTINATIONS, EPREUVES, herosDuGroupe, nouvellePartie, partir, refusDuPatient, refusDuSoigneur, salleAChoisir, PROFILS, type Etat, type Heros } from './index';
+import { blessures, devant, recit } from './salles.testkit';
 
-const recit = (r: RecitDeSalle | string): RecitDeSalle => { if (typeof r === 'string') throw new Error(r); return r; };
-const blessures = (e: Etat) => new Map(herosDuGroupe(e).map((h) => [h.c.id, h.c.wounds.current]));
 const MEDECIN = PROFILS.find((p) => p.id === 'medecin')!;
-
-/** Une partie à la graine `graine` partie au Reikwald avec ses `renforts` (carrières du roster), sa première salle du
- *  type `type` ouverte par `avancer`, puis rechargée (aller-retour JSON, comme `sauver` et `charger`). */
-function devant(type: TypeDeSalle, graine: number, renforts: string[] = []): Etat {
-  const e = nouvellePartie(graine);
-  const venus = renforts.map((id) => recrue(e, PROFILS.find((p) => p.id === id)!));
-  e.roster.push(...venus);
-  expect(partir(e, 'reikwald', [...e.roster.slice(0, 4 - venus.length), ...venus].map((h) => h.c.id))).toBeNull();
-  e.expedition!.salles[0].type = type;
-  expect(avancer(e)).toBeNull();
-  return JSON.parse(JSON.stringify(e)) as Etat;
-}
 const du = (e: Etat, carriere: string, n = 0): Heros => herosDuGroupe(e).filter((h) => h.carriere === carriere)[n];
 
 describe('le camp, salle à choix', () => {
@@ -69,13 +57,25 @@ describe('le camp, salle à choix', () => {
     expect(e.expedition!.salles[0].soignes).toHaveLength(1);
   });
 
+  it('un patient meilleur en Guérison que son soigneur : la liste le refuse comme le noyau, sans jet', () => {
+    const e = devant('camp', 6, [MEDECIN.id, MEDECIN.id]);
+    const [soigneur, patient] = [du(e, 'medecin', 0), du(e, 'medecin', 1)];
+    patient.c.wounds.current = 2;
+    patient.c.skills.find((s) => s.id === HEAL_SKILL)!.advances += 40;
+    const refus = refusDuPatient(e, soigneur, patient);
+    expect(refus).toBe(`${patient.c.label} est meilleur·e en Guérison : à lui ou à elle de soigner.`);
+    expect(agirDansLaSalle(e, 'soigner', soigneur.c.id, patient.c.id)).toBe(refus);
+    expect(du(e, 'medecin', 1).c.wounds.current).toBe(2);
+    expect(e.expedition!.salles[0].soignes).toBeUndefined();
+  });
+
   it('refus : qui n’a pas Guérison ne soigne pas ; un soigneur hors de combat non plus ; rien ne se joue', () => {
     const e = devant('camp', 4, [MEDECIN.id]);
     const soldat = du(e, 'soldat');
     const medecin = du(e, 'medecin');
     soldat.c.wounds.current = 2;
     const chasseur = du(e, 'chasseur');
-    expect(refusDuSoigneur(chasseur)).toBe('Ne sait pas tenter la Guérison.');
+    expect(refusDuSoigneur(e, chasseur)).toBe('Ne sait pas tenter la Guérison.');
     expect(agirDansLaSalle(e, 'soigner', chasseur.c.id, soldat.c.id)).toBe('Ne sait pas tenter la Guérison.');
     medecin.c.wounds.current = 2;
     expect(agirDansLaSalle(e, 'soigner', medecin.c.id, medecin.c.id)).toBe('Le soigneur soigne un autre héros.');
@@ -85,6 +85,15 @@ describe('le camp, salle à choix', () => {
     expect(du(e, 'soldat').c.wounds.current).toBe(2);
     expect(e.expedition!.salles[0].soignes).toBeUndefined();
     expect(salleAChoisir(e)).toBe(true);
+  });
+  it('un soigneur sans autre héros à soigner n’en est pas un : seul blessé, il ne se propose pas', () => {
+    const e = devant('camp', 5, [MEDECIN.id]);
+    for (const h of herosDuGroupe(e)) h.c.wounds.current = h.c.wounds.max;
+    const medecin = du(e, 'medecin');
+    medecin.c.wounds.current = 2;
+    expect(refusDuSoigneur(e, medecin)).toBe('Personne à soigner.');
+    du(e, 'soldat').c.wounds.current = 2;
+    expect(refusDuSoigneur(e, medecin)).toBeNull();
   });
 });
 
