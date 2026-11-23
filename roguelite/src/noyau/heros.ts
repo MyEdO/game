@@ -4,7 +4,7 @@
 import { createHero } from '../../../src/engine/character';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../src/engine/characteristics';
-import { findCareerById, characteristics, conditionLabel } from '../../../src/data';
+import { findCareerById, characteristics, conditionLabel, skills } from '../../../src/data';
 import type { Combatant, CharKey } from '../../../src/engine/types';
 
 /** Ce qui fait l'identité d'une recrue à sa création : le Talent de carrière choisi (et sa spécialisation : le dieu
@@ -33,6 +33,14 @@ export const nomDeCarriereDuLivre = (id: string): string => findCareerById(id)?.
 export function libelleDeCarac(k: CharKey): { abr: string; label: string } {
   const d = characteristics.find((x) => x.id === k);
   return { abr: d?.abr ?? k, label: d?.label ?? k };
+}
+
+/** Ce que le livre dit d'une Caractéristique (`characteristics.json`), verbatim. */
+export const texteDeCarac = (k: CharKey): string => characteristics.find((x) => x.id === k)?.desc ?? '';
+/** Ce que le livre dit d'une Compétence (`skills.json`) : son texte verbatim, et la Caractéristique qui la porte. */
+export function ficheDeCompetence(id: string): { texte: string; carac?: CharKey } {
+  const d = skills.find((x) => x.id === id);
+  return { texte: d?.desc ?? '', ...(d?.characteristic ? { carac: d.characteristic as CharKey } : {}) };
 }
 
 /** Libellé d'un État porté (`etats.json`), sa valeur comprise. */

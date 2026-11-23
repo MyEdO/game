@@ -7,11 +7,11 @@
  * (`./services`) : chacun porte son geste d'achat (`achat`), prix compris.
  */
 import * as J from '../jeu';
-import { carac, ficheDuSort, libelleDeCarac, prixDuSort, protection, talentsAcquis, texteDuTalent, type CharKey } from '../noyau';
+import { carac, ficheDeCompetence, ficheDuSort, libelleDeCarac, prixDuSort, protection, talentsAcquis, texteDeCarac, texteDuTalent, type CharKey } from '../noyau';
 import { picto, plaque, portrait } from '../kit';
 import { CADRES, ecran } from './ecran';
 import {
-  achat, apercuDePiece, apercuDeProvision, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats,
+  achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, busteDuHeros, cadreA, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats,
   etiquettesDeSequelles, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets,
 } from './pieces';
 
@@ -57,17 +57,24 @@ export function caracteristiques(h: J.Heros, o: Offres, progresse: boolean, tout
     const of = parCarac.get(k);
     const { abr, label } = libelleDeCarac(k);
     const cellule = `<span class="ab">${esc(abr)}</span><span class="v chiffres">${carac(h.c, k)}</span>`;
-    if (!of) return `<div class="c" data-bulle="${esc(label)}">${cellule}</div>`;
+    const livre = (pied?: string) => apercuDe({ nom: label, nature: `Caractéristique · ${carac(h.c, k)}`, texte: texteDeCarac(k), ...(pied ? { pied } : {}) });
+    if (!of) return `<div class="c"${livre()}>${cellule}</div>`;
     const ou = `<span class="crans" aria-label="${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis}">${Array.from({ length: o.requis }, (_, i) => `<i class="${i < of.augmentations ? 'plein' : ''}"></i>`).join('')}</span>`;
     const augs = `${label} : ${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis} pour ce niveau`;
-    if (!progresse) return `<div class="c carr" data-bulle="${esc(augs)}">${cellule}${ou}</div>`;
-    return `<button type="button" class="c carr${of.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" data-bulle="${esc(xp < of.cout ? `${augs} · il manque ${of.cout - xp} PX` : augs)}"${xp < of.cout ? ' disabled' : ''}>${cellule}${ou}<span class="etiquette compte ${xp >= of.cout ? 'or' : 'fer'}">+1 · ${of.cout} PX</span></button>`;
+    if (!progresse) return `<div class="c carr"${livre(augs)}>${cellule}${ou}</div>`;
+    return `<button type="button" class="c carr${of.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" ${livre(xp < of.cout ? `${augs} · il manque ${of.cout - xp} PX` : augs)}${xp < of.cout ? ' disabled' : ''}>${cellule}${ou}<span class="etiquette compte ${xp >= of.cout ? 'or' : 'fer'}">+1 · ${of.cout} PX</span></button>`;
   }).join('');
 }
 
 /** Les Compétences de la carrière, une ligne chacune : où elle en est du niveau, la valeur de son Test, son geste. */
+/** L'aperçu d'une Compétence : son texte du livre, la valeur de son Test, et où elle sert dans le roguelite. */
+const apercuDeCompetence = (k: Offres['competences'][number]): Apercu => {
+  const f = ficheDeCompetence(k.ref.id);
+  return { nom: k.label, nature: `Compétence · ${f.carac ? libelleDeCarac(f.carac).label : k.carac} · Test ${k.valeur}`, texte: f.texte, pied: `${k.augmentations} Augmentation${k.augmentations > 1 ? 's' : ''}` };
+};
+
 export const competences = (h: J.Heros, o: Offres) => o.competences.map((k, i) =>
-  `<div class="achat${k.augmentations >= o.requis ? ' faite' : ''}"><span class="fait">${k.augmentations >= o.requis ? picto('coche', 15, 2.4) : ''}</span>${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n" data-bulle="${esc(k.label)}">${esc(k.label)}</span><span class="aug chiffres">+${k.augmentations}/${o.requis}</span><span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${augmenter(h, k.cout, `data-a="competence" data-i="${i}"`)}</div>`).join('');
+  `<div class="achat${k.augmentations >= o.requis ? ' faite' : ''}"><span class="fait">${k.augmentations >= o.requis ? picto('coche', 15, 2.4) : ''}</span>${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span><span class="aug chiffres">+${k.augmentations}/${o.requis}</span><span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${augmenter(h, k.cout, `data-a="competence" data-i="${i}"`)}</div>`).join('');
 
 /** Les Talents du niveau qui agissent en combat : acquis, ou à apprendre. */
 export const talentsDuNiveau = (h: J.Heros, o: Offres) => o.talents.map((t, i) => entree({
