@@ -125,6 +125,11 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   ratier. » ; « Non non c'est bien une adaptation du roguelite. » — Le noyau reste « LDB-pur » (arbitrage du
   2026-07-21, MyEdO/game#651 : la dotation du Chasseur de Rat garde le Chien, LDB p. 315) ; le roguelite donne au
   Ratier le `chien-de-ratier` du bestiaire, valeur d'adaptation.
+- **2026-11-23, les identités du front** : « Le tueur je le voyais a la double hache et/ou a la grande hache. Le soldat
+  je le vois plus comme un tank et le maitre de l'épée un combat spécialisé dans le combat a l'arme a 2 main. Mais
+  surement qu'il fait doublon avec le tueur et le soldat » ; « Il faut un tank au début, le soldat même rang 1 sait se
+  défendre avec un bouclier ». — Soldat : tank du relais 0, niveau 1, un bouclier d'adaptation à son recrutement ;
+  Tueur : deux haches, la grande hache à son niveau 2 ; Joueur d'épée : la deux-mains.
 
 ## Les phases
 
