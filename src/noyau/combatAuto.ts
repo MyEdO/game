@@ -36,6 +36,7 @@ import {
   type FenetreQuiSeFerme,
   type GesteDuJeu,
   type HorsModalDef,
+  type IssueDeFenetre,
   type ModalDef,
   type RangeeDeFenetre,
   type SurfaceHorsPendingDef,
@@ -186,12 +187,18 @@ export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { 
 
 const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 'self' ? pol.drive : pol.mode === 'choice' ? (pol.autoDrive ?? []) : []);
 
-/** Les gestes d'issue d'une fenêtre qui les déclare : sa validation (`validation` : `fenetreValider`), puis sa sortie
- *  (`sortie` : `fenetreFermer`), la fenêtre en argument. */
-const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): GesteDuJeu[] => [
-  ...(def.validation ? [{ verbe: 'fenetreValider' as const, fenetre: def.key as FenetreAValider }] : []),
-  ...(def.sortie ? [{ verbe: 'fenetreFermer' as const, fenetre: def.key as FenetreQuiSeFerme }] : []),
-];
+/** Le geste de l'issue `issue` d'une fenêtre qui la déclare : sa validation (`fenetreValider`) ou sa sortie
+ *  (`fenetreFermer`), la fenêtre en argument. */
+const issueDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef, issue: IssueDeFenetre): GesteDuJeu[] => {
+  if (!def[issue]) return [];
+  return [issue === 'validation' ? { verbe: 'fenetreValider', fenetre: def.key as FenetreAValider } : { verbe: 'fenetreFermer', fenetre: def.key as FenetreQuiSeFerme }];
+};
+
+/** Les gestes d'issue d'une fenêtre qui les déclare : sa validation, puis sa sortie (`issueDe`). */
+const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): GesteDuJeu[] => [...issueDe(def, 'validation'), ...issueDe(def, 'sortie')];
+
+/** Le drive d'une situation hors modale ou d'une surface qui en déclare un : son issue (`HorsModalDef.drive`). */
+const driveDeLIssue = (def: HorsModalDef | SurfaceHorsPendingDef): Pick<FenetreDuJeu, 'drive'> => (def.drive ? { drive: issueDe(def, def.drive) } : {});
 
 /** Les choix d'une fenêtre (`fenetreChoisir`), un par axe que `ChoixDesFenetres` lui déclare. */
 const choixDe = (cle: string): GesteDuJeu[] => axesDeLaFenetre(cle).map((axe) => ({ verbe: VERBE_DE_CHOIX, fenetre: cle as FenetreAChoix, axe }));
@@ -223,8 +230,9 @@ export const CLES_DE_FENETRE: readonly CleDeRegistre[] = [...MODAL_DEFS.map((d) 
 
 /** La fenêtre qui tient la main : sa clé, son propriétaire, ses gestes, les flux de jet qui les jouent (`flux`, celui
  *  que sa politique résout en tête), l'id que ses gestes désignent (`pid` : l'étape de cascade courante, ou la rangée
- *  due d'une fenêtre à plusieurs jets ; `argumentsPosesDuGeste`), les gestes que sa politique enchaîne pour la résoudre
- *  (`drive`, `AutoPolicy` : le jet, puis sa clôture), et l'étape de cascade courante quand la cascade tient la main. */
+ *  due d'une fenêtre à plusieurs jets ; `argumentsPosesDuGeste`), les gestes qui la résolvent sans choix du joueur
+ *  (`drive` : ceux que sa politique enchaîne, `AutoPolicy`, le jet puis sa clôture ; ou l'issue qu'une situation hors
+ *  modale ou une surface déclare, `driveDeLIssue`, que joue un hôte, jamais la cadence), et l'étape de cascade courante quand la cascade tient la main. */
 export interface FenetreDuJeu {
   cle: CleDeRegistre;
   proprietaire: string | undefined;
@@ -243,7 +251,8 @@ export interface FenetreDuJeu {
  *  cascade (`NAVIGATION_DE_CASCADE`), le flux de son interaction puis `cascade`, dont la clôture valide l'étape, et pour
  *  une interaction jouée par un flux de jet le drive « le jet, puis valider l'étape » ; sinon la première situation
  *  `HORS_MODAL` ouverte (`pendingOuvert`) qui tient la main, avec ses gestes déclarés ; sinon la première surface
- *  partagée qui se valide ou se ferme et tient la main (`SURFACES_A_ISSUE`), avec ses gestes (`gestesDeLaSurface`). L'étape de cascade
+ *  partagée qui se valide ou se ferme et tient la main (`SURFACES_A_ISSUE`), avec ses gestes (`gestesDeLaSurface`) ; l'une
+ *  ou l'autre avec le drive de l'issue qu'elle déclare (`driveDeLIssue`). L'étape de cascade
  *  courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
@@ -274,9 +283,9 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: [...new Set<FlowKey>([...(flux ? [flux] : []), 'cascade'])], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.lancer, flux }, NAVIGATION_DE_CASCADE[0]] } : {}), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef<(typeof HORS_MODAL)[number]['key']>[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
-  if (hors) return { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] };
+  if (hors) return { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [], ...driveDeLIssue(hors) };
   const surface = SURFACES_A_ISSUE.find((d) => d.tientLaMain(s));
-  return surface ? { cle: surface.key, proprietaire: undefined, gestes: gestesDeLaSurface(surface), flux: [] } : null;
+  return surface ? { cle: surface.key, proprietaire: undefined, gestes: gestesDeLaSurface(surface), flux: [], ...driveDeLIssue(surface) } : null;
 }
 
 /**

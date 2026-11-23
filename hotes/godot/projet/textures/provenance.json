@@ -892,5 +892,455 @@
     "source": "fabriquée par ImageMagick ; dérivée de prop--emaille.neutre.jpg",
     "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--braises.jpg": {
+    "sha256": "324d969a93cb1651afd0a135202596a5a57a6ee656f24876c895908870de81cf",
+    "source": "https://ambientcg.com/view?id=Lava001 (Lava001_1K-JPG.zip : Lava001_1K-JPG_Color.jpg) ; dérivée de prop--braises.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8c3416 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--braises.neutre.jpg": {
+    "sha256": "60609280b11a2d144f25b93db211b2e5608e3500bc0f0b6cdd334f3c67e61d24",
+    "source": "https://ambientcg.com/view?id=Lava001 (Lava001_1K-JPG.zip : Lava001_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 5%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--braises.normale.jpg": {
+    "sha256": "8e08585c6ff206ca0964512f40291ee5bd20029e1be03635cf007880f650371f",
+    "source": "https://ambientcg.com/view?id=Lava001 (Lava001_1K-JPG.zip : Lava001_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--prop-ardoise.jpg": {
+    "sha256": "8c282ece0a63b9a3e0397880740f066e3f90b730b7100e3b99f73cc507f7e0a3",
+    "source": "https://ambientcg.com/view?id=Rock051 (Rock051_1K-JPG.zip : Rock051_1K-JPG_Color.jpg) ; dérivée de prop--prop-ardoise.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3d4852 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--prop-ardoise.neutre.jpg": {
+    "sha256": "c5aedfed81069ca861ed9bdcebcb68332ee240c57105f55157b354ffd9425655",
+    "source": "https://ambientcg.com/view?id=Rock051 (Rock051_1K-JPG.zip : Rock051_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--prop-ardoise.normale.jpg": {
+    "sha256": "7ac398f6f1a069af37c37afbcd0577561d72b9c8625d683132684c94416a7e0e",
+    "source": "https://ambientcg.com/view?id=Rock051 (Rock051_1K-JPG.zip : Rock051_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--albatre.jpg": {
+    "sha256": "28904ce0eeea98e0a7e67757e25bb7d721fa0158a26a55ce09d38426354cf7ab",
+    "source": "https://ambientcg.com/view?id=Marble012 (Marble012_1K-JPG.zip : Marble012_1K-JPG_Color.jpg) ; dérivée de prop--albatre.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#c2b79a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--albatre.neutre.jpg": {
+    "sha256": "269b99b5702690196f53084c30c67088b0e524fc711c7d078e559f0edadd3c38",
+    "source": "https://ambientcg.com/view?id=Marble012 (Marble012_1K-JPG.zip : Marble012_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 70%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--albatre.normale.jpg": {
+    "sha256": "0af88ed51a63e290eb0639d636b824c0a0c5e4e976dd9cfd4328adc786010775",
+    "source": "https://ambientcg.com/view?id=Marble012 (Marble012_1K-JPG.zip : Marble012_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--paille.jpg": {
+    "sha256": "5e44fa84b21b2b8a832d6f234cd4bfea575e16049dc1a38a523856a667ecf1da",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_Color.jpg) ; dérivée de prop--paille.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#b89a4a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--paille.neutre.jpg": {
+    "sha256": "9aeb455dcebe0fd18175bd71ce0dc7d7dd59e59fc3dd93a94dbae29e87dabf8a",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 30%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--paille.normale.jpg": {
+    "sha256": "ec594a31a6534a6a046584d6a63a7d874e9a99552625193dd032ed8bac60f253",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--toile-chaos.jpg": {
+    "sha256": "6b33088890ec8193cc16d7ae53f4a4f6288eb096263114700b9bc4b0533ab110",
+    "source": "https://ambientcg.com/view?id=Fabric030 (Fabric030_1K-JPG.zip : Fabric030_1K-JPG_Color.jpg) ; dérivée de prop--toile-chaos.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3e1b3f ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-chaos.neutre.jpg": {
+    "sha256": "00f638fe4152b51ccd18bce2686674b7061d1245020769477a07e7021d28cc7d",
+    "source": "https://ambientcg.com/view?id=Fabric030 (Fabric030_1K-JPG.zip : Fabric030_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 35%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-chaos.normale.jpg": {
+    "sha256": "adff653aa7e2462940f3896e84f7421a87c2695abbe6ac685c78d653639849a8",
+    "source": "https://ambientcg.com/view?id=Fabric030 (Fabric030_1K-JPG.zip : Fabric030_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--pierre-chaos.jpg": {
+    "sha256": "31ffa9ed20bc3a576db52ab63e1e5c3fc822e8109df6ce154925c18cc54b73c3",
+    "source": "https://ambientcg.com/view?id=Rock031 (Rock031_1K-JPG.zip : Rock031_1K-JPG_Color.jpg) ; dérivée de prop--pierre-chaos.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#2f2632 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-chaos.neutre.jpg": {
+    "sha256": "f43ce81cf2becd59a9990abcc2a00688bc247ad015484a844b47742e63f2aa28",
+    "source": "https://ambientcg.com/view?id=Rock031 (Rock031_1K-JPG.zip : Rock031_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 40%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-chaos.normale.jpg": {
+    "sha256": "9a0f977335a6c0833dc1d110dfd6427e32b3398af4e3aa994e62e4f6bb08ebd2",
+    "source": "https://ambientcg.com/view?id=Rock031 (Rock031_1K-JPG.zip : Rock031_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--roseau.jpg": {
+    "sha256": "db14c09f0a1c76803fa8186a6c843583db475041d2942aeaa37b94a0851b3b2c",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof002A (ThatchedRoof002A_1K-JPG.zip : ThatchedRoof002A_1K-JPG_Color.jpg) ; dérivée de prop--roseau.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#7c7a3c ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--roseau.neutre.jpg": {
+    "sha256": "c6df61ed5589ad04b310bdffce23e0d4ae7729a85d29f98ed0a53a2f93bb4062",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof002A (ThatchedRoof002A_1K-JPG.zip : ThatchedRoof002A_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 30%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--roseau.normale.jpg": {
+    "sha256": "37cdf4f55167fd4d547bffcaeb8cbad7d48eed6514eb6d226dee2d2c6ad86724",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof002A (ThatchedRoof002A_1K-JPG.zip : ThatchedRoof002A_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--ecaille.jpg": {
+    "sha256": "7de96dc6163d6b0980a8854fe12a5aa17786842090692276630f413fafee4b67",
+    "source": "https://ambientcg.com/view?id=Leather008 (Leather008_1K-JPG.zip : Leather008_1K-JPG_Color.jpg) ; dérivée de prop--ecaille.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#4c6a44 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecaille.neutre.jpg": {
+    "sha256": "931c49eb618934eb83fb1d1e53ac2ad27343ba05cf26864b181b85eaeffb8d14",
+    "source": "https://ambientcg.com/view?id=Leather008 (Leather008_1K-JPG.zip : Leather008_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 40%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecaille.normale.jpg": {
+    "sha256": "7719fcf3ea52f7fbbe99a81dd7a2ca8ad863e62b92afc3e5695cacc8f6d72901",
+    "source": "https://ambientcg.com/view?id=Leather008 (Leather008_1K-JPG.zip : Leather008_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--peau-morte.jpg": {
+    "sha256": "ec0770d3c1d2ebf02a221a2a74110643eb79ef80957cab5683b3a5b24a9cc1d5",
+    "source": "https://ambientcg.com/view?id=Leather007 (Leather007_1K-JPG.zip : Leather007_1K-JPG_Color.jpg) ; dérivée de prop--peau-morte.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6e5442 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--peau-morte.neutre.jpg": {
+    "sha256": "fd2223ef28ef99452c5b982b3818faf8d7f9e9dcbb78338ae3e1154d25a79081",
+    "source": "https://ambientcg.com/view?id=Leather007 (Leather007_1K-JPG.zip : Leather007_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 35%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--peau-morte.normale.jpg": {
+    "sha256": "d256e87cc3451f47bb319f6e5d08f45e6db9f58576a881dd3f3a51be9969f102",
+    "source": "https://ambientcg.com/view?id=Leather007 (Leather007_1K-JPG.zip : Leather007_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--terre-cuite.jpg": {
+    "sha256": "db2f37634b7d6fa99509c73fdf5cc5794f20e8d32af7e68f8b900afc35c6694f",
+    "source": "https://ambientcg.com/view?id=Clay001 (Clay001_1K-JPG.zip : Clay001_1K-JPG_Color.jpg) ; dérivée de prop--terre-cuite.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#a4583a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-cuite.neutre.jpg": {
+    "sha256": "5e36b8237aa0c2753f8d84b3d8a47c26e8d2f738897da787c574dae49b7ecaab",
+    "source": "https://ambientcg.com/view?id=Clay001 (Clay001_1K-JPG.zip : Clay001_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 65%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-cuite.normale.jpg": {
+    "sha256": "e374ed5bca7d465080844491f17e3a4f9dfe55eb181152d9787efac7fa82c6b2",
+    "source": "https://ambientcg.com/view?id=Clay001 (Clay001_1K-JPG.zip : Clay001_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--toile-peinte.jpg": {
+    "sha256": "7f035866760a66b8b73b3c638f83110107a4e5f3423e2e63d621c293d44e8cba",
+    "source": "https://ambientcg.com/view?id=Fabric066 (Fabric066_1K-JPG.zip : Fabric066_1K-JPG_Color.jpg) ; dérivée de prop--toile-peinte.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8ea39b ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-peinte.neutre.jpg": {
+    "sha256": "6fb63494a86638b742ddb58504960b757d5493914d5f9e0dbb87a52e62626d1b",
+    "source": "https://ambientcg.com/view?id=Fabric066 (Fabric066_1K-JPG.zip : Fabric066_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-peinte.normale.jpg": {
+    "sha256": "bb82242211a25cb919b6e0ddfa3f87dc6b67966553dcbb55e0986424924114cc",
+    "source": "https://ambientcg.com/view?id=Fabric066 (Fabric066_1K-JPG.zip : Fabric066_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 128x128! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--cuir-use.jpg": {
+    "sha256": "ceebb7bceeca078f13f0aea82ce4754321a5af00e60082ce08a7c4fe05821c9a",
+    "source": "https://ambientcg.com/view?id=Leather014 (Leather014_1K-JPG.zip : Leather014_1K-JPG_Color.jpg) ; dérivée de prop--cuir-use.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#73513a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--cuir-use.neutre.jpg": {
+    "sha256": "ade112a7dc52a0cdd3b2810a6f8ab5239d37b0f52f84570e9e8190a3f485bd42",
+    "source": "https://ambientcg.com/view?id=Leather014 (Leather014_1K-JPG.zip : Leather014_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level +level 35%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--cuir-use.normale.jpg": {
+    "sha256": "5b54b94baad87bbef82fad25eb76b99bae8db6a865b10b37496b6bde3c42d4da",
+    "source": "https://ambientcg.com/view?id=Leather014 (Leather014_1K-JPG.zip : Leather014_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--fer-rouille.jpg": {
+    "sha256": "17a9d1d99236b4eaa675b6a70d9d2988b3ac5d64db64605d6b90c27d0ebe46f3",
+    "source": "https://ambientcg.com/view?id=Metal020 (Metal020_1K-JPG.zip : Metal020_1K-JPG_Color.jpg) ; dérivée de prop--fer-rouille.neutre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8580 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--fer-rouille.neutre.jpg": {
+    "sha256": "12f6d4b9a56fcf21bfa9096c7f10b0fb102f64284d8b451886e5828af317926b",
+    "source": "https://ambientcg.com/view?id=Metal020 (Metal020_1K-JPG.zip : Metal020_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -modulate 100,85 -auto-level +level 35%,100% ( -size 512x512 xc:#5a2418 ) ( -size 512x512 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile -blur 0x16 -auto-level -threshold 76% -motion-blur 0x24+90 -blur 0x5 -auto-level +level 0%,75% ) -compose Over -composite -compose Over -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--fer-rouille.normale.jpg": {
+    "sha256": "409b56b140d9a4927de4d0ea95c855c57207a7d779da63378cd2728cfe62c0f7",
+    "source": "https://ambientcg.com/view?id=Metal020 (Metal020_1K-JPG.zip : Metal020_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
+  "prop--ombre.jpg": {
+    "sha256": "098e32fb48a467c77114bf7109292afe34711ec7835acbd7400dd2c5823a5418",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--ombre.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#14110e ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ombre.neutre.jpg": {
+    "sha256": "19801af516d1a85a7ad8b34faeb2dc00bd14523427105317cbc744e77aecdb5a",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x20 -auto-level +level 92%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ombre.normale.jpg": {
+    "sha256": "a1321fe0bf11a705ed2a8f293818c76033c13d79b50537b0d81097fa6c0ff40a",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--ombre.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--encre-noire.jpg": {
+    "sha256": "30b0313b132d1ef9c77a22f3379a77d184f0cdc69f8e0b1fa1f4c34d49e805b7",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--encre-noire.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#1a140e ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--encre-noire.neutre.jpg": {
+    "sha256": "e04fb31dd8639ed38530df41b8bf8286240b08c147e987358c5c6abfa3e35fce",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x6 -auto-level +level 82%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--encre-noire.normale.jpg": {
+    "sha256": "54cb420d05ab53763b5412ea6bd15cf6d9f7580c11a2aae19677259cee4582da",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--encre-noire.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--cire-a-cacheter.jpg": {
+    "sha256": "1a9f2c52bacd631eec656caaf5784bc8ccf890b581ede1a5d5a3c5bfb9b6688b",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--cire-a-cacheter.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8c1f1c ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--cire-a-cacheter.neutre.jpg": {
+    "sha256": "0d9166e27ab6823b8dd0fea50b321ced2b172ec99ff84ee18112d45f75bee7df",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x4 -auto-level +level 75%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--cire-a-cacheter.normale.jpg": {
+    "sha256": "87a23ba308703fb6dfb8ab61393ae184691adde3c2958e1e0c563a0f978d7c17",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--cire-a-cacheter.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--sang-repandu.jpg": {
+    "sha256": "96e9b6a2e5f30160ab4a473ba9255589e1395a055786a9bcacd8a34eed7ecee3",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--sang-repandu.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#5e1010 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--sang-repandu.neutre.jpg": {
+    "sha256": "942293553387de4a5156806ea873c64dd76d2c796e68f50f397e851594ff7d6e",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x10 -auto-level -gamma 0.7 +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--sang-repandu.normale.jpg": {
+    "sha256": "d7aa64de7e399e99c42b814e17f6d860b4099c6a388c9f90c0bf4a206a53819e",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--sang-repandu.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--eau-dormante.jpg": {
+    "sha256": "9879742508bc14688197e99576ea760e83adababa9f7f3a46e4de6c7ba688858",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--eau-dormante.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#2f4a57 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--eau-dormante.neutre.jpg": {
+    "sha256": "5cac2969a0706a8750ed070b26471dcf622291bc682d0824e93df410e5e7cfa3",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x28 -auto-level -function Sinusoid 2,0 -auto-level +level 86%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--eau-dormante.normale.jpg": {
+    "sha256": "1097cf76da983b8d7d3a4c1564afd0e6710970de798fd239a586713c02ec64ce",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--eau-dormante.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--chitine.jpg": {
+    "sha256": "f58aca4cee5ac24f64911e85040c14dba14e9e36b0acd7ccd5df7c979e748621",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chitine.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#1d1a17 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chitine.neutre.jpg": {
+    "sha256": "1608b3ad318a5d504c21824a6f0a48f735a31817d7c23ea6ac96adc3b5103fc6",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x2 -auto-level +level 65%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chitine.normale.jpg": {
+    "sha256": "0c71678af1e4e007313ea1c7abe223e1fe2ce9c1daabc7b4629db65e891bdbfa",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chitine.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--petale.jpg": {
+    "sha256": "062a9c8bae5e6341e33bf6897eeb4334ec0015462627a661519a51db4d9fb261",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--petale.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#ead9dc ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--petale.neutre.jpg": {
+    "sha256": "f3040886ff6a784c7e564164a0f7afa8f6e3fedea7e5d10b5c64200e8fa44e8a",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile -motion-blur 0x30+90 -blur 0x1 -auto-level +level 72%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--petale.normale.jpg": {
+    "sha256": "c56f573d3e022eee769093599c11c8684711447a6a71c74053bf807bb974306d",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--petale.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--soie.jpg": {
+    "sha256": "a547889bd82fa9be8140011ad84bda6c9ed73559794ec9a98ef07c15958cef5b",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--soie.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#d9d6cb ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--soie.neutre.jpg": {
+    "sha256": "bb6b85bfb3f1712d7247f59dffbf1b36a5de5f3ca92f9615ba1367a369501d57",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( -clone 0 -motion-blur 0x40+30 ) ( -clone 0 -motion-blur 0x40+120 ) -delete 0 -compose Lighten -composite -compose Over -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--soie.normale.jpg": {
+    "sha256": "39cb1adb4cebfb65cfe586791b95a98580292b07df403190602131e59354281e",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--soie.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--chapeau-rouge.jpg": {
+    "sha256": "54a69827144292a374dd5c9c5b489bbe4bb991e2381620826123c16f578e3369",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chapeau-rouge.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#9c2f22 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chapeau-rouge.neutre.jpg": {
+    "sha256": "aab5581c8bcf4334bff0646cd400e7610c9b173b0efdff679a57caf08abb3386",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x3 ( -size 1024x1024 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile -blur 0x8 -auto-level -threshold 68% -blur 0x2 ) -compose Lighten -composite -compose Over -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chapeau-rouge.normale.jpg": {
+    "sha256": "a341a38422e13015b58ddd4853a06a3912ad117e6664287a0eeef147cd96978f",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chapeau-rouge.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--chair-champignon.jpg": {
+    "sha256": "be25091d6a5968397cd0eec568ef9064239a40f49b9fdf9d783ed5813a5ca2a7",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chair-champignon.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#d9cfb6 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chair-champignon.neutre.jpg": {
+    "sha256": "f777960b45395168a5d2646b93298a1ed07aadc453f8b5b58627e4379735b1c0",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile -motion-blur 0x20+90 -blur 0x1 -auto-level +level 65%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--chair-champignon.normale.jpg": {
+    "sha256": "fed0107cfe4862affefc7c8a2de3813838f711eb9ae6badc97a8ae6bba800224",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--chair-champignon.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--massette.jpg": {
+    "sha256": "95805406aad90baafc6c569eb3c1075fa22a8c7a87f57efd1ac535c8e676b6d2",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--massette.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#4a3524 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--massette.neutre.jpg": {
+    "sha256": "1017d4c70fa9790e78ce749b095484bec8c94414f3ec76d65c382de1f3928f93",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile -blur 0x1.2 -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--massette.normale.jpg": {
+    "sha256": "1cf43eb1564877e00bfa0c9b08a6173145084cd9bd02440ab9239c7289fac5da",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--massette.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
+  },
+  "prop--rune-chaos.jpg": {
+    "sha256": "93ead62ccfe29d10314db8a72127095dfe962d8e2c4e4e380b34526fb2894122",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--rune-chaos.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#a8326a ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--rune-chaos.neutre.jpg": {
+    "sha256": "171f929e4e9c1bb91c18d34ccd4abf2705fac80f52e2708e8081d8ca2e0706e8",
+    "source": "fabriquée par ImageMagick, sans image source",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -size 1024x1024 -seed 4809 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x8 -auto-level -solarize 50% -auto-level +level 40%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--rune-chaos.normale.jpg": {
+    "sha256": "4bac8c992c22e5a790dadbb550c9440bf1b4a75c380930d0c300cb901f574634",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--rune-chaos.neutre.jpg",
+    "licence": "CC0-1.0",
+    "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   }
 }

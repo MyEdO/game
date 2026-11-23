@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--armure--brassards-cloutes.glb",
+  "model_sha256": "6f02d64e328357f901f04cb1bffc166510e5115d1d3c05b5fdb3e7ab93b18012",
+  "importe_le": "2026-11-23",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

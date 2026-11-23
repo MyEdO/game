@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
 import type { Geste } from '../hote/geste';
 import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';

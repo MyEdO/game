@@ -637,7 +637,7 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             dés d'une partie que le pont Godot ouvre ou charge, brouillon de création, générateur de
                             nom —, id d'entité unique d'un projet à l'autre `idDEntropie` : scène, carte, projet, lieu,
                             trajet, héros de roster, que `emptyScene(id)`/`emptyWorldMap(id)` reçoivent de l'hôte ;
-                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` (`partieDeTest.ts`) reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store

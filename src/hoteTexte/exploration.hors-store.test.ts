@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lireLeFichier, ligneDuFichier, rejouer } from './partieTexte';
-import { nouvelEntete } from '../hote/partie';
+import { nouvelEntete } from '../hote/partieDeTest';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../noyau/index';
 import { testScenarios } from '../scenes/test-scenarios';

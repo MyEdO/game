@@ -3,7 +3,6 @@
 les deux lames en croissant dans le plan de la hampe et du tranchant (+Z), biseautées vers le fil, la tige, la bague et
 la pointe d'estoc ; au milieu de chaque face du champ du collet, le cartouche de l'emblème ; le gland cannelé pendu
 sous la douille, autour de la hampe (`donnees.py`)."""
-import math
 
 import numpy as np
 from anatomie import AXE_DANS_LA_PRISE
@@ -58,25 +57,10 @@ def gland(m, D, centre_y):
     cu, cw = AXE_DANS_LA_PRISE
     n = G['segments']
     haut, bas = centre_y + G['haut'], centre_y + G['bas']
-    sommets, faces, rangees = [(cu, haut, cw)], [], []
-    for k, (s, r) in enumerate(G['rayons']):
-        y = haut + s * (bas - haut)
-        rangee = []
-        for j in range(n):
-            t = 2 * math.pi * j / n
-            rj = r * (G['cannelure'] if j % 2 and k > 1 else 1.0)
-            yj = y + (G['frange'] if j % 2 and s == 1.0 else 0.0)
-            rangee.append(len(sommets))
-            sommets.append((cu + rj * math.cos(t), yj, cw + rj * math.sin(t)))
-        rangees.append(rangee)
-    sommets.append((cu, bas + G['frange'] / 2, cw))
-    for j in range(n):
-        j2 = (j + 1) % n
-        faces.append([0, rangees[0][j2], rangees[0][j]])
-        for A, B in zip(rangees, rangees[1:]):
-            faces.append([A[j], A[j2], B[j2], B[j]])
-        faces.append([rangees[-1][j], rangees[-1][j2], len(sommets) - 1])
-    m.ajouter(sommets, faces, 'gland')
+    rangees = [([haut + s * (bas - haut) + (G['frange'] if j % 2 and s == 1.0 else 0.0) for j in range(n)],
+                [r * (G['cannelure'] if j % 2 and k > 1 else 1.0) for j in range(n)])
+               for k, (s, r) in enumerate(G['rayons'])]
+    tour(m, [(haut, 0), *rangees, (bas + G['frange'] / 2, 0)], 'y', (cu, 0.0, cw), n, 'gland')
 
 
 def champ(m, C, cu, cw, yc):
@@ -92,7 +76,7 @@ def champ(m, C, cu, cw, yc):
     def face(q, mat, uv=None):
         m.f.append(q)
         m.m.append(noms.index(mat))
-        m.uv.append(uv or [(0.0, 0.0)] * len(q))
+        m.uv.append(uv)
 
     # Sur chaque face, la grille 4 × 4 (h, r) ; sa case du milieu est le cartouche.
     debuts = {}

@@ -35,11 +35,12 @@ from mathutils import Vector
 from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
-from formes import decalages, poser_la_cle
+from formes import decalages_monde, noms_des_cles, poser_la_cle
+from maille import revolution
 from noms_formes_de_tete import VISAGE_INVERSE
+from tente import HAUT
 from tissu import Maillage, direction_spatiale, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur
 
-POLE = np.array([0.0, 0.0, 1.0])
 PORTEE_M = 0.30
 """Départ des visées du crâne, au-delà de toute forme d'une tête."""
 PAS_M = 0.0008
@@ -298,21 +299,9 @@ def _repere(axe, normale):
 
 
 def sphere(M, centre, rayon, cotes, rangs, partie):
-    """Sphère UV ; rend ses sommets."""
-    haut = M.ajouter([centre + rayon * POLE], partie)[0]
-    anneaux = []
-    for k in range(1, rangs):
-        t = math.pi * k / rangs
-        anneaux.append(M.ajouter([centre + rayon * np.array([math.sin(t) * math.cos(2 * math.pi * j / cotes),
-                                                               math.sin(t) * math.sin(2 * math.pi * j / cotes),
-                                                               math.cos(t)]) for j in range(cotes)], partie))
-    bas = M.ajouter([centre - rayon * POLE], partie)[0]
-    for j in range(cotes):
-        M.triangle(haut, anneaux[0][j], anneaux[0][(j + 1) % cotes], centre)
-        M.triangle(bas, anneaux[-1][j], anneaux[-1][(j + 1) % cotes], centre)
-    for A, B in zip(anneaux[:-1], anneaux[1:]):
-        M.bande(A, B, centre)
-    return [haut, bas] + [i for A in anneaux for i in A]
+    """Sphère UV (`revolution`) ; rend ses sommets."""
+    profil = [(rayon * math.cos(math.pi * k / rangs), rayon * math.sin(math.pi * k / rangs)) for k in range(1, rangs)]
+    return M.ajouter_faces(*revolution([(rayon, 0), *profil, (-rayon, 0)], 'z', centre, cotes), partie, centre)
 
 
 def _section(centre, u, v, demi_u, demi_v, cotes, creux=0.0):
@@ -381,7 +370,7 @@ def dent(M, spec, H, partie):
     """Cône : sa pointe à `longueur` de `base` le long de `direction`, son pied, de rayon `rayon`, enfoncé d'une
     demi-longueur sous `base` ; rend ses sommets et son ancrage."""
     base = H + np.asarray(spec['base'], float)
-    a, u, v = _repere(spec['direction'], np.array([1.0, 0.0, 0.0]) if abs(spec['direction'][0]) < 0.9 else POLE)
+    a, u, v = _repere(spec['direction'], np.array([1.0, 0.0, 0.0]) if abs(spec['direction'][0]) < 0.9 else HAUT)
     return fuseau(M, [base - a * spec['longueur'] * 0.5], [(u, v, spec['rayon'], spec['rayon'], 0.0)],
                   base + a * spec['longueur'], spec['cotes'], partie), base
 
@@ -418,50 +407,56 @@ def anneau_d_oreille(M, spec, repere, partie):
     c = centre(spec['part'])
     bord = w if (c + w)[2] < (c - w)[2] else -w
     o = c + (demi_largeur(spec['part']) + spec['grand_rayon'] - spec['prise']) * bord
-    sommets = []
-    for i in range(spec['segments']):
-        u = 2 * math.pi * i / spec['segments']
-        axe = math.cos(u) * bord + math.sin(u) * n
-        anneau = M.ajouter([o + (spec['grand_rayon'] + spec['petit_rayon'] * math.cos(2 * math.pi * j / spec['cotes'])) * axe
-                            + spec['petit_rayon'] * math.sin(2 * math.pi * j / spec['cotes']) * a
-                            for j in range(spec['cotes'])], partie)
-        sommets.append((anneau, o + spec['grand_rayon'] * axe))
-    for (A, ref), (B, _) in zip(sommets, sommets[1:] + sommets[:1]):
-        M.bande(A, B, ref)
-    return [i for A, _ in sommets for i in A], o
+    R, r = spec['grand_rayon'], spec['petit_rayon']
+    section = [(r * math.sin(2 * math.pi * j / spec['cotes']), R + r * math.cos(2 * math.pi * j / spec['cotes']))
+               for j in range(spec['cotes'])]
+    return M.ajouter_faces(*revolution(section, (a, bord, n), o, spec['segments'], ferme=True), partie, o), o
 
 
 # --- clés ------------------------------------------------------------------------------------------------------------
 
-def decalages_monde(objet, nom):
-    """Les décalages de la clé `nom` de `objet`, dans le repère monde."""
-    return decalages(objet, nom) @ np.array(objet.matrix_world)[:3, :3].T
-
-
 def cles_du_corps(b, zones, X):
-    """Par silhouette déclarée de la base et par clé `gabarit_*`, le décalage de chaque sommet `X` : celui du corps de la
-    base (tout mesh qui porte une zone, yeux et sourcils compris) au point le plus proche du sommet, interpolé dans son
-    triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui approche au mieux (moindres carrés) le
-    décalage de la peau de la tête (zones `zones`). La tête s'écarte du corps de plusieurs centimètres (mâchoire d'orc
-    5 cm devant le menton) ; sous `gabarit_head_plus`, qui grandit la tête, le décalage d'un point de la peau ne vaut pas
-    celui d'un point 5 cm devant : le champ affine porte la croissance sur l'écart. `suiviDuCorps` compare au même point
-    du corps : le décalage d'un sommet ne s'en écarte que de cette croissance sur son jeu."""
+    """Par silhouette déclarée de la base et par clé `gabarit_*`, le décalage de chaque sommet `X` pris au corps de la
+    base (tout mesh qui porte une zone, yeux et sourcils compris), prolongé par le champ affine de la peau de la tête
+    (zones `zones`) ; par forme propre de la tête contournée (`Base.meshes_de_la_tete`), celui pris aux meshes de cette
+    tête et au corps qu'elle ne couvre pas, sans ces formes, prolongé par le champ affine de la tête (`au_plus_pres`).
+    `suiviDuCorps` suit le corps de la base : une clé du corps prise à la tête contournée s'en écarterait de ce que la
+    tête s'écarte du corps."""
     noms = list(b.manifeste['silhouettes']) + [k.name for k in b.zones[zones[0]].data.shape_keys.key_blocks
                                                 if k.name.startswith('gabarit_')]
+    du_corps = sorted((o for o in bpy.data.objects if o.type == 'MESH' and o.get('zone')), key=lambda o: o.name)
+    sortie = au_plus_pres(du_corps, [b.zones[z] for z in zones], noms, X)
+    de_la_tete = b.meshes_de_la_tete()
+    formes = list(dict.fromkeys(nom for o in de_la_tete for nom in b.propres(noms_des_cles(o))))
+    if formes:
+        autour = [o for o in du_corps if o.get('zone') not in b.couvre_de_la_tete]
+        sortie.update(au_plus_pres(sorted(autour + de_la_tete, key=lambda o: o.name), de_la_tete, formes, X))
+    for o in de_la_tete:
+        bpy.data.objects.remove(o, do_unlink=True)
+    return sortie
+
+
+def au_plus_pres(objets, peau, noms, X):
+    """Par clé `noms`, le décalage de chaque sommet `X` : celui de la surface jointe des `objets` au point le plus proche
+    du sommet, interpolé dans son triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui approche
+    au mieux (moindres carrés) le décalage des objets de `peau`. La tête s'écarte du corps de plusieurs centimètres
+    (mâchoire d'orc 5 cm devant le menton) ; sous `gabarit_head_plus`, qui grandit la tête, le décalage d'un point de la
+    peau ne vaut pas celui d'un point 5 cm devant : le champ affine porte la croissance sur l'écart. `suiviDuCorps`
+    compare au même point du corps : le décalage d'un sommet ne s'en écarte que de cette croissance sur son jeu."""
     P, T, champs, n = [], [], {nom: [] for nom in noms}, 0
-    de_la_tete = []
-    for o in sorted((o for o in bpy.data.objects if o.type == 'MESH' and o.get('zone')), key=lambda o: o.name):
+    de_la_peau = []
+    for o in objets:
         Mo = np.array(o.matrix_world)
         p = np.array([v.co for v in o.data.vertices]) @ Mo[:3, :3].T + Mo[:3, 3]
         o.data.calc_loop_triangles()
         P.append(p)
         T.append(np.array([t.vertices[:] for t in o.data.loop_triangles]) + n)
-        de_la_tete.append(np.full(len(p), o in [b.zones[z] for z in zones]))
+        de_la_peau.append(np.full(len(p), o in peau))
         n += len(p)
         cles = o.data.shape_keys.key_blocks if o.data.shape_keys else {}
         for nom in noms:
             champs[nom].append(decalages_monde(o, nom) if nom in cles else np.zeros_like(p))
-    P, T, de_la_tete = np.concatenate(P), np.concatenate(T), np.concatenate(de_la_tete)
+    P, T, de_la_peau = np.concatenate(P), np.concatenate(T), np.concatenate(de_la_peau)
     porteur = porteur_de(P, T, np.zeros((len(P), 1)))
     lies, proches = [], []
     for x in X:
@@ -474,12 +469,12 @@ def cles_du_corps(b, zones, X):
         bv, bw = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
         lies.append((T[face], np.array([1 - bv - bw, bv, bw])))
         proches.append(point)
-    homogenes = np.column_stack([P, np.ones(len(P))])[de_la_tete]
+    homogenes = np.column_stack([P, np.ones(len(P))])[de_la_peau]
     ecarts = X - np.array(proches)
     sortie = {}
     for nom in noms:
         champ = np.concatenate(champs[nom])
-        lineaire = np.linalg.lstsq(homogenes, champ[de_la_tete], rcond=None)[0][:3]
+        lineaire = np.linalg.lstsq(homogenes, champ[de_la_peau], rcond=None)[0][:3]
         sortie[nom] = np.array([(champ[t] * w[:, None]).sum(0) for t, w in lies]) + ecarts @ lineaire
     return sortie
 
@@ -502,7 +497,7 @@ def construire(D, materiaux, b):
     E = elevation_de_la_couture(S, C, phis)
     rangs = np.asarray(D['RANGS'], float)
 
-    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [POLE]])
+    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [HAUT]])
     r_forme = rayons_vises(C - H, dirs, vols)
     r_inverse = rayons_vises(C - H, dirs, vols_inverses)
     porteur = b.porteur(zones)

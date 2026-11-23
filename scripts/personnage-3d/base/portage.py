@@ -17,12 +17,12 @@ import numpy
 
 from anatomie import cote_de_l_os, zone_de_l_os
 from poids import peau_lineaire
+from tente import HAUT
 
 OS_DES_SILHOUETTES = 'osDesSilhouettes'
 """Le champ du manifeste et la propriété personnalisée de l'armature qui portent la table locale par silhouette."""
 TRONC = ('torse', 'hanches', 'cou')
 """Les zones (`zone_de_l_os`) dont l'axe de chair est la verticale monde."""
-VERTICALE = numpy.array([0.0, 0.0, 1.0])
 
 
 def projete(axe, p):
@@ -42,7 +42,7 @@ def axes_de_chair(squelette, corps):
     propres = {}
     for i, b in enumerate(squelette.data.bones):
         if masse[i] > 0:
-            direction = (VERTICALE if zone_de_l_os(b.name) in TRONC
+            direction = (HAUT if zone_de_l_os(b.name) in TRONC
                          else monde @ numpy.array(b.tail_local - b.head_local))
             propres[b.name] = ((w[:, i] @ x) / masse[i], direction / numpy.linalg.norm(direction))
     axes = {}

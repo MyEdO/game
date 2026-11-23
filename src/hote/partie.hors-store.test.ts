@@ -3,7 +3,8 @@
  * se numérote dans l'ordre d'arrivée et se reprend une fois par son numéro ; un scénario se nomme par son id du catalogue.
  */
 import { describe, it, expect } from 'vitest';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, scenarioDeTest, tenueDesJetons } from './partie';
+import { ErreurDeGeste, tenueDesJetons } from './partie';
+import { nouvelEntete, ouvrirLaPartie, scenarioDeTest } from './partieDeTest';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { PREFERENCES } from '../noyau/preferences';
 import { t } from '../i18n';

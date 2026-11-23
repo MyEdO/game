@@ -1405,30 +1405,26 @@ export function emplacementDeCape(items: ItemInstance[]): EmplacementPorte {
 }
 
 /**
- * PA portés par localisation, dérivés des pièces équipées. Une seule pièce compte par localisation
- * (la meilleure), SAUF Flexible (LDB 63) : « peut être portée sous une couche d'armure non
- * Flexible […] vous gagnez les bénéfices des deux » → meilleure pièce rigide + meilleure pièce
- * Flexible se CUMULENT. `exclude` retire des pièces du calcul (PA ignorés par la touche —
- * Partielle/Points faibles, cf. `ignoredArmourAP`).
+ * PA portés par localisation : somme, par couche (`armourLayer`), de la meilleure pièce équipée.
+ * LDB 63 l.60, l.74 ; #4820. `exclude` retire des pièces du calcul (`ignoredArmourAP`).
  */
 export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInstance) => boolean): ArmourPoints {
-  const rigid = emptyArmour();
-  const flex = emptyArmour();
+  const couches: Record<ArmourLayer, ArmourPoints> = { souple: emptyArmour(), flexible: emptyArmour(), rigide: emptyArmour() };
   for (const it of items) {
     if (!it.equipped || it.kind !== 'armor' || !it.pa || !it.locs || it.destroyed) continue;
     if (exclude?.(it)) continue;
     const net = paNette(it);
-    const layer = hasQuality(it, 'flexible') ? flex : rigid;
-    for (const l of it.locs) layer[l] = Math.max(layer[l], net);
+    const couche = couches[armourLayer(it)];
+    for (const l of it.locs) couche[l] = Math.max(couche[l], net);
   }
   const armour = emptyArmour();
-  for (const l of Object.keys(armour) as HitLocation[]) armour[l] = rigid[l] + flex[l];
+  for (const l of Object.keys(armour) as HitLocation[]) armour[l] = couches.souple[l] + couches.flexible[l] + couches.rigide[l];
   return armour;
 }
 
 /**
  * PA portés à `loc` IGNORÉS par cette touche : LDB 63 l.86 (Partielle), l.90 (Points faibles).
- * Différence entre les PA dérivés avec et sans les pièces ignorées (gère la superposition Flexible).
+ * Différence entre les PA dérivés avec et sans les pièces ignorées.
  */
 export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: number; critical: boolean; empaleuse: boolean }): number {
   const items = c.items ?? [];

@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import { clockLabel } from '../engine/duration';
-import { routeDistanceLabel, travelModeLabels } from '../engine/travel';
+import { distanceDeRoute, libelleDeDistance, travelModeLabels } from '../engine/travel';
 import { elision, t } from '../i18n';
 import { fenetreDuJeu } from './combatAuto';
 
@@ -34,8 +34,8 @@ export function recitEnVue(s: Jeu): RecitEnVue | null {
   const issue = r.then ? 'embuscade' : r.status === 'arrived' ? 'arrivee' : r.status === 'interrupted' ? 'interruption' : 'arret';
   const reste = Math.max(0, Math.round(r.km - r.kmDone));
   const route = [
-    t('trm.route', { de: elision('de', r.fromLabel), depart: r.fromLabel, vers: r.toLabel, distance: routeDistanceLabel(r.km, mer), mode: travelModeLabels()[r.mode].toLowerCase() }),
-    ...(r.status === 'arrived' ? [] : [reste > 0 ? t('trm.restants', { distance: routeDistanceLabel(reste, mer) }) : t('trm.auxPortes', { lieu: r.toLabel })]),
+    t('trm.route', { de: elision('de', r.fromLabel), depart: r.fromLabel, vers: r.toLabel, distance: libelleDeDistance(distanceDeRoute(r.km, mer)), mode: travelModeLabels()[r.mode].toLowerCase() }),
+    ...(r.status === 'arrived' ? [] : [reste > 0 ? t('trm.restants', { distance: libelleDeDistance(distanceDeRoute(reste, mer)) }) : t('trm.auxPortes', { lieu: r.toLabel })]),
   ].join(t('ecran.separateur'));
   const duree = r.status === 'arrived' && r.dureeMin ? clockLabel(r.dureeMin, { exact: true }) : undefined;
   return {
@@ -44,7 +44,7 @@ export function recitEnVue(s: Jeu): RecitEnVue | null {
     route,
     duree: duree ? t('trm.dureeVoyage', { duree }) : null,
     journees: r.status === 'arrived' ? [] : r.days.map((d, i) => ({
-      libelle: t('trm.jour', { n: i + 1, distance: routeDistanceLabel(d.kmTo - d.kmFrom, mer), heures: Math.round(d.hours) }),
+      libelle: t('trm.jour', { n: i + 1, distance: libelleDeDistance(distanceDeRoute(d.kmTo - d.kmFrom, mer)), heures: Math.round(d.hours) }),
       lignes: d.lines.map((l) => l.text),
     })),
     suite: SUITE[issue] && t(SUITE[issue]),

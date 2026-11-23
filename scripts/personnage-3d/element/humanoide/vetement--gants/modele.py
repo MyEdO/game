@@ -4,9 +4,8 @@ anneau ajusté sur la coupe de la main de la base (`donnees.py`). Une nappe simp
 par sommet puis lissés, silhouettes et clés `gabarit_*` transférées."""
 import numpy as np
 
+from tente import HAUT
 from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, repere_de_plan, voisinage
-
-HAUT = np.array([0.0, 0.0, 1.0])
 
 
 def repere(axe, signe):

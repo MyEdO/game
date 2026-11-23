@@ -18,7 +18,8 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney, fromBrass, libelleDuStatut } from '../engine/money';
 export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
-export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
+export { libelleDeDistance } from '../engine/travel';
 export { currentSeason } from '../engine/travelStages';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
@@ -122,7 +123,7 @@ export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY 
 export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { Combatant } from '../engine/types';
+export type { Combatant, ItemInstance } from '../engine/types';
 export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
@@ -130,7 +131,7 @@ export { quiTientLaMain, withActingSeat } from './netOwnership';
 export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { GUEST_INTENTS } from './intentionsDeSiege';
-export { DESIGNATIONS, type Designation } from './designations';
+export { DESIGNATIONS, type Designation, type IdDEntiteDeScene, type IdDeHeros } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, meneurDuMonde, porteurParId, PARTY_MAX } from './monde/combatants';
@@ -159,6 +160,7 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  nomDeMatiere,
   posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
@@ -331,11 +333,11 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
-export { carteEnVue, trajetsDepuis, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
+export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
-export { voyageEnVue } from './voyageEnVue';
+export { voyageEnVue, type VoyageEnVue } from './voyageEnVue';
 export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';

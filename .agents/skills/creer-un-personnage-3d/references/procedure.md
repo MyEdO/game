@@ -187,14 +187,22 @@ tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles d
 ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
 déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
 `element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
-propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
+propre n'a pas ce champ. Une pièce skinnée qui contourne une tête publiée (`CONTOURNE['tete']` de son `donnees.py`)
+en reçoit toutes les formes propres sans les demander : `Base.transferer` les prend au plus près des seuls meshes de
+cette tête, ses silhouettes et clés `gabarit_*` restant celles du corps, que suit `suiviDuCorps` ; chaque forme est
+lissée là où, sous une silhouette, une arête sort des bornes rapportée à sa longueur sous la forme seule, comme la
+mesure l'évaluateur, qui pose les formes au repos ; une pilosité, bâtie sur la peau de la tête, les copie sommet à
+sommet. Une tête republiée avec une forme neuve rend donc à reconstruire et republier chaque pièce qui la
+contourne. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
 traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
 cibles de MakeHuman lues sommet à sommet), et leur clé `feminin` ajoute à celle du corps l'écart de MakeHuman
 entre ses deux sexes. Les noms admis sont la liste fermée
 `NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
-un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
+un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur et `rendu.py` posent une forme de la tête par son
+nom (`--silhouettes`) ; sous `--preset <id>`, ils posent celles que le jeu pose au preset (`silhouettesSousLePreset`,
+`hotes/godot/asset/posesDesRanges.mjs`), une forme que `--silhouettes` nomme gardant le poids qu'il lui donne. Le
 validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
 exactement les silhouettes et les `formesDeTete` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
 la base (`shape-key-non-declaree`, `shape-key-absente`). L'hôte pose leurs poids : le preset
@@ -220,7 +228,9 @@ NON VÉRIFIÉS tant que leurs gardes et le montage ne sont pas livrés.
 lisibles à taille de jeu ; éléments indépendants et dépendances ; interfaces risquées avec leur
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
-Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
+Le modèle se compare à l'illustration directrice : il lui ressemble sans la copier, respecte la physique là où le
+dessin l'ignore, et trace en écart au contrat l'exagération d'artiste qu'il ramène à la 3D (fiche
+`user-doctrine-modele-3d-ressemble-a-l-illustration-sans-la-copier`). Un grand revers et un foulard sont des formes ;
 coutures et usure restent du détail. Chaque surface nomme sa matière (drap, laine, toile, cuir, acier, mailles,
 fourrure, bois : section 3), jamais un aplat ; ombrage flat/smooth intentionnel.
 
@@ -268,7 +278,8 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   se dessine avant le voile de son mesh (`MontageDeComposition.scene_lue`, recette `recettes/vitre-transparente.gd`) ;
   son ombre reste entière. Une vitre prend `verre` ; un verre qui ne laisse pas voir, glace d'un miroir ou
   fiole à la couleur de son contenu, `verre-opaque`.
-  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
+  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313), sa
+  triade comprise (teinte, neutre, relief ; garde `hotes/godot/asset/texture.hors-store.test.ts`, #4809) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
   « fabriquée par ImageMagick, sans image source » et son générateur, graine `-seed` comprise, en tête du traitement
@@ -288,8 +299,9 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   répétition du motif.
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
-  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
-  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
+  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2) ; une face garde les UV
+  que sa brique lui donne (`Maille.ajouter`, `uvs` : un blason sur le carré [0,1]², une plume le long de sa hampe),
+  toute autre reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
   `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
   à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
   la coiffure) nomme ses ids.
@@ -313,13 +325,22 @@ un ourlet effiloché ; `Base.nappe` pour une double nappe, `Base.nappe_simple` p
 matériaux par `teintes` ; `porteur_de` et son `arbre_de` pour une surface porteuse, visée par `viser` (résultat brut),
 `toucher` (point et normale sortante, `None` sans surface) ou `sur_le_porteur` (erreur sans surface) ;
 `Base.offrir_sur` pour offrir un emplacement sur une surface), `maille.py` pour un solide rigide (cylindre, tour à
-sections rondes ou elliptiques, boîte, tube, tore…) et pour l'aléa semé d'un id (`tirage`), `element/lame.py` pour une
+sections rondes ou elliptiques, boîte, tube, tore…), pour toute révolution d'un profil (`revolution` : sommets et faces,
+à poser dans un `Maillage` par `Maillage.ajouter_faces` ou à passer à `Base.nappe_simple`) et pour l'aléa semé d'un id
+(`tirage`), `element/lame.py` pour une
 arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
 robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
 Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
 `anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
-ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+ce qui ceint la taille sur un vêtement publié (cordelière, ceinture à boucle, ceinture large : `axe_du_corps`, `ceindre`,
+la bande de cuir `Cuir`, `boucler`, `raidir`), `element/culotte.py` pour une culotte à anneaux de jambe (haut-de-chausses
+du Soldat, haut-de-chausses ample : `table`, `coupe`, `colonnes_des_hanches`, `nappe_de_culotte`),
+`element/casque.py` pour un casque rigide sur la tête (casque du Soldat, casque à cornes : `Coque`, `rigide`, `solide`,
+`fleuron`, `offrir_le_cimier`), `element/plume.py` pour une plume rigide sur un cimier (plumet, plumet simple : `courbe`,
+`plume`, `construire`), `element/sceau.py` pour un sceau de cire et sa bande de parchemin écrite sur un porteur (sceau
+du Prêtre, du masque de cuir : le repère cylindrique `Cadre`, la nappe `Grille`, la bande en queue d'aronde `Ruban`,
+`sceau`, `encre`, `mots_d_une_ligne`, `trait`),
 `element/tete.py` pour une tête de race bâtie de volumes sur la couture du cou (orc, gobelin : un dossier ne porte que
 son `donnees.py` et `from tete import construire`), `element/tete_makehuman.py` pour une tête humanoïde tirée de la
 tête de MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées (humain, nain, haut-elfe, halfling : le
@@ -497,8 +518,8 @@ sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.m
 contournés. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
 `<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
 l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
-mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne, à son
-GLB local : la sortie le dit (`LOCAL`), cette construction ne s'importe pas. Exemple du manifeste qu'il écrit pour un rigide :
+mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne ou dont il prend
+un emplacement (`OFFRANT`, son manifeste lu au `<id>.element.json` posé à côté du GLB), à son GLB local : la sortie le dit (`LOCAL`), cette construction ne s'importe pas. Exemple du manifeste qu'il écrit pour un rigide :
 
 ```json
 {
@@ -622,7 +643,7 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
-lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
+lineup face, trois-quarts, profil et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
 (`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
 plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
