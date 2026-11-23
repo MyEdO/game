@@ -1,7 +1,7 @@
 // Les portes des presets touchés (#4814) : éléments changés, presets touchés et commandes de leur porte, sur fixtures.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { elementsChanges, portesDuPreset, presetsTouches } from './portes.mjs'
+import { elementsChanges, portesDuPreset, presetsTouches } from './portesDesPresets.mjs'
 
 const [A, B, C] = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)]
 const CAPE = 'humanoide--vetement--cape'
