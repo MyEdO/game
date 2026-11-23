@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { jouerLeCombat, jouerLEpreuve, nouvelleRecrue } from './index';
-import { EPREUVES } from '../jeu/valeurs';
+import { DIFFICULTY_LABELS } from '../../../src/engine/types';
+import { avancer, EPREUVES, nouvellePartie, partir, PROFILS, type Etat } from '../jeu';
 
 const CACHE = EPREUVES.tresor.epreuve;
-const groupe = () => [
-  nouvelleRecrue(31, 'soldat', 'humains-reiklander', 'Hans', { talent: { id: 'guerrier-ne' } }),
-  nouvelleRecrue(32, 'chasseur', 'humains-reiklander', 'Greta', { talent: { id: 'dur-a-cuire' } }),
-  nouvelleRecrue(33, 'hors-la-loi', 'humains-reiklander', 'Ulli', { talent: { id: 'vigilance' } }),
-];
+const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite);
+const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
 const GRAINE_REUSSIE = 7;
 const GRAINE_RATEE = 1;
+const GRAINE_DE_PARTIE_REUSSIE = 2;
+const GRAINE_DE_PARTIE_RATEE = 1;
 
 /** Les Blessures que la branche d'échec de la table retire, lues sur la table. */
 function blessuresDuPiege(): number {
@@ -51,5 +51,37 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
     const rendu = jouerLEpreuve(groupe(), CACHE, GRAINE_RATEE).groupe;
     const temoin = groupe().map((c, i) => ({ ...c, wounds: rendu[i].wounds }));
     expect(jouerLeCombat(rendu, ['gobelin'], 3)).toEqual(jouerLeCombat(temoin, ['gobelin'], 3));
+  });
+});
+
+/** Une partie neuve à la graine `graine`, sa compagnie partie au Reikwald, sa salle courante une cache. */
+function devantLaCache(graine: number): Etat {
+  const e = nouvellePartie(graine);
+  expect(partir(e, 'reikwald', e.roster.map((h) => h.c.id))).toBeNull();
+  e.expedition!.salles[0].type = 'tresor';
+  return e;
+}
+
+describe('avancer — la salle tresor porte son épreuve', () => {
+  it('échec : la victime avec ses Blessures avant et après, le testeur, le Test et l’or pris', () => {
+    const e = devantLaCache(GRAINE_DE_PARTIE_RATEE);
+    const avant = new Map(e.roster.map((h) => [h.c.id, h.c.wounds.current]));
+    const orAvant = e.expedition!.or;
+    const r = avancer(e).epreuve!;
+    expect(r.reussite).toBe(false);
+    expect([...avant.keys()]).toContain(r.testeur);
+    expect([r.competence, r.difficulte]).toEqual(['Perception', DIFFICULTY_LABELS.difficile]);
+    expect(r.victimes).toHaveLength(1);
+    const [v] = r.victimes;
+    const h = e.roster.find((x) => x.c.id === v.id)!;
+    expect(v).toEqual({ id: h.c.id, avant: avant.get(h.c.id), apres: h.c.wounds.current, max: h.c.wounds.max });
+    expect(v.avant - v.apres).toBe(blessuresDuPiege());
+    expect(r.or).toBe(e.expedition!.or - orAvant);
+  });
+
+  it('réussite : personne n’est touché', () => {
+    const r = avancer(devantLaCache(GRAINE_DE_PARTIE_REUSSIE)).epreuve!;
+    expect(r.reussite).toBe(true);
+    expect(r.victimes).toEqual([]);
   });
 });

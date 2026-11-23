@@ -54,7 +54,7 @@ function serviceOuvert() {
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton() : recitEnCarton(ouvert.recit, ouvert));
+const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton() : recitEnCarton(ouvert.recit, ouvert, J.herosDuGroupe(etat)));
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;

@@ -47,8 +47,7 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
 }
 
 /** Le Test d'une épreuve en clair : la Compétence (`skills.json`) et la Difficulté (`DIFFICULTY_LABELS`). */
-export function libelleDuTest(flux: FluxDEpreuve): string {
+export function partiesDuTest(flux: FluxDEpreuve): { competence: string; difficulte: string } {
   const { skill, difficulty } = flux.test;
-  const competence = skill ? skills.find((s) => s.id === skill.id)?.label ?? skill.id : '';
-  return [competence, difficulty ? DIFFICULTY_LABELS[difficulty] : ''].filter(Boolean).join(' ');
+  return { competence: skill ? skills.find((s) => s.id === skill.id)?.label ?? skill.id : '', difficulte: difficulty ? DIFFICULTY_LABELS[difficulty] : '' };
 }

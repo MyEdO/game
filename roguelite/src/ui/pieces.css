@@ -43,34 +43,41 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .bulle-du-jeu[hidden] { display: none; }
 .apercu-du-jeu { position: fixed; z-index: 50; pointer-events: none; }
 .apercu-du-jeu[hidden] { display: none; }
-.apercu-du-jeu.bois { width: max-content; max-width: calc(100vw - 12px); padding: 13px 18px 14px; color: var(--creme); box-shadow: 0 14px 30px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 0 3px var(--laiton), 0 0 0 4px var(--contour), inset 0 0 0 1px var(--filet-or), inset 0 0 30px var(--ombre); }
+/* l'aperçu de bois : posé hors de la scène, il se lit à son échelle (`--echelle`, `ajusterLaScene`) ; ses mesures en em */
+.apercu-du-jeu.bois { width: max-content; max-width: calc(100vw - 12px); padding: .8em 1.1em .85em; font-size: calc(16px * var(--echelle, 1)); line-height: 1.35; color: var(--ivoire); box-shadow: 0 14px 30px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 0 3px var(--laiton), 0 0 0 4px var(--contour), inset 0 0 0 1px var(--filet-or), inset 0 0 30px var(--ombre); }
 .apercu-du-jeu.bois::before { background: var(--chene); box-shadow: none; outline: 1px solid var(--contour); border: 2px solid var(--laiton); z-index: -1; }
 .apercu-du-jeu.bois.vers-gauche::before { left: -11px; }
 .apercu-du-jeu.bois.vers-droite::before { right: -11px; }
 .apercu-du-jeu.bois.vers-haut::before { top: -11px; }
 .apercu-du-jeu.bois.vers-bas::before { bottom: -11px; }
-.apercu-du-jeu.bois .tete .nom-propre { font-size: 21px; color: var(--or-eclat); }
-.apercu-du-jeu.bois .pied { border-top-color: var(--filet-or); color: #f0a48e; font-size: 14px; line-height: 19px; }
-.planche-apercu::before { content: ""; display: block; height: 1px; margin: 9px 0 5px; background: linear-gradient(90deg, var(--filet-or-vif), transparent); }
-.paliers-apercu { border-collapse: separate; border-spacing: 0; width: calc(100% + 20px); margin: 0 -10px; }
-.apercu .paliers-apercu th, .apercu .paliers-apercu td { padding: 7px 0; vertical-align: middle; text-align: left; font: 400 15px/20px "Spectral", serif; white-space: nowrap; color: var(--creme-2); border: solid transparent; border-width: 1px 0; }
-.apercu .paliers-apercu th { padding: 7px 18px 7px 10px; border-left-width: 1px; }
-.apercu .paliers-apercu td.prix { padding: 7px 0 7px 14px; text-align: right; }
-.apercu .paliers-apercu td.prix:nth-child(3) { padding-left: 36px; }
-.apercu .paliers-apercu td:last-child { padding-right: 10px; border-right-width: 1px; }
-.paliers-apercu .niveaux { margin: 0; vertical-align: middle; }
-.paliers-apercu .niveaux i { box-shadow: inset 0 0 0 1px var(--filet-or-vif); }
-.paliers-apercu .offre .rub { display: block; font-size: 12px; line-height: 14px; color: var(--or); }
-.paliers-apercu .cout { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
-.paliers-apercu .cout b { font-size: 15px; }
-.paliers-apercu .bati, .paliers-apercu .loin { opacity: .8; }
-.apercu .paliers-apercu .ici td.offre { color: var(--ivoire); }
-.apercu .paliers-apercu .prochain > * { border-color: var(--filet-or-vif); background: linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.07)); padding-top: 9px; padding-bottom: 10px; }
-.apercu .paliers-apercu .prochain td.offre { color: var(--ivoire); font-size: 17px; line-height: 23px; font-weight: 500; }
-.paliers-apercu .prochain .offre .rub { color: var(--or-eclat); }
-.apercu .paliers-apercu .prochain td.prix { color: var(--or-eclat); }
-.paliers-apercu .prochain .cout b { font-size: 18px; }
-.apercu .paliers-apercu .prochain td.prix.manque { color: #f0a48e; }
+.apercu-du-jeu.bois .tete { height: auto; }
+.apercu-du-jeu.bois .tete .nom-propre { font-size: 1.5em; line-height: 1.15; color: var(--or-eclat); }
+.apercu-du-jeu.bois > .sous-titre { font-size: .9em; line-height: 1.3; color: var(--creme); }
+.apercu-du-jeu.bois .pied { margin-top: .55em; padding-top: .5em; border-top-color: var(--filet-or-vif); color: #ffb9a3; font-size: 1em; line-height: 1.35; font-style: normal; font-weight: 500; }
+.planche-apercu::before { content: ""; display: block; height: 1px; margin: .55em 0 .3em; background: linear-gradient(90deg, var(--filet-or-vif), transparent); }
+.paliers-apercu { border-collapse: separate; border-spacing: 0 .3em; width: calc(100% + 1.2em); margin: 0 -.6em; }
+.apercu .paliers-apercu th, .apercu .paliers-apercu td { padding: .5em 0; vertical-align: middle; text-align: left; font: 400 1.06em/1.35 "Spectral", serif; white-space: nowrap; color: var(--ivoire); border: solid var(--filet-or); border-width: 1px 0; background: rgba(13,8,6,.38); }
+.apercu .paliers-apercu th { padding: .5em 1.1em .5em .7em; border-left-width: 1px; border-radius: 2px 0 0 2px; }
+.apercu .paliers-apercu td.prix { padding-left: 1em; text-align: right; }
+.apercu .paliers-apercu td.offre { padding-right: 1.6em; }
+.apercu .paliers-apercu td:last-child { padding-right: .8em; border-right-width: 1px; border-radius: 0 2px 2px 0; }
+.paliers-apercu .niveaux { display: flex; gap: .4em; margin: 0 0 0 .15em; }
+.paliers-apercu .niveaux i { width: .68em; height: .68em; box-shadow: inset 0 0 0 1px var(--or); }
+.paliers-apercu th .rub { display: block; margin-top: .45em; font-size: .8em; line-height: 1; color: var(--creme); }
+.paliers-apercu th .rub:empty { display: none; }
+.paliers-apercu .apport { display: flex; align-items: center; gap: .55em; }
+.paliers-apercu .apport > svg { flex: none; width: 1.25em; height: 1.25em; color: var(--or); }
+.paliers-apercu .apport b { font-size: 1.14em; font-weight: 700; color: var(--or-eclat); }
+.paliers-apercu .cout { display: inline-flex; align-items: center; gap: .35em; vertical-align: middle; color: var(--or-eclat); }
+.paliers-apercu .cout svg, .paliers-apercu .acquis svg { width: 1.25em; height: 1.25em; }
+.paliers-apercu .cout b { font-size: 1.12em; }
+.apercu .paliers-apercu td.acquis { color: var(--vert-clair); }
+.apercu .paliers-apercu .ici > * { background: rgba(243,230,198,.1); border-color: var(--creme-2); }
+.apercu .paliers-apercu .prochain > * { border-color: var(--or-eclat); background: linear-gradient(180deg, rgba(226,192,106,.3), rgba(226,192,106,.12)); padding-top: .7em; padding-bottom: .7em; }
+.paliers-apercu .prochain th .rub { color: var(--or-eclat); }
+.apercu .paliers-apercu .prochain td.offre { font-size: 1.2em; font-weight: 500; }
+.paliers-apercu .prochain .cout b { font-size: 1.3em; }
+.apercu .paliers-apercu .prochain td.prix.manque .cout { color: #ffb9a3; }
 @media (max-width: 700px) { .apercu .paliers-apercu td.offre { white-space: normal; } }
 .apercu-du-jeu .corps-apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 14; overflow: hidden; margin-top: 4px; }
 .apercu-du-jeu .corps-apercu p { margin: 0 0 4px; font-style: normal; font-size: 13.5px; line-height: 18px; color: var(--encre); }

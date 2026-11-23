@@ -40,12 +40,38 @@
 .place-carton[data-place="gestes"] > .gestes { height: 100%; justify-content: center; }
 .recit { display: grid; gap: 6px; font-size: 15.5px; line-height: 21px; }
 .recit.defaite p:first-child { color: var(--sang); }
+/* l'épreuve en pièces : le Test et son sceau, le touché et sa jauge, la bourse ; dessous, ce qu'il advient */
+.recit.epreuve { gap: 10px; }
+.pieces-epreuve { display: flex; gap: 10px; align-items: stretch; }
+.piece-epreuve { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; height: 108px; box-sizing: border-box; padding: 10px 14px 10px 12px; border-radius: 3px; background: rgba(255,246,218,.38); box-shadow: inset 0 0 0 1px var(--trait-encre), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.test { flex: 1 1 auto; }
+.piece-epreuve:not(.test) { flex: none; }
+.piece-epreuve .dit { min-width: 0; overflow: hidden; display: grid; gap: 5px; align-content: center; }
+.piece-epreuve .rub { font-size: 14px; }
+.piece-epreuve .nom-propre { font-size: 21px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.piece-epreuve .issue { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.piece-epreuve .issue .etiquette { height: 24px; padding: 0 11px; font-size: 15px; }
+.piece-epreuve.reussi .issue .etiquette { border-color: var(--vert-sombre); background: linear-gradient(180deg, var(--vert-clair), var(--vert)); }
+.piece-epreuve .difficulte { font-size: 15px; color: var(--encre-2); }
+.piece-epreuve .marque-dr { flex: none; display: grid; justify-items: center; gap: 3px; }
+.piece-epreuve .marque-dr .rub { font-size: 13px; line-height: 14px; }
+.piece-epreuve.touche { box-shadow: inset 0 0 0 2px var(--sang), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.touche .dit { min-width: 128px; }
+.piece-epreuve.touche .jauge { height: 10px; }
+.piece-epreuve .reste { font-size: 15px; line-height: 20px; color: var(--encre-2); }
+.piece-epreuve .reste b { font-size: 19px; color: var(--sang); }
+.piece-epreuve.bourse { box-shadow: inset 0 0 0 2px var(--laiton), 0 2px 5px rgba(70,45,20,.25); background: rgba(201,161,74,.26); }
+.piece-epreuve .somme { display: flex; align-items: baseline; gap: 6px; font: 22px/38px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--sepia); white-space: nowrap; }
+.piece-epreuve .somme svg { align-self: center; }
+.piece-epreuve .somme b { font-size: 32px; letter-spacing: 0; }
+.recit.epreuve > p { font-style: italic; font-size: 16.5px; line-height: 22px; }
 @media (max-width: 899px) {
   .carton > .fond { display: grid; gap: 10px; padding: 26px 14px 14px; }
   .place-carton { position: static; width: auto !important; height: auto !important; }
   .place-carton[data-place="vignette"] { display: none; }
   .place-carton[data-place="tete"] { flex-wrap: wrap; white-space: normal; }
   .place-carton[data-place="texte"] { overflow: visible; }
+  .pieces-epreuve { flex-direction: column; }
   .ecran-plein.lieu .scene-fixe:has(.carton) { max-height: 82dvh; }
 }
 .socle-compagnie.a-choisir { box-shadow: 0 0 0 2px var(--laiton), 0 0 22px var(--halo-vif); }

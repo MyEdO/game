@@ -127,6 +127,7 @@
 
 /* les paliers, les tombes, la chronique */
 .palier .niveaux { margin-top: 6px; }
+.palier .apport { display: block; }
 .palier.courant { background: rgba(201,161,74,.26); box-shadow: inset 0 0 0 2px var(--laiton); }
 .palier > .sous-titre { margin-top: auto; }
 .corps-service.tombes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-content: start; }

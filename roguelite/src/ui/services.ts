@@ -40,24 +40,30 @@ function manqueAuPalier(e: J.Etat, b: J.Batiment): string | null {
   return manque.length ? `Il manque ${manque.join(' et ')}.` : null;
 }
 
+/** Ce qu'apporte un palier : un apport par ligne, son chiffre en marque ; `avecPicto` : son pictogramme l'ouvre. */
+const apports = (p: J.Batiment['paliers'][number], avecPicto = false) => p.apports.map(({ picto: icone, chiffre, texte }) => {
+  const marque = chiffre ? esc(texte).replace(esc(chiffre), () => `<b class="chiffres">${esc(chiffre)}</b>`) : esc(texte);
+  return `<span class="apport">${avecPicto ? picto(icone, 20, 1.6) : ''}<span>${marque}</span></span>`;
+}).join('');
+
 /** Le prix d'un palier en deux cases du tableau, ses couronnes puis ses trophées, chacune à son pictogramme ; `e` :
  *  ce que la bourse ne couvre pas se dit en rouge. */
 const prixDuPalier = (p: J.Batiment['paliers'][number], e?: J.Etat) => {
-  const cout = (n: number, icone: string, dit: string, avoir?: number) => `<td class="prix${avoir != null && avoir < n ? ' manque' : ''}">${n ? `<span class="cout" aria-label="${n} ${dit}">${picto(icone, 18, 1.7)}<b class="chiffres">${n}</b></span>` : ''}</td>`;
+  const cout = (n: number, icone: string, dit: string, avoir?: number) => `<td class="prix${avoir != null && avoir < n ? ' manque' : ''}">${n ? `<span class="cout" aria-label="${n} ${dit}">${picto(icone, 20, 1.7)}<b class="chiffres">${n}</b></span>` : ''}</td>`;
   return cout(p.cout, 'pieces', 'CO', e?.or) + cout(p.trophees, 'crane', p.trophees > 1 ? 'trophées' : 'trophée', e?.trophees);
 };
 
 /** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang
- *  en losanges, ce qu'il offre et son prix, l'actuel dit « ici », le prochain mis en avant ; au pied, ce qui manque
- *  pour bâtir. */
+ *  en losanges et son état (départ, bâti, ici, prochain), ses apports à leur pictogramme, puis son prix tant qu'il
+ *  reste à payer, la coche une fois payé ; le prochain est encadré ; au pied, ce qui manque pour bâtir. */
 function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
   const refus = manqueAuPalier(e, b);
   const lignes = b.paliers.map((p, i) => {
-    const prochain = i === n + 1;
-    return `<tr class="${i < n ? 'bati' : i === n ? 'ici' : prochain ? 'prochain' : 'loin'}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}</th>
-      <td class="offre">${i === n ? '<span class="rub">Ici</span>' : prochain ? '<span class="rub">Prochain palier</span>' : ''}${esc(p.effet)}</td>
-      ${i === 0 ? '<td class="prix" colspan="2"><span class="sous-titre">de départ</span></td>' : prixDuPalier(p, prochain ? e : undefined)}</tr>`;
+    const etat = i < n ? 'bati' : i === n ? 'ici' : i === n + 1 ? 'prochain' : 'loin';
+    return `<tr class="${etat}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}<span class="rub">${{ bati: i ? 'Bâti' : 'Départ', ici: 'Ici', prochain: 'Prochain', loin: '' }[etat]}</span></th>
+      <td class="offre">${apports(p, true)}</td>
+      ${i <= n ? `<td class="prix acquis" colspan="2">${i ? picto('coche', 20, 2) : ''}</td>` : prixDuPalier(p, etat === 'prochain' ? e : undefined)}</tr>`;
   }).join('');
   return apercuDe({
     nom: b.nom, nature: `Palier ${n + 1} sur ${b.paliers.length}${J.enRuine(e.batiments, b.id) ? ' · en ruine' : ''}`,
@@ -83,7 +89,7 @@ function teteDuBatiment(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
   const paliers = apercuDesPaliers(e, b);
   return `<div class="enseigne-service"${paliers}>${medaillon(PICTO_DU_BATIMENT[b.id], 'moyen', J.enRuine(e.batiments, b.id))}<div><div class="nom-propre petit gothique">Palier ${n + 1} sur ${b.paliers.length}</div>${niveaux(n, b.paliers.length)}</div></div>
-    <div class="paliers"><p class="effet-actuel"${paliers}>${esc(b.paliers[n].effet)}</p></div>
+    <div class="paliers"><p class="effet-actuel"${paliers}>${esc(J.phraseDuPalier(b.paliers[n]))}</p></div>
     ${b.paliers[n + 1] ? batir(e, b) : '<span class="etiquette rectangle or">Achevé</span>'}`;
 }
 
@@ -251,7 +257,7 @@ function pageDuCartographe({ e }: Lecture): Page {
 function paliers(e: J.Etat, id: J.IdBatiment): string {
   const b = J.BATIMENTS.find((x) => x.id === id)!;
   const n = e.batiments[id];
-  return b.paliers.map((p, i) => `<article class="carte-service palier${i === n ? ' courant' : i > n ? ' clos' : ''}">${vignette(PICTO_DU_BATIMENT[id], i > n)}${niveaux(i, b.paliers.length)}<p class="effet">${esc(p.effet)}</p>
+  return b.paliers.map((p, i) => `<article class="carte-service palier${i === n ? ' courant' : i > n ? ' clos' : ''}">${vignette(PICTO_DU_BATIMENT[id], i > n)}${niveaux(i, b.paliers.length)}<p class="effet">${apports(p)}</p>
     ${i <= n ? `<span class="sous-titre">${i === n ? 'aujourd’hui' : 'bâti'}</span>` : i === n + 1 ? batir(e, b) : `<span class="sous-titre">${p.cout} CO${p.trophees ? ` · ${pluriel(p.trophees, 'trophée')}` : ''}</span>`}</article>`).join('');
 }
 

@@ -1,7 +1,7 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { jouerLeCombat, jouerLEpreuve, libelleDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
+import { jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
 
 import { DESTINATIONS, EPREUVES, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
@@ -78,7 +78,13 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   return r.journal.slice(-2).join(' ');
 }
 
-export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes' }
+/** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id), le Test, son issue et ses DR, chaque héros touché et ses
+ *  Blessures avant et après, l'or pris. */
+export interface EpreuveDuRecit {
+  testeur: string; competence: string; difficulte: string; reussite: boolean; dr: number;
+  victimes: { id: string; avant: number; apres: number; max: number }[]; or: number;
+}
+export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit }
 
 /** Franchit la salle courante. Chaque salle prend une journée. */
 export function avancer(e: Etat): RecitDeSalle {
@@ -101,15 +107,16 @@ export function avancer(e: Etat): RecitDeSalle {
       if (h) h.c = apres;
     }
     const testeur = groupe.find((h) => h.c.id === r.testeur)?.c.label ?? r.testeur;
-    const blesses = r.groupe.filter((c) => c.wounds.current < (avant.get(c.id) ?? c.wounds.current));
+    const { competence, difficulte } = partiesDuTest(cache.epreuve.flux);
+    const touches = r.groupe.filter((c) => c.wounds.current < (avant.get(c.id) ?? c.wounds.current));
     const or = d.or + rng.int(0, d.or);
     x.or += or;
     recit = { titre: cache.titre, lignes: [
-      `${testeur} — Test de ${libelleDuTest(cache.epreuve.flux)} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
+      `${testeur} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
       r.reussite ? cache.repere : cache.declenche,
-      ...blesses.map((c) => `${c.label} est touché·e : ${c.wounds.current}/${c.wounds.max} Blessures.`),
+      ...touches.map((c) => `${c.label} est touché·e : ${c.wounds.current}/${c.wounds.max} Blessures.`),
       `La bourse cachée est prise : ${or} CO.`,
-    ] };
+    ], epreuve: { testeur: r.testeur, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes: touches.map((c) => ({ id: c.id, avant: avant.get(c.id)!, apres: c.wounds.current, max: c.wounds.max })), or } };
   } else {
     const combattants = groupe.filter(valide);
     const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));

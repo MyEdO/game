@@ -2,7 +2,7 @@
  * Le hameau : bâtir, engager, renvoyer.
  */
 
-import { BATIMENTS, IdBatiment, nomDeCarriere } from './valeurs';
+import { BATIMENTS, IdBatiment, nomDeCarriere, phraseDuPalier } from './valeurs';
 import { Etat, renouvelerLesCandidats } from './etat';
 import { noter } from './outils';
 
@@ -18,7 +18,7 @@ export function ameliorer(e: Etat, id: IdBatiment): string | null {
   if (e.or < p.cout) return `Il faut ${p.cout} CO.`;
   if (e.trophees < p.trophees) return `Il faut ${p.trophees} trophée(s).`;
   e.or -= p.cout; e.trophees -= p.trophees; e.batiments[id]++;
-  noter(e, `${BATIMENTS.find((b) => b.id === id)!.nom} : ${p.effet}.`);
+  noter(e, `${BATIMENTS.find((b) => b.id === id)!.nom} : ${phraseDuPalier(p)}.`);
   if (id === 'relais') renouvelerLesCandidats(e);
   return null;
 }

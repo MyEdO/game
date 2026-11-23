@@ -10,10 +10,10 @@ import { ficheDuSort, nomDeCreature } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
-import { medaillon, plaque, rondMuet } from '../kit';
+import { jauge, medaillon, picto, plaque, portrait, rondMuet } from '../kit';
 import type { Vignette } from '../vignettes';
 import { CADRES, CADRES_DE_L_HOTE, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
-import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
+import { busteDuHeros, cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
@@ -146,11 +146,30 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, carte: string): str
   return `<div class="ecran expedition">${tableau(d.id, groupe, 'fond-expe')}${scene}</div>`;
 }
 
-/** Le récit d'une salle franchie, ou du retour, en carton ; la défaite colore sa première ligne. */
-export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: Vignette; surTitre: string }): string {
+/** Le récit d'une épreuve en pièces : le Test (qui le passe, sa Compétence et sa Difficulté, son issue et ses DR au sceau
+ *  de cire), chaque touché à son portrait, ses Blessures avant et après et sa vie restante en jauge, la bourse prise en
+ *  couronnes ; dessous, ce qu'il advient du piège. */
+function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
+  const qui = (id: string) => heros.find((h) => h.c.id === id)!;
+  const dr = `${x.dr >= 0 ? '+' : '−'}${Math.abs(x.dr)}`;
+  const piece = (classe: string, marque: string, rub: string, corps: string) => `<article class="piece-epreuve ${classe}">${marque}<div class="dit"><span class="rub">${rub}</span>${corps}</div></article>`;
+  let pieces = piece(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
+    `<span class="nom-propre moyen gothique">${esc(qui(x.testeur).c.label)}</span><span class="issue"><span class="etiquette rectangle cire">${x.reussite ? 'Réussi' : 'Raté'}</span>${x.difficulte ? `<span class="difficulte">${esc(x.difficulte)}</span>` : ''}</span>`);
+  for (const v of x.victimes) {
+    const h = qui(v.id);
+    pieces += piece('touche', portrait(busteDuHeros(h), 'heros', 'moyen'), 'Touché·e', `<span class="nom-propre moyen gothique">${esc(h.c.label)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
+  }
+  pieces += piece('bourse', '', 'Bourse cachée', `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">+${x.or}</b> CO</span>`);
+  const piege = x.reussite ? J.EPREUVES.tresor.repere : J.EPREUVES.tresor.declenche;
+  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(piege)}</p></div>`;
+}
+
+/** Le récit d'une salle franchie, ou du retour, en carton : une épreuve en pièces (`heros` : le groupe, qui lui donne
+ *  ses noms et ses portraits), tout autre récit en lignes ; la défaite colore sa première ligne. */
+export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: Vignette; surTitre: string }, heros: readonly J.Heros[]): string {
   return carton({
     ruban: o.ruban, vignette: o.vignette, titre: r.titre, surTitre: o.surTitre,
-    texte: `<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`,
+    texte: r.epreuve ? epreuveEnPieces(r.epreuve, heros) : `<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`,
     gestes: `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
   });
 }

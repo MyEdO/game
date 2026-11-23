@@ -93,6 +93,8 @@ export function ajusterLaScene(): void {
   document.querySelectorAll<HTMLElement>('.scene-fixe').forEach(ajuster);
   // Le décor des lieux s'arrête au haut du socle (`--bas`, en pixels de l'écran).
   document.documentElement.style.setProperty('--bas', `${window.innerWidth < 900 ? 0 : Math.round((720 - CADRES.socle[1]) * echelleDeLaScene())}px`);
+  // Les survols de bois, posés hors de la scène, se lisent à son échelle (`--echelle`).
+  document.documentElement.style.setProperty('--echelle', String(echelleDeLaScene()));
 }
 
 /** L'échelle de la scène fixe sur l'écran (1 sous 900 px de large, où les cadres s'empilent). */

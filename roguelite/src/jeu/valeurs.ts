@@ -7,47 +7,52 @@ import { profil } from './outils';
 
 export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage' | 'memorial';
 
-export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: { cout: number; trophees: number; effet: string }[] }
+/** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
+export interface Apport { picto: string; chiffre?: string; texte: string }
+export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: { cout: number; trophees: number; apports: Apport[] }[] }
+/** Ce qu'apporte un palier, en une phrase : ses apports joints. */
+export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.apports.map((a) => a.texte).join(' ; ');
+const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues et provisions', paliers: [
-    { cout: 0, trophees: 0, effet: '2 candidats ; potions de guérison' },
-    { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de vitalité' },
-    { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite' },
+    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('fiole', 'potions de guérison')] },
+    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('fiole', 'potions de vitalité')] },
+    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4')] },
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins et chirurgie', paliers: [
-    { cout: 0, trophees: 0, effet: 'Fermée : seuls les héros restés au hameau se reposent' },
-    { cout: 80, trophees: 0, effet: 'Soins à 15 CO ; les sœurs pansent les plaies à l’hospice' },
-    { cout: 220, trophees: 1, effet: 'Soins à 5 CO ; un chirurgien opère ; Larmes de Shallya' },
-    { cout: 450, trophees: 2, effet: 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus' },
+    { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : seuls les héros restés au hameau se reposent')] },
+    { cout: 80, trophees: 0, apports: [apport('soin', 'Soins à 15 CO', '15 CO'), apport('lit', 'les sœurs pansent les plaies à l’hospice')] },
+    { cout: 220, trophees: 1, apports: [apport('soin', 'Soins à 5 CO', '5 CO'), apport('soin', 'un chirurgien opère'), apport('fiole', 'Larmes de Shallya')] },
+    { cout: 450, trophees: 2, apports: [apport('soin', 'Soins gratuits, hospice à moitié prix, +1 Destin à qui n’en a plus', '+1')] },
   ] },
   { id: 'salle', nom: 'Salle d’armes', role: 'Carrières', paliers: [
-    { cout: 0, trophees: 0, effet: 'Fermée : les PX attendent' },
-    { cout: 100, trophees: 0, effet: 'Avancements, jusqu’au niveau 2 de carrière' },
-    { cout: 260, trophees: 1, effet: 'Jusqu’au niveau 3 de carrière' },
-    { cout: 500, trophees: 2, effet: 'Jusqu’au niveau 4 de carrière' },
+    { cout: 0, trophees: 0, apports: [apport('epee', 'Fermée : les PX attendent')] },
+    { cout: 100, trophees: 0, apports: [apport('epee', 'Avancements, jusqu’au niveau 2 de carrière', 'niveau 2')] },
+    { cout: 260, trophees: 1, apports: [apport('epee', 'Jusqu’au niveau 3 de carrière', 'niveau 3')] },
+    { cout: 500, trophees: 2, apports: [apport('epee', 'Jusqu’au niveau 4 de carrière', 'niveau 4')] },
   ] },
   { id: 'forge', nom: 'Forge', role: 'Armes et armures', paliers: [
-    { cout: 0, trophees: 0, effet: 'Armes communes, armure légère' },
-    { cout: 110, trophees: 0, effet: 'Lames et arcs de guerre, armure moyenne' },
-    { cout: 280, trophees: 1, effet: 'Armes lourdes, arc long, armure lourde' },
+    { cout: 0, trophees: 0, apports: [apport('hache', 'Armes communes, armure légère')] },
+    { cout: 110, trophees: 0, apports: [apport('hache', 'Lames et arcs de guerre, armure moyenne')] },
+    { cout: 280, trophees: 1, apports: [apport('hache', 'Armes lourdes, arc long, armure lourde')] },
   ] },
   { id: 'cartographe', nom: 'Cartographe', role: 'Destinations', paliers: [
-    { cout: 0, trophees: 0, effet: 'La lisière du Reikwald' },
-    { cout: 150, trophees: 1, effet: 'Ouvre les Tertres de Grisefosse' },
-    { cout: 320, trophees: 2, effet: 'Ouvre la Clairière des hardes' },
-    { cout: 600, trophees: 3, effet: 'Ouvre l’Autel du Chaos' },
+    { cout: 0, trophees: 0, apports: [apport('carte', 'La lisière du Reikwald')] },
+    { cout: 150, trophees: 1, apports: [apport('carte', 'Ouvre les Tertres de Grisefosse')] },
+    { cout: 320, trophees: 2, apports: [apport('carte', 'Ouvre la Clairière des hardes')] },
+    { cout: 600, trophees: 3, apports: [apport('carte', 'Ouvre l’Autel du Chaos')] },
   ] },
   { id: 'peage', nom: 'Péage du pont', role: 'Revenu', paliers: [
-    { cout: 0, trophees: 0, effet: 'Ruiné : aucun revenu' },
-    { cout: 90, trophees: 0, effet: '+10 CO par expédition qui franchit une salle' },
-    { cout: 240, trophees: 1, effet: '+25 CO' },
-    { cout: 480, trophees: 2, effet: '+50 CO' },
+    { cout: 0, trophees: 0, apports: [apport('pieces', 'Ruiné : aucun revenu')] },
+    { cout: 90, trophees: 0, apports: [apport('pieces', '+10 CO par expédition qui franchit une salle', '+10 CO')] },
+    { cout: 240, trophees: 1, apports: [apport('pieces', '+25 CO', '+25 CO')] },
+    { cout: 480, trophees: 2, apports: [apport('pieces', '+50 CO', '+50 CO')] },
   ] },
   { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
-    { cout: 0, trophees: 0, effet: 'Un champ en friche' },
-    { cout: 110, trophees: 0, effet: 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)' },
-    { cout: 300, trophees: 1, effet: '20 PX par héros tombé (max 200)' },
+    { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
+    { cout: 110, trophees: 0, apports: [apport('etoile', 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)', '10 PX')] },
+    { cout: 300, trophees: 1, apports: [apport('etoile', '20 PX par héros tombé (max 200)', '20 PX')] },
   ] },
 ];
 
