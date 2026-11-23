@@ -20,13 +20,14 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
 }) as unknown as Combatant);
 
 const wakeMod = () => hitModifiers().find((m) => m.id === 'wake-sleeper')!;
-const run = (attacker: Combatant, target: Combatant, autoKill = true): AttackResult =>
-  wakeMod().apply({
+const run = (attacker: Combatant, target: Combatant, autoKill = true): AttackResult => {
+  const issue = wakeMod().toucher({
     attacker, target, weapon: { type: 'melee', name: 'Épée' } as never, attaque: 'melee',
-    res: { hit: true, autoKill } as unknown as AttackResult,
-    get: (() => ({ battle: { combatants: [] } })) as never, set: (() => {}) as never, sink: () => {},
-    ouvrirSauvegarde: () => {}, // aucune sauvegarde ici : ce dormeur n'a aucun Trait à Indice
+    res: { hit: true, autoKill } as unknown as AttackResult, etat: { battle: { combatants: [] } } as never,
   });
+  issue.ecrire?.();
+  return issue.res;
+};
 
 beforeEach(() => { ouvrirLeBanc(); });
 

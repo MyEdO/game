@@ -100,37 +100,65 @@ const cellule = (x: number): number => Math.floor(x / PORTEE_DE_COUVERTURE_M);
  *  partagent une clé ne font que proposer des triangles que `visiterLaCouverture` écarte. */
 export const cleDeCellule = (i: number, j: number, k: number): number => (i + 1024) + (j + 1024) * 2048 + (k + 1024) * 4194304;
 
+/** Les marques de visite d'une couverture : un triangle (t / 3) vu au tour en cours en porte le numéro (#4753). */
+interface Visites {
+  readonly vus: Float64Array;
+  tour: number;
+  enCours: boolean;
+}
+
 /** Une surface posée : ses positions à plat, ses triangles (indices par trois) et ceux-ci rangés par cellule de
  *  `PORTEE_DE_COUVERTURE_M` de côté qu'ils touchent. */
 export interface Couverture {
   readonly positions: Float32Array;
   readonly indices: ArrayLike<number>;
   readonly grille: ReadonlyMap<number, readonly number[]>;
+  /** Par triangle (t / 3), 1 s'il est de la couverture ; absent, tous en sont (#4753). */
+  readonly retenus?: Uint8Array;
+  readonly visites: Visites;
 }
 
 /** La couverture des triangles `indices` sur les positions `p`. */
 export function couvertureDe(p: Float32Array, indices: ArrayLike<number>): Couverture {
   const grille = new Map<number, number[]>();
   for (let t = 0; t + 2 < indices.length; t += 3) {
-    const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
-    const borne = (axe: number, f: (...v: number[]) => number) => cellule(f(p[a * 3 + axe], p[b * 3 + axe], p[c * 3 + axe]));
-    const [x0, y0, z0, x1, y1, z1] = [borne(0, Math.min), borne(1, Math.min), borne(2, Math.min), borne(0, Math.max), borne(1, Math.max), borne(2, Math.max)];
+    const a = indices[t] * 3, b = indices[t + 1] * 3, c = indices[t + 2] * 3;
+    const x0 = cellule(Math.min(p[a], p[b], p[c])), y0 = cellule(Math.min(p[a + 1], p[b + 1], p[c + 1])), z0 = cellule(Math.min(p[a + 2], p[b + 2], p[c + 2]));
+    const x1 = cellule(Math.max(p[a], p[b], p[c])), y1 = cellule(Math.max(p[a + 1], p[b + 1], p[c + 1])), z1 = cellule(Math.max(p[a + 2], p[b + 2], p[c + 2]));
     for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) for (let k = z0; k <= z1; k++) {
-      const liste = grille.get(cleDeCellule(i, j, k));
+      const cle = cleDeCellule(i, j, k), liste = grille.get(cle);
       if (liste) liste.push(t);
-      else grille.set(cleDeCellule(i, j, k), [t]);
+      else grille.set(cle, [t]);
     }
   }
-  return { positions: p, indices, grille };
+  return { positions: p, indices, grille, visites: { vus: new Float64Array(Math.floor(indices.length / 3)), tour: 0, enCours: false } };
+}
+
+/** Les marques d'un parcours de `couverture`, celles qu'elle garde, ou neuves si un parcours d'elle est en cours ; le
+ *  tour avance (#4753). */
+function prendreLesVisites({ visites }: Couverture): Visites {
+  const prises = visites.enCours ? { vus: new Float64Array(visites.vus.length), tour: 0, enCours: false } : visites;
+  prises.enCours = true;
+  prises.tour++;
+  return prises;
+}
+
+/** Vrai si le triangle t de `couverture` en est et que le tour de `visites` ne l'a pas vu ; le marque vu. */
+function aVisiter(couverture: Couverture, visites: Visites, t: number): boolean {
+  const i = t / 3;
+  if (visites.vus[i] === visites.tour || (couverture.retenus !== undefined && couverture.retenus[i] === 0)) return false;
+  visites.vus[i] = visites.tour;
+  return true;
 }
 
 /** Les coordonnées barycentriques, sur les côtés u et v d'un triangle, du point p de son plan donné depuis son premier
  *  sommet ; `null` pour un point à plus de `SOUDURE_M` des bords du triangle, hors de lui (#3842). */
 function coinsDe(px: number, py: number, pz: number, ux: number, uy: number, uz: number, vx: number, vy: number, vz: number): readonly [number, number] | null {
-  const [uu, uv, vv, pu, pv] = [ux * ux + uy * uy + uz * uz, ux * vx + uy * vy + uz * vz, vx * vx + vy * vy + vz * vz, px * ux + py * uy + pz * uz, px * vx + py * vy + pz * vz];
+  const uu = ux * ux + uy * uy + uz * uz, uv = ux * vx + uy * vy + uz * vz, vv = vx * vx + vy * vy + vz * vz;
+  const pu = px * ux + py * uy + pz * uz, pv = px * vx + py * vy + pz * vz;
   const det = uu * vv - uv * uv;
   const bb = (vv * pu - uv * pv) / det, bc = (uu * pv - uv * pu) / det;
-  const [bu, bv] = [SOUDURE_M / Math.sqrt(uu), SOUDURE_M / Math.sqrt(vv)];
+  const bu = SOUDURE_M / Math.sqrt(uu), bv = SOUDURE_M / Math.sqrt(vv);
   return bb < -bu || bc < -bv || bb + bc > 1 + Math.max(bu, bv) ? null : [bb, bc];
 }
 
@@ -144,26 +172,32 @@ export function visiterLaCouverture(
   visite: (e: number, t: number, a: number, b: number, c: number, tx: number, ty: number, tz: number) => void,
 ): void {
   const { positions: p, indices, grille } = couverture;
-  const [ci, cj, ck] = [cellule(x), cellule(y), cellule(z)];
-  const vus = new Set<number>();
-  for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
-    for (const t of grille.get(cleDeCellule(i, j, k)) ?? []) {
-      if (vus.has(t)) continue;
-      vus.add(t);
-      const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
-      const [ax, ay, az] = [p[a * 3], p[a * 3 + 1], p[a * 3 + 2]];
-      const [ux, uy, uz] = [p[b * 3] - ax, p[b * 3 + 1] - ay, p[b * 3 + 2] - az];
-      const [vx, vy, vz] = [p[c * 3] - ax, p[c * 3 + 1] - ay, p[c * 3 + 2] - az];
-      let [tx, ty, tz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
-      const aire2 = Math.hypot(tx, ty, tz);
-      if (aire2 <= 0) continue;
-      tx /= aire2; ty /= aire2; tz /= aire2;
-      if (tx * nx + ty * ny + tz * nz <= 0) continue;
-      const e = (ax - x) * tx + (ay - y) * ty + (az - z) * tz;
-      if (Math.abs(e) > PORTEE_DE_COUVERTURE_M) continue;
-      const coins = coinsDe(x + e * tx - ax, y + e * ty - ay, z + e * tz - az, ux, uy, uz, vx, vy, vz);
-      if (coins) visite(e, t, 1 - coins[0] - coins[1], coins[0], coins[1], tx, ty, tz);
+  const ci = cellule(x), cj = cellule(y), ck = cellule(z);
+  const visites = prendreLesVisites(couverture);
+  try {
+    for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
+      const liste = grille.get(cleDeCellule(i, j, k));
+      if (liste === undefined) continue;
+      for (let r = 0; r < liste.length; r++) {
+        const t = liste[r];
+        if (!aVisiter(couverture, visites, t)) continue;
+        const a = indices[t] * 3, b = indices[t + 1] * 3, c = indices[t + 2] * 3;
+        const ax = p[a], ay = p[a + 1], az = p[a + 2];
+        const ux = p[b] - ax, uy = p[b + 1] - ay, uz = p[b + 2] - az;
+        const vx = p[c] - ax, vy = p[c + 1] - ay, vz = p[c + 2] - az;
+        let tx = uy * vz - uz * vy, ty = uz * vx - ux * vz, tz = ux * vy - uy * vx;
+        const aire2 = Math.hypot(tx, ty, tz);
+        if (aire2 <= 0) continue;
+        tx /= aire2; ty /= aire2; tz /= aire2;
+        if (tx * nx + ty * ny + tz * nz <= 0) continue;
+        const e = (ax - x) * tx + (ay - y) * ty + (az - z) * tz;
+        if (Math.abs(e) > PORTEE_DE_COUVERTURE_M) continue;
+        const coins = coinsDe(x + e * tx - ax, y + e * ty - ay, z + e * tz - az, ux, uy, uz, vx, vy, vz);
+        if (coins) visite(e, t, 1 - coins[0] - coins[1], coins[0], coins[1], tx, ty, tz);
+      }
     }
+  } finally {
+    visites.enCours = false;
   }
 }
 
@@ -174,23 +208,26 @@ export function croiserLaCouverture(
   visite: (part: number, ea: number) => void,
 ): void {
   const { positions: p, indices, grille } = couverture;
-  const vus = new Set<number>();
-  for (let i = cellule(Math.min(ax, bx)); i <= cellule(Math.max(ax, bx)); i++) for (let j = cellule(Math.min(ay, by)); j <= cellule(Math.max(ay, by)); j++) for (let k = cellule(Math.min(az, bz)); k <= cellule(Math.max(az, bz)); k++) {
-    for (const t of grille.get(cleDeCellule(i, j, k)) ?? []) {
-      if (vus.has(t)) continue;
-      vus.add(t);
-      const o = indices[t] * 3, [ox, oy, oz] = [p[o], p[o + 1], p[o + 2]];
-      const [ux, uy, uz] = [p[indices[t + 1] * 3] - ox, p[indices[t + 1] * 3 + 1] - oy, p[indices[t + 1] * 3 + 2] - oz];
-      const [vx, vy, vz] = [p[indices[t + 2] * 3] - ox, p[indices[t + 2] * 3 + 1] - oy, p[indices[t + 2] * 3 + 2] - oz];
-      let [tx, ty, tz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
-      const aire2 = Math.hypot(tx, ty, tz);
-      if (aire2 <= 0) continue;
-      tx /= aire2; ty /= aire2; tz /= aire2;
-      const ea = (ox - ax) * tx + (oy - ay) * ty + (oz - az) * tz, eb = (ox - bx) * tx + (oy - by) * ty + (oz - bz) * tz;
-      if (ea * eb >= 0) continue;
-      const part = ea / (ea - eb);
-      if (coinsDe(ax + part * (bx - ax) - ox, ay + part * (by - ay) - oy, az + part * (bz - az) - oz, ux, uy, uz, vx, vy, vz)) visite(part, ea);
+  const visites = prendreLesVisites(couverture);
+  try {
+    for (let i = cellule(Math.min(ax, bx)); i <= cellule(Math.max(ax, bx)); i++) for (let j = cellule(Math.min(ay, by)); j <= cellule(Math.max(ay, by)); j++) for (let k = cellule(Math.min(az, bz)); k <= cellule(Math.max(az, bz)); k++) {
+      for (const t of grille.get(cleDeCellule(i, j, k)) ?? []) {
+        if (!aVisiter(couverture, visites, t)) continue;
+        const o = indices[t] * 3, [ox, oy, oz] = [p[o], p[o + 1], p[o + 2]];
+        const [ux, uy, uz] = [p[indices[t + 1] * 3] - ox, p[indices[t + 1] * 3 + 1] - oy, p[indices[t + 1] * 3 + 2] - oz];
+        const [vx, vy, vz] = [p[indices[t + 2] * 3] - ox, p[indices[t + 2] * 3 + 1] - oy, p[indices[t + 2] * 3 + 2] - oz];
+        let [tx, ty, tz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+        const aire2 = Math.hypot(tx, ty, tz);
+        if (aire2 <= 0) continue;
+        tx /= aire2; ty /= aire2; tz /= aire2;
+        const ea = (ox - ax) * tx + (oy - ay) * ty + (oz - az) * tz, eb = (ox - bx) * tx + (oy - by) * ty + (oz - bz) * tz;
+        if (ea * eb >= 0) continue;
+        const part = ea / (ea - eb);
+        if (coinsDe(ax + part * (bx - ax) - ox, ay + part * (by - ay) - oy, az + part * (bz - az) - oz, ux, uy, uz, vx, vy, vz)) visite(part, ea);
+      }
     }
+  } finally {
+    visites.enCours = false;
   }
 }
 
@@ -204,11 +241,13 @@ export interface SurfaceDePile {
 export function normalesDesSommets({ positions: p, indices }: SurfaceDePile): Float32Array {
   const normales = new Float32Array(p.length);
   for (let t = 0; t + 2 < indices.length; t += 3) {
-    const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
-    const [ux, uy, uz] = [p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]];
-    const [vx, vy, vz] = [p[c * 3] - p[a * 3], p[c * 3 + 1] - p[a * 3 + 1], p[c * 3 + 2] - p[a * 3 + 2]];
-    const [nx, ny, nz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
-    for (const s of [a, b, c]) { normales[s * 3] += nx; normales[s * 3 + 1] += ny; normales[s * 3 + 2] += nz; }
+    const a = indices[t] * 3, b = indices[t + 1] * 3, c = indices[t + 2] * 3;
+    const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], uz = p[b + 2] - p[a + 2];
+    const vx = p[c] - p[a], vy = p[c + 1] - p[a + 1], vz = p[c + 2] - p[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    normales[a] += nx; normales[a + 1] += ny; normales[a + 2] += nz;
+    normales[b] += nx; normales[b + 1] += ny; normales[b + 2] += nz;
+    normales[c] += nx; normales[c + 1] += ny; normales[c + 2] += nz;
   }
   return normales;
 }

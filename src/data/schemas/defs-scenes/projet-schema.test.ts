@@ -787,7 +787,7 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
 
   it('la DONNÉE livrée traverse : aucune arête dupliquée dans les scènes de la Diligence', () => {
     const scenes = diligenceProjet.scenes;
-    expect(scenes.flatMap((s) => s.walls ?? []).length).toBeGreaterThan(0);
+    expect(scenes.flatMap<unknown>((s) => s.walls ?? []).length).toBeGreaterThan(0);
     expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
   });
 });

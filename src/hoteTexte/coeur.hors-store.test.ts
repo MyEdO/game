@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from './partieTexte';
-import { nouvelEntete } from '../hote/partie';
+import { nouvelEntete } from '../hote/partieDeTest';
 import { fermerLaTable, partie, table, verbe } from './hote.testkit';
 import type { GesteDeLAgent } from './serveur';
 

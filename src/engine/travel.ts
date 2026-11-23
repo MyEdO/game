@@ -66,18 +66,18 @@ export const travelModeLabels = memoParVersion('vehicles', (): Record<string, st
   return Object.fromEntries([...reserves, ...catalogue.map(({ id, label }) => [id, label])]);
 });
 
-/** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses
- *  MILLES dans le même champ `km` — les tables RAW de traversée sont en milles (MDG 13/15
- *  l.57-78, cf. `src/noyau/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité, pour ne jamais
- *  ré-écrire « km »/« milles » en dur à un site d'affichage. */
-export function distanceUnit(sea: boolean | undefined): 'milles' | 'km' {
-  return sea ? 'milles' : 'km';
+/** Une distance exacte et son unité. */
+export interface Distance { valeur: number; unite: 'km' | 'milles' }
+
+/** Distance d'une route : une route `sea` (mode `'mer'`) porte ses MILLES dans le même champ `km`
+ *  (MDG 13/15 l.57-78, `src/noyau/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité. */
+export function distanceDeRoute(km: number, sea: boolean | undefined): Distance {
+  return { valeur: km, unite: sea ? 'milles' : 'km' };
 }
 
-/** Libellé complet « <valeur> <unité> » d'une distance de route (`Math.round` : les valeurs
- *  calculées peuvent porter des décimales). */
-export function routeDistanceLabel(km: number, sea: boolean | undefined): string {
-  return `${Math.round(km)} ${distanceUnit(sea)}`;
+/** « <valeur arrondie> <unité traduite> » : seule composition du texte d'une distance. */
+export function libelleDeDistance(d: Distance): string {
+  return t('distance.valeur', { valeur: Math.round(d.valeur), unite: t(`distance.${d.unite}`) });
 }
 
 /** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `voyage/*`) :

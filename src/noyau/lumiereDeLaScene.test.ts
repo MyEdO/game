@@ -10,7 +10,7 @@ const MIDI = 12 * 60;
 const MINUIT = 0;
 
 function etat(scene: Scene, gameTime: number, lightLevel: number | null = null) {
-  return { scene, battle: null, party: [], partyPos: { x: 0, y: 0 }, gameTime, lightLevel, explored: {} };
+  return { scene, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime, lightLevel, explored: {} };
 }
 
 describe('lumiereDeLaScene', () => {

@@ -157,7 +157,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   de test 14) ; DR du billet d'exemple ; trajet Salzenmund, Erengrad de la campagne `loup-et-saumure` (550 milles),
   « 385 milles avant Erengrad » d'exemple ; date impériale d'exemple.
 - Changement voulu (#4411) : l'objet du temps porte la « Cadence du voyage », deux plaques, « Jour par jour » et
-  « Sous vos ordres » (armée) : `fixerLaCadence(cadence)` (`src/noyau/actionsDuNoyau.ts:303`,
+  « Sous vos ordres » (armée) : `fixerLaCadence(cadence)` (`src/noyau/actionsDuNoyau.ts:306`,
   `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
   même pièce sur la route (`evenement-de-route-issue`) et le fleuve (`voyage-fluvial`). Un arrêt (péripétie, péril,
   relâche, conseil, panne) ne la montre pas : rien n'avance.
@@ -194,7 +194,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
   la Vigie est vide. Greta, choisie au bandeau, ouvre le panneau « Station de Greta » : une plaque par station que
   le navire offre, « Pont » armée, la phrase du livre de la station tenue dessous.
-- Verbe : `affecterALaStation(crewId, station | null)` (`src/noyau/actionsDuNoyau.ts:314`, `src/noyau/shipCrew.ts:669`).
+- Verbe : `affecterALaStation(crewId, station | null)` (`src/noyau/actionsDuNoyau.ts:317`, `src/noyau/shipCrew.ts:669`).
 - Règle montrée : les stations et leur effet lors d'un Critique de navire (MDG 13 l.714, l.730, l.751,
   `src/data/ship-stations.json`, phrase verbatim) ; une station ne s'offre que si le navire la porte
   (`src/engine/shipCritical.ts:208`) : la Cogue offre le gréement, le pont et les avirons.
@@ -243,8 +243,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   (Laine 60, Sel 40, Métaux 30), puis « Déplacer le sel vers » : une carte par autre porteur du groupe
   (« Charrette 0 / 25 »), la quantité réglée par − et + (25 Enc), la plaque « Déplacer ». Dessous, « À bord » :
   la mule Marguerite (15 Enc) et son « Débarquer ».
-- Verbes : `deplacerLaCargaison(lotId, toId, enc)` (`src/noyau/actionsDuNoyau.ts:349`), `debarquer(possessionUid)`
-  (`:327`).
+- Verbes : `deplacerLaCargaison(lotId, toId, enc)` (`src/noyau/actionsDuNoyau.ts:356`), `debarquer(possessionUid)`
+  (`:330`).
 - À valider : la cargaison se déplace depuis le dossier du porteur qui la tient ; carte puis plaque ; l'Enc d'une
   possession embarquée et celui de la cargaison se comptent à part au noyau (`src/engine/possession.ts:238-244`).
   Lots, Enc et noms sont des exemples.

@@ -8,11 +8,15 @@ import { idsDeTest } from './idsDeTest.testkit';
 import type { Combatant, Weapon } from './types';
 import { applyOps, type OpsCtx, type GameOp } from './ops';
 import { addCondition, syncDerivedConditions, COND } from './conditions';
-import { texteDuFait, type Applique, type FaitApplique } from './faits';
+import { texteDuFait, type Applique, type FaitApplique, type FaitAvecLigne } from './faits';
 import { poserLeNommeur } from './nom';
 import { fixtureText } from '../i18n/fixtureText';
 import { desDuTest } from './dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
+
+/** Les genres que le journal dit par leur ligne (`texteDuFait`) : le contrat positif. */
+const GENRES_AVEC_LIGNE: readonly FaitApplique['genre'][] = ['blessures', 'avantage', 'etat', 'corruption', 'argent'];
+const avecLigne = (f: FaitApplique): f is FaitAvecLigne => GENRES_AVEC_LIGNE.includes(f.genre);
 
 function heros(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
@@ -125,7 +129,7 @@ describe('applyOps rend ses faits et leurs lignes', () => {
   it('chaque fait se lit en une ligne rendue, dans l’ordre des faits', () => {
     for (const cas of CORPUS) {
       const { lignes, faits } = cas.jouer();
-      const lues = faits.flatMap((f) => (f.genre === 'localisation' ? [] : [texteDuFait(f, 'Cobaye', cas.source)]));
+      const lues = faits.filter(avecLigne).map((f) => texteDuFait(f, 'Cobaye', cas.source));
       expect(lignes.filter((l) => lues.includes(l)), cas.nom).toEqual(lues);
     }
   });

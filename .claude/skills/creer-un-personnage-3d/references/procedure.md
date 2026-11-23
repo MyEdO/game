@@ -810,7 +810,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
+GLB vont à la Release `modeles-3d-<c>` du premier caractère de leur empreinte (#4823) par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
 provenances neuves qui les épinglent, fabriquée par `npm run godot:transfert -- <nom> <fichier>...`, que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
 
@@ -959,6 +959,14 @@ La forme d'un kit se lit d'une apparence de référence, nommée dans son `donne
 reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
 (`test_arete.py`). Un kit qu'on voit à travers (la grille d'une herse) le déclare dans son `donnees.py` par
 `CLAIRE_VOIE = True` : la garde de jour le saute.
+
+**Lire l'illustration, juger le kit.** Une aide de jeu coupe souvent le mur d'enceinte pour laisser voir la façade :
+les moignons de part et d'autre sont ce mur coupé, et le bloc central qui reste peut être le portail de l'enceinte, non
+un porche du bâtiment ; lire l'illustration ainsi avant d'attribuer une pièce. La teinte et la lisibilité d'un kit se
+jugent sur une capture Godot (`npm run godot:regarder`), jamais sur la revue Blender : la palette, la texture et la
+lumière de la scène les font dériver ; mesurer un pixel au soleil et le comparer à l'illustration. Une pièce `mur` se
+répète sur chaque arête : un détail ponctuel (pierre apparente, fissure) y devient un motif régulier ; le garder pour
+une pièce rare (`breche`) ou pour une variante.
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -1194,7 +1202,7 @@ Tous les refus précèdent publication et écriture ; la CLI sort en 1 (usage in
 Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les licences et, au
 schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
-`modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
+`modeles-3d-<c>` de leur premier caractère avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
 Une base est publiable : la clé `hors_release` dans son `manifest.json` est refusée
 `[base-hors-release]`, avec ou sans `--sans-publier`. Seul un élément d'essai dont le propre
 `manifest.json` porte `hors_release` (une raison non vide) est hors Release : il est refusé

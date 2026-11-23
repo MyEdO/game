@@ -6,7 +6,7 @@
  */
 import {
   effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
-  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis,
+  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis, libelleDeDistance,
   CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
   type ConsequenceEnVue, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
 } from '../noyau/index';
@@ -190,10 +190,12 @@ function lignesDeFenetre(f: FenetreTexte): string[] {
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
-/** Une conséquence : qui la subit, son genre (et l'État qu'elle nomme), sa valeur signée ou l'id qu'elle désigne. */
+/** Une conséquence : qui la subit, son genre (et l'État ou l'objet qu'elle nomme, avec son issue), sa valeur signée ou
+ *  l'id qu'elle désigne. */
 function texteDeConsequence(c: ConsequenceEnVue): string {
-  const etat = c.detail && 'id' in c.detail ? ` ${c.detail.id}` : '';
-  return `${c.qui ?? 'hors de vue'} ${c.genre}${etat} ${typeof c.valeur === 'number' ? signe(c.valeur) : c.valeur}`;
+  const d = c.detail;
+  const nomme = !d ? '' : 'id' in d ? ` ${d.id}` : 'objet' in d ? ` ${'arme' in d.objet ? d.objet.arme : `armure ${d.objet.armure}`} ${d.issue}` : '';
+  return `${c.qui ?? 'hors de vue'} ${c.genre}${nomme} ${typeof c.valeur === 'number' ? signe(c.valeur) : c.valeur}`;
 }
 
 /** Une ligne de jet, suivie des conséquences qu'il a appliquées. */
@@ -424,7 +426,7 @@ export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: Combat
 /** Un trajet, puis ses modes avec le devis et le geste ou le refus de départ. */
 function lignesDuTrajet(trajet: TrajetEnVue): string[] {
   return [
-    `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${trajet.distance}`,
+    `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${libelleDeDistance(trajet.distance)}`,
     ...trajet.modes.flatMap((mode) => {
       const libelle = mode.jours === null ? mode.libelle : t('ecran.carte.mode', { mode: mode.libelle, jours: mode.jours });
       const ligne = `  ${mode.mode} · ${libelle}`;

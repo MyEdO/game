@@ -1,10 +1,11 @@
 /**
  * LES MODÈLES 3D EN RELEASE (#2948) : un GLB
- * et sa source `.blend` ne vivent pas dans git, mais comme fichiers de la Release `TAG` du dépôt, nommés par leur
- * SHA-256. Le dépôt commite, par modèle, le manifeste (`<id>.manifeste.json`) et la provenance (`<id>.provenance.json`),
- * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
- * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
- * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
+ * et sa source `.blend` ne vivent pas dans git, mais comme fichiers des Releases du dépôt, nommés par leur SHA-256 et
+ * rangés dans la Release du premier caractère de leur nom (`releaseDe`). Le dépôt commite, par modèle, le manifeste
+ * (`<id>.manifeste.json`) et la provenance (`<id>.provenance.json`), qui porte l'empreinte. `recupererModeles` tire de
+ * sa Release le GLB qui manque dans le cache, le vérifie et le dépose sous le nom que le projet Godot attend ;
+ * `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
+ * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans une Release, ni suivi par git
  * (`suivisHorsRelease`). Les textures du sol et les sons y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
@@ -20,11 +21,16 @@ import { estObjet } from '../../../src/lib/objet.mjs';
 import { lireGlb } from './glb.ts';
 import { estBase, fichiersDuModele, indexerModeles, validerModele, type BaseLivree, type EntreeDeModele } from './modeles.ts';
 
-/** Le dépôt dont la Release porte les modèles. */
+/** Le dépôt dont les Releases portent les modèles. */
 export const DEPOT = 'MyEdO/game';
 
-/** La Release unique des modèles : ses fichiers sont nommés par leur contenu, une version par tag n'ajouterait rien. */
-export const TAG = 'modeles-3d';
+/** Le préfixe du tag des Releases des modèles : leurs fichiers sont nommés par leur contenu, une version par tag
+ *  n'ajouterait rien. */
+export const PREFIXE_DES_RELEASES = 'modeles-3d';
+
+/** La Release du fichier `nom` (`nomDAsset`), par le premier caractère hexadécimal de son empreinte : GitHub plafonne
+ *  une Release à 1 000 fichiers (#4823). */
+export const releaseDe = (nom: string): string => `${PREFIXE_DES_RELEASES}-${nom[0]}`;
 
 /** Le cache des fichiers tirés de la Release, hors de l'arbre : la CI le met en cache sous ce chemin (`ci.yml`). */
 export const CACHE_DES_MODELES = join(homedir(), '.cache', 'wfrp-modeles-3d');
@@ -209,11 +215,11 @@ type ExtensionDAsset = (typeof EXTENSIONS_D_ASSET)[number];
 /** Le nom, dans la Release, du fichier d'empreinte `empreinte`. */
 export const nomDAsset = (empreinte: string, extension: ExtensionDAsset): string => `${empreinte}.${extension}`;
 
-/** L'URL publique du fichier `nom` de la Release. */
-export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/releases/download/${TAG}/${nom}`;
+/** L'URL publique du fichier `nom` de sa Release (`releaseDe`). */
+export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/releases/download/${releaseDe(nom)}/${nom}`;
 
-/** Le point d'API de la Release `TAG` : ses fichiers, chacun avec l'URL d'API de ses octets (#3680). */
-export const URL_API_DE_LA_RELEASE = `https://api.github.com/repos/${DEPOT}/releases/tags/${TAG}`;
+/** Le point d'API de la Release `release` : ses fichiers, chacun avec l'URL d'API de ses octets (#3680). */
+export const urlApiDeLaRelease = (release: string): string => `https://api.github.com/repos/${DEPOT}/releases/tags/${release}`;
 
 export { DOSSIER_DES_MODELES };
 
@@ -346,16 +352,16 @@ export interface FichierEpingle {
 
 /** Un fichier absent de la Release : elle répond 404 sur son empreinte. */
 export class AssetIntrouvable extends Error {
-  constructor({ fichier, empreinte }: FichierEpingle, url: string, constat = 'HTTP 404') {
-    super(`${fichier} (${empreinte}) : ${constat} sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
+  constructor({ fichier, empreinte }: FichierEpingle, release: string, url: string, constat = 'HTTP 404') {
+    super(`${fichier} (${empreinte}) : ${constat} sur ${url}, absent de la Release ${release} de ${DEPOT}`);
     this.name = 'AssetIntrouvable';
   }
 }
 
 /** Une Release qui ne répond pas : réseau coupé, ou tout statut HTTP autre que 404. */
 export class ReleaseInjoignable extends Error {
-  constructor({ fichier, empreinte }: FichierEpingle, url: string, raison: string) {
-    super(`${fichier} (${empreinte}) : Release ${TAG} de ${DEPOT} injoignable sur ${url} (${raison})`);
+  constructor({ fichier, empreinte }: FichierEpingle, release: string, url: string, raison: string) {
+    super(`${fichier} (${empreinte}) : Release ${release} de ${DEPOT} injoignable sur ${url} (${raison})`);
     this.name = 'ReleaseInjoignable';
   }
 }
@@ -378,38 +384,42 @@ async function demander(telecharger: Telecharger, url: string, headers: Readonly
   }
 }
 
-/** La liste des fichiers de la Release (`URL_API_DE_LA_RELEASE`), lue une fois par `Telecharger` : nom → URL d'API de
- *  ses octets, ou `{ raison }` quand l'API ne répond pas. */
-const listesDeLaRelease = new WeakMap<Telecharger, Promise<ReadonlyMap<string, string> | { readonly raison: string }>>();
-const listeDeLaRelease = (telecharger: Telecharger) => {
-  const lue = listesDeLaRelease.get(telecharger) ?? demander(telecharger, URL_API_DE_LA_RELEASE, { accept: 'application/vnd.github+json' }).then((reponse) => {
+/** La liste des fichiers de la Release `release` (`urlApiDeLaRelease`), lue une fois par `Telecharger` et par Release :
+ *  nom → URL d'API de ses octets, ou `{ raison }` quand l'API ne répond pas. */
+const listesDeLaRelease = new WeakMap<Telecharger, Map<string, Promise<ReadonlyMap<string, string> | { readonly raison: string }>>>();
+const listeDeLaRelease = (telecharger: Telecharger, release: string) => {
+  const listes = listesDeLaRelease.get(telecharger) ?? new Map();
+  listesDeLaRelease.set(telecharger, listes);
+  const lue = listes.get(release) ?? demander(telecharger, urlApiDeLaRelease(release), { accept: 'application/vnd.github+json' }).then((reponse) => {
     if (!(reponse instanceof Uint8Array)) return reponse;
-    const release: unknown = JSON.parse(new TextDecoder().decode(reponse));
-    const assets: unknown[] = estObjet(release) && Array.isArray(release.assets) ? release.assets : [];
+    const lu: unknown = JSON.parse(new TextDecoder().decode(reponse));
+    const assets: unknown[] = estObjet(lu) && Array.isArray(lu.assets) ? lu.assets : [];
     return new Map(assets.flatMap((a) => (estObjet(a) && typeof a.name === 'string' && typeof a.url === 'string' ? [[a.name, a.url] as const] : [])));
   });
-  listesDeLaRelease.set(telecharger, lue);
+  listes.set(release, lue);
   return lue;
 };
 
-/** Les octets de `epingle`, d'extension `extension`, tirés de la Release : par son lien direct, puis, sur toute autre
- *  réponse qu'un 404 ou une erreur réseau, par le point d'API de la Release (`URL_API_DE_LA_RELEASE`, #3680) ;
+/** Les octets de `epingle`, d'extension `extension`, tirés de sa Release (`releaseDe`) : par son lien direct, puis, sur
+ *  toute autre réponse qu'un 404 ou une erreur réseau, par le point d'API de cette Release (`urlApiDeLaRelease`, #3680) ;
  *  `AssetIntrouvable` sur un 404 ou un fichier que la Release ne liste pas, `ReleaseInjoignable` quand les deux chemins
  *  échouent. */
 export async function tirerDeLaRelease(epingle: FichierEpingle, extension: ExtensionDAsset, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
   const nom = nomDAsset(epingle.empreinte, extension);
+  const release = releaseDe(nom);
   const url = urlDAsset(nom);
   journal(`[release] ${epingle.fichier} : téléchargement de ${url}`);
   const direct = await demander(telecharger, url);
   if (direct instanceof Uint8Array) return direct;
-  if (direct.status === 404) throw new AssetIntrouvable(epingle, url);
-  journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, nouvel essai par ${URL_API_DE_LA_RELEASE}`);
-  const liste = await listeDeLaRelease(telecharger);
-  if ('raison' in liste) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${liste.raison}`);
+  if (direct.status === 404) throw new AssetIntrouvable(epingle, release, url);
+  const api = urlApiDeLaRelease(release);
+  journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, nouvel essai par ${api}`);
+  const liste = await listeDeLaRelease(telecharger, release);
+  if ('raison' in liste) throw new ReleaseInjoignable(epingle, release, url, `${direct.raison} ; API : ${liste.raison}`);
   const urlDAPI = liste.get(nom);
-  if (urlDAPI === undefined) throw new AssetIntrouvable(epingle, URL_API_DE_LA_RELEASE, `${nom} non listé`);
+  if (urlDAPI === undefined) throw new AssetIntrouvable(epingle, release, api, `${nom} non listé`);
   const octets = await demander(telecharger, urlDAPI, { accept: 'application/octet-stream' });
-  if (!(octets instanceof Uint8Array)) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${octets.raison}`);
+  if (!(octets instanceof Uint8Array)) throw new ReleaseInjoignable(epingle, release, url, `${direct.raison} ; API : ${octets.raison}`);
   return octets;
 }
 
@@ -472,38 +482,51 @@ const ghReel: Gh = (args) => {
   return { status: r.error ? null : r.status, stdout: r.stdout ?? '', stderr: r.error ? r.error.message : (r.stderr ?? '') };
 };
 
-/** Verse dans la Release `TAG` (créée au premier appel, en préversion) les `assets` qu'elle ne porte pas encore, une fois
- *  par nom (plusieurs modèles peuvent partager un GLB). Rend les noms versés ; lève, avant tout versement, sur un fichier dont l'empreinte n'est pas celle de son nom, et, avec la
- *  sortie de `gh`, à son premier échec. */
+/** Verse dans sa Release (`releaseDe`, créée au premier appel, en préversion) chacun des `assets` qu'elle ne porte pas
+ *  encore, une fois par nom (plusieurs modèles peuvent partager un GLB). Rend les noms versés ; lève, avant tout
+ *  versement, sur un fichier dont l'empreinte n'est pas celle de son nom, et, avec la sortie de `gh`, à son premier échec. */
 export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel): readonly string[] {
   const appeler = (args: readonly string[]) => {
     const r = gh(args);
     if (r.status !== 0) throw new Error(`gh ${args.join(' ')} : code ${String(r.status)}\n${r.stderr.trim()}`);
     return r.stdout;
   };
-  const vue = gh(['release', 'view', TAG, '--repo', DEPOT, '--json', 'assets']);
-  let presents: Set<string>;
-  if (vue.status === 0) presents = new Set((JSON.parse(vue.stdout) as { assets: { name: string }[] }).assets.map((a) => a.name));
-  else if (/release not found/i.test(vue.stderr)) {
-    appeler(['release', 'create', TAG, '--repo', DEPOT, '--prerelease', '--latest=false', '--title', 'Modèles 3D', '--notes', 'Modèles 3D du projet Godot, nommés par leur SHA-256 (#2948). Chaque fichier est épinglé par la provenance commitée hotes/godot/projet/modeles/<id>.provenance.json.']);
-    presents = new Set();
-  } else throw new Error(`gh release view ${TAG} : code ${String(vue.status)}\n${vue.stderr.trim()}`);
-  const aVerser = assets.filter((a, i) => !presents.has(a.nom) && assets.findIndex((b) => b.nom === a.nom) === i);
+  const presentsDans = (release: string): ReadonlySet<string> => {
+    const vue = gh(['release', 'view', release, '--repo', DEPOT, '--json', 'assets']);
+    if (vue.status === 0) return new Set((JSON.parse(vue.stdout) as { assets: { name: string }[] }).assets.map((a) => a.name));
+    if (!/release not found/i.test(vue.stderr)) throw new Error(`gh release view ${release} : code ${String(vue.status)}\n${vue.stderr.trim()}`);
+    const prefixe = release.slice(PREFIXE_DES_RELEASES.length + 1);
+    appeler(['release', 'create', release, '--repo', DEPOT, '--prerelease', '--latest=false', '--title', `Modèles 3D ${prefixe}`, '--notes', `Modèles 3D du projet Godot, nommés par leur SHA-256 (#2948), dont le nom commence par ${prefixe} : chaque fichier va à la Release ${PREFIXE_DES_RELEASES}-<premier caractère de son nom>, GitHub plafonnant une Release à 1 000 fichiers (#4823). Chaque fichier est épinglé par la provenance commitée hotes/godot/projet/modeles/<id>.provenance.json.`]);
+    return new Set();
+  };
+  const parRelease = new Map<string, AssetAPublier[]>();
+  for (const [i, a] of assets.entries()) {
+    if (assets.findIndex((b) => b.nom === a.nom) !== i) continue;
+    const release = releaseDe(a.nom);
+    parRelease.set(release, [...(parRelease.get(release) ?? []), a]);
+  }
+  const aVerser = [...parRelease].flatMap(([release, lot]) => {
+    const presents = presentsDans(release);
+    const manquants = lot.filter((a) => !presents.has(a.nom));
+    return manquants.length ? [[release, manquants] as const] : [];
+  });
   if (!aVerser.length) return [];
-  for (const a of aVerser) {
+  for (const a of aVerser.flatMap(([, lot]) => lot)) {
     const empreinte = sha256(readFileSync(a.chemin));
     if (a.nom !== `${empreinte}${extname(a.nom)}`) throw new Error(`${a.chemin} : empreinte ${empreinte}, ${a.nom} attendu`);
   }
   const etape = mkdtempSync(join(tmpdir(), 'wfrp-modeles-3d-'));
   try {
-    const chemins = aVerser.map((a) => {
-      const copie = join(etape, a.nom);
-      copyFileSync(a.chemin, copie);
-      return copie;
-    });
-    appeler(['release', 'upload', TAG, '--repo', DEPOT, ...chemins]);
+    for (const [release, lot] of aVerser) {
+      const chemins = lot.map((a) => {
+        const copie = join(etape, a.nom);
+        copyFileSync(a.chemin, copie);
+        return copie;
+      });
+      appeler(['release', 'upload', release, '--repo', DEPOT, ...chemins]);
+    }
   } finally {
     rmSync(etape, { recursive: true, force: true });
   }
-  return aVerser.map((a) => a.nom);
+  return aVerser.flatMap(([, lot]) => lot.map((a) => a.nom));
 }

@@ -1,6 +1,7 @@
 [
   { "nom": "portail-dehors", "regard": "immersion", "case": { "x": 24, "y": 2 }, "lacet": 180, "tangage": -5 },
   { "nom": "portail-enceinte-de-face", "regard": "immersion", "case": { "x": 24, "y": 0 }, "lacet": 180, "tangage": 0 },
+  { "nom": "portail-trois-quarts-depuis-la-route", "regard": "immersion", "case": { "x": 31, "y": 0 }, "lacet": 227, "tangage": 0 },
   { "nom": "facade-nord-entiere-ouest", "regard": "immersion", "case": { "x": 16, "y": 6 }, "lacet": 180, "tangage": 10 },
   { "nom": "facade-nord-entiere-centre", "regard": "immersion", "case": { "x": 25, "y": 6 }, "lacet": 180, "tangage": 10 },
   { "nom": "facade-nord-entiere-est", "regard": "immersion", "case": { "x": 33, "y": 6 }, "lacet": 180, "tangage": 10 },

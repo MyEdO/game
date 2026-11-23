@@ -67,6 +67,8 @@ describe('la journée de route par le pont', () => {
     expect((c['scene/moment'] as Ligne).texte, 'le moment du jour et la météo').toBe('Après-midi · temps sec');
     expect((c['voyage/titre'] as Ligne).texte, 'le titre de la carte : la route de l’arrivée').toBe('La route de Steinbruck');
     expect(c['voyage/reste'], 'un seul chiffre : les km qui restent avant l’arrivée, et leur unité').toMatchObject({ type: 'puce', valeur: '6', libelle: 'km' });
+    expect(suite.vue.projection.voyage, 'la projection porte le trajet en données : ses distances exactes et leur unité').toMatchObject({ unite: 'km', km: 30, fait: 24, depart: 'p-village', arrivee: 'p-bourg' });
+    expect(suite.vue.projection.temps.date, 'la date impériale en données, par ids').toMatchObject({ year: expect.any(Number), intercalaire: null, mois: { id: expect.any(String) }, semaine: { nom: (c['scene/jour'] as Ligne).texte } });
     const frise = c['voyage/frise'] as Plan;
     expect(frise.points.map((p) => [p.id, p.nom, p.x, p.ton]), 'la frise : le départ nommé, le groupe à son km, l’arrivée nommée').toEqual([['depart', 'Weiler', 0, 'neutre'], ['ici', '', 0.8, 'reussite'], ['arrivee', 'Steinbruck', 1, 'neutre']]);
     expect(frise.traits.map((x) => x.ton), 'la route faite, puis celle qui reste').toEqual(['alerte', 'neutre']);
@@ -89,6 +91,28 @@ describe('la journée de route par le pont', () => {
     }
     expect(Object.values(c).some((e) => e.type === 'jet'), 'aucun jet de héros dans le corps de la fenêtre').toBe(false);
     expect(lignes.map((l) => l.texte), 'la météo du jour, tirée sans arrêt').toContain('Météo : Temps sec.');
+  });
+
+  /** Le trajet en route rechargé avec ses distances remplacées par `plan`. */
+  const rechargeEnRoute = (plan: { km: number; kmDone: number; sea?: true }): Suite => {
+    const r = enRoute();
+    expect(r.appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
+    const save = JSON.parse(r.stockage.getItem(cleDEmplacement(1))!) as SaveGame;
+    r.stockage.setItem(cleDEmplacement(1), JSON.stringify({ ...save, data: { ...save.data, travelPlan: { ...save.data.travelPlan!, ...plan } } }));
+    r.appel('quitter');
+    return drainer(r.appel, r.appel('charger', { charger: 1, graine: 7 })).suite;
+  };
+
+  it('le reste du trajet s’arrondit à l’affichage, sur des distances exactes', () => {
+    const s = rechargeEnRoute({ km: 30, kmDone: 24.5 });
+    expect(s.vue.projection.voyage, 'la part faite, exacte').toMatchObject({ km: 30, fait: 24.5 });
+    expect(corps(s)['voyage/reste'], 'le reste arrondi').toMatchObject({ type: 'puce', valeur: '6', libelle: 'km' });
+  });
+
+  it('le reste d’une traversée se dit en milles', () => {
+    const s = rechargeEnRoute({ km: 480.4, kmDone: 100.2, sea: true });
+    expect(s.vue.projection.voyage, 'l’unité du trajet').toMatchObject({ unite: 'milles' });
+    expect(corps(s)['voyage/reste'], 'le reste, en milles').toMatchObject({ type: 'puce', valeur: '380', libelle: 'milles' });
   });
 
   it('la météo d’Étape est déjà tirée quand vient le premier Test de Contagion en marche', () => {

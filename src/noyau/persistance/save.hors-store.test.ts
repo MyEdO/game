@@ -35,6 +35,7 @@ import { vehicleCombatant } from '../../engine/vehicle';
 import { heroCombatMount } from '../../engine/mountTravel';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
+import { sansLaCleDeJeu } from './save.testkit';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { garanti } from '../../lib/garanti';
@@ -103,6 +104,18 @@ describe('lireSave — format courant', () => {
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 
+  it('lit une save d’avant le meneur désigné à l’élection, sans la migration des couleurs (#4530)', () => {
+    const courante = snapshotSave({ ...etatInitialDuJeu(), meneurChoisi: 'b' }, '2026-11-23T06:30:00.000Z');
+    const ancienne = sansLaCleDeJeu(exporterLaSauvegarde({ ...courante, version: '71dc897adac81733' }), 'meneurChoisi');
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    const lue = lireSave(ancienne);
+    if (courante.version !== '996aa25cd3e782c4') return void expect(lue).toBe('autreFormat');
+    expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
   it('relit sans transformation une save d’avant `sansCavalier` (#4804) : la même bête porte le héros', () => {
     const h = combattantDeTest({ id: 'cavalier', kind: 'heros' });
     const etat: EtatDeJeu = {
@@ -113,8 +126,8 @@ describe('lireSave — format courant', () => {
     const courante = snapshotSave(etat, '2026-11-23T08:00:00.000Z');
     const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
     onTestFinished(() => migrerLesCouleurs.mockRestore());
-    const relue = lireSave(exporterLaSauvegarde({ ...courante, version: '493f6f1a6bc9e9de' }));
-    expect(relue).toEqual(courante.version === '5650bd1da7ce9918' ? courante : 'autreFormat');
+    const relue = lireSave(exporterLaSauvegarde({ ...courante, version: 'e5850d7c5e152ce4' }));
+    expect(relue).toEqual(courante.version === '996aa25cd3e782c4' ? courante : 'autreFormat');
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
     if (typeof relue !== 'string') expect(heroCombatMount(h, relue.data.possessions)?.uid).toBe('pos-1');
   });
@@ -142,7 +155,7 @@ describe('lireSave — format courant', () => {
     applyOps(porteur, [{ op: 'grantTrait', trait: { id: 'armure', value: 2, matiere: 'peau' }, durationRounds: 1 }], {
       idNeuf: idsDeTest, rng: makeRNG(1), source: { kind: 'trait', id: 'metamorphose' },
     });
-    expect(damageArmour(porteur, 'corps')).toBe(true);
+    expect(damageArmour(porteur, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     lacherLArme(ours, arme);
 
     const save = snapshotSave(etat, '2026-11-21T06:30:00.000Z');

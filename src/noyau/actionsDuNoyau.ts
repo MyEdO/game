@@ -252,6 +252,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `orienterSelonLeChemin`). */
   pivoterLeGroupe: (turn: 1 | -1) => void;
+  /** Désigne `heroId` meneur commun du groupe hors combat (`meneurChoisi`, lu par `meneurDuMonde`), au siège du monde
+   *  (`ownsGroupDecision`, #4530). Refus DIT en combat, d'un autre siège, d'un héros hors du groupe ou qui n'est pas debout. */
+  designerLeMeneur: (heroId: IdDeHeros) => void;
   /** POV : un pas RELATIF au cap du meneur (avance/recul/pas latéral) — cap monde = regard tourné de
    *  0/2/4/6 crans (90° par cadran), case d'arrivée via `povStepDest`. Le regard est préservé pour tout
    *  pas ≠ avant (un pas latéral/arrière ne réoriente pas le meneur). */

@@ -1,0 +1,81 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "enduit"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "enduit",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "moellons",
+      "palette": "joint",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "pierre-claire",
+      "palette": "vet2",
+      "matiere": "prop--albatre"
+    },
+    {
+      "nom": "ecu",
+      "palette": "vet2",
+      "matiere": "prop--albatre"
+    },
+    {
+      "nom": "ardoise",
+      "palette": "vet2",
+      "matiere": "prop--prop-ardoise"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "barres",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "croisee",
+      "palette": "vet1",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vitre",
+      "palette": "vitre",
+      "matiere": "prop--verre"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "f790ae785627265429af6b3d87b60fb9a649ed7e42690bd7e5cc435a93686d6f",
+    "octets": 644128
+  }
+}

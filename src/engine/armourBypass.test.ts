@@ -97,7 +97,7 @@ describe('usure de l’Armure de Trait (LDB 63 l.19, LDB 85 l.39)', () => {
     expect(effectiveArmourAt(ours, 'corps')).toBe(1);
     applyOps(ours, [{ op: 'grantNaturalWeapon', label: 'Morsure', damage: 2 }], ctx());
     expect(effectiveArmourAt(ours, 'corps')).toBe(1);
-    expect(damageArmour(ours, 'corps')).toBe(true);
+    expect(damageArmour(ours, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     recomputeLoadout(ours);
     expect(effectiveArmourAt(ours, 'corps')).toBe(0);
     expect(effectiveArmourAt(ours, 'tete')).toBe(1);
@@ -112,7 +112,7 @@ describe('usure de l’Armure de Trait (LDB 63 l.19, LDB 85 l.39)', () => {
     expect(effectiveArmourAt(c, 'corps')).toBe(2);
     expect(deviatableArmourAt(c, 'corps')).toBe(true);
 
-    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     recomputeLoadout(c);
     expect(effectiveArmourAt(c, 'corps')).toBe(1);
     expect(deviatableArmourAt(c, 'corps')).toBe(false);
