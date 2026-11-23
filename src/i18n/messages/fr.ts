@@ -2019,6 +2019,7 @@ export const fr = {
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',
   'cs.refusFormationBloquee': 'La formation ne passe pas : une case d’arrivée est occupée ou hors de la carte.',
+  'cs.refusCorpsImmobile': '{name} ne bouge pas : son corps tient à la scène.',
   'cs.refusBordeeHorsPortee': 'Cible hors de portée des pièces de {ship}.',
   'cs.refusTirArmeDeMelee': '{weapon} n’est pas une arme à distance.',
   'cs.runStumble': '{name} trébuche dans sa Course : sur place.',

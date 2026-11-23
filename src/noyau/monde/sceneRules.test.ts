@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { props } from '../../data';
+import { findVehicleById, props, vehicles } from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { sceneCombatModifiers, entityBlockedAt } from './sceneRules';
-import { Scene, SceneEntity, isWalkable } from './scene';
+import { Scene, SceneEntity, emptyScene, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../../engine/combat';
 import { defenseDodgeMods } from '../mount';
 import type { Combatant, Weapon } from '../../engine/types';
@@ -184,5 +184,20 @@ describe('isWalkable — #791 le blocage d’un prop ne s’applique qu’à SA 
     const sceneOnlyZ1 = { ...scene, entities: [propZ1] } as unknown as Scene;
     expect(isWalkable(sceneOnlyZ1, 2, 2, 1)).toBe(false);
     expect(isWalkable(sceneOnlyZ1, 2, 2, 0)).toBe(true);
+  });
+});
+
+describe('entityBlockedAt — une coque terrestre hors de ses ponts bloque ses cases (#4471)', () => {
+  it('la pose des ponts suit les dimensions de la carte, même tableau d’entités : posée elle se marche, hors carte elle bloque', () => {
+    const ponts = findVehicleById('barge-fluviale')!.ponts!;
+    try {
+      setDataset('vehicles', vehicles.map((v) => (v.id === 'charrette' ? { ...v, ponts } : v)));
+      const entities: SceneEntity[] = [{ id: 'char', kind: 'personnage', vehicule: { id: 'charrette' }, pos: { x: 6, y: 2 }, facing: 'E' }];
+      const grande: Scene = { ...emptyScene('grande', 30, 12), entities };
+      const petite: Scene = { ...grande, dimensions: { w: 8, h: 12 } };
+      expect([entityBlockedAt(grande, 6, 2, 0), entityBlockedAt(petite, 6, 2, 0), entityBlockedAt(grande, 6, 2, 0)]).toEqual([false, true, false]);
+    } finally {
+      resetData();
+    }
   });
 });
