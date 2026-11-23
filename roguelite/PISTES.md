@@ -4,40 +4,46 @@ Les améliorations proposées à l'utilisateur, avec leur état. Une piste valid
 piste livrée sort de ce fichier (le commit en garde la trace). Les décisions de l'utilisateur vivent dans
 `CONCEPTION.md`, les manques du noyau dans `RETOURS.md`.
 
-Ordre recommandé une fois le travail en cours terminé : 1 et 2 ensemble, puis 3, puis 4.
+Ordre : 1, puis 2 et 3 ensemble, puis 4.
 
-## 1. Des choix en expédition
+## 1. Rien d'automatique dans les salles — validé le 2026-11-23
 
-Engager, rentrer, boire une potion : l'expédition offre peu de décisions. Darkest Dungeon y met la lumière, la faim
-et le stress.
+« rien ne doit etre automatique, on doit choisir nos actions dans les salles ».
 
-- **Événements entre les salles, avec un choix.** La cache piégée est jouée par le noyau (Test de Perception du
-  groupe, piège en effet de scène), mais le Test se joue seul. À faire : le choix « fouiller ou passer » ; le camp où
-  le soigneur du groupe passe par l'infirmerie du noyau (Guérison, Chirurgie) ; une rencontre qui se résout en
-  partie en social (Charme, Intimidation) ; d'autres pièges sur d'autres Compétences.
+- **Chaque salle hors combat propose des actions** entre lesquelles le joueur choisit, chacune jouée par le noyau
+  (Test du héros choisi ou du meilleur du groupe, conséquences en effets de scène). La cache piégée se joue
+  aujourd'hui seule : elle passe au choix (« fouiller », « désarmer d'abord », « passer »).
+- **Le camp** : le soigneur du groupe passe par l'infirmerie du noyau (Guérison, Chirurgie) ; qui veille, qui soigne.
+- **Rencontres à choix** : en partie sociales (Charme, Intimidation, Commandement) ; pièges sur d'autres Compétences.
 - **Un risque à doser** : choix de chemin entre deux salles, ressource qui s'use au fil de l'expédition.
 
-## 2. Une prise sur le combat automatique
+## 2. Une prise sur le combat — validé le 2026-11-23
 
-Le joueur ne peut ni placer son groupe ni lui donner de consigne.
+- **Placement du groupe** avant la rencontre : ligne de front, tireurs derrière.
+- **Une consigne par héros**, par la doctrine tactique de l'IA du noyau : `Combatant.aiDoctrine` force une des
+  `DOCTRINES` de `src/noyau/monde/ai.ts` (`soldats`, `tirailleurs`, `artillerie`, `meute`, `standard`…), qui module
+  les poids du choix de l'IA sans toucher aux gardes du livre. À mesurer : que la cadence auto l'applique aux héros
+  comme aux ennemis, et quelles doctrines ont un sens pour un héros (tenir la ligne, rester à distance, achever).
 
-- Placement : ligne de front, tireurs derrière.
-- Une consigne par héros : « focaliser », « protéger le soigneur », « fuir sous la moitié ».
+## 3. Des cartes tactiques — proposé par l'utilisateur le 2026-11-23
 
-À vérifier d'abord : ce que l'IA du noyau accepte comme directive. Si elle n'en accepte aucune, c'est un ticket du
-noyau, passé par le circuit des tickets du projet.
+« si tu veux rendre les choses tactiques, faudrait des maps qui le soient un peu plus ». Aujourd'hui chaque combat se
+joue sur une arène nue (`arena`). Des salles écrites au schéma de scène du noyau (`docs/map-authoring.md`) : couverts,
+goulets, obstacles, hauteur, par destination (lisière, tertres, clairière, autel). Le placement (2) n'a de sens
+qu'avec elles.
 
-## 3. Les états de longue durée
+## 4. Corruption et maladies — validé le 2026-11-23
 
-Le noyau joue déjà la Corruption et les maladies : elles donneraient du poids au retour d'expédition (soins,
-séquelles, choix de qui repart).
+« je valide la corruption et les maladies. Ca peut même faire des rencontres avec des choix a faire ». Le noyau les
+joue déjà : elles marquent le retour d'expédition (soins, séquelles, qui repart) et nourrissent des rencontres à
+choix (un autel profané, un puits souillé, un blessé contagieux).
 
-## 4. Une progression qu'on sent
+## 5. Une progression qu'on sent
 
 Montrer l'effet d'un achat en combat (« +5 % de chances de toucher »). À intégrer à la progression « à la 5e »
 validée le 2026-11-23 (`CONCEPTION.md`).
 
-## 5. L'économie sur une campagne entière
+## 6. L'économie sur une campagne entière
 
 À mesurer pendant une partie complète : le péage et les petites routes suffisent-ils à tout financer ? Le hameau
 se bâtit-il trop vite quand on rentre souvent ?

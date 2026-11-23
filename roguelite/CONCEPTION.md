@@ -154,6 +154,12 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   héros au repos dans une chambre (repos d'auberge joué par le noyau, LDB 66) et permet de le renvoyer contre une
   prime ; la progression « à la 5e » est une présentation : un achat de +5 envoyé au noyau en Augmentations de +1, au
   prix du noyau, et seules les Compétences utiles au roguelite proposées ; la règle des cases de la 5e va à `RETOURS.md`.
+- **2026-11-23, les pistes** : « Mais je valide la corruption et les maladies. Ca peut même faire des rencontres avec
+  des choix a faire. Et oui pour le 2 je suis d'accord, rien ne doit etre automatique, on doit choisir nos actions dans
+  les salles. Pour le 1, je suis d'accord pour le placement du groupe et de souvenir y'a un paramétrage possible sur
+  l'ia non ? D'ailleurs si tu veux rendre les choses tactiques, faudrait des maps qui le soient un peu plus ». —
+  Détail et état dans `PISTES.md` ; la consigne d'un héros passe par la doctrine de l'IA du noyau
+  (`Combatant.aiDoctrine`, `DOCTRINES` de `src/noyau/monde/ai.ts`).
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
