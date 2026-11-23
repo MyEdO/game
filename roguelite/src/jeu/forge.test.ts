@@ -47,10 +47,11 @@ describe('la sélection de la forge', () => {
 describe('la forge filtre par les Compétences du héros', () => {
   const groupesVendus = (e: Etat, carriere: string) => [...new Set(armesEnVente(e, recrue(e, profilDe(carriere))).map((a) => a.groupe))].sort();
 
-  it('un Soldat sans Projectiles voit les armes de Base et l’arbalète, rien d’autre', () => {
+  it('un Soldat humain voit les armes de Base, l’arbalète et l’arc de ses Projectiles (Arc) d’espèce, rien d’autre', () => {
     const e = auHameau(1, 3);
-    expect(groupesVendus(e, 'soldat')).toEqual(['arbalete', 'base']);
     const h = recrue(e, profilDe('soldat'));
+    expect([h.espece, h.c.skills.filter((s) => s.id === 'projectiles').map((s) => s.spec)]).toEqual(['humains-reiklander', ['arc']]);
+    expect([...new Set(armesEnVente(e, h).map((a) => a.groupe))].sort()).toEqual(['arbalete', 'arc', 'base']);
     e.roster.push(h);
     expect(acheterUneArme(e, h.c.id, 'arquebuse')).toBe('La forge ne la lui vend pas.');
   });

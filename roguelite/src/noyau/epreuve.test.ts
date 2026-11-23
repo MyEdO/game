@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve, type IssueDEpreuve } from './index';
-import { EPREUVES, PROFILS } from '../jeu';
+import { EPREUVES, estUtile, PROFILS } from '../jeu';
 import { addCondition, COND, hasCondition } from '../../../src/engine/conditions';
 
 const { fouiller, desarmer } = EPREUVES.tresor.actions;
 const FOUILLE = fouiller.epreuves[0];
 const DESARMER = desarmer.epreuves[0];
-const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite);
+const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite, estUtile);
 const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
 
 /** Les Blessures que la branche d'échec de la table retire, lues sur la table. */

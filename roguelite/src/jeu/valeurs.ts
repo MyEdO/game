@@ -103,6 +103,8 @@ export const COMPETENCES_UTILES: ReadonlySet<string> = new Set([
   ...COMPETENCES_DU_COMBAT, 'langue:magick',
   'perception', 'piegeage', 'crochetage', 'guerison', 'charme', 'escalade', 'discretion', 'pistage', 'survie-en-exterieur',
 ]);
+/** La Compétence `ref` est-elle dans `COMPETENCES_UTILES`, par son id ou par sa spécialisation ? */
+export const estUtile = (ref: { id: string; spec?: string }): boolean => COMPETENCES_UTILES.has(ref.id) || COMPETENCES_UTILES.has(`${ref.id}:${ref.spec}`);
 /** Les Talents de carrière qui agissent par la donnée mais hors d'un combat automatique, que la salle d'armes ne met
  *  pas en avant : vie sociale, voyage, fuite, soins. */
 export const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieux', 'voyageur-aguerri', 'fuite', 'sprinter', 'pansement-de-fortune']);

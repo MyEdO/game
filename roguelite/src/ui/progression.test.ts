@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../src/engine/skills';
+import { libelleDeCarac } from '../noyau';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
 
@@ -47,17 +48,18 @@ describe('un seul écran de progression', () => {
 
   it('le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {
     const { e, h } = salle();
-    const CC = { genre: 'carac', id: 'capacite-de-combat' } as const;
-    const augs = () => h.c.charAdvances?.['capacite-de-combat'] ?? 0;
-    while (augs() % 5 !== 2) expect(J.acheter(e, h.c.id, CC)).toBeNull();
-    const entame = J.pasDe(h, CC)!;
+    const vierge = J.offresDeCarriere(h).caracs.find((k) => k.augmentations === 0)!.id;
+    const K = { genre: 'carac', id: vierge } as const;
+    const augs = () => h.c.charAdvances?.[vierge] ?? 0;
+    while (augs() % 5 !== 2) expect(J.acheter(e, h.c.id, K)).toBeNull();
+    const entame = J.pasDe(h, K)!;
     expect(entame.fois).toBe(3);
     const html = progressionDuHeros(e, h);
-    expect(boutonDuPas(html, 'capacite-de-combat').libelle).toBe(`+3 · ${entame.prix} PX`);
-    expect(apercuDe(html.match(/<div class="plan"[^>]*>/)![0]).texte.split('\n')).toContain(`CC +3 · ${entame.prix} PX`);
-    expect(J.acheterUnPas(e, h.c.id, CC).refus).toBeNull();
-    const plein = J.pasDe(h, CC)!;
+    expect(boutonDuPas(html, vierge).libelle).toBe(`+3 · ${entame.prix} PX`);
+    expect(apercuDe(html.match(/<div class="plan"[^>]*>/)![0]).texte.split('\n')).toContain(`${libelleDeCarac(vierge).abr} +3 · ${entame.prix} PX`);
+    expect(J.acheterUnPas(e, h.c.id, K).refus).toBeNull();
+    const plein = J.pasDe(h, K)!;
     expect(plein.fois).toBe(5);
-    expect(boutonDuPas(progressionDuHeros(e, h), 'capacite-de-combat').libelle).toBe(`+5 · ${plein.prix} PX`);
+    expect(boutonDuPas(progressionDuHeros(e, h), vierge).libelle).toBe(`+5 · ${plein.prix} PX`);
   });
 });

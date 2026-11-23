@@ -1,7 +1,7 @@
 /**
  * Les héros hors d'une partie : la recrue que le moteur crée, ses Caractéristiques, ses libellés.
  */
-import { createHero } from '../../../src/engine/character';
+import { CAREER_SKILL_ADVANCES, CAREER_SKILLS_ADVANCED, competencesDeCarriere, createHero, designer, libreDEspece, type CreateHeroOptions } from '../../../src/engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { designateSlot, skillSlots, slotCovers } from '../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
@@ -10,6 +10,8 @@ import { raisonVerrouEtat } from '../../../src/engine/conditions';
 import { findCareerById, findSpeciesById, levelsForCareer, characteristics, conditionLabel, refLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
 import type { RNG } from '../../../src/engine/dice';
 import type { Combatant, CharKey, ConditionInstance } from '../../../src/engine/types';
+import type { RefDesignee } from '../../../src/data/schemas/grammaire/ref';
+import { progression } from './carriere';
 
 /** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
 export interface Designation { niveau: number; id: string; spec: string }
@@ -18,8 +20,9 @@ export interface Designation { niveau: number; id: string; spec: string }
 export interface Identite { talent: { id: string; spec?: string }; sortsMineurs?: readonly string[]; designations?: readonly Designation[] }
 
 /** Un héros neuf de la carrière `carriere`, tiré par la création du moteur (`createHero`) à la graine `graine` : une
- *  désignation du niveau 1 passe par la création (`specChoices`), une autre se pose par `designateSlot`. LDB 05 l.535 */
-export function nouvelleRecrue(graine: number, carriere: string, espece: string, nom: string, identite: Identite): Combatant {
+ *  désignation du niveau 1 passe par la création (`specChoices`), une autre se pose par `designateSlot`. Ses
+ *  Augmentations de création suivent `alignement`, lu sur un premier tirage à la même graine. LDB 05 l.535 */
+export function nouvelleRecrue(graine: number, carriere: string, espece: string, nom: string, identite: Identite, utile: (ref: RefDesignee) => boolean): Combatant {
   const niveaux = levelsForCareer(carriere);
   const premier = niveaux.find((l) => l.level === 1)?.skills ?? [];
   const designations = identite.designations ?? [];
@@ -29,17 +32,61 @@ export function nouvelleRecrue(graine: number, carriere: string, espece: string,
     if (i < 0) throw new Error(`Désignation ${d.id} (${d.spec}) : aucun emplacement « (Au choix) » au niveau 1 de ${carriere}.`);
     specChoices[adresseDeCreation.carriereCompetence(i)] = d.spec;
   }
-  const c = createHero({
-    idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine, specChoices,
-    careerTalent: identite.talent, ...(identite.sortsMineurs ? { pettySpells: [...identite.sortsMineurs] } : {}),
-  });
   const emplacements = skillSlots(niveaux, Math.max(...niveaux.map((l) => l.level)));
-  for (const d of designations.filter((x) => x.niveau > 1)) {
-    const slot = emplacements.find((s) => s.needsChoice && s.level === d.niveau && slotCovers(s, d.id, d.spec));
-    const r = slot ? designateSlot(c, carriere, slot, d.id, d.spec, emplacements) : { ok: false, reason: 'aucun emplacement' };
-    if (!r.ok) throw new Error(`Désignation ${d.id} (${d.spec}) au niveau ${d.niveau} de ${carriere} : ${r.reason}.`);
-  }
-  return c;
+  const creer = (augmentations: Augmentations): Combatant => {
+    const c = createHero({
+      idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine, specChoices,
+      careerTalent: identite.talent, ...(identite.sortsMineurs ? { pettySpells: [...identite.sortsMineurs] } : {}), ...augmentations,
+    });
+    for (const d of designations.filter((x) => x.niveau > 1)) {
+      const slot = emplacements.find((s) => s.needsChoice && s.level === d.niveau && slotCovers(s, d.id, d.spec));
+      const r = slot ? designateSlot(c, carriere, slot, d.id, d.spec, emplacements) : { ok: false, reason: 'aucun emplacement' };
+      if (!r.ok) throw new Error(`Désignation ${d.id} (${d.spec}) au niveau ${d.niveau} de ${carriere} : ${r.reason}.`);
+    }
+    return c;
+  };
+  return creer(alignement(creer({}), espece, specChoices, utile));
+}
+
+/** Les Augmentations gratuites de Caractéristique de la création. LDB 05 l.459 */
+const AUGMENTATIONS_DE_CARACTERISTIQUE = 5;
+type Augmentations = Pick<CreateHeroOptions, 'charAdvancesAlloc' | 'skillAdvances' | 'speciesSkillAdvances'>;
+
+/** Les Augmentations de création du héros `brouillon`, qui laissent chaque Caractéristique et chaque Compétence que sa
+ *  carrière offre à son sommet (`progression`) à un multiple du pas (`PAS`) :
+ *  - Caractéristique : toutes sur celle du niveau 1 qui porte le plus de Compétences `utile` offertes, la première du
+ *    niveau à égalité (LDB 05 l.459) ;
+ *  - espèce : les +3 sur celles qu'aucun emplacement de la carrière ne couvre, puis celles que seul un emplacement
+ *    « (Au choix) » non désigné couvre, jamais une offerte ; les +5 sur les offertes `utile` d'abord (LDB 05 l.484) ;
+ *  - carrière : une part égale par Compétence du niveau 1, les `utile` d'abord (LDB 05 l.535 ; AA 02 l.134). */
+function alignement(brouillon: Combatant, espece: string, specChoices: Record<AdresseDeCreation, string>, utile: (ref: RefDesignee) => boolean): Augmentations {
+  const carriere = brouillon.career ?? '';
+  const niveaux = levelsForCareer(carriere);
+  const sommet = Math.max(...niveaux.map((l) => l.level));
+  const premier = niveaux.find((l) => l.level === 1);
+  const offertes = progression({ ...brouillon, careerLevel: sommet }).competences.map((k) => k.ref);
+  const offerte = (r: RefDesignee) => offertes.some((o) => o.id === r.id && (o.spec ?? '') === (r.spec ?? ''));
+  const emplacements = skillSlots(niveaux, sommet);
+  const couverte = (r: RefDesignee) => emplacements.some((s) => slotCovers(s, r.id, r.spec));
+  const parRang = <T>(liste: readonly T[], rang: (x: T) => number): T[] => [...liste].sort((a, b) => rang(a) - rang(b));
+
+  const portees = (k: CharKey) => offertes.filter((r) => utile(r) && ficheDeCompetence(r.id).carac === k).length;
+  const caracteristique = (premier?.characteristics ?? []).reduce((m, k) => (portees(k) > portees(m) ? k : m));
+
+  const sp = findSpeciesById(espece);
+  if (!sp) throw new Error(`Espèce inconnue : ${espece}`);
+  const designees: RefDesignee[] = [];
+  for (const a of sp.skills) if ('id' in a) designees.push(designer('skill', a, undefined, libreDEspece(sp, a, designees)));
+  const plus3 = parRang(designees, (r) => (offerte(r) ? 2 : couverte(r) ? 1 : 0)).slice(0, 3);
+  if (plus3.some(offerte)) throw new Error(`${carriere} × ${espece} : moins de 3 Compétences d'espèce hors de la carrière (LDB 05 l.484).`);
+  const plus5 = parRang(designees.filter((r) => !plus3.includes(r)), (r) => (offerte(r) ? (utile(r) ? 0 : 1) : 2)).slice(0, 3);
+
+  const dotees = parRang(competencesDeCarriere(premier, brouillon, specChoices).filter((e) => !e.ajout), (e) => (utile(e.designee ?? e.ref) ? 0 : 1)).slice(0, CAREER_SKILLS_ADVANCED);
+  return {
+    charAdvancesAlloc: { [caracteristique]: AUGMENTATIONS_DE_CARACTERISTIQUE },
+    speciesSkillAdvances: { plus5, plus3 },
+    skillAdvances: Object.fromEntries(dotees.map((e) => [e.cle, CAREER_SKILL_ADVANCES / CAREER_SKILLS_ADVANCED])),
+  };
 }
 
 /** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et
@@ -71,12 +118,6 @@ export const horsDeCombat = (c: Combatant): boolean => !!c.dead || c.wounds.curr
 
 /** Libellé d'une carrière (`careers.json`). */
 export const nomDeCarriereDuLivre = (id: string): string => findCareerById(id)?.label ?? id;
-
-/** Abréviation et libellé d'une Caractéristique, tels que la donnée les porte (`characteristics.json`). */
-export function libelleDeCarac(k: CharKey): { abr: string; label: string } {
-  const d = characteristics.find((x) => x.id === k);
-  return { abr: d?.abr ?? k, label: d?.label ?? k };
-}
 
 /** Ce que le livre dit d'une Caractéristique (`characteristics.json`), verbatim. */
 export const texteDeCarac = (k: CharKey): string => characteristics.find((x) => x.id === k)?.desc ?? '';

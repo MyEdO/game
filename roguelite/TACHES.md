@@ -8,8 +8,8 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Écritures de fin de combat perdues après le report (MyEdO/game#4860) : la mutation du seuil de Corruption et les ops d'`onVictory` écrivent le groupe ; la défaite et la victoire attendent un Destin en suspens | branche `chantier/4860` | codeur rendu vert (`src/noyau` 1037 fichiers verts) ; reste la garde du Destin remontée en tête de `checkBattleOver` (victoire comprise), un juge de diff, puis PR et file de fusion |
-| Création des héros alignée sur des multiples de 5 (arbitrage 2026-11-23 : « faut fixer les augm même de la crea a 5 points ») : les 5 Augmentations de Caractéristique sur une seule (LDB 05 l.459), les 40 de carrière en +5/+10 (l.535), les +3 de race hors carrière ou complétés (l.484) | `roguelite/src/noyau/heros.ts` | codeur en cours ; question ouverte à l'utilisateur : création fidèle à la 5e (CRB 014-015) ou 4e alignée |
+| Écritures de fin de combat perdues après le report (MyEdO/game#4860) : la mutation du seuil de Corruption et les ops d'`onVictory` écrivent le groupe ; la défaite et la victoire attendent un Destin en suspens | branche `chantier/4860` (instantané poussé, design jugé au ticket) | codeur en cours sur la garde du Destin remontée en tête de `checkBattleOver` (victoire comprise) ; puis un juge de diff, la PR et la file de fusion |
+| Question ouverte à l'utilisateur : création fidèle à la 5e (CRB 014-015 : 5 Compétences d'espèce à +5, 8 Augmentations de carrière plafonnées à +15, aucune Augmentation de Caractéristique) ou 4e alignée sur le pas de 5 (livrée, `roguelite/src/noyau/heros.ts`). À égalité, le Pyromancien met ses 5 Augmentations sur CC plutôt que FM | `roguelite/src/noyau/heros.ts` | attend la réponse |
 
 ## Ensuite, dans l'ordre
 
@@ -25,7 +25,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 10. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 11. Équilibrage : les hardes, le Minotaure, Guerrier du Chaos + Troll (0 sur 6 au balayage) ; l'économie sur une campagne entière (piste 7) ; le soin de l'hospice gratuit au palier 3.
 12. Genre des noms tirés.
-13. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v31 publiée le 2026-11-23 : progression à la 5e, potions au départ). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un autre compte publie un artefact neuf : seul son auteur met à jour celui-ci.
+13. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v32 publiée le 2026-11-23 : création au pas de 5). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un autre compte publie un artefact neuf : seul son auteur met à jour celui-ci.
 
 ## Reprendre ce chantier depuis un autre compte
 

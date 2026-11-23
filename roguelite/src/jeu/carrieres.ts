@@ -3,7 +3,7 @@
  */
 import { augmentationsDuPas, coutDesAugmentations, effetDesAugmentations, ficheDeCompetence, planDuNiveau, talentDeCombat, progression, type CharKey, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
 
-import { COMPETENCES_UTILES, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
+import { estUtile, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
 import { auNoyau, heros } from './outils';
 import { prendreSesArmes } from './boutiques';
@@ -11,8 +11,6 @@ import { prendreSesArmes } from './boutiques';
 /** Le plus haut niveau de carrière que la salle d'armes ouvre (0 : fermée). */
 export const niveauMaximal = (e: Etat): number => (e.batiments.salle ? e.batiments.salle + 1 : 0);
 
-
-const estUtile = (ref: { id: string; spec?: string }): boolean => COMPETENCES_UTILES.has(ref.id) || COMPETENCES_UTILES.has(`${ref.id}:${ref.spec}`);
 
 /** Les offres de la carrière du héros : chaque Compétence marquée `utile` (`COMPETENCES_UTILES`), la voie du lanceur
  *  réduite à sa spécialisation, et les seuls Talents qui agissent dans un combat automatique (`talentDeCombat`). */

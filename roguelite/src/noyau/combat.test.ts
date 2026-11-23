@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type IssueDuCombat } from './index';
-import { PROFILS } from '../jeu';
+import { estUtile, PROFILS } from '../jeu';
 import { t } from '../../../src/i18n';
 
-const recrue = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite);
+const recrue = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite, estUtile);
 const groupe = () => [recrue(31, 'soldat', 'Hans'), recrue(32, 'chasseur', 'Greta'), recrue(33, 'ratier', 'Ulli')];
 
 /** Les coups d'arme d'une figure sur une autre de son camp, lu sur le plateau du pas qui les porte. */

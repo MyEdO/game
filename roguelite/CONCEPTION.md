@@ -242,6 +242,11 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
+- **2026-11-23, la création au pas de 5** : « Va falloir refaire les personnages car bon des coups variables pour des
+  achat de 5 points car n'a aucun sens. Donc faut fixer les augm même de la crea a 5 points ». — Une recrue naît avec
+  chaque Caractéristique et chaque Compétence de sa carrière, tous niveaux, à un multiple de 5 (`nouvelleRecrue`) :
+  ses 5 Augmentations de Caractéristique sur une seule du niveau 1, ses +3 d'espèce hors de la carrière, ses 40 de
+  carrière par 5 sur 8 Compétences du niveau 1, les utiles d'abord (LDB 05 l.459, l.484, l.535).
 
 ## Les phases
 

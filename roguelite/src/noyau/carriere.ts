@@ -14,11 +14,16 @@ import { availableChars, skillSlots, talentSlots, designationsFor, parseRefKey }
 import { bonusDe, effectiveChar, effectiveMaxWounds } from '../../../src/engine/characteristics';
 import { testValue } from '../../../src/engine/skills';
 import { competenceEnCarriere } from '../../../src/engine/talentEffects';
-import { byId, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../src/data';
+import { byId, characteristics, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../src/data';
 import type { Combatant, CharKey, ItemInstance } from '../../../src/engine/types';
-import { libelleDeCarac } from './heros';
 import { auHameau, type Geste } from './hameau';
 
+
+/** Abréviation et libellé d'une Caractéristique, tels que la donnée les porte (`characteristics.json`). */
+export function libelleDeCarac(k: CharKey): { abr: string; label: string } {
+  const d = characteristics.find((x) => x.id === k);
+  return { abr: d?.abr ?? k, label: d?.label ?? k };
+}
 
 export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
 /** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`) ; `remise` :

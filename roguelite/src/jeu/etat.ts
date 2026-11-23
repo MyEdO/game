@@ -3,7 +3,7 @@
  */
 import { dotationDesNiveaux, generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
-import { ESPECES, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
+import { ESPECES, estUtile, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
 import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
 
@@ -68,7 +68,7 @@ export function recrue(e: Etat, p: Profil): Heros {
   const nom = generateName(ESPECES[espece].race, sexe, rng) ?? 'Sans-nom';
   const identite = p.dieux ? { ...p.identite, talent: { ...p.identite.talent, spec: choisir(rng, p.dieux) } } : p.identite;
   const graine = e.graine++;
-  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, nom, identite), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
+  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, nom, identite, estUtile), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
   tenirLesObjets(e, h, dotationDesNiveaux(h.c, p.niveau, e.graine++));
   if (p.dotation) remettreLesObjets(e, h, p.dotation);
   prendreSesArmes(e, h);
