@@ -961,6 +961,14 @@ reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur p
 (`test_arete.py`). Un kit qu'on voit à travers (la grille d'une herse) le déclare dans son `donnees.py` par
 `CLAIRE_VOIE = True` : la garde de jour le saute.
 
+**Lire l'illustration, juger le kit.** Une aide de jeu coupe souvent le mur d'enceinte pour laisser voir la façade :
+les moignons de part et d'autre sont ce mur coupé, et le bloc central qui reste peut être le portail de l'enceinte, non
+un porche du bâtiment ; lire l'illustration ainsi avant d'attribuer une pièce. La teinte et la lisibilité d'un kit se
+jugent sur une capture Godot (`npm run godot:regarder`), jamais sur la revue Blender : la palette, la texture et la
+lumière de la scène les font dériver ; mesurer un pixel au soleil et le comparer à l'illustration. Une pièce `mur` se
+répète sur chaque arête : un détail ponctuel (pierre apparente, fissure) y devient un motif régulier ; le garder pour
+une pièce rare (`breche`) ou pour une variante.
+
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
 ```sh
