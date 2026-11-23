@@ -13722,67 +13722,7 @@
       "x": 21,
       "y": 38
      },
-     "facing": "N",
-     "label": "Diligence",
-     "usable": {
-      "actions": [
-       {
-        "id": "monter-a-bord",
-        "label": "Monter à bord",
-        "unique": true,
-        "flow": {
-         "kind": "sequence",
-         "etapes": [
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setFlag",
-            "flag": "edo-ch1-depart"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "clearObjective",
-            "id": "edo-ch1-place-a-bord"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "journal",
-            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.251 · l.255"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setObjective",
-            "id": "edo-ch1-route",
-            "desc": "Se rendre à Altdorf.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.247"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "openWorldMap"
-           }
-          }
-         ]
-        }
-       }
-      ]
-     }
+     "facing": "N"
     },
     {
      "id": "prop-0",
@@ -15807,7 +15747,66 @@
       "x": 24,
       "y": 29
      },
-     "facing": "N"
+     "facing": "N",
+     "usable": {
+      "actions": [
+       {
+        "id": "monter-a-bord",
+        "label": "Monter à bord",
+        "unique": true,
+        "flow": {
+         "kind": "sequence",
+         "etapes": [
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setFlag",
+            "flag": "edo-ch1-depart"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "clearObjective",
+            "id": "edo-ch1-place-a-bord"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "journal",
+            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.251 · l.255"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setObjective",
+            "id": "edo-ch1-route",
+            "desc": "Se rendre à Altdorf.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.247"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "openWorldMap"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
     }
    ],
    "dialogues": [],
@@ -22323,28 +22322,6 @@
           "y": 12,
           "side": "N"
          }
-        },
-        {
-         "id": "ecu-porte-cochere",
-         "kind": "sign",
-         "edge": {
-          "x": 24,
-          "y": 12,
-          "side": "N"
-         },
-         "offset": 1,
-         "appearance": "ecu"
-        },
-        {
-         "id": "epi-de-faite-nord",
-         "kind": "chimney",
-         "edge": {
-          "x": 24,
-          "y": 12,
-          "side": "N"
-         },
-         "offset": 1,
-         "appearance": "epi-de-faite"
         }
        ]
       },
@@ -22721,17 +22698,6 @@
           "y": 27,
           "side": "N"
          }
-        },
-        {
-         "id": "epi-de-faite-sud",
-         "kind": "chimney",
-         "edge": {
-          "x": 24,
-          "y": 27,
-          "side": "N"
-         },
-         "offset": 1,
-         "appearance": "epi-de-faite"
         }
        ]
       },
