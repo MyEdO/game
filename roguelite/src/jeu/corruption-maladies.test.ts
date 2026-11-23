@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { contractDisease, maladieDeclaree } from '../../../src/engine/disease';
 import { MINUTES_PER_DAY } from '../../../src/engine/clock';
-import { jouerLeCombat, jouerLEpreuve, makeRNG, maladies, souillure, type Combatant, type Epreuve, type IssueDEpreuve } from '../noyau';
+import { jouerLEpreuve, makeRNG, maladies, souillure, type Combatant, type Epreuve } from '../noyau';
 import { ecranDuHeros } from '../ui/fiche';
 import { attendreUneSemaine, compagnieEpuisee, confierALHospice, EPREUVES, nouvellePartie, SEMAINE_DE_REPOS, type Etat, type Heros } from './index';
 
@@ -53,57 +53,21 @@ describe('l’horloge des maladies entre les expéditions', () => {
   });
 });
 
-/** Le noyau ne tient qu'une partie à la fois : la partie suspendue sur le « Je te renie ! » reste ouverte jusqu'au
- *  choix, donc chaque héros se crée avant elle. */
-describe('« Je te renie ! », choix du joueur', () => {
-  const souille = (): Combatant => {
-    const c = nouvellePartie(7).roster[0].c;
-    c.corruption = souillure(c).seuil;
-    c.resilience = 2;
-    return c;
-  };
-  const fouille = EPREUVES.tresor.actions.fouiller.epreuves[0];
-  const corrompt = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } } as Epreuve['flux']['echec'];
-  const autel: Epreuve = { label: 'Autel profané', flux: { ...fouille.flux, reussite: corrompt, echec: corrompt } };
-  type Suspendue = { renier?: { trancher: (renier: boolean) => Suspendue } };
-  /** La première graine où `jouer` ouvre le « Je te renie ! » ; chaque partie sondée est tranchée, donc fermée. */
-  const graine = (jouer: (g: number) => Suspendue): number => {
-    for (let g = 1; g <= 80; g++) {
-      let r = jouer(g);
-      if (!r.renier) continue;
-      while (r.renier) r = r.renier.trancher(true);
-      return g;
-    }
-    throw new Error('aucune graine n’ouvre le « Je te renie ! »');
-  };
-
-  it('une épreuve qui fait déborder la Corruption demande le choix : renier coûte 1 Résilience, sans mutation', () => {
-    const g = graine((x) => jouerLEpreuve([souille()], autel, x));
-    const heros = souille();
-    const ouverte = jouerLEpreuve([heros], autel, g);
-    expect(ouverte.renier?.nom).toBe(heros.label);
-    const r: IssueDEpreuve = ouverte.renier!.trancher(true);
-    expect(r.renier).toBeUndefined();
-    expect(r.groupe[0].resilience).toBe(1);
-    expect(r.groupe[0].mutations ?? []).toHaveLength(0);
-  });
-
-  it('laisser la mutation venir : une mutation, la Résilience intacte', () => {
-    const g = graine((x) => jouerLEpreuve([souille()], autel, x));
-    const heros = souille();
-    const r = jouerLEpreuve([heros], autel, g).renier!.trancher(false);
-    expect(r.renier).toBeUndefined();
-    expect(r.groupe[0].resilience).toBe(2);
+describe('« Je te renie ! » sans choix : le roguelite ne gère pas la Résilience (CONCEPTION.md)', () => {
+  /** Graine 5 : le Test du seuil échoue (`cor.thresholdFail`), le noyau ouvre « Je te renie ! » (Résilience 2). */
+  it('une épreuve qui fait déborder la Corruption et rate le Test du seuil laisse venir la mutation, Résilience intacte', () => {
+    const heros = nouvellePartie(7).roster[0].c;
+    heros.corruption = souillure(heros).seuil;
+    heros.resilience = 2;
+    const fouille = EPREUVES.tresor.actions.fouiller.epreuves[0];
+    const corrompt = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } } as Epreuve['flux']['echec'];
+    const autel: Epreuve = { label: 'Autel profané', flux: { ...fouille.flux, reussite: corrompt, echec: corrompt } };
+    const r = jouerLEpreuve([heros], autel, 5);
+    const journal = r.journal.join(' ');
+    expect(journal).toContain(`${heros.label} échoue à contenir sa Corruption`);
+    expect(journal).toContain(`${heros.label} MUTE`);
     expect(r.groupe[0].mutations).toHaveLength(1);
-  });
-
-  it('un combat qui fait déborder la Corruption attend le choix, puis se clôt sur le choix du joueur', () => {
-    const g = graine((x) => jouerLeCombat([souille()], ['mutant'], x));
-    const heros = souille();
-    const r = jouerLeCombat([heros], ['mutant'], g).renier!.trancher(true);
-    expect(r.renier).toBeUndefined();
-    expect(r.issue).not.toBe('impasse');
-    expect(r.pas.flatMap((p) => p.lignes).join(' ')).toMatch(/Je te renie/);
+    expect(r.groupe[0].resilience).toBe(2);
   });
 });
 

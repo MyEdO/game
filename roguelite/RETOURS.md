@@ -312,17 +312,9 @@ sur une arène générée.
   différés sur place et rejoue la dispatch des trois appliers (`entretenirLesMaladies`, `roguelite/src/noyau/soins.ts`).
   Idée : une journée de maladie résolue sur place, pure, dans `src/engine/rest.ts`, qui porte cette dispatch et que la
   bande de nuit comme tout hôte appelleraient.
-- **Défaut — en combat, « Je te renie ! » tranché après la victoire est perdu.** Mesuré (un Soldat au seuil, Résilience
-  2, contre un mutant, graine 1) : la fenêtre `renier` s'ouvre à `battle.over === 'victoire'` et bloque `fenetreFermer`.
-  Après `fenetreChoisir('renier', 'renier', true)`, le combattant du champ porte Résilience 1, le groupe (`party`) 2 ;
-  avec `false`, le champ porte 1 mutation, le groupe aucune. Après `fenetreFermer('victoire')`, `etat().party` garde 2
-  et aucune mutation dans les deux cas (ni `pendingCorruption` ni `corruptionQueue` en attente). `resolveRenounce`
-  (`src/noyau/corruptionFlow.ts:341`) mute l'acteur d'`actorIn`, le combattant du champ, alors que le groupe a déjà été
-  rendu à la victoire : le choix n'a aucun effet. L'hôte suspend bien la partie jusqu'au choix
-  (`suspendrePourLeRenier`), sans corriger l'état ; hors combat (épreuve), le choix porte. Avant ce lot, la boucle de
-  combat de l'hôte s'arrêtait sur cette fenêtre et lisait le groupe du champ, mutation ou Résilience comprises.
-- **Friction — une partie suspendue bloque toutes les autres.** Le noyau ne tient qu'un jeu branché à la fois
-  (`brancherLeJeu`, `src/noyau/branchement.ts:22`) : tant que le joueur n'a pas tranché le « Je te renie ! », l'hôte ne
-  peut ouvrir aucune autre partie (soin, achat, verdict de l'infirmerie). Le carton bloque la salle et le rendu de la
-  salle en cours n'en ouvre pas, mais rien ne le garantit. Idée : un état sérialisable du choix en attente, qu'une
-  partie neuve reprendrait.
+- **Défaut — en combat, l'issue du seuil de Corruption tranchée après la victoire est perdue (MyEdO/game#4860).**
+  Mesuré (un Soldat au seuil, Résilience 2, contre un mutant) : la fenêtre `renier` s'ouvre à `battle.over ===
+  'victoire'` ; l'hôte y répond `false` (la mutation vient, `CONCEPTION.md`, « Corruption »), le journal dit « MUTE »,
+  mais le héros rendu au groupe n'a aucune mutation : `resolveRenounce` (`src/noyau/corruptionFlow.ts:341`) mute le
+  combattant du champ d'`actorIn`, alors que le groupe a déjà été rendu à la victoire. Hors combat (épreuve), la
+  mutation porte.

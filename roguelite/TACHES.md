@@ -28,9 +28,9 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
    s'use. Le choix réel du soigneur attend le noyau (`RETOURS.md`, « aucun réglage du soigneur »).
 7. Provisions de route à l'Auberge relais : rations, torches, cordes, qui ouvrent ou facilitent des actions de salle.
 8. Placement du groupe, consigne par héros (doctrine de l'IA), cartes tactiques.
-9. Corruption et maladies : l'horloge des maladies (hameau, salles, hospice), « Je te renie ! » au choix du joueur et
-   la fiche sont faits (lot 1). Restent les rencontres à choix (autel profané, puits souillé, blessé contagieux) et la
-   Résilience perdue d'un « Je te renie ! » tranché en combat (`RETOURS.md`, « Corruption et maladies »).
+9. Corruption et maladies : l'horloge des maladies (hameau, salles, hospice) et la fiche sont faites (lot 1). Restent
+   les rencontres à choix (autel profané, puits souillé, blessé contagieux) ; en combat, la mutation du seuil de
+   Corruption attend le noyau (MyEdO/game#4860).
 10. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 11. Équilibrage : les hardes, le Minotaure, et Guerrier du Chaos + Troll trop durs (0 sur 6 au balayage) ; les
     Collèges au niveau 1 n'ont que leurs sorts mineurs ; plus de morts depuis les potions à l'Hospice ; l'économie

@@ -14,4 +14,3 @@ export * from './soins';
 export * from './equipement';
 export * from './carriere';
 export * from './epreuve';
-export type { AvecRenier, ChoixDeRenier } from './partie';

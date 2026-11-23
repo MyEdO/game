@@ -10,7 +10,7 @@ import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
 import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
 import { panneauDeService, type Emplacement } from './ui/services';
-import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, renierEnCarton, reglagesEnCarton, VIGNETTE_DE_SALLE, type ChoixDeSalle } from './ui/lieux';
+import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton, VIGNETTE_DE_SALLE, type ChoixDeSalle } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { gloserDans, installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
@@ -20,9 +20,7 @@ type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: str
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; vignette: Vignette; surTitre: string; terrain: string };
-/** Un « Je te renie ! » en attente : le carton bloque la salle ; `suite` reprend le récit une fois le choix tranché. */
-type Renier = { type: 'renier'; choix: NonNullable<J.RecitDeSalle['renier']>; suite: (r: J.RecitDeSalle) => void; ruban: string; vignette: Vignette; surTitre: string };
-let ouvert: Recit | Renier | { type: 'reset' } | { type: 'reglages' } | null = null;
+let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
 /** Le héros que servent la forge, l'hospice et la salle d'armes. */
 let client: string | null = null;
 /** L'emplacement ouvert à la forge. */
@@ -48,14 +46,6 @@ function agir(f: () => string | null | void) {
   if (err) toast(err);
 }
 
-/** Le récit `r` d'une salle : un « Je te renie ! » en attente ouvre d'abord son carton (`renierEnCarton`), dont le choix
- *  reprend le récit ; sinon `suite`. */
-function derouler(r: J.RecitDeSalle, o: Omit<Renier, 'type' | 'choix' | 'suite'>, suite: (r: J.RecitDeSalle) => void) {
-  if (!r.renier) return suite(r);
-  ouvert = { type: 'renier', choix: r.renier, suite: (fini) => derouler(fini, o, suite), ...o };
-  rendre();
-}
-
 /** Joue l'action choisie dans la salle ouverte (`J.agirDansLaSalle`) et raconte son récit en carton ; son refus, en
  *  toast. La salle, sa route et son rang se lisent avant l'action, qui peut ramener le groupe au hameau. */
 function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: string) {
@@ -63,17 +53,14 @@ function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: 
   const type = x.salles[x.index].type;
   const terrain = x.destination;
   const route = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`;
-  const joue = J.agirDansLaSalle(etat, action, herosId, patientId);
-  if (typeof joue === 'string') return toast(joue);
+  const r = J.agirDansLaSalle(etat, action, herosId, patientId);
+  if (typeof r === 'string') return toast(r);
   choixDAction = null;
-  derouler(joue, { ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: route }, (r) => {
-    ouvert = null;
-    J.sauver(etat);
-    const montrer = () => { ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain }; rendre(); };
-    if (!r.combat) return montrer();
-    rendre();
-    ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
-  });
+  J.sauver(etat);
+  const montrer = () => { ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain }; rendre(); };
+  if (!r.combat) return montrer();
+  rendre();
+  ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
 }
 
 /** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le hameau. */
@@ -86,8 +73,7 @@ function serviceOuvert() {
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton()
-  : ouvert.type === 'renier' ? renierEnCarton(ouvert.choix.nom, ouvert) : recitEnCarton(ouvert.recit, ouvert, J.herosDuGroupe(etat)));
+const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton() : recitEnCarton(ouvert.recit, ouvert, J.herosDuGroupe(etat)));
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
@@ -176,19 +162,16 @@ document.addEventListener('click', (ev) => {
       const terrain = x.destination;
       const type = x.salles[x.index].type;
       const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length} franchie`;
-      const joue = J.avancer(etat);
-      if (!joue) { J.sauver(etat); choixDAction = null; return rendre(); }
-      return derouler(joue, { ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre }, (recit) => {
-        ouvert = null;
-        J.sauver(etat);
-        const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain }; rendre(); };
-        if (!recit.combat) return montrer();
-        rendre();
-        // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
-        // racontent ensuite au carton.
-        const raconter = !!recit.fin || recit.lignes.length > 1;
-        ouvrirLeRejeu(recit.combat, recit.fin ? '' : recit.lignes[0], raconter ? montrer : rendre, terrain, etat.roster);
-      });
+      const recit = J.avancer(etat);
+      J.sauver(etat);
+      if (!recit) { choixDAction = null; return rendre(); }
+      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain }; rendre(); };
+      if (!recit.combat) return montrer();
+      rendre();
+      // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
+      // racontent ensuite au carton.
+      const raconter = !!recit.fin || recit.lignes.length > 1;
+      return ouvrirLeRejeu(recit.combat, recit.fin ? '' : recit.lignes[0], raconter ? montrer : rendre, terrain, etat.roster);
     }
     case 'action': {
       const action = k as J.ActionDeSalle;
@@ -221,7 +204,6 @@ document.addEventListener('click', (ev) => {
     }
     case 'attendre': return agir(() => J.attendreUneSemaine(etat));
     case 'fermer': ouvert = null; return rendre();
-    case 'renier': { if (ouvert?.type !== 'renier') return; const { choix, suite } = ouvert; return suite(choix.trancher(k === 'oui')); }
     case 'reset': ouvert = { type: 'reset' }; return rendre();
     case 'reglages': ouvert = { type: 'reglages' }; return rendre();
     case 'taille': choisirLaTaille(k as Taille); mettreALEchelle(); return rendre();
