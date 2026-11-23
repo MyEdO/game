@@ -44,8 +44,7 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
   la traversée des couches se mesure. La tenue d'un preset se donne par `--tenue <preset>`, tes pièces par
   `--local <id>=<glb>`, jamais par une liste de GLB écrite à la main ; un rigide rangé retouché se contrôle par
   `--poses-rangees` avant la porte. Une retouche se mesure sous `--portee <id>` contre le témoin de la tenue publiée
-  pris sous la même portée ; avant toute republication d'un outil commun, `npm run personnage-3d:portes` joue la porte
-  des presets touchés et ne sort que les écarts neufs. Un rendu Blender ne prouve rien seul.
+  pris sous la même portée. Un rendu Blender ne prouve rien seul.
 - **Regarde ce que tu livres** : rends l'élément monté sur la base, de face, de profil et de dos
   (`rendu.py --tenue <preset> --local <id>=<glb>`), un rigide aussi seul (`rendu.py --input <rigide.glb> --preset <preset>`),
   et inspecte chaque vue en lisant l'image, à côté de l'illustration. Un rendu que tu n'as pas regardé

@@ -592,7 +592,9 @@ témoin se prend sous la même portée, sur la tenue publiée, puis la retouche 
 Avant de republier un outil commun (`scripts/personnage-3d/`, l'évaluateur, la pile) ou un lot, jouer
 `npm run personnage-3d:portes -- [--local <id>=<glb>]...` : il retrouve les éléments dont l'empreinte change sur la
 branche (et les GLB locaux d'une reconstruction), les presets dont la tenue les monte, et joue, une porte à la fois, la
-porte de chacun sous leur portée contre le témoin de sa tenue publiée sur `main` ; seuls les écarts neufs sortent.
+porte de chacun sous leur portée contre le témoin de sa tenue publiée sur `main` ; seuls les écarts neufs sortent. Le
+témoin se filtre par la portée de la mesure : une couche qui suit l'élément retouché sans suivre le publié sort ses
+écarts préexistants comme neufs.
 Les triangles de chaque mesh s'impriment en tête de chaque rapport ; ceux de chaque GLB bâti, à chaque ligne de
 `npm run personnage-3d:integrer`.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
