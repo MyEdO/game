@@ -255,7 +255,9 @@ export interface Consequence {
   icone?: string;
   ton?: 'gain' | 'perte';
   detail?: string;
-  /** Le prix qu'un prix en pourcent change, l'ancien barré, le nouveau visible : le chiffre qui décide de conclure. */
+  /** Le prix qu'un prix en pourcent change, l'ancien barré, le nouveau visible : le chiffre qui décide de conclure. L'hôte
+   *  le compose depuis le prix que sa page affiche (`prixDeLigne` et `sellGain` du marchand, le lot du port), contre
+   *  lequel le noyau mesure le pourcent qu'il projette avec son sens (`DetailDePrix`). */
   prix?: { de: Sous; vers: Sous };
 }
 

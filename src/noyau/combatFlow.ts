@@ -276,7 +276,7 @@ import {
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
-import { gainCorruption, testDExposition, crochetsDeCorruption } from './corruptionFlow';
+import { faitDuGainDeCorruption, gainCorruption, testDExposition, crochetsDeCorruption } from './corruptionFlow';
 import { corruptionGain, EXPOSURE_LADDER, recoitLaCorruption, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
@@ -5568,8 +5568,9 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // silencieux héros »). `onFailHard` (Purifier la chair −4 DR → Inconscient) est honoré dans la branche
   // d'échec via la Condition Flow `slThreshold ≤ −4` (cf. `mkTest`).
   if (m.testFlow) runCombatFlow({ get, set, target: caster, caster, label: m.label, opsCtx }, m.testFlow);
-  // `affichee` : l'étape de révélation PORTE déjà ces lignes et ces faits — l'appelant en cascade ne doit pas les
-  // rendre une SECONDE fois en conséquence de son étape (mêmes lignes, deux rangées à l'écran).
+  // Le journal reçoit le dénouement ICI, que la révélation le montre ou non (#4787) ; `affichee` : l'étape de
+  // révélation PORTE ces lignes et ces faits, l'appelant en cascade ne les montre pas une seconde fois.
+  journaliser(get, set, lines, 'information', { actorId: caster.id });
   return { applique: { lignes: lines, faits }, affichee };
 }
 
@@ -7788,20 +7789,38 @@ function bornerLaSequenceOuverte(get: Get, set: SetFn, borne: 'combatEndBoundary
  * fenêtre), jamais en bloc d'étape — deux porteurs ne partagent pas une issue.
  */
 function bandeDeFinDeCombat(
-  rowFn: (get: Get, set: SetFn, band: CascadeStep, row: BatchParticipant, hero: Combatant, meta: CascadeStepMeta) => string[],
+  rowFn: (get: Get, set: SetFn, band: CascadeStep, row: BatchParticipant, hero: Combatant, meta: CascadeStepMeta) => LignesEtFaits,
 ): CascadeApplier {
   return (get, set, step) => {
     if (!step.participants) return;
     for (const row of step.participants) {
       const hero = actorIn(get(), row.id);
       if (!hero || !row.result) { row.outcome = []; continue; }
-      const lines = rowFn(get, set as SetFn, step, row, hero, combatEndRowMeta(step, row));
-      row.outcome = resultLines(freeCons(lines));
-      for (const l of lines) get().ecrireAuJournal(l);
+      const { lignes, faits } = rowFn(get, set as SetFn, step, row, hero, combatEndRowMeta(step, row));
+      row.outcome = resultLines(freeCons(lignes));
+      if (faits.length) row.faits = faits;
+      for (const l of lignes) get().ecrireAuJournal(l);
     }
     set(touchActors(get()));
     return { consequences: [] };
   };
+}
+
+/** Les Points que doit la rangée jetée `row` de la bande d'Exposition de fin de combat `band` (`corruptionGain`, selon
+ *  son Degré et son DR) ; 0 sans Degré ni dé. LDB 19 l.35 ; LDB 19 l.48 ; LDB 19 l.58 */
+function gainDeLaRangeeDExposition(band: CascadeStep, row: BatchParticipant): number {
+  const level = combatEndRowMeta(band, row).level as ExposureLevel | undefined;
+  return level && row.result ? corruptionGain(level, row.result.success, Math.max(0, row.result.sl)) : 0;
+}
+
+/** Les faits que prévoit la rangée `row` de la bande `band`, jetée et non validée (#4574) : ceux que son applier
+ *  appliquera ; l'Exposition à la Corruption, le fait de son gain (`faitDuGainDeCorruption`). */
+export function faitsPrevusDeLaRangee(s: Jeu, band: CascadeStep, row: BatchParticipant): FaitApplique[] {
+  const hero = actorIn(s, row.id);
+  if (band.kind !== 'corruptionDeFinDeCombat' || !hero || !row.result) return [];
+  const gain = gainDeLaRangeeDExposition(band, row);
+  const fait = gain > 0 ? faitDuGainDeCorruption(s, hero, gain) : null;
+  return fait ? [fait] : [];
 }
 
 /** Ouvre le Test de Contraction du patient après une Chirurgie. LDB 10 l.184 */
@@ -9896,32 +9915,32 @@ export const TABLES = {
         return sortie([relance({ severity: 'majeure', rerollHigh: false }, 'majeure')]);
       }
       const fin = finishMiscast(get, set, caster, ctx, m);
-      // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
-      return fin.affichee ? undefined : { consequences: consequencesDe(fin.applique) };
+      // Le dénouement est au journal (`finishMiscast`) ; l'étape de révélation le montre quand elle est poussée.
+      return fin.affichee ? undefined : { consequences: consequencesDe(fin.applique), dejaDites: true };
     },
     /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Contraction RÉSOLU →
      *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
      *  (Contagieux) sont lues dans la charge de rangée, la bande portant l'entrée de règle commune. */
     maladieDeFinDeCombat: bandeDeFinDeCombat((_get, _set, _band, row, hero, meta) => {
       const disease = typeof meta.disease === 'string' ? meta.disease : undefined;
-      if (!disease) return [];
+      if (!disease) return { lignes: [], faits: [] };
       const lines = applyContraction(hero, disease, row.result!.success, battleRng(), meta.instant === true ? { instant: true } : undefined);
-      return lines.length ? lines : [tr('cf.resisteALInfection', { name: nomDe(hero) })];
+      return { lignes: lines.length ? lines : [tr('cf.resisteALInfection', { name: nomDe(hero) })], faits: [] };
     }),
     /** Conséquence d'une RANGÉE de bande `corruptionDeFinDeCombat` (LDB 19) : Test `influences-corruptrices` RÉSOLU →
      *  `corruptionGain` selon le Degré et le DR, puis `gainCorruption` (seuil/mutation via sa propre
      *  modale, mise en file quand le slot est déjà pris). */
-    corruptionDeFinDeCombat: bandeDeFinDeCombat((get, set, _band, row, hero, meta) => {
-      const level = meta.level as import('../engine/corruption').ExposureLevel | undefined;
+    corruptionDeFinDeCombat: bandeDeFinDeCombat((get, set, band, row, hero, meta) => {
       const label = typeof meta.exposureLabel === 'string' ? meta.exposureLabel : '';
-      if (!level || !recoitLaCorruption(hero)) return [];
-      const gain = corruptionGain(level, row.result!.success, Math.max(0, row.result!.sl));
+      if (!meta.level || !recoitLaCorruption(hero)) return { lignes: [], faits: [] };
+      const gain = gainDeLaRangeeDExposition(band, row);
       // Le verdict (roll/target) est déjà porté par la rangée de jet (RollLine ✓/✗ ±DR) — la conséquence ne
       // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.
       // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
       // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
-      if (gain <= 0) return [tr('out.corruptExposureResist', { name: nomDe(hero), label })];
-      return [tr('out.corruptExposureFail', { name: nomDe(hero), label }), ...gainCorruption(get, set, hero, gain).lignes];
+      if (gain <= 0) return { lignes: [tr('out.corruptExposureResist', { name: nomDe(hero), label })], faits: [] };
+      const applique = gainCorruption(get, set, hero, gain);
+      return { lignes: [tr('out.corruptExposureFail', { name: nomDe(hero), label }), ...applique.lignes], faits: applique.faits };
     }),
     /** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)
      *  est pré-posé sur l'étape (la mutation a déjà eu lieu dans `applyBladeTrap`) → rien à appliquer ici, seul

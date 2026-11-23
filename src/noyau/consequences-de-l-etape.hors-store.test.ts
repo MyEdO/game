@@ -16,7 +16,7 @@ import { blessuresDeLaLigne } from '../engine/critical.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { createHero } from '../engine/character';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { texteDuFait } from '../engine/faits';
+import { texteDuFait, type FaitApplique, type FaitAvecLigne } from '../engine/faits';
 import { nomDe } from '../engine/nom';
 import { emptyScene } from './monde/scene';
 import { faitsDeLEtape, jetsEnVue } from './jetsEnVue';
@@ -25,6 +25,10 @@ import type { AttackResult } from '../engine/combat';
 import type { Combatant, HitLocation, Weapon } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { fixtureText } from '../i18n/fixtureText';
+
+/** Les genres que le journal dit par leur ligne (`texteDuFait`) : le contrat positif. */
+const GENRES_AVEC_LIGNE: readonly FaitApplique['genre'][] = ['blessures', 'avantage', 'etat', 'corruption', 'argent'];
+const avecLigne = (f: FaitApplique): f is FaitAvecLigne => GENRES_AVEC_LIGNE.includes(f.genre);
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -178,7 +182,7 @@ describe('la révélation d’une Incantation Imparfaite porte ses faits, sans r
     const revelation = etapes().find((s) => s.kind === 'incantationImparfaite')!;
     const faits = revelation.faits ?? [];
     expect(faits.map((f) => [f.genre, f.genre === 'etat' ? f.id : f.valeur])).toEqual([['corruption', 1], ['etat', 'a-terre'], ['etat', 'extenue'], ['corruption', 1]]);
-    const lignesDesFaits = faits.flatMap((f) => (f.genre === 'localisation' || f.genre === 'objet' ? [] : [texteDuFait(f, nomDe(g().party[0]), revelation.reveal!.title)]));
+    const lignesDesFaits = faits.filter(avecLigne).map((f) => texteDuFait(f, nomDe(g().party[0]), revelation.reveal!.title));
     expect(revelation.reveal!.lines.filter((l) => lignesDesFaits.includes(l)), 'aucune ligne d’un fait dans la révélation').toEqual([]);
   });
 });
