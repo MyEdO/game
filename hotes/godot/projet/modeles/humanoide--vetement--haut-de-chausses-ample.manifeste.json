@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "haut-de-chausses-ample"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "hanches",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "toile",
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
+    }
+  ],
+  "glb": {
+    "sha256": "7ee05d96362ea4ab52658669e7960765b98af596dc15b6d28ff674ba6401c8b4",
+    "octets": 694296
+  }
+}

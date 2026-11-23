@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { sleepParty } from './restFlow';
+import { poserLeNommeur } from '../engine/nom';
+import { fixtureText } from '../i18n/fixtureText';
+import { itemFromTrappingById } from '../engine/items';
 import { restRecovery, dailyDiseaseUpkeep } from '../engine/rest';
 import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
@@ -135,6 +139,47 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     expect(after.journal.some((l) => /dort jusqu|aube/i.test(l))).toBe(true);
   });
 
+  it.each(['Anne', 'Anne-Marie'])('attribue la pitance au héros « %s » par son id', (label) => {
+    const h1 = hero({ id: 'a', label: 'Anne' });
+    const h2 = hero({
+      id: 'b', label,
+      hunger: { days: 1, tests: 0, failures: 0, coveredDay: true },
+      castPenalties: [{ label: 'Pensez à vos actes', skill: 'priere', maxZeroDR: true, untilTime: 13 * 60 }],
+    });
+    banc.setState({ party: [h1, h2], gameTime: 12 * 60, lastUpkeepDay: 0 });
+
+    const bilan = sleepParty(banc.getState, banc.setState);
+    const text = `${label} mange enfin à sa faim — les effets de la faim se dissipent.`;
+
+    expect(bilan.filter((ligne) => ligne.text === text)).toMatchObject([{ actorId: 'b' }]);
+    expect(bilan.filter((ligne) => ligne.text === `${label} : Pensez à vos actes se dissipe.`)).toMatchObject([{ actorId: 'b' }]);
+    expect(banc.getState().journal.filter((ligne) => ligne === text)).toHaveLength(1);
+  });
+
+  it('la consommation collective ne désigne aucun héros, même si le texte commence par son nom', () => {
+    const h = hero({ id: 'a', label: 'Le groupe', items: [itemFromTrappingById('ration', () => 'r')!] });
+    banc.setState({ party: [h], gameTime: 12 * 60, lastUpkeepDay: 0 });
+
+    const bilan = sleepParty(banc.getState, banc.setState);
+
+    expect(bilan.filter((ligne) => ligne.text === 'Le groupe entame ses provisions (1 ration).').map((ligne) => ligne.actorId))
+      .toEqual([undefined]);
+  });
+
+  it('compose la ligne de récupération avec le nom du héros dans le seul journal', () => {
+    const h = hero({ id: 'a', conditions: [{ id: 'extenue', value: 1 }] });
+    banc.setState({ party: [h], gameTime: 12 * 60, lastUpkeepDay: 0 });
+    const ancien = poserLeNommeur((id) => id === 'a' ? fixtureText('Autre') : null);
+    try {
+      const bilan = sleepParty(banc.getState, banc.setState, 1, { fedDaily: true });
+      const note = 'se réveille reposé (Exténué dissipé).';
+      expect(bilan.filter((ligne) => ligne.text === note)).toMatchObject([{ actorId: 'a' }]);
+      expect(banc.getState().journal).toContain(`Autre ${note}`);
+    } finally {
+      poserLeNommeur(ancien);
+    }
+  });
+
   it('un héros Hémorragique sans Destin SURVIT à la nuit (pas de spirale d’entretien — régression du bloquant)', () => {
     const c = hero({ id: 'a', wounds: blessuresDeBase(12), conditions: [{ id: 'hemorragique', value: 1 }], fate: 0 });
     banc.setState({ party: [c], gameTime: 12 * 60 });
@@ -167,5 +212,18 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     const t0 = banc.getState().gameTime;
     banc.getState().reposerLeGroupe();
     expect(banc.getState().gameTime).toBe(t0); // inchangé
+  });
+});
+
+describe('sleepParty — la ligne de nuit retire le nom que le texte compose (#4017)', () => {
+  it('un nommeur qui rend un autre nom que le `label` : la ligne de récupération ne le porte plus', () => {
+    banc.setState({ party: [hero({ id: 'a' })], gameTime: 12 * 60, lastUpkeepDay: 0 }); // sans ration : la nuit dit la Faim
+    const pose = poserLeNommeur((id) => (id === 'a' ? fixtureText('Autre') : null));
+    try {
+      const lignes = sleepParty(banc.getState, banc.setState as never, 1).filter((e) => e.actorId === 'a').map((e) => e.text);
+      expect(lignes).toContain('est affamé — pas de récupération naturelle (Faim & Soif).');
+    } finally {
+      poserLeNommeur(pose);
+    }
   });
 });

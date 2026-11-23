@@ -4,12 +4,8 @@
 #soins .patient .l{display:flex;justify-content:space-between;align-items:baseline}
 #soins .patient .jauge{margin-top:5px}
 #soins .mal{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#2a1d12}
-#soins h3{line-height:32px;margin:-4px 0 -4px}
-#soins .plaque.payer>div{font-size:16.5px}
-#soins .soin .px{text-align:right}
 #soins .paie{display:flex;align-items:center;gap:16px;height:100%;padding-top:5px;border-top:1px solid rgba(60,40,20,.42)}
 #soins .paie>:is(.compte,.qui-paie){flex:1;min-width:0}
 #soins .qui-paie{color:#2a1d12}
 #soins .qui-paie .rubrique{color:#5a2a12}
-.soin.ferme{opacity:.5}
-#soins .note{font-size:12.5px;line-height:16px;color:#4a3420;text-align:center}
+#soins .note{text-align:center}

@@ -83,7 +83,7 @@ const PROVENANCE = [
   ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
-  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des navires posés par leurs ponts (estPoseParSesPonts)'],
+  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des coques qui se montrent par le monde (seMontreParLeMonde) ; la carte, hors des seuls navires posés par leurs ponts (estPoseParSesPonts)'],
   ['carte hors combat : trajets', 'trajetsDepuis le lieuDuGroupe : destination, distance, modes, devis, gestes et refus aux réglages de départ par défaut'],
   ['carte hors combat : cadence de voyage', 'cadenceAUnEffet, CADENCES_AU_CHOIX et DEFAULT_VOYAGE_ORDERS.cadence'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
@@ -92,6 +92,7 @@ const PROVENANCE = [
   ['combat.finDeTourArmee', 'endTurnArmed'],
   ['exploration.gestes, offres hors combat', 'gestesDExploration (aretesUtilisables offertes comme à l’écran, atterrissagesDeSaut, déclencheurs à transition, exploreMovePlan écrit par gesteDuPas)'],
   ['exploration.etage, exploration.cap', 'partyPos.z, capDuGroupe'],
+  ['exploration.heros', 'party, le meneur (meneurDuMonde) d’abord'],
   ['jouer : levé', 'Jeu.localIntent, battle.preview, endTurnArmed, lus avant et après chaque geste'],
   ['erreur permission', 'quiTientLaMain, siegeDe'],
   ['fiche', 'refusée hors de la vue du groupe (porteurEnVue)'],
@@ -204,7 +205,7 @@ function rendu() {
   out += '\n'
   out += `- La vue liste l'actif, ses engagés, puis ${bornes.autresEnVue} autres combattants au plus, par distance ; ${bornes.offresEnVue} offres ouvertes au plus (une par action, ses candidats comptés) ; ${bornes.ciblesEnVue} cibles au plus.\n`
   out += `- Une réponse de \`jouer\` montre ${bornes.journalEnReponse} lignes de journal au plus, puis « +N lignes » et l'appel qui donne la suite ; un tour de l'IA tient en une ligne.\n`
-  out += `- \`journal\`, \`carte\` et \`offres\` se lisent par pages de ${bornes.page}, \`depuis\` k ; depuis un lieu de la carte du monde hors combat, la page de \`carte\` compte les lignes après repli. \`cases\` se lit par pages de ${bornes.cases} cases, ${bornes.casesParLigne} par ligne ; \`verbes\` par pages de ${bornes.verbesParPage} noms. Une entrée du journal plus haute que la page se lit seule, par ses lignes (\`ligne\` m). Une liste de verbes se replie sur plusieurs lignes ; une erreur est bornée comme toute sortie.\n\n`
+  out += `- \`journal\`, \`carte\` et \`offres\` se lisent par pages de ${bornes.page}, \`depuis\` k ; depuis un lieu de la carte du monde hors combat, la page de \`carte\` compte les lignes après repli. \`choix\` se lit par pages de ${bornes.page}, avec la clé de sélection de chaque option. \`cases\` se lit par pages de ${bornes.cases} cases, ${bornes.casesParLigne} par ligne ; \`verbes\` par pages de ${bornes.verbesParPage} noms. Une entrée du journal plus haute que la page se lit seule, par ses lignes (\`ligne\` m). Une liste de verbes se replie sur plusieurs lignes ; une erreur est bornée comme toute sortie.\n\n`
 
   out += `## Budgets de temps\n\n| Mesure | Budget |\n|---|---|\n`
   for (const [mesure, budget] of BUDGETS_DE_TEMPS) out += `| ${mesure} | ${budget} |\n`

@@ -23,7 +23,7 @@ async function importerDHote(nom, exports) {
 export function chargerAssets(exportsSupplementaires = []) {
   return importerDHote('godot-assets', [
     "export { importerPersonnage } from '/hotes/godot/asset/importer.ts';",
-    "export { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme, publierAssets, TAG } from '/hotes/godot/asset/release.ts';",
+    "export { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme, publierAssets, PREFIXE_DES_RELEASES } from '/hotes/godot/asset/release.ts';",
     ...exportsSupplementaires,
   ])
 }

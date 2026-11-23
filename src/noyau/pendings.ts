@@ -27,9 +27,10 @@ import type { TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
+import type { FaitApplique } from '../engine/faits';
 import type { RollLineParts } from './ligneDeJet';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
-import type { PlayerText } from '../i18n/playerText';
+import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -89,7 +90,8 @@ export interface PendingVictory {
   /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/teinte
    *  conservées), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
   gear?: LootGear[];
-  defeated: { label: string; count: number; creatureId?: string }[];
+  /** Les vaincus par fiche et par vue du groupe (`porteurEnVue`) : un groupe hors de vue porte le nom neutre (#4017). */
+  defeated: { nom: PlayerText; count: number; creatureId?: string; enVue: boolean }[];
   /** Créatures déjà récoltées (« Précieuses Entrailles », ZI) sur cet écran — grise le bouton (par id). */
   harvested?: string[];
   /** Messages de journal de la victoire (Effets `journal` de onVictory) — affichés DANS l'écran (#9). */
@@ -313,7 +315,7 @@ export type ContrepartieDeMarchandage = { titre: PlayerText } & (
 /** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
  *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
 export interface OpposantDeMarchandage {
-  label: string;
+  label: SansMarqueNonAffichable;
   valeur: number;
   portrait?: Combatant;
 }
@@ -322,7 +324,7 @@ export interface OpposantDeMarchandage {
  *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
-  playerName: string;
+  playerName: PlayerText;
   contrepartie: ContrepartieDeMarchandage;
   opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)
@@ -782,9 +784,6 @@ export interface RevealEntry {
   /** Effets détaillés (table des Critiques) AVEC leur explication RAW — pour qu'on sache « à quoi ça
    *  correspond » (plus de simple texte gris). */
   details?: { text: string; note?: string }[];
-  /** Données du Coup Critique pour une modale COMPLÈTE : localisation (FR), Blessures infligées (ignore
-   *  Endurance + Armure), États appliqués. */
-  crit?: { location: string; woundsLost: number; conditions?: { id: string; value: number }[] };
 }
 /** Exposition à une Influence corruptrice (LDB 19 l.23-75) ou seuil « Corrompu » (LDB 19 l.70). Lancer →
  *  Chance → Appliquer (gainCorruption). */
@@ -838,11 +837,13 @@ export interface DeviationCtx {
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
  *  `crit` = la Blessure tirée à sa fenêtre ; `deviation` = la voie tranchée ; `auto` = tranchée par
- *  l'automate (`tenuParUnHumain` faux), sa révélation reste due. */
+ *  l'automate (`tenuParUnHumain` faux), sa révélation reste due ; `etape` = l'étape de la fenêtre qui l'a tranchée,
+ *  qui reçoit les faits de la Blessure quand la reprise les applique (#4574). */
 export interface DecisionDeCritique {
   crit?: CriticalResolved;
   deviation?: 'devier' | 'subir';
   auto?: true;
+  etape?: string;
 }
 
 /** LE COUP qu'une fenêtre de Blessure critique suspend, et que sa reprise RÉ-ENTRE avec les décisions
@@ -1728,8 +1729,11 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
   return step.meta?.opsDeCtx?.casterId ?? (typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined);
 }
 
+type IdentitesDuChoix = { sceneId: string | null; ids: string[] };
+
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[]
+    | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | IdentitesDuChoix | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
    *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
    *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
@@ -1793,6 +1797,8 @@ export interface CascadeStepMeta {
   /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
    *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
   feuilleEnvers?: Flow;
+  /** Ids des personnes indexés par rang d'option et scène d'origine du choix (VDM 10 l.327, #4017). */
+  personnesEnOption?: IdentitesDuChoix;
   /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victime'` : le décideur
    *  est le porteur/attaquant `caster`, mais la branche `yes` vise la VICTIME — Déstabilisante : Test opposé
    *  contre la cible touchée). Id sérialisable, restauré en `ctx.target` par l'applier. Absent ⇒ la cible =
@@ -1930,6 +1936,8 @@ export interface BatchParticipant extends RollParticipant {
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
+  /** Les faits appliqués dont `outcome` est la lecture (#4574), posés avec lui. */
+  faits?: FaitApplique[];
   /** Le dé de la rangée, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter
    *  (`EchecSansJet`, posée par le monteur `rollStep` avec `refus`) : aucun dé, aucune influence. */
   result: CascadeRoll | EchecSansJet | null;
@@ -2196,6 +2204,8 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Conséquence appliquée à la validation (journal) — gardée pour rester lisible dans la pile.
    *  Ligne STRUCTURÉE (#349) : `RecapLine[]`, rendue par le renderer partagé `ui/RecapLine.tsx`. */
   outcome?: RecapLine[];
+  /** Les faits appliqués dont `outcome` est la lecture (#4574), posés avec lui à la validation. */
+  faits?: FaitApplique[];
   /** Charge RICHE d'une étape d'affichage (Coup Critique, entretien de Round, mutation, effet
    *  d'auteur, entrée de zone) — rendue par le panneau partagé `ui/RevealBody.tsx`, routé par `kind`. */
   reveal?: RevealEntry;

@@ -3,8 +3,8 @@ de liaison `squelette` que bâtit `element/construire.py`.
 
 `Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
 (positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
-pièce par zone. Le reste se compose dans le
+silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface) et des formes
+propres de la tête contournée (de cette tête au plus près), découpe de la pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
@@ -18,8 +18,10 @@ from mathutils.bvhtree import BVHTree
 
 from anatomie import AXES_DU_PERSONNAGE, attache
 from filets import filets_au_repos, unitaire  # noqa: F401
-from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
+from formes import (aretes_des_triangles, aux_noeuds, decalages, decalages_monde, noms_des_cles, poser_la_cle, rapports,
+                    region_locale, retournees_par, transferer_les_cles)
 from maille import tirage
+from seuils import ETIREMENT_DES_CLES
 
 BORNES_DES_CLES = (0.4, 2.5)
 """Rapport de longueur d'arête sous une clé transférée (clé / repos) hors duquel `Base.transferer` lisse la clé : marge
@@ -50,6 +52,11 @@ def direction_spatiale(phi, e=0.0):
     (degrés, vers +Z)."""
     a, b = math.radians(phi), math.radians(e)
     return np.array([math.cos(b) * math.sin(a), -math.cos(b) * math.cos(a), math.sin(b)])
+
+
+def table(points, x):
+    """La valeur de `points` (`[(abscisse, valeur)]`) à l'abscisse `x`, interpolée, bornée aux extrémités."""
+    return float(np.interp(x, *zip(*sorted(points))))
 
 
 def selon(table, phi):
@@ -114,9 +121,13 @@ class Filet:
 
 class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
-    `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié."""
+    `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié ; `tete`,
+    l'id de la tête publiée que la pièce contourne (`CONTOURNE['tete']` de son `donnees.py`, `tete_contournee`), dont les
+    meshes des zones qu'elle couvre (`couvre_de_la_tete`, `couvre` de son manifeste) donnent ses formes propres
+    (`transferer`, `tete.cles_du_corps`) ; silhouettes et clés `gabarit_*` restent celles du corps, que
+    `suiviDuCorps` suit."""
 
-    def __init__(self, glb, manifeste, publies):
+    def __init__(self, glb, manifeste, publies, tete=None, couvre_de_la_tete=()):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=str(glb))
         self.glb = glb
@@ -131,6 +142,8 @@ class Base:
         bpy.context.view_layer.update()
         self.manifeste = manifeste
         self.publies = publies
+        self.tete_contournee = tete
+        self.couvre_de_la_tete = set(couvre_de_la_tete)
         peaux = {s_['nom'] for s_ in manifeste['surfaces'] if s_['palette'] == 'peau'}
         self.zones = {}
         for o in bpy.data.objects:
@@ -184,14 +197,26 @@ class Base:
             decalage += len(p)
         return porteur_de(np.concatenate(P), np.concatenate(T), np.concatenate(W))
 
+    def propres(self, noms):
+        """Parmi les clés `noms`, celles propres à un élément, ni silhouette de la base ni `gabarit_*` : `visage_inverse`
+        et les traits d'une tête (`formesDeTete`, #4413)."""
+        return [nom for nom in noms if nom not in self.manifeste['silhouettes'] and not nom.startswith('gabarit_')]
+
     def matieres_publiees(self, id_, matieres):
         """Positions monde au repos, triangles des faces de `matieres` et poids (par os de la base) de l'élément publié
-        `id_`, que la pièce contourne ; ses objets sont retirés de la scène ensuite. Une matière de `matieres` dont
-        l'élément n'a aucune face arrête la construction."""
+        `id_`, que la pièce contourne (`matieres_et_cles_publiees`)."""
+        return self.matieres_et_cles_publiees(id_, matieres)[:3]
+
+    def matieres_et_cles_publiees(self, id_, matieres):
+        """Positions monde au repos, triangles des faces de `matieres`, poids (par os de la base) et clés propres
+        (`propres` : `{nom: décalage monde par sommet}`, nul sur un mesh qui ne la porte pas) de l'élément publié `id_`,
+        que la pièce contourne ; ses objets sont retirés de la scène ensuite. Une pièce bâtie sur ses sommets les copie
+        sommet à sommet (`nappe`, `nappe_simple`). Une matière de `matieres` dont l'élément n'a aucune face arrête la
+        construction."""
         avant = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
         nouveaux = [o for o in bpy.data.objects if o not in avant]
-        P, T, W, n, portees = [], [], [], 0, set()
+        P, T, W, C, n, portees = [], [], [], [], 0, set()
         for o in nouveaux:
             if o.type != 'MESH' or not o.data.materials:
                 continue
@@ -211,13 +236,16 @@ class Base:
             P.append(co)
             T.append(t + n)
             W.append(w)
+            C.append({nom: decalages_monde(o, nom) for nom in self.propres(noms_des_cles(o))})
             n += len(co)
         for o in nouveaux:
             bpy.data.objects.remove(o, do_unlink=True)
         absentes = [m for m in matieres if m not in portees]
         if absentes:
             raise ValueError(f'{id_} : aucune face de {absentes}, il porte {sorted(portees)}')
-        return np.concatenate(P), np.concatenate(T), np.concatenate(W)
+        noms = dict.fromkeys(nom for c in C for nom in c)
+        cles = {nom: np.concatenate([c.get(nom, np.zeros_like(p)) for c, p in zip(C, P)]) for nom in noms}
+        return np.concatenate(P), np.concatenate(T), np.concatenate(W), cles
 
     def coupe(self, zones, origine, normale, u, v, minimum=4):
         """Points de la coupe des arêtes des zones `zones` par le plan (`origine`, `normale`), en coordonnées (u, v)
@@ -256,11 +284,13 @@ class Base:
         personnage."""
         self.offrir(nom, emprunter(point, porteur_)[0], point, np.array(AXES_DU_PERSONNAGE).T)
 
-    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None):
+    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None, cles=None):
         """La nappe simple skinnée `nom` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il n'est pas
-        `None` (`teindre`), ses poids `W` par os de la base, lisse, hors des arêtes de plus d'`angle_vif` degrés s'il est
-        donné ; chaque sommet est son propre jumeau."""
+        `None` (`teindre`), ses poids `W` par os de la base, ses clés `cles` (`{nom: décalage monde par sommet}`), lisse,
+        hors des arêtes de plus d'`angle_vif` degrés s'il est donné ; chaque sommet est son propre jumeau."""
         piece = maillage_skinne(nom, sommets, faces, mat, self.rig, poids_normalises(W, self.os))
+        for nom_, champ in (cles or {}).items():
+            poser_la_cle(piece, nom_, champ)
         for polygone in piece.data.polygons:
             polygone.use_smooth = True
         teindre(piece, teintes)
@@ -269,18 +299,22 @@ class Base:
         piece.data.attributes.new(JUMEAU, 'INT', 'POINT')
         return piece
 
-    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None):
+    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None, cles=None):
         """La double nappe skinnée `nom` sur la nappe extérieure (positions `X`, `normales`, poids `W` par os de la base,
-        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales ; `matieres` : par triangle, le
-        matériau de son endroit et celui de son envers, `None` pour `mat`."""
-        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres)
+        triangles `orientes`, clés `cles` par sommet), l'intérieure à `epaisseur` en retrait le long des normales ;
+        `matieres` : par triangle, le matériau de son endroit et celui de son envers, `None` pour `mat`."""
+        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres,
+                            cles)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
-        jointe des zones `zones` qu'elle traverse, au plus près (`deplacer_au_plus_pres`) ; chaque `(masque, zones,
-        publies)` de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres zones et
-        des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des
-        mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Rend les noms des clés."""
+        jointe des zones `zones` qu'elle traverse (`_source`), au plus près (`deplacer_au_plus_pres`) ; chaque `(masque,
+        zones, publies)` de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres
+        zones et des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent,
+        porteurs des mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Chaque forme propre de la
+        tête contournée que `piece` ne porte pas déjà se prend à cette tête, au plus près (`formes_de_la_tete`). Rend les
+        noms des clés."""
+        portees = set(noms_des_cles(piece))
         source = self._source(zones, {})
         noms_cles = [k.name for k in source.data.shape_keys.key_blocks if k != source.data.shape_keys.reference_key]
         manquantes = [s for s in self.manifeste['silhouettes'] if s not in noms_cles]
@@ -295,14 +329,34 @@ class Base:
             reprises.append((np.asarray(masque)[:, None], {nom: decalages(piece, nom) for nom in cles}))
         deplacer_au_plus_pres(source, piece, cles)
         bpy.data.objects.remove(source, do_unlink=True)
+        formes = self.formes_de_la_tete(piece, zones, portees)
         jumeaux = jumeaux_de(piece)
         for nom in cles:
             champ = decalages(piece, nom)
             for masque, champs in reprises:
                 champ = np.where(masque, champs[nom], champ)
             poser_la_cle(piece, nom, champ[jumeaux])
+        for nom in formes:
+            poser_la_cle(piece, nom, decalages(piece, nom)[jumeaux])
         lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux)
-        return cles
+        lisser_aux_aretes_fautives(piece, formes, bornes, jumeaux, sous=self.manifeste['silhouettes'])
+        return cles + formes
+
+    def formes_de_la_tete(self, piece, zones, portees):
+        """Pose sur `piece` chaque forme propre de la tête contournée hors de `portees`, au plus près
+        (`deplacer_au_plus_pres`) de la copie jointe des meshes de cette tête et des zones `zones` qu'elle ne couvre pas,
+        sans ces formes : un sommet plus proche du corps hors de la tête ne les suit pas. Rend leurs noms, aucun sans
+        tête contournée."""
+        meshes = self.meshes_de_la_tete()
+        if not meshes:
+            return []
+        formes = [k for k in dict.fromkeys(nom for o in meshes for nom in self.propres(noms_des_cles(o)))
+                  if k not in portees]
+        autour = [z for z in zones if z not in self.couvre_de_la_tete]
+        source = joindre(meshes + ([self._source(autour, {})] if autour else []))
+        deplacer_au_plus_pres(source, piece, formes)
+        bpy.data.objects.remove(source, do_unlink=True)
+        return formes
 
     def _source(self, zones, publies):
         """Un objet : copie jointe des zones `zones` et des meshes des zones `publies[id]` de chaque élément publié."""
@@ -313,24 +367,33 @@ class Base:
             bpy.context.scene.collection.objects.link(copie)
             copies.append(copie)
         for id_, zones_publiees in publies.items():
-            avant = set(bpy.data.objects)
-            bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
-            nouveaux = [o for o in bpy.data.objects if o not in avant]
-            gardes = [o for o in nouveaux if o.type == 'MESH' and o.get('zone') in zones_publiees]
-            if not gardes:
-                raise ValueError(f'{id_} : aucun mesh des zones {zones_publiees}')
-            for o in gardes:
-                o.modifiers.clear()
-                monde = o.matrix_world.copy()
-                o.parent = None
-                o.matrix_world = monde
-                copies.append(o)
-            for o in nouveaux:
-                if o not in gardes:
-                    bpy.data.objects.remove(o, do_unlink=True)
+            copies.extend(self.meshes_publies(id_, zones_publiees))
         with bpy.context.temp_override(active_object=copies[0], selected_editable_objects=copies, object=copies[0]):
             bpy.ops.object.join()
         return copies[0]
+
+    def meshes_publies(self, id_, zones):
+        """Les meshes de l'élément publié `id_` portant une des `zones`, importés dans la scène au repos, hors de leur
+        armature ; ses autres objets sont retirés. Aucun mesh de ces zones arrête la construction."""
+        avant = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
+        nouveaux = [o for o in bpy.data.objects if o not in avant]
+        gardes = [o for o in nouveaux if o.type == 'MESH' and o.get('zone') in zones]
+        if not gardes:
+            raise ValueError(f'{id_} : aucun mesh des zones {zones}')
+        for o in gardes:
+            o.modifiers.clear()
+            monde = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_world = monde
+        for o in nouveaux:
+            if o not in gardes:
+                bpy.data.objects.remove(o, do_unlink=True)
+        return gardes
+
+    def meshes_de_la_tete(self):
+        """Les meshes de la tête contournée (`meshes_publies`), aucun sans elle."""
+        return self.meshes_publies(self.tete_contournee, self.couvre_de_la_tete) if self.tete_contournee else []
 
     def zones_des_faces(self, piece):
         """Par face de `piece`, la zone de la base la plus proche de son centre au repos ; des zones à égalité
@@ -519,6 +582,14 @@ class Maillage:
             self.parties.append(partie)
         return list(range(debut, len(self.sommets)))
 
+    def ajouter_faces(self, sommets, faces, partie, ref):
+        """Les `sommets` (de la `partie`) et leurs `faces` (triangles ou quads, indices dans `sommets`), chacune orientée à
+        l'opposé de `ref` ; rend les indices des sommets."""
+        indices = self.ajouter([np.asarray(p, dtype=float) for p in sommets], partie)
+        for face in faces:
+            (self.triangle if len(face) == 3 else self.quad)(*(indices[i] for i in face), ref)
+        return indices
+
     def triangle(self, a, b, c, ref):
         self.triangles.append((a, b, c))
         self.references.append(ref)
@@ -624,10 +695,11 @@ def teindre(obj, teintes):
             polygone.material_index = rangs[teinte.name]
 
 
-def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None):
+def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None, cles=None):
     """Deux nappes et leurs bords : chaque sommet porté par plusieurs éventails de triangles est dédoublé par éventail,
     la nappe intérieure est la copie retournée à `epaisseur` le long des normales, chaque arête de bord est fermée ;
-    normales recalculées vers l'extérieur. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
+    normales recalculées vers l'extérieur. Chaque double et son jumeau intérieur prennent les poids et les clés `cles`
+    (`{nom: décalage monde par sommet de X}`) du sommet qu'ils doublent. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
     d'envers (`None` : `mat`), ajoutés à ceux de l'objet dans l'ordre où les triangles les nomment (`teindre`).
     Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
     sommet sur une même face d'un côté portent la même normale au bit près, que l'export glTF fusionne quel que soit
@@ -636,6 +708,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
     points = [Vector(p.tolist()) for p in X]
     normales = [Vector(n.tolist()) for n in normales]
     poids = list(poids)
+    origines = list(range(len(points)))
     triangles = [tuple(t) for t in triangles]
     for sommet in range(len(points)):
         incidents = {i for i, t in enumerate(triangles) if sommet in t}
@@ -655,6 +728,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
             points.append(points[sommet].copy())
             normales.append(normales[sommet].copy())
             poids.append(dict(poids[sommet]))
+            origines.append(sommet)
             for i in eventail:
                 triangles[i] = tuple(double if s == sommet else s for s in triangles[i])
     moitie = len(points)
@@ -688,6 +762,8 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matier
     bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
     bm.to_mesh(obj.data)
     bm.free()
+    for nom_, champ in (cles or {}).items():
+        poser_la_cle(obj, nom_, np.concatenate([np.asarray(champ)[origines]] * 2))
     return obj
 
 
@@ -755,13 +831,15 @@ def joindre(objets):
     return objets[0]
 
 
-def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
-    """Chaque clé transférée dont une arête sort de `bornes` est lissée (moyenne laplacienne des décalages sur le graphe
-    de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux quand une passe ne réduit plus le défaut : un
-    sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à des faces différentes suivent la moyenne de
-    leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens opposé au repos) est fautive quelle que soit
-    sa longueur. Ailleurs la clé reste la liaison de surface. Chaque nœud de la nappe intérieure garde, à chaque passe, le
-    décalage de son jumeau extérieur (`jumeaux`, par sommet)."""
+def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sous=()):
+    """Chaque clé transférée dont une arête sort de `bornes` seule, ou de `ETIREMENT_DES_CLES` sous l'une des clés `sous`
+    de `piece` rapportée à sa longueur sous la clé seule (l'évaluateur pose les formes de tête au repos,
+    `gardes/etirement.ts` ; `formes_hors_bornes` de `test_element.py`, #4394), est lissée
+    (moyenne laplacienne des décalages sur le graphe de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux
+    quand une passe ne réduit plus le défaut : un sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à
+    des faces différentes suivent la moyenne de leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens
+    opposé au repos) est fautive quelle que soit sa longueur. Ailleurs la clé reste la liaison de surface. Chaque nœud de
+    la nappe intérieure garde, à chaque passe, le décalage de son jumeau extérieur (`jumeaux`, par sommet)."""
     x = np.array([v.co[:] for v in piece.data.vertices])
     _, premier, noeud = np.unique(np.round(x * 1e5).astype(np.int64), axis=0, return_index=True, return_inverse=True)
     noeud = noeud.ravel()
@@ -772,16 +850,23 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
     for a, b in aretes:
         voisins[a].append(b)
         voisins[b].append(a)
-    bas, haut = bornes
+    dessus = [aux_noeuds(decalages(piece, nom), noeud) for nom in sous]
+    bas, haut = np.repeat(np.array([bornes] + [ETIREMENT_DES_CLES] * len(dessus)), len(aretes), axis=0).T
+
+    def mesurer(champ):
+        r = np.concatenate([rapports(xn, champ, aretes)] + [rapports(xn + champ, d, aretes) for d in dessus])
+        retournees = np.concatenate([retournees_par(xn, champ, aretes)]
+                                    + [retournees_par(xn + champ, d, aretes) for d in dessus])
+        return r, retournees, ((r < bas) | (r > haut) | retournees).reshape(-1, len(aretes)).any(axis=0)
+
     for nom in cles:
         champ = aux_noeuds(decalages(piece, nom), noeud)
         anneaux, pire, passe = 0, None, 0
         while passe < passes_max:
-            r, retournees = rapports(xn, champ, aretes), retournees_par(xn, champ, aretes)
-            fautives = (r < bas) | (r > haut) | retournees
+            r, retournees, fautives = mesurer(champ)
             if not fautives.any():
                 break
-            ecart = int(retournees.sum()) + float(np.maximum(bas / r.min(), r.max() / haut))
+            ecart = int(retournees.sum()) + float(max((bas / r).max(), (r / haut).max()))
             if pire is not None and ecart > pire - 1e-3:
                 anneaux += 1
             pire = ecart
@@ -789,8 +874,8 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
             champ[dans] = 0.5 * champ[dans] + 0.5 * np.array([champ[voisins[i]].mean(axis=0) for i in dans])
             champ = champ[jumeau]
             passe += 1
-        r = rapports(xn, champ, aretes)
-        reste = int(((r < bas) | (r > haut) | retournees_par(xn, champ, aretes)).sum())
+        reste = int(mesurer(champ)[2].sum())
         if reste:
-            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} ou retournée(s) après {passe} passes de lissage')
+            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} (sous {list(sous)} : {ETIREMENT_DES_CLES}) '
+                             f'ou retournée(s) après {passe} passes de lissage')
         poser_la_cle(piece, nom, champ[noeud])

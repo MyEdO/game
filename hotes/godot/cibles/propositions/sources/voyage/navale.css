@@ -8,20 +8,15 @@
 #jet .reglages .l{font-size:12px;color:#4a3420;margin:5px 0 4px}
 #jet .reglages .enjeux{display:flex;justify-content:center;gap:7px;margin-top:3px}
 .rangees{padding-left:16px;max-width:250px}
-#jet .reglages .enjeux .modif{white-space:nowrap}
-.rangees .t{font-size:11.5px;color:#4a3420;margin-bottom:4px}
+.rangees .rub{white-space:normal;margin-bottom:0}
 .rangee{display:flex;align-items:center;gap:9px;height:31px}
 .rangee .q{flex:1;min-width:0;display:flex;flex-direction:column;white-space:nowrap}
-.rangee b{font-size:15px;line-height:17px;font-weight:600;color:#3a1a10}
 .rangee .q span{font-size:10.5px;line-height:12px;color:#4a3420}
 .rangee .seuil{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#2a1d12}
 /* le dossier jouable d'une possession : nom en saisie, cale, lieu et gestes */
-.ident .nom .champ{margin:-2px 0 6px}
-#f-sections .mesure .tete{color:#4a3420}
-#f-sections .mesure .tete b{font-family:"Chiffres";font-size:13.5px;letter-spacing:0;color:#2a1d12}
-.bloc-t{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px;padding-top:12px;border-top:1px solid rgba(60,40,20,.45);font-size:12.5px;color:#4a3420}
-.bloc-t i{font-family:"Spectral";font-size:13px;color:#4a3420}
-.bloc-t b{font-size:13.5px;font-weight:600;color:#2a1d12}
+.ident .nom-propre .champ{margin:-2px 0 6px}
+#f-sections .defile>.filet{margin:18px 0 12px}
+#f-sections .defile>.rub{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 #f-sections .cartes{display:flex;gap:10px;align-items:center}
 #f-sections .cartes .plaque.carte:not(.courte){width:250px;height:70px}
 .quantite{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:#4a3420}
@@ -29,8 +24,6 @@
 .quantite .plaque{flex:none;width:100%}
 .embarquee{display:flex;align-items:center;gap:13px}
 .embarquee .qui{flex:1}
-.embarquee .n{font-size:22px;line-height:24px;color:#3a1a10}
-.embarquee .c{font-size:12.5px;color:#4a3420}
 .embarquee .plaque{flex:none;width:150px}
 .ou{margin-top:18px;padding-top:14px;border-top:1px solid rgba(60,40,20,.45)}
 .ou .l{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:36px;font-size:12.5px;color:#4a3420}

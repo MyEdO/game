@@ -17,6 +17,7 @@ import math
 import numpy as np
 from mathutils import Vector
 
+from tente import HAUT
 from tissu import Maillage, direction_spatiale, emprunter, joindre, joindre_les_surfaces, lambeaux, porteur_de, sur_le_porteur
 
 
@@ -44,7 +45,7 @@ def calotte(D, b, M, peau):
         rangs.append(M.ajouter(rang, 'calotte'))
     for A, B in zip(rangs, rangs[1:]):
         M.bande(A, B, C)
-    pole = M.ajouter([pose(np.array([0.0, 0.0, 1.0]), h_coeur)], 'calotte')[0]
+    pole = M.ajouter([pose(HAUT, h_coeur)], 'calotte')[0]
     for k in range(n):
         M.triangle(rangs[-1][k], rangs[-1][(k + 1) % n], pole, C)
 
@@ -120,7 +121,7 @@ def natte(D, b, M, arbre, foulard, cote):
     centres = reechantillonner(X, s, valeurs)
     tangentes = np.gradient(centres, axis=0)
     tangentes /= np.linalg.norm(tangentes, axis=1, keepdims=True)
-    normale = np.cross(tangentes[0], [0.0, 0.0, 1.0])
+    normale = np.cross(tangentes[0], HAUT)
     anneaux = []
     for k, (p, T) in enumerate(zip(centres, tangentes)):
         normale = normale - (normale @ T) * T

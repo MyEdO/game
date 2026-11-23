@@ -21,11 +21,11 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'fiole': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.15)),
+    'fiole': ('accent', 'verre-opaque'),
     'bouchon': ('cuir', 'cuir-tanne'),
 }
-"""Illustration : verre teinté (`accent`), sans matière de verre au catalogue : gris de construction, lisse. Bouchon,
-bague et culot sombres (`cuir`)."""
+"""Illustration : verre opaque (`verre-opaque`), de la couleur de son contenu, que donne l'emplacement `accent`.
+Bouchon, bague et culot sombres (`cuir`)."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 

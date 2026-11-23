@@ -21,13 +21,15 @@ import { occupied } from './monde/combatGeometry';
 import { inBattleId } from './monde/combatants';
 import { spawnEnemy, traitsDeLIndividu } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
-import { resolveFormula, nomDeSource, type GameOp } from '../engine/ops';
+import { resolveFormula, type GameOp } from '../engine/ops';
+import { nomDeSource } from '../engine/faits';
 import { indiceSurLeProfil, slBonus } from '../engine/formule';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG } from '../engine/dice';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { mirrorPools } from '../engine/advantagePool';
+import { nomDe } from '../engine/nom';
 
 /** Descripteur d'invocation = la charge utile de l'op `summon` du Flow (donnée éditable du sort) ;
  *  le discriminant `op` est superflu pour cette fonction dédiée → l'op complète s'assigne quand même. */
@@ -90,14 +92,14 @@ export interface SummonOpts {
  */
 export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts): string[] {
   const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.creature.id };
-  const invoque = 'porteur' in summon ? caster.label : summon.creature.id;
+  const invoque = 'porteur' in summon ? nomDe(caster) : summon.creature.id;
   const rng = opts.rng;
   const count = Math.max(1, resolveFormula(summon.count, caster, rng) + slBonus(opts.sl, summon.countPerSL));
   const battle = get().battle;
   const scene = get().scene;
   const hostile = summon.allyOfCaster === false;
   if (!battle || !scene || !caster.pos) {
-    return [`${caster.label} invoque ${count} × ${invoque}${hostile ? ' (hostile)' : ''} — hors combat, effet narratif (arbitrage MJ).`];
+    return [t('summon.horsCombat', { name: nomDe(caster), n: count, label: invoque, tag: hostile ? t('summon.fragHostileHorsCombat') : '' })];
   }
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
   const kind: Combatant['kind'] = hostile ? (caster.kind === 'heros' ? 'ennemi' : 'heros') : caster.kind;
@@ -122,10 +124,10 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     placed.push(c);
   }
   set({ battle: { ...battle } });
-  if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
-  const name = placed[0].label;
+  if (!placed.length) return [t('summon.noRoom', { name: nomDe(caster), ref: invoque })];
+  const name = nomDe(placed[0]);
   const tag = hostile ? t('summon.fragHostile') : kind === 'heros' ? t('summon.fragAllies') : '';
-  return [t('summon.summons', { name: caster.label, n: placed.length, label: name, tag })];
+  return [t('summon.summons', { name: nomDe(caster), n: placed.length, label: name, tag })];
 }
 
 /**
@@ -148,5 +150,5 @@ export function purgeExpiredSummons(battle: BattleState, round: number): string[
   battle.combatants = battle.combatants.filter((c) => !goneIds.has(c.id));
   battle.order = battle.order.filter((id) => !goneIds.has(id));
   if (battle.baseOrder) battle.baseOrder = battle.baseOrder.filter((id) => !goneIds.has(id));
-  return gone.map((c) => t('summon.dispels', { name: c.label, label: nomDeSource(c.summon) }));
+  return gone.map((c) => t('summon.dispels', { name: nomDe(c), label: nomDeSource(c.summon) }));
 }

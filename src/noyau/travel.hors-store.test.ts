@@ -405,9 +405,9 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
   });
 });
 
-describe('rations des nuits en route (#3059) — le devis dit ce que les haltes consomment', () => {
+describe('rations des nuits en route — les haltes consomment (LDB 66 l.20)', () => {
   const dixRations = () => Array.from({ length: 10 }, (_, i) => ration(`r${i}`));
-  const nuitsConsommees = (h: Combatant): { devis: number; consommees: number } => {
+  const nuitsConsommees = (h: Combatant): number => {
     setup(map({ km: 90 }), [h]);
     const st = banc.getState();
     const devis = devisDeTrajet(st, st.worldMap!.routes[0], 'pa', 'pied');
@@ -416,15 +416,15 @@ describe('rations des nuits en route (#3059) — le devis dit ce que les haltes 
     let garde = 0;
     while (banc.getState().pendingRest && garde++ < 10) sleepThroughHalt();
     expect(banc.getState().lieu).toBe('pb');
-    return { devis: devis.rations.requises, consommees: 10 - rationCount(banc.getState().party[0]) };
+    return 10 - rationCount(banc.getState().party[0]);
   };
 
   it('Ogre (ADE II 2 l.708) : 3 nuits × 2 = 6 rations', () => {
-    expect(nuitsConsommees(hero({ items: dixRations(), traits: [{ id: 'ogre' }] }))).toEqual({ devis: 6, consommees: 6 });
+    expect(nuitsConsommees(hero({ items: dixRations(), traits: [{ id: 'ogre' }] }))).toBe(6);
   });
 
   it('Brouet (LDB 10 l.139) : 3 nuits à demi-ration = 2 rations', () => {
-    expect(nuitsConsommees(hero({ items: dixRations(), talents: [{ talentId: 'brouet', times: 1 }] }))).toEqual({ devis: 2, consommees: 2 });
+    expect(nuitsConsommees(hero({ items: dixRations(), talents: [{ talentId: 'brouet', times: 1 }] }))).toBe(2);
   });
 });
 

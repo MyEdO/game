@@ -9,11 +9,10 @@
  * N'importe RIEN de combatFlow → pas de cycle. Les helpers propres aux sauvegardes (`martyrGuardOf`,
  * `wardedAgainst`, `organicProjectile`) vivent ici.
  *
- * SÉMANTIQUE DE CHAÎNAGE (iso-comportement) : `runHitModifiers` enchaîne les modifiers dans l'ordre
- * `order`, chacun RE-TESTANT l'état COURANT de `res` (`ctx.res = modifier.apply(ctx)`) — exactement
- * comme les `if` successifs d'origine se suivaient et re-testaient `res` (un modifier qui annule déjà
- * les Dégâts fait court-circuiter les suivants via leur propre garde `res.woundsLost`). Renvoie le
- * `res` final. Aucun modifier ne SUSPEND (pas de `pushCombatStep`/pending) : autoKill et l'offre de
+ * SÉMANTIQUE DE CHAÎNAGE : `runHitModifiers` enchaîne les modifiers dans l'ordre `order`, chacun
+ * RE-TESTANT le `res` COURANT (`toucher`) puis écrivant ce qu'il a réécrit (`ecrire`) avant que le suivant
+ * lise (un modifier qui annule déjà les Dégâts fait court-circuiter les suivants via leur propre garde
+ * `res.woundsLost`). Renvoie le `res` final ; `toucheAuJet` rend le même sans rien écrire. Aucun modifier ne SUSPEND (pas de `pushCombatStep`/pending) : autoKill et l'offre de
  * Déviation Critique restent INLINE dans `applyAttackResult`, APRÈS cette chaîne.
  *
  * ORDRE (encodé par `order`, figé par `hitSaves.golden.hors-store.test`) :
@@ -22,7 +21,7 @@
  *   → 50 Perturbante.
  */
 import type { Jeu } from '../etat';
-import type { Get, Set as SetFn } from '../flowTypes';
+import type { Get } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';
 import { toucheAvecPrise, type AttackResult } from '../../engine/combat';
@@ -35,11 +34,12 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import { distanceDeCombat } from '../monde/footprint';
 import { porteeEnCases } from '../monde/combatGeometry';
-import { pushBackTiles } from '../combatPlacement';
+import { reculPerturbant, poserLeRecul } from '../combatPlacement';
 import { sceneMetresPerTile, type Scene } from '../monde/scene';
 import { actorIn } from '../monde/combatants';
 import { t } from '../../i18n';
 import type { FragmentDeTables } from '../tablesPosees';
+import { nomDe } from '../../engine/nom';
 
 // ── Helpers propres aux sauvegardes ──
 
@@ -156,12 +156,10 @@ export function organicProjectile(w: Weapon): boolean {
 
 // ── Registre ──────────────────────────────────────────────────────────────────────────────────────
 
-/** Contexte d'un modifier de touche : l'état (get/set), les protagonistes, le `res` COURANT, et un
- *  `sink(line)` pour journaliser (les sauvegardes posent leur ligne dans `res.ajouts`, pas via `sink` —
- *  `sink` reste disponible pour un futur modifier qui en aurait besoin). */
+/** Contexte de l'application de la chaîne : la lecture de l'état, les protagonistes et le `res` COURANT ; les
+ *  lignes d'un modifier vont dans `res.ajouts`. */
 export interface HitModifierCtx {
   get: Get;
-  set: SetFn;
   attacker: Combatant;
   target: Combatant;
   /** L'ARME du coup — absente quand la touche n'en a pas (Projectile magique) : les modifiers qui la
@@ -172,7 +170,6 @@ export interface HitModifierCtx {
    *  n'a pas. */
   attaque: TypeDAttaque;
   res: AttackResult;
-  sink: (line: string) => void;
   /** LA PORTE des dés d'une SAUVEGARDE (#1508) : un modifier ne ROULE pas, il DÉCLARE ses seuils et la
    *  touche telle qu'il la voit — l'appelant pousse l'étape de dé (`pousserSauvegarde`) et SUSPEND sa
    *  résolution avant toute mutation. Canal REQUIS : c'est la seule façon d'obtenir un dé ici. */
@@ -186,14 +183,27 @@ export interface HitModifierCtx {
  *  et le Projectile magique (LDB 46), qui n'est porté par aucune arme. */
 export type TypeDAttaque = 'melee' | 'distance' | 'magique';
 
-/** Un modifier de touche = une sauvegarde NOMMÉE qui TRANSFORME `res`. `order` fixe sa position dans
- *  la séquence (l'ordre RAW est encodé par `order`). `apply` RE-TESTE `ctx.res` et renvoie le `res`
- *  (inchangé ou transformé). Un modifier ne suspend RIEN : quand il lui faut un dé, il le DÉCLARE
- *  (`ouvrirSauvegarde`) — c'est l'appelant qui pousse l'étape et suspend, et la chaîne s'arrête là. */
+/** Ce qu'un modifier lit d'une touche, sans rien écrire : l'état, les protagonistes, l'arme, la nature de l'attaque et
+ *  le `res` COURANT. */
+export type LectureDeTouche = Pick<HitModifierCtx, 'attacker' | 'target' | 'weapon' | 'attaque' | 'res'> & { etat: Jeu };
+
+/** Ce qu'un modifier fait d'une touche : le `res` réécrit ; les seuils d'une sauvegarde à DÉCLARER (la chaîne s'arrête
+ *  là) ; le tiers qui encaisse à la place de la cible (Martyr) ; l'écriture que l'application joue. */
+export interface IssueDuModifier {
+  res: AttackResult;
+  seuils?: SeuilDeSauvegarde[];
+  encaisse?: { porteur: Combatant; pb: number };
+  ecrire?: () => void;
+}
+
+/** Un modifier de touche = une sauvegarde NOMMÉE qui TRANSFORME `res`. `order` fixe sa position dans la séquence
+ *  (l'ordre RAW est encodé par `order`). `toucher` RE-TESTE `res` et le réécrit, PUR : l'application (`runHitModifiers`)
+ *  joue son écriture, la prévision (`toucheAuJet`) ne la joue pas. Un modifier ne suspend RIEN : quand il lui faut un
+ *  dé, il en rend les seuils. */
 export interface HitModifier {
   id: string;
   order: number;
-  apply(ctx: HitModifierCtx): AttackResult;
+  toucher(l: LectureDeTouche): IssueDuModifier;
 }
 
 /** Les modifiers posés, triés par `order` croissant (tri STABLE), une fois par table posée. */
@@ -219,25 +229,41 @@ export interface ToucheApresModifiers {
   suspendu: boolean;
 }
 
-/** Enchaîne les modifiers dans l'ordre `order` : pour chacun, `ctx.res = modifier.apply(ctx)` (thread
- *  `res`). Chaque modifier re-teste l'état courant de `res` — un modifier qui annule déjà les Dégâts
- *  fait no-oper les suivants via leur propre garde.
+/** Enchaîne les modifiers dans l'ordre `order`, chacun lisant le `res` laissé par le précédent ; `surIssue` reçoit
+ *  chaque issue sans seuils. Un seuil rendu ARRÊTE la chaîne et la rend suspendue. */
+function enchainer(lire: () => Jeu, l: Omit<LectureDeTouche, 'etat'>, surIssue: (issue: IssueDuModifier) => void): ToucheApresModifiers & { seuils?: SeuilDeSauvegarde[] } {
+  let res = l.res;
+  for (const h of modifiersPoses()) {
+    const issue = h.toucher({ ...l, etat: lire(), res });
+    if (issue.seuils) return { res, suspendu: true, seuils: issue.seuils };
+    surIssue(issue);
+    res = issue.res;
+  }
+  return { res, suspendu: false };
+}
+
+/** L'APPLICATION de la chaîne : chaque modifier écrit ce qu'il a réécrit, avant que le suivant lise.
  *
  *  UN DÉ DÉCLARÉ ARRÊTE LA CHAÎNE (#1508) : tant que la sauvegarde n'est pas tombée, la touche n'est
  *  pas connue — un modifier d'ordre supérieur qui muterait l'état (Martyr `loseWounds`, Perturbante
- *  `pushBackTiles`) le ferait AVANT le dé, puis une SECONDE fois à la ré-entrée. L'arrêt vit ICI, dans
- *  le socle : aucun appelant ne peut l'oublier, et la porte est interceptée à la source (le canal
- *  `ouvrirSauvegarde` est enveloppé) plutôt que sur la foi d'un drapeau rendu par le modifier.
+ *  `poserLeRecul`) le ferait AVANT le dé, puis une SECONDE fois à la ré-entrée. L'arrêt vit ICI, dans
+ *  le socle : aucun appelant ne peut l'oublier.
  *  À la ré-entrée (`res.sauvegarde` posée), `ward-saves` est TRAVERSANT et la chaîne tourne UNE fois. */
 export function runHitModifiers(ctx: HitModifierCtx): ToucheApresModifiers {
-  let suspendu = false;
-  const ouvrir = ctx.ouvrirSauvegarde;
-  const surveille: HitModifierCtx = { ...ctx, ouvrirSauvegarde: (seuils, res) => { suspendu = true; ouvrir(seuils, res); } };
-  for (const h of modifiersPoses()) {
-    surveille.res = h.apply(surveille);
-    if (suspendu) break;
-  }
-  return { res: surveille.res, suspendu };
+  const fin = enchainer(ctx.get, ctx, (issue) => {
+    issue.ecrire?.();
+    if (issue.encaisse) ctx.encaisse?.(issue.encaisse.porteur, issue.encaisse.pb);
+  });
+  if (fin.seuils) ctx.ouvrirSauvegarde(fin.seuils, fin.res);
+  return { res: fin.res, suspendu: fin.suspendu };
+}
+
+/** LA PRÉVISION de la chaîne (#4574) : la touche que l'application rendra, et les tiers qui encaisseront, lus de l'état
+ *  `etat` sans rien écrire ; `suspendu` quand un dé de sauvegarde reste à tirer. PUR. */
+export function toucheAuJet(etat: Jeu, l: Omit<LectureDeTouche, 'etat'>): ToucheApresModifiers & { encaisses: { porteur: Combatant; pb: number }[] } {
+  const encaisses: { porteur: Combatant; pb: number }[] = [];
+  const fin = enchainer(() => etat, l, (issue) => { if (issue.encaisse) encaisses.push(issue.encaisse); });
+  return { res: fin.res, suspendu: fin.suspendu, encaisses };
 }
 
 /** Modifiers posés (diagnostic / garde-fou de test). */
@@ -257,12 +283,12 @@ export const TABLES = {
       // Salive analgésique (capability `wakelessBite`) — la morsure INDOLORE s'accroche à la proie sans la réveiller.
       id: 'wake-sleeper',
       order: 5,
-      apply: ({ attacker, target, res }) => {
-        if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
-          wakeSleeper(target);
-          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: attacker.label, foe: target.label })] };
-        }
-        return res;
+      toucher: ({ attacker, target, res }) => {
+        if (!res.hit || !isMagicallyAsleep(target) || traitCapability(attacker.traits, 'wakelessBite')) return { res };
+        return {
+          res: { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: nomDe(attacker), foe: nomDe(target) })] },
+          ecrire: () => wakeSleeper(target),
+        };
       },
     },
     {
@@ -274,17 +300,16 @@ export const TABLES = {
       // par les modificateurs après une autre fenêtre (Déviation Critique).
       id: 'ward-saves',
       order: 10,
-      apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
-        if (!toucheAvecPrise(res)) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
+      toucher: ({ etat, attacker, target, attaque, res }) => {
+        if (!toucheAvecPrise(res)) return { res }; // LDB 85 l.98, l.278 : « après chaque coup reçu »
         // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
         // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
-        if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
-        const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, get().scene)
+        if (res.sauvegarde) return { res: res.sauvegarde.sauve ? toucheSauvee(res) : res };
+        const seuils = seuilsDeSauvegarde(etat.battle?.combatants ?? [], attacker, target, attaque, etat.scene)
           .map(({ thr, trait, dome }) => ({ indice: thr, source: { kind: 'trait' as const, id: trait.id }, dome }));
         // GRAPPE DÉPENDANTE : les seuils partent ENSEMBLE à la porte, qui n'en ouvre qu'UN à la fois — le
         // suivant n'existe que si le précédent a raté, aucun dé n'est minté d'avance.
-        if (seuils.length) ouvrirSauvegarde(seuils, res);
-        return res;
+        return seuils.length ? { res, seuils } : { res };
       },
     },
     {
@@ -294,33 +319,32 @@ export const TABLES = {
       // donc aucun dé de sauvegarde à jeter contre lui.
       id: 'arrow-ward',
       order: 8,
-      apply: ({ get, attacker, target, weapon, attaque, res }) => {
+      toucher: ({ etat, attacker, target, weapon, attaque, res }) => {
         if (res.hit && attaque === 'distance' && weapon && organicProjectile(weapon)
-          && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', get().scene)) {
-          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: target.label }) };
+          && wardedAgainst(etat.battle?.combatants ?? [], attacker, target, 'arrowWard', etat.scene)) {
+          return { res: { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: nomDe(target) }) } };
         }
-        return res;
+        return { res };
       },
     },
     {
       // Martyr : LDB 43 l.107 ; le Critique reste sur la cible (LDB 14 l.3, LDB 13 l.159).
       id: 'martyr',
       order: 40,
-      apply: ({ get, attacker, target, weapon, res, encaisse }) => {
+      toucher: ({ etat, attacker, target, weapon, res }) => {
         const raw = res.damage ?? res.woundsLost;
-        if (res.hit && !res.degatsTransferes && raw) {
-          const priest = martyrGuardOf(get(), target);
-          if (priest) {
-            const loc = res.location ?? 'corps';
-            // LDB 13 l.159, LDB 43 l.107.
-            const taken = woundsFromHit(weapon, priest, loc, raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
+        const priest = res.hit && !res.degatsTransferes && raw ? martyrGuardOf(etat, target) : null;
+        if (!priest || !raw) return { res };
+        // LDB 13 l.159, LDB 43 l.107.
+        const taken = woundsFromHit(weapon, priest, res.location ?? 'corps', raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
+        return {
+          res: { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrEncaisse', { priest: nomDe(priest), name: nomDe(target), taken })] },
+          encaisse: { porteur: priest, pb: taken },
+          ecrire: () => {
             loseWounds(priest, taken);
             if (priest.wounds.current <= 0) applyZeroWounds(priest);
-            encaisse?.(priest, taken);
-            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrEncaisse', { priest: priest.label, name: target.label, taken })] };
-          }
-        }
-        return res;
+          },
+        };
       },
     },
     {
@@ -328,20 +352,24 @@ export const TABLES = {
       // Dégâts, l'adversaire recule d'1 m par DR du Test opposé, en cases à l'échelle de la scène (LDB 15 l.12).
       id: 'pushback',
       order: 50,
-      apply: ({ get, attacker, target, weapon, attaque, res }) => {
-        if (attacker.pushbackMode && attaque === 'melee' && weapon && canPushback(weapon)) {
-          attacker.pushbackMode = false; // consommé par cette attaque (réussie ou non)
-          if (res.hit) {
-            const meters = Math.max(0, res.netSL);
-            const wanted = Math.floor(meters / sceneMetresPerTile(get().scene));
-            const moved = pushBackTiles(get, attacker, target, wanted);
-            res = {
-              ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
-              log: t('cf.repoussement', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.repoussementBloque') : '' }),
-            };
-          }
-        }
-        return res;
+      toucher: ({ etat, attacker, target, weapon, attaque, res }) => {
+        if (!attacker.pushbackMode || attaque !== 'melee' || !weapon || !canPushback(weapon)) return { res };
+        const consommer = (): void => { attacker.pushbackMode = false; }; // consommé par cette attaque (réussie ou non)
+        if (!res.hit) return { res, ecrire: consommer };
+        const meters = Math.max(0, res.netSL);
+        const wanted = Math.floor(meters / sceneMetresPerTile(etat.scene));
+        const recul = reculPerturbant(etat, attacker, target, wanted);
+        const moved = recul?.moved ?? 0;
+        return {
+          res: {
+            ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
+            log: t('cf.repoussement', { name: nomDe(attacker), foe: nomDe(target), meters, bloque: moved < wanted ? t('cf.repoussementBloque') : '' }),
+          },
+          ecrire: () => {
+            consommer();
+            if (recul && etat.scene) poserLeRecul(etat.scene, target, recul.pos);
+          },
+        };
       },
     },
   ],

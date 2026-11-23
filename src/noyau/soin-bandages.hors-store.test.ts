@@ -236,7 +236,7 @@ describe('Coop : seul le siège du porteur engage ses Bandages (`user-arbitrage-
     const al = hero({ id: 'al', label: 'Al', items: [bandage('b1')], conditions: [{ id: 'hemorragique', value: 2 }] });
     banc.setState({
       party: [al], net: net({ al: 2 }) as never, pendingHeal: ph('pnj-soigneur'),
-      medic: { patientId: 'al', npc: { id: 'medecin', label: 'Médecin', skill: { id: 'guerison', value: 50 }, intBonus: 4, acts: [{ act: 'hemorragie' }] } },
+      medic: { patientId: 'al', npc: { id: 'medecin', label: fixtureText('Médecin'), skill: { id: 'guerison', value: 50 }, intBonus: 4, acts: [{ act: 'hemorragie' }] } },
     });
     expect([intentAllowedFor(banc.getState(), 2, 'jetRegler', ['soins', 'bandages', 'al']), intentAllowedFor(banc.getState(), 0, 'jetRegler', ['soins', 'bandages', 'al'])]).toEqual([true, false]);
   });

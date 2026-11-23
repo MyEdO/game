@@ -13,6 +13,7 @@ import { applyTriggeredEffects, sourcesDEtats } from './triggeredEffects';
 import { actorIn } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { Get, Set } from './flowTypes';
+import { nomDe } from '../engine/nom';
 
 interface EffetDEtatEnFinDeRound {
   effet: TriggeredEffect;
@@ -56,7 +57,7 @@ function traiterLAgonie(c: Combatant): string[] {
   const { died, log } = bleedDeathRoll(c, battleRng());
   if (!died) return [...log, ...tickDeath(c)];
   const nom = fateSaveOrDie(c) ? 'upkeep.fateSaved' : 'upkeep.succumb';
-  return [...log, t(nom, { name: c.label })];
+  return [...log, t(nom, { name: nomDe(c) })];
 }
 
 export function outOfCombatUpkeep(get: Get, set: Set, rounds: number): Applique {
@@ -80,7 +81,7 @@ export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: Reprise
         roundActif = true;
         const avant = comptePasDifferes(get());
         const { forgerUnId, campaignNarratif } = get();
-        direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, undefined, objetDuNarratif(campaignNarratif)));
+        direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif)));
         if (comptePasDifferes(get()) > avant) {
           set(touchActors(get()));
           confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien } }]);

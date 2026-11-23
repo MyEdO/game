@@ -7,7 +7,8 @@
  * touchée, se rejoue. Doc généré : `npm run docs:hote-texte`.
  */
 import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { ErreurDeGeste, nouvelEntete, type CategorieDErreur } from '../hote/partie';
+import { ErreurDeGeste, type CategorieDErreur } from '../hote/partie';
+import { nouvelEntete } from '../hote/partieDeTest';
 import { lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
@@ -19,6 +20,7 @@ import {
   rendreLaCarte,
   rendreLaFiche,
   rendreLaSuite,
+  rendreLesChoix,
   rendreLaVue,
   rendreLeJournal,
   rendreLesCases,
@@ -144,6 +146,8 @@ export function creerHote(disque: Disque) {
     switch (quoi) {
       case 'vue':
         return rendu(rendreLaVue(projection(r)));
+      case 'choix':
+        return rendu(rendreLesChoix(projection(r), depuis));
       case 'fiche': {
         if (id && !porteurEnVue(etat, id)) throw new ErreurDeGeste('validation', `fiche : ${t('vision.ficheHorsDeVue')}`);
         const fiche = id ? rendreLaFiche(etat, id) : null;

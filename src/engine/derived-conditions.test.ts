@@ -77,14 +77,14 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
 
   it('la réconciliation est IDEMPOTENTE : rejouée sans changement, elle n’écrit rien', () => {
     const { c } = pneumoniqueGrave();
-    expect(syncDerivedConditions(c)).toEqual([]);
-    expect(syncDerivedConditions(c)).toEqual([]);
+    expect(syncDerivedConditions(c).lignes).toEqual([]);
+    expect(syncDerivedConditions(c).lignes).toEqual([]);
     expect(stacks(c, 'inconscient')).toBe(1);
   });
 
   it('la Fièvre ATTÉNUÉE (LDB 20 l.159) rend la conscience — et le journal NOMME le symptôme', () => {
     const { c } = pneumoniqueGrave();
-    const log = applyOps(c, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY });
+    const log = applyOps(c, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY }).lignes;
     // L'instance n'est PAS mutée : c'est la sévérité EFFECTIVE qui redescend, le temps de l'effet.
     expect(c.diseases![0].symptoms.find((s) => s.symptomId === 'fievre')!.severity).toBe('grave');
     expect(severiteEffective(c, 'pneumonie', c.diseases![0].symptoms.find((s) => s.symptomId === 'fievre')!), 'grave → moderee').toBe('moderee');
@@ -122,7 +122,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
   it('l’extinction NATURELLE du fait (le palier n’émet plus) retire le pion, marquage compris', () => {
     const { c } = pneumoniqueGrave();
     c.diseases![0].symptoms = c.diseases![0].symptoms.map((s) => (s.symptomId === 'fievre' ? { ...s, severity: undefined } : s));
-    const log = syncDerivedConditions(c);
+    const log = syncDerivedConditions(c).lignes;
     expect(log.some((l) => l.includes('perd l’État Inconscient')), 'aucune ligne de perte au journal').toBe(true);
     expect(stacks(c, 'inconscient')).toBe(0);
     expect(c.conditions.filter((x) => x.derivedFrom?.src?.id === 'fievre'), 'le marquage de la Fièvre survit à son palier').toEqual([]);
@@ -182,7 +182,7 @@ describe('Malaise → l’État Exténué est MATÉRIALISÉ et COLLANT (LDB 20 l
         contractDisease('blessure-purulente', seq([1]), { incubation: 0, duration: 5 })!,
       ],
     });
-    expect(syncDerivedConditions(c)).toHaveLength(1); // une ligne : l'État, à 2 pions
+    expect(syncDerivedConditions(c).lignes).toHaveLength(1); // une ligne : l'État, à 2 pions
     expect(stacks(c, 'extenue')).toBe(2);
     cureDiseases(c, 1);
     expect(stacks(c, 'extenue')).toBe(1);
@@ -221,7 +221,7 @@ describe('un porteur NON-symptôme porte son État par le même socle (#1599)', 
 
   it('la mutation pose l’État, le pion est MARQUÉ et le journal la nomme', () => {
     const c = porteurMutation();
-    const log = syncDerivedConditions(c);
+    const log = syncDerivedConditions(c).lignes;
     expect(stacks(c, 'sonne')).toBe(1);
     expect(derivedStacks(c, 'sonne')).toBe(1);
     expect(c.conditions[0].derivedFrom!.src).toEqual({ category: 'mutations', id: 'corpulent' });
@@ -260,7 +260,7 @@ describe('la réconciliation reste BON MARCHÉ et sans dérive sur une suite de 
   it('un porteur SANS aucun fait dérivable ne gagne rien et ne journalise rien', () => {
     const c = hero();
     tickDisease(c, MINUTES_PER_DAY, seq([]), ignore);
-    expect(syncDerivedConditions(c)).toEqual([]);
+    expect(syncDerivedConditions(c).lignes).toEqual([]);
     expect(c.conditions).toEqual([]);
   });
 

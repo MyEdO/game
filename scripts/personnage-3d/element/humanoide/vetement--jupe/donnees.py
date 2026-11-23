@@ -25,7 +25,7 @@ MANIFESTE = {
 """`couche` : la jupe passe sous le pourpoint, qui la couvre de la taille aux hanches (illustration) ; à couche égale,
 deux pièces sur le même filet se confondraient. `couvre` : sous l'ourlet effiloché, pieds écartés, le mollet se voit
 (procédure, section 2) ; le haut de la jupe, sous le pourpoint, ne cache pas le torse."""
-MATERIAUX = {'robe': ('vet1', 'drap-terne')}   # gris de construction, sans couleur cuite
+MATERIAUX = {'robe': ('vet1', 'drap-terne')}
 
 # --- Maillage ---
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce

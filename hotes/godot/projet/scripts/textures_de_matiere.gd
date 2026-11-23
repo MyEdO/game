@@ -24,7 +24,7 @@ static func retenue(chemin: String) -> Texture2D:
 	return ResourceLoader.get_cached_ref(chemin) as Texture2D
 
 
-## Les chemins d'une matière, y compris sa variante neutre si une palette ou la couleur d'une nappe la teint.
+## Les chemins d'une matière, y compris sa variante neutre si une palette ou la couleur de ses sommets la teint.
 static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
 	var chemins := PackedStringArray([VolumeDeScene.texture_de(matiere), VolumeDeScene.relief_de(matiere)])
 	if neutre:
@@ -32,33 +32,40 @@ static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
 	return chemins
 
 
-## Par chemin, les textures présentes des matières demandées (chaque nom à vrai si sa variante neutre sert).
+## Par chemin, les textures présentes des matières demandées (chaque nom à vrai si sa variante neutre sert,
+## `chemins_de`).
+static func preparer(hote: Node, matieres: Dictionary, grouper_sur_web := false) -> Dictionary:
+	var chemins := PackedStringArray()
+	for matiere: String in matieres:
+		chemins.append_array(chemins_de(matiere, matieres[matiere]))
+	return await preparer_les_chemins(hote, chemins, grouper_sur_web)
+
+
+## Par chemin, les textures présentes parmi `chemins`.
 ## Le lot rendu tient les textures jusqu'à leur pose ou tant que le porteur les utilise.
 ## Sur le Web, les lectures consécutives des lots groupés peuvent partager une image.
-static func preparer(hote: Node, matieres: Dictionary, grouper_sur_web := false) -> Dictionary:
-	if matieres.is_empty():
+static func preparer_les_chemins(hote: Node, chemins: PackedStringArray, grouper_sur_web := false) -> Dictionary:
+	if chemins.is_empty():
 		return {}
 	var chargeur := hote.get_node("/root/Textures") as TexturesDeMatiere
-	return await chargeur._preparer(matieres, grouper_sur_web)
+	return await chargeur._preparer(chemins, grouper_sur_web)
 
 
-func _preparer(matieres: Dictionary, grouper_sur_web: bool) -> Dictionary:
+func _preparer(chemins: PackedStringArray, grouper_sur_web: bool) -> Dictionary:
 	var textures := {}
 	var attendues: Dictionary[String, Lecture] = {}
-	for matiere: String in matieres:
-		var chemins := chemins_de(matiere, matieres[matiere])
-		for chemin: String in chemins:
-			if not ResourceLoader.exists(chemin, "Texture2D"):
+	for chemin: String in chemins:
+		if not ResourceLoader.exists(chemin, "Texture2D"):
+			continue
+		var lecture: Lecture = _en_vol.get(chemin)
+		if lecture == null:
+			var texture := retenue(chemin)
+			if texture != null:
+				textures[chemin] = texture
 				continue
-			var lecture: Lecture = _en_vol.get(chemin)
-			if lecture == null:
-				var texture := retenue(chemin)
-				if texture != null:
-					textures[chemin] = texture
-					continue
-				lecture = _demander(chemin)
-			lecture.grouper_sur_web = lecture.grouper_sur_web or grouper_sur_web
-			attendues[chemin] = lecture
+			lecture = _demander(chemin)
+		lecture.grouper_sur_web = lecture.grouper_sur_web or grouper_sur_web
+		attendues[chemin] = lecture
 	var arbre := get_tree()
 	while not attendues.is_empty():
 		await arbre.process_frame

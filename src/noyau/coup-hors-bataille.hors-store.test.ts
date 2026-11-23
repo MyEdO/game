@@ -11,6 +11,7 @@ import { ligneDuCoup } from '../engine/combat';
 import { addCondition, hasCondition, isOutOfAction } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
 import { t as tr } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -98,7 +99,7 @@ describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
     expect(H.wounds.current).toBe(hAvant);
     const encaisse = pAvant - pretre.wounds.current;
     expect(encaisse).toBeGreaterThan(0);
-    expect(banc.getState().journal.join(' ')).toContain(tr('cf.martyrEncaisse', { priest: pretre.label, name: H.label, taken: encaisse }));
+    expect(banc.getState().journal.join(' ')).toContain(tr('cf.martyrEncaisse', { priest: nomDe(pretre), name: nomDe(H), taken: encaisse }));
   });
 });
 

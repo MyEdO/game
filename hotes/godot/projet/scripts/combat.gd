@@ -331,11 +331,11 @@ func _suivre(reponse: Dictionary) -> void:
 	_pose_des_vues = pose
 	while not _file_des_vues.is_empty():
 		var plan: Dictionary = _file_des_vues.front()
-		var matieres := VolumeDeScene.matieres_des_morceaux(plan.get("recus", {}))
+		var chemins := VolumeDeScene.textures_des_morceaux(plan.get("recus", {}))
 		var lumiere: Variant = plan.suite.vue.lumiere
 		if lumiere != null and lumiere.horsCarte.sol != null:
-			matieres[lumiere.horsCarte.sol.matiere] = false
-		var _textures_gardees := await TexturesDeMatiere.preparer(self, matieres)
+			chemins.append_array(VolumeDeScene.textures_de_la_matiere(lumiere.horsCarte.sol.matiere))
+		var _textures_gardees := await TexturesDeMatiere.preparer_les_chemins(self, chemins)
 		if pose != _pose_des_vues:
 			return
 		_file_des_vues.pop_front()
@@ -416,7 +416,7 @@ func _poser_la_suite(plan: Dictionary) -> void:
 		_monde.volume.retirer(plan.retrait)
 	_poser_la_vision_de(plan.vision)
 	if not plan.aretes.is_empty():
-		_monde.volume.poser_les_aretes(plan.aretes.aretes, plan.aretes.cotesDeMarches, plan.aretes.faitieres)
+		_monde.volume.poser_les_aretes(plan.aretes.aretes, plan.aretes.cotesDeMarches, plan.aretes.piecesDeToit)
 	_plateau.montrer(_vue)
 	var trajets := _plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
@@ -485,7 +485,7 @@ func _publier_l_ecran() -> void:
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
 ## vision se fond encore (`VolumeDeScene.part_du_fondu`), si un combattant dessiné se déplace (`Plateau.marche`), la part
 ## de la fenêtre que l'ossature laisse à la scène (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
-## combattant dessiné (`Plateau.corps`), les navires posés (`Plateau.navires`) et si les arêtes sont toutes posées
+## combattant dessiné (`Plateau.corps`), les coques posées (`Plateau.coques`) et si les arêtes sont toutes posées
 ## (`VolumeDeScene.aretes_en_lecture`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
@@ -494,7 +494,7 @@ func _ecran_publie() -> Dictionary:
 		boutons = PontDuNoyau.boutons_a_l_ecran(racines), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
 		fondu = _monde.volume.part_du_fondu() != 1.0, marche = _plateau.marche(),
-		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), coques = _plateau.coques(),
 		aretes_lues = not _monde.volume.aretes_en_lecture(),
 		compendium = {zones = _compendium.vues()},
 	}

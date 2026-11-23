@@ -12,7 +12,8 @@ import { evaluateMissile, type CastResult, type MissileResult } from '../engine/
 import { bus, EVT } from './bus';
 import { type SpellData, findSpellById } from '../data';
 import { hasCondition } from '../engine/conditions';
-import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
+import { critTableRows, critTableKeyFor } from '../engine/critical';
+import { blessuresDeLaLigne } from '../engine/critical.testkit';
 import { findTableEntry } from '../engine/tables';
 import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
@@ -23,6 +24,7 @@ import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
 import { talentCritExtraWounds } from '../engine/combatFeatures/dispatch';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -125,8 +127,8 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     const sonde = coup({ current: 20 });
     const ligne = critTableRows('ldb', critTableKeyFor(sonde.res.critLocation!))
       .filter((e) => !e.lethal)
-      .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
-    expect(critImmediateSummary(ligne.ops ?? []).woundsLost, 'la ligne retire des PB').toBeGreaterThan(0);
+      .reduce((a, e) => (blessuresDeLaLigne(e.ops ?? []) > blessuresDeLaLigne(a.ops ?? []) ? e : a));
+    expect(blessuresDeLaLigne(ligne.ops ?? []), 'la ligne retire des PB').toBeGreaterThan(0);
     const blessures = sonde.auJet.woundsLost;
     const { cible } = coup({ current: blessures, de: ligne.max });
     expect(cible.critEntriesSuffered).toEqual([ligne.id]);
@@ -164,7 +166,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(kinds).toEqual([]);
-    expect(banc.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
+    expect(banc.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
   });
 
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
@@ -259,14 +261,14 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   it('Bâclée seule, le porteur dévie : la pièce casse, la Déviation est jouée, aucun Critique', () => {
     const { cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
     expect(cible.criticalWounds ?? 0).toBe(0);
   });
 
   it('Bâclée seule, le porteur refuse : la pièce casse, le Critique est subi', () => {
     const { res, cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'subir', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
-    expect(journal()).toContain(tr('cf.bacleeSeBrise', { name: cible.label, loc: locationLabel(res.critLocation!, cible.bodyShape) }));
+    expect(journal()).toContain(tr('cf.bacleeSeBrise', { name: nomDe(cible), loc: locationLabel(res.critLocation!, cible.bodyShape) }));
     expect(cible.criticalWounds).toBe(1);
   });
 
@@ -330,7 +332,7 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
 
   it('R1 : la Bâclée dévie son propre Coup Critique, puis casse (LDB 60 l.50 ; LDB 63 l.30 ; #1595 c.6228496170 R1)', () => {
     const { cible } = coup({ roll: 44, current: 1, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
     expect(cible.criticalWounds, 'le dépassement reste').toBe(1);
     expect(casse(cible, 'p1')).toBe(true);
   });
@@ -461,7 +463,7 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
     const { auJet, cible } = coup({ vehicule: 'diligence' });
     expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
-    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: nomDe(cible) }));
   });
 
   // EDOC 07 l.334 ; #4202.
@@ -479,7 +481,7 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
     const temoin = surLaDiligence({});
     const { H, cible, emis } = surLaDiligence({ frappeBlessante: true });
     expect(cible.wounds.current).toBe(temoin.cible.wounds.current);
-    expect(journal()).not.toContain(tr('cf.coupBlessant', { name: cible.label, n: talentCritExtraWounds(H) }));
+    expect(journal()).not.toContain(tr('cf.coupBlessant', { name: nomDe(cible), n: talentCritExtraWounds(H) }));
     expect(emis.every((n) => !n), '`critiques` 0 ou absent').toBe(true);
   });
 
@@ -499,7 +501,7 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
     const { auJet, res, cible } = surLaDiligence({ arme: arbaleteTaillade, double: false, coque: 1 });
     expect(auJet.critical, 'aucun double').toBe(false);
     expect(res.woundsLost, 'le coup dépasse les Blessures restantes').toBeGreaterThan(1);
-    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: nomDe(cible) }));
     expect(hasCondition(cible, 'munition-logee')).toBe(false);
     expect(hasCondition(cible, 'hemorragique')).toBe(false);
   });
@@ -709,7 +711,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     setRule('combat-aa-blessures', 'aa');
     const { auJet, emis, cible } = emisDuCoup(aaChanceux('devier'));
     expect(auJet.woundsLost, 'le coup fait passer à 0').toBeGreaterThanOrEqual(1);
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(casse(cible, 'p1')).toBe(true);
     expect(emis).toEqual([0]);
@@ -725,7 +727,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
   it("'ldb', cible importante, double 33 dévié : `critiques: 0`", () => {
     const { auJet, emis, cible } = emisDuCoup({ roll: 33, current: 18, pa: 2, tenu: true, choisir: () => 'devier' });
     expect(auJet.critical).toBe(true);
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
@@ -747,7 +749,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(kinds).toContain('deviation');
-    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: apres.label })));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: nomDe(apres) })));
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
@@ -834,7 +836,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
   it('Critique dévié : une ligne, à la Localisation et aux Blessures appliquées, sans marque Critique', () => {
     const r = carreau('critique', { choix: 'devier' });
-    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: r.apres.label })));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: nomDe(r.apres) })));
     expect(r.finale.critiques).toBe(0);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]).toContain(`(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(r.finale.location!, r.apres.bodyShape) })})`);
@@ -923,7 +925,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     applyAttackResult(banc.getState, banc.setState, tireur, victim!, weapon, res);
     draineCascade(banc.getState, 200, () => 50);
     const texte = journal().join('\n');
-    expect(texte.split(tr('cf.touchePerdueEnMelee', { name: voisin.label })).length - 1).toBe(1);
+    expect(texte.split(tr('cf.touchePerdueEnMelee', { name: nomDe(voisin) })).length - 1).toBe(1);
     expect(texte.split(`${tireur.label} touche ${voisin.label}`).length - 1).toBe(1);
   });
 });

@@ -217,9 +217,9 @@ describe('GOLDEN — issues figées à graine égale', () => {
     const st = get();
     expect((st.party[0].items ?? []).length).toBe(0);
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
-    // La conséquence est DÉRIVÉE de l'op `condition` appliqué (#295, opConsequenceLine), jamais une
-    // chaîne composée « Nom — Activité : Exténué. » : ligne structurée (l'État surfacé sur la rangée).
-    expect(st.journal.join('\n')).toContain('État Exténué subi.');
+    // La conséquence est la lecture du fait que l'op `condition` a appliqué (#4574), jamais une chaîne
+    // composée « Nom — Activité : Exténué. ».
+    expect(st.journal).toContain(`${h.label} reçoit 1 État Exténué.`);
   });
 
   it('Exposition seed 2 : transi → escalade de froid (3 effets exposition-froid, rang 1)', () => {
@@ -523,7 +523,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     get().jetValider('cascade');
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
-    expect(st.journal.join('\n')).toContain('État Exténué subi.'); // opConsequenceLine case condition
+    expect(st.journal).toContain(`${h.label} reçoit 1 État Exténué.`); // #4574
   });
 });
 

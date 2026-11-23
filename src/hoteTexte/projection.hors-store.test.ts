@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
 import type { Geste } from '../hote/geste';
 import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
@@ -109,7 +109,7 @@ describe('le jet se lit avant sa confirmation', () => {
       expect(jet).toMatchObject({ flux: 'attaque', oppose: { drNet: res.netSL } });
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
-      expect(rendreLaVue(p).join('\n')).toMatch(/^jet attaque : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
+      expect(rendreLaVue(p).join('\n').split('\n  ').join(' ')).toMatch(/^jet attaque : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
     }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attaque'] });
   });
 });

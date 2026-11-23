@@ -1,7 +1,7 @@
 """Primitives de maillage des éléments rigides (#2987, #3743), communes aux modèles de `vehicule/<modele>/modele.py`,
 de `decor/<modele>/modele.py` et d'`element/<base>/<id>/modele.py` : la maille accumulée en coordonnées du monde, l'interpolation des tables de forme, les
-solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final ; les UV en mètres d'un élément sur base
-(`poser_les_uv_en_metres`, #4313).
+solides (révolution, boîte, poutre, tube, tore, treuil), l'objet Blender final et le montage des nœuds d'un engin à son
+emprise recentrée (`monter`) ; les UV en mètres d'un élément sur base (`poser_les_uv_en_metres`, #4313).
 
 Repère Blender d'un véhicule : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
 haut) place l'avant vers +z. Un décor, de même, le front de sa recette vers -y (`decor/gabarit.py`). Un élément tenu se
@@ -15,6 +15,9 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+UV_DE_LA_BRIQUE = "uv_de_la_brique"
+"""L'attribut booléen de face d'un objet (`objet`) : vrai sur les faces dont la brique a donné les UV, qu'elles gardent
+(`poser_les_uv_en_metres`)."""
 AUTRES_AXES = np.array([[1, 2], [0, 2], [0, 1]])
 """Par axe dominant de la normale d'une face, les deux axes qui portent ses UV (`uv_cubiques`)."""
 
@@ -25,21 +28,22 @@ def tirage(graine):
 
 
 class Maille:
-    """Sommets, faces, index de matériau et UV des coins d'un objet, en coordonnées du monde."""
+    """Sommets, faces, index de matériau et UV des coins d'un objet, en coordonnées du monde ; `None` pour les UV d'une
+    face que la brique ne donne pas."""
 
     def __init__(self, materiaux):
         self.v, self.f, self.m, self.uv = [], [], [], []
         self.materiaux = materiaux
 
     def ajouter(self, sommets, faces, mat, uvs=None):
-        """`uvs` : les UV de chaque coin de chaque face, (0, 0) partout sinon."""
+        """`uvs` : les UV de chaque coin de chaque face, s'il y en a."""
         base = len(self.v)
         self.v.extend(tuple(p) for p in sommets)
         index = [m.name for m in self.materiaux].index(mat)
         for k, face in enumerate(faces):
             self.f.append([base + i for i in face])
             self.m.append(index)
-            self.uv.append(uvs[k] if uvs else [(0.0, 0.0)] * len(face))
+            self.uv.append(uvs[k] if uvs else None)
 
 
 def lineaire(table, x):
@@ -97,39 +101,52 @@ def poutre(maille, a, b, largeur, epaisseur, normale, mat):
     maille.ajouter(sommets, faces, mat)
 
 
-def tour(maille, profil, axe, centre, segments, mats, ferme=False):
-    """Révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou 'z' passant par `centre` ; r = 0 ferme sur l'axe ; une
-    entrée (a, r, r_w) donne une section elliptique, `r` sur le premier axe du plan normal (`point`), `r_w` sur le second.
-    `mats` : un matériau, ou un par tronçon du profil. `ferme` : profil en boucle (anneau)."""
-    mats = mats if isinstance(mats, list) else [mats] * len(profil)
+def revolution(profil, axe, centre, segments, ferme=False):
+    """Les sommets et les faces (`segments` par tronçon du profil, dans son ordre) de la révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou
+    'z' passant par `centre`, ou du repère `axe` (`point`) ; r = 0 ferme sur l'axe ; une entrée (a, r, r_w) donne une
+    section elliptique, `r` sur le premier axe du plan normal, `r_w` sur le second ; `a`, `r` ou `r_w` peut être une
+    suite, une valeur par colonne. Chaque face, bouts compris, a son endroit du même côté du profil. `ferme` : profil en
+    boucle (anneau)."""
+    def colonne(valeur, k):
+        return valeur if np.ndim(valeur) == 0 else valeur[k]
+
     anneaux = []
     sommets = []
     for a, r, *aplati in profil:
         r_w = aplati[0] if aplati else r
-        if r == 0:
+        if np.ndim(r) == 0 and r == 0:
             anneaux.append([len(sommets)])
             sommets.append(point(axe, centre, a, 0, 0))
         else:
             debut = len(sommets)
             for k in range(segments):
                 t = 2 * math.pi * k / segments
-                sommets.append(point(axe, centre, a, r * math.cos(t), r_w * math.sin(t)))
+                sommets.append(point(axe, centre, colonne(a, k), colonne(r, k) * math.cos(t), colonne(r_w, k) * math.sin(t)))
             anneaux.append(list(range(debut, debut + segments)))
     paires = list(zip(range(len(profil) - 1), range(1, len(profil))))
     if ferme:
         paires.append((len(profil) - 1, 0))
-    faces_par_mat = {}
+    faces = []
     for i, j in paires:
         a, b = anneaux[i], anneaux[j]
-        faces = faces_par_mat.setdefault(mats[i], [])
         for k in range(segments):
             k2 = (k + 1) % segments
             if len(a) == 1:
-                faces.append([a[0], b[k], b[k2]])
+                faces.append([a[0], b[k2], b[k]])
             elif len(b) == 1:
-                faces.append([a[k], b[0], a[k2]])
+                faces.append([a[k], a[k2], b[0]])
             else:
                 faces.append([a[k], a[k2], b[k2], b[k]])
+    return sommets, faces
+
+
+def tour(maille, profil, axe, centre, segments, mats, ferme=False):
+    """La révolution du profil (`revolution`) ajoutée à `maille`. `mats` : un matériau, ou un par tronçon du profil."""
+    mats = mats if isinstance(mats, list) else [mats] * len(profil)
+    sommets, toutes = revolution(profil, axe, centre, segments, ferme)
+    faces_par_mat = {}
+    for rang, face in enumerate(toutes):
+        faces_par_mat.setdefault(mats[rang // segments], []).append(face)
     for mat, faces in faces_par_mat.items():
         utilises = sorted({i for face in faces for i in face})
         renum = {i: n for n, i in enumerate(utilises)}
@@ -198,29 +215,6 @@ def tore(maille, axe, centre, grand, petit, n_grand, n_petit, mat):
     maille.ajouter(sommets, faces, mat)
 
 
-def roue(R, x, essieu_z, signe, bois, fer):
-    """Roue de bois cerclée de fer dans le plan `x`, d'axe x à la hauteur `essieu_z`, son moyeu tourné vers l'extérieur
-    selon `signe` (+1 vers +x) : bandage, jante, moyeu frotté et rayons, d'après la table `R` (`affut/donnees.py`)."""
-    roue = Maille([bois, fer])
-    s = R["segments"]
-    ri, ro, w = R["bandage"]
-    tour(roue, [(x - w / 2, ri), (x + w / 2, ri), (x + w / 2, ro), (x - w / 2, ro)], "x", (0, 0, essieu_z), s, fer.name, ferme=True)
-    ri, ro, w = R["jante"]
-    tour(roue, [(x - w / 2, ri), (x + w / 2, ri), (x + w / 2, ro), (x - w / 2, ro)], "x", (0, 0, essieu_z), s, bois.name, ferme=True)
-    rm, xi, xo = R["moyeu"]
-    a, b = sorted((x + signe * xi, x + signe * xo))
-    cylindre(roue, a, b, rm, "x", (0, 0, essieu_z), R["segments_moyeu"], bois.name)
-    for (rf, f0, f1) in (R["chapeau"], R["frette"]):
-        a, b = sorted((x + signe * f0, x + signe * f1))
-        cylindre(roue, a, b, rf, "x", (0, 0, essieu_z), R["segments_moyeu"], fer.name)
-    largeur, epaisseur = R["rayon_section"]
-    for k in range(R["rayons"]):
-        t = 2 * math.pi * (k + 0.5) / R["rayons"]
-        d = (0, math.cos(t), math.sin(t))
-        poutre(roue, (x, rm * 0.9 * d[1], essieu_z + rm * 0.9 * d[2]), (x, (R["jante"][0] + 0.02) * d[1], essieu_z + (R["jante"][0] + 0.02) * d[2]), largeur, epaisseur, (1, 0, 0), bois.name)
-    return roue
-
-
 def treuil(m, T, pied):
     """Treuil de bois sur deux chevalets posés à la hauteur `pied`, barres de manœuvre à chaque bout, d'après la table
     `T` (`catapulte/donnees.py`)."""
@@ -256,9 +250,9 @@ def uv_cubiques(positions, coins, debuts, totaux):
     return np.take_along_axis(p, AUTRES_AXES[np.abs(normales).argmax(axis=1)][face], axis=1)
 
 
-def poser_les_uv_en_metres(objet, blasons):
+def poser_les_uv_en_metres(objet):
     """Pose sur la première couche d'UV de `objet`, créée si absente, les UV en mètres de ses faces au repos
-    (`uv_cubiques`), hors des faces des matériaux de `blasons`, qui gardent les leurs (#4313)."""
+    (`uv_cubiques`), hors des faces dont la brique a donné les UV (`UV_DE_LA_BRIQUE`), qui gardent les leurs (#4313)."""
     me = objet.data
 
     def lire(collection, champ, largeur, type_):
@@ -268,8 +262,8 @@ def poser_les_uv_en_metres(objet, blasons):
     debuts, totaux = lire(me.polygons, "loop_start", 1, np.int64), lire(me.polygons, "loop_total", 1, np.int64)
     couche = me.uv_layers[0] if me.uv_layers else me.uv_layers.new(name="UVMap")
     uv = lire(couche.data, "uv", 2, np.float32)
-    blason = np.array([m is not None and m.name.split(".")[0] in blasons for m in me.materials] + [False])
-    garde = blason[lire(me.polygons, "material_index", 1, np.int64)][faces_des_coins(debuts, totaux)]
+    donnees = me.attributes.get(UV_DE_LA_BRIQUE)
+    garde = (lire(donnees.data, "value", 1, bool) if donnees else np.zeros(len(debuts), bool))[faces_des_coins(debuts, totaux)]
     cubiques = uv_cubiques(lire(me.vertices, "co", 3, np.float64), lire(me.loops, "vertex_index", 1, np.int64), debuts, totaux)
     uv[~garde] = cubiques[~garde]
     couche.data.foreach_set("uv", uv.ravel())
@@ -277,7 +271,8 @@ def poser_les_uv_en_metres(objet, blasons):
 
 def objet(nom, maille, origine, angle_lisse):
     """L'objet `nom`, ses sommets ramenés à `origine`, triangulé, normales extérieures, lissé par angle ; seuls les
-    matériaux que portent ses faces lui sont attachés, dans l'ordre de la maille."""
+    matériaux que portent ses faces lui sont attachés, dans l'ordre de la maille ; les faces dont la maille porte les UV
+    les gardent, marquées `UV_DE_LA_BRIQUE`, les autres sont à (0, 0)."""
     utilises = sorted(set(maille.m))
     renum = {m: i for i, m in enumerate(utilises)}
     ox, oy, oz = origine
@@ -285,10 +280,11 @@ def objet(nom, maille, origine, angle_lisse):
     donnees.from_pydata([(x - ox, y - oy, z - oz) for x, y, z in maille.v], [], maille.f)
     for poly, m in zip(donnees.polygons, maille.m):
         poly.material_index = renum[m]
-    couche = donnees.uv_layers.new(name="UVMap")
+    couche = donnees.uv_layers.new(name="UVMap", do_init=False)
     for poly, coins in zip(donnees.polygons, maille.uv):
-        for boucle, uv in zip(poly.loop_indices, coins):
+        for boucle, uv in zip(poly.loop_indices, coins or ()):
             couche.data[boucle].uv = uv
+    donnees.attributes.new(UV_DE_LA_BRIQUE, "BOOLEAN", "FACE").data.foreach_set("value", [c is not None for c in maille.uv])
     bm = bmesh.new()
     bm.from_mesh(donnees)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -304,3 +300,11 @@ def objet(nom, maille, origine, angle_lisse):
     obj.location = origine
     bpy.context.scene.collection.objects.link(obj)
     return obj
+
+
+def monter(noeuds, angle_lisse):
+    """Les objets des `noeuds` {nom: (maille, pivot)}, dans leur ordre, l'emprise de toutes leurs mailles recentrée en
+    x et y (`recentrer`) : chacun à son pivot, déplacé d'autant, ou à l'origine du monde sans pivot."""
+    dx, dy = recentrer([maille for maille, _ in noeuds.values()])
+    for nom, (maille, pivot) in noeuds.items():
+        objet(nom, maille, (pivot[0] + dx, pivot[1] + dy, pivot[2]) if pivot else (0.0, 0.0, 0.0), angle_lisse)

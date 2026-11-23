@@ -411,10 +411,12 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
 
 describe('Solide imperdable — aucun dé, mais la sauvegarde se DIT (LDB 60 l.30)', () => {
   it('Bâclé + Solide(9) : la Maladresse s’applique sur place, l’arme tient, et le journal le dit', () => {
-    const arme = { label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 9 }] } as unknown as Weapon;
+    const arme = { label: 'Épée bâclée', trappingId: 'epee', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 9 }] } as unknown as Weapon;
     const hero = mk('heros', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
-    expect(applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE), 'aucun dé à ouvrir').toBeUndefined();
+    expect(applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE), 'aucun dé à ouvrir, l’arme sauvée sans dé en fait').toEqual({
+      faits: [{ genre: 'objet', cible: 'bretteur', camp: 'groupe', objet: { arme: 'epee' }, valeur: 0, issue: 'imperdable' }],
+    });
     expect(brisee(arme), 'l’arme tient').toBeFalsy();
     const lues = lignesLues();
     expect(lues.filter((l) => /^Épée bâclée résiste — .* : la Sauvegarde ne peut pas échouer\.$/.test(l)), lues.join(' | ')).toHaveLength(1);
@@ -589,6 +591,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Maladresse !`)).length;
     const sauvegardes = (label: string): number =>
       (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Sauvegarde Solide`)).length;
+    // Le frappeur piloté par l'IA ne voit pas : aucune case n'est vue du groupe, les lignes du rival le nomment du nom neutre (#4017).
+    const nomDuRival = t('vision.horsDeVue');
 
     const suspendu = applyAttackResult(banc.getState, banc.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
     expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(OPS_DIFFEREES);
@@ -596,24 +600,23 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(etapeCourante()!.actorId, 'le dé en vol est celui de l’ATTAQUANT').toBe(frappeur.id);
     expect(maladresses(frappeur.label), 'même celle de l’attaquant attend son dé').toBe(0);
-    expect(maladresses(rival.label), 'la Maladresse du défenseur attend derrière ce dé').toBe(0);
+    expect(maladresses(nomDuRival), 'la Maladresse du défenseur attend derrière ce dé').toBe(0);
     expect(banc.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
 
     // À partir d'ici, chaque écriture de l'état est datée : on mesure l'ORDRE, pas seulement l'état final.
     const journalDesEcritures: { maladressesDuDefenseur: number; acted: boolean }[] = [];
     let suitesJouees = 0; // transitions « Action rendue » : une par exécution de la suite
     const stop = banc.subscribe((s, prev) => {
-      journalDesEcritures.push({ maladressesDuDefenseur: maladresses(rival.label), acted: !!s.battle?.acted });
+      journalDesEcritures.push({ maladressesDuDefenseur: maladresses(nomDuRival), acted: !!s.battle?.acted });
       if (prev.battle?.acted === true && s.battle?.acted === false) suitesJouees += 1;
     });
 
     poser(9); // le dé de casse de l'attaquant ; celui du défenseur suit, roulé au socle (aucun siège)
     expect(brisee(armeAttaquant), 'l’attaquant sauve son arme (LDB 60 l.30)').toBeFalsy();
     expect(maladresses(frappeur.label), 'la Maladresse de l’attaquant s’applique, une fois').toBe(1);
-    expect(maladresses(rival.label), 'celle du défenseur la suit, une fois').toBe(1);
+    expect(maladresses(nomDuRival), 'celle du défenseur la suit, une fois').toBe(1);
     expect(sauvegardes(frappeur.label), 'un seul dé de casse par porteur').toBe(1);
-    // Aucune case n'est vue du groupe : la ligne de dé du rival le nomme du nom neutre (#4017).
-    expect(sauvegardes(t('vision.horsDeVue')), 'un seul dé de casse par porteur').toBe(1);
+    expect(sauvegardes(nomDuRival), 'un seul dé de casse par porteur').toBe(1);
     expect(banc.getState().battle!.acted, 'la suite (Action gratuite rendue) joue enfin').toBe(false);
     const premiereSuite = journalDesEcritures.findIndex((e) => !e.acted);
     expect(premiereSuite, 'la suite a bien laissé une trace datée').toBeGreaterThanOrEqual(0);
@@ -623,7 +626,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
     banc.getState().jetValider('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
-    expect(maladresses(rival.label)).toBe(1);
+    expect(maladresses(nomDuRival)).toBe(1);
     expect(suitesJouees, 'aucune seconde exécution de la suite').toBe(1);
     stop();
   });

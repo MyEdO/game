@@ -13,6 +13,8 @@ import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from './mo
 import { gradeBetween, METRES_PER_LEVEL } from './monde/relief';
 import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import type { CellSide } from './monde/scene';
+import { facadeFeatureViz } from './monde/facades';
+import { sommetDuPignon } from './monde/volume/toits';
 
 /** Terrains BÂTIS : ceux dont l'entrée porte `built` (`TerrainDef.built`) — surface construite qui PORTE
  *  l'étage posé dessus (plancher, dallage, pavage, bloc de maçonnerie). LU au dataset à l'appel : une
@@ -64,7 +66,8 @@ export type PlanDefectFamily =
   | 'facade-decalee' | 'mur-manquant' | 'etage-sur-exterior'
   | 'case-sans-zone' | 'etage-sans-appui'
   | 'zone-hors-bati' | 'zone-debordante'
-  | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline' | 'suspension-hors-saut';
+  | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline' | 'suspension-hors-saut'
+  | 'faitage-hors-pignon';
 
 /** OÙ se corrige le défaut — l'éditeur en fait une sélection, le CLI une coordonnée. */
 export type PlanDefectAt =
@@ -114,8 +117,9 @@ export interface PlanDefectFamilyDef {
   title: string;
   /** SUJET du scan : `floorPair` = une dalle d'étage contre l'étage du dessous (`floorPairs` — sans
    *  second étage, la famille n'a rien à regarder) ; `zone` = les zones déclarées, de plain-pied comprises ;
-   *  `floor` = la grille de MURS d'un étage, seule (aucune zone, aucun second étage requis). */
-  scope: 'floorPair' | 'zone' | 'floor';
+   *  `floor` = la grille de MURS d'un étage, seule (aucune zone, aucun second étage requis) ; `bati` = l'architecture
+   *  authorée (façades et nappes de toit). */
+  scope: 'floorPair' | 'zone' | 'floor' | 'bati';
 }
 
 /** Registre des familles — ORDRE de rapport, source unique des titres et du sujet de chacune. */
@@ -132,6 +136,7 @@ export const PLAN_DEFECT_FAMILIES: readonly PlanDefectFamilyDef[] = [
   { id: 'mur-en-impasse', title: 'Mur en impasse à l’intérieur de la carte', scope: 'floor' },
   { id: 'porte-orpheline', title: 'Porte posée sur une arête isolée', scope: 'floor' },
   { id: 'suspension-hors-saut', title: 'Hauteur de suspension qu’aucun saut n’offre', scope: 'floor' },
+  { id: 'faitage-hors-pignon', title: 'Ornement de faîte hors d’un pignon', scope: 'bati' },
 ];
 
 /** Familles scannées par PAIRE d'étages (`floorPairs`) — les familles de zone et celles de grille de
@@ -778,6 +783,27 @@ export function auditSuspensions(scene: Scene, z: number): PlanDefect[] {
   return out;
 }
 
+/** Famille 13 (#4790) — ornement de façade dont la vignette se pose au faîte (`FacadeFeatureViz.base: 'faite'`) sur une
+ *  arête qu'aucun pignon ne prolonge (`sommetDuPignon`) : il ne se pose pas (`ornementsDuBati`). */
+export function auditFaitages(scene: Scene): PlanDefect[] {
+  const out: PlanDefect[] = [];
+  for (const body of scene.architecture ?? [])
+    for (const section of body.facades)
+      for (const feature of section.features ?? []) {
+        if (facadeFeatureViz(section.appearance, feature.kind)?.base !== 'faite') continue;
+        const { x, y, side } = feature.edge;
+        const z = feature.edge.z ?? section.z;
+        if (sommetDuPignon(scene, { x, y, side, z })) continue;
+        out.push({
+          family: 'faitage-hors-pignon',
+          at: side === 'N' || side === 'E' ? { kind: 'edge', x, y, side, z } : { kind: 'cell', x, y, z },
+          grid: 'walled',
+          message: `Ornement de faîte hors d’un pignon — « ${feature.id} », sur la façade « ${section.id} », est posé à l'arête ${side} de (${x},${y}) à l'étage ${z}, qu'aucun pignon ne prolonge : il ne se pose pas. Déplace-le sur une arête de pignon, ou retire-le.`,
+        });
+      }
+  return out;
+}
+
 /** Position d'un défaut d'étage, dans le vocabulaire partagé `PlanDefectAt`. */
 function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
   return 'side' in d && d.side
@@ -786,7 +812,8 @@ function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
 }
 
 /** Mémo du POINT D'ENTRÉE (`memoByRefDeps`) : clé = les couches de la scène, que garde toute écriture qui ne peint pas ;
- *  dépendances = les champs que lisent les audits (`champsDuPlan`) ; le mémo est daté par la version des datasets
+ *  dépendances = les champs que lisent les audits (`champsDuPlan`, puis l'architecture et la toiture que lit
+ *  `auditFaitages`) ; le mémo est daté par la version des datasets
  *  (`memoByRef` : terrains, et décors lus par la marche). Une écriture non spatiale (libellé, description, météo) ne
  *  refait donc aucun audit, et chaque scène d'un projet garde le sien. Le tableau rendu est PARTAGÉ entre appels : ses
  *  consommateurs le lisent, ils ne le mutent pas. */
@@ -794,7 +821,7 @@ const planDefectsMemo = memoByRefDeps<Scene['layers'], PlanDefect[]>();
 
 /** POINT D'ENTRÉE UNIQUE — toutes les familles, tous les étages. PUR. */
 export function scenePlanDefects(scene: Scene): PlanDefect[] {
-  return planDefectsMemo(scene.layers, champsDuPlan(scene), () => buildPlanDefects(scene));
+  return planDefectsMemo(scene.layers, [...champsDuPlan(scene), scene.architecture, scene.roofDefaults], () => buildPlanDefects(scene));
 }
 
 function buildPlanDefects(scene: Scene): PlanDefect[] {
@@ -811,5 +838,6 @@ function buildPlanDefects(scene: Scene): PlanDefect[] {
   }
   out.push(...auditZoneFootprint(scene));
   for (const z of scenesZ(scene)) out.push(...auditEnclosureAtBorder(scene, z), ...auditWallDeadEndsAtBorder(scene, z), ...auditWallDeadEndsInside(scene, z), ...auditOrphanDoors(scene, z), ...auditSuspensions(scene, z));
+  out.push(...auditFaitages(scene));
   return out;
 }

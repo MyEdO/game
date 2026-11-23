@@ -45,7 +45,7 @@ import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace, type FacadePanel } from './volume/architectureVisibility';
 import { cotesDeMarchesDeLaScene } from './cotesDeMarches';
-import { faitieresDeLaScene } from './faitieres';
+import { piecesDeToitDeLaScene } from './piecesDeToit';
 import { NEIGHBOURS } from './volume/floors';
 import { clearedSpace } from './volume/toits';
 import { blocDeLaCase, empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
@@ -477,7 +477,7 @@ export interface PlateauDeLaScene {
   cleDuRetrait: string;
   /**
    * L'empreinte des arêtes de la scène (`aretesDeLaScene`), de ses côtés de marches (`cotesDeMarchesDeLaScene`,
-   * `src/noyau/monde/cotesDeMarches.ts`) et de ses faîtières (`faitieresDeLaScene`, `src/noyau/monde/faitieres.ts`)
+   * `src/noyau/monde/cotesDeMarches.ts`) et de ses pièces de toit (`piecesDeToitDeLaScene`, `src/noyau/monde/piecesDeToit.ts`)
    * change quand l'un d'eux change (une porte ouverte, une structure abattue, une masse de toit) : le jeu rappelle
    * alors `aretes`.
    */
@@ -510,13 +510,13 @@ export interface PlateauDeLaScene {
 /**
  * Les arêtes de toutes les couches de `scene` hors des ponts de ses navires, que la marche garde et que le modèle du
  * navire montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`), chacune dessinée (`areteDessinee`), et leur
- * empreinte avec celles des côtés de marches et des faîtières de la scène (`cle`, `hash32`, `cotesDeMarchesDeLaScene`,
- * `faitieresDeLaScene`). Retenues par
+ * empreinte avec celles des côtés de marches et des pièces de toit de la scène (`cle`, `hash32`, `cotesDeMarchesDeLaScene`,
+ * `piecesDeToitDeLaScene`). Retenues par
  * scène et par la version des datasets (`versionDesDatasets` : les ponts d'un navire se lisent à la fiche de son véhicule, le pied d'une arête au catalogue des terrains).
  */
 const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; cle: string } => {
   const aretes = aretesHorsDesNavires(scene).map((seg) => areteDessinee(scene, seg));
-  return { aretes, cle: hash32(...aretes.map(jsonCanonique), ...cotesDeMarchesDeLaScene(scene).map(jsonCanonique), ...faitieresDeLaScene(scene).map(jsonCanonique)).toString(36) };
+  return { aretes, cle: hash32(...aretes.map(jsonCanonique), ...cotesDeMarchesDeLaScene(scene).map(jsonCanonique), ...piecesDeToitDeLaScene(scene).map(jsonCanonique)).toString(36) };
 });
 
 /** Les arêtes dessinées de toutes les couches de `scene` hors des ponts de ses navires (`aretesEtEmpreinte`). */

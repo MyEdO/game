@@ -66,18 +66,18 @@ export const travelModeLabels = memoParVersion('vehicles', (): Record<string, st
   return Object.fromEntries([...reserves, ...catalogue.map(({ id, label }) => [id, label])]);
 });
 
-/** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses
- *  MILLES dans le même champ `km` — les tables RAW de traversée sont en milles (MDG 13/15
- *  l.57-78, cf. `src/noyau/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité, pour ne jamais
- *  ré-écrire « km »/« milles » en dur à un site d'affichage. */
-export function distanceUnit(sea: boolean | undefined): 'milles' | 'km' {
-  return sea ? 'milles' : 'km';
+/** Une distance exacte et son unité. */
+export interface Distance { valeur: number; unite: 'km' | 'milles' }
+
+/** Distance d'une route : une route `sea` (mode `'mer'`) porte ses MILLES dans le même champ `km`
+ *  (MDG 13/15 l.57-78, `src/noyau/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité. */
+export function distanceDeRoute(km: number, sea: boolean | undefined): Distance {
+  return { valeur: km, unite: sea ? 'milles' : 'km' };
 }
 
-/** Libellé complet « <valeur> <unité> » d'une distance de route (`Math.round` : les valeurs
- *  calculées peuvent porter des décimales). */
-export function routeDistanceLabel(km: number, sea: boolean | undefined): string {
-  return `${Math.round(km)} ${distanceUnit(sea)}`;
+/** « <valeur arrondie> <unité traduite> » : seule composition du texte d'une distance. */
+export function libelleDeDistance(d: Distance): string {
+  return t('distance.valeur', { valeur: Math.round(d.valeur), unite: t(`distance.${d.unite}`) });
 }
 
 /** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `voyage/*`) :
@@ -228,11 +228,11 @@ export function forcedMarchTarget(c: Combatant): number {
  *  cascade) : échec → +1 Exténué (+1 si Surchargé, p.293). Mute `c` ; renvoie le journal + gagnés.
  *  Partagé par `forcedMarchTest` (eager) et l'applicateur de cascade « marche-forcee ». */
 export function applyForcedMarch(c: Combatant, success: boolean): { line: string; gained: number } {
-  if (success) return { line: t('trv.forcedMarchOk', { name: c.label }), gained: 0 };
+  if (success) return { line: t('trv.forcedMarchOk', { name: nomDe(c) }), gained: 0 };
   const overloaded = encumbrancePenalties(c).tier > 0;
   const n = overloaded ? 2 : 1;
   addCondition(c, 'extenue', n);
-  return { line: t('trv.forcedMarchFail', { name: c.label, n, over: overloaded ? t('trv.fragOverloaded') : '' }), gained: n };
+  return { line: t('trv.forcedMarchFail', { name: nomDe(c), n, over: overloaded ? t('trv.fragOverloaded') : '' }), gained: n };
 }
 
 /** Marche forcée (LDB 51 l.195) : voyager plus de `hoursPerDay` heures ce jour → Test de Résistance,
@@ -260,5 +260,5 @@ export function applyTravelFatigue(c: Combatant): string[] {
   const n = encumbrancePenalties(c).travelFatigue;
   if (n <= 0) return [];
   addCondition(c, 'extenue', n);
-  return [t('trv.fatigue', { name: c.label, n })];
+  return [t('trv.fatigue', { name: nomDe(c), n })];
 }

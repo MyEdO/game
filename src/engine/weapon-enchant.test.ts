@@ -12,6 +12,7 @@ import type { Combatant, ItemInstance, Weapon } from './types';
 import type { TriggeredEffect, Flow } from './flowCore';
 import { desDuTest } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { nomDe } from './nom';
 
 /** Construit un `TriggeredEffect` onHit→victim portant `ops` (forme unifiée des onHit d'arme). */
 const onHitFlow = (ops: unknown[]): TriggeredEffect =>
@@ -76,9 +77,9 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     expect(c.weapons[0]?.uid).toBe(item.uid);
     const lignes = applyOps(c, [{ op: 'augmentWeapon', ...enchantement }], {
       idNeuf: idsDeTest, rng: desDuTest, label: miracle, defaultDurationRounds: 4,
-    });
+    }).lignes;
     expect(item.enchants?.map((e) => e.addQualities) ?? []).toEqual(admis ? [enchantement.addQualities] : []);
-    if (!admis) expect(lignes).toContain(t('op.sansArmeAEnchanter', { name: c.label, src: miracle }));
+    if (!admis) expect(lignes).toContain(t('op.sansArmeAEnchanter', { name: nomDe(c), src: miracle }));
     expect(c.weapons[0]?.qualities.map((q) => q.id)).toEqual([
       'empaleuse', 'taillade', ...(admis ? enchantement.addQualities : []),
     ]);

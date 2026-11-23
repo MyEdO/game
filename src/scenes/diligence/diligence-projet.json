@@ -4140,18 +4140,18 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4188,18 +4188,18 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4236,18 +4236,18 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4284,18 +4284,18 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4329,21 +4329,21 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4377,21 +4377,21 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -4421,24 +4421,24 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "herbe",
@@ -4469,10 +4469,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4483,10 +4483,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "pierre",
@@ -4517,10 +4517,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4531,10 +4531,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4565,10 +4565,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4579,10 +4579,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4613,10 +4613,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4627,10 +4627,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4661,10 +4661,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4675,10 +4675,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4709,10 +4709,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4723,10 +4723,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4757,10 +4757,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4771,10 +4771,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4805,10 +4805,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -4819,10 +4819,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4853,10 +4853,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -4867,10 +4867,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4901,10 +4901,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -4915,10 +4915,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4949,10 +4949,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -4963,10 +4963,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -4997,10 +4997,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -5011,10 +5011,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5045,10 +5045,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5059,10 +5059,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5093,10 +5093,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5107,10 +5107,10 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5141,10 +5141,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5155,22 +5155,22 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -5189,10 +5189,10 @@
       "terre",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5203,22 +5203,22 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -5237,10 +5237,10 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5251,22 +5251,22 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -5285,10 +5285,10 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5299,17 +5299,17 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -5333,10 +5333,10 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "plancher",
       "plancher",
       "plancher",
@@ -5347,17 +5347,17 @@
       "plancher",
       "plancher",
       "plancher",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -5381,31 +5381,31 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -5429,31 +5429,31 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -5477,31 +5477,31 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "dalle",
       "dalle",
       "dalle",
@@ -5525,9 +5525,9 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -5573,9 +5573,9 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -5621,9 +5621,9 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -5669,9 +5669,9 @@
       "herbe",
       "herbe",
       "herbe",
-      "route",
-      "route",
-      "route",
+      "pave",
+      "pave",
+      "pave",
       "pierre",
       "pierre",
       "pierre",
@@ -5734,19 +5734,19 @@
       "terre",
       "terre",
       "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -5775,12 +5775,6 @@
       "pierre",
       "pierre",
       "pierre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
       "terre",
       "terre",
       "terre",
@@ -5788,13 +5782,19 @@
       "terre",
       "terre",
       "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -5823,19 +5823,6 @@
       "pierre",
       "pierre",
       "pierre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
-      "terre",
       "terre",
       "terre",
       "terre",
@@ -5843,6 +5830,19 @@
       "terre",
       "terre",
       "terre",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
+      "pave",
       "herbe",
       "herbe",
       "herbe",
@@ -13722,67 +13722,7 @@
       "x": 21,
       "y": 38
      },
-     "facing": "N",
-     "label": "Diligence",
-     "usable": {
-      "actions": [
-       {
-        "id": "monter-a-bord",
-        "label": "Monter à bord",
-        "unique": true,
-        "flow": {
-         "kind": "sequence",
-         "etapes": [
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setFlag",
-            "flag": "edo-ch1-depart"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "clearObjective",
-            "id": "edo-ch1-place-a-bord"
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "journal",
-            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.251 · l.255"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "setObjective",
-            "id": "edo-ch1-route",
-            "desc": "Se rendre à Altdorf.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 17,
-             "note": "EDO 01 l.247"
-            }
-           }
-          },
-          {
-           "kind": "effet",
-           "effet": {
-            "type": "openWorldMap"
-           }
-          }
-         ]
-        }
-       }
-      ]
-     }
+     "facing": "N"
     },
     {
      "id": "prop-0",
@@ -14172,6 +14112,1701 @@
      "decor": {
       "id": "souche"
      }
+    },
+    {
+     "id": "diligence-portier-table",
+     "kind": "prop",
+     "decor": {
+      "id": "table"
+     },
+     "pos": {
+      "x": 13,
+      "y": 7
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-portier-tabouret",
+     "kind": "prop",
+     "decor": {
+      "id": "tabouret"
+     },
+     "pos": {
+      "x": 13,
+      "y": 8
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-cuisine-cheminee",
+     "kind": "prop",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
+     "pos": {
+      "x": 13,
+      "y": 14
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cuisine-table",
+     "kind": "prop",
+     "decor": {
+      "id": "table-2x1"
+     },
+     "pos": {
+      "x": 15,
+      "y": 15
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cuisine-etagere",
+     "kind": "prop",
+     "decor": {
+      "id": "etagere"
+     },
+     "pos": {
+      "x": 17,
+      "y": 13
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-cuisine-tonneau-1",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 13,
+      "y": 19
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cuisine-tonneau-2",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 13,
+      "y": 20
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cellier-tonneaux-1",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 13,
+      "y": 22
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cellier-tonneaux-2",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 13,
+      "y": 24
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cellier-caisse-1",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 17,
+      "y": 21
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-cellier-caisse-2",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 16,
+      "y": 24
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-cellier-tonneau",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 17,
+      "y": 24
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salon-table",
+     "kind": "prop",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
+     "pos": {
+      "x": 14,
+      "y": 29
+     },
+     "facing": "S",
+     "usable": {
+      "assise": true
+     }
+    },
+    {
+     "id": "diligence-salon-cheminee",
+     "kind": "prop",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
+     "pos": {
+      "x": 16,
+      "y": 29
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salon-armoire",
+     "kind": "prop",
+     "decor": {
+      "id": "armoire"
+     },
+     "pos": {
+      "x": 13,
+      "y": 25
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reserves-caisse-1",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 29,
+      "y": 13
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reserves-caisse-2",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 30,
+      "y": 13
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reserves-tonneau",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 32,
+      "y": 13
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reserves-tonneaux",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 33,
+      "y": 13
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-salle-commune-lit-1",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 13
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-2",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 14
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-3",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 15
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-4",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 16
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-5",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 17
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-6",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 18
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-7",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 19
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-8",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 20
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-9",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 37,
+      "y": 21
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-10",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 15
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-11",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 18
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-12",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 19
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-13",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 20
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-14",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 21
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-15",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 31,
+      "y": 21
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-16",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 33,
+      "y": 21
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-17",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 35,
+      "y": 21
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-18",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 34,
+      "y": 13
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-19",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 32,
+      "y": 14
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-lit-20",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 35,
+      "y": 14
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-table",
+     "kind": "prop",
+     "decor": {
+      "id": "table-2x1"
+     },
+     "pos": {
+      "x": 33,
+      "y": 17
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-10a-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 31,
+      "y": 25
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-10a-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 33,
+      "y": 26
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-chambre-10b-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 34,
+      "y": 25
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-10c-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 38,
+      "y": 25
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-10c-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 36,
+      "y": 26
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-brasserie-cuve-1",
+     "kind": "prop",
+     "decor": {
+      "id": "cuve-brasserie"
+     },
+     "pos": {
+      "x": 38,
+      "y": 31
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-brasserie-cuve-2",
+     "kind": "prop",
+     "decor": {
+      "id": "cuve-brasserie"
+     },
+     "pos": {
+      "x": 38,
+      "y": 33
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-brasserie-tonneau-1",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 34,
+      "y": 35
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-brasserie-tonneau-2",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 34,
+      "y": 36
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-brasserie-tonneau-3",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 35,
+      "y": 38
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-brasserie-tonneaux",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 38,
+      "y": 37
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-forge-foyer",
+     "kind": "prop",
+     "decor": {
+      "id": "foyer-de-forge"
+     },
+     "pos": {
+      "x": 12,
+      "y": 35
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-forge-enclume",
+     "kind": "prop",
+     "decor": {
+      "id": "enclume"
+     },
+     "pos": {
+      "x": 14,
+      "y": 36
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-forge-etabli",
+     "kind": "prop",
+     "decor": {
+      "id": "etabli-2x1"
+     },
+     "pos": {
+      "x": 17,
+      "y": 38
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-forge-tonneau",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 18,
+      "y": 35
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-bas-caisse-1",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 13,
+      "y": 39
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-reserves-bas-caisse-2",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 13,
+      "y": 40
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-reserves-bas-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 13,
+      "y": 41
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-reserves-bas-tonneaux",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 18,
+      "y": 39
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-bas-tonneau",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneau"
+     },
+     "pos": {
+      "x": 18,
+      "y": 41
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-bas-caisse-3",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 17,
+      "y": 41
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-ecuries-stalle-1",
+     "kind": "prop",
+     "decor": {
+      "id": "stalle-ecurie"
+     },
+     "pos": {
+      "x": 30,
+      "y": 35
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-ecuries-stalle-2",
+     "kind": "prop",
+     "decor": {
+      "id": "stalle-ecurie"
+     },
+     "pos": {
+      "x": 32,
+      "y": 35
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-ecuries-stalle-3",
+     "kind": "prop",
+     "decor": {
+      "id": "stalle-ecurie"
+     },
+     "pos": {
+      "x": 26,
+      "y": 38
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-ecuries-stalle-4",
+     "kind": "prop",
+     "decor": {
+      "id": "stalle-ecurie"
+     },
+     "pos": {
+      "x": 28,
+      "y": 38
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-cour-bas-foin-1",
+     "kind": "prop",
+     "decor": {
+      "id": "tas-foin"
+     },
+     "pos": {
+      "x": 28,
+      "y": 40
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-cour-bas-foin-2",
+     "kind": "prop",
+     "decor": {
+      "id": "tas-foin"
+     },
+     "pos": {
+      "x": 33,
+      "y": 41
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-gustav-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 13,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-gustav-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 13,
+      "y": 16
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-gustav-bureau",
+     "kind": "prop",
+     "decor": {
+      "id": "bureau"
+     },
+     "pos": {
+      "x": 15,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-chambre-18a-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 13,
+      "y": 17
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18a-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 13,
+      "y": 20
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18b-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 13,
+      "y": 21
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18b-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 13,
+      "y": 24
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18c-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 31,
+      "y": 25
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18d-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 34,
+      "y": 25
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-chambre-18e-lit",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 38,
+      "y": 25
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-patrouilleurs-1-lit-1",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-patrouilleurs-1-lit-2",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-patrouilleurs-1-bureau",
+     "kind": "prop",
+     "decor": {
+      "id": "bureau"
+     },
+     "pos": {
+      "x": 32,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-patrouilleurs-2-lit-1",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 38,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-patrouilleurs-2-lit-2",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 38,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-patrouilleurs-2-bureau",
+     "kind": "prop",
+     "decor": {
+      "id": "bureau"
+     },
+     "pos": {
+      "x": 35,
+      "y": 13
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-serviteurs-1-lit-1",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 29,
+      "y": 19
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-serviteurs-1-lit-2",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 33,
+      "y": 19
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-serviteurs-1-lit-3",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 30,
+      "y": 21
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-serviteurs-2-lit-1",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 38,
+      "y": 19
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-serviteurs-2-lit-2",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 34,
+      "y": 19
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-serviteurs-2-lit-3",
+     "kind": "prop",
+     "decor": {
+      "id": "lit"
+     },
+     "pos": {
+      "x": 36,
+      "y": 21
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-table-1",
+     "kind": "prop",
+     "decor": {
+      "id": "table-2x1"
+     },
+     "pos": {
+      "x": 21,
+      "y": 14
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-table-2",
+     "kind": "prop",
+     "decor": {
+      "id": "table-2x1"
+     },
+     "pos": {
+      "x": 25,
+      "y": 14
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-chaise-1",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 21,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-chaise-2",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 22,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-chaise-3",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 25,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-nord-chaise-4",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 26,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-sud-table",
+     "kind": "prop",
+     "decor": {
+      "id": "table-2x1"
+     },
+     "pos": {
+      "x": 23,
+      "y": 24
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-sud-chaise-1",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 23,
+      "y": 23
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reunion-sud-chaise-2",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 24,
+      "y": 23
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-reunion-sud-chaise-3",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 23,
+      "y": 25
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-reunion-sud-chaise-4",
+     "kind": "prop",
+     "decor": {
+      "id": "chaise"
+     },
+     "pos": {
+      "x": 24,
+      "y": 25
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-cellier-haut-tonneaux",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 18,
+      "y": 18
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-cellier-haut-caisse",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 21,
+      "y": 18
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-haut-caisse-1",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 26,
+      "y": 18
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-haut-caisse-2",
+     "kind": "prop",
+     "decor": {
+      "id": "caisse"
+     },
+     "pos": {
+      "x": 26,
+      "y": 19
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-haut-coffre",
+     "kind": "prop",
+     "decor": {
+      "id": "coffre"
+     },
+     "pos": {
+      "x": 26,
+      "y": 21
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reserves-haut-tonneaux",
+     "kind": "prop",
+     "decor": {
+      "id": "tonneaux-pile"
+     },
+     "pos": {
+      "x": 23,
+      "y": 21
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-salle-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 22,
+      "y": 20
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salle-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 18,
+      "y": 21
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-salle-applique-3",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 21,
+      "y": 12
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-salle-applique-4",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 30
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-portier-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 15,
+      "y": 7
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-cuisine-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 15
+     },
+     "facing": "O"
+    },
+    {
+     "id": "diligence-salon-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 13,
+      "y": 27
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 27,
+      "y": 19
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 34,
+      "y": 24
+     },
+     "facing": "N"
+    },
+    {
+     "id": "diligence-salle-commune-candelabre",
+     "kind": "prop",
+     "decor": {
+      "id": "chandelier"
+     },
+     "pos": {
+      "x": 35,
+      "y": 18
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-brasserie-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 34,
+      "y": 34
+     },
+     "facing": "E"
+    },
+    {
+     "id": "diligence-couloir-haut-applique-1",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 26,
+      "y": 16
+     },
+     "z": 1,
+     "facing": "S"
+    },
+    {
+     "id": "diligence-couloir-haut-applique-2",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 33,
+      "y": 17
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-galerie-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 17,
+      "y": 29
+     },
+     "z": 1,
+     "facing": "E"
+    },
+    {
+     "id": "diligence-reunion-nord-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 28,
+      "y": 15
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-reunion-sud-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 26,
+      "y": 23
+     },
+     "z": 1,
+     "facing": "O"
+    },
+    {
+     "id": "diligence-gustav-applique",
+     "kind": "prop",
+     "decor": {
+      "id": "applique-murale"
+     },
+     "pos": {
+      "x": 14,
+      "y": 16
+     },
+     "z": 1,
+     "facing": "N"
+    },
+    {
+     "id": "diligence-cour-cheval-1",
+     "kind": "personnage",
+     "pos": {
+      "x": 24,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-2",
+     "kind": "personnage",
+     "pos": {
+      "x": 26,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-3",
+     "kind": "personnage",
+     "pos": {
+      "x": 29,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-cheval-4",
+     "kind": "personnage",
+     "pos": {
+      "x": 31,
+      "y": 32
+     },
+     "facing": "O",
+     "creature": {
+      "id": "cheval-de-trait"
+     }
+    },
+    {
+     "id": "diligence-cour-palefrenier-1",
+     "kind": "personnage",
+     "pos": {
+      "x": 28,
+      "y": 32
+     },
+     "facing": "O",
+     "appearance": {
+      "species": "humains-reiklander",
+      "tenue": "serviteur",
+      "sex": "M"
+     },
+     "creature": {
+      "id": "humain"
+     },
+     "couvre": [
+      "EDO-01#pnj19"
+     ]
+    },
+    {
+     "id": "diligence-cour-palefrenier-2",
+     "kind": "personnage",
+     "pos": {
+      "x": 23,
+      "y": 31
+     },
+     "facing": "N",
+     "appearance": {
+      "species": "humains-reiklander",
+      "tenue": "serviteur",
+      "sex": "M"
+     },
+     "creature": {
+      "id": "humain"
+     },
+     "couvre": [
+      "EDO-01#pnj19"
+     ]
+    },
+    {
+     "id": "diligence-cour-abreuvoir",
+     "kind": "prop",
+     "decor": {
+      "id": "abreuvoir"
+     },
+     "pos": {
+      "x": 29,
+      "y": 30
+     },
+     "facing": "S"
+    },
+    {
+     "id": "diligence-cour-diligence",
+     "kind": "personnage",
+     "vehicule": {
+      "id": "diligence"
+     },
+     "pos": {
+      "x": 24,
+      "y": 29
+     },
+     "facing": "N",
+     "usable": {
+      "actions": [
+       {
+        "id": "monter-a-bord",
+        "label": "Monter à bord",
+        "unique": true,
+        "flow": {
+         "kind": "sequence",
+         "etapes": [
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setFlag",
+            "flag": "edo-ch1-depart"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "clearObjective",
+            "id": "edo-ch1-place-a-bord"
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "journal",
+            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.251 · l.255"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "setObjective",
+            "id": "edo-ch1-route",
+            "desc": "Se rendre à Altdorf.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.247"
+            }
+           }
+          },
+          {
+           "kind": "effet",
+           "effet": {
+            "type": "openWorldMap"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
     }
    ],
    "dialogues": [],
@@ -14243,20 +15878,21 @@
      "x": 14,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois"
+     "structure": "mur-a-ossature-en-bois",
+     "window": true
     },
     {
      "x": 15,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 16,
      "y": 13,
      "side": "N",
-     "structure": "mur-a-ossature-en-bois"
+     "structure": "mur-a-ossature-en-bois",
+     "window": true
     },
     {
      "x": 17,
@@ -14760,6 +16396,7 @@
      "y": 21,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -14860,6 +16497,7 @@
      "y": 26,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15131,6 +16769,7 @@
      "y": 14,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15321,6 +16960,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15328,6 +16968,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15335,6 +16976,7 @@
      "y": 25,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15355,13 +16997,15 @@
      "x": 38,
      "y": 27,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 28,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
@@ -15646,6 +17290,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15701,6 +17346,7 @@
      "y": 37,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15708,6 +17354,7 @@
      "y": 36,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15715,6 +17362,7 @@
      "y": 35,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15860,6 +17508,7 @@
      "y": 39,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15867,6 +17516,7 @@
      "y": 40,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15906,6 +17556,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -15913,6 +17564,7 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16053,6 +17705,7 @@
      "y": 32,
      "side": "E",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16060,6 +17713,7 @@
      "y": 30,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16067,6 +17721,7 @@
      "y": 30,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16097,7 +17752,8 @@
      "x": 38,
      "y": 29,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 34,
@@ -16128,19 +17784,22 @@
      "y": 39,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
      "x": 18,
      "y": 42,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 18,
      "y": 43,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 17,
@@ -16224,145 +17883,169 @@
      "x": 8,
      "y": 38,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 37,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 36,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 35,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 34,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 33,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 32,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 31,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 30,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 29,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 28,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 27,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 26,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 25,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 24,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 23,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 22,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 21,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 20,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 19,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 18,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 17,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 9,
      "y": 17,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 17,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 10,
@@ -16382,122 +18065,142 @@
      "x": 8,
      "y": 16,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 15,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 14,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 13,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 12,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 9,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 10,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 11,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 11,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 10,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 9,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 8,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 7,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 6,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 13,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 14,
      "y": 6,
      "side": "N",
      "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit",
      "window": true
     },
     {
      "x": 15,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 16,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 17,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 24,
@@ -16517,121 +18220,141 @@
      "x": 26,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 23,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 28,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 29,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 30,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 31,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 32,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 33,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 34,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 35,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 36,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 37,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 12,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 11,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 10,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 9,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 8,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 7,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 6,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 27,
@@ -16716,6 +18439,7 @@
      "y": 10,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -16728,37 +18452,43 @@
      "x": 19,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 20,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 21,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 22,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 18,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 27,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 26,
@@ -16801,8 +18531,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 31,
@@ -17421,8 +19150,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 16,
@@ -17443,8 +19171,7 @@
      "y": 13,
      "side": "N",
      "z": 1,
-     "structure": "mur-a-ossature-en-bois",
-     "window": true
+     "structure": "mur-a-ossature-en-bois"
     },
     {
      "x": 13,
@@ -17536,6 +19263,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17544,6 +19272,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17552,6 +19281,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17785,6 +19515,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17793,6 +19524,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17801,6 +19533,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17809,6 +19542,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17880,6 +19614,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17958,6 +19693,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -17966,6 +19702,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18023,6 +19760,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18031,6 +19769,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18066,6 +19805,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18073,6 +19813,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18080,6 +19821,7 @@
      "y": 27,
      "side": "N",
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18165,6 +19907,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18285,6 +20028,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18349,6 +20093,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18484,6 +20229,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18492,6 +20238,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18500,6 +20247,7 @@
      "side": "E",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     },
     {
@@ -18599,6 +20347,7 @@
      "side": "N",
      "z": 1,
      "door": true,
+     "closed": true,
      "structure": "solide-porte-en-bois"
     }
    ],
@@ -19115,6 +20864,16 @@
           "y": 6,
           "side": "N"
          }
+        },
+        {
+         "id": "girouette-portier",
+         "kind": "faitage",
+         "edge": {
+          "x": 14,
+          "y": 6,
+          "side": "N"
+         },
+         "appearance": "girouette"
         }
        ]
       },
@@ -19210,10 +20969,19 @@
        ],
        "features": [
         {
-         "id": "fenetre-7-7-n",
+         "id": "fenetre-6-7-n",
          "kind": "window-band",
          "edge": {
-          "x": 15,
+          "x": 14,
+          "y": 13,
+          "side": "N"
+         }
+        },
+        {
+         "id": "fenetre-8-7-n",
+         "kind": "window-band",
+         "edge": {
+          "x": 16,
           "y": 13,
           "side": "N"
          }
@@ -19533,18 +21301,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 11,
-          "y": 35,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -19684,16 +21440,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 12,
-          "y": 16,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",
@@ -20639,6 +22385,15 @@
           "y": 12,
           "side": "N"
          }
+        },
+        {
+         "id": "epi-de-faite-nord",
+         "kind": "faitage",
+         "edge": {
+          "x": 24,
+          "y": 12,
+          "side": "N"
+         }
         }
        ]
       },
@@ -20693,24 +22448,6 @@
         "zone-Y-z1"
        ],
        "features": [
-        {
-         "id": "fenetre-6-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 14,
-          "y": 13,
-          "side": "N"
-         }
-        },
-        {
-         "id": "fenetre-9-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 17,
-          "y": 13,
-          "side": "N"
-         }
-        },
         {
          "id": "fenetre-11-7-n",
          "kind": "window-band",
@@ -20783,15 +22520,6 @@
         "zone-t-z1"
        ],
        "features": [
-        {
-         "id": "fenetre-22-7-n",
-         "kind": "window-band",
-         "edge": {
-          "x": 30,
-          "y": 13,
-          "side": "N"
-         }
-        },
         {
          "id": "fenetre-24-7-n",
          "kind": "window-band",
@@ -21037,6 +22765,15 @@
         {
          "id": "fenetre-16-21-n",
          "kind": "window-band",
+         "edge": {
+          "x": 24,
+          "y": 27,
+          "side": "N"
+         }
+        },
+        {
+         "id": "epi-de-faite-sud",
+         "kind": "faitage",
          "edge": {
           "x": 24,
           "y": 27,
@@ -24072,9 +25809,9 @@
      "area": {
       "kind": "rect",
       "x": 9,
-      "y": 9,
-      "w": 23,
-      "h": 34
+      "y": 39,
+      "w": 9,
+      "h": 4
      },
      "z": 0,
      "tiles": [
@@ -25755,10 +27492,14 @@
        "x": 30,
        "y": 28
       }
-     ]
+     ],
+     "z": 0
     },
     {
-     "label": "Pièce",
+     "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "interior",
      "id": "zone-3-0",
      "area": {
@@ -25767,7 +27508,8 @@
       "y": 39,
       "w": 13,
       "h": 3
-     }
+     },
+     "z": 0
     }
    ],
    "restZones": [],
@@ -34861,6 +36603,30 @@
      "facing": "E"
     },
     {
+     "id": "sept-rayons-cuisine-cheminee",
+     "kind": "prop",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
+     "pos": {
+      "x": 5,
+      "y": 10
+     },
+     "facing": "E"
+    },
+    {
+     "id": "sept-rayons-forge-foyer",
+     "kind": "prop",
+     "decor": {
+      "id": "foyer-de-forge"
+     },
+     "pos": {
+      "x": 4,
+      "y": 29
+     },
+     "facing": "E"
+    },
+    {
      "id": "sept-rayons-salle-table-murale-1",
      "kind": "prop",
      "decor": {
@@ -40275,18 +42041,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 3,
-          "y": 29,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -40426,16 +42180,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 4,
-          "y": 10,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",

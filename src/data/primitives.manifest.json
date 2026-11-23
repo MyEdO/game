@@ -193,9 +193,9 @@
     "type": "primitives.manifest",
     "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
+    "concept": "le MENEUR du groupe hors combat, élu ou choisi par le siège du monde (verbe `designerLeMeneur`, `marcheDuGroupe.ts` ; champ `meneurChoisi`), et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
     "perimetre": "meneur et cap du groupe en exploration, dont les gestes de déplacement du noyau et la projection Godot",
-    "verrou": "hero-debout-guard.test.ts"
+    "verrou": "hero-debout-guard.test.ts, meneur-designe.hors-store.test.ts"
   },
   {
     "id": "sourcesEnVue",
@@ -1019,10 +1019,10 @@
   {
     "id": "nomDe",
     "type": "primitives.manifest",
-    "label": "nomDe/poserLeNommeur",
+    "label": "nomDe/nomOuAbsence/poserLeNommeur",
     "fichier": "src/engine/nom.ts",
-    "concept": "le nom d’un combattant dans un texte que le moteur compose (#4017) : minteur de `PlayerText`, la réponse du nommeur posé pour son id, sinon son `label` ; `poserLeNommeur` pose le crochet et rend le précédent, `brancherLeJeu` y pose `nomEnVue` (`src/noyau/visionDuGroupe.ts`) : un combattant hors de la vue du groupe se nomme du nom neutre",
-    "perimetre": "texte joueur du moteur qui nomme un combattant : ligne de touche (`ToucheDuJournal`, `phraseDeTouche`), issue d’une attaque (`AttackResult.log`), ligne du Contre-sort ; un lecteur qui reçoit l’état nomme par `nomEnVue`",
+    "concept": "le nom d’un combattant dans un texte que le moteur ou le noyau compose (#4017) : minteur de `PlayerText`, la réponse du nommeur posé pour son id, sinon son `label` ; `nomOuAbsence` nomme un combattant peut-être absent ; `poserLeNommeur` pose le crochet et rend le précédent, `brancherLeJeu` y pose `nomEnVue` (`src/noyau/visionDuGroupe.ts`) : un combattant hors de la vue du groupe se nomme du nom neutre",
+    "perimetre": "tout texte joueur qui nomme un combattant (journal, trace de jet, fenêtre, refus, écran de victoire) : la marque `NonAffichable` de `Combatant.label` refuse son passage direct dans `t()` et dans un porteur `PlayerText` ; un lecteur qui reçoit l’état nomme par `nomEnVue`",
     "verrou": "src/engine/nom.test.ts, src/noyau/nom-hors-de-vue.hors-store.test.ts"
   },
   {

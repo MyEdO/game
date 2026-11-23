@@ -41,14 +41,17 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     const log: string[] = [];
     applyCriticalToTarget(heros, 'brasD', 0, log, banc.setState, { prerolled: crit, get: banc.getState });
     const c = banc.getState().pendingCascade!;
-    const reveal = c.participants[c.participants.length - 1].reveal!;
-    expect(reveal.crit?.woundsLost).toBe(1);
-    expect(reveal.details?.map((d) => d.text)).toEqual(['Héros lâche Arme simple.', crit.desc]);
+    const etape = c.participants[c.participants.length - 1];
+    expect(etape.faits, 'la localisation par son id, puis les Blessures de la ligne').toEqual([
+      { genre: 'localisation', cible: 'h', camp: 'groupe', valeur: 'brasD' },
+      { genre: 'blessures', cible: 'h', camp: 'groupe', valeur: -1, mitigation: 'sans' },
+    ]);
+    expect(etape.reveal!.details?.map((d) => d.text)).toEqual(['Héros lâche Arme simple.', crit.desc]);
     expect(log.filter((l) => l.startsWith('  ↳ '))).toEqual(['  ↳ Héros subit 1 Blessure(s) (ignorant BE et PA).', '  ↳ Héros lâche Arme simple.', `  ↳ ${crit.desc}`]);
   });
 
   // LDB 18 l.74
-  it('État à valeur TIRÉE (Commotion cérébrale, Sonné 1d10) : la modale donne la valeur réelle, le bandeau ne l’affiche pas', () => {
+  it('État à valeur TIRÉE (Commotion cérébrale, Sonné 1d10) : la modale en porte le fait à sa valeur réelle', () => {
     seedBattleRng(3);
     const heros = mk({ id: 'h', label: 'Héros', kind: 'heros', wounds: blessuresDeBase(12) });
     const crit = resolveCritique('ldb', heros, 'tete', seq(78), { overkill: 0 });
@@ -56,17 +59,20 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     applyCriticalToTarget(heros, 'tete', 0, [], banc.setState, { prerolled: crit, get: banc.getState });
     const sonne = heros.conditions.find((x) => x.id === 'sonne')!.value;
     const c = banc.getState().pendingCascade!;
-    const reveal = c.participants[c.participants.length - 1].reveal!;
-    expect(reveal.details?.map((d) => d.text)).toContain(`Héros reçoit ${sonne} État Sonné.`);
-    expect(reveal.crit?.conditions?.map((x) => x.id)).toEqual(['assourdi', 'hemorragique']);
+    const etape = c.participants[c.participants.length - 1];
+    expect(etape.faits?.[0]).toEqual({ genre: 'localisation', cible: 'h', camp: 'groupe', valeur: 'tete' });
+    expect(etape.faits?.flatMap((f) => (f.genre === 'etat' ? [[f.id, f.valeur]] : []))).toEqual([['assourdi', 1], ['hemorragique', 2], ['sonne', sonne], ['extenue', 1]]);
+    expect(etape.reveal!.details?.map((d) => d.text), 'la ligne d’un fait reste au journal, le fait la porte').not.toContain(`Héros reçoit ${sonne} État Sonné.`);
   });
 });
 
 // AA 07 l.117
 describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au journal', () => {
   it('Échec du Test de Dextérité : la ligne de disarm suit la ligne du Test', () => {
-    const orque = mk({ id: 'o', label: 'Orque', characteristics: { ...CHARS, dexterite: 0 }, handGates: ['main'], weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
-    banc.setState({ battle: { combatants: [orque], log: [] } as never });
+    const orque = mk({ id: 'o', label: 'Orque', pos: { x: 2, y: 1 }, characteristics: { ...CHARS, dexterite: 0 }, handGates: ['main'], weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
+    // Le groupe voit l'Orque, comme dans tout combat du jeu (`lancerLeCombat`) : le journal le nomme (#4017).
+    const temoin = mk({ id: 'h', label: 'Témoin', kind: 'heros', pos: { x: 1, y: 1 } });
+    banc.setState({ scene: emptyScene('scene-test'), battle: { combatants: [orque, temoin], log: [] } as never });
     let seed = 1;
     for (;;) {
       seedBattleRng(seed);

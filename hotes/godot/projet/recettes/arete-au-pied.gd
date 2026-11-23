@@ -16,11 +16,12 @@ extends SceneTree
 ## côté de sa case, le mur couvrant l'arête de bout en bout quelle que soit sa hauteur, muret d'un mètre et diagonale compris, sur un plateau de 2 m comme de 3 m
 ## par case, à l'échelle métrique en épaisseur, son +Z vers son dehors (`(-sens.y, sens.x)`) ; chaque surface de chacun
 ## de ses maillages, vue et en ombre, dans une matière de la couleur de la palette de l'arête (figée avec le décor,
-## `paletteDesAretes`) à l'emplacement de cette surface, qu'elle porte, la croisée d'une fenêtre comprise ; chaque
-## surface d'une matière texturée au projet porte sa texture neutre, teinte de la palette, son relief, projetée sur les
-## trois axes de la pièce, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe quel que
-## soit son étirement (#4471), chaque surface du modèle d'une matière texturée, et sa surface `corps` s'il en a une,
-## l'étant sur l'une de ses pièces, au moins une par famille. Posée,
+## `paletteDesAretes`) à l'emplacement de cette surface quand elle le porte, la croisée d'une fenêtre comprise ; chaque
+## surface d'une matière texturée au projet porte sa texture neutre, teinte de la palette, ou sa texture si la palette
+## ne porte pas son emplacement (`MontageDeComposition.peindre`), son relief, projetée sur les trois axes de la pièce,
+## un motif tous les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe quel que soit son étirement (#4471),
+## chaque surface du modèle d'une matière texturée, et sa surface `corps` s'il en a une, l'étant sur l'une de ses pièces,
+## seule ou à une position de son ouverture, au moins une par famille. Posée,
 ## lue puis vidée tour à tour (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du
 ## volume. Les deux portes d'une ouverture de deux arêtes ont chacune leur groupe, et pour pièce le nœud
 ## `<pièce>--<position>` du modèle quand il l'a, sinon `<pièce>` (`VolumeDeScene.noeud_de_la_piece`) ; une pièce que le
@@ -171,10 +172,11 @@ func _des_boites(volume: VolumeDeScene) -> void:
 		_fautes.append("posées à nouveau, %d arêtes comptées, attendu 3" % volume.ce_qui_est_pose().aretes)
 
 
-## Chaque pièce que le modèle d'arête servi de `famille` a, de surfaces `surfaces`, son modèle lu : à son pied, à sa
-## hauteur, tournée vers son dehors et peinte dans la matière, la croisée de sa fenêtre comprise si le modèle en a une ;
-## le mur couvrant son arête de bout en bout (`_couverture`) quelle que soit sa hauteur, muret et diagonale compris ;
-## posées à nouveau, leurs groupes gardés.
+## Chaque pièce que le modèle d'arête servi de `famille` a, de surfaces `surfaces`, seule et à chaque position de son
+## ouverture dont il a le nœud (`_noeud_propre`), son modèle lu : à son pied, à sa hauteur, tournée vers son dehors et
+## peinte dans la matière, la croisée de sa fenêtre comprise si le modèle en a une ; le mur couvrant son arête de bout
+## en bout (`_couverture`) quelle que soit sa hauteur, muret et diagonale compris ; posées à nouveau, leurs groupes
+## gardés.
 func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -> void:
 	var servie := {famille = famille, palette = _palette, piece = Noyau.Piece.MUR,
 		position = Noyau.Position.SEULE, bloc = "0/0/0", pied = PIED_M,
@@ -197,6 +199,15 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		servie.merged({cle = "echelle", milieu = {x = 25.0, y = -0.5}, piece = Noyau.Piece.ECHELLE, hauteurM = 3.0}, true),
 		servie.merged({cle = "boite", famille = null, palette = {}, milieu = {x = 11.0, y = -0.5}}, true),
 	]
+	var seules := {}
+	for a: Dictionary in aretes.filter(func(a: Dictionary) -> bool: return a.famille != null):
+		seules.get_or_add(a.piece, a)
+	var abscisse := 27.0
+	for seule: Dictionary in seules.values():
+		for position: String in [Noyau.Position.GAUCHE, Noyau.Position.MILIEU, Noyau.Position.DROITE]:
+			aretes.append(seule.merged({cle = "%s--%s" % [seule.cle, position], position = position,
+				milieu = {x = abscisse, y = -0.5}}, true))
+			abscisse += 2.0
 	volume.poser_les_aretes(aretes, [], [])
 	await volume.attendre_les_aretes()
 	var groupes := _groupes(volume.get_node("Aretes"))
@@ -206,7 +217,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		_fautes.append("modèle lu, les groupes sont %s, attendu la boîte, puis un par arête servie" % [groupes.keys()])
 		return
 	var lu: Node = volume._modeles_d_arete[VolumeDeScene.modele_servi("aretes", famille)].scene
-	for a: Dictionary in aretes.filter(func(a: Dictionary) -> bool: return a.famille != null and lu.has_node(a.piece)):
+	for a: Dictionary in aretes.filter(func(a: Dictionary) -> bool: return a.famille != null and lu.has_node(_noeud_propre(a))):
 		var groupe: Node3D = groupes[[a.cle]]
 		var piece := _boite_de(volume, groupe, a)
 		_verifier(a.cle, piece, a.pied / METRES_PAR_CASE, (a.pied + a.hauteurM) / METRES_PAR_CASE)
@@ -228,6 +239,12 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 	var reposes := _groupes(volume.get_node("Aretes"))
 	if reposes.values() != groupes.values() or volume.ce_qui_est_pose().aretes != aretes.size():
 		_fautes.append("modèle lu, posées à nouveau, les groupes ne sont pas gardés")
+
+
+## Le nœud du modèle d'arête qui est propre à l'arête `a` : `<pièce>--<position>` à une position de son ouverture,
+## `<pièce>` seule (`VolumeDeScene.noeud_de_la_piece`).
+static func _noeud_propre(a: Dictionary) -> String:
+	return a.piece if a.position == Noyau.Position.SEULE else "%s--%s" % [a.piece, a.position]
 
 
 ## Sur le volume `volume`, la famille `FAMILLE_ILLISIBLE` servie par `MODELE_ILLISIBLE`, que le listage n'a pas
@@ -388,9 +405,10 @@ func _pose_de_l_instance(volume: VolumeDeScene, groupe: Node3D, a: Dictionary) -
 			_fautes.append("%s, %s : +Z vers %s, attendu vers le dehors %s" % [a.cle, vu.name, base.z.normalized(), dehors])
 
 
-## Chaque surface de chaque maillage du groupe `groupe`, vue et en ombre, dans une matière de la couleur de `_palette` à
-## l'emplacement de sa surface (`surfaces`, par le nom du matériau), que `_palette` porte, la vue prenant pour albédo la
-## couleur de l'instance ; rend les emplacements peints, chacun à `true`.
+## Chaque surface de chaque maillage du groupe `groupe`, vue et en ombre, dont `_palette` porte l'emplacement (`surfaces`,
+## par le nom du matériau), dans une matière de la couleur de `_palette` à cet emplacement, à l'opacité de sa matière
+## (`recettes/vitre-transparente.gd`), la vue prenant pour albédo la couleur de l'instance ; rend les emplacements
+## peints, chacun à `true`.
 func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 	var emplacements := {}
 	for surface: Dictionary in surfaces:
@@ -401,14 +419,10 @@ func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 		for rang in mesh.get_surface_count():
 			var matiere: BaseMaterial3D = mesh.surface_get_material(rang)
 			var emplacement: Variant = emplacements.get(matiere.resource_name)
-			if emplacement == null:
-				continue
-			if not _palette.has(emplacement):
-				_fautes.append("%s, %s, surface %s : l'emplacement %s, que la palette ne porte pas" % [cle, instances.name,
-					matiere.resource_name, emplacement])
+			if emplacement == null or not _palette.has(emplacement):
 				continue
 			peints[emplacement] = true
-			if not matiere.albedo_color.is_equal_approx(Color(_palette[emplacement])):
+			if not Color(matiere.albedo_color, 1.0).is_equal_approx(Color(_palette[emplacement])):
 				_fautes.append("%s, %s, surface %s : albédo %s, attendu %s (%s)" % [cle, instances.name,
 					matiere.resource_name, matiere.albedo_color.to_html(false), _palette[emplacement], emplacement])
 			if matiere.vertex_color_use_as_albedo != instances.name.begins_with("Vu_"):
@@ -420,9 +434,9 @@ func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 
 
 ## Chaque surface de chaque maillage vu du groupe `groupe` de l'arête `a` dont la matière (`surfaces`, par le nom du
-## matériau) a sa texture au projet : texture neutre et relief de sa matière, projetés sur les trois axes, un motif tous
-## les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe, lu à l'échelle de son instance ; rend les noms de
-## ces surfaces, chacun à `true`.
+## matériau) a sa texture au projet : texture neutre si `_palette` porte son emplacement, sinon sa texture, et relief de
+## sa matière, projetés sur les trois axes, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque
+## axe, lu à l'échelle de son instance ; rend les noms de ces surfaces, chacun à `true`.
 func _texturee(groupe: Node3D, a: Dictionary, surfaces: Array) -> Dictionary:
 	var matieres := {}
 	for surface: Dictionary in surfaces:
@@ -438,9 +452,10 @@ func _texturee(groupe: Node3D, a: Dictionary, surfaces: Array) -> Dictionary:
 				continue
 			vues[surface.nom] = true
 			var lieu := "%s, %s, surface %s" % [a.cle, vu.name, surface.nom]
-			if matiere.albedo_texture != load(VolumeDeScene.texture_neutre_de(surface.matiere)):
-				_fautes.append("%s : albédo %s, attendu la texture neutre de %s" % [lieu, matiere.albedo_texture,
-					surface.matiere])
+			var albedo := VolumeDeScene.texture_neutre_de(surface.matiere) if _palette.has(surface.palette) \
+				else VolumeDeScene.texture_de(surface.matiere)
+			if matiere.albedo_texture != load(albedo):
+				_fautes.append("%s : albédo %s, attendu %s" % [lieu, matiere.albedo_texture, albedo])
 			if not matiere.uv1_triplanar or matiere.uv1_world_triplanar:
 				_fautes.append("%s : texture non projetée sur les trois axes de la pièce" % lieu)
 			if not matiere.normal_enabled or matiere.normal_texture != load(VolumeDeScene.relief_de(surface.matiere)):

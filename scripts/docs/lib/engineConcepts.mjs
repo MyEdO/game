@@ -32,6 +32,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/cadence.ts', 'Cadence de tir'],
   ['src/engine/fabriqueDId.ts', "Fabrique d'ids du monde : requise par tout site qui forge, le compteur vit dans l'état"],
   ['src/engine/favor.ts', 'Faveurs dues'],
+  ['src/engine/faits.ts', 'Faits appliqués par les ops : conséquences en données et leur texte de journal'],
   ['src/engine/fixedDie.ts', 'Dés fixés'],
   ['src/engine/capabilities.ts', "Capacités d'entité (aptitudes)"],
   ['src/engine/careerSlots.ts', "Carrières : emplacements, statut en carrière"],

@@ -25,7 +25,7 @@ describe('castSpell forcerLaReussite : le Flow du Sort, à DR = NI', () => {
     const maintenant = banc.getState().gameTime;
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'colerique', s.id)));
     const vues = draineEtapes(banc.getState, 20, (e) => (e.kind === 'testDeclenche' ? 100 : undefined),
-      (e) => (e.kind === 'personneChoisie' ? p.id : undefined));
+      (e) => (e.kind === 'personneChoisie' ? e.options?.find((o) => o.label === p.label)?.key : undefined));
     expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'testDeclenche']);
     const cible = banc.getState().party.find((c) => c.id === s.id)!;
     expect((cible.psychTraits ?? []).filter((t) => t.src?.id === 'colerique')).toEqual([

@@ -25,16 +25,17 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { testerLaTraverseeDeZone } from './combat/triggeredTest';
 import { normaliserLesAppuis } from './monde/poseDuDecor';
 import { placeCombatant } from './monde/spawn';
+import { nomDe } from '../engine/nom';
 
-/** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
- *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
-export function pushBackTiles(get: Get, attacker: Combatant, target: Combatant, tiles: number): number {
-  const { scene, battle } = get();
-  if (!scene || !battle || !attacker.pos || !target.pos || tiles <= 0) return 0;
-  let pos = target.pos;
+/** Perturbante (LDB 62 l.272-274) : le recul de `target` d'au plus `tiles` cases dans la direction opposée à
+ *  l'attaquant (cases praticables et libres seulement), sans le poser : sa case d'arrivée et les cases reculées. PUR. */
+export function reculPerturbant(etat: { scene: Scene | null; battle: BattleState | null }, attacker: Combatant, target: Combatant, tiles: number): { pos: Pt; moved: number } | null {
+  const { scene, battle } = etat;
+  if (!scene || !battle || !attacker.pos || !target.pos || tiles <= 0) return null;
+  let pos: Pt = target.pos;
   const dx = Math.sign(pos.x - attacker.pos.x);
   const dy = Math.sign(pos.y - attacker.pos.y);
-  if (!dx && !dy) return 0;
+  if (!dx && !dy) return null;
   const blocked = occupied(battle, target);
   let moved = 0;
   const tz = target.pos.z ?? 0; // la poussée glisse au même étage que la cible (clé z-aware ; z=0 → « x,y »)
@@ -45,10 +46,13 @@ export function pushBackTiles(get: Get, attacker: Combatant, target: Combatant, 
     pos = next;
     moved++;
   }
-  if (!moved) return 0;
+  return moved ? { pos, moved } : null;
+}
+
+/** Pose `target` à la case de son recul (`reculPerturbant`). */
+export function poserLeRecul(scene: Scene, target: Combatant, pos: Pt): void {
   placeCombatant(target, scene, pos);
   bus.emit(EVT.ANIM_MOVE, { id: target.id, path: [{ ...target.pos! }] });
-  return moved;
 }
 
 /**
@@ -131,8 +135,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label }), mover.id)); continue; }
-    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: mover.label, zone: z.label }), mover.id));
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label }), mover.id)); continue; }
+    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {

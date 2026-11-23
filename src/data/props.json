@@ -6160,7 +6160,7 @@
             "yM": 0.02,
             "hM": 0.88
           },
-          "material": "verre"
+          "material": "verre-opaque"
         }
       ]
     }
@@ -8246,6 +8246,7 @@
     "id": "foyer-de-forge",
     "type": "props",
     "label": "Foyer de forge",
+    "conduit": true,
     "solid": true,
     "light": {
       "radiusM": 10
@@ -8642,6 +8643,7 @@
     "type": "props",
     "label": "Cheminée intérieure",
     "searchable": true,
+    "conduit": true,
     "solid": true,
     "light": {
       "radiusM": 10,
@@ -9550,6 +9552,239 @@
             "hM": 0.55
           },
           "material": "bois-chene"
+        }
+      ]
+    }
+  },
+  {
+    "id": "ecu",
+    "type": "props",
+    "label": "Écu d’enseigne",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.37,
+            "hM": 0.62
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.7,
+            "hM": 0.5
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.37,
+            "hM": 0.27
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.5,
+            "hM": 0.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.37,
+            "hM": 0.03
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.08,
+            "hM": 0.06
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.07,
+            "hM": 0.905
+          },
+          "size": {
+            "xM": 0.03,
+            "yM": 0.06,
+            "hM": 0.07
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.67,
+            "hM": 0.905
+          },
+          "size": {
+            "xM": 0.03,
+            "yM": 0.06,
+            "hM": 0.07
+          },
+          "material": "fer-noirci"
+        }
+      ]
+    }
+  },
+  {
+    "id": "epi-de-faite",
+    "type": "props",
+    "label": "Épi de faîtage",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.04
+          },
+          "axis": "h",
+          "radiusM": 0.09,
+          "longueurM": 0.08,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "axis": "h",
+          "radiusM": 0.02,
+          "longueurM": 0.9,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.3
+          },
+          "axis": "h",
+          "radiusM": 0.09,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.6
+          },
+          "axis": "h",
+          "radiusM": 0.055,
+          "longueurM": 0.11,
+          "sides": 8,
+          "material": "laiton-dore"
+        }
+      ]
+    }
+  },
+  {
+    "id": "girouette",
+    "type": "props",
+    "label": "Girouette",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.03
+          },
+          "axis": "h",
+          "radiusM": 0.07,
+          "longueurM": 0.06,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.6
+          },
+          "axis": "h",
+          "radiusM": 0.02,
+          "longueurM": 1.2,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.5
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 0.03,
+            "hM": 0.03
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.5
+          },
+          "size": {
+            "xM": 0.03,
+            "yM": 0.6,
+            "hM": 0.03
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.92
+          },
+          "size": {
+            "xM": 0.8,
+            "yM": 0.02,
+            "hM": 0.3
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.14
+          },
+          "axis": "h",
+          "radiusM": 0.045,
+          "longueurM": 0.09,
+          "sides": 8,
+          "material": "laiton-dore"
         }
       ]
     }
@@ -11288,7 +11523,7 @@
             "yM": 0.03,
             "hM": 0.64
           },
-          "material": "verre"
+          "material": "verre-opaque"
         }
       ]
     }

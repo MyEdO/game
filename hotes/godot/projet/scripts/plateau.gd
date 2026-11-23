@@ -7,8 +7,8 @@
 ## quitte l'arbre avec ses marques), ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
-## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
-## de son corps (`vue.corps.navires`, `MontageDesModeles`), sous tout regard, coupé sous les ponts que le regard
+## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque coque de la scène sous le modèle
+## de son corps (`vue.corps.coques`, `MontageDesModeles`), sous tout regard, un navire coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), chaque décor servi
 ## sous le modèle de son élément (`vue.corps.decors`, même montage), et chaque entité que l'exploration nomme (`exploration.entites`, aucune en combat) nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -79,7 +79,7 @@ func montrer(vue: Dictionary) -> void:
 	_nommer_les_entites([] if exploration == null else exploration.entites.liste)
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
-		_monde.poser_les_stations(vue.corps.navires)
+		_monde.poser_les_stations(vue.corps.coques)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
 		var libre := _monde.lieu_suivi() == null
@@ -88,7 +88,7 @@ func montrer(vue: Dictionary) -> void:
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
-		_modeles_poses.poser(vue.corps.navires, vue.corps.decors, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
+		_modeles_poses.poser(vue.corps.coques, vue.corps.decors, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	var poses := {}
 	for c in dessines:
 		if c.pos == null:
@@ -195,9 +195,9 @@ func _nommer_les_entites(entites: Array) -> void:
 	_monde.etiqueter(noms)
 
 
-## Les ids des navires de la scène dont le modèle est posé (`MontageDesModeles.navires`).
-func navires() -> Array:
-	return _modeles_poses.navires()
+## Les ids des coques de la scène dont le modèle est posé (`MontageDesModeles.coques`).
+func coques() -> Array:
+	return _modeles_poses.coques()
 
 
 ## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du
@@ -432,14 +432,14 @@ func _survoler(case: Variant) -> void:
 ## `MontageDeVehicule.lecteur`) sous le même arbre d'états, comme un corps ceux de sa base : `repos` en boucle, `marche`
 ## en boucle au déplacement, et, vers une cible, le clip de son rôle d'attaque, `tir` si sa table en porte un, `melee`
 ## sinon, puis le repos en fin de clip
-## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
+## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque coque de la vue (`coques`), le plateau monte son
 ## `corps` sous son nœud `Modeles` (`MontageDesModeles`, `projet/scripts/montage_des_modeles.gd`, que l'éditeur et
 ## l'atelier montent de même : `MontageDeVehicule`, son GLB tiré par le montage `Modeles/Chargeur`), peint, ses
 ## pièces et ses Améliorations montées et ses nœuds cachés comme un véhicule, sous tout regard ; sa scène nue à
 ## l'échelle métrique du plateau, sa proue, le +Z de son repère, tournée vers le `cap` de son corps
 ## (`MiseEnPage.lacet_de_proue`), son origine au point de la carte `centre`, à la hauteur 0 de la scène
-## (`MontageDesModeles._placer`) ; un navire dont seul le `centre` change se repose sans se recharger ; un navire que la
-## vue ne sert plus est retiré. `corps()` d'un combattant rapporte
+## (`MontageDesModeles._placer`), sa mer bordée s'il porte `flottaison` ; une coque dont seul le `centre` change se
+## repose sans se recharger ; une coque que la vue ne sert plus est retirée (recette `projet/recettes/coque-terrestre.gd`). `corps()` d'un combattant rapporte
 ## l'élément de son véhicule posé (`vehicule`), l'emblème posé sur lui (`embleme_du_vehicule`, `null` : aucun), ceux de
 ## ses pièces montées (`postes`) et ceux de ses Améliorations (`ameliorations`).
 

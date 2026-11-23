@@ -13,16 +13,19 @@
  * de DÉCOR (`propFootTiles`) LISENT le catalogue app-owned `props.json` (`../data`),
  * vérité unique de l'empreinte d'un prop — ce module n'est donc pas sans dépendance de données.
  */
-import { findPropById } from '../../data';
+import { findCreatureById, findPropById, findSiegeEngineById, findVehicleById, tailleDuProfil } from '../../data';
 import { decalageDuCalage, empreinteDuProp, offsetAncre } from '../../data/props.types';
 import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
+import type { CustomStatblock } from '../../engine/statblock';
 import type { Pt } from './path';
 import { areteSepareLeCoupEntre, plafondDe, sceneMetresPerTile, wallOnSight, type Scene, type SceneEntity } from './scene';
 import { isStructure } from '../../engine/structures';
+import { estCoqueTerrestre, isVehicle } from '../../engine/coque';
 import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
+import { rectangleDesPontsPoses } from '../../data/poseDesPonts';
 
 /** Côté N de l'empreinte carrée pour une Taille créature (défaut Moyenne = 1). */
 export function sizeFootprint(size?: SizeCategory): number {
@@ -83,6 +86,35 @@ export function propFootTiles(ref: string | undefined, pos: Pt, facing: Dir8 | u
   return out;
 }
 
+/** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
+ *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire). */
+export function entitySize(ent: { creature?: { id: string }; statblock?: CustomStatblock }): SizeCategory {
+  const creature = ent.creature && findCreatureById(ent.creature.id);
+  return tailleDuProfil({
+    size: ent.statblock?.size,
+    traits: ent.statblock?.traits ?? creature?.traits,
+    talents: ent.statblock?.talents ?? creature?.talents,
+  });
+}
+
+/** L'empreinte que la fiche d'un corps déclare, celle que `ficheDuCorps` pose au combattant : coque (`hull.footprint`),
+ *  engin de siège (`siegeFootprint`). */
+function empreinteDeLaFiche(ent: Pick<SceneEntity, 'vehicule' | 'engin'>): number | undefined {
+  if (ent.vehicule) return findVehicleById(ent.vehicule.id)?.hull?.footprint;
+  if (ent.engin) return findSiegeEngineById(ent.engin.id)?.siegeFootprint;
+  return undefined;
+}
+
+/** Le côté de l'empreinte d'un corps de scène (`footprintN`), celui de son combattant. */
+export const coteDeLEmpreinte = (ent: SceneEntity): number => footprintN({ size: entitySize(ent), footprint: empreinteDeLaFiche(ent) });
+
+/** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
+ *  couture unique de la marchabilité et de la ligne de vue), sinon le carré de `coteDeLEmpreinte`. */
+export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
+  if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
+  return footprintTiles(ent.pos, coteDeLEmpreinte(ent));
+}
+
 /**
  * Géométrie d'un DÉCOR à empreinte rectangulaire (DÉRIVÉE du corps tourné de sa recette, #1509 ;
  * ancre = coin NO) : décalage fractionnaire vers le
@@ -140,8 +172,19 @@ export function distanceDeCombat(scene: Scene | null, a: Combatant, b: Combatant
   return Math.max(horizontal, vertical);
 }
 
-/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
-export const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
+/** La `pos` de `c` n'est-elle qu'une ancre, sa géométrie étant celle de la scène : une structure de siège (ses arêtes), un
+ *  navire sur ses ponts (leurs cloisons) ? */
+const ancreDeLaScene = (c: Pick<Combatant, 'bodyShape' | 'surSesPonts'>): boolean => isStructure(c) || !!c.surSesPonts;
+
+/** Le corps de `c` est-il porté par la scène, qui tient ses cases et ne le déplace pas : une ancre de la scène
+ *  (`ancreDeLaScene`), ou une coque terrestre, que l'index de la scène bloque (`aUnCorpsSolide`, #4471) ? */
+export const porteParLaScene = (c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'surSesPonts'>): boolean =>
+  ancreDeLaScene(c) || (isVehicle(c) && estCoqueTerrestre(c.creatureId));
+
+/** L'entité `e` est-elle une coque terrestre (`hull.propulsion`) que `scene` porte, hors d'une pose par ses ponts
+ *  (`rectangleDesPontsPoses`, #4471) ? */
+export const estCoqueTerrestrePosee = (scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, e: SceneEntity): boolean =>
+  e.kind === 'personnage' && e.vehicule !== undefined && estCoqueTerrestre(e.vehicule.id) && rectangleDesPontsPoses(scene, e) === null;
 
 /** Un corps posé : son ancre (coin NO) et ce dont `footprintN` tire son côté, lus sur le MÊME objet. */
 export interface Corps { pos: Pt; size?: SizeCategory; footprint?: number }
@@ -166,10 +209,10 @@ export function pairesEnRegard(a: Corps, b: Corps): [Pt, Pt][] {
 
 /** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
  *  nulle arête ne sépare pour le coup (`wallOnSight` sous `areteSepareLeCoupEntre`, à la couche la plus haute des deux) ; `Infinity` s'il n'y en a aucune.
- *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
+ *  Une ancre de la scène (`ancreDeLaScene`) n'est séparée de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
 function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aPos: Pt, bPos: Pt): number {
   const an = footprintN(a), bn = footprintN(b);
-  if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
+  if (!scene?.walls?.length || ancreDeLaScene(a) || ancreDeLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
   const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
   let best = Infinity;
   const separe = (ax: number, ay: number, bx: number, by: number) => areteSepareLeCoupEntre(scene, ax, ay, bx, by, z);

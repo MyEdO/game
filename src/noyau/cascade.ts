@@ -16,9 +16,11 @@
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
 import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
+import type { Applique, FaitApplique } from '../engine/faits';
 import type { Combatant, Difficulty } from '../engine/types';
 import { sommeDesModificateursDR } from '../engine/combat';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
@@ -50,7 +52,7 @@ import { libelleDeLaFermeture } from './libelles';
 import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { resultLines, surfaceOf } from './rollSeam';
+import { faitsDesConsequences, resultLines, surfaceOf } from './rollSeam';
 import { canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
@@ -117,6 +119,10 @@ import { noterAuProcesVerbal } from './voyageCadence';
  * goulot ne la joue pas (il la retire du méta comme toujours). Un seul cas réel : `nombreDAttaquesSubies`, qui la remet
  * à la série qu'il ouvre (`SerieSubie.apresSuite`, jouée par `fermerLaSerieSubie`) : jouée ici, elle passerait devant
  * les attaques de la série, dont aucun dé ne porte de suite.
+ *
+ * `faitsDesEtapesValidees` : les faits que l'application de l'étape a produits pour des étapes DÉJÀ validées de la
+ * séquence, par id ; chacune les reçoit au commit. Un seul cas réel : la reprise d'une fenêtre de Blessure critique
+ * applique aussi les Blessures subies aux fenêtres d'avant, validées sans rien appliquer (#4574).
  */
 export type CascadeApplier = (
   get: Get,
@@ -124,12 +130,21 @@ export type CascadeApplier = (
   step: CascadeStep,
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
-) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true } | void;
+) => {
+  consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true;
+  faitsDesEtapesValidees?: Readonly<Record<string, FaitApplique[]>>;
+} | void;
 
 /** Ce qu'une étape d'AFFICHAGE dira en se validant, quand son monteur ne pouvait pas le poser d'avance : lu
- *  à l'arrivée du curseur sur l'état que les étapes d'avant ont laissé, posé en `outcome`. Son applier
- *  relit le MÊME calcul, si bien que la fenêtre annonce ce que « Continuer » applique. */
-export type AnnonceDEtape = (get: Get, step: CascadeStep) => readonly string[];
+ *  à l'arrivée du curseur sur l'état que les étapes d'avant ont laissé, ses lignes posées en `outcome`, ses faits
+ *  prévus à la lecture (`faitsAnnonces`). Son applier relit le MÊME calcul, si bien que la fenêtre annonce ce que
+ *  « Continuer » applique. */
+export type AnnonceDEtape = (s: Jeu, step: CascadeStep) => Applique;
+
+/** Les faits que l'annonce d'une étape d'affichage prévoit (`AnnonceDEtape`), aucun pour une autre étape. */
+export function faitsAnnonces(s: Jeu, step: CascadeStep): FaitApplique[] {
+  return stepInteraction(step) === 'affichage' ? tablesPosees().annonces[step.kind]?.(s, step).faits ?? [] : [];
+}
 
 /** La conséquence d'un `kind`, lue aux tables posées (`TablesDuJeu.appliers`). L'affichage de
  *  l'issue de modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒
@@ -392,7 +407,7 @@ export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: T
  * qu'il sauve ou non — sans la ligne du raté, le porteur voit ses Blessures tomber sous sa propre
  * protection sans que rien ne le lui explique. PURE (aucun état lu).
  */
-export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: string): { sauve: boolean; ligne: string } {
+export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: PlayerText): { sauve: boolean; ligne: string } {
   const sauve = de.total >= seuil.indice;
   return {
     sauve,
@@ -1383,6 +1398,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
   const shown = lines.length ? lines : (step.outcome ?? []);
+  const faits = faitsDesConsequences(out?.consequences ?? []);
   // Pilote INTERACTIF (`liveMerge`) : l'applier d'une conséquence de combat FOLDÉE (déviation) re-déclenche
   // le reste de l'attaque, qui APPEND des étapes au pending (via pushReveal). On repart alors des
   // participants COURANTS (post-applier) pour préserver ces appends — le pending est EN PHASE ici
@@ -1398,11 +1414,12 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // La CONTINUATION (#1508) se rend au MÊME endroit et pour la MÊME raison : au commit, la suite que
   // l'étape faisait attendre vient d'être jouée — ou reportée sur le dé qu'elle a rouvert, qui en porte
   // désormais sa propre copie. La garder ici la ferait rejouer au rechargement d'une sauvegarde.
+  const validees = out?.faitsDesEtapesValidees;
   let next = base.map((x, k) => {
-    if (k !== i) return x;
+    if (k !== i) return validees?.[x.id] && x.committed ? { ...x, faits: [...(x.faits ?? []), ...validees[x.id]] } : x;
     const { foldMemo: _joue, ...sansMemo } = x;
     const { apresSuite: _suite, ...meta } = x.meta ?? {};
-    return { ...sansMemo, ...(x.meta ? { meta } : {}), ...(step.result ? { result: step.result } : {}), committed: true, outcome: shown };
+    return { ...sansMemo, ...(x.meta ? { meta } : {}), ...(step.result ? { result: step.result } : {}), committed: true, outcome: shown, ...(faits.length ? { faits } : {}) };
   });
   // LES DEUX voies d'insertion d'un applier, fusionnées ICI et nulle part ailleurs (#1508) : ce qu'il
   // DÉCLARE en rendant la main (`insert`), et ce qu'il a POUSSÉ pendant qu'il tournait (la fenêtre) —
@@ -1669,7 +1686,7 @@ function franchirLesHotesOrphelins(get: Get, p: PendingCascade): PendingCascade 
 function annoncerALArrivee(get: Get, p: PendingCascade): PendingCascade {
   const st = p.participants[p.cursor];
   const annonce = st && !st.outcome?.length && stepInteraction(st) === 'affichage' ? tablesPosees().annonces[st.kind] : undefined;
-  const lignes = annonce?.(get, st) ?? [];
+  const lignes = annonce?.(get(), st).lignes ?? [];
   if (!lignes.length) return p;
   return { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, outcome: toRecapLines([...lignes]) } : x)) };
 }

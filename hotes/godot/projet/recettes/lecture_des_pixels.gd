@@ -17,7 +17,7 @@ const LUMIERE_DU_JEU := {
 		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
 		ciel = null,
 		brume = {couleur = "#0f1013", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = false},
-		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = 6},
+		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#7b8a43"}, fonduCases = 6},
 		sources = [],
 	},
 	immersion = {
@@ -25,7 +25,7 @@ const LUMIERE_DU_JEU := {
 		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
 		ciel = {zenith = "#5b83ac", horizon = "#9fb2c6"},
 		brume = {couleur = "#9fb2c6", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = true},
-		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = null},
+		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#7b8a43"}, fonduCases = null},
 		sources = [],
 	},
 }

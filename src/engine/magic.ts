@@ -752,19 +752,19 @@ export function resolveCasting(
       sl: 0,
       isCritical: false,
       isFumble: false,
-      log: `${caster.label} ne maîtrise pas ${skill} et ne peut pas incanter ${spell.label}.`,
+      log: t('incantation.nonMaitrisee', { name: nomDe(caster), competence: skill, sort: spell.label }),
     };
   }
   const value = castingValue(caster, info) + extraMod;
-  const t = rollTest(value, difficulty, rng);
+  const jet = rollTest(value, difficulty, rng);
   // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec le Contre-sort (`castTestDRMods`).
-  const delta = castTestDRMods(caster, 'incantation', { success: t.success, spell, sea, wind, env });
+  const delta = castTestDRMods(caster, 'incantation', { success: jet.success, spell, sea, wind, env });
   // Malepierre (`LDB 46 l.173`, règle INCONDITIONNELLE) : doublement du DR obtenu tant que
   // la réserve de NI de l'objet PORTÉ n'est pas épuisée. Lecture SEULE ici (`malepierreReserveOf`) ;
   // l'écriture de la réserve (`consumeMalepierre`) vit au site de résolution (state layer), sur
   // `malepierreConsumed` figé sur le résultat.
-  const malepierreConsumed = t.success ? malepierreDR(Math.max(0, t.sl + delta), malepierreReserveOf(caster)) : 0;
-  const res = evaluateCasting(caster, spell, delta + malepierreConsumed ? { ...t, sl: t.sl + delta + malepierreConsumed } : t, focusedNI0, !!sea.atSea, env, niMods);
+  const malepierreConsumed = jet.success ? malepierreDR(Math.max(0, jet.sl + delta), malepierreReserveOf(caster)) : 0;
+  const res = evaluateCasting(caster, spell, delta + malepierreConsumed ? { ...jet, sl: jet.sl + delta + malepierreConsumed } : jet, focusedNI0, !!sea.atSea, env, niMods);
   return malepierreConsumed ? { ...res, malepierreConsumed } : res;
 }
 
@@ -818,7 +818,7 @@ export function castLandProbability(caster: Combatant, spell: SpellLike, focused
 export function evaluateCasting(
   caster: Combatant,
   spell: SpellLike,
-  t: TestResult,
+  jet: TestResult,
   focusedNI0 = false,
   /** Bête/Ghur en mer (MDG 02 l.180) : Critique/Maladresse déclenchés aussi sur un résultat
    *  finissant par 0 (en plus des doubles). */
@@ -832,26 +832,26 @@ export function evaluateCasting(
   const info = castInfo(spell);
   // « Pensez à vos actes » (Colère des dieux, LDB 40) : tout Test de PRIÈRE réussi
   // ne peut pas obtenir plus de 0 DR pendant la durée du contrecoup.
-  if (castInfoIsPrayer(spell) && t.success && t.sl > 0 && prayerMaxZeroDR(caster)) {
-    t = { ...t, sl: 0 };
+  if (castInfoIsPrayer(spell) && jet.success && jet.sl > 0 && prayerMaxZeroDR(caster)) {
+    jet = { ...jet, sl: 0 };
   }
   const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
-  const cast = t.success && (!info.requireNI || t.sl >= ni);
-  const widenSea = domainSeaWidensCritFumble(spell, atSea) && t.roll % 10 === 0;
-  const widenEnv = environmentWidensCrit(env) && t.roll % 10 === 0;
-  const isCritical = (t.isDouble || widenSea || widenEnv) && t.success;
-  const isFumble = (t.isDouble || widenSea) && !t.success;
+  const cast = jet.success && (!info.requireNI || jet.sl >= ni);
+  const widenSea = domainSeaWidensCritFumble(spell, atSea) && jet.roll % 10 === 0;
+  const widenEnv = environmentWidensCrit(env) && jet.roll % 10 === 0;
+  const isCritical = (jet.isDouble || widenSea || widenEnv) && jet.success;
+  const isFumble = (jet.isDouble || widenSea) && !jet.success;
   let log: string;
-  if (!t.success) {
-    log = `${caster.label} échoue à incanter ${spell.label}.`;
+  if (!jet.success) {
+    log = t('incantation.echec', { name: nomDe(caster), sort: spell.label });
   } else if (!cast) {
-    log = `${caster.label} incante ${spell.label} mais sans assez de puissance (DR ${t.sl} < NI ${ni}).`;
+    log = t('incantation.sousLeNi', { name: nomDe(caster), sort: spell.label, dr: jet.sl, ni });
   } else {
-    log = `${caster.label} lance ${spell.label} (DR ${t.sl}).`;
+    log = t('incantation.lance', { name: nomDe(caster), sort: spell.label, dr: jet.sl });
   }
   // `base` : le Niveau de Compétence du lanceur, RELU à sa source canonique — jamais `t.base`, que le
   // seam de jet a chargé de la valeur TESTÉE (Avantage, contrecoup, ward, Soutien fondus). LDB 12 l.160.
-  return { cast, roll: t.roll, target: t.target, sl: t.sl, base: castingBaseValue(caster, info), isCritical, isFumble, log, ...(info.requireNI ? { niRequired: ni } : {}) };
+  return { cast, roll: jet.roll, target: jet.target, sl: jet.sl, base: castingBaseValue(caster, info), isCritical, isFumble, log, ...(info.requireNI ? { niRequired: ni } : {}) };
 }
 
 // ── Résistance à la Magie : le DR du Sort CONTRE une cible ────────────────────────────────────────
@@ -1206,6 +1206,28 @@ export interface FocusResult {
   log: string;
 }
 
+/** DR qu'un jet de Focalisation DÉJÀ obtenu ajoute à la Focalisation de `caster` : source unique de
+ *  `resolveFocus` et de `focusDRExpectation`. Malepierre : lecture seule de la réserve, l'écriture vit au
+ *  site de résolution (`consumeMalepierre`). LDB 46 l.130, LDB 46 l.173, MDG 02 l.186 */
+function focusDROf(caster: Combatant, spell: SpellLike, jet: TestResult, atSea: boolean, windCtx: WindContext, env: MagicEnvironment): { dr: number; malepierreConsumed: number } {
+  // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec l'Incantation (`castTestDRMods`).
+  let dr = jet.success ? Math.max(0, jet.sl + castTestDRMods(caster, 'focalisation', { success: jet.success, spell, sea: { atSea }, wind: windCtx, env })) : 0;
+  if (dr > 0 && domainSeaFocalisationDoubled(spell, atSea)) dr *= 2;
+  const malepierreConsumed = dr > 0 ? malepierreDR(dr, malepierreReserveOf(caster)) : 0;
+  return { dr: dr + malepierreConsumed, malepierreConsumed };
+}
+
+/** Espérance DÉTERMINISTE du DR qu'un Round de Focalisation de `caster` ajoute à `spell` (Test
+ *  Intermédiaire, comme `castLandProbability`) ; `null` sans Compétence Focalisation. LDB 46 l.128-132 */
+export function focusDRExpectation(caster: Combatant, spell: SpellLike): number | null {
+  const value = focusValueOf(caster, spell);
+  if (value == null) return null;
+  const policy = getTestPolicy();
+  let total = 0;
+  for (let r = 1; r <= 100; r++) total += focusDROf(caster, spell, evaluateTest(r, value, value, policy), false, {}, {}).dr;
+  return total / 100;
+}
+
 /** Un Round de Test étendu de Focalisation (FM + spécialisation PAR VENT — le
  *  Domaine du sort exige la Focalisation correspondante, LDB 46 l.128-132).
  *  `atSea` = Magie des mers (MDG 02 l.178-186, `DomainData.seaModifier`) : contexte navigation
@@ -1232,28 +1254,21 @@ export function resolveFocus(
     const wind = focusWindLabel(spell);
     return {
       dr: 0, success: false, isCritical: false, isFumble: false, roll: 0,
-      log: `${caster.label} ne maîtrise pas Focalisation${wind ? ` (${wind})` : ''}.`,
+      log: wind ? t('focalisation.nonMaitriseeVent', { name: nomDe(caster), vent: wind }) : t('focalisation.nonMaitrisee', { name: nomDe(caster) }),
     };
   }
   const value = nue + extraMod;
-  const t = rollTest(value, difficulty, rng);
-  // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec l'Incantation (`castTestDRMods`).
-  let dr = t.success ? Math.max(0, t.sl + castTestDRMods(caster, 'focalisation', { success: t.success, spell, sea: { atSea }, wind: windCtx, env })) : 0;
-  if (dr > 0 && domainSeaFocalisationDoubled(spell, atSea)) dr *= 2; // Vie/Ghyran en mer (MDG 02 l.186)
-  // Malepierre (`LDB 46 l.173`, règle INCONDITIONNELLE) : doublement du DR obtenu tant que
-  // la réserve de NI de l'objet PORTÉ n'est pas épuisée. Lecture SEULE ici (`malepierreReserveOf`) ;
-  // l'écriture de la réserve (`consumeMalepierre`) vit au site de résolution (state layer).
-  const malepierreConsumed = dr > 0 ? malepierreDR(dr, malepierreReserveOf(caster)) : 0;
-  dr += malepierreConsumed;
+  const jet = rollTest(value, difficulty, rng);
+  const { dr, malepierreConsumed } = focusDROf(caster, spell, jet, atSea, windCtx, env);
   // Bête/Ghur en mer (MDG 02 l.180) : Critique déclenché aussi sur un résultat finissant par 0.
-  const isCritical = t.success && (t.isDouble || (domainSeaWidensCritFumble(spell, atSea) && t.roll % 10 === 0));
+  const isCritical = jet.success && (jet.isDouble || (domainSeaWidensCritFumble(spell, atSea) && jet.roll % 10 === 0));
   // Maladresse ÉLARGIE en Focalisation (l.190-191) : tout double OU tout résultat
   // terminant par un 0 au-delà de la Compétence (00, 99, 90, 88…) → Imparfaite MAJEURE.
-  const isFumble = !t.success && (t.isDouble || t.roll % 10 === 0);
-  const log = t.success
-    ? `${caster.label} focalise ${spell.label} (+${dr} DR).`
-    : `${caster.label} échoue à focaliser ${spell.label}.`;
-  return { dr, success: t.success, isCritical, isFumble, roll: t.roll, target: t.target, sl: t.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
+  const isFumble = !jet.success && (jet.isDouble || jet.roll % 10 === 0);
+  const log = jet.success
+    ? t('focalisation.reussie', { name: nomDe(caster), sort: spell.label, dr })
+    : t('focalisation.echec', { name: nomDe(caster), sort: spell.label });
+  return { dr, success: jet.success, isCritical, isFumble, roll: jet.roll, target: jet.target, sl: jet.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
 }
 
 /** DR accumulé après une Focalisation Critique — LDB 46 l.136 : le Sort devient lançable

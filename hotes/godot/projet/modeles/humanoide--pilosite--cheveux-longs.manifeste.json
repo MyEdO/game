@@ -16,14 +16,22 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "poil",
-      "palette": "cheveux"
+      "palette": "cheveux",
+      "matiere": "prop--chevelure"
     }
   ],
   "glb": {
-    "sha256": "dec287ceb3c390eecd3dca96c8b8a44818c74ebc29444121937aa79e576b17c9",
-    "octets": 265624
+    "sha256": "8c49e292154a1e40c7c89efb35c7adfaafdbb93991e25dc4c205654355511a87",
+    "octets": 278976
   }
 }

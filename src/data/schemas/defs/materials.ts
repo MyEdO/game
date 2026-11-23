@@ -16,13 +16,13 @@
  * cinq `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
  * `document()` ne saurait y poser ni sa provenance, ni son `type`, ni ses métas d'édition.
  *
- * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `detail` l'est par
- * `roof` et `relief`, `color` par `prop` et `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
+ * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `color` l'est par `prop` et
+ * `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
  * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
+import { couleurHexSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
 import { estObjet } from '../../../lib/objet.mjs';
 import { kitDeToitSchema } from './structureAppearance';
@@ -51,17 +51,18 @@ const LIBELLES_DE_DOMAINE = {
 const chargeParDiscriminant = {
   objet: ['palette'],
   couleur: ['color'],
-  prop: ['color', 'roughness', 'metalness'],
+  prop: ['color', 'roughness', 'metalness', 'opacity'],
   roof: [
-    'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
+    'couverture', 'vueDeDessus', 'N', 'E', 'S', 'O', 'line',
     'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap', 'kit',
   ],
-  relief: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'],
+  relief: ['built', 'face', 'foot', 'slopeTop', 'shadeDark'],
 } as const satisfies Record<MaterialDomain, readonly string[]>;
 
 /** Clés EXIGÉES d'un domaine qui n'exige pas toute sa charge (`espace.requisesParDiscriminant`) ; le reste de sa charge
  *  y est optionnel. */
 const requisesParDiscriminant = {
+  prop: ['color', 'roughness', 'metalness'],
   roof: [],
   relief: ['face'],
 } as const satisfies { readonly [D in MaterialDomain]?: readonly (typeof chargeParDiscriminant)[D][number][] };
@@ -76,6 +77,7 @@ const doc = document(
     color: couleurHexSchema.optional(),
     roughness: z.number().min(0).max(1).optional(),
     metalness: z.number().min(0).max(1).optional(),
+    opacity: z.number().gt(0).lt(1).optional(),
     // ── domaine `roof`
     couverture: z.literal(true).optional(),
     vueDeDessus: z.literal(true).optional(),
@@ -97,8 +99,6 @@ const doc = document(
     foot: z.string().optional(),
     slopeTop: z.string().optional(),
     shadeDark: z.number().optional(),
-    // ── `roof` ET `relief`
-    detail: detailRecipeSchema.optional(),
   },
   {
     domain: {
@@ -109,6 +109,7 @@ const doc = document(
     color: { label: 'Couleur', hint: 'Teinte hexadécimale `#rrggbb` du matériau' },
     roughness: { label: 'Rugosité', hint: 'Réponse mate/brillante à la lumière' },
     metalness: { label: 'Métallicité', hint: 'Part de réponse métallique à la lumière' },
+    opacity: { label: 'Opacité', hint: 'Part de ce qui est derrière que cache chaque face de la matière, entre 0 et 1 — absente, la matière est opaque' },
     couverture: {
       label: 'Couvre un pan',
       hint: 'Matériau POSABLE sur une masse de toit — absent : entrée de rendu qui ne couvre rien (vue de dessus)',
@@ -140,7 +141,6 @@ const doc = document(
     foot: { label: 'Couleur de pied', hint: 'Falaise : ombre de pied' },
     slopeTop: { label: 'Couleur de nez de pente', hint: 'Rampe : arête haute éclairée de la pente (le pied est dérivé par ombrage)' },
     shadeDark: { label: 'Assombrissement', hint: 'Facteur d’assombrissement de la face sombre' },
-    detail: { label: 'Recette de détail' },
   },
   {
     codex: { keys: ['materials'] },

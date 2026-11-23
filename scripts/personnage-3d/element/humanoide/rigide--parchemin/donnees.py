@@ -20,11 +20,11 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'parchemin': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.9)),
+    'parchemin': ('vet2', 'papier'),
     'lien': ('cuir', 'cuir-tanne'),
 }
-"""Illustration : rouleaux écrus comme la robe de dessous du Sorcier (`vet2`), sans matière de parchemin au catalogue :
-gris de construction. Le lien est une bande brun sombre (`cuir`)."""
+"""Illustration : rouleaux de `papier`, écrus comme la robe de dessous du Sorcier (`vet2`). Le lien est une bande brun
+sombre (`cuir`)."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 

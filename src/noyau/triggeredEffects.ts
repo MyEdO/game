@@ -13,7 +13,8 @@ import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { nomDeSource, type OpsCtx, type GameOp } from '../engine/ops';
+import { type OpsCtx, type GameOp } from '../engine/ops';
+import { nomDeSource } from '../engine/faits';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import {

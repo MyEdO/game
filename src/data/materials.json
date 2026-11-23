@@ -292,6 +292,16 @@
     "type": "materials",
     "label": "Verre",
     "domain": "prop",
+    "color": "#b9d0d3",
+    "roughness": 0.1,
+    "metalness": 0,
+    "opacity": 0.16
+  },
+  {
+    "id": "verre-opaque",
+    "type": "materials",
+    "label": "Verre opaque",
+    "domain": "prop",
     "color": "#4a5a63",
     "roughness": 0.1,
     "metalness": 0.5
@@ -321,6 +331,15 @@
     "domain": "prop",
     "color": "#8c1f1c",
     "roughness": 0.35,
+    "metalness": 0
+  },
+  {
+    "id": "encre-noire",
+    "type": "materials",
+    "label": "Encre noire",
+    "domain": "prop",
+    "color": "#1a140e",
+    "roughness": 0.8,
     "metalness": 0
   },
   {
@@ -495,6 +514,24 @@
     "metalness": 0
   },
   {
+    "id": "fer-rouille",
+    "type": "materials",
+    "label": "Fer rouillé",
+    "domain": "prop",
+    "color": "#8a8580",
+    "roughness": 0.6,
+    "metalness": 0.5
+  },
+  {
+    "id": "cuir-use",
+    "type": "materials",
+    "label": "Cuir usé",
+    "domain": "prop",
+    "color": "#73513a",
+    "roughness": 0.85,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",
@@ -509,7 +546,7 @@
     "soffite": "#3d130c",
     "fasciaDropM": 0.2,
     "fascia": "#2e0e07",
-    "ridgeCap": "#bf5e46",
+    "ridgeCap": "#703023",
     "kit": "tuile"
   },
   {
@@ -525,7 +562,7 @@
     "line": "#463714",
     "eaveOverhangM": 0.72,
     "soffite": "#4a3a16",
-    "ridgeCap": "#8a6f35",
+    "ridgeCap": "#7b6432",
     "kit": "chaume"
   },
   {
@@ -543,7 +580,7 @@
     "soffite": "#222831",
     "fasciaDropM": 0.16,
     "fascia": "#171c22",
-    "ridgeCap": "#788896",
+    "ridgeCap": "#434e57",
     "kit": "ardoise"
   },
   {
@@ -561,27 +598,7 @@
     "face": "#5a4a33",
     "foot": "#3e3322",
     "slopeTop": "#75603f",
-    "shadeDark": 0.56,
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.55,
-        "joint": "#463a26",
-        "jointW": 0.04,
-        "edgeWobble": 0.09
-      },
-      "speckle": {
-        "perM2": 0.5,
-        "rM": [
-          0.03,
-          0.08
-        ],
-        "colors": [
-          "#6f5c3e",
-          "#42361f"
-        ]
-      }
-    }
+    "shadeDark": 0.56
   },
   {
     "id": "pierre",
@@ -592,22 +609,7 @@
     "face": "#6b6f76",
     "foot": "#4a4e54",
     "slopeTop": "#878c95",
-    "shadeDark": 0.7,
-    "detail": {
-      "seedScope": "tile",
-      "courses": {
-        "hM": 0.4,
-        "joint": "#3a3c40",
-        "jointW": 0.035,
-        "stagger": 0.5,
-        "blockWM": [
-          0.5,
-          1.1
-        ],
-        "edgeWobble": 0.03,
-        "paletteVar": 0.07
-      }
-    }
+    "shadeDark": 0.7
   },
   {
     "id": "pilier",

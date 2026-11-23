@@ -24,12 +24,11 @@ MANIFESTE = {
 """Couche `armure`, comme l'insigne publié : posé sur le plastron."""
 
 MATERIAUX = {
-    'champ': ('vet2', ((0.8, 0.8, 0.8), 0.0, 0.5)),
+    'champ': ('vet2', 'emaille'),
     'bordure': ('metal', 'acier-battu'),
 }
-"""`champ` : la face qui reçoit l'emblème, à l'emplacement `vet2` de l'insigne publié ; émail ou peinture sur métal,
-qu'aucune matière du catalogue (`materials.json`, domaine `prop`) ne rend : gris de construction. `bordure` : le liseré,
-les flancs et le revers, d'acier (illustration : liseré de métal sombre)."""
+"""`champ` : la face qui reçoit l'emblème, à l'emplacement `vet2` de l'insigne publié, d'émail sur métal
+(`emaille`). `bordure` : le liseré, les flancs et le revers, d'acier (illustration : liseré de métal sombre)."""
 
 BLASONS = ('champ',)
 """Le champ reçoit l'emblème du porteur (`embleme` du preset), ses UV sur le carré [0,1]²."""

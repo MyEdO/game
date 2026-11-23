@@ -27,6 +27,7 @@ import { milieuNavalDeclare, type CoqueAvecContexteNaval, type ContexteDeTrajetN
 import { RIVER_CRIT_SET, SHIP_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
+import { nomDe } from './nom';
 
 /** Clés de libellé des Localisations de bateau (MDG 13) — des CLÉS, jamais des textes résolus : une
  *  carte de phrases figée à l'évaluation du module ne suivrait pas `setLocale` (`src/i18n/index.ts`). */
@@ -298,7 +299,7 @@ export function applyHullCritical(
 
   if (hit.crewHit) {
     const marin = exposed[0]!;
-    lines.push(t('shipCrit.crewExpose', { name: marin.label })); // MDG 13 l.584
+    lines.push(t('shipCrit.crewExpose', { name: nomDe(marin) })); // MDG 13 l.584
     return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], marinId: marin.id, lines };
   }
 
@@ -306,7 +307,7 @@ export function applyHullCritical(
   lines.push(crit.log);
   // Effets de coque en `GameOp` : États navals (Voie d'eau / En flammes) ET « Canon perdu » (op
   // `removeShipPoste`, qui démancipe le chef via `crew`). On capte leurs lignes de journal.
-  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }));
+  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }).lignes);
 
   // Coup à l'équipage consécutif au Critique (`crewHit` data-driven) : l'équipage d'un poste tiré au
   // sort (MDG 13 l.763), les PRÉSENCES nommées (MDG 13 l.680/l.714/l.730/l.751, MSRC 07 l.78/l.82/
@@ -331,7 +332,7 @@ export function applyHullCritical(
   }
   for (let i = 0; i < crit.shrapnel && i < exposed.length; i++) {
     const sailor = exposed[i];
-    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }));
+    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }).lignes);
     shrapnel.push({ crewId: sailor.id });
   }
   if (shrapnel.length) {

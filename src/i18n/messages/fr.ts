@@ -115,6 +115,16 @@ export const fr = {
   'contreSort.trace': 'Contre-sort de {name}',
   'contreSort.dissipe': 'le Sort est DISSIPÉ',
   'contreSort.insuffisant': "insuffisant — l'incantation se résout à DR {dr}",
+  // La ligne d'Incantation et de Focalisation (`resolveCasting`, `evaluateCasting`, `resolveFocus`, `engine/magic.ts`), les noms par `nomDe` (#4017).
+  'incantation.nonMaitrisee': '{name} ne maîtrise pas {competence} et ne peut pas incanter {sort}.',
+  'incantation.echec': '{name} échoue à incanter {sort}.',
+  'incantation.sousLeNi': '{name} incante {sort} mais sans assez de puissance (DR {dr} < NI {ni}).',
+  'incantation.lance': '{name} lance {sort} (DR {dr}).',
+  'focalisation.nonMaitrisee': '{name} ne maîtrise pas Focalisation.',
+  'focalisation.nonMaitriseeVent': '{name} ne maîtrise pas Focalisation ({vent}).',
+  'focalisation.reussie': '{name} focalise {sort} (+{dr} DR).',
+  'focalisation.echec': '{name} échoue à focaliser {sort}.',
+  'focalisation.forcee': '{name} force la focalisation (Résilience).',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
@@ -525,6 +535,19 @@ export const fr = {
   'ecran.jauge.blessures': 'Blessures',
   'ecran.jauge.mouvement': 'Mouvement',
   'ecran.avantage': 'Avantage',
+  'ecran.corruption': 'Corruption',
+  'ecran.argent': 'Argent',
+  'ecran.prix.achat': 'Prix d’achat',
+  'ecran.prix.vente': 'Prix de vente',
+  'ecran.prix.pourcent': '{variation} %',
+  'ecran.objet.arme': 'Arme',
+  'ecran.objet.armure': 'Armure ({lieu})',
+  'ecran.objet.usee': 'entamée',
+  'ecran.objet.brisee': 'brisée',
+  'ecran.objet.lachee': 'lâchée',
+  'ecran.objet.intacte': 'intacte',
+  'ecran.objet.sauvee': 'sauvée',
+  'ecran.objet.imperdable': 'sauvée sans dé',
   'ecran.action': 'Action',
   'ecran.action.libre': 'disponible',
   'ecran.action.prise': 'jouée',
@@ -1181,7 +1204,6 @@ export const fr = {
   'ecran.voyage.premierJour': '1ᵉʳ jour de route',
   'ecran.voyage.jourDeRoute': '{jour}ᵉ jour de route',
   'ecran.voyage.titre': 'La route de {arrivee}',
-  'ecran.voyage.reste': 'km',
   'ecran.voyage.cadence': 'Cadence du voyage',
   'ecran.echoppe.article': '{nom} · {prix}',
   'ecran.echoppe.panier': 'Panier',
@@ -1696,6 +1718,7 @@ export const fr = {
   'op.argent.perd': 'perd',
   'op.armeNaturelleAccordee': "{name} gagne l'attaque naturelle {weapon} (Dégâts {dmg}{quals}) ({src}).",
   'op.armeAccordee': '{name} invoque {item} (Dégâts {dmg}{quals}) ({src}).',
+  'op.polymorphie': "{name} prend la forme d'un(e) {creature} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme.",
   'op.protectionDIncantation': '{name} : les Sorts visant la zone ({radius} m) subissent {sign}{n} en Langue (Magick) ({src}).',
   'op.bouclierAntiFleches': '{name} dresse un bouclier anti-flèches sur {diametre} m de diamètre : les projectiles organiques qui y entrent sont détruits ({src}).',
   'op.bouclierAntiFlechesCouvert': '{name} est sous le bouclier anti-flèches.',
@@ -1853,6 +1876,7 @@ export const fr = {
   // L'Effet d'auteur ANNONCE la chute ; ce que chacun encaisse se dit à la résolution de SON dé
   // (étape à dé nu ouverte par `ouvrirChute`, #1508).
   'eff.chuteOuverte': 'Chute de {m}\u00a0m : {noms}.',
+  'eff.rituelGaranti': '{name} incante {sort} (rituel garanti).',
   'eff.chuteAtterrissageRefuse': 'Chute annulée : rien ne porterait le groupe à l’arrivée.',
   'eff.maladieContractee': '{name} a contracté : {disease} (symptômes au repos).',
   'eff.titreDeMaladie': 'Maladie — {disease}',
@@ -1884,13 +1908,6 @@ export const fr = {
   'out.healHarm': 'Le soin blesse {name} ({n} PB).',
   'out.healNone': 'Le soin de {name} reste sans effet.',
 
-  // Conséquences post-jet (`resultLine`, #295) — SANS roll/target/sl/won (montant déjà résolu, la
-  // rangée de jet porte seule le verdict ; garde i18n.test.ts).
-  'out.consWounds': '{n} Blessure(s) perdue(s).',
-  'out.consHeal': '{n} Blessure(s) récupérée(s).',
-  // État gagné, DÉRIVÉ de l'op `condition` réellement appliqué (opConsequenceLine, comme wounds/heal) —
-  // sans nom d'acteur (la tuile de la rangée porte l'attribution).
-  'out.consCondition': 'État {cond} subi.',
   // Activité de voyage SANS Test exécutée (EDOC 8 l.131) — le nom est porté en var (la rangée batch/poste
   // n'a pas toujours d'actorId pour l'attribution).
   'out.activityDone': '{name} — {activity} (effectué).',
@@ -2014,6 +2031,7 @@ export const fr = {
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',
   'cs.refusFormationBloquee': 'La formation ne passe pas : une case d’arrivée est occupée ou hors de la carte.',
+  'cs.refusCorpsImmobile': '{name} ne bouge pas : son corps tient à la scène.',
   'cs.refusBordeeHorsPortee': 'Cible hors de portée des pièces de {ship}.',
   'cs.refusTirArmeDeMelee': '{weapon} n’est pas une arme à distance.',
   'cs.runStumble': '{name} trébuche dans sa Course : sur place.',
@@ -2093,6 +2111,11 @@ export const fr = {
   'exploration.offre': '{porteur} : {action}',
   'exploration.carte': 'Carte du monde',
   'exploration.lieu': 'Le lieu',
+  'exploration.meneur': 'Confier la tête à {heros}',
+  'groupe.refus.siege': '{siege} décide pour le groupe.',
+  'meneur.refus.horsDuGroupe': 'Meneur refusé : aucun héros « {id} » dans le groupe.',
+  'meneur.refus.enCombat': 'Meneur refusé : le combat est engagé.',
+  'meneur.refus.aTerre': 'Meneur refusé : {heros} n’est pas debout.',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',
@@ -2230,7 +2253,11 @@ export const fr = {
   'cf.sortRebondit': '{spell} rebondit sur {name} !',
   'cf.zonePersistePlusieursRounds': '{spell} : la zone persiste {rounds} Round(s).',
   'cf.traverseeDeZone': '{name} traverse {zone} !',
+  'cf.refusSousEffectif': '{name} : Équipe trop réduite pour servir {arme}.',
+  'cf.refusEngagePistolet': '{name} est Engagé : {arme} ne peut pas tirer (Atout Pistolet requis).',
+  'cf.refusARecharger': '{name} doit recharger {arme}.',
   'cf.incantationCritique': 'Incantation Critique : effet choisi.',
+  'cf.puissanceTotaleCritique': '{name} lance {sort} (Puissance totale — Critique).',
   'cf.surincantationPleinePuissance': 'Puissance totale : le sort est lancé quels que soient NI et DR (mais peut être Dissipé).',
   'cf.surincantationIrresistible': 'Force inéluctable : le sort ne peut pas être Dissipé.',
   'cf.dictionInstinctive': 'Diction instinctive : aucune Imparfaite sur le double réussi.',
@@ -2280,6 +2307,8 @@ export const fr = {
   'cf.zoneSansCible': '{spell} : la zone ne touche personne.',
   'cf.immuniteAuDomaine': '{name} est immunisé aux Sorts de ce Domaine : {spell} est sans effet.',
   'cf.pousse': '{name} est repoussé de {m} m.',
+  'cf.percuteNavire': '{name} percute {cible} !',
+  'cf.percuteNavireDePleinFouet': '{name} percute {cible} de plein fouet !',
   'cf.percuteUnObstacle': '{name} percute un obstacle.',
   'cf.souffleRecit': '{name} crache un Souffle qui n’inflige aucun Dégât.',
   'cf.teleportationAuChoix': "{name} peut se téléporter ({m} m) — choisir la case d'arrivée.",
@@ -2620,6 +2649,8 @@ export const fr = {
   'mf.rienAVendre': 'Rien à vendre : aucun objet du panier ne trouve preneur ici.',
   'mf.panierVide': 'Le panier est vide.',
   'groupe.hoteSeul': 'L’hôte seul engage la bourse et la cale du groupe.',
+  'lm.evaluationDuVin': '{name} — Évaluation du {offre} ({roll}) : qualité jugée « {qualite} ».',
+  'lm.evaluationDuVinIncertaine': '{name} — Évaluation du {offre} ({roll}) : qualité jugée « {qualite} » — jugement peu sûr…',
   'lm.offreAbsente': 'Cette cargaison n’est plus proposée.',
   'lm.horsDeLaHalle': 'Aucune halle ouverte.',
   'lm.pasDuVin': '{label} n’est ni du vin ni de l’eau-de-vie : sa qualité ne s’évalue pas.',
@@ -3119,7 +3150,6 @@ export const fr = {
   'store.propInerte': '{what} : rien à en tirer.',
   'store.propInerteFallback': 'Ce décor',
   'store.dialogueNoMoney': 'Pas assez d’argent pour cette option.',
-  'dlg.refusSiege': '{meneur} répond pour le groupe.',
 
   // ── ASSISE (`noyau/monde/seating.ts`, `seating.*`) : le meneur prend place à un meuble, ou s'en relève. ──
   'seating.sat': 'Vous prenez place.',
@@ -3207,6 +3237,10 @@ export const fr = {
   'trm.continuer': 'Continuer le voyage',
   'trm.ouvrirCarte': 'Ouvrir la carte',
   'trm.restants': '{distance} restants',
+  // Une distance et chaque unité (`libelleDeDistance`, `engine/travel.ts`).
+  'distance.valeur': '{valeur} {unite}',
+  'distance.km': 'km',
+  'distance.milles': 'milles',
   'trm.route': 'Parti {de}{depart} pour {vers} · {distance}, {mode}',
   'trm.jour': 'Jour {n} — {distance} en {heures} h de route',
   'trm.auxPortes': 'aux portes de {lieu}',
@@ -3650,7 +3684,6 @@ export const fr = {
   'wm.allureDuree': 'Allure {kmh} km/h · Durée {duree}',
   'wm.total': ' · Total ({places} place{s}) ',
   'wm.bourseInsuffisante': ' (bourse insuffisante)',
-  'wm.rations': ' · Rations pour les nuits : {besoin} (le groupe en porte {porte})',
   'wm.surcharge': 'Le groupe ne peut pas avancer (surcharge) — allégez les sacs.',
   'wm.vivres': 'Vivres {dispo}/{requis}',
   'wm.eau': 'Eau {dispo}/{requis} L',
@@ -3946,6 +3979,7 @@ export const fr = {
   'upkeep.sobering': 'Dessoûlage',
   'upkeep.sleepDeprived': '{name} — privation de sommeil ({n} nuit{s} sans dormir) :',
   'upkeep.rationsUsed': 'Le groupe entame ses provisions ({n} ration{s}).',
+  'upkeep.holdUsed': "Le groupe mange à la cale : −{n} (reste {left} jour{s}-homme).",
 
   // ── #1318 V8c₄ — SOINS & CHIRURGIE (`noyau/medicFlow.ts`, `medic.*`, LDB 10 l.184, LDB 18 l.120/179).
   'medic.aidRequired': 'Aide Médicale requise avant de rééduquer le membre.',
@@ -4019,7 +4053,6 @@ export const fr = {
   // ── #1318 V8c₄ — CORRUPTION (`noyau/corruptionFlow.ts`, `cor.*`, LDB 19 l.70-87 / LDB 17 l.67). La
   // NATURE de la mutation était l'id interpolé (`physique`/`mentale`) : elle passe par ses deux clés.
   'cor.phaWard': '{name} : la lumière sacrée de Phâ écarte la Corruption (aucun gain).',
-  'cor.gain': '{name} : +{n} Point{s} de Corruption (total {total}).',
   'cor.threshold': '{name} : la Corruption déborde son seuil — Test {de}.',
   'cor.contained': '{name} contient sa Corruption — pour cette fois.',
   'cor.thresholdFail': '{name} échoue à contenir sa Corruption — la mutation menace…',
@@ -4329,6 +4362,8 @@ export const fr = {
   'summon.summons': '{name} invoque {n} × {label}{tag}.',
   'summon.fragHostile': ' — hostile, hors de son contrôle !',
   'summon.fragAllies': ' (alliés)',
+  'summon.horsCombat': '{name} invoque {n} × {label}{tag} — hors combat, effet narratif (arbitrage MJ).',
+  'summon.fragHostileHorsCombat': ' (hostile)',
   'summon.dispels': '{name} se dissipe ({label}).',
 
   // ── #1318 V8c₅ — SOCLE DU JET (`noyau/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.

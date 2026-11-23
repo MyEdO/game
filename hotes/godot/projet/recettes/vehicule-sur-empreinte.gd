@@ -16,7 +16,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[vehicule-sur-empreinte] version=", Engine.get_version_info().string)
-	for cas in [{empreinte = 4, coque = Vector3(30.0, 8.0, 6.0), echelle = null}, {empreinte = 2, coque = Vector3(5.0, 3.0, 12.0), echelle = null}, {empreinte = 1, coque = Vector3(2.0, 1.0, 2.0), echelle = null}, {empreinte = 2, coque = Vector3(1.8, 1.2, 3.5), echelle = 0.5}]:
+	for cas in [{empreinte = 4, coque = Vector3(30.0, 8.0, 6.0), echelle = null}, {empreinte = 2, coque = Vector3(5.0, 3.0, 12.0), echelle = null}, {empreinte = 1, coque = Vector3(2.0, 1.0, 2.0), echelle = null}, {empreinte = 2, coque = Vector3(1.8, 1.2, 3.5), echelle = 0.5}, {empreinte = 2, coque = Vector3(0.95, 1.3, 2.18), echelle = null}]:
 		_verifier(cas.empreinte, cas.coque, cas.echelle)
 	for faute in _fautes:
 		push_error("[vehicule-sur-empreinte] " + faute)

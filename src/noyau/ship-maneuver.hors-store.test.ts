@@ -23,7 +23,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { scenario as embuscadeFluviale } from '../scenes/test-scenarios/16-embuscade-fluviale';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { lancerLeScenario } from './lancementDeScenario';
-import { capEnCombat, naviresDeLaScene, provenanceDesNavires } from './planDeNavire';
+import { capEnCombat, coquesDeLaScene, provenanceDesNavires } from './planDeNavire';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -106,7 +107,7 @@ it('la barge de l’embuscade garde le cap de ses ponts pendant un geste d’ori
   expect(capEnCombat(apres, id)).toBe('E');
   expect(apres.facing[id]).toBe('N');
   expect(apres.battle!.combatants.find((c) => c.id === id)?.pos).toMatchObject({ x: 3, y: 6 });
-  expect(naviresDeLaScene(apres.scene!)).toMatchObject([{ id, vehicule: { cap: 'E' }, centre: { x: 3.5, y: 7 } }]);
+  expect(coquesDeLaScene(apres.scene!)).toMatchObject([{ id, vehicule: { cap: 'E' }, centre: { x: 3.5, y: 7 } }]);
   const { flottaison } = provenanceDesNavires(apres.scene!);
   expect(flottaison.size).toBe(24);
   expect([...flottaison.keys()].sort()).toEqual(
@@ -358,7 +359,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
       expect(res.refus).toBe(attendu);
       applyShipManeuver(() => banc.getState(), banc.setState, 'ship', res, 2);
       expect(banc.getState().journal).toContain(attendu);
-      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? sansVoile.label : t('shipManv.crewFallback'), ship: ship2().label, dr: res.dr }));
+      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? nomDe(sansVoile) : t('shipManv.crewFallback'), ship: nomDe(ship2()), dr: res.dr }));
     }
   });
 

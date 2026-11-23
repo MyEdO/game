@@ -57,6 +57,7 @@ export const COUCHES = Object.freeze({
       'hotes/godot/avis.mjs': ['scripts/guards/lib/lister.mjs'],
       'hotes/godot/cibles/propositions/sources/rendre.mjs': ['scripts/guards/lib/lister.mjs'],
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
+      'hotes/godot/asset/evaluer.mjs': ['scripts/test/partition.mjs'],
       'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/etalons.mjs': ['scripts/guards/lib/fileBornee.mjs', 'scripts/recette/lib.mjs'],

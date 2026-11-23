@@ -397,7 +397,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityDef: ['rounds', 'stakeForm', 'unavailableIfExtenue'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
-  DetailRecipe: ['bands', 'courses', 'seedScope', 'speckle', 'timber', 'tufts'],
+  DetailRecipe: ['courses', 'timber'],
   DomainData: ['grantGroups'],
   EntreeDeGardeRobe: ['svg'],
   EtatData: ['severity'],
@@ -405,7 +405,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MaterialEntry: [
-    'E', 'O', 'S', 'built', 'foot', 'metalness', 'palette', 'roughness', 'shadeDark', 'vueDeDessus',
+    'E', 'O', 'S', 'built', 'foot', 'metalness', 'opacity', 'palette', 'roughness', 'shadeDark', 'vueDeDessus',
   ],
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],
@@ -439,6 +439,7 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
   'DetailRecipe.courses': 'lu sous la vue apparence de structure par la teinte du joint (`wallPartColor`, `src/noyau/monde/volume/structures.ts`) et en Python par l’outillage d’arête (`scripts/personnage-3d/arete/apparences.py`)',
   'DetailRecipe.timber': 'lu en Python par l’outillage de colombage (`scripts/personnage-3d/arete/colombage/donnees.py`)',
   'MaterialEntry.metalness': 'lu en Python par l’habillage et la revue des décors (`scripts/personnage-3d/habillage.py`, `scripts/personnage-3d/decor/revue.py`)',
+  'MaterialEntry.opacity': 'lu en Python par l’habillage et la revue des décors (`scripts/personnage-3d/habillage.py`, `scripts/personnage-3d/decor/revue.py`)',
   'MaterialEntry.palette': 'lu par l’hôte Godot, hors du corpus `src/` : `findTeinteById(…)?.palette` (`hotes/godot/pont/atelier.ts`, `hotes/godot/pont/composition.ts`)',
   'MaterialEntry.vueDeDessus': 'lu hors du corpus `src/` : marqueur d’idempotence de la migration #1691 (`scripts/migrations/2026-09-07-1691-relief-en-donnee.mjs`), dont l’unicité se garde au schéma (`affinerDataset`, `src/data/schemas/defs/materials.ts`)',
   'MaterialEntry.roughness': 'lu en Python par l’habillage et la revue des décors (`scripts/personnage-3d/habillage.py`, `scripts/personnage-3d/decor/revue.py`)',

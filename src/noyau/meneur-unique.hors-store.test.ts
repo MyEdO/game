@@ -128,7 +128,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     const s = banc.getState();
     expect(meneurDuMonde(s)?.id).toBe('b');
     const aLumineux = { ...s.party[0], activeEffects: [{ light: { radiusM: 6 } }] } as unknown as Combatant;
-    const sources = sceneLightSources({ scene: s.scene, battle: null, party: [aLumineux, s.party[1]], partyPos: s.partyPos });
+    const sources = sceneLightSources({ scene: s.scene, battle: null, party: [aLumineux, s.party[1]], meneurChoisi: null, partyPos: s.partyPos });
     const portees = sources.filter((src) => src.carried);
     expect(portees).toHaveLength(1);
     expect(portees[0].srcId).toBe('b');

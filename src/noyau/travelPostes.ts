@@ -30,7 +30,19 @@ import { bonusDe } from '../engine/characteristics';
 import { pionsRetirables, removeCondition, stacks } from '../engine/conditions';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
-import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, choiceStep, pousseSi, tableStep, type Consequence } from './rollSeam';
+import {
+  faitsDesConsequences,
+  freeCons,
+  resultLines,
+  rollStep,
+  monoStep,
+  displayStep,
+  bandStep,
+  choiceStep,
+  pousseSi,
+  tableStep,
+  type Consequence,
+} from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { toRecapLines, type RecapTone } from './recapLine';
 import { noteEvent } from './evenementDuJour';
@@ -58,12 +70,15 @@ import type { Jeu } from './etat';
 import type { TableStepDef } from './cascade';
 import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import {
+  stepDetail,
+} from './rollSeam';
 import { postingTenu } from '../engine/activities';
 import { refuserGesteDuSiege } from './refusVisible';
 import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 const POSTE_ICON: Record<string, IconId> = {
   'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
@@ -336,7 +351,7 @@ function bilanDeLEtape(s: Jeu, stages: number) {
 
 /** Les lignes du bilan `b` : les rations et les cartes. */
 function lignesDuBilan(s: Jeu, b: NonNullable<ReturnType<typeof bilanDeLEtape>>): string[] {
-  const nom = (heroId: string) => garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan').label;
+  const nom = (heroId: string) => nomDe(garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan'));
   return [
     ...b.rations.map((heroId) => t('tp.rationFound', { name: nom(heroId) })),
     ...(b.carte ? [b.carte.done ? t('tp.mapDone', { dr: b.carte.cible }) : t('tp.mapProgress', { total: b.carte.total, target: b.carte.cible })] : []),
@@ -364,15 +379,15 @@ function choixDuCamp(
   for (const patient of s.party) {
     if (patient.dead || patient.outOfRencontre) continue;
     if (pionsRetirables(patient, 'extenue') > 0) {
-      options.push({ key: `extenue:${patient.id}`, label: t('tp.campRemoveFatigue', { name: patient.label }) });
+      options.push({ key: `extenue:${patient.id}`, label: t('tp.campRemoveFatigue', { name: nomDe(patient) }) });
     }
     const pb = soinDuCamp(campeur, patient, soignes);
-    if (pb > 0) options.push({ key: `guerison:${patient.id}`, label: t('tp.campHeal', { name: patient.label, n: pb }) });
+    if (pb > 0) options.push({ key: `guerison:${patient.id}`, label: t('tp.campHeal', { name: nomDe(patient), n: pb }) });
   }
   options.push({ key: 'renoncer', label: t('tp.campPass') });
   return choiceStep({
     id: `camp-${actorId}-${dr}`, kind: 'etapePosteCamp', actorId, icon: 'repos/campement',
-    label: t('tp.campChoice', { name: campeur.label, n: dr }),
+    label: t('tp.campChoice', { name: nomDe(campeur), n: dr }),
     options, meta: { indexCamp: index, drDuCamp: dr, soignesAuCamp: soignes },
   });
 }
@@ -413,14 +428,15 @@ export const TABLES = {
         const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
         const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
         part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
+        const faits = faitsDesConsequences(cons);
+        if (faits.length) part.faits = faits;
         for (const l of lines) get().ecrireAuJournal(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
       }
       set({ party: [...get().party] });
       return { consequences: [] };
     },
-    /** Test de RÉSISTANCE de traversée (l.86/127) : échec → Exténué (op `condition`, patron #338/#340), ligne
-     *  DÉRIVÉE (`resultLines`/`opConsequenceLine` case condition) SUR SA rangée (le portrait attribue). Succès →
-     *  aucune note (la rangée ✓ ±DR porte le verdict). */
+    /** Test de RÉSISTANCE de traversée (l.86/127) : échec → Exténué (op `condition`, patron #338/#340), son fait
+     *  et sa ligne SUR SA rangée (le portrait attribue). Succès → aucune note (la rangée ✓ ±DR porte le verdict). */
     resistanceALaMeteo: (get, set, step) => {
       if (!step.participants) return;
       for (const part of step.participants) {
@@ -428,9 +444,10 @@ export const TABLES = {
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.86/127
-        applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
-        const lines = resultLines([{ ops: [op] }]);
+        const applique = applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
+        const lines = resultLines([applique]);
         part.outcome = lines;
+        part.faits = applique.faits;
         for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set({ party: [...get().party] });
@@ -474,7 +491,7 @@ export const TABLES = {
       const insert: BuiltCascadeStep[] = [];
       if (step.chosen === 'renoncer') {
         pousseSi(insert, choixDuCamp(get(), camps, index + 1));
-        return { consequences: freeCons([t('tp.campForfeit', { name: campeur.label, n: dr })]), insert };
+        return { consequences: freeCons([t('tp.campForfeit', { name: nomDe(campeur), n: dr })]), insert };
       }
       const separateur = step.chosen.indexOf(':');
       const usage = step.chosen.slice(0, separateur);
@@ -483,7 +500,7 @@ export const TABLES = {
       let lignes: string[];
       if (usage === 'extenue') {
         removeCondition(patient, 'extenue', 1);
-        lignes = [t('tp.campCare', { name: patient.label, n: 1 })];
+        lignes = [t('tp.campCare', { name: nomDe(patient), n: 1 })];
       } else {
         lignes = applyHealWounds(patient, soinDuCamp(campeur, patient, soignes));
       }
@@ -522,11 +539,11 @@ export const TABLES = {
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
-      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: hero.label, what: t('eff.protectionDuFroid') })]) };
+      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: nomDe(hero), what: t('eff.protectionDuFroid') })]) };
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
       if (step.result.success) return { consequences: freeCons([]) };
-      const j: string[] = [t('tp.exposureLine', { name: hero.label, weather: weatherLabel })];
+      const j: string[] = [t('tp.exposureLine', { name: nomDe(hero), weather: weatherLabel })];
       const prior = (hero.activeEffects ?? []).filter((e) => e.effectId === 'exposition-froid').length;
       j.push(...applyExposureFailure(hero, exposureFailureRank(prior), battleRng()).log);
       j.push(...coldExposureChill(hero, !!step.meta?.coldSeason));

@@ -1,8 +1,5 @@
-/* Les outils (#3935, #4411) : la ligne de liste à compte (Compendium, éditeur), la table ronde du salon en ligne et ses
-   tabourets (`../rendu.js`, écrans `compendium`, `coop`, `editeur-de-scene`, `editeur-carte-du-monde`). Maquette hors du
-   jeu. */
-/* une ligne de liste : nom, compte à droite */
-const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}" data-primitive="ligneDeListe">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="chiffres">${compte}</em>` : ''}</div>`;
+/* Les outils (#3935, #4411) : la table ronde du salon en ligne et ses tabourets (`../rendu.js`, écran `coop`). Maquette
+   hors du jeu. */
 /* la table ronde du salon, vue de dessus : ses quatre tabourets, la carte, la chandelle, les dés */
 const TABOURETS = [[178, 112], [462, 112], [178, 358], [462, 358]];
 const tableDuSalon = () => `<svg viewBox="0 0 640 520" data-primitive="tableDuSalon"><defs>
@@ -21,4 +18,4 @@ const tableDuSalon = () => `<svg viewBox="0 0 640 520" data-primitive="tableDuSa
   <g fill="#3a2414" stroke="#150c07" stroke-width="1.500"><circle cx="246" cy="160" r="13"/><circle cx="404" cy="176" r="13"/></g><g fill="#7a4a1c"><circle cx="246" cy="160" r="8"/><circle cx="404" cy="176" r="8"/></g>
 </svg>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { ligneDeListe, tableDuSalon });
+Object.assign(globalThis, { tableDuSalon });

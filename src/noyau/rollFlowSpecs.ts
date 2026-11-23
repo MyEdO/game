@@ -10,6 +10,7 @@
  * (références RAW en place). Ne rien y « simplifier » sans citer la source.
  */
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import type { PlayerText } from '../i18n/playerText';
 import type { TrappingResolver } from '../engine/items';
 import type { Jeu } from './etat';
 import { bouclierDuBinome, bouclierDuBinomeEnJeu } from './combat/surnombre';
@@ -121,7 +122,8 @@ import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile, type Scene } from './monde/scene';
-import { metresRetenus, phaseDeChute, rangeesDuesDeChute, refusDesDeclarationsDues, tombantsNommes } from './fallMove';
+import { metresRetenus, phaseDeChute, rangeesDuesDeChute } from './fallMove';
+import { refusDesDeclarationsDues, tombantsNommes } from './refusDeChute';
 import {
   REDERIVATIONS,
   attackTestOf,
@@ -222,6 +224,7 @@ import { estOperation } from './acteDeSoin';
 import { lancerLActeDeSoin } from './medicFlow';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -386,7 +389,9 @@ function deDuSoin<P extends PendingBase & { roll: number | null; target: number;
 }
 
 /** Le nom de l'acteur `id` du jet tel que le groupe le connaît (`nomEnVue`, #4017). */
-const nomDeLActeur = (s: Jeu, id: string): string => garanti(nomEnVue(s, id), id, 'acteur du jet');
+const nomDeLActeur = (s: Jeu, id: string): PlayerText => garanti(nomEnVue(s, id), id, 'acteur du jet');
+/** Le nom en vue du porteur `id`, ou son absence nommée quand il n'est plus au combat. */
+const nomDuPorteurOuAbsence = (s: Jeu, id: string): PlayerText => (actorIn(s, id) ? nomDeLActeur(s, id) : nomOuAbsence(undefined, 'combattant', id));
 
 function currentStepFreeze(s: Jeu) {
   const p = s.pendingCascade;
@@ -663,7 +668,7 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
 
 /** L'action engagée (le Test opposé qui EST l'Action, ou la Fuite) ne se renonce plus : le refus dit qui l'a engagée. */
 const refusDeRenoncer = (s: Jeu, porteurId: string): string =>
-  t('jet.refus.renoncerEngage', { name: actorIn(s, porteurId)?.label ?? porteurId });
+  t('jet.refus.renoncerEngage', { name: nomDuPorteurOuAbsence(s, porteurId) });
 
 /** Fabrique PARTAGÉE des Tests opposés BINAIRES (issue success/tie/fail) où SEUL le jet de l'ACTEUR se
  *  (re)joue tandis que le foe reste FIGÉ — le jet de l'acteur est l'« attaquant » du Test opposé
@@ -1098,7 +1103,7 @@ export const FLOWS = paresseux({
     onRoll: lancerLIncantation,
     onCancel: renoncerALIncantation,
     // LDB 46 l.24 (#1031)
-    refusDAnnuler: (s, p) => (p.result ? t('cs.castCancelLocked', { name: actorIn(s, p.casterId)?.label ?? p.casterId }) : null),
+    refusDAnnuler: (s, p) => (p.result ? t('cs.castCancelLocked', { name: nomDuPorteurOuAbsence(s, p.casterId) }) : null),
     rolled: (p) => !!p.result,
     // Sort non lancé malgré un jet propre réussi (DR sous le NI) : la Résilience s'y ouvre. LDB 17 l.68, l.75
     perdu: (p) => !!p.result && !p.result.cast,
@@ -2066,7 +2071,7 @@ export const FLOWS = paresseux({
           : Math.max(base?.sl ?? 1, 1);
         // `base?.malepierreConsumed` (déjà figé au Round précédent) est REPORTÉ : forcer le résultat
         // ne consomme ni ne restitue une seconde fois la réserve de malepierre.
-        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: `${actor.label} force la focalisation (Résilience).`, ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
+        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: t('focalisation.forcee', { name: nomDe(actor) }), ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
       }
       return { result: resolveFocus(actor, spell, battleRng(), 'intermediaire', seaMagicContext(s).atSea, windsMagicModOf(s.battle)) };
     },
@@ -2110,7 +2115,7 @@ export const FLOWS = paresseux({
     // ISSUE au goulot (`apply`) — canal COMBAT (`jetValider('frenesie')` la tisse dans son `set({ battle })`).
     // Le porteur est garanti au site (`if (!c) return` avant l'appel).
     issueChannel: 'battle',
-    issue: (p, s) => describeFrenzy(p, garanti(actorIn(s, p.combatantId), p.combatantId, 'frénésie').label),
+    issue: (p, s) => describeFrenzy(p, nomDeLActeur(s, p.combatantId)),
   }),
 
   /** Approche d'une source de Peur (LDB 21 l.27) : Test SEC de `p.test` pour oser se rapprocher —
@@ -2628,8 +2633,8 @@ function refusDuContreSort(s: Jeu, pid: string): string | null {
   if (!pcs || !part) return null;
   if (counterspellDeclarePhase(pcs)) return t('declaration.attenteFenetre');
   const dissipe = pcs.participants.find((x) => x.id !== pid && x.result?.dispelled);
-  if (dissipe) return t('cs.refus.dejaDissipe', { name: garanti(actorIn(s, dissipe.id), dissipe.id, 'contre-sort').label });
-  return counterspellRolls(s, pcs, part) ? null : t('cs.refus.neLancePas', { name: garanti(actorIn(s, pid), pid, 'contre-sort').label });
+  if (dissipe) return t('cs.refus.dejaDissipe', { name: nomDeLActeur(s, dissipe.id) });
+  return counterspellRolls(s, pcs, part) ? null : t('cs.refus.neLancePas', { name: nomDeLActeur(s, pid) });
 }
 
 /** Consomme l'essai du Round (LDB 46 l.156) de CELUI qui chante, au moment de son jet, et pour un jet de GROUPE
@@ -2661,7 +2666,7 @@ export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<J
       : candidat);
     return {
       patch: { pendingTest: { ...test, skillValue: value, ...immunite, candidates } },
-      ligne: t('psy.determinationSocial', { name: porteur.label }),
+      ligne: t('psy.determinationSocial', { name: nomDe(porteur) }),
     };
   }
   const pc = s.pendingCascade;

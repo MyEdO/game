@@ -27,13 +27,13 @@ MANIFESTE = {
 """Couche `armure`, celle de la cordelière : par-dessus la bure, qui lui cède."""
 
 MATERIAUX = {
-    'parchemin': ('corne', ((0.8, 0.78, 0.72), 0.0, 0.9)),
-    'cire': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.5)),
-    'encre': (None, ((0.02, 0.015, 0.01), 0.0, 0.8)),
+    'parchemin': ('corne', 'papier'),
+    'cire': ('accent', 'cire'),
+    'encre': (None, 'encre-noire'),
 }
 """Illustration : parchemin écru, l'emplacement `corne` des pages du livre (`rigide--livre`) ; cire rouge, l'emplacement
-`accent` du preset (`tissu-rouge`). Gris de construction. L'encre, brun noir, n'a pas d'emplacement : sa couleur est
-celle du GLB."""
+`accent` du preset (`tissu-rouge`). L'encre, brun noir (`encre-noire`, celle du masque du Gladiateur), n'a pas
+d'emplacement : sa couleur est celle de sa matière, cuite au GLB."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 

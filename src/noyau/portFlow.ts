@@ -8,7 +8,7 @@
  *
  * Marchandage : Test opposé de Marchandage (l.335/385, « décrit en page 291 de WFJDR ») — jet direct
  * du meilleur PJ soutenu (LDB 12) contre le commerçant (`rollMerchantSkill`) ; le vainqueur module le
- * prix de ±`bargainPct` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
+ * prix de `variationDuNegoce` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
  * à l'achat, `sellChance.drDuVendeur` à la vente) s'ajoutent au DR de LEUR camp.
  *
  * VENTE (`vendreAuPort`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
@@ -29,7 +29,8 @@ import { ouvrirEtal } from './etalLotFlow';
 import { estBateauFluvial, lieuDuGroupe, placeById, type MapPlace } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
-import { bargainPct } from '../engine/bargain';
+import { variationDuNegoce, type SensDuPrix } from '../engine/bargain';
+import { faitDePrix, type Applique, type FaitDePrix } from '../engine/faits';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
@@ -54,11 +55,12 @@ import { currentSeason } from '../engine/travelStages';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
 import type { CascadeStep, CascadeRoll } from './pendings';
-import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
+import { openPartyTest, openWorldTest, freeCons, consequencesDe } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
+import type { Combatant } from '../engine/types';
 import type { CampaignVessel, Jeu } from './etat';
 import { vivrePerissable, type QuantitesDeVivres } from '../engine/provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
@@ -266,22 +268,29 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
  *  {drDuVendeur} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
 const signedDR = (dr: number) => (dr >= 0 ? `+${dr}` : String(dr));
 
+/** Le prix qu'un négoce conclu du port a fait, marchandé par `negociateur` : aucun sans marchandeur dans le groupe
+ *  (`null`), ni pour une variation nulle. */
+const faitsDuNegoce = (negociateur: Combatant | null, variation: number, sens: SensDuPrix): FaitDePrix[] =>
+  (negociateur && variation ? [faitDePrix(negociateur, variation, sens)] : []);
+
 /** Finalise l'ACHAT une fois le Marchandage résolu (pct connu) : prix = Enc × prix de base × (1 + pct %),
  *  débité, cargaison ajoutée à la cale (Enc re-clampé au plafond DUR de surcharge, MDG 12 l.75), offre
  *  rafraîchie. SOURCE UNIQUE du dénouement, partagée par le chemin SANS marchandeur (prix plein, pct 0)
  *  et l'applier `PORT_BUY_BARGAIN_KIND`. Renvoie les lignes de journal (refus si bourse insuffisante ou
- *  état changé ; ligne d'avertissement de surcharge, MDG 12 l.70-75, ajoutée le cas échéant). */
-function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, basePrice: number, pct: number, bargainLine: string): string[] {
+ *  état changé ; ligne d'avertissement de surcharge, MDG 12 l.70-75, ajoutée le cas échéant) et, l'achat conclu, le prix
+ *  que `negociateur` a marchandé. */
+function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, basePrice: number, pct: number, bargainLine: string, negociateur: Combatant | null): Applique {
   const st = get().port;
   const vessel = get().vessel;
-  if (!st || !vessel) return [];
+  const sans = (lignes: string[]): Applique => ({ lignes, faits: [] });
+  if (!st || !vessel) return sans([]);
   const offer = st.offers.find((o) => o.cargoId === cargoId);
-  if (!offer) return [];
+  if (!offer) return sans([]);
   const enc = Math.max(0, Math.min(want, offer.enc, vesselMaxLoadEnc(get)));
-  if (enc <= 0) return [t('port.holdFull')];
+  if (enc <= 0) return sans([t('port.holdFull')]);
   const price = prixDuLotEnPort(enc, { basePrice, remisePct: offer.remisePct }, pct);
   const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price: formatMoney(cost), label: offer.label, bargain: bargainLine })];
+  if (!canAfford(partyMoneyTotal(get), cost)) return sans([t('cargo.purseShort', { price: formatMoney(cost), label: offer.label, bargain: bargainLine })]);
   const cargo: CargoLot = { uid: get().forgerUnId('it'), cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });
@@ -297,7 +306,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
   const over = cargoOverload(cargoTotalEnc(nextCargo), capacity);
   if (over.palierId) lines.push(t('port.overloaded', { pct: over.ratioPct, label: over.label, m: over.mMod, dr: over.drDeManoeuvre }));
-  return lines;
+  return { lignes: lines, faits: faitsDuNegoce(negociateur, pct, 'achat') };
 }
 
 /** ACHAT d'une cargaison (l.319-349) : prix = Enc × prix de base, modulé par le Marchandage OPPOSÉ (#266)
@@ -315,7 +324,7 @@ export function acheterAuPort(get: Get, set: Set, porteurId: IdDePorteurDeCargai
   // Toujours tiré (même sans marchandeur) — parité RNG avec la vente (la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
-    log(get, set, finalizePortBuy(get, set, cargoId, want, offer.basePrice, 0, t('port.noBargainerBuy')));
+    log(get, set, finalizePortBuy(get, set, cargoId, want, offer.basePrice, 0, t('port.noBargainerBuy'), null).lignes);
     return;
   }
   // DR de camp du vendeur NPC (MDG 15 l.339-341 — écart de camp ouvert en #1140).
@@ -350,17 +359,17 @@ function lotALaCale(get: Get, lotId: IdDeCargaison) {
 /** Finalise la vente : gross = Enc × prix de base × Prix d'offre % × (1 + Marchandage %), retire le
  *  lot (ou la fraction vendue) de la cale, crédite la bourse. SOURCE UNIQUE du dénouement, partagée
  *  par le chemin SANS marchandeur (prix d'offre pris tel quel) et l'applier `PORT_SELL_BARGAIN_KIND`.
- *  Renvoie la ligne de journal (vide si l'état a changé entre-temps). */
-function finalizePortSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, offerPct: number, bargainPctVal: number, bargainLine: string): string {
+ *  Renvoie la ligne de journal (aucune si l'état a changé entre-temps) et le prix que `negociateur` a marchandé. */
+function finalizePortSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, offerPct: number, bargainPctVal: number, bargainLine: string, negociateur: Combatant | null): Applique {
   const cale = lotALaCale(get, lotId);
-  if (!cale) return '';
+  if (!cale) return { lignes: [], faits: [] };
   const { vessel, lot } = cale;
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(sellEnc * lot.basePriceGold * (offerPct / 100) * (1 + bargainPctVal / 100)));
   const nextCargo = sellEnc >= lot.enc ? (vessel.cargo ?? []).filter((l) => l.uid !== lotId) : (vessel.cargo ?? []).map((l) => l.uid === lotId ? { ...l, enc: l.enc - sellEnc } : l);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
   set({ vessel: { ...vessel, cargo: nextCargo } });
-  return t('port.sold', { enc: sellEnc, label, pct: offerPct, bargain: bargainLine, money: formatMoney(fromBrass(gross * PA_PER_CO)) });
+  return { lignes: [t('port.sold', { enc: sellEnc, label, pct: offerPct, bargain: bargainLine, money: formatMoney(fromBrass(gross * PA_PER_CO)) })], faits: faitsDuNegoce(negociateur, bargainPctVal, 'vente') };
 }
 
 /** 3. Marchandage opposé (vendeur PJ +DR, l.387-397) — jet de héros (`openRoll`) pour le héros ; le
@@ -376,7 +385,7 @@ function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellE
   // synchrone (déterminisme seedé conservé, la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
-    log(get, set, [finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'))]);
+    log(get, set, finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'), null).lignes);
     return;
   }
   const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).drDuVendeur;
@@ -627,12 +636,9 @@ export const TABLES = {
       const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
       // +DR du vendeur NPC (l.339-341) porté AVANT le départage : `resolveOpposed` reste le seul juge.
       const opp = resolveOpposed(heroTR, bumpSL(merchantRoll, sellerDR));
-      const netSL = opp.netSL;
-      let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
-      if (opp.winner === 'attaquant') pct = -bargainPct(true, netSL, hasBargainBonus(actor)); // remise à l'acheteur
-      else if (opp.winner === 'defenseur') pct = bargainPct(true, netSL, merchantNegotiator); // le vendeur monte le prix
-      const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
-      return { consequences: freeCons(finalizePortBuy(get, set, cargoId, want, basePrice, pct, bargainLine)) };
+      const pct = variationDuNegoce(opp, 'achat', { joueur: hasBargainBonus(actor), marchand: merchantNegotiator });
+      const bargainLine = t('port.bargainLine', { name: nomDe(actor), roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
+      return { consequences: consequencesDe(finalizePortBuy(get, set, cargoId, want, basePrice, pct, bargainLine, actor)) };
     },
     [PORT_SELL_BARGAIN_KIND]: (get, set, step) => {
       if (!estJete(step.result)) return {};
@@ -647,12 +653,9 @@ export const TABLES = {
       const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
       // +DR du vendeur PJ (l.389-397) porté AVANT le départage : `resolveOpposed` reste le seul juge.
       const opp = resolveOpposed(bumpSL(heroTR, sellerDR), merchantRoll);
-      const netSL = opp.netSL;
-      let bargainPctVal = 0;
-      if (opp.winner === 'attaquant') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
-      else if (opp.winner === 'defenseur') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
-      const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
-      return { consequences: freeCons([finalizePortSale(get, set, lotId, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
+      const bargainPctVal = variationDuNegoce(opp, 'vente', { joueur: hasBargainBonus(actor), marchand: merchantNegotiator });
+      const bargainLine = t('port.bargainLine', { name: nomDe(actor), roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
+      return { consequences: consequencesDe(finalizePortSale(get, set, lotId, sellEnc, offerPct, bargainPctVal, bargainLine, actor)) };
     },
     [PORT_SELL_BUYER_KIND]: (get, set, step) => {
       if (!estJete(step.result)) return {};
@@ -689,7 +692,7 @@ export const TABLES = {
       const gossip = (issue: string) => freeCons([estJete(jet) ? traceLineOf({
         who: nomDe(actor), label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
         roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success, issue,
-      }) : t('port.gossipSansJet', { name: actor.label, issue })]);
+      }) : t('port.gossipSansJet', { name: nomDe(actor), issue })]);
       if (!jet.success) {
         return { consequences: gossip(t('port.gossipFail', { relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })) };
       }

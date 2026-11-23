@@ -12,19 +12,20 @@
  * (`ItemInstance.cargo` d'une bête/véhicule, `bulkCarriers`, #327) et lit `MapPlace.market`
  * (LandMarketProfile). Fusionner
  * les deux imposerait une union `sea|land` et des branches partout → on garde deux flux fins sur le même socle
- * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
+ * `cargo.ts`. Le Marchandage (Test opposé, `variationDuNegoce`) réutilise le MÊME patron que `portFlow`.
  */
 import { battleRng } from './battleRng';
 import { lieuDuGroupe, marcheDuLieu } from './worldMap';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
 import { opposedTest, type OpposedResult } from '../engine/tests';
-import { bargainPct } from '../engine/bargain';
+import { variationDuNegoce } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { chainStep } from './enchainerEtape';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { fromBrass, formatMoney, PA_PER_CO, canAfford } from '../engine/money';
@@ -318,10 +319,8 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
   let bargainLine = 'Aucun marchandeur dans le groupe — prix plein.';
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
-    const netSL = opp.netSL;
-    if (opp.winner === 'attaquant') pct = -bargainPct(true, netSL, hasBargainBonus(best.actor)); // remise à l'acheteur
-    else if (opp.winner === 'defenseur') pct = bargainPct(true, netSL, false); // le marchand monte le prix
-    bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? 'prix inchangé' : pct < 0 ? `remise de ${-pct} %` : `surcoût de ${pct} %`}.`;
+    pct = variationDuNegoce(opp, 'achat', { joueur: hasBargainBonus(best.actor), marchand: false });
+    bargainLine = t('port.bargainLine', { name: nomDe(best.actor), roll: opp.attacker.roll, opp: opp.defender.roll, seller: '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
   }
   const price = prixDuLotDeCargaison(want, offer.basePrice, partial, pct);
   const cost = fromBrass(price * PA_PER_CO);
@@ -389,10 +388,8 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
   let bargainLine = 'Aucun marchandeur — mise à prix prise telle quelle.';
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
-    const netSL = opp.netSL;
-    if (opp.winner === 'attaquant') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(best.actor)); // le PJ monte le prix
-    else if (opp.winner === 'defenseur') bargainPctVal = -bargainPct(true, netSL, false); // l'acheteur le baisse
-    bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${bargainPctVal === 0 ? 'sans effet' : bargainPctVal > 0 ? `+${bargainPctVal} %` : `${bargainPctVal} %`}.`;
+    bargainPctVal = variationDuNegoce(opp, 'vente', { joueur: hasBargainBonus(best.actor), marchand: false });
+    bargainLine = t('port.bargainLine', { name: nomDe(best.actor), roll: opp.attacker.roll, opp: opp.defender.roll, seller: '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
   }
   // Rumeur commerciale (l.180) : une rumeur du board visant CE Lieu et CE bien le fait vendre au DOUBLE du
   // base. Non consommée (« autant qu'ils le souhaitent ») → elle reste sur le board.
@@ -465,7 +462,7 @@ export const TABLES = {
       const rev = wineEvalReveal(qualite, success, sl);
       set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-      return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
+      return { consequences: freeCons([t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: rev.shownLabel })]) };
     },
     [LAND_SELL_BUYER_KIND]: (get, set, step) => {
       if (!step.result) return {};

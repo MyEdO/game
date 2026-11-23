@@ -112,10 +112,10 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     poserLeGroupe(banc.getState, banc.setState, { x: 25, y: 9 });
     expect(objectifs()).toEqual(['edo-ch1-place-a-bord']);
 
-    poserLeGroupe(banc.getState, banc.setState, { x: 21, y: 37 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 24, y: 28 });
     expect(get().flags[DEPART], 'marcher près de la diligence ne fait pas monter à bord').toBeFalsy();
 
-    banc.getState().jouerAction('diligence-remise-charrette', 'monter-a-bord');
+    banc.getState().jouerAction('diligence-cour-diligence', 'monter-a-bord');
     expect(get().flags[DEPART]).toBe(true);
     expect(get().worldMapOpen).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
@@ -179,7 +179,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
   };
 
   const GESTES = [
-    { scene: 'la-diligence', entite: 'diligence-remise-charrette', action: 'monter-a-bord', flag: DEPART },
+    { scene: 'la-diligence', entite: 'diligence-cour-diligence', action: 'monter-a-bord', flag: DEPART },
     { scene: 'route-principale-virage', entite: 'cadavre-kastor-lieberung', action: 'fouiller', flag: CORPS },
   ];
 
@@ -187,7 +187,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
     it(`${p.scene} › ${p.entite} › ${p.action} pose \`${p.flag}\``, () => {
       const scene = entrer(p.scene);
       const ent = scene.entities.find((e) => e.id === p.entite);
-      expect(ent, `décor « ${p.entite} » absent de ${p.scene}`).toBeTruthy();
+      expect(ent, `entité « ${p.entite} » absente de ${p.scene}`).toBeTruthy();
       expect(ent!.usable?.actions?.map((a) => a.id), `« ${p.entite} » ne porte pas le geste « ${p.action} »`).toContain(p.action);
 
       const depart = startOf(scene)!;

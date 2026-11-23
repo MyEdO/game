@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import type { EntreeDe } from '../data/datasets';
 import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
-import type { PlayerText } from '../i18n/playerText';
+import type { NonAffichable, PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
 import type { ConsumableDuration } from './consumables';
 import type { CritTestNode } from '../data/criticals';
@@ -564,27 +564,6 @@ export interface ConditionLocks {
  *  Médicale (Guérison réussie / bandage-cataplasme / sort-prière de soin) ; `surgery` = acte de Chirurgie ;
  *  `magic` = soin magique (qui compte AUSSI comme Aide Médicale, LDB 18 l.311 → lève aussi `medicalAid`). */
 export type ConditionUnlock = 'medicalAid' | 'surgery' | 'magic';
-
-/**
- * NOTIFICATION qu'une LIGNE DE JOURNAL vient d'être écrite en NOMMANT un État (#1330) : lequel
- * (`stateId`, jamais son libellé), dans quel sens elle le nomme, sur qui. Le moteur NOTIFIE — il
- * n'écrit rien et ne compose aucun texte : la ligne FR reste seule maîtresse du journal, l'id voyage
- * À CÔTÉ d'elle. Appariement 1:1 avec la ligne poussée au même instant (l'émetteur les pose ensemble).
- *
- * ATTENTION : c'est un appariement LIGNE↔ID, PAS un delta d'état : n'en dérivez aucun compteur d'États portés.
- * Contre-exemple qui le prouve — une op `condition` à `perRound` notifie à l'ANNONCE (« X subit 1 État
- * Y par Round ») alors qu'AUCUN État n'est encore posé : les poses réelles tomberont à chaque fin de
- * Round et notifieront chacune la leur. Un consommateur qui compterait les `gain` double-compterait.
- */
-export interface ConditionChange {
-  stateId: string;
-  change: 'gain' | 'loss';
-  targetId: string;
-}
-
-/** Récepteur de `ConditionChange` — branché par la couche state ; absent en moteur pur/tests (les ops
- *  sont alors strictement inchangées, lignes comprises). */
-export type ConditionEmit = (e: ConditionChange) => void;
 
 /** Pénalité/blocage d'incantation temporisé (contrecoups des tables d'Imparfaites /
  *  Colère des dieux — LDB 46 l.34-80, LDB 40 l.52-89). Une seule des deux durées :
@@ -1302,7 +1281,7 @@ export interface Combatant {
   /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
    *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
   idDeRoster?: IdDeHerosDuRoster;
-  label: string;
+  label: string & Partial<NonAffichable>;
   kind: 'heros' | 'ennemi' | 'pnj';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)
    *  ET du contrôle (`pilotedByHuman`/`controlsCombatant`, netOwnership.ts) : gouverne des mécaniques

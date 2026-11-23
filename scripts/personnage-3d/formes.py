@@ -46,6 +46,11 @@ def decalages(objet, nom):
     return positions(objet.data, nom) - positions(objet.data)
 
 
+def decalages_monde(objet, nom):
+    """Les décalages de la clé `nom` de `objet`, dans le repère monde."""
+    return decalages(objet, nom) @ numpy.array(objet.matrix_world)[:3, :3].T
+
+
 def aretes_des_triangles(objet, noeud):
     """Les arêtes des triangles de `objet` (diagonales comprises), entre nœuds `noeud` (par sommet, l'indice du sommet
     qui représente son nœud, `poids.jumeaux`), sans doublon ni arête d'un nœud à lui-même : (arêtes, 2)."""

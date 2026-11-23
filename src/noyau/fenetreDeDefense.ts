@@ -8,9 +8,10 @@
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { porteurParId } from './monde/combatants';
-import { spendableAdvantage } from './combat/advantagePool';
+import { avantageDiffere, spendableAdvantage } from './combat/advantagePool';
+import type { FaitApplique } from '../engine/faits';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
-import { ligneDeDefense } from './combatFlow';
+import { ligneDeDefense, faitsAuJet } from './combatFlow';
 import { defenseDodgeMods } from './mount';
 import { difficultyText } from './difficultyText';
 import type { RollLineParts } from './ligneDeJet';
@@ -25,6 +26,8 @@ import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../
 import { gesteDuReglage, type ChoixNomme } from './reglages';
 import type { ReglageDu } from './reglagesDuJet';
 import type { ReactionDeBouclier } from './pendings';
+import { nomEnVue } from './visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 /** La réaction de la Défense : chaque mode offert porte la cible de son jet (`ligneDeDefense`), réglé comme le réglage
  *  `defense.reaction` le pose. */
@@ -54,8 +57,9 @@ export interface FenetreDeDefense {
   /** Le jet de la réaction avant le dé, monté comme le flux le jette (`ligneDeDefense`), et le texte de sa
    *  Difficulté (`difficultyText`) ; `null` une fois jeté. */
   jet: (RollLineParts & { difficulte: string }) | null;
-  /** L'issue du coup une fois jeté (`issueAuJet`), son genre et sa ligne ; `null` avant le dé. */
-  issue: { genre: 'critique' | 'degats' | 'parade' | 'esquive'; ligne: string } | null;
+  /** L'issue du coup une fois jeté (`issueAuJet`), son genre, sa ligne et ses faits prévus (`faitsAuJet`) ;
+   *  `null` avant le dé. */
+  issue: { genre: 'critique' | 'degats' | 'parade' | 'esquive'; ligne: string; faits: FaitApplique[] } | null;
 }
 
 /** Le libellé d'une arme de parade : la main secondaire se dit. */
@@ -96,14 +100,18 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
     const avantage = spendableAdvantage(s.battle, defenseur);
-    return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
+    return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: garanti(nomEnVue(s, defenseur.id), defenseur.id, 'défenseur'), avantage }) : null;
   };
   // LDB 10 l.1037
   const contre = pd.mode === 'parade' ? contreSurDefenseGagnee(defenseur, parade) : null;
   const portees = contre ? contresEpuisees(defenseur, contre) : null;
   const plafond = contre?.plafond;
   const refusDeLaRiposte = portees != null && plafond != null ? t('defense.refus.ripostesPortees', { n: portees, plafond }) : null;
-  const coup = res ? issueAuJet(defenseur, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defenseur), pd.weapon, attaquant) : null;
+  const grapple = pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple;
+  const auJet = res && coupAApplique(res, grapple, defenseur);
+  const coup = auJet ? issueAuJet(defenseur, auJet, pd.weapon, attaquant) : null;
+  const differe = pd.suite.mode === 'pilotee' ? avantageDiffere(pd.suite.pa, attaquant) : !!pd.suite.coup.deferAttackerAdvantage;
+  const faits = res ? faitsAuJet(s, res, pd.weapon, attaquant, defenseur, grapple, differe) : [];
   const ligne = res ? null : ligneDu(pd.mode);
   return {
     attaquantId: attaquant.id,
@@ -131,6 +139,6 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
       ])
       : null,
     jet: ligne && { ...ligne, difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined) },
-    issue: res && coup ? { genre: coup.compte.critiques.length ? 'critique' : res.hit ? 'degats' : pd.mode === 'parade' ? 'parade' : 'esquive', ligne: coup.ligne } : null,
+    issue: res && coup ? { genre: coup.compte.critiques.length ? 'critique' : res.hit ? 'degats' : pd.mode === 'parade' ? 'parade' : 'esquive', ligne: coup.ligne, faits } : null,
   };
 }

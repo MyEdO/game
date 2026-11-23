@@ -12,6 +12,7 @@
  *     désignent le MÊME siège ;
  *  6. SOLO bit-à-bit, en combat ET hors combat : le joueur unique garde TOUTES ses dépenses.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -103,7 +104,7 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
-    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures' }] });
+    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: fixtureText('Barbier-chirurgien'), skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures' }] });
     expect(g().pendingHeal?.healerId, 'précondition : le brouillon du soin, au PNJ de scène').toBe('medecin-de-scene');
     for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@soins')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
     // Le lancer ne dépense rien : sans siège au porteur, il suit le repli universel — l'infirmerie, à tous tant

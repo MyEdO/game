@@ -15,10 +15,12 @@ import { sceneMetresPerTile } from './monde/scene';
 import { inBattleId } from './monde/combatants';
 import {
   attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, distanceDeLAttaque,
-  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe,
+  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe, faitsAuJet,
 } from './combatFlow';
 import { defenseDodgeMods } from './mount';
 import { bouclierDuBinomeEnJeu } from './combat/surnombre';
+import { avantageDiffere } from './combat/advantagePool';
+import type { FaitApplique } from '../engine/faits';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import {
@@ -47,6 +49,8 @@ import { difficultyText } from './difficultyText';
 import { libelleDuJet, libelleDuReglage } from './libelles';
 import { gesteDuReglage, type BasculeNommee, type ChoixNomme } from './reglages';
 import type { ReglageDu } from './reglagesDuJet';
+import { nomEnVue } from './visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 /** Les 6 localisations dans l'ordre des fenêtres de coup : la liste du moteur, permutée. */
@@ -122,9 +126,9 @@ export interface FenetreDAttaque {
   };
   /** Test opposé tranché (`oppositionDuCoup`). */
   opposition: OppositionEnVue | null;
-  /** L'issue du coup, la ligne de touche du moteur (`issueAuJet`) ; `null` avant le jet ou quand une Défense
-   *  surfacée va s'interposer (#1004). */
-  issue: { genre: 'critique' | 'degats' | 'attaque'; ligne: string } | null;
+  /** L'issue du coup, la ligne de touche du moteur (`issueAuJet`) et ses faits prévus (`faitsAuJet`) ;
+   *  `null` avant le jet ou quand une Défense surfacée va s'interposer (#1004). */
+  issue: { genre: 'critique' | 'degats' | 'attaque'; ligne: string; faits: FaitApplique[] } | null;
   /** Une Défense surfacée va s'interposer avant l'application (`surfacedDefensePending`). */
   defenseAttendue: boolean;
   attente: string | null;
@@ -164,7 +168,10 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   // LDB 14 l.78
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
-  const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
+  const auJet = res && coupAApplique(res, pa.grapple, victime);
+  const coup = auJet ? issueAuJet(victime, auJet, arme, attaquant) : null;
+  // AA 10 l.169, l.171
+  const faits = res && !(pa.siege && pa.center) ? faitsAuJet(s, res, arme, attaquant, victime, pa.grapple, avantageDiffere(pa, attaquant)) : [];
   const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
   const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
@@ -289,10 +296,10 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     },
     opposition: res ? oppositionDuCoup(res) : null,
     issue: res && !defenseAttendue
-      ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log }
+      ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log, faits }
       : null,
     defenseAttendue,
-    attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
+    attente: res && defenseAttendue ? t('defense.awaiting', { cible: garanti(nomEnVue(s, cible.id), cible.id, 'cible de l’attaque') }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
     critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))

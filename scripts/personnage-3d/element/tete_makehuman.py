@@ -43,11 +43,11 @@ import numpy as np
 from mathutils.bvhtree import BVHTree
 
 from corpulence import RACES, forme_macro, lire_cible, lire_obj, os_des_faces, recalage, tetes, vers_blender
-from formes import poser_la_cle
+from formes import decalages_monde, poser_la_cle
 from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG
 from noms_silhouettes import FEMININ
 from production import pack_source
-from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere,
+from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, depuis_l_arriere,
                   directions_des_rangs, elevation,
                   elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, parts_du_fondu,
                   poser_les_normales_de_la_couture)

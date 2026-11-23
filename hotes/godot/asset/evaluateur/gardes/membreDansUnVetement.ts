@@ -92,17 +92,30 @@ export function pairesHorsDeZone(
   });
 }
 
-/** La boîte englobante [min x, y, z, max x, y, z] des sommets `sommets` des positions `p`. */
-function boiteDe(p: Float32Array, sommets: Iterable<number>): number[] {
+/** La boîte englobante [min x, y, z, max x, y, z] des sommets des positions `p`. */
+function boiteDe(p: Float32Array): number[] {
   const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
-  for (const s of sommets) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], p[s * 3 + k]); b[3 + k] = Math.max(b[3 + k], p[s * 3 + k]); }
+  for (let s = 0; s < p.length / 3; s++) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], p[s * 3 + k]); b[3 + k] = Math.max(b[3 + k], p[s * 3 + k]); }
   return b;
 }
-const tousLesSommets = (p: Float32Array): Iterable<number> => Array.from({ length: p.length / 3 }, (_, s) => s);
+/** Les boîtes englobantes des triangles `triangles` (indices par trois) des positions `p`, six nombres chacune, à plat. */
+function boitesDesTriangles(p: Float32Array, triangles: ArrayLike<number>): Float64Array {
+  const b = new Float64Array(Math.floor(triangles.length / 3) * 6);
+  for (let t = 0, o = 0; t + 2 < triangles.length; t += 3, o += 6) {
+    const a = triangles[t] * 3, c = triangles[t + 1] * 3, d = triangles[t + 2] * 3;
+    for (let k = 0; k < 3; k++) {
+      const u = p[a + k], v = p[c + k], w = p[d + k];
+      b[o + k] = Math.min(u, v, w);
+      b[o + 3 + k] = Math.max(u, v, w);
+    }
+  }
+  return b;
+}
 const dans = (b: readonly number[], x: number, y: number, z: number, marge: number): boolean =>
   x >= b[0] - marge && y >= b[1] - marge && z >= b[2] - marge && x <= b[3] + marge && y <= b[4] + marge && z <= b[5] + marge;
-const croise = (a: readonly number[], b: readonly number[], marge: number): boolean =>
-  [0, 1, 2].every((k) => a[k] <= b[3 + k] + marge && b[k] <= a[3 + k] + marge);
+/** Vrai si la boîte `a` croise, à `marge` près, la boîte de `b` qui commence à `o`. */
+const croise = (a: ArrayLike<number>, b: ArrayLike<number>, marge: number, o = 0): boolean =>
+  a[0] <= b[o + 3] + marge && b[o] <= a[3] + marge && a[1] <= b[o + 4] + marge && b[o + 1] <= a[4] + marge && a[2] <= b[o + 5] + marge && b[o + 2] <= a[5] + marge;
 
 /** Chaque (zone, vêtement) de `paires` dont la zone passe à travers le vêtement dans l'échantillon `e` ; `peaux` : les
  *  paires de chaque membre et des meshes du corps contre lesquels il pince le tissu. */
@@ -111,24 +124,37 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
   const boite = (m: Mesh): number[] => {
     const connue = boites.get(m);
     if (connue) return connue;
-    const p = positionsDe(e, m), nouvelle = boiteDe(p, tousLesSommets(p));
+    const nouvelle = boiteDe(positionsDe(e, m));
     boites.set(m, nouvelle);
     return nouvelle;
   };
-  /** La couverture des triangles `tous` de `surface` à portée du membre de boîte `bm`, `null` sans eux. */
+  const entieres = new Map<Mesh, Map<ArrayLike<number>, { readonly couverture: Couverture; readonly boites: Float64Array }>>();
+  /** La couverture des triangles `tous` de `surface` restreinte à ceux à portée du membre de boîte `bm`, `null` sans
+   *  eux ; leur grille est celle de tous, faite une fois (#4753). */
   const couvertureProche = (bm: readonly number[], surface: Mesh, tous: ArrayLike<number>): Couverture | null => {
     if (!croise(bm, boite(surface), PORTEE_DE_COUVERTURE_M)) return null;
-    const ps = positionsDe(e, surface), proches: number[] = [];
-    for (let t = 0; t + 2 < tous.length; t += 3) {
-      const triangle = [tous[t], tous[t + 1], tous[t + 2]];
-      if (croise(bm, boiteDe(ps, triangle), PORTEE_DE_COUVERTURE_M)) proches.push(...triangle);
+    const parTriangles = entieres.get(surface) ?? new Map<ArrayLike<number>, { readonly couverture: Couverture; readonly boites: Float64Array }>();
+    entieres.set(surface, parTriangles);
+    let entiere = parTriangles.get(tous);
+    if (!entiere) {
+      const ps = positionsDe(e, surface);
+      entiere = { couverture: couvertureDe(ps, tous), boites: boitesDesTriangles(ps, tous) };
+      parTriangles.set(tous, entiere);
     }
-    return proches.length ? couvertureDe(ps, proches) : null;
+    const { couverture, boites: bt } = entiere;
+    const retenus = new Uint8Array(bt.length / 6);
+    let proches = 0;
+    for (let o = 0; o < bt.length; o += 6) {
+      if (croise(bm, bt, PORTEE_DE_COUVERTURE_M, o)) { retenus[o / 6] = 1; proches++; }
+    }
+    return proches ? { ...couverture, retenus } : null;
   };
+  let proche = Infinity;
+  const retenirLePlusProche = (ecart: number): void => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; };
   /** L'écart signé du point à son triangle couvrant le plus proche de `couverture`, `Infinity` sans lui. */
   const ecartA = (couverture: Couverture, pm: Float32Array, nm: Float32Array, s: number): number => {
-    let proche = Infinity;
-    visiterLaCouverture(pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], nm[s * 3], nm[s * 3 + 1], nm[s * 3 + 2], couverture, (ecart) => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; });
+    proche = Infinity;
+    visiterLaCouverture(pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], nm[s * 3], nm[s * 3 + 1], nm[s * 3 + 2], couverture, retenirLePlusProche);
     return proche;
   };
   const normales = new Map<Mesh, Float32Array>();
@@ -147,18 +173,18 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
     const bv = boite(vetement);
     for (let s = 0; s < pm.length / 3; s++) {
       if (!dans(bv, pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], PORTEE_DE_COUVERTURE_M)) continue;
-      const proche = ecartA(surface, pm, nm, s);
-      if (proche === Infinity) continue;
-      if (proche < -ECART_DE_SUIVI_M) cote.devant++;
-      if (proche <= ECART_DE_SUIVI_M) continue;
+      const auVetement = ecartA(surface, pm, nm, s);
+      if (auVetement === Infinity) continue;
+      if (auVetement < -ECART_DE_SUIVI_M) cote.devant++;
+      if (auVetement <= ECART_DE_SUIVI_M) continue;
       let sousLui = peauxDe.get(membre);
       if (!sousLui) {
         sousLui = peaux.flatMap((p) => (p.membre === membre ? [couvertureProche(bm, p.vetement, p.triangles)] : [])).filter((c) => c !== null);
         peauxDe.set(membre, sousLui);
       }
-      if (sousLui.some((peau) => { const aLaPeau = ecartA(peau, pm, nm, s); return aLaPeau !== Infinity && proche - aLaPeau <= PORTEE_DE_COUVERTURE_M; })) continue;
+      if (sousLui.some((peau) => { const aLaPeau = ecartA(peau, pm, nm, s); return aLaPeau !== Infinity && auVetement - aLaPeau <= PORTEE_DE_COUVERTURE_M; })) continue;
       cote.derriere++;
-      cote.pire = Math.max(cote.pire, proche);
+      cote.pire = Math.max(cote.pire, auVetement);
     }
   }
   return [...parZone.values()].flatMap(({ derriere, devant, pire, ...cote }) => (derriere && devant ? [{ ...cote, clip: e.clip, t: e.t, sommets: derriere, pire }] : []));

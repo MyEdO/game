@@ -27,8 +27,7 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { EtatDialogue } from './pendings';
 import { condCtx, partyMoneyTotal } from './bourseFlow';
-import { groupDecisionSeat, ownsGroupDecision } from './netOwnership';
-import { nomDuSiege } from './sieges';
+import { ownsGroupDecision, refusDeDecisionDeGroupe } from './netOwnership';
 import { t } from '../i18n';
 import { surfaceTientLaMain } from './modalArbiter';
 import type { Jeu } from './etat';
@@ -113,7 +112,7 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   // `money` y lit le total des bourses du groupe, comme les triggers et les `si` de scène.
   const cc = condCtx(get);
   const money = partyMoneyTotal(get);
-  const decide = ownsGroupDecision(s);
+  const refusDuSiege = refusDeDecisionDeGroupe(s);
   const out: ReponseDeDialogue[] = [];
   node.choices.forEach((c) => {
     if (c.when && !evalCondition(c.when, cc)) return;
@@ -126,8 +125,8 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
       label: c.label,
       ...(c.icon ? { icon: c.icon } : {}),
       ...(cost ? { cost } : {}),
-      enabled: decide && solvable,
-      ...(!decide ? { refus: t('dlg.refusSiege', { meneur: nomDuSiege(s.net, groupDecisionSeat(s)) }) }
+      enabled: !refusDuSiege && solvable,
+      ...(refusDuSiege ? { refus: refusDuSiege }
         : !solvable ? { refus: t('store.dialogueNoMoney') } : {}),
       ...(test ? { test } : {}),
     });

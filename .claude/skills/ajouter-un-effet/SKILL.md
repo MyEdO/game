@@ -42,7 +42,7 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   boucle d'ambiance, `interface` pour un son d'interface, absent pour un effet ; une `music` joue sur `musique`), puis
   `npm run gen`. Godot le joue sur le bus d'`AudioServer` nommé par son canal
   (`hotes/godot/projet/default_bus_layout.tres`, recette `mixage.gd`), au volume que le joueur y règle.
-- Le verser à la Release `modeles-3d` : `npm run godot:transfert -- <nom> hotes/godot/projet/sons/<nom>.ogg ...` fabrique
+- Le verser à sa Release `modeles-3d-<c>`, `<c>` le premier caractère de son empreinte (#4823) : `npm run godot:transfert -- <nom> hotes/godot/projet/sons/<nom>.ogg ...` fabrique
   le commit `transfert/<nom>` et imprime son `git push` ; `.github/workflows/transfert.yml` vérifie les empreintes,
   verse sans écraser et supprime la branche.
 

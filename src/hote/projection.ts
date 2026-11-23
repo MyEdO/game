@@ -20,11 +20,13 @@ import {
   vehiculeDuCombattant,
   gestesDExploration,
   jetsEnVue,
+  consequencesDeLEtape,
   capDuGroupe,
+  meneurDuMonde,
   stepInteraction,
   porteesDuTour,
   tileFromKey,
-  estPoseParSesPonts,
+  seMontreParLeMonde,
   capEnCombat,
   fermeturesDeLaFenetre,
   libelleDeLaFermeture,
@@ -32,7 +34,16 @@ import {
   entiteConnue,
   nomEnVue,
   porteurEnVue,
+  voyageEnVue,
+  carteEnVue,
+  toDate,
+  dayPhase,
+  type CarteEnVue,
+  type DayPhaseId,
+  type ImperialDate,
+  type VoyageEnVue,
   type Combatant,
+  type ConsequenceEnVue,
   type EtatDeLaBarre,
   type GesteDExploration,
   type GesteDuJeu,
@@ -115,16 +126,43 @@ export interface BornesDeLaProjection {
   entites: number;
 }
 
-/** La projection : ce que la vue montre, et rien de plus. Chaque liste est bornée, le reste compté. */
+/**
+ * @contrat Vue
+ * L'étape de cascade que la fenêtre rend.
+ */
+export interface EtapeProjetee {
+  /** L'id de l'étape. */
+  id: string;
+  /** Son genre (`CascadeStep.kind`). */
+  genre: string;
+  /** Son interaction (`stepInteraction`). */
+  interaction: string;
+  /** Les clés de son choix. */
+  choix: string[];
+  /** Les conséquences d'une étape sans ligne de jet (`consequencesDeLEtape`) : prévues tant qu'elle attend sa
+   *  validation, appliquées ensuite ; absentes si elle n'en publie aucune. Une étape à jet les publie sur ses lignes
+   *  (`LigneDeJet.consequences`). */
+  consequences?: ConsequenceEnVue[];
+}
+
+/** La projection : ce que la vue montre, et rien de plus. Les listes `cibles`, `offres`, `voisins`, `gestes` et
+ *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage` et `carte`
+ *  ne le sont pas, la donnée de la fenêtre, du groupe ou de la carte les borne. */
 export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
   scene: { id: string; nom: string } | null;
+  /** L'heure de la partie : sa date impériale (`toDate`) et son moment du jour (`dayPhase`). */
+  temps: { date: ImperialDate; moment: { id: DayPhaseId; nom: string } };
+  /** Le trajet en cours (`voyageEnVue`), `null` sans lui. */
+  voyage: VoyageEnVue | null;
+  /** La carte du monde qui tient la main (`carteEnVue`), `null` sans elle. */
+  carte: CarteEnVue | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
    *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
-   *  (`stepInteraction`, les clés d'un choix). */
-  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+   *  (`EtapeProjetee`). */
+  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: EtapeProjetee } | null;
   /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), avec leur état, les valeurs visibles au siège et
    *  le DR net d'un Test opposé tranché et révélé. Les zones reprennent cette lecture. */
   jets: JetEnVue[];
@@ -156,12 +194,12 @@ export interface Projection {
     groupe: [x: number, y: number];
     etage: number | null;
     cap: string | null;
-    /** Les héros du groupe, le meneur d'abord, chacun à la case du groupe. */
+    /** Les héros du groupe, le meneur (`meneurDuMonde`) d'abord, chacun à la case du groupe. */
     heros: CombattantProjete[];
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
     /** Les entités de la scène que le groupe connaît (`entiteConnue`), chacune à sa case : décors, PNJ, objets ; hors
-     *  des navires posés par leurs ponts (`estPoseParSesPonts`), qui ne tiennent aucune case. */
+     *  des coques qui se montrent par le monde (`seMontreParLeMonde`). */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
   refus: { texte: string; nonce: number } | null;
@@ -195,7 +233,7 @@ function combattant(etat: Jeu, c: Combatant, actif: Combatant | undefined): Comb
   const d = actif ? distanceDeCombat(etat.scene, actif, c) : Infinity;
   return {
     id: c.id,
-    nom: c.label,
+    nom: garanti(nomEnVue(etat, c.id), c.id, 'nom du combattant projeté'),
     camp: c.kind,
     pb: [c.wounds.current, c.wounds.max],
     avantage: c.advantage,
@@ -233,9 +271,13 @@ export const ordreEnVue = (etat: Jeu): string[] => (etat.battle?.order ?? []).fi
 const fermesDe = (etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): Record<string, string> =>
   Object.fromEntries([...fermeturesDeLaFenetre(etat, f)].flatMap(([cle, fermeture]) => (fermeture ? [[cle, libelleDeLaFermeture(fermeture)]] : [])));
 
-/** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
-const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
-  f.etape ? { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key) } } : {};
+/** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix,
+ *  ses conséquences quand elle ne porte aucune ligne de jet. */
+function etapeDe(etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): { etape?: EtapeProjetee } {
+  if (!f.etape) return {};
+  const consequences = consequencesDeLEtape(etat, f.etape);
+  return { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key), ...(consequences.length ? { consequences } : {}) } };
+}
 
 /** Les offres de l'actif d'une barre ouverte (`offresDeLActif`, l'énumération que lit la console). */
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
@@ -263,15 +305,24 @@ function offresEnVue(etat: Jeu, offres: readonly Offre[]): OffreEnVue[] {
   return [...parId.values()];
 }
 
+/** Les héros du groupe, le meneur (`meneurDuMonde`) d'abord, les autres dans l'ordre du groupe. */
+const herosMeneurDAbord = (etat: Jeu): Combatant[] => {
+  const meneur = meneurDuMonde(etat);
+  return meneur ? [meneur, ...etat.party.filter((h) => h !== meneur)] : etat.party;
+};
+
 const tranche = <T>(liste: readonly T[], n: number): { liste: T[]; enPlus: number } => ({ liste: liste.slice(0, n), enPlus: Math.max(0, liste.length - n) });
 
-/** L'aperçu du premier clic (`battle.preview`), `null` sans aperçu. */
+/** L'aperçu du premier clic (`battle.preview`), `null` sans aperçu ou pour une cible hors de vue pendant
+ *  `personneChoisie`. */
 export function apercuDe(etat: Jeu): Apercu | null {
   const a = etat.battle?.preview;
   if (!a) return null;
-  return 'targetId' in a
-    ? { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null }
-    : { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y, a.tile.z ?? 0], cout: 'cost' in a ? a.cost : null };
+  if ('targetId' in a) {
+    if (fenetreDuJeu(etat)?.etape?.kind === 'personneChoisie' && !porteurEnVue(etat, a.targetId)) return null;
+    return { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null };
+  }
+  return { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y, a.tile.z ?? 0], cout: 'cost' in a ? a.cost : null };
 }
 
 /** Une case que le champ peint au tour de l'actif : sa zone (`porteesDuTour`), la case, son coût. */
@@ -313,6 +364,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
   const mvt = b && actif ? mouvementDuTour(b, actif) : null;
   const jets = jetsEnVue(etat);
   const incantationMasquee = jets.some((j) => j.flux === 'incantation' && j.lignes.some((l) => l.etat === 'masque'));
+  const moment = dayPhase(etat.gameTime);
   const fenetreProjetee = fenetre && {
     ...fenetre,
     gestes: fenetre.gestes.filter((g) => !incantationMasquee || g.flux !== 'incantation'),
@@ -321,7 +373,10 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(fenetreProjetee) } : null,
+    temps: { date: toDate(etat.gameTime), moment: { id: moment.id, nom: moment.label } },
+    voyage: voyageEnVue(etat),
+    carte: carteEnVue(etat),
+    fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
     combat: b
       ? {
@@ -345,9 +400,9 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => ({ ...combattant(etat, h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
+          heros: herosMeneurDAbord(etat).map((h) => ({ ...combattant(etat, h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
+          entites: tranche(etat.scene.entities.filter((e) => !seMontreParLeMonde(etat.scene, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,

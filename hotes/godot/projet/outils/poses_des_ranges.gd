@@ -26,7 +26,10 @@ extends SceneTree
 const IMAGES_DE_MISE_A_JOUR := 2
 
 
+## Sans fenêtre qui dessine, Godot dort `OS.low_processor_usage_mode_sleep_usec` à chaque image (6,9 ms par défaut) :
+## le relevé, qui attend `IMAGES_DE_MISE_A_JOUR` images par instant, tourne sans ce sommeil (#4743).
 func _initialize() -> void:
+	OS.low_processor_usage_mode_sleep_usec = 0
 	_poser.call_deferred()
 
 

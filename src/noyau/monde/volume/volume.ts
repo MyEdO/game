@@ -20,9 +20,9 @@ import {
   type SceneDuVolume,
   type WallSeg,
   CHAMPS_DES_COURONNES,
-  CHAMPS_DES_TOITS,
+  CHAMPS_DU_BATI,
   type SceneDesCouronnes,
-  type SceneDesToits,
+  type SceneDuBati,
 } from '../scene';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { decorDuTerrain, terrainAbsent, terrainsAvecGlyphe } from '../terrain';
@@ -48,7 +48,7 @@ import { edgeKey, facadeEdges } from '../facades';
 import { WALL_H_M } from '../iso';
 import { biasPoly, centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, trianglesDuPolygone, trianglesOrientes, type Tri } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
-import { ornementsDuBati } from './ornements';
+import { ornementsDuBati, type OrnementDuBati } from './ornements';
 import { spaceCellKey } from './architectureVisibility';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
 import { memoByDeps, memoByRef, memoByRefDeps } from '../sceneMemo';
@@ -65,7 +65,7 @@ interface Provenance {
   /**
    * l'id de l'entité du navire dont les ponts posent ses faces (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) :
    * le monde la touche (`cases`, rayon du pointeur, marche de l'œil) sans la peindre (`VolumeDeScene._maillage_de`),
-   * le navire se montrant par son modèle (section « Corps d'un combattant », `navires`) ; ses décors n'en portent pas.
+   * le navire se montrant par son modèle (section « Corps d'un combattant », `coques`) ; ses décors n'en portent pas.
    */
   navire?: string;
   /**
@@ -101,7 +101,7 @@ interface SurfaceDuVolume extends Provenance {
   fin: number;
 }
 
-/** Une face listée du volume : sa case et sa couche, celle de sa teinte, et sa provenance. */
+/** Une face listée du volume : sa case et sa couche, et sa provenance. */
 interface FaceListee extends Provenance {
   face: Face;
   cell: { x: number; y: number; z: number };
@@ -191,7 +191,8 @@ export interface MorceauDuMonde extends GeometrieDuMonde {
  * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
  * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`decorDuTerrain`,
  * les arbres du bois), les entités `prop` de la scène et les ornements de son bâti (`ornementsDuBati`,
- * `src/noyau/monde/volume/ornements.ts` : décors de façade et d'identité de bâtiment) hors de ceux
+ * `src/noyau/monde/volume/ornements.ts` : décors de façade, souches des foyers à conduit et décors d'identité de
+ * bâtiment) hors de ceux
  * qu'une nappe porte (`PoseDeDecor.nappe`, dans leur nappe), à la couleur de leur matériau de décor
  * (matière `prop--<id>`).
  * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·
@@ -289,7 +290,7 @@ function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: rea
   for (const { faces: indices, ...surface } of parMatiere.values()) {
     const debut = positions.length / 3;
     for (const i of indices) {
-      const { face, cell, surLaCarte, quads, rangs } = faces[i];
+      const { face, surLaCarte, quads, rangs } = faces[i];
       if (surface.priseSeulement) {
         // Les faces de `buildPropVolumes` portent déjà leur orientation. `faceGeometry` suit la même triangulation.
         quads.quads.forEach((q, j) => {
@@ -299,15 +300,15 @@ function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: rea
         continue;
       }
       const m = face.material;
-      const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
-      const k = tintVarFactor(recetteDeMatiere(m), cell) / 255;
-      const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
+      const ton = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
+      const recette = recetteDeMatiere(m);
       for (const { sommets, normale } of trianglesOrientes(faceGeometry(face, mpt, quads, rangs), centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
         ajouterTriangle(sommets, surLaCarte);
-        for (const _ of sommets) {
+        for (const p of sommets) {
+          const k = tintVarFactor(recette, { x: arrondi(p.x), y: arrondi(p.y), z: arrondi(p.z) }) / 255;
           normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));
-          couleurs.push(...couleur);
+          couleurs.push(...ton.map((c) => arrondi(Math.min(1, c * k))), 1);
         }
       }
     }
@@ -373,7 +374,7 @@ export interface EtatDuVolume {
   readonly morceaux: ReadonlyMap<string, Readonly<{ faces: readonly FaceDuMorceau[]; morceau: MorceauDuMonde }>>;
 }
 
-/** Un décor posé dans le volume (`posesDuVolume`) : sa pose et la case de sa teinte (`FaceListee.cell`). */
+/** Un décor posé dans le volume (`posesDuVolume`) : sa pose et sa case (`FaceListee.cell`). */
 type PoseAuVolume = Readonly<{ pose: PoseDeDecor; cell: Case }>;
 
 /** Un décor posé : sa pose, la case de sa teinte, et ses faces (`facesDuDecor`). */
@@ -387,8 +388,9 @@ type DecorPose = PoseAuVolume & Readonly<{ faces: readonly Face[] }>;
 export interface PoseDeDecor {
   /**
    * son identité dans le monde : `entite/<id>` pour une entité `prop`, `terrain/<x,y,z>` de sa case pour le terrain,
-   * `architecture/<corps>:<section>:<ornement>` pour un ornement de façade et `ornement/<corps>:<masse>:<rang>`
-   * pour un ornement d'identité de bâtiment (`ornementsDuBati`, `OrnementDuBati.id`).
+   * `architecture/<corps>:<section>:<ornement>` pour un ornement de façade, `ornement/<corps>:<masse>:<rang>`
+   * pour un ornement d'identité de bâtiment et `souche/<entité>` pour la souche d'un foyer (`ornementsDuBati`,
+   * `OrnementDuBati.id`).
    */
   cle: string;
   /** l'id de son type de décor (`props.json`), celui que porte `decor` de ses surfaces. */
@@ -446,11 +448,14 @@ const poser = (
   return [{ pose: { cle: cle(surLaCarte), prop: resolu.prop.id, cap: resolu.cap, case: surLaCarte, ...a }, cell }];
 };
 
+/** Le préfixe de la clé de pose (`PoseDeDecor.cle`) d'un ornement du bâti, par sa source. */
+const PREFIXE_DE_CLE = { architecture: 'architecture', ornament: 'ornement', souche: 'souche' } as const satisfies Record<OrnementDuBati['source'], string>;
+
 /** Les ornements du bâti de `scene` qui portent un cap (`ornementsDuBati`), posés (`poser`), chacun sur sa nappe
  *  porteuse s'il en a une. PUR. */
-const posesDuBati = (scene: SceneDesToits): PoseAuVolume[] =>
+const posesDuBati = (scene: SceneDuBati): PoseAuVolume[] =>
   ornementsDuBati(scene).flatMap((o) => o.cap ? poser(scene, {
-    cle: () => `${o.source === 'architecture' ? 'architecture' : 'ornement'}/${o.id}`, ref: o.prop, facing: o.cap,
+    cle: () => `${PREFIXE_DE_CLE[o.source]}/${o.id}`, ref: o.prop, facing: o.cap,
     ancre: o.ancre, piedM: o.solM + o.sureleveM, cell: o.case, ...(o.nappe ? { nappe: o.nappe } : {}),
   }) : []);
 
@@ -726,7 +731,7 @@ export function retraitDuMonde(scene: Scene, activeZ?: number, couvercle?: Reado
 }
 
 /** Les dernières nappes de toit calculées, par la version des datasets (`versionDesDatasets`) et les champs de la
- *  scène qu'elles lisent (`CHAMPS_DES_TOITS`) et les ids triés des décors servis. */
+ *  scène que lisent les ornements du bâti qu'elles portent (`CHAMPS_DU_BATI`, ceux des toits compris) et les ids triés des décors servis. */
 const toitsRetenus = memoByDeps<NappeDuMonde[]>();
 const toitsParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
 
@@ -734,9 +739,9 @@ const toitsParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
  *  faces des ornements du bâti qu'elle porte (`posesDuBati`, `PoseDeDecor.nappe`) hors de `decorsServis`, et son
  *  empreinte. Mémoïsées par scène, version des datasets et contenu de `decorsServis` (`memoByRefDeps`). PUR. */
 export function toitsDuMonde(scene: Scene, decorsServis?: ReadonlySet<string>): NappeDuMonde[] {
-  const vue: SceneDesToits = scene;
+  const vue: SceneDuBati = scene;
   const selection = decorsServis ? [...decorsServis].sort() : [];
-  return toitsParScene(scene, selection, () => toitsRetenus([versionDesDatasets(), ...CHAMPS_DES_TOITS.map((c) => vue[c]), ...selection], () => {
+  return toitsParScene(scene, selection, () => toitsRetenus([versionDesDatasets(), ...CHAMPS_DU_BATI.map((c) => vue[c]), ...selection], () => {
     const parNappe = new Map<string, FaceListee[]>();
     for (const el of buildRoofs(vue)) {
       const cle = nappeKey(el.bodyId!, el.sectionId!);

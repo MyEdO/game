@@ -206,11 +206,12 @@ func lieu(case: Vector2i, z := 0) -> Vector3:
 	return MiseEnPage.point_de_la_carte(station.x, station.y, sol(case, z))
 
 
-## Les stations des navires servis (`navires`, `vue.corps.navires`, chacun ses `stations`), à la place des précédentes.
-func poser_les_stations(navires: Dictionary) -> void:
+## Les stations des navires servis parmi les coques `coques` (`vue.corps.coques`, un navire posé par ses ponts portant
+## ses `stations`), à la place des précédentes.
+func poser_les_stations(coques: Dictionary) -> void:
 	_stations = {}
-	for id: String in navires:
-		for s: Dictionary in navires[id].stations:
+	for id: String in coques:
+		for s: Dictionary in coques[id].get("stations", []):
 			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
@@ -614,7 +615,7 @@ func _zoomer(sens: float) -> void:
 ## d'une brèche. Il habille de même chaque côté de marches (`cotesDeMarches`) de chacune de ses pièces, celle du modèle
 ## `escalier--<kit>` servi pour sa famille (`escaliers` de `modeles`), étirée à la longueur du côté, à la hauteur du
 ## modèle, son milieu à la cote du milieu du côté, cisaillée de `entree` à `sortie` le long de son sens, ses montants
-## verticaux (`MiseEnPage.pente_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
+## verticaux (`MiseEnPage.gradient_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
 ## et les pièces des côtés de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe
 ## d'instances, retirées par leur clé (`plateau.aretesDegagees`).
 
@@ -663,10 +664,10 @@ func _zoomer(sens: float) -> void:
 ## une flottaison sans collision du monde. Sans plaque offerte rencontrée, le rayon touche le volume comme à
 ## l'ordinaire (recette `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau de sa texture, `projet/textures/<matiere>.jpg`, et de son
-## relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; celle d'une
-## nappe de toit ou d'une couronne, de sa texture neutre, `<matiere>.neutre.jpg`, teinte par la couleur de ses sommets,
-## et de son relief, projetés sur le plan de chaque face, les rangs le long de son horizontale (recette
+## Le shader de monde rend chaque surface vue de sa texture neutre, `projet/textures/<matiere>.neutre.jpg`, teinte par la
+## couleur de ses sommets, ou à défaut de sa texture, `<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg` : ceux
+## d'un morceau projetés sur les trois axes du volume, un motif tous les deux mètres, ceux d'une nappe de toit ou d'une
+## couronne sur le plan de chaque face, les rangs le long de son horizontale (recette
 ## `projet/recettes/nappe-texturee.gd`) ; une matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
 ## `projet/textures/provenance.json` (dossier épinglé, `asset/epingles.ts`).
 ##

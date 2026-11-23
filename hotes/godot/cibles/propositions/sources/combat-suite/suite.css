@@ -2,48 +2,36 @@
 
 /* la carte funeste */
 .plaque.carte.funeste .n{color:#f0a48e}
-.parchemin .pas i{background:linear-gradient(135deg,#6a3d1c,#2a160a);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.5)}
-.parchemin .pas i.vide{background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.6)}
-.pas.cire i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}
-.pas.petit i{width:11px;height:11px}
-.pas.petit{gap:8px;margin:0}
 
 /* la surincantation : le sort, les pas à répartir par axe, les cibles désignées */
 #verdict.surinc{display:grid;grid-template-columns:1fr 236px;column-gap:16px;height:116px;padding:0 14px 0 16px;text-align:left}
-.surinc .sort .dr{font-size:32px}
+.surinc .sort .sous-titre{margin-bottom:4px}
 .surinc .sort p{margin-top:4px}
 .axes .t{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420;padding-bottom:0;border-bottom:1px solid rgba(60,40,20,.4);margin-bottom:3px}
-.axes .t b{font-size:18px;line-height:24px;color:#3a1a10;white-space:nowrap}
+.axes .t .nom-propre{white-space:nowrap}
 .axe{display:grid;grid-template-columns:62px 44px 1fr 46px;align-items:center;height:20px;font-size:12.5px;color:#2a1d12}
 .axe em{grid-column:2/5;font-size:12.5px;color:#8a7a5c}
 .axe b{font-family:"Fell SC";font-weight:400;font-size:14px;text-align:right;padding-right:10px}
 .axe.ferme{color:#8a7a5c}
 .cibles-du-sort{display:flex;flex-direction:column;gap:9px;padding-left:16px}
 .c-s{display:flex;flex-direction:row-reverse;align-items:center;gap:11px;text-align:right}
-.c-s .n{font-size:18px;line-height:20px;color:#3a1a10;white-space:nowrap}
-.c-s .c{font-size:11.5px;color:#4a3420;white-space:nowrap}
+.c-s .nom-propre{white-space:nowrap}
+.c-s .sous-titre{white-space:nowrap}
 
 
 /* une table tirée, dans le gabarit du coup critique */
-.camp.lanceur .c{color:#7c1f14}
 .tete-c{display:flex;align-items:center;gap:22px}
 .tirage{display:flex;align-items:center;gap:10px;font-size:12px;line-height:15px;color:#5a2a12}
 #critique p.note{font-style:italic;font-size:14px;line-height:19px;color:#4a3420;margin-top:3px}
 
 /* l'exposition à la Corruption : qui, quelle nature, ce que le Test décide */
 .expose .points{margin-top:14px;width:196px}
-.points .l,.enjeu>.l{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420}
-.points .l b{font-weight:400;font-size:14px;color:#2a1d12}
-.points .pas{margin-top:9px;margin-left:5px;gap:13px}
+.points .pas{margin-left:5px}
 .deux{display:flex;gap:12px;margin-top:8px}
 
 /* ce qu'un Test décide, la ligne que le dé désigne */
 .enjeu{padding-left:22px}
-.enjeu table{border-collapse:collapse;width:100%;margin-top:6px;font-size:14px;line-height:21px;color:#2a1d12}
-.enjeu td{padding:1px 0;border-top:1px solid rgba(60,40,20,.28)}
-.enjeu tr:first-child td{border-top:0}
-.enjeu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
-.enjeu tr.tombee td{color:#7c1f14;font-weight:600}
+.enjeu table{margin-top:6px}
 
 /* la relance : le premier jet reste lisible */
 .relance{color:#5a2a12;white-space:nowrap}

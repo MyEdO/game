@@ -44,6 +44,32 @@ describe('Flexible — superposition (LDB 63 : « les bénéfices des deux »)',
   });
 });
 
+describe('Cuir souple — couche sous toute autre armure (LDB 63 l.60, l.74 ; #4820)', () => {
+  const souple = (pa = 1): ItemInstance => ({ ...piece('Justaucorps de cuir', pa, ['corps']), subType: 'cuir-souple' });
+  const mailles = (pa = 2): ItemInstance => piece('Chemise de mailles', pa, ['corps'], ['Flexible']);
+  const plates = (pa = 3): ItemInstance => piece('Plastron', pa, ['corps']);
+  it('cuir souple + mailles + plates → PA des trois couches cumulés', () => {
+    expect(wornArmourPoints([souple(), mailles(), plates(2)]).corps).toBe(5);
+  });
+  it('cuir souple + plates → PA cumulés', () => {
+    expect(wornArmourPoints([souple(), plates(2)]).corps).toBe(3);
+  });
+  it('cuir souple + mailles → PA cumulés', () => {
+    expect(wornArmourPoints([souple(), mailles()]).corps).toBe(3);
+  });
+  it('deux pièces de cuir souple → seule la meilleure compte', () => {
+    expect(wornArmourPoints([souple(1), souple(2)]).corps).toBe(2);
+  });
+  it('Partielle sur la couche rigide → seule sa pièce est ignorée, le cuir souple reste', () => {
+    const c = wearer([souple(), { ...plates(2), qualities: [parseQualityInstance('Partielle')!] }]);
+    expect(ignoredArmourAP(c, 'corps', { roll: 44, critical: false, empaleuse: false })).toBe(2);
+  });
+  it('Points faibles sur le cuir souple → seul son PA est ignoré sur Critique Empaleuse', () => {
+    const c = wearer([{ ...souple(), qualities: [parseQualityInstance('Points faibles')!] }, plates()]);
+    expect(ignoredArmourAP(c, 'corps', { roll: 44, critical: true, empaleuse: true })).toBe(1);
+  });
+});
+
 describe('Partielle — PA ignorés sur jet PAIR ou Coup Critique (LDB 63)', () => {
   const c = wearer([piece('Calotte de cuir', 1, ['tete'], ['Partielle'])]);
   it('jet pair → PA de la pièce ignorés', () => {

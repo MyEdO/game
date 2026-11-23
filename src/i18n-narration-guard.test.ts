@@ -379,8 +379,6 @@ export function narrationCount(raw: string): number {
  */
 const STOCK_FORMES_TARDIVES: EntreeDeSite[] = [
   { fichier: 'src/engine/character.ts', ref: 'affectation:`Talent de carrière « ${refKey(talentId, spec)} »`', occurrence: 1 },
-  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à incanter ${spell.label}.`', occurrence: 1 },
-  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à focaliser ${spell.label}.`', occurrence: 1 },
   { fichier: 'src/engine/miscast.ts', ref: 'return:\'Colère des dieux\'', occurrence: 1 },
   { fichier: 'src/engine/miscast.ts', ref: 'affectation:` [appliqué]`', occurrence: 1 },
   { fichier: 'src/engine/tables.ts', ref: 'return:`${borne(bas)} à ${borne(haut)}`', occurrence: 1 },
@@ -392,7 +390,6 @@ const STOCK_FORMES_TARDIVES: EntreeDeSite[] = [
   { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] pilote immédiat allé au bout avec des bornes collectées (${perdues.join(\', \')}) — `', occurrence: 1 },
   { fichier: 'src/noyau/combatFlow.ts', ref: 'affectation:`[combat] défense déjà ouverte : ${attacker.label} déclare une frappe sur ${target.label} `', occurrence: 1 },
   { fichier: 'src/noyau/jetsEnVue.ts', ref: 'return:\'Prière\'', occurrence: 1 },
-  { fichier: 'src/noyau/landMarketFlow.ts', ref: 'affectation:`${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? \'p', occurrence: 1 },
   { fichier: 'src/noyau/mapSpec.ts', ref: 'affectation:`arête (${seg.x},${seg.y},${seg.side}) z${seg.z ?? 0}`', occurrence: 1 },
   { fichier: 'src/noyau/monde/seating.ts', ref: 'affectation:`Héros ${rang}`', occurrence: 1 },
   { fichier: 'src/noyau/ligneDeJet.ts', ref: 'affectation:`[seam] rollLine : la combinaison plafonnée (${combine}) n\'est pas séparable — circonstances ${circC', occurrence: 1 },

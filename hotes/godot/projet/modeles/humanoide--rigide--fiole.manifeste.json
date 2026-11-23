@@ -11,7 +11,8 @@
   "surfaces": [
     {
       "nom": "fiole",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--verre-opaque"
     },
     {
       "nom": "bouchon",
@@ -20,7 +21,7 @@
     }
   ],
   "glb": {
-    "sha256": "8a9294dec1cf6fefa501bcfbc8865e710d065dcbcd76d406a1d110f244175cb9",
-    "octets": 65864
+    "sha256": "e9e0ce40ba67b892ebe9a8c869d1f0857be7c6486e7a81ab989de29bda40e613",
+    "octets": 65912
   }
 }

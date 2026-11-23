@@ -128,8 +128,8 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
       const vigie = marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
       const be = 3; // Endurance 31 → BE 3
       const lignes = [
-        ...applyOps(gabier, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }),
-        ...applyOps(vigie, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }),
+        ...applyOps(gabier, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes,
+        ...applyOps(vigie, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes,
       ];
       const metres = lignes.map((l) => Number(/chute de (\d+) m/.exec(l)![1]));
       expect(metres[0], `seed ${seed} : gréement = 2d10 m`).toBeGreaterThanOrEqual(2);
@@ -212,7 +212,7 @@ describe('l’op `fall` NOMME ses anomalies (règle 7 : jamais un repli muet)', 
 
   it('hors contexte de coque : anomalie nommée, jamais une chute de 0 m', () => {
     const c = cible();
-    expect(() => applyOps(c, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1) })).toThrow(/aucune Taille de coque/);
+    expect(() => applyOps(c, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toThrow(/aucune Taille de coque/);
     expect(c.wounds.current, 'rien n’a été appliqué en douce').toBe(200);
   });
 
@@ -222,7 +222,7 @@ describe('l’op `fall` NOMME ses anomalies (règle 7 : jamais un repli muet)', 
     expect(tables.some((table) => table.id === 'tomberDuGreement')).toBe(true);
     setEnTete('shipCriticalsCoque', [{ ancetre: '', champ: 'tablesDeChute', valeur: [] }]);
     try {
-      expect(() => applyOps(cible(), ops, { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }))
+      expect(() => applyOps(cible(), ops, { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }).lignes)
         .toThrow(/table de hauteur inconnue.*tomberDuGreement/);
     } finally {
       setEnTete('shipCriticalsCoque', [{ ancetre: '', champ: 'tablesDeChute', valeur: tables }]);
@@ -231,9 +231,9 @@ describe('l’op `fall` NOMME ses anomalies (règle 7 : jamais un repli muet)', 
 
   it('station sans colonne de hauteur : anomalie nommée', () => {
     const pontier = marin('pontier', { shipStation: 'pont' } as Partial<Combatant>);
-    expect(() => applyOps(pontier, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
+    expect(() => applyOps(pontier, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }).lignes).toThrow(/colonne de hauteur/);
     const sansStation = marin('sans-station');
-    expect(() => applyOps(sansStation, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
+    expect(() => applyOps(sansStation, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(1), hull: MOYENNE }).lignes).toThrow(/colonne de hauteur/);
   });
 });
 

@@ -207,11 +207,12 @@ def construire(D, P):
     N.nappe(coque, rangs, "rayure", None, uvs)
 
     # un seul volume (bordé, rouf, plates-formes, passerelle), creusé de la cale, des cabines et des écoutilles
-    solides = [objet(nom, m, (0, 0, 0), 35) for nom, m in (("bordage", bordage), ("bloc", bloc), ("maison", maison),
+    lissage = D["ANGLE_LISSE"]
+    solides = [objet(nom, m, (0, 0, 0), lissage) for nom, m in (("bordage", bordage), ("bloc", bloc), ("maison", maison),
                                                             ("plates-formes", plates), ("passerelle", passerelle))]
-    solide = N.fondre(solides, objet("interieurs", interieurs, (0, 0, 0), 35))
-    N.reunir(objet("coque", coque, (0, 0, 0), 35), [solide])
-    objet("mat", mat, pied, 35)
+    solide = N.fondre(solides, objet("interieurs", interieurs, (0, 0, 0), lissage))
+    N.reunir(objet("coque", coque, (0, 0, 0), lissage), [solide], lissage)
+    objet("mat", mat, pied, lissage)
 
     gltf = lambda x, yy, z: [round(x, 3), round(z, 3), round(-yy, 3)]  # noqa: E731
     return {"postes": {bord: [gltf(*p) for p in positions] for bord, positions in postes.items()},

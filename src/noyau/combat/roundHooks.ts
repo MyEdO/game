@@ -48,6 +48,7 @@ import type { Get } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
+import { nomDe } from '../../engine/nom';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`sortProlongeTest`) et du libellé de son choix (`opt.tenterProlonger`). */
@@ -71,7 +72,7 @@ function aaBleedUnconsciousDue(c: Combatant): boolean {
 function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null {
   if (success) return null; // reste conscient (À Terre)
   poserInconscientDeSaignement(c);
-  return t('cond.hemorragieInconscient', { name: c.label });
+  return t('cond.hemorragieInconscient', { name: nomDe(c) });
 }
 /** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
  *  inactive (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
@@ -87,7 +88,7 @@ function fatigueApply(c: Combatant, success: boolean, sl: number): string | null
   }
   addCondition(c, COND.extenue);
   c.effortRounds = 0;
-  return t('turn.exhausted', { name: c.label });
+  return t('turn.exhausted', { name: nomDe(c) });
 }
 
 // ============================================================================================
@@ -192,13 +193,13 @@ export const TABLES = {
       if (!hero || !step.result) return;
       const line = fatigueApply(hero, step.result.success, step.result.sl);
       set(touchActors(get()));
-      return { consequences: freeCons([line ?? t('turn.effortHeld', { name: hero.label })]) };
+      return { consequences: freeCons([line ?? t('turn.effortHeld', { name: nomDe(hero) })]) };
     },
     hemorragieInconscient: (get, set, step, hero) => {
       if (!hero || !step.result) return;
       const line = aaBleedUnconsciousApply(hero, step.result.success);
       set(touchActors(get()));
-      return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: hero.label })]) };
+      return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: nomDe(hero) })]) };
     },
     /** Étape de CHOIX « Durée + » (LDB 47 l.311, #543) — « vous POUVEZ effectuer un Test de Force Mentale » :
      *  sur Oui, pousse le Test dans la MÊME cascade (`sortProlongeTest`, réappendu = `liveMerge`) ; sur Renoncer
@@ -252,7 +253,7 @@ export const TABLES = {
         const { forgerUnId, campaignNarratif } = get();
         const resolveTrapping = objetDuNarratif(campaignNarratif);
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng(), forgerUnId, undefined, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), forgerUnId, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher
@@ -293,7 +294,7 @@ export const TABLES = {
         for (const c of battle.combatants) {
           if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
           const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
-          if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: c.label }), c); }
+          if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: nomDe(c) }), c); }
         }
         battle.windsOfMagic = { roll, mod, revealed };
       },
@@ -358,7 +359,7 @@ export const TABLES = {
           const surnombre = surnombreSubi(battle.combatants, c);
           if (!surnombre) continue;
           c.advantage = avantageApresPerte(c.advantage, 1);
-          sink(t('turn.outnumbered', { name: c.label, foes: surnombre.attaquants, allies: surnombre.defenseurs }), c);
+          sink(t('turn.outnumbered', { name: nomDe(c), foes: surnombre.attaquants, allies: surnombre.defenseurs }), c);
         }
       },
     },

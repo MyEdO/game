@@ -97,8 +97,8 @@ function jetteLeDe(get: () => Jeu, cur: CascadeStep, poser?: PoseDe): void {
 /**
  * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est LANCÉE (bande → chaque rangée non
  * roulée ; table ou dé nu → son dé ; jet → son dé — chacun POSÉ par `poser` s'il le fixe), TRANCHÉE
- * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE ; une Maladresse se tire et s'applique par les verbes
- * de son flux (`jetLancer('maladresse')`, `jetValider('maladresse')`). Rend le `kind` de l'étape jouée
+ * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE ; une Maladresse ou un Test de scène se tire et
+ * s'applique par les verbes de son flux (`jetLancer(jet)`, `jetValider(jet)`). Rend le `kind` de l'étape jouée
  * (`undefined` si aucune cascade active).
  *
  * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
@@ -114,9 +114,9 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
-  if (cur?.jet === 'maladresse') {
-    get().jetLancer('maladresse');
-    get().jetValider('maladresse');
+  if (cur?.jet === 'maladresse' || cur?.jet === 'test') {
+    get().jetLancer(cur.jet);
+    get().jetValider(cur.jet);
     return cur.kind;
   }
   if (cur) {

@@ -16,9 +16,9 @@ const NAVIRE: Omit<VehicleData, 'id'> & { id: string } = {
   label: 'Voilier d’essai',
   icon: 'voyage/navire-a-voile',
   source: { book: 'mer-des-griffes', page: 93 },
-  hull: { char: { endurance: 45, B: 50 }, bodyShape: 'vehicule', propulsion: 'maritime' },
+  hull: { char: { endurance: 45, B: 50 }, bodyShape: 'vehicule', propulsion: 'maritime', footprint: 3 },
   ship: {
-    crew: 15, manoeuvre: 0, lengthM: 25, footprint: 3, capacity: 300,
+    crew: 15, manoeuvre: 0, lengthM: 25, capacity: 300,
     sail: { m: 5, crew: 8, spec: 'cogue' }, traits: [],
   },
 };

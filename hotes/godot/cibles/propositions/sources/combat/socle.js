@@ -10,14 +10,14 @@ const losange = (x, y, a = A, b = B) => `M${x},${y - b}L${x + a},${y}L${x},${y +
 /* ───────── les gabarits de l'écran ───────── */
 /* `etats` : les États que porte le combattant (`etatPorte`), sous sa barre ; l'actif et le lu sont choisis */
 const combattant = (genre, camp, nom, pv, max, classe = '', etats = '') => rang(genre, {
-  camp, nom, classe, gothique: classe.includes('actif'), choisi: /actif|lu/.test(classe),
+  camp, nom, classe, gothique: classe.includes('actif') ? 'petit' : '', choisi: /actif|lu/.test(classe),
   taille: classe.includes('actif') ? 'grand' : classe.includes('fantome') ? 'petit' : 'moyen',
   corps: `${classe.includes('fantome') ? '' : `<div class="ligne">${vie(pv, max)}<span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}`,
 });
-const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre">Round ${n}</span><i></i></div>`;
+const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre">Round ${n}</span>${filet({ fondu: true })}</div>`;
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 /* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme')}</div>`;
-const mesure = (nom, valeur, teinte = 'cire') => { const [a, b] = valeur.split(' / '); return `<div class="mesure"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div>${jauge(a / b, { teinte, taille: 'forte' })}</div>`; };
+const mesure = (nom, valeur, teinte = 'cire') => { const [a, b] = valeur.split(' / '); return ligne({ libelle: nom, valeur, variante: 'mesure', format: 'nombre', dessous: jauge(a / b, { teinte, taille: 'forte' }) }); };
 // Partagé avec les scripts de page chargés après celui-ci.
 Object.assign(globalThis, { P, losange, combattant, borne, vieux, neuf, borneJ, SYSTEME, mesure });

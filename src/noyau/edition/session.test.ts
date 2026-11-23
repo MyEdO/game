@@ -568,7 +568,7 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect(ouverture(habillee).appearance).toBe(apparence.id);
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { apparence: null } }))).toBe(false);
     expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
-    const decor = (['chimney', 'sign', 'belfry'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
+    const decor = (['sign', 'belfry', 'faitage'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
   });
 });

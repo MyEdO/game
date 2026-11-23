@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
+import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy } from './spawn';
+import { entiteFootTiles, entitySize, footprintN, footprintTiles } from './footprint';
 import { weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { buildWeapon, laisserTomber, piecesPorteesA, recomputeLoadout, weaponFromItem } from '../../engine/items';
@@ -618,6 +619,21 @@ describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
     const c = spawnEnemy({ engin: 'baliste' }, 'bal1', at);
     expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
+  });
+});
+
+describe('entiteFootTiles : un corps de scène tient les cases de son combattant (#2987, #4471)', () => {
+  const pos = { x: 3, y: 4 };
+  it.each([
+    ['diligence', { vehicule: { id: 'diligence' } }, 2],
+    ['caraque', { vehicule: { id: 'caraque' } }, 4],
+    ['chaise', { vehicule: { id: 'chaise' } }, 1],
+    ['belier-ade2', { engin: { id: 'belier-ade2' } }, 2],
+    ['humain', { creature: { id: 'humain' } }, 1],
+  ] as const)('%s : le carré de son côté, ancré à sa case, celui de sa fiche', (id, corps, cote) => {
+    const ent: SceneEntity = { id, kind: 'personnage', pos, ...corps };
+    expect(entiteFootTiles(ent, 2)).toEqual(footprintTiles(pos, cote));
+    expect(entiteFootTiles(ent, 2)).toEqual(footprintTiles(pos, footprintN(ficheDEntite(ent, () => undefined))));
   });
 });
 

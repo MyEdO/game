@@ -29,7 +29,6 @@ import {
   corruptionThresholdExceeded,
   corruptionGain,
   recoitLaCorruption,
-  type ExposureLevel,
   mutationLimitExceeded,
   attachMutation,
   type ChaosAlign,
@@ -50,6 +49,8 @@ import type { PendingCascade, PendingCorruption, PendingMutationStep } from './p
 import { rule } from '../engine/policy';
 import { testValue } from '../engine/skills';
 import { ligneDExposition, type OpsCtx } from '../engine/ops';
+import { emettreDans, type Applique, type FaitDeCorruption } from '../engine/faits';
+import { campOf } from '../engine/relations';
 import { nomDe } from '../engine/nom';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { pushReveal } from './combatEffects';
@@ -120,41 +121,57 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
       const tst = rollSansPilote(get, cible, testValue(cible, test), test.difficulty, battleRng());
       return [
         traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
-        ...denouementDExposition(get, set, cible, level, tst.success, tst.sl),
+        ...denouementDExposition(get, set, cible, corruptionGain(level, tst.success, tst.sl)),
       ];
     },
   };
 }
 
-/** DÉNOUEMENT d'un Test d'Exposition joué : les Points dus selon le niveau et le DR, puis le seuil
+/** DÉNOUEMENT d'un Test d'Exposition joué : les `gain` Points dus (`corruptionGain`), puis le seuil
  *  (`gainCorruption`). Partagé par la modale (`resolveCorruptionPending`) et le Test sans siège. LDB 19 l.35 ;
  *  LDB 19 l.48 ; LDB 19 l.58 */
-function denouementDExposition(get: Get, set: Set, hero: Combatant, level: ExposureLevel, success: boolean, sl: number, align?: ChaosAlign): string[] {
-  const gain = corruptionGain(level, success, sl);
-  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: hero.label })]))];
-  return gainCorruption(get, set, hero, gain, align);
+function denouementDExposition(get: Get, set: Set, hero: Combatant, gain: number, align?: ChaosAlign): string[] {
+  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: nomDe(hero) })]))];
+  return gainCorruption(get, set, hero, gain, align).lignes;
+}
+
+/** Les Points que doit le Test d'Exposition jeté de la fenêtre `pc` (`corruptionGain`) ; 0 pour un Test de seuil. LDB 19
+ *  l.35 ; LDB 19 l.48 ; LDB 19 l.58 */
+export function gainDeLExposition(pc: PendingCorruption): number {
+  return pc.kind === 'seuil' || pc.roll == null ? 0 : corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
+}
+
+/** Le fait du gain de `n` Points de Corruption par `hero` sur l'état `s`, sans rien appliquer : aucun pour qui ne la
+ *  reçoit pas (LDB 19 l.29, l.70), écarté sous la protection d'une Zone `noCorruption` (LDB 48 l.393), sinon `n` Points
+ *  et le total qu'ils portent. Lu par `gainCorruption` et par la fenêtre qui le prévoit. */
+export function faitDuGainDeCorruption(s: Pick<Jeu, 'battle'>, hero: Combatant, n: number): FaitDeCorruption | null {
+  if (!recoitLaCorruption(hero)) return null;
+  const pos = hero.pos;
+  if (n > 0 && pos && (s.battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, pos))) {
+    return { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: 0, contre: 'protection' };
+  }
+  return { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: n, total: (hero.corruption ?? 0) + n };
 }
 
 /**
  * Ajoute `n` Points de Corruption à `hero`, applique seuil → mutation → limites.
  * Mute le héros EN PLACE (l'appelant pousse le patch de re-rendu) et renvoie les
- * lignes de journal. La révélation (dés du Test/de la table) est poussée en étape d'AFFICHAGE de
+ * lignes de journal et le fait de Corruption. La révélation (dés du Test/de la table) est poussée en étape d'AFFICHAGE de
  * la séquence en cours (`pushReveal` — jet SUBI, montré puis acquitté).
  */
-export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): string[] {
-  if (!recoitLaCorruption(hero)) return [];
+export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): Applique {
+  const sortie: Applique = { lignes: [], faits: [] };
+  const fait = faitDuGainDeCorruption(get(), hero, n);
+  if (!fait) return sortie;
   const rng = battleRng();
-  const lines: string[] = [];
-  // Protection de Phâ (LDB 48 l.393) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
-  if (n > 0 && hero.pos && (get().battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, hero.pos!))) {
-    return [t('cor.phaWard', { name: hero.label })];
-  }
-  hero.corruption = (hero.corruption ?? 0) + n;
-  lines.push(t('cor.gain', { name: hero.label, n, s: n > 1 ? 's' : '', total: hero.corruption }));
+  const lines = sortie.lignes;
+  emettreDans(sortie, hero, fait);
+  if ('contre' in fait) return sortie;
+  hero.corruption = fait.total;
 
   // Seuil « Corrompu » (LDB 19 l.70) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), le Test de la fiche
   // `corrompu` ; succès = contenu « pour cette fois », échec = mutation.
-  if (!corruptionThresholdExceeded(hero)) return lines;
+  if (!corruptionThresholdExceeded(hero)) return sortie;
   const test = testDeRegle('corrompu', 'contenir');
   // « Un jet = une modale » : dès qu'un siège humain TIENT le porteur (`tenuParUnHumain`, #1426 — la
   // SURFACE, pas l'affordance locale : le héros d'un AUTRE siège tient sa propre fenêtre), le Test du
@@ -162,23 +179,23 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // résolu dans `resolveCorruptionPending` (succès = contenu ; échec = « Je te renie ! »/mutation —
   // les DEUX fenêtres partent de là).
   if (tenuParUnHumain(get(), hero.id)) {
-    lines.push(t('cor.threshold', { name: hero.label, de: deElide(refLabel('skills', test.skill)) }));
+    lines.push(t('cor.threshold', { name: nomDe(hero), de: deElide(refLabel('skills', test.skill)) }));
     // `menace: 'mutation'` : l'échec du Test de seuil fait MUTER (LDB 19 l.70) → c'est le Test qui « résiste
     // à la Mutation » du talent Résistance (Menace), LDB 10 l.1016-1020.
     const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', test, align, menace: 'mutation' };
     poseCorruptionPending(get, set, seuil);
-    return lines;
+    return sortie;
   }
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
   const tst = rollSansPilote(get, hero, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
-    lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
-    return lines;
+    lines.push(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
+    return sortie;
   }
   lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align));
-  return lines;
+  return sortie;
 }
 
 // ---------------------------------------------------------------------------
@@ -302,7 +319,7 @@ function finishMutation(
   // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).
   lines.push(resultLine(freeCons([
-    t('cor.mutates', { name: hero.label, label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),
+    t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),
   ])));
   if (m.note) lines.push(t('cor.mutationNote', { label: m.label, note: m.note }));
 
@@ -311,7 +328,7 @@ function finishMutation(
   if (mutationLimitExceeded(hero)) {
     hero.damned = true;
     hero.dead = true;
-    lines.push(t('cor.damned', { name: hero.label }));
+    lines.push(t('cor.damned', { name: nomDe(hero) }));
   }
   if (tenuParUnHumain(get(), hero.id))
     pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id });
@@ -330,7 +347,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const lines: string[] = [];
   if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
-    lines.push(t('cor.renounced', { name: hero.label }));
+    lines.push(t('cor.renounced', { name: nomDe(hero) }));
     pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
@@ -374,9 +391,9 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
     } else if ((hero.resilience ?? 0) > 0) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: nomDe(hero) })])));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
       for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);
@@ -385,7 +402,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     return;
   }
   // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
-  for (const l of denouementDExposition(get, set, hero, pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0, pc.align)) get().ecrireAuJournal(l);
+  for (const l of denouementDExposition(get, set, hero, gainDeLExposition(pc), pc.align)) get().ecrireAuJournal(l);
   set({ ...touchActors(get()) });
 }
 

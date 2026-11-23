@@ -36,11 +36,17 @@ def coup(t, temps):
     return montee(t / m) if t < m else 1.0 if t < m + h else 1 - lisse((t - m - h) / r)
 
 
-def rouler(rayon, roues):
-    """Le clip de déplacement d'un engin aux `roues` de `rayon` : un tour de roue à `VITESSE`, en boucle."""
-    duree = 2 * math.pi * rayon / VITESSE
-    f = lambda t: ((0, 0, 0), (2 * math.pi * t / duree, 0, 0))
-    return ("marche", "marche", duree, {n: f for n in roues})
+def rouler(roues):
+    """Le clip de déplacement d'un engin aux `roues` {nœud: (rayon, tours par boucle)} : chaque roue roule sans glisser
+    à `VITESSE`, la boucle durant le chemin que toutes parcourent, tours × circonférence. Lève `ValueError` si deux
+    roues n'ont pas le même chemin."""
+    chemins = {n: 2 * math.pi * tours * rayon for n, (rayon, tours) in roues.items()}
+    chemin = next(iter(chemins.values()))
+    if any(not math.isclose(c, chemin) for c in chemins.values()):
+        raise ValueError(f"rouler : chemins par boucle inégaux {chemins}")
+    duree = chemin / VITESSE
+    return ("marche", "marche", duree,
+            {n: (lambda t, rayon=rayon: ((0, 0, 0), (chemin * t / duree / rayon, 0, 0))) for n, (rayon, _) in roues.items()})
 
 
 def cahoter(noeuds):
@@ -50,14 +56,14 @@ def cahoter(noeuds):
     return ("marche", "marche", duree, {n: f for n in noeuds})
 
 
-def tirer(T, temps, glisse, pieces, roues=(), rayon=1.0):
+def tirer(T, temps, glisse, pieces, roues={}):
     """Le clip `tir` d'une pièce à feu aux `temps` (`coup`) de la table `T` : `recul` (m, vers l'arrière) de `glisse`,
-    des `pieces` et des `roues` de `rayon`, tournées à rebours ; `ressaut` (degrés, bouche levée) des `pieces` ; le nœud
-    `tourne` des `pieces`, un barillet, fait `tours` tours sur son axe y."""
+    des `pieces` et des `roues` (celles de `rouler`), chacune tournée à rebours de ce recul sur son rayon ; `ressaut`
+    (degrés, bouche levée) des `pieces` ; le nœud `tourne` des `pieces`, un barillet, fait `tours` tours sur son axe y."""
     duree = sum(temps)
     recul = lambda t: T["recul"] * coup(t, temps)
     pistes = {n: lambda t: ((0, recul(t), 0), (0, 0, 0)) for n in glisse}
-    pistes |= {n: lambda t: ((0, recul(t), 0), (-recul(t) / rayon, 0, 0)) for n in roues}
+    pistes |= {n: lambda t, rayon=rayon: ((0, recul(t), 0), (-recul(t) / rayon, 0, 0)) for n, (rayon, _) in roues.items()}
     for n in pieces:
         tour = 2 * math.pi * T.get("tours", 0) if n == T.get("tourne") else 0.0
         pistes[n] = lambda t, tour=tour: ((0, recul(t), 0), (-math.radians(T["ressaut"]) * coup(t, temps), tour * lisse(t / duree), 0))

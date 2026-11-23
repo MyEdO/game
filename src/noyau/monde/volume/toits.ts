@@ -586,8 +586,8 @@ export function roofPans(
   //    (le débord PROLONGE la nappe vers l'extérieur, en CONTINUANT sa pente → son bord extérieur descend
   //    de `overhang` × la pente du pan sous l'égout) + une FASCIA verticale pendant sous ce bord. ADDITIF :
   //    posé APRÈS le pavage et la fusion, il ne perturbe pas les pans. Un égout est
-  //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, opposée au
-  //    centroïde de l'empreinte) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
+  //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, vers la case hors
+  //    du domaine) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
   //    Les bouts sont prolongés d'`overhang` LE LONG de l'égout, à sa pente (nulle sur un égout, celle du
   //    rampant sur une rive de pignon, dont le débord reste ainsi dans le plan de son pan) : aux angles
   //    convexes, deux soffites/fascias voisins se RECOUVRENT (même ton) au lieu de laisser un trou — coin
@@ -595,9 +595,6 @@ export function roofPans(
   //    pignon, où ses deux rampants se rejoignent en chevron) ne se prolonge pas.
   if (eave && eave.overhang > EPS) {
     const e = eave.overhang;
-    let cX = 0, cY = 0;
-    for (const k of cells) { const [x, y] = k.split(',').map(Number); cX += x; cY += y; }
-    cX /= cells.size; cY /= cells.size; // centroïde d'empreinte (repère GP : centre de cellule = (cx,cy))
     const continue_ = (s: { a: GP; b: GP }, p: GP): boolean => egouts.some((o) => o !== s
       && ((o.a.x === p.x && o.a.y === p.y) || (o.b.x === p.x && o.b.y === p.y))
       && Math.abs((o.b.x - o.a.x) * (s.b.y - s.a.y) - (o.b.y - o.a.y) * (s.b.x - s.a.x)) < EPS);
@@ -608,8 +605,10 @@ export function roofPans(
       if (len < EPS) continue;
       const ux = dx / len, uy = dy / len; // le long de l'égout
       let nx = -uy, ny = ux; // normale
+      // Orientée vers l'EXTÉRIEUR : la case qu'elle désigne au milieu de l'égout (repère GP : centre de case entier) est
+      // hors du domaine ; une case du domaine la retourne, quelle que soit la forme de l'emprise (L, U, cour).
       const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      if (nx * (mx - cX) + ny * (my - cY) < 0) { nx = -nx; ny = -ny; } // orientée vers l'EXTÉRIEUR
+      if (fld.domain.has(vk(Math.round(mx + nx * 0.5), Math.round(my + ny * 0.5)))) { nx = -nx; ny = -ny; }
       const plane = pieces.find((piece) => {
         const p0 = piece.pts[0];
         const onPlane = (point: GP) =>
@@ -1219,7 +1218,7 @@ export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<strin
 
 /** Les pans de chaque nappe de `scene`, par `nappeKey` : `roofPans` de ses cellules sur le champ de son groupe, à
  *  l'avant-toit de sa couverture (`eaveOverhangM` en cases, `fasciaDropM`). SOURCE UNIQUE des pans que servent
- *  `buildRoofs` et des faîtes qu'en tire `../faitieres.ts`. Mémoïsés par scène et version des datasets (`memoByRef`). */
+ *  `buildRoofs` et des faîtes qu'en tire `../piecesDeToit.ts`. Mémoïsés par scène et version des datasets (`memoByRef`). */
 export const pansDesNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, RoofPanGeometry[]> => {
   const out = new Map<string, RoofPanGeometry[]>();
   for (const [cle, { cells, mass, field }] of resolveNappes(scene)) {
@@ -1238,14 +1237,16 @@ export const pansDesNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<strin
  *  l'échelle de l'ESPACE HABITÉ couvert et de la MASSE vue, jamais de la travée de charpente (loi
  *  `cutawayForSection`, espace et vue résolus par `clearedSpace`), et c'est la SEULE vérité de vue
  *  portée par la règle de chaque pan (#808 : la géométrie, elle, ne bouge pas au pas). */
-function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
-  const out: Viewed<RoofEl, ClearedSpace>[] = [];
-  const bodies = effectiveArchitecture(scene);
+/** Les pignons de chaque nappe de `scene`, par `nappeKey` : `gableEnds` de ses cellules sur le champ de son groupe, une
+ *  extrémité jointive à un volume contigu de son niveau ou au bout de faîtage d'une nappe voisine de son groupe ne se
+ *  fermant pas. SOURCE UNIQUE des pignons que dressent `buildRoofs` et que coiffent les ornements de faîte
+ *  (`sommetDuPignon`). Mémoïsés par scène et version des datasets (`memoByRef`). */
+export const pignonsDesNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, GableEnd[]> => {
   const nappes = resolveNappes(scene);
   // Cases COUVERTES par une nappe, par niveau — la jointure de deux volumes contigus se lit ici, case
   // par case (`gableEnds(..., covered)`).
   const roofedAtZ = new Map<number, Set<string>>();
-  for (const body of bodies)
+  for (const body of effectiveArchitecture(scene))
     for (const mass of body.masses) {
       const set = roofedAtZ.get(mass.z) ?? roofedAtZ.set(mass.z, new Set<string>()).get(mass.z)!;
       for (const key of massFootprintCells(mass.footprint)) set.add(key);
@@ -1256,6 +1257,41 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
     const parCase = nappeAtZ.get(nappe.mass.z) ?? nappeAtZ.set(nappe.mass.z, new Map()).get(nappe.mass.z)!;
     for (const key of nappe.cells) if (!parCase.has(key)) parCase.set(key, nappe);
   }
+  const out = new Map<string, GableEnd[]>();
+  for (const [cle, { mass, cells, shape, field, groupId }] of nappes) {
+    const voisine = (x: number, y: number): RoofField | undefined => {
+      const n = nappeAtZ.get(mass.z)?.get(vk(x, y));
+      return n && n.groupId === groupId && n.mass.id !== mass.id ? n.field : undefined;
+    };
+    out.set(cle, gableEnds(cells, shape, (x, y) => roofedAtZ.get(mass.z)?.has(vk(x, y)) ?? false, field, voisine));
+  }
+  return out;
+});
+
+/** Le SOMMET du pignon que borde l'arête `edge` de `scene` (`pignonsDesNappes`) : son point (repère des cases centrées),
+ *  sa hauteur (m) et sa nappe (`nappeKey`) ; `null` quand aucun pignon d'une masse qui bâtit l'étage de l'arête ne la
+ *  prolonge. PUR. */
+export function sommetDuPignon(
+  scene: SceneDesToits,
+  edge: { x: number; y: number; side: WallSide; z?: number },
+): { x: number; y: number; hM: number; nappe: string } | null {
+  const z = edge.z ?? 0;
+  const nappes = resolveNappes(scene);
+  for (const [cle, pignons] of pignonsDesNappes(scene)) {
+    const { mass } = nappes.get(cle)!;
+    if (z > mass.z || z < mass.z - mass.levels + 1) continue;
+    const pignon = pignons.find((p) => p.edges.some((e) => e.x === edge.x && e.y === edge.y && e.side === edge.side));
+    if (!pignon) continue;
+    const sommet = pignon.poly.reduce((haut, p) => (p.h > haut.h ? p : haut));
+    return { x: sommet.x, y: sommet.y, hM: sommet.h, nappe: cle };
+  }
+  return null;
+}
+
+function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
+  const out: Viewed<RoofEl, ClearedSpace>[] = [];
+  const bodies = effectiveArchitecture(scene);
+  const nappes = resolveNappes(scene);
   for (const body of bodies) {
     // ESPACE du CORPS entier : dernière lecture de matière d'une fermeture (`closureAppearance`).
     const bodySpace = new Set<string>();
@@ -1263,7 +1299,7 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       for (const key of massSpaceCells(mass, massFootprintCells(mass.footprint))) bodySpace.add(key);
     for (const mass of body.masses) {
       // La masse PAVE ses cellules ; la HAUTEUR vient du champ de son groupe de nappe (`resolveNappes`).
-      const { cells, shape, roomZoneIds, field, groupId } = nappes.get(nappeKey(body.id, mass.id))!;
+      const { cells, shape, roomZoneIds, field } = nappes.get(nappeKey(body.id, mass.id))!;
       const forme = formeDeLaNappe(field);
       // Le dégagement se décide au CONTEXTE (espace dégagé, résolu une fois par appel) et non par
       // case de brouillard : une nappe ne porte pas de voile, elle est peinte ou elle ne l'est pas.
@@ -1309,11 +1345,7 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       //    ce mur. Le traitement d'extrémité reste celui de LA MASSE (`shape`) — le champ
       //    du groupe donne les hauteurs, il ne décide pas si une extrémité se ferme.
       const closureSide: CellSide = shape.ridge === 'x' ? 'E' : 'N';
-      const voisine = (x: number, y: number): RoofField | undefined => {
-        const n = nappeAtZ.get(mass.z)?.get(vk(x, y));
-        return n && n.groupId === groupId && n.mass.id !== mass.id ? n.field : undefined;
-      };
-      gableEnds(cells, shape, (x, y) => roofedAtZ.get(mass.z)?.has(vk(x, y)) ?? false, field, voisine).forEach((end, i) => {
+      pignonsDesNappes(scene).get(nappeKey(body.id, mass.id))!.forEach((end, i) => {
         const edges = [];
         for (let z = mass.z; z >= mass.z - mass.levels + 1; z--)
           for (const edge of end.edges) edges.push({ ...edge, z });

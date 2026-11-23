@@ -70,15 +70,16 @@ import {
   aretesDeLaScene,
   cotesDeMarchesDeLaCouche,
   cotesDeMarchesDeLaScene,
-  faitieresDeLaScene,
-  type Faitiere,
+  piecesDeToitDeLaScene,
+  type PieceDeToitPosee,
   type AreteDessinee,
   type CoteDeMarches,
   type Combatant,
-  naviresDeLaScene,
+  coquesDeLaScene,
+  estPoseParSesPonts,
   stationsDuNavire,
   type EmprisesDesCases,
-  type NavireDeLaScene,
+  type CoqueDeLaScene,
   type StationDeNavire,
   casesDuGroupe,
   masqueDuRegard,
@@ -130,6 +131,8 @@ import {
   type RetraitDuMonde,
   type VolumeDuMonde,
   cleDeLaVision,
+  combattantEnVue,
+  coquesEnVue,
   porteurEnVue,
   visionDuMonde,
   type VisionDuMonde,
@@ -140,15 +143,14 @@ import {
 import {
   ErreurDeGeste,
   entreesDuJeu,
-  nouvelEntete,
   nouvellesEntrees,
   ouvrirAuGroupe,
-  ouvrirLaPartie,
   ouvrirLeLancement,
   valider,
   type CategorieDErreur,
   type PartieAuGroupe,
 } from '../../../src/hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../../../src/hote/partieDeTest';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, horsCombat, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
@@ -265,20 +267,20 @@ export interface CorpsDuCombat {
    */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /**
-   * Par id de combattant dessiné : pour un combattant dessiné qui est un véhicule ou un engin, hors d'un navire de
-   * `navires`, (`vehicule` de sa projection) dont le dernier `modeles` sert un élément `vehicule` de même `definition`
+   * Par id de combattant dessiné : pour un combattant dessiné qui est un véhicule ou un engin, hors d'une coque de
+   * `coques`, (`vehicule` de sa projection) dont le dernier `modeles` sert un élément `vehicule` de même `definition`
    * (`vehicules` de sa réponse, section « Atelier 3D »), son corps (`corpsDuVehicule`, `pont.ts`, que `vehicule`
    * compose aussi pour l'atelier) (`CorpsDuVehicule`, `CombattantProjete.vehicule`). Un véhicule n'a pas de base :
    * `refus` ne le touche pas (#2987).
    */
   vehicules: Record<string, CorpsDuVehicule>;
   /**
-   * pour chaque navire de la scène dont elle pose les ponts (#3686 : une entité `personnage` dont le `vehicule` est un
-   * véhicule à plan des ponts, dans une scène à l'échelle de ce plan) et dont le dernier `modeles` sert un élément
-   * `vehicule` de même `definition`, par l'id de son entité (`naviresDeLaScene`, `src/noyau/planDeNavire.ts`) : son
-   * corps, son centre et ses stations (`NavireServi`).
+   * pour chaque coque que la scène porte et qui se montre par le monde, que le groupe voit (`coquesEnVue`,
+   * `src/noyau/visionDuGroupe.ts` : un navire dont elle pose les ponts, #3686, ou une coque terrestre, #4471, en vue) et
+   * dont le dernier `modeles` sert un élément `vehicule` de même `definition`, par l'id de son entité : sa pose
+   * (`CoqueServie`).
    */
-  navires: Record<string, NavireServi>;
+  coques: Record<string, CoqueServie>;
   /**
    * par type de décor (`props.json`) posé dans la scène dont le dernier `modeles` sert un élément `decor` de même
    * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses, en la saison de l'horloge du
@@ -322,29 +324,34 @@ export interface SaisonOfferte {
 
 /**
  * @contrat Corps d'un combattant
- * Un navire de la scène servi (#3686) : son corps, où se pose l'origine de son modèle (`NavireDeLaScene`), et où se
- * tient l'occupant de chaque case de ses ponts que son modèle rogne (`stationsDuNavire`, des `cases` du manifeste de
- * son élément, #3767).
+ * Une coque de la scène servie (#3686, #4471) : son corps et où se pose l'origine de son modèle (`CoqueDeLaScene`) ;
+ * navire posé par ses ponts, où se tient l'occupant de chaque case de ses ponts que son modèle rogne
+ * (`stationsDuNavire`, des `cases` du manifeste de son élément, #3767) et la mer que borde sa coque.
  */
-export interface NavireServi {
+export interface CoqueServie {
   /**
    * le corps de son véhicule (`corpsDuVehicule`, comme `vehicules[id]`, du véhicule de sa fiche,
    * `vehiculeDuCombattant`, à son cap, `taille` `reelle`).
    */
   corps: CorpsDuVehicule;
   /**
-   * le point de la scène, en cases continues (la case centrée sur l'entier), sous l'origine de son modèle : le centre
-   * de l'emprise de ses ponts, le repère du plan de ses ponts étant celui du modèle (`pontsDeLaFiche.ts`), sa
-   * flottaison à la hauteur 0 de la scène.
+   * le point de la scène, en cases continues (la case centrée sur l'entier), sous l'origine de son modèle, à la
+   * hauteur 0 de la scène : pour un navire, le centre de l'emprise de ses ponts, le repère du plan de ses ponts étant
+   * celui du modèle (`pontsDeLaFiche.ts`) ; pour une coque terrestre, le centre de son empreinte.
    */
-  centre: NavireDeLaScene['centre'];
+  centre: CoqueDeLaScene['centre'];
   /**
    * pour chaque case de ses ponts que son modèle rogne (`cases` du manifeste de l'élément, l'emprise libre de
    * chacune, #3767), la case et son étage (`x`, `y`, `z`) et `point`, le centre de cette emprise, en cases continues
    * (`stationsDuNavire`) : l'occupant de la case s'y tient (`Monde.lieu`, que pose `Monde.poser_les_stations`), à sa
-   * place au centre de toute autre case.
+   * place au centre de toute autre case. Navire posé par ses ponts seulement.
    */
-  stations: StationDeNavire[];
+  stations?: StationDeNavire[];
+  /**
+   * la clé `flottaison` des surfaces de la mer que borde sa coque (section « Monde »), l'id de son entité. Navire posé
+   * par ses ponts seulement.
+   */
+  flottaison?: string;
 }
 
 /**
@@ -486,8 +493,7 @@ export interface VueDuPont {
    * `{ genre, cible, case, cout }`) et `voisins` (les combattants en vue, chacun avec ses États `{ id, valeur }`) ; hors
    * combat, `exploration`, avec `groupe` (la case du groupe) et `etage` (sa couche, `null` sur une scène d'une seule
    * couche), `heros` (chaque héros projeté comme un combattant, à la case et la couche du groupe), `entites` (celles que
-   * le groupe connaît, `entiteConnue`, hors des navires posés par leurs ponts, `estPoseParSesPonts`, qui ne tiennent
-   * aucune case) et `gestes`
+   * le groupe connaît, `entiteConnue`, hors des coques qui se montrent par le monde, `seMontreParLeMonde`) et `gestes`
    * (`gestesDExploration`). Une position projetée (`pos` d'un combattant ou d'une entité, `case` de l'aperçu) est
    * `[x, y, z]`, la case et sa couche ; le plateau pose chacun, sa surbrillance comprise, sur le sol de sa couche
    * (`hauteurs`).
@@ -548,15 +554,16 @@ export interface VueDuPont {
   champ: typeof CLIC_DU_CHAMP | null;
   /**
    * donne, par case et couche `"x,y,z"`, l'id de l'occupant. En combat, le clic du champ désigne tout combattant
-   * posé, hors de combat exclus, hors de vue compris. En exploration, la case porte le PNJ connu qui a une fiche :
-   * le clic droit ouvre son statbloc, le clic du champ désigne la case.
+   * posé, hors de combat exclus, hors de vue compris. Pendant la désignation d'une personne par Colérique
+   * (`personneChoisie`), seuls les occupants en vue figurent ici. En exploration, la case porte le PNJ connu qui a
+   * une fiche : le clic droit ouvre son statbloc, le clic du champ désigne la case.
    */
   occupants: Record<string, string>;
   /**
    * donne, par id, la case `[x, y, z]` de chaque cible du combat :
    * celles de `combat.cibles` et celle de l'aperçu (`combat.apercu.cible`).
-   * En vue ou non, lue à `battle.combatants`.
-   * Vide hors combat.
+   * En vue ou non, lue à `battle.combatants`. Pendant `personneChoisie`, l'aperçu d'une cible hors de vue
+   * ne se projette pas. Vide hors combat.
    */
   casesDesCibles: Record<string, [number, number, number]>;
   /**
@@ -990,14 +997,16 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     valider(!jonction, `${methode} : un salon se rejoint ; quitter le salon d’abord`);
   };
 
-  /** Par id de son entité, chaque navire de `scene` dont un élément `vehicule` est servi (`NavireServi`) : le jeu et
-   *  l'éditeur les montrent tous deux. */
-  const naviresServis = (scene: Scene): Record<string, NavireServi> => Object.fromEntries(naviresDeLaScene(scene).flatMap(({ id, vehicule, centre }) => {
+  /** Par id de son entité, chaque coque `coques` de `scene` dont un élément `vehicule` est servi (`CoqueServie`), un
+   *  navire posé par ses ponts avec ses stations et sa flottaison : le jeu celles que le groupe voit (`coquesEnVue`),
+   *  l'éditeur toutes (`coquesDeLaScene`). */
+  const coquesServies = (scene: Scene, coques: readonly CoqueDeLaScene[]): Record<string, CoqueServie> => Object.fromEntries(coques.flatMap(({ id, vehicule, centre }) => {
     const corps = modeles && corpsDuVehicule(vehicule, modeles);
     if (!modeles || !corps) return [];
+    if (!estPoseParSesPonts(scene, id)) return [[id, { corps, centre }]];
     const manifeste = modeles.manifestes[corps.element];
     const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
-    return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
+    return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises), flottaison: id }]];
   }));
 
   /** Les types de décor posés que sert l'index courant, lus aussi par le volume et les nappes. */
@@ -1044,8 +1053,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       : [];
 
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
-   *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
-   *  servis de la scène. */
+   *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des coques que la scène montre par le
+   *  monde, et ces coques servies. */
   const corpsDe = (projection: Projection, etat: Jeu, selection: SelectionDeDecors | null): CorpsDuCombat => {
     const { scene } = etat;
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
@@ -1053,7 +1062,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       ...dessines.map(({ id, portee }) => ({ id, portee })),
       ...etat.party.filter((h) => !dessines.some((d) => d.id === h.id)).map((h) => ({ id: h.id, portee: porteeDuCombattant(h) })),
     ];
-    const navires = scene ? naviresDeLaScene(scene) : [];
+    const coques = scene ? coquesDeLaScene(scene) : [];
     const bases = modeles?.modeles.bases ?? [];
     const refus = !modeles
       ? '[sans-modeles] aucun modeles appelé'
@@ -1063,10 +1072,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       refus,
       combattants: Object.fromEntries(portees.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
-        const corps = vehicule && modeles && !navires.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
+        const corps = vehicule && modeles && !coques.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
         return corps ? [[id, corps]] : [];
       })),
-      navires: scene ? naviresServis(scene) : {},
+      coques: scene ? coquesServies(scene, coquesEnVue(etat, scene)) : {},
       decors: scene && selection ? decorsServis(scene, selection, currentSeason(etat.gameTime)) : {},
     };
   };
@@ -1075,6 +1084,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const etat = o.partie.etat();
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     const combat = projection.combat;
+    const choixDunePersonne = projection.fenetre?.etape?.genre === 'personneChoisie';
     const fenetre = fenetreADessiner(etat);
     const regard = regardDuJeu(o.regard, !!etat.battle);
     const selection = etat.scene ? selectionDe(etat.scene) : null;
@@ -1095,7 +1105,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries(etat.battle
-        ? etat.battle.combatants.flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))
+        ? etat.battle.combatants.flatMap((c) => {
+          if (!c.pos || horsCombat(c) || (choixDunePersonne && !combattantEnVue(etat, c))) return [];
+          return [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]];
+        })
         : (projection.exploration?.entites.liste ?? [])
           .filter((e) => e.genre === 'personnage' && enTeteDuPorteur(etat, e.id))
           .map((e) => [e.pos.join(','), e.id])),
@@ -1570,15 +1583,15 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
      * son pied, la cote de son milieu, et le bloc de sa case.
-     * `{ faitieres }` : `Faitiere[]` (`faitieresDeLaScene`), vides sans scène, sous la même clé de relecture
+     * `{ piecesDeToit }` : `PieceDeToitPosee[]` (`piecesDeToitDeLaScene`), vides sans scène, sous la même clé de relecture
      */
-    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; piecesDeToit: PieceDeToitPosee[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
       return {
         aretes: scene ? aretesDeLaScene(scene) : [],
         cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [],
-        faitieres: scene ? faitieresDeLaScene(scene) : [],
+        piecesDeToit: scene ? piecesDeToitDeLaScene(scene) : [],
       };
     },
     /**
@@ -2007,10 +2020,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, cotesDeMarches, faitieres, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * @returns `{ monde, aretes, cotesDeMarches, piecesDeToit, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
      * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
      * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
-     * plateau au regard `immersion`, ses côtés de marches et ses faîtières (`aretes`, section « Vue »), ses nappes de toit, ses
+     * plateau au regard `immersion`, ses côtés de marches et ses pièces de toit (`aretes`, section « Vue »), ses nappes de toit, ses
      * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme
@@ -2063,7 +2076,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, cotesDeMarches?, navires?,
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, cotesDeMarches?, coques?,
      * decors?, depot?, essai?, planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du
      * chapitre que la session se met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
@@ -2145,7 +2158,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           retrait: retraitDuMonde(vue, session.z),
           aretes: aretesDeLaCouche(vue, session.z),
           cotesDeMarches: cotesDeMarchesDeLaCouche(vue, session.z),
-          navires: naviresServis(vue),
+          coques: coquesServies(vue, coquesDeLaScene(vue)),
           decors: decorsServis(vue, selection, null),
         } : {}),
         ...(depot ? { depot } : {}),

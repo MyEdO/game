@@ -98,7 +98,7 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement|enduit',
   // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
   'bois|pierre',
   // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
@@ -148,7 +148,7 @@ const NOMMES = [
   'corps|least',
   'fortune|fate',
   'floor|ceil',
-  'gable|stone-entry|chimney|sign|window-band|belfry',
+  'gable|stone-entry|sign|window-band|belfry|faitage',
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
@@ -347,7 +347,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',
-  'edge|tile|instance',
   'encounter|threatened',
   'ennemis|allies|tous',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',

@@ -3,9 +3,8 @@
  * (arithmétique entière 32 bits via `Math.imul`, zéro état de module, zéro entropie).
  *
  * INVARIANT (Lot 0 rendu) : le seed d'un détail de surface est TOUJOURS dérivé de l'identité MONDE de
- * l'élément — ex. `hash32('wall', x, y, z, side)` selon le `seedScope` de la recette — et JAMAIS
- * stocké : les deux backends (iso affine, POV perspective) retombent sur le MÊME détail sans se parler,
- * et recharger/rejouer la scène redonne exactement le même rendu.
+ * l'élément — ex. `hash32('tint', x, y, z)` de `tintVarFactor` — et JAMAIS stocké : recharger/rejouer la
+ * scène redonne exactement le même rendu.
  */
 
 /** FNV-1a 32 bits sur la concaténation des parts. Un séparateur est haché ENTRE les parts pour que

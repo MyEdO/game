@@ -15,6 +15,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "emplacements": {
     "charge_dos": {
       "os": "spine_03",
@@ -172,7 +179,8 @@
   "surfaces": [
     {
       "nom": "osier",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--osier"
     },
     {
       "nom": "cuir",
@@ -181,7 +189,7 @@
     }
   ],
   "glb": {
-    "sha256": "f76a1f1f86524eff1f6c2bd0113b6260f9f26f03440866b04e8614e20fad7ad0",
-    "octets": 374572
+    "sha256": "1575bdb7023c5c5c36e396b2cf7d8e117d4bcc0640338dee448a105fde05bdde",
+    "octets": 387164
   }
 }

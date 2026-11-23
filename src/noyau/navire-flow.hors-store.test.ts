@@ -44,7 +44,8 @@ import { shipboardSouls } from './shipCrew';
 import { PORT_A_CHANTIER } from '../data/navalPorts.testkit';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
-import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
+import { applyOps, type GameOp } from '../engine/ops';
+import { nomDeSource } from '../engine/faits';
 import { findSeaHazard } from '../engine/seaPerils';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { formatMoney, fromBrass, toBrass } from '../engine/money';
@@ -58,6 +59,7 @@ import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
 import { chargerLaSave, snapshotSave } from './persistance/save';
 import { capEnCombat, provenanceDesNavires } from './planDeNavire';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -804,7 +806,7 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
     expect(coque().crewIds!.length).toBe(aBord + vague);
     expect(coque().reserveDAbordage!.restant).toBe(24 - 2 * vague);
     expect(coque().exitReason).toBeUndefined();
-    expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: coque().label, n: vague, restant: 24 - 2 * vague }));
+    expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: nomDe(coque()), n: vague, restant: 24 - 2 * vague }));
   });
 });
 
@@ -914,7 +916,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   it('`money.groupe` est inerte dans `applyOps` (la bourse du groupe se résout à la feuille d’Effet)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { idNeuf: idsDeTest, rng: makeRNG(1) } as never)).toEqual([]);
+    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { idNeuf: idsDeTest, rng: makeRNG(1) } as never).lignes).toEqual([]);
   });
 
   it('Prêtre de Manann : la donnée porte la RAW (1d10 CO + Taille en pistoles, ou Humeur −4d10)', () => {
@@ -1408,7 +1410,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     expect(a.outOfRencontre).toBe(true);
     expect(a.exitReason).toBe('repousse');
     expect(b.outOfRencontre).toBeFalsy();
-    expect(log()).toContain(t('cf.repousse', { name: a.label }));
+    expect(log()).toContain(t('cf.repousse', { name: nomDe(a) }));
     aDemi(b);
     c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);
@@ -1449,7 +1451,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
 
   it('`combatEnMer` est inerte dans `applyOps` (op de navire)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
+    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toEqual([]);
   });
 });
 
@@ -1807,7 +1809,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('`marcheDuPort` est inerte dans `applyOps` (op du monde)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'marcheDuPort', colonnes: 'penurie' }], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
+    expect(applyOps(h, [{ op: 'marcheDuPort', colonnes: 'penurie' }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toEqual([]);
   });
 
   it('hors escale, les colonnes ne changent nulle part et le journal le dit', () => {

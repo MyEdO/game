@@ -1,3 +1,4 @@
+import type { PlayerText } from '../i18n/playerText';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Cadence } from '../engine/cadence';
 import type { Formula } from '../engine/ops';
@@ -6,7 +7,7 @@ import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
-import type { IdDIntention } from './designations';
+import type { IdDeHeros, IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -327,9 +328,10 @@ export interface CampaignVessel {
   /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
    *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués, en lots datés de la cale (`LotDeVivres`), mangés par
-   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`), le périssable pourri purgé par `purgeSurAvanceDHorloge`.
-   *  MDG 14 l.171, l.238, l.245-252. Absent = vivres de l'équipage non suivis. #245 ; #4058 */
+  /** VIVRES de bord embarqués, en lots datés de la cale (`LotDeVivres`), mangés en mer par l'équipage PNJ
+   *  (`consumeCrewProvisions`, `seaVoyageFlow.ts`) et par les héros (`runDailyUpkeep`), le périssable pourri purgé
+   *  par `purgeSurAvanceDHorloge`. MDG 14 l.171, l.238, l.245-252. Absent = vivres de bord non suivis, les héros
+   *  mangent leur sac. #245 ; #4058 ; #4453 */
   provisions?: import('../engine/provisions').LotDeVivres[];
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
@@ -340,7 +342,7 @@ export interface CampaignVessel {
   crewLost?: number;
   /** L'équipage PNJ, un porteur de maladies collectif lu et écrit par `porteursABord`.
    *  LDB 20 l.127-129 ; MDG 14 l.172, l.208-209, l.230-232 */
-  porteurDeLEquipage?: Omit<import('../engine/disease').PorteurDeMaladies, 'label'>;
+  porteurDeLEquipage?: import('../engine/disease').MaladiesDuPorteur;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];
@@ -415,6 +417,8 @@ export const initialNet = (): NetState => ({
 export interface EtatDeJeu {
   screen: Ecran;
   party: Combatant[];
+  /** Id du héros que le siège du monde a désigné meneur (`designerLeMeneur`, #4530) ; null = élection (`meneurDuMonde`). */
+  meneurChoisi: IdDeHeros | null;
   scene: Scene | null;
   mode: 'exploration' | 'battle';
   /** Groupe anéanti HORS COMBAT (invariant `checkPartyWiped`) → écran de défaite (CampaignView). */
@@ -485,6 +489,8 @@ export interface EtatDeJeu {
   /** Brouillard de guerre : cases déjà explorées par scène (`sceneId` → clés "x,y,z"). PERSISTE entre
    *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`lancerLaScene`). */
   explored: Record<string, string[]>;
+  /** Derniers noms vus par le groupe, par scène puis par id de personne (#4017). */
+  personnesVues: Record<string, Record<string, PlayerText>>;
   /** Journal d'événements RÉCENTS (fenêtre glissante de 40, `ecrireAuJournal`) — CAMPAGNE-scopé : survit aux
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
@@ -634,12 +640,8 @@ export interface EtatDeJeu {
   /** File de LIGNES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
    *  `onGainCondition` ennemi/auto, déclenché AVANT le `set` final qui remplace `battle.log`) y pousse
    *  ses lignes ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
-   *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed).
-   *
-   *  `stateId` = État nommé par la ligne, posé par les producteurs AU FUR ET À MESURE de leur
-   *  branchement au canal `OpsCtx.onCondition` (V8d-B, #1330). AUCUN ne le pose encore : son absence
-   *  ne dit RIEN de la ligne aujourd'hui — surtout pas qu'elle ne parle d'aucun État. */
-  pendingLogQueue: { line: string; cid?: string; stateId?: string }[];
+   *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed). */
+  pendingLogQueue: { line: string; cid?: string }[];
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `avancerLeTemps`. */
   scheduledEffects: ScheduledEffect[];
@@ -822,6 +824,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     marchandagesDeBillet: {},
     travelRecap: null,
     party: [],
+    meneurChoisi: null,
     scene: null,
     campaignNarratif: null,
     mode: 'exploration',
@@ -842,6 +845,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     clotureConsommee: false,
     clues: {},
     explored: {},
+    personnesVues: {},
     journal: [],
     lignesAuJournal: 0,
     combatsOuverts: 0,

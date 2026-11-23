@@ -33,7 +33,7 @@
  * réponse que la navigation d'exploration (`exploreNav.ts`) ; aucun contrôleur, aucun accès.
  */
 import { t, type MsgKey } from '../i18n';
-import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSeg, type WallSide } from './monde/scene';
+import { heightAt, edgeOf, isWalkable, porteMasquee, structureIsDown, type Scene, type WallSeg, type WallSide } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import { cleArete } from './monde/wallIndex';
 import { planFranchissement } from './fallMove';
@@ -41,6 +41,8 @@ import { inBattleId } from './monde/combatants';
 import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import type { Pt } from './monde/path';
 import type { BattleState } from './etat';
+import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Ce qu'une arête OFFRE. Identité STABLE (le libellé est de l'affichage). */
 export type CapaciteArete = 'structure' | 'chute' | 'fenetre' | 'escalade' | 'porte';
@@ -87,7 +89,7 @@ export interface AreteUtilisable {
   /** Largeur pleine du trait de prise, en pixels (`LARGEUR_PRISE_ARETE`). */
   largeurPrise: number;
   /** Texte JOUEUR déjà résolu. */
-  libelle: string;
+  libelle: PlayerText;
   /** Combattant-structure visé par le geste de siège (`cliquerLaCase`). */
   cid?: string;
   /** Accès de pièce que le geste FRANCHIT (ouvrir la porte, marcher jusqu'à `to`) — jumeau de `cid`
@@ -142,7 +144,7 @@ export function caseOpposee(arete: AreteUtilisable): Pt {
  * Libellé JOUEUR d'un accès de pièce — SOURCE UNIQUE, celle que le peintre affiche en `aria-label` et
  * en `<title>` : six formes selon la nature de l'accès et le sens du franchissement.
  */
-export const libellePortail = (portal: RoomPortal): string =>
+export const libellePortail = (portal: RoomPortal): PlayerText =>
   (portal.kind === 'door-closed'
     ? portal.exterior ? t('arete.porteExterieureFermee') : t('arete.porteFermee')
     : portal.exterior
@@ -239,15 +241,15 @@ function denivelesDe(scene: Scene, x: number, y: number, z: number): readonly De
 
 const casesADeniveleParCouche = memoByRef((_scene: Scene) => new Map<number, readonly { x: number; y: number }[]>());
 
-/** Les cases de la couche `z` de `scene` d'où un mobile a un dénivelé (`denivelesDe`), rangée par rangée. Calculées
- *  une fois par scène et par couche. */
+/** Les cases de la couche `z` de `scene` où un mobile peut se tenir (`isWalkable`) et d'où il a un dénivelé
+ *  (`denivelesDe`), rangée par rangée. Calculées une fois par scène et par couche. */
 export function casesADenivele(scene: Scene, z: number): readonly { x: number; y: number }[] {
   const parCouche = casesADeniveleParCouche(scene);
   let cases = parCouche.get(z);
   if (!cases) {
     const { w, h } = scene.dimensions;
     const trouvees: { x: number; y: number }[] = [];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (isWalkable(scene, x, y, z) && denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
     parCouche.set(z, (cases = trouvees));
   }
   return cases;
@@ -287,7 +289,7 @@ function structures(ctx: ContexteAretes): AreteUtilisable[] {
       capacite: 'structure',
       ancrage: { x: w.x, y: w.y, z },
       largeurPrise: LARGEUR_PRISE_ARETE.structure,
-      libelle: sc.label,
+      libelle: nomDe(sc),
       cid,
     });
   }

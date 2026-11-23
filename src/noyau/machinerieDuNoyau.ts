@@ -109,7 +109,7 @@ export interface MachinerieDuNoyau {
    *  (>0 = tribord/droite, <0 = bâbord/gauche) → re-mappe d'un coup TOUS ses arcs de bordée. */
   virerLeNavire: (shipId: IdDeCombattant, turnSteps: number) => void;
   /** Avance la coque `shipId` ET son équipage (à bord, formation rigide) de `cases` tuiles le long du cap
-   *  courant `facing[shipId]` (MDG 13). Clampe aux bornes de scène. Renvoie les cases réellement parcourues. */
+   *  courant (`capEnCombat`, MDG 13). Clampe aux bornes de scène. Renvoie les cases réellement parcourues. */
   avancerLeNavire: (shipId: IdDeCombattant, cases: number) => number;
   /** Bordée HEADLESS (auto-pilote navire, couche Mer) : Test d'équipage des Artilleurs résolu sans modale → volée sur `targetId`. */
   tirerLaBordee: (shipId: IdDeCombattant, targetId: IdDeCombattant) => boolean;

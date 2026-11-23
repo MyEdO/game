@@ -10,10 +10,10 @@ import {
   ConditionInstance,
   effectRef,
   type ModLine,
-  type ConditionEmit,
   type ConditionLocks,
   type Difficulty,
   type Main,
+  type ConditionId,
 } from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
@@ -23,6 +23,8 @@ import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
+import { emettreDans, type Applique, type FaitApplique, type FaitDEtat } from './faits';
+import { campOf } from './relations';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
@@ -144,6 +146,16 @@ export function setConditionGainedHook(fn: ((c: Combatant, name: string) => void
   return precedent;
 }
 
+/** Joue `fn` sans le hook `onConditionGained` : une prévision sur une copie ne déclenche aucune réaction. */
+export function sansReactionAuxEtats<T>(fn: () => T): T {
+  const precedent = setConditionGainedHook(undefined);
+  try {
+    return fn();
+  } finally {
+    setConditionGainedHook(precedent);
+  }
+}
+
 /** Retrait d'États « 1 + DR » borné au nombre de pions présents (LDB 16 : Empêtré l.61,
  *  En flammes l.77, Empoisonné l.70, Sonné l.125, arrêt d'Hémorragie l.107). Un Test raté n'en retire aucun. */
 export function recoveredStacks(dr: number, stacks: number, success: boolean): number {
@@ -166,7 +178,7 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 export function appliquerMortSubite(target: Combatant, log: string[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.effondrement', { name: target.label }));
+  log.push(t('cf.effondrement', { name: nomDe(target) }));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test
@@ -287,16 +299,17 @@ export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionU
 /** Applique un acte de soin `act` : RETIRE tout État dont le verrou `unlockBy` est levé par cet acte (LDB 18 :
  *  « ne peut être retiré QUE par [acte] » ⇒ l'acte est ce qui le soigne). SOURCE UNIQUE appelée à chaque point
  *  de soin (`receiveMedicalAid`/soin magique → medicalAid/magic ; fin de Chirurgie → surgery). Pur ; renvoie le journal. */
-export function releaseConditionLocks(c: Combatant, act: import('./types').ConditionUnlock, emit?: ConditionEmit): string[] {
-  const log: string[] = [];
+export function releaseConditionLocks(c: Combatant, act: import('./types').ConditionUnlock): Applique {
+  const sortie: Applique = { lignes: [], faits: [] };
   for (const inst of [...c.conditions]) {
     if (inst.unlockBy == null || !actLifts(inst.unlockBy, act)) continue;
     delete inst.unlockBy; // le verrou tombe → removeCondition n'est plus inerte
-    removeCondition(c, inst.id, inst.value); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
-    log.push(t('cond.lockReleased', { name: c.label, cond: conditionLabel(inst.id) }));
-    emit?.({ stateId: inst.id, change: 'loss', targetId: c.id });
+    const avant = inst.value;
+    removeCondition(c, inst.id, avant); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
+    const apres = c.conditions.find((x) => x.id === inst.id)?.value ?? 0;
+    emettreDans(sortie, c, { genre: 'etat', cible: c.id, camp: campOf(c), id: inst.id, valeur: apres - avant, verrouLeve: true });
   }
-  return log;
+  return sortie;
 }
 
 /** Le porteur a-t-il un État dont le retrait est VERROUILLÉ par la Chirurgie (LDB 18 : Hémorragie interne) ?
@@ -440,19 +453,19 @@ const reconciliationEnCours = new WeakSet<Combatant>();
  * la source qui l'a posé (#1695).
  *
  * IDEMPOTENTE : rejouée sans changement du fait source, elle n'écrit rien et rend un journal vide.
- * Mute `c`, renvoie le journal ; `emit` reçoit l'appariement ligne↔id (`ConditionChange`).
+ * Mute `c`, renvoie le journal et ses faits.
  */
-export function syncDerivedConditions(c: Combatant, emit?: ConditionEmit): string[] {
-  if (reconciliationEnCours.has(c)) return [];
+export function syncDerivedConditions(c: Combatant): Applique {
+  if (reconciliationEnCours.has(c)) return { lignes: [], faits: [] };
   reconciliationEnCours.add(c);
   try {
-    return reconcilierEtatsDerives(c, emit);
+    return reconcilierEtatsDerives(c);
   } finally {
     reconciliationEnCours.delete(c);
   }
 }
 
-function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
+function reconcilierEtatsDerives(c: Combatant): Applique {
   const cible = new Map<string, { stacks: number; src?: CodexTarget }>();
   for (const m of passiveMods(c)) {
     if (m.op.op !== 'condition') continue;
@@ -461,7 +474,7 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     if (e) e.stacks += n;
     else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
   }
-  const log: string[] = [];
+  const sortie: Applique = { lignes: [], faits: [] };
   // `?? []` : un porteur FORGÉ (coque de navire, sonde de test) peut n'avoir aucune liste d'États — la
   // réconciliation reste inerte sur lui, elle ne lève pas.
   const portees = c.conditions ?? [];
@@ -486,21 +499,19 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     // Le porteur du NOM à l'écran : l'émetteur courant s'il y en a un (pose), sinon celui MÉMORISÉ par
     // l'instance (retrait — le fait vient de disparaître, il ne peut plus se nommer lui-même).
     const src = voulu?.src ?? porte?.src;
-    const source = src ? refLabel(src.category, { id: src.id }) : t('cond.derivedSrcFallback');
+    const fait = { genre: 'etat', cible: c.id, camp: campOf(c), id, porte: src ? { src } : {} } as const;
     if (cibleN > porteN) {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
       poserEtat(c, id, cibleN - porteN, { derivedFrom: { stacks: cibleN, ...(src ? { src } : {}) } });
-      log.push(t('cond.derivedGain', { name: c.label, cond: conditionLabel(id), src: source }));
-      emit?.({ stateId: id, change: 'gain', targetId: c.id });
+      emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
       continue;
     }
     retireEtat(c, id, porteN - cibleN, true); // la réconciliation EST la source du pion marqué : rien ne l'arrête
     const apres = c.conditions.find((x) => x.id === id);
     if (apres) apres.derivedFrom = cibleN > 0 ? { stacks: cibleN, ...(src ? { src } : {}) } : undefined;
-    log.push(t('cond.derivedLoss', { name: c.label, cond: conditionLabel(id), src: source }));
-    emit?.({ stateId: id, change: 'loss', targetId: c.id });
+    emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
   }
-  return log;
+  return sortie;
 }
 
 /** Sommeil MAGIQUE (sort Sommeil → Inconscient À DURÉE ; Belladone/Fleur de lune → Inconscient d'horloge) :
@@ -585,6 +596,7 @@ function srcLabel(src: CodexTarget | undefined, nature: string): string {
 // avec le collecteur qui produit ces `PassiveMod` : les DEUX canaux (`skillMod`/`testMod` ici,
 // `charMod` là-bas) le lisent sans cycle d'import. Ré-exporté pour ses consommateurs.
 import { passivePartLine } from './trauma';
+import { nomDe } from './nom';
 export { passivePartLine };
 
 // `effectRef` (couture UNIQUE effet→fiche Codex) vit dans `types.ts`, à côté de la table
@@ -828,7 +840,7 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
 export function refusVerrouDAction(c: Combatant): string | null {
   const verrou = restrictingConditions(c)[0];
   if (!verrou) return null;
-  return t('cs.stateLockFlee', { name: c.label, etat: findConditionById(verrou.id)?.label ?? verrou.id });
+  return t('cs.stateLockFlee', { name: nomDe(c), etat: findConditionById(verrou.id)?.label ?? verrou.id });
 }
 
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
@@ -846,7 +858,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit, resolveTrapping?: TrappingResolver): string[] {
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveTrapping?: TrappingResolver): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -874,13 +886,13 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: C
     // L'ancrage du re-jeu est celui MEMORISE sur l'effet a sa pose (`applyOps` l'y stampe) : il se relaie,
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
-      label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
+      label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId,
       rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
-    }).forEach((l) => log.push(l));
+    }).lignes.forEach((l) => log.push(l));
   }
   // Décrément des durées (effets/États de sort/contrecoups) — SOURCE UNIQUE extraite, même emplacement
   // qu'avant (fin d'`endOfRound`, après les ops récurrentes). RNG-free.
-  tickDurations(c, emit).forEach((l) => log.push(l));
+  tickDurations(c).forEach((l) => log.push(l));
   return log;
 }
 
@@ -889,9 +901,9 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: C
  *  SOURCE UNIQUE du retrait d'effets actifs : expiration en Rounds (`tickDurations`), horloge, et
  *  DISSIPATION (LDB 46 l.158-162, `engine/dispel`). Renvoie les effets retirés (pour le journal).
  *  Un effet retiré emporte les États qu'il PORTAIT (`ActiveEffect.passive`, #1695, LDB 48 l.495) : la
- *  réconciliation clôt donc CE point unique, jamais chaque appelant. `emit`/`log` recueillent ce
- *  qu'elle dit — un appelant qui n'a pas de journal les omet (l'État part quand même). */
-export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boolean, emit?: ConditionEmit, log?: string[]): ActiveEffect[] {
+ *  réconciliation clôt donc CE point unique, jamais chaque appelant. `recueil` reçoit ce qu'elle dit,
+ *  lignes et faits — un appelant qui n'a pas de journal l'omet (l'État part quand même). */
+export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boolean, recueil?: Applique): ActiveEffect[] {
   if (!c.activeEffects?.length) return [];
   const removed = c.activeEffects.filter(pred);
   if (!removed.length) return [];
@@ -904,8 +916,9 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   dropExpiredGrantedPsych(c, removed); // Traits psy accordés (op grantPsychTrait à durée) retirés APRÈS la restitution : un Trait échu pendant une suspension n'est pas rendu
   // États PORTÉS par l'effet (#1695) : ils partent au MÊME geste. IDEMPOTENTE. La réconciliation est
   // INCONDITIONNELLE — un `log?.push(...sync())` l'aurait court-circuitée chez tout appelant sans journal.
-  const portes = syncDerivedConditions(c, emit);
-  log?.push(...portes);
+  const portes = syncDerivedConditions(c);
+  recueil?.lignes.push(...portes.lignes);
+  recueil?.faits.push(...portes.faits);
   c.wounds = blessuresReconciliees(c);
   return removed;
 }
@@ -940,11 +953,11 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
   if (extended) {
     e.awaitingExtension = undefined;
     e.duration = { scale: 'rounds', left: 1 };
-    return [t('cond.effectExtended', { name: c.label, label: e.label })];
+    return [t('cond.effectExtended', { name: nomDe(c), label: e.label })];
   }
-  const porte: string[] = []; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
-  const removed = removeActiveEffects(c, (x) => x === e, undefined, porte);
-  return [...removed.map((x) => t('cond.effectExpire', { name: c.label, label: x.label })), ...porte];
+  const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
+  const removed = removeActiveEffects(c, (x) => x === e, porte);
+  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte.lignes];
 }
 
 /**
@@ -954,7 +967,7 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
  * RNG-FREE (décrément + filtre + retraits) → n'altère pas le flux déterministe.
  * Rejoué hors combat par `outOfCombatUpkeep` (les durées en Rounds tickent aussi à l'horloge).
  */
-export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
+export function tickDurations(c: Combatant): string[] {
   const log: string[] = [];
   // Effets magiques temporisés (Bénédictions, Sorts de bonus) : décrément des durées en Rounds.
   // `tickRound` n'agit que sur l'échelle `rounds` ; les durées d'horloge/permanentes sont inertes ici
@@ -968,29 +981,29 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
     for (const e of c.activeEffects) {
       if (e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension && spellDurationPlusSource(e)) e.awaitingExtension = true;
     }
-    const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
-    const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, emit, porte);
-    for (const e of expired) log.push(t('cond.effectExpire', { name: c.label, label: e.label }));
-    log.push(...porte);
+    const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
+    const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, porte);
+    for (const e of expired) log.push(t('cond.effectExpire', { name: nomDe(c), label: e.label }));
+    log.push(...porte.lignes);
   }
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
     const done = c.conditions.filter((x) => x.roundsLeft != null && x.roundsLeft <= 0);
-    for (const x of done) { log.push(t('cond.spellCondExpire', { name: c.label, cond: conditionLabel(x.id) })); emit?.({ stateId: x.id, change: 'loss', targetId: c.id }); }
+    for (const x of done) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
     c.conditions = c.conditions.filter((x) => !(x.roundsLeft != null && x.roundsLeft <= 0));
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
   if (c.castPenalties?.some((p) => p.roundsLeft != null)) {
     for (const p of c.castPenalties) if (p.roundsLeft != null) p.roundsLeft -= 1;
     const done = c.castPenalties.filter((p) => p.roundsLeft != null && p.roundsLeft <= 0);
-    for (const p of done) log.push(t('cond.effectExpire', { name: c.label, label: p.label }));
+    for (const p of done) log.push(t('cond.effectExpire', { name: nomDe(c), label: p.label }));
     c.castPenalties = c.castPenalties.filter((p) => !(p.roundsLeft != null && p.roundsLeft <= 0));
   }
   // Un effet qui vient d'EXPIRER peut avoir porté (ou levé) un fait source d'État dérivé : la fenêtre de
   // Détermination de LDB 20 l.170 se referme ici, et l'État repart. Point d'appel de la frontière de
   // Round (`endOfRound` chaîne ici) ET de toute expiration en Rounds — jamais une copie de la logique.
-  syncDerivedConditions(c, emit).forEach((l) => log.push(l));
+  syncDerivedConditions(c).lignes.forEach((l) => log.push(l));
   return log;
 }
 
@@ -1005,9 +1018,9 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
 export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { base: number; result: TestResult }[]): string[] {
   const res = rollTest(calme, 'facile', rng); // Calme Facile (+40), palier canonique
   out?.push({ base: calme, result: res });
-  if (res.success) return [t('cond.nightmareNone', { name: c.label })];
+  if (res.success) return [t('cond.nightmareNone', { name: nomDe(c) })];
   addCondition(c, COND.extenue);
-  return [t('cond.nightmare', { name: c.label })];
+  return [t('cond.nightmare', { name: nomDe(c) })];
 }
 
 /**
@@ -1023,12 +1036,12 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   const r = d100(rng);
   if (isDoubleRoll(r)) {
     removeCondition(c, COND.hemorragique, 1); // coagulation (le double prime sur la mort)
-    const log = [t('cond.coagulate', { name: c.label, roll: r === 100 ? '00' : r })];
-    if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: c.label })); } // tous retirés → 1 Exténué
+    const log = [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })];
+    if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: nomDe(c) })); } // tous retirés → 1 Exténué
     return { died: false, log };
   }
-  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: c.label, roll: r, threshold: 10 * n })] };
-  return { died: false, log: [t('cond.bleedSurvive', { name: c.label, roll: r, threshold: 10 * n })] };
+  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
+  return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
@@ -1104,10 +1117,23 @@ export function inDeathCondition(c: Combatant): boolean {
 /** À 0 PB : gagne l'État À Terre (LDB 18 l.15) ; porteur d'Hémorragique, l'Inconscient (LDB 16 l.105),
  *  sauf en variante Aux Armes, qui le soumet à un Test (AA 07 l.5, hook `aa-bleed-unconscious`).
  *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
-export function applyZeroWounds(c: Combatant): void {
-  if (isInanimate(c)) return;
-  if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
-  if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
+export function applyZeroWounds(c: Combatant): FaitDEtat[] {
+  if (isInanimate(c)) return [];
+  return faitsDesPoses(c, [COND.aTerre, COND.inconscient], () => {
+    if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
+    if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
+  });
+}
+
+/** Les faits d'État que `poser` a produits sur `c`, pour les États `ids` : la variation de leurs pions, sans ligne. */
+export function faitsDesPoses(c: Combatant, ids: readonly ConditionId[], poser: () => void): FaitDEtat[] {
+  const pions = (id: ConditionId): number => c.conditions.find((x) => x.id === id)?.value ?? 0;
+  const avant = ids.map(pions);
+  poser();
+  return ids.flatMap((id, i): FaitDEtat[] => {
+    const valeur = pions(id) - avant[i];
+    return valeur ? [{ genre: 'etat', cible: c.id, camp: campOf(c), id, valeur }] : [];
+  });
 }
 
 /** Reprendre connaissance (LDB 18 l.15) : retire l'Inconscient, sauf verrou (LDB 16 l.105). Vrai si le porteur
@@ -1128,20 +1154,30 @@ export function poserInconscientDeSaignement(c: Combatant): void {
   addCondition(c, COND.inconscient, 1, undefined, undefined, undefined, undefined, VERROU_DU_SAIGNEMENT);
 }
 
+/** Une perte de Blessures : les PB réellement perdus, et les faits de ses conséquences. */
+export interface PerteDeBlessures {
+  perdues: number;
+  faits: FaitApplique[];
+}
+
 /**
  * Perte de Blessures CENTRALISÉE avec ses conséquences RAW — à utiliser partout où l'on retire des PB
  * (hors flux d'attaque principal, qui gère déjà l'Avantage et la nuance Critique pour l'À Terre) :
- *  - perdre ≥1 PB → on perd TOUT l'Avantage (LDB 14 l.219) ;
- *  - tomber à 0 PB → État À Terre (LDB 18 l.15), sauf déjà Inconscient/mort.
- * Retourne le nombre de PB réellement perdus.
+ * LDB 14 l.219 (inerte en mode « Avantage de groupe ») ; LDB 18 l.15, sauf déjà Inconscient/mort.
+ * Rend les PB réellement perdus et les faits de l'Avantage perdu et des États posés, sans ligne.
  */
-export function loseWounds(c: Combatant, amount: number): number {
-  if (amount <= 0 || c.wounds.current <= 0) return 0;
-  const lost = Math.min(amount, c.wounds.current);
-  c.wounds.current -= lost;
-  if (!groupAdvantage()) c.advantage = 0; // perdre une Blessure → perdre tout l'Avantage (LDB 14 l.219) — inerte en mode « Avantage de groupe »
-  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) applyZeroWounds(c);
-  return lost;
+export function loseWounds(c: Combatant, amount: number): PerteDeBlessures {
+  if (amount <= 0 || c.wounds.current <= 0) return { perdues: 0, faits: [] };
+  const perdues = Math.min(amount, c.wounds.current);
+  c.wounds.current -= perdues;
+  const faits: FaitApplique[] = [];
+  const avantage = c.advantage ?? 0;
+  if (!groupAdvantage()) {
+    c.advantage = 0; // LDB 14 l.219
+    if (avantage > 0) faits.push({ genre: 'avantage', cible: c.id, camp: campOf(c), valeur: -avantage, total: 0 });
+  }
+  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) faits.push(...applyZeroWounds(c));
+  return { perdues, faits };
 }
 
 /** Upkeep de mort en fin de Round : LDB 18 l.15 ; MDG 13 l.656, l.674. Retourne le journal. */
@@ -1155,7 +1191,7 @@ export function tickDeath(c: Combatant): string[] {
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
   if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
     addCondition(c, COND.inconscient);
-    log.push(t('cond.unconscious', { name: c.label, rounds: c.roundsAtZero }));
+    log.push(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero }));
   }
   return log; // la mort (dead) est finalisée par le store (avec sauvetage par Destin)
 }

@@ -221,8 +221,8 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par le choix 
     const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'hote', gmSeat: 1, seatNames: { 1: 'Greta' } } });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
-    expect(reponsesDuNoeud(get())[0].refus).toBe('Greta répond pour le groupe.');
+    expect(reponsesDuNoeud(get())[0].refus).toBe('Greta décide pour le groupe.');
     get().fenetreChoisir('dialogue', 'reponse', 'payer');
-    expect(dernier()).toBe('Greta répond pour le groupe.');
+    expect(dernier()).toBe('Greta décide pour le groupe.');
   });
 });

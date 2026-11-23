@@ -100,6 +100,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   recruterLeHeros: 'invité', renvoyerLeHeros: 'invité', remplacerLeHeros: 'invité', epinglerLIndice: 'invité',
   marquerLesIndices: 'invité',
+  // Le meneur commun hors combat : au siège du monde (`netOwnership.ROUTES`, #4530).
+  designerLeMeneur: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
   // possession validée par `intentAllowedFor`. Composer et pratiquer une Activité : `fenetreChoisir('interlude', …)`. ═══
   commanderLObjet: 'invité', deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', solderLaFaveur: 'invité',
@@ -163,9 +165,9 @@ export function refusChezLInvite(s: Pick<Jeu, 'net'>, intention: { type: string;
 
 const INVITEES = (Object.keys(CLASSE_DES_ACTIONS_DU_NOYAU) as (keyof Classes)[]).filter((a) => CLASSE_DES_ACTIONS_DU_NOYAU[a] === 'invité');
 
-/** Groupe : composition et carnet d'enquête. */
+/** Groupe : composition, meneur commun et carnet d'enquête. */
 export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
-  'recruterLeHeros', 'renvoyerLeHeros', 'remplacerLeHeros', 'epinglerLIndice', 'marquerLesIndices',
+  'recruterLeHeros', 'renvoyerLeHeros', 'remplacerLeHeros', 'designerLeMeneur', 'epinglerLIndice', 'marquerLesIndices',
 ]);
 
 /** Activités d'interlude. `ouvrirLInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :

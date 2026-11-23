@@ -14,7 +14,7 @@ import { estCibleType } from '../engine/psych/ciblage';
 import { PSY } from '../engine/psychology';
 import { psychologyLabel } from '../data';
 import { SL_ASTOUNDING } from '../engine/tests';
-import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
+import { hausseDeVente, issueDuMarchandage, variationDuMarchandage, type BargainOutcome } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount, arretDHemorragie } from '../engine/healing';
 import { parametresDuSoin } from './soin';
 import type { Combatant } from '../engine/types';
@@ -80,20 +80,19 @@ export function describeHeal(ph: PendingHeal, target: Combatant, name: string): 
 
 /** Marchandage (LDB 59 l.43) : VERDICT du Test opposé (source unique popin ↔ journal). */
 export function describeBargain(pb: PendingBargain): string {
-  const won = pb.result?.attackerWins ?? false;
-  const drNet = pb.result?.netSL ?? 0;
+  const issue = issueDuMarchandage(pb.result, pb.negotiator);
   // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 → le vendeur se méfie.
-  if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
+  if (!issue.won && issue.drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
   const c = pb.contrepartie;
-  if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
-  if (c.mode === 'vente') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
-  return won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: bargainPct(won, drNet, pb.negotiator) }) }) : t('out.bargainLostBuy');
+  if (c.kind === 'billet') return issue.won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
+  if (c.mode === 'vente') return verdictDeVente(issue);
+  return issue.won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: -variationDuMarchandage(issue, 'achat') }) }) : t('out.bargainLostBuy');
 }
 
-/** Marchandage de VENTE (LDB 59 l.54) : verdict, source unique popin ↔ panneau du marchand. */
-export function verdictDeVente(o: BargainOutcome): string {
+/** Marchandage de VENTE (LDB 59 l.54) : verdict de `describeBargain`. */
+function verdictDeVente(o: BargainOutcome): string {
   if (!o.won) return t('out.bargainLostSell');
-  const hausse = bargainSellBonusPct(o.won, o.drNet, o.negotiator);
+  const hausse = hausseDeVente(o);
   return t('out.bargainWonSell', { hausse: hausse ? t('out.fragHausse', { pct: hausse }) : '' });
 }
 

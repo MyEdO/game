@@ -20,11 +20,11 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'metal': ('metal', 'laiton-dore'),
+    'metal': ('metal', 'cuivre'),
     'cordon': ('cuir', 'corde'),
 }
-"""Illustration : médaillon de cuivre, sans matière de cuivre au catalogue : le laiton, à l'emplacement `metal` ; cordon
-tressé (`corde`), à l'emplacement `cuir`."""
+"""Illustration : médaillon de cuivre (`cuivre`), à l'emplacement `metal` ; cordon tressé (`corde`), à l'emplacement
+`cuir`."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 

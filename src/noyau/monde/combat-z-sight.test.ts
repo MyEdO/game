@@ -214,7 +214,7 @@ describe('computeStateVisible — brouillard PARTY-ONLY : un PNJ allié-IA ne d�
   const mkHero = (id: string, x: number, extra: Partial<Combatant> = {}): Combatant =>
     ({ id, kind: 'heros', pos: { x, y: 0 }, conditions: [], traits: [], characteristics: {}, ...extra }) as unknown as Combatant;
   const visWith = (right: Combatant) =>
-    computeStateVisible({ scene: sc, battle: { combatants: [mkHero('manual', 0), right] }, partyPos: { x: 0, y: 0 }, gameTime: 12 * 60, lightLevel: null });
+    computeStateVisible({ scene: sc, battle: { combatants: [mkHero('manual', 0), right] }, meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: 12 * 60, lightLevel: null });
 
   it('le PNJ allié-IA (aiControlled) ne révèle PAS sa zone, derrière le mur ; le héros manuel voit la sienne', () => {
     const vis = visWith(mkHero('ally', 10, { aiControlled: true }));
@@ -244,7 +244,7 @@ describe('computeStateVisible — INTÉGRATION : le viewer porte sa COUCHE (z-de
       entities: [], dialogues: [], triggers: [], encounters: [], flags: {},
     } as unknown as Scene;
     const hero = { id: 'h', kind: 'heros', pos: { x: 0, y: 0, z: 1 }, conditions: [], traits: [], characteristics: {} } as unknown as Combatant;
-    const vis = computeStateVisible({ scene: sc, battle: { combatants: [hero] }, partyPos: { x: 0, y: 0 }, gameTime: 12 * 60, lightLevel: null });
+    const vis = computeStateVisible({ scene: sc, battle: { combatants: [hero] }, meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: 12 * 60, lightLevel: null });
     expect(vis.has('0,0,1')).toBe(true); // sa propre couche (rempart)
     expect(vis.has('3,0,0')).toBe(true); // case au SOL en contrebas RÉVÉLÉE — le viewer porte z: c.pos.z
   });

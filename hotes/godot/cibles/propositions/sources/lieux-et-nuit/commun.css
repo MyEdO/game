@@ -1,16 +1,16 @@
 @import url(../gestes.css);
 #recit{position:absolute}
 /* la rubrique du récit garde sa ligne, vide quand il n'en a pas : le texte part du même y */
-#recit .r{height:16px;font-size:12.5px;color:var(--or);margin-bottom:3px}
+#recit .rub{height:16px;margin-bottom:3px}
 #recit p{margin:0;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
 
 /* le bandeau des quatre héros */
 .heros{position:relative;display:flex;gap:13px;padding:11px 14px 0 13px;min-width:0;height:100%}
 .place+.place>.heros{border-left:1px solid rgba(0,0,0,.6);box-shadow:inset 1px 0 0 rgba(255,220,160,.07)}
 .heros .qui{flex:1;min-width:0}
-.heros .nom{font-size:20.5px;line-height:28px;margin:-3px 0 -3px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
+.heros .nom-propre{white-space:nowrap}
 .heros .l2{display:flex;justify-content:space-between;align-items:baseline;margin-top:1px}
-.heros .car{font-size:12px;color:var(--creme-2);white-space:nowrap}
+.heros .sous-titre{white-space:nowrap}
 .heros .pv{font-size:10.5px;color:#e6dabd;white-space:nowrap}
 .heros .jauge{margin-top:5px}
 .heros .dit{display:flex;gap:8px;align-items:flex-start;margin-top:9px}
@@ -31,20 +31,16 @@
 .poste .medaillon{z-index:1}
 .poste .tenants{align-self:stretch;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
 .poste .et{align-self:stretch;margin-top:-5px;padding:7px 12px 4px;text-align:center;border-radius:2px;box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
-.poste .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:17px;letter-spacing:.3px;color:#f4e8ca;white-space:nowrap}
-.poste .et span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}
+.poste .et .nom-propre{white-space:nowrap}
+.poste .et>span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}
 .poste.vide .et{box-shadow:0 3px 7px rgba(0,0,0,.6),0 0 0 1px #0c0705}
-.poste.vide .et b{font-size:15px;color:#e2d5b6}
-.poste.ferme .et b,.poste.ferme .et span{color:#8d8474}
-.poste.vise .medaillon{box-shadow:0 0 0 1px #150d04,0 0 18px rgba(255,214,140,.9)}
+.poste.vide .et .nom-propre{color:#e2d5b6}
+.poste.ferme .et :is(.nom-propre,span){color:#8d8474}
 .poste.vise .et{box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.8),0 0 16px rgba(255,214,140,.35)}
 .poste::after{content:"";position:relative;left:var(--pointe,0px);width:10px;height:10px;margin-top:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
 
 /* le corps de l'aperçu */
-.apercu table{border-collapse:collapse;width:100%;margin-top:5px}
-.apercu td{padding:1px 0;vertical-align:baseline}
-.apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
-.apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
+.apercu table{margin-top:5px}
 
 /* l'hôte : son cartouche, son boniment, sa pointe */
 .hote{position:absolute}
@@ -57,36 +53,18 @@
 /* le rail des services d'un lieu */
 #rail .fond{padding:20px 12px 12px;display:flex;flex-direction:column;gap:7px}
 #rail .plaque{flex:none}
-#rail .plaque>div{justify-content:flex-start;gap:11px;font-size:14.5px}
-#rail .pied{font-size:11.5px;color:var(--creme-2);text-align:center;margin-top:3px}
+#rail .plaque>div{justify-content:flex-start}
+#rail .glose{text-align:center;margin-top:3px}
 
 /* panneau de parchemin encadré, à droite */
 .page{position:absolute}
 .page>.fond{display:flex;flex-direction:column;padding:24px 20px 13px}
 .page>.fond>.defile{flex:1 1 auto}
-.page h3{margin:0;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;letter-spacing:.3px}
-.page .sous{font-size:12px;color:#5a2a12}
 .page p{margin:0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18}
 .onglets{display:flex;gap:8px}
 .onglet{flex:1;display:flex;align-items:center;gap:7px;padding:4px 6px 4px 4px;border-radius:3px;border:1px solid rgba(60,40,20,.45);background:rgba(255,245,215,.18);min-width:0}
 .onglet span{font-size:11.5px;color:#4a3420;white-space:nowrap}
 .onglet.actif{background:linear-gradient(180deg,#f3dc93,#c9a44c);border-color:#5d4313;box-shadow:0 2px 5px rgba(60,35,5,.5)}
 .onglet.actif span{color:#2a1a08}
-.soin{display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:3px;border:1px solid rgba(60,40,20,.35);background:rgba(255,245,215,.2);margin-top:8px}
-.soin.pris{border:2px solid #a8842f;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:8px 10px}
-.soin .ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(60,40,20,.6);background:rgba(60,40,20,.08)}
-.soin .t{flex:1;min-width:0}
-.soin .t b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:20px;color:#2a1d12;letter-spacing:.3px}
-.soin .t i{display:block;font-size:12.5px;line-height:16px;color:#4a3420}
-.soin .t .c{font-family:"Fell SC";font-size:11.5px;letter-spacing:1px;color:#6b1c10}
-.soin .px{flex:none;font-size:14px;font-weight:600;color:#2a1d12;white-space:nowrap}
-.compte{width:100%;border-collapse:collapse;font-size:13.5px;color:#2a1d12}
-.compte td{padding:2px 0}
-.compte td:last-child{text-align:right;font-weight:600;white-space:nowrap}
-.compte tr.total td{font-family:"Grenze Gotisch";font-size:21px;line-height:24px;font-weight:600;color:#3a1a10}
-.compte tr.total td:last-child{font-family:"Chiffres";font-size:17px;letter-spacing:.2px}
-.heros .attend{display:inline-block;margin-top:9px;padding:1px 11px 2px;font-size:12px;color:#2a1a08;border-radius:2px;background:linear-gradient(180deg,#f3dc93,#c39c44);box-shadow:0 0 0 1px #150d04,0 2px 4px rgba(0,0,0,.6);white-space:nowrap}
+.heros .qui>.etiquette{margin-top:9px}
 
-/* ce qui se jouera : une ligne par jet annoncé, son rond, qui le porte */
-.jouera{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13.5px;color:#eadfc4}
-.jouera span{margin-left:auto;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
