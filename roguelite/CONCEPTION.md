@@ -19,6 +19,27 @@ Grisefosse et part en expéditions de salle en salle jusqu'à abattre l'Autel du
 - **Des carrières qui ont une identité** : chacune a un rôle lisible et un Talent qui la définit.
 - **Un rendu simple** et cohérent avec le kit des maquettes 4585 ; les illustrations viendront à la finition.
 
+## Le jeu tel qu'il est arrêté
+
+Ce qui est décidé et ne se rediscute pas sans l'utilisateur. Tout lot sur le roguelite part d'ici ; une proposition
+qui contredit une ligne ci-dessous est un défaut, pas une option. Le détail et les verbatims : « Arbitrages de
+l'utilisateur ».
+
+- **Le noyau d'abord** : toute règle se joue par le noyau ; ce qu'il ne joue pas va à `RETOURS.md`, jamais dans l'hôte.
+- **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
+- **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
+  (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.
+  La forge ouvre ce qu'elle vend par Disponibilité ; une recrue part avec la dotation du livre ; le meilleur s'achète.
+- **Progression** : présentation « à la 5e » (pas de +5, plan conseillé en un clic, Compétences utiles seules) ;
+  une identité de carrière se juge sur ses quatre niveaux.
+- **Roster** : chaque palier du relais apporte un groupe complet ; le lanceur est une carrière de Collège tirée, le
+  dieu d'un prêtre est tiré, et la carte du héros les affiche.
+- **Salles** : rien d'automatique ; le joueur choisit l'action et le héros qui la tente, qui en subit l'échec.
+- **Combat** : automatique et visible ; placement du groupe et consigne par héros (doctrine de l'IA du noyau) à venir.
+- **Montures** : porter un cavalier est un choix fait hors combat ; une bête sans cavalier combat en membre du groupe.
+- **Boutiques** : la forge vend armes et panoplies ; l'Hospice soigne et vend potions et remèdes ; l'Auberge relais
+  recrute, loge, renvoie, et vendra les provisions de route.
+
 ## Le parcours du néophyte
 
 Chaque étape dit ce que le joueur doit comprendre ou pouvoir faire, sans connaître WFRP. C'est la grille de recette
