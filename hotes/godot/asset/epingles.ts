@@ -1,9 +1,9 @@
 /**
  * LES DOSSIERS ÉPINGLÉS DU PROJET GODOT (#3476) : les textures du sol (`projet/textures/`, lot E) et les sons
- * (`projet/sons/`, #3771) vivent, comme les modèles (`./release.ts`, #2948), dans la Release `TAG`, chaque fichier
- * nommé par son SHA-256. Le dépôt commite la provenance de chaque dossier (`provenance.json`) : par fichier, son
+ * (`projet/sons/`, #3771) vivent, comme les modèles (`./release.ts`, #2948), dans les Releases du dépôt, chaque fichier
+ * nommé par son SHA-256 et rangé dans la Release de son premier caractère (`releaseDe`). Le dépôt commite la provenance de chaque dossier (`provenance.json`) : par fichier, son
  * empreinte (`sha256`), sa source et sa licence. `recupererEpingles` dépose au projet chaque fichier qui y manque, du
- * cache ou de la Release ; `epinglesAPublier` nomme ce que `publierAssets` y verse.
+ * cache ou de sa Release ; `epinglesAPublier` nomme ce que `publierAssets` y verse.
  */
 import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
