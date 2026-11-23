@@ -24,7 +24,8 @@
  */
 import { DIFFICULTE_PAR_DEFAUT, type Combatant } from './types';
 import type { Possession } from './possession';
-import { possessionLabel, possessionCombatRideable } from './possession';
+import { possessionLabel, possessionRideable, profilDeLaBete } from './possession';
+import { accepteUnCavalier } from './traits/dispatch';
 import { rollDice, type RNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
@@ -74,38 +75,27 @@ export interface PartyMount {
   profile: MountProfile;
 }
 
-/** Cette bête peut-elle (encore) être montée ? Boiteux : « ne peut pas … être monté » (l.157) ;
- *  Patte brisée : « demeure immobile » (l.161). */
-const rideable = (p: Possession & { nature: 'bete' }): boolean =>
-  !p.destroyed && !mountIncidentEffects(p.mountInjury)?.preventsMount; // la séquelle DÉCLARE `preventsMount`
+/** Bêtes possédées `avec-le-groupe` d'un héros qui le portent (`possessionRideable`, `accepteUnCavalier`), dans
+ *  l'ordre du registre (`possessions` = tout le registre du store, filtré par `ownerId`). */
+function betesQuiLePortent(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
+  return possessions.filter((p): p is Possession & { nature: 'bete' } =>
+    p.ownerId === h.id && p.nature === 'bete' && p.location.kind === 'avec-le-groupe'
+    && possessionRideable(p) && accepteUnCavalier(profilDeLaBete(p), h));
+}
 
-/** 1re bête possédée `avec-le-groupe` d'un héros passant `gate` (`possessions` = tout le registre du
- *  store, filtré par `ownerId`) — mutualise l'itération commune de `heroMount`/`heroCombatMount`. */
-function firstOwnedBete(
-  h: Combatant,
-  possessions: Possession[],
-  gate: (p: Possession & { nature: 'bete' }) => boolean,
-): (Possession & { nature: 'bete' }) | undefined {
-  for (const p of possessions) {
-    if (p.ownerId !== h.id || p.nature !== 'bete' || p.location.kind !== 'avec-le-groupe') continue;
-    if (gate(p)) return p;
+/** Monture UTILISABLE d'un héros : première bête qui le porte (`betesQuiLePortent`) au profil EDOC. */
+export function heroMount(h: Combatant, possessions: Possession[]): PartyMount | undefined {
+  for (const p of betesQuiLePortent(h, possessions)) {
+    const profile = 'id' in p.ref ? mountProfileForCreature(p.ref.id) : undefined;
+    if (profile) return { hero: h, possession: p, profile };
   }
   return undefined;
 }
 
-/** Monture UTILISABLE d'un héros : première Possession bête (avec-le-groupe) au profil EDOC, encore
- *  montable (`possessions` = tout le registre du store, filtré par `ownerId`). */
-export function heroMount(h: Combatant, possessions: Possession[]): PartyMount | undefined {
-  const p = firstOwnedBete(h, possessions, (c) => 'id' in c.ref && !!mountProfileForCreature(c.ref.id) && rideable(c));
-  if (!p) return undefined;
-  const profile = 'id' in p.ref ? mountProfileForCreature(p.ref.id) : undefined;
-  return profile ? { hero: h, possession: p, profile } : undefined;
-}
-
-/** Monture de COMBAT d'un héros (LDB 14) : 1re bête possédée avec-le-groupe acceptant un cavalier
- *  (`possessionCombatRideable`, LDB 339) — indépendant du profil EDOC (le `cheval` LDB n'en a pas). */
+/** Monture de COMBAT d'un héros (LDB 14) : première bête qui le porte (`betesQuiLePortent`), sans profil EDOC
+ *  requis (le `cheval` LDB n'en a pas). */
 export function heroCombatMount(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' }) | undefined {
-  return firstOwnedBete(h, possessions, possessionCombatRideable);
+  return betesQuiLePortent(h, possessions)[0];
 }
 
 /** Les montures des héros VIVANTS du groupe (un héros = au plus une monture). */

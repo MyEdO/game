@@ -10,11 +10,13 @@ import type { Possession } from './possession';
 import { MOUNT_INCIDENTS } from './travelTables';
 import {
   ALLURE_KMH_PER_M, MOUNT_PROFILES, mountProfileById, mountProfileForCreature, mountBE,
-  heroMount, partyMounts, partyFullyMounted, availableAllures, mountedSpeedKmh,
+  heroMount, heroCombatMount, partyMounts, partyFullyMounted, availableAllures, mountedSpeedKmh,
   allureEnduranceHours, lameLedCapKmh, resolveMountIncident, resolveMountedDay,
   type PartyMount, type MountInjury,
 } from './mountTravel';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { createHero } from './character';
+import { idsDeTest } from './idsDeTest.testkit';
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -222,5 +224,21 @@ describe('resolveMountedDay — sur-endurance (EDOC 07 l.146)', () => {
       }
     }
     expect(collapsedSeen).toBe(true);
+  });
+});
+
+describe('la monture porte son cavalier — `accepteUnCavalier` (LDB 85 l.112 ; arbitrage du 2026-11-23, #4804)', () => {
+  const heros = (speciesId: string) => createHero({ idNeuf: idsDeTest, speciesId, careerId: 'ratier', label: speciesId, seed: 1 });
+
+  it('voyage : un héros ogre avec un poney n’a pas de monture, un humain en a une', () => {
+    const ogre = heros('ogres');
+    const humain = heros('humains-reiklander');
+    expect(heroMount(ogre, [beast(ogre.id, 'poney')])).toBeUndefined();
+    expect(heroMount(humain, [beast(humain.id, 'poney')])?.possession.uid).toBe(`pos-${humain.id}-poney`);
+  });
+
+  it('combat : un humain ne monte pas son chien (Taille Petite)', () => {
+    const humain = heros('humains-reiklander');
+    expect(heroCombatMount(humain, [beast(humain.id, 'chien')])).toBeUndefined();
   });
 });
