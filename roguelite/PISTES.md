@@ -16,6 +16,9 @@ Ordre : 1, puis 2 et 3 ensemble, puis 4.
 - **Le camp** : le soigneur du groupe passe par l'infirmerie du noyau (Guérison, Chirurgie) ; qui veille, qui soigne.
 - **Rencontres à choix** : en partie sociales (Charme, Intimidation, Commandement) ; pièges sur d'autres Compétences.
 - **Un risque à doser** : choix de chemin entre deux salles, ressource qui s'use au fil de l'expédition.
+- **Provisions de route à l'Auberge relais** (« Rations, torches, cordes, clairement ca peut servir pour plus tard »,
+  2026-11-23) : objets du noyau achetés avant de partir, qui ouvrent ou facilitent des actions de salle (corde pour
+  descendre, torche contre l'obscurité des tertres, rations au camp). Les potions et remèdes passent à l'Hospice.
 
 ## 2. Une prise sur le combat — validé le 2026-11-23
 
