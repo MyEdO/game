@@ -186,7 +186,11 @@ tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles d
 ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
 déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
 `element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
-propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
+propre n'a pas ce champ. Une pièce skinnée qui contourne une tête publiée (`CONTOURNE['tete']` de son `donnees.py`)
+en reçoit toutes les formes propres sans les demander : `Base.transferer` les prend au plus près des meshes de cette
+tête, qui remplacent les zones de la base qu'ils portent ; une pilosité, bâtie sur la peau de la tête, les copie
+sommet à sommet. Une tête republiée avec une forme neuve rend donc à reconstruire et republier chaque pièce qui la
+contourne. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
 traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des

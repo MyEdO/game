@@ -1,8 +1,7 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
-`corpulence` ; la palette d'un preset, les couleurs de sa race d'abord (#4379) ; une matière sans texture au catalogue
-laisse le matériau ; le relief projeté pose la normale du jeu (#4527) ; un rigide rangé se pose à la transformation que
-le jeu lui donne, hors de son os (#4351)."""
+`corpulence` ; une matière sans texture au catalogue laisse le matériau ; le relief projeté pose la normale du jeu
+(#4527) ; un rigide rangé se pose à la transformation que le jeu lui donne, hors de son os (#4351)."""
 import argparse
 import tempfile
 import unittest
@@ -11,9 +10,8 @@ from pathlib import Path
 import numpy
 
 from glb import ecrire_glb, lire_glb
-from habillage import couleur_lineaire
 from rendu import (accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, habiller_le_modele, importer, lire_cadre,
-                   matrice_du_noeud, palette, ranger)
+                   matrice_du_noeud, ranger)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -90,22 +88,6 @@ class FacteurDeRelief(unittest.TestCase):
         self.assertIsNone(facteur_de_relief(manifeste, {'corpulence': 0}))
         self.assertIsNone(facteur_de_relief(manifeste, {'feminin': 1}))
         self.assertIsNone(facteur_de_relief({}, {'corpulence': 1}))
-
-
-class Palette(unittest.TestCase):
-    """La palette d'un preset (#4379)."""
-
-    RACES = [{'id': 'orc', 'couleurs': {'peau': {'id': 'vert'}, 'yeux': {'id': 'rouge'}}}, {'id': 'humain'}]
-    NUANCIER = [{'id': 'vert', 'domain': 'couleur', 'color': '#2a5a2a'}, {'id': 'rouge', 'domain': 'couleur', 'color': '#a02020'},
-                {'id': 'bleu', 'domain': 'couleur', 'color': '#2030a0'}]
-
-    def test_les_couleurs_de_la_race_puis_celles_du_preset(self):
-        self.assertEqual(palette({'race': {'id': 'orc'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER),
-                         {'peau': couleur_lineaire('#2a5a2a'), 'yeux': couleur_lineaire('#2030a0')})
-
-    def test_une_race_sans_couleurs_n_en_donne_aucune(self):
-        self.assertEqual(palette({'race': {'id': 'humain'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER),
-                         {'yeux': couleur_lineaire('#2030a0')})
 
 
 class LireCadre(unittest.TestCase):

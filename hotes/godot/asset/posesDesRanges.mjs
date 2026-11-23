@@ -7,8 +7,9 @@
 // (`poserLesRanges`, `construire.mjs` ; `projet/outils/poses_des_ranges.gd`).
 // En ligne de commande, l'entrée standard porte `{ base, manifeste, elements, preset, facteurs?, silhouettes?, clip?, t? }`
 // (`facteurs` : ceux du gabarit, les autres aux `FACTEURS_NEUTRES` ; `silhouettes` : celles de `--silhouettes`) et la
-// sortie standard `{ elements, sans, silhouettes }` pour ce seul instant, le repos sans `clip`, `silhouettes` étant
-// celles que l'instant pose (`silhouettesSousLePreset`) :
+// sortie standard `{ elements, sans, silhouettes, palette }` pour ce seul instant, le repos sans `clip`, `silhouettes`
+// étant celles que l'instant pose (`silhouettesSousLePreset`) et `palette` la couleur `#rrggbb` de chaque emplacement que
+// le preset colore (`paletteDesCouleurs` de sa portée) ; sans élément, aucun mesh rangé ne se pose :
 //   node hotes/godot/asset/posesDesRanges.mjs < demande.json
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
@@ -23,7 +24,7 @@ export const manifesteVoisin = (glb) => [glb.replace(/\.glb$/, '.element.json'),
 let assetsCharges = null
 const assets = () => (assetsCharges ??= chargerAssets([
   "export { modelesDeLAtelier } from '/hotes/godot/pont/atelier.ts';",
-  "export { composerSurLaBase } from '/hotes/godot/pont/composition.ts';",
+  "export { composerSurLaBase, paletteDesCouleurs } from '/hotes/godot/pont/composition.ts';",
   "export { porteeDeComposition } from '/src/noyau/index.ts';",
   "export { findPresetDePersonnageById } from '/src/data/index.ts';",
   "export { osDesRigides } from '/hotes/godot/asset/release.ts';",
@@ -96,10 +97,14 @@ if (import.meta.main) {
   console.log = console.error
   const { facteurs = {}, silhouettes: explicites, clip = '', t = 0, ...demande } = JSON.parse(await text(process.stdin))
   const a = await assets()
-  const brut = JSON.parse(readFileSync(demande.manifeste, 'utf8'))
   const silhouettes = await silhouettesSousLePreset(demande.preset, explicites)
-  const morphes = { ...tableTotale(brut.silhouettes ?? [], () => 0), ...silhouettes }
-  const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, { ...a.FACTEURS_NEUTRES, ...facteurs }, morphes) } : {}
-  const { elements, sans } = await posesDesRanges({ ...demande, instants: [{ ...gabarit, morphes, clip, t }] })
-  process.stdout.write(JSON.stringify({ elements: elements.map((e) => e && { ligne: e.ligne, meshes: Object.fromEntries(Object.entries(e.meshes).map(([nom, poses]) => [nom, poses[0]])) }), sans, silhouettes }))
+  const palette = a.paletteDesCouleurs((await porteeDuPreset(demande.preset)).couleurs)
+  const poser = async () => {
+    const brut = JSON.parse(readFileSync(demande.manifeste, 'utf8'))
+    const morphes = { ...tableTotale(brut.silhouettes ?? [], () => 0), ...silhouettes }
+    const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, { ...a.FACTEURS_NEUTRES, ...facteurs }, morphes) } : {}
+    return posesDesRanges({ ...demande, instants: [{ ...gabarit, morphes, clip, t }] })
+  }
+  const { elements, sans } = demande.elements.length ? await poser() : { elements: [], sans: [] }
+  process.stdout.write(JSON.stringify({ elements: elements.map((e) => e && { ligne: e.ligne, meshes: Object.fromEntries(Object.entries(e.meshes).map(([nom, poses]) => [nom, poses[0]])) }), sans, silhouettes, palette }))
 }

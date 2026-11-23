@@ -3,8 +3,8 @@ de liaison `squelette` que bâtit `element/construire.py`.
 
 `Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
 (positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
-pièce par zone. Le reste se compose dans le
+silhouettes, des clés `gabarit_*` et des formes de la tête contournée (du corps et de cette tête au plus près, des
+éléments publiés par liaison de surface), découpe de la pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
@@ -120,9 +120,12 @@ class Filet:
 
 class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
-    `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié."""
+    `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié ; `tete`,
+    l'id de la tête publiée que la pièce contourne (`CONTOURNE['tete']` de son `donnees.py`, `tete_contournee`), dont les
+    meshes remplacent les zones de la base qu'elle couvre (`couvre_de_la_tete`, `couvre` de son manifeste) dans toute
+    source de clés (`_source`, `tete.cles_du_corps`)."""
 
-    def __init__(self, glb, manifeste, publies):
+    def __init__(self, glb, manifeste, publies, tete=None, couvre_de_la_tete=()):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=str(glb))
         self.glb = glb
@@ -137,6 +140,8 @@ class Base:
         bpy.context.view_layer.update()
         self.manifeste = manifeste
         self.publies = publies
+        self.tete_contournee = tete
+        self.couvre_de_la_tete = set(couvre_de_la_tete)
         peaux = {s_['nom'] for s_ in manifeste['surfaces'] if s_['palette'] == 'peau'}
         self.zones = {}
         for o in bpy.data.objects:
@@ -300,9 +305,10 @@ class Base:
                             cles)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
-        """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
-        jointe des zones `zones` qu'elle traverse, au plus près (`deplacer_au_plus_pres`) ; chaque `(masque, zones,
-        publies)` de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres zones et
+        """Silhouettes déclarées par la base, toutes ses clés `gabarit_*` et chaque forme propre de la tête contournée
+        (`tete_contournee`) que `piece` ne porte pas déjà, transférées sur `piece` depuis la copie jointe des zones
+        `zones` qu'elle traverse (`_source`), au plus près (`deplacer_au_plus_pres`) ; chaque `(masque, zones, publies)`
+        de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres zones et
         des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des
         mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Rend les noms des clés."""
         source = self._source(zones, {})
@@ -310,7 +316,9 @@ class Base:
         manquantes = [s for s in self.manifeste['silhouettes'] if s not in noms_cles]
         if manquantes:
             raise ValueError(f'silhouettes absentes des zones porteuses : {manquantes}')
-        cles = list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
+        portees = set(noms_des_cles(piece))
+        cles = (list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
+                + [k for k in self.propres(noms_cles) if k not in portees])
         reprises = []
         for masque, zones_du_masque, publies in masques:
             autre = self._source(zones_du_masque, publies)
@@ -329,32 +337,46 @@ class Base:
         return cles
 
     def _source(self, zones, publies):
-        """Un objet : copie jointe des zones `zones` et des meshes des zones `publies[id]` de chaque élément publié."""
-        copies = []
+        """Un objet : copie jointe des zones `zones` et des meshes des zones `publies[id]` de chaque élément publié ; une
+        zone de `zones` que couvre la tête contournée y laisse place aux meshes de cette tête (`meshes_de_la_tete`),
+        porteurs de ses formes propres."""
+        sous_la_tete = bool(self.couvre_de_la_tete & set(zones))
+        copies = self.meshes_de_la_tete() if sous_la_tete else []
         for nom in zones:
+            if sous_la_tete and nom in self.couvre_de_la_tete:
+                continue
             copie = self.zones[nom].copy()
             copie.data = self.zones[nom].data.copy()
             bpy.context.scene.collection.objects.link(copie)
             copies.append(copie)
         for id_, zones_publiees in publies.items():
-            avant = set(bpy.data.objects)
-            bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
-            nouveaux = [o for o in bpy.data.objects if o not in avant]
-            gardes = [o for o in nouveaux if o.type == 'MESH' and o.get('zone') in zones_publiees]
-            if not gardes:
-                raise ValueError(f'{id_} : aucun mesh des zones {zones_publiees}')
-            for o in gardes:
-                o.modifiers.clear()
-                monde = o.matrix_world.copy()
-                o.parent = None
-                o.matrix_world = monde
-                copies.append(o)
-            for o in nouveaux:
-                if o not in gardes:
-                    bpy.data.objects.remove(o, do_unlink=True)
+            copies.extend(self.meshes_publies(id_, zones_publiees))
         with bpy.context.temp_override(active_object=copies[0], selected_editable_objects=copies, object=copies[0]):
             bpy.ops.object.join()
         return copies[0]
+
+    def meshes_publies(self, id_, zones):
+        """Les meshes de l'élément publié `id_` portant une des `zones`, importés dans la scène au repos, hors de leur
+        armature ; ses autres objets sont retirés. Aucun mesh de ces zones arrête la construction."""
+        avant = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
+        nouveaux = [o for o in bpy.data.objects if o not in avant]
+        gardes = [o for o in nouveaux if o.type == 'MESH' and o.get('zone') in zones]
+        if not gardes:
+            raise ValueError(f'{id_} : aucun mesh des zones {zones}')
+        for o in gardes:
+            o.modifiers.clear()
+            monde = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_world = monde
+        for o in nouveaux:
+            if o not in gardes:
+                bpy.data.objects.remove(o, do_unlink=True)
+        return gardes
+
+    def meshes_de_la_tete(self):
+        """Les meshes de la tête contournée (`meshes_publies`), aucun sans elle."""
+        return self.meshes_publies(self.tete_contournee, self.couvre_de_la_tete) if self.tete_contournee else []
 
     def zones_des_faces(self, piece):
         """Par face de `piece`, la zone de la base la plus proche de son centre au repos ; des zones à égalité

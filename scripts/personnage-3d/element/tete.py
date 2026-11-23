@@ -35,7 +35,7 @@ from mathutils import Vector
 from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
-from formes import decalages_monde, poser_la_cle
+from formes import decalages_monde, noms_des_cles, poser_la_cle
 from maille import revolution
 from noms_formes_de_tete import VISAGE_INVERSE
 from tente import HAUT
@@ -416,28 +416,36 @@ def anneau_d_oreille(M, spec, repere, partie):
 # --- clés ------------------------------------------------------------------------------------------------------------
 
 def cles_du_corps(b, zones, X):
-    """Par silhouette déclarée de la base et par clé `gabarit_*`, le décalage de chaque sommet `X` : celui du corps de la
-    base (tout mesh qui porte une zone, yeux et sourcils compris) au point le plus proche du sommet, interpolé dans son
-    triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui approche au mieux (moindres carrés) le
-    décalage de la peau de la tête (zones `zones`). La tête s'écarte du corps de plusieurs centimètres (mâchoire d'orc
-    5 cm devant le menton) ; sous `gabarit_head_plus`, qui grandit la tête, le décalage d'un point de la peau ne vaut pas
-    celui d'un point 5 cm devant : le champ affine porte la croissance sur l'écart. `suiviDuCorps` compare au même point
-    du corps : le décalage d'un sommet ne s'en écarte que de cette croissance sur son jeu."""
-    noms = list(b.manifeste['silhouettes']) + [k.name for k in b.zones[zones[0]].data.shape_keys.key_blocks
-                                                if k.name.startswith('gabarit_')]
+    """Par silhouette déclarée de la base, par clé `gabarit_*` et par forme propre de la tête contournée
+    (`Base.meshes_de_la_tete`), le décalage de chaque sommet `X` : celui du corps de la base (tout mesh qui porte une
+    zone, yeux et sourcils compris, les zones que couvre la tête contournée remplacées par ses meshes) au point le plus
+    proche du sommet, interpolé dans son triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui
+    approche au mieux (moindres carrés) le décalage de la peau de la tête (zones `zones`, ou la tête contournée). La tête
+    s'écarte du corps de plusieurs centimètres (mâchoire d'orc 5 cm devant le menton) ; sous `gabarit_head_plus`, qui
+    grandit la tête, le décalage d'un point de la peau ne vaut pas celui d'un point 5 cm devant : le champ affine porte
+    la croissance sur l'écart. `suiviDuCorps` compare au même point du corps : le décalage d'un sommet ne s'en écarte que
+    de cette croissance sur son jeu."""
+    du_corps = [o for o in bpy.data.objects
+                if o.type == 'MESH' and o.get('zone') and o.get('zone') not in b.couvre_de_la_tete]
+    de_la_tete_contournee = b.meshes_de_la_tete()
+    noms = (list(b.manifeste['silhouettes']) + [k.name for k in b.zones[zones[0]].data.shape_keys.key_blocks
+                                                 if k.name.startswith('gabarit_')]
+            + list(dict.fromkeys(nom for o in de_la_tete_contournee for nom in b.propres(noms_des_cles(o)))))
     P, T, champs, n = [], [], {nom: [] for nom in noms}, 0
     de_la_tete = []
-    for o in sorted((o for o in bpy.data.objects if o.type == 'MESH' and o.get('zone')), key=lambda o: o.name):
+    for o in sorted(du_corps + de_la_tete_contournee, key=lambda o: o.name):
         Mo = np.array(o.matrix_world)
         p = np.array([v.co for v in o.data.vertices]) @ Mo[:3, :3].T + Mo[:3, 3]
         o.data.calc_loop_triangles()
         P.append(p)
         T.append(np.array([t.vertices[:] for t in o.data.loop_triangles]) + n)
-        de_la_tete.append(np.full(len(p), o in [b.zones[z] for z in zones]))
+        de_la_tete.append(np.full(len(p), o in de_la_tete_contournee or o in [b.zones[z] for z in zones]))
         n += len(p)
         cles = o.data.shape_keys.key_blocks if o.data.shape_keys else {}
         for nom in noms:
             champs[nom].append(decalages_monde(o, nom) if nom in cles else np.zeros_like(p))
+    for o in de_la_tete_contournee:
+        bpy.data.objects.remove(o, do_unlink=True)
     P, T, de_la_tete = np.concatenate(P), np.concatenate(T), np.concatenate(de_la_tete)
     porteur = porteur_de(P, T, np.zeros((len(P), 1)))
     lies, proches = [], []

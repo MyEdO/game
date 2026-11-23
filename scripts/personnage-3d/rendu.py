@@ -15,13 +15,12 @@ voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'
 que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
 son armature. Sous `--preset`, un rigide que le jeu range (`rangementsObjets` du preset, `rangement` de son trapping) se
 pose là où le jeu le range, sur l'emplacement de la base ou la case de la pièce qui l'offre, au repos comme à l'image du
-clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`poses_des_ranges`,
+clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`preset_du_jeu`,
 `hotes/godot/asset/posesDesRanges.mjs`, #4351) ; un élément porté plusieurs fois par le preset se donne autant de fois,
 chaque `--element` montant à son tour la ligne suivante du preset. Sous `--preset`, les formes de la tête que le jeu pose
 au preset se posent aussi, sur tout mesh qui les porte, une forme que `--silhouettes` nomme gardant le poids qu'il lui
-donne (`silhouettesSousLePreset`, `posesDesRanges.mjs`). `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
-la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
-y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
+donne (`silhouettesSousLePreset`, `posesDesRanges.mjs`). `--preset` colore chaque surface à l'emplacement de palette que
+lui donne son manifeste, de la couleur que le jeu y pose pour ce preset (`paletteDesCouleurs`, `posesDesRanges.mjs`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
 couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
@@ -51,7 +50,6 @@ from noms_silhouettes import CORPULENCE  # noqa: E402
 from script_node import lancer  # noqa: E402
 
 DEPOT = Path(__file__).resolve().parents[2]
-DONNEES = DEPOT / 'src' / 'data'
 CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
 """Le catalogue des textures de matière du jeu."""
 METRES_PAR_MOTIF = 2.0
@@ -242,21 +240,23 @@ VERS_BLENDER = ((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1))
 """Du repère glTF (Y haut) à celui de Blender (Z haut), comme l'import glTF de Blender."""
 
 
-def poses_des_ranges(base, manifeste, elements, preset, silhouettes, clip=None, t=0):
-    """`(poses, poids)` : par GLB d'`elements`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF
-    (16 nombres, colonne par colonne) où le jeu range ce mesh sous le `preset`, `None` s'il ne le montre pas rangé, au
-    repos ou à l'instant `t` du `clip` ; les poids des `silhouettes` sous le `preset` que cet instant pose
-    (`hotes/godot/asset/posesDesRanges.mjs`). Une ligne du preset sans GLB donné se dit sur la sortie d'erreur."""
+def preset_du_jeu(base, manifeste, elements, preset, silhouettes, clip=None, t=0):
+    """Ce que le jeu pose sous le `preset` (`hotes/godot/asset/posesDesRanges.mjs`) : `poses`, par GLB d'`elements`,
+    `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne par colonne) où le jeu range
+    ce mesh, `None` s'il ne le montre pas rangé, au repos ou à l'instant `t` du `clip` ; `poids`, les poids des
+    `silhouettes` que cet instant pose ; `palette`, `{emplacement: couleur linéaire (r, g, b)}`. Une ligne du preset sans
+    GLB donné se dit sur la sortie d'erreur."""
     demande = {'base': str(base), 'manifeste': str(manifeste), 'elements': [str(e) for e in elements], 'preset': preset,
                'silhouettes': silhouettes, **({'clip': clip, 't': t} if clip else {})}
     reponse = json.loads(lancer(DEPOT / 'hotes' / 'godot' / 'asset' / 'posesDesRanges.mjs', [], json.dumps(demande)))
     if reponse['sans']:
         print(f"--preset {preset} : ligne(s) montée(s) par le jeu sans --element répété : {', '.join(reponse['sans'])}", file=sys.stderr)
-    return reponse['elements'], reponse['silhouettes']
+    return {'poses': reponse['elements'], 'poids': reponse['silhouettes'],
+            'palette': {slot: couleur_lineaire(couleur) for slot, couleur in reponse['palette'].items()}}
 
 
 def ranger(elements, poses):
-    """Pose chaque mesh rigide des `(objets importés, manifeste)` d'`elements` que `poses` range (`poses_des_ranges`) à sa
+    """Pose chaque mesh rigide des `(objets importés, manifeste)` d'`elements` que `poses` range (`preset_du_jeu`) à sa
     transformation, hors de son os : son nom est celui de son nœud glTF, au suffixe `.NNN` près que Blender ajoute à un
     nom déjà pris."""
     from mathutils import Matrix
@@ -268,26 +268,6 @@ def ranger(elements, poses):
                 colonnes = pose['meshes'][noeud]
                 obj.parent = None
                 obj.matrix_world = vers_blender @ Matrix([colonnes[ligne::4] for ligne in range(4)]) @ vers_blender.inverted()
-
-
-def palette(preset, races, matieres):
-    """La palette du `preset` de personnage, comme le noyau la compose (`porteeDeComposition`, #4379) :
-    `{emplacement: couleur linéaire (r, g, b)}`, les couleurs de sa race de `races` (`raceAppearance.json`), chacune
-    remplacée par la sienne, résolues au nuancier de `matieres` (`materials.json`)."""
-    race = next(r for r in races if r['id'] == preset['race']['id'])
-    nuancier = {m['id']: m['color'] for m in matieres if m.get('domain') == 'couleur'}
-    couleurs = {**race.get('couleurs', {}), **preset.get('couleurs', {})}
-    return {slot: couleur_lineaire(nuancier[couleur['id']]) for slot, couleur in couleurs.items()}
-
-
-def palette_du_preset(id_):
-    """`palette` du preset de personnage `id_` sur les données du dépôt."""
-    def lire(fichier):
-        return json.loads((DONNEES / fichier).read_text(encoding='utf-8'))
-    preset = next((p for p in lire('presets-de-personnage.json') if p['id'] == id_), None)
-    if preset is None:
-        raise ValueError(f'--preset {id_} : aucun preset de personnage de cet id')
-    return palette(preset, lire('raceAppearance.json'), lire('materials.json'))
 
 
 def colorer(objets, surfaces, palette):
@@ -658,7 +638,12 @@ def main():
             deplacer_les_os(bpy, rig, deplacements)
         elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
         monter(bpy, base, rig, elements)
-        palette = palette_du_preset(args.preset) if args.preset else {}
+        # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
+        cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
+        instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
+        jeu = preset_du_jeu(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
+                            args.silhouettes, **instant) if args.preset else {'poses': [], 'poids': poids, 'palette': {}}
+        poids, palette = jeu['poids'], jeu['palette']
         for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
             colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
         for objets, manifeste in elements:
@@ -672,14 +657,8 @@ def main():
             if action.slots:
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
-        if args.preset and args.element:
-            # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
-            cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
-            instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
-            poses, poids = poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
-                                            args.silhouettes, **instant)
-            ranger(elements, poses)
-            bpy.context.view_layer.update()
+        ranger(elements, jeu['poses'])
+        bpy.context.view_layer.update()
     silhouettes = poser_les_silhouettes(bpy, poids, args.silhouettes)
     relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
     if relief is not None:

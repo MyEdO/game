@@ -17,10 +17,11 @@ skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de pal
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
   de base) ou de l'emplacement `EMPLACEMENT` qu'offre l'élément importé `OFFRANT` ; ils pendent à l'os de ce
   repère ;
-- `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
-  transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
+- `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`, avec la tête publiée qu'elle
+  contourne, `CONTOURNE['tete']`) et rend la pièce jointe, ses clés transférées (`Base.transferer`, formes de cette tête
+  comprises) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
   qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (`Base.propres` :
-  `visage_inverse` et les traits d'une tête, ou ceux qu'une pièce copie de la tête publiée sur laquelle elle est bâtie),
+  `visage_inverse` et les traits d'une tête, ou ceux qu'une pièce reçoit de la tête publiée qu'elle contourne),
   lues sur la pièce exportée, à `formesDeTete` (#4413) ;
 - `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
   glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
@@ -203,9 +204,13 @@ def repere_de_pendaison(D, manifeste_de_base, locaux):
     (`--local`)."""
     if "PRISE" in D:
         return manifeste_de_base["prises"][D["PRISE"]]
-    id_ = D["OFFRANT"]
-    manifeste = locaux[id_].with_name(f"{id_}.element.json") if id_ in locaux else MODELES / f"{id_}.manifeste.json"
-    return lire(manifeste)["emplacements"][D["EMPLACEMENT"]]
+    return manifeste_publie(D["OFFRANT"], locaux)["emplacements"][D["EMPLACEMENT"]]
+
+
+def manifeste_publie(id_, locaux):
+    """Le manifeste de l'élément publié `id_` : celui écrit à côté de son GLB local s'il est de `locaux` (`--local`), sinon
+    celui du dépôt."""
+    return lire(locaux[id_].with_name(f"{id_}.element.json") if id_ in locaux else MODELES / f"{id_}.manifeste.json")
 
 
 def construire_rigide(D, modele, manifeste_de_base, glb_de_base, locaux, temporaire):
@@ -221,10 +226,12 @@ def construire_rigide(D, modele, manifeste_de_base, glb_de_base, locaux, tempora
     return octets, objets, {}, triangles
 
 
-def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_, temporaire):
+def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, locaux, id_, temporaire):
     """La pièce du modèle, ses clés transférées, découpée par zone, ou les objets repris du GLB publié de `id_`
-    (`reprendre`), exportés avec l'armature de la base ; `publie(id)` rend le GLB d'un élément publié."""
-    base = tissu.Base(glb_de_base, manifeste_de_base, publie)
+    (`reprendre`), exportés avec l'armature de la base ; `publie(id)` rend le GLB d'un élément publié, au GLB local de
+    `locaux` s'il en est ; la tête publiée que la pièce contourne (`CONTOURNE['tete']`) lui donne ses formes propres."""
+    tete = D.get("CONTOURNE", {}).get("tete")
+    base = tissu.Base(glb_de_base, manifeste_de_base, publie, tete, manifeste_publie(tete, locaux)["couvre"] if tete else ())
     materiaux = habillage.materiaux(D["MATERIAUX"])
     if hasattr(modele, "reprendre"):
         objets = modele.reprendre(materiaux, base, publie(id_))
@@ -269,7 +276,8 @@ def main():
         octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, locaux, temporaire)
     elif mode in ("squelette", "surface"):
         octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base,
-                                                                  lambda i: locaux.get(i) or epingle(i, args.cache), id_, temporaire)
+                                                                  lambda i: locaux.get(i) or epingle(i, args.cache), locaux,
+                                                                  id_, temporaire)
     else:
         raise ValueError(f"{args.element} : liaison {mode} sans constructeur")
     temporaire.unlink()
