@@ -20,7 +20,10 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
    de départ il doit focaliser plusieurs tours et le combat finit avant (constat utilisateur : « Sans les bonnes stats,
    c'est difficile de monter assez sa foca pour lancer un sort »). Ordonner chaque voie par ND : aux premiers niveaux,
    des sorts de faible ND (Arme et Armure aethyriques ND 2, Carreau et Explosion ND 4, Embrasement ND 3, Écorce ND 3),
-   les ND 6 à 9 plus tard ; mesurer en combat simulé le taux de lancer par niveau.
+   les ND 6 à 9 plus tard ; mesurer en combat simulé le taux de lancer par niveau. Jouer avec les règles optionnelles
+   du noyau qui conviennent (« Faut aussi jouer avec les régles optionnels qui vont bien comme celui de VDM ») :
+   `magie-vdm-incantation` (Focalisation en réserve qui réduit le NI de tout sort du Vent, VDM 02 l.129-139 ; Puissance
+   totale ; Projectile magique + BFM), posée une fois dans `ouvrirEnAuto` (`regles`), mesurée avec et sans.
 3. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
    refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
    Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche.
