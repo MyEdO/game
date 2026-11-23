@@ -4,6 +4,7 @@
  * 900 px de large, ses cadres s'empilent et défilent.
  */
 import * as J from '../jeu';
+import { medaillon } from '../kit';
 import { cadreA, carteDeHeros, esc, place } from './pieces';
 
 /** Les rectangles des cadres, ceux des maquettes. */
@@ -11,8 +12,25 @@ export const CADRES = {
   cartouche: [24, 20, 372, 96], recit: [32, 136, 340, 112], 'colonne-gauche': [24, 136, 372, 304], note: [24, 456, 372, 100],
   hote: [412, 20, 340, 300], page: [776, 20, 480, 520], 'colonne-droite': [896, 20, 360, 420], frise: [180, 480, 920, 70], coins: [1160, 470, 100, 230],
   identite: [26, 20, 340, 536], bande: [384, 20, 800, 96], gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
-  socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], retour: [30, 592, 124, 94],
+  socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], retour: [30, 592, 124, 94], carton: [160, 222, 960, 278],
 } satisfies Record<string, [number, number, number, number]>;
+
+/** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
+ *  largeur du titre ; les gestes, au pied, se centrent sur toute la largeur du carton. */
+const PLACES_DU_CARTON = { vignette: [20, 24, 140, 140], tete: [184, 22, 734, 34], texte: [184, 60, 734, 154], gestes: [20, 218, 902, 40] };
+
+/** Un carton : récit, confirmation. Il s'ouvre au-dessus du socle, qui reste ; la scène du lieu ne garde que son
+ *  cartouche. `texte` défile entre le titre et les gestes, qui restent au pied. */
+export interface Carton { ruban: string; picto: string; titre: string; surTitre: string; texte: string; gestes: string }
+export function carton(o: Carton): string {
+  const ici = (nom: keyof typeof PLACES_DU_CARTON, contenu: string) => {
+    const [x, y, l, h] = PLACES_DU_CARTON[nom];
+    return `<div class="place-carton" data-place="${nom}" style="left:${x}px;top:${y}px;width:${l}px;height:${h}px">${contenu}</div>`;
+  };
+  return cadreA(CADRES.carton, ici('vignette', medaillon(o.picto, 'grand'))
+    + ici('tete', `<span class="nom-propre grand gothique">${esc(o.titre)}</span><span class="sous-titre">${esc(o.surTitre)}</span>`)
+    + ici('texte', o.texte) + ici('gestes', `<div class="gestes">${o.gestes}</div>`), { ruban: o.ruban, classe: 'carton' });
+}
 
 /** Le socle : la compagnie en cartes ; `geste` dit ce qu'un clic fait, `choisi` et `ferme` l'état de chacune. */
 export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; ferme?: (h: J.Heros) => boolean }

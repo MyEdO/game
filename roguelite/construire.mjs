@@ -26,7 +26,7 @@ await build({
   }],
 });
 // La feuille du jeu : celle de chaque module de l'interface, à côté de lui, recollées dans l'ordre de la cascade.
-const FEUILLES = ['base', 'ecran', 'pieces', 'fiche', 'services', 'lieux', 'fenetres', 'rejeu'];
+const FEUILLES = ['base', 'ecran', 'pieces', 'fiche', 'services', 'lieux', 'rejeu'];
 writeFileSync(join(dist, 'jeu.css'), FEUILLES.map((f) => readFileSync(join(ici, `src/ui/${f}.css`), 'utf8')).join('\n'));
 for (const f of ['index.html', 'kit.css']) copyFileSync(join(ici, f), join(dist, f));
 // La page de recette (`recette/`) : la page enveloppée comme l'hôte des artefacts l'enveloppe, jamais publiée.

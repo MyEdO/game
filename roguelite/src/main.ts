@@ -1,25 +1,25 @@
 /**
- * L'interface de Grisefosse : l'état de l'interface (l'écran ouvert, le héros servi, la modale), le routage des gestes
- * par délégation des clics (`data-a`), et un rendu complet par geste. Les écrans vivent sous `./ui` : les lieux
+ * L'interface de Grisefosse : l'état de l'interface (l'écran ouvert, le héros servi, le carton), le routage des gestes
+ * par délégation des clics (`data-a`), et un rendu complet par geste. Un carton ouvert ne laisse passer que ses gestes. Les écrans vivent sous `./ui` : les lieux
  * (hameau, expédition), les services du hameau, la fiche du héros, le rejeu du combat, tous au gabarit commun
  * (`./ui/ecran`) et montés sur les pièces du kit (`./ui/pieces`).
  */
 import * as J from './jeu';
 import { DEGRADES_DES_FIGURINES } from './figures';
-import { cadre, plaque, poserLesTextures } from './kit';
+import { poserLesTextures } from './kit';
 import { ajusterLaScene } from './ui/ecran';
 import { ecranDeService } from './ui/services';
-import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, tableau } from './ui/lieux';
+import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, PICTO_DE_SALLE, recitEnCarton, recommencerEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { installerLesSurvols } from './ui/bulles';
 import { cliquerDansLeRejeu, fermerLeRejeu, mettreALEchelle, ouvrirLeRejeu, rejeuOuvert } from './ui/rejeu';
-import { esc } from './ui/pieces';
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 type Panneau = { type: 'batiment'; id: J.IdBatiment } | { type: 'heros'; id: string; onglet: Onglet | null } | { type: 'depart'; dest: string; choix: Set<string> } | { type: 'chronique' };
 let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
-let modale: { type: 'recit'; recit: J.RecitDeSalle; vignette?: J.Heros[]; terrain?: string } | { type: 'reset' } | null = null;
+type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; picto: string; surTitre: string; terrain: string };
+let ouvert: Recit | { type: 'reset' } | null = null;
 /** Le héros que servent la forge et le relais. */
 let client: string | null = null;
 let congediement: string | null = null;
@@ -41,10 +41,6 @@ function agir(f: () => string | null | void) {
   if (err) toast(err);
 }
 
-// ─── Portraits et tableaux ──────────────────────────────────────────────────────────────────────────────────
-
-// ─── Pièces communes ────────────────────────────────────────────────────────────────────────────────────────
-
 function pageOuverte(): string {
   if (!panneau) return '';
   if (panneau.type === 'heros') return ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet);
@@ -54,22 +50,11 @@ function pageOuverte(): string {
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-function vueModale(): string {
-  if (!modale) return '';
-  const boite = (titre: string, corps: string) => `<div class="modale" role="dialog" aria-modal="true" aria-label="${esc(titre)}">${cadre(corps, { ruban: esc(titre), fond: 'parchemin', classe: 'boite', balise: 'div' })}</div>`;
-  if (modale.type === 'reset') {
-    return boite('Recommencer ?', `<p class="glose consigne">Le hameau, la compagnie et le Jardin de Morr seront effacés.</p>
-      <div class="gestes">${plaque('Tout effacer', 'data-a="reset-ok"', { armee: true })}${plaque('Garder ma partie', 'data-a="fermer"')}</div>`);
-  }
-  const r = modale.recit;
-  return boite(r.titre, `${modale.vignette ? tableau(modale.terrain ?? 'reikwald', modale.vignette, 'illustration') : ''}<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>
-    <div class="gestes">${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}</div>`);
-}
+const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : recitEnCarton(ouvert.recit, ouvert));
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
-  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, pageOuverte()) : ecranDuHameau(etat, pageOuverte());
-  $('#modale').innerHTML = vueModale();
+  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, pageOuverte(), vueDuCarton()) : ecranDuHameau(etat, pageOuverte(), vueDuCarton());
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) {
     if (avant != null && panoramaCentre) pano.scrollLeft = avant;
@@ -92,7 +77,7 @@ document.addEventListener('click', (ev) => {
   const cible = ev.target as Element;
   if (cliquerDansLeRejeu(cible)) return;
   const el = cible.closest<HTMLElement>('[data-a]');
-  if (!el || (el as HTMLButtonElement).disabled) return;
+  if (!el || (el as HTMLButtonElement).disabled || (ouvert && !el.closest('.carton'))) return;
   const { a, id = '', i, k } = el.dataset;
   switch (a) {
     case 'batiment': if (el.dataset.client) client = el.dataset.client; panneau = { type: 'batiment', id: id as J.IdBatiment }; congediement = null; return rendre();
@@ -139,40 +124,45 @@ document.addEventListener('click', (ev) => {
       return agir(() => J.partir(etat, p.dest, [...p.choix]));
     }
     case 'avancer': {
+      if (!etat.expedition) return;
       panneau = null;
-      const terrain = etat.expedition?.destination ?? 'reikwald';
-      const camp = etat.expedition?.salles[etat.expedition.index].type === 'camp';
-      const groupe = J.herosDuGroupe(etat);
+      const x = etat.expedition;
+      const terrain = x.destination;
+      const type = x.salles[x.index].type;
+      const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`;
       const recit = J.avancer(etat);
       J.sauver(etat);
-      const montrer = () => { modale = { type: 'recit', recit, terrain, ...(camp ? { vignette: groupe } : {}) }; rendre(); };
+      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], picto: PICTO_DE_SALLE[type], surTitre, terrain }; rendre(); };
       if (recit.combat) { rendre(); ouvrirLeRejeu(recit.combat, montrer, terrain, etat.roster); } else montrer();
       return;
     }
     case 'revoir': {
-      if (modale?.type !== 'recit' || !modale.recit.combat) return;
-      const m = modale;
-      modale = null; rendre();
-      return ouvrirLeRejeu(m.recit.combat!, () => { modale = m; rendre(); }, m.terrain ?? 'reikwald', etat.roster);
+      if (ouvert?.type !== 'recit' || !ouvert.recit.combat) return;
+      const m = ouvert;
+      ouvert = null; rendre();
+      return ouvrirLeRejeu(m.recit.combat!, () => { ouvert = m; rendre(); }, m.terrain, etat.roster);
     }
     case 'rentrer': {
+      if (!etat.expedition) return;
       panneau = null;
+      const terrain = etat.expedition.destination;
+      const surTitre = J.destinationCourante(etat)!.nom;
       const lignes = J.rentrer(etat, false);
       J.sauver(etat);
-      modale = { type: 'recit', recit: { titre: 'Retour au hameau', lignes } };
+      ouvert = { type: 'recit', recit: { titre: 'Retour au hameau', lignes }, ruban: 'Retour', picto: 'route', surTitre, terrain };
       return rendre();
     }
     case 'attendre': return agir(() => J.attendreUneSemaine(etat));
-    case 'fermer': modale = null; return rendre();
-    case 'reset': modale = { type: 'reset' }; return rendre();
-    case 'reset-ok': J.effacer(); etat = J.nouvellePartie(Date.now() % 100000); modale = null; panneau = null; congediement = null; return agir(() => null);
+    case 'fermer': ouvert = null; return rendre();
+    case 'reset': ouvert = { type: 'reset' }; return rendre();
+    case 'reset-ok': J.effacer(); etat = J.nouvellePartie(Date.now() % 100000); ouvert = null; panneau = null; congediement = null; return agir(() => null);
   }
 });
 
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (rejeuOuvert()) return fermerLeRejeu();
-  if (modale?.type === 'reset') { modale = null; return rendre(); }
+  if (ouvert?.type === 'reset') { ouvert = null; return rendre(); }
   if (panneau) { panneau = null; rendre(); }
 });
 

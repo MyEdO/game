@@ -69,6 +69,11 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 | Rejeu du combat | Voir le combat joué | 5 |
 | Recommencer | Confirmer l'effacement | — |
 
+Le récit et Recommencer sont un **carton** (`carton` d'`ecran.ts`, gabarit « Récit, document et issue ») : la scène du
+lieu n'y garde que son cartouche et le socle, qui reste ; seuls les gestes du carton répondent. Un combat se clôt à
+son **issue** (bannière, ce qu'elle laisse, un geste ; tâche du rejeu) : une victoire rend la main à l'expédition sans
+carton ; une déroute ou une retraite passe de l'issue au carton qui raconte le retour.
+
 ## Les phases
 
 1. **Refonte du code, sans changement visible.** Découper la façade du noyau (`combat.ts`), la boucle de jeu

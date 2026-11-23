@@ -43,14 +43,30 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     await p.click('[data-a="avancer"]');
     if (await p.isVisible('#combat')) { await p.waitForTimeout(600); await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
     salles++;
-    console.log('  salle :', await p.textContent('.boite .ruban'), '·', (await p.$$eval('.boite p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
-    await p.click('.boite [data-a="fermer"]');
+    console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
+    if (n === 0) {
+      await p.click('.socle-compagnie .carte-heros');
+      constater(await p.isVisible('.carton') && !(await p.$('.ident')), 'le carton ouvert ignore un clic au socle');
+      const auPied = await p.$eval('.carton [data-a="fermer"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
+      constater(auPied, '« Continuer » est au pied du carton');
+      if (await p.$('.carton [data-a="revoir"]')) {
+        await p.click('.carton [data-a="revoir"]'); await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin');
+        constater(await p.isVisible('.carton [data-a="fermer"]'), 'revoir le combat rend le carton');
+      }
+    }
+    await p.click('.carton [data-a="fermer"]');
     const c = await p.$('.colonne-sacs button.boite-objet:not(:disabled)');
     if (c) { await c.click(); console.log('  sac :', await p.textContent('#toast')); }
   }
   constater(salles > 0, `${salles} salle(s) franchie(s)`);
-  if (await p.$('[data-a="rentrer"]')) await p.click('[data-a="rentrer"]').then(() => p.click('.boite [data-a="fermer"]'));
+  if (await p.$('[data-a="rentrer"]')) {
+    await p.click('[data-a="rentrer"]');
+    constater(await p.isVisible('.enseigne') === false && await p.isVisible('.carton [data-a="fermer"]'), 'le retour se raconte en carton au hameau');
+    await p.click('.carton [data-a="fermer"]');
+  }
   constater(await p.isVisible('.enseigne'), 'retour au hameau');
+  await p.click('[data-a="reset"]'); await p.click('.carton [data-a="fermer"]');
+  constater(await p.isVisible('.enseigne') && !(await p.$('.carton')), 'Recommencer se refuse sans rien effacer');
   await p.screenshot({ path: `${CAPTURES}/partie-fin.png` });
 
   console.log(echecs.length ? `${echecs.length} échec(s)` : 'partie complète', '· erreurs de page :', erreurs.length ? erreurs : 'aucune');

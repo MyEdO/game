@@ -30,5 +30,7 @@ await geste('fermer-panneau'); await geste('ouvrir-depart'); await p.click('[dat
 await p.click('[data-a="avancer"]');
 if (await p.isVisible('#combat')) { await p.waitForTimeout(500); await p.click('[data-v="0"]'); await p.waitForTimeout(300); await image('combat'); await p.click('#combat-fin'); }
 await image('recit');
+await p.click('.carton [data-a="fermer"]'); await p.click('[data-a="rentrer"]'); await image('retour');
+await p.click('.carton [data-a="fermer"]'); await p.click('[data-a="reset"]'); await image('recommencer');
 console.log('images écrites · erreurs de page :', erreurs.length ? erreurs : 'aucune');
 await b.close();
