@@ -161,6 +161,7 @@
     "cape_d_arriere_d_02",
     "cape_d_arriere_d_03",
     "cape_d_arriere_d_04",
+    "manche_g_tube",
     "manche_g_tour",
     "manche_g_coude_avant_01",
     "manche_g_coude_avant_02",
@@ -180,6 +181,7 @@
     "manche_g_poignet_arriere_01",
     "manche_g_poignet_arriere_02",
     "manche_g_poignet_arriere_03",
+    "manche_d_tube",
     "manche_d_tour",
     "manche_d_coude_avant_01",
     "manche_d_coude_avant_02",
@@ -2371,6 +2373,20 @@
         180
       ]
     },
+    "manche_g_tube": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
     "manche_g_tour": {
       "x": [
         -180,
@@ -2624,6 +2640,20 @@
       ]
     },
     "manche_g_poignet_arriere_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "manche_d_tube": {
       "x": [
         -180,
         180
@@ -3042,6 +3072,7 @@
       "cape_d_arriere_d_04"
     ],
     "manche": [
+      "manche_g_tube",
       "manche_g_tour",
       "manche_g_coude_avant_01",
       "manche_g_coude_avant_02",
@@ -3061,6 +3092,7 @@
       "manche_g_poignet_arriere_01",
       "manche_g_poignet_arriere_02",
       "manche_g_poignet_arriere_03",
+      "manche_d_tube",
       "manche_d_tour",
       "manche_d_coude_avant_01",
       "manche_d_coude_avant_02",
@@ -20399,7 +20431,7 @@
     }
   ],
   "glb": {
-    "sha256": "bfa867a5f1a2f0b2ef3ca11364ae54a7c5b6988f95718f5a509455c19c0cdb41",
-    "octets": 73315672
+    "sha256": "1318288a76916229e59ed3575aa8465550285aa3462b3ceebd7cbb1edf4c632a",
+    "octets": 73476996
   }
 }
