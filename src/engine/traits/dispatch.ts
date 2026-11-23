@@ -6,6 +6,7 @@
  */
 import { DIFFICULTY_LABELS, type CharKey, type Combatant } from '../types';
 import { TRAITS } from './registry';
+import { sizeGap, type SizeCategory } from '../size';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
 import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeTrait';
@@ -331,6 +332,14 @@ export function isTerritorial(traits: TraitList | undefined): boolean {
 /** Monture ombrageuse (Nerveux, LDB 14 l.182) : MONTÉE, ne prend pas sa propre Action d'attaque. */
 export function isSkittishMount(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'skittishMount');
+}
+
+/** `monture` accepte-t-elle `cavalier` ? LDB 85 l.112 ; arbitrage du 2026-11-23 (#4804). */
+export function accepteUnCavalier(
+  monture: { readonly traits?: TraitsDesignes; readonly size?: SizeCategory },
+  cavalier: { readonly size?: SizeCategory },
+): boolean {
+  return !traitCapability(monture.traits, 'refuseLeCavalier') && sizeGap(cavalier.size, monture.size) <= 0;
 }
 
 // ── Mouvement & vision ────────────────────────────────────────────────────────────────────────────
