@@ -135,7 +135,7 @@ export const MODAL_DEFS = [
   //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.maladresse`), source
   //  unique lue par `jetLancer('maladresse')` ; `jetValider('maladresse')` applique les Oups ! et enchaîne le curseur.)
   // (Le Renversement (Déstabilisante) n'ouvre AUCUNE modale et ne pose aucun `pending*` : il se résout
-  //  dans l'attribution d'Avantage de `applyAttackResult` (`reversalStealOne`, `combat/advantagePool.ts`).)
+  //  dans l'attribution d'Avantage de `applyAttackResult` (`avantageDuCoup`, `combat/advantagePool.ts`).)
   // LOT DE DÉS d'un étal (#1426) : aucun personnage n'est concerné — c'est le MONDE qui tire. Owner =
   // le sentinel `WORLD_STEP_OWNER` (siège MJ s'il existe, hôte sinon), comme toute étape de monde.
   { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: [{ verbe: 'jetValider', flux: 'etalLot' }] }, covers: ['pendingEtalLot'], flux: ['etalLot'], rangees: (s) => s.pendingEtalLot?.participants },

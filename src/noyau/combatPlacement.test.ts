@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pushBackTiles, displaceSmaller } from './combatPlacement';
+import { reculPerturbant, displaceSmaller } from './combatPlacement';
 import { emptyScene, type Scene } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
@@ -7,11 +7,11 @@ import type { Get } from './flowTypes';
 import { mk, battle } from './pionsEtages.testkit';
 
 /**
- * Fixes z-blind #802 (pushBackTiles/displaceSmaller/nearestFreeOutside) : deux combattants superposés
+ * Fixes z-blind #802 (reculPerturbant/displaceSmaller/nearestFreeOutside) : deux combattants superposés
  * à même (x,y) sur des étages différents doivent rester SÉPARÉS par les gestes de placement.
  */
 
-describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
+describe('reculPerturbant — la poussée glisse sur SON étage (#802)', () => {
   function twoLayerScene(): Scene {
     const s = emptyScene('scene-test', 10, 10); // z0 : tout 'herbe' (marchable)
     const z1 = new Array(10 * 10).fill('herbe') as Terrain[];
@@ -24,20 +24,14 @@ describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
     const scene = twoLayerScene();
     const attacker = mk('a', 4, 5);
     const target = mk('t', 5, 5, 1); // à l'étage 1
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as JeuDuNoyau;
-    const moved = pushBackTiles(get, attacker, target, 1);
-    expect(moved).toBe(0);
-    expect(target.pos).toEqual({ x: 5, y: 5, z: 1 }); // reste sur place, reste à z=1
+    expect(reculPerturbant({ scene, battle: battle([attacker, target]) }, attacker, target, 1)).toBeNull(); // reste à z=1
   });
 
   it('même géométrie mais cible au sol (z=0) : le mur de l’étage 1 ne la concerne pas, elle glisse', () => {
     const scene = twoLayerScene();
     const attacker = mk('a', 4, 5);
     const target = mk('t', 5, 5); // sol
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as JeuDuNoyau;
-    const moved = pushBackTiles(get, attacker, target, 1);
-    expect(moved).toBe(1);
-    expect(target.pos).toEqual({ x: 6, y: 5 });
+    expect(reculPerturbant({ scene, battle: battle([attacker, target]) }, attacker, target, 1)).toEqual({ pos: { x: 6, y: 5 }, moved: 1 });
   });
 });
 

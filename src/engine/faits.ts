@@ -92,10 +92,28 @@ export interface FaitDeLocalisation extends FaitSurUneCible {
   valeur: HitLocation;
 }
 
+/** Ce qu'un fait a fait d'un objet : `usee` (un point perdu), `brisee` (inutilisable), `lachee` (tombée des mains),
+ *  `intacte` (Incassable), `sauvee` (Sauvegarde Solide tenue sur son dé), `imperdable` (sauvée sans dé). */
+export type IssueDObjet = 'usee' | 'brisee' | 'lachee' | 'intacte' | 'sauvee' | 'imperdable';
+
+/** Ce qu'un fait a fait d'une arme ou d'une pièce d'armure (`IssueDObjet`). */
+export interface FaitDObjet extends FaitSurUneCible {
+  genre: 'objet';
+  /** L'arme (`weaponIdentity`) ou la Localisation de l'armure. */
+  objet: { arme: string } | { armure: HitLocation };
+  /** −1 : un point d'arme ou de PA perdu, ou l'objet brisé ; 0 sinon. */
+  valeur: -1 | 0;
+  issue: IssueDObjet;
+}
+
 /** Un fait que le journal dit par sa ligne (`texteDuFait`). */
 export type FaitAvecLigne = FaitDeBlessures | FaitDAvantage | FaitDEtat | FaitDeCorruption | FaitDArgent;
 
-export type FaitApplique = FaitAvecLigne | FaitDeLocalisation;
+export type FaitApplique = FaitAvecLigne | FaitDeLocalisation | FaitDObjet;
+
+/** Le fait d'objet `issue` sur l'objet `objet` de `cible`. */
+export const faitDObjet = (cible: Pick<Combatant, 'id' | 'kind'>, objet: FaitDObjet['objet'], issue: IssueDObjet): FaitDObjet =>
+  ({ genre: 'objet', cible: cible.id, camp: campOf(cible), objet, valeur: issue === 'usee' || issue === 'brisee' ? -1 : 0, issue });
 
 /** Le fait d'argent de `valeur` sous de cuivre (signée) sur `cible`. */
 export const faitDArgent = (cible: Pick<Combatant, 'id' | 'kind'>, valeur: number): FaitDArgent =>
@@ -181,7 +199,7 @@ export function constaterDans(a: Applique, f: FaitApplique): void {
 export function lignesHorsDesFaits(a: Applique, nom: (id: string) => string, source?: string): string[] {
   const restantes = [...a.lignes];
   for (const f of a.faits) {
-    if (f.genre === 'localisation') continue;
+    if (f.genre === 'localisation' || f.genre === 'objet') continue;
     const i = restantes.indexOf(texteDuFait(f, nom(f.cible), source));
     if (i >= 0) restantes.splice(i, 1);
   }

@@ -1,6 +1,6 @@
 /**
- * LES CONSÉQUENCES PAR LE PONT (#4574 lot 3) : la rangée d'un jet de cascade publie, dans `projection.jets`, les faits
- * que son étape a appliqués, tels que Godot les reçoit en JSON.
+ * LES CONSÉQUENCES PAR LE PONT (#4574 lot 3) : la rangée d'un jet publie, dans `projection.jets`, les faits que son
+ * étape a appliqués, ou que sa fenêtre prévoit, tels que Godot les reçoit en JSON.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { drainer, table } from './pont.testkit';
@@ -18,6 +18,8 @@ import { lancerLeScenario } from '../../../src/noyau/lancementDeScenario';
 import { lancementDuScenario } from '../../../src/scenes/test-scenarios/_shared';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
 import { seedBattleRng } from '../../../src/noyau/battleRng';
+import { cascadeDeTest } from '../../../src/noyau/cascade.testkit';
+import type { Weapon } from '../../../src/engine/types';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; vi.restoreAllMocks(); });
@@ -45,6 +47,36 @@ describe('projection.jets[].consequences', () => {
     expect(json.flatMap((j) => j.lignes.flatMap((l) => l.consequences ?? []))).toEqual([
       { genre: 'etat', valeur: 1, qui: 'h-artur', ton: 'echec', detail: { id: 'extenue' } },
     ]);
+  });
+});
+
+describe('projection.jets[].consequences : la prévision d’attaque', () => {
+  it('la touche de Taille tranchée, avant sa validation : la Localisation par son id et l’armure entamée (LDB 62 l.307)', () => {
+    const { sauvegarde, cible } = surUnBancHorsTest((banc) => {
+      const g = banc.getState;
+      lancerLeScenario(g, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'siege-enceinte')!, idsDeTest));
+      g().fenetreValider('debutDuRound');
+      banc.abandonner();
+      const heros = g().battle!.combatants.find((c) => c.kind === 'heros')!;
+      const ennemi = g().battle!.combatants.find((c) => c.kind !== 'heros')!;
+      heros.weapons = [{ label: 'Hache', type: 'melee', hand: 'main', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'taille' }] } as Weapon];
+      banc.setState({
+        pendingAttack: { attackerId: heros.id, targetId: ennemi.id, location: null, result: {
+          hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 1, critical: false, advantageTo: null, defenderDefeated: false, log: 'Touché',
+          attackerDetail: { label: 'Corps à corps', target: 45, roll: 23, sl: 2, success: true } as never,
+        } },
+        pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: heros.id }], { title: 'Attaque', icon: 'action/attaquer', purpose: 'combat' }),
+      });
+      return { sauvegarde: snapshotSave(g(), '2026-11-23T12:00:00Z', {}), cible: ennemi.id };
+    });
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    expect(ecrireLaSauvegarde(stockage, 1, sauvegarde)).toBe(true);
+    const { suite } = drainer(appel, appel('charger', { charger: 1, graine: 7 }));
+    const json = JSON.parse(JSON.stringify(suite.vue.projection.jets)) as typeof suite.vue.projection.jets;
+    const consequences = json.find((j) => j.flux === 'attaque')?.lignes[0]?.consequences;
+    expect(consequences).toContainEqual({ genre: 'localisation', valeur: 'corps', qui: cible, ton: 'reussite' });
+    expect(consequences).toContainEqual({ genre: 'objet', valeur: -1, qui: cible, ton: 'reussite', detail: { objet: { armure: 'corps' }, issue: 'usee' } });
   });
 });
 
