@@ -29,7 +29,8 @@ export function catalogue(): string {
     (p.identite.designations ?? []).map((d) => `niv. ${d.niveau} : ${competence(`${d.id}:${d.spec}`)}`).join(', '),
     p.voie ? p.voie.nom : p.dieux ? `Invocation, dieu tiré : ${p.dieux.join(', ')}` : '',
   ]));
-  const voies = tableau(['Voie', 'Sorts'], Object.entries(SORTS_DES_VOIES).map(([spec, ids]) => [talent({ id: arcane(spec) ? 'magie-des-arcanes' : 'invocation', spec }), ids.map(sort).join(', ')]));
+  const voies = tableau(['Voie', 'Sorts, par niveau de carrière'], Object.entries(SORTS_DES_VOIES).map(([spec, paliers]) => [talent({ id: arcane(spec) ? 'magie-des-arcanes' : 'invocation', spec }),
+    Object.entries(paliers).map(([niveau, ids]) => `niv. ${niveau} : ${ids.map(sort).join(', ')}`).join(' ; ')]));
   const forge = tableau(['Groupe', 'Armes'], Object.entries(ARMES_DE_LA_FORGE).map(([g, ids]) =>
     [`${nomme(nomDeGroupe(g), g)}${GROUPES_SANS_COMPETENCE.has(g as keyof typeof ARMES_DE_LA_FORGE) ? ', sans Compétence' : ''}`, ids.map(objet).join(', ')]));
   const panoplies = tableau(['Panoplie', 'Pièces'], PANOPLIES.map((p) => [nomme(p.label, p.id), p.pieces.map(objet).join(', ')]));

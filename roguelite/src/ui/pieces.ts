@@ -53,7 +53,7 @@ export function voieLisible(h: Porteur): { nom: string; signe: string; apercu: A
   const nom = voie.nom.replace(/^[^(]*\(|\)$/g, '');
   const s = SIGNES_DE_VOIE[voie.spec];
   const signe = s ? `<i class="signe-de-voie" style="--teinte:${s.teinte}" aria-label="${esc(nom)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${s.trace}</svg></i>` : '';
-  return { nom, signe, apercu: { nom: voie.nom, nature: voie.talent === 'magie-des-arcanes' ? 'Collège de magie' : 'Culte', ...(voie.sorts.length ? { texte: voie.sorts.map(nomDeSort).join(' · ') } : {}) } };
+  return { nom, signe, apercu: { nom: voie.nom, nature: voie.talent === 'magie-des-arcanes' ? 'Collège de magie' : 'Culte', ...(voie.sorts.length ? { texte: voie.sorts.map((s) => nomDeSort(s.id)).join(' · ') } : {}) } };
 }
 /** La carrière d'un héros et, pour un lanceur, son Collège ou son dieu : « Pyromancien · Feu », « Prêtre-guerrier · Ulric ». */
 export function carriereDe(h: Porteur): string {

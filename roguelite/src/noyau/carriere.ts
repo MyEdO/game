@@ -156,11 +156,11 @@ export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Co
   return porte;
 }
 
-/** Les sorts ou miracles que le Talent `talent` spécialisé en `spec` ouvre (`talentOuvre`), du seul domaine ou culte
- *  `spec`, et que le moteur joue (`spellSupportOf` mécanique ou partiel). */
+/** Les sorts ou miracles que le Talent `talent` spécialisé en `spec` ouvre (`talentOuvre`), du domaine ou culte `spec`
+ *  ou des Arcanes communs à tous les domaines, et que le moteur joue (`spellSupportOf` mécanique ou partiel). LDB 47 l.309 */
 export const sortsDeLaVoie = (talent: 'magie-des-arcanes' | 'invocation', spec: string): string[] => {
   const kind = castingKindOf(talent)!;
-  return spells.filter((s) => talentOuvre({ kind, spec }, s) && (s.family !== 'arcane' || s.domainId?.id === spec) && spellSupportOf(s) !== 'narratif').map((s) => s.id);
+  return spells.filter((s) => talentOuvre({ kind, spec }, s) && (s.family !== 'arcane' || !s.domainId || s.domainId.id === spec) && spellSupportOf(s) !== 'narratif').map((s) => s.id);
 };
 
 /** Les objets que les niveaux 2 à `niveau` de la carrière de `c` dotent : la branche de chaque `{pick, of}` tirée à la

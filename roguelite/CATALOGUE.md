@@ -28,18 +28,18 @@
 
 ## Voies et sorts
 
-| Voie | Sorts |
+| Voie | Sorts, par niveau de carrière |
 |---|---|
-| Magie des Arcanes (Feu) (magie-des-arcanes:feu) | Cautériser (cauteriser), Embrasement (embrasement), Flamme fascinante (flamme-fascinante), Sang bouillant (sang-bouillant) |
-| Magie des Arcanes (Lumière) (magie-des-arcanes:lumiere) | Filet d'Amyntok (filet-d-amyntok), Collet d'Abulla (collet-d-abulla), Clarté d'esprit (clarte-d-esprit) |
-| Magie des Arcanes (Vie) (magie-des-arcanes:vie) | Écorce (ecorce), Chair de pierre (chair-de-pierre), Graisse de la terre (graisse-de-la-terre) |
-| Magie des Arcanes (Bête) (magie-des-arcanes:bete) | Ver frétillant (ver-fretillant), La lance d'Ambre (la-lance-d-ambre) |
-| Magie des Arcanes (Métal) (magie-des-arcanes:metal) | Creuset de Chamon (creuset-de-chamon), Arme enchantée (arme-enchantee) |
-| Magie des Arcanes (Mort) (magie-des-arcanes:mort) | Caresse de Laniph (caresse-de-laniph), Libération de la mort (liberation-de-la-mort), Vol de vie (vol-de-vie), Contraindre les esprits (contraindre-les-esprits) |
-| Invocation (Shallya) (invocation:shallya) | Larmes de Shallya (larmes-de-shallya), Amère catharsis (amere-catharsis), Baume pour un esprit blessé (baume-pour-un-esprit-blesse), Endurance de l'anachorète (endurance-de-l-anachorete), Martyr (martyr) |
-| Invocation (Sigmar) (invocation:sigmar) | Comète à Deux Queues (comete-a-deux-queues), Vaincre les impies (vaincre-les-impies), Marteau ardent de Sigmar (marteau-ardent-de-sigmar), Flambeau de Vertu (flambeau-de-vertu), N'écoutez point la Sorcière (n-ecoutez-point-la-sorciere) |
-| Invocation (Ulric) (invocation:ulric) | Jugement du Roi de la neige (jugement-du-roi-de-la-neige), Hurlement du loup (hurlement-du-loup), Fureur d'Ulric (fureur-d-ulric), Frisson du givre (frisson-du-givre), Peau de loup d'hiver (peau-de-loup-d-hiver) |
-| Invocation (Myrmidia) (invocation:myrmidia) | Dévotion de la Vierge Guerrière (devotion-de-la-vierge-guerriere), Appel à la Fureur (appel-a-la-fureur), Inspirant (inspirant), Terrifier l'Ennemi (terrifier-l-ennemi), Bouclier de Myrmidia (bouclier-de-myrmidia), Soleil flamboyant (soleil-flamboyant) |
+| Magie des Arcanes (Feu) (magie-des-arcanes:feu) | niv. 2 : Carreau (carreau), Embrasement (embrasement), Flamme fascinante (flamme-fascinante), Cautériser (cauteriser) ; niv. 3 : Sang bouillant (sang-bouillant) |
+| Magie des Arcanes (Lumière) (magie-des-arcanes:lumiere) | niv. 2 : Carreau (carreau) ; niv. 3 : Collet d'Abulla (collet-d-abulla), Clarté d'esprit (clarte-d-esprit) ; niv. 4 : Filet d'Amyntok (filet-d-amyntok) |
+| Magie des Arcanes (Vie) (magie-des-arcanes:vie) | niv. 2 : Carreau (carreau), Écorce (ecorce), Graisse de la terre (graisse-de-la-terre) ; niv. 4 : Chair de pierre (chair-de-pierre) |
+| Magie des Arcanes (Bête) (magie-des-arcanes:bete) | niv. 2 : Carreau (carreau), Ver frétillant (ver-fretillant) ; niv. 4 : La lance d'Ambre (la-lance-d-ambre) |
+| Magie des Arcanes (Métal) (magie-des-arcanes:metal) | niv. 2 : Carreau (carreau) ; niv. 3 : Arme enchantée (arme-enchantee) ; niv. 4 : Creuset de Chamon (creuset-de-chamon) |
+| Magie des Arcanes (Mort) (magie-des-arcanes:mort) | niv. 2 : Carreau (carreau) ; niv. 3 : Libération de la mort (liberation-de-la-mort), Contraindre les esprits (contraindre-les-esprits) ; niv. 4 : Caresse de Laniph (caresse-de-laniph), Vol de vie (vol-de-vie) |
+| Invocation (Shallya) (invocation:shallya) | niv. 1 : Larmes de Shallya (larmes-de-shallya), Amère catharsis (amere-catharsis), Baume pour un esprit blessé (baume-pour-un-esprit-blesse), Endurance de l'anachorète (endurance-de-l-anachorete), Martyr (martyr) |
+| Invocation (Sigmar) (invocation:sigmar) | niv. 1 : Comète à Deux Queues (comete-a-deux-queues), Vaincre les impies (vaincre-les-impies), Marteau ardent de Sigmar (marteau-ardent-de-sigmar), Flambeau de Vertu (flambeau-de-vertu), N'écoutez point la Sorcière (n-ecoutez-point-la-sorciere) |
+| Invocation (Ulric) (invocation:ulric) | niv. 1 : Jugement du Roi de la neige (jugement-du-roi-de-la-neige), Hurlement du loup (hurlement-du-loup), Fureur d'Ulric (fureur-d-ulric), Frisson du givre (frisson-du-givre), Peau de loup d'hiver (peau-de-loup-d-hiver) |
+| Invocation (Myrmidia) (invocation:myrmidia) | niv. 1 : Dévotion de la Vierge Guerrière (devotion-de-la-vierge-guerriere), Appel à la Fureur (appel-a-la-fureur), Inspirant (inspirant), Terrifier l'Ennemi (terrifier-l-ennemi), Bouclier de Myrmidia (bouclier-de-myrmidia), Soleil flamboyant (soleil-flamboyant) |
 
 Sorts mineurs d’un lanceur de Collège : Fléchette (flechette), Choc (choc), Éblouissant (eblouissant). Prière entre deux salles : Bénédiction de Guérison (benediction-de-guerison).
 

@@ -45,7 +45,9 @@ l'utilisateur ».
   par `npx tsx roguelite/catalogue.ts` : jamais écrit à la main, régénéré dans le commit qui change le catalogue.
 - **Règles optionnelles du noyau** (« Faut aussi jouer avec les régles optionnels qui vont bien comme celui de VDM »,
   2026-11-23) : le roguelite choisit les règles optionnelles du noyau qui servent son jeu (dont `magie-vdm-incantation`)
-  et les pose en un seul endroit, la partie ouverte par la façade (`ouvrirEnAuto`).
+  et les pose en un seul endroit, la partie ouverte par la façade (`ouvrirEnAuto`, `REGLES_DU_ROGUELITE`).
+  `vents-tourbillonnants` reste désactivée : son modificateur (LDB 46 l.179-190, de −30 à +30, centré sur 0) ne donne
+  au joueur aucune prise en combat automatique, seulement du hasard.
 - **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
   as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
   du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par

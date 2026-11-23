@@ -25,13 +25,17 @@ export interface PartieEnAuto {
   pomper: () => void;
 }
 
+/** Les règles optionnelles du noyau que le roguelite pose sur chacune de ses parties (`ouvrirEnAuto`) : combat, hameau
+ *  et épreuve. `CONCEPTION.md`. `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
+export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'magie-vdm-incantation': true };
+
 /** Plafond de tours de `pomper` : une partie qui rend toujours la main s'arrête plutôt que de boucler. */
 const PLAFOND_DE_POMPE = 200;
 
 /** Ouvre la partie du noyau en cadence automatique à la graine `graine` sur ce que `lancement` construit
  *  (`ouvrirLeLancement`, `src/hote/partie.ts`). `ecouter` lit chaque résultat, celui du lancement compris. */
 export function ouvrirEnAuto(graine: number, lancement: Lancement, ecouter: (r: Resultat) => void = () => {}): PartieEnAuto {
-  const { partie, jetons, lancement: premier } = ouvrirLeLancement({ graine, regles: {}, cadence: 'auto', desFixes: false }, lancement, () => {});
+  const { partie, jetons, lancement: premier } = ouvrirLeLancement({ graine, regles: { ...REGLES_DU_ROGUELITE }, cadence: 'auto', desFixes: false }, lancement, () => {});
   const file: number[] = [];
   const recevoir = (r: Resultat) => {
     file.push(...jetons.programmes(r).map((p) => p.id));

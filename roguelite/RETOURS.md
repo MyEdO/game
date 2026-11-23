@@ -60,6 +60,17 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   « Inconnu touche chasseur » : la charge nomme le porteur, la touche passe par la vision. Pour un
   lecteur du journal, c'est le même gobelin sous deux noms. Idée : `arena` pourrait prendre la lumière
   en option, et les lignes d'un même geste devraient nommer leur porteur de la même façon.
+- **Trou — un mage ne focalise jamais tant qu'un sort offensif se lance d'un jet.** Un lanceur de Collège qui connaît
+  Fléchette (Sort mineur, NI 0) la lance chaque tour : l'IA ne focalise un sort de NI plus haut que si aucun sort
+  offensif lançable d'un jet n'existe (`src/noyau/monde/ai.ts:1060`, `focusState` posé à `src/noyau/combatFlow.ts:6414`).
+  Mesuré (2026-11-23, 48 combats par niveau, six Collèges) : 0 % des combats où un mage de niveau 2 ou 3 pose un sort
+  de sa voie, 8 % au niveau 4 ; sans ses Sorts mineurs, 11 % au niveau 2, la Focalisation prenant plusieurs tours.
+  Idée : peser la Focalisation contre le sort mineur à l'espérance de dégâts ou d'effet, pas à la seule existence d'un
+  jet possible.
+- **Trou — la réserve de Focalisation de VDM n'est pas jouée sous `magie-vdm-incantation`.** VDM 02 l.129-139 : chaque
+  DR de Focalisation réduit le NI de tout sort du Vent canalisé, et le lanceur incante quand il le veut au NI réduit.
+  Le noyau garde la Focalisation du Livre de base sous l'option : DR accumulés sur UN sort, lancé seulement quand
+  DR ≥ NI (`focalisationAboutie`, `src/engine/magic.ts:356` ; `caster.focus`, `src/noyau/combatSlice.ts:3399`).
 
 ## Héros hors d'une partie
 

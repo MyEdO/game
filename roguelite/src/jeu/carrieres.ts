@@ -26,6 +26,13 @@ export function offresDeCarriere(h: Heros): Omit<Progression, 'competences'> & {
   return { ...p, competences: p.competences.map((k) => ({ ...k, utile: estUtile(k.ref) })), talentAcquis: p.talents.some((t) => t.possede > 0), talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
 }
 
+/** Les sorts de sa voie que la Salle d'armes propose au héros : ceux de son niveau de carrière ou en dessous
+ *  (`SORTS_DES_VOIES`), qu'il ne connaît pas encore. */
+export function sortsProposes(h: Heros): string[] {
+  const niveau = h.c.careerLevel ?? 1;
+  return (voieDe(h.carriere, h.c)?.sorts ?? []).filter((s) => s.niveau <= niveau && !(h.c.spells ?? []).includes(s.id)).map((s) => s.id);
+}
+
 /** Le héros peut-il acheter un avancement maintenant (au hameau, salle d'armes ouverte, assez de PX pour la moins
  *  chère de ses Caractéristiques, de ses Compétences de carrière, ou son niveau suivant) ? */
 export function peutProgresser(e: Etat, h: Heros): boolean {
@@ -49,6 +56,7 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
     if (suivant.niveau > niveauMaximal(e)) return 'La salle d’armes n’enseigne pas encore ce niveau.';
     return messageDuNoyau(auNoyau(e, h, [{ verbe, args: [h.c.id, h.carriere, suivant.niveau] }]), () => (h.c.careerLevel ?? 1) === suivant.niveau);
   }
+  if (a.genre === 'sort' && !sortsProposes(h).includes(a.id)) return 'La salle d’armes n’enseigne pas ce sort à ce héros.';
   const xp = h.c.xp ?? 0;
   const args = a.genre === 'carac' || a.genre === 'sort' ? [h.c.id, a.id] : [h.c.id, a.ref];
   const refus = messageDuNoyau(auNoyau(e, h, [{ verbe, args }]), () => (h.c.xp ?? 0) < xp);

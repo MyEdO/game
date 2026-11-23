@@ -75,18 +75,21 @@ export const BATIMENTS: readonly Batiment[] = [
 /** Les Sorts mineurs qu'un lanceur de Collège connaît à la recrue. */
 export const SORTS_MINEURS: readonly string[] = ['flechette', 'choc', 'eblouissant'];
 /** Les sorts et miracles que chaque voie offre, par domaine ou par dieu : ceux que le noyau applique et que l'IA d'un
- *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
-export const SORTS_DES_VOIES: Readonly<Record<string, readonly string[]>> = {
-  feu: ['cauteriser', 'embrasement', 'flamme-fascinante', 'sang-bouillant'],
-  lumiere: ['filet-d-amyntok', 'collet-d-abulla', 'clarte-d-esprit'],
-  vie: ['ecorce', 'chair-de-pierre', 'graisse-de-la-terre'],
-  bete: ['ver-fretillant', 'la-lance-d-ambre'],
-  metal: ['creuset-de-chamon', 'arme-enchantee'],
-  mort: ['caresse-de-laniph', 'liberation-de-la-mort', 'vol-de-vie', 'contraindre-les-esprits'],
-  shallya: ['larmes-de-shallya', 'amere-catharsis', 'baume-pour-un-esprit-blesse', 'endurance-de-l-anachorete', 'martyr'],
-  sigmar: ['comete-a-deux-queues', 'vaincre-les-impies', 'marteau-ardent-de-sigmar', 'flambeau-de-vertu', 'n-ecoutez-point-la-sorciere'],
-  ulric: ['jugement-du-roi-de-la-neige', 'hurlement-du-loup', 'fureur-d-ulric', 'frisson-du-givre', 'peau-de-loup-d-hiver'],
-  myrmidia: ['devotion-de-la-vierge-guerriere', 'appel-a-la-fureur', 'inspirant', 'terrifier-l-ennemi', 'bouclier-de-myrmidia', 'soleil-flamboyant'],
+ *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, `CONCEPTION.md`. Chaque voie range ses
+ *  sorts par le plus bas niveau de carrière où la Salle d'armes les propose : un Collège ouvre au niveau 2 les sorts
+ *  de NI 4 au plus, puis les NI 5 et 6 au niveau 3, les NI 7 à 9 au niveau 4 ; un culte ouvre ses miracles dès qu'il
+ *  tient le Talent. */
+export const SORTS_DES_VOIES: Readonly<Record<string, Readonly<Record<number, readonly string[]>>>> = {
+  feu: { 2: ['carreau', 'embrasement', 'flamme-fascinante', 'cauteriser'], 3: ['sang-bouillant'] },
+  lumiere: { 2: ['carreau'], 3: ['collet-d-abulla', 'clarte-d-esprit'], 4: ['filet-d-amyntok'] },
+  vie: { 2: ['carreau', 'ecorce', 'graisse-de-la-terre'], 4: ['chair-de-pierre'] },
+  bete: { 2: ['carreau', 'ver-fretillant'], 4: ['la-lance-d-ambre'] },
+  metal: { 2: ['carreau'], 3: ['arme-enchantee'], 4: ['creuset-de-chamon'] },
+  mort: { 2: ['carreau'], 3: ['liberation-de-la-mort', 'contraindre-les-esprits'], 4: ['caresse-de-laniph', 'vol-de-vie'] },
+  shallya: { 1: ['larmes-de-shallya', 'amere-catharsis', 'baume-pour-un-esprit-blesse', 'endurance-de-l-anachorete', 'martyr'] },
+  sigmar: { 1: ['comete-a-deux-queues', 'vaincre-les-impies', 'marteau-ardent-de-sigmar', 'flambeau-de-vertu', 'n-ecoutez-point-la-sorciere'] },
+  ulric: { 1: ['jugement-du-roi-de-la-neige', 'hurlement-du-loup', 'fureur-d-ulric', 'frisson-du-givre', 'peau-de-loup-d-hiver'] },
+  myrmidia: { 1: ['devotion-de-la-vierge-guerriere', 'appel-a-la-fureur', 'inspirant', 'terrifier-l-ennemi', 'bouclier-de-myrmidia', 'soleil-flamboyant'] },
 };
 
 /** Les Compétences que le roguelite fait jouer, en combat et dans les salles : un id (`skills.json`), ou `id:spec`
@@ -101,7 +104,9 @@ export const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', '
 
 /** La voie d'un lanceur : le Talent de niveau 2 qui ouvre les sorts ou les miracles, sa spécialisation, et ce qui
  *  s'achète ensuite. */
-export interface Voie { talent: 'magie-des-arcanes' | 'invocation'; spec: string; nom: string; sorts: readonly string[] }
+export interface Voie { talent: 'magie-des-arcanes' | 'invocation'; spec: string; nom: string; sorts: readonly SortDeVoie[] }
+/** Un sort d'une voie et le plus bas niveau de carrière où la Salle d'armes le propose. */
+export interface SortDeVoie { id: string; niveau: number }
 /** Le rôle d'une carrière dans la compagnie, que le joueur lit d'un pictogramme : il choisit un groupe par rôles. */
 export type Role = 'front' | 'tireur' | 'eclaireur' | 'soigneur' | 'lanceur';
 export const ROLES: Record<Role, { nom: string; picto: string }> = {
@@ -114,7 +119,8 @@ export const ROLES: Record<Role, { nom: string; picto: string }> = {
 export interface Profil { id: string; nom: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
 
 /** La voie du Talent `talent` spécialisé en `spec` : son libellé et ses sorts choisis (`SORTS_DES_VOIES`). */
-const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }), sorts: SORTS_DES_VOIES[spec] ?? [] });
+const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }),
+  sorts: Object.entries(SORTS_DES_VOIES[spec] ?? {}).flatMap(([niveau, ids]) => ids.map((id) => ({ id, niveau: Number(niveau) }))) });
 /** Les emplacements « (Au choix) » de Corps à corps et de Projectiles désignés à la recrue, valeur d'adaptation par
  *  profil : la spécialisation qui sert son identité. */
 const cac = (niveau: number, spec: string): Designation => ({ niveau, id: 'corps-a-corps', spec });
