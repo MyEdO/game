@@ -5,7 +5,7 @@ import { blessuresARendre, plaiesASoigner, panserLesPlaies, opererLesBlessures, 
 
 import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, PRIX_DU_SOIN_PAR_BLESSURE, SEMAINE_DE_REPOS } from './valeurs';
 import { Etat, Heros } from './etat';
-import { heros, noter } from './outils';
+import { heros, noter, refusDuPrix } from './outils';
 import { sejourDit } from './expedition';
 
 /** Le prix du soin par Blessure rendue au palier de l'hospice, `null` s'il est fermé. */
@@ -23,7 +23,8 @@ export function soignerAuTemple(e: Etat, id: string): string | null {
   const h = heros(e, id);
   const prix = h ? prixDuSoin(e, h) : null;
   if (prix == null || !h) return 'L’hospice est fermé.';
-  if (e.or < prix) return `Il faut ${prix} CO.`;
+  const refus = refusDuPrix(e.or, prix);
+  if (refus) return refus;
   e.or -= prix;
   soigner(h.c, h.c.wounds.max);
   h.c.conditions = [];
@@ -38,16 +39,23 @@ export const prixDeLHospice = (e: Etat, acte: ActeDHospice): number | null =>
 /** Ce que l'hospice peut faire pour le héros. */
 export const actesPossibles = (h: Heros): ActeDHospice[] => { const p = plaiesASoigner(h.c); return [...(p.panser ? ['panser' as const] : []), ...(p.operer ? ['operer' as const] : [])]; };
 
-/** Confie le héros à l'hospice : les sœurs pansent ses plaies dans la journée ; opéré, il y reste une semaine. */
-export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): string | null {
-  const h = heros(e, id);
+/** Pourquoi l'hospice refuse l'acte au héros (palier, séjour ailleurs, rien à soigner, or), `null` s'il l'accepte. */
+export function refusDeLHospice(e: Etat, h: Heros, acte: ActeDHospice): string | null {
   const prix = prixDeLHospice(e, acte);
-  if (!h || prix == null) return 'L’hospice ne pratique pas encore cet acte.';
+  if (prix == null) return 'L’hospice ne pratique pas encore cet acte.';
   const ailleurs = sejourDit(h);
   if (ailleurs) return ailleurs;
   if (!actesPossibles(h).includes(acte)) return acte === 'panser' ? 'Aucune plaie que les sœurs puissent panser.' : 'Rien à opérer.';
-  if (e.or < prix) return `Il faut ${prix} CO.`;
-  e.or -= prix;
+  return refusDuPrix(e.or, prix);
+}
+
+/** Confie le héros à l'hospice : les sœurs pansent ses plaies dans la journée ; opéré, il y reste une semaine. */
+export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): string | null {
+  const h = heros(e, id);
+  if (!h) return 'Héros introuvable.';
+  const refus = refusDeLHospice(e, h, acte);
+  if (refus) return refus;
+  e.or -= prixDeLHospice(e, acte)!;
   const lignes = acte === 'panser' ? panserLesPlaies(h.c, GUERISON_DE_L_HOSPICE, e.graine++) : opererLesBlessures(h.c);
   if (acte === 'operer') h.sejour = { ou: 'temple', reste: SEMAINE_DE_REPOS, total: SEMAINE_DE_REPOS };
   noter(e, `${lignes.join(' ')}${acte === 'operer' ? ` ${h.c.label} reste une semaine à l’hospice.` : ''}`);
@@ -59,7 +67,8 @@ export function guerirUneSequelle(e: Etat, id: string): string | null {
   const h = heros(e, id);
   if (prix == null || !h) return 'Les Larmes de Shallya ne sont pas encore offertes ici.';
   if (!sequellesGuerissables(h)) return 'Aucune séquelle que la prière puisse guérir.';
-  if (e.or < prix) return `Il faut ${prix} CO.`;
+  const refus = refusDuPrix(e.or, prix);
+  if (refus) return refus;
   e.or -= prix;
   noter(e, guerirDesSequelles(h.c, 1).join(' '));
   return null;

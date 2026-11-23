@@ -208,7 +208,7 @@ export const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPorte
  *  prix (des trophées). */
 export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; offert?: string; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
   const monnaie = o.monnaie ?? 'CO';
-  const refus = o.refus ?? (o.avoir < o.prix ? `Il manque ${o.prix - o.avoir} ${monnaie}.` : null);
+  const refus = o.refus ?? J.refusDuPrix(o.avoir, o.prix, monnaie);
   const prix = [o.prix ? `${o.prix} ${monnaie}` : o.offert ?? 'gratuit', o.suite].filter(Boolean).join(' · ');
   return plaque(`${esc(o.verbe)} · ${esc(prix)}`, o.attrs, { armee: !refus, fermee: !!refus, taille: o.taille ?? 'moyenne', icone: o.icone ?? '', titre: refus ? esc(refus) : '' });
 }

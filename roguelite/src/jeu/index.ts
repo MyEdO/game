@@ -12,3 +12,4 @@ export * from './carrieres';
 export * from './boutiques';
 export * from './expedition';
 export * from './sauvegarde';
+export { refusDuPrix } from './outils';

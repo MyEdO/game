@@ -7,7 +7,7 @@ import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_
 import { Etat, Heros, renouvelerLesCandidats } from './etat';
 import { blesse } from './soins';
 import { engagementSansSolde, sejourDit } from './expedition';
-import { heros, noter } from './outils';
+import { heros, noter, refusDuPrix } from './outils';
 
 /** Les bâtiments qui servent dès le premier jour ; les autres sont en ruine tant qu'on ne les a pas relevés. */
 const SERVENT_DES_LE_DEBUT: ReadonlySet<IdBatiment> = new Set(['relais', 'forge', 'cartographe']);
@@ -18,7 +18,8 @@ export const palierSuivant = (e: Etat, id: IdBatiment) => BATIMENTS.find((b) => 
 export function ameliorer(e: Etat, id: IdBatiment): string | null {
   const p = palierSuivant(e, id);
   if (!p) return 'Déjà au plus haut.';
-  if (e.or < p.cout) return `Il faut ${p.cout} CO.`;
+  const refus = refusDuPrix(e.or, p.cout);
+  if (refus) return refus;
   if (e.trophees < p.trophees) return `Il faut ${p.trophees} trophée(s).`;
   e.or -= p.cout; e.trophees -= p.trophees; e.batiments[id]++;
   noter(e, `${BATIMENTS.find((b) => b.id === id)!.nom} : ${phraseDuPalier(p)}.`);
@@ -30,7 +31,8 @@ export function recruter(e: Etat, i: number): string | null {
   const cand = e.candidats[i];
   if (!cand) return 'Candidat parti.';
   const gratuit = engagementSansSolde(e);
-  if (!gratuit && e.or < cand.prix) return `Il faut ${cand.prix} CO.`;
+  const refus = gratuit ? null : refusDuPrix(e.or, cand.prix);
+  if (refus) return refus;
   if (!gratuit) e.or -= cand.prix;
   const { prix: _prix, ...h } = cand;
   e.roster.push(h);
@@ -61,7 +63,8 @@ export function prendreUneChambre(e: Etat, id: string): string | null {
   const refus = refusDeChambre(e, h);
   if (refus) return refus;
   const prix = prixDeLaChambre(e);
-  if (e.or < prix) return `Il faut ${prix} CO.`;
+  const manque = refusDuPrix(e.or, prix);
+  if (manque) return manque;
   e.or -= prix;
   h.sejour = { ou: 'relais', reste: SEMAINE_DE_REPOS, total: SEMAINE_DE_REPOS };
   noter(e, `${h.c.label} prend une chambre à l’auberge pour une semaine.`);

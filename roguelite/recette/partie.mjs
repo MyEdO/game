@@ -36,6 +36,38 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   });
   const lesChancesSeDisent = (s) => s.ouvertes.length > 0 && s.ouvertes.every((t) => /\d+ · \d+\s%$/.test(t)) && s.meilleures > 0;
 
+  // L'hospice au palier 1, un héros aux plaies à panser : le refus se dit avant le clic ; au clic, le refus comme le soin
+  // joué se lisent en toast par-dessus le panneau.
+  const plaies = (or) => {
+    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+    e.or = or; e.batiments.temple = 1;
+    e.roster[0].c.traumas = [
+      { uid: 't1', label: 'Déchirure musculaire (Mineure)', location: 'brasG', kind: 'dechirure', severity: 'mineur', recoveryDays: 23, recoveryTotal: 25 },
+      { uid: 't2', label: 'Fracture (Mineure)', location: 'jambeD', kind: 'fracture', severity: 'mineur', recoveryDays: 37, recoveryTotal: 40 },
+    ];
+    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
+  };
+  for (const bourse of [6, 20]) {
+    const h = await ouvrir(b, [1829, 1029], plaies, erreurs, bourse);
+    await geste(h, 'batiment', 'temple'); await geste(h, 'client', await h.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).roster[0].c.id));
+    const panser = '[data-a="hospice"][data-k="panser"]';
+    if (bourse === 6) {
+      const ferme = await h.$eval(panser, (x) => [x.disabled, x.dataset.bulle, x.textContent.trim()]);
+      constater(ferme[0] && ferme[1] === 'Il faut 20 CO.' && ferme[2].includes('20 CO'), `trop peu d’or : « Panser » porte son prix, fermé sur « Il faut 20 CO. » (${ferme.join(' | ')})`);
+      await h.screenshot({ path: `${CAPTURES}/hospice-sans-or.png` });
+      await h.$eval(panser, (x) => { x.disabled = false; });
+    }
+    await h.click(panser);
+    const dit = await h.evaluate(() => {
+      const t = document.getElementById('toast'); const r = t.getBoundingClientRect();
+      const dessus = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return !t.hidden && !!dessus && t.contains(dessus) && !!document.querySelector('.page-service') ? t.textContent : null;
+    });
+    const attendu = bourse === 6 ? 'Il faut 20 CO.' : await h.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).journal[0]);
+    constater(dit === attendu, `${bourse === 6 ? 'le refus' : 'le soin joué'} se lit en toast par-dessus le panneau (${dit})`);
+    await h.context().close();
+  }
+
   await geste(p, 'batiment', 'forge');
   const avant = await or();
   await p.click('.tete-service [data-a="ameliorer"]');

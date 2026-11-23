@@ -38,14 +38,17 @@ function toast(msg: string | null) {
   t.textContent = msg;
   t.hidden = false;
   clearTimeout(Number(t.dataset.h));
-  t.dataset.h = String(window.setTimeout(() => (t.hidden = true), 2800));
+  t.dataset.h = String(window.setTimeout(() => (t.hidden = true), Math.max(2800, msg.length * 40)));
 }
 
+/** Joue un geste du hameau : son refus, sinon les lignes qu'il a portées à la chronique, se disent en toast. */
 function agir(f: () => string | null | void) {
+  const avant = etat.journal[0];
   const err = f();
   J.sauver(etat);
   rendre();
-  if (err) toast(err);
+  const fin = etat.journal.indexOf(avant);
+  toast(err || etat.journal.slice(0, fin < 0 ? undefined : fin).reverse().join(' ') || null);
 }
 
 /** Joue l'action choisie dans la salle ouverte (`J.agirDansLaSalle`) et raconte son récit en carton ; son refus, en

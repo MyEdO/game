@@ -6,7 +6,7 @@ import { refusDUsage, qualitesDesPieces, doter, articleDuCatalogue, DISPONIBILIT
 import { ARMES_DE_LA_FORGE, ECHELLE_DES_PRIX, GROUPE_DES_REMEDES, GROUPES_SANS_COMPETENCE, MAIN_SECONDAIRE, MUNITIONS, PANOPLIES, REMEDES_DE_L_HOSPICE, disponibilitesDuPalier, type GroupeDeLaForge, type Panoplie } from './valeurs';
 import { Etat, Heros } from './etat';
 import { enRuine } from './village';
-import { auNoyau, heros } from './outils';
+import { auNoyau, heros, refusDuPrix } from './outils';
 
 export const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
 
@@ -124,7 +124,8 @@ export function allure(h: Pick<Heros, 'c'>): Allure {
 export function payer(e: Etat, h: Heros | undefined, prix: number): string | null {
   if (!h) return 'Héros introuvable.';
   if (e.expedition?.groupe.includes(h.c.id)) return 'Ce héros est en expédition.';
-  if (e.or < prix) return `Il faut ${prix} CO.`;
+  const refus = refusDuPrix(e.or, prix);
+  if (refus) return refus;
   e.or -= prix;
   return null;
 }
