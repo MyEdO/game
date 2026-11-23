@@ -125,9 +125,10 @@ export type OrnementDuBati = PoseDOrnement & (
 );
 
 /**
- * La COUVERTURE à l'aplomb d'un point d'ancrage d'arête, sa hauteur (m) et sa nappe (`nappeKey`), ou `null` si
- * aucune nappe ne couvre l'une des cases candidates (celle de l'arête et sa voisine d'en face : une cheminée est
- * ASSISE sur le mur, la couverture qui la porte est d'un côté ou de l'autre). Lit le CHAMP des nappes
+ * La COUVERTURE à l'aplomb d'un point d'ancrage, sa hauteur (m) et sa nappe (`nappeKey`), ou `null` si aucune nappe
+ * ne couvre l'une des cases candidates : les deux cases qu'une arête de façade sépare (un ornement de façade est
+ * ASSIS sur le mur, la couverture qui le porte est d'un côté ou de l'autre), ou l'empreinte d'un foyer (sa souche
+ * sort du toit qui le couvre). Lit le CHAMP des nappes
  * (`resolveNappes` + `fieldHeightAt`), la source unique des hauteurs de toit. Le repère du champ est celui
  * des COINS de case (coin nord-ouest de `(x,y)` = point `(x,y)`), là où l'ancre vit dans le repère des
  * cases centrées : d'où le `+0.5`. Deux nappes couvrent le point ? La PLUS HAUTE gagne.

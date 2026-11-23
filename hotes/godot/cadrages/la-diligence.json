@@ -2,6 +2,7 @@
   { "nom": "portail-dehors", "regard": "immersion", "case": { "x": 24, "y": 2 }, "lacet": 180, "tangage": -5 },
   { "nom": "facade-depuis-la-route", "regard": "tactique", "case": { "x": 24, "y": 10 }, "lacet": 180, "zoom": 30 },
   { "nom": "toits-depuis-la-route", "regard": "immersion", "case": { "x": 22, "y": 1 }, "lacet": 195, "tangage": 18 },
+  { "nom": "girouette-du-portier", "regard": "immersion", "case": { "x": 18, "y": 2 }, "lacet": 228, "tangage": 25 },
   { "nom": "souches-et-faite-en-plongee", "regard": "tactique", "case": { "x": 17, "y": 24 }, "lacet": 120, "zoom": 40 },
   { "nom": "diligence-dans-la-cour", "regard": "immersion", "case": { "x": 32, "y": 31 }, "lacet": 275, "tangage": -5 },
   { "nom": "pignon-sud-depuis-la-cour", "regard": "immersion", "case": { "x": 28, "y": 31 }, "lacet": 322, "tangage": 30 },
