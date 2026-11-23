@@ -784,9 +784,6 @@ export interface RevealEntry {
   /** Effets détaillés (table des Critiques) AVEC leur explication RAW — pour qu'on sache « à quoi ça
    *  correspond » (plus de simple texte gris). */
   details?: { text: string; note?: string }[];
-  /** Données du Coup Critique pour une modale COMPLÈTE : localisation, Blessures infligées (ignore
-   *  Endurance + Armure), États appliqués. */
-  crit?: { location: HitLocation; woundsLost: number; conditions?: { id: string; value: number }[] };
 }
 /** Exposition à une Influence corruptrice (LDB 19 l.23-75) ou seuil « Corrompu » (LDB 19 l.70). Lancer →
  *  Chance → Appliquer (gainCorruption). */
@@ -840,11 +837,13 @@ export interface DeviationCtx {
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
  *  `crit` = la Blessure tirée à sa fenêtre ; `deviation` = la voie tranchée ; `auto` = tranchée par
- *  l'automate (`tenuParUnHumain` faux), sa révélation reste due. */
+ *  l'automate (`tenuParUnHumain` faux), sa révélation reste due ; `etape` = l'étape de la fenêtre qui l'a tranchée,
+ *  qui reçoit les faits de la Blessure quand la reprise les applique (#4574). */
 export interface DecisionDeCritique {
   crit?: CriticalResolved;
   deviation?: 'devier' | 'subir';
   auto?: true;
+  etape?: string;
 }
 
 /** LE COUP qu'une fenêtre de Blessure critique suspend, et que sa reprise RÉ-ENTRE avec les décisions

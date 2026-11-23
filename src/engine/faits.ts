@@ -9,9 +9,9 @@ import { conditionLabel, refLabel } from '../data';
 import { t, pluriel } from '../i18n';
 import { formatMoney, fromBrass } from './money';
 import { nomDe } from './nom';
-import type { Camp } from './relations';
+import { campOf, type Camp } from './relations';
 import type { CodexTarget } from './ruleRefs';
-import type { Combatant, ConditionId } from './types';
+import type { Combatant, ConditionId, HitLocation } from './types';
 
 /** La durée d'un État posé : Rounds, horloge (minutes), ou annonce d'une pose récurrente (pions par Round,
  *  Rounds de la cause). */
@@ -85,7 +85,21 @@ export interface FaitDArgent extends FaitSurUneCible {
   valeur: number;
 }
 
-export type FaitApplique = FaitDeBlessures | FaitDAvantage | FaitDEtat | FaitDeCorruption | FaitDArgent;
+/** La Localisation qu'une Blessure critique frappe. */
+export interface FaitDeLocalisation extends FaitSurUneCible {
+  genre: 'localisation';
+  /** La Localisation frappée. */
+  valeur: HitLocation;
+}
+
+/** Un fait que le journal dit par sa ligne (`texteDuFait`). */
+export type FaitAvecLigne = FaitDeBlessures | FaitDAvantage | FaitDEtat | FaitDeCorruption | FaitDArgent;
+
+export type FaitApplique = FaitAvecLigne | FaitDeLocalisation;
+
+/** Le fait d'argent de `valeur` sous de cuivre (signée) sur `cible`. */
+export const faitDArgent = (cible: Pick<Combatant, 'id' | 'kind'>, valeur: number): FaitDArgent =>
+  ({ genre: 'argent', cible: cible.id, camp: campOf(cible), valeur });
 
 export type NatureDEffet = 'effet' | 'metamorphose' | 'mutation' | 'contrecoup' | 'lumiere' | 'sequelle';
 
@@ -133,7 +147,7 @@ function texteDesBlessures(f: FaitDeBlessures, name: string): string {
 
 /** LA ligne de journal d'un fait appliqué : `name`, nom de sa cible (`nomDe`) ; `source`, libellé du lot qui l'applique
  *  (`OpsCtx.label`, lu par `nomDeSource`). Libellés d'affichage, jamais portés par le fait. */
-export function texteDuFait(f: FaitApplique, name: string, source?: string): string {
+export function texteDuFait(f: FaitAvecLigne, name: string, source?: string): string {
   switch (f.genre) {
     case 'blessures': return texteDesBlessures(f, name);
     case 'avantage':
@@ -150,8 +164,26 @@ export function texteDuFait(f: FaitApplique, name: string, source?: string): str
   }
 }
 
-/** Pousse `f` et sa ligne dans `a` : LA seule émission d'un fait appliqué. */
-export function emettreDans(a: Applique, cible: Pick<Combatant, 'id' | 'label'>, f: FaitApplique, source?: string): void {
+/** Pousse `f` et sa ligne dans `a` : LA seule émission d'un fait avec sa ligne. */
+export function emettreDans(a: Applique, cible: Pick<Combatant, 'id' | 'label'>, f: FaitAvecLigne, source?: string): void {
   a.faits.push(f);
   a.lignes.push(texteDuFait(f, nomDe(cible), source));
+}
+
+/** Pousse `f` dans `a` sans ligne : LA seule émission d'un fait que le journal ne dit pas, ou que son producteur dit
+ *  par sa propre prose. */
+export function constaterDans(a: Applique, f: FaitApplique): void {
+  a.faits.push(f);
+}
+
+/** Les lignes de `a` qui ne lisent aucun de ses faits (`texteDuFait`), dans leur ordre : ce qu'une révélation dit en
+ *  lignes à côté des faits qu'elle porte. `nom` : le nom d'une cible par son id ; `source` : le libellé du lot. */
+export function lignesHorsDesFaits(a: Applique, nom: (id: string) => string, source?: string): string[] {
+  const restantes = [...a.lignes];
+  for (const f of a.faits) {
+    if (f.genre === 'localisation') continue;
+    const i = restantes.indexOf(texteDuFait(f, nom(f.cible), source));
+    if (i >= 0) restantes.splice(i, 1);
+  }
+  return restantes;
 }

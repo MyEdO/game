@@ -13,6 +13,7 @@ import {
   type ConditionLocks,
   type Difficulty,
   type Main,
+  type ConditionId,
 } from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
@@ -22,7 +23,7 @@ import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
-import { emettreDans, type Applique } from './faits';
+import { emettreDans, type Applique, type FaitApplique, type FaitDEtat } from './faits';
 import { campOf } from './relations';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -143,6 +144,16 @@ export function setConditionGainedHook(fn: ((c: Combatant, name: string) => void
   const precedent = onConditionGained;
   onConditionGained = fn;
   return precedent;
+}
+
+/** Joue `fn` sans le hook `onConditionGained` : une prévision sur une copie ne déclenche aucune réaction. */
+export function sansReactionAuxEtats<T>(fn: () => T): T {
+  const precedent = setConditionGainedHook(undefined);
+  try {
+    return fn();
+  } finally {
+    setConditionGainedHook(precedent);
+  }
 }
 
 /** Retrait d'États « 1 + DR » borné au nombre de pions présents (LDB 16 : Empêtré l.61,
@@ -1106,10 +1117,23 @@ export function inDeathCondition(c: Combatant): boolean {
 /** À 0 PB : gagne l'État À Terre (LDB 18 l.15) ; porteur d'Hémorragique, l'Inconscient (LDB 16 l.105),
  *  sauf en variante Aux Armes, qui le soumet à un Test (AA 07 l.5, hook `aa-bleed-unconscious`).
  *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
-export function applyZeroWounds(c: Combatant): void {
-  if (isInanimate(c)) return;
-  if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
-  if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
+export function applyZeroWounds(c: Combatant): FaitDEtat[] {
+  if (isInanimate(c)) return [];
+  return faitsDesPoses(c, [COND.aTerre, COND.inconscient], () => {
+    if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
+    if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
+  });
+}
+
+/** Les faits d'État que `poser` a produits sur `c`, pour les États `ids` : la variation de leurs pions, sans ligne. */
+export function faitsDesPoses(c: Combatant, ids: readonly ConditionId[], poser: () => void): FaitDEtat[] {
+  const pions = (id: ConditionId): number => c.conditions.find((x) => x.id === id)?.value ?? 0;
+  const avant = ids.map(pions);
+  poser();
+  return ids.flatMap((id, i): FaitDEtat[] => {
+    const valeur = pions(id) - avant[i];
+    return valeur ? [{ genre: 'etat', cible: c.id, camp: campOf(c), id, valeur }] : [];
+  });
 }
 
 /** Reprendre connaissance (LDB 18 l.15) : retire l'Inconscient, sauf verrou (LDB 16 l.105). Vrai si le porteur
@@ -1130,20 +1154,30 @@ export function poserInconscientDeSaignement(c: Combatant): void {
   addCondition(c, COND.inconscient, 1, undefined, undefined, undefined, undefined, VERROU_DU_SAIGNEMENT);
 }
 
+/** Une perte de Blessures : les PB réellement perdus, et les faits de ses conséquences. */
+export interface PerteDeBlessures {
+  perdues: number;
+  faits: FaitApplique[];
+}
+
 /**
  * Perte de Blessures CENTRALISÉE avec ses conséquences RAW — à utiliser partout où l'on retire des PB
  * (hors flux d'attaque principal, qui gère déjà l'Avantage et la nuance Critique pour l'À Terre) :
- *  - perdre ≥1 PB → on perd TOUT l'Avantage (LDB 14 l.219) ;
- *  - tomber à 0 PB → État À Terre (LDB 18 l.15), sauf déjà Inconscient/mort.
- * Retourne le nombre de PB réellement perdus.
+ * LDB 14 l.219 (inerte en mode « Avantage de groupe ») ; LDB 18 l.15, sauf déjà Inconscient/mort.
+ * Rend les PB réellement perdus et les faits de l'Avantage perdu et des États posés, sans ligne.
  */
-export function loseWounds(c: Combatant, amount: number): number {
-  if (amount <= 0 || c.wounds.current <= 0) return 0;
-  const lost = Math.min(amount, c.wounds.current);
-  c.wounds.current -= lost;
-  if (!groupAdvantage()) c.advantage = 0; // perdre une Blessure → perdre tout l'Avantage (LDB 14 l.219) — inerte en mode « Avantage de groupe »
-  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) applyZeroWounds(c);
-  return lost;
+export function loseWounds(c: Combatant, amount: number): PerteDeBlessures {
+  if (amount <= 0 || c.wounds.current <= 0) return { perdues: 0, faits: [] };
+  const perdues = Math.min(amount, c.wounds.current);
+  c.wounds.current -= perdues;
+  const faits: FaitApplique[] = [];
+  const avantage = c.advantage ?? 0;
+  if (!groupAdvantage()) {
+    c.advantage = 0; // LDB 14 l.219
+    if (avantage > 0) faits.push({ genre: 'avantage', cible: c.id, camp: campOf(c), valeur: -avantage, total: 0 });
+  }
+  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) faits.push(...applyZeroWounds(c));
+  return { perdues, faits };
 }
 
 /** Upkeep de mort en fin de Round : LDB 18 l.15 ; MDG 13 l.656, l.674. Retourne le journal. */

@@ -140,7 +140,8 @@ const quiTientLaFenetre = (p: ProprietaireDeLaFenetre): string =>
 const ligneDeFenetre = (f: FenetreTexte): string => {
   const e = f.etape;
   const choix = !f.choixNommes && e?.choix.length ? ` [${e.choix.join(' | ')}]` : '';
-  const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${choix}` : '';
+  const consequences = e?.consequences ? ` ⇒ ${e.consequences.map(texteDeConsequence).join(', ')}` : '';
+  const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${choix}${consequences}` : '';
   return `fenêtre ${f.cle} (à ${quiTientLaFenetre(f.proprietaire)})${etape}`;
 };
 
@@ -189,10 +190,10 @@ function lignesDeFenetre(f: FenetreTexte): string[] {
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
-/** Une conséquence appliquée : qui la subit, son genre (et l'État qu'elle nomme), sa valeur signée. */
+/** Une conséquence : qui la subit, son genre (et l'État qu'elle nomme), sa valeur signée ou l'id qu'elle désigne. */
 function texteDeConsequence(c: ConsequenceEnVue): string {
   const etat = c.detail && 'id' in c.detail ? ` ${c.detail.id}` : '';
-  return `${c.qui ?? 'hors de vue'} ${c.genre}${etat} ${signe(c.valeur)}`;
+  return `${c.qui ?? 'hors de vue'} ${c.genre}${etat} ${typeof c.valeur === 'number' ? signe(c.valeur) : c.valeur}`;
 }
 
 /** Une ligne de jet, suivie des conséquences qu'il a appliquées. */

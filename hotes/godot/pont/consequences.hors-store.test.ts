@@ -13,6 +13,11 @@ import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { buildScene } from '../../../src/noyau/mapSpec';
 import { ecrireLaSauvegarde } from '../../../src/hote/sauvegardes';
 import { snapshotSave } from '../../../src/noyau/persistance/save';
+import { applyCoupCritiqueSec, instantaneAvantLeCoup } from '../../../src/noyau/combatFlow';
+import { lancerLeScenario } from '../../../src/noyau/lancementDeScenario';
+import { lancementDuScenario } from '../../../src/scenes/test-scenarios/_shared';
+import { testScenarios } from '../../../src/scenes/test-scenarios';
+import { seedBattleRng } from '../../../src/noyau/battleRng';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; vi.restoreAllMocks(); });
@@ -40,5 +45,30 @@ describe('projection.jets[].consequences', () => {
     expect(json.flatMap((j) => j.lignes.flatMap((l) => l.consequences ?? []))).toEqual([
       { genre: 'etat', valeur: 1, qui: 'h-artur', ton: 'echec', detail: { id: 'extenue' } },
     ]);
+  });
+});
+
+describe('projection.fenetre.etape.consequences', () => {
+  it('le Coup Critique sec d’un héros blindé (LDB 14 l.3 ; LDB 63 l.30), sans table : sa fenêtre prévoit la Localisation par son id', () => {
+    const { sauvegarde, heros, lieu } = surUnBancHorsTest((banc) => {
+      const g = banc.getState;
+      lancerLeScenario(g, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'siege-enceinte')!, idsDeTest));
+      g().fenetreValider('debutDuRound');
+      banc.abandonner();
+      const cible = g().battle!.combatants.find((c) => c.kind === 'heros')!;
+      cible.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
+      seedBattleRng(7);
+      applyCoupCritiqueSec(g, banc.setState, cible, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(cible));
+      const etape = g().pendingCascade!.participants[g().pendingCascade!.cursor];
+      expect(etape.deviation?.mode, 'la fenêtre du Critique pré-tiré, sans table').toBe('self');
+      return { sauvegarde: snapshotSave(g(), '2026-11-23T10:00:00Z', {}), heros: cible.id, lieu: etape.deviation!.mode === 'self' ? etape.deviation!.location : null };
+    });
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    expect(ecrireLaSauvegarde(stockage, 1, sauvegarde)).toBe(true);
+    const { suite } = drainer(appel, appel('charger', { charger: 1, graine: 7 }));
+    const etape = JSON.parse(JSON.stringify(suite.vue.projection.fenetre?.etape)) as NonNullable<typeof suite.vue.projection.fenetre>['etape'];
+    expect(etape?.genre).toBe('deviation');
+    expect(etape?.consequences?.[0]).toEqual({ genre: 'localisation', valeur: lieu, qui: heros, ton: 'echec' });
   });
 });
