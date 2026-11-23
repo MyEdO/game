@@ -49,7 +49,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'engine/grid.ts', texte: 'export const casesDansLaPortee = (metres: number, metresPerTile: number): number => Math.max(1, Math.floor(metres / metresPerTile));', role: 'PORTÉE sans dépassement (sort, Allonge, Dissipation, poussée, téléport) → cases (arrondi bas, plancher 1)' },
   { fichier: 'engine/magic.ts', texte: 'export const rayonDeGabaritEnCases = (rayonM: number, metresPerTile: number): number => Math.max(0, Math.floor(rayonM / metresPerTile));', role: 'GABARIT d’un sort de zone → cases (arrondi bas, plancher 0)' },
   { fichier: 'noyau/combatFlow.ts', texte: 'const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene)));', role: 'recul de 2 m d’une règle RAW → cases' },
-  { fichier: 'noyau/combat/hitModifiers.ts', texte: 'const wanted = Math.floor(meters / sceneMetresPerTile(get().scene));', role: 'REPOUSSEMENT de Perturbante (1 m par DR, LDB 62 l.272-274) → cases (arrondi bas, plancher 0)' },
+  { fichier: 'noyau/combat/hitModifiers.ts', texte: 'const wanted = Math.floor(meters / sceneMetresPerTile(etat.scene));', role: 'REPOUSSEMENT de Perturbante (1 m par DR, LDB 62 l.272-274) → cases (arrondi bas, plancher 0)' },
   { fichier: 'engine/movement.ts', texte: 'return Math.ceil((2 * Math.max(0, metres)) / metresPerTile);', role: 'coût d’ESCALADE (mètres de dénivelé) → budget de Marche en cases' },
   { fichier: 'engine/scatter.ts', texte: 'const distTiles = Math.max(0, Math.round(distM / metresPerTile));', role: 'DISPERSION d’un tir (mètres) → cases' },
   { fichier: 'noyau/monde/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },

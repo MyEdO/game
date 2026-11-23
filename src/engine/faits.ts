@@ -7,6 +7,7 @@
  */
 import { conditionLabel, refLabel } from '../data';
 import { t, pluriel } from '../i18n';
+import type { SensDuPrix } from './bargain';
 import { formatMoney, fromBrass } from './money';
 import { nomDe } from './nom';
 import { campOf, type Camp } from './relations';
@@ -92,10 +93,49 @@ export interface FaitDeLocalisation extends FaitSurUneCible {
   valeur: HitLocation;
 }
 
+/** Un prix marchandé. */
+export interface FaitDePrix extends FaitSurUneCible {
+  genre: 'prix';
+  /** Variation signée du prix, en points de pourcentage. */
+  valeur: number;
+  /** Le prix d'un achat ou d'une vente. */
+  sens: SensDuPrix;
+}
+
+/** Ce qu'un fait a fait d'un objet : `usee` (un point perdu), `brisee` (inutilisable), `lachee` (tombée des mains),
+ *  `intacte` (Incassable), `sauvee` (Sauvegarde Solide tenue sur son dé), `imperdable` (sauvée sans dé). */
+export type IssueDObjet = 'usee' | 'brisee' | 'lachee' | 'intacte' | 'sauvee' | 'imperdable';
+
+/** Ce qu'un fait a fait d'une arme ou d'une pièce d'armure (`IssueDObjet`). */
+export interface FaitDObjet extends FaitSurUneCible {
+  genre: 'objet';
+  /** L'arme (`weaponIdentity`) ou la Localisation de l'armure. */
+  objet: { arme: string } | { armure: HitLocation };
+  /** −1 : un point d'arme ou de PA perdu, ou l'objet brisé ; 0 sinon. */
+  valeur: -1 | 0;
+  issue: IssueDObjet;
+}
+
 /** Un fait que le journal dit par sa ligne (`texteDuFait`). */
 export type FaitAvecLigne = FaitDeBlessures | FaitDAvantage | FaitDEtat | FaitDeCorruption | FaitDArgent;
 
-export type FaitApplique = FaitAvecLigne | FaitDeLocalisation;
+export type FaitApplique = FaitAvecLigne | FaitDeLocalisation | FaitDePrix | FaitDObjet;
+
+/** Les genres que le journal dit par leur ligne (`texteDuFait`) : un genre neuf s'y déclare. */
+const GENRE_AVEC_LIGNE: Readonly<Record<FaitApplique['genre'], boolean>> = {
+  blessures: true, avantage: true, etat: true, corruption: true, argent: true, localisation: false, prix: false, objet: false,
+};
+
+/** Le fait `f` a-t-il une ligne de journal (`texteDuFait`) ? */
+const aUneLigne = (f: FaitApplique): f is FaitAvecLigne => GENRE_AVEC_LIGNE[f.genre];
+
+/** Le fait d'objet `issue` sur l'objet `objet` de `cible`. */
+export const faitDObjet = (cible: Pick<Combatant, 'id' | 'kind'>, objet: FaitDObjet['objet'], issue: IssueDObjet): FaitDObjet =>
+  ({ genre: 'objet', cible: cible.id, camp: campOf(cible), objet, valeur: issue === 'usee' || issue === 'brisee' ? -1 : 0, issue });
+
+/** Le fait de prix de `valeur` points de pourcentage (signée) dans le sens `sens`, marchandé par `cible`. */
+export const faitDePrix = (cible: Pick<Combatant, 'id' | 'kind'>, valeur: number, sens: SensDuPrix): FaitDePrix =>
+  ({ genre: 'prix', cible: cible.id, camp: campOf(cible), valeur, sens });
 
 /** Le fait d'argent de `valeur` sous de cuivre (signée) sur `cible`. */
 export const faitDArgent = (cible: Pick<Combatant, 'id' | 'kind'>, valeur: number): FaitDArgent =>
@@ -181,7 +221,7 @@ export function constaterDans(a: Applique, f: FaitApplique): void {
 export function lignesHorsDesFaits(a: Applique, nom: (id: string) => string, source?: string): string[] {
   const restantes = [...a.lignes];
   for (const f of a.faits) {
-    if (f.genre === 'localisation') continue;
+    if (!aUneLigne(f)) continue;
     const i = restantes.indexOf(texteDuFait(f, nom(f.cible), source));
     if (i >= 0) restantes.splice(i, 1);
   }

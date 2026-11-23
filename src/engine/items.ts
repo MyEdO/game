@@ -89,6 +89,7 @@ import { armesDuProfil, profilDArmeDuTrait, uidDeLArmeDuTrait } from './creature
 import { armourPhysiqueAt, sourceDuTraitA, userLePADuTrait } from './armourBypass';
 import { removeGrantedTrait, sameInstance } from './grantedTraits';
 import { removeActiveEffects } from './conditions';
+import { faitDObjet, type FaitDObjet } from './faits';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
 /** Fiche d'un objet déjà né pour les règles qui la consultent à l'usage. #2967 */
@@ -1472,17 +1473,17 @@ export function deviatableArmourAt(c: Combatant, loc: HitLocation): boolean {
 }
 
 /** Endommage de 1 PA l'armure de `c` à `loc` : la pièce portée la plus solide (damageTaken+1) puis
- *  re-dérivation, sinon `userLArmureSansPiece`. Rend true si un PA tombe, ou si une pièce à 0 PA devient
- *  inutilisable. LDB 63 l.19-21 */
-export function damageArmour(c: Combatant, loc: HitLocation): boolean {
+ *  re-dérivation, sinon `userLArmureSansPiece`. Rend le fait d'objet (`brisee` : la pièce devient inutilisable), ou
+ *  `null` si aucun PA ne tombe. LDB 63 l.19-21 */
+export function damageArmour(c: Combatant, loc: HitLocation): FaitDObjet | null {
   const pieces = piecesPorteesA(c, loc);
   if (pieces.length) {
     const piece = pieces.sort((a, b) => ((b.pa ?? 0) - (b.damageTaken ?? 0)) - ((a.pa ?? 0) - (a.damageTaken ?? 0)))[0];
     piece.damageTaken = (piece.damageTaken ?? 0) + 1;
     recomputeLoadout(c);
-    return true;
+    return faitDObjet(c, { armure: loc }, armureUtilisable(piece) ? 'usee' : 'brisee');
   }
-  return userLArmureSansPiece(c, loc);
+  return userLArmureSansPiece(c, loc) ? faitDObjet(c, { armure: loc }, 'usee') : null;
 }
 
 /** `c.armour` est-elle re-dérivée par `recomputeLoadout` (pièces portées + PA de mutation) ? Vrai dès que `c` a
@@ -1544,9 +1545,10 @@ export function endommagerLEquipementPorte(c: Combatant): { localisations: numbe
 /** 1 Dégât à l'objet d'arme `it` (LDB 62 l.135, l.262). L'appelant re-dérive les armes tenues. */
 function endommagerLObjetArme(it: ItemInstance): 'intacte' | 'usee' | 'brisee' {
   if (isUnbreakable(it)) return 'intacte';
+  const deja = !!it.destroyed;
   if (it.improvised || isImprovised({ ...weaponFromItem(it), damageTaken: it.damageTaken ?? 0 })) it.destroyed = true;
   it.damageTaken = (it.damageTaken ?? 0) + 1;
-  return it.destroyed ? 'brisee' : 'usee';
+  return !deja && it.destroyed ? 'brisee' : 'usee';
 }
 
 /** LDB 62 l.135, l.262 */

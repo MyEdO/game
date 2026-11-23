@@ -1386,6 +1386,8 @@ interface DisplayBase {
   icon?: IconId;
   /** Ce qui vient d'arriver, en lignes déjà écrites (`RecapLine[]`), rendues par le renderer partagé. */
   outcome?: RecapLine[];
+  /** Les faits appliqués dont `outcome` est la lecture (#4574). */
+  faits?: FaitApplique[];
   /** CHARGE de l'applier « reprise de fuite » (`combatFlow`) : qui fuit, devant qui, et combien de
    *  rangs de Brisé attendent la fin du coup gratuit (LDB 15 l.68). */
   fuite?: NonNullable<CascadeStep['fuite']>;
@@ -1424,6 +1426,7 @@ export function displayStep(spec: DisplaySpec): BuiltCascadeStep {
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(spec.worldOwner ? { worldOwner: true } : { actorId: spec.actorId }),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
+    ...(spec.faits ? { faits: spec.faits } : {}),
     ...(spec.fuite ? { fuite: spec.fuite } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `displayStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.

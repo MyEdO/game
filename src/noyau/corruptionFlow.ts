@@ -29,7 +29,6 @@ import {
   corruptionThresholdExceeded,
   corruptionGain,
   recoitLaCorruption,
-  type ExposureLevel,
   mutationLimitExceeded,
   attachMutation,
   type ChaosAlign,
@@ -50,7 +49,7 @@ import type { PendingCascade, PendingCorruption, PendingMutationStep } from './p
 import { rule } from '../engine/policy';
 import { testValue } from '../engine/skills';
 import { ligneDExposition, type OpsCtx } from '../engine/ops';
-import { emettreDans, type Applique } from '../engine/faits';
+import { emettreDans, type Applique, type FaitDeCorruption } from '../engine/faits';
 import { campOf } from '../engine/relations';
 import { nomDe } from '../engine/nom';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -122,19 +121,36 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
       const tst = rollSansPilote(get, cible, testValue(cible, test), test.difficulty, battleRng());
       return [
         traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
-        ...denouementDExposition(get, set, cible, level, tst.success, tst.sl),
+        ...denouementDExposition(get, set, cible, corruptionGain(level, tst.success, tst.sl)),
       ];
     },
   };
 }
 
-/** DÉNOUEMENT d'un Test d'Exposition joué : les Points dus selon le niveau et le DR, puis le seuil
+/** DÉNOUEMENT d'un Test d'Exposition joué : les `gain` Points dus (`corruptionGain`), puis le seuil
  *  (`gainCorruption`). Partagé par la modale (`resolveCorruptionPending`) et le Test sans siège. LDB 19 l.35 ;
  *  LDB 19 l.48 ; LDB 19 l.58 */
-function denouementDExposition(get: Get, set: Set, hero: Combatant, level: ExposureLevel, success: boolean, sl: number, align?: ChaosAlign): string[] {
-  const gain = corruptionGain(level, success, sl);
+function denouementDExposition(get: Get, set: Set, hero: Combatant, gain: number, align?: ChaosAlign): string[] {
   if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: nomDe(hero) })]))];
   return gainCorruption(get, set, hero, gain, align).lignes;
+}
+
+/** Les Points que doit le Test d'Exposition jeté de la fenêtre `pc` (`corruptionGain`) ; 0 pour un Test de seuil. LDB 19
+ *  l.35 ; LDB 19 l.48 ; LDB 19 l.58 */
+export function gainDeLExposition(pc: PendingCorruption): number {
+  return pc.kind === 'seuil' || pc.roll == null ? 0 : corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
+}
+
+/** Le fait du gain de `n` Points de Corruption par `hero` sur l'état `s`, sans rien appliquer : aucun pour qui ne la
+ *  reçoit pas (LDB 19 l.29, l.70), écarté sous la protection d'une Zone `noCorruption` (LDB 48 l.393), sinon `n` Points
+ *  et le total qu'ils portent. Lu par `gainCorruption` et par la fenêtre qui le prévoit. */
+export function faitDuGainDeCorruption(s: Pick<Jeu, 'battle'>, hero: Combatant, n: number): FaitDeCorruption | null {
+  if (!recoitLaCorruption(hero)) return null;
+  const pos = hero.pos;
+  if (n > 0 && pos && (s.battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, pos))) {
+    return { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: 0, contre: 'protection' };
+  }
+  return { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: n, total: (hero.corruption ?? 0) + n };
 }
 
 /**
@@ -145,16 +161,13 @@ function denouementDExposition(get: Get, set: Set, hero: Combatant, level: Expos
  */
 export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): Applique {
   const sortie: Applique = { lignes: [], faits: [] };
-  if (!recoitLaCorruption(hero)) return sortie;
+  const fait = faitDuGainDeCorruption(get(), hero, n);
+  if (!fait) return sortie;
   const rng = battleRng();
   const lines = sortie.lignes;
-  // Protection de Phâ (LDB 48 l.393) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
-  if (n > 0 && hero.pos && (get().battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, hero.pos!))) {
-    emettreDans(sortie, hero, { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: 0, contre: 'protection' });
-    return sortie;
-  }
-  hero.corruption = (hero.corruption ?? 0) + n;
-  emettreDans(sortie, hero, { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: n, total: hero.corruption });
+  emettreDans(sortie, hero, fait);
+  if ('contre' in fait) return sortie;
+  hero.corruption = fait.total;
 
   // Seuil « Corrompu » (LDB 19 l.70) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), le Test de la fiche
   // `corrompu` ; succès = contenu « pour cette fois », échec = mutation.
@@ -389,7 +402,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     return;
   }
   // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
-  for (const l of denouementDExposition(get, set, hero, pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0, pc.align)) get().ecrireAuJournal(l);
+  for (const l of denouementDExposition(get, set, hero, gainDeLExposition(pc), pc.align)) get().ecrireAuJournal(l);
   set({ ...touchActors(get()) });
 }
 

@@ -92,6 +92,7 @@ const PROVENANCE = [
   ['combat.finDeTourArmee', 'endTurnArmed'],
   ['exploration.gestes, offres hors combat', 'gestesDExploration (aretesUtilisables offertes comme à l’écran, atterrissagesDeSaut, déclencheurs à transition, exploreMovePlan écrit par gesteDuPas)'],
   ['exploration.etage, exploration.cap', 'partyPos.z, capDuGroupe'],
+  ['exploration.heros', 'party, le meneur (meneurDuMonde) d’abord'],
   ['jouer : levé', 'Jeu.localIntent, battle.preview, endTurnArmed, lus avant et après chaque geste'],
   ['erreur permission', 'quiTientLaMain, siegeDe'],
   ['fiche', 'refusée hors de la vue du groupe (porteurEnVue)'],
