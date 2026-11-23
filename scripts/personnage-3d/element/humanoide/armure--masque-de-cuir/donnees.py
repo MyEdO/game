@@ -31,14 +31,14 @@ MANIFESTE = {
 """`couvre` vide : le visage se voit sous le demi-masque et par ses ouvertures, les oreilles sous le bord."""
 
 MATERIAUX = {
-    'cuir': ('cuir', 'cuir-tanne'),
+    'cuir': ('cuir', 'cuir-use'),
     'parchemin': ('corne', 'papier'),
     'cire': ('accent', 'cire-a-cacheter'),
     'os': ('corne', 'os'),
     'encre': (None, 'encre-noire'),
 }
-"""Illustration : cuir de la calotte, du masque, des joues, des coutures et des lacets (`cuir-tanne`, emplacement
-`cuir`) ; parchemin beige (`papier`) et os (`os`) à l'emplacement `corne`, celui du parchemin du sceau du Prêtre
+"""Illustration : cuir de la calotte, du masque, des joues, des coutures et des lacets, usé et rapiécé (`cuir-use`,
+emplacement `cuir`) ; parchemin beige (`papier`) et os (`os`) à l'emplacement `corne`, celui du parchemin du sceau du Prêtre
 (`accessoire--sceau-de-cire`) et des os du collier (`rigide--collier_a_cranes`) ; cire du sceau (`cire-a-cacheter`) à
 l'emplacement `accent`, celui de la cire du Prêtre ; encre (`encre-noire`) sans emplacement : sa couleur est celle de
 sa matière, cuite au GLB."""

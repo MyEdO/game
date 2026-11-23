@@ -32,11 +32,11 @@ MANIFESTE = {
 brassards d'acier (`armure--brassards-d-acier`)."""
 
 MATERIAUX = {
-    'cuir': ('cuir', 'cuir-tanne'),
+    'cuir': ('cuir', 'cuir-use'),
     'fourrure': ('fourrure', 'fourrure'),
     'clous': ('metal', 'bronze-patine'),
 }
-"""Illustration : cuir fauve (`cuir`), fourrure fauve (`fourrure`), pointes, clous et boucle d'un bronze sombre
+"""Illustration : cuir fauve, éraflé (`cuir-use`, emplacement `cuir`), fourrure fauve (`fourrure`), pointes, clous et boucle d'un bronze sombre
 (`metal`, bronze terni au preset `gladiateur`)."""
 
 BUDGET_TRIANGLES = 2000            # procédure du skill, section 7 : armure par pièce
