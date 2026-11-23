@@ -66,9 +66,8 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('objet : `equiperLObjet`, son porteur lu dans l’état', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [objet] = refuseLId(t, verbe('equiperLObjet', 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
-    const r = t.jouer(verbe('equiperLObjet', objet));
-    expect(r.erreur, r.texte).toBeNull();
+    const [objet] = refuseLId(t, verbe('equiperLObjet', 'nobody', true), /uid : "nobody" n’est pas un id d’objet \(valides : /);
+    passeLeControle(t, verbe('equiperLObjet', objet, true));
   });
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
     refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /possessionUid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);

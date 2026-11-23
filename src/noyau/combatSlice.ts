@@ -141,6 +141,7 @@ import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
+import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -231,7 +232,7 @@ import {
   retirerUnBandage,
   IDS_DU_TEST_DE_SOIN,
 } from '../engine/healing';
-import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
+import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuSoigneur, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
@@ -1678,7 +1679,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (m.ridesEntityId == null) return;
         const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
-        if (!mount) return;
+        if (!mount || !accepteUnCavalier(mount, enemies[i])) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
         harnacher(enemies[i], mount);
@@ -1952,7 +1953,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
       const flow = consommableDe(it, objetDuNarratif(s.campaignNarratif));
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
-      if (refuseSi(get, set, () => refusDeConsommer(porteur, it, flow))) return;
+      if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
@@ -2334,6 +2335,13 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         if (!ph) return;
         if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
         set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
+      },
+      /** Jugé par `refusDuSoigneur` ; l'acte recalcule son soin entier autour du soigneur choisi (`soinDeLActe`). */
+      soigneur: (soigneurId) => {
+        const ph = garanti(get().pendingHeal, soigneurId, 'soin du soigneur');
+        if (refuseSi(get, set, () => refusDuSoigneur(get(), soigneurId))) return;
+        const medic = { ...garanti(get().medic, soigneurId, 'infirmerie du soigneur'), soigneurId };
+        set({ medic, pendingHeal: { ...soinDeLActe({ medic, party: get().party }, ph.mode), bandagesDe: ph.bandagesDe } });
       },
     },
     incantation: {

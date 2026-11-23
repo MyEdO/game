@@ -191,7 +191,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Pose le rôle MJ au siège `siege` (`null` : l'IA) (`poserLeSiegeMJ`) ; refusé, et dit, par `refusDuSiegeMJ`
    *  (`noyau/sieges.ts`). */
   affecterLeSiegeMJ: (siege: number | null) => void;
-  equiperLObjet: (uid: IdDObjet) => void;
+  /** Porte (`porte`) ou ôte un objet de son porteur ; rejoué, il ne change rien (`partyFlow.equiperLObjet`). */
+  equiperLObjet: (uid: IdDObjet, porte: boolean) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
@@ -328,6 +329,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   embarquer: (possessionUid: IdDePossession, hostUid: IdDePossession) => void;
   /** Débarque une possession embarquée. */
   debarquer: (possessionUid: IdDePossession) => void;
+  /** Monte la bête hors combat : elle devient la monture de son propriétaire (#4804). */
+  monterLaBete: (possessionUid: IdDePossession) => void;
+  /** Descend de la monture hors combat : elle reste sans cavalier (#4804). */
+  quitterLaSelle: (possessionUid: IdDePossession) => void;
   /** Abandon (§6, décision №4) — pose `destroyed`, confirmation côté appelant. */
   cederLaPossession: (possessionUid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */

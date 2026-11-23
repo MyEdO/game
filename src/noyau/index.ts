@@ -1,11 +1,12 @@
 /**
- * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
+ * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie et les événements de ses appels, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
  * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
-export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
+export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
+export type { ChargeDAttaque, TestResolu } from './bus';
 export type { LancementDeScenario } from './lancementDeScenario';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';

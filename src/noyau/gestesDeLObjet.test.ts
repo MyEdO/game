@@ -19,7 +19,7 @@ function partie(inconnu: { appraiseTriedDay?: number; detectTriedBy?: string[] }
   const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
   Object.assign(pilon, { identified: false, ...inconnu });
-  const s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif'> = { battle: null, party, possessions: [], gameTime: 3 * MINUTES_PER_DAY + 10, scene: null, campaignNarratif: null };
+  const s: Parameters<typeof gestesDeLObjet>[0] = { battle: null, party, possessions: [], gameTime: 3 * MINUTES_PER_DAY + 10, scene: null, campaignNarratif: null, flags: {}, etats: {} };
   return { s, rosa, uid: (label: string) => rosa.items!.find((i) => i.label === label)!.uid };
 }
 
@@ -28,7 +28,7 @@ describe('les gestes d’un objet', () => {
     const { s, rosa, uid } = partie();
     const justaucorps = gestesDeLObjet(s, rosa.id, uid('Justaucorps de cuir'))!;
     expect([justaucorps.porter, justaucorps.mains, justaucorps.utiliser], 'une armure se porte, ne se tient ni ne s’utilise')
-      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [uid('Justaucorps de cuir')] } }, null, null]);
+      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [uid('Justaucorps de cuir'), false] } }, null, null]);
     const dague = gestesDeLObjet(s, rosa.id, uid('Dague'))!;
     expect([dague.porter, dague.mains?.main], 'une arme se tient ; tenue en main principale, son geste la lâche')
       .toEqual([null, { tenue: true, refus: null, geste: { verbe: 'garnirLaPanoplie', args: [rosa.id, dague.mains!.set, 'main', null] } }]);

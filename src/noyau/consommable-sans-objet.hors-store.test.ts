@@ -2,7 +2,9 @@
  * UN CONSOMMABLE SANS OBJET N'EST PAS PERDU, sans store (#3059 S5) : boire un produit dont l'effet réussi
  * n'aurait rien à changer au buveur (Potion de vitalité sans Exténué, Gesundheit sans la maladie qu'il soigne)
  * est refusé, ET le dit, avant toute consommation ; avec son objet, le produit se boit. La raison est celle du
- * prédicat unique `opSansObjet`, que l'application des ops tait. LDB 16, MSRC 04 l.184-186
+ * prédicat unique `opSansObjet`, que l'application des ops tait ; un produit dont la condition, jugée sur le buveur,
+ * ne pose rien est refusé sans effet. Le verdict est celui que rend le geste `utiliser` de `gestesDeLObjet`.
+ * LDB 16, LDB 72 l.20, LDB 72 l.24, MSRC 04 l.184-186
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -12,6 +14,8 @@ import { addCondition } from '../engine/conditions';
 import { itemFromTrappingById } from '../engine/items';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
+import { gestesDeLObjet } from './gestesDeLObjet';
+import { bonusDe } from '../engine/characteristics';
 
 /** Un banc dont le Vétéran porte le produit `trappingId` (uid `produit`), sa fiche ajustée par `fiche`. */
 function avecLeProduit(trappingId: string, fiche: (h: Combatant) => void = () => {}): { banc: Banc } {
@@ -58,5 +62,44 @@ describe('Consommable — refusé sans objet, avant de le boire', () => {
     });
     banc.actions.utiliserLObjet('produit');
     expect(produit(banc), 'consommé').toBeUndefined();
+  });
+
+  it('Potion de guérison, indemne : refusée et dite, comme le geste de la fiche la ferme', () => {
+    const { banc } = avecLeProduit('potion-de-guerison');
+    const refus = 'Vétéran n’a aucune Blessure à regagner ni aucune Aide Médicale à recevoir. Potion de guérison ne lui apporterait rien : l’objet est gardé.';
+    expect(gestesDeLObjet(banc.getState(), banc.getState().party[0].id, 'produit')?.utiliser?.refus).toBe(refus);
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet('produit'))).toEqual([refus]);
+    expect(produit(banc), 'l’objet est gardé').toBeTruthy();
+  });
+
+  it('Potion de guérison à 0 Blessure : sa condition ne pose rien, refusée sans effet', () => {
+    const { banc } = avecLeProduit('potion-de-guerison', (h) => { h.wounds = { ...h.wounds, current: 0 }; });
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet('produit')))
+      .toEqual(['Potion de guérison n’aurait aucun effet sur Vétéran : l’objet est gardé.']);
+    expect(produit(banc), 'l’objet est gardé').toBeTruthy();
+  });
+
+  it('Potion de guérison, blessé : bue, le Bonus d’Endurance revient', () => {
+    let max = 0;
+    const { banc } = avecLeProduit('potion-de-guerison', (h) => {
+      max = h.wounds.max;
+      h.wounds = { ...h.wounds, current: max - bonusDe(h, 'endurance') - 1 };
+    });
+    banc.actions.utiliserLObjet('produit');
+    expect(produit(banc), 'consommée').toBeUndefined();
+    expect(banc.getState().party[0].wounds.current).toBe(max - 1);
+  });
+
+  it('Cataplasme de guérison sans Blessure Critique de la rencontre : refusé et dit', () => {
+    const { banc } = avecLeProduit('cataplasme-de-guerison');
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet('produit')))
+      .toEqual(['Vétéran n’a aucune Blessure critique de la rencontre à panser. Cataplasme de guérison ne lui apporterait rien : l’objet est gardé.']);
+  });
+
+  it('Cataplasme de guérison sur une Blessure Critique de la rencontre : appliqué, la plaie est pansée', () => {
+    const { banc } = avecLeProduit('cataplasme-de-guerison', (h) => { h.tookCriticalThisFight = true; });
+    banc.actions.utiliserLObjet('produit');
+    expect(produit(banc), 'consommé').toBeUndefined();
+    expect(banc.getState().party[0].woundDressed).toBe(true);
   });
 });

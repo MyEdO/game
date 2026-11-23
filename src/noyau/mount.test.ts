@@ -5,6 +5,7 @@ import type { BattleState } from './etat';
 import type { Scene } from './monde/scene';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
+import { spawnEnemy } from './monde/spawn';
 
 const mk = (id: string, x: number, y: number, size?: SizeCategory): Combatant =>
   ({ id, name: id, pos: { x, y }, size, wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
@@ -85,5 +86,21 @@ describe('mount — combat monté (LDB 14 l.175-187)', () => {
     const r = handleMountDeath(battle([horse, knight]), rampartScene(12, 12), horse);
     expect(r).toBe(knight);
     expect(knight.pos!.z).toBe(1);
+  });
+});
+
+describe('canMount — la monture accepte le cavalier (`accepteUnCavalier`, LDB 85 l.112)', () => {
+  it('un orque n’enfourche pas un grand sanglier ombrageux Belliqueux sans Dressé (Monture), même `mountable`', () => {
+    const sanglier = spawnEnemy({ ref: 'grand-sanglier-ombrageux' }, 'sanglier', { x: 5, y: 5 });
+    sanglier.mountable = true;
+    const orque = spawnEnemy({ ref: 'guerrier-orc' }, 'orque', { x: 7, y: 5 });
+    expect(canMount(flatScene(12, 12), orque, sanglier)).toBe(false);
+  });
+
+  it('il l’enfourche si le sanglier a appris Dressé (Monture)', () => {
+    const sanglier = spawnEnemy({ ref: 'grand-sanglier-ombrageux' }, 'sanglier', { x: 5, y: 5 }, { learnedTraits: ['dresse-monture'] });
+    sanglier.mountable = true;
+    const orque = spawnEnemy({ ref: 'guerrier-orc' }, 'orque', { x: 7, y: 5 });
+    expect(canMount(flatScene(12, 12), orque, sanglier)).toBe(true);
   });
 });

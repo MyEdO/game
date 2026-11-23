@@ -9,7 +9,7 @@ import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import { fateSaveOptions } from '../engine/fortune';
-import { isHealable } from '../engine/healing';
+import { refusDuPatient } from './acteDeSoin';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
@@ -274,7 +274,7 @@ export const OUVERTS_DU_CHOIX = {
   infirmerie: {
     patient: reglage('infirmerie', 'patient', (s) => {
       const verrou = soinEnCours(s) ? libelleDeLaFermeture('soinEnCours') : null;
-      return s.party.map((h) => ouverte(h.id, nomDuPorteur(s, h.id), verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
+      return s.party.map((h) => ouverte(h.id, nomDuPorteur(s, h.id), verrou ?? refusDuPatient(s, h.id, s.medic ?? {})));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('infirmerie', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('infirmerie', 'abandon'))] : [])),
     plaie: reglage('infirmerie', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),

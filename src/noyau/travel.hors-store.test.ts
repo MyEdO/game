@@ -737,6 +737,8 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
       const h = hero();
       setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
       banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
+      // La bascule à pied se joue en tête de la journée suivante (#4804).
+      if (banc.getState().pendingRest) banc.getState().fenetreValider('repos');
       const st = banc.getState();
       if (st.journal.some((l) => l.includes('la route continue à pied'))) {
         degraded = true;

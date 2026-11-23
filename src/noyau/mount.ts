@@ -17,7 +17,7 @@ import { reachTiles, meleeReachTiles } from '../engine/engagement';
 import { Scene, isWalkable, sceneMetresPerTile } from './monde/scene';
 import { occupiesTile, footprintN, distanceDeContact } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';
-import { isSkittishMount } from '../engine/traits/dispatch';
+import { accepteUnCavalier, isSkittishMount } from '../engine/traits/dispatch';
 import { meleeWarMachineHullOf } from './siegePush';
 import { structureImmune } from '../engine/structures';
 import type { Pt } from './monde/path';
@@ -188,11 +188,12 @@ function tileToFootprint(c: Combatant, x: number, y: number): number {
   return Math.max(dx, dy);
 }
 
-/** `rider` (à pied, libre) peut-il enfourcher `mount` ? Monture vivante, SANS cavalier, au contact (`distanceDeContact`,
- *  arête, plafond et hauteur compris) ou sur son empreinte, et `rider` n'est pas déjà monté. */
+/** `rider` (à pied, libre) peut-il enfourcher `mount` ? Monture vivante, SANS cavalier, qui l'accepte (`accepteUnCavalier`),
+ *  au contact (`distanceDeContact`, arête, plafond et hauteur compris) ou sur son empreinte, et `rider` n'est pas déjà monté. */
 export function canMount(scene: Scene | null, rider: Combatant, mount: Combatant): boolean {
   if (rider.id === mount.id || rider.mountId || mount.riderId) return false;
   if (isOutOfAction(rider) || isOutOfAction(mount) || !rider.pos || !mount.pos) return false;
+  if (!accepteUnCavalier(mount, rider)) return false;
   return distanceDeContact(scene, rider, mount) <= 1;
 }
 
