@@ -11,6 +11,8 @@ export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.pa
 export const valide = (h: Heros): boolean => !horsDeCombat(h.c);
 /** En état de partir : valide, et pas à l'hospice. */
 export const disponible = (h: Heros): boolean => valide(h) && !h.retrait;
+/** Pourquoi un héros ne peut pas partir, ou `null` s'il le peut. */
+export const refusDeDepart = (h: Heros): string | null => (h.retrait ? `À l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}.` : !valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
 
 export function partir(e: Etat, destinationId: string, groupe: string[]): string | null {
   const d = DESTINATIONS.find((x) => x.id === destinationId);

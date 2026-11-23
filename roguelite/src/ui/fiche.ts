@@ -156,6 +156,6 @@ export function ecranDuHeros(ctx: Contexte, id: string, onglet: Onglet | null): 
       ${cadreA(CADRES.bande, bande(h, o, progresse), { ruban: 'Caractéristiques', classe: 'bande' })}
       ${cadreA(CADRES.gauche, panneauGauche(e, h, o, enRoute, progresse), { ruban: enRoute ? 'Entre deux salles' : 'Compétences', classe: 'competences' })}
       ${cadreA(CADRES.droite, droite, { classe: 'droite', tete: onglets(noms, actif) })}`,
-    socle: { heros: enRoute ? J.herosDuGroupe(e) : e.roster, geste: 'heros', choisi: (x) => x.c.id === h.c.id },
+    socle: { heros: enRoute ? J.herosDuGroupe(e) : e.roster, geste: 'heros', choisi: (x) => x.c.id === h.c.id, progresse: (x) => J.peutProgresser(e, x) },
   });
 }

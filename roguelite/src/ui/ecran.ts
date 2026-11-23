@@ -43,13 +43,14 @@ export function carton(o: Carton): string {
     + ici('texte', o.texte) + ici('gestes', `<div class="gestes">${o.gestes}</div>`), { ruban: o.ruban, classe: 'carton' });
 }
 
-/** Le socle : la compagnie en cartes ; `geste` dit ce qu'un clic fait, `choisi` et `ferme` l'état de chacune. */
-export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; ferme?: (h: J.Heros) => boolean }
+/** Le socle : la compagnie en cartes ; `geste` dit ce qu'un clic fait, `choisi` l'état de chacune, `refus` pourquoi
+ *  une carte est fermée à ce geste, `progresse` si le héros peut acheter un avancement. */
+export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean }
 
 /** `classe` : `service` laisse voir le décor du hameau derrière la scène ; `lieu` est la scène même du hameau ou de
  *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
 export function ecran(o: { nom: string; classe?: 'service' | 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
-  const cartes = o.socle.heros.map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, o.socle.ferme?.(h) ?? false)).join('');
+  const cartes = o.socle.heros.map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, { refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h) })).join('');
   const lieu = o.classe === 'lieu';
   return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}

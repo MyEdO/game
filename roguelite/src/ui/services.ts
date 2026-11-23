@@ -164,9 +164,10 @@ export function ecranDeService(ctx: Contexte, service: Service): string {
   const pourQui = SERVENT_UN_HEROS.has(service) ? servi : undefined;
   const page = PAGES[service]({ e, servi, choix: ctx.choix });
   const ruban = pourQui ? pourQui.c.label : b ? b.role : destination ? 'Le départ' : 'Chronique';
+  const progresse = (h: J.Heros) => J.peutProgresser(e, h);
   const socle = service === 'depart'
-    ? { heros: e.roster, geste: 'choisir', choisi: (h: J.Heros) => ctx.choix.has(h.c.id), ferme: (h: J.Heros) => !J.disponible(h) }
-    : pourQui ? { heros: e.roster, geste: 'client', choisi: (h: J.Heros) => h.c.id === pourQui.c.id } : { heros: e.roster, geste: 'heros', choisi: () => false };
+    ? { heros: e.roster, geste: 'choisir', choisi: (h: J.Heros) => ctx.choix.has(h.c.id), refus: J.refusDeDepart }
+    : pourQui ? { heros: e.roster, geste: 'client', choisi: (h: J.Heros) => h.c.id === pourQui.c.id, progresse } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
   const hote = b ? hoteDuBatiment(e, b)
     : destination ? `<p class="effet">${esc(destination.recit)}</p><p class="effet">Maître : ${esc(destination.boss.map(nomDeCreature).join(' et '))}</p>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { taille: 'petite' })}` : '';
   return ecran({

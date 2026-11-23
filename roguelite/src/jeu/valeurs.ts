@@ -54,29 +54,37 @@ export const BATIMENTS: readonly Batiment[] = [
 /** La voie d'un lanceur : le Talent de niveau 2 qui ouvre les sorts ou les miracles, sa spécialisation, et ce qui
  *  s'achète ensuite. */
 export interface Voie { talent: 'magie-des-arcanes' | 'invocation'; spec: string; nom: string; sorts: readonly string[] }
-/** Une carrière du roster : son palier de relais, ce qui la caractérise à la création, et sa voie de lanceur. */
-export interface Profil { id: string; nom: string; relais: number; identite: Identite; devise: string; espece?: string; voie?: Voie }
+/** Le rôle d'une carrière dans la compagnie, que le joueur lit d'un pictogramme : il choisit un groupe par rôles. */
+export type Role = 'front' | 'tireur' | 'soigneur' | 'lanceur';
+export const ROLES: Record<Role, { nom: string; picto: string }> = {
+  front: { nom: 'Ligne de front', picto: 'bouclier' }, tireur: { nom: 'Tireur', picto: 'arc' },
+  soigneur: { nom: 'Soigneur', picto: 'soin' }, lanceur: { nom: 'Lanceur de sorts', picto: 'etoile' },
+};
+/** Une carrière du roster : son palier de relais, son rôle, ce qui la caractérise à la création, et sa voie de lanceur. */
+export interface Profil { id: string; nom: string; relais: number; role: Role; identite: Identite; devise: string; espece?: string; voie?: Voie }
 
 export const PROFILS: readonly Profil[] = [
-  { id: 'soldat', nom: 'Soldat', relais: 0, identite: { talent: { id: 'guerrier-ne' } }, devise: 'Tient la ligne. Guerrier né.' },
-  { id: 'chasseur', nom: 'Chasseur', relais: 0, identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
-  { id: 'hors-la-loi', nom: 'Hors-la-loi', relais: 0, identite: { talent: { id: 'vigilance' } }, devise: 'Jamais surpris. Vigilance.' },
-  { id: 'pretre', nom: 'Prêtre de Shallya', relais: 0, identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Béni de Shallya.',
+  { id: 'soldat', nom: 'Soldat', relais: 0, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Tient la ligne. Guerrier né.' },
+  { id: 'chasseur', nom: 'Chasseur', relais: 0, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
+  { id: 'hors-la-loi', nom: 'Hors-la-loi', relais: 0, role: 'front', identite: { talent: { id: 'vigilance' } }, devise: 'Jamais surpris. Vigilance.' },
+  { id: 'pretre', nom: 'Prêtre de Shallya', relais: 0, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Béni de Shallya.',
     voie: { talent: 'invocation', spec: 'shallya', nom: 'Invocation (Shallya)', sorts: [] } },
-  { id: 'sorcier', nom: 'Sorcier', relais: 0, identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
+  { id: 'sorcier', nom: 'Sorcier', relais: 0, role: 'lanceur', identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
     voie: { talent: 'magie-des-arcanes', spec: 'feu', nom: 'Magie des Arcanes (Feu)', sorts: ['carreau', 'explosion', 'arme-aethyrique', 'armure-aethyrique', 'effrayant', 'sang-corrosif'] } },
-  { id: 'tueur', nom: 'Tueur', relais: 1, espece: 'nains', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
-  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
-  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 1, identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
+  { id: 'tueur', nom: 'Tueur', relais: 1, role: 'front', espece: 'nains', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
+  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, role: 'front', identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
+  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 1, role: 'front', identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
     voie: { talent: 'invocation', spec: 'sigmar', nom: 'Invocation (Sigmar)', sorts: ['marteau-ardent-de-sigmar', 'n-ecoutez-point-la-sorciere'] } },
-  { id: 'duelliste', nom: 'Duelliste', relais: 1, identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
-  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
-  { id: 'flagellant', nom: 'Flagellant', relais: 2, identite: { talent: { id: 'frenesie' } }, devise: 'La douleur est une prière. Frénésie.' },
-  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
+  { id: 'duelliste', nom: 'Duelliste', relais: 1, role: 'front', identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
+  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
+  { id: 'flagellant', nom: 'Flagellant', relais: 2, role: 'front', identite: { talent: { id: 'frenesie' } }, devise: 'La douleur est une prière. Frénésie.' },
+  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, role: 'front', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
 ];
 export const nomDeCarriere = (id: string): string => profil(id)?.nom ?? nomDeCarriereDuLivre(id);
 export const voieDe = (carriere: string): Voie | undefined => profil(carriere)?.voie;
 export const deviseDe = (carriere: string): string => profil(carriere)?.devise ?? '';
+/** Le rôle d'une carrière du roster ; une carrière hors du roster (un héros d'une ancienne sauvegarde) n'en a pas. */
+export const roleDe = (carriere: string): Role | undefined => profil(carriere)?.role;
 
 export const ESPECES: Record<string, { nom: string; race: 'humain' | 'nain' | 'halfling' }> = {
   'humains-reiklander': { nom: 'Humain', race: 'humain' }, nains: { nom: 'Nain', race: 'nain' }, halflings: { nom: 'Halfling', race: 'halfling' },

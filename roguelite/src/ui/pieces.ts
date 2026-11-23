@@ -25,13 +25,17 @@ export const busteDuHeros = (h: Pick<J.Heros, 'carriere' | 'espece' | 'c'>) => b
 export const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
 export const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire">${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
 
-/** La carte d'un héros : portrait, nom, carrière, vie, état. `geste` : ce qu'un clic fait (ouvrir sa fiche, le
- *  servir, l'emmener) ; `ferme` : il n'est pas disponible pour ce geste. */
-export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', ferme = false) {
+/** La carte d'un héros : portrait, nom, rôle et carrière, vie, état ; son identité au survol. `geste` : ce qu'un
+ *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste ;
+ *  `progresse` : il peut acheter un avancement. */
+export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { refus?: string | null; progresse?: boolean } = {}) {
   const c = h.c;
-  return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${ferme ? ' disabled' : ''}>
-    ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}
-    <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${esc(J.nomDeCarriere(h.carriere))}</span>
+  const role = J.roleDe(h.carriere);
+  const r = role && J.ROLES[role];
+  const identite: Apercu = { nom: c.label, nature: [J.nomDeCarriere(h.carriere), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '), texte: J.deviseDe(h.carriere), ...(o.refus ? { pied: o.refus } : {}) };
+  return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
+    ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
+    <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(J.nomDeCarriere(h.carriere))}</span>
     ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `à l’hospice · ${h.retrait} j` : J.valide(h) ? `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}` : 'hors de combat'}</span></span>
   </button>`;
 }

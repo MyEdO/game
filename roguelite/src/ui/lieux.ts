@@ -55,7 +55,8 @@ function partir(e: J.Etat): string {
   if (J.compagnieEpuisee(e)) {
     return `<div class="partir"><div><div class="nom-propre petit gothique">Personne n’est en état de partir</div><div class="sous-titre">la compagnie panse ses plaies</div></div>${plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true })}</div>`;
   }
-  return `<div class="partir"><div><div class="nom-propre petit gothique">${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}</div><div class="sous-titre">${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''}</div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
+  const maitres = J.DESTINATIONS.map((d) => `<i class="${e.bossVaincus.includes(d.id) ? 'plein' : ''}" data-bulle="${esc(d.nom)}"></i>`).join('');
+  return `<div class="partir"><div><div class="nom-propre petit gothique">Abattre l’Autel du Chaos</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
 }
 
 /** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins, socle). */
@@ -67,7 +68,7 @@ export function ecranDuHameau(e: J.Etat, ouvert: string, carte: string): string 
       <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
       ${cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>`,
-    socle: { heros: e.roster, geste: 'heros', choisi: () => false },
+    socle: { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h) => J.peutProgresser(e, h) },
     vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
   });
   return `<div class="ecran hameau">

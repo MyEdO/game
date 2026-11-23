@@ -26,6 +26,15 @@ export function offresDeCarriere(h: Heros): Progression & { talentAcquis: boolea
   return { ...p, talentAcquis: p.talents.some((t) => t.possede > 0), talents: talents.filter((t, i, l) => l.findIndex((u) => u.ref.id === t.ref.id && u.ref.spec === t.ref.spec) === i) };
 }
 
+/** Le héros peut-il acheter un avancement maintenant (au hameau, salle d'armes ouverte, assez de PX pour la moins
+ *  chère de ses Caractéristiques, de ses Compétences de carrière, ou son niveau suivant) ? */
+export function peutProgresser(e: Etat, h: Heros): boolean {
+  if (!niveauMaximal(e) || e.expedition?.groupe.includes(h.c.id)) return false;
+  const p = progression(h.c);
+  const couts = [...p.caracs.map((x) => x.cout), ...p.competences.map((x) => x.cout), ...(p.complet && p.suivant && p.suivant.niveau <= niveauMaximal(e) ? [p.suivant.cout] : [])];
+  return couts.length > 0 && (h.c.xp ?? 0) >= Math.min(...couts);
+}
+
 export type Achat = { genre: 'carac'; id: string } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau' } | { genre: 'sort'; id: string };
 
 export function acheter(e: Etat, id: string, a: Achat): string | null {

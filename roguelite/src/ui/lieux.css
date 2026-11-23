@@ -28,6 +28,8 @@
 .coins { position: absolute; display: grid; gap: 14px; justify-items: center; align-content: end; }
 .coins .bouton-rond, .journal-rejeu .bouton-rond { border: 0; cursor: pointer; }
 .coins .bouton-rond:hover, .journal-rejeu .bouton-rond:hover { box-shadow: 0 4px 8px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 12px var(--halo); }
+.partir .but { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.partir .niveaux { margin-top: 0; }
 .carte-partir > .fond { padding: 26px 16px 12px; justify-content: center; }
 .carte-salle > .fond { padding: 18px 18px 14px; gap: 10px; }
 .carte-salle .pied-salle { margin-top: auto; }

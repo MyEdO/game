@@ -75,6 +75,11 @@ lieu n'y garde que son cartouche et le socle, qui reste ; seuls les gestes du ca
 son **issue** (bannière, ce qu'elle laisse, un geste ; tâche du rejeu) : une victoire rend la main à l'expédition sans
 carton ; une déroute ou une retraite passe de l'issue au carton qui raconte le retour.
 
+Repères du parcours, à la manière de Darkest Dungeon (aucun texte d'aide) : le but et ses maîtres en losanges au
+panneau Partir ; le rôle de chaque héros en pictogramme (`ROLES`), son identité au survol de sa carte ; une pastille
+sur le héros qui peut acheter un avancement et sur le bâtiment qui peut s'agrandir ; la raison d'une carte fermée au
+survol ; le dernier fait du journal sous le cartouche du hameau.
+
 ## Les phases
 
 1. **Refonte du code, sans changement visible.** Découper la façade du noyau (`combat.ts`), la boucle de jeu
