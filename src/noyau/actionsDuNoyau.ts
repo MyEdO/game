@@ -328,6 +328,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   embarquer: (possessionUid: IdDePossession, hostUid: IdDePossession) => void;
   /** Débarque une possession embarquée. */
   debarquer: (possessionUid: IdDePossession) => void;
+  /** Monte la bête hors combat : elle devient la monture de son propriétaire (#4804). */
+  monterLaBete: (possessionUid: IdDePossession) => void;
+  /** Descend de la monture hors combat : elle reste sans cavalier (#4804). */
+  quitterLaSelle: (possessionUid: IdDePossession) => void;
   /** Abandon (§6, décision №4) — pose `destroyed`, confirmation côté appelant. */
   cederLaPossession: (possessionUid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */

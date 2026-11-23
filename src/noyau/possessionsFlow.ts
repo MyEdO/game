@@ -5,10 +5,14 @@
  * navires/immeubles) : aucun mirroir, aucune copie par kind.
  */
 import type { Possession, PossessionLocation, PossessionInput } from '../engine/possession';
-import { refusDEmbarquer, possessionLabel, type RefusDEmbarquement } from '../engine/possession';
+import type { Combatant } from '../engine/types';
+import { refusDEmbarquer, possessionLabel, possessionRideable, profilDeLaBete, type RefusDEmbarquement } from '../engine/possession';
+import { betesQuiPeuventLePorter, heroCombatMount } from '../engine/mountTravel';
+import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { possessionGrantsFromRefs } from '../engine/possessionGrants';
 import { dotationsDuHeros, resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
+import { rencontreEngagee } from './monde/combatants';
 import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
@@ -55,20 +59,20 @@ export function transmettreLaPossession(_get: Get, set: Set, uid: string, newOwn
   set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, ownerId: newOwnerId } : p)) }));
 }
 
-function setLocation(set: Set, uid: string, location: PossessionLocation): void {
-  set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, location } : p)) }));
-}
-
-/** Geste de LOCALISATION d'une possession (registre `PossessionsScreen`, hôte texte, invité). */
+/** Geste sur une possession (registre `PossessionsScreen`, hôte texte, invité) : sa localisation, ou la mise en
+ *  selle d'une bête (`monter`, `descendre`, #4804). */
 export type GesteDePossession =
   | { kind: 'laisser' }
   | { kind: 'reprendre' }
   | { kind: 'debarquer' }
   | { kind: 'abandonner' }
-  | { kind: 'embarquer'; hostUid: string };
+  | { kind: 'embarquer'; hostUid: string }
+  | { kind: 'monter' }
+  | { kind: 'descendre' };
 
-/** Tranche d'état que lit le verdict : le registre, le groupe (propriétaires) et le lieu courant. */
-export type EtatDesPossessions = Pick<Jeu, 'party' | 'possessions' | 'lieu'>;
+/** Tranche d'état que lit le verdict : le registre, le groupe (propriétaires), le lieu courant et la rencontre
+ *  engagée (`rencontreEngagee`). */
+export type EtatDesPossessions = Pick<Jeu, 'party' | 'possessions' | 'lieu' | 'battle' | 'serieSubie'>;
 
 const texteDEmbarquement = (child: Possession, host: Possession, r: RefusDEmbarquement): string =>
   r.motif === 'nature'
@@ -120,7 +124,24 @@ const REGLES: { [K in GesteDePossession['kind']]: RegleDeGeste<Extract<GesteDePo
     },
     autreBout: (_p, s, { hostUid }) => s.possessions.find((h) => h.uid === hostUid && !h.destroyed),
   },
+  monter: {
+    condition: (p, s) => {
+      if (rencontreEngagee(s)) return t('pos.batailleEnCours');
+      if (p.location.kind !== 'avec-le-groupe') return t('pos.pasAvecLeGroupe');
+      if (p.nature !== 'bete' || !possessionRideable(p)) return t('pos.pasMontable');
+      return accepteUnCavalier(profilDeLaBete(p), proprietaire(p, s)) ? null : t('pos.refuseLeCavalier');
+    },
+  },
+  descendre: {
+    condition: (p, s) => {
+      if (rencontreEngagee(s)) return t('pos.batailleEnCours');
+      return heroCombatMount(proprietaire(p, s), s.possessions)?.uid === p.uid ? null : t('pos.pasMontee');
+    },
+  },
 };
+
+/** Le héros propriétaire de `p`, que `refusDeDetention` a trouvé au groupe. */
+const proprietaire = (p: Possession, s: EtatDesPossessions): Combatant => s.party.find((h) => h.id === p.ownerId)!;
 
 /** La possession `chose` est-elle là où est le groupe ? Avec le groupe, au lieu courant, ou embarquée sur un
  *  hôte qui l'est lui-même. `null` = oui ; sinon la raison. Condition PARTAGÉE de tout geste qui déplace
@@ -139,7 +160,7 @@ function refusDAcces(s: EtatDesPossessions, chose: Possession | undefined, vus: 
 }
 
 /** Refus d'un geste de localisation sur la possession `uid` : la raison affichée, ou `null`. Verdict
- *  UNIQUE des cinq gestes ci-dessous et du registre `PossessionsScreen`. */
+ *  UNIQUE des gestes ci-dessous et du registre `PossessionsScreen`. */
 export function refusGestePossession(s: EtatDesPossessions, uid: string, geste: GesteDePossession): string | null {
   const p = s.possessions.find((x) => x.uid === uid);
   const regle = REGLES[geste.kind] as RegleDeGeste<GesteDePossession>;
@@ -167,33 +188,68 @@ export function ciblesDEmbarquement(s: EtatDesPossessions, uid: string): { cible
   return { cibles, refus };
 }
 
+/** Réécriture de chaque possession du registre, dérivée de l'état du geste accepté. */
+type Patch = (s: EtatDesPossessions) => (p: Possession) => Possession;
+
 /** Applique `geste` s'il n'est pas refusé — sinon le refus se DIT (`refuserGeste`). */
-function gesteDePossession(get: Get, set: Set, uid: string, geste: GesteDePossession, location: () => PossessionLocation): void {
+function gesteDePossession(get: Get, set: Set, uid: string, geste: GesteDePossession, patch: Patch): void {
   const refus = refusGestePossession(get(), uid, geste);
   if (refus) return void refuserGeste(get, set, refus);
-  setLocation(set, uid, location());
+  const ecrire = patch(get());
+  set((s) => ({ possessions: s.possessions.map(ecrire) }));
 }
+
+/** Patch qui pose `location` sur la possession `uid`. */
+const deplacer = (uid: string, location: (s: EtatDesPossessions) => PossessionLocation): Patch => (s) => {
+  const l = location(s);
+  return (p) => (p.uid === uid ? { ...p, location: l } : p);
+};
 
 /** Dépose la possession au lieu courant du groupe (auberge, écurie…). */
 export function remiserLaPossession(get: Get, set: Set, uid: string): void {
-  gesteDePossession(get, set, uid, { kind: 'laisser' }, () => ({ kind: 'au-lieu', placeId: get().lieu! }));
+  gesteDePossession(get, set, uid, { kind: 'laisser' }, deplacer(uid, (s) => ({ kind: 'au-lieu', placeId: s.lieu! })));
 }
 
 /** Reprend une possession déposée — elle voyage de nouveau avec le groupe. */
 export function recupererLaPossession(get: Get, set: Set, uid: string): void {
-  gesteDePossession(get, set, uid, { kind: 'reprendre' }, () => ({ kind: 'avec-le-groupe' }));
+  gesteDePossession(get, set, uid, { kind: 'reprendre' }, deplacer(uid, () => ({ kind: 'avec-le-groupe' })));
 }
 
 /** Embarque la possession sur un hôte (navire — `hostUid` d'une autre possession du registre) : nature ET
  *  capacité libre (`refusDEmbarquer`), hôte avec le groupe. */
 export function embarquer(get: Get, set: Set, uid: string, hostUid: string): void {
-  gesteDePossession(get, set, uid, { kind: 'embarquer', hostUid }, () => ({ kind: 'embarquee', hostUid }));
+  gesteDePossession(get, set, uid, { kind: 'embarquer', hostUid }, deplacer(uid, () => ({ kind: 'embarquee', hostUid })));
 }
 
 /** Débarque — la possession voyage de nouveau avec le groupe. */
 export function debarquer(get: Get, set: Set, uid: string): void {
-  gesteDePossession(get, set, uid, { kind: 'debarquer' }, () => ({ kind: 'avec-le-groupe' }));
+  gesteDePossession(get, set, uid, { kind: 'debarquer' }, deplacer(uid, () => ({ kind: 'avec-le-groupe' })));
 }
+
+/** Le propriétaire monte la bête `uid` hors combat : elle devient sa monture (`heroCombatMount`), toute autre bête qui
+ *  peut le porter, où qu'elle soit, reste sans cavalier (#4804, LDB 85 l.112). */
+export function monterLaBete(get: Get, set: Set, uid: string): void {
+  gesteDePossession(get, set, uid, { kind: 'monter' }, (s) => {
+    const p = s.possessions.find((x) => x.uid === uid)!;
+    const autres = new Set(betesQuiPeuventLePorter(proprietaire(p, s), s.possessions).map((b) => b.uid));
+    return (b) => {
+      if (b.nature !== 'bete') return b;
+      if (b.uid === uid) return sansLeDrapeau(b);
+      return autres.has(b.uid) ? { ...b, sansCavalier: true } : b;
+    };
+  });
+}
+
+/** Le propriétaire descend de sa monture `uid` hors combat : elle reste sans cavalier (#4804). */
+export function quitterLaSelle(get: Get, set: Set, uid: string): void {
+  gesteDePossession(get, set, uid, { kind: 'descendre' }, () => (b) =>
+    b.uid === uid && b.nature === 'bete' ? { ...b, sansCavalier: true } : b);
+}
+
+const sansLeDrapeau = (b: Possession & { nature: 'bete' }): Possession => {
+  const { sansCavalier: _retire, ...reste } = b;
+  return reste;
+};
 
 /** Abandon (§6, décision №4) — pose `destroyed`, la CONFIRMATION reste côté appelant/UI. */
 export function cederLaPossession(get: Get, set: Set, uid: string): void {
@@ -236,6 +292,8 @@ export function creerActionsDesPossessions(get: Get, set: Set) {
     recupererLaPossession: (possessionUid) => recupererLaPossession(get, set, possessionUid),
     embarquer: (possessionUid, hostUid) => embarquer(get, set, possessionUid, hostUid),
     debarquer: (possessionUid) => debarquer(get, set, possessionUid),
+    monterLaBete: (possessionUid) => monterLaBete(get, set, possessionUid),
+    quitterLaSelle: (possessionUid) => quitterLaSelle(get, set, possessionUid),
     cederLaPossession: (possessionUid) => cederLaPossession(get, set, possessionUid),
     apprendreLeTrait: (uid, traitId) => apprendreLeTrait(get, set, uid, traitId),
   } satisfies FabriqueDuNoyau;

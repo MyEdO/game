@@ -2522,6 +2522,10 @@ export const fr = {
   'pos.embarquerPasAvecLeGroupe': 'Cette possession doit être avec le groupe pour embarquer.',
   'pos.aucunNavire': 'Aucun navire du groupe ne peut l’accueillir.',
   'pos.calesPleines': 'Toutes les cales sont pleines.',
+  'pos.batailleEnCours': 'Impossible pendant une bataille.',
+  'pos.pasMontable': 'Cette possession ne peut pas être montée.',
+  'pos.refuseLeCavalier': 'Cette bête n’accepte pas ce cavalier.',
+  'pos.pasMontee': 'Personne ne monte cette bête.',
 
   // HORS COMMERCE (LDB 59 l.15) — une Possession dont la ligne du livre ne porte aucune des 4 classes
   // de Disponibilité n'entre dans aucun chemin de commerce ; le refus porte sa raison.
@@ -3204,7 +3208,7 @@ export const fr = {
   'tf.refusRouteAbsente': 'Cette route ne part pas d’ici.',
   'tf.refusSensUnique': 'Cette route ne se prend pas dans ce sens.',
   'tf.refusMode': 'Ce mode de voyage ne dessert pas cette route.',
-  'tf.refusMonture': 'Chaque héros doit avoir sa monture pour voyager en selle.',
+  'tf.refusMonture': 'Chaque héros doit être en selle pour voyager monté.',
   'tf.refusSansTarif': 'Aucun passage n’est proposé pour ce mode sur cette route.',
   'tf.passagePaye': 'Le groupe paie son passage : {cost} ({mode}).',
   'tf.billetPresente': 'Le groupe présente son billet ({mode}).',
