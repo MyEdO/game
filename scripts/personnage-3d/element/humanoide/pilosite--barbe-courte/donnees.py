@@ -73,6 +73,12 @@ BARBE = {
     # soit de -19,5 à -11,5 degrés et 18 degrés d'azimut depuis le centre ; illustration : la barbe remonte sous la lèvre
     # inférieure.
     'bouche': {'phi': 21.0, 'elevation': (-21.5, -12.0)},
+    # Coins de la bouche nus : un disque d'azimut et d'élévation (degrés). Tête : le coin, à x ±0,022, z 1,643, y -0,088,
+    # soit 17,8 et -13,4 degrés depuis le centre, est un pli d'arêtes de 0,6 mm ; sous le poil, le montage y donne à un
+    # sommet sur deux les poids du poil voisin, et l'arête s'écrase quand la tête penche (`etirement/arete-ecrasee`,
+    # `Sword_Regular_C` et `Sword_Regular_Combo`). adaptation : 1,2 degré, soit 1,5 mm autour du coin ; à 3 degrés, la
+    # bouche nue s'élargissait à vue.
+    'coin_de_la_bouche': {'phi': 17.8, 'elevation': -13.4, 'rayon': 1.2},
     'meches': {'graine': 'barbe-courte', 'profondeur': 2.0, 'creux': 0.35},   # degrés
     'pas_des_meches': 6.0,
 }

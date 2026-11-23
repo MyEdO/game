@@ -4,7 +4,7 @@ publiée sous un masque, décalée le long de sa normale lissée.
 - Le masque : les sommets de la peau dans la barbe (d'un favori à l'autre par le menton et le dessous du menton, la
   moustache comprise, les lèvres hors d'elle), chaque bord découpé en mèches ; une face de la peau est au poil si
   `SOMMETS_PAR_FACE` de ses sommets le sont. Une face dont un sommet est au creux d'une cavité (l'intérieur de la bouche)
-  reste nue.
+  ou au coin de la bouche (`coin_de_la_bouche`) reste nue.
 - L'épaisseur : `BORD` au bord du masque, puis `PENTE` par mètre d'éloignement du bord, bornée par le plafond de
   l'endroit (`PLAFOND` par élévation, `PART` par azimut), plus un grain ; la barbe se fond dans la peau à son pourtour,
   sans marche.
@@ -22,7 +22,9 @@ from tissu import lisser, table, voisinage
 def construire(D, materiaux, b):
     peau = peau_de_la_tete(D, b)
     poil, phi, e = barbe(D, b, peau[0])
-    gardes, X, faces, W, cles = au_poil(D, peau, poil, np.zeros(len(poil), bool))
+    coin = D['BARBE']['coin_de_la_bouche']
+    nu = (np.abs(phi) - coin['phi']) ** 2 + (e - coin['elevation']) ** 2 < coin['rayon'] ** 2
+    gardes, X, faces, W, cles = au_poil(D, peau, poil, nu)
     phi, e = phi[gardes], e[gardes]
     N = lisser(normales_de(X, faces), voisinage(faces, len(X)), D['LISSAGE_DES_NORMALES'])
     N /= np.linalg.norm(N, axis=1, keepdims=True)
