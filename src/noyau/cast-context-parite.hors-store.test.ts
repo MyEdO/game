@@ -38,7 +38,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     M.fortune = 3; // de quoi relancer
     banc.setState({
       battle: { ...banc.getState().battle! },
-      pendingCast: { casterId: M.id, targetId: M.id, spellId: SPELL, missile: false, focused: false, result: null },
+      pendingCast: { casterId: M.id, targetId: M.id, spellId: SPELL, missile: false, result: null },
     });
     return M;
   }

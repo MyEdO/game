@@ -8,7 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * des transitions #4649, #4574, #4674, #4435, #4530 et #4804 ainsi que la forme précédant les références de création (#3917). Une save
+ * des transitions #4649, #4574, #4674, #4435, #4530, #4804 et #865 ainsi que la forme précédant les références de création (#3917). Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -143,8 +143,15 @@ const TRANSITION_DU_CAVALIER = {
   avant: 'e5850d7c5e152ce4',
   apres: '996aa25cd3e782c4',
 };
-const FORMAT_AVANT_LE_CAVALIER = FORMAT_SAVE === TRANSITION_DU_CAVALIER.apres
-  ? TRANSITION_DU_CAVALIER.avant : FORMAT_SAVE;
+/** #865 : `pendingCast` perd `focused`, que la réserve de Focalisation du lanceur (`focus`) porte déjà. */
+const TRANSITION_DE_LA_RESERVE_DE_FOCALISATION = {
+  avant: TRANSITION_DU_CAVALIER.apres,
+  apres: '8d8700ecc4bfb8b0',
+};
+const FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION = FORMAT_SAVE === TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.apres
+  ? TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LE_CAVALIER = FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION === TRANSITION_DU_CAVALIER.apres
+  ? TRANSITION_DU_CAVALIER.avant : FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION;
 const FORMAT_AVANT_LE_MENEUR_CHOISI = FORMAT_AVANT_LE_CAVALIER === TRANSITION_DU_MENEUR_CHOISI.apres
   ? TRANSITION_DU_MENEUR_CHOISI.avant : FORMAT_AVANT_LE_CAVALIER;
 const FORMAT_AVANT_L_AMARRAGE = FORMAT_AVANT_LE_MENEUR_CHOISI === TRANSITION_DE_L_AMARRAGE.apres
@@ -162,8 +169,8 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LE_CAVALIER || version === FORMAT_AVANT_LE_MENEUR_CHOISI
-      || version === FORMAT_AVANT_L_AMARRAGE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION || version === FORMAT_AVANT_LE_CAVALIER
+      || version === FORMAT_AVANT_LE_MENEUR_CHOISI || version === FORMAT_AVANT_L_AMARRAGE
       || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
       || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
       || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
@@ -196,8 +203,8 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (parsed.version !== FORMAT_AVANT_LE_CAVALIER && parsed.version !== FORMAT_AVANT_LE_MENEUR_CHOISI
-        && parsed.version !== FORMAT_AVANT_L_AMARRAGE
+    } else if (parsed.version !== FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION && parsed.version !== FORMAT_AVANT_LE_CAVALIER
+        && parsed.version !== FORMAT_AVANT_LE_MENEUR_CHOISI && parsed.version !== FORMAT_AVANT_L_AMARRAGE
         && parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
         && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
       migrerLaSaveAvantLesDeuxCouleurs(parsed.data);

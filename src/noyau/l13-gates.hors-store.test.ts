@@ -163,7 +163,7 @@ describe('L13 — gates & redirections', () => {
       cast: true, roll: 30, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lance Attaques en chaîne',
       hit: true, woundsLost: 5, damage: 10, location: 'corps', defenderDefeated: false,
     };
-    applyCast(banc.getState, banc.setState, hero, [E1], findSpellById('attaques-en-chaine')!, res, true, false);
+    applyCast(banc.getState, banc.setState, hero, [E1], findSpellById('attaques-en-chaine')!, res, true);
     const log = banc.getState().battle!.log.map((e) => e.text).join('\n');
     expect(E1.wounds.current).toBe(0);
     expect(log).toMatch(/rebondit sur/);

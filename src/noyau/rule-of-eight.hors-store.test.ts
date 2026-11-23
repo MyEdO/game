@@ -19,7 +19,7 @@ function castFrozen(casterId: string, spellId: string, roll: number, corruption:
   const result: CastResult = { cast: true, roll, target: 60, sl: 2, isCritical: false, isFumble: false, log: `${spell.label} lancé.` };
   banc.setState({
     ...(corruption ? { flags: { corruption: true } } : { flags: {} }),
-    pendingCast: { casterId, targetId: casterId, spellId: spell.id, missile: !!spell.missile, focused: false, result },
+    pendingCast: { casterId, targetId: casterId, spellId: spell.id, missile: !!spell.missile, result },
   });
   banc.getState().jetValider('incantation');
 }

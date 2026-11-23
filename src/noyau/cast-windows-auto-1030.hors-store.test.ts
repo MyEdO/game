@@ -215,7 +215,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     banc.setState({
       pendingCounterspell: null, pendingCastOpposition: null,
       pendingCast: {
-        casterId: H.id, targetId: target.id, spellId: 'parole-de-tzeentch', missile: false, focused: false,
+        casterId: H.id, targetId: target.id, spellId: 'parole-de-tzeentch', missile: false,
         counterspellRouted: true, // le moment de la Dissipation est passé (aucun candidat)
         result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'x' },
       },
@@ -336,7 +336,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     const E2 = b.combatants.find((c) => c.kind === 'ennemi')!;
     banc.setState({
       pendingCast: {
-        casterId: H2.id, targetId: E2.id, spellId: 'flechette', missile: true, focused: false, counterspellRouted: true,
+        casterId: H2.id, targetId: E2.id, spellId: 'flechette', missile: true, counterspellRouted: true,
         result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'x' },
       },
     } as unknown as Partial<Jeu>);

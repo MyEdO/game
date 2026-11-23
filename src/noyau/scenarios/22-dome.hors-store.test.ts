@@ -44,7 +44,7 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   // « Cible » et la confie aux ops. Rien n'est recopié ici, ni zone ni Indice.
   const dome = findSpellById('dome')!;
   const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-  applyCast(banc.getState, banc.setState, sorciere, [sorciere], dome as never, ok, false, false);
+  applyCast(banc.getState, banc.setState, sorciere, [sorciere], dome as never, ok, false);
   return { sorciere, protegee, archer: enemies[0], orc: enemies[1] };
 }
 

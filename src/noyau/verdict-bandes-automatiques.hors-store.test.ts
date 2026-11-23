@@ -63,7 +63,7 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
     const [h] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
     banc.setState({
       party: [h], battle: { combatants: [h], log: [] } as never,
-      pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
     } as never);
     expect(FLOWS.incantation.outcomeOf(get)?.won).toBe(false);
   });

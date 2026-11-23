@@ -66,7 +66,7 @@ function freeze(caster: Combatant, target: Combatant, result: Record<string, unk
   banc.setState({
     pendingCounterspell: null,
     pendingCast: {
-      casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true, focused: false,
+      casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true,
       result, ...extra,
     },
   } as unknown as Partial<Jeu>);

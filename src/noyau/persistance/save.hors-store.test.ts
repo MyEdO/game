@@ -111,7 +111,7 @@ describe('lireSave — format courant', () => {
     onTestFinished(() => migrerLesCouleurs.mockRestore());
 
     const lue = lireSave(ancienne);
-    if (courante.version !== '996aa25cd3e782c4') return void expect(lue).toBe('autreFormat');
+    if (courante.version !== '8d8700ecc4bfb8b0') return void expect(lue).toBe('autreFormat');
     expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
@@ -127,9 +127,19 @@ describe('lireSave — format courant', () => {
     const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
     onTestFinished(() => migrerLesCouleurs.mockRestore());
     const relue = lireSave(exporterLaSauvegarde({ ...courante, version: 'e5850d7c5e152ce4' }));
-    expect(relue).toEqual(courante.version === '996aa25cd3e782c4' ? courante : 'autreFormat');
+    expect(relue).toEqual(courante.version === '8d8700ecc4bfb8b0' ? courante : 'autreFormat');
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
     if (typeof relue !== 'string') expect(heroCombatMount(h, relue.data.possessions)?.uid).toBe('pos-1');
+  });
+
+  it('lit une save d’avant la réserve de Focalisation, sans la migration des couleurs (#865)', () => {
+    const courante = snapshotSave(etatInitialDuJeu(), '2026-11-23T06:30:00.000Z');
+    const ancienne = { ...courante, version: '996aa25cd3e782c4' };
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(courante.version === '8d8700ecc4bfb8b0' ? courante : 'autreFormat');
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {

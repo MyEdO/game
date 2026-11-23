@@ -366,7 +366,7 @@ describe('câblage — resolveCasting / castLandProbability / resolveFocus lisen
 
   it('resolveCasting : +1 DR sur le MÊME jet dans une zone Élevée dominée par Aqshy', () => {
     const sansLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire');
-    const avecLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire', false, 0, {}, {}, lieu);
+    const avecLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire', 0, {}, {}, lieu);
     expect(avecLieu.roll).toBe(sansLieu.roll);
     expect(avecLieu.sl - sansLieu.sl).toBe(1);
   });
@@ -374,13 +374,13 @@ describe('câblage — resolveCasting / castLandProbability / resolveFocus lisen
   it('resolveCasting : l’option DÉSACTIVÉE rend le contexte de lieu inopérant (non-régression)', () => {
     resetRule(RULE);
     const sansLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire');
-    const avecLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire', false, 0, {}, {}, lieu);
+    const avecLieu = resolveCasting(mk(), feu, makeRNG(7), 'intermediaire', 0, {}, {}, lieu);
     expect(avecLieu.sl).toBe(sansLieu.sl);
   });
 
   it('castLandProbability reste le MIROIR de resolveCasting : elle lit le même lieu', () => {
     const spellNI = { ...feu, cn: 2 };
-    expect(castLandProbability(mk(), spellNI, false, {}, lieu)).toBeGreaterThan(castLandProbability(mk(), spellNI, false, {}));
+    expect(castLandProbability(mk(), spellNI, {}, lieu)).toBeGreaterThan(castLandProbability(mk(), spellNI, {}));
   });
 
   it('resolveFocus : le lieu entre dans le DR de Focalisation', () => {
