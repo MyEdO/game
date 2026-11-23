@@ -182,7 +182,6 @@
 .argent b{height:46px;line-height:46px;font-size:30px;color:#3a1a10}
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}
 .vaincus .rub,.lignes-b .rub{margin-bottom:3px}
-.vaincus .v{display:flex;align-items:center;justify-content:space-between;height:28px;font-size:14.5px;color:#2a1d12}
 #jet .vaincus .options .plaque{min-width:0}
 .ligne-b{display:flex;align-items:center;gap:9px;height:28px;font-size:14.5px;color:#2a1d12;border-bottom:1px solid rgba(60,40,20,.25)}
 .ligne-b span{flex:1}

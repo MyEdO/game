@@ -66,7 +66,7 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
    `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne ; son corps défile
    sous le cartouche (`liste` : une liste longue par nature, `defile`), ses gestes (`pied`) au pied */
 const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', liste = false, pied = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois" data-primitive="hote"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois" data-emplacement="contenu">
-  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps ? defile(corps, '', { liste }) : ''}${pied}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
+  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps ? defile(corps, '', { liste, cle: id }) : ''}${pied}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 /* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient,
    sur sa grille (`colonne`) : les services en plein, qui défilent, `pied` en note sous eux, quel qu'en soit le nombre ;
    `suite` : ce qui suit la note dans le même panneau, à sa place */

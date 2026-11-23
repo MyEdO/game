@@ -1,14 +1,7 @@
 /* Hors partie et outils (#4411) : les pièces propres à la coop, à l'éditeur et au Compendium, posées par `rendu.js`
-   et placées par `rendu.css` (la ligne de liste, la tablée du salon, le volet à onglets, la barre, la palette,
+   et placées par `rendu.css` (la tablée du salon, le volet à onglets, la barre, la palette,
    l'inspecteur ; la barre, la liste, la fiche, l'atelier et l'Index du Compendium). */
 
-/* ligne de liste (sur bois) */
-.ligne{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:2px;font-size:14.5px;color:#f0e2c2;white-space:nowrap}
-.ligne span{overflow:hidden;text-overflow:ellipsis}
-.ligne em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--creme-2)}
-.ligne.la{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),0 0 10px rgba(255,214,140,.35)}
-.ligne.la em{color:#3a2a12}
-.ligne+.ligne{margin-top:3px}
 
 /* ───────── la coop ───────── */
 .feuillet-coop .fond{padding:34px 24px 22px;display:flex;flex-direction:column;gap:16px}
@@ -37,9 +30,6 @@
 #invitation .fond{padding:30px 18px 18px;display:flex;flex-direction:column;gap:14px}
 #invitation .code{height:84px;display:grid;place-items:center;font-size:44px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
 #invitation .rub{margin-top:4px}
-#invitation .joueur{display:flex;align-items:center;gap:10px;height:34px;font-size:16px;color:#f0e2c2;white-space:nowrap}
-#invitation .joueur.absent{color:#f0c8b4;font-style:italic}
-#invitation .joueur>.losange{margin:0 6px}
 #invitation .plaque{flex:none}
 #attribution .fond{padding:34px 20px 18px}
 #attribution .rang{display:grid;grid-template-columns:50px 1fr auto;align-items:center;column-gap:12px;padding:9px 0;border-bottom:1px solid rgba(60,40,20,.28)}
@@ -67,7 +57,6 @@
 #volets .onglets{position:absolute;left:10px;right:10px;top:-8px;display:flex;justify-content:center;gap:4px}
 #volets .gestes{display:flex;flex-direction:column;gap:6px}
 #volets .gestes .plaque{flex:none}
-#volets .ligne{height:auto;min-height:32px;padding:5px 10px;box-sizing:border-box;white-space:normal;line-height:18px;font-size:14px}
 .outils{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .outils .o{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.18)}
 .outils .o span{font-family:"Fell SC";font-size:10.5px;letter-spacing:.5px;color:#e6dabd;white-space:nowrap}
@@ -92,8 +81,6 @@
 #inspecteur .pas-a-pas b{min-width:0;font-size:11.5px;letter-spacing:.3px}
 #inspecteur .rub:not(.libelle-valeur>.rub){margin:0;padding:11px 0 4px}
 #inspecteur .place>.rub:first-child{padding-top:0}
-.renvoi{display:flex;align-items:center;gap:8px;height:32px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12;white-space:nowrap}
-.renvoi svg:last-child{margin-left:auto}
 #inspecteur .champ>b{height:34px;font-size:15.5px}
 #inspecteur .plan-du-lieu{height:74px;margin:0;display:grid;place-items:center;text-align:center;padding:0 16px;font-style:italic;font-size:13px;line-height:17px;color:#4a3420;border:1px dashed rgba(60,40,20,.55);border-radius:2px}
 #inspecteur .geste{padding-top:7px}
@@ -104,9 +91,6 @@
 .facettes{display:flex;flex-wrap:wrap;gap:6px}
 
 .outils .o span{white-space:normal;text-align:center;line-height:11px;max-width:74px}
-#routes .ligne{height:44px;font-size:13px}
-#routes .ligne span{line-height:16px}
-#routes .ligne span small{display:block;font-family:"Chiffres";font-size:10.5px;color:var(--creme-2)}
 .valide{display:flex;gap:7px;align-items:flex-start;font-size:12px;line-height:15.5px;color:#2f4416}
 .valide svg{flex:none;margin-top:1px}
 
@@ -130,10 +114,6 @@
 .livres>span{font-size:12.5px;color:var(--creme-2)}
 .corps-de-liste{flex:1;min-height:0;display:flex}
 .corps-de-liste .defile{flex:1}
-.rangee{display:flex;align-items:baseline;height:23px;line-height:23px;padding:0 8px 0 12px;font-size:14.5px;color:#f0e2c2;white-space:nowrap;border-bottom:1px solid rgba(226,192,106,.12)}
-.rangee em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
-.rangee.pointee{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;font-weight:600}
-.rangee.pointee em{color:#3a2a12}
 .groupe{display:flex;align-items:center;height:23px;padding:0 8px 0 12px;background:rgba(0,0,0,.35)}
 .groupe em{margin-left:auto;font-style:normal;font-size:11px;color:var(--creme-2)}
 .rail{flex:none;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:4px 0 8px;font-size:10.5px;color:var(--creme-2)}
@@ -159,13 +139,11 @@
 .onglets-comptes b.la{color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre))}
 .renvois>.rub{margin:10px 0 0;white-space:normal}
 .renvois>.defile{flex:1;min-height:0;margin-top:8px}
-.nom-renvoi{display:flex;align-items:baseline;gap:4px;height:26px;line-height:26px;font-size:14px;white-space:nowrap;border-bottom:1px solid rgba(60,40,20,.18);overflow:hidden}
-.nom-renvoi .lien{border-bottom:none;overflow:hidden;text-overflow:ellipsis}
-.nom-renvoi em{margin-left:auto;flex:none;font-style:normal;font-size:10.5px;color:#5a4530}
-.nom-renvoi.survol .lien{color:#8a1c0b;font-weight:600}
-/* l'aperçu du renvoi survolé : à gauche de la colonne, sa pointe sur la ligne (rangées de 26 px depuis le haut de la
+.noms .lien{border-bottom:none}
+.noms .lien.survol{color:#8a1c0b;font-weight:600}
+/* l'aperçu du renvoi survolé : à gauche de la colonne, sa pointe sur la ligne (rangées de 28 px depuis le haut de la
    colonne qui défile) */
-#fiche-du-compendium .apercu{right:334px;top:calc(101px + var(--rang) * 26px);--pointe:42px;z-index:3}
+#fiche-du-compendium .apercu{right:334px;top:calc(101px + var(--rang) * 28px);--pointe:42px;z-index:3}
 #fiche-du-compendium .apercu p{margin:6px 0 0}
 #fiche-du-compendium .apercu .source-du-renvoi{margin-top:6px;font-size:12px;color:#6b1c10}
 /* l'atelier : les champs par paires, la description sur la hauteur qui reste, les champs absents ; le pied */
@@ -191,7 +169,6 @@
 .tete-d-index .champ>b{height:34px;font-size:15px}
 .tete-d-index>.rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
 #index-du-compendium .familles{position:absolute;left:14px;top:64px;width:220px}
-#index-du-compendium .familles .ligne{height:40px;font-size:18px}
 #index-du-compendium .categories{position:absolute;left:256px;right:18px;top:64px;bottom:12px;columns:3;column-gap:24px}
 .ligne-d-index{display:flex;align-items:baseline;gap:8px;padding:1px 0 2px;font-size:13px;line-height:15px;color:#f0e2c2;border-bottom:1px solid rgba(226,192,106,.14);break-inside:avoid}
 .ligne-d-index em{margin-left:auto;flex:none;font-style:normal;font-size:11px;color:var(--creme-2)}

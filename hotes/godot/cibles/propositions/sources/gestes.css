@@ -335,6 +335,32 @@ tr.libelle-valeur>td.valeur.nombre{font-family:"Chiffres",sans-serif;font-weight
 /* la puce : le losange plein de 7, la coche ; de la teinte du texte */
 .losange{flex:none;width:7px;height:7px;transform:rotate(45deg);background:currentColor}
 .coche{flex:none;display:flex}
+/* la ligne de liste : 28 de haut, 34 avec une plaque, 44 avec sa précision dessous ou son nom sur deux lignes (`plier`) ; Fell 15, marge 0 8, filet dessous ; choisie, bordure de
+   laiton sur un fond clair ; refusée, pâlie */
+.ligne-de-liste{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:2px solid transparent;border-bottom:1px solid var(--filet-encre);font-family:"Fell",serif;font-size:15px;color:var(--encre);white-space:nowrap;min-width:0}
+:where(.bois) .ligne-de-liste{border-bottom-color:var(--filet-creme);color:var(--ivoire)}
+:where(.bois .parchemin) .ligne-de-liste{border-bottom-color:var(--filet-encre);color:var(--encre)}
+.ligne-de-liste:is(.a-precision,.a-deux-lignes){height:44px}
+/* une ligne qui porte une plaque : la plaque à 3 du filet, deux plaques voisines à 6 */
+.ligne-de-liste:has(>.plaque):not(.a-precision,.a-deux-lignes){height:34px}
+.ligne-de-liste.a-deux-lignes>.n{white-space:normal;line-height:19px}
+.ligne-de-liste>.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ligne-de-liste.a-precision>.n{display:flex;flex-direction:column;line-height:19px}
+.ligne-de-liste>.n small{font-size:13px;color:var(--encre-2)}
+:where(.bois) .ligne-de-liste>.n small{color:var(--creme-2)}
+:where(.bois .parchemin) .ligne-de-liste>.n small{color:var(--encre-2)}
+.ligne-de-liste>.n>.precision{font-family:"Spectral",serif;font-style:italic;font-size:12.5px;line-height:16px;overflow:hidden;text-overflow:ellipsis}
+.ligne-de-liste>.losange{margin:0 4px}
+.ligne-de-liste>svg{flex:none}
+.ligne-de-liste>em.chiffres{flex:none;font-style:normal;font-size:11.5px;color:var(--encre-2)}
+:where(.bois) .ligne-de-liste>em.chiffres{color:var(--creme-2)}
+:where(.bois .parchemin) .ligne-de-liste>em.chiffres{color:var(--encre-2)}
+.ligne-de-liste.choisie>em.chiffres{color:var(--encre-2)}
+.ligne-de-liste.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou);color:var(--encre)}
+.ligne-de-liste.choisie>.n small{color:var(--encre-2)}
+.ligne-de-liste.refusee{color:rgba(42,29,18,.42)}
+:where(.bois) .ligne-de-liste.refusee{color:rgba(243,230,198,.42)}
+.ligne-de-liste.refusee :is(.etiquette,svg){opacity:.45}
 /* le séparateur ne fait pas de boîte : son texte se lit avec celui qu'il sépare, dans une rangée flexible comme ailleurs */
 .separateur{display:contents}
 /* un choix parmi quelques valeurs : sur parchemin ou sur bois */

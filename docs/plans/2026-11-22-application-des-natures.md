@@ -31,7 +31,8 @@ Ce document porte l'application des natures d'interface aux maquettes. Il sert d
 | jauge | `rangDePas({ pleins, total, taille, teinte, forme })` : losanges écart 8, `petit` 11, `cire` ; forme `clous` | `cc4f7cfeb` | passe 0 rouge ; voir la preuve du lot 3 |
 | plaque | `plaque(libelle, { taille })` : `petite` 13, `moyenne` 15, `appel` 18, `geste` ; un nombre seul dans `prix` ; outil au kit ; `medaillon({ vise })` | `cfff50879` | idem |
 | bulle | `raison(texte, { survolee })` : une ligne jusqu'à 320, puis à la ligne ; corps de l'`apercu` au kit ; `reserves` au kit, `compteur` supprimé ; 0 `title=` | `8e63cbab7` | idem |
-| ligne libellé-valeur | `ligne({ libelle, valeur, variante, format, dessous, etat, cle })`, `.libelle-valeur` (`courante`, `empilee`, `mesure`, `tabulaire`) | lot 4a | voir la preuve du lot 4a |
+| ligne libellé-valeur | `ligne({ libelle, valeur, variante, format, dessous, etat, cle })`, `.libelle-valeur` (`courante`, `empilee`, `mesure`, `tabulaire`) | `40eecddad` | voir la preuve du lot 4a |
+| ligne de liste | `ligneDeListe({ puce, marque, nom, precision, fin, choisie, refusee, cle })`, `.ligne-de-liste` : 28, 34 avec une plaque, 44 avec sa précision ou son nom sur deux lignes | lot 4b | voir la preuve du lot 4b |
 
 Teintes d'étiquette hors des quatre prévues, choisies sans question (révisables, un argument chacune) :
 - `pill.fermee`, `palier.ferme` et `attend.autre` → `fer` ;
@@ -42,20 +43,15 @@ Le cartouche ouvert de la fiche du héros prend le cran `grand` du cartouche (22
 
 ## Reste, dans l'ordre
 
-1. **Lot 4b** : `ligneDeListe` (28 px, 44 avec une précision dessous ; puce losange ou coche). Elle se compose des primitives déjà posées et passe donc en dernier.
-2. **Nettoyage des groupes `textes` et `listes-et-noms`**, une fois leurs natures posées (le groupe `pieces-et-jauges` est nettoyé) :
-   - `sources/kit/proposition-<groupe>.js` et son CSS local partent ;
-   - la planche montre les primitives et sa feuille passe dans `kit/planche.js`, sans contournement de `data-etat` ;
-   - `kit.md` (catalogue et § 2) dit l'état après le lot ;
-   - les citations `fichier:ligne` se recalent.
-3. **Hors des natures**, à lister en tête de la page de jugement ou à donner à un lot :
+1. **Hors des natures**, à lister en tête de la page de jugement ou à donner à un lot :
    - chiffres en gothique (sceaux, disques, seuils : 538 sites) ;
    - mot d'issue et verdict ;
-   - cartes de choix ; saisie ; prose ;
+   - cartes de choix, y compris en liste ; saisie ; prose (`p.prose`, `p.prose.pied`) ;
    - `regleMaison` et `pref` des options ;
    - `.carac`, `.case-bourse` ;
-   - sous-titres de `bataille-de-masse-issue` (même émission que l'état sans issue).
-4. Étapes 4 à 6 du plan (tables, dictionnaire, gardes finales) : 0 px, rien de visible.
+   - sous-titres de `bataille-de-masse-issue` (même émission que l'état sans issue) ;
+   - lignes qui ne sont pas des lignes de liste : la case à cocher de la séance (chapitre, fin de séance), la ligne de l'Index du Compendium (`ligneDIndex`, nom et compte en colonnes), la couche du bivouac, la ligne du butin (`.ligne-b`), l'objet du partage, la ligne du jet de nuit (`.nuit-jouera`), la pastille posée sur une entité du combat.
+2. Étapes 4 à 6 du plan (tables, dictionnaire, gardes finales) : 0 px, rien de visible.
 
 ## Méthode d'un lot de nature
 
@@ -118,6 +114,23 @@ Choix du lot 4a, révisables :
 - le libellé d'un acquis de la création passe à la ligne au séparateur, son étiquette de PX avec lui ; le physique est en lignes `empilee` ;
 - la rangée de total d'un compte devient `somme` (filet au-dessus, gras) ; la valeur en chiffres d'une rangée a 20 d'interligne, pour que la rangée garde 24 ;
 - l'entrée d'une rangée ne passe jamais à la ligne ; seule la valeur des aperçus (sort, Scène, poste) et de l'enjeu le peut.
+
+Preuve du lot 4b (ligne de liste), contre le rendu de `40eecddad` :
+- passe : 57 écrans, 170 états, 8 planches, 0 rouge ;
+- pixels : 41 états changés, aucun hors attendu, aucun relevé neuf dans les quatre formats ; l'attendu compte 46 états. Les trois états du bord et de la bataille de masse, changés hors attendu à la première comparaison, y sont ajoutés : leur ligne « Ce que … jouera » est entrée dans la liste pendant le lot. Huit états attendus restent inchangés : les sept dont les lignes restent hors de la liste (butin, chapitre, fin de séance, nuits) et `creation-competences-de-race`, dont les lignes avaient déjà la forme ;
+- trois relevés neufs de la première comparaison sont repris : deux plaques voisines se touchaient (dépense, `bureau`), la prothèse débordait sa fiche de 1 px (`bureau`), le lot d'un porteur collait à sa mesure (port) ;
+- le relevé `contenu` comparait deux hôtes différents rangés au même rang (le constructeur du chantier et le porteur du négoce) : le défilement d'un hôte porte son id (`defile({ cle })`, `data-cle`), sa clé au relevé. Deux ensembles d'écarts arrondis ne diffèrent plus que par une valeur sans voisine à 1 près (`contenus.mjs`) : un écart de 6,5 px en `bureau` comptait pour 6 et pour 7 ;
+- écart de style relu : 151 signatures, toutes sur les sites de la liste ;
+- typecheck, `oxlint`, `docs:check` et `test:perimetre` au vert.
+
+Choix du lot 4b, révisables :
+- un nom qui ne tient pas sur sa ligne passe sur deux, et la ligne prend 44 (`plier`, au kit, comme `ranger` pour les cartes) : aucun nom ne se coupe ;
+- une ligne qui porte une plaque a 34 de haut : la plaque `petite` (28) remplit sinon la ligne, et deux plaques voisines se touchent (dépense d'expérience) ;
+- la fiche du héros range la possession ouverte sur 340 de large au lieu de 300, et ses blocs à 4 l'un de l'autre au lieu de 5 : les options d'un composant tiennent, et la prothèse tient en `bureau` ;
+- au bord, la ligne de « Ce que la journée jouera » passe qui la joue et sa compétence en précision ; la bataille de masse garde qui joue en fin de ligne, où la précision masquait ;
+- la liste d'un hôte du commerce pose sa première ligne à 8 du haut du corps, et le lot d'un porteur à 7 de sa mesure, comme les lignes de l'hôte entre elles ;
+- sur un parchemin posé sur du bois, la précision et le compte en chiffres d'une ligne reprennent `--encre-2` ;
+- restent hors de la liste (voir « Reste ») : la case à cocher de la séance, la ligne de l'Index du Compendium, la couche du bivouac, la ligne du butin, l'objet du partage et la ligne du jet de nuit. Une case à cocher n'est pas une ligne qu'on choisit, et ces lignes se rompaient dans leurs colonnes étroites.
 
 ## Outils
 

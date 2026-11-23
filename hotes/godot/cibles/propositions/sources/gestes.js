@@ -377,6 +377,11 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const etiquette = ({ texte, variante = 'rectangle', teinte = '', valeur = null }) => `<span class="etiquette ${variante}${teinte ? ` ${teinte}` : ''}" data-primitive="etiquette">${texte}${valeur == null ? '' : `<em>${valeur}</em>`}</span>`;
   /* la puce d'une ligne, de la teinte de son texte : `losange`, ou `coche` (la ligne choisie) */
   const puce = (forme) => (forme === 'coche' ? `<i class="coche" data-primitive="puce">${picto('coche', 15, undefined, 2)}</i>` : '<i class="losange" data-primitive="puce"></i>');
+  /* la ligne d'une liste, 28 de haut : sa `puce` (`losange`, `coche`) ou sa `marque` (un emplacement : pictogramme,
+     portrait, sceau, case) devant le nom ; sa `precision`, sous le nom, la porte à 44 ; `fin` (un emplacement : chiffres,
+     étiquette, plaques, raison) au bout ; `choisie` : bordure de laiton ; `refusee` : pâlie ; `cle` : le rôle du nom au
+     relevé */
+  const ligneDeListe = ({ puce: forme = '', marque = '', nom, precision = '', fin = '', choisie = false, refusee = false, cle = '' }) => `<div class="ligne-de-liste${precision ? ' a-precision' : ''}${choisie ? ' choisie' : ''}${refusee ? ' refusee' : ''}" data-primitive="ligneDeListe">${forme ? puce(forme) : ''}${marque}<span class="n"${cle ? ` data-texte="${cle}"` : ''}>${precision ? `<span>${nom}</span><small class="precision">${precision}</small>` : nom}</span>${fin}</div>`;
   /* entre deux textes d'une même ligne : `median`, le point médian entre deux espaces, où la ligne peut se couper */
   const separateur = (forme) => `<span class="separateur ${forme}" data-primitive="separateur"> · </span>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
@@ -395,8 +400,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
      par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
      sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied ;
-     `liste` : une liste longue par nature (`data-defile="liste"`), la seule que le relevé `masque` laisse déborder */
-  const defile = (contenu, classe = '', { liste = false } = {}) => `<div class="defile ${classe}" data-primitive="defile" data-emplacement="contenu" data-defile${liste ? '="liste"' : ''}>${contenu}</div>`;
+     `liste` : une liste longue par nature (`data-defile="liste"`), la seule que le relevé `masque` laisse déborder ; `cle` : l'id
+     stable de ce qu'il porte, sa clé au relevé `contenu` */
+  const defile = (contenu, classe = '', { liste = false, cle = '' } = {}) => `<div class="defile ${classe}" data-primitive="defile" data-emplacement="contenu" data-defile${liste ? '="liste"' : ''}${cle ? ` data-cle="${cle}"` : ''}>${contenu}</div>`;
   const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
     const action = [...d.querySelectorAll('.plaque.armee, .en-cours')].at(-1);
     if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
@@ -414,11 +420,16 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     folio.querySelector('b').textContent = `Page 1 sur ${n}`;
     folio.hidden = n < 2;
   });
-  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, pose les bulles,
-     annonce les suites et les pages ; passe le grain */
+  /* une ligne de liste dont le nom ne tient pas sur une ligne le passe sur deux, à 44 de haut */
+  const plier = () => document.querySelectorAll('.ligne-de-liste:not(.a-precision)').forEach((l) => {
+    const n = l.querySelector(':scope>.n');
+    l.classList.toggle('a-deux-lignes', n.scrollWidth > n.clientWidth);
+  });
+  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, plie les lignes
+     trop longues, pose les bulles, annonce les suites et les pages ; passe le grain */
   const monter = (pieces) => {
     document.getElementById('ui').innerHTML = pieces.join('');
-    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); suites(); paginer(); });
+    document.fonts.ready.then(() => { ranger(); degager(); plier(); poserLesBulles(); suites(); paginer(); });
     document.getElementById('grain').style.backgroundImage = svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`);
   };
 
@@ -457,6 +468,6 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   Object.assign(globalThis, {
     W, H, alea, melange,
     PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, reserves, sceau, d10, ruban, cadre, clouer, cartouche, titre, nom, sousTitre, rubrique, ligne, glose, etiquette, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
-    puce, separateur, filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
+    puce, ligneDeListe, separateur, filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

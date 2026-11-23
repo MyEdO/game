@@ -11,10 +11,11 @@
 
 /* un porteur : sa ligne d'Encombrement */
 .offre div.libelle-valeur{margin-top:7px}
+/* la liste d'un hôte (les Améliorations du constructeur) : sa première ligne à 8 du haut du corps */
+.offre .defile>.ligne-de-liste:first-child{margin-top:8px}
+/* le lot d'un porteur, à 7 de sa mesure comme les lignes entre elles */
+.offre .defile>div.libelle-valeur+.ligne-de-liste{margin-top:7px}
 .offre .jauge{margin-top:5px}
-.lot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:5px 8px;border-radius:2px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(226,192,106,.22);font-size:13px;color:#f4e8ca;white-space:nowrap}
-.lot span:last-child{margin-left:auto;font-weight:600}
-.lot.pris{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.85)}
 
 /* la page du chargement et du lot, sur parchemin */
 #page .tete{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
@@ -32,7 +33,6 @@
 .quantite .val{flex:none;width:86px;text-align:right;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;white-space:nowrap}
 .quantite .bornes{display:flex;justify-content:space-between;font-size:11px;color:#5a4530;margin-top:1px}
 .voies{display:flex;flex-direction:column;gap:7px}
-.voies .soin{margin-top:0}
 /* le détail d'une ligne de compte, en chiffres après son libellé */
 :is(.compte,.faits) td:first-child>span{font-size:11.5px;color:#5a4530;margin-left:6px}
 
@@ -76,21 +76,15 @@
 
 /* les pages du port : lignes à choisir ou à régler, travaux du chantier */
 #page .lignes{display:flex;flex-direction:column}
-.ligne{display:grid;grid-template-columns:auto 1fr 84px 96px;align-items:center;column-gap:10px;height:27px;padding:0 8px;border-top:1px solid rgba(60,40,20,.28);font-size:13.5px;color:#2a1d12;white-space:nowrap}
-.ligne .c{font-size:12px;color:#5a4530}
-.ligne .px{text-align:right;font-weight:600}
-.ligne .n{text-align:right;font-weight:600}
-.ligne .moins-plus{justify-content:flex-end}
-.ligne .moins-plus b{min-width:34px;text-align:center;font-family:"Chiffres";font-size:13.5px;letter-spacing:.2px}
-.ligne.prise{border:2px solid #a8842f;border-radius:3px;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:0 6px}
-.ligne.prise+.ligne{border-top:0}
+/* une ligne à régler : le prix et la quantité en colonnes à droite du nom */
+#page .ligne-de-liste>.px{flex:none;width:84px;text-align:right}
+#page .ligne-de-liste>:is(.moins-plus,.nombre){flex:none;width:96px;justify-content:flex-end;text-align:right}
+#page .ligne-de-liste .moins-plus b{min-width:34px;text-align:center;font-family:"Chiffres";font-size:13.5px;letter-spacing:.2px}
+#page .lignes.deux .ligne-de-liste>:is(.px,.nombre){width:auto}
 #page .regle{font-size:12.5px;line-height:16px}
 .combien{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .combien .r{margin:0 !important}
 .combien .moins-plus b{min-width:34px;text-align:center;font-size:15px;font-weight:600}
 #page .deux{display:flex;gap:8px}
 #page .deux .plaque{flex:1}
-.lot.ferme{opacity:.5}
 #page .voies{gap:5px}
-#page .voies .soin{padding-top:4px;padding-bottom:4px}
-#page .voies .soin .t i{line-height:15px}
