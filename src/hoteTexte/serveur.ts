@@ -7,7 +7,8 @@
  * touchée, se rejoue. Doc généré : `npm run docs:hote-texte`.
  */
 import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { ErreurDeGeste, nouvelEntete, type CategorieDErreur } from '../hote/partie';
+import { ErreurDeGeste, type CategorieDErreur } from '../hote/partie';
+import { nouvelEntete } from '../hote/partieDeTest';
 import { lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';

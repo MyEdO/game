@@ -21,7 +21,7 @@ describe('scheduleAt — résolveur ScheduleSpec (engine/clock)', () => {
     const now = 12345;
     const spec = { atDate: { month: 2, day: 10, hour: 9, minute: 30 } };
     const y = toDate(now).year;
-    expect(scheduleAt(now, spec)).toBe(fromDate({ year: y, month: 2, monthName: null, day: 10, intercalary: null, weekday: null, hour: 9, minute: 30 }));
+    expect(scheduleAt(now, spec)).toBe(fromDate({ year: y, mois: 2, day: 10, hour: 9, minute: 30 }));
   });
 
   it('afterDays : J+N à atHour:atMinute (défaut minuit)', () => {

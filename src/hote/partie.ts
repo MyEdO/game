@@ -1,16 +1,15 @@
 /**
  * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun à
  * l'hôte texte (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
- * l'en-tête d'une partie (son scénario de test et ses entrées), son ouverture (la partie du noyau, le scénario lancé, la
- * tenue des jetons programmés, que l'horloge virtuelle du noyau rejoue chez un hôte sans minuteur). Un hôte qui a ses
- * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
+ * les entrées d'une partie, son ouverture (la partie du noyau, le lancement, la tenue des jetons programmés, que
+ * l'horloge virtuelle du noyau rejoue chez un hôte sans minuteur). Un hôte qui a ses minuteurs (Godot) rend lui-même
+ * chaque jeton ; le geste joué sur la partie vit dans `geste.ts` ; la partie d'un scénario de test du catalogue, dans
+ * `partieDeTest.ts`, que ce module n'importe pas (#4836).
  */
 import {
   creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, ruleOverrides, valeurDEntree,
   type Cadence, type EntreesDeLaPartie, type EtatDeJeu, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
-import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
-import { testScenarios } from '../scenes/test-scenarios';
 
 /** Les trois catégories d'erreur d'un geste (plan v3 de #2898, « L'issue d'un geste »). */
 export type CategorieDErreur = 'validation' | 'permission' | 'regle';
@@ -27,24 +26,13 @@ export const valider = (condition: unknown, message: string): void => {
   if (!condition) throw new ErreurDeGeste('validation', message);
 };
 
-/** Le scénario de test `id` du catalogue (`testScenarios`), ou l'erreur de validation qui le refuse. */
-export function scenarioDeTest(id: string): TestScenario {
-  const scenario = testScenarios.find((s) => s.id === id);
-  if (!scenario) throw new ErreurDeGeste('validation', `scénario inconnu : ${id}`);
-  return scenario;
-}
-
-/** L'en-tête d'une partie : le scénario lancé et les entrées de la partie (D8). */
-export interface Entete {
-  scenario: string;
+/** Les entrées d'une partie, hors de ce qu'elle lance (D8). */
+export interface EntreesDeLEntete {
   graine: number;
   regles: Record<string, unknown>;
   cadence: Cadence;
   desFixes: boolean;
 }
-
-/** Les entrées d'une partie, hors de son scénario. */
-export type EntreesDeLEntete = Omit<Entete, 'scenario'>;
 
 /** Les entrées d'une partie neuve, ou l'erreur de validation qui les refuse ; cadence et dés fixés sont jugés par la
  *  table des préférences (`valeurDEntree`). */
@@ -65,12 +53,6 @@ export function nouvellesEntrees(options: { graine?: number; cadence?: unknown; 
  *  la cadence et les dés fixés en vigueur aux préférences de l'hôte, que l'ouverture de la partie repose. */
 export function entreesDuJeu(graine: number, regles: Record<string, unknown> = ruleOverrides()): EntreesDeLEntete {
   return nouvellesEntrees({ graine, regles, cadence: preferenceDef('combat-cadence')!.get(), desFixes: preferenceDef('des-fixes')!.get() });
-}
-
-/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse (`nouvellesEntrees`). */
-export function nouvelEntete(scenario: string, options: Parameters<typeof nouvellesEntrees>[0]): Entete {
-  scenarioDeTest(scenario);
-  return { scenario, ...nouvellesEntrees(options) };
 }
 
 /** La valeur de la préférence `id` qu'une entrée `v` donne (`valeurDEntree`), ou l'erreur de validation qui la refuse. */
@@ -123,13 +105,6 @@ export interface PartieAuGroupe {
 /** Une partie ouverte sur un lancement : la partie au groupe, et le résultat du lancement. */
 export interface PartieOuverte extends PartieAuGroupe {
   lancement: ResultatDeLAppel;
-}
-
-/** Ouvre la partie de l'en-tête : son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`,
- *  `ouvrirLeLancement`). */
-export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieOuverte {
-  const scenario = scenarioDeTest(entete.scenario);
-  return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros, premierJeton);
 }
 
 /** Ouvre la partie des entrées `entrees` sur l'état `etat` (`creerPartie`) : l'état initial, au groupe, sans scène ni
