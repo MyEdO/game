@@ -60,7 +60,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     banc.setState({ battle, scene: undefined, party: [] });
     banc.setState({
       pendingCast: {
-        casterId: c.id, targetId: c.id, spellId: 'explosion', missile: true, focused: false,
+        casterId: c.id, targetId: c.id, spellId: 'explosion', missile: true,
         result: okCast() as never,
         zone: { center: null, radius: 2, r0m: 2, placing: true },
       } as never,
@@ -80,7 +80,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
       mode: 'battle', scene: testScene(), party: [c], journal: [],
       battle: { combatants: [c, e], order, baseOrder: order, turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion',
         reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
-      pendingCast: { casterId: c.id, targetId: c.id, spellId: 'explosion', missile: true, focused: false, result: okCast(),
+      pendingCast: { casterId: c.id, targetId: c.id, spellId: 'explosion', missile: true, result: okCast(),
         zone: { center: null, radius: 2, r0m: 2, placing: true } },
       net: { ...initialNet(), mode: 'hote', ownership: { [c.id]: 1 }, slots: [1, 0, 0, 0] },
     });
@@ -97,7 +97,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     const battle = { combatants: [c], order: [c.id], baseOrder: [c.id], turn: 0, round: 1, acted: false, log: [], over: null, zones: [] } as never;
     banc.setState({ battle, scene: undefined, party: [] });
     const ok = okCast();
-    applyCast(banc.getState, banc.setState, c, [c], findSpellById('sang-de-la-terre')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, c, [c], findSpellById('sang-de-la-terre')!, ok, false);
     const zone = (banc.getState().battle!.zones ?? []).find((z) => z.label === findSpellById('sang-de-la-terre')!.label)!;
     expect(zone).toBeTruthy();
     expect(zone.tiles.length).toBeGreaterThan(0);
@@ -114,7 +114,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     c.pos = { x: 0, y: 0 };
     const battle = { combatants: [c], order: [c.id], baseOrder: [c.id], turn: 0, round: 1, acted: false, log: [], over: null, zones: [] } as never;
     banc.setState({ battle, scene: emptyScene('scene-test', 6, 6), party: [] });
-    applyCast(banc.getState, banc.setState, c, [c], findSpellById('sang-de-la-terre')!, okCast(), false, false);
+    applyCast(banc.getState, banc.setState, c, [c], findSpellById('sang-de-la-terre')!, okCast(), false);
     const zone = (banc.getState().battle!.zones ?? []).find((z) => z.label === findSpellById('sang-de-la-terre')!.label)!;
     expect(zone).toBeTruthy();
     expect(zone.tiles.length).toBeGreaterThan(0);

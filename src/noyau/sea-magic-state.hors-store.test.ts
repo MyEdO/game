@@ -39,7 +39,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
     function castSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().ensemencerLeTirage(21);
-      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
+      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, result: null } });
       banc.getState().jetLancer('incantation');
       return banc.getState().pendingCast!.result!.sl;
     }
@@ -70,7 +70,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
       freshCastState(w, null);
       banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never });
       banc.getState().ensemencerLeTirage(21);
-      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
+      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, result: null } });
       banc.getState().jetLancer('incantation');
       const withVesselOnly = banc.getState().pendingCast!.result!.sl;
       const baseline = castSl(w, null);
@@ -84,7 +84,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
     function missileSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().ensemencerLeTirage(21);
-      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: true, focused: true, result: null } });
+      banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: true, result: null } });
       banc.getState().jetLancer('incantation');
       return banc.getState().pendingCast!.result!.sl;
     }

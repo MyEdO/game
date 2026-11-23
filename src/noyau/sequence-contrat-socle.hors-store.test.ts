@@ -822,7 +822,7 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
   function incante(lanceur: Combatant, cible: Combatant, maladresse: boolean): void {
     banc.setState({
       pendingCast: {
-        casterId: lanceur.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false,
+        casterId: lanceur.id, targetId: cible.id, spellId: 'flechette', missile: true,
         result: maladresse
           ? { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: 'Maladresse !' }
           : { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
@@ -836,7 +836,7 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
   function incanteZone(lanceur: Combatant, cible: Combatant, ia: boolean, critChoice: CritChoice): void {
     banc.setState({
       pendingCast: {
-        casterId: lanceur.id, targetId: cible.id, spellId: 'explosion', missile: true, focused: false, counterspellRouted: true, critChoice,
+        casterId: lanceur.id, targetId: cible.id, spellId: 'explosion', missile: true, counterspellRouted: true, critChoice,
         result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: true, isFumble: false, log: 'critique' },
         zone: { center: null, radius: 1, r0m: 2, ...(ia ? { autoCenter: { x: 10, y: 10 } } : {}) },
       },
@@ -916,10 +916,11 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
   ])('#4431 — $spellId critique dissipé (focalisé : $focalise, Diction : $diction)', ({ spellId, zone, focalise, diction }) => {
     const { lanceur, cible } = duel(false, spellId);
     if (diction) lanceur.talents.push({ talentId: 'diction-instinctive', times: 1 });
+    if (focalise) lanceur.focus = { spell: spellId, dr: 4 };
     const blessures = cible.wounds.current;
     banc.setState({
       pendingCast: {
-        casterId: lanceur.id, targetId: zone ? lanceur.id : cible.id, spellId, missile: true, focused: focalise,
+        casterId: lanceur.id, targetId: zone ? lanceur.id : cible.id, spellId, missile: true,
         counterspellRouted: true, critChoice: 'puissance',
         result: { cast: true, roll: 22, target: 60, sl: 4, isCritical: true, isFumble: false, log: 'critique' },
         ...(zone ? { zone: { center: null, radius: 1, r0m: 2 } } : {}),
@@ -976,7 +977,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
   function incanteZone(heros: Combatant, result: CastResult): void {
     banc.setState({
       pendingCast: {
-        casterId: heros.id, targetId: heros.id, spellId: 'explosion', missile: true, focused: false, counterspellRouted: true,
+        casterId: heros.id, targetId: heros.id, spellId: 'explosion', missile: true, counterspellRouted: true,
         result, zone: { center: null, radius: 1, r0m: 2 },
       },
     });
@@ -1043,7 +1044,6 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
       const { heros } = duel();
       heros.focus = { spell: 'explosion', dr: 4 };
       incanteZone(heros, rate);
-      banc.setState({ pendingCast: { ...banc.getState().pendingCast!, focused: true } });
       banc.getState().jetValider('incantation');
       expect(banc.getState().pendingCast).toBeNull();
       expect(banc.getState().battle!.acted, 'la tentative consomme l’Action').toBe(true);

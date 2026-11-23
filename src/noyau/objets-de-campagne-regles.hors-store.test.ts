@@ -74,7 +74,7 @@ describe('règles intrinsèques des objets d’une campagne jouée', () => {
     const { uid } = donner(banc, lampe.id);
     const lumieresPortees = () => sceneLightSources(banc.getState()).filter((source) => source.carried);
     expect(lumieresPortees()).toEqual([]);
-    banc.getState().equiperLObjet(uid);
+    banc.getState().equiperLObjet(uid, true);
     const rayon = 20 / sceneMetresPerTile(banc.getState().scene!);
     expect(lumieresPortees()).toMatchObject([{ radiusTiles: rayon, tone: 'lanterne' }]);
     expect(orienter(banc)).toBe(sansLampe + 1);
@@ -145,12 +145,12 @@ describe('règles intrinsèques des objets d’une campagne jouée', () => {
     banc.getState().entrainerLaProthese(uid);
     expect(porteur(banc).xp).toBe(400);
 
-    banc.getState().equiperLObjet(uid);
+    banc.getState().equiperLObjet(uid, true);
     expect(armeDerivee()).toMatchObject({ damage: { plusBF: true, flat: 2 } });
     for (let palier = 0; palier < 4; palier++) banc.getState().entrainerLaProthese(uid);
     expect(porteur(banc).xp).toBe(0);
     expect(porteur(banc).items?.find((it) => it.uid === uid)?.prosthesisReduced).toBe(20);
-    banc.getState().equiperLObjet(uid);
+    banc.getState().equiperLObjet(uid, false);
     expect(armeDerivee()).toBeUndefined();
     expect(porteur(banc).weapons.some(isUnarmed)).toBe(true);
   });

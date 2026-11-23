@@ -19,7 +19,7 @@ import type { CharKey, Combatant, ConditionId, Difficulty, HitLocation, ModLine,
 import { CHAR_LABELS } from '../engine/types';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { cibleDuTest, clampTarget, estJete, evaluateTest, hydrateTR, resolveOpposed, type EchecSansJet, type OpposedResult } from '../engine/tests';
-import { castInfoIsPrayer, castTestOf } from '../engine/magic';
+import { castInfo, castInfoIsPrayer, castTestOf } from '../engine/magic';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { formatDice } from '../engine/dice';
 import { formatWardSave } from '../engine/traits/dispatch';
@@ -62,7 +62,10 @@ export interface DeDuTest {
 export type ReferenceDeJet =
   | ({ genre: 'competence' } & RefDesignee)
   | { genre: 'caracteristique'; id: CharKey }
-  | { genre: 'sort' | 'table'; id: string };
+  | { genre: 'table'; id: string };
+
+/** Le sort qu'un Test d'incantation lance (#4830) : le contexte de sa ligne, la `reference` restant la Compétence testée. */
+export type ReferenceDeSort = { genre: 'sort'; id: string };
 
 export type EtatDeLigneDeJet = 'aJouer' | 'masque' | 'revele';
 
@@ -75,7 +78,7 @@ export interface CompositionDeJet {
 }
 
 type DonneesDeLigne =
-  | { genre: 'test'; qui: string | null; test: string; cible: number | null; jet: DeDuTest | null; mods?: ModLine[]; modsDR?: ModLine[]; composition?: CompositionDeJet; seuil?: RollBreakdown['seuil'] }
+  | { genre: 'test'; qui: string | null; test: string; cible: number | null; jet: DeDuTest | null; sort?: ReferenceDeSort; mods?: ModLine[]; modsDR?: ModLine[]; composition?: CompositionDeJet; seuil?: RollBreakdown['seuil'] }
   | { genre: 'table'; qui: string | null; table: string; jet: { d100: number; effectif: number; ligne: string } | null }
   | { genre: 'de'; qui: string | null; de: string; jet: { naturel: number; total: number; lecture: string } | null };
 
@@ -266,6 +269,12 @@ export const libelleDuTestNomme = (test: Pick<TestNomme, 'skill'>): string => re
 /** Le libellé de ligne du Test d'un `pendingTest` : la Compétence affichée, à défaut le libellé de l'ouvreur. */
 export const libelleDuTestDeScene = (pt: { skill?: string; label: string }): string => pt.skill ?? pt.label;
 
+/** Ce que nomme la ligne du Test d'incantation du sort `spellId` : la Compétence testée (`castInfo`), et le sort. LDB 40 l.13 ; LDB 46 l.22-24 */
+function referencesDIncantation(spellId: string): { reference: ReferenceDeJet | null; sort: ReferenceDeSort } {
+  const spell = findSpellById(spellId);
+  return { reference: spell ? referenceDeCompetence(castInfo(spell).skill) : null, sort: { genre: 'sort', id: spellId } };
+}
+
 /** Le libellé de ligne d'une incantation : la Prière, ou l'Incantation et son NI. */
 export function libelleDIncantation(spellId: string): string {
   const spell = findSpellById(spellId);
@@ -341,6 +350,7 @@ type JetLu = { roll: number; target?: number; sl?: number; success?: boolean } |
 type ReglagesDeLigne = {
   id?: string;
   reference?: ReferenceDeJet | null;
+  sort?: ReferenceDeSort;
   masque?: 'roll' | 'value';
   cacherDR?: boolean;
   composition?: CompositionDeJet;
@@ -354,17 +364,18 @@ type ReglagesDeLigne = {
 
 const referenceDeCompetence = (ref: RefDesignee): ReferenceDeJet => ({ genre: 'competence', ...ref });
 
-function referenceDuSujet(sujet: { skill?: RefDesignee; characteristic?: CharKey } | undefined): ReferenceDeJet | null {
+/** Ce qu'un Test teste : sa Compétence, à défaut sa Caractéristique. */
+export function referenceDuSujet(sujet: { skill?: RefDesignee; characteristic?: CharKey } | undefined): ReferenceDeJet | null {
   if (sujet?.skill) return referenceDeCompetence(sujet.skill);
   return sujet?.characteristic ? { genre: 'caracteristique', id: sujet.characteristic } : null;
 }
 
 function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: number | null, options: ReglagesDeLigne = {}): LigneLue {
-  const { id, reference, masque, cacherDR, composition, seuil, mods, modsDR, critique, maladresse, forcee } = options;
+  const { id, reference, sort, masque, cacherDR, composition, seuil, mods, modsDR, critique, maladresse, forcee } = options;
   const c = r?.target ?? cible ?? null;
   const reussi = r?.success ?? (r != null && c != null && evaluateTest(r.roll, c).success);
   return {
-    genre: 'test', id, qui: qui ?? null, test, reference,
+    genre: 'test', id, qui: qui ?? null, test, reference, ...(sort ? { sort } : {}),
     cible: masque ? null : c,
     jet: r && masque !== 'roll' ? {
       d100: r.roll, dr: cacherDR ? null : r.sl ?? 0, reussi, verdict: reussi ? 'reussite' : 'echec',
@@ -518,7 +529,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     const annonce = !r || revele ? fenetreDIncantation(s)?.ligne : undefined;
     return vue('incantation', [ligne(pc.casterId, libelleDIncantation(pc.spellId), r && { ...castTestOf(r), sl: r.slPropre ?? r.sl }, annonce?.target, {
       masque: revele ? undefined : 'roll',
-      reference: { genre: 'sort', id: pc.spellId },
+      ...referencesDIncantation(pc.spellId),
       mods: annonce?.mods,
       composition: annonce && compositionDuJet(annonce),
       critique: r?.isCritical,
@@ -535,7 +546,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     if (!pc || !cast) return attente;
     const tranche = csp.participants.length === 1 && csp.participants[0].result;
     if (tranche) {
-      const lanceur = ligne(pc.casterId, libelleDIncantation(pc.spellId), cast, undefined, { reference: { genre: 'sort', id: pc.spellId } });
+      const lanceur = ligne(pc.casterId, libelleDIncantation(pc.spellId), cast, undefined, referencesDIncantation(pc.spellId));
       return vue('contreSort', [lanceur, ...reponses], oppositionEnVue(resolveOpposed(cast, tranche.counter)), undefined, 'oppose');
     }
     const comparaisons = reponses.flatMap((l, i) => {

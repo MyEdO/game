@@ -55,7 +55,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     const res = evaluateCasting(H, spell, evaluateTest(5, castingValue(H, incantationArcane())));
     banc.setState({
       pendingCast: {
-        casterId: H.id, targetId: E.id, spellId: 'parole-de-tzeentch', missile: false, focused: false, result: res,
+        casterId: H.id, targetId: E.id, spellId: 'parole-de-tzeentch', missile: false, result: res,
       } as never,
     });
     return res;

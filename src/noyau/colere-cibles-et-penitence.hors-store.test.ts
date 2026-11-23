@@ -56,7 +56,7 @@ function pretreEtAllie(peche: number) {
  *  de table non tombé posé à `deDeTable` (dé NATUREL de la Colère). */
 function benir(casterId: string, targetId: string, roll: number, deDeTable = 50) {
   const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: 'Prière exaucée.' };
-  banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, focused: false, result } });
+  banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, result } });
   banc.getState().jetValider('incantation');
   draineEtapes(banc.getState, 50, poseSurDeNonTombe(deDeTable));
 }

@@ -8,6 +8,7 @@ import { frapper } from './coupHorsBataille.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
 import { battleRng } from './battleRng';
 import { resolveMelee } from '../engine/combat';
+import { declarerLaCharge } from './combatFlow';
 import { lancerLeScenario } from './lancementDeScenario';
 import { combattantEnVue } from './visionDuGroupe';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
@@ -58,6 +59,16 @@ describe('siege-enceinte — la touche d’un assaillant', () => {
     expect(res.log.startsWith(tete), res.log).toBe(true);
     expect(journal(banc).filter((l) => l.startsWith(tete)), journal(banc).join('\n')).toHaveLength(1);
     expect(journal(banc).filter((l) => l.includes(cache.label)), 'son nom n’est nulle part au journal').toEqual([]);
+  });
+
+  it('hors de vue, sa Charge puis sa touche : le même nom neutre aux deux lignes du geste (#4830)', () => {
+    const { banc, heros, cache } = siege();
+    declarerLaCharge(banc.getState, banc.setState, cache, heros, 0);
+    frapper(banc, cache, heros, desDUneTouche(cache, heros), cache.weapons[0]);
+    const lignes = journal(banc);
+    expect(lignes.filter((l) => l.startsWith(t('cs.charge', { name: INCONNU, target: nomDe(heros), adv: '' }))), lignes.join('\n')).toHaveLength(1);
+    expect(lignes.filter((l) => l.startsWith(t('touche.tete', { attaquant: INCONNU, cible: nomDe(heros) }))), lignes.join('\n')).toHaveLength(1);
+    expect(lignes.filter((l) => l.includes(cache.label)), 'son nom n’est nulle part au journal').toEqual([]);
   });
 
   it('en vue : son nom', () => {

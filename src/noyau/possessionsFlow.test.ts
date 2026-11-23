@@ -11,7 +11,13 @@ import {
   apprendreLeTrait,
   possessionsByOwner,
   possessionsByLocation,
+  monterLaBete,
+  quitterLaSelle,
+  refusGestePossession,
 } from './possessionsFlow';
+import { heroCombatMount, heroMount, partyFullyMounted } from '../engine/mountTravel';
+import { t } from '../i18n';
+import type { BattleState, SerieSubie } from './etat';
 import { renvoyerLeHeros } from './partyFlow';
 import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -268,5 +274,112 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     creditBourse(get, set, 'victime', { gold: 2, silver: 0, brass: 0 });
     expect(() => renvoyerLeHeros(get, set, 'victime')).not.toThrow();
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('victime');
+  });
+});
+
+describe('mise en selle hors combat : monter, descendre (#4804, LDB 85 l.112)', () => {
+  const cheval = (ownerId: string): Omit<BetePossession, 'uid'> => ({ ...mule(ownerId), ref: { id: 'cheval-de-trait' } });
+  /** Un héros et deux chevaux A puis B, au registre dans cet ordre. */
+  const deuxChevaux = () => {
+    const h = makeHero('h1');
+    const harnais = makeHarness([h, makeHero('h2')]);
+    const a = ajouterLaPossession(harnais.get, harnais.set, cheval('h1'));
+    const b = ajouterLaPossession(harnais.get, harnais.set, cheval('h1'));
+    const monture = () => heroCombatMount(harnais.get().party[0], harnais.get().possessions)?.uid;
+    return { ...harnais, h, a, b, monture };
+  };
+
+  it('reprendre, débarquer, transmettre : sans choix, la monture suit la première bête qui porte', () => {
+    const { get, set, a, b, monture } = deuxChevaux();
+    remiserLaPossession(get, set, a);
+    expect(monture()).toBe(b);
+    recupererLaPossession(get, set, a);
+    expect(monture()).toBe(a);
+    embarquer(get, set, a, ajouterLaPossession(get, set, barge('h1')));
+    expect(monture()).toBe(b);
+    debarquer(get, set, a);
+    expect(monture()).toBe(a);
+    transmettreLaPossession(get, set, a, 'h2');
+    expect(monture()).toBe(b);
+    expect(heroCombatMount(get().party[1], get().possessions)?.uid).toBe(a);
+  });
+
+  it('monter B : B devient la monture ; monter A : A le redevient', () => {
+    const { get, set, a, b, monture } = deuxChevaux();
+    monterLaBete(get, set, b);
+    expect(monture()).toBe(b);
+    expect(heroMount(get().party[0], get().possessions)?.possession.uid).toBe(b);
+    monterLaBete(get, set, a);
+    expect(monture()).toBe(a);
+  });
+
+  it.each<[string, (h: ReturnType<typeof deuxChevaux>) => () => void]>([
+    ['A avec le groupe, puis remisé et repris', ({ get, set, a }) => () => {
+      remiserLaPossession(get, set, a);
+      recupererLaPossession(get, set, a);
+    }],
+    ['A remisé, puis repris', ({ get, set, a }) => {
+      remiserLaPossession(get, set, a);
+      return () => recupererLaPossession(get, set, a);
+    }],
+    ['A embarqué, puis débarqué', ({ get, set, a }) => {
+      embarquer(get, set, a, ajouterLaPossession(get, set, barge('h1')));
+      return () => debarquer(get, set, a);
+    }],
+  ])('monter B, %s : B reste la monture au retour de A', (_cas, placerA) => {
+    const harnais = deuxChevaux();
+    const { get, set, b, monture } = harnais;
+    const ramenerA = placerA(harnais);
+    monterLaBete(get, set, b);
+    ramenerA();
+    expect(monture()).toBe(b);
+  });
+
+  it('descendre de son seul cheval : plus de monture, ni en voyage ni en combat', () => {
+    const { get, set } = makeHarness([makeHero('h1')]);
+    const uid = ajouterLaPossession(get, set, cheval('h1'));
+    quitterLaSelle(get, set, uid);
+    const [h] = get().party;
+    expect(heroCombatMount(h, get().possessions)).toBeUndefined();
+    expect(heroMount(h, get().possessions)).toBeUndefined();
+    expect(partyFullyMounted([h], get().possessions)).toBe(false);
+    monterLaBete(get, set, uid);
+    expect(heroCombatMount(h, get().possessions)?.uid).toBe(uid);
+  });
+
+  it('refus de monter : détention, hors du groupe, bête qui ne peut être montée, cavalier refusé, bataille', () => {
+    const { get, set, a, b } = deuxChevaux();
+    const refus = (uid: string) => refusGestePossession(get(), uid, { kind: 'monter' });
+    expect(refus('inconnue')).toBe(t('pos.introuvable'));
+    remiserLaPossession(get, set, a);
+    expect(refus(a)).toBe(t('pos.pasAvecLeGroupe'));
+    expect(refus(ajouterLaPossession(get, set, vehicule('h1', 'charrette')))).toBe(t('pos.pasMontable'));
+    set((s) => ({ possessions: s.possessions.map((p) => (p.uid === b && p.nature === 'bete' ? { ...p, mountInjury: 'boiteux' as const } : p)) }));
+    expect(refus(b)).toBe(t('pos.pasMontable'));
+    set((s) => ({ party: s.party.map((h) => ({ ...h, size: 'enorme' as const })) }));
+    expect(refus(ajouterLaPossession(get, set, cheval('h1')))).toBe(t('pos.refuseLeCavalier'));
+    set({ battle: {} as BattleState });
+    expect(refus(ajouterLaPossession(get, set, cheval('h2')))).toBe(t('pos.batailleEnCours'));
+  });
+
+  it('refus de descendre : bête que personne ne monte, bataille ; le refus ne change rien', () => {
+    const { get, set, a, b, monture } = deuxChevaux();
+    expect(refusGestePossession(get(), b, { kind: 'descendre' })).toBe(t('pos.pasMontee'));
+    quitterLaSelle(get, set, b);
+    expect(monture()).toBe(a);
+    set({ battle: {} as BattleState });
+    expect(refusGestePossession(get(), a, { kind: 'descendre' })).toBe(t('pos.batailleEnCours'));
+    set({ battle: null });
+    quitterLaSelle(get, set, a);
+    expect(monture()).toBe(b);
+  });
+
+  it('une série d’attaques subies engage la rencontre (`rencontreEngagee`) : monter et descendre sont refusés', () => {
+    const { get, set, a, b, monture } = deuxChevaux();
+    set({ serieSubie: {} as SerieSubie });
+    expect(refusGestePossession(get(), b, { kind: 'monter' })).toBe(t('pos.batailleEnCours'));
+    expect(refusGestePossession(get(), a, { kind: 'descendre' })).toBe(t('pos.batailleEnCours'));
+    quitterLaSelle(get, set, a);
+    expect(monture()).toBe(a);
   });
 });

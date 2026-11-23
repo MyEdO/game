@@ -7,17 +7,27 @@
  */
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Combatant, Difficulty, Trauma } from '../engine/types';
-import type { IdDePlaieDeLOperation } from './designations';
+import type { IdDeHeros, IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { type FlowStakeId, type StakeRef, type SkillRef } from '../data';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
 import { cibleMesuree } from '../engine/tests';
 import { rule } from '../engine/policy';
-import { partyAssisted, type SupportDetail } from '../engine/skills';
+import { partyAssisted, peutTenter, soutenuPar, testValue, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { hasSurgerySkill, raisonDeModeDeSoin, estActeImmediat, healDifficulty, HEAL_MODES, HEAL_SKILL, type HealMode } from '../engine/healing';
+import {
+  besoinDuMode,
+  hasSurgerySkill,
+  isHealable,
+  raisonDeModeDeSoin,
+  estActeImmediat,
+  healDifficulty,
+  HEAL_MODES,
+  HEAL_SKILL,
+  type HealMode,
+} from '../engine/healing';
 import { surgeryTraumas, recoverableTraumas } from '../engine/trauma';
 import { toMoney, canAfford } from '../engine/money';
 import { t } from '../i18n';
@@ -39,8 +49,10 @@ export interface MedicNpc {
 }
 
 export interface MedicState {
-  /** Absent = soins entre héros (meilleur soigneur du groupe). */
+  /** Absent = soins entre héros. */
   npc?: MedicNpc;
+  /** Le héros qui soigne, choisi par le réglage `soins.soigneur` ; absent : le meilleur du groupe (`bestHealerFor`). */
+  soigneurId?: IdDeHeros;
   patientId: string | null;
   /** Opération ARMÉE (Test étendu, LDB 12 l.170-174). Deux `kind`, MÊME machinerie
    *  de passes (jet de Guérison influençable → cumul du DR) : `'chirurgie'` = Chirurgie d'une Blessure Critique
@@ -72,11 +84,16 @@ export interface MedicState {
   };
 }
 
-/** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
- *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
-export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Combatant; value: number; support: SupportDetail } | null {
+const GUERISON = { skill: { id: HEAL_SKILL } } as const;
+
+/** Le soigneur du groupe pour un acte, soutenu par les autres (LDB 12) : le héros `soigneurId` s'il le peut, sinon le
+ *  meilleur. Opérer exige AUSSI le Talent Chirurgie (LDB 10) ; la récupération d'usage est un simple Test étendu de
+ *  Guérison, sans Chirurgie (LDB 18 l.120/179). */
+export function bestHealerFor(party: Combatant[], act: HealMode, soigneurId?: IdDeHeros): { actor: Combatant; value: number; support: SupportDetail } | null {
   const pool = act === 'chirurgie' ? party.filter(hasSurgerySkill) : party;
-  return partyAssisted(pool, { skill: { id: HEAL_SKILL } }); // Soutien (LDB 12) : assistants de chirurgie/soin
+  if (soigneurId === undefined) return partyAssisted(pool, GUERISON);
+  const choisi = pool.find((h) => h.id === soigneurId && peutTenter(h, GUERISON));
+  return choisi ? soutenuPar(pool, { actor: choisi, value: testValue(choisi, GUERISON) }, GUERISON) : null;
 }
 
 /** Enjeu servi par chaque acte de soin ; `chirurgie`/`reeducation` : celui de l'opération que l'acte arme. */
@@ -113,7 +130,7 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
   const sg = m?.surgery;
   if (sg?.kind === act) return { id: sg.healerId, label: sg.healerName, skill: sg.skill, intBonus: sg.intBonus, support: sg.support };
   if (m?.npc) return { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };
-  const best = bestHealerFor(s.party, act);
+  const best = bestHealerFor(s.party, act, m?.soigneurId);
   return best && { id: best.actor.id, actor: best.actor, label: nomDe(best.actor), skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
 }
 
@@ -189,8 +206,21 @@ export function refusDeLActeALInfirmerie(s: Pick<Jeu, 'medic' | 'party' | 'pendi
     if (!offer) return t('medic.acteNonPropose', { pnj: m.npc.label });
     return offer.cost && !canAfford(totalDesBourses(s.party), toMoney(offer.cost)) ? t('medic.tooExpensive') : null;
   }
-  if (bestHealerFor(s.party, act)) return null;
+  if (bestHealerFor(s.party, act, m.soigneurId)) return null;
+  if (m.soigneurId !== undefined) return t('medic.soigneurSansActe', { name: nomOuAbsence(s.party.find((h) => h.id === m.soigneurId), 'heros', m.soigneurId) });
   return act === 'chirurgie' ? t('medic.aucunChirurgien') : t('medic.aucunSoigneur');
+}
+
+/** Pourquoi l'infirmerie, tenue par `tenue` (le PNJ, le soigneur choisi), ne soigne pas le héros `heroId`, `null` si un acte
+ *  s'offre sur lui : rien à soigner (`isHealable`), sinon le refus du premier acte qui traite ce qu'il porte
+ *  (`besoinDuMode`, `refusDeLActeALInfirmerie`). Verdict UNIQUE de l'ouverture (`refusDeSoins`) et du choix du patient. */
+export function refusDuPatient(s: Pick<Jeu, 'party'>, heroId: string, tenue: Pick<MedicState, 'npc' | 'soigneurId'> = {}): string | null {
+  const patient = s.party.find((h) => h.id === heroId);
+  if (!patient) return t('medic.patientIntrouvable');
+  if (!isHealable(patient)) return t('medic.rienASoigner', { name: nomDe(patient) });
+  const infirmerie = { party: s.party, medic: { ...tenue, patientId: heroId }, pendingSurgery: null };
+  const refus = HEAL_MODES.filter((act) => besoinDuMode(patient, act)).map((act) => refusDeLActeALInfirmerie(infirmerie, act));
+  return refus.includes(null) ? null : refus[0];
 }
 
 /** Le soin de l'acte `act` sur le patient courant, sans jet ni débit : son soigneur, sa ligne, sa Difficulté et, pour

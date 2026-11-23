@@ -79,7 +79,7 @@ const test = (jete: boolean, cancellable = true): PendingTest => ({
   ...(jete ? { roll: 25, success: true, sl: 1 } : { roll: null, success: false, sl: 0 }),
 });
 const incantation = (jete: boolean, isCritical = false): PendingCast => ({
-  casterId: H.id, targetId: E.id, spellId: 'alerte', missile: false, focused: false,
+  casterId: H.id, targetId: E.id, spellId: 'alerte', missile: false,
   result: jete ? { cast: true, roll: isCritical ? 22 : 21, target: 45, sl: 2, isCritical, isFumble: false, log: '' } : null,
 });
 /** Le héros du duel, sa Résilience à `n`. */

@@ -1,6 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { creditBourse } from '../../noyau/bourseFlow';
 import { runFlow } from '../../noyau/combatEffects';
 import { idsDuJeu, poserLesRegles, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
@@ -30,6 +31,9 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
   afterEach(() => { for (const id of idsDuJeu(scenario.rules ?? {})) resetRule(id); });
 
   it('medicalAid : le dialogue du médecin ouvre l’infirmerie payante (entityId → PNJ, tarif à l’acte)', () => {
+    const [blesse] = banc.getState().party;
+    blesse.wounds = { ...blesse.wounds, current: blesse.wounds.current - 3 }; // un patient à soigner
+    creditBourse(banc.getState, banc.setState, blesse.id, { gold: 0, silver: 5, brass: 0 }); // l'acte tarifé s'offre
     const choice = scene.dialogues.find((d) => d.id === 'dlg-medecin')!.nodes[0].choices[0];
     runFlow(banc.getState, banc.setState, choice.flow!);
     const medic = banc.getState().medic;

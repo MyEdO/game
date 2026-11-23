@@ -134,7 +134,7 @@ describe('Incantation Critique — « Puissance totale » (`VDM 02 l.55`, folio 
 describe('« Force inéluctable » et la Dissipation — la CONDITION diffère par régime', () => {
   /** Incantation FIGÉE au choix `ineluctable`, DR suffisant ou non. */
   const pc = (cast: boolean) => ({
-    casterId: 'w', targetId: 't', spellId: 'x', missile: true, focused: false,
+    casterId: 'w', targetId: 't', spellId: 'x', missile: true,
     result: crit(cast, 3), critChoice: 'ineluctable' as const,
   }) as unknown as PendingCast;
 

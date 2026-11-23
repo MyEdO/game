@@ -32,7 +32,7 @@ describe('Vol de vie — lifeSteal + casterOps', () => {
     banc.setState({ party: [w, cible] as Combatant[] });
     const res: CastResult & Partial<MissileResult> = { ...ok(2), hit: true, location: 'corps', damage: 7, woundsLost: 5, defenderDefeated: false };
     const before = w.wounds.current;
-    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('vol-de-vie')!, res, true, false);
+    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('vol-de-vie')!, res, true);
     const wAfter = banc.getState().party.find((h) => h.id === w.id)!;
     expect(wAfter.wounds.current).toBe(before + Math.ceil(5 / 2)); // vol de vie : +3
     expect(wAfter.conditions.find((c) => c.id === 'extenue')).toBeUndefined(); // casterOps a purgé l'Exténué du lanceur
@@ -46,7 +46,7 @@ describe('Caresse de Laniph — lifeSteal ⌊dégâts/2⌋', () => {
     banc.setState({ party: [w, cible] as Combatant[] });
     const res: CastResult & Partial<MissileResult> = { ...ok(1), hit: true, location: 'corps', damage: 6, woundsLost: 5, defenderDefeated: false };
     const before = w.wounds.current;
-    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('caresse-de-laniph')!, res, true, false);
+    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('caresse-de-laniph')!, res, true);
     expect(banc.getState().party.find((h) => h.id === w.id)!.wounds.current).toBe(before + Math.floor(5 / 2)); // +2
   });
 });

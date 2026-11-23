@@ -129,6 +129,8 @@ export interface ReglagesDuJet {
     test: TestDeSoin;
     /** LDB 74 l.41 ; `null` : sans Bandages. */
     bandages: IdDeHeros | null;
+    /** Le héros qui soigne à l'infirmerie, soutenu par les autres (LDB 12). */
+    soigneur: IdDeHeros;
   };
   corruption: {
     /** LDB 19 l.29 */
@@ -242,6 +244,7 @@ export const REGLAGES_DU_JET = {
     mode: avant, test: avant,
     // LDB 74 l.41 ; `user-arbitrage-coop-inventaire-par-proprietaire-bg3`
     bandages: { ...avant, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.pendingHeal?.bandagesDe ?? undefined) },
+    soigneur: avant,
   },
   corruption: { nature: avant },
   chansonDeMarin: { chanson: avant },

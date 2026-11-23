@@ -148,7 +148,7 @@ describe('#1262 lot 5a — DÉSENGAGEMENT : le menu est hôté sur `pendingDisen
 
 describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint', () => {
   function poseCast(casterId: string, targetId: string) {
-    banc.setState({ pendingCast: { casterId, targetId, spellId: 'chute', missile: false, focused: false, result: null } } as never);
+    banc.setState({ pendingCast: { casterId, targetId, spellId: 'chute', missile: false, result: null } } as never);
   }
 
   it('lanceur HÉROS : l’étape porte le lanceur, pas de possession partagée', () => {
@@ -190,7 +190,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
 
   it('CHEMIN RÉEL (opposition de cible, jet posé) : le remint ne perd AUCUN champ de l’étape', () => {
     const { wiz, cible } = deuxHeros();
-    banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, focused: false, result: null } } as never);
+    banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, result: null } } as never);
     openCastCascade(banc.getState, banc.setState, wiz);
     // `jetLancer('incantation')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
@@ -207,7 +207,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
 
   it('CONTRAT du remint : une étape hôte ne porte QUE sa déclaration — le reste ne survit pas', () => {
     const { wiz, cible } = deuxHeros();
-    banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, focused: false, result: null } } as never);
+    banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, result: null } } as never);
     openCastCascade(banc.getState, banc.setState, wiz);
     // Champs POSÉS À LA MAIN sur l'étape hôte — ce qu'aucune couture de cast ne fait (la situation vit
     // dans `pendingCast`). Le remint les DÉTRUIT : c'est le contrat, pas un accident.

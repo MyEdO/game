@@ -7,7 +7,8 @@ import type { PendingActivity } from './interludeFlow';
 import { estJete, extendedTestStep, extendedTestSteps } from '../engine/tests';
 import { reloadDRBonus } from '../engine/combatFeatures/dispatch';
 import { pasDePeur } from '../engine/psychology';
-import { dispelOwnSpellDR } from '../engine/magic';
+import { dispelOwnSpellDR, focalisationPour } from '../engine/magic';
+import { findSpellById } from '../data';
 import type { Combatant, Weapon } from '../engine/types';
 
 /** L'arme que recharge `pr` aux mains de son `tireur` (`weaponUid` vide : l'arme sans objet, LDB 62 l.335). */
@@ -56,11 +57,12 @@ export function progresDActivite(pa: PendingActivity): (ReturnType<typeof extend
   return { ...extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, pa.drTarget), cible: pa.drTarget };
 }
 
-/** Progrès d'une Focalisation après son jet, depuis la réserve du lanceur sur CE Sort, vers son NI : une
- *  réussite cumule son `dr`, un échec son DR brut. Lu par `jetValider('focalisation')` et par la fenêtre.
+/** Progrès d'une Focalisation après son jet, depuis la réserve du lanceur qui sert CE Sort (`focalisationPour`),
+ *  vers son NI : une réussite cumule son `dr`, un échec son DR brut. Lu par `jetValider('focalisation')`.
  *  LDB 46 l.130 ; VDM 02 l.131 ; LDB 12 l.170-185 */
 export function progresDeFocalisation(pf: PendingFocus, lanceur: Combatant, ni: number): { prev: number; step: ReturnType<typeof extendedTestStep> | null } {
-  const prev = lanceur.focus?.spell === pf.spellId ? lanceur.focus.dr : 0;
+  const sort = findSpellById(pf.spellId);
+  const prev = lanceur.focus && sort && focalisationPour(lanceur, sort) ? lanceur.focus.dr : 0;
   const r = pf.result;
   if (!r) return { prev, step: null };
   return { prev, step: extendedTestStep(prev, { success: r.success, sl: r.success ? r.dr : r.sl ?? 0 }, ni) };

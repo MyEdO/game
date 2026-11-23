@@ -53,7 +53,7 @@ function setupBattle(c: Combatant, others: Combatant[], spellId: string) {
   banc.setState({ battle, scene: undefined, party: [] });
   banc.setState({
     pendingCast: {
-      casterId: c.id, targetId: c.id, spellId, missile: false, focused: false,
+      casterId: c.id, targetId: c.id, spellId, missile: false,
       result: okCast() as never,
       zone: { center: null, radius: 3, r0m: 3, placing: true },
     } as never,

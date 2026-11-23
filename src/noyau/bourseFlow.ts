@@ -44,11 +44,19 @@ export function totalDesBourses(party: Combatant[]): Money {
 }
 
 /** `ConditionCtx` de SCÈNE depuis l'état vivant — SOURCE UNIQUE (remplace le `Jeu.money`
- *  disparu) : injecte le total des bourses du groupe (`partyMoneyTotal`) dans la Condition `money`,
+ *  disparu) : injecte le total des bourses du groupe (`totalDesBourses`) dans la Condition `money`,
  *  au lieu du `s.money` inexistant que `conditionCtx` attend en toute généralité. Tout appelant lisant
  *  l'état de scène (triggers, `if`, choix de dialogue) route DESSUS. */
 export function condCtx(get: Get<Jeu>): ConditionCtx {
-  return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get), etats: get().etats });
+  return conditionCtxDe(get());
+}
+
+/** Ce que lit le `ConditionCtx` de scène. */
+export type EtatDesConditions = Pick<Jeu, 'flags' | 'gameTime' | 'party' | 'etats'>;
+
+/** `condCtx` d'un état lu : forme PURE, pour un verdict sur un état. */
+export function conditionCtxDe(s: EtatDesConditions): ConditionCtx {
+  return conditionCtx({ flags: s.flags, gameTime: s.gameTime, party: s.party, money: totalDesBourses(s.party), etats: s.etats });
 }
 
 /** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse
