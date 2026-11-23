@@ -25,7 +25,7 @@ import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
 import { poursuivreLAccostage } from './seaVoyageFlow';
-import { EMPTY_FLOW } from '../engine/flowCore';
+import { avecLeTesteur, EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import type { Cloture, PendingExtendedTest } from './pendings';
@@ -218,7 +218,8 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // Branche choisie PUIS continuation (suite du `sequence` parent d'un nœud `test`), jouées par le
         // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
         // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
-        // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
+        // scène parle `party`/`hero`/`testeur` et reste chez `runFlow` (butin de Test → fenêtre d'attribution),
+        // sa branche cuite sur son testeur (`avecLeTesteur`), jamais la continuation, qui est au parent.
         const avant = comptePasDifferes(get());
         let branch = effSuccess ? pt.onSuccess : pt.onFailure;
         if (pt.escalade) {
@@ -238,7 +239,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         }
         const issue = pt.subi
           ? reprendreTestSubi(get, set, pt, effSuccess)
-          : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+          : runFlow(get, set, { kind: 'sequence', etapes: [avecLeTesteur(branch ?? EMPTY_FLOW, pt.actorId), pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
         // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
         //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
         //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes

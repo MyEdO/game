@@ -65,6 +65,7 @@ import { refusDePoseDesPonts } from '../../poseDesPonts';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
 import { posteSideSchema } from '../defs/vehicles';
+import { estUneCle } from '../../../i18n';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
@@ -162,9 +163,13 @@ export function typeNonNomme(ent: { id: string; kind: string } & Partial<Record<
 
 /** Une ACTION AUTHORÉE sur une instance de décor (#1687) — le vocabulaire OUVERT des gestes qu'un
  *  auteur pose. `id` : identité STABLE et non vide, unique sur l'entité (`listeCle`) ; `label` :
- *  surcharge d'AFFICHAGE, absent le libellé vient du catalogue i18n à la clé `usable.<id>` ; `consume` : l'entité est retirée après ;
+ *  surcharge d'AFFICHAGE, absent le libellé vient du catalogue i18n à la clé `usable.<id>`, refusé
+ *  quand le catalogue n'a pas cette clé (#4834) ; `consume` : l'entité est retirée après ;
  *  `unique` : jouable une fois (drapeau `__action_<entId>_<id>`), absent ou `false` = REJOUABLE ;
  *  `minutes` : ce que l'action coûte à l'horloge, absent = `TIME_COST.search` (`engine/timeCost.ts`). */
+/** Le catalogue i18n nomme-t-il l'action authorée d'identifiant `id` (clé `usable.<id>`) ? */
+export const actionNommeeAuCatalogue = (id: string): boolean => estUneCle(`usable.${id}`);
+
 export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().optional(),
@@ -172,6 +177,9 @@ export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   consume: z.boolean().optional(),
   unique: z.boolean().optional(),
   minutes: z.number().min(0).optional(),
+}).refine((a) => a.label !== undefined || actionNommeeAuCatalogue(a.id), {
+  path: ['label'],
+  message: 'libellé requis : aucun libellé du catalogue ne nomme cet identifiant d’action.',
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, flow: { label: "enchaînement", transparent: true }, consume: { label: "consommer" }, unique: { label: "unique" }, minutes: { label: "minutes" } });
 
 /** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous,

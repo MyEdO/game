@@ -119,7 +119,7 @@ import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
-import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
+import { actionNeuve, aUnRoleEnJeu, sousLIdentifiant } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
 import { ancreDuDecor, entiteFootTiles } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
@@ -1792,11 +1792,12 @@ export function renameEffectZone(scene: Scene, from: string, to: string): Scene 
  *
  *  L'unicité des ids d'action est une règle du SCHÉMA (`refine` du def d'entité) : sans garde au geste,
  *  elle ne mordait qu'au chargement, et la scène VIVANTE portait deux actions homonymes que
- *  `jouerAction` confondait (il joue la première, le drapeau `unique` vaut pour les deux). */
+ *  `jouerAction` confondait (il joue la première, le drapeau `unique` vaut pour les deux). L'action renommée garde
+ *  le libellé qu'elle affichait (`sousLIdentifiant`). */
 export function renameActionAuthoree(actions: ActionAuthoree[], from: string, to: string): ActionAuthoree[] {
   const next = to.trim();
   if (!next || next === from || !actions.some((a) => a.id === from) || actions.some((a) => a.id === next)) return actions;
-  return actions.map((a) => (a.id === from ? { ...a, id: next } : a));
+  return actions.map((a) => (a.id === from ? sousLIdentifiant(a, next) : a));
 }
 
 /** Rattache une entité existante à la rencontre `encId` (créée si absente). No-op si déjà membre. */

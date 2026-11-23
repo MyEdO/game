@@ -681,9 +681,10 @@ type CarteDuDocument = Omit<WorldMap, 'places'> & {
 type ProjetProuve = Omit<ProjectDoc, 'worldMap'> & { worldMap?: CarteDuDocument };
 
 /** Étape de la porte qui a refusé : document d'un autre format ou mal formé (`projetSchema`), prose
- *  adressée non matérialisée (la FORME DISQUE d'un projet livré, `proseNonMaterialisee`), ou entrée de
- *  bibliothèque (`campagneDeLEntree`, #1627). */
-export type CauseDeRefus = 'schema' | 'prose-non-materialisee' | 'entree';
+ *  adressée non matérialisée (la FORME DISQUE d'un projet livré, `proseNonMaterialisee`), entrée de
+ *  bibliothèque (`campagneDeLEntree`, #1627), ou projet que la validation dit injouable
+ *  (`exigerUnProjetJouable`, #4834). */
+export type CauseDeRefus = 'schema' | 'prose-non-materialisee' | 'entree' | 'validation';
 
 /** LE terme d'un projet, puis d'une scène, que la porte refuse : sans numéro de version, un document
  *  d'un autre format et un document fautif se refusent par le MÊME schéma (#2404). Sujet du rapport de

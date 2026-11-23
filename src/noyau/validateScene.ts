@@ -39,7 +39,16 @@ import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combat
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { objetInstanciableDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
-import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
+import {
+  colonneDeDisponibiliteDuMarchand,
+  estUnHebergement,
+  lieuDeLaScene,
+  nomDuPoi,
+  placeServices,
+  ProjetRefuse,
+  sceneAubergeOffer,
+  type WorldMap,
+} from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -181,6 +190,23 @@ const nomDAuteur = (element: ElementDeLieu): string => element.libelle ?? elemen
 function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string {
   const ou = cheminLisible([...(f.element ? [f.element] : []), ...f.reste], nomDAuteur);
   return ou ? `${ou} : ${message}` : message;
+}
+
+/** La porte d'un projet JOUÉ (#4834) : le lancement et l'essai refusent le projet où `validateScene` relève une
+ *  erreur, en `ProjetRefuse` de cause `validation`, chaque faute nommée par sa scène et son fautif. */
+export function exigerUnProjetJouable(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): void {
+  const erreurs = validateScene(project, worldMap, narratif).filter((w) => w.level === 'error');
+  if (!erreurs.length) return;
+  throw new ProjetRefuse(
+    'validation',
+    erreurs.map((w) => ({
+      chemin: [w.sceneId, ...(w.refId ? [w.refId] : [])],
+      lieu: [{ genre: 'element', liste: 'scenes', cle: w.sceneId, nom: 'scène' }],
+      message: w.message,
+      code: 'validation',
+    })),
+    `Projet invalide : ${erreurs.map((w) => `${w.sceneId}${w.refId ? ` › ${w.refId}` : ''} — ${w.message}`).join(' ; ')}.`,
+  );
 }
 
 /**
