@@ -404,7 +404,8 @@ milieu, poignet ; avant, arrière), enfants du tour, qui pendent d'aplomb et s'�
 du bâton tenu à deux mains (clips `hampe`). D'une image à la suivante, chaque os garde sa direction, revient vers
 l'aplomb d'une part (`pendant.RETOUR`), puis sort de ce qu'il rencontre : il ne rentre dans aucun obstacle et reste du
 côté où il était ; un clip en boucle se joue une fois avant de se cuire, et se referme ; un clip d'hampe se drape à
-`filets.BALAYAGE` instants par image, que le fût ne passe au travers d'aucun brin entre deux images. La direction de
+`filets.BALAYAGE` instants par image, pour que le fût ne traverse aucun brin entre deux instants du calcul ; ses pistes
+n'en gardent qu'une clé par image, que l'hôte interpole. La direction de
 chaque os se lisse ensuite sur ses images voisines (`filets.LISSAGE`), et l'os qui tend vers elle pend hors des
 obstacles de son image à un jeu moindre (`filets.JEU_LISSE_M`) : le lissage rogne le jeu, jamais l'obstacle. Deux brins
 voisins ne s'écartent pas de plus de `tente.ETIREMENT_MAX` fois leur écart au repos.
