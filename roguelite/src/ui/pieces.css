@@ -43,16 +43,35 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .bulle-du-jeu[hidden] { display: none; }
 .apercu-du-jeu { position: fixed; z-index: 50; pointer-events: none; }
 .apercu-du-jeu[hidden] { display: none; }
-.apercu-du-jeu.large { width: min(500px, calc(100vw - 12px)); }
-.table-apercu { margin-top: 8px; font-size: 14px; line-height: 19px; color: var(--encre); }
-.table-apercu th { padding: 0 8px 4px; text-align: left; font-weight: 400; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-2); border-bottom: 1px solid rgba(60,40,20,.45); white-space: nowrap; }
-.apercu .table-apercu td { padding: 5px 8px; vertical-align: top; text-align: left; font: inherit; white-space: normal; border-bottom: 1px solid rgba(60,40,20,.14); }
-.apercu .table-apercu td:first-child, .apercu .table-apercu td:nth-child(2) { white-space: nowrap; }
-.apercu .table-apercu td:nth-child(2) { font-variant-numeric: tabular-nums; }
-.table-apercu tr.actuel td { background: rgba(168,132,47,.26); box-shadow: inset 0 1px 0 var(--laiton-ombre), inset 0 -1px 0 var(--laiton-ombre); font-weight: 600; }
-.table-apercu tr.prochain td { background: rgba(255,246,218,.75); }
-.table-apercu tr.prochain td:first-child { box-shadow: inset 3px 0 0 var(--laiton); }
-.table-apercu tr.prochain b { color: var(--sepia); }
+.apercu-du-jeu.bois { width: max-content; max-width: calc(100vw - 12px); padding: 13px 18px 14px; color: var(--creme); box-shadow: 0 14px 30px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 0 3px var(--laiton), 0 0 0 4px var(--contour), inset 0 0 0 1px var(--filet-or), inset 0 0 30px var(--ombre); }
+.apercu-du-jeu.bois::before { background: var(--chene); box-shadow: none; outline: 1px solid var(--contour); border: 2px solid var(--laiton); z-index: -1; }
+.apercu-du-jeu.bois.vers-gauche::before { left: -11px; }
+.apercu-du-jeu.bois.vers-droite::before { right: -11px; }
+.apercu-du-jeu.bois.vers-haut::before { top: -11px; }
+.apercu-du-jeu.bois.vers-bas::before { bottom: -11px; }
+.apercu-du-jeu.bois .tete .nom-propre { font-size: 21px; color: var(--or-eclat); }
+.apercu-du-jeu.bois .pied { border-top-color: var(--filet-or); color: #f0a48e; font-size: 14px; line-height: 19px; }
+.planche-apercu::before { content: ""; display: block; height: 1px; margin: 9px 0 5px; background: linear-gradient(90deg, var(--filet-or-vif), transparent); }
+.paliers-apercu { border-collapse: separate; border-spacing: 0; width: calc(100% + 20px); margin: 0 -10px; }
+.apercu .paliers-apercu th, .apercu .paliers-apercu td { padding: 7px 0; vertical-align: middle; text-align: left; font: 400 15px/20px "Spectral", serif; white-space: nowrap; color: var(--creme-2); border: solid transparent; border-width: 1px 0; }
+.apercu .paliers-apercu th { padding: 7px 18px 7px 10px; border-left-width: 1px; }
+.apercu .paliers-apercu td.prix { padding: 7px 0 7px 14px; text-align: right; }
+.apercu .paliers-apercu td.prix:nth-child(3) { padding-left: 36px; }
+.apercu .paliers-apercu td:last-child { padding-right: 10px; border-right-width: 1px; }
+.paliers-apercu .niveaux { margin: 0; vertical-align: middle; }
+.paliers-apercu .niveaux i { box-shadow: inset 0 0 0 1px var(--filet-or-vif); }
+.paliers-apercu .offre .rub { display: block; font-size: 12px; line-height: 14px; color: var(--or); }
+.paliers-apercu .cout { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+.paliers-apercu .cout b { font-size: 15px; }
+.paliers-apercu .bati, .paliers-apercu .loin { opacity: .8; }
+.apercu .paliers-apercu .ici td.offre { color: var(--ivoire); }
+.apercu .paliers-apercu .prochain > * { border-color: var(--filet-or-vif); background: linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.07)); padding-top: 9px; padding-bottom: 10px; }
+.apercu .paliers-apercu .prochain td.offre { color: var(--ivoire); font-size: 17px; line-height: 23px; font-weight: 500; }
+.paliers-apercu .prochain .offre .rub { color: var(--or-eclat); }
+.apercu .paliers-apercu .prochain td.prix { color: var(--or-eclat); }
+.paliers-apercu .prochain .cout b { font-size: 18px; }
+.apercu .paliers-apercu .prochain td.prix.manque { color: #f0a48e; }
+@media (max-width: 700px) { .apercu .paliers-apercu td.offre { white-space: normal; } }
 .apercu-du-jeu .corps-apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 14; overflow: hidden; margin-top: 4px; }
 .apercu-du-jeu .corps-apercu p { margin: 0 0 4px; font-style: normal; font-size: 13.5px; line-height: 18px; color: var(--encre); }
 .apercu-du-jeu .corps-apercu ul { margin: 0 0 4px; padding-left: 16px; font-size: 13.5px; line-height: 18px; }

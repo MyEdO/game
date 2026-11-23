@@ -40,20 +40,28 @@ function manqueAuPalier(e: J.Etat, b: J.Batiment): string | null {
   return manque.length ? `Il manque ${manque.join(' et ')}.` : null;
 }
 
-/** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang,
- *  son prix et ce qu'il offre, l'actuel et le prochain marqués ; au pied, ce qui manque pour bâtir. */
+/** Le prix d'un palier en deux cases du tableau, ses couronnes puis ses trophées, chacune à son pictogramme ; `e` :
+ *  ce que la bourse ne couvre pas se dit en rouge. */
+const prixDuPalier = (p: J.Batiment['paliers'][number], e?: J.Etat) => {
+  const cout = (n: number, icone: string, dit: string, avoir?: number) => `<td class="prix${avoir != null && avoir < n ? ' manque' : ''}">${n ? `<span class="cout" aria-label="${n} ${dit}">${picto(icone, 18, 1.7)}<b class="chiffres">${n}</b></span>` : ''}</td>`;
+  return cout(p.cout, 'pieces', 'CO', e?.or) + cout(p.trophees, 'crane', p.trophees > 1 ? 'trophées' : 'trophée', e?.trophees);
+};
+
+/** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang
+ *  en losanges, ce qu'il offre et son prix, l'actuel dit « ici », le prochain mis en avant ; au pied, ce qui manque
+ *  pour bâtir. */
 function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
   const refus = manqueAuPalier(e, b);
+  const lignes = b.paliers.map((p, i) => {
+    const prochain = i === n + 1;
+    return `<tr class="${i < n ? 'bati' : i === n ? 'ici' : prochain ? 'prochain' : 'loin'}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}</th>
+      <td class="offre">${i === n ? '<span class="rub">Ici</span>' : prochain ? '<span class="rub">Prochain palier</span>' : ''}${esc(p.effet)}</td>
+      ${i === 0 ? '<td class="prix" colspan="2"><span class="sous-titre">de départ</span></td>' : prixDuPalier(p, prochain ? e : undefined)}</tr>`;
+  }).join('');
   return apercuDe({
     nom: b.nom, nature: `Palier ${n + 1} sur ${b.paliers.length}${J.enRuine(e.batiments, b.id) ? ' · en ruine' : ''}`,
-    table: {
-      colonnes: ['Palier', 'Prix', 'Ce qu’il offre'],
-      lignes: b.paliers.map((p, i) => ({
-        cellules: [`${i + 1}${i === n ? ' · **actuel**' : i === n + 1 ? ' · **prochain**' : ''}`, i === 0 ? 'de départ' : [`${p.cout} CO`, p.trophees ? pluriel(p.trophees, 'trophée') : ''].filter(Boolean).join(' + '), p.effet],
-        ...(i === n ? { marque: 'actuel' as const } : i === n + 1 ? { marque: 'prochain' as const } : {}),
-      })),
-    },
+    planche: `<table class="paliers-apercu"><tbody>${lignes}</tbody></table>`,
     ...(refus ? { pied: refus } : {}),
   });
 }

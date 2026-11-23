@@ -14,12 +14,9 @@ export const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '
 /** La note du kit : une précision, une aide (`courante`), ou un coût, un refus (`avertissement`). */
 export const glose = (texte: string, variante: 'courante' | 'avertissement' = 'courante') => `<span class="glose ${variante}">${texte}</span>`;
 
-/** Le tableau d'un aperçu : ses colonnes, ses lignes (cellules en Markdown de ligne), et la marque d'une ligne : celle
- *  où l'on est (`actuel`), celle que le geste survolé achète (`prochain`). */
-export interface TableDApercu { colonnes: readonly string[]; lignes: readonly { cellules: readonly string[]; marque?: 'actuel' | 'prochain' }[] }
-/** Ce qu'un aperçu montre : le nom, ce qu'il est, le texte (du livre, ou des chiffres), un tableau, et au pied un
- *  refus. */
-export interface Apercu { nom: string; nature?: string; texte?: string; table?: TableDApercu; pied?: string }
+/** Ce qu'un aperçu montre : le nom, ce qu'il est, le texte (du livre, ou des chiffres), et au pied un refus ; ou, à la
+ *  place du texte, une `planche` que l'interface compose elle-même (HTML déjà échappé), sur bois sombre. */
+export interface Apercu { nom: string; nature?: string; texte?: string; planche?: string; pied?: string }
 export const apercuDe = (a: Apercu) => ` data-apercu="${esc(JSON.stringify(a))}"`;
 
 // ─── Le héros ───────────────────────────────────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
  * qu'elle qualifie, dessous s'il manque la place ; l'aperçu à sa droite, à gauche s'il manque la place ; tous deux
  * restent dans l'écran.
  */
-import type { Apercu, TableDApercu } from './pieces';
+import type { Apercu } from './pieces';
 
 /** Le sens des abréviations du livre que l'interface affiche, en bulle au survol. */
 const GLOSSAIRE: Record<string, string> = {
@@ -93,25 +93,10 @@ function corpsDuTexte(texte: string): HTMLElement {
   return corps;
 }
 
-/** Le tableau d'un aperçu : ses en-têtes, ses lignes, la ligne actuelle et la prochaine marquées. */
-function tableDe(t: TableDApercu): HTMLElement {
-  const table = document.createElement('table');
-  table.className = 'table-apercu';
-  const tete = table.createTHead().insertRow();
-  for (const c of t.colonnes) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = c; tete.append(th); }
-  const corps = table.createTBody();
-  for (const l of t.lignes) {
-    const tr = corps.insertRow();
-    if (l.marque) tr.className = l.marque;
-    if (l.marque === 'actuel') tr.setAttribute('aria-current', 'true');
-    for (const c of l.cellules) tr.insertCell().append(...enLigne(c));
-  }
-  return table;
-}
-
 function poserLApercu(porteur: HTMLElement, a: Apercu) {
   apercu.replaceChildren();
-  apercu.classList.toggle('large', !!a.table);
+  apercu.classList.toggle('parchemin', !a.planche);
+  apercu.classList.toggle('bois', !!a.planche);
   const tete = document.createElement('div');
   tete.className = 'tete';
   const nom = document.createElement('div');
@@ -121,7 +106,7 @@ function poserLApercu(porteur: HTMLElement, a: Apercu) {
   apercu.append(tete);
   if (a.nature) { const n = document.createElement('div'); n.className = 'sous-titre'; n.textContent = a.nature; apercu.append(n); }
   if (a.texte) apercu.append(corpsDuTexte(a.texte));
-  if (a.table) apercu.append(tableDe(a.table));
+  if (a.planche) { const p = document.createElement('div'); p.className = 'planche-apercu'; p.innerHTML = a.planche; apercu.append(p); }
   if (a.pied) { const p = document.createElement('div'); p.className = 'pied glose avertissement'; p.textContent = a.pied; apercu.append(p); }
   apercu.hidden = false;
   const r = porteur.getBoundingClientRect();
