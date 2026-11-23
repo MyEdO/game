@@ -473,7 +473,7 @@ def construire(args):
                               export_morph_normal=True)
     print('NORMALES_DES_CIBLES soudées aux coutures, écart corrigé', round(souder_les_normales_des_cibles(args.sortie), 2),
           '°', flush=True)
-    filets = draper(args.sortie, nom_du_corps)
+    filets = draper(args.sortie, nom_du_corps, manifeste['prises']['main'], set(declaration['clipsDeuxMains']['hampe'].values()))
     manifeste['os'] += [os_ for noms in filets.values() for os_ in noms]
     manifeste['chaines'] = {**filets, **chaines}
     verifier_gabarit(args.sortie, reference)

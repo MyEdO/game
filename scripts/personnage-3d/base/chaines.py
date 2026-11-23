@@ -1,5 +1,5 @@
 """Chaînes d'appendice de la base humanoïde et leurs pistes au repos (#3102 ; #2972, commentaire 6389032417,
-« Appendices »). La jupe et la cape sont des filets, posés et drapés sur le GLB exporté (`filets.py`).
+« Appendices »). La jupe, la cape et les manches se posent et se drapent sur le GLB exporté (`filets.py`).
 
 `ajouter_chaines` pose, après la correction des poids, les os des chaînes `queue`, `ailes`, `bras_sup` et `cou_long`,
 chacun ancré sur le corps au repos (bande horizontale de sommets autour d'une hauteur d'os) ; aucun sommet de la base ne

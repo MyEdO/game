@@ -1,11 +1,13 @@
-"""Les filets de tissu de la base (#3842) : la jupe et la cape, des brins d'os pendus autour du corps, que pondèrent les
-vêtements amples. `draper` pose leurs os sur le GLB exporté de la base, au repos sur le corps, et écrit leurs pistes
-dans chaque clip : le drapé en tente (`tente.py`) sur la peau posée de chaque image. `filets_au_repos` relit d'un GLB
-drapé ce qu'un élément en attend : les os et les articulations au repos de chaque filet.
+"""Les filets de tissu de la base (#3842) : la jupe et la cape, des brins d'os pendus autour du corps, et les manches
+(#4697), des brins pendus sous chaque avant-bras, que pondèrent les vêtements amples. `draper` pose leurs os sur le GLB
+exporté de la base, au repos sur le corps, et écrit leurs pistes dans chaque clip : le drapé en tente (`tente.py`) de la
+jupe et de la cape, le drapé pendant (`pendant.py`) des manches, sur la peau posée de chaque image. `filets_au_repos`
+et `manches_au_repos` relisent d'un GLB drapé ce qu'un élément en attend : les os et les articulations au repos.
 Repère de l'armature : +Z le haut, -Y l'avant, +X la gauche du personnage.
 """
 import numpy as np
 
+import pendant
 import tente
 from glb import ecrire_glb, lire_accesseur, lire_glb
 from seuils import IMAGES_PAR_SECONDE
@@ -15,8 +17,9 @@ ARMATURE = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
 GROUPES = {'cuisses': [f'{z}_{c}' for z in ('cuisse', 'genou') for c in 'gd'],
            'mollets': [f'mollet_{c}' for c in 'gd'], 'pieds': [f'pied_{c}' for c in 'gd'],
            'bassin': ['hanches'], 'tronc': ['torse'],
-           'bras': [f'{z}_{c}' for z in ('bras_haut', 'avant_bras', 'main') for c in 'gd']}
-"""Par groupe de peau que voit un filet, ses zones du corps."""
+           'bras': [f'{z}_{c}' for z in ('bras_haut', 'avant_bras', 'main') for c in 'gd'],
+           'tete': ['cou', 'tete', 'visage', 'nez']}
+"""Par groupe de peau que voit un filet ou une manche, ses zones du corps."""
 TOUR = ('avant', 'avant_avant_g', 'avant_g', 'g_avant_g', 'g', 'g_arriere_g', 'arriere_g', 'arriere_arriere_g', 'arriere',
         'arriere_arriere_d', 'arriere_d', 'd_arriere_d', 'd', 'd_avant_d', 'avant_d', 'avant_avant_d')
 """Les brins d'un tour complet, de l'avant vers la gauche."""
@@ -32,6 +35,24 @@ FILETS = (
 `(nom, azimut en degrés depuis l'avant, vers la gauche)` ; `evasement` : rapport du rayon de l'ourlet à celui des
 racines ; `dedans`, `cede`, `dehors` : les groupes de peau de chaque côté (`tente.py`) ; `sur` : les filets qu'il
 recouvre."""
+MANCHES = tuple(
+    {'nom': f'manche_{c}', 'porteur': f'lowerarm_{cote}', 'main': f'hand_{cote}', 'os': 3,
+     'brins': tuple((f'{station}_{face}', part, azimut, longueur)
+                    for station, part, longueur in (('coude', 0.1, 0.15), ('milieu', 0.4, 0.30), ('poignet', 0.7, 0.45))
+                    for face, azimut in (('avant', 45.0), ('arriere', -45.0)))}
+    for c, cote in (('g', 'l'), ('d', 'r')))
+"""Les manches, une par avant-bras. `porteur` : l'os qui porte les racines ; `main` : l'os du poignet ; `os` : os par
+brin ; `brins` : `(nom, part de l'avant-bras du coude au poignet, azimut en degrés autour de l'avant-bras, du dessous
+du bras tendu vers l'avant, longueur en mètres)`."""
+FUT_DE_HAMPE = (-0.6, 1.2, 0.02)
+"""Le fût d'une arme d'hampe dans le repère de la prise `main` : ses deux bouts sur le +Y, en mètres, et son rayon. Les
+bouts du bâton, l'arme d'hampe la plus courte (`element/humanoide/rigide--baton/donnees.py`) ; le rayon de la hampe la
+plus forte, celle de la grande hache."""
+DRESSE = 0.5
+"""Poids du dessous de la manche au repos devant le côté le plus bas de l'avant-bras, quand il se dresse
+(`Manche.tour`)."""
+LISSAGE_DU_TOUR = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
+"""Poids des images voisines, de trois avant à trois après, dans l'angle du tour d'une manche."""
 JEU_RACINE_M = 0.02
 """Écart, en mètres, entre la peau au repos et le polygone des racines."""
 CHEVILLE_M = 0.1
@@ -48,8 +69,12 @@ BALAYAGE = 3
 que la main balaie depuis l'image d'avant et jusqu'à celle d'après, et le tissu d'entre deux images, fondu des deux,
 reste sous elle."""
 APLOMB = (0.2, 0.7)
-"""Hauteurs de l'axe vertical du porteur (son +Z au repos, 1 : debout) entre lesquelles les plans des brins passent de
-ceux du porteur à l'aplomb, et le sol remonte de `COUCHE_SOUS_LE_SOL_M` à `tente.SOL_M`."""
+"""Hauteurs de l'axe vertical du porteur (son +Z au repos, 1 : debout) entre lesquelles un porteur à terre passe de
+couché à debout : les plans des brins, de ceux du porteur à l'aplomb, et le sol, de `COUCHE_SOUS_LE_SOL_M` à
+`tente.SOL_M`."""
+A_TERRE_M = (0.4, 0.65)
+"""Hauteurs du porteur au-dessus du sol, en mètres, entre lesquelles il passe d'à terre à dressé : dressé, ses brins
+restent d'aplomb quelle que soit son inclinaison."""
 COUCHE_SOUS_LE_SOL_M = 2.0
 """Profondeur, en mètres, du sol d'un filet dont le porteur est couché : le corps repose sur son tissu."""
 
@@ -85,11 +110,15 @@ def quaternion(m):
 
 
 def tour(a, b, part=1.0):
-    """La rotation la plus courte de l'unitaire `a` vers l'unitaire `b`, ou sa fraction `part`."""
+    """La rotation la plus courte de l'unitaire `a` vers l'unitaire `b`, ou sa fraction `part` ; d'un demi-tour, celle
+    d'axe le plus proche de l'axe du repère le moins aligné sur `a`."""
     v = np.cross(a, b)
     s, c = np.linalg.norm(v), float(np.dot(a, b))
     if s < 1e-9:
-        return np.eye(3)
+        if c > 0:
+            return np.eye(3)
+        v = np.cross(a, np.eye(3)[np.abs(a).argmin()])
+        s = np.linalg.norm(v)
     k = v / s
     K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
     angle = np.arctan2(s, c) * part
@@ -122,7 +151,37 @@ def os_de(filet, brin, k):
 
 
 def os_des_brins(filet):
-    return [[os_de(filet, brin, k) for k in range(1, filet['os'] + 1)] for brin, _ in filet['brins']]
+    return [[os_de(filet, brin[0], k) for k in range(1, filet['os'] + 1)] for brin in filet['brins']]
+
+
+def poser_les_brins(squelette, filet, porteur, repos, dehors):
+    """Pose au repos les os des brins de `filet` sous l'os `porteur`, sur les articulations `repos` (S, K+1, 3), le +Z de
+    chaque os au plus près du `dehors` (S, 3) de son brin. Rend, par os, sa rotation au repos."""
+    rotations = {}
+    for s, noms in enumerate(os_des_brins(filet)):
+        parent = porteur
+        for k, nom in enumerate(noms):
+            monde = np.eye(4)
+            monde[:3, :3] = repere_d_os(repos[s, k + 1] - repos[s, k], dehors[s])
+            monde[:3, 3] = repos[s, k]
+            squelette.poser_un_os(nom, parent, monde)
+            rotations[nom] = monde[:3, :3]
+            parent = nom
+    return rotations
+
+
+def rotations_des_brins(filet, directions, repos_des_os, x, Q, porteur):
+    """Par os de `filet`, son quaternion local quand ses articulations sont en `x` : chaque os porté sur sa direction par
+    la rotation la plus courte depuis son repos (`directions`, `repos_des_os`) tourné de `Q` ; `porteur` : la rotation
+    de son porteur."""
+    rotations = {}
+    for s, noms in enumerate(os_des_brins(filet)):
+        parent = porteur
+        for k, nom in enumerate(noms):
+            monde = tour(Q @ directions[s, k], unitaire(x[s, k + 1] - x[s, k])) @ Q @ repos_des_os[nom]
+            rotations[nom] = quaternion(parent.T @ monde)
+            parent = monde
+    return rotations
 
 
 class Squelette:
@@ -242,16 +301,16 @@ class Squelette:
 
 
 class Peau:
-    """La peau du corps par groupe : ses sommets, que posent ses os, leur os dominant et ses arêtes."""
+    """La peau du corps par groupe : ses sommets, que posent ses os, leur os dominant, ses arêtes et ses triangles."""
 
     def __init__(self, squelette, corps):
         """`corps` : le nom de l'objet du corps, dont chaque zone est le mesh `<corps>-<zone>`."""
         document = squelette.document
         self.os = [squelette.noeuds[j]['name'] for j in squelette.peau['joints']]
         self.liaisons = np.array(squelette.liaisons).reshape(-1, 4, 4).transpose(0, 2, 1)
-        self.groupes, self.aretes, self.dominants = {}, {}, {}
+        self.groupes, self.aretes, self.dominants, self.triangles = {}, {}, {}, {}
         for groupe, zones in GROUPES.items():
-            P, J, W, A, n = [], [], [], [], 0
+            P, J, W, A, T, n = [], [], [], [], [], 0
             for zone in zones:
                 primitive, = document['meshes'][squelette.noeuds[squelette.indice[f'{corps}-{zone}']]['mesh']]['primitives']
                 P.append(squelette.lire(primitive['attributes']['POSITION']))
@@ -259,10 +318,12 @@ class Peau:
                 W.append(squelette.lire(primitive['attributes']['WEIGHTS_0']))
                 t = squelette.lire(primitive['indices']).astype(int).reshape(-1, 3)
                 A.append(np.unique(np.sort(np.concatenate([t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]]), axis=1), axis=0) + n)
+                T.append(t + n)
                 n += len(P[-1])
             P, J, W = np.concatenate(P), np.concatenate(J), np.concatenate(W)
             self.groupes[groupe] = (np.c_[P, np.ones(len(P))], J, W)
             self.aretes[groupe] = np.concatenate(A)
+            self.triangles[groupe] = np.concatenate(T)
             self.dominants[groupe] = np.array(self.os)[J[np.arange(len(J)), W.argmax(axis=1)]]
         self.utiles = sorted({int(j) for _, J, W in self.groupes.values() for j in np.unique(J[W > 0])})
 
@@ -274,6 +335,19 @@ class Peau:
         for j in self.utiles:
             M[j] = mondes[self.os[j]] @ self.liaisons[j]
         return mondes, {g: np.einsum('vk,vkij,vj->vi', W, M[J], P)[:, :3] for g, (P, J, W) in self.groupes.items() if groupes is None or g in groupes}
+
+    def orientee(self, sommets):
+        """La peau posée `sommets` (par groupe) en une surface : ses sommets et leurs normales sortantes."""
+        P, N = [], []
+        for g, x in sommets.items():
+            t = self.triangles[g]
+            faces = np.cross(x[t[:, 1]] - x[t[:, 0]], x[t[:, 2]] - x[t[:, 0]])
+            normales = np.zeros_like(x)
+            for coin in range(3):
+                np.add.at(normales, t[:, coin], faces)
+            P.append(x)
+            N.append(normales / np.maximum(np.linalg.norm(normales, axis=1, keepdims=True), 1e-12))
+        return np.concatenate(P), np.concatenate(N)
 
 
 def plan(squelette, filet, P, dominants):
@@ -342,17 +416,8 @@ class Monte:
         self.aretes = np.array(self.aretes)
         segments = self.repos[:, 1:] - self.repos[:, :-1]
         self.directions = segments / np.linalg.norm(segments, axis=2, keepdims=True)
-        self.repos_des_os = {}
-        for s, noms in enumerate(os_des_brins(filet)):
-            parent = filet['porteur']
-            dehors = unitaire((self.repos[s, -1] - self.repos[s, 0]) * np.array([1, 1, 0]))
-            for k, nom in enumerate(noms):
-                monde = np.eye(4)
-                monde[:3, :3] = repere_d_os(segments[s, k], dehors)
-                monde[:3, 3] = self.repos[s, k]
-                squelette.poser_un_os(nom, parent, monde)
-                self.repos_des_os[nom] = monde[:3, :3]
-                parent = nom
+        dehors = (self.repos[:, -1] - self.repos[:, 0]) * np.array([1, 1, 0])
+        self.repos_des_os = poser_les_brins(squelette, filet, filet['porteur'], self.repos, dehors)
 
     def surface(self, x, O, haut):
         """Le filet posé `x` vu du filet d'axe (`O`, `haut`) qui le recouvre : ses articulations, son couvercle (de chaque
@@ -373,7 +438,7 @@ class Monte:
         rotation = orthonormer(porteur[:3, :3])
         D = rotation @ self.porteur_au_repos.T
         debout = unitaire(D @ tente.HAUT)
-        aplomb = fondu((debout[2] - APLOMB[0]) / (APLOMB[1] - APLOMB[0]))
+        aplomb = max(fondu((debout[2] - APLOMB[0]) / (APLOMB[1] - APLOMB[0])), fondu((porteur[2, 3] - A_TERRE_M[0]) / (A_TERRE_M[1] - A_TERRE_M[0])))
         Q = tour(debout, tente.HAUT, aplomb) @ D
         surfaces = [(cote, 0.0, sommets[g], self.peau.aretes[g]) for cote, cle in ((tente.DEDANS, 'dedans'), (tente.CEDE, 'cede')) for g in self.filet[cle]]
         for g, (garde, aretes) in self.dehors.items():
@@ -389,29 +454,121 @@ class Monte:
                      np.concatenate([np.full(len(P), cote) for cote, _, P, _ in surfaces]), np.concatenate([A + n for (_, _, _, A), n in zip(surfaces, rangs)]))
         return (points[:-1], points[-1], Q, obstacles, tente.SOL_M - (1 - aplomb) * COUCHE_SOUS_LE_SOL_M), rotation
 
-    def rotations(self, x, Q, porteur):
-        """Par os, son quaternion local quand les articulations du filet sont en `x` : chaque os porté sur sa direction
-        par la rotation la plus courte depuis son repos tourné de `Q`."""
-        rotations = {}
-        for s, noms in enumerate(os_des_brins(self.filet)):
-            parent = porteur
-            for k, nom in enumerate(noms):
-                monde = tour(Q @ self.directions[s, k], unitaire(x[s, k + 1] - x[s, k])) @ Q @ self.repos_des_os[nom]
-                rotations[nom] = quaternion(parent.T @ monde)
-                parent = monde
-        return rotations
+    def cuire(self, etats, temps, boucle):
+        """Les articulations du filet à chaque image d'un clip et, par os, ses quaternions locaux."""
+        poses = tente.cuire(self.tente, [etat for etat, _ in etats], temps, boucle)
+        return poses, [rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, etat[2], porteur) for x, (etat, porteur) in zip(poses, etats)]
 
 
-def draper(chemin, corps):
-    """Pose sur le GLB `chemin` de la base les os des filets et, dans chaque clip, leurs pistes, une clé par image de
-    `IMAGES_PAR_SECONDE`. `corps` : le nom de l'objet du corps. Rend le manifeste `chaines` des filets."""
+def os_du_tour(manche):
+    """Le nom de l'os qui tourne la manche `manche` autour de son avant-bras."""
+    return f"{manche['nom']}_tour"
+
+
+def autour(axe, angle):
+    """La rotation de `angle` radians autour de l'unitaire `axe`."""
+    K = np.array([[0, -axe[2], axe[1]], [axe[2], 0, -axe[0]], [-axe[1], axe[0], 0]])
+    return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * K @ K
+
+
+class Manche:
+    """Une manche montée sur la base : l'os de son tour, posé sur son porteur, qui la tourne autour de l'avant-bras ; ses
+    brins, posés au repos d'aplomb sous l'avant-bras tendu, enfants du tour ; ses racines, leurs dégagements, l'axe de
+    l'avant-bras et son dessous dans le repère de son porteur."""
+
+    def __init__(self, squelette, manche, peau):
+        self.filet = manche
+        porteur, main = manche['porteur'], manche['main']
+        mondes, sommets = peau.poser(squelette, {}, 0.0, [porteur, main])
+        coude, poignet = mondes[porteur][:3, 3], mondes[main][:3, 3]
+        axe = unitaire(poignet - coude)
+        dessous = unitaire(pendant.BAS - (pendant.BAS @ axe) * axe)
+        avant = np.cross(dessous, axe) * np.sign(np.cross(dessous, axe) @ np.array([0.0, -1.0, 0.0]))
+        P = sommets['bras'][peau.dominants['bras'] == porteur]
+        racines, dehors = [], []
+        for _, part, azimut, _ in manche['brins']:
+            centre = coude + part * (poignet - coude)
+            hors = np.cos(np.radians(azimut)) * dessous + np.sin(np.radians(azimut)) * avant
+            le_long = np.abs((P - centre) @ axe)
+            coupe = P[le_long <= le_long.min() + JEU_RACINE_M]
+            racines.append(centre + (((coupe - centre) @ hors).max() + JEU_RACINE_M) * hors)
+            dehors.append(hors)
+        racines, dehors = np.array(racines), np.array(dehors)
+        K = manche['os']
+        self.longueurs = np.array([[longueur / K] * K for *_, longueur in manche['brins']])
+        self.repos = racines[:, None, :] + np.concatenate([np.zeros((len(racines), 1)), np.cumsum(self.longueurs, axis=1)], axis=1)[:, :, None] * pendant.BAS
+        inverse = np.linalg.inv(mondes[porteur])
+        self.locales = racines @ inverse[:3, :3].T + inverse[:3, 3]
+        self.degagements = np.array([unitaire(h + axe) for h in dehors]) @ inverse[:3, :3].T
+        self.axe, self.dessous = inverse[:3, :3] @ axe, inverse[:3, :3] @ dessous
+        self.porteur_au_repos = orthonormer(mondes[porteur][:3, :3])
+        self.directions = np.tile(pendant.BAS, (len(racines), K, 1))
+        squelette.poser_un_os(os_du_tour(manche), porteur, mondes[porteur])
+        self.repos_des_os = poser_les_brins(squelette, manche, os_du_tour(manche), self.repos, dehors - (dehors @ pendant.BAS)[:, None] * pendant.BAS)
+
+    def bas(self, porteur):
+        """L'angle, en radians autour de l'avant-bras depuis son dessous au repos, du côté où tourner la manche sous le
+        porteur de rotation monde `porteur` : le plus bas sous un avant-bras couché, son dessous au repos sous un
+        avant-bras dressé, qui n'a pas de côté bas."""
+        aplomb = porteur.T @ pendant.BAS
+        bas = aplomb - (aplomb @ self.axe) * self.axe
+        couche = float(np.linalg.norm(bas))
+        vers = couche * bas + DRESSE * (1 - couche * couche) * self.dessous
+        return np.arctan2(self.axe @ np.cross(self.dessous, vers), self.dessous @ vers)
+
+    def cuire(self, images, boucle):
+        """Les articulations de la manche à chaque image d'un clip et, par os, ses quaternions locaux. `images` : par
+        image, les matrices monde et les obstacles (`pendant`). Le tour de la manche suit son côté bas, déroulé d'une
+        image à la suivante puis lissé sur ses voisines (`LISSAGE_DU_TOUR`), celles de l'autre bout d'un clip en `boucle`."""
+        porteurs = [mondes[self.filet['porteur']] for mondes, _ in images]
+        rotations_des_porteurs = [orthonormer(porteur[:3, :3]) for porteur in porteurs]
+        angles = np.unwrap([self.bas(rotation) for rotation in rotations_des_porteurs])
+        n = len(angles)
+        demi = len(LISSAGE_DU_TOUR) // 2
+        rangs = np.arange(n)[:, None] + np.arange(-demi, demi + 1)[None]
+        if boucle and n > 1:
+            rampe = 2 * np.pi * np.round((angles[-1] - angles[0]) / (2 * np.pi)) * np.arange(n) / (n - 1)
+            angles = (LISSAGE_DU_TOUR * (angles - rampe)[rangs % (n - 1)]).sum(axis=1) + rampe
+        else:
+            angles = (LISSAGE_DU_TOUR * angles[np.clip(rangs, 0, n - 1)]).sum(axis=1)
+        poses, rotations = [], []
+        for porteur, rotation, angle, (_, obstacles) in zip(porteurs, rotations_des_porteurs, angles, images):
+            tour = autour(self.axe, angle)
+            tournee = rotation @ tour
+            x = pendant.pendre(self.locales @ tournee.T + porteur[:3, 3], self.longueurs, self.degagements @ tournee.T, obstacles)
+            poses.append(x)
+            rotations.append({os_du_tour(self.filet): quaternion(tour),
+                              **rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, tournee @ self.porteur_au_repos.T, tournee)})
+        return poses, rotations
+
+
+def repere_de_prise(prise):
+    """La matrice 4×4 de l'attache `prise` (`position`, `rotation` : `anatomie.attache`, R = Rx·Ry·Rz) dans le repère
+    de son os."""
+    x, y, z = prise['rotation']
+    cx, sx, cy, sy, cz, sz = np.cos(x), np.sin(x), np.cos(y), np.sin(y), np.cos(z), np.sin(z)
+    m = np.eye(4)
+    m[:3, :3] = (np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]]) @ np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+                 @ np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]]))
+    m[:3, 3] = prise['position']
+    return m
+
+
+def draper(chemin, corps, prise, hampes):
+    """Pose sur le GLB `chemin` de la base les os des filets et des manches et, dans chaque clip, leurs pistes, une clé
+    par image de `IMAGES_PAR_SECONDE`. `corps` : le nom de l'objet du corps ; `prise` : l'attache de la prise `main`
+    (`os`, `position`, `rotation`) ; `hampes` : les clips où elle tient une arme d'hampe, dont le fût écarte les manches.
+    Rend le manifeste `chaines` : par filet ses os, et `manche`, ceux des deux manches."""
     squelette = Squelette(chemin)
     peau = Peau(squelette, corps)
     montes = {}
     for filet in FILETS:
         montes[filet['nom']] = Monte(squelette, filet, peau, [montes[n] for n in filet['sur']])
-    porteurs = sorted({filet['porteur'] for filet in FILETS})
+    manches = [Manche(squelette, manche, peau) for manche in MANCHES]
+    porteurs = sorted({filet['porteur'] for filet in FILETS + MANCHES} | {prise['os']})
     balayes = {g for filet in FILETS for g in filet['dehors']}
+    dans_la_main = repere_de_prise(prise)
+    sol = pendant.Sol(tente.SOL_M)
     for clip in squelette.clips:
         pistes = squelette.pistes(clip)
         duree = max(instants[-1] for instants, _ in pistes.values())
@@ -427,19 +584,41 @@ def draper(chemin, corps):
             avant, apres = ((i - 1) % len(sous), i % len(sous)) if boucle and sous else (i - 1, i)
             return ([corps_poses[avant], *sous[avant]] if 0 <= avant < len(sous) else []) + ([*sous[apres], corps_poses[apres + 1]] if 0 <= apres < len(sous) else [])
 
+        cles = {}
         poses = {}
         for nom, monte in montes.items():
             etats = [monte.etat(mondes, sommets, [(montes[n], poses[n][i]) for n in monte.filet['sur']], voisines(i)) for i, (mondes, sommets) in enumerate(corps_poses)]
-            poses[nom] = tente.cuire(monte.tente, [etat for etat, _ in etats], temps, boucle)
-            cles = {}
-            for x, (etat, porteur) in zip(poses[nom], etats):
-                for os_, q in monte.rotations(x, etat[2], porteur).items():
-                    cles.setdefault(os_, []).append(-q if cles.get(os_) and np.dot(cles[os_][-1], q) < 0 else q)
-            for os_, quaternions in cles.items():
-                squelette.ecrire_piste(clip, os_, instants, quaternions)
+            poses[nom], rotations = monte.cuire(etats, temps, boucle)
+            cles.update({os_: [image[os_] for image in rotations] for os_ in rotations[0]})
+        images = []
+        for mondes, sommets in corps_poses:
+            obstacles = [pendant.Peaux(*peau.orientee(sommets)), sol]
+            if clip in hampes:
+                fut = mondes[prise['os']] @ dans_la_main
+                obstacles.append(pendant.Fut(*(fut[:3, 3] + cote * fut[:3, 1] for cote in FUT_DE_HAMPE[:2]), FUT_DE_HAMPE[2]))
+            images.append((mondes, obstacles))
+        for manche in manches:
+            _, rotations = manche.cuire(images, boucle)
+            cles.update({os_: [image[os_] for image in rotations] for os_ in rotations[0]})
+        for os_, quaternions in cles.items():
+            for i in range(1, len(quaternions)):
+                if np.dot(quaternions[i - 1], quaternions[i]) < 0:
+                    quaternions[i] = -quaternions[i]
+            squelette.ecrire_piste(clip, os_, instants, quaternions)
         print('FILETS', clip, len(temps), 'image(s)', flush=True)
     squelette.ecrire(chemin)
-    return {filet['nom']: [os_ for brin in os_des_brins(filet) for os_ in brin] for filet in FILETS}
+    return {**{filet['nom']: [os_ for brin in os_des_brins(filet) for os_ in brin] for filet in FILETS},
+            'manche': [os_ for manche in MANCHES for os_ in [os_du_tour(manche)] + [os_ for brin in os_des_brins(manche) for os_ in brin]]}
+
+
+def articulations(squelette, noms):
+    """Les articulations au repos (S, K+1, 3) des brins d'os `noms`, le bout du dernier os à la longueur du précédent."""
+    mondes = squelette.monde({}, 0.0, [os_ for brin in noms for os_ in brin])
+    brins = []
+    for brin in noms:
+        tetes = [mondes[os_][:3, 3] for os_ in brin]
+        brins.append(tetes + [tetes[-1] + np.linalg.norm(tetes[-1] - tetes[-2]) * mondes[brin[-1]][:3, 1]])
+    return np.array(brins)
 
 
 def filets_au_repos(chemin):
@@ -449,14 +628,26 @@ def filets_au_repos(chemin):
     filets = {}
     for filet in FILETS:
         noms = os_des_brins(filet)
-        mondes = squelette.monde({}, 0.0, [os_ for brin in noms for os_ in brin])
-        brins = []
-        for brin in noms:
-            tetes = [mondes[os_][:3, 3] for os_ in brin]
-            brins.append(tetes + [tetes[-1] + np.linalg.norm(tetes[-1] - tetes[-2]) * mondes[brin[-1]][:3, 1]])
-        brins = np.array(brins)
+        brins = articulations(squelette, noms)
         hors = brins[:, -1, :2] - brins[:, 0, :2]
         normales = np.column_stack([-hors[:, 1], hors[:, 0]])
         axe = np.linalg.lstsq(normales, np.einsum('sc,sc->s', normales, brins[:, 0, :2]), rcond=None)[0]
         filets[filet['nom']] = {'os': noms, 'ferme': filet['ferme'], 'brins': brins, 'axe': axe}
     return filets
+
+
+def manches_au_repos(chemin):
+    """Par manche du GLB drapé `chemin` (`manche_g`, `manche_d`) : `tour`, l'os qui la tourne autour de l'avant-bras ;
+    `os`, par brin, ses os ; `brins` (S, K+1, 3), ses
+    articulations au repos dans le repère de l'armature ; `coude` et `poignet`, les bouts de son avant-bras ; `parts`
+    (S,), la part de l'avant-bras où pend chaque brin ; `avant` (S,), s'il pend à l'avant du bras tendu."""
+    squelette = Squelette(chemin)
+    manches = {}
+    for manche in MANCHES:
+        noms = os_des_brins(manche)
+        mondes = squelette.monde({}, 0.0, [manche['porteur'], manche['main']])
+        manches[manche['nom']] = {'tour': os_du_tour(manche), 'os': noms, 'brins': articulations(squelette, noms),
+                                  'coude': mondes[manche['porteur']][:3, 3], 'poignet': mondes[manche['main']][:3, 3],
+                                  'parts': np.array([part for _, part, _, _ in manche['brins']]),
+                                  'avant': np.array([azimut > 0 for _, _, azimut, _ in manche['brins']])}
+    return manches

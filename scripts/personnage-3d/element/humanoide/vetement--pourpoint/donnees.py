@@ -76,7 +76,5 @@ RETRAIT_DES_CREVES = 0.020
 creux entre deux bouffants. HYPOTHÈSE : sous l'aisance du bouffant (42 mm), au-dessus de la chemise (16 mm)."""
 COUPE_MIN = 0.06                   # pourpoint-matelasse
 RAYON_DE_COUPE_MAX = 0.12          # pourpoint-matelasse
-ANGLE_DU_PAN = 170.0               # pourpoint-matelasse (aucun pan : sans effet)
-INCLINAISON_DU_PAN = 20.0          # pourpoint-matelasse (aucun pan : sans effet)
 RACCORD_EPAULE = 2.0               # pourpoint-matelasse : le mancheron entier emprunte au bras, sommet par sommet
 COUPE_DES_POIDS = 0.7              # pourpoint-matelasse (sans effet : aucun anneau n'est pris d'un bloc)

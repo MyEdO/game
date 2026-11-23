@@ -1,10 +1,10 @@
 """Pièce skinnée sur une base (#3743) : ce qu'un vêtement emprunte à la base au repos, pour le `modele.py` d'un élément
 de liaison `squelette` que bâtit `element/construire.py`.
 
-`Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
-(positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
-pièce par zone. Le reste se compose dans le
+`Filet` et `Manche` lisent de la base au repos ses filets et ses manches. `Base` ouvre la base au repos avec ses zones
+(un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses (positions, triangles, poids par os), coupes planes
+des zones, éléments publiés qu'une pièce contourne, transfert des silhouettes et des clés `gabarit_*` (du corps au plus
+près, des éléments publiés par liaison de surface), découpe de la pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
@@ -17,7 +17,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 from anatomie import AXES_DU_PERSONNAGE, attache
-from filets import filets_au_repos, unitaire  # noqa: F401
+from filets import filets_au_repos, manches_au_repos, unitaire  # noqa: F401
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 from maille import tirage
 
@@ -112,6 +112,62 @@ class Filet:
         return w
 
 
+class Manche:
+    """Une manche de la base au repos (`manches_au_repos`, `base/filets.py`) sous la poche qui la suit : `tour`, l'os qui
+    tourne la manche autour de l'avant-bras, que suit son dessus ; ses poids, par os de la base, en un point de la
+    poche."""
+
+    def __init__(self, repos, indice_os):
+        self.brins, self.os, self.indice_os = repos['brins'], repos['os'], indice_os
+        self.tour = indice_os[repos['tour']]
+        self.coude, avant_bras = repos['coude'], repos['poignet'] - repos['coude']
+        self.axe = avant_bras / (avant_bras @ avant_bras)
+        self.stations = sorted(set(repos['parts'].tolist()))
+        self.faces = [[int(np.flatnonzero((repos['parts'] == part) & (repos['avant'] == avant))[0]) for avant in (False, True)]
+                      for part in self.stations]
+        self.median = self.brins[:, 0].mean(axis=0)
+        self.travers = unitaire(sum(self.brins[avant, 0] - self.brins[arriere, 0] for arriere, avant in self.faces))
+
+    def ecart(self, p):
+        """L'écart du point `p` au plan médian de la manche, positif vers l'avant du bras tendu."""
+        return float((np.asarray(p) - self.median) @ self.travers)
+
+    def pendre(self, tube, pans):
+        """La poche qui pend sous l'anneau `tube` de la manche, bras tendu : chaque point descend d'aplomb de son pan de
+        `pans`, ses poids passent du tour de la manche à ses brins. Rend les points et leurs poids."""
+        tour = np.zeros(len(self.indice_os))
+        tour[self.tour] = 1.0
+        points = [np.asarray(p) + pan * np.array([0.0, 0.0, -1.0]) for p, pan in zip(tube, pans)]
+        return points, [(1 - self.part(pan)) * tour + self.part(pan) * self.poids(q) for q, pan in zip(points, pans)]
+
+    def part(self, profondeur):
+        """Part de la manche dans un point qui pend de `profondeur` sous le dessus de la manche : nulle à son départ,
+        entière `CHARNIERE_M` plus bas."""
+        return fondu(profondeur / CHARNIERE_M)
+
+    def poids(self, p):
+        """Les poids du point `p` de la poche : entre les deux stations voisines le long de l'avant-bras, à chacune entre
+        son brin d'arrière et son brin d'avant, le long de chaque brin d'un os au suivant autour de leur articulation,
+        sur `FONDU_D_OS_M` ou sur la longueur de l'os s'il est plus court."""
+        part = float((np.asarray(p) - self.coude) @ self.axe)
+        j = int(np.clip(np.searchsorted(self.stations, part) - 1, 0, len(self.stations) - 2))
+        vers = min(1.0, max(0.0, (part - self.stations[j]) / (self.stations[j + 1] - self.stations[j])))
+        w = np.zeros(len(self.indice_os))
+        for station, reste_de_station in ((j, 1 - vers), (j + 1, vers)):
+            arriere, avant = (self.brins[s, 0] for s in self.faces[station])
+            travers = avant - arriere
+            en_avant = fondu(float((np.asarray(p) - arriere) @ travers / (travers @ travers)))
+            for s, reste in zip(self.faces[station], (reste_de_station * (1 - en_avant), reste_de_station * en_avant)):
+                for k, os_ in enumerate(self.os[s]):
+                    sous = 0.0
+                    if k + 1 < len(self.os[s]):
+                        fondu_d_os = min(FONDU_D_OS_M, float(self.brins[s, k, 2] - self.brins[s, k + 1, 2]))
+                        sous = fondu((self.brins[s, k + 1, 2] + fondu_d_os / 2 - p[2]) / fondu_d_os)
+                    w[self.indice_os[os_]] += reste * (1 - sous)
+                    reste *= sous
+        return w
+
+
 class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
     `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié."""
@@ -151,6 +207,10 @@ class Base:
     def filet(self, nom):
         """Le filet `nom` de la base au repos."""
         return Filet(filets_au_repos(self.glb)[nom], self.indice_os)
+
+    def manche(self, c):
+        """La manche du bras `c` (`g`, `d`) de la base au repos."""
+        return Manche(manches_au_repos(self.glb)[f'manche_{c}'], self.indice_os)
 
     def tete(self, nom):
         """La tête de l'os `nom`, monde, au repos."""
