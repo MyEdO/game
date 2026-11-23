@@ -15,6 +15,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "emplacements": {
     "charge_dos": {
       "os": "spine_03",
@@ -182,7 +189,7 @@
     }
   ],
   "glb": {
-    "sha256": "99217ccb4ff986c9d47d45034610dbfa2573b12e14d3feef33461c528c8a6bda",
-    "octets": 374580
+    "sha256": "8b940613c216fb5b2bbbf3740ef58be09e0531e206cab8f4153b2ece8d77c717",
+    "octets": 410544
   }
 }

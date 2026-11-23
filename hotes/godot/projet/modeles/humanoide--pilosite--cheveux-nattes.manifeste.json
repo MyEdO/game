@@ -16,6 +16,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "poil",
@@ -24,7 +31,7 @@
     }
   ],
   "glb": {
-    "sha256": "82bac2912eb270c55fe3a5280cd285388f9ca93df3af1841a1d8056750c6ad1b",
-    "octets": 320200
+    "sha256": "0dba06556c36fff5957196394150915ccd900b9d6b7678bc84686ba6a529a100",
+    "octets": 405300
   }
 }
