@@ -23,7 +23,7 @@ for (let exp = 0; exp < expeditions; exp++) {
   for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);
   voir(e);
   for (const h of e.roster) {
-    const armure = J.armuresEnVente(e).filter((a) => a.id !== 'lourde').at(-1);
+    const armure = J.armuresEnVente(e, h).filter((a) => a.id === 'pa-1' || a.id === 'pa-2').at(-1);
     if (armure && J.panoplieDe(h)?.id !== armure.id) J.acheterUneArmure(e, h.c.id, armure.id);
     if (!J.provisionsPortees(h).length && J.provisionsEnVente(e).some((a) => a.id === 'potion-de-guerison')) J.acheterUneProvision(e, h.c.id, 'potion-de-guerison');
     let niveauPasse = true;

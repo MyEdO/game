@@ -3,9 +3,10 @@
  */
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { doterLePorteur } from '../../../src/engine/bourse';
-import { maxEncumbrance, totalEncumbrance, wornArmourPoints } from '../../../src/engine/items';
+import { itemsEncumbrance, maxEncumbrance, totalEncumbrance, wornArmourPoints } from '../../../src/engine/items';
 import { makeRNG } from '../../../src/engine/dice';
 import { encumbrancePenalties } from '../../../src/engine/encumbrance';
+import { qualityWearMods, wornArmourPenalty } from '../../../src/engine/wearPenalty';
 import { consommableDe, isConsumable } from '../../../src/engine/consumables';
 import { evalCondition, type Flow } from '../../../src/engine/flowCore';
 import { activityConditionCtx } from '../../../src/engine/activities';
@@ -117,6 +118,24 @@ const parZone = (a: ArmourPoints): { zone: string; pa: number }[] => ZONES_D_ARM
 export const protection = (c: Combatant): { zone: string; pa: number }[] => parZone(c.armour);
 /** Les Points d'Armure des pièces `pieces` revêtues ensemble (`wornArmourPoints`), par zone d'armure. */
 export const protectionDesPieces = (pieces: readonly ItemInstance[]): { zone: string; pa: number }[] => parZone(wornArmourPoints(sousLesPieces({}, pieces)));
+/** L'Encombrement des pièces `pieces` revêtues ensemble (`itemsEncumbrance`). LDB 61 l.21 */
+export const encombrementDesPieces = (pieces: readonly ItemInstance[]): number => itemsEncumbrance(sousLesPieces({}, pieces));
+/** La Compétence que la qualité `q` de la pièce `p` pénalise au port (`qualityWearMods` d'un porteur qui ne revêt que
+ *  cette pièce, réduite à cette qualité), ou `undefined`. LDB 63 l.92 */
+function competencePenalisee(p: ItemInstance, q: NonNullable<ItemInstance['qualities']>[number]): string | undefined {
+  const op = qualityWearMods({ items: [{ ...p, kind: 'armor', equipped: true, qualities: [q] }] } as Combatant)[0]?.op;
+  return op?.op === 'skillMod' ? op.skill.id : undefined;
+}
+/** Les qualités des pièces `pieces` revêtues ensemble (`qualitesDites`), chacune une fois ; une pénalité de port dit le
+ *  total que le noyau compte par Compétence (`wornArmourPenalty`). LDB 63 l.92 */
+export function qualitesDesPieces(pieces: readonly ItemInstance[]): Qualite[] {
+  const c = { items: sousLesPieces({}, pieces) } as Combatant;
+  const brutes = pieces.flatMap((p) => (p.qualities ?? []).map((q) => {
+    const skill = competencePenalisee(p, q);
+    return skill ? { id: q.id, value: wornArmourPenalty(c, skill) } : q;
+  }));
+  return qualitesDites(brutes.filter((q, i) => brutes.findIndex((x) => x.id === q.id && x.value === q.value) === i));
+}
 
 /** Pourquoi le héros ne peut pas utiliser maintenant l'objet `uid` (`refusDeConsommer`), ou `null`. */
 export function refusDUsage(c: Combatant, uid: string): string | null {
