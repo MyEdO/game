@@ -17,7 +17,7 @@ extends SceneTree
 ##   à l'appui d'une touche d'un seul caractère ;
 ## - `rappel` et `entree` : le rappel exposé sous ce nom (`Transport.exposer`) appelé, sa réponse rendue ;
 ## - `capture` : l'image de la fenêtre écrite en PNG à ce chemin, `false` sans rendu (`--headless`), prise une fois que
-##   chaque portrait demandé est photographié (`StudioDePortraits.au_repos`), `PORTRAITS_S` au plus ;
+##   chaque portrait demandé est photographié (`StudioDePortraits.au_repos`), `portraits` millisecondes à l'horloge au plus ;
 ## - `fichier` : le chemin que rend le choix de fichier ouvert (`TransportDuProcessus._choisir_un_chemin`), attendu,
 ##   ou, sous ce dossier, le nom que le choix propose ; rend ce chemin, le fichier lu ou écrit ;
 ## - `quitter` : le code de sortie, après la ligne `[pilote] fin`.
@@ -29,9 +29,6 @@ const TOUCHES := {
 	"ArrowUp": KEY_UP, "ArrowDown": KEY_DOWN, "Space": KEY_SPACE,
 	"Digit1": KEY_1, "Digit2": KEY_2, "Digit3": KEY_3, "Digit4": KEY_4, "Digit5": KEY_5, "Digit6": KEY_6,
 }
-## Le plus long temps du studio des portraits pour finir sa file avant une capture : moins que `COMMANDE_MS` de
-## `hotes/godot/pilotage/natif.mjs`, pour que l'échec nomme le studio.
-const PORTRAITS_S := 20.0
 const DEPLACER := "deplacer"
 const CRAN := "cran"
 
@@ -113,7 +110,7 @@ func _jouer(commande: Dictionary) -> void:
 		else:
 			_rendus.append([id, {erreur = "aucun rappel exposé sous %s" % commande.rappel}])
 	elif commande.has("capture"):
-		_capturer(id, commande.capture)
+		_capturer(id, commande.capture, int(commande.portraits))
 	elif commande.has("fichier"):
 		_choisir(id, commande.fichier)
 	elif commande.has("quitter"):
@@ -191,16 +188,16 @@ func _code(nom: String) -> Key:
 
 ## L'image de la fenêtre, une fois chaque portrait demandé photographié (`StudioDePortraits.au_repos`) puis l'image
 ## dessinée, même sur un écran qui n'a pas changé (`OS.low_processor_usage_mode` levé le temps d'une image), écrite en PNG à `chemin` : `true` ; `false` sans rendu ; `{ erreur }` si le studio n'a pas fini sa file
-## `PORTRAITS_S` après la demande.
-func _capturer(id: Variant, chemin: String) -> void:
+## `portraits_ms` millisecondes à l'horloge après la demande : un temps d'arbre retarde sur l'horloge quand une image
+## dure plus que le pas maximal du moteur, ce que fait le rendu logiciel (#4471).
+func _capturer(id: Variant, chemin: String, portraits_ms: int) -> void:
 	if DisplayServer.get_name() == "headless":
 		_rendus.append([id, false])
 		return
-	var echue := [false]
-	create_timer(PORTRAITS_S).timeout.connect(func() -> void: echue[0] = true)
+	var echeance := Time.get_ticks_msec() + portraits_ms
 	while not StudioDePortraits.au_repos():
-		if echue[0]:
-			var erreur := "capture %s : le studio des portraits n'a pas fini sa file après %s s" % [chemin, PORTRAITS_S]
+		if Time.get_ticks_msec() >= echeance:
+			var erreur := "capture %s : le studio des portraits n'a pas fini sa file après %d ms" % [chemin, portraits_ms]
 			_rendus.append([id, {erreur = erreur}])
 			return
 		await process_frame
