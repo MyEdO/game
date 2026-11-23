@@ -570,7 +570,7 @@ dans l'ordre où le jeu la monte, prise au dossier du manifeste de base ; `--loc
 d'autres GLB se donnent encore en positionnels, après elle.
 
 ```sh
-npm run godot:evaluer -- --tenue gladiateur --local humanoide--rigide--grande_hache=/atelier/hache/humanoide--rigide--grande_hache/humanoide--rigide--grande_hache.glb --base hotes/godot/projet/modeles/humanoide.glb --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --clips A_TPose,Idle_Loop
+npm run godot:evaluer -- --tenue gladiateur --local humanoide--rigide--grande_hache=/atelier/hache/humanoide--rigide--grande_hache/humanoide--rigide--grande_hache.glb --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --clips A_TPose,Idle_Loop
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
