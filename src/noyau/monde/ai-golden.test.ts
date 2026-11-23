@@ -193,7 +193,11 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   });
 
   it('sort FOCALISABLE (peu fiable d’un jet) et rien de faisable → focus', () => {
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] });
+    // Un sort n'est focalisable que pour un lanceur qui sait Focaliser et Incanter (`buildAiInput`, combatFlow).
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, {
+      weapons: [], characteristics: { intelligence: 40, 'force-mentale': 40 } as never,
+      skills: [{ id: 'langue', spec: 'magick', advances: 10 }, { id: 'focalisation', advances: 10 }] as never,
+    });
     const h = mk('h', 'heros', { x: 5, y: 9 });
     expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
   });

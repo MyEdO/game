@@ -17,7 +17,7 @@
  * normalement par le Bonus d'Endurance et les PA (p.238).
  */
 import type { RNG } from './dice';
-import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult, reverseRoll } from './tests';
+import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, extendedTestStep, clampTarget, cibleDuTest, TestResult, reverseRoll } from './tests';
 import { getTestPolicy } from './testPolicy';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
@@ -796,19 +796,36 @@ export function castTestTarget(
 export function castLandProbability(caster: Combatant, spell: SpellLike, focusedNI0 = false, wind: WindContext = {}, env: MagicEnvironment = {}, niMods: readonly CastingNumberMod[] = []): number {
   const info = castInfo(spell);
   if (!knowsCastingSkill(caster, info.skill)) return 0;
-  const policy = getTestPolicy();
-  const value = castingValue(caster, info);
   const delta = castTestDRMods(caster, 'incantation', { spell, wind, env });
   const reserve = malepierreReserveOf(caster);
   const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
-  let lands = 0;
-  for (let r = 1; r <= 100; r++) {
-    const t = evaluateTest(r, value, value, policy);
-    if (!t.success) continue;
+  return moyenneSurLesJets(castingValue(caster, info), (t) => {
+    if (!t.success) return 0;
     const dr = t.sl + delta + malepierreDR(Math.max(0, t.sl + delta), reserve);
-    if (!info.requireNI || dr >= ni) lands++;
-  }
-  return lands / 100;
+    return !info.requireNI || dr >= ni ? 1 : 0;
+  });
+}
+
+/**
+ * Espérance du pas d'UN Round de Focalisation de `caster` vers le NI de `spell`, sans RNG : les 100 jets
+ * de `resolveFocus` (même DR, `drDeFocalisation`), chacun cumulé comme un Round de Test étendu
+ * (`extendedTestStep`). Rend aussi ce NI ; `null` sans Compétence. LDB 46 l.128-132 ; LDB 12 l.170-185
+ */
+export function focusExpectedStep(caster: Combatant, spell: SpellLike): { pas: number; ni: number } | null {
+  const value = focusValueOf(caster, spell);
+  if (value == null) return null;
+  const ni = castingNumberOf(spell, false, {}, [], caster);
+  const pas = moyenneSurLesJets(value, (t) =>
+    extendedTestStep(0, { success: t.success, sl: t.success ? drDeFocalisation(caster, spell, t).dr : t.sl }, ni).sl);
+  return { pas, ni };
+}
+
+/** Moyenne de `f` sur les 100 jets d'un Test de valeur `value` (Difficulté +0), sans RNG. */
+function moyenneSurLesJets(value: number, f: (t: TestResult) => number): number {
+  const policy = getTestPolicy();
+  let somme = 0;
+  for (let r = 1; r <= 100; r++) somme += f(evaluateTest(r, value, value, policy));
+  return somme / 100;
 }
 
 /**
@@ -1206,6 +1223,26 @@ export interface FocusResult {
   log: string;
 }
 
+/** DR d'un jet de Focalisation DÉJÀ obtenu (0 sur un échec) et sa part de malepierre — lu par
+ *  `resolveFocus` et par son espérance `focusExpectedStep`. */
+function drDeFocalisation(
+  caster: Combatant,
+  spell: SpellLike,
+  jet: TestResult,
+  atSea = false,
+  windCtx: WindContext = {},
+  env: MagicEnvironment = {},
+): { dr: number; malepierreConsumed: number } {
+  // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec l'Incantation (`castTestDRMods`).
+  let dr = jet.success ? Math.max(0, jet.sl + castTestDRMods(caster, 'focalisation', { success: jet.success, spell, sea: { atSea }, wind: windCtx, env })) : 0;
+  if (dr > 0 && domainSeaFocalisationDoubled(spell, atSea)) dr *= 2; // Vie/Ghyran en mer (MDG 02 l.186)
+  // Malepierre (`LDB 46 l.173`, règle INCONDITIONNELLE) : doublement du DR obtenu tant que
+  // la réserve de NI de l'objet PORTÉ n'est pas épuisée. Lecture SEULE ici (`malepierreReserveOf`) ;
+  // l'écriture de la réserve (`consumeMalepierre`) vit au site de résolution (state layer).
+  const malepierreConsumed = dr > 0 ? malepierreDR(dr, malepierreReserveOf(caster)) : 0;
+  return { dr: dr + malepierreConsumed, malepierreConsumed };
+}
+
 /** Un Round de Test étendu de Focalisation (FM + spécialisation PAR VENT — le
  *  Domaine du sort exige la Focalisation correspondante, LDB 46 l.128-132).
  *  `atSea` = Magie des mers (MDG 02 l.178-186, `DomainData.seaModifier`) : contexte navigation
@@ -1237,14 +1274,7 @@ export function resolveFocus(
   }
   const value = nue + extraMod;
   const jet = rollTest(value, difficulty, rng);
-  // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec l'Incantation (`castTestDRMods`).
-  let dr = jet.success ? Math.max(0, jet.sl + castTestDRMods(caster, 'focalisation', { success: jet.success, spell, sea: { atSea }, wind: windCtx, env })) : 0;
-  if (dr > 0 && domainSeaFocalisationDoubled(spell, atSea)) dr *= 2; // Vie/Ghyran en mer (MDG 02 l.186)
-  // Malepierre (`LDB 46 l.173`, règle INCONDITIONNELLE) : doublement du DR obtenu tant que
-  // la réserve de NI de l'objet PORTÉ n'est pas épuisée. Lecture SEULE ici (`malepierreReserveOf`) ;
-  // l'écriture de la réserve (`consumeMalepierre`) vit au site de résolution (state layer).
-  const malepierreConsumed = dr > 0 ? malepierreDR(dr, malepierreReserveOf(caster)) : 0;
-  dr += malepierreConsumed;
+  const { dr, malepierreConsumed } = drDeFocalisation(caster, spell, jet, atSea, windCtx, env);
   // Bête/Ghur en mer (MDG 02 l.180) : Critique déclenché aussi sur un résultat finissant par 0.
   const isCritical = jet.success && (jet.isDouble || (domainSeaWidensCritFumble(spell, atSea) && jet.roll % 10 === 0));
   // Maladresse ÉLARGIE en Focalisation (l.190-191) : tout double OU tout résultat

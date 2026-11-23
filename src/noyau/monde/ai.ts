@@ -55,7 +55,7 @@ import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid, degatsDeLEtatIgnores } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
 import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
-import { castInfoIsPrayer, prayerForActionBy } from '../../engine/magic';
+import { castInfoIsPrayer, prayerForActionBy, castLandProbability, focusExpectedStep } from '../../engine/magic';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -457,6 +457,17 @@ function bestAreaCenter(
     }
   }
   return best && best.covered >= 2 ? best : null;
+}
+
+/** Rounds de Focalisation attendus avant que le DR cumulé de `caster` atteigne le NI de `spell` : le reste
+ *  divisé par le pas attendu d'un Round (`focusExpectedStep`). Infini sans Compétence ou à pas attendu ≤ 0.
+ *  LDB 46 l.128-132 ; LDB 12 l.170-185 */
+function focusRoundsLeft(caster: Combatant, spell: SpellData): number {
+  const attendu = focusExpectedStep(caster, spell);
+  if (!attendu) return Infinity;
+  const reste = attendu.ni - (caster.focus?.spell === spell.id ? caster.focus.dr : 0);
+  if (reste <= 0) return 0;
+  return attendu.pas > 0 ? Math.ceil(reste / attendu.pas) : Infinity;
 }
 
 /** Frénésie (LDB 21 l.33) : le frénétique vise IMPÉRATIVEMENT l'ennemi le plus PROCHE de sa Ligne de
@@ -881,10 +892,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   /** Utilité tactique d'une ATTAQUE (mêlée/tir/sort) sur `target` : valeur de l'effet + menace de la cible
    *  + killSecure − overkill. Pour un SORT, la valeur EST `spellActionValue` (déjà = dégâts + contrôle ×
    *  fiabilité × opposition), passée précalculée ; le contrôle n'est PLUS ajouté à part (il est dedans).
-   *  En MÊLÉE, le bonus de toucher de SURNOMBRE (feu concentré, Lot 4) est injecté dans l'espérance. */
+   *  En MÊLÉE, le bonus de toucher de SURNOMBRE (feu concentré, Lot 4) est injecté dans l'espérance.
+   *  `escompte` (payoff DIFFÉRÉ d'une Focalisation) pondère l'effet et la mise à mort, pas la menace de la cible. */
   const attackUtility = (
     target: Combatant,
     src: { kind: 'melee'; weapon: Weapon } | { kind: 'distance'; weapon: Weapon; dist: number } | { kind: 'spell'; value: number },
+    escompte = 1,
   ): number => {
     const dmg = src.kind === 'spell'
       ? src.value
@@ -894,7 +907,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const threat = finite(targetThreat(resolveTrapping, enemy, target, mpt), 0);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
     const overkill = isNeutralized(target) ? Weff.overkill : 0;
-    return Weff.damageDealt * dmg + Weff.threat * threat + securesKill - overkill;
+    return escompte * (Weff.damageDealt * dmg + securesKill - overkill) + Weff.threat * threat;
   };
 
   /** DANGER-MAP (Lot 4) : Blessures que les HÉROS nous infligeraient si l'on se tenait sur `to` — Σ sur
@@ -1034,8 +1047,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const refEnemy: Combatant | null = shootableHeroes.length
     ? [...shootableHeroes].sort((a, b) => finite(targetThreat(resolveTrapping, enemy, b, mpt), 0) - finite(targetThreat(resolveTrapping, enemy, a, mpt), 0))[0]
     : (heroes[0] ?? null);
-  // `committingPrep` : une action de PRÉPARATION (Focalisation/Recharge) est CHOISIE → on ne lui oppose pas
-  // une APPROCHE de mêlée (le lanceur/tireur reste en place). MÊLÉE reste possible (un acculé se défend).
+  // `committingPrep` : la RECHARGE est listée → on ne lui oppose pas une APPROCHE de mêlée (le tireur reste en
+  // place) : d'utilité neutre, elle perdrait l'argmax contre toute approche. MÊLÉE reste possible (un acculé se
+  // défend). La Focalisation, d'utilité escomptée, affronte l'approche dans l'argmax.
   let committingPrep = false;
 
   // === FORME DE COMBAT (op `transform`) — capacité SUR SOI octroyée par un trait (Métamorphose lycanthrope,
@@ -1055,10 +1069,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // opposition). La POLARITÉ (offensif/bénéfique) et la valeur viennent des OPS, jamais d'un nom de sort
   // ni d'une catégorie. Un FRÉNÉTIQUE ne lance AUCUN sort (Frénésie LDB 21 l.33) → on saute le bloc.
   if (!frenzied) {
-    // Existe-t-il un sort OFFENSIF lançable IMMÉDIATEMENT (en un jet, cible en portée) ? Si oui, FOCALISER
-    // (qui ne produit RIEN ce tour) n'a pas de sens — on frappe maintenant (gate du candidat `focus` plus bas).
-    const hasImmediateOffensive = spells.some((o) => !o.active && (o.focusState === 'none' || o.focusState === 'ready')
-      && spellIsOffensive(o.data) && shootableHeroes.some((h) => o.range == null || fpDist(h) <= o.range));
     for (const sp of spells) {
       if (sp.active) continue; // Unicité : un effet/une invocation de CE sort est déjà actif → on ne le relance pas
       const ctx = { landProb: sp.landProb, refEnemy, horizon: HORIZON };
@@ -1100,16 +1110,17 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
           if (best && best.net > 0) candidates.push({ action: { kind: 'incantationDeZone', spell: sp.id, center: best.center }, kind: 'incantationDeZone', utility: best.net, targetId: '', coord: best.center });
         }
       } else if (sp.focusState === 'focusable') {
-        // Focalisation (LDB 46) : on n'y consacre le tour QUE faute de mieux — si AUCUN sort offensif n'est
-        // lançable d'un jet (sinon on frappe MAINTENANT : focaliser ne produit RIEN ce tour), et pas menacé au
-        // contact avec un repli (risque d'interruption l.193). La valeur est escomptée par la SURVIE : investir
-        // dans un payoff DIFFÉRÉ n'a de sens que si on a des chances d'être encore là (danger entrant vs PB).
+        // Focalisation (LDB 46 l.128-132 ; interruption au contact l.193) : la valeur du lancer PRÊT (NI 0) sur
+        // `refEnemy`, escomptée par les Rounds de Focalisation attendus plus le Round du lancer, et par la SURVIE
+        // (danger entrant vs PB), passe par `attackUtility` comme un lancer immédiat : l'argmax les départage.
         const contactFallback = adjacentFoes.length > 0 && (hasMeleeWeapon || canShoot);
-        if (!hasImmediateOffensive && !contactFallback && refEnemy) {
-          const full = spellActionValue(enemy, sp.data, { kind: 'unit', subject: refEnemy }, { landProb: 1, refEnemy, horizon: HORIZON });
+        if (!contactFallback && refEnemy) {
+          const pret = spellActionValue(enemy, sp.data, { kind: 'unit', subject: refEnemy }, { landProb: castLandProbability(enemy, sp.data, true), refEnemy, horizon: HORIZON });
           const survival = Math.max(0.1, Math.min(1, 1 - dangerAt(pos) / Math.max(1, enemy.wounds.current)));
-          candidates.push({ action: { kind: 'focalisation', spell: sp.id }, kind: 'focalisation', utility: Math.max(0, 0.5 * full * survival), targetId: '', coord: null });
-          committingPrep = true;
+          const escompte = survival / (1 + focusRoundsLeft(enemy, sp.data));
+          if (pret > 0 && escompte > 0) {
+            candidates.push({ action: { kind: 'focalisation', spell: sp.id }, kind: 'focalisation', utility: attackUtility(refEnemy, { kind: 'spell', value: pret }, escompte), targetId: '', coord: null });
+          }
         }
       } else if (spellIsOffensive(sp.data)) {
         // OFFENSIF mono-cible (none/ready) : UN candidat par cible visible + à portée. Le sort passe par
