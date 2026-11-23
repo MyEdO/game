@@ -416,37 +416,47 @@ def anneau_d_oreille(M, spec, repere, partie):
 # --- clés ------------------------------------------------------------------------------------------------------------
 
 def cles_du_corps(b, zones, X):
-    """Par silhouette déclarée de la base, par clé `gabarit_*` et par forme propre de la tête contournée
-    (`Base.meshes_de_la_tete`), le décalage de chaque sommet `X` : celui du corps de la base (tout mesh qui porte une
-    zone, yeux et sourcils compris, les zones que couvre la tête contournée remplacées par ses meshes) au point le plus
-    proche du sommet, interpolé dans son triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui
-    approche au mieux (moindres carrés) le décalage de la peau de la tête (zones `zones`, ou la tête contournée). La tête
-    s'écarte du corps de plusieurs centimètres (mâchoire d'orc 5 cm devant le menton) ; sous `gabarit_head_plus`, qui
-    grandit la tête, le décalage d'un point de la peau ne vaut pas celui d'un point 5 cm devant : le champ affine porte
-    la croissance sur l'écart. `suiviDuCorps` compare au même point du corps : le décalage d'un sommet ne s'en écarte que
-    de cette croissance sur son jeu."""
-    du_corps = [o for o in bpy.data.objects
-                if o.type == 'MESH' and o.get('zone') and o.get('zone') not in b.couvre_de_la_tete]
-    de_la_tete_contournee = b.meshes_de_la_tete()
-    noms = (list(b.manifeste['silhouettes']) + [k.name for k in b.zones[zones[0]].data.shape_keys.key_blocks
-                                                 if k.name.startswith('gabarit_')]
-            + list(dict.fromkeys(nom for o in de_la_tete_contournee for nom in b.propres(noms_des_cles(o)))))
+    """Par silhouette déclarée de la base et par clé `gabarit_*`, le décalage de chaque sommet `X` pris au corps de la
+    base (tout mesh qui porte une zone, yeux et sourcils compris), prolongé par le champ affine de la peau de la tête
+    (zones `zones`) ; par forme propre de la tête contournée (`Base.meshes_de_la_tete`), celui pris aux meshes de cette
+    tête et au corps qu'elle ne couvre pas, sans ces formes, prolongé par le champ affine de la tête (`au_plus_pres`).
+    `suiviDuCorps` suit le corps de la base : une clé du corps prise à la tête contournée s'en écarterait de ce que la
+    tête s'écarte du corps."""
+    noms = list(b.manifeste['silhouettes']) + [k.name for k in b.zones[zones[0]].data.shape_keys.key_blocks
+                                                if k.name.startswith('gabarit_')]
+    du_corps = sorted((o for o in bpy.data.objects if o.type == 'MESH' and o.get('zone')), key=lambda o: o.name)
+    sortie = au_plus_pres(du_corps, [b.zones[z] for z in zones], noms, X)
+    de_la_tete = b.meshes_de_la_tete()
+    formes = list(dict.fromkeys(nom for o in de_la_tete for nom in b.propres(noms_des_cles(o))))
+    if formes:
+        autour = [o for o in du_corps if o.get('zone') not in b.couvre_de_la_tete]
+        sortie.update(au_plus_pres(sorted(autour + de_la_tete, key=lambda o: o.name), de_la_tete, formes, X))
+    for o in de_la_tete:
+        bpy.data.objects.remove(o, do_unlink=True)
+    return sortie
+
+
+def au_plus_pres(objets, peau, noms, X):
+    """Par clé `noms`, le décalage de chaque sommet `X` : celui de la surface jointe des `objets` au point le plus proche
+    du sommet, interpolé dans son triangle, prolongé jusqu'au sommet par la partie linéaire du champ affine qui approche
+    au mieux (moindres carrés) le décalage des objets de `peau`. La tête s'écarte du corps de plusieurs centimètres
+    (mâchoire d'orc 5 cm devant le menton) ; sous `gabarit_head_plus`, qui grandit la tête, le décalage d'un point de la
+    peau ne vaut pas celui d'un point 5 cm devant : le champ affine porte la croissance sur l'écart. `suiviDuCorps`
+    compare au même point du corps : le décalage d'un sommet ne s'en écarte que de cette croissance sur son jeu."""
     P, T, champs, n = [], [], {nom: [] for nom in noms}, 0
-    de_la_tete = []
-    for o in sorted(du_corps + de_la_tete_contournee, key=lambda o: o.name):
+    de_la_peau = []
+    for o in objets:
         Mo = np.array(o.matrix_world)
         p = np.array([v.co for v in o.data.vertices]) @ Mo[:3, :3].T + Mo[:3, 3]
         o.data.calc_loop_triangles()
         P.append(p)
         T.append(np.array([t.vertices[:] for t in o.data.loop_triangles]) + n)
-        de_la_tete.append(np.full(len(p), o in de_la_tete_contournee or o in [b.zones[z] for z in zones]))
+        de_la_peau.append(np.full(len(p), o in peau))
         n += len(p)
         cles = o.data.shape_keys.key_blocks if o.data.shape_keys else {}
         for nom in noms:
             champs[nom].append(decalages_monde(o, nom) if nom in cles else np.zeros_like(p))
-    for o in de_la_tete_contournee:
-        bpy.data.objects.remove(o, do_unlink=True)
-    P, T, de_la_tete = np.concatenate(P), np.concatenate(T), np.concatenate(de_la_tete)
+    P, T, de_la_peau = np.concatenate(P), np.concatenate(T), np.concatenate(de_la_peau)
     porteur = porteur_de(P, T, np.zeros((len(P), 1)))
     lies, proches = [], []
     for x in X:
@@ -459,12 +469,12 @@ def cles_du_corps(b, zones, X):
         bv, bw = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
         lies.append((T[face], np.array([1 - bv - bw, bv, bw])))
         proches.append(point)
-    homogenes = np.column_stack([P, np.ones(len(P))])[de_la_tete]
+    homogenes = np.column_stack([P, np.ones(len(P))])[de_la_peau]
     ecarts = X - np.array(proches)
     sortie = {}
     for nom in noms:
         champ = np.concatenate(champs[nom])
-        lineaire = np.linalg.lstsq(homogenes, champ[de_la_tete], rcond=None)[0][:3]
+        lineaire = np.linalg.lstsq(homogenes, champ[de_la_peau], rcond=None)[0][:3]
         sortie[nom] = np.array([(champ[t] * w[:, None]).sum(0) for t, w in lies]) + ecarts @ lineaire
     return sortie
 

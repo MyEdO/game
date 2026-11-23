@@ -3,8 +3,8 @@ de liaison `squelette` que bâtit `element/construire.py`.
 
 `Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
 (positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes, des clés `gabarit_*` et des formes de la tête contournée (du corps et de cette tête au plus près, des
-éléments publiés par liaison de surface), découpe de la pièce par zone. Le reste se compose dans le
+silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface) et des formes
+propres de la tête contournée (de cette tête au plus près), découpe de la pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
@@ -122,8 +122,9 @@ class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
     `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié ; `tete`,
     l'id de la tête publiée que la pièce contourne (`CONTOURNE['tete']` de son `donnees.py`, `tete_contournee`), dont les
-    meshes remplacent les zones de la base qu'elle couvre (`couvre_de_la_tete`, `couvre` de son manifeste) dans toute
-    source de clés (`_source`, `tete.cles_du_corps`)."""
+    meshes des zones qu'elle couvre (`couvre_de_la_tete`, `couvre` de son manifeste) donnent ses formes propres
+    (`transferer`, `tete.cles_du_corps`) ; silhouettes et clés `gabarit_*` restent celles du corps, que
+    `suiviDuCorps` suit."""
 
     def __init__(self, glb, manifeste, publies, tete=None, couvre_de_la_tete=()):
         bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -305,20 +306,20 @@ class Base:
                             cles)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
-        """Silhouettes déclarées par la base, toutes ses clés `gabarit_*` et chaque forme propre de la tête contournée
-        (`tete_contournee`) que `piece` ne porte pas déjà, transférées sur `piece` depuis la copie jointe des zones
-        `zones` qu'elle traverse (`_source`), au plus près (`deplacer_au_plus_pres`) ; chaque `(masque, zones, publies)`
-        de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres zones et
-        des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des
-        mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Rend les noms des clés."""
+        """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
+        jointe des zones `zones` qu'elle traverse (`_source`), au plus près (`deplacer_au_plus_pres`) ; chaque `(masque,
+        zones, publies)` de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres
+        zones et des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent,
+        porteurs des mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Chaque forme propre de la
+        tête contournée que `piece` ne porte pas déjà se prend à cette tête, au plus près (`formes_de_la_tete`). Rend les
+        noms des clés."""
+        portees = set(noms_des_cles(piece))
         source = self._source(zones, {})
         noms_cles = [k.name for k in source.data.shape_keys.key_blocks if k != source.data.shape_keys.reference_key]
         manquantes = [s for s in self.manifeste['silhouettes'] if s not in noms_cles]
         if manquantes:
             raise ValueError(f'silhouettes absentes des zones porteuses : {manquantes}')
-        portees = set(noms_des_cles(piece))
-        cles = (list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
-                + [k for k in self.propres(noms_cles) if k not in portees])
+        cles = list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
         reprises = []
         for masque, zones_du_masque, publies in masques:
             autre = self._source(zones_du_masque, publies)
@@ -327,24 +328,39 @@ class Base:
             reprises.append((np.asarray(masque)[:, None], {nom: decalages(piece, nom) for nom in cles}))
         deplacer_au_plus_pres(source, piece, cles)
         bpy.data.objects.remove(source, do_unlink=True)
+        formes = self.formes_de_la_tete(piece, zones, portees)
         jumeaux = jumeaux_de(piece)
         for nom in cles:
             champ = decalages(piece, nom)
             for masque, champs in reprises:
                 champ = np.where(masque, champs[nom], champ)
             poser_la_cle(piece, nom, champ[jumeaux])
+        for nom in formes:
+            poser_la_cle(piece, nom, decalages(piece, nom)[jumeaux])
         lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux)
-        return cles
+        lisser_aux_aretes_fautives(piece, formes, bornes, jumeaux, sous=self.manifeste['silhouettes'])
+        return cles + formes
+
+    def formes_de_la_tete(self, piece, zones, portees):
+        """Pose sur `piece` chaque forme propre de la tête contournée hors de `portees`, au plus près
+        (`deplacer_au_plus_pres`) de la copie jointe des meshes de cette tête et des zones `zones` qu'elle ne couvre pas,
+        sans ces formes : un sommet plus proche du corps hors de la tête ne les suit pas. Rend leurs noms, aucun sans
+        tête contournée."""
+        meshes = self.meshes_de_la_tete()
+        if not meshes:
+            return []
+        formes = [k for k in dict.fromkeys(nom for o in meshes for nom in self.propres(noms_des_cles(o)))
+                  if k not in portees]
+        autour = [z for z in zones if z not in self.couvre_de_la_tete]
+        source = joindre(meshes + ([self._source(autour, {})] if autour else []))
+        deplacer_au_plus_pres(source, piece, formes)
+        bpy.data.objects.remove(source, do_unlink=True)
+        return formes
 
     def _source(self, zones, publies):
-        """Un objet : copie jointe des zones `zones` et des meshes des zones `publies[id]` de chaque élément publié ; une
-        zone de `zones` que couvre la tête contournée y laisse place aux meshes de cette tête (`meshes_de_la_tete`),
-        porteurs de ses formes propres."""
-        sous_la_tete = bool(self.couvre_de_la_tete & set(zones))
-        copies = self.meshes_de_la_tete() if sous_la_tete else []
+        """Un objet : copie jointe des zones `zones` et des meshes des zones `publies[id]` de chaque élément publié."""
+        copies = []
         for nom in zones:
-            if sous_la_tete and nom in self.couvre_de_la_tete:
-                continue
             copie = self.zones[nom].copy()
             copie.data = self.zones[nom].data.copy()
             bpy.context.scene.collection.objects.link(copie)
@@ -814,13 +830,14 @@ def joindre(objets):
     return objets[0]
 
 
-def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
-    """Chaque clé transférée dont une arête sort de `bornes` est lissée (moyenne laplacienne des décalages sur le graphe
-    de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux quand une passe ne réduit plus le défaut : un
-    sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à des faces différentes suivent la moyenne de
-    leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens opposé au repos) est fautive quelle que soit
-    sa longueur. Ailleurs la clé reste la liaison de surface. Chaque nœud de la nappe intérieure garde, à chaque passe, le
-    décalage de son jumeau extérieur (`jumeaux`, par sommet)."""
+def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sous=()):
+    """Chaque clé transférée dont une arête sort de `bornes`, seule ou sous l'une des clés `sous` de `piece` rapportée à
+    sa longueur sous la clé seule (l'évaluateur pose les formes de tête au repos, `gardes/etirement.ts`), est lissée
+    (moyenne laplacienne des décalages sur le graphe de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux
+    quand une passe ne réduit plus le défaut : un sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à
+    des faces différentes suivent la moyenne de leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens
+    opposé au repos) est fautive quelle que soit sa longueur. Ailleurs la clé reste la liaison de surface. Chaque nœud de
+    la nappe intérieure garde, à chaque passe, le décalage de son jumeau extérieur (`jumeaux`, par sommet)."""
     x = np.array([v.co[:] for v in piece.data.vertices])
     _, premier, noeud = np.unique(np.round(x * 1e5).astype(np.int64), axis=0, return_index=True, return_inverse=True)
     noeud = noeud.ravel()
@@ -832,12 +849,19 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
         voisins[a].append(b)
         voisins[b].append(a)
     bas, haut = bornes
+    dessus = [aux_noeuds(decalages(piece, nom), noeud) for nom in sous]
+
+    def mesurer(champ):
+        r = np.concatenate([rapports(xn, champ, aretes)] + [rapports(xn + champ, d, aretes) for d in dessus])
+        retournees = np.concatenate([retournees_par(xn, champ, aretes)]
+                                    + [retournees_par(xn + champ, d, aretes) for d in dessus])
+        return r, retournees, ((r < bas) | (r > haut) | retournees).reshape(-1, len(aretes)).any(axis=0)
+
     for nom in cles:
         champ = aux_noeuds(decalages(piece, nom), noeud)
         anneaux, pire, passe = 0, None, 0
         while passe < passes_max:
-            r, retournees = rapports(xn, champ, aretes), retournees_par(xn, champ, aretes)
-            fautives = (r < bas) | (r > haut) | retournees
+            r, retournees, fautives = mesurer(champ)
             if not fautives.any():
                 break
             ecart = int(retournees.sum()) + float(np.maximum(bas / r.min(), r.max() / haut))
@@ -848,8 +872,7 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
             champ[dans] = 0.5 * champ[dans] + 0.5 * np.array([champ[voisins[i]].mean(axis=0) for i in dans])
             champ = champ[jumeau]
             passe += 1
-        r = rapports(xn, champ, aretes)
-        reste = int(((r < bas) | (r > haut) | retournees_par(xn, champ, aretes)).sum())
+        reste = int(mesurer(champ)[2].sum())
         if reste:
             raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} ou retournée(s) après {passe} passes de lissage')
         poser_la_cle(piece, nom, champ[noeud])

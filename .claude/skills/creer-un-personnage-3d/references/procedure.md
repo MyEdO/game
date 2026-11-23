@@ -187,9 +187,11 @@ ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas c
 déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
 `element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
 propre n'a pas ce champ. Une pièce skinnée qui contourne une tête publiée (`CONTOURNE['tete']` de son `donnees.py`)
-en reçoit toutes les formes propres sans les demander : `Base.transferer` les prend au plus près des meshes de cette
-tête, qui remplacent les zones de la base qu'ils portent ; une pilosité, bâtie sur la peau de la tête, les copie
-sommet à sommet. Une tête republiée avec une forme neuve rend donc à reconstruire et republier chaque pièce qui la
+en reçoit toutes les formes propres sans les demander : `Base.transferer` les prend au plus près des seuls meshes de
+cette tête, ses silhouettes et clés `gabarit_*` restant celles du corps, que suit `suiviDuCorps` ; chaque forme est
+lissée là où, sous une silhouette, une arête sort des bornes rapportée à sa longueur sous la forme seule, comme la
+mesure l'évaluateur, qui pose les formes au repos ; une pilosité, bâtie sur la peau de la tête, les copie sommet à
+sommet. Une tête republiée avec une forme neuve rend donc à reconstruire et republier chaque pièce qui la
 contourne. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
