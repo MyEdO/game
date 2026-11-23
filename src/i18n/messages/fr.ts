@@ -2112,6 +2112,11 @@ export const fr = {
   'exploration.offre': '{porteur} : {action}',
   'exploration.carte': 'Carte du monde',
   'exploration.lieu': 'Le lieu',
+  'exploration.meneur': 'Confier la tête à {heros}',
+  'groupe.refus.siege': '{siege} décide pour le groupe.',
+  'meneur.refus.horsDuGroupe': 'Meneur refusé : aucun héros « {id} » dans le groupe.',
+  'meneur.refus.enCombat': 'Meneur refusé : le combat est engagé.',
+  'meneur.refus.aTerre': 'Meneur refusé : {heros} n’est pas debout.',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',
@@ -3146,7 +3151,6 @@ export const fr = {
   'store.propInerte': '{what} : rien à en tirer.',
   'store.propInerteFallback': 'Ce décor',
   'store.dialogueNoMoney': 'Pas assez d’argent pour cette option.',
-  'dlg.refusSiege': '{meneur} répond pour le groupe.',
 
   // ── ASSISE (`noyau/monde/seating.ts`, `seating.*`) : le meneur prend place à un meuble, ou s'en relève. ──
   'seating.sat': 'Vous prenez place.',

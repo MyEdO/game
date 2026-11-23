@@ -18,7 +18,8 @@ import {
 } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { porteurDeLObjet } from './monde/carrier';
-import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
+import { nomDuSiege, seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
+import { t } from '../i18n';
 import { targetingHolder } from './targetingHolder';
 import { CADENCE_DEFAULT, cadence } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
@@ -197,31 +198,20 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
 }
 
 /**
- * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
- * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
- * le choix `dialogue.reponse`/`interagirAvecLEntite`) — exactement ce que `seatOwns` rend sur le
- * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
- * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
- * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
- *
- * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
- * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-reponse-N`
- * (`state/clavier/keybindings`) — `src/state` ne peut pas lire `src/ui`.
- *
- * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
- * une dépendance déclarée — si la route du dialogue divergeait, l'affordance suivrait le sentinel, pas
- * la route. `ui/ownership.test.tsx` verrouille cette égalité sur les 3 intents du jeton, siège par siège.
+ * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : la conversation (`dialogue.ts`), la marche du groupe
+ * hors combat (`cliquerLaCase`) et la désignation du meneur (`designerLeMeneur`), au siège du monde (`worldSeat`, #4530).
+ * Ce siège est ce que `seatOwns` rend sur le sentinel MONDE (`WORLD_STEP_OWNER`) : le prédicat y délègue, au siège qui agit
+ * (`withActingSeat`) comme au siège local, et l'offre, le geste local et l'intention routée (`ROUTES`) répondent par la
+ * même table de vérité. SOLO : toujours vrai.
  */
 export function ownsGroupDecision(s: Jeu): boolean {
   return ownsLocal(s, WORLD_STEP_OWNER);
 }
 
-/**
- * Le siège qui tient la décision de groupe (0 = l'hôte) — pour NOMMER celui qu'on attend dans
- * l'affordance de spectateur ; le verdict, lui, se demande à `ownsGroupDecision`.
- */
-export function groupDecisionSeat(s: Jeu): number {
-  return s.net.gmSeat ?? 0;
+/** Le refus d'une décision de groupe que ce siège ne tient pas (`ownsGroupDecision`), nommant le siège du monde qui la
+ *  tient (`worldSeat`) ; `null` s'il la tient. #4530 */
+export function refusDeDecisionDeGroupe(s: Jeu): string | null {
+  return ownsGroupDecision(s) ? null : t('groupe.refus.siege', { siege: nomDuSiege(s.net, worldSeat(s)) });
 }
 
 /** Surfaçage de la DÉFENSE (#989) — nom de domaine des sites d'attaque (`maybeOpenDefense`,
@@ -671,6 +661,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['recruterLeHeros', TOUJOURS],
     ['renvoyerLeHeros', TOUJOURS],
     ['remplacerLeHeros', TOUJOURS],
+    // Le meneur commun hors combat : décision de groupe, au siège du monde (#4530).
+    ['designerLeMeneur', { rule: (s, seat) => !s.battle && seat === worldSeat(s) }],
     // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit ; composer et
     // pratiquer une Activité se choisit au siège du héros de la rangée (`fenetreChoisir('interlude', …)`).
     ['commanderLObjet', PAR_ARG0],

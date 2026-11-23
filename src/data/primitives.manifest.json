@@ -193,9 +193,9 @@
     "type": "primitives.manifest",
     "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
+    "concept": "le MENEUR du groupe hors combat, élu ou choisi par le siège du monde (verbe `designerLeMeneur`, `marcheDuGroupe.ts` ; champ `meneurChoisi`), et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
     "perimetre": "meneur et cap du groupe en exploration, dont les gestes de déplacement du noyau et la projection Godot",
-    "verrou": "hero-debout-guard.test.ts"
+    "verrou": "hero-debout-guard.test.ts, meneur-designe.hors-store.test.ts"
   },
   {
     "id": "sourcesEnVue",

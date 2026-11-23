@@ -6391,7 +6391,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   const flyM = flyMeters(enemy.traits); // Vol (Indice) (LDB 85 l.433) : remplace la Marche s'il porte plus loin
   if (flyM != null) movement = Math.max(movement, Math.floor(flyM / 2));
   const perceived = perceivedTiles(
-    { scene, battle, party: get().party, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
+    { scene, battle, party: get().party, meneurChoisi: get().meneurChoisi, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
     enemy,
   );
   // Sorts connus, résolus + enrichis (portée en cases, forme, fiabilité d'incantation, Focalisation, Unicité).

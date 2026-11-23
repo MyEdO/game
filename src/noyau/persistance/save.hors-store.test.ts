@@ -34,6 +34,7 @@ import { conditionIds, eyes, findVehicleById, species, type TrappingData } from 
 import { vehicleCombatant } from '../../engine/vehicle';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
+import { sansLaCleDeJeu } from './save.testkit';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { garanti } from '../../lib/garanti';
@@ -99,6 +100,18 @@ describe('lireSave — format courant', () => {
       },
     }, courante.savedAt);
     expect(lireSave(exporterLaSauvegarde(avecCale))).toEqual(avecCale);
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
+  it('lit une save d’avant le meneur désigné à l’élection, sans la migration des couleurs (#4530)', () => {
+    const courante = snapshotSave({ ...etatInitialDuJeu(), meneurChoisi: 'b' }, '2026-11-23T06:30:00.000Z');
+    const ancienne = sansLaCleDeJeu(exporterLaSauvegarde({ ...courante, version: '71dc897adac81733' }), 'meneurChoisi');
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    const lue = lireSave(ancienne);
+    if (courante.version !== 'e5850d7c5e152ce4') return void expect(lue).toBe('autreFormat');
+    expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 

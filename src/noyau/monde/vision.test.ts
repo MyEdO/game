@@ -268,7 +268,7 @@ describe('mapLights — sources de lumière POSÉES (dataset props)', () => {
     const s = { ...scene(9, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
     const posees = mapLights(s);
     const lanterne = { ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped: true };
-    const sources = sceneLightSources({ scene: s, battle: null, party: [combattantDeTest({ id: 'h1', items: [lanterne] })], partyPos: { x: 1, y: 0 } });
+    const sources = sceneLightSources({ scene: s, battle: null, party: [combattantDeTest({ id: 'h1', items: [lanterne] })], meneurChoisi: null, partyPos: { x: 1, y: 0 } });
     expect(sources.map((l) => l.srcId)).toEqual(['b', 'h1']);
     expect(mapLights(s)).toBe(posees);
     expect(posees.map((l) => l.srcId)).toEqual(['b']);
@@ -415,7 +415,7 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
   ];
 
   const vueAu = (carte: Scene, x: number, y: number, z: number) =>
-    computeStateVisible({ scene: carte, battle: null, party: [], partyPos: z ? { x, y, z } : { x, y }, gameTime: DAY, lightLevel: null });
+    computeStateVisible({ scene: carte, battle: null, party: [], meneurChoisi: null, partyPos: z ? { x, y, z } : { x, y }, gameTime: DAY, lightLevel: null });
 
   it('la carte-fixture porte bien les cinq cas du contrat — refend pleine, porte, fenêtre, clayonnage, étage', () => {
     const carte = carteTemoin();

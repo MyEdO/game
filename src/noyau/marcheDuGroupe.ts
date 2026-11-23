@@ -1,7 +1,8 @@
 /** Marche du groupe en exploration : pas, pivot, pas relatif au regard, saut et porte. */
 import { groupePosable, toggleDoorIn, type Scene } from './monde/scene';
 import { releaseSeat, RANG_MENEUR, memeCase } from './monde/seating';
-import { poserCapDuGroupe, meneurDuMonde, capDuGroupe } from './monde/combatants';
+import { poserCapDuGroupe, meneurDuMonde, capDuGroupe, estDebout } from './monde/combatants';
+import { refusDeDecisionDeGroupe } from './netOwnership';
 import { facingToward, rotateDir8 } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { checkTriggers, jouerFlowEntier, runFlow } from './combatEffects';
@@ -11,6 +12,7 @@ import { planJump } from './monde/jumpMove';
 import { chebyshev } from '../engine/grid';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
@@ -143,6 +145,16 @@ export function creerActionsDeMarche(get: Get, set: Set) {
         return void refuserGeste(get, set, etage ? t('marche.autreEtage', { z: etage.z ?? 0 }) : t('marche.horsDePas'));
       }
       poserLeGroupe(get, set, pt);
+    },
+    designerLeMeneur: (heroId) => {
+      const etat = get();
+      if (etat.battle) return void refuserGeste(get, set, t('meneur.refus.enCombat'));
+      const refus = refusDeDecisionDeGroupe(etat);
+      if (refus) return void refuserGeste(get, set, refus);
+      const heros = etat.party.find((h) => h.id === heroId);
+      if (!heros) return void refuserGeste(get, set, t('meneur.refus.horsDuGroupe', { id: heroId }));
+      if (!estDebout(heros)) return void refuserGeste(get, set, t('meneur.refus.aTerre', { heros: nomDe(heros) }));
+      if (etat.meneurChoisi !== heroId) set({ meneurChoisi: heroId });
     },
     pivoterLeGroupe: (turn) => {
       if (!meneurDuMonde(get())) return; // groupe vide : personne à faire pivoter

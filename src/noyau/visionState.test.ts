@@ -38,7 +38,7 @@ describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le re
     ({ ...scene(9, 3), entities: [{ id: 'b7', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] }) as unknown as Scene;
 
   it('exploration : le brasero POSÉ et la lanterne TENUE du groupe — l’objet rangé n’émet rien', () => {
-    const base = { scene: avecBrasero(), battle: null, partyPos: { x: 1, y: 1 } };
+    const base = { scene: avecBrasero(), battle: null, meneurChoisi: null, partyPos: { x: 1, y: 1 } };
     const tenue = sceneLightSources({ ...base, party: [porteur('h1', 1, 1, true)] });
     // L'agrégat du groupe reste UNE source à la case du groupe, et nomme le MENEUR : c'est son jeton,
     // et lui seul, qui marche à l'écran (le rendu emmène la lampe sur SA courbe de glissement).
@@ -51,7 +51,7 @@ describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le re
   it('le meneur nommé par l’agrégat est le premier héros DEBOUT, quel que soit le porteur de la lampe', () => {
     const mort = { ...porteur('h0', 1, 1, false), dead: true } as Combatant;
     const sources = sceneLightSources({
-      scene: avecBrasero(), battle: null, partyPos: { x: 1, y: 1 },
+      scene: avecBrasero(), battle: null, meneurChoisi: null, partyPos: { x: 1, y: 1 },
       party: [mort, hero(1, 1), porteur('h2', 1, 1, true)],
     });
     expect(sources.map((s) => s.srcId)).toEqual(['b7', 'h11']); // `hero(1,1)` → id « h11 », le premier debout
@@ -59,12 +59,12 @@ describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le re
 
   it('combat : chaque PORTEUR est sa propre source, nommée par son id et posée à sa case', () => {
     const battle = { combatants: [porteur('a', 2, 0, true), porteur('b', 7, 2, true), hero(4, 1)] } as never;
-    const sources = sceneLightSources({ scene: avecBrasero(), battle, party: [], partyPos: { x: 0, y: 0 } });
+    const sources = sceneLightSources({ scene: avecBrasero(), battle, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
     expect(sources.map((s) => [s.srcId, s.pos.x, s.pos.y])).toEqual([['b7', 5, 0], ['a', 2, 0], ['b', 7, 2]]);
   });
 
   it('c’est bien CETTE liste que le champ de lumière consomme (aucune seconde collecte)', () => {
-    const input = { scene: avecBrasero(), battle: null, party: [porteur('h1', 1, 1, true)], partyPos: { x: 1, y: 1 }, gameTime: DAY, lightLevel: 0 };
+    const input = { scene: avecBrasero(), battle: null, party: [porteur('h1', 1, 1, true)], meneurChoisi: null, partyPos: { x: 1, y: 1 }, gameTime: DAY, lightLevel: 0 };
     const attendu = computeLightField(input.scene, 0, sceneLightSources(input));
     const { light } = sceneLightField(input);
     for (const [x, y] of [[5, 0], [1, 1], [8, 2]]) expect(light.at(x, y)).toBeCloseTo(attendu.at(x, y), 12);
@@ -83,7 +83,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
   const surLeChemin = { x: 13, y: 6, z: 1 };
   /** Ce que le DOCUMENT éclaire déjà tout seul — les mesures de ce banc comptent le porteur EN PLUS.
    *  Dérivé de la scène, jamais recopié : meubler la salle d'une lampe de plus le dit ici même. */
-  const posesDuDocument = sceneLightSources({ scene, battle: null, party: [], partyPos: { x: 0, y: 0 } });
+  const posesDuDocument = sceneLightSources({ scene, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
   const signature = (s: LightSource) => [s.srcId, s.z ?? 0, s.radiusTiles, s.carried];
 
   it('le document éclaire la salle par son ÂTRE, au rez, sans porteur', () => {
@@ -95,7 +95,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
 
   it('la lanterne d’un combattant à l’étage inscrit ses cases à z1, aucune au rez', () => {
     const battle = { combatants: [{ ...porteur('h1', surLeChemin.x, surLeChemin.y, true), pos: surLeChemin }] } as never;
-    const sources = sceneLightSources({ scene, battle, party: [], partyPos: { x: 0, y: 0 } });
+    const sources = sceneLightSources({ scene, battle, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
     expect(sources.map(signature)).toEqual([...posesDuDocument.map(signature), ['h1', 1, 10, true]]);
     const lanterne = sources.filter((s) => s.carried);
     expect(lanterne.map((s) => s.srcId)).toEqual(['h1']);
@@ -110,7 +110,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
 
   it('la source POSÉE, elle, n’est pas portée (le rendu arbitre son budget là-dessus)', () => {
     const avecTorche: Scene = { ...scene, entities: [...scene.entities, { id: 't1', kind: 'prop', pos: { x: 13, y: 6 }, z: 1, decor: { id: 'brasero' } }] } as unknown as Scene;
-    const posées = sceneLightSources({ scene: avecTorche, battle: null, party: [], partyPos: { x: 0, y: 0 } });
+    const posées = sceneLightSources({ scene: avecTorche, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
     expect(posées.map((s) => [s.srcId, s.z, s.carried]))
       .toEqual([...posesDuDocument.map((s) => [s.srcId, s.z, s.carried]), ['t1', 1, undefined]]);
     expect(posées.every((s) => s.carried === undefined)).toBe(true);
@@ -120,7 +120,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
 describe('computeStateVisible — exploration', () => {
   it('voit dans le rayon, bloqué par un mur', () => {
     const s = scene(6, 1, [{ x: 2, y: 0, side: 'E' }]); // arête (2,0)|(3,0)
-    const vis = computeStateVisible({ scene: s, battle: null, party: [hero(0, 0)], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
+    const vis = computeStateVisible({ scene: s, battle: null, party: [hero(0, 0)], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
     expect(vis.has('0,0,0')).toBe(true);
     expect(vis.has('2,0,0')).toBe(true);
     expect(vis.has('3,0,0')).toBe(false); // derrière le mur
@@ -131,7 +131,7 @@ describe('computeStateVisible — combat (union des héros vivants)', () => {
   it('un héros de chaque côté du mur → union couvre les deux côtés', () => {
     const s = scene(6, 1, [{ x: 2, y: 0, side: 'E' }]);
     const battle = { combatants: [hero(0, 0), hero(5, 0)] } as any;
-    const vis = computeStateVisible({ scene: s, battle, party: [], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
+    const vis = computeStateVisible({ scene: s, battle, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
     expect(vis.has('2,0,0')).toBe(true); // vu par le héros A
     expect(vis.has('3,0,0')).toBe(true); // vu par le héros B (de l'autre côté)
   });
@@ -139,7 +139,7 @@ describe('computeStateVisible — combat (union des héros vivants)', () => {
     const down = { ...hero(5, 0), dead: true } as Combatant;
     const s = scene(6, 1, [{ x: 2, y: 0, side: 'E' }]);
     const battle = { combatants: [hero(0, 0), down] } as any;
-    const vis = computeStateVisible({ scene: s, battle, party: [], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
+    const vis = computeStateVisible({ scene: s, battle, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
     expect(vis.has('3,0,0')).toBe(false); // le seul à voir derrière le mur est à terre
   });
 });
@@ -147,7 +147,7 @@ describe('computeStateVisible — combat (union des héros vivants)', () => {
 describe('computeStateVisibleAndLight — vue + lumière en un seul calcul (mutualise sceneLightField)', () => {
   it('le `visible` est IDENTIQUE à computeStateVisible pour la même entrée, + un champ de lumière utilisable', () => {
     const s = scene(6, 1, [{ x: 2, y: 0, side: 'E' }]);
-    const input = { scene: s, battle: null, party: [hero(0, 0)], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null };
+    const input = { scene: s, battle: null, party: [hero(0, 0)], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null };
     const only = computeStateVisible(input);
     const both = computeStateVisibleAndLight(input);
     expect([...both.visible].sort()).toEqual([...only].sort());
@@ -155,7 +155,7 @@ describe('computeStateVisibleAndLight — vue + lumière en un seul calcul (mutu
   });
 
   it('scène absente : `visible` vide + lumière PLATE valide (jamais undefined)', () => {
-    const both = computeStateVisibleAndLight({ scene: null, battle: null, party: [], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
+    const both = computeStateVisibleAndLight({ scene: null, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
     expect(both.visible.size).toBe(0);
     expect(both.light.at(0, 0)).toBe(1);
   });
@@ -173,8 +173,8 @@ describe('REVEAL_ALL (brouillard OFF) — le `visible` de la carte entière gard
   it('deux pas consécutifs sur la MÊME scène rendent le MÊME Set (référence), couvrant toutes les cases', () => {
     const s = scene(4, 3);
     const [a, b] = withRevealAll(() => [
-      computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(0, 0)], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
-      computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(1, 0)], partyPos: { x: 1, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
+      computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(0, 0)], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
+      computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(1, 0)], meneurChoisi: null, partyPos: { x: 1, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
     ]);
     expect(b).toBe(a); // ← échoue si `allTiles` n'est plus mémoïsé par référence de scène
     expect(a.size).toBe(4 * 3);
@@ -185,8 +185,8 @@ describe('REVEAL_ALL (brouillard OFF) — le `visible` de la carte entière gard
     const s1 = scene(4, 3);
     const s2 = scene(2, 2);
     const [a, c] = withRevealAll(() => [
-      computeStateVisibleAndLight({ scene: s1, battle: null, party: [], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
-      computeStateVisibleAndLight({ scene: s2, battle: null, party: [], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
+      computeStateVisibleAndLight({ scene: s1, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
+      computeStateVisibleAndLight({ scene: s2, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }).visible,
     ]);
     expect(c).not.toBe(a);
     expect(c.size).toBe(2 * 2);
@@ -195,8 +195,8 @@ describe('REVEAL_ALL (brouillard OFF) — le `visible` de la carte entière gard
 
   it('le brouillard REVENU redonne la vue calculée, pas la carte entière', () => {
     const s = scene(6, 1, [{ x: 2, y: 0, side: 'E' }]);
-    withRevealAll(() => computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(0, 0)], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }));
-    const vis = computeStateVisible({ scene: s, battle: null, party: [hero(0, 0)], partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
+    withRevealAll(() => computeStateVisibleAndLight({ scene: s, battle: null, party: [hero(0, 0)], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null }));
+    const vis = computeStateVisible({ scene: s, battle: null, party: [hero(0, 0)], meneurChoisi: null, partyPos: { x: 0, y: 0 }, gameTime: DAY, lightLevel: null });
     expect(vis.has('5,0,0')).toBe(false); // derrière l'arête murée : le mur occulte de nouveau
   });
 });

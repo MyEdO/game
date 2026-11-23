@@ -31,6 +31,7 @@ export interface VisionInput {
   scene: Scene | null;
   battle: { combatants: Combatant[]; zones?: BattleState['zones'] } | null;
   party?: Combatant[];
+  meneurChoisi: EtatDeJeu['meneurChoisi'];
   partyPos: Pt;
   gameTime: number;
   lightLevel: number | null;
@@ -40,7 +41,7 @@ export interface VisionInput {
  *  camps en combat, le groupe en exploration — une torche révèle son porteur). SOURCE UNIQUE : le champ
  *  mécanique (`sceneLightField`) et le rendu (les lampes du monde volumique) lisent la MÊME liste, donc
  *  le même gate de port et les mêmes rayons. PUR. */
-export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'party' | 'partyPos'>): LightSource[] {
+export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'party' | 'meneurChoisi' | 'partyPos'>): LightSource[] {
   const mpt = sceneMetresPerTile(s.scene!);
   const sources = [...mapLights(s.scene!)];
   if (s.battle) {
@@ -55,7 +56,7 @@ export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'par
   // porteur nommé, la lampe du groupe reste clouée à la case logique pendant que le quad la traverse.
   const party = s.party ?? [];
   sources.push(...combatantLights({
-    id: meneurDuMonde({ party })?.id,
+    id: meneurDuMonde({ party, meneurChoisi: s.meneurChoisi })?.id,
     pos: s.partyPos,
     items: party.flatMap((p) => p.items ?? []),
     weapons: party.flatMap((p) => p.weapons ?? []),
@@ -138,7 +139,7 @@ const vueDeLaScene = memoByRefDeps<Scene, VueEtLumiere>();
 export function computeStateVisibleAndLight(s: VisionInput): VueEtLumiere {
   const scene = s.scene;
   if (!scene) return { visible: new Set(), light: FLAT_LIGHT, smoke: [] };
-  return vueDeLaScene(scene, [s.battle, s.party, s.partyPos, s.gameTime, s.lightLevel, REVEAL_ALL], () => {
+  return vueDeLaScene(scene, [s.battle, s.party, s.meneurChoisi, s.partyPos, s.gameTime, s.lightLevel, REVEAL_ALL], () => {
     if (REVEAL_ALL) return { visible: allTiles(scene), light: FLAT_LIGHT, smoke: [] };
     const occ = buildOpaque(scene);
     const { light, smoke } = sceneLightField(s, occ);
