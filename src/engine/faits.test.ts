@@ -9,6 +9,8 @@ import type { Combatant, Weapon } from './types';
 import { applyOps, type OpsCtx, type GameOp } from './ops';
 import { addCondition, syncDerivedConditions, COND } from './conditions';
 import { texteDuFait, type Applique, type FaitApplique } from './faits';
+import { poserLeNommeur } from './nom';
+import { fixtureText } from '../i18n/fixtureText';
 import { desDuTest } from './dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
@@ -140,5 +142,19 @@ describe('applyOps rend ses faits et leurs lignes', () => {
       { genre: 'blessures', cible: 'e', camp: 'hostile', valeur: -3, mitigation: 'sans' },
       { genre: 'blessures', cible: 'p', camp: 'neutre', valeur: -3, mitigation: 'sans' },
     ]);
+  });
+
+  it('la ligne nomme la cible par le nommeur posé, jamais par son libellé (#4017)', () => {
+    const avant = poserLeNommeur((id) => (id === 'h' ? fixtureText('Silhouette') : null));
+    try {
+      const { lignes } = appliquer([{ op: 'wounds', amount: 3 }, { op: 'gainAdvantage', amount: 1 }, { op: 'corruption', amount: 1 }]);
+      expect(lignes).toEqual([
+        'Silhouette subit 3 Blessure(s) (ignorant BE et PA).',
+        'Silhouette gagne 1 Avantage.',
+        'Silhouette : +1 Point de Corruption (total 1).',
+      ]);
+    } finally {
+      poserLeNommeur(avant);
+    }
   });
 });
