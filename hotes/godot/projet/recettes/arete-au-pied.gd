@@ -389,8 +389,9 @@ func _pose_de_l_instance(volume: VolumeDeScene, groupe: Node3D, a: Dictionary) -
 
 
 ## Chaque surface de chaque maillage du groupe `groupe`, vue et en ombre, dans une matière de la couleur de `_palette` à
-## l'emplacement de sa surface (`surfaces`, par le nom du matériau), que `_palette` porte, la vue prenant pour albédo la
-## couleur de l'instance ; rend les emplacements peints, chacun à `true`.
+## l'emplacement de sa surface (`surfaces`, par le nom du matériau), que `_palette` porte, à l'opacité de sa matière
+## (`recettes/vitre-transparente.gd`), la vue prenant pour albédo la couleur de l'instance ; rend les emplacements
+## peints, chacun à `true`.
 func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 	var emplacements := {}
 	for surface: Dictionary in surfaces:
@@ -408,7 +409,7 @@ func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 					matiere.resource_name, emplacement])
 				continue
 			peints[emplacement] = true
-			if not matiere.albedo_color.is_equal_approx(Color(_palette[emplacement])):
+			if not Color(matiere.albedo_color, 1.0).is_equal_approx(Color(_palette[emplacement])):
 				_fautes.append("%s, %s, surface %s : albédo %s, attendu %s (%s)" % [cle, instances.name,
 					matiere.resource_name, matiere.albedo_color.to_html(false), _palette[emplacement], emplacement])
 			if matiere.vertex_color_use_as_albedo != instances.name.begins_with("Vu_"):
