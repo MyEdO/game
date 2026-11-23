@@ -49,7 +49,8 @@ function agir(f: () => string | null | void) {
 }
 
 /** Joue l'action choisie dans la salle ouverte (`J.agirDansLaSalle`) et raconte son récit en carton ; son refus, en
- *  toast. La salle, sa route et son rang se lisent avant l'action, qui peut ramener le groupe au hameau. */
+ *  toast. La salle, sa route et son rang se lisent avant l'action, qui peut ramener le groupe au hameau. Le combat
+ *  qu'une épreuve ratée déclenche se livre ensuite, par « Combattre » au carton (`avancer`). */
 function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: string) {
   const x = etat.expedition!;
   const type = x.salles[x.index].type;
@@ -59,11 +60,9 @@ function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: 
   if (typeof r === 'string') return toast(r);
   choixDAction = null;
   J.sauver(etat);
-  derniereSalle = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain };
-  const montrer = () => { ouvert = derniereSalle; rendre(); };
-  if (!r.combat) return montrer();
+  derniereSalle = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) || r.combatAVenir ? route : `${route} franchie`, terrain };
+  ouvert = derniereSalle;
   rendre();
-  ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
 }
 
 /** La fiche ouverte, plein écran ; ou le panneau du service ouvert, posé sur le lieu (hameau, ou salle de l'expédition). */
@@ -162,6 +161,7 @@ document.addEventListener('click', (ev) => {
     case 'avancer': {
       if (!etat.expedition) return;
       panneau = null;
+      ouvert = null;
       const x = etat.expedition;
       const terrain = x.destination;
       const type = x.salles[x.index].type;

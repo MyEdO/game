@@ -203,10 +203,10 @@ export const DESTINATIONS: readonly Destination[] = [
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
 ];
 
-/** Ce que coûte l'échec d'une action, en plus de la branche d'échec de son Test (`flux.echec`) : une meute de la
- *  destination à combattre (`Destination.meutes`), ou la part `part` de l'or de l'étape (`Destination.or`) prise sur
- *  la bourse de l'expédition. */
-export type Consequence = { type: 'combat' } | { type: 'bourse'; part: number };
+/** Ce que coûte l'échec d'une action, en plus de la branche d'échec de son Test (`flux.echec`) : le combat contre
+ *  les `adversaires` (ids de `creatures.json`) que la salle met en scène, ou la part `part` de l'or de l'étape
+ *  (`Destination.or`) prise sur la bourse de l'expédition. */
+export type Consequence = { type: 'combat'; adversaires: readonly string[] } | { type: 'bourse'; part: number };
 /** Une action à jet d'une salle à choix : son geste, la question au socle, ses épreuves (le héros choisi joue la
  *  première qu'il peut tenter, `epreuveTentable`), ce que disent sa réussite et son échec, et la conséquence de
  *  l'échec. */
@@ -242,14 +242,15 @@ export const EPREUVES = {
   },
   rencontre: {
     titre: 'Des voyageurs sur la route',
-    annonce: 'Un colporteur et deux gardes font halte au bord du chemin. Ils toisent le groupe, la main près de la ceinture.',
+    annonce: 'Un colporteur et deux gardes du village voisin font halte au bord du chemin. Ils toisent le groupe, la main près de la ceinture.',
     actions: {
       parlementer: { libelle: 'Parlementer', question: 'Qui parlemente ?', epreuves: [epreuve('Parlementer', 'charme', 'intermediaire', RIEN)],
         reussite: 'On parle de la route et des bêtes qui la hantent : le colporteur paie bien les nouvelles du hameau.',
         echec: 'Le marchandage tourne court : le colporteur vous soulage de quelques pièces avant de repartir.', consequence: { type: 'bourse', part: 0.5 } },
       intimider: { libelle: 'Intimider', question: 'Qui intimide ?', epreuves: [epreuve('Intimider', 'intimidation', 'difficile', RIEN)],
         reussite: 'Les gardes baissent les yeux : le colporteur lâche sa bourse pour passer son chemin.',
-        echec: 'Les gardes ne plient pas et le ton monte ; le vacarme attire ce qui rôde, et la rencontre tourne au combat.', consequence: { type: 'combat' } },
+        echec: 'Les gardes ne plient pas : ils croisent le fer, et le colporteur empoigne son gourdin pour les épauler.',
+        consequence: { type: 'combat', adversaires: ['garde-du-village', 'garde-du-village', 'marchand-habitants-des-champs'] } },
     },
     gain: { libelle: 'Bourse du colporteur', part: 0.5 },
     passer: { libelle: 'Ignorer', issue: 'ni gain ni risque', recit: 'Le groupe salue de loin et poursuit sa route.' },

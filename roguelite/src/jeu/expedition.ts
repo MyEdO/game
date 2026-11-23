@@ -97,13 +97,13 @@ export function prier(e: Etat, id: string, cibleId: string): string {
 }
 
 /** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id et nom), le Test, son issue et ses DR, chaque héros touché et
- *  ses Blessures avant et après, l'or pris (perdu, s'il est négatif) et le nom de la bourse, ce que dit l'issue, et la suite de sa conséquence
- *  (combat, retour). */
+ *  ses Blessures avant et après, l'or pris (perdu, s'il est négatif) et le nom de la bourse, et ce que dit l'issue. */
 export interface EpreuveDuRecit {
   testeur: string; nom: string; competence: string; difficulte: string; reussite: boolean; dr: number;
-  victimes: { id: string; nom: string; avant: number; apres: number; max: number }[]; or: number; bourse: string; dit: string; suite: string[];
+  victimes: { id: string; nom: string; avant: number; apres: number; max: number }[]; or: number; bourse: string; dit: string;
 }
-export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit }
+/** Le récit d'une salle ; `combatAVenir` : l'épreuve ratée tourne au combat, que la salle livre au prochain `avancer`. */
+export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit; combatAVenir?: true }
 
 /** Une action d'une salle à choix : une action à jet, passer son chemin, ou au camp se reposer et soigner. */
 export type ActionDeSalle = IdActionAJet | 'passer' | 'reposer' | 'soigner';
@@ -207,11 +207,11 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
   const dit = r.reussite ? a.reussite : a.echec;
   const lignes = [ligneDuTest, dit, ...victimes.map((v) => `${v.nom} est touché·e : ${v.apres}/${v.max} Blessures.`),
     ...(or > 0 ? [`${s.gain.libelle} : ${or} CO.`] : or < 0 ? [`Perdu : ${-or} CO.`] : [])];
-  const epreuve = (suite: string[]): EpreuveDuRecit => ({ testeur: r.testeur, nom, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, bourse: s.gain.libelle, dit, suite });
-  if (r.reussite || a.consequence?.type !== 'combat') return franchir(e, { titre: s.titre, lignes, epreuve: epreuve([]) });
-  const c = combattre(e, choisir(tirer(e), d.meutes));
-  if (c.fin) return { ...c.fin, titre: s.titre, lignes: [...lignes, ...c.fin.lignes], epreuve: epreuve(c.fin.lignes) };
-  return franchir(e, { titre: s.titre, lignes: [...lignes, ...c.lignes], combat: c.issue, epreuve: epreuve(c.lignes) });
+  const epreuve: EpreuveDuRecit = { testeur: r.testeur, nom, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, bourse: s.gain.libelle, dit };
+  if (r.reussite || a.consequence?.type !== 'combat') return franchir(e, { titre: s.titre, lignes, epreuve });
+  salle.ennemis = [...a.consequence.adversaires];
+  delete salle.ouverte;
+  return { titre: s.titre, lignes, epreuve, combatAVenir: true };
 }
 
 /** Le groupe valide combat les `ennemis` (`jouerLeCombat`) : chacun revient tel que le noyau le laisse, les morts sont
@@ -239,14 +239,19 @@ function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: 
 const SALLES_A_CHOIX: ReadonlySet<TypeDeSalle> = new Set<TypeDeSalle>(['camp', ...(Object.keys(EPREUVES) as SalleAJet[])]);
 
 /** Entre dans la salle courante et la franchit ; une salle à choix s'ouvre et attend son action (`agirDansLaSalle`) :
- *  rend alors `null`. Chaque salle prend une journée. */
+ *  rend alors `null` ; celle dont l'épreuve a tourné au combat livre ce combat, sans butin. Chaque salle prend une
+ *  journée. */
 export function avancer(e: Etat): RecitDeSalle | null {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const salle = x.salles[x.index];
   if (SALLES_A_CHOIX.has(salle.type)) {
-    salle.ouverte = true;
-    return null;
+    if (!salle.ennemis.length) {
+      salle.ouverte = true;
+      return null;
+    }
+    const c = combattre(e, salle.ennemis);
+    return c.fin ?? franchir(e, { titre: EPREUVES[salle.type as SalleAJet].titre, lignes: c.lignes, combat: c.issue });
   }
   const rng = tirer(e);
   const c = combattre(e, salle.ennemis);

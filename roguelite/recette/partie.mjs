@@ -113,9 +113,24 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
           .map((el) => el.dataset.k ?? el.className);
       });
       constater(!debords.length, `${salle} : les choix tiennent dans le carton${debords.length ? ` (débordent : ${debords.join(', ')})` : ''}`);
-      // La cache se fouille, la rencontre se parlemente, le camp se lève par le repos.
-      const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="parlementer"]') ? 'parlementer' : 'reposer';
-      if (k === 'reposer' && await p.$('.carton [data-a="action"][data-k="soigner"]:not([disabled])')) {
+      // La cache se fouille, la rencontre s'intimide, le camp se lève par le repos.
+      const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="intimider"]') ? 'intimider' : 'reposer';
+      if (k === 'intimider') {
+        // Rejouée sur une autre graine tant qu'elle réussit : raté, le Test se raconte avant le combat qu'il déclenche.
+        const avantLeTest = await p.evaluate(() => localStorage.getItem('grisefosse-v1'));
+        for (let essai = 1; essai <= 12; essai++) {
+          await p.click('.carton [data-a="action"][data-k="intimider"]');
+          await p.click('.socle-compagnie .carte-heros:not([disabled])');
+          if (await p.$('.carton [data-a="avancer"]')) break;
+          await p.evaluate(([brut, n]) => { const e = JSON.parse(brut); e.graine += n; localStorage.setItem('grisefosse-v1', JSON.stringify(e)); }, [avantLeTest, essai]);
+          await p.reload(); await p.waitForSelector('.carton [data-a="action"][data-k="intimider"]');
+        }
+        constater(!(await p.isVisible('#combat')) && (await p.textContent('.carton .issue')).includes('Raté') && !(await p.$('.carton [data-a="fermer"]')),
+          'l’intimidation ratée se raconte d’abord, sans combat ni « Continuer » : le carton n’offre que « Combattre »');
+        await p.click('.carton [data-a="avancer"]');
+        constater(await p.isVisible('#combat'), '« Combattre » livre le combat de la rencontre');
+        await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin');
+      } else if (k === 'reposer' && await p.$('.carton [data-a="action"][data-k="soigner"]:not([disabled])')) {
         await p.click('.carton [data-a="action"][data-k="soigner"]');
         const consigne = () => p.textContent('.socle-compagnie').catch(() => '');
         constater((await consigne()).includes('Qui soigne'), 'le camp demande qui soigne');
@@ -129,14 +144,15 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
         await p.click('.carton [data-a="fermer"]');
         constater(!!(await p.$('.carton [data-a="action"][data-k="reposer"]')), 'le camp reste dressé après le soin');
       }
-      await p.click(`.carton [data-a="action"][data-k="${k}"]`);
-      if (k !== 'reposer') {
-        constater(await p.isVisible('.socle-compagnie.a-choisir'), `${salle} : le socle demande qui tente l’action`);
-        const tentent = await chancesAuSocle();
-        constater(lesChancesSeDisent(tentent), `${salle} : chaque héros qui peut tenter dit sa cible et ses chances (${tentent.ouvertes.join(' ; ')})`);
-        await p.click('.socle-compagnie .carte-heros:not([disabled])');
+      if (k !== 'intimider') {
+        await p.click(`.carton [data-a="action"][data-k="${k}"]`);
+        if (k !== 'reposer') {
+          constater(await p.isVisible('.socle-compagnie.a-choisir'), `${salle} : le socle demande qui tente l’action`);
+          const tentent = await chancesAuSocle();
+          constater(lesChancesSeDisent(tentent), `${salle} : chaque héros qui peut tenter dit sa cible et ses chances (${tentent.ouvertes.join(' ; ')})`);
+          await p.click('.socle-compagnie .carte-heros:not([disabled])');
+        }
       }
-      if (await p.isVisible('#combat')) { await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
     }
     if (await p.$('.carton')) {
       console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));

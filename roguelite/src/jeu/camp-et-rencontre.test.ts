@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../src/engine/conditions';
 import { soignerUnCompagnon } from '../noyau';
 import { HEAL_SKILL } from '../../../src/engine/healing';
-import { agirDansLaSalle, CAMP, DESTINATIONS, EPREUVES, herosDuGroupe, nouvellePartie, partir, refusDuPatient, refusDuSoigneur, salleAChoisir, PROFILS, type Etat, type Heros } from './index';
+import { agirDansLaSalle, avancer, CAMP, DESTINATIONS, EPREUVES, herosDuGroupe, nouvellePartie, partir, refusDuPatient, refusDuSoigneur, salleAChoisir, PROFILS, type Etat, type Heros } from './index';
 import { blessures, devant, recit } from './salles.testkit';
 
 const MEDECIN = PROFILS.find((p) => p.id === 'medecin')!;
@@ -116,7 +116,10 @@ describe('la rencontre, salle à choix', () => {
     expect(issues).toEqual(new Set([true, false]));
   });
 
-  it('intimider : le Test d’Intimidation ; raté, la rencontre tourne au combat contre une meute de la destination', () => {
+  it('intimider : le Test d’Intimidation ; raté, il se raconte d’abord, puis « avancer » livre le combat contre ceux que la rencontre déclare', () => {
+    const intimider = EPREUVES.rencontre.actions.intimider;
+    if (intimider.consequence.type !== 'combat') throw new Error('intimider : une conséquence de combat');
+    const declares = [...intimider.consequence.adversaires].sort();
     const issues = new Set<boolean>();
     for (let g = 1; g <= 30 && issues.size < 2; g++) {
       const e = devant('rencontre', g);
@@ -124,8 +127,14 @@ describe('la rencontre, salle à choix', () => {
       const r = recit(agirDansLaSalle(e, 'intimider', choisi));
       issues.add(r.epreuve!.reussite);
       expect([r.epreuve!.testeur, r.epreuve!.competence]).toEqual([choisi, 'Intimidation']);
-      expect(!!r.combat).toBe(!r.epreuve!.reussite);
       expect(r.epreuve!.or > 0).toBe(r.epreuve!.reussite);
+      expect(r.combat).toBeUndefined();
+      expect(!!r.combatAVenir).toBe(!r.epreuve!.reussite);
+      if (r.epreuve!.reussite) { expect(e.expedition!.index).toBe(1); continue; }
+      expect([e.expedition!.index, salleAChoisir(e)]).toEqual([0, false]);
+      expect(agirDansLaSalle(e, 'intimider', choisi)).toBe('Aucune action en attente.');
+      const combat = recit(avancer(JSON.parse(JSON.stringify(e)) as Etat)!).combat!;
+      expect(combat.pas[0].pions.filter((p) => p.camp === 'ennemi').map((p) => p.creature).sort()).toEqual(declares);
     }
     expect(issues).toEqual(new Set([true, false]));
   }, 60_000);

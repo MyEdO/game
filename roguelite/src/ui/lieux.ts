@@ -220,10 +220,9 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
   const aChoisir = !recit && J.salleAChoisir(e);
   const carte = aChoisir ? salleAChoixEnCarton(e, choix) : recit;
   const socle: Socle = !aChoisir || !choix ? { heros: groupe, geste: 'heros', choisi: () => false } : socleDuChoix(e, groupe, choix);
-  const annonce = salle.type === 'camp' ? J.CAMP.annonce
-    : salle.type === 'tresor' || salle.type === 'rencontre' ? J.EPREUVES[salle.type].annonce
-    : `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`;
-  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.type === 'camp' ? 'Camper' : salle.type === 'tresor' || salle.type === 'rencontre' ? 'Approcher' : 'Engager le combat';
+  const annonce = salle.ennemis.length ? `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`
+    : salle.type === 'camp' ? J.CAMP.annonce : J.EPREUVES[salle.type as J.SalleAJet].annonce;
+  const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.ennemis.length ? 'Engager le combat' : salle.type === 'camp' ? 'Camper' : 'Approcher';
 
   const titre = cadreA(CADRES.cartouche, cartouche('route', d.nom, `Salle ${x.index + 1} sur ${x.salles.length} · jour ${e.jour + x.index}`), { fond: '', classe: 'cartouche-lieu-fixe' });
   const scene = (!recit && fiche) || ecran({
@@ -243,8 +242,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
 
 /** Le récit d'une épreuve en pièces : le Test (qui le passe, sa Compétence et sa Difficulté, son issue et ses DR au sceau
  *  de cire), chaque touché à son portrait (s'il est encore du groupe), ses Blessures avant et après et sa vie restante
- *  en jauge, la bourse prise ou perdue (s'il y en a une) en couronnes ; dessous, ce qu'il advient, et la suite de la
- *  conséquence (combat, retour). */
+ *  en jauge, la bourse prise ou perdue (s'il y en a une) en couronnes ; dessous, ce qu'il advient. */
 function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
   const dr = `${x.dr >= 0 ? '+' : '−'}${Math.abs(x.dr)}`;
   let pieces = pieceDEpreuve(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
@@ -254,16 +252,18 @@ function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string
     pieces += pieceDEpreuve('touche', h ? portrait(busteDuHeros(h), 'heros', 'moyen') : '', 'Touché·e', `<span class="nom-propre moyen gothique">${esc(v.nom)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
   }
   if (x.or) pieces += pieceDEpreuve('bourse', '', esc(x.or > 0 ? x.bourse : 'Perdu'), `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">${x.or > 0 ? '+' : '−'}${Math.abs(x.or)}</b> CO</span>`);
-  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p>${x.suite.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
+  return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p></div>`;
 }
 
 /** Le récit d'une salle franchie, ou du retour, en carton : une épreuve en pièces (`heros` : le groupe, qui lui donne
- *  ses portraits), tout autre récit en lignes ; la défaite colore sa première ligne. */
+ *  ses portraits), tout autre récit en lignes ; la défaite colore sa première ligne. L'épreuve qui tourne au combat
+ *  n'offre que « Combattre », qui le livre (`avancer`). */
 export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: Vignette; surTitre: string }, heros: readonly J.Heros[]): string {
   return carton({
     ruban: o.ruban, vignette: o.vignette, titre: r.titre, surTitre: o.surTitre,
     texte: r.epreuve ? epreuveEnPieces(r.epreuve, heros) : `<div class="recit ${r.fin ?? ''}">${r.lignes.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`,
-    gestes: `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
+    gestes: r.combatAVenir ? plaque('Combattre', 'data-a="avancer"', { icone: PICTO_DE_SALLE.combat, armee: true })
+      : `${r.combat ? plaque('Revoir le combat', 'data-a="revoir"', { icone: 'oeil' }) : ''}${plaque('Continuer', 'data-a="fermer"', { armee: true })}`,
   });
 }
 
