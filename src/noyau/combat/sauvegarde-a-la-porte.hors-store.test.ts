@@ -272,7 +272,7 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     setBattle([gardien, cible, mage]);
     const spell = missileSpell();
     const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: '' };
-    applyCast(banc.getState, banc.setState, mage, [cible], spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
+    applyCast(banc.getState, banc.setState, mage, [cible], spell, evaluateMissile(mage, cible, spell, cast), true, undefined, undefined);
     const st = etapeCourante()!;
     expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');
     expect(st.de?.seuil).toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });

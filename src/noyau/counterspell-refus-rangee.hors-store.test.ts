@@ -35,7 +35,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
     banc.setState({
       battle: { ...b },
       pendingCast: {
-        casterId: E.id, targetId: A.id, spellId: 'carreau', missile: true, focused: false, counterspellRouted: true,
+        casterId: E.id, targetId: A.id, spellId: 'carreau', missile: true, counterspellRouted: true,
         result: { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' },
       },
     } as unknown as Partial<Jeu>);

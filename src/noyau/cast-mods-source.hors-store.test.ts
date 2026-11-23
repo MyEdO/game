@@ -71,14 +71,14 @@ let DR_DISSIPATION = 0;
 let DR_INCANTATION = 0;
 
 const openCounterspell = (result?: unknown) => banc.setState({
-  pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
+  pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, result: ENEMY_CAST },
   pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', ...(result ? { result } : {}) }] },
 } as never);
 
 const openCast = (roll: number, target: number) => banc.setState({
   pendingCounterspell: null,
   pendingCast: {
-    casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false, focused: false,
+    casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false,
     result: { cast: false, roll, target, sl: evaluateTest(roll, target).sl, isCritical: false, isFumble: false, log: '' },
   },
 } as never);
@@ -318,13 +318,13 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     // Voie 1 — jet naturel du moteur (celui de `FLOWS.contreSort.resolve`).
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
-    poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
+    poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
     setDesFixes(true);
     st().jetImposerLeResultat('contreSort', DE, 'A');
     const saisi = counterOf().sl;
     // Voie 3 — Résilience.
-    poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
+    poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo' }] } });
     st().jetForcerLaReussite('contreSort', 'A');
     const resil = counterOf().sl;
@@ -335,7 +335,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     const hero = lanceur(pa);
     const cible = castingValue(hero, incantationArcane());
     const naturel = resolveCasting(hero, findSpellById(SPELL_ID)!, RNG_DE).sl;
-    const pending = { casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false, focused: false,
+    const pending = { casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false,
       result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };
     poser(hero, { pendingCast: pending });
     setDesFixes(true);

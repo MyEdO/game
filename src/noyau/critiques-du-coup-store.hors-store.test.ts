@@ -410,7 +410,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, 'critique');
       draineCascade(banc.getState, 200, () => 1, () => 'subir');
       return { touche: touche.location!, finale: finales[0], apres: banc.getState().battle!.combatants.find((c) => c.id === cible.id)! };
     } finally { lache(); }
@@ -536,7 +536,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     cible.wounds = blessuresDeBase(20, 1, cible);
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     expect(res.woundsLost ?? 0, 'le Projectile dépasse la Blessure restante').toBeGreaterThan(1);
-    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, 'critique');
     const kinds = draineCascade(banc.getState, 200, () => 1);
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
@@ -553,7 +553,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const lieux: (string | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile) lieux.push(p.result.location); });
     seedBattleRng(1);
-    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, 'critique');
     draineCascade(banc.getState, 200, () => 1);
     lache();
     expect(lieux, 'la graine 1 relancerait la Localisation au Corps').toEqual([res.location]);
@@ -571,7 +571,7 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
     cible.wounds = blessuresDeBase(20, 20, cible);
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }] as never;
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, choix);
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, choix);
     draineCascade(banc.getState, 200, () => 50);
     return banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
   }
@@ -632,7 +632,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     const res = evaluateMissile(mage, cible, sort, incantationCritique);
     const { phase, emis, lache } = ecoute();
     try {
-      applyCast(banc.getState, banc.setState, mage, opts.surincante ? [cible, autre] : [cible], sort, res, true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, opts.surincante ? [cible, autre] : [cible], sort, res, true, 'critique');
       phase.v = 'drain';
       draineCascade(banc.getState, 200, () => 50);
     } finally { lache(); }
@@ -686,7 +686,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     });
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, 'critique');
     } finally {
       lache();
     }
@@ -744,7 +744,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     let kinds: string[];
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, 'critique');
       kinds = draineCascade(banc.getState, 200, () => 50, () => 'devier');
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
@@ -827,7 +827,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, effet);
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, effet);
       const auLancement = touches();
       draineCascade(banc.getState, 200, () => 50, o.choix ? () => o.choix! : undefined);
       return { auLancement, lignes: touches(), finale: finales[0], apres: banc.getState().battle!.combatants.find((c) => c.id === cible.id)! };
@@ -958,7 +958,7 @@ describe('la ligne de touche qualifie la Localisation relancée, au jet comme au
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, 'critique');
       draineCascade(banc.getState, 200, () => 50);
     } finally { lache(); }
     const ligne = journal().find((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`)) ?? '';

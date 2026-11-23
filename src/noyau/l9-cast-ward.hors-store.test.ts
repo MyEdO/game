@@ -42,7 +42,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     P.activeEffects = [{ label: 'N’écoutez point la Sorcière', bonus: 0, duration: { scale: 'rounds', left: 5 }, castWard: { radiusMeters: 4, mod: -20 }, sourceSpellId: 'n-ecoutez-point-la-sorciere' }];
     banc.setState({
       battle: { ...banc.getState().battle! },
-      pendingCast: { casterId: E.id, targetId: H.id, spellId: 'flechette', missile: true, focused: false, result: null },
+      pendingCast: { casterId: E.id, targetId: H.id, spellId: 'flechette', missile: true, result: null },
     });
     return { H, P, E };
   }
@@ -58,13 +58,13 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
   it('#1064 — le PRÉ-JET annonce la même cible que le jet : le ward entre dans `previewCast`', () => {
     const { E, H, P } = setup({ x: 10, y: 10 }); // cible dans l'aura
     const spell = findSpellById('flechette')!;
-    const pv = previewCast(E as Combatant, spell, { missile: true, focused: false, ctx: { s: banc.getState(), target: H as Combatant } });
+    const pv = previewCast(E as Combatant, spell, { missile: true, ctx: { s: banc.getState(), target: H as Combatant } });
     const base = castingValue(E as Combatant, incantationArcane());
     expect(pv.target).toBe(base - 20); // la cible ANNONCÉE est celle que `jetLancer('incantation')` appliquera
     // …et NOMMÉE par l'entité qui a posé l'aura, avec son renvoi Codex et son PORTEUR en provenance.
     expect(pv.mods).toContainEqual({ label: (P as Combatant).activeEffects![0].label, value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: P.id }] });
     // Contrôle : sans contexte de cible, l'aperçu ne peut pas connaître la protection de la victime.
-    expect(previewCast(E as Combatant, spell, { missile: true, focused: false }).target).toBe(base);
+    expect(previewCast(E as Combatant, spell, { missile: true }).target).toBe(base);
   });
 
   it('cible hors du rayon : aucune pénalité', () => {

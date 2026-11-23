@@ -75,14 +75,14 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: (s) => ({ roll: P<{ def: { roll: number } }>(s, 'pendingDefense').def.roll, success: P<{ def: { success: boolean } }>(s, 'pendingDefense').def.success }),
   },
   incantation: {
-    state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: '' } } },
+    state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: '' } } },
     read: (s) => ({ roll: P<{ result: { roll: number } }>(s, 'pendingCast').result.roll, success: P<{ result: { cast: boolean } }>(s, 'pendingCast').result.cast }),
   },
   // Contre-sort / Opposition : le jet d'incantation ENNEMI est FIGÉ dans `pendingCast` — les deux
   // accesseurs de dé l'y relisent pour re-opposer, la fixture doit donc le poser.
   contreSort: {
     state: {
-      pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
+      pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'H', interactive: true, declared: 'solo', result: { dispelled: false, counter: rateTR, casterNetSL: 7, log: '' } }] },
     },
     pid: 'H',
@@ -93,7 +93,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   },
   opposition: {
     state: {
-      pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
+      pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, result: ENEMY_CAST },
       pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: 'H', interactive: true, result: { oppose: rateTR, resisted: false, margin: 7 } }] },
     },
     pid: 'H',

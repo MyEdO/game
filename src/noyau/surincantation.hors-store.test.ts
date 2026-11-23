@@ -63,7 +63,7 @@ function lancer(spell: EntreeVivante<SpellData>, corps: (partie: Partie) => void
   const L = lanceur();
   const partie = creerPartie({
     ...etatInitialDuJeu(), party: [L],
-    pendingCast: { casterId: L.id, targetId: L.id, spellId: spell.id, missile: false, focused: false, result: null, ...extra },
+    pendingCast: { casterId: L.id, targetId: L.id, spellId: spell.id, missile: false, result: null, ...extra },
   }, { ...ENTREES, reglesMaison });
   try {
     partie.envoyer({ type: 'jetLancer', args: ['incantation'] });
