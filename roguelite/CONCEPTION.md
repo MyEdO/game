@@ -61,6 +61,8 @@ l'utilisateur ».
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
 - **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L’armure est une panoplie parmi cinq
   (de 1 à 5 PA) : des options qui s'arbitrent (protection contre prix, encombrement et malus), pas une échelle.
+  Elles ne mêlent que les trois matières, cuir souple, mailles et plates (« pourquoi tu propose le cuir bouillie
+  absolument ? Ce n est pas du métal, ce n est pas du cuir souple, il n a rien pour lui », 2026-11-23).
   La forge ouvre ce qu'elle vend par Disponibilité ; une recrue part avec la dotation du livre ; le meilleur s'achète.
 - **Progression** : présentation « à la 5e » (pas de +5, plan conseillé en un clic, Compétences utiles seules) ;
   une identité de carrière se juge sur ses quatre niveaux.
