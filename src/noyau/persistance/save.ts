@@ -135,8 +135,8 @@ const TRANSITION_DE_L_AMARRAGE = {
 };
 /** #4530 : une save sans meneur désigné se lit à l'élection (`meneurChoisi` à `null`, `etatInitialDuJeu`). */
 const TRANSITION_DU_MENEUR_CHOISI = {
-  avant: '493f6f1a6bc9e9de',
-  apres: '015ea711a45af5e4',
+  avant: '13d7e87f5552b95c',
+  apres: '4e815d28197d2c67',
 };
 const FORMAT_AVANT_LE_MENEUR_CHOISI = FORMAT_SAVE === TRANSITION_DU_MENEUR_CHOISI.apres
   ? TRANSITION_DU_MENEUR_CHOISI.avant : FORMAT_SAVE;
