@@ -1,11 +1,13 @@
 /**
  * LE REJEU DES TEXTURES ÉPINGLÉES (#4527, `texture.ts`) : l'origine que nomme une source, les arguments que consigne un
- * traitement, l'ordre du rejeu, et la provenance commitée, que le rejeu lit tout entière.
+ * traitement, l'ordre du rejeu, et la provenance commitée, que le rejeu lit tout entière ; chaque matière de décor du
+ * monde y a sa triade (#4809).
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { matieresDeDecor } from '../../../src/noyau/index.ts';
 import { DOSSIER_DES_TEXTURES, type ProvenanceFabriquee } from './epingles';
 import {
   argumentsDeTraitement,
@@ -41,6 +43,12 @@ describe('rejouer une texture épinglée', () => {
       expect(argumentsDeTraitement(entree.traitement).length, nom).toBeGreaterThan(0);
       if ('deriveeDe' in origine) expect(Object.keys(provenance), nom).toContain(origine.deriveeDe);
     }
+  });
+
+  it('chaque matière de décor du monde (`prop--<id>`, `materials.json`) a sa triade épinglée : teinte, neutre et relief', () => {
+    const epinglees = Object.keys(JSON.parse(readFileSync(join(DOSSIER_DES_TEXTURES, 'provenance.json'), 'utf8')) as Record<string, ProvenanceFabriquee>);
+    const sansTriade = matieresDeDecor().filter((matiere) => ['', '.neutre', '.normale'].some((suffixe) => !epinglees.includes(`${matiere}${suffixe}.jpg`)));
+    expect(sansTriade).toEqual([]);
   });
 
   it('refuse un nom que la provenance n’épingle pas, avant toute écriture', async () => {
