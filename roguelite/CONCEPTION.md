@@ -162,7 +162,11 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   (`Combatant.aiDoctrine`, `DOCTRINES` de `src/noyau/monde/ai.ts`).
 - **2026-11-23, la forge** : « Les palliers de la forge doivent plutot se baser sur la rareté ». — Chaque palier de la
   forge ouvre une Disponibilité du livre (champ `availability` des objets du noyau : commune, limitée, rare,
-  exotique) au lieu d'une liste choisie à la main.
+  exotique) au lieu d'une liste choisie à la main. Sur l'armure : « on affichait 4 slots (arme, 2nd main, distance et
+  armure), si on gere l'armure a l'unité ca va etre un enfer, en plus avec les régles sur l'empilement des armures,
+  sur ces personnages qu'on va créer en grand nombre, ca va etre l'enfer ». — La forge vend des panoplies : un
+  ensemble cohérent de pièces du noyau, acheté en un clic, qui occupe l'emplacement « armure » ; le noyau en calcule
+  les PA par localisation.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
