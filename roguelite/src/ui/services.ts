@@ -258,8 +258,8 @@ export function panneauDeService(ctx: Contexte, service: Service): PanneauDeServ
   const page = PAGES[service]({ e, servi, emplacement: ctx.emplacement, choix: ctx.choix });
   const progresse = (h: J.Heros) => J.peutProgresser(e, h);
   const socle: Socle = service === 'depart'
-    ? { heros: J.compagnie(e), geste: 'choisir', choisi: (h) => ctx.choix.has(h.c.id), refus: J.refusDeDepart, consigne: `Choisir le groupe · ${ctx.choix.size} / ${J.TAILLE_DU_GROUPE}` }
-    : pourQui ? { heros: J.compagnie(e), geste: 'client', choisi: (h) => h.c.id === pourQui.c.id, progresse, consigne: 'Choisir le héros à servir' } : { heros: J.compagnie(e), geste: 'heros', choisi: () => false, progresse };
+    ? { heros: e.roster, geste: 'choisir', choisi: (h) => ctx.choix.has(h.c.id), refus: J.refusDeDepart, consigne: `Choisir le groupe · ${ctx.choix.size} / ${J.TAILLE_DU_GROUPE}` }
+    : pourQui ? { heros: e.roster, refus: (h) => (h.retrait && service !== 'temple' ? `À l’hospice encore ${pluriel(h.retrait, 'jour')}.` : null), geste: 'client', choisi: (h) => h.c.id === pourQui.c.id, progresse, consigne: 'Choisir le héros à servir' } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
   const tete = b ? teteDuBatiment(e, b)
     : destination ? `<div class="enseigne-service">${medaillon('route', 'moyen')}<div><div class="nom-propre petit gothique">${destination.salles} salles</div><div class="sous-titre">maître : ${esc(maitres(destination))}</div></div></div>
       <div class="paliers"><p class="effet">${esc(destination.recit)}</p></div>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { icone: 'carte' })}`

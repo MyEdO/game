@@ -50,10 +50,10 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     if (l === 1280) constater(await p.isVisible('.apercu-du-jeu'), '2 : l’identité d’un héros au survol de sa carte');
     await image(p, '2-identite', l);
     await p.mouse.move(0, 0); await image(p, '6-retour-hameau', l);
-    if (l === 1280) constater(await p.isVisible('.cadre-hospice .sejour'), '8 : le hameau montre qui est à l’hospice et pour combien de jours');
+    if (l === 1280) constater((await p.textContent('.socle-compagnie')).includes('hospice ·'), '8 : la carte du héros à l’hospice dit ses jours restants');
     await clic(p, 'button[data-a="batiment"][data-id="temple"]'); await image(p, '6-chapelle', l);
     await clic(p, '[data-a="fermer-panneau"]'); await clic(p, 'button[data-a="batiment"][data-id="cartographe"]'); await clic(p, '[data-a="preparer"]');
-    if (l === 1280) constater((await p.$$eval('.socle-compagnie .carte-heros', (c) => c.length)) === 3, '8 : le héros à l’hospice quitte le socle du départ');
+    if (l === 1280) constater(await p.$eval('.socle-compagnie .carte-heros.retrait', (c) => c.disabled), '8 : le héros à l’hospice ne peut pas partir');
     await image(p, '8-depart', l);
     await p.mouse.move(0, 0);
     // 3, 4 : partir, la route.

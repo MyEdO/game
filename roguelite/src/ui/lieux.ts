@@ -13,7 +13,7 @@ import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { medaillon, plaque, rondMuet } from '../kit';
 import type { Vignette } from '../vignettes';
 import { CADRES, CADRES_DE_L_HOTE, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
-import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, hospice, place } from './pieces';
+import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
@@ -84,12 +84,11 @@ const actionDuHameau = (e: J.Etat) => `<div class="action-de-coin" ${place(CADRE
  *  le cartouche et le socle. */
 export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeService | null, carte: string): string {
   const titre = cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' });
-  const socleDuHameau = { heros: J.compagnie(e), geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
+  const socleDuHameau = { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
   const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
       <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${e.roster.some((h) => h.retrait) ? cadreA(CADRES.note, `<div class="sejours">${hospice(e)}</div>`, { ruban: 'Hospice', classe: 'cadre-hospice' }) : ''}
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,
