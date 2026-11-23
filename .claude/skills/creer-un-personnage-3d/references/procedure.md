@@ -271,7 +271,8 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
   à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
-  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
+  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313), sa
+  triade comprise (teinte, neutre, relief ; garde `hotes/godot/asset/texture.hors-store.test.ts`, #4809) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
   « fabriquée par ImageMagick, sans image source » et son générateur, graine `-seed` comprise, en tête du traitement
