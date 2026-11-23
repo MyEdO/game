@@ -10,8 +10,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 |---|---|---|
 | Compagnon animal et montures dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lot A en PR brouillon ; lot B1 (cavalier choisi hors combat, IA, voyage) codé, finition en cours (tests de l'IA alliée, preuves par mutation), puis juge ; ensuite B2 (compagnon en rencontre), C (Blessures) |
 | Le cuir souple ajoute ses PA (MyEdO/game#4820), puis cinq panoplies de 1 à 5 PA | `.wt-4820-cuir-souple`, puis `jeu/valeurs.ts` | codeur du noyau en cours |
-| Un mage pose les sorts de sa voie en combat automatique : réserve de Focalisation VDM (MyEdO/game#865), l'IA qui focalise (MyEdO/game#4821) | chantiers du noyau | tickets ouverts, chantiers à ouvrir (les voies rangées par NI et `magie-vdm-incantation` sont livrées) |
-| Salles à choix : le camp avec le soigneur, la rencontre sociale | worktree isolé | codeur en cours |
+| Un mage pose les sorts de sa voie en combat automatique : réserve de Focalisation VDM (MyEdO/game#865), l'IA qui focalise (MyEdO/game#4821) | `.wt-865`, `.wt-4821` | #865 : design jugé, lot 1 (la réserve) en codage, lot 2 (Interruption volontaire, évacuation, Maladresse VDM) ensuite ; #4821 en codage |
 
 ## Ensuite, dans l'ordre
 
