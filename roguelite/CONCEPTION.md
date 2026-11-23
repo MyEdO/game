@@ -118,6 +118,12 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   est que chaque carrière a son identité propre, que ce soit sur ses compétences/talents, son rôle dans le groupe et
   son arsenal. »
 
+- **2026-11-23, les munitions** : « Pour moi après chaque expédition, on récupère automatiquement ses flèches, pas
+  besoin de les racheter. » — Valeur d'adaptation du roguelite (`ramasserLesMunitions`, `jeu/expedition.ts`).
+- **2026-11-23, le noyau** : « Je t'autorise à modifier le noyau mais en passant par le système normal attendu par le
+  projet avec un ticket et les skills qui gèrent le traitement des tickets » ; « Pour le ratier, donne le chien du
+  ratier. »
+
 ## Les phases
 
 1. **Refonte du code, sans changement visible.** Découper la façade du noyau (`combat.ts`), la boucle de jeu

@@ -1,9 +1,9 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { jouerLeCombat, reposer, horsDeCombat, auHameau, type IssueDuCombat } from '../noyau';
+import { jouerLeCombat, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
 
-import { DESTINATIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
+import { DESTINATIONS, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 
@@ -28,8 +28,30 @@ export function partir(e: Etat, destinationId: string, groupe: string[]): string
     salles.push({ type, ennemis: type === 'combat' ? choisir(rng, d.meutes) : type === 'elite' ? choisir(rng, d.elites) : [], faite: false });
   }
   salles.push({ type: 'boss', ennemis: d.boss, faite: false });
-  e.expedition = { destination: d.id, salles, index: 0, groupe: choisis.map((h) => h.c.id), or: 0, trophees: 0, px: 0, prieres: [] };
+  e.expedition = { destination: d.id, salles, index: 0, groupe: choisis.map((h) => h.c.id), or: 0, trophees: 0, px: 0, prieres: [], munitions: Object.fromEntries(choisis.map((h) => [h.c.id, munitionsDe(h)])) };
   return null;
+}
+
+const TYPES_DE_MUNITION = new Set(Object.values(MUNITIONS));
+/** Les munitions que porte un héros, par objet du catalogue. */
+function munitionsDe(h: Heros): Record<string, number> {
+  const n: Record<string, number> = {};
+  for (const i of h.c.items ?? []) if (i.trappingId && TYPES_DE_MUNITION.has(i.trappingId)) n[i.trappingId] = (n[i.trappingId] ?? 0) + (i.qty ?? 1);
+  return n;
+}
+/** Valeur d'adaptation : au retour, chacun ramasse ses flèches, carreaux et pierres ; il repart avec ce qu'il avait. */
+function ramasserLesMunitions(e: Etat): void {
+  for (const h of herosDuGroupe(e)) {
+    const avant = e.expedition?.munitions?.[h.c.id] ?? {};
+    const maintenant = munitionsDe(h);
+    for (const [id, n] of Object.entries(avant)) {
+      const manque = n - (maintenant[id] ?? 0);
+      if (manque <= 0) continue;
+      const tenu = h.c.items?.find((i) => i.trappingId === id);
+      if (tenu) tenu.qty = (tenu.qty ?? 1) + manque;
+      else h.c.items = [...(h.c.items ?? []), ...doter([id], `retour${e.graine++}`).map((i) => ({ ...i, qty: manque }))];
+    }
+  }
 }
 
 export const herosDuGroupe = (e: Etat): Heros[] => (e.expedition?.groupe ?? []).map((id) => heros(e, id)).filter((h): h is Heros => !!h);
@@ -143,6 +165,7 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   const peage = x.index > 0 ? [0, 10, 25, 50][e.batiments.peage] : 0;
   e.or += x.or + peage; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
+  ramasserLesMunitions(e);
   const jours = x.index;
   const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);

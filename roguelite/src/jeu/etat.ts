@@ -12,7 +12,8 @@ export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean }
 /** `prieres` : les Bénis qui ont déjà prié pour soigner pendant l'expédition. */
-export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[] }
+/** `munitions` : les munitions de chaque héros au départ, par objet du catalogue ; elles sont ramassées au retour. */
+export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
 
 export interface Etat {
   version: 2;
