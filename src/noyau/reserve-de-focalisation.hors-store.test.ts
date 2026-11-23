@@ -5,6 +5,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
+import { adresseDeCreation } from '../engine/adresseDeCreation';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { buildAiInput, castSpell, withPreRollFixedDie } from './combatFlow';
@@ -21,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); banc.getState().ensemencerLeTirage(21)
 afterEach(() => resetRule('magie-vdm-incantation'));
 
 function sorciere(): Combatant {
-  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 707, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 707, careerTalent: { id: 'magie-mineure' }, specChoices: { [adresseDeCreation.carriereCompetence(3)]: 'feu' }, talentsRolled: false });
   w.skills.push({ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 8 } as never);
   w.spells = ['cauteriser', 'coeurs-ardents', ...(w.spells ?? [])];
   return w;

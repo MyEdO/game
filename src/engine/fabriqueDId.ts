@@ -13,7 +13,8 @@ export type GenreDId = 'it' | 'hero' | 'pos' | 'favor' | 'depot-au-sol' | 'assai
 /** Forge l'id neuf d'un genre. */
 export type FabriqueDId = (genre: GenreDId) => string;
 
-/** L'entropie de la plateforme, que l'hôte passe au roster : l'id d'un héros de roster et ceux de ses objets. */
+/** L'entropie de la plateforme, que l'hôte passe au roster (`idDEntropie`, `src/hote/entropie.ts`) : l'id d'un héros de
+ *  roster et ceux de ses objets. */
 export interface FabriqueDuRoster {
   (genre: 'hero'): IdDeHerosDuRoster;
   (genre: GenreDId): string;

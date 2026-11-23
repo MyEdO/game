@@ -96,13 +96,12 @@ import {
   estUneVraieArme,
   ficheDObjetPorte,
   objetDeSlot,
-  isWeaponActive,
   uidDArme,
   type TrappingResolver,
 } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { itemCapability } from './capabilities';
-import { objetSourceDeLArme } from './weaponLoad';
+import { isWeaponActive, objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
 import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage } from './psych/ciblage';

@@ -13,7 +13,6 @@ import {
   findClassById,
   findQualityById,
   findTrappingById,
-  firstLevel,
   levelsForCareer,
   speciesSize,
   tailleDuProfil,
@@ -51,10 +50,10 @@ type EmplacementABranches = Extract<EmplacementDeDotation, { sorte: 'branches' }
 type EmplacementJoker = Extract<EmplacementDeDotation, { sorte: 'joker' }>;
 type EmplacementAtout = Extract<EmplacementDeDotation, { sorte: 'atout' }>;
 
-/** Dotations d'un héros : celles de sa Classe puis de son Niveau de carrière (`careerLevel` défaut 1, la création). */
+/** Dotations d'un héros de Niveau `careerLevel` (défaut 1, la création) : celles de sa Classe, puis de ses Niveaux 1 à
+ *  `careerLevel` (`dotationsDuPnj`), chacun reçu en le commençant. LDB 05 l.552, l.572 ; EDO 11 l.19 */
 export function dotationsDuHeros(careerId: string, careerLevel: number = 1): TrappingRef[] {
-  const level = levelsForCareer(careerId).find((l) => l.level === careerLevel) ?? firstLevel(careerId);
-  return [...(findClassById(findCareerById(careerId)?.class.id)?.trappings ?? []), ...(level?.trappings ?? [])];
+  return [...(findClassById(findCareerById(careerId)?.class.id)?.trappings ?? []), ...dotationsDuPnj(careerId, careerLevel)];
 }
 
 /** Dotations d'un PNJ de carrière : celles des Niveaux 1 à `niveau` de sa carrière actuelle, sans celles de sa

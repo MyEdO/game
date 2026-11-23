@@ -25,13 +25,14 @@ function negociant(idNeuf: FabriqueDId): Combatant {
   // identified:false → masquée tant qu'une Évaluation ne l'a pas révélée (mais ACTIVE en combat).
   const epee = itemFromGive({ trappingId: 'epee-batarde', teinte: { id: 'aethyrique' }, qualities: ['de-plaies-atroces'] }, idNeuf, undefined, undefined, contexteDeNaissanceDObjet(h));
   epee.identified = false;
-  epee.equipped = true;
   const maille = itemFromTrappingById('chemise-de-mailles', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   maille.damageTaken = 2; // 2 PA perdus → réparable (10 %/PA, LDB 63)
   maille.equipped = true;
   const dague = itemFromTrappingById('dague', idNeuf, undefined, contexteDeNaissanceDObjet(h))!; // un objet à vendre
   const selle = itemFromTrappingById('selle-et-harnais', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [epee, maille, dague, selle];
+  h.loadouts = undefined;
+  h.activeLoadoutId = undefined;
   recomputeLoadout(h);
   h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
   return h;
@@ -53,10 +54,10 @@ function maitreArmes(idNeuf: FabriqueDId): Combatant {
     take('calotte-de-cuir'),
     take('jambieres-en-cuir'),
     take('cape'), // emplacement cosmétique (Cape)
-    take('rapiere', true), // Set I mêlée
-    take('bouclier', true),
+    take('rapiere'), // Set I mêlée
+    take('bouclier'),
     take('epee-batarde'), // 2M au sac → grisage du slot secondaire
-    take('arc', true), // Set II distance
+    take('arc'), // Set II distance
     take('fleche'),
   ];
   h.loadouts = undefined; // inventaire de carrière REMPLACÉ → régénérer les sets par défaut

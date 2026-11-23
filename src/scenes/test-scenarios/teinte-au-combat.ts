@@ -29,7 +29,7 @@ function lameAethyrique(idNeuf: FabriqueDId): Combatant {
     it.equipped = true;
     return it;
   };
-  h.items = [{ ...porte('arme-simple'), teinte: TEINTE }, porte('brassards')];
+  h.items = [{ ...itemFromTrappingById('arme-simple', idNeuf)!, teinte: TEINTE }, porte('brassards')];
   h.loadouts = undefined;
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);
