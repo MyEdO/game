@@ -51,7 +51,7 @@ const LIBELLES_DE_DOMAINE = {
 const chargeParDiscriminant = {
   objet: ['palette'],
   couleur: ['color'],
-  prop: ['color', 'roughness', 'metalness'],
+  prop: ['color', 'roughness', 'metalness', 'opacity'],
   roof: [
     'couverture', 'vueDeDessus', 'N', 'E', 'S', 'O', 'line',
     'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap', 'kit',
@@ -62,6 +62,7 @@ const chargeParDiscriminant = {
 /** Clés EXIGÉES d'un domaine qui n'exige pas toute sa charge (`espace.requisesParDiscriminant`) ; le reste de sa charge
  *  y est optionnel. */
 const requisesParDiscriminant = {
+  prop: ['color', 'roughness', 'metalness'],
   roof: [],
   relief: ['face'],
 } as const satisfies { readonly [D in MaterialDomain]?: readonly (typeof chargeParDiscriminant)[D][number][] };
@@ -76,6 +77,7 @@ const doc = document(
     color: couleurHexSchema.optional(),
     roughness: z.number().min(0).max(1).optional(),
     metalness: z.number().min(0).max(1).optional(),
+    opacity: z.number().gt(0).lt(1).optional(),
     // ── domaine `roof`
     couverture: z.literal(true).optional(),
     vueDeDessus: z.literal(true).optional(),
@@ -107,6 +109,7 @@ const doc = document(
     color: { label: 'Couleur', hint: 'Teinte hexadécimale `#rrggbb` du matériau' },
     roughness: { label: 'Rugosité', hint: 'Réponse mate/brillante à la lumière' },
     metalness: { label: 'Métallicité', hint: 'Part de réponse métallique à la lumière' },
+    opacity: { label: 'Opacité', hint: 'Part de ce qui est derrière que cache chaque face de la matière, entre 0 et 1 — absente, la matière est opaque' },
     couverture: {
       label: 'Couvre un pan',
       hint: 'Matériau POSABLE sur une masse de toit — absent : entrée de rendu qui ne couvre rien (vue de dessus)',

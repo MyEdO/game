@@ -15,7 +15,8 @@ import { applyAttackResult, applyCoupCritiqueSec, instantaneAvantLeCoup, applyCa
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
-import { critWoundLocation, critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
+import { critWoundLocation, critTableRows, critTableKeyFor } from '../engine/critical';
+import { blessuresDeLaLigne } from '../engine/critical.testkit';
 import { resetRule, setRule } from '../engine/policy';
 import { locationLabel, type Combatant, type HitLocation, type Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -142,13 +143,13 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
       const [etape] = devSteps();
       const ligne = critTableRows('ldb', critTableKeyFor(etape.critSeverity!.location))
         .filter((e) => !e.lethal)
-        .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
+        .reduce((a, e) => (blessuresDeLaLigne(e.ops ?? []) > blessuresDeLaLigne(a.ops ?? []) ? e : a));
       banc.getState().jetImposerLeResultat('cascadeTirage', ligne.max - (etape.table?.mod ?? 0), etape.id);
       const [tiree] = devSteps();
       const dev = tiree.deviation!;
       expect(dev.crit.entryId, 'le dé posé atteint la ligne choisie').toBe(ligne.id);
       resolveDeviation(banc.getState, banc.setState, tiree.id, dev, devier);
-      return { aPleinesPA, perte: critImmediateSummary(ligne.ops ?? []).woundsLost, cible: live('T') };
+      return { aPleinesPA, perte: blessuresDeLaLigne(ligne.ops ?? []), cible: live('T') };
     };
     const subi = tranche(false);
     expect(subi.perte, 'la ligne retire des PB').toBeGreaterThan(0);

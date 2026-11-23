@@ -20,6 +20,7 @@ import {
   vehiculeDuCombattant,
   gestesDExploration,
   jetsEnVue,
+  consequencesDeLEtape,
   capDuGroupe,
   stepInteraction,
   porteesDuTour,
@@ -33,6 +34,7 @@ import {
   nomEnVue,
   porteurEnVue,
   type Combatant,
+  type ConsequenceEnVue,
   type EtatDeLaBarre,
   type GesteDExploration,
   type GesteDuJeu,
@@ -115,6 +117,25 @@ export interface BornesDeLaProjection {
   entites: number;
 }
 
+/**
+ * @contrat Vue
+ * L'étape de cascade que la fenêtre rend.
+ */
+export interface EtapeProjetee {
+  /** L'id de l'étape. */
+  id: string;
+  /** Son genre (`CascadeStep.kind`). */
+  genre: string;
+  /** Son interaction (`stepInteraction`). */
+  interaction: string;
+  /** Les clés de son choix. */
+  choix: string[];
+  /** Les conséquences d'une étape sans ligne de jet (`consequencesDeLEtape`) : prévues tant qu'elle attend sa
+   *  validation, appliquées ensuite ; absentes si elle n'en publie aucune. Une étape à jet les publie sur ses lignes
+   *  (`LigneDeJet.consequences`). */
+  consequences?: ConsequenceEnVue[];
+}
+
 /** La projection : ce que la vue montre, et rien de plus. Chaque liste est bornée, le reste compté. */
 export interface Projection {
   pas: number;
@@ -123,8 +144,8 @@ export interface Projection {
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
    *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
-   *  (`stepInteraction`, les clés d'un choix). */
-  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+   *  (`EtapeProjetee`). */
+  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: EtapeProjetee } | null;
   /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), avec leur état, les valeurs visibles au siège et
    *  le DR net d'un Test opposé tranché et révélé. Les zones reprennent cette lecture. */
   jets: JetEnVue[];
@@ -233,9 +254,13 @@ export const ordreEnVue = (etat: Jeu): string[] => (etat.battle?.order ?? []).fi
 const fermesDe = (etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): Record<string, string> =>
   Object.fromEntries([...fermeturesDeLaFenetre(etat, f)].flatMap(([cle, fermeture]) => (fermeture ? [[cle, libelleDeLaFermeture(fermeture)]] : [])));
 
-/** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
-const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
-  f.etape ? { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key) } } : {};
+/** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix,
+ *  ses conséquences quand elle ne porte aucune ligne de jet. */
+function etapeDe(etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): { etape?: EtapeProjetee } {
+  if (!f.etape) return {};
+  const consequences = consequencesDeLEtape(etat, f.etape);
+  return { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key), ...(consequences.length ? { consequences } : {}) } };
+}
 
 /** Les offres de l'actif d'une barre ouverte (`offresDeLActif`, l'énumération que lit la console). */
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
@@ -324,7 +349,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(fenetreProjetee) } : null,
+    fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
     combat: b
       ? {

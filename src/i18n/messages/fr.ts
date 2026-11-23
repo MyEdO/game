@@ -535,6 +535,8 @@ export const fr = {
   'ecran.jauge.blessures': 'Blessures',
   'ecran.jauge.mouvement': 'Mouvement',
   'ecran.avantage': 'Avantage',
+  'ecran.corruption': 'Corruption',
+  'ecran.argent': 'Argent',
   'ecran.action': 'Action',
   'ecran.action.libre': 'disponible',
   'ecran.action.prise': 'jouée',

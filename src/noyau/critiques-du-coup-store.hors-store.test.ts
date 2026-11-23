@@ -12,7 +12,8 @@ import { evaluateMissile, type CastResult, type MissileResult } from '../engine/
 import { bus, EVT } from './bus';
 import { type SpellData, findSpellById } from '../data';
 import { hasCondition } from '../engine/conditions';
-import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
+import { critTableRows, critTableKeyFor } from '../engine/critical';
+import { blessuresDeLaLigne } from '../engine/critical.testkit';
 import { findTableEntry } from '../engine/tables';
 import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
@@ -126,8 +127,8 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     const sonde = coup({ current: 20 });
     const ligne = critTableRows('ldb', critTableKeyFor(sonde.res.critLocation!))
       .filter((e) => !e.lethal)
-      .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
-    expect(critImmediateSummary(ligne.ops ?? []).woundsLost, 'la ligne retire des PB').toBeGreaterThan(0);
+      .reduce((a, e) => (blessuresDeLaLigne(e.ops ?? []) > blessuresDeLaLigne(a.ops ?? []) ? e : a));
+    expect(blessuresDeLaLigne(ligne.ops ?? []), 'la ligne retire des PB').toBeGreaterThan(0);
     const blessures = sonde.auJet.woundsLost;
     const { cible } = coup({ current: blessures, de: ligne.max });
     expect(cible.critEntriesSuffered).toEqual([ligne.id]);

@@ -13,7 +13,7 @@ import type { HostJet } from './slotsDeJet';
 import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import { attackTestOf, defenseTestOf, sommeDesModificateursDR, type AttackResult, type RollBreakdown } from '../engine/combat';
-import type { CharKey, Combatant, ConditionId, Difficulty, ModLine, Weapon } from '../engine/types';
+import type { CharKey, Combatant, ConditionId, Difficulty, HitLocation, ModLine, Weapon } from '../engine/types';
 import { CHAR_LABELS } from '../engine/types';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { cibleDuTest, clampTarget, estJete, evaluateTest, hydrateTR, resolveOpposed, type EchecSansJet, type OpposedResult } from '../engine/tests';
@@ -24,10 +24,10 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
-import { attackWeaponOf } from './combatFlow';
+import { attackWeaponOf, faitsPrevusDeLaFuite, faitsPrevusDuCritique } from './combatFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
-import { maladresseCourante, resoudreOppositionDeCascade, stepOpposedFreeze, tableStepDef } from './cascade';
+import { faitsAnnonces, maladresseCourante, resoudreOppositionDeCascade, stepOpposedFreeze, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
@@ -144,15 +144,16 @@ export type DetailDeConsequence =
 
 /**
  * @contrat Vue
- * Une conséquence que le jet de la rangée a appliquée (#4574) : ce que l'op a réellement fait, en données. Le
- * texte du journal en est la lecture ; l'hôte compose son affichage depuis ces champs. Une rangée d'une étape
- * opposée au jet figé masqué (`jetFigeRevele` faux) n'en publie aucune.
+ * Une conséquence d'un jet ou d'une étape (#4574) : ce qu'elle fait, en données. Le texte du journal en est la
+ * lecture ; l'hôte compose son affichage depuis ces champs. Une rangée d'une étape opposée au jet figé masqué
+ * (`jetFigeRevele` faux) n'en publie aucune.
  */
 export interface ConsequenceEnVue {
-  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption` ou `argent`. */
+  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption`, `argent` ou `localisation`. */
   genre: FaitApplique['genre'];
-  /** La variation signée : Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre. */
-  valeur: number;
+  /** Un nombre signé (Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre), ou l'id de ce que la
+   *  conséquence désigne (`localisation` : l'id de la Localisation frappée). */
+  valeur: number | HitLocation;
   /** L'id du combattant qui subit le fait, `null` s'il est hors de la vue du groupe. */
   qui: string | null;
   /** Présent quand le porteur du fait est hors de la vue du groupe. */
@@ -170,7 +171,8 @@ export type LigneDeJet = DonneesDeLigne & {
   etat: EtatDeLigneDeJet;
   reference: ReferenceDeJet | null;
   porteurHorsDeVue?: true;
-  /** Les conséquences que ce jet a appliquées, absentes s'il n'en a publié aucune. */
+  /** Les conséquences de ce jet : prévues tant que sa fenêtre attend sa validation, appliquées ensuite ; un seul
+   *  résolveur les donne. Absentes s'il n'en publie aucune. */
   consequences?: ConsequenceEnVue[];
 };
 type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null; faits?: FaitApplique[] };
@@ -691,7 +693,17 @@ function etapeCourante(s: Jeu): CascadeStep | undefined {
   return p ? p.participants[p.cursor] : undefined;
 }
 
-/** Les faits appliqués qu'une étape publie : aucun tant que le jet figé d'une étape opposée n'est pas révélé
+/** Les faits d'une étape : ceux qu'elle a appliqués (`step.faits`), sinon, tant qu'elle attend sa validation, ceux que
+ *  son application prévoit — la Blessure critique de sa fenêtre de Déviation (`faitsPrevusDuCritique`), les États
+ *  Brisés de sa Fuite (`faitsPrevusDeLaFuite`), son annonce (`faitsAnnonces`). Un fait stocké est un fait appliqué. */
+export function faitsDeLEtape(s: Jeu, step: CascadeStep): FaitApplique[] {
+  if (step.faits || step.committed) return step.faits ?? [];
+  if (step.deviation && step.options) return faitsPrevusDuCritique(s, step.deviation);
+  if (step.fuite) return faitsPrevusDeLaFuite(s, step.fuite);
+  return faitsAnnonces(s, step);
+}
+
+/** Les faits qu'une étape publie : aucun tant que le jet figé d'une étape opposée n'est pas révélé
  *  (`jetFigeRevele`). */
 function faitsPublies(s: Jeu, step: CascadeStep, faits: FaitApplique[] | undefined): { faits?: FaitApplique[] } {
   if (!faits?.length) return {};
@@ -750,20 +762,28 @@ function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetLuEnVue[] {
   if (step.target != null) {
     const r = jete(step.result);
     const reponse = { ...ligne(step.actorId, step.rollLabel, jetPropre(r, !!step.meta?.opposed, step.forcee), step.target,
-      { reference: referenceDuSujet(step), mods: step.mods, forcee: step.forcee }), ...faitsPublies(s, step, step.faits) };
+      { reference: referenceDuSujet(step), mods: step.mods, forcee: step.forcee }), ...faitsPublies(s, step, faitsDeLEtape(s, step)) };
     return [courante || step.meta?.opposed ? opposeDEtape(s, step, reponse, r, step.base) : vue('cascade', [reponse])];
   }
   if (step.table) {
     const r = step.table.result;
     const reference = { genre: 'table', id: step.table.tableId } as const;
     return [vue('cascadeTirage', [{ genre: 'table', qui: step.actorId ?? null, table: libelleDeTable(step) ?? step.label ?? step.id,
-      reference, jet: r ? { d100: r.roll, effectif: r.die, ligne: r.lines[0] ?? '' } : null }])];
+      reference, jet: r ? { d100: r.roll, effectif: r.die, ligne: r.lines[0] ?? '' } : null, ...faitsPublies(s, step, faitsDeLEtape(s, step)) }])];
   }
   if (step.de) {
     const r = step.de.result;
-    return [vue('cascadeTirage', [{ genre: 'de', qui: step.actorId ?? null, de: libelleDuDe(step), jet: r ? { naturel: r.roll, total: r.total, lecture: lectureDuTotal(step, r.total) } : null }])];
+    return [vue('cascadeTirage', [{ genre: 'de', qui: step.actorId ?? null, de: libelleDuDe(step), jet: r ? { naturel: r.roll, total: r.total, lecture: lectureDuTotal(step, r.total) } : null,
+      ...faitsPublies(s, step, faitsDeLEtape(s, step)) }])];
   }
   return [];
+}
+
+/** Les conséquences de l'étape `step` quand elle ne porte aucune ligne de jet (`lireEtape`), par la même porte que les
+ *  rangées (`faitsPublies`) : une étape sans jet les publie sur elle-même. */
+export function consequencesDeLEtape(s: Jeu, step: CascadeStep): ConsequenceEnVue[] {
+  if (step.jet || lireEtape(s, step, true).length) return [];
+  return (faitsPublies(s, step, faitsDeLEtape(s, step)).faits ?? []).map((f) => consequenceEnVue(s, f));
 }
 
 function jetsDeLaCascade(s: Jeu): JetLuEnVue[] {

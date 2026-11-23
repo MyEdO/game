@@ -125,7 +125,7 @@ describe('applyOps rend ses faits et leurs lignes', () => {
   it('chaque fait se lit en une ligne rendue, dans l’ordre des faits', () => {
     for (const cas of CORPUS) {
       const { lignes, faits } = cas.jouer();
-      const lues = faits.map((f) => texteDuFait(f, 'Cobaye', cas.source));
+      const lues = faits.flatMap((f) => (f.genre === 'localisation' ? [] : [texteDuFait(f, 'Cobaye', cas.source)]));
       expect(lignes.filter((l) => lues.includes(l)), cas.nom).toEqual(lues);
     }
   });

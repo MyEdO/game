@@ -130,7 +130,7 @@ import {
   Weapon,
   locationLabel,
 } from './types';
-import { emettreDans, nomDeSource, type Applique, type FaitApplique } from './faits';
+import { constaterDans, emettreDans, faitDArgent, nomDeSource, type Applique, type FaitAvecLigne } from './faits';
 import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
@@ -559,12 +559,6 @@ export interface OpsCtx {
    *  re-jouées, et sur elles seules : la dérivation `imbrique` l'ôte à toute descente (table, seuil,
    *  forme, échelon). */
   rejeuRecurrent?: boolean;
-  /** Reçoit chaque ligne rendue AVEC le rang de l'op qui l'a produite (son indice dans `ops`), dans
-   *  l'ordre des lignes rendues, une fois l'application finie. La ligne AGRÉGÉE d'une suite de `charMod`
-   *  va au DERNIER de la suite : elle n'est complète qu'avec lui. `rang: null` = la réconciliation qui
-   *  clôt l'application (`syncDerivedConditions`), qui n'appartient à aucune op seule. `imbrique` l'ôte à
-   *  toute descente : une op imbriquée rend ses lignes à l'op qui la porte. */
-  surLigne?: (rang: number | null, ligne: string) => void;
   /** ENTITÉ SOURCE des ops en cours (sort, talent, trait, objet, maladie, mutation…) — marquée sur TOUT
    *  `ActiveEffect` posé par cet `applyOps` (`ActiveEffect.source`). Ancrage de règle GÉNÉRAL : c'est
    *  elle qui donne sa fiche Codex à une pastille d'effet, quel que soit le TYPE de source (arbitrage
@@ -848,22 +842,16 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
  *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
 export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'onChoixDeTrait', 'des'] as const;
-/** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
- *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
- *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
- *  aucun contexte : Critique de `noyau/combatFlow.ts` (`surLigne`, que les ops imbriquées d'`applyOps`
- *  ne reçoivent pas). */
-export const OPS_CTX_HORS_CANAL = ['surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
-  | (typeof OPS_CTX_REBATIS)[number] | (typeof OPS_CTX_HORS_CANAL)[number];
+  | (typeof OPS_CTX_REBATIS)[number];
 /** Les champs d'`OpsCtx` qu'AUCUN seau ne réclame — `never` tant que la partition est totale. */
 export type CleOpsCtxNonClassee = Exclude<keyof OpsCtx, CleClassee>;
 /** TOTALITÉ AU TYPE : si `CleOpsCtxNonClassee` cesse d'être `never` (champ ajouté à `OpsCtx` sans seau),
  *  ce type devient `false` et `tsc` échoue ICI, en nommant le champ. */
 export type _OpsCtxPartitionTotale = [CleOpsCtxNonClassee] extends [never] ? true
-  : ['CHAMP D_OpsCtx NON CLASSÉ — le classer dans OPS_CTX_GELES / _PAR_REFERENCE / _REBATIS / _HORS_CANAL', CleOpsCtxNonClassee];
+  : ['CHAMP D_OpsCtx NON CLASSÉ — le classer dans OPS_CTX_GELES / _PAR_REFERENCE / _REBATIS', CleOpsCtxNonClassee];
 const _partitionTotale: _OpsCtxPartitionTotale = true;
 void _partitionTotale;
 
@@ -999,8 +987,7 @@ export function* tirerLaTable(o: OpTable, ctx: Pick<OpsCtx, 'sl' | 'overcastDura
 /**
  * Exécute une liste d'ops sur `target`. Les `charMod` consécutifs d'une même
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
- * historique de l'incantation). Renvoie les lignes de journal et les faits appliqués qu'elles lisent (#4574) ;
- * `ctx.surLigne` reçoit les lignes avec leur rang.
+ * historique de l'incantation). Renvoie les lignes de journal et les faits appliqués (#4574).
  */
 export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): Applique {
   const ops = structuredClone(opsRecues); // #2097
@@ -1010,7 +997,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   const lines: string[] = [];
   const sortie: Applique = { lignes: lines, faits: [] };
   // LA seule émission d'un fait de la classe (#4574) : le fait et sa ligne, ensemble.
-  const emettre = (cible: Combatant, f: FaitApplique) => emettreDans(sortie, cible, f, ctx.label);
+  const emettre = (cible: Combatant, f: FaitAvecLigne) => emettreDans(sortie, cible, f, ctx.label);
+  // Une perte de Blessures et les faits de ses conséquences (`loseWounds`), que le journal ne dit pas.
+  const perdre = (cible: Combatant, n: number, mitigation?: Extract<FaitAvecLigne, { genre: 'blessures' }>['mitigation']): number => {
+    const perte = loseWounds(cible, n);
+    if (perte.perdues > 0) emettre(cible, { genre: 'blessures', ...sur(cible), valeur: -perte.perdues, ...(mitigation ? { mitigation } : {}) }); // LDB 16 l.105
+    for (const f of perte.faits) constaterDans(sortie, f);
+    return perte.perdues;
+  };
   const sur = (cible: Combatant) => ({ cible: cible.id, camp: campOf(cible) });
   // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
   const absorber = (a: Applique) => { lines.push(...a.lignes); sortie.faits.push(...a.faits); };
@@ -1022,7 +1016,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
     if (!vol || regagnees > 0) emettre(qui, { genre: 'blessures', ...sur(qui), valeur: regagnees, ...(vol ? { vol } : {}) });
     lines.push(...suite);
   };
-  const debuts: number[] = [];
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
   // en fin d'op, QUE ceux posés par CE sort source (robuste au dédoublonnage en place de `applyActiveEffect`).
   const preEffects = (ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || source) ? new Set(target.activeEffects ?? []) : null;
@@ -1054,7 +1047,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   //  Le marquage des Blessures au total (`blessuresAuTotal`, #3060) y descend : la liste qui porte
   //  l'`attrMod` couvre ses descentes.
   const blessuresAuTotal = ctx.blessuresAuTotal ?? (ops.some((o) => o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) ? true : undefined);
-  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, blessuresAuTotal, ...extra, rejeuRecurrent: undefined, des: undefined, surLigne: undefined });
+  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, blessuresAuTotal, ...extra, rejeuRecurrent: undefined, des: undefined });
   // LE DÉ D'UNE OP (#1508), seul point de consommation du canal : la valeur POSÉE par la porte pour le
   // champ DÉCLARÉ (`DES_DUNE_OP`), à défaut le tirage — au même point du rng qu'avant le canal. Le
   // `case` ne connaît ni la clé ni sa graphie : il nomme son CHAMP, comme la déclaration.
@@ -1070,7 +1063,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   };
   for (const [iOp, o] of ops.entries()) {
     if (o.op !== 'charMod') flushCharMods();
-    debuts.push(lines.length);
     if (opSansObjet(target, o, ctx)) continue;
     switch (o.op) {
       case 'wounds': {
@@ -1080,8 +1072,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // (Perforante/Empaleuse), armure à la `ctx.location` et BE, sans dupliquer la mitigation.
         if (o.weaponHit && ctx.weapon) {
           const n = woundsFromHit(ctx.weapon, target, ctx.location ?? 'corps', raw, o.extraAP ?? 0, o.min ?? 1, ctx.caster?.size);
-          ctx.woundsDealt = loseWounds(target, n); // PB réellement perdus (drain/Vol de vie suivant)
-          if (ctx.woundsDealt > 0) emettre(target, { genre: 'blessures', ...sur(target), valeur: -ctx.woundsDealt }); // LDB 16 l.105
+          ctx.woundsDealt = perdre(target, n); // PB réellement perdus (drain/Vol de vie suivant)
           break;
         }
         // Défaut : ignore BE+PA. `ignoreTB:false` → déduit le Bonus d'Endurance ; `ignoreAP:false` → déduit les PA.
@@ -1097,11 +1088,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const n = Math.max(o.min ?? 0, raw - tb - ap);
         // `ctx.woundsDealt` = PB RÉELLEMENT perdus (clampé par loseWounds) → un drain/Vol de vie qui SUIT
         // (`lifeSteal`) soigne « le même nombre » que la victime a effectivement perdu (Absorption EDO 11 l.222).
-        ctx.woundsDealt = loseWounds(target, n); // perte centralisée (−Avantage + À Terre à 0)
         const mitigation = o.ignoreTB === false || o.ignoreAP === false
           ? { pa: o.ignoreAP === false ? 'touches' as const : 'ignores' as const, be: o.ignoreTB === false ? 'deduit' as const : 'ignore' as const }
           : 'sans' as const;
-        if (ctx.woundsDealt > 0) emettre(target, { genre: 'blessures', ...sur(target), valeur: -ctx.woundsDealt, mitigation }); // LDB 16 l.105
+        ctx.woundsDealt = perdre(target, n, mitigation); // perte centralisée (−Avantage + À Terre à 0)
         break;
       }
       case 'heal': {
@@ -1875,7 +1865,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const apres = setBourseBrass(target, avant + n, ctx.idNeuf); // plancher 0 : on ne doit jamais d'argent
         const delta = apres - avant;
         if (delta === 0) break;
-        emettre(target, { genre: 'argent', ...sur(target), valeur: delta });
+        emettre(target, faitDArgent(target, delta));
         break;
       }
       case 'perRound': {
@@ -2319,7 +2309,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
     }
   }
   flushCharMods();
-  const finDesOps = lines.length;
   // Marque les effets actifs POSÉS par ce sort source (durables) : identité + NI → Dissipation (Sorts
   // seulement, `sourceSpell`) ET id du sort → anti-spam IA (TOUT lancement, Prières comprises, `sourceSpellId`)
   // ET id STABLE de l'effet en cours (`effectId` — transform/chansons de marin…, retrait par IDENTITÉ).
@@ -2337,10 +2326,5 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   // au lieu d'être recopiée sur chaque case. IDEMPOTENTE — les descentes imbriquées n'écrivent rien de plus.
   absorber(syncDerivedConditions(target));
   target.wounds = blessuresReconciliees(target);
-  const surLigne = ctx.surLigne;
-  if (surLigne) {
-    debuts.forEach((d, rang) => { for (const l of lines.slice(d, debuts[rang + 1] ?? finDesOps)) surLigne(rang, l); });
-    for (const l of lines.slice(finDesOps)) surLigne(null, l);
-  }
   return sortie;
 }

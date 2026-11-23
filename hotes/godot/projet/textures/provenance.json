@@ -857,21 +857,21 @@
     "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },
-  "prop--verre.jpg": {
+  "prop--verre-opaque.jpg": {
     "sha256": "a285551aa0ba70d0f104758ae54bef059c0253519bf48d83bbe2002646a688c1",
-    "source": "fabriquée par ImageMagick ; dérivée de prop--verre.neutre.jpg",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--verre-opaque.neutre.jpg",
     "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#4a5a63 ) -compose Multiply -composite -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--verre.neutre.jpg": {
+  "prop--verre-opaque.neutre.jpg": {
     "sha256": "a908ee405282f890755676cb0249ac684b07c23f40be37285e09d7baaca6005a",
     "source": "fabriquée par ImageMagick, sans image source",
     "licence": "CC0-1.0",
     "traitement": "ImageMagick : -size 1024x1024 -seed 4313 xc:gray50 +noise Random -colorspace Gray -virtual-pixel tile ( +clone -blur 0x40 -auto-level ) -compose SoftLight -composite -compose Over -auto-level +level 45%,100% -blur 0x14 -auto-level +level 90%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
   },
-  "prop--verre.normale.jpg": {
+  "prop--verre-opaque.normale.jpg": {
     "sha256": "aef464670a8d1d4bcd000d54e55c3d65c65e90cbac4f70e26aef3a284724ba96",
-    "source": "fabriquée par ImageMagick ; dérivée de prop--verre.neutre.jpg",
+    "source": "fabriquée par ImageMagick ; dérivée de prop--verre-opaque.neutre.jpg",
     "licence": "CC0-1.0",
     "traitement": "ImageMagick : -colorspace Gray -resize 512x512! -virtual-pixel tile -define convolve:bias=50% -define convolve:scale=25% ( -clone 0 -morphology Convolve Sobel:0 ) ( -clone 0 -morphology Convolve Sobel:90 ) ( -clone 0 -fill white -colorize 100 ) -delete 0 -set colorspace sRGB -combine -strip -quality 90"
   },

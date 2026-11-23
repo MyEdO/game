@@ -35,7 +35,7 @@ import { checkPartyWiped } from './partyWipe';
 import { canFixDie } from './netOwnership';
 import { setDesFixes } from '../engine/fixedDie';
 import { demandesDeDes, applyOps, cleDeDe, gelerOpsCtx,
-  OPS_CTX_GELES, OPS_CTX_PAR_REFERENCE, OPS_CTX_REBATIS, OPS_CTX_HORS_CANAL,
+  OPS_CTX_GELES, OPS_CTX_PAR_REFERENCE, OPS_CTX_REBATIS,
   type GameOp, type OpsCtx } from '../engine/ops';
 import { applyFall } from '../engine/movement';
 import { rollShipCritical } from '../engine/shipCritical';
@@ -478,7 +478,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
   });
 
   it('la PARTITION d’`OpsCtx` est totale et disjointe, et `gelerOpsCtx` n’en perd aucun champ', () => {
-    const seaux = [OPS_CTX_GELES, OPS_CTX_PAR_REFERENCE, OPS_CTX_REBATIS, OPS_CTX_HORS_CANAL].flat();
+    const seaux = [OPS_CTX_GELES, OPS_CTX_PAR_REFERENCE, OPS_CTX_REBATIS].flat();
     expect(new Set(seaux).size, 'aucun champ dans deux seaux à la fois').toBe(seaux.length);
     // Un contexte qui porte TOUS les champs gelables : le gel les rend tous. Sortir un champ du seau
     // `OPS_CTX_GELES` le fait disparaître ici — et c'est ce que la reprise perdrait.
@@ -506,15 +506,6 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
 });
 
 describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se différer', () => {
-  it('un hook `OPS_CTX_HORS_CANAL` sur une feuille à dé lève, nommément', () => {
-    banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
-    const gabier = banc.getState().party[0];
-    expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest,
-      hull: coque(), surLigne: () => {},
-    })).toThrow(/surLigne/);
-  });
-
   it('`onOpposingAdvantage` (`onTurnStart`) se porte et se rebâtit sur son porteur ; sans porteur, il lève', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'heros' } as Partial<Combatant>)] });

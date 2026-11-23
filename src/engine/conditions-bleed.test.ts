@@ -54,7 +54,10 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('atteindre 0 par un coup → Inconscient (et À Terre)', () => {
     const c = ilyanweSaignee();
-    expect(loseWounds(c, 10)).toBe(3);
+    expect(loseWounds(c, 10)).toEqual({ perdues: 3, faits: [
+      { genre: 'etat', cible: c.id, camp: 'groupe', id: 'a-terre', valeur: 1 },
+      { genre: 'etat', cible: c.id, camp: 'groupe', id: 'inconscient', valeur: 1 },
+    ] });
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(hasCondition(c, 'a-terre')).toBe(true);
   });
