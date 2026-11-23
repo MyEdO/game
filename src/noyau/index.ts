@@ -19,7 +19,7 @@ export { formatMoney, fromBrass, libelleDuStatut } from '../engine/money';
 export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
-export { libelleDeDistance, type Distance } from '../engine/travel';
+export { libelleDeDistance } from '../engine/travel';
 export { currentSeason } from '../engine/travelStages';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
