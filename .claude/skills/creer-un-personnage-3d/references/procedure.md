@@ -586,6 +586,13 @@ Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
 retouche se juge sur eux. Le témoin se mesure sur les mêmes `<glb>` dans le même ordre, les éléments neufs à la fin : le
 libellé `élément k` d'un mesh est sa position ; `--tenue` avec les mêmes `--local` le garantit.
+La retouche d'un élément se mesure à sa portée : `--portee <id>[,<id>…]` (sous `--tenue`, sans `--plafonds`) ne mesure
+que ce qui nomme un mesh de ces éléments ou des couches que la pile leur fait retenir, et ne rend que ces écarts ; le
+témoin se prend sous la même portée, sur la tenue publiée, puis la retouche se relit par `--local` et `--temoin` (#4814).
+Avant de republier un outil commun (`scripts/personnage-3d/`, l'évaluateur, la pile) ou un lot, jouer
+`npm run personnage-3d:portes -- [--local <id>=<glb>]...` : il retrouve les éléments dont l'empreinte change sur la
+branche (et les GLB locaux d'une reconstruction), les presets dont la tenue les monte, et joue, une porte à la fois, la
+porte de chacun sous leur portée contre le témoin de sa tenue publiée sur `main` ; seuls les écarts neufs sortent.
 Les triangles de chaque mesh s'impriment en tête de chaque rapport ; ceux de chaque GLB bâti, à chaque ligne de
 `npm run personnage-3d:integrer`.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son

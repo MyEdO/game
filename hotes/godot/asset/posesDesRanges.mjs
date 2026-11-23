@@ -55,12 +55,12 @@ export function lireLocales(paires = []) {
 }
 
 /**
- * La tenue de la portée `portee` (`porteeDuPreset`) sur la base de manifeste `manifeste` : les GLB de ce que le jeu monte
- * (`tenueDeLaPortee`, `tenue.ts`), dans l'ordre de ses lignes, pris au dossier de ce manifeste (`listage`), chaque élément
- * de `locales` (`lireLocales`) lu à son GLB local ; un élément local que le preset ne monte pas vient à la fin. Lève si
- * le listage du dossier a une erreur (un GLB non récupéré : `node hotes/godot/asset/recuperer-modeles.mjs`).
+ * Les ids des éléments que le jeu monte de la portée `portee` (`porteeDuPreset`) sur la base de manifeste `manifeste`
+ * (`tenueDeLaPortee`, `tenue.ts`), dans l'ordre de ses lignes, parmi les modèles du dossier de ce manifeste (`listage`),
+ * chaque élément de `locales` (`lireLocales`) lu à son GLB local. Lève si le listage du dossier a une erreur (un GLB
+ * non récupéré : `node hotes/godot/asset/recuperer-modeles.mjs`).
  */
-export async function tenueDesGlb({ manifeste, portee, locales = {} }) {
+export async function idsDeLaTenue({ manifeste, portee, locales = {} }) {
   const a = await assets()
   const dossier = dirname(resolve(manifeste))
   const { manifestes, osDesRigides, erreurs } = await listage(dossier)
@@ -69,8 +69,15 @@ export async function tenueDesGlb({ manifeste, portee, locales = {} }) {
     manifestes[id] = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
     osDesRigides[id] = a.osDesRigides(readFileSync(glb))
   }
-  const ids = a.tenueDeLaPortee(portee, basename(manifeste, a.fichiersDuModele('').manifeste), manifestes, osDesRigides)
-  const glbDe = (id) => locales[id] ?? join(dossier, a.fichiersDuModele(id).glb)
+  return a.tenueDeLaPortee(portee, basename(manifeste, a.fichiersDuModele('').manifeste), manifestes, osDesRigides)
+}
+
+/** La tenue de `idsDeLaTenue` en GLB, pris au dossier du manifeste `manifeste`, chaque élément de `locales` à son GLB
+ *  local ; un élément local que le preset ne monte pas vient à la fin. */
+export async function tenueDesGlb({ manifeste, portee, locales = {} }) {
+  const a = await assets()
+  const ids = await idsDeLaTenue({ manifeste, portee, locales })
+  const glbDe = (id) => locales[id] ?? join(dirname(resolve(manifeste)), a.fichiersDuModele(id).glb)
   return [...ids.map(glbDe), ...Object.keys(locales).filter((id) => !ids.includes(id)).map(glbDe)]
 }
 
