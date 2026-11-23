@@ -16,7 +16,7 @@
     {
       "nom": "glace",
       "palette": "corps",
-      "matiere": "prop--miroir"
+      "matiere": "prop--verre-opaque"
     }
   ],
   "glb": {

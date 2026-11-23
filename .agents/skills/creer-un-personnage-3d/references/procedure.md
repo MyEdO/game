@@ -266,7 +266,8 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   traversée (une vitre en volume clos en montre deux) : le GLB la porte en
   alpha de sa couleur (`alphaMode` `BLEND`), que la palette du montage garde (`MontageDeComposition.peindre`), et elle
   se dessine avant le voile de son mesh (`MontageDeComposition.scene_lue`, recette `recettes/vitre-transparente.gd`) ;
-  son ombre reste entière. Une vitre prend `verre` ; une glace, qui réfléchit sans laisser voir, `miroir`.
+  son ombre reste entière. Une vitre prend `verre` ; un verre qui ne laisse pas voir, glace d'un miroir ou
+  fiole à la couleur de son contenu, `verre-opaque`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`

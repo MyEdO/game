@@ -82,7 +82,7 @@ MATERIAUX = {
     "etabli-2x1": {**BOIS, "fer": ("metal", "fer-noirci"), "acier": ("metal2", "acier-battu")},
     **{id_: {**BOIS, "rouge": ("vet1", "toile-rouge"), "laiton": ("metal", "laiton-dore")}
        for id_ in ("siege", "fauteuil-loge", "canape")},
-    "coiffeuse": {**BOIS, "glace": ("corps", "miroir")},
+    "coiffeuse": {**BOIS, "glace": ("corps", "verre-opaque")},
     "table-murale-2-tabourets": BOIS,
 }
 

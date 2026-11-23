@@ -298,9 +298,9 @@
     "opacity": 0.16
   },
   {
-    "id": "miroir",
+    "id": "verre-opaque",
     "type": "materials",
-    "label": "Miroir",
+    "label": "Verre opaque",
     "domain": "prop",
     "color": "#4a5a63",
     "roughness": 0.1,

@@ -12,7 +12,7 @@
     {
       "nom": "fiole",
       "palette": "accent",
-      "matiere": "prop--verre"
+      "matiere": "prop--verre-opaque"
     },
     {
       "nom": "bouchon",
@@ -21,7 +21,7 @@
     }
   ],
   "glb": {
-    "sha256": "92e33183d93801cdd43e92f2d135f11f7432adda67b725a4c0dedcfad1bb9fe0",
-    "octets": 65948
+    "sha256": "e9e0ce40ba67b892ebe9a8c869d1f0857be7c6486e7a81ab989de29bda40e613",
+    "octets": 65912
   }
 }
