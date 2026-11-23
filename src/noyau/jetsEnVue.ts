@@ -10,7 +10,9 @@
 import type { Jeu } from './etat';
 import type { FlowKey } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
-import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
+import type {
+  BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingBargain, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde,
+} from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import { attackTestOf, defenseTestOf, sommeDesModificateursDR, type AttackResult, type RollBreakdown } from '../engine/combat';
 import type { CharKey, Combatant, ConditionId, Difficulty, HitLocation, ModLine, Weapon } from '../engine/types';
@@ -24,7 +26,7 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
-import { attackWeaponOf, faitsPrevusDeLaFuite, faitsPrevusDeLOups, faitsPrevusDuCritique } from './combatFlow';
+import { attackWeaponOf, faitsPrevusDeLaFuite, faitsPrevusDeLaRangee, faitsPrevusDeLOups, faitsPrevusDuCritique } from './combatFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
 import { faitsAnnonces, maladresseCourante, resoudreOppositionDeCascade, stepOpposedFreeze, tableStepDef } from './cascade';
@@ -34,7 +36,10 @@ import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme, parryWeaponOf } from './rollFlowSpecs';
 import { JET_FIGE, jetFigeRevele } from './netOwnership';
 import { tonDuFait, type RecapTone } from './recapLine';
-import type { DureeDEtat, FaitApplique, IssueDObjet, MitigationDesBlessures } from '../engine/faits';
+import { faitDePrix, type DureeDEtat, type FaitApplique, type IssueDObjet, type MitigationDesBlessures } from '../engine/faits';
+import { issueDuMarchandage, variationDuMarchandage, type SensDuPrix } from '../engine/bargain';
+import { faitDuGainDeCorruption, gainDeLExposition } from './corruptionFlow';
+import { actorIn } from './monde/combatants';
 import type { CodexTarget } from '../engine/ruleRefs';
 import { nomEnVue, porteurEnVue } from './visionDuGroupe';
 import { mancheOpposeeDeTaverneEnVue } from './tavernFlow';
@@ -130,6 +135,15 @@ export interface DetailDeCorruption {
 
 /**
  * @contrat Vue
+ * Le détail d'une conséquence de genre `prix`.
+ */
+export interface DetailDePrix {
+  /** Le prix d'un `achat` ou d'une `vente`. */
+  sens: SensDuPrix;
+}
+
+/**
+ * @contrat Vue
  * Le détail d'une conséquence de genre `objet`.
  */
 export interface DetailDObjet {
@@ -153,6 +167,8 @@ export type DetailDeConsequence =
   | DetailDEtat
   /** Genre `corruption`. */
   | DetailDeCorruption
+  /** Genre `prix`. */
+  | DetailDePrix
   /** Genre `objet`. */
   | DetailDObjet;
 
@@ -163,10 +179,11 @@ export type DetailDeConsequence =
  * (`jetFigeRevele` faux) n'en publie aucune.
  */
 export interface ConsequenceEnVue {
-  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption`, `argent`, `localisation` ou `objet`. */
+  /** Le genre du fait : `blessures`, `avantage`, `etat`, `corruption`, `argent`, `localisation`, `prix` ou `objet`. */
   genre: FaitApplique['genre'];
-  /** Un nombre signé (Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre, −1 d'un objet entamé ou
-   *  brisé), ou l'id de ce que la conséquence désigne (`localisation` : l'id de la Localisation frappée). */
+  /** Un nombre signé (Blessures, Avantage, pions d'État, Points de Corruption, sous de cuivre, points de pourcentage d'un
+   *  prix, −1 d'un objet entamé ou brisé), ou l'id de ce que la conséquence désigne (`localisation` : l'id de la
+   *  Localisation frappée). */
   valeur: number | HitLocation;
   /** L'id du combattant qui subit le fait, `null` s'il est hors de la vue du groupe. */
   qui: string | null;
@@ -175,7 +192,8 @@ export interface ConsequenceEnVue {
   /** Le ton vu du groupe : un gain du groupe ou une perte d'un hostile est une `reussite`, l'inverse un `echec` ; un
    *  fait sans variation ou sur un neutre est `neutre`. */
   ton: RecapTone;
-  /** Le détail propre au genre (État et durée, atténuation, total), absent quand le genre n'en porte pas. */
+  /** Le détail propre au genre (État et durée, atténuation, total, sens d'un prix), absent quand le genre n'en porte
+   *  pas. */
   detail?: DetailDeConsequence;
 }
 
@@ -652,7 +670,12 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
   },
   corruption: (s) => {
     const p = s.pendingCorruption;
-    return p && vue('corruption', [ligne(p.heroId, libelleDuTestNomme(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, cibleDuLecteur(s, p.heroId, (c) => ligneDuTestNomme(c, p.test)), { reference: referenceDuSujet(p.test) })]);
+    if (!p) return null;
+    const hero = actorIn(s, p.heroId);
+    const gain = gainDeLExposition(p);
+    const fait = hero && gain > 0 ? faitDuGainDeCorruption(s, hero, gain) : null;
+    return vue('corruption', [{ ...ligne(p.heroId, libelleDuTestNomme(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, cibleDuLecteur(s, p.heroId, (c) => ligneDuTestNomme(c, p.test)), { reference: referenceDuSujet(p.test) }),
+      ...(fait ? { faits: [fait] } : {}) }]);
   },
   test: (s) => {
     const p = s.pendingTest;
@@ -678,7 +701,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     if (!pb) return null;
     const revele = jetFigeRevele(s, JET_FIGE.marchandage(pb));
     const lignes = [
-      ligneFixe(pb.playerId, 'marchandage', pb.roll, clampTarget(cibleDuTest(pb.playerSkill)).target, { id: 'joueur' }),
+      { ...ligneFixe(pb.playerId, 'marchandage', pb.roll, clampTarget(cibleDuTest(pb.playerSkill)).target, { id: 'joueur' }),
+        ...(revele ? prixDuMarchandage(s, pb) : {}) },
       ligneFixe(null, 'marchandage', pb.merchantRoll, null, { id: 'marchand', masque: revele ? 'value' : 'roll' }),
     ];
     const oppose = revele && pb.roll && pb.result ? oppositionEnVue(pb.result) : null;
@@ -695,6 +719,17 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     return p && vue('tirDeBatterie', rangees(p.participants, (r) => ligne(r.id, libelleDeRole(r), jete(r.result))), null, p.modsDR);
   },
 };
+
+/** Le prix que le Marchandage tranché `pb` fait au marchand, prévu tant que sa fenêtre attend sa validation : la
+ *  variation que son acquittement fige (`issueDuMarchandage`) et que les prix du marchand lisent (`bargainBuyFactor`,
+ *  `bargainSellFactor`). Aucun pour un billet, qui lit son palier (`prixParPassager`), ni pour une variation nulle. */
+function prixDuMarchandage(s: Jeu, pb: PendingBargain): { faits?: FaitApplique[] } {
+  const c = pb.contrepartie;
+  const joueur = actorIn(s, pb.playerId);
+  if (!pb.result || c.kind !== 'marchand' || !joueur) return {};
+  const variation = variationDuMarchandage(issueDuMarchandage(pb.result, pb.negotiator), c.mode);
+  return variation ? { faits: [faitDePrix(joueur, variation, c.mode)] } : {};
+}
 
 /** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre : le sien, puis ceux des fenêtres qu'elle
  *  ouvre en son sein (`FENETRE_DU_JET`). */
@@ -728,11 +763,13 @@ function faitsPublies(s: Jeu, step: CascadeStep, faits: FaitApplique[] | undefin
   return masquee ? {} : { faits };
 }
 
-/** La ligne d'une rangée de bande (`BatchParticipant`), avec les faits appliqués que son étape publie. */
+/** La ligne d'une rangée de bande (`BatchParticipant`), avec les faits que son étape publie : appliqués, sinon, tant
+ *  que sa bande attend sa validation, prévus (`faitsPrevusDeLaRangee`). */
 function ligneDeBande(s: Jeu, step: CascadeStep, part: BatchParticipant): LigneLue {
   const r = jete(part.result);
   const libelle = libelleDeRangee(part) ?? (porteurEnVue(s, part.id) ? part.label : undefined) ?? nomEnVue(s, part.id);
-  return { ...ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee }), ...faitsPublies(s, step, part.faits) };
+  const faits = part.faits ?? (step.committed ? undefined : faitsPrevusDeLaRangee(s, step, part));
+  return { ...ligne(part.id, libelle ?? '', r, part.target, { reference: referenceDuSujet(part), mods: part.mods, forcee: part.forcee }), ...faitsPublies(s, step, faits) };
 }
 
 /** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse, révélé selon le calendrier (`jetFigeRevele`). */

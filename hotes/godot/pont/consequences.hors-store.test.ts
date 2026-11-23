@@ -20,6 +20,9 @@ import { testScenarios } from '../../../src/scenes/test-scenarios';
 import { seedBattleRng } from '../../../src/noyau/battleRng';
 import { cascadeDeTest } from '../../../src/noyau/cascade.testkit';
 import type { Weapon } from '../../../src/engine/types';
+import { applyEffects } from '../../../src/noyau/combatEffects';
+import { emptyScene } from '../../../src/noyau/monde/scene';
+import { tousLesHerosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; vi.restoreAllMocks(); });
@@ -102,5 +105,46 @@ describe('projection.fenetre.etape.consequences', () => {
     const etape = JSON.parse(JSON.stringify(suite.vue.projection.fenetre?.etape)) as NonNullable<typeof suite.vue.projection.fenetre>['etape'];
     expect(etape?.genre).toBe('deviation');
     expect(etape?.consequences?.[0]).toEqual({ genre: 'localisation', valeur: lieu, qui: heros, ton: 'echec' });
+  });
+});
+
+describe('projection.jets[].consequences : la Corruption et le prix prévus', () => {
+  /** La sauvegarde que `poser` laisse sur le banc, chargée par le pont : les conséquences de ses jets en JSON. */
+  function consequencesChargees(poser: (banc: Parameters<Parameters<typeof surUnBancHorsTest>[0]>[0]) => void) {
+    const sauvegarde = surUnBancHorsTest((banc) => {
+      poser(banc);
+      vi.restoreAllMocks();
+      return snapshotSave(banc.getState(), '2026-11-23T18:00:00Z', {});
+    });
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    expect(ecrireLaSauvegarde(stockage, 1, sauvegarde)).toBe(true);
+    const { suite } = drainer(appel, appel('charger', { charger: 1, graine: 7 }));
+    const json = JSON.parse(JSON.stringify(suite.vue.projection.jets)) as typeof suite.vue.projection.jets;
+    return json.flatMap((j) => j.lignes.flatMap((l) => l.consequences ?? []));
+  }
+
+  it('l’Exposition Mineure ratée (LDB 19 l.35), avant sa validation : +1 Point et son total', () => {
+    expect(consequencesChargees((banc) => {
+      const g = banc.getState;
+      g().fixerLeGroupe([createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: 'h-sigmund', seed: 101, talentsRolled: false })]);
+      applyEffects(g, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: 'h-sigmund' }]);
+      banc.setState({ pendingCorruption: { ...g().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
+    })).toEqual([{ genre: 'corruption', valeur: 1, qui: 'h-sigmund', ton: 'echec', detail: { total: 1 } }]);
+  });
+
+  it('le Marchandage d’achat gagné (LDB 59 l.43), avant sa validation : le prix et son sens', () => {
+    const heros = tousLesHerosDeScenario(idsDeTest)[0];
+    expect(consequencesChargees((banc) => {
+      const g = banc.getState;
+      const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
+      sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, settlement: 'ville' } } as never);
+      g().fixerLeGroupe([heros]);
+      banc.setState({ scene: sc, merchant: null, merchantStocks: {}, pendingBargain: null } as never);
+      g().ouvrirLeMarchand('pnj');
+      g().fenetreChoisir('marchand', 'marchander', 'achat');
+      imposerLesD100(1, 99);
+      g().jetLancer('marchandage');
+    })).toEqual([{ genre: 'prix', valeur: -20, qui: heros.id, ton: 'reussite', detail: { sens: 'achat' } }]);
   });
 });

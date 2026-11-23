@@ -83,8 +83,9 @@ describe('Péché et Colère Divine (LDB 40)', () => {
       pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
     });
     banc.getState().jetValider('incantation');
-    const journal = draineEtLit(banc.getState).join('\n');
-    expect(journal.match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
+    draineEtLit(banc.getState);
+    // Le journal dit chaque jet de table une fois, que la révélation le montre ou non (#4787).
+    expect(banc.getState().journal.join('\n').match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
     expect(banc.getState().party.find((h) => h.id === priest.id)!.sinPoints).toBe(1);
   });
 
