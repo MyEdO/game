@@ -48,7 +48,7 @@
 .piece-epreuve:not(.test) { flex: none; }
 .piece-epreuve .dit { min-width: 0; overflow: hidden; display: grid; gap: 5px; align-content: center; }
 .piece-epreuve .rub { font-size: 14px; }
-.piece-epreuve .nom-propre { font-size: 21px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.piece-epreuve .nom-propre { font-size: 21px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 2px; margin: -4px -2px; }
 .piece-epreuve .issue { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .piece-epreuve .issue .etiquette { height: 24px; padding: 0 11px; font-size: 15px; }
 .piece-epreuve.reussi .issue .etiquette { border-color: var(--vert-sombre); background: linear-gradient(180deg, var(--vert-clair), var(--vert)); }

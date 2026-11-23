@@ -107,6 +107,20 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   await geste(p, 'fermer-panneau');
   await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]');
   constater((await p.$$eval('.emporte .case-objet', (e) => e.length)) > 0, 'le héros part avec la potion achetée à l’hospice');
+  // Au départ, un héros emmené au sac vide achète une potion dans sa colonne : son sac la montre, la bourse baisse du
+  // prix, le départ reste ouvert.
+  const auSacVide = await p.$$eval('.emporte:not(.libre)', (cs) => cs.find((c) => !c.querySelector('.case-objet'))?.querySelector('[data-a="provision"]:not([disabled])')?.dataset.id ?? null);
+  constater(!!auSacVide, 'la colonne d’un héros emmené au sac vide offre les potions de l’hospice');
+  if (auSacVide) {
+    const potion = `.emporte [data-a="provision"][data-id="${auSacVide}"]`;
+    const prix = Number((await p.textContent(potion)).match(/(\d+) CO/)[1]);
+    const orAvantPotion = await or();
+    await p.click(potion);
+    const sac = await p.$eval(potion, (x) => x.closest('.emporte').querySelectorAll('.cases-sac .case-objet').length);
+    constater(sac === 1 && (await or()) === orAvantPotion - prix && await p.isVisible('[data-a="partir"]'), `le héros emmené achète une potion au départ : son sac la montre, la bourse baisse de ${prix} CO (${orAvantPotion} → ${await or()})`);
+    const deborde = await p.$eval('.corps-service', (c) => c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1);
+    constater(!deborde, 'les colonnes du départ tiennent sans ascenseur');
+  }
   const partirVisible = await p.$eval('[data-a="partir"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');

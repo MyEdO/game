@@ -224,6 +224,14 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   };
 }
 
+/** Les potions et remèdes que l'hospice vend au héros `h`, une ligne chacun avec son achat, ou rien : l'hospice en
+ *  ruine n'en vend pas. Lus à l'hospice comme au départ. */
+function provisions(e: J.Etat, h: J.Heros): string {
+  const vente = J.provisionsEnVente(e);
+  const refus = J.sejourDit(h);
+  return vente.length ? `<div class="provisions">${vente.map((a) => `<div class="provision"${apercuDe(apercuDeProvision(a.id))}>${picto(iconeDeProvision(a.id), 20, 1.6)}<span class="n">${esc(a.label)}</span>${achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite', refus })}</div>`).join('')}</div>` : '';
+}
+
 /** L'hospice pour le héros servi : son état à gauche, chaque soin en carte — ce qu'il fait, ce qu'il coûte, et
  *  pourquoi il est fermé —, puis les potions et remèdes qu'il lui vend (`provisionsEnVente`). LDB 18 l.204-239 ; LDB 42 */
 function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
@@ -237,8 +245,8 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
       ${o.prix == null ? plaque(esc(o.verbe), '', { fermee: true, titre: esc(refus ?? '') }) : achat({ verbe: o.verbe, prix: o.prix, avoir: e.or, attrs: o.attrs, refus })}</article>`;
   };
   const id = `data-id="${h.c.id}"`;
-  const vente = J.provisionsEnVente(e);
-  const remedes = vente.length ? `<article class="carte-service remedes"><div class="nom-propre moyen gothique">Potions et remèdes</div><div class="provisions">${vente.map((a) => `<div class="provision"${apercuDe(apercuDeProvision(a.id))}>${picto(iconeDeProvision(a.id), 20, 1.6)}<span class="n">${esc(a.label)}</span>${achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="provision" ${id} data-k="${a.id}"`, taille: 'petite', refus: hospice })}</div>`).join('')}</div></article>` : '';
+  const vente = provisions(e, h);
+  const remedes = vente ? `<article class="carte-service remedes"><div class="nom-propre moyen gothique">Potions et remèdes</div>${vente}</article>` : '';
   return {
     classe: 'chapelle',
     corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
@@ -300,10 +308,10 @@ const pageDuJardin = ({ e }: Lecture): Page => ({
 
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
-/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac. */
+/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac, et ce que l'hospice lui vend. */
 function pageDuDepart({ e, choix }: Lecture): Page {
   const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}
-    <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div></section>`);
+    <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>${provisions(e, h)}</section>`);
   const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre"><span class="portrait-vide"></span><span class="place-libre">Place libre</span><span class="sous-titre">un héros du socle</span></section>`);
   return {
     classe: 'rangee',
