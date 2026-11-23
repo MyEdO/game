@@ -40,6 +40,8 @@ l'utilisateur ».
   Disponibilité ; pas d'armes d'ogre, de lances de cavalerie ni d'objets qu'aucun héros ne manie. « On devrait filtrer
   les options de la forge par rapport aux compétences du personnage » (2026-11-23) : pour le héros choisi, la forge ne
   propose que les armes des Groupes que ses Compétences de Corps à corps et de Projectiles couvrent (lu sur le noyau).
+  « L'arbalete ca reste la seule arme a distance que les gens peuvent prendre a distance sans compétence, et pour le
+  reste on filtre » : l'arbalète est proposée à tous.
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
 - **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
   (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.
