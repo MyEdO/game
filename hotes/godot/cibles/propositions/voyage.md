@@ -79,7 +79,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 
 ## arrivee-aucune, arrivee-palissade, arrivee-rempart
 - Cible écrite `lieu.md` : l'arrivée est l'écran du lieu, sa première ligne est le récit du trajet (« Arrivée à
-  Auberge des Sept Rayons · Voyage de 5 h. », `src/noyau/recitEnVue.ts`, `trm.titreArrivee`, `trm.dureeVoyage`) ;
+  Auberge des Sept Rayons · Voyage de 5 h. », composé par `recitDuVoyage` de `src/hote/ecran.ts` depuis
+  `Projection.recit`, `trm.titreArrivee`, `trm.dureeVoyage`) ;
   services mis en scène sur leurs bâtiments, pas de liste ; départs à droite sous la carte, un moyen par plaque.
 - Une seule entrée pour la diligence (audit §7) : la plaque du mode, sous « Partir » ; le cartouche « Lignes du
   Rochet » et son « Prendre un billet » sont retirés (le billet se paie au départ, `src/noyau/billetFlow.ts:1-9`).

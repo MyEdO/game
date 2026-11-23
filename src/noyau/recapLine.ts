@@ -7,8 +7,7 @@ import type { FaitApplique } from '../engine/faits';
  * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux.
  *
  * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (noyau/restFlow.ts, PV de nuit/jour de mer) —
- * pas un second vocabulaire : même trio 'reussite'/'echec'/'neutre', mêmes classes CSS (`.recap-line.reussite`
- * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.reussite`, styles/hud.css), et les tons d'un hôte (`Ton`,
+ * pas un second vocabulaire : même trio 'reussite'/'echec'/'neutre', et les tons d'un hôte (`Ton`,
  * src/hote/elements.ts).
  */
 export type RecapTone = 'reussite' | 'echec' | 'neutre';
@@ -34,12 +33,8 @@ export function tonDuFait(f: FaitApplique): RecapTone {
   return (sens === 'gain') === (f.camp === 'groupe') ? 'reussite' : 'echec';
 }
 
-/** Camp d'un SEGMENT de texte — même vocabulaire que la narration de combat (`NarratedSegment.team`,
- *  classes `.nm-ally`/`.nm-foe`) : les noms se colorent par camp, allié / ennemi. */
-
-
-/** Un MORCEAU de la ligne : du texte, éventuellement toné par le camp qu'il nomme. Structure, jamais
- *  du JSX — le rendu (RecapLineRow) décide de la mise en forme. */
+/** Un MORCEAU de la ligne : du texte, éventuellement toné par le camp qu'il nomme (même vocabulaire que la
+ *  narration de combat, `NarratedSegment.team`). L'hôte décide de la mise en forme. */
 export interface RecapSegment {
   text: string;
   team?: Equipe;
@@ -60,42 +55,35 @@ export interface RecapLine {
 }
 
 /** Enveloppe des textes SIMPLES en `RecapLine[]` — repli neutre (ni icône ni ton), pour les
- *  accumulateurs narratifs qui ne portent pas encore de structure fine (fatigue, marche forcée,
+ *  accumulateurs narratifs sans structure fine (fatigue, marche forcée,
  *  soins d'arrivée…). Filtre les entrées vides. */
 export function toRecapLines(texts: string[]): RecapLine[] {
   return texts.filter((s) => s.length > 0).map((text) => ({ text }));
 }
 
-/** Un ÉVÉNEMENT RACONTÉ du jour (#371 LOT « moisson n°4 ») — distinct d'une `RecapLine` : porte un
- *  RÉCIT (titre + texte verbatim de la source), pas une simple ligne de journal, et se rend en
- *  `ParchmentCard` (sceau du dé optionnel) plutôt qu'en ligne. Un jet de routine / une note de météo
- *  RESTE une `RecapLine` — seul un événement qui RACONTE quelque chose (texte d'auteur/de table)
- *  mérite la carte. */
+/** Un ÉVÉNEMENT RACONTÉ du jour (#371, #4574) : un récit (titre et texte verbatim de l'entrée tirée, règle 5
+ *  d'AGENTS.md), distinct d'une `RecapLine` de routine ; `source` : la table et l'id de son entrée ; `jet` : le dé
+ *  naturel et le dé effectif du tirage (`CascadeTableResult.roll`, `.die`), absent d'un événement forcé. */
 export interface RecapEvent {
+  source: { table: string; id: string };
   title: string;
   text: string;
-  /** Tirage ayant fait sortir l'événement — absent si l'événement est FORCÉ (recette de test)
-   *  ou d'auteur (péripétie de route, pas de tirage propre). */
-  roll?: number;
+  jet?: { naturel: number; effectif: number };
   tone?: RecapTone;
 }
 
-/** Une PHASE reconnue d'une journée de voyage TERRESTRE (agenda du jour EN COURS, #333 vague 2) —
- *  catalogue GÉNÉRIQUE par PRÉFIXE de `CascadeStep.kind` (aucun id de mode nommé) : ajouter une
- *  phase = une entrée ici, jamais un branchement par mode. Source UNIQUE, partagée par l'agenda du
- *  jour EN COURS (`dayAgenda`) ET le sectionnement des jours CLOS (`noyau/travelFlow`,
- *  via `RecapLine.phase`) — le même catalogue groupe les deux (#349, dette 3).
- */
-export interface DayPhaseDef {
+/** Une PHASE reconnue d'une journée de voyage TERRESTRE (#333) — catalogue GÉNÉRIQUE par PRÉFIXE de
+ *  `CascadeStep.kind` (aucun id de mode nommé) : ajouter une phase = une entrée ici, jamais un branchement par
+ *  mode. Lu par le sectionnement des jours CLOS (`noyau/travelFlow`, via `RecapLine.phase`, #349). */
+interface DayPhaseDef {
   key: string;
-  label: string;
   match: (kind: string) => boolean;
 }
 
-export const DAY_PHASE_CATALOG: DayPhaseDef[] = [
-  { key: 'activites', label: 'Activités', match: (k) => k.startsWith('etapePoste') || k === 'etapeBilan' || k === 'etapeExposition' },
-  { key: 'rencontre', label: 'Rencontre / Péripéties', match: (k) => k.startsWith('perilATerre') },
-  { key: 'route', label: 'Route', match: (k) => k.startsWith('rythmeForceATerre') },
+const DAY_PHASE_CATALOG: DayPhaseDef[] = [
+  { key: 'activites', match: (k) => k.startsWith('etapePoste') || k === 'etapeBilan' || k === 'etapeExposition' },
+  { key: 'rencontre', match: (k) => k.startsWith('perilATerre') },
+  { key: 'route', match: (k) => k.startsWith('rythmeForceATerre') },
 ];
 
 /** Clé de phase d'un `kind` d'étape de cascade — `undefined` si aucune phase du catalogue ne

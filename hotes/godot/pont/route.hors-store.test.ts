@@ -12,6 +12,7 @@ import type { SaveGame } from '../../../src/noyau/index';
 import type { Pont, Suite } from './pont';
 import { encounterTable } from '../../../src/engine/travelTables';
 import { noteEvent } from '../../../src/noyau/evenementDuJour';
+import type { TravelRecapDay } from '../../../src/noyau/travelFlow';
 import { DEFAULT_VOYAGE_ORDERS } from '../../../src/noyau/voyageCadence';
 
 let ouvert: Pont | null = null;
@@ -94,7 +95,7 @@ describe('la journée de route par le pont', () => {
   });
 
   /** Le trajet en route rechargé avec ses distances remplacées par `plan`. */
-  const rechargeEnRoute = (plan: { km: number; kmDone: number; sea?: true }): Suite => {
+  const rechargeEnRoute = (plan: { km: number; kmDone: number; sea?: true; log?: TravelRecapDay[] }): Suite => {
     const r = enRoute();
     expect(r.appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
     const save = JSON.parse(r.stockage.getItem(cleDEmplacement(1))!) as SaveGame;
@@ -107,6 +108,14 @@ describe('la journée de route par le pont', () => {
     const s = rechargeEnRoute({ km: 30, kmDone: 24.5 });
     expect(s.vue.projection.voyage, 'la part faite, exacte').toMatchObject({ km: 30, fait: 24.5 });
     expect(corps(s)['voyage/reste'], 'le reste arrondi').toMatchObject({ type: 'puce', valeur: '6', libelle: 'km' });
+  });
+
+  it('la frise pose chaque jour clos à sa borne, et le jour de route le suit', () => {
+    const s = rechargeEnRoute({ km: 30, kmDone: 24.5, log: [{ kmFrom: 0, kmTo: 12.5, hours: 6, lines: [] }] });
+    expect(s.vue.projection.voyage!.journees.map((j) => [j.depuis, j.jusqua]), 'le jour clos en données').toEqual([[0, 12.5]]);
+    const frise = corps(s)['voyage/frise'] as Plan;
+    expect(frise.points.map((p) => [p.id, p.x]), 'la nuit à la borne du jour clos').toEqual([['depart', 0], ['nuit/0', 12.5 / 30], ['ici', 24.5 / 30], ['arrivee', 1]]);
+    expect((corps(s)['scene/date'] as Ligne).texte).toMatch(/ · 2ᵉ jour de route$/);
   });
 
   it('le reste d’une traversée se dit en milles', () => {
@@ -138,7 +147,7 @@ describe('la journée de route par le pont', () => {
     const carte = textes.indexOf('Cartographie : 2/4 DR.');
     expect(carte, 'le bilan de l’Étape, au journal').toBeGreaterThanOrEqual(0);
     const utile = encounterTable('positives').find((e) => e.id === 'utile')!;
-    const ligne = noteEvent(() => ({ travelPlan: null }) as never, () => {}, { title: utile.label, text: utile.desc });
+    const ligne = noteEvent(() => ({ travelPlan: null }) as never, () => {}, { source: { table: 'rencontres-positives', id: utile.id }, title: utile.label, text: utile.desc });
     expect(textes.slice(carte + 1), 'puis la Rencontre tirée, par la ligne de l’événement du jour : son nom et son texte verbatim, sans redire sa catégorie').toContain(ligne);
   });
 });

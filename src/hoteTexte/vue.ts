@@ -428,8 +428,8 @@ function lignesDuTrajet(trajet: TrajetEnVue): string[] {
   return [
     `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${libelleDeDistance(trajet.distance)}`,
     ...trajet.modes.flatMap((mode) => {
-      const libelle = mode.jours === null ? mode.libelle : t('ecran.carte.mode', { mode: mode.libelle, jours: mode.jours });
-      const ligne = `  ${mode.mode} · ${libelle}`;
+      const libelle = mode.jours === null ? mode.mode.nom : t('ecran.carte.mode', { mode: mode.mode.nom, jours: mode.jours });
+      const ligne = `  ${mode.mode.id} · ${libelle}`;
       return mode.refus === null
         ? [ligne, `  ${appelEcrit('jouer', { gestes: [mode.geste] })}`]
         : [`${ligne} · refus : ${mode.refus}`];

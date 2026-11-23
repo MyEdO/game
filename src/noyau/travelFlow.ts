@@ -11,11 +11,10 @@
  *    → tirage sur la table VERBATIM (`data/peripeties.ts`) ; en PLUS, péripéties d'AUTEUR par route
  *    (probabilité par jour + Effects d'éditeur).
  *
- * Chaque nuit en route : HALTE — la modale de Repos s'ouvre (campement, ou auberge de relais si la
- * route en a — `MapRoute.inns`) et le voyage se SUSPEND ; le « Continuer » du bilan reprend la
- * route au matin (`continueTravelAfterNight`). Le RAPPORT DU JOUR (km, jets, péripéties) s'affiche
- * DANS la halte du soir (dernier jour de `travelPlan.log`) — chaque journée se lit le soir même, avec ses
- * conséquences ; le recap final ne couvre que le DERNIER segment (plus de déroulé intégral).
+ * Chaque nuit en route : HALTE — le repos s'ouvre (campement, ou auberge de relais si la route en a —
+ * `MapRoute.inns`) et le voyage se SUSPEND ; la sortie du bilan reprend la route au matin
+ * (`continueTravelAfterNight`). Chaque jour clos (km, jets, péripéties) va à `travelPlan.log`, lu en route
+ * (`voyageEnVue.journees`) ; le récit (`TravelRecap`) ne couvre que le DERNIER segment.
  *
  * Une péripétie qui déclenche un combat/une transition INTERROMPT le voyage : `travelPlan` mémorise
  * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`reprendreLeVoyage`).
@@ -55,7 +54,7 @@ import { applyOps } from '../engine/ops';
 import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
-import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
+import { findVehicleById, voyageStakeRef, weather } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { PERIPETIES, peripetieDie, peripetieSeuilDie } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
@@ -98,44 +97,36 @@ export interface TravelRecapDay {
   kmFrom: number;
   kmTo: number;
   hours: number;
-  /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349) : `{ text, icon?, tone?,
-   *  phase? }`, rendue par le renderer partagé — `phase` (jour terrestre
-   *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`noyau/recapLine.ts`), même catalogue que
-   *  l'agenda du jour EN COURS : le sectionnement des jours CLOS en
-   *  tombe GRATUITEMENT (dette 3). */
+  /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349). */
   lines: RecapLine[];
-  /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
-   *  même brique multijet que le bilan de nuit (MultiRollList), pas du texte. */
+  /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées, comme le bilan de nuit. */
   entries?: import('./restFlow').NightEntry[];
-  /** Événements RACONTÉS du jour clos (#371 LOT 4, #4005), rangés depuis `TravelPlan.evenements` à la
-   *  sortie du jour (`rangerLesEvenements`) — titre + texte verbatim + tirage d100 optionnel, rendus en
-   *  `ParchmentCard` : un événement PORTE UN RÉCIT, distinct des `lines` de routine. */
+  /** Événements RACONTÉS du jour clos (#371, #4005), rangés depuis `TravelPlan.evenements` à la sortie du jour
+   *  (`rangerLesEvenements`) : un événement porte un récit, distinct des `lines` de routine. */
   events?: import('./recapLine').RecapEvent[];
-  /** MER (route COMMANDÉE) : instantané du jour pour l'écran de traversée (rose des vents + jauges +
-   *  distance restante) — rendu par `SeaVoyageScreen` à la place du corps de recap terrestre. */
+  /** MER (route COMMANDÉE) : l'instantané du jour clos. */
   sea?: import('./seaVoyageFlow').SeaRecapChrome;
   /** MÉTÉO d'Étape (EDOC 8 l.50) = CONTEXTE DU JOUR (arbitrage user 2026-07-11 : « elle doit juste
-   *  s'afficher dans un écart lié à la journée », plus de pas de cascade). `id` = météo affichée
-   *  (en-tête « Journée de route — … — {météo} » + tuile Météo, vague 2) ; `roll` = d100 INTERNE (debug/
-   *  tests ; « y'a que le MJ qui voit le jet de météo » → jamais montré au joueur). */
+   *  s'afficher dans un écart lié à la journée », plus de pas de cascade). `id` = la météo du jour, publiée
+   *  (`journeeEnVue`) ; `roll` = d100 INTERNE, jamais publié (« y'a que le MJ qui voit le jet de météo »). */
   weather?: { id: import('../engine/travelStages').Weather; roll: number };
   /** « Plein air » réussi à l'Étape de ce jour (EDOC 08 l.141). */
   pleinAir?: true;
 }
 
 /** Suite DIFFÉRÉE derrière le récit du voyage (embuscade d'auteur ou « Attaqués ! » de la table
- *  d10) : le combat ne démarre qu'à l'ACQUITTEMENT du recap — d'abord comprendre ce qui arrive,
- *  ensuite se battre. Fermer la modale (bouton/Échap) DÉCLENCHE la suite : pas d'évitement. */
+ *  d10) : elle se joue à l'acquittement de la fenêtre `recitDeVoyage` (`sortiesDuVoyage`). */
 export type TravelThen =
   | { kind: 'effects'; effects: import('../data/schemas/defs-scenes/effets').Effect[] }
   | { kind: 'ambush'; scene: string; entry?: string; encounter: string; noSurprise: boolean | 'groupe' };
 
-/** Récapitulatif d'un segment de voyage — la résolution étant SYNCHRONE (l'horloge saute en
- *  bloc), le joueur n'en voyait rien hors journal (audit M4) : modale à l'arrivée, à
+/** Récapitulatif d'un segment de voyage (audit M4), que la fenêtre `recitDeVoyage` tient à l'arrivée, à
  *  l'interruption (péripétie) et à l'arrêt (surcharge). */
 export interface TravelRecap {
-  fromLabel: string;
-  toLabel: string;
+  /** Les lieux de départ et d'arrivée et la route du trajet, par leur id. */
+  depart: string;
+  arrivee: string;
+  route: string;
   mode: TravelMode;
   status: 'arrived' | 'interrupted' | 'stalled';
   km: number;
@@ -311,7 +302,7 @@ function attendreLAube(get: Get, set: Set): void {
   ouvrirLeRepos(get, set, { places: placesOfKind('camp'), lieu: sceneLieu(get) });
 }
 
-/** Halte de NUIT sur la route (modale de Repos, voyage suspendu jusqu'au matin). `travelDay` = le
+/** Halte de NUIT sur la route (fenêtre `repos`, voyage suspendu jusqu'au matin). `travelDay` = le
  *  jour qu'elle clôt. */
 function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[], travelDay?: TravelRecapDay): void {
   ouvrirLeRepos(get, set, {
@@ -584,8 +575,7 @@ function runTravelDays(get: Get, set: Set): void {
   // après interruption retrouve celle du départ). Lue par la Phase d'arrivée (EDOC 09 l.21).
   if (plan0 && !plan0.diseasesAtStart) set({ travelPlan: { ...plan0, diseasesAtStart: diseaseKeys(get().party) } });
   const recap: TravelRecap | null = plan0 ? {
-    fromLabel: libelleOuAbsence(placeById(worldMap, plan0.fromPlaceId), 'lieu', plan0.fromPlaceId),
-    toLabel: libelleOuAbsence(placeById(worldMap, plan0.toPlaceId), 'lieu', plan0.toPlaceId),
+    depart: plan0.fromPlaceId, arrivee: plan0.toPlaceId, route: plan0.routeId,
     mode: plan0.mode, status: 'arrived', km: plan0.km, kmDone: plan0.kmDone,
     days: [], // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir
   } : null;
@@ -746,7 +736,7 @@ function runTravelDays(get: Get, set: Set): void {
   }
 }
 
-/** Reprise au MATIN après la halte de nuit (« Continuer » du bilan de la modale de Repos). */
+/** Reprise au MATIN après la halte de nuit, à la sortie du bilan de la fenêtre `repos`. */
 export function continueTravelAfterNight(get: Get, set: Set): void {
   const plan = get().travelPlan;
   if (!plan || plan.interrupted || get().battle) return;
@@ -850,8 +840,7 @@ function buildTravelDayCascade(
 
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `etapePosteEnBande`/`resistanceALaMeteo`) ;
- *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
- *  l'agenda du jour EN COURS) rattache la ligne à sa phase — `undefined`
+ *  un pas MONO lit `step.outcome`. `phaseOfKind` (`noyau/recapLine.ts`) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
 function stepRecapLines(step: CascadeStep): RecapLine[] {
   const phase = phaseOfKind(step.kind);
@@ -937,8 +926,8 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     arriverAuLieu(set, garanti(placeById(get().worldMap!, plan.toPlaceId), plan.toPlaceId, 'lieu d’arrivée'));
     return true;
   }
-  // Nuit en route : HALTE — modale de Repos (auberge de relais si la route en a, sinon campement). Le
-  // voyage se suspend ; « Continuer » du bilan reprend la route au matin. La MARCHE FORCÉE du jour
+  // Nuit en route : HALTE — fenêtre `repos` (auberge de relais si la route en a, sinon campement). Le
+  // voyage se suspend ; la sortie du bilan reprend la route au matin. La MARCHE FORCÉE du jour
   // ouvre la cascade de la nuit (influençable) via `travelMarch` — pas de roulé eager ici.
   const travelDay: TravelRecapDay | undefined = recapDay ? { ...recapDay, lines: [...recapDay.lines], entries: [...(recapDay.entries ?? [])] } : undefined;
   openRouteHalt(get, set, route, ctx.marchHeroes, travelDay);
@@ -1133,8 +1122,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
         [...driverLine.mods, ...(gallopMod ? [gallopMod] : [])]),
       text: stupefiant ? t('tf.marcheForceeStupefiante') : t('tf.marcheForceeRetourAuPas'), tone: 'echec',
     });
-    // Le jet est DÉJÀ affiché par la rangée `day.entries` (MultiRollList) du même recap — pas de
-    // re-print du roll/target (#295 Lot 5) ; le verdict reste pour le journal général (surface SANS rangée).
+    // Le jet est porté par `day.entries` du même jour (#295 Lot 5) ; la ligne ne garde que le verdict.
     out.lines.push(t('tf.marcheForceeRatee', { name: nomDe(driver.actor), stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' }));
     out.lines.push(...forcedPaceBeastLines(res.animaux));
     if (stupefiant) {
@@ -1341,9 +1329,8 @@ export function sortiesDuVoyage(get: Get, set: Set) {
   return {
     carteDuMonde: () => set({ worldMapOpen: false }),
     depart: () => set({ pendingDeparture: null }),
-    /** Acquitte le récit de voyage. Une EMBUSCADE différée (`recap.then`) se déclenche ICI :
-     *  le joueur a lu ce qui lui arrive, le combat démarre — fermer la modale (bouton/Échap)
-     *  ne l'évite pas, et `reprendreLeVoyage` refuse tant qu'elle n'est pas acquittée. */
+    /** Acquitte le récit de voyage : une suite différée (`recap.then`) se joue ICI, et
+     *  `reprendreLeVoyage` refuse tant que le récit n'est pas acquitté. */
     recitDeVoyage: () => {
       const recap = get().travelRecap;
       set({ travelRecap: null });

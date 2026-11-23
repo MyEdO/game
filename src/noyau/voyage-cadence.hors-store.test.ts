@@ -111,10 +111,9 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
     const ids = day.entries!.map((e) => e.id ?? '');
     expect(ids.some((i) => i.startsWith('mer-equipage-progression'))).toBe(true);
     expect(ids.some((i) => i.startsWith('mer-equipage-orientation'))).toBe(true);
-    // Instantané pour l’écran de traversée (rose des vents + distance restante) ; la coque n'y est
-    // qu'en DELTA du jour (l'état courant se lit sur `vessel.wounds`).
-    expect(day.sea).toBeTruthy();
-    expect(day.sea!.milesLeft).toBeGreaterThan(0);
+    // L'instantané du jour de mer : la météo par axe, la coque en DELTA du jour (l'état courant se lit sur
+    // `vessel.wounds`).
+    expect(Object.keys(day.sea!.meteo).sort()).toEqual(['precipitations', 'temperature', 'vent', 'visibilite']);
     expect(typeof day.sea!.hullDelta).toBe('number');
   });
 
