@@ -73,7 +73,7 @@ describe('entrainement — Scene produite par buildScene', () => {
     expect(ent(3)).toMatchObject({ creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } });
     expect(ent(4)).toMatchObject({ creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } });
     // cheval : monture alliée
-    expect(ent(5)).toMatchObject({ creature: { id: 'cheval' }, pos: { x: 5, y: 10 } });
+    expect(ent(5)).toMatchObject({ creature: { id: 'cheval-de-monte' }, pos: { x: 5, y: 10 } });
     const chevalMember = enc.members!.find((m) => m.entityId === 'enemy-enc-entrainement-5');
     expect(chevalMember?.mount).toBe(true);
     expect(chevalMember?.side).toBe('allie');

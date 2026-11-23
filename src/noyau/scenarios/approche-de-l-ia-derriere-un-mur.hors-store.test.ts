@@ -108,6 +108,7 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
 
   it('canMount passe par la mesure : refus à travers un mur plein, accord à une case sans arête', () => {
     const { H, E, poser } = duel();
+    E.traits = [...(E.traits ?? []), { id: 'dresse-monture' }];
     const [paire] = pairesDerriereUnMur(H, E, poser, () => true, 1);
     expect(paire, 'une paire mur plein').toBeDefined();
     expect(canMount(scene(), H, E)).toBe(false);

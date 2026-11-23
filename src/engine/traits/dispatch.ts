@@ -9,6 +9,7 @@ import { TRAITS } from './registry';
 import { sizeGap, type SizeCategory } from '../size';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
+import { actorHasSkill } from '../skills';
 import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeTrait';
 import {
   charAbr,
@@ -17,6 +18,7 @@ import {
   findDamageTypeById,
   findGodById,
   findConditionById,
+  findCreatureById,
   SPEC_SOURCES,
   type SpecsSource,
   type TraitCapabilities,
@@ -334,12 +336,16 @@ export function isSkittishMount(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'skittishMount');
 }
 
-/** `monture` accepte-t-elle `cavalier` ? LDB 85 l.112 ; arbitrage du 2026-11-23 (#4804). */
+/** `monture` accepte-t-elle `cavalier` ? LDB 85 l.112 ; AA 09 l.23 ; LDB 09 l.112 ; arbitrages du 2026-11-23 (Taille : #4804 ;
+ *  Dressé (Monture) et `competenceDuCavalier` : #4816). */
 export function accepteUnCavalier(
-  monture: { readonly traits?: TraitsDesignes; readonly size?: SizeCategory },
-  cavalier: { readonly size?: SizeCategory },
+  monture: { readonly traits?: TraitsDesignes; readonly size?: SizeCategory; readonly creatureId?: string },
+  cavalier: Pick<Combatant, 'size' | 'skills'>,
 ): boolean {
-  return !traitCapability(monture.traits, 'refuseLeCavalier') && sizeGap(cavalier.size, monture.size) <= 0;
+  const exigee = findCreatureById(monture.creatureId)?.competenceDuCavalier;
+  return traitCapability(monture.traits, 'monture')
+    && sizeGap(cavalier.size, monture.size) <= 0
+    && (!exigee || actorHasSkill(cavalier, exigee));
 }
 
 // ── Mouvement & vision ────────────────────────────────────────────────────────────────────────────

@@ -443,12 +443,12 @@ export function makeZone5() {
         id: 'enc-zone5',
         enemies: [
           // 0 : destrier LIBRE côté héros — enfourchable (vitrine du combat monté).
-          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'allie' },
+          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'allie', optionals: [{ id: 'dresse-monture' }] },
           // 1-2 : le champion mutant, pré-monté.
-          { creature: { id: 'cheval' }, pos: { x: 22, y: 4 }, mount: true },
+          { creature: { id: 'cheval' }, pos: { x: 22, y: 4 }, mount: true, optionals: [{ id: 'dresse-monture' }] },
           { creature: { id: 'mutant' }, pos: { x: 22, y: 4 }, rides: 1 },
           // 3-4 : lancier gobelin, pré-monté.
-          { creature: { id: 'cheval' }, pos: { x: 26, y: 10 }, mount: true },
+          { creature: { id: 'cheval' }, pos: { x: 26, y: 10 }, mount: true, optionals: [{ id: 'dresse-monture' }] },
           { creature: { id: 'gobelin' }, pos: { x: 26, y: 10 }, rides: 3 },
           // 5 : piquier à pied derrière la barrière.
           { creature: { id: 'gobelin' }, pos: { x: 18, y: 6 } },
