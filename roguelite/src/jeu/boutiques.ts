@@ -206,7 +206,7 @@ export function tenirLesObjets(e: Etat, h: Heros, neufs: readonly ItemInstance[]
     garnis.add(lo.id);
     return [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, it.uid] }];
   });
-  const armures = neufs.filter((i) => i.kind === 'armor').map((i) => ({ verbe: 'equiperLObjet', args: [i.uid] }));
+  const armures = neufs.filter((i) => i.kind === 'armor').map((i) => ({ verbe: 'equiperLObjet', args: [i.uid, true] }));
   if (gestes.length || armures.length) auNoyau(e, h, [...gestes, ...armures]);
 }
 

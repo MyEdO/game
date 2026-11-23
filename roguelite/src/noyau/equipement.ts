@@ -8,9 +8,8 @@ import { makeRNG } from '../../../src/engine/dice';
 import { encumbrancePenalties } from '../../../src/engine/encumbrance';
 import { qualityWearMods, wornArmourPenalty } from '../../../src/engine/wearPenalty';
 import { consommableDe, isConsumable } from '../../../src/engine/consumables';
-import { evalCondition, type Flow } from '../../../src/engine/flowCore';
-import { activityConditionCtx } from '../../../src/engine/activities';
 import { refusDeConsommer } from '../../../src/noyau/consumableFlow';
+import { etatInitialDuJeu } from '../../../src/noyau/etat';
 import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../src/engine/combat';
 import { forceDuPorteur } from '../../../src/engine/characteristics';
 import { ammoFamily, chargeLArme, isOffHandEligible, isShieldTrapping, reachRankOf, weaponFromItem } from '../../../src/engine/items';
@@ -137,20 +136,12 @@ export function qualitesDesPieces(pieces: readonly ItemInstance[]): Qualite[] {
   return qualitesDites(brutes.filter((q, i) => brutes.findIndex((x) => x.id === q.id && x.value === q.value) === i));
 }
 
-/** Pourquoi le héros ne peut pas utiliser maintenant l'objet `uid` (`refusDeConsommer`), ou `null`. */
+/** Pourquoi le héros ne peut pas utiliser maintenant l'objet `uid` (`refusDeConsommer`, jugé sur un état neuf du jeu
+ *  dont il est le seul membre du groupe), ou `null`. */
 export function refusDUsage(c: Combatant, uid: string): string | null {
   const it = c.items?.find((i) => i.uid === uid);
   const flux = it && consommableDe(it, findTrappingById);
-  return !it || !flux ? 'Rien à utiliser.' : refusDeConsommer(c, it, flux) ?? sansEffet(c, flux);
-}
-
-/** Un consommable que rien ne refuse mais qui ne ferait rien : sa condition (`si`) fausse pour ce héros, ou un soin
- *  sur un héros indemne. */
-function sansEffet(c: Combatant, flux: Flow): string | null {
-  if (flux.kind === 'si' && !evalCondition(flux.condition, activityConditionCtx(c))) return 'Sans effet sur lui dans son état.';
-  const effet = flux.kind === 'si' ? flux.alors : flux;
-  const soinSeul = effet.kind === 'effet' && effet.effet.type === 'ops' && effet.effet.ops.every((o: { op: string }) => o.op === 'heal');
-  return soinSeul && c.wounds.current >= c.wounds.max ? 'Il n’est pas blessé.' : null;
+  return !it || !flux ? 'Rien à utiliser.' : refusDeConsommer({ ...etatInitialDuJeu(), party: [c] }, c, it, flux);
 }
 
 /** Encombrement porté et capacité sans pénalité (BF + BE). LDB 61 */
