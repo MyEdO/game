@@ -7,12 +7,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { frapper, horsBataille } from './coupHorsBataille.testkit';
 import { ouvrirLeBanc } from './banc.testkit';
 import { avanceEtapeCascade, poseSurDeNonTombe } from './cascade.testkit';
-import { heroDuDuel, heroFaceAUnEnnemi, MELEE, ouvrirLeDuel } from './combatDeTest.testkit';
+import { heroDuDuel, heroFaceAUnEnnemi, INCANTATION_CRITIQUE, MELEE, ouvrirLeDuel, SORT_A_DEGATS } from './combatDeTest.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
 import { applyCast } from './combatFlow';
 import { createHero } from '../engine/character';
 import { setEngaged } from '../engine/engagement';
-import type { CastResult } from '../engine/magic';
 import { testScene } from '../scenes/test-fixture';
 import { addCondition, COND } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
@@ -167,14 +166,6 @@ describe('« Comment ça a pu rater ? » ne dépend pas du chemin du Critique : 
     });
   }
 });
-
-/** Sort à Dégâts hors Projectile : 3 Blessures, BE et PA ignorées. */
-const SORT_A_DEGATS = {
-  id: 'sort-a-degats-test', label: 'Sort à Dégâts', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '',
-  source: { book: 'LDB', page: 0 },
-  effects: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', ignoreTB: true, ignoreAP: true, amount: 3 }] } }] },
-} as never;
-const INCANTATION_CRITIQUE: CastResult = { cast: true, roll: 22, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
 
 /** Deux héros blindés, H et T, face au lanceur E (Diction instinctive : aucune Imparfaite, LDB 46 l.32). */
 function deuxHerosBlindes() {

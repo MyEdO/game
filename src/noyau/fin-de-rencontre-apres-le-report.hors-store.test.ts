@@ -6,11 +6,9 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
-import { applyCast } from './combatFlow';
-import { isOutOfAction } from '../engine/conditions';
-import { checkBattleOver } from './combatFlow';
+import { applyCast, checkBattleOver } from './combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { initialNet } from './etat';
@@ -21,8 +19,8 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { frapper } from './coupHorsBataille.testkit';
-import { heroDuDuel, heroFaceAUnEnnemi, ouvrirLeDuel } from './combatDeTest.testkit';
-import { addCondition, COND} from '../engine/conditions';
+import { heroDuDuel, heroFaceAUnEnnemi, INCANTATION_CRITIQUE, ouvrirLeDuel, SORT_A_DEGATS } from './combatDeTest.testkit';
+import { addCondition, COND, isOutOfAction } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
 
 let banc: Banc;
@@ -235,7 +233,7 @@ describe('#4860 — l’univers d’un acteur après le report', () => {
 });
 
 
-describe('#4860 — la défaite attend le Destin en suspens', () => {
+describe('#4860 — l’issue du combat attend le Destin en suspens', () => {
   for (const tour of ['ennemi', 'heros'] as const) it(`(D) dernier héros frappé à mort au tour ${tour === 'ennemi' ? 'de l’ennemi' : 'du héros'}, siège humain, « Meurs un autre jour » : le report suit, le groupe porte le Destin débité sans champ de rencontre`, () => {
     onTestFinished(() => resetRule('combat-cible-inconsciente'));
     const { H, E } = heroFaceAUnEnnemi(banc, testScene());
@@ -258,26 +256,32 @@ describe('#4860 — la défaite attend le Destin en suspens', () => {
     expect(g().party[0].outOfRencontre).toBeFalsy();
     expect(g().party[0].pos).toEqual(posDuGroupe);
   });
-});
 
-const SORT_A_DEGATS_P = {
-  id: 'sort-a-degats-test', label: 'Sort à Dégâts', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '',
-  source: { book: 'LDB', page: 0 },
-  effects: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', ignoreTB: true, ignoreAP: true, amount: 3 }] } }] },
-} as never;
-describe('SONDE', () => {
-  it('sonde victoire', () => {
-    const { H, E, T } = ouvrirLeDuel(banc, { scene: testScene(), party: [heroDuDuel(), createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 2 })] }, 'enc-mutants', 'heros');
-    const b = g().battle!;
-    banc.setState({ battle: { ...b }, net: { ...initialNet(), mode: 'hote', mySeat: 0, slots: [0, 0, 0, 0], ownership: {} } } as never);
-    T!.wounds.current = 1; E.wounds.current = 1; E.fate = 0; H.talents = [...H.talents, { talentId: 'diction-instinctive', times: 1 }];
-    imposerLesD100(1, 100, 1, 100);
-    applyCast(g, banc.setState, H, [E, T!], SORT_A_DEGATS_P, { cast: true, roll: 22, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' }, false, 'critique');
-    const trace: unknown[] = [];
-    const snap = (k: string) => trace.push({ k, over: g().battle?.over ?? null, fate: g().pendingFateSave?.heroId ?? null, casc: !!g().pendingCascade, Eout: g().battle ? isOutOfAction(g().battle!.combatants.find((c) => c.id === E.id)!) : null, Ew: g().battle?.combatants.find((c) => c.id === E.id)?.wounds.current });
-    snap('apres-cast');
-    for (let i = 0; i < 8 && g().pendingCascade; i++) { const p = g().pendingCascade!; trace.push({ cur: p.participants[p.cursor]?.kind, sub: p.participants[p.cursor]?.subjectId, mode: p.participants[p.cursor]?.deviation?.mode }); try { avanceEtapeCascade(g, poseSurDeNonTombe(100), () => 'subir'); } catch (e) { trace.push(String(e).slice(0, 200)); break; } snap('etape' + i); }
-    const e = g().battle!.combatants.find((c) => c.id === E.id)!; trace.push({ conds: e.conditions.map((c) => c.id), crit: e.critEntriesSuffered, cw: e.criticalWounds, dead: e.dead, log: g().battle!.log.slice(-12).map((l) => l.text) });
-    (globalThis as any).process.getBuiltinModule('fs').writeFileSync('/tmp/claude-0/-home-user-game/c8884430-8b88-55a6-8614-0620d60da8f4/scratchpad/p4860_sondeV.txt', JSON.stringify(trace, null, 0));
+  it('(V) le Sort du héros abat le dernier ennemi et met un allié à Destin hors de combat : la victoire attend « Meurs un autre jour », le groupe porte le Destin débité sans champ de rencontre', () => {
+    onTestFinished(() => resetRule('combat-aa-blessures'));
+    setRule('combat-aa-blessures', 'aa'); // AA 07 l.65
+    const T2 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 2 });
+    const { H, E, T } = ouvrirLeDuel(banc, { scene: testScene(), party: [heroDuDuel(), T2] }, 'enc-mutants', 'heros');
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, slots: [0, 0, 0, 0], ownership: {} } } as never);
+    H.talents = [...H.talents, { talentId: 'diction-instinctive', times: 1 }];
+    T!.wounds.current = 1;
+    E.wounds.current = 1;
+    const fate = T!.fate ?? 0;
+    expect(fate, 'chemin : un Point de Destin à dépenser').toBeGreaterThan(0);
+    const posDuGroupe = structuredClone(g().party.find((h) => h.id === T!.id)!.pos);
+    imposerLesD100(1, 100);
+    applyCast(g, banc.setState, H, [T!, E], SORT_A_DEGATS, INCANTATION_CRITIQUE, false, 'critique');
+    draineCascade(g);
+    expect(g().pendingFateSave, 'chemin : la mort de l’allié suspendue au Destin').toMatchObject({ heroId: T!.id, source: 'hit' });
+    expect(isOutOfAction(actorIn(g(), E.id)!), 'chemin : le dernier ennemi hors de combat').toBe(true);
+    expect(g().battle!.over, 'la victoire attend le Destin').toBeFalsy();
+    g().fenetreChoisir('destin', 'issue', 'survivre');
+    draineCascade(g);
+    banc.jusquA((s) => !!s.battle?.over, 20);
+    expect(g().battle!.over).toBe('victoire');
+    const duGroupeT = g().party.find((h) => h.id === T!.id)!;
+    expect(duGroupeT.fate).toBe(fate - 1);
+    expect(duGroupeT.outOfRencontre).toBeFalsy();
+    expect(duGroupeT.pos).toEqual(posDuGroupe);
   });
 });
