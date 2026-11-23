@@ -160,6 +160,7 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  nomDeMatiere,
   posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,

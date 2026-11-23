@@ -15,8 +15,10 @@ ICI = Path(__file__).resolve().parent
 
 
 def jouer(module):
-    """Le module `module` joué par `unittest` dans son processus : sa sortie, et son code de sortie."""
-    vu = subprocess.run([sys.executable, '-m', 'unittest', '--verbose', module], cwd=ICI, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    """Le module `module` joué par `unittest` dans son processus, la pile de chaque fil imprimée s'il meurt d'un signal
+    (`faulthandler`) : sa sortie, et son code de sortie (#4394)."""
+    vu = subprocess.run([sys.executable, '-X', 'faulthandler', '-m', 'unittest', '--verbose', module], cwd=ICI,
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return vu.stdout, vu.returncode
 
 
@@ -31,7 +33,7 @@ if __name__ == '__main__':
             sys.stdout.buffer.write(sortie)
             sys.stdout.flush()
             if code:
-                rouges.append(module)
+                rouges.append(f'{module} (code {code})')
     if rouges:
         print(f'[personnage-3d] en échec : {", ".join(rouges)}', file=sys.stderr)
     sys.exit(1 if rouges else 0)

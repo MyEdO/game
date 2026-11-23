@@ -108,6 +108,13 @@ ECHARPE = {
     # HYPOTHÈSE : m, à la robe, à la barbe et au capuchon ; la cape du Sorcier (`vetement--cape-en-lambeaux`, col à
     # 10 mm de la robe, 4 mm d'épaisseur) et la sangle d'une bandoulière passent dessous
     'jeu': 0.022,
+    # base : (azimut depuis l'avant en degrés, m), à la barbe seule. Le montage donne à ce qu'une couche couvre à moins
+    # de 30 mm les poids de sa couverture (`PORTEE_DE_COUVERTURE_M`, `hotes/godot/asset/pile.ts`) : à 22 mm, la barbe du
+    # menton prend ceux de l'écharpe, qui suit le cou, et la peau du menton, à plus de 10 mm sous le poil, passe devant
+    # lui quand la tête penche (`couche-traversee`). 40 mm : le trait `visage_long` descend le menton de 19 mm. 52 mm de
+    # 40 à 50 degrés : sous `carrure_moins`, le haut du torse recule de 25 à 30 mm et les rangs rentrent sous la
+    # mâchoire.
+    'jeu_a_la_coiffure': [(0.0, 0.040), (25.0, 0.040), (40.0, 0.052), (50.0, 0.052), (58.0, 0.040), (180.0, 0.040)],
     'plis': 3,                          # contrat : trois gros plis
     'ampleur': 0.026,                   # illustration : m, des bourrelets épais ; nuls au haut et au bord (à 18 mm,
                                         # les trois plis ne se lisaient pas au rendu de face)

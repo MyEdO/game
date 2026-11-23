@@ -36,18 +36,21 @@ def sujet(dossier, publie, lus=()):
     return {'dossier': dossier, 'publie': frozenset(publie), 'lit': frozenset(publie) | frozenset(lus)}
 
 
+def litteraux(donnees):
+    """Les littéraux `CONTOURNE` et `OFFRANT` du `donnees.py` `donnees`, par nom, dans l'ordre du fichier, sans l'exécuter."""
+    vus = {}
+    for noeud in ast.parse(donnees.read_text(encoding='utf-8')).body:
+        if isinstance(noeud, ast.Assign):
+            for cible in noeud.targets:
+                if isinstance(cible, ast.Name) and cible.id in ('CONTOURNE', 'OFFRANT'):
+                    vus[cible.id] = ast.literal_eval(noeud.value)
+    return vus
+
+
 def ids_lus(donnees):
     """Les ids publiés que lit l'élément de `donnees`, littéraux de son `donnees.py` : ceux qu'il contourne (`CONTOURNE`)
     et celui dont il prend un emplacement (`OFFRANT`, #4318)."""
-    lus = []
-    for noeud in ast.parse(donnees.read_text(encoding='utf-8')).body:
-        if isinstance(noeud, ast.Assign):
-            noms = {c.id for c in noeud.targets if isinstance(c, ast.Name)}
-            if 'CONTOURNE' in noms:
-                lus += ast.literal_eval(noeud.value).values()
-            if 'OFFRANT' in noms:
-                lus.append(ast.literal_eval(noeud.value))
-    return tuple(lus)
+    return tuple(id_ for nom, valeur in litteraux(donnees).items() for id_ in (valeur.values() if nom == 'CONTOURNE' else [valeur]))
 
 
 def glb_locaux(paires, lus):

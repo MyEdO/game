@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--armure--masque-de-cuir.glb",
+  "model_sha256": "fcd3c4a05978e46dc536f30a2f118d4fba760bbc35c44aa13fc51263e88b8b9a",
+  "importe_le": "2026-11-23",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
