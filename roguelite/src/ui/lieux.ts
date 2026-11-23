@@ -172,18 +172,18 @@ function offresDeLaSalle(e: J.Etat): { titre: string; annonce: string; offres: O
 }
 
 /** La salle à choix ouverte, en carton : son annonce, puis une pièce par action, qui est son geste — son Test
- *  (Compétence, Difficulté), ce que rapporte sa réussite et ce que coûte son échec, combien du groupe savent la
- *  tenter ; `choix` : l'action qui attend son héros au socle. */
+ *  (Compétence, Difficulté), ce que rapporte sa réussite et ce que coûte son échec ; combien du groupe savent la
+ *  tenter, en bulle, que le socle détaille héros par héros ; `choix` : l'action qui attend son héros au socle. */
 function salleAChoixEnCarton(e: J.Etat, choix: ChoixDeSalle | null): string {
   const x = e.expedition!;
   const type = x.salles[x.index].type;
   const groupe = J.herosDuGroupe(e);
   const { titre, annonce, offres } = offresDeLaSalle(e);
+  const quiPeut = (savent: number) => (savent === groupe.length ? 'Tous savent le tenter' : savent ? `${savent} sur ${groupe.length} sait le tenter`.replace(/^([2-9].*) sait/, '$1 savent') : 'Personne ne sait le tenter');
   const piece = (o: Offre) => pieceDEpreuve(`action${o.savent === undefined ? ' passer' : ''}${choix?.action === o.id ? ' choisi' : ''}`, '', esc(o.rub),
-    `<span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[o.id], 18, 1.8)}${esc(o.libelle)}</span>${o.difficulte ? `<span class="difficulte">${esc(o.difficulte)}</span>` : ''}
-    <span class="enjeu">${o.gain ? `<span${o.picto ? ' class="gain"' : ''}>${o.picto ? picto(o.picto, 15, 1.8) : ''}${esc(o.gain)}</span>` : ''}${o.risque ? `<span class="risque">${esc(o.risque)}</span>` : ''}</span>
-    ${o.savent === undefined ? '' : `<span class="qui-peut${o.savent ? '' : ' personne'}">${o.savent === groupe.length ? 'Tous savent le tenter' : o.savent ? `${o.savent} sur ${groupe.length} sait le tenter`.replace(/^([2-9].*) sait/, '$1 savent') : 'Personne ne sait le tenter'}</span>`}`,
-    `data-a="action" data-k="${o.id}"${o.savent === 0 ? ' disabled' : ''}`);
+    `<span class="titre-action"><span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[o.id], 18, 1.8)}${esc(o.libelle)}</span>${o.difficulte ? `<span class="difficulte">· ${esc(o.difficulte)}</span>` : ''}</span>
+    <span class="enjeu">${o.gain ? `<span${o.picto ? ' class="gain"' : ''}>${o.picto ? picto(o.picto, 15, 1.8) : ''}${esc(o.gain)}</span>` : ''}${o.risque ? `<span class="risque">${esc(o.risque)}</span>` : ''}</span>`,
+    `data-a="action" data-k="${o.id}"${o.savent === undefined ? '' : ` title="${quiPeut(o.savent)}"`}${o.savent === 0 ? ' disabled' : ''}`);
   return carton({
     ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
     texte: `<div class="recit epreuve choix"><p>${esc(annonce)}</p><div class="pieces-epreuve">${offres.map(piece).join('')}</div></div>`,

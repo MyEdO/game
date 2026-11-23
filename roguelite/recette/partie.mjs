@@ -106,6 +106,13 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     salles++;
     if (await p.$('.carton [data-a="action"]')) {
       const salle = await p.textContent('.carton .ruban');
+      const debords = await p.$eval('.carton [data-place="texte"]', (t) => {
+        const r = t.getBoundingClientRect();
+        return [t, ...t.querySelectorAll('*')].filter((el) => el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 2).filter((el) => getComputedStyle(el).overflow !== 'visible')
+          .concat([...t.querySelectorAll('[data-a="action"]')].filter((a) => { const b = a.getBoundingClientRect(); return b.left < r.left - 1 || b.right > r.right + 1 || b.bottom > r.bottom + 1; }))
+          .map((el) => el.dataset.k ?? el.className);
+      });
+      constater(!debords.length, `${salle} : les choix tiennent dans le carton${debords.length ? ` (débordent : ${debords.join(', ')})` : ''}`);
       // La cache se fouille, la rencontre se parlemente, le camp se lève par le repos.
       const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="parlementer"]') ? 'parlementer' : 'reposer';
       if (k === 'reposer' && await p.$('.carton [data-a="action"][data-k="soigner"]:not([disabled])')) {
