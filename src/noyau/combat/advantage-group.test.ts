@@ -190,6 +190,46 @@ describe('Renversement (variante AA 13 l.92-98) — vole 1 dans la réserve adve
   });
 });
 
+describe('Renversement d’un distrait (#4785, arbitrage 2026-11-23) — Distraire bloque le vol', () => {
+  const renverseur = (over: Partial<Combatant> = {}): Combatant =>
+    mk('h1', 'heros', { talents: [{ talentId: 'renversement', times: 1 }], ...over } as Partial<Combatant>);
+  const melee = { type: 'melee', label: 'Épée' } as Weapon;
+  const gagne = { advantageTo: 'attaquant' as const, hit: true };
+
+  it('mode groupe : la réserve adverse garde son Avantage, aucun fait', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    const thief = renverseur({ distractedRounds: 1 });
+    const victim = mk('e1', 'ennemi');
+    const { get, battle } = makeGet([thief, victim], { allies: 1, adversaires: 2 });
+    const coup = avantageDuCoup('touche', gagne, melee, thief, victim, etatDAvantage(battle, thief, victim), false);
+    appliquerLAvantage(get, coup.faits, [thief, victim]);
+    expect(coup).toMatchObject({ faits: [], aGagne: true });
+    expect(coup.renversement).toBeUndefined();
+    expect(battle.advantagePools).toEqual({ allies: 1, adversaires: 2 });
+  });
+
+  it('par combattant : le distrait ne prend pas l’Avantage du vaincu, qui le garde', () => {
+    const thief = renverseur({ distractedRounds: 1, advantage: 1 });
+    const victim = mk('e1', 'ennemi', { advantage: 3 });
+    const { get, battle } = makeGet([thief, victim]);
+    const coup = avantageDuCoup('touche', gagne, melee, thief, victim, etatDAvantage(battle, thief, victim), false);
+    appliquerLAvantage(get, coup.faits, [thief, victim]);
+    expect(coup.faits).toEqual([]);
+    expect(coup.renversement).toBeUndefined();
+    expect([thief.advantage, victim.advantage]).toEqual([1, 3]);
+  });
+
+  it('témoin : le même vainqueur non distrait renverse', () => {
+    const thief = renverseur({ advantage: 1 });
+    const victim = mk('e1', 'ennemi', { advantage: 3 });
+    const { get, battle } = makeGet([thief, victim]);
+    const coup = avantageDuCoup('touche', gagne, melee, thief, victim, etatDAvantage(battle, thief, victim), false);
+    appliquerLAvantage(get, coup.faits, [thief, victim]);
+    expect(coup.renversement).toBe(true);
+    expect(victim.advantage).toBe(0);
+  });
+});
+
 describe('roundEndAdvantageTransfer — domination de fin de Round (AA 11 l.44)', () => {
   it('le camp majoritaire prend 1 Avantage à l’autre + reprojette', () => {
     setRule('combat-aa-avantage-groupe', true);

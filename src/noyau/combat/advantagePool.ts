@@ -48,10 +48,13 @@ function variation(c: Combatant, de: number, total: number): FaitDAvantage | nul
   return total === de ? null : { genre: 'avantage', cible: c.id, camp: campOf(c), valeur: total - de, total };
 }
 
+/** `c` ne gagne aucun Avantage : il est distrait. LDB 10 l.364 ; AA 13 l.51. */
+const estDistrait = (c: Combatant): boolean => (c.distractedRounds ?? 0) > 0;
+
 /** Le gain de `n` Avantages par `c`, qui en tient `avant` : en mode groupe (`reserve`), à la réserve de son camp, `total`
  *  = la réserve ; `null` sans variation. LDB 10 l.364 ; AA 13 l.51 ; LDB 14 l.197-198 ; AA 11 l.11-13. PUR. */
 function gainDeCamp(reserve: AdvantagePools | null, c: Combatant, avant: number, n: number): FaitDAvantage | null {
-  if (n <= 0 || (c.distractedRounds ?? 0) > 0) return null;
+  if (n <= 0 || estDistrait(c)) return null;
   if (reserve) return variation(c, reserve[advantageCampOf(c)], Math.max(0, reserve[advantageCampOf(c)] + n));
   return variation(c, avant, avantageApresGain(avant, n, advantageCapFor(c)));
 }
@@ -118,9 +121,10 @@ export function avantageDuCoup(
     } else if (f.cible === attaquant.id) e.attaquant = f.total;
     else e.cible = f.total;
   };
-  // AA 13 l.92-98 ; LDB 10.
+  // AA 13 l.92-98 ; LDB 10 ; #4785 (arbitrage 2026-11-23).
   const vaincre = (gagnant: Combatant, perdant: Combatant): void => {
-    if (arme.type === 'melee' && stealsOneAdvantage(gagnant)) {
+    const renverse = arme.type === 'melee' && !estDistrait(gagnant);
+    if (renverse && stealsOneAdvantage(gagnant)) {
       if (!e.reserve) return poser(gainDeCamp(null, gagnant, avantDe(gagnant), 1));
       const de = advantageCampOf(perdant);
       const vers = advantageCampOf(gagnant);
@@ -131,7 +135,7 @@ export function avantageDuCoup(
       return poser(variation(gagnant, e.reserve[vers], e.reserve[vers] + 1));
     }
     const pris = avantDe(perdant);
-    if (arme.type === 'melee' && hasStealAdvantage(gagnant) && pris > 1) {
+    if (renverse && hasStealAdvantage(gagnant) && pris > 1) {
       renversement = true;
       poser(variation(gagnant, avantDe(gagnant), avantageApresGain(avantDe(gagnant), pris, advantageCapFor(gagnant))));
       if (gagnant === attaquant) poser(variation(perdant, avantDe(perdant), 0));
