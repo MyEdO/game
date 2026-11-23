@@ -25,6 +25,10 @@ const RELAIS = fileURLToPath(new URL('./relais.mjs', import.meta.url))
 const SORTIE_MS = 30000
 /** Le plus long temps du pilote pour rendre une commande ; au-delà, elle échoue. */
 const COMMANDE_MS = 30000
+/** Le plus long temps, à l'horloge, que le pilote laisse au studio des portraits pour finir sa file avant une capture
+ *  (`portraits` de la commande `capture`), compté en plus de `COMMANDE_MS` : la première file, les quatre héros d'un
+ *  plateau, a pris de 26 à 32 s sous le rendu logiciel, en 27 images (#4471). */
+const PORTRAITS_MS = 60000
 /** L'index de Godot de chaque bouton de la souris que nomme le CDP (`MouseButton`). */
 const BOUTONS = { left: 1, right: 2, middle: 3 }
 const [MOLETTE_HAUT, MOLETTE_BAS] = [4, 5]
@@ -131,12 +135,14 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
   await lanceOuMort(premier)
   process.once('exit', () => tuer())
   const session = {
-    /** La commande `commande` jouée par le pilote : ce qu'elle rend, `COMMANDE_MS` au plus. */
+    /** La commande `commande` jouée par le pilote : ce qu'elle rend, `COMMANDE_MS` au plus, plus l'attente des portraits
+     *  qu'elle accorde (`portraits`). */
     commander(commande) {
       if (mort) return Promise.reject(new Error(mort))
       const id = ++dernier
       file.push({ id, ...commande })
-      const rendu = courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), COMMANDE_MS, `commande sans réponse du pilote après ${COMMANDE_MS} ms : ${JSON.stringify(commande)}`)
+      const delai = COMMANDE_MS + (commande.portraits ?? 0)
+      const rendu = courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), delai, `commande sans réponse du pilote après ${delai} ms : ${JSON.stringify(commande)}`)
       if ('capture' in commande && lanceA !== null) {
         return rendu.then((valeur) => {
           if (lanceA !== null) {
@@ -223,7 +229,7 @@ export async function realKey(session, touche) {
 export async function shot(session, name, dir) {
   mkdirSync(dir, { recursive: true })
   const chemin = join(dir, name.endsWith('.png') ? name : `${name}.png`)
-  return (await session.commander({ capture: chemin })) ? chemin : null
+  return (await session.commander({ capture: chemin, portraits: PORTRAITS_MS })) ? chemin : null
 }
 
 /** Sans rendu, aucune image à redessiner. */
