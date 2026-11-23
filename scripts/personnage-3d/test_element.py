@@ -9,7 +9,8 @@ mêmes valeurs, qu'une reprise (`element/publie.py`) garde. Seul se reconstruit 
 la base du diff, tous sous `WFRP_3D_TOUT=1` (`entrees.py`, #3412), chacun ne lisant que ses entrées ; chaque élément a son
 manifeste publié à chaque course. Une peau qui remplace des zones de la base (couche `peau`, `couvre` non vide : une tête)
 suit la base à leur couture, au repos et sous chaque clé de la base (`derives_de_la_couture`, #4413) : la reconstruite, et
-à chaque course la publiée contre la base épinglée, sans Blender."""
+à chaque course la publiée contre la base épinglée, sans Blender. Une pièce qui contourne une tête (`CONTOURNE['tete']`)
+déclare chaque forme propre de la tête publiée (`formesDeTete`, #4394), sans Blender."""
 import hashlib
 import json
 import os
@@ -23,8 +24,8 @@ import numpy as np
 
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI))
-from entrees import (a_reconstruire, changements, construire_en_relevant, lectures_hors_entrees, sujets_des_elements,  # noqa: E402
-                     sujets_sans_base)
+from entrees import (a_reconstruire, changements, construire_en_relevant, lectures_hors_entrees, litteraux,  # noqa: E402
+                     sujets_des_elements, sujets_sans_base)
 from glb import lire_accesseur, lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES  # noqa: E402
 
@@ -252,6 +253,23 @@ class Reconstruction(unittest.TestCase):
                                                            de_la_base['silhouettes'] + gabarits(glb_de_base)), [],
                                      f"{id_} publié ne suit pas la base {de_la_base['glb']['sha256'][:12]} à sa couture : à reconstruire et republier")
         self.assertTrue(vus, 'aucun élément publié ne remplace une zone de la base')
+
+    def test_chaque_piece_qui_contourne_une_tete_en_porte_les_formes(self):
+        """#4413, #4394. Chaque élément publié qui contourne une tête (`CONTOURNE['tete']` de son `donnees.py`) déclare en
+        `formesDeTete` chaque forme propre du manifeste publié de cette tête, sans Blender : une tête republiée avec une
+        forme neuve laisse sans elle la pièce qui la contourne tant qu'elle n'est pas republiée."""
+        vus = 0
+        for donnees in sorted((ICI / 'element').glob('*/*/donnees.py')):
+            tete = litteraux(donnees).get('CONTOURNE', {}).get('tete')
+            if tete is None:
+                continue
+            vus += 1
+            id_ = f'{donnees.parent.parent.name}--{donnees.parent.name}'
+            with self.subTest(id=id_):
+                manquantes = set(lire(MODELES / f'{tete}.manifeste.json').get('formesDeTete', [])) \
+                    - set(lire(MODELES / f'{id_}.manifeste.json').get('formesDeTete', []))
+                self.assertEqual(sorted(manquantes), [], f'{id_} publié n’a pas ces formes de {tete} : à reconstruire et republier')
+        self.assertTrue(vus, 'aucun élément ne contourne une tête')
 
     def test_chaque_element_a_son_manifeste_publie(self):
         for s in sujets_des_elements():
