@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { enTeteDuPorteur, ficheDuPorteur, type Jeu } from './index';
-import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
 
 /** L'état du scénario `id` à son lancement. */
 function auLancement<T>(id: string, faire: (etat: Jeu) => T): T {

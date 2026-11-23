@@ -24,6 +24,7 @@ import numpy as np
 from mathutils import Vector
 
 from anatomie import EMPLACEMENTS
+from tente import HAUT
 from tissu import (Maillage, anneau, centre_de, direction, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de,
                    rayon_a_l_enveloppe, repere_de_plan, unitaire, voisinage)
 
@@ -182,7 +183,7 @@ def bras_de(D, b, c, signe, phis):
     passe `RAYON_DE_COUPE_MAX`."""
     o0, o1 = (np.array(b.tete(o)) for o in OS_BRAS[c])
     axe = unitaire(o1 - o0)
-    u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
+    u, v = repere_de_plan(axe, HAUT, signe)
     dirs = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
 
     def anneau_de_bras(f, aisances):

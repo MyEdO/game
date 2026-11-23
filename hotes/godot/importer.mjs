@@ -6,13 +6,13 @@
 import { resolve } from 'node:path'
 import { chargerAssets } from './asset/charger.mjs'
 
-const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, TAG } = await chargerAssets()
+const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, PREFIXE_DES_RELEASES } = await chargerAssets()
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier] [--remplacer]
   <dossier de production>  manifest.json : model, model_sha256, manifeste (base au schéma de base courant ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
   <id de modèle>           le nom des fichiers déposés : <id>.glb, <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
-  --sans-publier           ne verse rien dans la Release ${TAG} (tests, sondes, éléments d’essai déclarés hors_release)
+  --sans-publier           ne verse rien dans les Releases ${PREFIXE_DES_RELEASES}-* (tests, sondes, éléments d’essai déclarés hors_release)
   --remplacer              remplace le modèle déjà importé sous <id> ; une base, si chaque élément qui la référence
                            passe contre elle, sinon rien n'est écrit`
 
@@ -46,7 +46,7 @@ try {
   process.exit(1)
 }
 if (resultat.ok) {
-  console.log(`Publié dans la Release ${TAG} : ${resultat.publies.join(', ') || (args.publier ? 'rien, tout y était' : 'rien (--sans-publier)')}`)
+  console.log(`Publié dans les Releases ${PREFIXE_DES_RELEASES}-* : ${resultat.publies.join(', ') || (args.publier ? 'rien, tout y était' : 'rien (--sans-publier)')}`)
   console.log(`Importé : ${resultat.ecrits.join(', ')}`)
   if (resultat.retires.length) console.log(`Retiré : ${resultat.retires.join(', ')}`)
   if (resultat.rapport.length) console.warn(`Rapport, sans blocage :\n${resultat.rapport.map((r) => `  ${r}`).join('\n')}`)

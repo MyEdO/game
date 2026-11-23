@@ -10,7 +10,8 @@ import { DESIGNATIONS, type Designation } from '../noyau/index';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import type { Forme } from './formes';
 import { argumentsDuVerbe, gesteDuVerbe, SANS_PISTE } from './geste';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie } from './partie';
+import { ErreurDeGeste } from './partie';
+import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 
 /** Les désignations que les formes d'une liste de paramètres portent. */
 function designationsDe(f: Forme): string[] {

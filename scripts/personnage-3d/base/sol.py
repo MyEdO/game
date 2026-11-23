@@ -77,6 +77,7 @@ from pistes import aller_a, sacs
 from poids import cadence, deformer, instants, peau_lineaire, poses, repos
 from portage import lire_os_des_silhouettes, portages_des_silhouettes
 from seuils import MAJORITE_DU_POIDS, SOL_TOLERANCE_M, TOLERANCE_ECHELLE, TOLERANCE_JUMEAUX_POSITION_M
+from tente import HAUT
 
 CLES_CONFONDUES = 1e-4
 """Deux temps de clé Blender plus proches que cet écart, en images, sont confondus : l'arrondi float32 d'une image
@@ -101,8 +102,6 @@ FUSION_BLENDER = 0.01
 l'image : sonde bpy 5.2.2 du 2026-10-28 par `ecrire`, écarts de 0,005 à 0,0101 image aux images 0, 3,33…, 5,65625, 100
 et 1000, des fusions jusqu'à 0,01 tout juste selon l'image, aucune à 0,01001. Un intervalle dont les moitiés passent
 sous cet écart, plus `CLES_CONFONDUES`, ne se coupe pas."""
-HAUT = numpy.array([0.0, 0.0, 1.0])
-"""Le haut du monde Blender."""
 FLECHE_MAX_M = SOL_TOLERANCE_M / 2
 """Borne de flèche au-delà de laquelle un intervalle se coupe : la moitié de la tolérance au sol, l'autre moitié laissée
 aux rotations que les corrections ajoutent, que `plus_bas_garanti` revérifie."""

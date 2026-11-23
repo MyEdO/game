@@ -8246,6 +8246,7 @@
     "id": "foyer-de-forge",
     "type": "props",
     "label": "Foyer de forge",
+    "conduit": true,
     "solid": true,
     "light": {
       "radiusM": 10
@@ -8642,6 +8643,7 @@
     "type": "props",
     "label": "Cheminée intérieure",
     "searchable": true,
+    "conduit": true,
     "solid": true,
     "light": {
       "radiusM": 10,

@@ -25,7 +25,7 @@ import { testScene } from '../scenes/test-fixture';
 import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
 import { proprietaireDeLaFenetre } from './projection';
 import { t } from '../i18n';
-import { nouvelEntete, ouvrirLaPartie } from './partie';
+import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
 import { gameDay } from '../noyau/merchantFlow';

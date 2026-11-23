@@ -16997,13 +16997,15 @@
      "x": 38,
      "y": 27,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 28,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
@@ -17750,7 +17752,8 @@
      "x": 38,
      "y": 29,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 34,
@@ -17788,13 +17791,15 @@
      "x": 18,
      "y": 42,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 18,
      "y": 43,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 17,
@@ -17878,145 +17883,169 @@
      "x": 8,
      "y": 38,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 37,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 36,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 35,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 34,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 33,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 32,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 31,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 30,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 29,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 28,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 27,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 26,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 25,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 24,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 23,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 22,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 21,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 20,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 19,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 18,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 17,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 9,
      "y": 17,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 17,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 10,
@@ -18036,122 +18065,142 @@
      "x": 8,
      "y": 16,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 15,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 14,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 13,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 8,
      "y": 12,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 9,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 10,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 11,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 11,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 12,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 10,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 9,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 8,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 7,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 12,
      "y": 6,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 13,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 14,
      "y": 6,
      "side": "N",
      "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit",
      "window": true
     },
     {
      "x": 15,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 16,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 17,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 24,
@@ -18171,121 +18220,141 @@
      "x": 26,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 23,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 28,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 29,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 30,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 31,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 32,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 33,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 34,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 35,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 36,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 37,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 12,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 11,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 10,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 9,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 8,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 7,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 38,
      "y": 6,
      "side": "E",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 27,
@@ -18383,37 +18452,43 @@
      "x": 19,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 20,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 21,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 22,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 18,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 27,
      "y": 6,
      "side": "N",
-     "structure": "mur-de-pierre-aa"
+     "structure": "mur-de-pierre-aa",
+     "appearance": "mur-enduit"
     },
     {
      "x": 26,
@@ -20789,6 +20864,16 @@
           "y": 6,
           "side": "N"
          }
+        },
+        {
+         "id": "girouette-portier",
+         "kind": "faitage",
+         "edge": {
+          "x": 14,
+          "y": 6,
+          "side": "N"
+         },
+         "appearance": "girouette"
         }
        ]
       },
@@ -21216,18 +21301,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 11,
-          "y": 35,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -21367,16 +21440,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 12,
-          "y": 14,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",
@@ -22322,6 +22385,15 @@
           "y": 12,
           "side": "N"
          }
+        },
+        {
+         "id": "epi-de-faite-nord",
+         "kind": "faitage",
+         "edge": {
+          "x": 24,
+          "y": 12,
+          "side": "N"
+         }
         }
        ]
       },
@@ -22693,6 +22765,15 @@
         {
          "id": "fenetre-16-21-n",
          "kind": "window-band",
+         "edge": {
+          "x": 24,
+          "y": 27,
+          "side": "N"
+         }
+        },
+        {
+         "id": "epi-de-faite-sud",
+         "kind": "faitage",
          "edge": {
           "x": 24,
           "y": 27,
@@ -36522,6 +36603,30 @@
      "facing": "E"
     },
     {
+     "id": "sept-rayons-cuisine-cheminee",
+     "kind": "prop",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
+     "pos": {
+      "x": 5,
+      "y": 10
+     },
+     "facing": "E"
+    },
+    {
+     "id": "sept-rayons-forge-foyer",
+     "kind": "prop",
+     "decor": {
+      "id": "foyer-de-forge"
+     },
+     "pos": {
+      "x": 4,
+      "y": 29
+     },
+     "facing": "E"
+    },
+    {
      "id": "sept-rayons-salle-table-murale-1",
      "kind": "prop",
      "decor": {
@@ -41936,18 +42041,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 3,
-          "y": 29,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -42087,16 +42180,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 4,
-          "y": 10,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",

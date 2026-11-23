@@ -509,12 +509,13 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 35 types exportés,
-                            dont 23 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 12
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 36 types exportés,
+                            dont 23 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 13
                             MANUSCRITS : `Scene`, `SceneEntity`, `SceneDuVolume` (la scène vue par son
-                            volume, tirée de `CHAMPS_DU_VOLUME`), `SceneDesToits` et `SceneDesCouronnes`
-                            (la scène vue par ses nappes de toit et ses couronnes, tirées de
-                            `CHAMPS_DES_TOITS` et `CHAMPS_DES_COURONNES`),
+                            volume, tirée de `CHAMPS_DU_VOLUME`), `SceneDesToits`, `SceneDuBati` et
+                            `SceneDesCouronnes` (la scène vue par ses nappes de toit, par les ornements de
+                            son bâti et par ses couronnes, tirées de `CHAMPS_DES_TOITS`, `CHAMPS_DU_BATI`
+                            et `CHAMPS_DES_COURONNES`),
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `Layer` (l'infer du schéma dont `tiles`
@@ -636,7 +637,7 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             dés d'une partie que le pont Godot ouvre ou charge, brouillon de création, générateur de
                             nom —, id d'entité unique d'un projet à l'autre `idDEntropie` : scène, carte, projet, lieu,
                             trajet, héros de roster, que `emptyScene(id)`/`emptyWorldMap(id)` reçoivent de l'hôte ;
-                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` (`partieDeTest.ts`) reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
@@ -658,7 +659,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
-                            les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
+                            les GLB vivent dans les Releases `modeles-3d-<c>`, nommés par leur SHA-256 dont `<c>` est le premier caractère (#4823), que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import) ;
                             depuis le cloud, une branche `transfert/<nom>` qui porte les fichiers et leur provenance
                             (`asset/transfert.ts`, `npm run godot:transfert`) les y verse au push

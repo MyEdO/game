@@ -32,8 +32,10 @@ import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
 import { conditionIds, eyes, findVehicleById, species, type TrappingData } from '../../data/index';
 import { vehicleCombatant } from '../../engine/vehicle';
+import { heroCombatMount } from '../../engine/mountTravel';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
+import { sansLaCleDeJeu } from './save.testkit';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { garanti } from '../../lib/garanti';
@@ -102,6 +104,34 @@ describe('lireSave — format courant', () => {
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 
+  it('lit une save d’avant le meneur désigné à l’élection, sans la migration des couleurs (#4530)', () => {
+    const courante = snapshotSave({ ...etatInitialDuJeu(), meneurChoisi: 'b' }, '2026-11-23T06:30:00.000Z');
+    const ancienne = sansLaCleDeJeu(exporterLaSauvegarde({ ...courante, version: '71dc897adac81733' }), 'meneurChoisi');
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    const lue = lireSave(ancienne);
+    if (courante.version !== '996aa25cd3e782c4') return void expect(lue).toBe('autreFormat');
+    expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
+  it('relit sans transformation une save d’avant `sansCavalier` (#4804) : la même bête porte le héros', () => {
+    const h = combattantDeTest({ id: 'cavalier', kind: 'heros' });
+    const etat: EtatDeJeu = {
+      ...etatInitialDuJeu(),
+      party: [h],
+      possessions: [{ uid: 'pos-1', ownerId: h.id, nature: 'bete', ref: { id: 'cheval-de-trait' }, location: { kind: 'avec-le-groupe' }, items: [] }],
+    };
+    const courante = snapshotSave(etat, '2026-11-23T08:00:00.000Z');
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+    const relue = lireSave(exporterLaSauvegarde({ ...courante, version: 'e5850d7c5e152ce4' }));
+    expect(relue).toEqual(courante.version === '996aa25cd3e782c4' ? courante : 'autreFormat');
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+    if (typeof relue !== 'string') expect(heroCombatMount(h, relue.data.possessions)?.uid).toBe('pos-1');
+  });
+
   it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {
     const fiche = combattantDeTest({ id: 'heros-usure', kind: 'heros' });
     const banc = ouvrirLeBanc({ etat: { party: [fiche] } });
@@ -125,7 +155,7 @@ describe('lireSave — format courant', () => {
     applyOps(porteur, [{ op: 'grantTrait', trait: { id: 'armure', value: 2, matiere: 'peau' }, durationRounds: 1 }], {
       idNeuf: idsDeTest, rng: makeRNG(1), source: { kind: 'trait', id: 'metamorphose' },
     });
-    expect(damageArmour(porteur, 'corps')).toBe(true);
+    expect(damageArmour(porteur, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'usee' });
     lacherLArme(ours, arme);
 
     const save = snapshotSave(etat, '2026-11-21T06:30:00.000Z');

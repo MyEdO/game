@@ -7,10 +7,10 @@
 //   node hotes/godot/epingles.mjs
 import { chargerAssets } from './asset/charger.mjs'
 
-const { publierAssets, epinglesAPublier, modelesAPublier, TAG } = await chargerAssets([
+const { publierAssets, epinglesAPublier, modelesAPublier, PREFIXE_DES_RELEASES } = await chargerAssets([
   "export { epinglesAPublier } from '/hotes/godot/asset/epingles.ts';",
   "export { modelesAPublier } from '/hotes/godot/asset/release.ts';",
 ])
 
 const verses = publierAssets([...epinglesAPublier(), ...modelesAPublier()])
-console.log(verses.length ? `[épinglés] versés dans la Release ${TAG} : ${verses.join(', ')}` : `[épinglés] la Release ${TAG} les porte tous`)
+console.log(verses.length ? `[épinglés] versés dans les Releases ${PREFIXE_DES_RELEASES}-* : ${verses.join(', ')}` : `[épinglés] les Releases ${PREFIXE_DES_RELEASES}-* les portent tous`)

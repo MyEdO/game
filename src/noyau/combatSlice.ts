@@ -141,6 +141,7 @@ import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
+import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -167,7 +168,7 @@ import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeRe
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
-import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
+import { avantageDiffere, campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
@@ -1678,7 +1679,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (m.ridesEntityId == null) return;
         const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
-        if (!mount) return;
+        if (!mount || !accepteUnCavalier(mount, enemies[i])) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
         harnacher(enemies[i], mount);
@@ -1952,7 +1953,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
       const flow = consommableDe(it, objetDuNarratif(s.campaignNarratif));
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
-      if (refuseSi(get, set, () => refusDeConsommer(porteur, it, flow))) return;
+      if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
@@ -2656,7 +2657,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
       // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
       // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
-      const differee = !!c && applyOups(get, set, c, step.maladresse.weapon, oups, new Map(), coup) === OPS_DIFFEREES;
+      const issue = c ? applyOups(get, set, c, step.maladresse.weapon, oups, new Map(), coup) : undefined;
+      const differee = issue === OPS_DIFFEREES;
       const suite = get().pendingCascade;
       // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
       // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
@@ -3158,7 +3160,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Maniement de deux armes : l'Avantage des deux frappes est différé. `pa.grapple` = Empoignade
         // (LDB 14 l.159) : pose l'Empoignade au lieu des Dégâts.
         const suite: SuiteDeCoup = {
-          deferAttackerAdvantage: isDualMain || isDualSecond,
+          deferAttackerAdvantage: avantageDiffere(pa, attacker),
           grapple: pa.grapple,
           ...(pa.freeKind || frenesie ? { restitution: { prevActed } } : restitutionDeChaine ? { restitution: restitutionDeChaine } : {}),
           ...(pa.freeKind ? { manoeuvre: { kind: pa.freeKind } } : {}),

@@ -533,10 +533,10 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 | `LDB 61 l.43-43` | `src/engine/encumbrance.ts` : commentaires | Mouvement immédiat ; Fatigue = échelle voyage (fin de journée) |
 | `LDB 62 l.28` | `src/engine/items.ts` l.269 | Mains nues : +BF+0, Personnelle, Inoffensive |
 | `LDB 63 l.18-21` | `src/engine/items.ts` l.481 / `damageArmour` | PA nette = PA − dégâts pris ; endommagement armure |
-| `LDB 72 l.5-6` (p.307) | `src/engine/consumables.ts` | Parsing desc `récupérer/Blessure` → soin (Bonus d'Endurance) ; parsing `retire … État` → retrait d'État |
-| `LDB 72 l.24` | `src/engine/consumables.ts` : `parseConsumable` | Potion de guérison : Bonus d'Endurance, garde-fou poison/drogue |
-| `LDB 72 l.26` | `src/engine/consumables.ts` + test | Potion de vitalité : retire tout *Exténué* |
-| `LDB 74 l.41` | `src/engine/consumables.ts` : `removeStacks: 1` (Bandages) | +1 pion *Hémorragique* retiré (pas « tout ») |
+| `LDB 72 l.20` | `src/engine/ops.ts` : `opSansObjet` (`preventInfection`) | Cataplasme de guérison : ne panse qu'une Blessure Critique de la rencontre |
+| `LDB 72 l.24` | `src/data/trappings.json` (`potion-de-guerison`) ; `src/noyau/consumableFlow.ts` : `refusDeConsommer` | Potion de guérison : Bonus d'Endurance de Blessures au-delà de 0 Blessure, refusée sans effet |
+| `LDB 72 l.26` | `src/data/trappings.json` (`potion-de-vitalite`) | Potion de vitalité : retire tout *Exténué* |
+| `LDB 74 l.41` | `src/engine/healing.ts` : `stopBleedOutcome` | Bandages : +1 pion *Hémorragique* retiré (pas « tout ») |
 | `LDB 18 l.263` | `src/engine/items.ts` l.309 | Amputation → pas d'arme à 2 mains |
 
 **Fichiers engine** : `src/engine/encumbrance.ts`, `src/engine/items.ts`, `src/engine/consumables.ts`
@@ -546,10 +546,6 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 **Données** : `src/data/trappings.json` (catalogue avec `enc`, `kind`, `desc`)
 
 **Écarts code ↔ RAW** :
-- **Drogues** (LDB 71 : Bave, Bonnet de fou, Délice de Ranald, Mystracine, Racine de mandragore)
-  et **Poisons** (Brise-cœur, Lotus noir) : effets **non modélisés** dans le moteur.
-  Les données sont dans `trappings.json` (desc verbatim) mais aucun `parseConsumable` ne les active
-  (effets complexes : Tests à la consommation, modificateurs temporaires de carac, dégâts différés).
 - **Prothèses** : Crochet (réduction pénalité par PX) et Fausse jambe (récupération Mouvement + Esquive)
   non suivis dans `src/engine/`. Le `Combatant` n'a pas de champ `prosthetics` — à implémenter si les
   Blessures Critiques permanentes sont jouées (LDB 18).

@@ -7,7 +7,8 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
+import { ErreurDeGeste, valider, type TenueDesJetons } from '../hote/partie';
+import { nouvelEntete, ouvrirLaPartie, type Entete } from '../hote/partieDeTest';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
 import { estObjet } from '../lib/objet.mjs';
 import { appelEcrit } from './outils';

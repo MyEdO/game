@@ -26,6 +26,9 @@ import { modalOwnerOf } from './modalArbiter';
 import { corruptionThreshold } from '../engine/corruption';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { jetsEnVue } from './jetsEnVue';
+import { texteDuFait } from '../engine/faits';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -63,6 +66,12 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
 /** Pose l'issue de TOUTES les rangées de la bande courante (aucun dé : le contrat testé est la
  *  conséquence, pas le tirage), puis valide l'étape. */
 function jouerBande(success: boolean): void {
+  poserLaBande(success);
+  g().jetValider('cascade');
+}
+
+/** Pose l'issue de TOUTES les rangées de la bande courante, sans la valider. */
+function poserLaBande(success: boolean): void {
   const p = g().pendingCascade!;
   const cur = p.participants[p.cursor];
   banc.setState({
@@ -74,7 +83,6 @@ function jouerBande(success: boolean): void {
       })),
     },
   } as never);
-  g().jetValider('cascade');
 }
 
 beforeEach(() => { seedBattleRng(4); });
@@ -241,6 +249,25 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(porteurs[0].resilience, '1 Point de Résilience dépensé').toBe(1);
     expect(porteurs[0].mutations ?? [], 'refusée').toHaveLength(0);
     expect(porteurs[1].mutations ?? [], 'et le second n’a toujours rien subi sans son Test').toHaveLength(0);
+  });
+});
+
+describe('#4574 — la rangée d’Exposition prévoit le fait que son gain applique (LDB 19 l.35)', () => {
+  it('jetée, la rangée prévoit le fait de `gainCorruption` ; validée, elle porte ce même fait, et sa ligne au journal', () => {
+    const { H, E } = setupCoop({ heros: 1 });
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
+    const porteur = g().battle!.combatants.find((x) => x.id === H[0].id)!;
+    porteur.corruption = 0;
+    openCombatEndCascade(g, banc.setState);
+    poserLaBande(false);
+    const rangee = () => jetsEnVue(g()).flatMap((j) => j.lignes).find((l) => l.qui === H[0].id);
+    const fait = { genre: 'corruption', cible: H[0].id, camp: 'groupe', valeur: 1, total: 1 } as const;
+    expect(rangee()?.consequences, 'la rangée jetée prévoit le gain').toEqual([{ genre: 'corruption', valeur: 1, qui: H[0].id, ton: 'echec', detail: { total: 1 } }]);
+    const bande = bandes('corruptionDeFinDeCombat')[0];
+    g().jetValider('cascade');
+    expect(bande.participants!.find((r) => r.id === H[0].id)!.faits, 'le fait appliqué est le fait prévu').toEqual([fait]);
+    expect(porteur.corruption).toBe(1);
+    expect([...g().battle!.log.map((e) => e.text), ...g().journal]).toContain(texteDuFait(fait, nomDe(porteur)));
   });
 });
 

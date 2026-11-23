@@ -115,4 +115,17 @@ describe('l’exploration par le pont', () => {
     expect(servies.length, 'les arêtes des toits des pièces').toBeGreaterThan(0);
     expect(servies).toEqual(piecesDeToitDeLaScene(testScenarios.find((s) => s.id === 'zones-pieces')!.construire(idsDeTest).scene));
   });
+
+  it('le meneur commun : un bouton par autre héros debout, et le héros désigné passe en tête (#4530)', () => {
+    appel('quitter');
+    let { suite } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
+    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', (enFocus(suite.vue) as Bouton).jeu)));
+    const [meneur, ...autres] = suite.vue.projection.exploration!.heros.map((h) => h.id);
+    const designer = suite.vue.zones['exploration.gestes'].filter((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'designerLeMeneur'));
+    expect(designer.map((b) => 'suite' in b.jeu && b.jeu.suite.map((a) => a.args)), 'un bouton par héros qui ne mène pas').toEqual(autres.map((id) => [[id]]));
+    const offert = suite.vue.projection.exploration!.gestes.liste.find((g) => g.gestes.some((x) => x.verbe === 'designerLeMeneur'));
+    expect(offert, 'la projection publie l’offre, sans refus en solo').toEqual({ libelle: expect.any(String), gestes: [{ verbe: 'designerLeMeneur', args: [autres[0]] }] });
+    ({ suite } = drainer(appel, appel('jouer', designer[0].jeu)));
+    expect(suite.vue.projection.exploration!.heros.map((h) => h.id), 'le héros désigné mène, le meneur précédent le suit dans l’ordre du groupe').toEqual([autres[0], meneur, ...autres.slice(1)]);
+  });
 });

@@ -7,7 +7,7 @@ import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
-import type { IdDIntention } from './designations';
+import type { IdDeHeros, IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -417,6 +417,8 @@ export const initialNet = (): NetState => ({
 export interface EtatDeJeu {
   screen: Ecran;
   party: Combatant[];
+  /** Id du héros que le siège du monde a désigné meneur (`designerLeMeneur`, #4530) ; null = élection (`meneurDuMonde`). */
+  meneurChoisi: IdDeHeros | null;
   scene: Scene | null;
   mode: 'exploration' | 'battle';
   /** Groupe anéanti HORS COMBAT (invariant `checkPartyWiped`) → écran de défaite (CampaignView). */
@@ -822,6 +824,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     marchandagesDeBillet: {},
     travelRecap: null,
     party: [],
+    meneurChoisi: null,
     scene: null,
     campaignNarratif: null,
     mode: 'exploration',

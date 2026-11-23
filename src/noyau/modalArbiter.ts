@@ -135,7 +135,7 @@ export const MODAL_DEFS = [
   //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.maladresse`), source
   //  unique lue par `jetLancer('maladresse')` ; `jetValider('maladresse')` applique les Oups ! et enchaîne le curseur.)
   // (Le Renversement (Déstabilisante) n'ouvre AUCUNE modale et ne pose aucun `pending*` : il se résout
-  //  dans l'attribution d'Avantage de `applyAttackResult` (`reversalStealOne`, `combat/advantagePool.ts`).)
+  //  dans l'attribution d'Avantage de `applyAttackResult` (`avantageDuCoup`, `combat/advantagePool.ts`).)
   // LOT DE DÉS d'un étal (#1426) : aucun personnage n'est concerné — c'est le MONDE qui tire. Owner =
   // le sentinel `WORLD_STEP_OWNER` (siège MJ s'il existe, hôte sinon), comme toute étape de monde.
   { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: [{ verbe: 'jetValider', flux: 'etalLot' }] }, covers: ['pendingEtalLot'], flux: ['etalLot'], rangees: (s) => s.pendingEtalLot?.participants },
@@ -327,16 +327,21 @@ export interface HorsModalDef<K extends string = string> {
   sortie?: QuiFermeLaFenetre;
   /** La fenêtre se valide (`fenetreValider`), par le siège que ce champ nomme, comme `ModalDef.validation`. */
   validation?: QuiValideLaFenetre;
+  /** L'issue qu'elle déclare et que son drive joue (`FenetreDuJeu.drive`) : elle se résout sans choix du joueur. */
+  drive?: IssueDeFenetre;
 }
+
+/** Les issues d'une fenêtre, par le champ qui la déclare : sa validation, sa sortie. */
+export type IssueDeFenetre = 'validation' | 'sortie';
 
 export const HORS_MODAL = [
   { key: 'marchandage', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId, flux: ['marchandage'] }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'evaluation', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['evaluation'] }, // Évaluation/Détection (écran Marché/Compendium)
   { key: 'butin', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['evaluerLObjet'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victoire', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['evaluerLObjet'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
+  { key: 'victoire', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['evaluerLObjet'], sortie: 'quorum', drive: 'sortie' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
   { key: 'viseeDeSiege', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interaction', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
-  { key: 'debutDuRound', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['cliquerLaCase'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
+  { key: 'debutDuRound', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['cliquerLaCase'], validation: 'quorum', drive: 'validation' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
   { key: 'activitesEnMer', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', validation: 'hote' }, // Activités hebdomadaires en mer : chaque siège choisit pour ses héros, l'hôte valide la semaine
   { key: 'relacheATerre', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
   { key: 'campagne', pendingKey: 'pendingCampaign', tientLaMain: false, owner: () => undefined }, // Campagne choisie au menu : un écran de l'hôte avant tout siège, que « Lancer » charge
@@ -383,6 +388,8 @@ export interface SurfaceHorsPendingDef<K extends string = string> {
   sortieFermee?: (s: ArbiterState) => FermetureDuJet | null;
   /** La surface se valide (`fenetreValider`), par l'hôte. */
   validation?: 'hote';
+  /** L'issue que son drive joue, comme `HorsModalDef.drive`. */
+  drive?: IssueDeFenetre;
 }
 
 /** La fin de séance du récap de chapitre se joue par lui (`fenetreValider('finDeChapitre')`, `fenetreFermer('finDeChapitre')`). */
@@ -413,8 +420,8 @@ export const SURFACES_HORS_PENDING = [
   // L'anéantissement du groupe hors combat (`partyWiped`) ; la défaite d'un combat, repli dans le combat d'une
   // bataille de masse (ADE II 08), sinon défaite.
   { key: 'aneantissement', tientLaMain: (s) => !!s.partyWiped, sortie: 'hote' },
-  { key: 'repli', tientLaMain: (s) => defaiteDuCombat(s) && !!s.massBattle?.combatScene, sortie: 'hote' },
-  { key: 'defaite', tientLaMain: (s) => defaiteDuCombat(s) && !s.massBattle?.combatScene, sortie: 'hote' },
+  { key: 'repli', tientLaMain: (s) => defaiteDuCombat(s) && !!s.massBattle?.combatScene, sortie: 'hote', drive: 'sortie' },
+  { key: 'defaite', tientLaMain: (s) => defaiteDuCombat(s) && !s.massBattle?.combatScene, sortie: 'hote', drive: 'sortie' },
   // La bataille de masse tient la main sur son écran ; elle est ouverte aussi pendant sa préparation, que joue l'interlude
   // (ADE II 08 l.65), et ne s'y termine pas.
   {

@@ -100,6 +100,7 @@ const doc = document(
   famille,
   {
     searchable: z.boolean().optional(),
+    conduit: z.boolean().optional(),
     solid: z.boolean().optional(),
     opaque: z.boolean().optional(),
     cover: deckCoverSchema.optional(),
@@ -111,6 +112,7 @@ const doc = document(
   },
   {
     searchable: { label: 'Fouillable', hint: 'L’éditeur pré-arme l’action « fouiller » à la pose du décor' },
+    conduit: { label: 'Conduit de cheminée', hint: 'Le foyer monte une souche au toit qui couvre sa case, à l’aplomb du mur auquel il s’adosse' },
     solid: { label: 'Bloque le passage', hint: 'Empêche de marcher sur la case (combat et exploration)' },
     opaque: { label: 'Bloque la vue', hint: 'Coupe la ligne de vue (LdV)' },
     cover: { label: 'Couvert', hint: 'Degré de couvert offert (imparfaite/moyenne/totale)' },

@@ -2,8 +2,8 @@
  * LA CARTE DU MONDE EN VUE (#3328) — ce qu'un hôte montre de la carte qui tient la main : son plan, et sous chaque
  * lieu chaque trajet que la carte trace jusqu'à lui depuis le lieu du groupe (`routesCliquables`), sa longueur et chacun de ses modes
  * de voyage, écrit en verbe du noyau (`partirEnVoyage`, sous les ordres par défaut, `DEFAULT_VOYAGE_ORDERS`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
- * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`reprendreLeVoyage`). Lecteur PUR, lu par les hôtes
- * du noyau (`hote/ecran.ts`).
+ * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`reprendreLeVoyage`). Lecteur PUR, lu par la projection
+ * des hôtes (`hote/projection.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
@@ -11,7 +11,7 @@ import { CADRE, lieuDuGroupe, otherEnd, placeById, positionsDeRendu, routesCliqu
 import { devisDeTrajet, refusDeDepart } from './travelFlow';
 import { condCtx } from './bourseFlow';
 import { partyFullyMounted } from '../engine/mountTravel';
-import { routeDistanceLabel, travelModeLabels, type TravelMode } from '../engine/travel';
+import { distanceDeRoute, travelModeLabels, type Distance, type TravelMode } from '../engine/travel';
 import { rule } from '../engine/policy';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
@@ -22,8 +22,8 @@ import { garanti } from '../lib/garanti';
 export interface ModeDuTrajet { mode: TravelMode; libelle: string; geste: GesteDuNoyau; refus: string | null; jours: number | null }
 
 /** Un trajet depuis le lieu du groupe : sa route, sa destination (`destination`, son id ; `vers`, son nom), sa
- *  longueur dite, et chacun de ses modes. */
-export interface TrajetEnVue { route: string; destination: string; vers: string; distance: string; modes: ModeDuTrajet[] }
+ *  longueur (`distanceDeRoute`), et chacun de ses modes. */
+export interface TrajetEnVue { route: string; destination: string; vers: string; distance: Distance; modes: ModeDuTrajet[] }
 
 /** Un lieu sur le plan : son nom, sa position dans le cadre de la carte (0..1 sur chaque axe), s'il est celui où se
  *  tient le groupe, et chaque trajet qui y mène depuis lui. */
@@ -54,7 +54,7 @@ export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue
     route: route.id,
     destination: otherEnd(route, ici.id),
     vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
-    distance: routeDistanceLabel(route.km, route.sea),
+    distance: distanceDeRoute(route.km, route.sea),
     modes: modesDuTrajet(route.modes, groupeMonte).map((mode) => ({
       mode,
       libelle: garanti(libelles[mode], mode, 'mode de voyage'),

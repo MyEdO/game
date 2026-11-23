@@ -325,7 +325,7 @@ describe('planDeLaCouche — la couche, ses marques et sa légende', () => {
     { id: 'vigie', kind: 'personnage', pos: { x: 3, y: 0 }, creature: { id: 'humain' } },
   ];
 
-  const jeu = { scene, battle: null, partyPos: { x: 0, y: 1 }, gameTime: 12 * 60, lightLevel: null, explored: {} };
+  const jeu = { scene, battle: null, meneurChoisi: null, partyPos: { x: 0, y: 1 }, gameTime: 12 * 60, lightLevel: null, explored: {} };
 
   it('l’œil, le groupe, les personnages en vue et les décors ; un héros sur un décor le cache', () => {
     expect(planDeLaCouche(jeu, 0, { x: 2, y: 1, z: 0, azimut: 100 })).toBe([

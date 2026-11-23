@@ -9,7 +9,6 @@ export const facade: FacadeAppearanceDef = {
     gable: 'mur-a-ossature-en-bois',
   },
   features: {
-    chimney: { prop: 'cheminee', base: 'toit', liftM: -0.3 },
     sign: { prop: 'enseigne', liftM: 2.2 },
   },
 };

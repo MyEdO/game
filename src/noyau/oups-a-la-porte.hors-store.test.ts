@@ -411,10 +411,12 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
 
 describe('Solide imperdable — aucun dé, mais la sauvegarde se DIT (LDB 60 l.30)', () => {
   it('Bâclé + Solide(9) : la Maladresse s’applique sur place, l’arme tient, et le journal le dit', () => {
-    const arme = { label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 9 }] } as unknown as Weapon;
+    const arme = { label: 'Épée bâclée', trappingId: 'epee', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 9 }] } as unknown as Weapon;
     const hero = mk('heros', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
-    expect(applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE), 'aucun dé à ouvrir').toBeUndefined();
+    expect(applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE), 'aucun dé à ouvrir, l’arme sauvée sans dé en fait').toEqual({
+      faits: [{ genre: 'objet', cible: 'bretteur', camp: 'groupe', objet: { arme: 'epee' }, valeur: 0, issue: 'imperdable' }],
+    });
     expect(brisee(arme), 'l’arme tient').toBeFalsy();
     const lues = lignesLues();
     expect(lues.filter((l) => /^Épée bâclée résiste — .* : la Sauvegarde ne peut pas échouer\.$/.test(l)), lues.join(' | ')).toHaveLength(1);
