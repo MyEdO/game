@@ -60,7 +60,7 @@ import { ALL_MAGIC, Combatant, DIFFICULTE_PAR_DEFAUT, HitLocation, Difficulty, C
 import { findTraitById, findTalentById, findDomainById, findGodById, findSpellById, matiereDuGroupe, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
-import { ritualReduction, type RitualReduced } from './grimoire';
+import { ritualReduction, canCastFromGrimoire, GRIMOIRE_NI_MODS, type RitualReduced } from './grimoire';
 import { traceLineOf } from './traceLine';
 import { spellOps, type Flow } from './flowCore';
 
@@ -377,9 +377,9 @@ export function reserveDeFocalisation(c: Combatant, spell: SpellLike): number {
 }
 
 /** Le lancement qu'une réserve de Focalisation a servi échoue-t-il : LDB 46 l.132 ; sous
- *  `magie-vdm-incantation`, DR sous le NI réduit compris (VDM 02 l.48, l.135). */
+ *  `magie-vdm-incantation`, DR sous le NI réduit compris, dissipation exclue (VDM 02 l.48, l.135, l.178). */
 export function incantationFocaliseeEchouee(res: CastResult): boolean {
-  return rule('magie-vdm-incantation') === true ? !res.cast : !evaluateTest(res.roll, res.target).success;
+  return rule('magie-vdm-incantation') === true ? !res.cast && !res.dispelled : !evaluateTest(res.roll, res.target).success;
 }
 
 /** Compétence Focalisation utilisable pour CE sort (LDB 46 ; `refCouvre`, LDB 09 l.44). Sort sans
@@ -651,10 +651,14 @@ export function castingNumberOf(
   return niDuSort(spell, env, reserve > 0 ? [...niMods, modDeReserve(reserve)] : niMods, caster);
 }
 
-/** NI de `spell` pour `caster` sans sa réserve de Focalisation : cible de la Focalisation (LDB 46 l.130)
- *  et NI à dissiper (LDB 46 l.158). */
+/** NI de `spell` tel que `caster` le lance, sans sa réserve de Focalisation : cible de la Focalisation
+ *  (LDB 46 l.130, l.132) et NI à dissiper (LDB 46 l.158). Lu au grimoire quand seul le grimoire le
+ *  lui ouvre (LDB 47 l.21), depuis l'entrée du catalogue : `spell` peut déjà porter ce NI doublé. */
 export function niSansFocalisation(spell: SpellLike, caster: Combatant): number {
-  return niDuSort(spell, {}, [], caster);
+  const catalogue = spell.id === undefined ? undefined : findSpellById(spell.id);
+  return catalogue && canCastFromGrimoire(caster, catalogue)
+    ? niDuSort(catalogue, {}, GRIMOIRE_NI_MODS, caster)
+    : niDuSort(spell, {}, [], caster);
 }
 
 /** VDM 02 l.133 */

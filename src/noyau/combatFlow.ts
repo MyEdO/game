@@ -284,10 +284,9 @@ import { corruptionGain, EXPOSURE_LADDER, recoitLaCorruption, type ExposureLevel
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { critiqueDie } from '../data/criticals';
-import { canCastFromGrimoire } from '../engine/grimoire';
+import { canCastFromGrimoire, GRIMOIRE_NI_MODS } from '../engine/grimoire';
 import { sortsDisponibles } from '../engine/sortsDuPnj';
 import { effectiveCastingNumber } from '../engine/castingNumber';
-import type { CastingNumberMod } from '../engine/castingNumber';
 import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, categorieDesLignesDeLaTable, MISCAST_TABLES, MISCAST_DATASETS,
   type MiscastSeverity, type MiscastResult,
@@ -6557,23 +6556,6 @@ export function overcastTargetCandidates(
   });
 }
 
-/** NI d'un Sort lu au grimoire (LDB 47 l.21, `VDM 12 l.646-647`) — modificateurs en donnée, passés
- *  par la primitive UNIQUE `effectiveCastingNumber` comme tout autre porteur. */
-export const GRIMOIRE_NI_MODS: CastingNumberMod[] = [
-  {
-    multiply: 2,
-    scope: { kinds: ['sort'] },
-    source: { book: 'vents-de-la-magie', page: 164 },
-    desc: 'Lors du lancement de Sort son NI est doublé.',
-  },
-  {
-    multiply: 4,
-    scope: { kinds: ['rituel'] },
-    source: { book: 'vents-de-la-magie', page: 164 },
-    desc: "Dans le cas d'un Rituel, son NI est quadruplé.",
-  },
-];
-
 /** Sort effectif d'un pendingCast : NI DOUBLÉ pour une lecture au grimoire (LDB 47 l.21), QUADRUPLÉ
  *  pour un Rituel (`VDM 12 l.647`, `VDM 02 l.369`). */
 export function effectiveSpellOf(pc: { spellId: string; grimoire?: boolean }): ReturnType<typeof findSpell> {
@@ -7002,6 +6984,8 @@ export function applyCast(
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
   const reserveServie = reserveDeFocalisation(caster, spell) > 0;
+  // La réserve servie est consommée au lancement, avant toute touche. LDB 46 l.132 ; VDM 02 l.133
+  if (reserveServie) caster.focus = undefined;
   const affects = extras?.pose ? undefined : filtreHorsPoseDuSort(spell);
   const targets = affects
     ? ciblesDuLancer.filter((c) => evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) })))
@@ -7346,8 +7330,6 @@ export function applyCast(
     logLines.push(...contrecoup('colere'));
   }
 
-  // La réserve servie est consommée au lancement. LDB 46 l.132 ; VDM 02 l.133
-  if (reserveServie) caster.focus = undefined;
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).

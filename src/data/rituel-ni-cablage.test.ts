@@ -17,7 +17,7 @@ import { spells } from './index';
 import { arcanePhenomena } from './arcanePhenomena';
 import { castingNumberOf } from '../engine/magic';
 import { effectiveCastingNumber, type CastingNumberMod } from '../engine/castingNumber';
-import { GRIMOIRE_NI_MODS } from '../noyau/combatFlow';
+import { GRIMOIRE_NI_MODS } from '../engine/grimoire';
 
 /** Entrée de sort RÉELLE (Caresse de Laniph), re-taguée Rituel — même forme que la donnée committée. */
 const asRituel = () => {

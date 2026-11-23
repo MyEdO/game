@@ -1,5 +1,5 @@
 /**
- * Câblage noyau de la réserve de Focalisation sous `magie-vdm-incantation` : VDM 02 l.131-135.
+ * Câblage noyau de la réserve de Focalisation : VDM 02 l.131-135, l.178 ; LDB 46 l.132 ; LDB 47 l.21.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -7,9 +7,12 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import { buildAiInput } from './combatFlow';
+import { buildAiInput, castSpell, withPreRollFixedDie } from './combatFlow';
+import type { BattleState } from './etat';
 import { emptyScene } from './monde/scene';
-import { niSansFocalisation } from '../engine/magic';
+import { spawnEnemy } from './monde/spawn';
+import { niSansFocalisation, focalisationAboutie } from '../engine/magic';
+import { canCastFromGrimoire } from '../engine/grimoire';
 import { findSpellById } from '../data';
 
 let banc: Banc;
@@ -58,5 +61,102 @@ describe('IA : la Focalisation est prête au NI sans réserve (LDB 46 l.128, l.1
 
   it('option active : DR sous le NI imprimé → pas prêt, même au-dessus du NI réduit (VDM 02 l.131-133)', () => {
     expect(pretPour(5, true)).not.toBe('ready');
+  });
+});
+
+/** Combat : la sorcière (focalisée par la couture `focalisation`) face à un ennemi qui sait dissiper. */
+function auCombat(focus: { spellId: string; dr: number }, dissipateur = false) {
+  const w = sorciere();
+  w.characteristics.intelligence = 50;
+  w.skills = [...w.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 }];
+  w.pos = { x: 5, y: 5 };
+  banc.setState({ party: [w] });
+  banc.setState({ pendingFocus: { casterId: w.id, spellId: focus.spellId, result: { dr: focus.dr, success: true, isCritical: false, isFumble: false, roll: 33, log: 'focalisation' } } });
+  banc.getState().jetValider('focalisation');
+  const lanceur = banc.getState().party.find((h) => h.id === w.id)!;
+  const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 7, y: 5 });
+  e.skills = dissipateur ? [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 100 }] : [];
+  const order = [lanceur.id, e.id];
+  const battle: BattleState = {
+    combatants: [lanceur, e], order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null,
+    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, zones: [],
+  };
+  banc.setState({ mode: 'battle', scene: emptyScene('s', 20, 20) as never, battle, party: [lanceur], net: { ...banc.getState().net, gmSeat: 0 } });
+  return { lanceur, e };
+}
+
+function incanterAvec(de: number): void {
+  const jeu = banc.getState;
+  withPreRollFixedDie(jeu, banc.setState, () => jeu().jetLancer('incantation'), () => jeu().jetImposerLeResultat('incantation', de));
+}
+
+const kindsDeLaCascade = () => (banc.getState().pendingCascade?.participants ?? []).map((p) => p.kind);
+
+describe('Dissipation d’un lancement focalisé (VDM 02 l.133, l.135, l.178)', () => {
+  it('Contre-sort gagné : Sort dissipé, réserve perdue, aucune Incantation Imparfaite', () => {
+    const { lanceur, e } = auCombat({ spellId: 'cauteriser', dr: 2 }, true);
+    castSpell(banc.getState, banc.setState, lanceur, e, 'carreau');
+    incanterAvec(7);
+    expect(banc.getState().pendingCast?.result).toMatchObject({ cast: true, niRequired: 2 });
+    banc.getState().jetRegler('contreSort', 'declaration', 'solo', e.id);
+    banc.getState().jetLancer('contreSort', e.id);
+    banc.getState().jetImposerLeResultat('contreSort', 7, e.id);
+    banc.getState().jetValider('contreSort');
+    expect(banc.getState().pendingCast?.result).toMatchObject({ cast: false, dispelled: true });
+    banc.getState().jetValider('incantation');
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(kindsDeLaCascade()).not.toContain('tableDIncantationImparfaite');
+    expect(banc.getState().battle!.combatants.find((c) => c.id === lanceur.id)!.focus).toBeUndefined();
+  });
+});
+
+describe('Projectile magique sur soi avec une réserve (LDB 46 l.132 ; VDM 02 l.133)', () => {
+  it('la réserve est dépensée avant la touche : aucun Test de Focalisation interrompue', () => {
+    const { lanceur } = auCombat({ spellId: 'cauteriser', dr: 2 });
+    const avant = lanceur.wounds.current;
+    castSpell(banc.getState, banc.setState, lanceur, lanceur, 'carreau');
+    incanterAvec(7);
+    expect(banc.getState().pendingCast?.result).toMatchObject({ cast: true, niRequired: 2 });
+    banc.getState().jetValider('incantation');
+    const apres = banc.getState().battle!.combatants.find((c) => c.id === lanceur.id)!;
+    expect(apres.wounds.current).toBeLessThan(avant);
+    expect(apres.focus).toBeUndefined();
+    expect(kindsDeLaCascade()).not.toContain('testDeclenche');
+  });
+});
+
+describe('Focalisation d’un Sort lu au grimoire (LDB 46 l.132 ; LDB 47 l.21)', () => {
+  function lectrice(): Combatant {
+    const w = sorciere();
+    w.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
+    w.spells = (w.spells ?? []).filter((s) => s !== 'coeurs-ardents');
+    w.items = [...(w.items ?? []), { uid: 'g1', name: 'Grimoire', trappingId: 'grimoire', kind: 'misc', enc: 1, qualities: [] } as never];
+    return w;
+  }
+  function focaliserPuisLire(w: Combatant, spellId: string, dr: number): Combatant {
+    banc.setState({ party: [w] });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId, result: { dr, success: true, isCritical: false, isFumble: false, roll: 33, log: 'focalisation' } } });
+    banc.getState().jetValider('focalisation');
+    return banc.getState().party.find((h) => h.id === w.id)!;
+  }
+  const coeurs = findSpellById('coeurs-ardents')!;
+
+  it('option désactivée : aboutie au NI doublé, puis lancée au grimoire à NI 0', () => {
+    setRule('magie-vdm-incantation', false);
+    expect(canCastFromGrimoire(lectrice(), coeurs)).toBe(true);
+    expect(focalisationAboutie(focaliserPuisLire(lectrice(), coeurs.id, coeurs.cn!), coeurs)).toBe(false);
+    const w = focaliserPuisLire(lectrice(), coeurs.id, 2 * coeurs.cn!);
+    expect(focalisationAboutie(w, coeurs)).toBe(true);
+    banc.getState().incanterLeSort(w.id, coeurs.id, w.id, true);
+    expect(banc.getState().pendingCast?.grimoire).toBe(true);
+    banc.getState().jetLancer('incantation');
+    expect(banc.getState().pendingCast!.result!.niRequired).toBe(0);
+  });
+
+  it('option active : la réserve s’applique après le doublement (VDM 02 l.133)', () => {
+    const w = focaliserPuisLire(lectrice(), 'cauteriser', 3);
+    banc.getState().incanterLeSort(w.id, coeurs.id, w.id, true);
+    banc.getState().jetLancer('incantation');
+    expect(banc.getState().pendingCast!.result!.niRequired).toBe(2 * coeurs.cn! - 3);
   });
 });
