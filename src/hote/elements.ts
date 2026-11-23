@@ -271,6 +271,9 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
   return args;
 }
 
+/** L'appel que joue le geste `g` en bouton : son verbe sur ses arguments (`argumentsAvec`). */
+export const appelDuGeste = (g: GesteDeLaFenetre): Appel => ({ type: g.verbe, args: argumentsAvec(g, '', null) });
+
 /** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
  *  le geste ; son id, la clé du geste et la valeur sérialisée, ne dépend pas de son rang ni de son libellé. */
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
@@ -294,8 +297,8 @@ function saisie(id: string, a: ArgumentDuGeste): Saisie {
   }
 }
 
-/** Les gestes ouverts de la fenêtre, chacun en élément d'après son rendu, refusé avec sa raison. Le geste que la
- *  politique de la fenêtre joue maintenant prend le focus quand il en prend un (une rangée de choix n'en prend pas), à
+/** Les gestes ouverts de la fenêtre, chacun en élément d'après son rendu, refusé avec sa raison. Le geste que le
+ *  drive de la fenêtre joue maintenant (`attendu`) prend le focus quand il en prend un (une rangée de choix n'en prend pas), à
  *  défaut le premier bouton qui n'est pas un réglage. */
 export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton | Choix | Formulaire)[] {
   const ouverts = gestes.filter((g) => g.ouvert);
@@ -303,7 +306,7 @@ export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton 
   return ouverts.map((g) => {
     const enFocus = g === focus;
     switch (g.rendu) {
-      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, detail: null, touche: null, refus: g.raison };
+      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: appelDuGeste(g), presse: false, focus: enFocus, detail: null, touche: null, refus: g.raison };
       case 'choix':
       case 'liste': return { type: g.rendu, id: g.cle, ton: 'neutre', libelle: g.libelle, focus: enFocus, refus: g.raison, valeurs: valeursDuChoix(g, g.arguments.find((a) => a.nom === g.aChoisir)!) };
       case 'formulaire': return { type: 'formulaire', id: g.cle, libelle: g.libelle, verbe: g.verbe, focus: enFocus, refus: g.raison, champs: g.arguments.map((a) => saisie(`${g.cle}/${a.nom}`, a)) };
