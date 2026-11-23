@@ -10,7 +10,7 @@
     "secondePrise": {
       "position": [
         0,
-        -0.3,
+        -0.35,
         0
       ],
       "rotation": [
@@ -23,19 +23,27 @@
   "surfaces": [
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "bois",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "os",
+      "palette": "corne",
+      "matiere": "prop--os"
     }
   ],
   "glb": {
-    "sha256": "7c66c4283bfb344cf32d70419a04ea51387a1ff88091f450ae0b53d58a6eb48b",
-    "octets": 48848
+    "sha256": "41c41fcb46d3d26cd7b91cd74fbd1c886ddcf9f0fc72dc5dcede3f79713d5f9e",
+    "octets": 145088
   }
 }
