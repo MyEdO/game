@@ -572,9 +572,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `ObsoleteCause`, lecture d'un emplacement comme import) avec `exporterLaSauvegarde`,
                             `chargerLaSave` qui rend l'état de jeu à ouvrir élagué, ses règles
                             maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
-                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré) ;
-                            `referencesDeCreation.ts` convertit à la lecture la sauvegarde, le roster et l'export
-                            aux formes générées avant #3916 et #3917. Leurs écritures emploient les formats courants.
+                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré) : la sauvegarde, le roster et
+                            l'export ne se lisent qu'à leur format courant.
   coop.ts                   LA COOP sans hôte (#3041) : `buildDeLaCoop` (le `build` comparé au `hello`),
                             `instantaneDeLaCoop` (l'instantané de l'état de jeu que l'hôte diffuse : clés de la
                             sauvegarde, paquet de campagne en stub, hors `LOCALES_AU_CLIENT`, règles maison jointes),
@@ -637,7 +636,7 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             dés d'une partie que le pont Godot ouvre ou charge, brouillon de création, générateur de
                             nom —, id d'entité unique d'un projet à l'autre `idDEntropie` : scène, carte, projet, lieu,
                             trajet, héros de roster, que `emptyScene(id)`/`emptyWorldMap(id)` reçoivent de l'hôte ;
-                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` (`partieDeTest.ts`) reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store

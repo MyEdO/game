@@ -77,7 +77,7 @@ describe('rederiveCastSL — +1 DR sur une incantation figée', () => {
   it('+1 DR fait franchir le seuil NI (DR < NI → cast)', () => {
     // d100 = 28 ≤ cible 31 (Int30+1) → succès ; DR brut = 3 - 2 = 1 < NI 3 → pas lancé.
     const cur = { cast: false, roll: 28, target: 31, sl: 1, isCritical: false, isFumble: false, log: '' };
-    const r2 = rederiveCastSL(mage(30), mage(30), dart, cur, false, false, 2); // +2 DR → DR 3 ≥ NI 3
+    const r2 = rederiveCastSL(mage(30), mage(30), dart, cur, false, 2); // +2 DR → DR 3 ≥ NI 3
     expect(r2.cast).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
  * L'INVENTAIRE D'UN HÉROS PAR LE PONT (#3328) : hors combat, dans la section des possessions de sa fiche, une
  * possession choisie dit ses gestes (`gestesDeLObjet`) ; chacun se joue par le pont comme Godot le joue et change la partie : une
  * armure ôtée puis portée, une arme lâchée puis reprise en main, un objet rangé dans un sac puis sorti, donné à un
- * autre héros, un consommable utilisé.
+ * autre héros, un consommable sans effet refusé avec sa raison.
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
@@ -59,10 +59,8 @@ describe('l’inventaire d’un héros par le pont', () => {
     expect((geste(s, 'main') as Bouton).presse, 'reprise en main').toBe(true);
 
     s = choisir(s, 'Potion de guérison');
-    expect(geste(s, 'utiliser').refus, 'un consommable de son héros s’utilise hors combat').toBeNull();
-    s = jouer((geste(s, 'utiliser') as Bouton).jeu);
-    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
-    expect(possessions(s).map((p) => p.libelle), 'utilisé, il est consommé').not.toContain('Potion de guérison');
+    expect(geste(s, 'utiliser').refus, 'sans effet sur son héros indemne, le consommable se refuse et dit pourquoi')
+      .toBe('Apothicaire n’a aucune Blessure à regagner ni aucune Aide Médicale à recevoir. Potion de guérison ne lui apporterait rien : l’objet est gardé.');
 
     s = choisir(s, 'Pilon et Mortier');
     const ranger = geste(s, 'ranger') as Choix;

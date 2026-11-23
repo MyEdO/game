@@ -115,7 +115,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     const battle = banc.getState().battle!;
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     const w = battle.combatants.find((c) => c.kind === 'heros')!;
-    banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId: 'arc-de-t-essla', missile: false, focused: false, result: null } });
+    banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId: 'arc-de-t-essla', missile: false, result: null } });
     banc.getState().jetLancer('incantation');
     return banc.getState().pendingCast!.result!.target;
   }

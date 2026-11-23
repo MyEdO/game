@@ -75,7 +75,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     const open = (cast: boolean) => {
       banc.setState({
         pendingCounterspell: null,
-        pendingCast: { casterId: E.id, targetId: H.id, spellId: 'carreau', missile: true, focused: false,
+        pendingCast: { casterId: E.id, targetId: H.id, spellId: 'carreau', missile: true,
           result: { cast, roll: 20, target: 145, sl: 12, isCritical: false, isFumble: false, log: 'x' } },
       });
       routeCounterspell(banc.getState, banc.setState); // déterministe (jet figé contrôlé)

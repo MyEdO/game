@@ -90,6 +90,13 @@ export interface BilanDePile {
   readonly masques: number;
 }
 
+/** La pile résolue : son bilan, et, par pièce, les pièces qui la couvrent et en ont retenu un point ou masqué un
+ *  triangle, dans l'ordre de leur résolution (#4814). */
+export interface ResolutionDePile<P> {
+  readonly bilan: BilanDePile;
+  readonly retenues: ReadonlyMap<P, readonly P[]>;
+}
+
 /** Les poids de peau d'un maillage. */
 type Poids = Pick<MaillageDePile, 'os' | 'poids' | 'noms'>;
 type Vecteur = [number, number, number];
@@ -410,14 +417,14 @@ function auBord({ de, coins }: Touche): boolean {
   });
 }
 
-/** Dit si l'une des `couvertures` couvre le centre du triangle des points `coins` (`toucher`), le long de la somme de
- *  leurs dehors. */
-function centreCouvert(coins: readonly Point[], couvertures: readonly (readonly Couvrant[])[]): boolean {
+/** Le rang de la première des `couvertures` qui couvre le centre du triangle des points `coins` (`toucher`), le long de
+ *  la somme de leurs dehors ; -1 sans elle. */
+function couvertureDuCentre(coins: readonly Point[], couvertures: readonly (readonly Couvrant[])[]): number {
   const somme = (f: (q: Point) => number): number => coins.reduce((t, q) => t + f(q), 0);
   const [nx, ny, nz] = [somme((q) => q.nx), somme((q) => q.ny), somme((q) => q.nz)];
   const l = Math.hypot(nx, ny, nz);
   const centre = { x: somme((q) => q.x) / 3, y: somme((q) => q.y) / 3, z: somme((q) => q.z) / 3 };
-  return l > 0 && couvertures.some((couvrants) => toucher(centre, nx / l, ny / l, nz / l, couvrants) !== null);
+  return l > 0 ? couvertures.findIndex((couvrants) => toucher(centre, nx / l, ny / l, nz / l, couvrants) !== null) : -1;
 }
 
 function souder(piece: PieceDePile, endroits: ReadonlyMap<MaillageDePile, Uint32Array>): Point[] {
@@ -720,7 +727,7 @@ function appliquer(q: Point, repris: ReadonlyMap<string, number>, reste: number,
 /** Résout la pile `pieces` en place : `couvre(e, f)` dit si la pièce `e` couvre la pièce `f`. `peaux` : les positions
  *  au repos de la peau de la tenue (`peauDeLaTenue`, `evaluateur/corps.ts`), d'où se lit l'endroit de chaque pièce
  *  (`endroitDe`) ; une pièce qui n'en couvre aucune est tout entière à l'endroit. */
-export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile, peaux: readonly Float32Array[]): BilanDePile {
+export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile, peaux: readonly Float32Array[]): ResolutionDePile<P> {
   for (const { poids } of pieces.flatMap((p) => p.maillages)) for (let s = 0; s < poids.length; s += INFLUENCES) {
     const somme = poids[s] + poids[s + 1] + poids[s + 2] + poids[s + 3];
     if (somme > 0) for (let k = 0; k < INFLUENCES; k++) poids[s + k] /= somme;
@@ -750,8 +757,11 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     })));
   };
   let couverts = 0, suiveurs = 0, recules = 0, flottants = 0, masques = 0;
+  const retenues = new Map<P, P[]>(pieces.map((p) => [p, []]));
   for (const piece of ordre) {
-    const couvertures = resolues.filter((e) => couvre(e, piece)).map((e) => couvrantsDe.get(e) as Couvrant[]);
+    const dessus = resolues.filter((e) => couvre(e, piece));
+    const couvertures = dessus.map((e) => couvrantsDe.get(e) as Couvrant[]);
+    const retenantes = new Set<number>();
     resolues.push(piece);
     if (!couvertures.length) { retenir(piece); continue; }
     const points = souder(piece, endroits);
@@ -775,6 +785,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
         const pas = part * Math.min(0, e - JEU_M), deja = reculs.get(q);
         if (pas < 0 && (!deja || -pas > Math.hypot(...deja))) reculs.set(q, [pas * n[0], pas * n[1], pas * n[2]]);
       }
+      if (tenues.size) retenantes.add(k);
       for (const [q, { poids, part }] of reprendre(points, tenues, voisins, propres)) {
         const reste = restes.get(q) ?? 1;
         const melange = repris.get(q) ?? new Map<string, number>();
@@ -812,11 +823,15 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
       const gardes: number[] = [];
       for (let t = 0; t + 2 < m.indices.length; t += 3) {
         const coins = [de[m.indices[t]], de[m.indices[t + 1]], de[m.indices[t + 2]]];
-        if (coins.every((q) => pleins.has(q)) && (dedans.some((d) => coins.every((q) => d.has(q))) || centreCouvert(coins, couvertures))) masques++;
+        const tenu = coins.every((q) => pleins.has(q));
+        const dedansDe = tenu ? dedans.findIndex((d) => coins.every((q) => d.has(q))) : -1;
+        const masquante = tenu && dedansDe < 0 ? couvertureDuCentre(coins, couvertures) : dedansDe;
+        if (masquante >= 0) { masques++; retenantes.add(masquante); }
         else gardes.push(m.indices[t], m.indices[t + 1], m.indices[t + 2]);
       }
       m.indices = Uint32Array.from(gardes);
     }
+    retenues.set(piece, [...retenantes].sort((a, b) => a - b).map((k) => dessus[k]));
   }
-  return { couverts, suiveurs, recules, flottants, masques };
+  return { bilan: { couverts, suiveurs, recules, flottants, masques }, retenues };
 }

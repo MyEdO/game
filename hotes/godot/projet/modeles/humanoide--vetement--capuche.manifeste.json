@@ -16,6 +16,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "capuche",
@@ -29,7 +36,7 @@
     }
   ],
   "glb": {
-    "sha256": "6a266418e806faf8b6b053078e41f577a5bc7bd9e908cacdc2ff784a5188ac9e",
-    "octets": 569244
+    "sha256": "2e90487f7a595158a70f2fc3cecf9423c29931052579c13f07a2614154daae40",
+    "octets": 586660
   }
 }

@@ -136,13 +136,13 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   incantation: {
     make: (win) => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
     }),
     // DR sous le NI (`LDB 46 l.22-24`) : le TEST est réussi (8 ≤ 45), le
     // sort n'est pas lancé (`cast: false`). L'issue canonique doit rester celle du TEST.
     composite: () => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     }),
   },
   focalisation: { make: (win) => ({
@@ -195,12 +195,12 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   // ── MULTI (participant/round/étape « A ») ──
   contreSort: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { counter: win ? WIN : LOSE, dispelled: win, margin: win ? 1 : -1 } }] },
   }) },
   opposition: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
   }) },
   cascade: { pid: 'st1', make: (win) => ({

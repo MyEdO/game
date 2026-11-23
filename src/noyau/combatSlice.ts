@@ -141,6 +141,7 @@ import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
+import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -180,7 +181,7 @@ import {
   focusCriticalDR,
   consumeMalepierre,
   malepierreItemOf,
-  castingNumberOf,
+  niSansFocalisation,
 } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
@@ -231,7 +232,7 @@ import {
   retirerUnBandage,
   IDS_DU_TEST_DE_SOIN,
 } from '../engine/healing';
-import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
+import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuSoigneur, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
@@ -1678,7 +1679,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (m.ridesEntityId == null) return;
         const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
-        if (!mount) return;
+        if (!mount || !accepteUnCavalier(mount, enemies[i])) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
         harnacher(enemies[i], mount);
@@ -1928,7 +1929,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const refus = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
-      castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
+      castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false)
     },
 
     /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise (potion, drogue, bandage), Action gratuite
@@ -1952,7 +1953,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
       const flow = consommableDe(it, objetDuNarratif(s.campaignNarratif));
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
-      if (refuseSi(get, set, () => refusDeConsommer(porteur, it, flow))) return;
+      if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
@@ -2334,6 +2335,13 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         if (!ph) return;
         if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
         set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
+      },
+      /** Jugé par `refusDuSoigneur` ; l'acte recalcule son soin entier autour du soigneur choisi (`soinDeLActe`). */
+      soigneur: (soigneurId) => {
+        const ph = garanti(get().pendingHeal, soigneurId, 'soin du soigneur');
+        if (refuseSi(get, set, () => refusDuSoigneur(get(), soigneurId))) return;
+        const medic = { ...garanti(get().medic, soigneurId, 'infirmerie du soigneur'), soigneurId };
+        set({ medic, pendingHeal: { ...soinDeLActe({ medic, party: get().party }, ph.mode), bandagesDe: ph.bandagesDe } });
       },
     },
     incantation: {
@@ -3331,7 +3339,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         ? cascBefore.cursor : -1;
       set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'incantation')
       const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-      applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.focused, pc.critChoice, {
+      applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.critChoice, {
         durationMult: ocDur.mult,
         durationBonusRounds: ocDur.bonusRounds,
         overcastDurationSteps: pc.overcast?.duration ?? 0,
@@ -3395,7 +3403,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingFocus: null });
       if (!caster || !spell) return;
       const res = garanti(pf.result, pf.casterId, 'jet de Focalisation');
-      const ni = castingNumberOf(spell, false, {}, [], caster);
+      const ni = niSansFocalisation(spell, caster);
       caster.focus = { spell: pf.spellId, dr: garanti(progresDeFocalisation(pf, caster, ni).step, pf.spellId, 'jet de Focalisation').total };
       // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur
       // `res.malepierreConsumed`, `engine/magic.ts`) décrémente ICI la réserve — seul point

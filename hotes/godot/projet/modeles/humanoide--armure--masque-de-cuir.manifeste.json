@@ -1,0 +1,67 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "masque-de-cuir"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
+  "emplacements": {
+    "cimier": {
+      "os": "Head",
+      "position": [
+        -0.061947,
+        0.182177,
+        0.043925
+      ],
+      "rotation": [
+        -0.23841,
+        0,
+        0
+      ]
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-use"
+    },
+    {
+      "nom": "parchemin",
+      "palette": "corne",
+      "matiere": "prop--papier"
+    },
+    {
+      "nom": "cire",
+      "palette": "accent",
+      "matiere": "prop--cire-a-cacheter"
+    },
+    {
+      "nom": "os",
+      "palette": "corne",
+      "matiere": "prop--os"
+    }
+  ],
+  "glb": {
+    "sha256": "e74d85a8c102d5c09e7e59967b14fefc3b186518c866c10a8990c45cacd9af3f",
+    "octets": 787300
+  }
+}

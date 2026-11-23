@@ -4,7 +4,7 @@ import { makeRNG } from './dice';
 import { stacks } from './conditions';
 import {
   partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, billetImplicite, classeLaMoinsChere, prixParPassager, forcedMarchTest, applyTravelFatigue,
-  vehicleTravel, travelModeLabels, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
+  vehicleTravel, travelModeLabels, TRAVEL_DEFAULTS, distanceDeRoute, libelleDeDistance,
 } from './travel';
 import { findVehicleById, vehicles } from '../data';
 import { setDataset } from '../data/overrides';
@@ -160,13 +160,14 @@ describe('défauts RAW', () => {
 });
 
 describe('unité de distance (#231 : MapRoute.km porte des MILLES en route sea)', () => {
-  it('terrestre → km ; maritime → milles', () => {
-    expect(distanceUnit(false)).toBe('km');
-    expect(distanceUnit(undefined)).toBe('km');
-    expect(distanceUnit(true)).toBe('milles');
+  it('distanceDeRoute garde la valeur exacte : terrestre en km, maritime en milles', () => {
+    expect(distanceDeRoute(18.6, false)).toEqual({ valeur: 18.6, unite: 'km' });
+    expect(distanceDeRoute(18, undefined)).toEqual({ valeur: 18, unite: 'km' });
+    expect(distanceDeRoute(480.4, true)).toEqual({ valeur: 480.4, unite: 'milles' });
   });
-  it('routeDistanceLabel arrondit et pose la bonne unité', () => {
-    expect(routeDistanceLabel(18, false)).toBe('18 km');
-    expect(routeDistanceLabel(480.4, true)).toBe('480 milles');
+  it('libelleDeDistance arrondit et traduit l’unité', () => {
+    expect(libelleDeDistance({ valeur: 18, unite: 'km' })).toBe('18 km');
+    expect(libelleDeDistance({ valeur: 5.5, unite: 'km' })).toBe('6 km');
+    expect(libelleDeDistance({ valeur: 480.4, unite: 'milles' })).toBe('480 milles');
   });
 });

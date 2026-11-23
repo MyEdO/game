@@ -68,7 +68,7 @@ OURLET_ROBE = 0.86                 # illustration : le bas du pourpoint tombe so
 RANGEES_JUPE = [1.00, 0.93]        # HYPOTHÈSE de maillage
 
 # --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan :
-# longueur ajoutée en lobe vers `ANGLE_DU_PAN`, nulle ici). Ajustées jusqu'au poignet : chaque anneau emprunte ses poids au bras, sommet par
+# longueur ajoutée en lobe sous le bras, nulle ici). Ajustées jusqu'au poignet : chaque anneau emprunte ses poids au bras, sommet par
 # sommet (`RACCORD_EPAULE` au-delà du dernier anneau), et suit l'avant-bras plié ---
 COUPE_MIN = 0.06                   # #3743 : fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
 RAYON_DE_COUPE_MAX = 0.12          # #3743 : rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
@@ -83,7 +83,4 @@ MANCHE = [(_COTES_DE_MANCHE[0], AISANCE_COUTURE, 0.0)] + \
 # s'écrasait derrière l'aisselle droite quand le bras frappe (`arete-ecrasee` 0,006 pour un seuil de 0,01, Melee_Hook sous
 # `feminin`). À 20 mm, ou en côte à -0,05 de `upperarm`, l'emmanchure s'étirait sous la hotte (`accessoire--hotte`)
 # jusqu'à 4,8 fois sa longueur.
-ANGLE_DU_PAN = 170.0               # #3743 (aucun pan : sans effet)
-INCLINAISON_DU_PAN = 20.0          # #3743 (aucun pan : sans effet)
 RACCORD_EPAULE = 2.0               # au-delà du dernier anneau : la manche entière emprunte au bras, sommet par sommet
-COUPE_DES_POIDS = 0.7              # #3743 (sans effet : aucun anneau n'est pris d'un bloc)

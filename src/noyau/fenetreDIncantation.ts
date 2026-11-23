@@ -222,7 +222,7 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     ({ geste: gesteDuReglage('incantation', reglage), libelle: libelleDuReglage('incantation', reglage), choisie, options });
   const zoneNonResolue = !!pc.zone && !pc.zone.center;
   const zoneAPoser = zoneNonResolue && ancreDeLaZdE(sort) === 'point';
-  const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneNonResolue } });
+  const apercu = previewCast(lanceur, sort, { missile: pc.missile, jete: !!res, ctx: { s, target: cible, skipWard: zoneNonResolue } });
   const formes = conjureFormOptions(lanceur);
   const optionsDeCibles = choixDeCiblesEnAttente(s);
   const valeurDeCibles = choixDeCiblesRetenu(optionsDeCibles, pc.choixDeCibles)?.id ?? null;
@@ -237,7 +237,7 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     sort: sort.label,
     priere,
     intitule: t(priere ? 'incantation.titrePriere' : 'incantation.titre'),
-    ni: priere ? null : res?.niRequired ?? castingNumberOf(effectiveSpellOf(pc) ?? sort, pc.focused, {}, [], lanceur),
+    ni: priere ? null : res?.niRequired ?? castingNumberOf(effectiveSpellOf(pc) ?? sort, {}, [], lanceur),
     surSoi: lanceur.id === cible.id,
     zone: pc.zone ? { cote: pc.zone.radius * 2 + 1, aPoser: zoneAPoser } : null,
     jete: !!res,

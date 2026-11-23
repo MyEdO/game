@@ -16,6 +16,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "emplacements": {
     "cimier": {
       "os": "Head",
@@ -49,7 +56,7 @@
     }
   ],
   "glb": {
-    "sha256": "e03fae3687a2d0e0daf9f337137218c975b7b59291f6d0d8bf607e9a4664a3a6",
-    "octets": 357840
+    "sha256": "d7aff6fabbb74884c331b61f7e72a022cddb0a95e1e291dce22d7674abc0be61",
+    "octets": 392812
   }
 }

@@ -47,7 +47,7 @@ export function seasonOfMonth(monthIndex: number | null): Season {
 
 /** Saison courante (table de Météo EDOC 8 l.52) à l'horloge du jeu `gameTime` (minutes, `toDate`). */
 export function currentSeason(gameTime: number): Season {
-  return seasonOfMonth(toDate(gameTime).month);
+  return seasonOfMonth(toDate(gameTime).mois?.index ?? null);
 }
 
 /**

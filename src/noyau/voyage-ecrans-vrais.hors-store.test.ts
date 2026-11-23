@@ -19,6 +19,7 @@ import { tableSpec, tableStepDef } from './cascade';
 import { draineCascade, type PoseDe } from './cascade.testkit';
 import { creditBourse } from './bourseFlow';
 import { sceneLieu } from './restFlow';
+import { reposEnVue } from './reposEnVue';
 import { PERIPETIES, peripetieSeuilDie } from '../data/peripeties';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -101,23 +102,23 @@ beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
 afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
 describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOUR', () => {
-  it('la halte nomme la route du voyage, jamais la scène de départ — relais ou bivouac', () => {
+  it('la halte est sur la route du voyage, par ses deux extrémités, jamais la scène de départ — relais ou bivouac', () => {
     for (const inns of [true, false]) {
       setup(map({ inns }));
       get().partirEnVoyage('r1', 'pied'); // 30 km à 4 km/h : 6 h, puis la nuit
       const halte = get().pendingRest!;
       expect(halte.travelHalt).toBe(true);
-      expect(halte.lieu).toBe('Weiler → Federholz');
+      expect(halte.lieu).toEqual({ route: { de: 'pa', vers: 'pb' } });
     }
   });
 
-  it('la forme de l’en-tête de voyage, « {from} → {to} » : les libellés gardent leur article et leur majuscule', () => {
+  it('le repos en vue nomme les deux extrémités de la route par la carte : les libellés gardent leur article et leur majuscule', () => {
     const carte = map();
     carte.places[0] = { ...carte.places[0], label: 'Auberge La Diligence' };
     carte.places[1] = { ...carte.places[1], label: 'La route principale' };
     setup(carte);
     get().partirEnVoyage('r1', 'pied');
-    expect(get().pendingRest!.lieu).toBe('Auberge La Diligence → La route principale');
+    expect(reposEnVue(get())!.lieu).toEqual({ route: { de: 'pa', vers: 'pb', deNom: 'Auberge La Diligence', versNom: 'La route principale' } });
   });
 
   it('Étapes allumées : la nuit joue l’Exposition sous la météo POSÉE du jour, pas sous celle de la scène de départ', () => {
@@ -285,6 +286,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     expect(jour).not.toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBe(true);
     expect(activeExposureSeverity(get)).toBe('clement');
+    expect(reposEnVue(get())!.temps, 'le repos en vue dit le Plein air qui dispense la nuit').toEqual({ severite: 'clement', pleinAir: true, abrite: false });
     const nuit = etapesDeLaNuit();
     expect(nuit).not.toContain('abri-de-fortune');
     expect(nuit).not.toContain('exposition-nocturne');
@@ -295,6 +297,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     expect(jour).toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
+    expect(reposEnVue(get())!.temps, 'le repos en vue dit le temps de chien').toEqual({ severite: 'extreme', pleinAir: false, abrite: false });
     expect(etapesDeLaNuit()).toContain('abri-de-fortune');
   });
 });

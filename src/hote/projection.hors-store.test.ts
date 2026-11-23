@@ -1,6 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { nouvelEntete, ouvrirLaPartie } from './partie';
+import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 import { projeter } from './projection';
 import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { frenzyTarget } from '../noyau/combatFlow';
@@ -11,6 +11,13 @@ import { testValue } from '../engine/skills';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { applyEffects } from '../noyau/combatEffects';
 import { imposerLesD100 } from '../noyau/battleRng.testkit';
+import { voyageEnVue } from '../noyau/voyageEnVue';
+import { recitEnVue } from '../noyau/recitEnVue';
+import { reposEnVue } from '../noyau/reposEnVue';
+import { fixtureText } from '../i18n/fixtureText';
+import { carteEnVue } from '../noyau/carteEnVue';
+import { dayPhase, toDate } from '../engine/clock';
+import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
 
 describe('projection d’un objet de campagne', () => {
   it('publie l’apparence de naissance, tenue en main, sur l’actif et dans la liste des combattants', () => {
@@ -126,5 +133,62 @@ describe('projection du verdict propre et de l’opposition', () => {
     expect(get().pendingCascade!.participants[0].result?.success).toBe(true);
     get().jetValider('cascade');
     expect(jet()).toBeUndefined();
+  });
+});
+
+describe('projection du temps, du voyage et de la carte', () => {
+  const bornes = { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 };
+
+  /** Un banc sur la carte du scénario fluvial, le groupe à l'un des bouts de sa route à pied, à `heure`. */
+  function surLaCarte(heure: number) {
+    const banc = ouvrirLeBanc();
+    const carte = fluvial.construire(idsDeTest).worldMap!;
+    const route = carte.routes.find((r) => r.modes.includes('pied'))!;
+    banc.setState({ worldMap: carte, lieu: route.a.id, gameTime: heure, mode: 'exploration', battle: null });
+    return { banc, route };
+  }
+
+  it('le temps : la date impériale et le moment du jour de l’heure de la partie', () => {
+    const heure = 41 * 24 * 60 + 14 * 60;
+    const { banc } = surLaCarte(heure);
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.temps).toEqual({ date: toDate(heure), moment: { id: dayPhase(heure).id, nom: dayPhase(heure).label } });
+    expect(vue.temps).toMatchObject({ date: { mois: { id: 'jahrdrung' }, day: 9, semaine: { id: 'wellentag' } }, moment: { id: 'apresmidi' } });
+  });
+
+  it('en route : le voyage du lecteur, et aucune carte', () => {
+    const { banc, route } = surLaCarte(8 * 60);
+    banc.setState({ travelPlan: { routeId: route.id, fromPlaceId: route.a.id, toPlaceId: route.b.id, mode: 'pied', departAt: 0, hoursPerDay: 6, km: route.km, kmDone: 3.5, interrupted: false } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.voyage).not.toBeNull();
+    expect(vue.voyage).toEqual(voyageEnVue(banc.getState()));
+    expect(vue.carte).toBeNull();
+    expect(vue.recit, 'en route, aucun récit').toBeNull();
+    expect(vue.repos, 'en route, aucune nuit à régler').toBeNull();
+  });
+
+  it('la nuit à régler : le repos du lecteur, en données', () => {
+    const { banc } = surLaCarte(20 * 60);
+    banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.repos).toMatchObject({ lieu: { nom: 'Ici' }, toit: 'campement', nuits: 1 });
+    expect(vue.repos).toEqual(reposEnVue(banc.getState()));
+  });
+
+  it('le récit d’un trajet qui tient la main : le récit du lecteur, en données', () => {
+    const { banc, route } = surLaCarte(8 * 60);
+    banc.setState({ travelRecap: { depart: route.a.id, arrivee: route.b.id, route: route.id, mode: 'pied', status: 'interrupted', km: route.km, kmDone: 3.5, days: [] } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.recit).toMatchObject({ issue: 'interruption', depart: route.a.id, route: route.id, reste: { valeur: route.km - 3.5, unite: 'km' } });
+    expect(vue.recit).toEqual(recitEnVue(banc.getState()));
+  });
+
+  it('la carte ouverte : la carte du lecteur, et aucun voyage', () => {
+    const { banc } = surLaCarte(8 * 60);
+    banc.setState({ worldMapOpen: true });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.carte).not.toBeNull();
+    expect(vue.carte).toEqual(carteEnVue(banc.getState()));
+    expect(vue.voyage).toBeNull();
   });
 });

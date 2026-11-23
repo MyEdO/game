@@ -6,7 +6,7 @@
  */
 import {
   effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
-  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis,
+  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis, libelleDeDistance,
   CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
   type ConsequenceEnVue, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
 } from '../noyau/index';
@@ -426,10 +426,10 @@ export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: Combat
 /** Un trajet, puis ses modes avec le devis et le geste ou le refus de départ. */
 function lignesDuTrajet(trajet: TrajetEnVue): string[] {
   return [
-    `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${trajet.distance}`,
+    `${trajet.route} · ${trajet.vers} (${trajet.destination}) · ${libelleDeDistance(trajet.distance)}`,
     ...trajet.modes.flatMap((mode) => {
-      const libelle = mode.jours === null ? mode.libelle : t('ecran.carte.mode', { mode: mode.libelle, jours: mode.jours });
-      const ligne = `  ${mode.mode} · ${libelle}`;
+      const libelle = mode.jours === null ? mode.mode.nom : t('ecran.carte.mode', { mode: mode.mode.nom, jours: mode.jours });
+      const ligne = `  ${mode.mode.id} · ${libelle}`;
       return mode.refus === null
         ? [ligne, `  ${appelEcrit('jouer', { gestes: [mode.geste] })}`]
         : [`${ligne} · refus : ${mode.refus}`];

@@ -16,6 +16,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "foulard",
@@ -24,7 +31,7 @@
     }
   ],
   "glb": {
-    "sha256": "eba481c2be2b1c95a096835bd1122ab80f73a0129b07a36ac8c5ef83f1421263",
-    "octets": 685216
+    "sha256": "a85ca60b5c9cbc1ebc3363dc919e4c4a915549c9f1c0b5d3b5318d779c4c83cb",
+    "octets": 715112
   }
 }

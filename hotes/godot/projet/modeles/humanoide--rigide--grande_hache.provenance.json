@@ -1,11 +1,15 @@
 {
   "model": "humanoide--rigide--grande_hache.glb",
-  "model_sha256": "7c66c4283bfb344cf32d70419a04ea51387a1ff88091f450ae0b53d58a6eb48b",
-  "importe_le": "2026-11-05",
+  "model_sha256": "73bbbefd683b5936d0b5aff4e253c794f597ad6b47dbde88e16070541c22a0ba",
+  "importe_le": "2026-11-23",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

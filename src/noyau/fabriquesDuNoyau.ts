@@ -250,7 +250,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'ressource' | 'resultat' | 'retablir' | 'retenir' | 'retour' | 'retrait' | 'reussie' | 'reussite' | 'revele' | 'reveler'
   | 'rien' | 'riposte' | 'role' | 'roulade' | 'round' | 'rumeur' | 'rythme' | 'sacrifier' | 'salissures' | 'sans'
   | 'saturation' | 'sauvegarde' | 'scene' | 'scorbut' | 'seance' | 'secondaire' | 'seconde' | 'section' | 'selecteur' | 'selection'
-  | 'selle' | 'sequence' | 'service' | 'ses' | 'seuil' | 'si' | 'siege' | 'simple' | 'sinon' | 'social' | 'soi' | 'soif' | 'soin'
+  | 'selle' | 'sequence' | 'service' | 'ses' | 'seuil' | 'si' | 'siege' | 'simple' | 'sinon' | 'social' | 'soi' | 'soif' | 'soigneur' | 'soin'
   | 'soins' | 'sol' | 'solde' | 'solo' | 'sommation' | 'sort' | 'sortie' | 'sorts' | 'souffle' | 'source' | 'sous' | 'soutenu'
   | 'spirituelle' | 'statut' | 'stock' | 'stupefiant' | 'subi' | 'subie' | 'subies' | 'subit' | 'subjectif' | 'suite' | 'suivante' | 'supplement'
   | 'supplementaires' | 'suppression' | 'sur' | 'surincantation' | 'surplus' | 'survie' | 'survitesse' | 'survivre'

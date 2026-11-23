@@ -143,7 +143,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     const avant = vues();
     for (const p of avant) {
       const ligne = lanceur(p);
-      expect(ligne).toMatchObject({ etat: 'aJouer', cible: 75, reference: { genre: 'sort', id: 'carreau' }, composition: { base: 65 }, mods: [expect.objectContaining({ value: 10 })], jet: null });
+      expect(ligne).toMatchObject({ etat: 'aJouer', cible: 75, reference: { genre: 'competence', id: 'langue', spec: 'magick' }, sort: { genre: 'sort', id: 'carreau' }, composition: { base: 65 }, mods: [expect.objectContaining({ value: 10 })], jet: null });
       expect(elementDuDe(p)).toMatchObject({ cible: '≤ 75', resultat: null, dr: null, modificateurs: [expect.objectContaining({ valeur: '+10' })] });
     }
 

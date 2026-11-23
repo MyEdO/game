@@ -114,7 +114,7 @@ const BASELINES: Record<string, number> = {
   'src/noyau/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
   'src/noyau/travelPostes.ts': 1, // retrait d'Exténué lors de la Rencontre « Voyage tranquille »
   // #3059 — stock révélé par le retrait du helper local `condStacks`, qui échappait au scan, GELÉ
-  'src/engine/healing.ts': 4, // stacks(_, 'hemorragique') ×3 (isHealable, raisonDeModeDeSoin, applyStopBleed) + stacks(_, 'munition-logee') (lodgedAmmoCount)
+  'src/engine/healing.ts': 3, // stacks(_, 'hemorragique') ×2 (besoinDuMode, applyStopBleed) + stacks(_, 'munition-logee') (lodgedAmmoCount)
 };
 
 /** Nombre de sites réactifs par-nom, par fichier relatif (uniquement les fichiers non-vides). */

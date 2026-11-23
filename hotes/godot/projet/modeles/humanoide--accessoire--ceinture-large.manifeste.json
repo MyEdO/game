@@ -1,0 +1,60 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "ceinture-large"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "tenue",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant": {
+      "os": "spine_01",
+      "position": [
+        0.07591,
+        0.009182,
+        0.124515
+      ],
+      "rotation": [
+        -0.101727,
+        0,
+        0
+      ],
+      "poids": {
+        "pelvis": 0.3059,
+        "spine_01": 0.44,
+        "spine_02": 0.084,
+        "thigh_l": 0.1701
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "tissu",
+      "palette": "vet1",
+      "matiere": "prop--toile-ecrue"
+    }
+  ],
+  "glb": {
+    "sha256": "c5c3f3d96e0ee654aedfcca9f780792c4f0b62a81ff28ad6bce95c69f1b63325",
+    "octets": 504684
+  }
+}

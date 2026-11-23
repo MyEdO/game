@@ -440,7 +440,7 @@ export function partyAssisted(
 }
 
 /** Le Test SOUTENU d'un meneur déjà retenu (`leader`, sa valeur seule) : `partyAssisted` sans le choix du meneur. */
-function soutenuPar(
+export function soutenuPar(
   party: Combatant[],
   leader: { actor: Combatant; value: number } | null,
   sujet: SujetDuJet,

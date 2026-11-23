@@ -19,6 +19,13 @@ function maillage<M extends Mesh>(Type: new (g: BufferGeometry) => M, positions:
   g.setIndex(faces);
   return new Type(g);
 }
+/** Le mesh de `Type` aux sommets `points` et aux triangles `faces`. */
+const mesh = <M extends Mesh>(Type: new (g: BufferGeometry) => M, points: number[][], faces: number[]): M => {
+  const g = new BufferGeometry();
+  g.setAttribute('position', new BufferAttribute(Float32Array.from(points.flat()), 3));
+  g.setIndex(faces);
+  return new Type(g);
+};
 const decaler = (p: Float32Array, dz: number) => p.map((v, i) => (i % 3 === 2 ? v + dz : v));
 /** Le carré plié : ses colonnes en X aux hauteurs `zs`. */
 const plie = (...zs: [number, number, number]) => carre(0).map((v, i) => (i % 3 === 2 ? zs[Math.floor(i / 3) % 3] : v));
@@ -50,6 +57,19 @@ describe('traversee', () => {
     expect(lierSous(peau, tissu, new Map([[peau, carre(-PORTEE_DE_COUVERTURE_M)], [tissu, carre(0.01)]]))).toEqual([]);
   });
 
+  it('une nappe latérale ne couvre que le sommet dont le dehors la traverse à portée (#4338)', () => {
+    const [c, s] = [0.15, Math.sqrt(1 - 0.15 ** 2)];
+    /** Un carré de 0,1 m de côté, de normale (−s, 0, c) : à 26 mm devant l'origine le long de sa normale. */
+    const coin = (du: number, dy: number) => [-s * 0.026 + c * du, dy, c * 0.026 + s * du];
+    const nappe = mesh(SkinnedMesh, [coin(-0.05, -0.05), coin(0.05, -0.05), coin(0.05, 0.05), coin(-0.05, 0.05)], [0, 1, 2, 0, 2, 3]);
+    /** Un triangle de normale +Z autour de (`x`, 0, 0). */
+    const triangle = (x: number) => Float32Array.from([[x - 0.001, -0.001, 0], [x + 0.001, -0.001, 0], [x, 0.001, 0]].flat());
+    const sujet = mesh(Mesh, [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [0, 1, 2]);
+    const nu = (x: number) => lierSous(sujet, nappe, new Map<Mesh, Float32Array>([[sujet, triangle(x)], [nappe, (nappe.geometry.getAttribute('position') as BufferAttribute).array as Float32Array]]));
+    expect(nu(0)).toEqual([]);
+    expect(nu(-0.024).map((l) => [...l.sommets])).toEqual([[0, 1, 2]]);
+  });
+
   it('seul l’endroit couvre : sous une double nappe, l’endroit et la doublure d’une autre se lient à son endroit, sans percement', () => {
     const [dessous, doublure, envers, dessus] = [maillage(SkinnedMesh, carre(0.006)), maillage(SkinnedMesh, carre(0.004), true), maillage(SkinnedMesh, carre(0.01), true), maillage(SkinnedMesh, carre(0.014))];
     const pose = { positions: new Map<Mesh, Float32Array>([[peau, carre(0)], [dessous, carre(0.006)], [doublure, carre(0.004)], [envers, carre(0.01)], [dessus, carre(0.014)]]) };
@@ -74,13 +94,6 @@ describe('traversee', () => {
   });
 
   describe('la normale de la couverture au point lié', () => {
-    /** Le mesh de `Type` aux sommets `points` et aux triangles `faces`. */
-    const mesh = <M extends Mesh>(Type: new (g: BufferGeometry) => M, points: number[][], faces: number[]): M => {
-      const g = new BufferGeometry();
-      g.setAttribute('position', new BufferAttribute(Float32Array.from(points.flat()), 3));
-      g.setIndex(faces);
-      return new Type(g);
-    };
     /** Trois sommets d'un sujet à la hauteur `z`, sous le triangle effilé de l'éventail. */
     const sous = (z: number) => Float32Array.from([[-0.01, -0.097, z], [0.01, -0.097, z], [0, -0.094, z]].flat());
     const sujet = mesh(Mesh, [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [0, 1, 2]);
@@ -153,7 +166,7 @@ describe('traversee', () => {
     });
 
     it('l’ordre se prend au repos neutre, la liaison et le percement au repos de la passe', () => {
-      const passe = { positions: new Map<Mesh, Float32Array>([[tissu, carre(0)], [autre, plie(0.02, 0.02, -0.01)]]) };
+      const passe = { positions: new Map<Mesh, Float32Array>([[tissu, carre(0, 0.02)], [autre, plie(0.02, 0.02, -0.01)]]) };
       const couches = lier([], [element(1, [tissu], positions), element(1, [autre], positions)], passe);
       expect(couches.liaisons.map((l) => [l.sujet, l.couverture, l.sommets.length])).toEqual([[autre, tissu, 3]]);
       expect(couches.percements.map((p) => [p.sujet, p.couverture, p.sommets])).toEqual([[autre, tissu, 3]]);

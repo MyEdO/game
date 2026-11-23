@@ -1,0 +1,35 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bottes-a-revers"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "pied_g",
+    "pied_d",
+    "mollet_g",
+    "mollet_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    }
+  ],
+  "glb": {
+    "sha256": "986f491f703a7384bbb1c86e15ea81c2e3e23a502b0c5b48409abfc528281450",
+    "octets": 402120
+  }
+}

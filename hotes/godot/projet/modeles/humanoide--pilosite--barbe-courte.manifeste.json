@@ -17,6 +17,10 @@
     "carrure_plus"
   ],
   "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
     "visage_inverse"
   ],
   "surfaces": [
@@ -27,7 +31,7 @@
     }
   ],
   "glb": {
-    "sha256": "a952399fa6b64c474ebd58fbc1e8c2a78afbcc3e36644814bfe3ad8cd74ae348",
-    "octets": 366288
+    "sha256": "6a3ce9d916f8df0d9fd2dc7ea63eea5ee42d731e40b3dd695074c055a7c479e0",
+    "octets": 297880
   }
 }

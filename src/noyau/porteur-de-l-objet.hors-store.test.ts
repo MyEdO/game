@@ -59,7 +59,7 @@ describe('porteurDeLObjet — le porteur de l’uid, lu dans l’état', () => {
 describe('chaque verbe d’objet joue sur le porteur lu dans l’état, jamais sur un autre héros', () => {
   it('equiperLObjet', () => {
     banc.setState({ party: [heros('a'), heros('b', { items: [objet({ uid: 'cape', kind: 'armor', pa: 0 } as Partial<ItemInstance>)] })] });
-    g().equiperLObjet('cape');
+    g().equiperLObjet('cape', true);
     expect(objetDe('b', 'cape')?.equipped).toBe(true);
   });
 
@@ -115,7 +115,7 @@ describe('chaque verbe d’objet joue sur le porteur lu dans l’état, jamais s
 describe('un objet que personne ne porte : chaque verbe le refuse et le dit', () => {
   const sansPorteur = t('pf.objetSansPorteur');
   it.each([
-    ['equiperLObjet', () => g().equiperLObjet('personne')],
+    ['equiperLObjet', () => g().equiperLObjet('personne', true)],
     ['rangerLObjet', () => g().rangerLObjet('personne', null)],
     ['transmettreLObjet', () => g().transmettreLObjet('personne', 'a')],
     ['poserLApparence', () => g().poserLApparence('personne', 'hache')],

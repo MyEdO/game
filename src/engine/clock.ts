@@ -14,13 +14,14 @@ import type { DureeEnJours } from '../data/schemas/grammaire/valeurs';
 import { calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases } from '../data';
 import { findTierEntry } from './tables';
 import { memoParVersion } from '../data/versionDataset';
+import { garanti } from '../lib/garanti';
 
 export interface ImperialMonth { label: string; days: number; }
 
 /** Mois, jours intercalaires, jours de semaine — DONNÉE éditable (réfs live via mutation en place). */
 export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths;
-export const INTERCALARY: { label: string; afterMonth: number }[] = calendarIntercalary;
-export const WEEKDAYS: { label: string }[] = calendarWeekdays;
+export const INTERCALARY: { id: string; label: string; afterMonth: number }[] = calendarIntercalary;
+export const WEEKDAYS: { id: string; label: string }[] = calendarWeekdays;
 
 /** EDO 12 l.19-30 ; MDG 15 l.268 */
 export function joursParSemaine(): number { return WEEKDAYS.length; }
@@ -43,22 +44,22 @@ export function minutesParSemaine(): number { return joursParSemaine() * MINUTES
 
 export const EPOCH_YEAR = 2512; // minute 0 = Hexenstag 2512 00:00 (scalaire de config)
 
-/** Un « slot de jour » de l'année : soit un jour intercalaire, soit un (mois, jour). */
-type YearSlot = { intercalary: string } | { monthIndex: number; day: number };
+/** Un « slot de jour » de l'année : soit un jour intercalaire (par id), soit un (index de mois, jour). */
+type YearSlot = { intercalaire: string } | { mois: number; day: number };
 
 /** Recalcule la structure de l'année depuis les tables de DONNÉE (mois + intercalaires). */
 function buildYearData() {
   const slots: YearSlot[] = [];
   const inter = (after: number) => calendarIntercalary.filter((i) => i.afterMonth === after);
-  for (const i of inter(-1)) slots.push({ intercalary: i.label }); // intercalaires avant le 1er mois (Hexenstag)
+  for (const i of inter(-1)) slots.push({ intercalaire: i.id }); // intercalaires avant le 1er mois (Hexenstag)
   for (let m = 0; m < calendarMonths.length; m++) {
-    for (let d = 1; d <= calendarMonths[m].days; d++) slots.push({ monthIndex: m, day: d });
-    for (const i of inter(m)) slots.push({ intercalary: i.label });
+    for (let d = 1; d <= calendarMonths[m].days; d++) slots.push({ mois: m, day: d });
+    for (const i of inter(m)) slots.push({ intercalaire: i.id });
   }
   // Jours de MOIS qui précèdent chaque slot (un intercalaire n'avance pas la semaine — elle enjambe les fêtes).
   const monthDaysBeforeSlot: number[] = [];
   let c = 0;
-  for (const slot of slots) { monthDaysBeforeSlot.push(c); if (!('intercalary' in slot)) c++; }
+  for (const slot of slots) { monthDaysBeforeSlot.push(c); if (!('intercalaire' in slot)) c++; }
   return {
     slots,
     monthDaysBeforeSlot,
@@ -73,20 +74,19 @@ const yearData = memoParVersion(['calendarMonths', 'calendarIntercalary'], build
 /** Nombre de jours dans l'année impériale (live — dérivé des tables). */
 export const daysPerYear = (): number => yearData().daysPerYear;
 
-export interface ImperialDate {
-  year: number;
-  /** Index 0-based du mois, ou null si jour intercalaire. */
-  month: number | null;
-  monthName: string | null;
-  /** Jour dans le mois (1-based), ou null si intercalaire. */
-  day: number | null;
-  /** Nom du jour intercalaire, ou null si jour de mois. */
-  intercalary: string | null;
-  /** Jour de la semaine (nom), ou null pour un jour intercalaire (hors du cycle hebdomadaire, canon). */
-  weekday: string | null;
-  hour: number;
-  minute: number;
-}
+/** Entrée nommée d'un dataset du calendrier (`calendarMonths`, `calendarIntercalary`, `calendarWeekdays`). */
+export interface NomDuCalendrier { id: string; nom: string }
+
+/** Date impériale : un jour intercalaire est hors du mois et du cycle hebdomadaire (EDO 12 l.60-203). */
+export type ImperialDate = { year: number; hour: number; minute: number } & (
+  | { intercalaire: NomDuCalendrier; mois: null; day: null; semaine: null }
+  | { intercalaire: null; mois: NomDuCalendrier & { index: number }; day: number; semaine: NomDuCalendrier }
+);
+
+/** Forme d'entrée de `fromDate` : index 0-based du mois et jour 1-based, ou id d'intercalaire. */
+export type DateDuCalendrier = { year: number; hour: number; minute: number } & ({ mois: number; day: number } | { intercalaire: string });
+
+const nomDuCalendrier = (e: { id: string; label: string }): NomDuCalendrier => ({ id: e.id, nom: e.label });
 
 /** Minutes depuis l'époque → date impériale. */
 export function toDate(minutes: number): ImperialDate {
@@ -97,49 +97,48 @@ export function toDate(minutes: number): ImperialDate {
   const dayOfYear = ((totalDays % yd.daysPerYear) + yd.daysPerYear) % yd.daysPerYear;
   const slot = yd.slots[dayOfYear];
   // Semaine CONTINUE qui enjambe les intercalaires : seuls les jours de MOIS comptent ; un intercalaire
-  // est hors du cycle (weekday = null). Ancre : 1 Nachhexen 2512 = 1er jour de semaine (convention).
+  // est hors du cycle (semaine = null). Ancre : 1 Nachhexen 2512 = 1er jour de semaine (convention).
   const week = joursParSemaine();
   const monthDaysElapsed = (year - EPOCH_YEAR) * yd.monthDaysPerYear + yd.monthDaysBeforeSlot[dayOfYear];
-  const weekday = 'intercalary' in slot ? null : WEEKDAYS[((monthDaysElapsed % week) + week) % week].label;
-  const base = { year, weekday, hour: Math.floor(minOfDay / 60), minute: minOfDay % 60 };
-  return 'intercalary' in slot
-    ? { ...base, month: null, monthName: null, day: null, intercalary: slot.intercalary }
-    : { ...base, month: slot.monthIndex, monthName: calendarMonths[slot.monthIndex].label, day: slot.day, intercalary: null };
+  const base = { year, hour: Math.floor(minOfDay / 60), minute: minOfDay % 60 };
+  if ('intercalaire' in slot) {
+    const inter = garanti(INTERCALARY.find((i) => i.id === slot.intercalaire), slot.intercalaire, 'jour intercalaire');
+    return { ...base, intercalaire: nomDuCalendrier(inter), mois: null, day: null, semaine: null };
+  }
+  const semaine = nomDuCalendrier(WEEKDAYS[((monthDaysElapsed % week) + week) % week]);
+  return { ...base, intercalaire: null, mois: { ...nomDuCalendrier(calendarMonths[slot.mois]), index: slot.mois }, day: slot.day, semaine };
 }
 
 /** Date impériale → minutes depuis l'époque (inverse de toDate). */
-export function fromDate(d: ImperialDate): number {
+export function fromDate(d: DateDuCalendrier): number {
   const yd = yearData();
   const dayOfYear = yd.slots.findIndex((s) =>
-    d.intercalary != null ? 'intercalary' in s && s.intercalary === d.intercalary
-      : 'monthIndex' in s && s.monthIndex === d.month && s.day === d.day,
+    'intercalaire' in d ? 'intercalaire' in s && s.intercalaire === d.intercalaire
+      : 'mois' in s && s.mois === d.mois && s.day === d.day,
   );
   const totalDays = (d.year - EPOCH_YEAR) * yd.daysPerYear + dayOfYear;
   return totalDays * MINUTES_PER_DAY + d.hour * 60 + d.minute;
 }
 
 /** « 30 Jahrdrung 2512 CI » ou « Hexenstag 2512 CI » (intercalaire). */
-const jourDe = (d: ImperialDate): string => (d.intercalary ? `${d.intercalary} ${d.year} CI` : `${d.day} ${d.monthName} ${d.year} CI`);
+export const jourImperial = (d: ImperialDate): string =>
+  (d.intercalaire ? `${d.intercalaire.nom} ${d.year} CI` : `${d.day} ${d.mois.nom} ${d.year} CI`);
 
 /** « 30 Jahrdrung 2512 CI · 14:30 » ou « Hexenstag 2512 CI · 08:00 » (intercalaire). */
 export function formatImperial(minutes: number): string {
   const d = toDate(minutes);
-  return `${jourDe(d)} · ${String(d.hour).padStart(2, '0')}:${String(d.minute).padStart(2, '0')}`;
+  return `${jourImperial(d)} · ${String(d.hour).padStart(2, '0')}:${String(d.minute).padStart(2, '0')}`;
 }
-
-/** « 30 Jahrdrung 2512 CI », ou « Hexenstag 2512 CI » (intercalaire), sans le jour de la semaine. */
-export const formatDateImperiale = (minutes: number): string => jourDe(toDate(minutes));
 
 /** « Festag · 30 Jahrdrung 2512 CI », ou « Hexenstag 2512 CI » (un intercalaire est hors de la semaine). */
 export function formatJourImperial(minutes: number): string {
   const d = toDate(minutes);
-  return d.weekday ? `${d.weekday} · ${jourDe(d)}` : jourDe(d);
+  return d.semaine ? `${d.semaine.nom} · ${jourImperial(d)}` : jourImperial(d);
 }
 
 /** Début de la campagne (EiS) : dernier jour de Jahrdrung 2512, 08:00 (« fin Jahrdrung », année défaut WFRP4). */
 export const campaignStart = memoParVersion(['calendarMonths', 'calendarIntercalary', 'calendarWeekdays'], () => fromDate({
-  year: 2512, month: 1, monthName: 'Jahrdrung', day: IMPERIAL_MONTHS[1].days,
-  intercalary: null, weekday: WEEKDAYS[0].label, hour: 8, minute: 0,
+  year: 2512, mois: 1, day: IMPERIAL_MONTHS[1].days, hour: 8, minute: 0,
 }));
 
 // ─── Phases du jour (#T1c) ─── affichage riche, découplé de l'obscurité mécanique ───
@@ -236,7 +235,7 @@ export interface ScheduleSpec {
 export function scheduleAt(now: number, spec: ScheduleSpec): number {
   if (spec.atDate) {
     const y = spec.atDate.year ?? toDate(now).year;
-    return fromDate({ year: y, month: spec.atDate.month, monthName: null, day: spec.atDate.day, intercalary: null, weekday: null, hour: spec.atDate.hour ?? 0, minute: spec.atDate.minute ?? 0 });
+    return fromDate({ year: y, mois: spec.atDate.month, day: spec.atDate.day, hour: spec.atDate.hour ?? 0, minute: spec.atDate.minute ?? 0 });
   }
   if (spec.afterDays != null) return (dayIndex(now) + spec.afterDays) * MINUTES_PER_DAY + (spec.atHour ?? 0) * 60 + (spec.atMinute ?? 0);
   if (spec.afterMinutes != null) return now + Math.max(0, spec.afterMinutes);

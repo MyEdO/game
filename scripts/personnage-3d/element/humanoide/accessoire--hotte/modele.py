@@ -14,6 +14,7 @@ Silhouettes et clés `gabarit_*` : du corps pour le panier, du pourpoint publié
 import math
 
 import numpy as np
+from tente import HAUT
 from tissu import (Maillage, centre_de, emprunter, joindre, joindre_les_surfaces, lisser, porteur_de, unitaire, viser,
                    voisinage)
 
@@ -137,7 +138,7 @@ def offrir_les_cases(D, b, forme, w):
         axe = np.array([u * (a - retrait), forme.centre(D['Z_HAUT']) + v * (p - retrait), D['Z_HAUT'] + dz])
         local = np.linalg.solve(repere[:3, :3], axe - repere[:3, 3])
         z = unitaire(repere[:3, :3] @ np.array([local[0], 0.0, local[2]]))
-        y = unitaire(np.array([0.0, 0.0, 1.0]) - z[2] * z)
+        y = unitaire(HAUT - z[2] * z)
         b.offrir(D['EMPLACEMENT'] if rang == 1 else f"{D['EMPLACEMENT']}#{rang}", w, axe - z * D['RAYON_DE_LA_FIOLE'],
                  (np.cross(y, z), y, z))
 

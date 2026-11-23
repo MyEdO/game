@@ -13,6 +13,7 @@ zones de la tête et du cou, au plus près. Toute cote vient de `donnees.py`.
 import numpy as np
 from mathutils import Vector
 
+from tente import HAUT
 from tissu import Maillage, arbre_de, direction_spatiale, emprunter, joindre_les_surfaces, lisser, porteur_de, selon, voisinage
 
 
@@ -56,7 +57,7 @@ def construire(D, materiaux, b):
                                                                                  elevations[j] + 0.5 * pas_e))
     jeu = {k: selon(c['jeu'], phis[k]) for k in range(n)}
     plancher = {jk: rayon(direction_spatiale(phis[jk[1]], elevation_de[jk]), jeu[jk[1]]) for jk in utilises}
-    plancher_pole = rayon(np.array([0.0, 0.0, 1.0]), selon(c['jeu'], 0.0))
+    plancher_pole = rayon(HAUT, selon(c['jeu'], 0.0))
     r, r_pole = dict(plancher), plancher_pole
     for _ in range(c['passes_de_lissage']):
         lisse = {}
@@ -77,7 +78,7 @@ def construire(D, materiaux, b):
         index[jk] = M.ajouter([C + (r[jk] + (c['couture'] if k in couture else 0.0)) * d], 'coiffe')[0]
     for j, k in sorted(gardees):
         M.quad(index[j, k], index[j, (k + 1) % n], index[j + 1, (k + 1) % n], index[j + 1, k], C)
-    pole = M.ajouter([C + (r_pole + c['couture']) * np.array([0.0, 0.0, 1.0])], 'coiffe')[0]
+    pole = M.ajouter([C + (r_pole + c['couture']) * HAUT], 'coiffe')[0]
     for k in range(n):
         M.triangle(index[m - 1, k], index[m - 1, (k + 1) % n], pole, C)
 

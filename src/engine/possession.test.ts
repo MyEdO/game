@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { possessionCapacity, possessionRideable, possessionLabel, possessionTotalEnc, possessionLoadEnc, canEmbark, type Possession } from './possession';
+import {
+  possessionCapacity,
+  possessionRideable,
+  possessionLabel,
+  possessionTotalEnc,
+  possessionLoadEnc,
+  canEmbark,
+  profilDeLaBete,
+  type Possession,
+} from './possession';
+import { accepteUnCavalier } from './traits/dispatch';
+import { createHero } from './character';
+import { idsDeTest } from './idsDeTest.testkit';
 import { randomizeChars } from './statblock';
 import { CHAR_KEYS, type Characteristics } from './types';
 import { ruleDef } from './policy';
@@ -290,5 +302,32 @@ describe('randomizeChars (engine/statblock) — tirage LDB 77 l.108, seedé sur 
     const projection2 = { ...rolled };
     expect(projection1).toEqual(projection2);
     expect(projection1).toEqual(rolled);
+  });
+});
+
+describe('accepteUnCavalier — LDB 85 l.112, Taille du cavalier ≤ Taille de la monture (arbitrage du 2026-11-23, #4804)', () => {
+  const cavalier = (speciesId: string) => createHero({ idNeuf: idsDeTest, speciesId, careerId: 'ratier', label: speciesId, seed: 1 });
+  const monture = (id: string) => profilDeLaBete({ uid: `pos-${id}`, ownerId: 'h', nature: 'bete', ref: { id }, location: { kind: 'avec-le-groupe' }, items: [] });
+
+  it('le chien (Taille Petite) refuse un humain', () => {
+    expect(accepteUnCavalier(monture('chien'), cavalier('humains-reiklander'))).toBe(false);
+  });
+  it('le poney et la mule (Moyens, LDB 85 l.344) acceptent un humain (EDOC 07 l.29)', () => {
+    expect(accepteUnCavalier(monture('poney'), cavalier('humains-reiklander'))).toBe(true);
+    expect(accepteUnCavalier(monture('mule'), cavalier('humains-reiklander'))).toBe(true);
+  });
+  it('le poney et le blaireau refusent un ogre', () => {
+    expect(accepteUnCavalier(monture('poney'), cavalier('ogres'))).toBe(false);
+    expect(accepteUnCavalier(monture('blaireau'), cavalier('ogres'))).toBe(false);
+  });
+  it('le cheval (Taille Grande) accepte un humain et un ogre', () => {
+    expect(accepteUnCavalier(monture('cheval'), cavalier('humains-reiklander'))).toBe(true);
+    expect(accepteUnCavalier(monture('cheval'), cavalier('ogres'))).toBe(true);
+  });
+  it('le chien accepte un halfling (Petit ≤ Petit)', () => {
+    expect(accepteUnCavalier(monture('chien'), cavalier('halflings'))).toBe(true);
+  });
+  it('une bête possédée Belliqueuse refuse un cavalier plus petit qu’elle', () => {
+    expect(accepteUnCavalier(monture('grand-sanglier-ombrageux'), cavalier('humains-reiklander'))).toBe(false);
   });
 });

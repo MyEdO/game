@@ -1,6 +1,6 @@
-"""Rendus de contrôle d'un personnage ou d'un élément rigide sans skin (véhicule, décor) : studio Cycles (vues
-trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la hauteur des meshes skinnés du personnage
-ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
+"""Rendus de contrôle d'un personnage, d'un rigide seul ou d'un élément sans skin (véhicule, décor) : studio Cycles (vues
+trois-quarts, face, profil et dos du personnage, son portrait, échelles, isométrique), cadré sur tous les meshes montrés,
+rigides compris (`cadrage`), et studio Workbench de QA. Le GLB source n'est jamais modifié.
 `--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
 rendu. Si le manifeste voisin de `--input` porte `gabarit.osDesSilhouettes`, chaque os de repos de la base est translaté
@@ -11,26 +11,38 @@ normal map de chaque surface de peau de ce manifeste suit son `reliefDeCorpulenc
 habille.
 
 Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
-voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
-que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
-son armature. Sous `--preset`, un rigide que le jeu range (`rangementsObjets` du preset, `rangement` de son trapping) se
+voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur ;
+`--tenue <preset>` vaut `--preset <preset>` et monte d'abord la tenue que le jeu monte pour ce preset (`tenueDesGlb`,
+`posesDesRanges.mjs`, #4338), chaque `--local <id>=<glb>` remplaçant l'élément publié `<id>` ou s'ajoutant après elle.
+Une zone couverte se masque sur la base et sur les éléments comme dans le jeu (`masquer_les_zones_couvertes`), un rigide
+pend à l'os de même nom de la base, une pièce skinnée suit son armature. Sous `--preset`, un rigide que le jeu range (`rangementsObjets` du preset, `rangement` de son trapping) se
 pose là où le jeu le range, sur l'emplacement de la base ou la case de la pièce qui l'offre, au repos comme à l'image du
-clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`poses_des_ranges`,
+clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`preset_du_jeu`,
 `hotes/godot/asset/posesDesRanges.mjs`, #4351) ; un élément porté plusieurs fois par le preset se donne autant de fois,
-chaque `--element` montant à son tour la ligne suivante du preset. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
-la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
-y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
+chaque `--element` montant à son tour la ligne suivante du preset. Sous `--preset`, les formes de la tête que le jeu pose
+au preset se posent aussi, sur tout mesh qui les porte, une forme que `--silhouettes` nomme gardant le poids qu'il lui
+donne (`silhouettesSousLePreset`, `posesDesRanges.mjs`). `--preset` colore chaque surface à l'emplacement de palette que
+lui donne son manifeste, de la couleur que le jeu y pose pour ce preset (`paletteDesCouleurs`, `posesDesRanges.mjs`), complétée pour un élément de
+celle de la teinte de sa ligne (`Monte.palette`, `montageDesElements`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
 couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
-directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
-`--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
-de face, de trois-quarts, de dos, d'échelle et isométriques au lieu de celles du modèle ; l'éclairage reste celui du
-modèle (#4338).
+directrice à gauche des vues de face, de trois-quarts, de profil (côté gauche du personnage) et de dos dans
+`planche.png` : un rendu se montre à côté d'elle. `--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut)
+vise ce centre et cadre cette étendue dans les vues de face, de trois-quarts, de profil, de dos, d'échelle et
+isométriques au lieu de celles du modèle ; l'éclairage reste celui du modèle (#4338).
+
+Un rigide sur base (`--input` à côté du manifeste d'un élément lié en `rigide`) se rend seul, dressé le long du +Y de sa
+prise (`dresser`) : vues de face, de profil et de dos (`VUES_DU_RIGIDE`), `--preset` le colorant et l'habillant comme le jeu,
+`--illustration` et `--cadre` (repère des vues dressées) comme pour un personnage.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
         --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] [--cadre 0,0.02,0.62,1.2] --output <dossier vide>
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --tenue gladiateur \\
+        [--local humanoide--rigide--grande_hache=<hache.glb>] [--element <c.glb>] --output <dossier vide>
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <rigide.glb> --preset gladiateur \\
+        [--illustration <illustration.png>] [--cadre 0,0,0.6,0.5] --output <dossier vide>
 """
 import argparse
 import hashlib
@@ -46,10 +58,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from glb import lire_glb  # noqa: E402
 from habillage import couleur_lineaire  # noqa: E402
 from noms_silhouettes import CORPULENCE  # noqa: E402
+from production import MODELES  # noqa: E402
 from script_node import lancer  # noqa: E402
 
 DEPOT = Path(__file__).resolve().parents[2]
-DONNEES = DEPOT / 'src' / 'data'
 CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
 """Le catalogue des textures de matière du jeu."""
 METRES_PAR_MOTIF = 2.0
@@ -88,9 +100,9 @@ def lire_cadre(texte):
     return cadre
 
 
-def poser_les_silhouettes(bpy, poids):
-    """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom qu'aucun mesh ne
-    porte arrête le rendu."""
+def poser_les_silhouettes(bpy, poids, exigees):
+    """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom d'`exigees` qu'aucun
+    mesh ne porte arrête le rendu."""
     poses = {nom: [] for nom in poids}
     for obj in bpy.context.scene.objects:
         cles = obj.data.shape_keys if obj.type == 'MESH' else None
@@ -101,7 +113,7 @@ def poser_les_silhouettes(bpy, poids):
             cle.slider_min, cle.slider_max = min(cle.slider_min, valeur), max(cle.slider_max, valeur)
             cle.value = valeur
             poses[nom].append(obj.name)
-    absentes = sorted(nom for nom, objets in poses.items() if not objets)
+    absentes = sorted(nom for nom in exigees if not poses[nom])
     if absentes:
         raise ValueError(f'--silhouettes : {absentes} portée(s) par aucun mesh')
     return poses
@@ -211,15 +223,32 @@ def importer(bpy, glb):
     return [obj for obj in bpy.data.objects if obj not in avant]
 
 
-def monter(bpy, base, rig, elements):
-    """Monte sur la base (ses objets `base`, son armature `rig`) chaque `(objets importés, manifeste)` d'`elements` :
-    les meshes de la base dans une zone qu'un élément couvre sont masqués, un rigide pend à l'os de même nom de `rig`
-    à la même position locale, une pièce skinnée suit `rig` ; les armatures des éléments et les meshes sans matériau
-    (forme d'os de l'import) sont masqués."""
-    couvre = {zone for _, manifeste in elements for zone in manifeste.get('couvre', [])}
-    for obj in base:
-        if obj.type == 'MESH' and obj.get('zone') in couvre:
-            obj.hide_render = True
+def couches_du_jeu():
+    """`COUCHES` et `RANG_DU_CORPS` (`hotes/godot/asset/element.ts`) : `{'COUCHES': [...], 'RANG_DU_CORPS': rang}`."""
+    return json.loads(lancer(Path(__file__).resolve().parent / 'base' / 'gabarit.mjs', [], json.dumps({'operation': 'couches'})))
+
+
+def masquer_les_zones_couvertes(porteurs, couches):
+    """Masque chaque mesh de zone (`zone` de son nœud glTF) des `porteurs`, `(objets, manifeste)` de la base puis de
+    chaque élément monté, que couvre (`couvre`) un élément de couche plus extérieure que celle de son porteur, la base
+    sous toute couche, comme le jeu (`MontageDeComposition.masquer_les_zones_couvertes`) et l'évaluateur
+    (`sansLesZonesMasquees`) ; `couches` : `couches_du_jeu`."""
+    def rang(manifeste):
+        return couches['COUCHES'].index(manifeste['couche']) if manifeste.get('couche') else couches['RANG_DU_CORPS']
+    couvrant = {}
+    for _, manifeste in porteurs:
+        for zone in manifeste.get('couvre', []) if manifeste.get('couche') else []:
+            couvrant[zone] = max(couvrant.get(zone, couches['RANG_DU_CORPS']), rang(manifeste))
+    for objets, manifeste in porteurs:
+        for obj in objets:
+            if obj.type == 'MESH' and obj.get('zone') is not None and couvrant.get(obj['zone'], couches['RANG_DU_CORPS']) > rang(manifeste):
+                obj.hide_render = True
+
+
+def monter(bpy, rig, elements):
+    """Monte sur la base d'armature `rig` chaque `(objets importés, manifeste)` d'`elements` : un rigide pend à l'os de
+    même nom de `rig` à la même position locale, une pièce skinnée suit `rig` ; les armatures des éléments et les
+    meshes sans matériau (forme d'os de l'import) sont masqués."""
     for objets, _ in elements:
         for obj in objets:
             if obj.type == 'ARMATURE' or (obj.type == 'MESH' and not obj.data.materials):
@@ -240,21 +269,48 @@ VERS_BLENDER = ((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1))
 """Du repère glTF (Y haut) à celui de Blender (Z haut), comme l'import glTF de Blender."""
 
 
-def poses_des_ranges(base, manifeste, elements, preset, silhouettes, clip=None, t=0):
-    """Par GLB d'`elements`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne
-    par colonne) où le jeu range ce mesh sous le `preset`, `None` s'il ne le montre pas rangé, au repos ou à l'instant
-    `t` du `clip` (`hotes/godot/asset/posesDesRanges.mjs`). Une ligne du preset sans GLB donné se dit sur la sortie
-    d'erreur."""
+def preset_du_jeu(base, manifeste, elements, preset, silhouettes, clip=None, t=0, tenue=False, locales=()):
+    """Ce que le jeu pose sous le `preset` (`hotes/godot/asset/posesDesRanges.mjs`) : `glbs`, les GLB posés, la tenue du
+    preset si `tenue` (`tenueDesGlb`, ses pièces `locales` de `--local` substituées) puis `elements` ; `poses`, par GLB de
+    `glbs`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne par colonne) où le
+    jeu range ce mesh, `None` s'il ne le montre pas rangé, au repos ou à l'instant `t` du `clip` ; `poids`, les poids des
+    `silhouettes` que cet instant pose ; `palette`, `{emplacement: couleur linéaire (r, g, b)}` ; `palettes`, par GLB de
+    `glbs`, cette palette complétée de celle de la teinte de sa ligne (`montageDesElements`), comme le jeu la complète
+    (`montage_de_composition.gd`, `palette.merge`). Une ligne du preset sans GLB donné se dit sur la sortie d'erreur."""
     demande = {'base': str(base), 'manifeste': str(manifeste), 'elements': [str(e) for e in elements], 'preset': preset,
-               'silhouettes': silhouettes, **({'clip': clip, 't': t} if clip else {})}
+               'silhouettes': silhouettes, 'tenue': tenue, 'locales': list(locales), **({'clip': clip, 't': t} if clip else {})}
     reponse = json.loads(lancer(DEPOT / 'hotes' / 'godot' / 'asset' / 'posesDesRanges.mjs', [], json.dumps(demande)))
     if reponse['sans']:
         print(f"--preset {preset} : ligne(s) montée(s) par le jeu sans --element répété : {', '.join(reponse['sans'])}", file=sys.stderr)
-    return reponse['elements']
+    palette = {slot: couleur_lineaire(couleur) for slot, couleur in reponse['palette'].items()}
+    return {'glbs': [Path(g) for g in reponse['glbs']], 'poses': reponse['elements'], 'poids': reponse['silhouettes'],
+            'palette': palette,
+            'palettes': [{**palette, **{slot: couleur_lineaire(couleur) for slot, couleur in teinte.items()}}
+                         for teinte in reponse['palettes']]}
+
+
+def est_un_rigide_sur_base(manifeste):
+    """Le manifeste `manifeste` est-il celui d'un élément lié en rigide sur une base (`liaison.mode`, `base`) ?"""
+    return 'base' in manifeste and manifeste.get('liaison', {}).get('mode') == 'rigide'
+
+
+def dresser(objets):
+    """Les meshes des `objets` d'un rigide, détachés de leur os et dressés le long du +Y de leur prise, Z haut ; les meshes
+    sans matériau (forme d'os de l'import) masqués."""
+    from mathutils import Matrix
+    meshes = []
+    for obj in objets:
+        if obj.type == 'MESH' and obj.data.materials:
+            obj.parent = None
+            obj.matrix_world = Matrix.Rotation(math.pi / 2, 4, 'X')
+            meshes.append(obj)
+        elif obj.type == 'MESH':
+            obj.hide_render = True
+    return meshes
 
 
 def ranger(elements, poses):
-    """Pose chaque mesh rigide des `(objets importés, manifeste)` d'`elements` que `poses` range (`poses_des_ranges`) à sa
+    """Pose chaque mesh rigide des `(objets importés, manifeste)` d'`elements` que `poses` range (`preset_du_jeu`) à sa
     transformation, hors de son os : son nom est celui de son nœud glTF, au suffixe `.NNN` près que Blender ajoute à un
     nom déjà pris."""
     from mathutils import Matrix
@@ -266,26 +322,6 @@ def ranger(elements, poses):
                 colonnes = pose['meshes'][noeud]
                 obj.parent = None
                 obj.matrix_world = vers_blender @ Matrix([colonnes[ligne::4] for ligne in range(4)]) @ vers_blender.inverted()
-
-
-def palette(preset, races, matieres):
-    """La palette du `preset` de personnage, comme le noyau la compose (`porteeDeComposition`, #4379) :
-    `{emplacement: couleur linéaire (r, g, b)}`, les couleurs de sa race de `races` (`raceAppearance.json`), chacune
-    remplacée par la sienne, résolues au nuancier de `matieres` (`materials.json`)."""
-    race = next(r for r in races if r['id'] == preset['race']['id'])
-    nuancier = {m['id']: m['color'] for m in matieres if m.get('domain') == 'couleur'}
-    couleurs = {**race.get('couleurs', {}), **preset.get('couleurs', {})}
-    return {slot: couleur_lineaire(nuancier[couleur['id']]) for slot, couleur in couleurs.items()}
-
-
-def palette_du_preset(id_):
-    """`palette` du preset de personnage `id_` sur les données du dépôt."""
-    def lire(fichier):
-        return json.loads((DONNEES / fichier).read_text(encoding='utf-8'))
-    preset = next((p for p in lire('presets-de-personnage.json') if p['id'] == id_), None)
-    if preset is None:
-        raise ValueError(f'--preset {id_} : aucun preset de personnage de cet id')
-    return palette(preset, lire('raceAppearance.json'), lire('materials.json'))
 
 
 def colorer(objets, surfaces, palette):
@@ -534,6 +570,21 @@ def bornes(bpy, objets):
     return Vector(coordinates.min(axis=0).tolist()), Vector(coordinates.max(axis=0).tolist())
 
 
+LARGEUR_DE_VUE, HAUTEUR_DE_VUE = 1000, 1200
+"""Les côtés (px) d'une vue d'un personnage."""
+
+
+def cadrage(bpy, meshes):
+    """Le cadre des `meshes` montrés, rigides compris : les coins bas et haut de leur emprise (`bornes`) et l'étendue
+    cadrée, la hauteur d'une vue d'un personnage (l'un d'eux skinné) qui tient leur hauteur et, en largeur, leur
+    diagonale horizontale, sinon leur plus grande dimension."""
+    low, high = bornes(bpy, meshes)
+    cotes = high - low
+    if not any(mod.type == 'ARMATURE' for obj in meshes for mod in obj.modifiers):
+        return low, high, max(cotes)
+    return low, high, max(cotes.z, math.hypot(cotes.x, cotes.y) * HAUTEUR_DE_VUE / LARGEUR_DE_VUE)
+
+
 def studio(bpy, low, center, extent, output, start):
     """Studio Cycles de contrôle, à l'échelle de l'étendue `extent` du modèle : monde, sol sous `low`, trois lumières
     visant `center` (`ETENDUE_DU_STUDIO`), caméra orthographique ; rend la fonction qui rend une vue dans `output`."""
@@ -617,6 +668,12 @@ def qa_studio(bpy):
     return camera
 
 
+VUES_DU_PERSONNAGE = (('face', (0, -1, 0.05)), ('profil', (1, 0, 0.05)), ('dos', (0, 1, 0.05)))
+"""Les vues de face, de profil (côté gauche) et de dos d'un personnage : leur nom et la direction d'où la caméra regarde."""
+VUES_DU_RIGIDE = (('face', (1, 0, 0)), ('profil', (0, -1, 0)), ('dos', (-1, 0, 0)))
+"""Les vues de face, de profil et de dos d'un rigide seul dressé (`dresser`)."""
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', required=True)
@@ -625,12 +682,19 @@ def main():
     parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
                         help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
     parser.add_argument('--element', action='append', default=[], help='GLB d\'élément monté sur la base --input')
-    parser.add_argument('--preset', help='id du preset de personnage dont la palette colore les surfaces')
+    parser.add_argument('--preset', help='id du preset de personnage dont la palette colore les surfaces et dont les formes de la tête se posent')
+    parser.add_argument('--tenue', help='id du preset de personnage dont la tenue se monte avant les --element ; implique --preset')
+    parser.add_argument('--local', action='append', default=[], metavar='ID=GLB', help='pièce de la tenue lue à ce GLB local')
     parser.add_argument('--clip', help='clip de la base posé avant le rendu')
     parser.add_argument('--image', type=int, default=1, help='image du clip posée')
     parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
     parser.add_argument('--cadre', type=lire_cadre, help='x,y,z,étendue : centre et étendue cadrés au lieu de ceux du modèle')
     args = parser.parse_args()
+    if args.tenue and args.preset:
+        parser.error('--tenue implique --preset, à ne pas donner')
+    if args.local and not args.tenue:
+        parser.error('--local : --tenue requis')
+    preset = args.tenue or args.preset
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
     if output.exists() and any(output.iterdir()):
@@ -644,22 +708,41 @@ def main():
     base = importer(bpy, source)
     chemin = chemin_du_manifeste_voisin(source)
     manifeste_de_base = {} if chemin is None else json.loads(chemin.read_text(encoding='utf-8'))
+    rigide = est_un_rigide_sur_base(manifeste_de_base)
+    if rigide and (args.element or args.tenue or args.clip or args.silhouettes):
+        parser.error(f'{source.name} : un rigide seul, sans --element, --tenue, --clip ni --silhouettes')
     deplacements = deplacements_des_os(lire_glb(source)[0], manifeste_de_base.get('gabarit', {}).get('osDesSilhouettes', {}),
                                        args.silhouettes)
-    if args.element or args.preset or args.clip or deplacements:
+    poids = args.silhouettes
+    if rigide:
+        meshes = dresser(base)
+        jeu = preset_du_jeu(MODELES / f"{manifeste_de_base['base']}.glb", MODELES / f"{manifeste_de_base['base']}.manifeste.json",
+                            [], preset, {}) if preset else {'palette': {}}
+        colorer(meshes, {s['nom']: s['palette'] for s in manifeste_de_base['surfaces']}, jeu['palette'])
+        habiller_le_modele(bpy, meshes, manifeste_de_base, None, True, jeu['palette'])
+    elif args.element or preset or args.clip or deplacements:
         rigs = [obj for obj in base if obj.type == 'ARMATURE']
         if len(rigs) != 1:
             raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer, poser ou déplacer les os')
         rig = rigs[0]
         if deplacements:
             deplacer_les_os(bpy, rig, deplacements)
-        elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
-        monter(bpy, base, rig, elements)
-        palette = palette_du_preset(args.preset) if args.preset else {}
-        for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
-            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
-        for objets, manifeste in elements:
-            habiller_le_modele(bpy, objets, manifeste, None, True, palette)
+        # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
+        cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
+        instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
+        glbs = [Path(glb).resolve(strict=True) for glb in args.element]
+        jeu = preset_du_jeu(source, chemin, glbs, preset, args.silhouettes, **instant, tenue=bool(args.tenue),
+                            locales=args.local) if preset else {'glbs': glbs, 'poses': [], 'poids': poids, 'palette': {},
+                                                                 'palettes': [{} for _ in glbs]}
+        elements = [(importer(bpy, glb), manifeste_voisin(glb)) for glb in jeu['glbs']]
+        monter(bpy, rig, elements)
+        if elements:
+            masquer_les_zones_couvertes([(base, manifeste_de_base)] + elements, couches_du_jeu())
+        poids, palette = jeu['poids'], jeu['palette']
+        colorer(base, {s['nom']: s['palette'] for s in manifeste_de_base.get('surfaces', [])}, palette)
+        for (objets, manifeste), couleurs in zip(elements, jeu['palettes'], strict=True):
+            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, couleurs)
+            habiller_le_modele(bpy, objets, manifeste, None, True, couleurs)
         if args.clip:
             action = bpy.data.actions.get(args.clip)
             if action is None:
@@ -669,25 +752,18 @@ def main():
             if action.slots:
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
-        if args.preset and args.element:
-            # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
-            cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
-            instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
-            ranger(elements, poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
-                                              args.silhouettes, **instant))
-            bpy.context.view_layer.update()
-    silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
+        ranger(elements, jeu['poses'])
+        bpy.context.view_layer.update()
+    silhouettes = poser_les_silhouettes(bpy, poids, args.silhouettes)
     relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
     if relief is not None:
         accuser_le_relief(base, {s['nom'] for s in manifeste_de_base.get('surfaces', []) if s['palette'] == 'peau'}, relief)
-    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and not obj.hide_render]
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and obj.data.materials and not obj.hide_render]
     skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
-    actors = skinned or meshes
-    if not actors:
+    if not meshes:
         raise ValueError('No meshes found')
-    low, high = bornes(bpy, actors)
+    low, high, extent = cadrage(bpy, meshes)
     height = high.z - low.z
-    extent = height if skinned else max(high.x - low.x, high.y - low.y, height)
     center = (low + high) / 2
     materials = []
     for material in bpy.data.materials:
@@ -703,27 +779,35 @@ def main():
                         value = socket.default_value
                         inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
-    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
+    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in meshes], 'materials': materials, 'silhouettes': {nom: {'poids': poids[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     render = studio(bpy, low, center, extent, output, start)
+    if rigide:
+        bpy.data.objects.remove(bpy.data.objects['studio_floor'])
     cible, etendue = (Vector(args.cadre[:3]), args.cadre[3]) if args.cadre else (center, extent)
+    vues = VUES_DU_RIGIDE if rigide else VUES_DU_PERSONNAGE if skinned else ()
     if args.isometric_only:
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
         for size in (512, 40, 64, 128):
             render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), cible, etendue * 1.12, size, size)
     else:
-        render('face-trois-quarts.png', (0.65, -1, 0.17), cible, etendue * 1.12, 1000, 1200)
-        render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, 1000, 1200)
+        if not rigide:
+            render('face-trois-quarts.png', (0.65, -1, 0.17), cible, etendue * 1.12, LARGEUR_DE_VUE, HAUTEUR_DE_VUE)
+            render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, LARGEUR_DE_VUE, HAUTEUR_DE_VUE)
+        for nom, direction in vues:
+            render(f'{nom}.png', direction, cible, etendue * (1.06 if rigide else 1.12), 800 if rigide else LARGEUR_DE_VUE, 1500 if rigide else HAUTEUR_DE_VUE)
+        if vues and args.illustration:
+            noms = ['face'] + ([] if rigide else ['face-trois-quarts']) + ['profil', 'dos']
+            planche(bpy, [args.illustration.resolve(strict=True)] + [output / f'{nom}.png' for nom in noms], output / 'planche.png')
         if skinned:
-            render('face.png', (0, -1, 0.05), cible, etendue * 1.12, 1000, 1200)
-            render('dos.png', (0, 1, 0.05), cible, etendue * 1.12, 1000, 1200)
-            if args.illustration:
-                planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
-                        output / 'planche.png')
-            portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
-            render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
-        for size in (40, 64, 128):
-            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), cible, etendue * 1.12, round(size * 1000 / 1200), size)
+            corps_bas, corps_haut = bornes(bpy, skinned)
+            hauteur_du_corps = corps_haut.z - corps_bas.z
+            centre_du_corps = (corps_bas + corps_haut) / 2
+            portrait_target = Vector((centre_du_corps.x, centre_du_corps.y, corps_bas.z + hauteur_du_corps * 0.86))
+            render('portrait.png', (0.3, -1, 0.05), portrait_target, hauteur_du_corps * 0.32, 768, 768)
+        if not rigide:
+            for size in (40, 64, 128):
+                render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), cible, etendue * 1.12, round(size * LARGEUR_DE_VUE / HAUTEUR_DE_VUE), size)
     report['elapsed_seconds'] = time.monotonic() - start
     report['sha256_after'] = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != report['sha256_after']:

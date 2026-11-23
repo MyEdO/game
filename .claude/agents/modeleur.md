@@ -41,9 +41,13 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - **Après deux échecs du même défaut, change de méthode** avant une troisième retouche, et dis-le.
 - **Seule la mesure Node valide** : `npm run godot:valider` puis `npm run godot:evaluer` sur la matrice
   de facteurs et de silhouettes que le brief demande, ta pièce évaluée avec la tenue (tête, coiffure, voisins) pour que
-  la traversée des couches se mesure. Un rendu Blender ne prouve rien seul.
-- **Regarde ce que tu livres** : rends l'élément monté sur la base, de face, de profil et de dos, et
-  inspecte chaque vue en lisant l'image, à côté de l'illustration. Un rendu que tu n'as pas regardé
+  la traversée des couches se mesure. La tenue d'un preset se donne par `--tenue <preset>`, tes pièces par
+  `--local <id>=<glb>`, jamais par une liste de GLB écrite à la main ; un rigide rangé retouché se contrôle par
+  `--poses-rangees` avant la porte. Une retouche se mesure sous `--portee <id>` contre le témoin de la tenue publiée
+  pris sous la même portée. Un rendu Blender ne prouve rien seul.
+- **Regarde ce que tu livres** : rends l'élément monté sur la base, de face, de profil et de dos
+  (`rendu.py --tenue <preset> --local <id>=<glb>`), un rigide aussi seul (`rendu.py --input <rigide.glb> --preset <preset>`),
+  et inspecte chaque vue en lisant l'image, à côté de l'illustration. Un rendu que tu n'as pas regardé
   n'est pas livré. Un navire se regarde et se montre sous son illustration (`cote_a_cote.py`, chapitre 9), un véhicule sans ponts sur sa planche (`planche.py`). Le statut reste NON VÉRIFIÉ : le juge et l'utilisateur tranchent le reste.
 - Rendu final = données brutes : chemins absolus des GLB, manifestes et rendus ; sorties brutes de
   `godot:valider` et `godot:evaluer` ; verdict d'auto-inspection par vue ; écarts au contrat et

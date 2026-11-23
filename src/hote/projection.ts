@@ -34,6 +34,18 @@ import {
   entiteConnue,
   nomEnVue,
   porteurEnVue,
+  voyageEnVue,
+  carteEnVue,
+  recitEnVue,
+  reposEnVue,
+  toDate,
+  dayPhase,
+  type CarteEnVue,
+  type DayPhaseId,
+  type ImperialDate,
+  type VoyageEnVue,
+  type RecitEnVue,
+  type ReposEnVue,
   type Combatant,
   type ConsequenceEnVue,
   type EtatDeLaBarre,
@@ -137,11 +149,23 @@ export interface EtapeProjetee {
   consequences?: ConsequenceEnVue[];
 }
 
-/** La projection : ce que la vue montre, et rien de plus. Chaque liste est bornée, le reste compté. */
+/** La projection : ce que la vue montre, et rien de plus. Les listes `cibles`, `offres`, `voisins`, `gestes` et
+ *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage`, `carte`,
+ *  `recit` et `repos` ne le sont pas, la donnée de la fenêtre, du groupe, de la carte ou du trajet les borne. */
 export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
   scene: { id: string; nom: string } | null;
+  /** L'heure de la partie : sa date impériale (`toDate`) et son moment du jour (`dayPhase`). */
+  temps: { date: ImperialDate; moment: { id: DayPhaseId; nom: string } };
+  /** Le trajet en cours (`voyageEnVue`), `null` sans lui. */
+  voyage: VoyageEnVue | null;
+  /** La carte du monde qui tient la main (`carteEnVue`), `null` sans elle. */
+  carte: CarteEnVue | null;
+  /** Le récit du trajet qui tient la main (`recitEnVue`), `null` sans lui. */
+  recit: RecitEnVue | null;
+  /** La nuit à régler (`reposEnVue`), `null` hors du repos. */
+  repos: ReposEnVue | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
    *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
@@ -348,6 +372,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
   const mvt = b && actif ? mouvementDuTour(b, actif) : null;
   const jets = jetsEnVue(etat);
   const incantationMasquee = jets.some((j) => j.flux === 'incantation' && j.lignes.some((l) => l.etat === 'masque'));
+  const moment = dayPhase(etat.gameTime);
   const fenetreProjetee = fenetre && {
     ...fenetre,
     gestes: fenetre.gestes.filter((g) => !incantationMasquee || g.flux !== 'incantation'),
@@ -356,6 +381,11 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
+    temps: { date: toDate(etat.gameTime), moment: { id: moment.id, nom: moment.label } },
+    voyage: voyageEnVue(etat),
+    carte: carteEnVue(etat),
+    recit: recitEnVue(etat),
+    repos: reposEnVue(etat),
     fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
     combat: b

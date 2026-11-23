@@ -107,19 +107,37 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     }
   });
 
+  const PLAN = { rounds: 2, landProbNI0: 0.9 };
   it('sort FOCALISABLE (peu fiable d’un jet) hors contact → focus (au lieu de rater en boucle)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'heros', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', landProb: 0.1, focusState: PLAN })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
   });
 
-  it('un sort offensif lançable d’un JET existe → ne focalise PAS (focaliser ne produit rien ce tour)', () => {
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] });
-    const h = mk('h', 'heros', { x: 5, y: 9 });
-    const immediate = castable({ id: 'carreau', range: 20, focusState: 'none' });        // offensif, d’un jet
-    const big = castable({ id: 'vortex-d-ames', range: 20, focusState: 'focusable' });    // gros sort à focaliser
-    const a = chooseEnemyAction(input(e, [h], { spells: [immediate, big] }));
-    expect(a).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' }); // frappe maintenant, jamais focus
+  // #4821 : la Focalisation entre dans l'argmax, à sa valeur répartie sur ses Rounds (LDB 46 l.128-132).
+  describe('Focalisation contre un sort mineur lançable d’un jet', () => {
+    const flechette = castable({ id: 'flechette', range: 20, landProb: 0.4, data: spellData({ id: idDeFixture('spell', 'flechette'), missile: true, damage: 3 }) });
+    const voie = castable({ id: 'boule', range: 20, landProb: 0.1, focusState: { rounds: 1, landProbNI0: 0.95 }, data: spellData({ id: idDeFixture('spell', 'boule'), missile: true, damage: 12 }) });
+    const choix = (blessures: number) => chooseEnemyAction(input(mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] }), [mk('h', 'heros', { x: 5, y: 9 }, { wounds: blessuresDeBase(20, blessures) })], { spells: [flechette, voie] }));
+
+    it('cible robuste : le sort de voie se focalise', () => {
+      expect(choix(20)).toEqual({ kind: 'focalisation', spell: 'boule' });
+    });
+
+    it('Focalisation longue : le sort de voie se lance d’un jet', () => {
+      const long = castable({ ...voie, landProb: 0.4, focusState: { rounds: 6, landProbNI0: 0.95 } });
+      expect(chooseEnemyAction(input(mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] }), [mk('h', 'heros', { x: 5, y: 9 }, { wounds: blessuresDeBase(20) })], { spells: [flechette, long] })))
+        .toEqual({ kind: 'incantation', targetId: 'h', spell: 'boule' });
+    });
+
+    it('un sort qui n’aboutit jamais d’un jet ne s’incante pas', () => {
+      const vain = castable({ ...voie, landProb: 0, focusState: 'none' });
+      expect(chooseEnemyAction(input(mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] }), [mk('h', 'heros', { x: 5, y: 9 })], { spells: [vain] })).kind).not.toBe('incantation');
+    });
+
+    it('cible à 1 Blessure, à portée d’achèvement du sort mineur : il la lance', () => {
+      expect(choix(1)).toEqual({ kind: 'incantation', targetId: 'h', spell: 'flechette' });
+    });
   });
 
   it('sort déjà focalisé et PRÊT (focusState ready) → cast à NI 0', () => {

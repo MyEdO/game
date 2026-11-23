@@ -16,6 +16,13 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formesDeTete": [
+    "nez_fort",
+    "arcades_marquees",
+    "joues_creuses",
+    "visage_long",
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "bonnet",
@@ -24,7 +31,7 @@
     }
   ],
   "glb": {
-    "sha256": "2d06f996e10e74d337b7ebb8145259b70b3d3a876698ea429e4fd877f9004177",
-    "octets": 362156
+    "sha256": "e82d8b0741918c1b67d1db1a8b3e9bc63b1efc7c8ebd8028cf1c25a072bd6ca1",
+    "octets": 389200
   }
 }

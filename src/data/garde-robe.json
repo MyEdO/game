@@ -362,6 +362,24 @@
     }
   },
   {
+    "id": "bottes-a-revers",
+    "type": "garde-robe",
+    "label": "Bottes à revers",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "haut-de-chausses-ample",
+    "type": "garde-robe",
+    "label": "Haut-de-chausses ample",
+    "kind": "variante",
+    "piece": {
+      "id": "haut-de-chausses"
+    }
+  },
+  {
     "id": "bas-de-chausses",
     "type": "garde-robe",
     "label": "Bas-de-chausses",
@@ -380,6 +398,33 @@
     }
   },
   {
+    "id": "brassards-cloutes",
+    "type": "garde-robe",
+    "label": "Brassards cloutés",
+    "kind": "variante",
+    "piece": {
+      "id": "brassards"
+    }
+  },
+  {
+    "id": "masque-de-cuir",
+    "type": "garde-robe",
+    "label": "Masque de cuir rapiécé",
+    "kind": "variante",
+    "piece": {
+      "id": "casque"
+    }
+  },
+  {
+    "id": "plumet-simple",
+    "type": "garde-robe",
+    "label": "Plumet simple",
+    "kind": "variante",
+    "piece": {
+      "id": "plumet"
+    }
+  },
+  {
     "id": "baudrier-sur-armure",
     "type": "garde-robe",
     "label": "Baudrier sur armure",
@@ -392,6 +437,15 @@
     "id": "baudrier-sur-robe",
     "type": "garde-robe",
     "label": "Baudrier sur robe",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
+    "id": "baudrier-sur-torse-nu",
+    "type": "garde-robe",
+    "label": "Baudrier sur torse nu",
     "kind": "variante",
     "piece": {
       "id": "baudrier"
@@ -428,6 +482,15 @@
     "id": "ceinture-a-boucle",
     "type": "garde-robe",
     "label": "Ceinture à boucle",
+    "kind": "variante",
+    "piece": {
+      "id": "ceinture"
+    }
+  },
+  {
+    "id": "ceinture-large",
+    "type": "garde-robe",
+    "label": "Ceinture large",
     "kind": "variante",
     "piece": {
       "id": "ceinture"

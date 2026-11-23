@@ -18,6 +18,7 @@ import { contractDisease } from '../engine/disease';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
 import { voyageEnVue } from './voyageEnVue';
+import { recitEnVue } from './recitEnVue';
 import { encounterTable } from '../engine/travelTables';
 import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from './monde/scene';
@@ -329,14 +330,17 @@ describe('#4005 — la Rencontre tirée est l’événement du jour, rangé à l
     for (let i = 0; i < 40 && get().pendingCascade && !tiree(); i++) avanceEtapeCascade(get);
     expect(tiree(), 'la Rencontre est appliquée, la journée encore ouverte').toBe(true);
   }
-  const evenementAttendu = () => expect.objectContaining({ title: territoire().label, text: territoire().desc, tone: 'echec' });
+  const evenementAttendu = () => expect.objectContaining({ source: { table: 'rencontres-dangereuses', id: territoire().id }, title: territoire().label, text: territoire().desc, tone: 'echec' });
 
-  it('halte : servie par `voyageEnVue` pendant le jour (titre, texte, d100, ton), puis rangée une fois au jour clos', () => {
+  it('halte : servie par `voyageEnVue` pendant le jour (source, titre, texte, jet, dé de la table, ton), puis rangée une fois au jour clos', () => {
     jourDeRencontre(map({ km: 30, perilDie: 0, perils: [colporteur] }));
     const servis = voyageEnVue(get())!.evenements;
     expect(servis).toEqual([evenementAttendu()]);
-    expect(servis[0].roll, 'le d100 tiré tombe dans la rangée').toBeGreaterThanOrEqual(territoire().min);
-    expect(servis[0].roll).toBeLessThanOrEqual(territoire().max);
+    expect(servis[0].de, 'le dé de la table de Rencontre').toEqual({ n: 1, sides: 100 });
+    const jet = servis[0].jet!;
+    expect(jet.effectif, 'sans modificateur, le dé effectif est le naturel').toBe(jet.naturel);
+    expect(jet.effectif, 'le dé effectif tombe dans la rangée').toBeGreaterThanOrEqual(territoire().min);
+    expect(jet.effectif).toBeLessThanOrEqual(territoire().max);
     drainCascade();
     expect(get().pendingRest, 'la journée va à la halte').toBeTruthy();
     expect(voyageEnVue(get())!.evenements, 'le trajet n’en sert plus').toEqual([]);
@@ -349,12 +353,17 @@ describe('#4005 — la Rencontre tirée est l’événement du jour, rangé à l
     expect(get().travelPlan, 'arrivé').toBeNull();
     expect(get().travelRecap!.status).toBe('arrived');
     expect(get().travelRecap!.days.flatMap((j) => j.events ?? [])).toEqual([evenementAttendu()]);
+    const [journee] = recitEnVue(get())!.journees;
+    expect(journee.evenements, 'le récit publie la journée d’arrivée et son événement, avec le dé de sa table').toEqual([expect.objectContaining({ source: { table: 'rencontres-dangereuses', id: territoire().id }, de: { n: 1, sides: 100 } })]);
+    expect(Object.keys(journee.meteo!).sort(), 'la météo d’Étape par son id et son nom, sans son jet').toEqual(['id', 'nom']);
+    expect(journee.lignes, 'les lignes structurées du jour, telles quelles').toEqual(get().travelRecap!.days[0].lines);
   });
 
   it('interruption puis reprise : l’événement reste avec le jour interrompu et ne fuit pas dans le jour repris', () => {
     jourDeRencontre(map({ km: 60, perilDie: 0, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }));
     drainCascade();
     expect(get().travelPlan!.interrupted, 'la péripétie interrompt le jour de la Rencontre').toBe(true);
+    expect(recitEnVue(get()), 'la transition différée attend : les lieux du récit se nomment par la carte').toMatchObject({ issue: 'embuscade', depart: 'pa', arrivee: 'pb', de: 'A', vers: 'B' });
     get().fenetreFermer('recitDeVoyage');
     expect(get().scene?.id, 'l’acquittement joue la transition différée').toBe('lieu-b-scene');
     // route sans péripétie : la reprise ouvre le jour suivant (patron de `travel.hors-store.test.ts`)
@@ -1326,5 +1335,40 @@ describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
     expect(get().battle).not.toBeNull();
     expect(etapes.map((e) => e.stake)).not.toContainEqual(enjeuSurprise);
     expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
+  });
+});
+
+describe('#4804 — la route passe à pied en tête de la journée où un héros n’est plus en selle', () => {
+  /** Trajet de `km` en selle (63 km le premier jour) ; le héros descend à la halte du premier soir, puis dort. */
+  function descendreALaHalte(km: number): void {
+    setRule('voyage-allures', true);
+    seedBattleRng(1);
+    setup(map({ km, perilDie: 0 }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
+    banc.setState({ possessions: [{ uid: 'm1', ownerId: 'h', nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession] });
+    get().partirEnVoyage('r1', 'monture', { cadence: 'commande' });
+    expect(get().pendingRest, 'prémisse : la halte du premier soir').toBeTruthy();
+    expect(get().travelPlan?.mode).toBe('monture');
+    get().quitterLaSelle('m1');
+    get().fenetreValider('repos');
+  }
+
+  it('descendre à la halte du soir : le lendemain part à pied, sans calage', () => {
+    descendreALaHalte(200);
+    for (let i = 0; i < 40 && get().pendingCascade; i++) avanceEtapeCascade(get);
+    expect(get().travelPlan?.mode).toBe('pied');
+    expect(get().travelPlan?.interrupted ?? false).toBe(false);
+    expect(get().journal).toContain(t('tf.pasTousMontes'));
+    expect(get().journal).not.toContain(t('tf.surcharge'));
+    const log = get().travelPlan?.log ?? [];
+    const jourDuLendemain = log[log.length - 1];
+    expect(jourDuLendemain?.lines.map((l) => l.text)).toContain(t('tf.pasTousMontes'));
+  });
+
+  it('arrivée le jour du passage à pied : le récit de voyage dit « à pied »', () => {
+    descendreALaHalte(80);
+    runToEnd();
+    expect(get().travelPlan, 'arrivé').toBeNull();
+    expect(get().travelRecap?.status).toBe('arrived');
+    expect(get().travelRecap?.mode).toBe('pied');
   });
 });

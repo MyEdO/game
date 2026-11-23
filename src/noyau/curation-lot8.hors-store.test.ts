@@ -57,7 +57,7 @@ describe('Armure Aethyrique — PA temporisés', () => {
     const w = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [w] as Combatant[] });
     const before = effectiveArmourAt(w, 'corps');
-    applyCast(banc.getState, banc.setState, w, [w], findSpellById('armure-aethyrique')!, ok(3), false, false);
+    applyCast(banc.getState, banc.setState, w, [w], findSpellById('armure-aethyrique')!, ok(3), false);
     expect(effectiveArmourAt(w, 'corps')).toBe(before + 1);
     const arme: Weapon = { name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], subType: 'Base' } as never;
     const sans = { ...w, activeEffects: [] } as Combatant;
@@ -73,14 +73,14 @@ describe('ops de spec sur la branche Projectile (curées seulement)', () => {
     const drain = findSpellById('drain')!; // Magie mineure
     const res: CastResult & Partial<MissileResult> = { ...ok(2), hit: true, location: 'corps', damage: 5, woundsLost: 2, defenderDefeated: false };
     const before = w.wounds.current;
-    applyCast(banc.getState, banc.setState, w, [cible], drain, res, true, false);
+    applyCast(banc.getState, banc.setState, w, [cible], drain, res, true);
     expect(banc.getState().party.find((h) => h.id === w.id)!.wounds.current).toBe(before + 1);
   });
 
   it('Éblouissant : Aveuglé immédiat + récurrent porté par un effet actif', () => {
     const [w, cible] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     banc.setState({ party: [w, cible] as Combatant[] });
-    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('eblouissant')!, ok(2), false, false);
+    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('eblouissant')!, ok(2), false);
     const after = banc.getState().party.find((h) => h.id === cible.id)!;
     expect(after.conditions.find((x) => x.id === 'aveugle')?.value).toBe(1);
     expect(after.activeEffects?.some((e) => e.opsPerRound?.some((o) => o.op === 'condition' && o.id.id === 'aveugle'))).toBe(true);
@@ -90,7 +90,7 @@ describe('ops de spec sur la branche Projectile (curées seulement)', () => {
     const [p, w] = groupeDeScenario(idsDeTest, 'pretre', 'sorcier');
     w.corruption = 2;
     banc.setState({ party: [p, w] as Combatant[] });
-    applyCast(banc.getState, banc.setState, p, [w], findSpellById('innocence-immaculee')!, ok(1), false, false);
+    applyCast(banc.getState, banc.setState, p, [w], findSpellById('innocence-immaculee')!, ok(1), false);
     expect(banc.getState().party.find((h) => h.id === w.id)!.corruption).toBe(1);
   });
 });

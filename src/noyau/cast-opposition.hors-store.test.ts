@@ -50,7 +50,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   function frozenCast(H: Combatant, E: Combatant, spellId: string, sl: number) {
     banc.setState({
       pendingCast: {
-        casterId: H.id, targetId: E.id, spellId, missile: false, focused: false,
+        casterId: H.id, targetId: E.id, spellId, missile: false,
         result: { cast: true, roll: 30, target: 70, sl, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
       },
     });
@@ -168,7 +168,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     banc.setState({
       net: { ...banc.getState().net, mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' }, ownership: { [T.id]: 1 } },
       pendingCast: {
-        casterId: H.id, targetId: T.id, spellId: 'fauche-demon', missile: false, focused: false,
+        casterId: H.id, targetId: T.id, spellId: 'fauche-demon', missile: false,
         result: { cast: true, roll: 30, target: 70, sl: 6, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
       },
     });
@@ -242,7 +242,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     const caster = banc.getState().battle!.combatants.find((c) => c.id === casterId)!;
     banc.setState({
       pendingCast: {
-        casterId, targetId, spellId: 'parole-de-tzeentch', missile: false, focused: false,
+        casterId, targetId, spellId: 'parole-de-tzeentch', missile: false,
         result: { cast: true, roll: 30, target: 70, sl: 4, base: castingBaseValue(caster, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
       },
     });

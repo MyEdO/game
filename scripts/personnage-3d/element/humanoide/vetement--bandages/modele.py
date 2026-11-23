@@ -15,6 +15,7 @@ transférées des zones du bras.
 import math
 
 import numpy as np
+from tente import HAUT
 from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, porteur_de, repere_de_plan, viser, voisinage
 
 OS_BRAS = {'g': ('lowerarm_l', 'hand_l', 'middle_01_l', 'thumb_02_l'), 'd': ('lowerarm_r', 'hand_r', 'middle_01_r', 'thumb_02_r')}
@@ -64,7 +65,7 @@ def construire(D, materiaux, b):
         coude, poignet, majeur, pouce = (np.array(b.tete(o)) for o in OS_BRAS[c])
         longueur = float(np.linalg.norm(poignet - coude))
         axe = (poignet - coude) / longueur
-        u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
+        u, v = repere_de_plan(axe, HAUT, signe)
         bornes = bornes_par_colonne(b, c, coude, axe, longueur, u, v, s, D['DEBORD'])
         porteur = b.porteur(ZONES[c])
         M = Maillage()
@@ -87,7 +88,7 @@ def construire(D, materiaux, b):
         peau = main_sans_pouce(b, c, H['pouce'])
         portee = float(np.linalg.norm(majeur - poignet))
         axe_m = (majeur - poignet) / portee
-        um, vm = repere_de_plan(axe_m, (0.0, 0.0, 1.0), signe)
+        um, vm = repere_de_plan(axe_m, HAUT, signe)
         au_pouce = math.atan2((pouce - poignet) @ vm, (pouce - poignet) @ um)
         fente = [abs((a - au_pouce + math.pi) % (2 * math.pi) - math.pi) <= math.radians(H['fente']) for a in azimuts]
         for g, ouvert in H['rangs']:
