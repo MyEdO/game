@@ -115,11 +115,17 @@ document.addEventListener('click', (ev) => {
     case 'congedier': congediement = id; return rendre();
     case 'congedier-non': congediement = null; return rendre();
     case 'congedier-ok': congediement = null; panneau = null; return agir(() => J.congedier(etat, id));
-    case 'preparer': panneau = { type: 'depart', dest: id, choix: new Set(etat.roster.filter(J.disponible).slice(0, 4).map((h) => h.c.id)) }; return rendre();
+    case 'preparer': {
+      // Le groupe proposé : les quatre héros disponibles les moins blessés.
+      const etat_ = (h: J.Heros) => h.c.wounds.current / Math.max(1, h.c.wounds.max);
+      const proposes = etat.roster.filter(J.disponible).sort((a, b) => etat_(b) - etat_(a)).slice(0, J.TAILLE_DU_GROUPE);
+      panneau = { type: 'depart', dest: id, choix: new Set(proposes.map((h) => h.c.id)) };
+      return rendre();
+    }
     case 'choisir': {
       if (panneau?.type !== 'depart') return;
       if (panneau.choix.has(id)) panneau.choix.delete(id);
-      else if (panneau.choix.size >= 4) return toast('Quatre héros au plus.');
+      else if (panneau.choix.size >= J.TAILLE_DU_GROUPE) return toast('Quatre héros au plus : laissez d’abord quelqu’un au hameau.');
       else panneau.choix.add(id);
       return rendre();
     }

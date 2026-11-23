@@ -11,7 +11,7 @@ import { medaillon, picto, plaque, portrait } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { bourseDePX, caracteristiques, competences, niveauSuivant, sortsAApprendre, talentsDuNiveau } from './fiche';
 import {
-  achat, apercuDe, apercuDeProvision, busteDuHeros, cadreA, casesDuSac, encombrementDe, esc, etats, etiquettesDeQualites, etiquettesDeSequelles, glose, herosEnTete,
+  achat, apercuDe, apercuDeProvision, busteDuHeros, cadreA, casesDuSac, encombrementDe, esc, etats, etiquettesDeQualites, etiquettesDeSequelles, glose, herosEnLigne, herosEnTete,
   iconeDArme, iconeDeProvision,
 } from './pieces';
 
@@ -211,17 +211,24 @@ const pageDuJardin = ({ e }: Lecture): Page => ({
 
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
-/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac, ses provisions à acheter. */
+/** Le départ : ceux qu'on emmène, une colonne chacun — son sac, ses provisions à acheter, « Laisser au hameau » ; au
+ *  pied, ceux qui restent, chacun avec « Emmener » ou ce qui l'en empêche. */
 function pageDuDepart({ e, choix }: Lecture): Page {
   const vente = J.provisionsEnVente(e);
   const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>
+    <div class="laisser">${plaque('Laisser au hameau', `data-a="choisir" data-id="${h.c.id}"`, { taille: 'petite' })}</div>
     <div class="provisions">${vente.map((a) => `<div class="provision"${apercuDe(apercuDeProvision(a.id))}>${picto(iconeDeProvision(a.id), 20, 1.6)}<span class="n">${esc(a.label)}</span>${achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="provision" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite' })}</div>`).join('')}</div></section>`);
-  const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre">${glose('Place libre : un héros du socle')}</section>`);
+  const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre"><span class="place-libre">Place libre</span></section>`);
+  const plein = choix.size >= J.TAILLE_DU_GROUPE;
+  const restent = e.roster.filter((h) => !choix.has(h.c.id)).map((h) => {
+    const refus = J.refusDeDepart(h) ?? (plein ? 'Quatre héros au plus : laissez d’abord quelqu’un au hameau.' : null);
+    return `<div class="reste">${herosEnLigne(h)}${plaque('Emmener', `data-a="choisir" data-id="${h.c.id}"`, { taille: 'petite', fermee: !!refus, titre: refus ?? '' })}</div>`;
+  }).join('');
   return {
     classe: 'rangee',
     corps: [...groupe, ...libres].join(''),
-    pied: plaque(`Partir avec ${choix.size} héros`, 'data-a="partir"', { icone: 'route', armee: choix.size > 0, fermee: !choix.size, taille: 'appel', titre: choix.size ? '' : 'Choisissez au moins un héros au socle.' }),
+    pied: `${restent ? `<div class="au-hameau"><span class="rub">Restent au hameau</span>${restent}</div>` : ''}${plaque(`Partir avec ${choix.size} héros`, 'data-a="partir"', { icone: 'route', armee: choix.size > 0, fermee: !choix.size, taille: 'appel', titre: choix.size ? '' : 'Emmenez au moins un héros.' })}`,
   };
 }
 
@@ -232,6 +239,10 @@ const PAGES: Record<Service, (l: Lecture) => Page> = {
 };
 
 // ─── L'écran ────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Le héros que sert le bâtiment, choisi dans le panneau même : un portrait par héros, le servi en avant. */
+const choixDuHeros = (roster: readonly J.Heros[], servi: J.Heros) => `<div class="choix-du-heros"><span class="rub">Pour</span>${roster.map((h) =>
+  `<button type="button" class="vignette-heros${h === servi ? ' choisi' : ''}" data-a="client" data-id="${h.c.id}" data-bulle="${esc(h.c.label)}" aria-pressed="${h === servi}">${portrait(busteDuHeros(h), 'heros', 'petit', h === servi ? 'choisi' : '')}</button>`).join('')}</div>`;
 
 /** Le panneau d'un service, et le socle qui le sert. */
 export interface PanneauDeService { cadre: string; socle: Socle }
@@ -254,7 +265,7 @@ export function panneauDeService(ctx: Contexte, service: Service): PanneauDeServ
   return {
     cadre: cadreA(CADRES_DE_L_HOTE.batiment, `<div class="tete-service">${tete}<div class="ressources bourse-service"><span class="etiquette compte or">${e.or} CO</span><span class="etiquette compte or">${pluriel(e.trophees, 'trophée')}</span></div>
       <button type="button" class="croix-panneau" data-a="fermer-panneau" aria-label="Fermer" data-bulle="Fermer">×</button></div>
-      <div class="corps-service ${page.classe}">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(b ? b.nom : destination ? destination.nom : 'Chronique'), classe: 'page-service', etire: true }),
+      ${pourQui ? choixDuHeros(e.roster, pourQui) : ''}<div class="corps-service ${page.classe}">${page.corps}</div>${page.pied ? `<div class="pied-service">${page.pied}</div>` : ''}`, { ruban: esc(b ? b.nom : destination ? destination.nom : 'Chronique'), classe: 'page-service', etire: true }),
     socle,
   };
 }

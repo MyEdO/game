@@ -11,6 +11,10 @@
 .socle-compagnie .rang-heros.serre .carte-heros { gap: 6px; padding: 6px; }
 .socle-compagnie .rang-heros.serre .carte-heros .portrait { width: 56px; height: 70px; }
 .socle-compagnie .rang-heros.serre .ligne-etat { display: none; }
+.socle-compagnie .rang-heros.serre .carte-heros .qui { gap: 1px; }
+.socle-compagnie .rang-heros.serre .carte-heros .sous-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.socle-compagnie .rang-heros.serre .carte-heros .vie > span:first-child { display: none; }
+.socle-compagnie .rang-heros.serre .carte-heros .vie { justify-content: flex-end; }
 @media (max-width: 899px) {
   .ecran-plein { overflow-y: auto; }
   .scene-fixe { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
