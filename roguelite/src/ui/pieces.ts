@@ -6,7 +6,7 @@
  * (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
  */
 import * as J from '../jeu';
-import { articleDuCatalogue, encombrement, libelleDEtat, nomDeSort, sequelles, type Combatant, type Qualite } from '../noyau';
+import { articleDuCatalogue, encombrement, libelleDEtat, maladies, nomDeSort, sequelles, souillure, type Combatant, type Qualite } from '../noyau';
 import { armeDuLibelle, buste, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, PICTOS, plaque, portrait } from '../kit';
 
@@ -91,7 +91,7 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${s ? ' retrait' : ''}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
     ${s ? `<span class="au-batiment">${lePortrait}${medaillon(J.LIEUX_DE_SEJOUR[s.ou].picto, 'petit')}</span>` : lePortrait}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${s ? sejourDe(s) : ligneDeVie(c)}<span class="ligne-etat${o.refus && !s ? ' refus' : ''}">${o.refus && !s ? esc(o.refus) : c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : s ? `<span class="revient">de retour dans ${s.reste} jour${s.reste > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
+    ${s ? sejourDe(s) : ligneDeVie(c)}<span class="ligne-etat${o.refus && !s ? ' refus' : ''}">${o.refus && !s ? esc(o.refus) : c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : s ? `<span class="revient">de retour dans ${s.reste} jour${s.reste > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : maladies(c).length ? `<span class="marque">${maladies(c).length > 1 ? `${maladies(c).length} maladies` : esc(maladies(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
   </button>`;
 }
 
@@ -133,6 +133,20 @@ export function etiquettesDeSequelles(c: Combatant) {
   const issue = (g: { jours?: number; chirurgie: boolean }) => (g.jours != null ? `repos ${g.jours} j` : g.chirurgie ? 'chirurgie' : 'permanente');
   return groupes.size ? `<div class="etiquettes-sequelles" aria-label="Séquelles">${[...groupes].map(([label, g]) =>
     `<span class="etiquette sequelle${g.jours == null && !g.chirurgie ? ' permanente' : ''}"${apercuDe({ nom: label, nature: `Séquelle · ${issue(g)}`, texte: g.desc })}>${esc(label)}${g.n > 1 ? ` ×${g.n}` : ''} · ${issue(g)}</span>`).join('')}</div>` : '';
+}
+
+/** La Corruption face à son seuil, les mutations et les maladies en étiquettes, à la manière des séquelles : la maladie
+ *  dit sa phase et ses jours, ses symptômes au survol. LDB 19 l.80 ; LDB 20 */
+export function etiquettesDeSouillure(c: Combatant) {
+  const s = souillure(c);
+  const m = maladies(c);
+  const corruption = `<span class="etiquette sequelle${s.points > s.seuil ? ' permanente' : ''}"${apercuDe({ nom: 'Corruption', nature: `${s.points} / ${s.seuil}` })}>Corruption ${s.points} / ${s.seuil}</span>`;
+  const mutations = s.mutations.map((l) => `<span class="etiquette sequelle permanente"${apercuDe({ nom: l, nature: 'Mutation' })}>${esc(l)}</span>`).join('');
+  const malades = m.map((d) => {
+    const phase = `${d.declaree ? 'déclarée' : 'incubation'} · ${d.jours} j`;
+    return `<span class="etiquette sequelle"${apercuDe({ nom: d.label, nature: `Maladie · ${phase}`, texte: d.symptomes.join(', ') })}>${esc(d.label)} · ${phase}</span>`;
+  }).join('');
+  return `<div class="etiquettes-sequelles" aria-label="Corruption et maladies">${corruption}${mutations}${malades}</div>`;
 }
 
 // ─── Ce qu'on possède ou qu'on achète ───────────────────────────────────────────────────────────────────────

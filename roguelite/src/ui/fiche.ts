@@ -12,7 +12,7 @@ import { picto, plaque } from '../kit';
 import { CADRES, ecran } from './ecran';
 import {
   achat, apercuDe, apercuDePiece, apercuDeProvision, type Apercu, cadreA, carriereDe, caseObjet, casesDuSac, encombrementDe, entree, esc, essentielDe, etats, portraitDeHeros,
-  etiquettesDeSequelles, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets, sejourDe,
+  etiquettesDeSequelles, etiquettesDeSouillure, glose, iconeDArme, iconeDeProvision, ligneDeVie, onglets, sejourDe,
 } from './pieces';
 
 export type Onglet = 'talents' | 'sorts' | 'equipement';
@@ -118,7 +118,7 @@ function identite(ctx: Contexte, h: J.Heros, o: Offres, progresse: boolean) {
     : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
   return `<div class="tete">${portraitDeHeros(h, 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
     <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(carriereDe(h))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
-    ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.sejour ? sejourDe(h.sejour) : ''}${etats(c)}${etiquettesDeSequelles(c)}${progression}${renvoi}`;
+    ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.sejour ? sejourDe(h.sejour) : ''}${etats(c)}${etiquettesDeSequelles(c)}${etiquettesDeSouillure(c)}${progression}${renvoi}`;
 }
 
 /** En route : les provisions du héros et sa prière, en entrées. */

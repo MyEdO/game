@@ -4,7 +4,14 @@
 import { rollTest } from '../../../src/engine/tests';
 import { testValue } from '../../../src/engine/skills';
 import { makeRNG } from '../../../src/engine/dice';
-import { restRecovery } from '../../../src/engine/rest';
+import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../src/engine/rest';
+import { applyDiseaseGangrene, maladieDeclaree } from '../../../src/engine/disease';
+import { applyOps, type GameOp } from '../../../src/engine/ops';
+import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
+import { MINUTES_PER_DAY } from '../../../src/engine/clock';
+import { corruptionThreshold } from '../../../src/engine/corruption';
+import { diseaseLabel, symptomLabel } from '../../../src/data';
+import type { UpkeepDeferTest } from '../../../src/engine/types';
 import { applyHealWounds } from '../../../src/engine/healing';
 import { PA_PER_CO, toBrass } from '../../../src/engine/money';
 import { prixDeLOffre } from '../../../src/noyau/restFlow';
@@ -32,6 +39,42 @@ export function reposer(c: Combatant, graine: number, jours: number): string[] {
   });
   return [...lignes, ...convalescence, ...fins];
 }
+
+/** `jours` journées de maladie (LDB 20, jours calendaires) par `dailyDiseaseUpkeep` ; `soigne` : un soignant veille le
+ *  malade (LDB 09, Guérison). Chaque Test de cycle que le moteur diffère est jeté à la fin de sa journée et appliqué comme
+ *  l'applique la cascade de nuit du noyau (`noyau/restFlow.ts`, appliers `maladie-*`). Mute `c`, rend le journal. */
+export function entretenirLesMaladies(c: Combatant, graine: number, jours: number, soigne: boolean): string[] {
+  const rng = makeRNG(graine);
+  const idNeuf = fabriqueLocale(`m${graine}`);
+  const lignes: string[] = [];
+  const differes: Parameters<UpkeepDeferTest>[0][] = [];
+  const appliquer = (spec: Parameters<UpkeepDeferTest>[0]) => {
+    const valeur = spec.base ?? testValue(c, spec.test!);
+    const r = rollTest(valeur, spec.difficulty, rng, (spec.mods ?? []).reduce((n, m) => n + m.value, 0));
+    const maladie = String(spec.meta?.diseaseName ?? '');
+    if (spec.kind === 'maladie-persistance') lignes.push(...applyDiseaseEnd(c, maladie, r.success, r.sl, rng));
+    else if (spec.kind === 'maladie-gangrene') lignes.push(...applyDiseaseGangrene(c, maladie, r.success, Number(spec.meta?.be ?? 0)));
+    else if (spec.kind === 'maladie-test-quotidien' && !r.success) {
+      lignes.push(...applyOps(c, (spec.meta?.opsEchec ?? []) as GameOp[], { idNeuf, rng, sl: r.sl, source: { kind: 'maladie', id: maladie } }).lignes);
+    }
+  };
+  for (let j = 0; j < jours && !c.dead; j++) {
+    lignes.push(...dailyDiseaseUpkeep(c, rng, (spec) => { differes.push(spec); }, soigne));
+    for (const spec of differes.splice(0)) if (!c.dead) appliquer(spec);
+  }
+  return lignes;
+}
+
+/** Les maladies portées : libellé, phase (incubation ou déclarée), jours restants dans la phase, symptômes. LDB 20 */
+export const maladies = (c: Combatant): { label: string; declaree: boolean; jours: number; symptomes: string[] }[] =>
+  (c.diseases ?? []).map((d) => ({
+    label: diseaseLabel(d.id), declaree: maladieDeclaree(d), jours: Math.ceil(d.minutesLeft / MINUTES_PER_DAY),
+    symptomes: d.symptoms.map((s) => symptomLabel(s.symptomId)),
+  }));
+
+/** La Corruption portée face à son seuil (`corruptionThreshold`, LDB 19 l.80), et les mutations subies par libellé. */
+export const souillure = (c: Combatant): { points: number; seuil: number; mutations: string[] } =>
+  ({ points: c.corruption ?? 0, seuil: corruptionThreshold(c), mutations: (c.mutations ?? []).map((m) => m.label) });
 
 /** `pv` Points de Blessure regagnés par un soin (`applyHealWounds`) : un Inconscient guéri revient à lui. */
 export const soigner = (c: Combatant, pv: number): string[] => applyHealWounds(c, pv);

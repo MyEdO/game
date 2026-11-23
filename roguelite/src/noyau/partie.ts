@@ -58,6 +58,37 @@ export function ouvrirEnAuto(graine: number, lancement: Lancement, ecouter: (r: 
   return { partie, recevoir, vider, envoyer, pomper };
 }
 
+/** Le « Je te renie ! » qu'une partie laisse ouvert (`pendingRenounce`) : le héros au bord de la mutation, et la suite
+ *  qui envoie le choix du joueur (`fenetreChoisir`) puis reprend la partie. LDB 17 l.67 */
+export interface ChoixDeRenier<T> { heros: string; nom: string; trancher: (renier: boolean) => T }
+/** Une issue de partie, et le « Je te renie ! » qui l'attend encore, s'il y en a un. */
+export type AvecRenier<T> = T & { renier?: ChoixDeRenier<AvecRenier<T>> };
+
+/** Suspend la partie `p` sur le « Je te renie ! » qui attend le joueur (`pendingRenounce`), ou `null` s'il n'y en a
+ *  pas : l'issue `provisoire` porte le choix, dont la suite envoie `fenetreChoisir` puis `reprendre`. La partie reste
+ *  ouverte jusque-là. LDB 17 l.67 */
+export function suspendrePourLeRenier<T>(p: PartieEnAuto, provisoire: () => T, reprendre: () => AvecRenier<T>): AvecRenier<T> | null {
+  const attente = p.partie.etat().pendingRenounce;
+  if (!attente) return null;
+  const e = p.partie.etat();
+  const nom = [...(e.battle?.combatants ?? []), ...e.party].find((c) => c.id === attente.heroId)?.label ?? attente.heroId;
+  const trancher = (renier: boolean): AvecRenier<T> => {
+    p.envoyer('fenetreChoisir', ['renier', 'renier', renier]);
+    return reprendre();
+  };
+  return { ...provisoire(), renier: { heros: attente.heroId, nom, trancher } };
+}
+
+/** Conclut la partie `p` sur ce que `rendre` relève de son état, une fois chaque « Je te renie ! » tranché
+ *  (`suspendrePourLeRenier`) ; la partie se ferme alors. */
+export function conclure<T>(p: PartieEnAuto, rendre: () => T): AvecRenier<T> {
+  const suspendue = suspendrePourLeRenier(p, rendre, () => { p.pomper(); return conclure(p, rendre); });
+  if (suspendue) return suspendue;
+  const issue = rendre();
+  p.partie.fermer();
+  return issue as AvecRenier<T>;
+}
+
 /** Joue la fenêtre qui tient la main : son drive, à défaut sa validation. Faux s'il n'y a rien à jouer (aucune
  *  fenêtre, ou une fenêtre qui attend un choix sans défaut). `apres` suit chaque geste. */
 export function jouerLaFenetre(partie: PartieOuverte, recevoir: (r: Resultat) => void, apres: () => void = () => {}): boolean {

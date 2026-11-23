@@ -264,6 +264,15 @@ export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: V
   });
 }
 
+/** « Je te renie ! » : le héros au bord de la mutation renie (−1 Résilience) ou laisse la mutation venir ; le carton
+ *  bloque la salle jusqu'au choix. LDB 17 l.67 */
+export function renierEnCarton(nom: string, o: { ruban: string; vignette: Vignette; surTitre: string }): string {
+  return carton({
+    ruban: o.ruban, vignette: o.vignette, titre: 'Je te renie !', surTitre: o.surTitre,
+    texte: `<div class="recit"><p>${esc(nom)} est au bord de la mutation : renier (−1 Résilience) ou laisser la mutation venir.</p></div>`,
+    gestes: `${plaque('Renier', 'data-a="renier" data-k="oui"', { armee: true })}${plaque('Laisser la mutation venir', 'data-a="renier" data-k="non"')}`,
+  });
+}
 
 /** Les réglages : la taille de l'interface, et Recommencer. */
 export function reglagesEnCarton(): string {

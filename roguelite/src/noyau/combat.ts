@@ -10,7 +10,7 @@ import { EVT, type ChargeDAttaque } from '../../../src/noyau/bus';
 import { footprintN } from '../../../src/noyau/monde/footprint';
 import { findCreatureById } from '../../../src/data';
 import type { Combatant } from '../../../src/engine/types';
-import { jouerLaFenetre, ouvrirEnAuto } from './partie';
+import { jouerLaFenetre, ouvrirEnAuto, suspendrePourLeRenier, type AvecRenier } from './partie';
 import { nomDeSort } from './carriere';
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
@@ -68,12 +68,12 @@ function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] 
   });
 }
 
-export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
+export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): AvecRenier<IssueDuCombat> {
   const largeur = 14;
   const hauteur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
   let coups: Coup[] = [];
   let etats: EtatGagne[] = [];
-  const { partie, recevoir, vider, envoyer } = ouvrirEnAuto(
+  const enAuto = ouvrirEnAuto(
     graine,
     () => {
       const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: 2, y: Math.floor(hauteur / 2) } });
@@ -92,6 +92,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
       }
     },
   );
+  const { partie, recevoir, vider, envoyer } = enAuto;
 
   const pas: Pas[] = [];
   let vus = 0;
@@ -132,21 +133,38 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
 
   let issue: IssueDuCombat['issue'] = 'impasse';
   let morts: string[] = [];
-  let groupeFinal: Combatant[] = groupe.map((h) => structuredClone(h));
-  for (let n = 0; n < PLAFOND_DE_PAS; n++) {
-    vider(releve);
-    const s = partie.etat();
-    const fin = s.battle?.over;
-    if (fin === 'victoire' || fin === 'defaite') {
-      issue = fin;
-      morts = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros' && c.dead).map((c) => c.id);
-      groupeFinal = fin === 'victoire' ? ramasser(groupe, clore()) : clore();
-      break;
+  const rendu = (g: Combatant[]): IssueDuCombat => ({ issue, pas, groupe: g, morts, largeur, hauteur });
+  const provisoire = () => rendu(groupe.map((h) => structuredClone(h)));
+
+  /** La rencontre finie : close par le noyau, après chaque « Je te renie ! » tranché (`suspendrePourLeRenier`). */
+  const terminer = (): AvecRenier<IssueDuCombat> => {
+    const g = clore();
+    const suspendu = suspendrePourLeRenier(enAuto, provisoire, () => { vider(releve); return terminer(); });
+    if (suspendu) return suspendu;
+    partie.fermer();
+    morts = [...new Set([...morts, ...g.filter((c) => c.dead).map((c) => c.id)])];
+    return rendu(issue === 'victoire' ? ramasser(groupe, g) : g);
+  };
+
+  /** Le combat joué pas à pas jusqu'à sa fin ; un « Je te renie ! » ouvert en cours de rencontre suspend la partie. */
+  const poursuivre = (): AvecRenier<IssueDuCombat> => {
+    for (let n = 0; n < PLAFOND_DE_PAS; n++) {
+      vider(releve);
+      const s = partie.etat();
+      const fin = s.battle?.over;
+      if (fin === 'victoire' || fin === 'defaite') {
+        issue = fin;
+        morts = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros' && c.dead).map((c) => c.id);
+        return terminer();
+      }
+      const suspendu = suspendrePourLeRenier(enAuto, provisoire, poursuivre);
+      if (suspendu) return suspendu;
+      if (!jouerLaFenetre(partie, recevoir, releve)) break;
     }
-    if (!jouerLaFenetre(partie, recevoir, releve)) break;
-  }
-  partie.fermer();
-  return { issue, pas, groupe: groupeFinal, morts, largeur, hauteur };
+    partie.fermer();
+    return provisoire();
+  };
+  return poursuivre();
 }
 
 /** Libellé du Bestiaire d'une créature. */

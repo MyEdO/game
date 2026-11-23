@@ -300,3 +300,29 @@ sur une arène générée.
   sement prend la main et le Test n'est jamais résolu (graine 15 : 13/19 → 1 Blessure, Inconscient, `partyWiped`).
   Classe de MyEdO/game#2689 (`cloturer` sous la modale du nœud `test`), commentée le 2026-11-23. L'hôte rend un refus
   (`IssueDEpreuve.refus`), sans contourner l'horloge.
+
+## Corruption et maladies
+
+- **Trou — aucune couture « une journée de maladie, résolue sur place ».** `dailyDiseaseUpkeep` (`src/engine/rest.ts`)
+  diffère ses Tests (`maladie-test-quotidien`, `maladie-gangrene`, `maladie-persistance`) ; leurs appliers vivent dans
+  la table de la cascade de nuit (`src/noyau/restFlow.ts:987-1010`, `bandeDeNuit`), liés à `get`/`set`. Les deux verbes
+  qui font passer des jours (`avancerLeTemps`, `reposerLeGroupe`) passent par `runDailyUpkeep`, qui joue aussi la Faim,
+  la Soif et le Dessoûlage (le second soigne en plus), et aucun ne reçoit `caredFor` d'un soignant hors du groupe (les
+  sœurs de l'hospice) : `avancerLeTemps` ne le passe jamais (`src/noyau/horloge.ts:38`). L'hôte jette donc les Tests
+  différés sur place et rejoue la dispatch des trois appliers (`entretenirLesMaladies`, `roguelite/src/noyau/soins.ts`).
+  Idée : une journée de maladie résolue sur place, pure, dans `src/engine/rest.ts`, qui porte cette dispatch et que la
+  bande de nuit comme tout hôte appelleraient.
+- **Défaut — en combat, « Je te renie ! » tranché après la victoire est perdu.** Mesuré (un Soldat au seuil, Résilience
+  2, contre un mutant, graine 1) : la fenêtre `renier` s'ouvre à `battle.over === 'victoire'` et bloque `fenetreFermer`.
+  Après `fenetreChoisir('renier', 'renier', true)`, le combattant du champ porte Résilience 1, le groupe (`party`) 2 ;
+  avec `false`, le champ porte 1 mutation, le groupe aucune. Après `fenetreFermer('victoire')`, `etat().party` garde 2
+  et aucune mutation dans les deux cas (ni `pendingCorruption` ni `corruptionQueue` en attente). `resolveRenounce`
+  (`src/noyau/corruptionFlow.ts:341`) mute l'acteur d'`actorIn`, le combattant du champ, alors que le groupe a déjà été
+  rendu à la victoire : le choix n'a aucun effet. L'hôte suspend bien la partie jusqu'au choix
+  (`suspendrePourLeRenier`), sans corriger l'état ; hors combat (épreuve), le choix porte. Avant ce lot, la boucle de
+  combat de l'hôte s'arrêtait sur cette fenêtre et lisait le groupe du champ, mutation ou Résilience comprises.
+- **Friction — une partie suspendue bloque toutes les autres.** Le noyau ne tient qu'un jeu branché à la fois
+  (`brancherLeJeu`, `src/noyau/branchement.ts:22`) : tant que le joueur n'a pas tranché le « Je te renie ! », l'hôte ne
+  peut ouvrir aucune autre partie (soin, achat, verdict de l'infirmerie). Le carton bloque la salle et le rendu de la
+  salle en cours n'en ouvre pas, mais rien ne le garantit. Idée : un état sérialisable du choix en attente, qu'une
+  partie neuve reprendrait.
