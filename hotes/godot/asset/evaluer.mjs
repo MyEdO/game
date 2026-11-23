@@ -42,7 +42,7 @@ import { parseArgs } from 'node:util'
 import { coeurs, memoireDisponibleMo } from '../../../scripts/test/partition.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
-import { lireLocales, manifesteVoisin, posesALInstant, posesDesRanges, silhouettesSousLePreset, tenueDesGlb } from './posesDesRanges.mjs'
+import { lireLocales, manifesteVoisin, porteeDuPreset, posesALInstant, posesDesRanges, silhouettesSousLePreset, tenueDesGlb } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
 /** Ce qu'une passe de `--porte` tient hors de son tas, en Mo : ses tableaux de sommets et l'éditeur Godot de ses poses
@@ -137,7 +137,7 @@ try {
     throw new Error('--poses-rangees : --tenue ou --preset requis, un seul clip par --clips, --porte, --etats-gabarit et --silhouettes incompatibles')
   }
   ajoutes = positionals
-  if (values.tenue !== undefined) positionals = [...await tenueDesGlb({ manifeste: values.manifeste, preset: values.tenue, locales: lireLocales(values.local) }), ...ajoutes]
+  if (values.tenue !== undefined) positionals = [...await tenueDesGlb({ manifeste: values.manifeste, portee: await porteeDuPreset(values.tenue), locales: lireLocales(values.local) }), ...ajoutes]
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
@@ -198,7 +198,7 @@ if (values.porte) {
 if (values['poses-rangees']) {
   const { silhouettes: declarees = [] } = JSON.parse(readFileSync(values.manifeste, 'utf8'))
   const locales = values.tenue === undefined ? {} : lireLocales(values.local)
-  const publiees = Object.keys(locales).length ? [...await tenueDesGlb({ manifeste: values.manifeste, preset: values.tenue }), ...ajoutes] : null
+  const publiees = Object.keys(locales).length ? [...await tenueDesGlb({ manifeste: values.manifeste, portee: await porteeDuPreset(values.tenue) }), ...ajoutes] : null
   const instant = { base: values.base, manifeste: values.manifeste, preset: values.preset, clip: values.clips.split(',')[0], t: 0, ...(facteurs ? { facteurs } : {}) }
   let bascules = 0
   for (const [passe, poids] of [['neutre', {}], ...declarees.map((nom) => [nom, { [nom]: 1 }])]) {

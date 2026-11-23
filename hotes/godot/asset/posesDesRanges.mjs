@@ -30,7 +30,7 @@ let assetsCharges = null
 const assets = () => (assetsCharges ??= chargerAssets([
   "export { modelesDeLAtelier } from '/hotes/godot/pont/atelier.ts';",
   "export { composerSurLaBase, paletteDesCouleurs } from '/hotes/godot/pont/composition.ts';",
-  "export { porteeDuPreset, tenueDuPreset } from '/hotes/godot/asset/tenue.ts';",
+  "export { porteeDuPreset, tenueDeLaPortee } from '/hotes/godot/asset/tenue.ts';",
   "export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
   "export { osDesRigides } from '/hotes/godot/asset/release.ts';",
   "export { poseDuGabarit } from '/hotes/godot/asset/gabarit.ts';",
@@ -38,7 +38,7 @@ const assets = () => (assetsCharges ??= chargerAssets([
 ]))
 
 /** La portée du preset de personnage `preset` (`porteeDuPreset`, `tenue.ts`). */
-const porteeDuPreset = async (preset) => (await assets()).porteeDuPreset(preset)
+export const porteeDuPreset = async (preset) => (await assets()).porteeDuPreset(preset)
 
 /** Les GLB locaux de `--local <id>=<glb>` (répétable, la syntaxe de `element/construire.py --local`) : `{ id: chemin }`,
  *  chaque id une fois, chaque GLB nommé `<id>.glb` à côté de son manifeste d'élément (`manifesteVoisin`). Lève sinon. */
@@ -54,21 +54,21 @@ export function lireLocales(paires = []) {
 }
 
 /**
- * La tenue du preset de personnage `preset` sur la base de manifeste `manifeste` : les GLB de ce que le jeu monte
- * (`tenueDuPreset`, `tenue.ts`), dans l'ordre de ses lignes, pris au dossier de ce manifeste (`listage`), chaque élément
+ * La tenue de la portée `portee` (`porteeDuPreset`) sur la base de manifeste `manifeste` : les GLB de ce que le jeu monte
+ * (`tenueDeLaPortee`, `tenue.ts`), dans l'ordre de ses lignes, pris au dossier de ce manifeste (`listage`), chaque élément
  * de `locales` (`lireLocales`) lu à son GLB local ; un élément local que le preset ne monte pas vient à la fin. Lève si
  * le listage du dossier a une erreur (un GLB non récupéré : `node hotes/godot/asset/recuperer-modeles.mjs`).
  */
-export async function tenueDesGlb({ manifeste, preset, locales = {} }) {
+export async function tenueDesGlb({ manifeste, portee, locales = {} }) {
   const a = await assets()
   const dossier = dirname(resolve(manifeste))
   const { manifestes, osDesRigides, erreurs } = await listage(dossier)
-  if (erreurs.length) throw new Error(`tenue du preset ${preset} : listage de ${dossier} :\n  ${erreurs.join('\n  ')}`)
+  if (erreurs.length) throw new Error(`tenue : listage de ${dossier} :\n  ${erreurs.join('\n  ')}`)
   for (const [id, glb] of Object.entries(locales)) {
     manifestes[id] = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
     osDesRigides[id] = a.osDesRigides(readFileSync(glb))
   }
-  const ids = a.tenueDuPreset(preset, basename(manifeste, a.fichiersDuModele('').manifeste), manifestes, osDesRigides)
+  const ids = a.tenueDeLaPortee(portee, basename(manifeste, a.fichiersDuModele('').manifeste), manifestes, osDesRigides)
   const glbDe = (id) => locales[id] ?? join(dossier, a.fichiersDuModele(id).glb)
   return [...ids.map(glbDe), ...Object.keys(locales).filter((id) => !ids.includes(id)).map(glbDe)]
 }
@@ -148,7 +148,7 @@ export async function posesALInstant({ base, manifeste, elements, preset, facteu
 if (import.meta.main) {
   console.log = console.error
   const { tenue = false, locales, elements = [], ...demande } = JSON.parse(await text(process.stdin))
-  const glbs = tenue ? [...await tenueDesGlb({ manifeste: demande.manifeste, preset: demande.preset, locales: lireLocales(locales) }), ...elements] : elements
+  const glbs = tenue ? [...await tenueDesGlb({ manifeste: demande.manifeste, portee: await porteeDuPreset(demande.preset), locales: lireLocales(locales) }), ...elements] : elements
   const palette = (await assets()).paletteDesCouleurs((await porteeDuPreset(demande.preset)).couleurs)
   process.stdout.write(JSON.stringify({ ...await posesALInstant({ ...demande, elements: glbs }), palette, glbs }))
 }

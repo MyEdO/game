@@ -1,12 +1,16 @@
 // Types des poses des objets rangés et de la tenue d'un preset : mêmes signatures que posesDesRanges.mjs.
 
+import type { PorteeDeComposition } from '../../../src/noyau/index';
+
 export function manifesteVoisin(glb: string): string | undefined;
 
 export function silhouettesSousLePreset(preset: string, silhouettes?: Record<string, number>): Promise<Record<string, number>>;
 
 export function lireLocales(paires?: readonly string[]): Record<string, string>;
 
-export function tenueDesGlb(demande: { manifeste: string; preset: string; locales?: Record<string, string> }): Promise<string[]>;
+export function porteeDuPreset(preset: string): Promise<PorteeDeComposition>;
+
+export function tenueDesGlb(demande: { manifeste: string; portee: PorteeDeComposition; locales?: Record<string, string> }): Promise<string[]>;
 
 type Instant = { gabarit?: unknown; morphes: Record<string, number>; clip: string; t: number };
 type Pose = number[] | null;
