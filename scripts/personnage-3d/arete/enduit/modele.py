@@ -11,7 +11,7 @@ from maconnerie import JEU_DE_L_AME, PIERRE, Appareil
 from maille import lineaire
 from menuiserie import BARRES, PORTE_DE_PLANCHES, croisee, echelle, vitre, volets
 
-ENDUIT, CLAIRE, ARDOISE = "enduit", "pierre-claire", "ardoise"
+ENDUIT, CLAIRE, ARDOISE, ECU = "enduit", "pierre-claire", "ardoise", "ecu"
 
 
 def prisme(m, R, contour, c, mat):
@@ -31,7 +31,7 @@ class Enduit(Appareil):
         self.E, self.C, self.T = D["ENDUIT"], D["CHAPERON"], D["ENCADREMENT"]
         self.face = self.nu - self.E["retrait"]
         self.flanc = self.haut - self.C["hauteur"]
-        self.parement = self.nu + self.T["saillie"]
+        self.parement = self.face + self.T["saillie"]
 
     def pan_d_enduit(self, a, pied=0.0, tete=None, pas=None):
         """Le corps d'enduit entre les abscisses `a`, une coque close : son dessous à la hauteur `pied` (m, ou
@@ -67,14 +67,6 @@ class Enduit(Appareil):
         faces += [[i * p + j for j in bout] for i in (0, n) for bout in bouts]
         self.m.ajouter(sommets, faces, ENDUIT)
 
-    def pierres_a_nu(self, lacunes):
-        """Les pierres du mur à nu dans les `lacunes` de l'enduit (`PIERRES_A_NU`), en relief sur lui : celles des
-        assises du mur dont le milieu est dans une lacune."""
-        def garde(gauche, droite, pied, tete):
-            x, h = (gauche + droite) / 2, (pied + tete) / 2
-            return any(((x - ca * self.demi) / ra) ** 2 + ((h - ch) / rh) ** 2 <= 1 for ca, ch, ra, rh in lacunes)
-        self.pan((-self.demi, self.demi), (0.0, self.flanc), garde=garde, recul=self.E["a_nu"])
-
     def tableau(self, bord, cote, h, harpe):
         """Le tableau de pierre de la baie au `bord` (abscisse), le mur du côté `cote`, entre les hauteurs `h` : ses
         pierres de taille en harpe (`harpe` : leur longueur, une assise sur deux la première puis la seconde), en
@@ -87,7 +79,7 @@ class Enduit(Appareil):
                      (T["creux"] - self.parement, self.parement - T["creux"]), PIERRE)
         for k, bas, haut in self.assises(h):
             pierre = tuple(sorted((bord - cote * j, bord + cote * harpe[k % 2])))
-            self.pierre(pierre, (bas, haut), self.A["taille"], recul=-T["saillie"])
+            self.pierre(pierre, (bas, haut), self.A["taille"], recul=self.nu - self.parement)
         return ame - cote * T["jeu"]
 
     def porche(self, axe, cotes, V):
@@ -138,10 +130,9 @@ class Enduit(Appareil):
 
 
 def mur(D, m, alea):
-    """Le mur plein : son corps d'enduit sous son chaperon, ses pierres à nu."""
+    """Le mur plein : son corps d'enduit sous son chaperon."""
     A = Enduit(D, m, alea)
     A.pan_d_enduit((-A.demi, A.demi))
-    A.pierres_a_nu(D["PIERRES_A_NU"])
 
 
 def porte(ouverte):
@@ -154,11 +145,15 @@ def porte(ouverte):
 
 
 def ecu(m, R, axe, cote, c, E):
-    """La moitié, du côté `cote` de l'axe `axe`, de l'écu `E` (`PORTAIL["ecu"]`) : une plaque nue, son dos à `c` de
-    l'axe du mur, vers le dehors."""
-    demi_largeur, hauteur = E["taille"]
-    contour = [(axe + cote * demi_largeur * x, E["pied"] + hauteur * y) for x, y in E["contour"]]
-    prisme(m, R, contour, (c, c + E["epaisseur"]), CLAIRE)
+    """La moitié, du côté `cote` de l'axe `axe`, de l'écu `E` (`PORTAIL["ecu"]`), un bouclier à pointe basse : sa
+    bordure de pierre, son dos à `c` de l'axe du mur, vers le dehors, et son champ nu en relief sur elle."""
+    (demi_largeur, hauteur), champ = E["taille"], E["champ"]
+    dessus, milieu = c + E["epaisseur"], E["pied"] + hauteur / 2
+    parts = (1 - champ["marge"] / demi_largeur, 1 - 2 * champ["marge"] / hauteur)
+    bordure = [(axe + cote * demi_largeur * x, E["pied"] + hauteur * y) for x, y in E["contour"]]
+    prisme(m, R, bordure, (c, dessus), PIERRE)
+    prisme(m, R, [(axe + (a - axe) * parts[0], milieu + (h - milieu) * parts[1]) for a, h in bordure],
+           (dessus, dessus + champ["relief"]), ECU)
 
 
 def toit(m, R, alea, a, nu, haut, T):
@@ -218,7 +213,7 @@ def fenetre(close):
         A.R.boite(m, (-demi_baie - portee_a, demi_baie + portee_a), (F["appui"] - haut_a, F["appui"]),
                   (-A.nu, A.nu + saillie_a), PIERRE)
         A.pierre((-demi_baie - portee_l, demi_baie + portee_l), (F["tete"] - A.A["joint"] / 2, F["tete"] + haut_l),
-                 A.A["taille"], recul=-A.T["saillie"])
+                 A.A["taille"], recul=A.nu - A.parement)
         croisee(m, A.R, demi_baie, F["appui"], F["tete"])
         vitre(m, A.R, demi_baie, F["appui"], F["tete"])
         volets(m, A.R, demi_baie, (F["appui"] + F["jour"], F["tete"] + F["recouvrement"]),

@@ -24,6 +24,11 @@
       "matiere": "prop--albatre"
     },
     {
+      "nom": "ecu",
+      "palette": "vet2",
+      "matiere": "prop--albatre"
+    },
+    {
       "nom": "ardoise",
       "palette": "vet2",
       "matiere": "prop--prop-ardoise"
@@ -65,7 +70,7 @@
     }
   ],
   "glb": {
-    "sha256": "ab5bb4e3c26a5e5a14548944807f53f45456b28fef7eb2c085c7a04ae9b2d954",
-    "octets": 649476
+    "sha256": "9a8f5eff01d260afa05446cde52b6caaea70501110b5b625dd972138372140dc",
+    "octets": 650292
   }
 }
