@@ -40,6 +40,7 @@ export const scenario: TestScenario = {
       encounters: [
         {
           id: 'enc-diligence',
+          hidden: true,
           members: [{ entityId: 'diligence', side: 'ennemi' }],
           enemies: [{ creature: { id: 'humain' }, pos: { x: 10, y: 4 }, label: 'Brigand' }],
         },
