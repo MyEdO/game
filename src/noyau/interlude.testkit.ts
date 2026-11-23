@@ -1,7 +1,8 @@
 /**
  * Pratiquer une Activité d'interlude comme un siège (LDB 23 l.5) : la composer par `fenetreChoisir('interlude', axe,
  * valeur, héros)` — l'Activité, puis ses cibles, son option d'Entraînement, son ouvrage et ses qualités —, puis la
- * pratiquer. Le premier choix refusé se dit, et rien ne se joue après lui.
+ * pratiquer. Le premier choix refusé se dit, et rien ne se joue après lui. Puis le banc d'un interlude ouvert
+ * (`bancDeLInterlude`).
  */
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -9,6 +10,11 @@ import type { ArgumentsDuChoix } from './choixDesFenetres';
 import { refusDuChoix } from './choixDeFenetre';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { InterludeState } from './interludeFlow';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { createHero } from '../engine/character';
+import { withBourseMoney } from '../engine/bourse';
+import { ouvrirLeBanc } from './banc.testkit';
+import { draineCascade } from './cascade.testkit';
 
 /** Ce que compose l'Activité : ses cibles, l'option d'Entraînement (`cleDEntrainement`), l'ouvrage à engager et ses
  *  Atouts et Défauts. */
@@ -42,4 +48,15 @@ export function horsComposition(i: InterludeState | null | undefined): Interlude
     delete copie.composition;
     return [id, copie];
   })) };
+}
+
+/** Le banc d'un interlude d'une semaine ouvert, ses dés d'Événement posés, et l'id de son héros nain « Forgeron » de
+ *  carrière `carriere`, Métier (forgeron) appris, 10 CO en bourse. */
+export function bancDeLInterlude(carriere = 'artisan') {
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: carriere, label: 'Forgeron', seed: 1602 }), { gold: 10, silver: 0, brass: 0 }, idsDeTest);
+  if (!h.skills.some((s) => s.id === 'metier')) h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
+  const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], screen: 'interlude' } });
+  banc.actions.ouvrirLInterlude(1);
+  draineCascade(banc.getState);
+  return { banc, id: h.id };
 }

@@ -170,7 +170,7 @@ cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObje
 - `fiche-possessions-faveur` (Berta) : « Faveurs dues » ; la Faveur pressée dit à qui et pour quoi, où en est son
   solde, et offre « Rompre la Faveur » (`rompreLaFaveur(heroId, favorId)`), sa conséquence dite au-dessus de la
   plaque (LDB 23 l.141-151 ; `src/noyau/favorFlow.ts` ; règle maison `faveur-rumeur-se-repand`). Le solde se joue à
-  l'interlude (`solderLaFaveur`, `src/noyau/interludeEnVue.ts:92`), pas sur la fiche.
+  l'interlude (`solderLaFaveur`, `activitesDuHeros`, `src/noyau/interludeEnVue.ts`), pas sur la fiche.
 - À valider : « Panoplies » à l'écran comme au code (le noyau dit encore « set d’armes », `src/i18n/messages/fr.ts`
   `pf.loadoutLast`, que le refus de la maquette ne recopie plus) ; figure générique pour les deux héros ; noms,
   objets et prix d'exemple ; l'échoppe (troc, réparation) revient à la famille `commerce`.

@@ -49,7 +49,7 @@ import {
   enTeteDuPorteur,
   ficheDuPorteur,
   gestesDeLObjet,
-  interludeEnVue,
+  libelleDuDepot,
   porteurParId,
   locationLabel,
   refLabel,
@@ -61,6 +61,7 @@ import {
   type FaitApplique,
   type Equipe,
   type Money,
+  type CoutDeLaValeur,
   type EntreeDeLaFiche,
   type IconId,
   type IdDeCouche,
@@ -479,7 +480,7 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
     ...marche(p),
     ...voyage(p),
     ...recitDuVoyage(p),
-    ...herosDeLInterlude(etat),
+    ...herosDeLInterlude(p),
     ...champDeBataille(etat),
     ...nuitDuRepos(p, cle),
     ...jetsRestants,
@@ -564,13 +565,17 @@ const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libel
 /** Un choix de valeurs en boutons, en liste au-delà de `CHOIX_EN_BOUTONS`. */
 const typeDuChoix = (n: number): Choix['type'] => (n > CHOIX_EN_BOUTONS ? 'liste' : 'choix');
 
-/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
- *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, la sienne pressée et chacune
- *  fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur verbe, un bouton sans cible, un
- *  choix de ses cibles sinon, fermée avec sa raison ; son dépôt ; puis les dépôts en banque, chacun le bouton de son
- *  retrait. */
-function herosDeLInterlude(etat: Jeu): Element[] {
-  const itl = interludeEnVue(etat);
+/** Un nom dit avec ce qu'il coûte (`null` : rien), en PX ou en prix. */
+const avecCout = (nom: string, cout: CoutDeLaValeur | null): string =>
+  (cout === null ? nom : t('ecran.aCout', { nom, prix: 'px' in cout ? t('ecran.px', { px: cout.px }) : formatMoney(cout.prix) }));
+
+/** L'interlude ouvert (`Projection.interlude`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
+ *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, chaque valeur dite avec son coût,
+ *  la sienne pressée et chacune fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur
+ *  verbe, un bouton sans cible, un choix de ses cibles sinon, chacune dite avec son prix et fermée avec sa raison ; son
+ *  dépôt, chaque genre nommé ; puis les dépôts en banque (`libelleDuDepot`), chacun le bouton de son retrait. */
+function herosDeLInterlude(p: Projection): Element[] {
+  const itl = p.interlude;
   if (!itl) return [];
   return [
     ligne('repit/semaines', t('ecran.repit.semaines', { semaines: itl.semaines, s: pluriel(itl.semaines) })),
@@ -579,23 +584,23 @@ function herosDeLInterlude(etat: Jeu): Element[] {
       elements: [
         puce('restantes', t('ecran.repit.restantes', { restantes: h.restantes, recues: h.recues }), null),
         puce('px', t('ecran.repit.px'), String(h.px)),
-        puce('bourse', t('ecran.repit.bourse'), h.bourse),
-        ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
+        puce('bourse', t('ecran.repit.bourse'), formatMoney(h.bourse)),
+        ...(h.evenement ? [puce('evenement', h.evenement.nom, null)] : []),
         ...h.composition.map((c): Choix => ({
           type: typeDuChoix(c.valeurs.length), id: c.axe, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
-          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, v.libelle, v.geste, v.refus, v.choisie)),
+          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, avecCout(v.libelle, v.cout), v.geste, v.refus, v.choisie)),
         })),
         ...(h.pratiquer ? [boutonDuNoyau('pratiquer', h.pratiquer)] : []),
         ...h.activites.map((a): Bouton | Choix => (a.cible
-          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
+          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDeGeste(`${a.id}/${i}`, avecCout(g.libelle, g.cout), g.geste, g.refus)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
         formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
-          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres),
+          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres.map((g) => ({ ...g, libelle: t(`interlude.genre.${g.valeur}`) }))),
           { type: 'saisieNombre', id: 'montant', ton: 'neutre', nom: 'montant', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
         ]),
       ],
     })),
-    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
+    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDeGeste(String(i), libelleDuDepot(d), d.geste, d.refus)) } satisfies Entite] : []),
   ];
 }
 
@@ -732,26 +737,25 @@ function recitDuVoyage(p: Projection): Element[] {
 function echoppe(p: Projection): Element[] {
   const m = p.marchand;
   if (!m) return [];
-  const avecPrix = (nom: string, prix: Money | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix: formatMoney(prix) }));
   return [
     puce('bourse', t('ecran.bourse'), formatMoney(m.bourse)),
     ...m.etal.map((f): Entite => ({
       type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
       elements: f.articles.map((a) => {
         const nom = a.recoursDeGuilde ? t('mf.guildeArticleARechercher', { article: a.nom }) : a.nom;
-        return boutonDeGeste(a.id, avecPrix(nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
+        return boutonDeGeste(a.id, avecCout(nom, a.prix && { prix: a.prix }), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
       }),
     })),
     {
       type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
       elements: [
-        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecCout(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal && { prix: l.sousTotal }), l.oter, null)),
         boutonDeGeste('payer', t('ecran.echoppe.payer', { total: formatMoney(m.panier.total) }), m.panier.payer.geste, m.panier.payer.refus),
       ],
     },
     ...m.vente.heros.map((h): Entite => ({
       type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
-      elements: h.possessions.map((o) => boutonDeGeste(o.uid, avecPrix(o.nom, o.gain), o.basculer, o.refus, o.auLot)),
+      elements: h.possessions.map((o) => boutonDeGeste(o.uid, avecCout(o.nom, { prix: o.gain }), o.basculer, o.refus, o.auLot)),
     })),
     boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: formatMoney(m.vente.total) }), m.vente.vendre.geste, m.vente.vendre.refus),
   ];

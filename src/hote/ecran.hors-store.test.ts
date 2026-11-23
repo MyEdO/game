@@ -36,6 +36,10 @@ import { resetRule, setRule } from '../engine/policy';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { ouvrirDialogue } from '../noyau/dialogue';
 import type { Dialogue } from '../noyau/monde/scene';
+import { bancDeLInterlude } from '../noyau/interlude.testkit';
+import { craftCatalog, learnableTalents, orderCatalog } from '../engine/activities';
+import { formatMoney, fromBrass } from '../engine/money';
+import type { Choix } from './elements';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -467,5 +471,25 @@ describe('la conversation à l’écran (`Projection.conversation`, #4574)', () 
       ['reponse/chambre', 'Prendre une chambre 5/–', 'Pas assez d’argent pour cette option.'],
       ['reponse/partir', 'Partir', null],
     ]);
+  });
+});
+
+describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
+  /** Le héros de l'interlude à l'écran, chacun de ses choix par son libellé. */
+  const choixDuHeros = (etat: Jeu, id: string) => {
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const heros = zones['fenetre.corps'].find((e): e is Entite => e.id === `repit/${id}`)!;
+    return (id: string) => heros.elements.find((e): e is Choix => e.id === id)!.valeurs.map((v) => v.libelle);
+  };
+
+  it('chaque valeur dite avec son coût, en PX ou en prix, par le même composeur que l’échoppe', () => {
+    const { banc, id } = bancDeLInterlude();
+    const article = (nom: string, prix: string) => t('ecran.aCout', { nom, prix });
+    expect(choixDuHeros(banc.getState(), id)('order'), 'chaque Commande et son prix').toEqual(orderCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.priceBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'craft', id);
+    expect(choixDuHeros(banc.getState(), id)('ouvrage'), 'chaque ouvrage et ses matériaux').toEqual(craftCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.materialsBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'learn', id);
+    const talents = learnableTalents(banc.getState().party[0]);
+    expect(choixDuHeros(banc.getState(), id)('talent'), 'chaque Talent et ses PX').toEqual(talents.map((o) => article(o.label, t('ecran.px', { px: o.xpCost }))));
   });
 });

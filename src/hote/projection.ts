@@ -39,6 +39,7 @@ import {
   recitEnVue,
   reposEnVue,
   marchandEnVue,
+  interludeEnVue,
   marcheEnVue,
   conversationEnVue,
   toDate,
@@ -50,6 +51,7 @@ import {
   type RecitEnVue,
   type ReposEnVue,
   type MarchandEnVue,
+  type InterludeEnVue,
   type MarcheEnVue,
   type ConversationEnVue,
   type Combatant,
@@ -157,8 +159,8 @@ export interface EtapeProjetee {
 
 /** La projection : ce que la vue montre, et rien de plus. Les listes `cibles`, `offres`, `voisins`, `gestes` et
  *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage`, `carte`,
- *  `recit`, `repos`, `marchand`, `marche` et `conversation` ne le sont pas, la donnée de la fenêtre, du groupe, de la
- *  carte, du trajet, de l'échoppe, du marché ou du dialogue les borne. */
+ *  `recit`, `repos`, `marchand`, `marche`, `interlude` et `conversation` ne le sont pas, la donnée de la fenêtre, du
+ *  groupe, de la carte, du trajet, de l'échoppe, du marché, de l'interlude ou du dialogue les borne. */
 export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
@@ -177,6 +179,8 @@ export interface Projection {
   marchand: MarchandEnVue | null;
   /** Le marché de cargaison qui tient la main (`marcheEnVue`), `null` sans lui. */
   marche: MarcheEnVue | null;
+  /** L'interlude qui tient la main (`interludeEnVue`), `null` sans lui. */
+  interlude: InterludeEnVue | null;
   /** La conversation en cours (`conversationEnVue`), `null` hors dialogue. */
   conversation: ConversationEnVue | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
@@ -401,6 +405,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     repos: reposEnVue(etat),
     marchand: marchandEnVue(etat),
     marche: marcheEnVue(etat),
+    interlude: interludeEnVue(etat),
     conversation: conversationEnVue(etat),
     fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
