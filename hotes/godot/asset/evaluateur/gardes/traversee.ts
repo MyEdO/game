@@ -235,14 +235,16 @@ function releverDans(pose: Pick<Pose, 'positions'>, corps: ReadonlySet<Mesh>, en
 }
 
 /** Les couches de `corps` et des meshes skinnés de chacun des `elements` liées dans la pose `repos` ; `couvre(e, f)` dit
- *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`), `endroit` rend celui d'un mesh d'élément (`endroitDe`). */
+ *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`), `endroit` rend celui d'un mesh d'élément (`endroitDe`),
+ *  `liee(sujet, couverture)` dit si une paire se relève (toutes par défaut, #4814). */
 export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh[] }>(
   corps: readonly Mesh[], elements: readonly E[], repos: Pick<Pose, 'positions'>, couvre: (e: E, f: E) => boolean, endroit: (m: Mesh) => ArrayLike<number>,
+  liee: (sujet: Mesh, couverture: Mesh) => boolean = () => true,
 ): CouchesAuRepos {
   const relever = releverDans(repos, new Set(corps), endroit);
   const parPaire = elements.flatMap((e) => {
     const sujets = [...corps, ...elements.filter((f) => couvre(e, f)).flatMap((f) => f.meshes)];
-    return e.meshes.flatMap((couverture) => sujets.map((sujet) => relever(sujet, couverture)));
+    return e.meshes.flatMap((couverture) => sujets.flatMap((sujet) => (liee(sujet, couverture) ? [relever(sujet, couverture)] : [])));
   });
   return {
     liaisons: parPaire.flatMap((r) => r.liaison ?? []),

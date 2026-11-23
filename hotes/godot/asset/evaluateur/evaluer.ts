@@ -14,6 +14,7 @@ import { estFormeDeTete } from '../../../../src/lib/formesDeTete.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import { libellesDesMeshes, type Ecart } from './ecart.ts';
+import { deLaPortee } from './temoin.ts';
 import { echantillonner, instants, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
 import { rangerLesRigides, type Rangeur } from './rangement.ts';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
@@ -106,6 +107,10 @@ export interface EntreeDEvaluation {
   /** Les poses des rigides que le jeu range, au repos puis à chaque instant échantillonné (`rangement.ts`) ; sans lui,
    *  tout rigide reste pendu à l'os de sa prise. */
   readonly ranger?: Rangeur;
+  /** Les rangs, dans `elements`, des éléments de la portée (#4814) : les gardes ne mesurent que ce qui nomme un mesh de
+   *  ces éléments ou de ceux que la pile leur fait retenir (`ResolutionDePile`), de proche en proche, et seuls ces
+   *  écarts se rendent (`deLaPortee`) ; sans elle, tout se mesure. */
+  readonly portee?: readonly number[];
 }
 
 export interface MesuresDuClip {
@@ -118,6 +123,8 @@ export interface MesuresDuClip {
 
 export interface FicheDeMesures {
   readonly ecarts: readonly Ecart[];
+  /** Les libellés des meshes de la portée (`EntreeDEvaluation.portee`), absents sans elle. */
+  readonly portee?: readonly string[];
   readonly mesures: {
     /** Les triangles assemblés, et ceux de chaque mesh de la base puis des éléments, dans leur ordre, sous son libellé (`libellesDesMeshes`). */
     readonly triangles: { readonly total: number; readonly parMesh: readonly { readonly mesh: string; readonly triangles: number }[] };
@@ -171,6 +178,21 @@ export const poidsDesFormesDe = (manifeste: ManifesteDeBase | null, facteurs: Ga
   ...silhouettes,
   ...(manifeste?.gabarit ? poidsDuGabarit(facteurs, manifeste.gabarit.bornes, silhouettes) : {}),
 });
+
+/** Les rangs des éléments `portee` et de ceux dont la pile fait retenir une pièce par l'une des leurs (`retenues`,
+ *  `ResolutionDePile`), de proche en proche ; le corps, sans rang, n'en est pas (#4814). */
+function etendreLaPortee<P extends { readonly element: number | null }>(portee: readonly number[], retenues: ReadonlyMap<P, readonly P[]>): Set<number> {
+  const rangs = new Set(portee);
+  for (let ajout = true; ajout;) {
+    ajout = false;
+    for (const [f, par] of retenues) {
+      if (f.element === null || rangs.has(f.element) || !par.some((e) => e.element !== null && rangs.has(e.element))) continue;
+      rangs.add(f.element);
+      ajout = true;
+    }
+  }
+  return rangs;
+}
 
 export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures> {
   const facteurs: GabaritResolu = { ...FACTEURS_NEUTRES, ...entree.facteurs };
@@ -237,16 +259,16 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const declarees = elements.flatMap((e, k) => {
     const c = entree.couches?.[k];
-    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire' }] : [];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire', element: k }] : [];
   });
   const montre = sansLesZonesMasquees(declarees, zone);
   const peau = peauDeLaTenue(corps, declarees, zone);
   const corpsMontre = montre(corps, RANG_DU_CORPS);
-  const pieceDe = (rang: number, montres: readonly SkinnedMesh[], accessoire: boolean) => ({
-    rang, accessoire, meshes: montres,
+  const pieceDe = (rang: number, montres: readonly SkinnedMesh[], accessoire: boolean, element: number | null) => ({
+    rang, accessoire, meshes: montres, element,
     neutres: montres.map((m) => { const positions = neutre.get(m) as Float32Array; return { positions, indices: Uint32Array.from(indicesDe(m, positions.length / 3)) }; }),
   });
-  const declareesMontrees = declarees.map((d) => pieceDe(d.rang, montre(d.meshes, d.rang), d.accessoire));
+  const declareesMontrees = declarees.map((d) => pieceDe(d.rang, montre(d.meshes, d.rang), d.accessoire, d.element));
   const visibles = new Set([...corpsMontre, ...declareesMontrees.flatMap((d) => d.meshes)]);
   const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
 
@@ -255,7 +277,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
   const voisines = zonesVoisines(corps, zone, { positions: fondue });
-  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);
+  const { bilan: pile, retenues } = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false, null), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);
+  const meshesDeLaPortee = entree.portee ? new Set([...etendreLaPortee(entree.portee, retenues)].flatMap((k) => elements[k].meshes)) : null;
+  /** Vrai sans portée, ou si l'un des `liees` est de la portée. Sous portée, les gardes du corps seul qui coûtent
+   *  (`mesurerMembres`, `poserPieds`) ne se jouent pas : leurs écarts ne nomment aucun mesh d'élément. */
+  const enPortee = (...liees: readonly Mesh[]): boolean => meshesDeLaPortee === null || liees.some((m) => meshesDeLaPortee.has(m));
   base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
@@ -282,7 +308,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
   const poignets = suivreLesPoignets(base.scene, manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.secondaire.os] : []);
-  const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
+  const aretes = new Map(meshes.filter((m) => enPortee(m)).map((m) => [m, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, libelle, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
   const etirements: MesureDEtirement[] = [];
@@ -294,11 +320,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     return [m, endroitDe({ positions, indices: indicesDe(m, positions.length / 3) }, peaux)];
   }));
   const endroit = (m: Mesh): Uint32Array => endroits.get(m) as Uint32Array;
-  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre, endroit);
+  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre, endroit, enPortee);
   const traversees: TraverseeDUnEchantillon[] = [];
   const vetementsDesPaires = declareesMontrees.flatMap((d) => d.meshes);
   const indicesDuCorps = (m: Mesh) => indicesDe(m, positionsDe(repos, m).length / 3);
-  const horsDeZone = pairesHorsDeZone(corpsMontre, vetementsDesPaires, zone, voisines, endroit);
+  const horsDeZone = pairesHorsDeZone(corpsMontre, vetementsDesPaires, zone, voisines, endroit).filter((p) => enPortee(p.membre, p.vetement));
   const peauxHorsDeZone = pairesHorsDeZone(corpsMontre, corps, zone, voisines, indicesDuCorps);
   const membresSousVetement: MembreDUnEchantillon[] = [];
   const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
@@ -313,26 +339,27 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
       const contre = (surfaces: readonly Mesh[], triangles: (vetement: Mesh) => ArrayLike<number>) =>
         pairesHorsDeZone(ranges, surfaces.filter((v) => !offerts.has(v)), zoneDuMembre, voisines, triangles).map((p) => ({ ...p, objet: libelle(p.membre) }));
-      paires.vetements.push(...contre(vetementsDesPaires, endroit));
-      paires.peaux.push(...contre(corps, indicesDuCorps));
+      const vetements = contre(vetementsDesPaires, endroit).filter((p) => enPortee(p.membre, p.vetement));
+      paires.vetements.push(...vetements);
+      if (vetements.length) paires.peaux.push(...contre(corps, indicesDuCorps));
     }
     return paires;
   };
   const rigidesEnfoncesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
     const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
-    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).enfoncements;
+    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit, enPortee).enfoncements;
   });
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
     traversees.push(...mesurerTraversee(couches.liaisons, e));
     const ranges = pairesDesRanges();
     membresSousVetement.push(...mesurerMembresDansUnVetement([...horsDeZone, ...ranges.vetements], [...peauxHorsDeZone, ...ranges.peaux], e));
-    membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));
+    if (!meshesDeLaPortee) membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     suiviDesChaines.echantillon(e);
     amplitudes.echantillon(e);
     poignets.echantillon(e);
-    if (manifeste && e.clip === manifeste.clips.marche) posesDesPieds.push(...poserPieds(e, surfaces, racine));
+    if (manifeste && !meshesDeLaPortee && e.clip === manifeste.clips.marche) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
@@ -341,8 +368,9 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   ecarts.push(...gardeRigideRangeAuRepos(rigidesEnfoncesAuRepos, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
+  const portee = meshesDeLaPortee && new Set([...meshesDeLaPortee].map(libelle));
   return {
-    ecarts,
+    ...(portee ? { ecarts: ecarts.filter((e) => deLaPortee(e, portee)), portee: [...portee] } : { ecarts }),
     mesures: {
       triangles: { total: parMesh.reduce((s, m) => s + m.triangles, 0), parMesh },
       sommets: meshes.reduce((s, m) => s + m.geometry.attributes.position.count, 0),

@@ -34,6 +34,7 @@ import { gardeEnroulement } from './gardes/enroulement.ts';
 import { gardeTranchantDuRigide, TOLERANCE_TRANCHANT_M } from './gardes/tranchantDuRigide.ts';
 import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
 import { libellesDesMeshes } from './ecart.ts';
+import { deLaPortee } from './temoin.ts';
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
@@ -934,6 +935,17 @@ describe('libellesDesMeshes (#3229)', () => {
       (await evaluer({ base: octets, elements: [octets], couches, pas: 0.5, plafond: 1 })).ecarts.filter((e) => e.garde === 'budget').map((e) => e.valeur);
     expect(await budget([null])).toEqual([2]);
     expect(await budget([{ couche: 'tenue', couvre: ['torse'] }])).toEqual([]);
+  });
+
+  it('sous portée, la fiche liste les meshes de ses éléments et ne rend que les écarts complets qui en nomment un (#4814)', async () => {
+    const octets = glbFabrique({ clips: { Repos: [0, 0] } });
+    const entree = { base: octets, elements: [octets, octets], pas: 0.5, plafond: 1 };
+    const [complete, sous] = [await evaluer(entree), await evaluer({ ...entree, portee: [1] })];
+    expect(complete.portee).toBeUndefined();
+    expect(sous.portee).toEqual(['élément 2/Corps#0']);
+    expect(sous.ecarts).toEqual(complete.ecarts.filter((e) => deLaPortee(e, new Set(sous.portee))));
+    expect(sous.ecarts.map((e) => e.garde)).toEqual(['budget']);
+    expect(complete.ecarts.length).toBeGreaterThan(sous.ecarts.length);
   });
 });
 
