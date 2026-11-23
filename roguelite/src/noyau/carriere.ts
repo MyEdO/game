@@ -3,12 +3,18 @@
  */
 import { advanceCost, isCareerLevelComplete, careerChangeCost, talentCost } from '../../../src/engine/advancement';
 import { talentMaxReached } from '../../../src/engine/acquisitionTalents';
-import { spellCost } from '../../../src/engine/grimoire';
+import { spellCost, talentOuvre } from '../../../src/engine/grimoire';
+import { spellSupportOf } from '../../../src/engine/spellspec';
+import { castingKindOf } from '../../../src/engine/combatFeatures/dispatch';
+import { emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, type ChoixDeDotation } from '../../../src/engine/trappingChoices';
+import { doterLePorteur } from '../../../src/engine/bourse';
+import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
+import { makeRNG } from '../../../src/engine/dice';
 import { availableChars, skillSlots, talentSlots, designationsFor, parseRefKey } from '../../../src/engine/careerSlots';
 import { effectiveChar } from '../../../src/engine/characteristics';
 import { testValue } from '../../../src/engine/skills';
-import { byId, findSpellById, findTalentById, levelsForCareer, refLabel } from '../../../src/data';
-import type { Combatant, CharKey } from '../../../src/engine/types';
+import { byId, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../src/data';
+import type { Combatant, CharKey, ItemInstance } from '../../../src/engine/types';
 import { libelleDeCarac } from './heros';
 import { auHameau, type Geste } from './hameau';
 
@@ -72,6 +78,9 @@ export function talentDeCombat(id: string): boolean {
 export const talentsAcquis = (c: Combatant): { id: string; label: string; fois: number; combat: boolean }[] =>
   c.talents.map((t) => ({ id: t.talentId, label: refLabel('talents', { id: t.talentId, ...(t.spec ? { spec: t.spec } : {}) }), fois: t.times, combat: talentDeCombat(t.talentId) }));
 
+/** Libellé d'un Talent, sa spécialisation comprise (`talents.json`). */
+export const nomDeTalent = (ref: { id: string; spec?: string }): string => refLabel('talents', ref);
+
 /** Ce que le livre dit d'un Talent (`talents.json`) : son texte, verbatim. */
 export const texteDuTalent = (id: string): string => findTalentById(id)?.desc ?? '';
 
@@ -112,4 +121,25 @@ export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Co
     porte = rendu;
   }
   return porte;
+}
+
+/** Les sorts ou miracles que le Talent `talent` spécialisé en `spec` ouvre (`talentOuvre`), du seul domaine ou culte
+ *  `spec`, et que le moteur joue (`spellSupportOf` mécanique ou partiel). */
+export const sortsDeLaVoie = (talent: 'magie-des-arcanes' | 'invocation', spec: string): string[] => {
+  const kind = castingKindOf(talent)!;
+  return spells.filter((s) => talentOuvre({ kind, spec }, s) && (s.family !== 'arcane' || s.domainId?.id === spec) && spellSupportOf(s) !== 'narratif').map((s) => s.id);
+};
+
+/** Les objets que les niveaux 2 à `niveau` de la carrière de `c` dotent : la branche de chaque `{pick, of}` tirée à la
+ *  graine `graine` ; un joker d'arme reste sans objet, comme à la création (`createHero`). LDB 07 */
+export function dotationDesNiveaux(c: Combatant, niveau: number, graine: number): ItemInstance[] {
+  const dotations = levelsForCareer(c.career ?? '').filter((l) => l.level > 1 && l.level <= niveau).flatMap((l) => l.trappings);
+  if (!dotations.length) return [];
+  const rng = makeRNG(graine);
+  const choix: ChoixDeDotation = {};
+  for (const e of emplacementsDeDotation(dotations)) {
+    const valeurs = e.sorte === 'branches' ? valeursDeLEmplacement(e, c) : [];
+    if (valeurs.length) choix[e.adresse] = valeurs[rng.int(0, valeurs.length - 1)];
+  }
+  return doterLePorteur(resolveTrappingChoices(dotations, choix), rng, fabriqueLocale(`n${graine}`)).items;
 }

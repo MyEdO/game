@@ -88,7 +88,7 @@ const sort = (id: string, etat: string, action?: string) => { const f = ficheDuS
 /** Les sorts que la voie du héros lui ouvre, à apprendre : chacun avec son prix ; avant le Talent de la voie, ce
  *  qui les ouvrira. */
 export function sortsAApprendre(h: J.Heros): string {
-  const voie = J.voieDe(h.carriere);
+  const voie = J.voieDe(h.carriere, h.c);
   if (!voie) return '';
   const appris = h.c.talents.some((t) => t.talentId === voie.talent);
   const liste = !appris ? glose(`Au niveau 2, le Talent ${esc(voie.nom)} ouvre ces sorts.`) : voie.sorts.filter((id) => !(h.c.spells ?? []).includes(id)).map((id) => {
@@ -101,7 +101,7 @@ export function sortsAApprendre(h: J.Heros): string {
 
 /** L'onglet des sorts : au hameau, ceux qui s'apprennent d'abord ; puis ceux qu'il connaît. */
 function ongletSorts(h: J.Heros, progresse: boolean): string {
-  const voie = J.voieDe(h.carriere);
+  const voie = J.voieDe(h.carriere, h.c);
   const connus = `<div class="rub">Connus ${glose('lancés seuls en combat')}</div>${(h.c.spells ?? []).map((id) => sort(id, ficheDuSort(id).nature || 'Connu')).join('') || glose('aucun')}`;
   return progresse ? `${sortsAApprendre(h)}${connus}` : `${connus}${voie ? `<div class="rub">${esc(voie.nom)}</div>${glose(`Au hameau, la salle d’armes enseigne ${esc(voie.nom)}.`)}` : ''}`;
 }
@@ -180,7 +180,7 @@ export function ecranDuHeros(ctx: Contexte, id: string, onglet: Onglet | null): 
   const enRoute = !!e.expedition?.groupe.includes(h.c.id);
   const progresse = !e.expedition && J.niveauMaximal(e) > 0;
   const o = J.offresDeCarriere(h);
-  const lanceur = !!J.voieDe(h.carriere) || (h.c.spells ?? []).length > 0;
+  const lanceur = !!J.voieDe(h.carriere, h.c) || (h.c.spells ?? []).length > 0;
   const noms: [Onglet, string][] = [['talents', 'Talents'], ...(lanceur ? [['sorts', 'Sorts'] as [Onglet, string]] : []), ['equipement', 'Équipement']];
   const actif: Onglet = onglet && noms.some(([k]) => k === onglet) ? onglet : progresse ? 'talents' : 'equipement';
   const droite = actif === 'talents' ? ongletTalents(e, h, o, progresse) : actif === 'sorts' ? ongletSorts(h, progresse) : ongletEquipement(e, h);

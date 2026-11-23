@@ -1,7 +1,7 @@
 /**
  * La forge et le relais : équipement et provisions.
  */
-import { refusDUsage, qualitesDites, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, type ArticleDuCatalogue, type PoidsDArmure, type Qualite } from '../noyau';
+import { refusDUsage, qualitesDites, doter, armureRapide, articleDuCatalogue, drPerdusSousLArmure, ARMURES_RAPIDES, type ArticleDuCatalogue, type ItemInstance, type PoidsDArmure, type Qualite } from '../noyau';
 
 import { ARMES_DE_FORGE, ARMURES_DE_FORGE, ECHELLE_DES_PRIX, MAIN_SECONDAIRE, MUNITIONS, PROVISIONS } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -133,22 +133,54 @@ function reprendreLaMainSecondaire(e: Etat, h: Heros, loadout: string, armeId: s
   if (libre) auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, loadout, 'secondaire', libre.uid] }]);
 }
 
-/** Remet au héros les objets `ids` du catalogue, et leurs munitions, et les lui fait tenir : une arme à distance au
- *  set de tir, à sa première main libre ; un objet de main secondaire au set de mêlée ; une autre arme en main
- *  principale. Ce qu'ils remplacent reste à son sac. */
+/** Remet au héros les objets `ids` du catalogue et les lui fait tenir (`tenirLesObjets`). */
 export function remettreLesObjets(e: Etat, h: Heros, ids: readonly string[]): void {
-  const neufs = doter([...ids, ...new Set(ids.flatMap((id) => (MUNITIONS[id] ? [MUNITIONS[id]] : [])))], `dotation${e.graine++}`);
-  h.c = { ...h.c, items: [...(h.c.items ?? []), ...neufs] };
+  tenirLesObjets(e, h, doter(ids, `dotation${e.graine++}`));
+}
+
+const estUneArme = (i: ItemInstance): boolean => !!i.trappingId && (i.kind === 'melee' || i.kind === 'distance');
+
+/** Donne au héros les objets `neufs`, et les munitions de leurs armes qu'il ne porte pas, lui fait porter leurs
+ *  armures par le noyau (`equiperLObjet`) et tenir leurs armes : une arme à distance au set de tir, à sa première main libre ; un objet de main
+ *  secondaire au set de mêlée ; une autre arme en main principale. Ce qu'ils remplacent reste à son sac. */
+export function tenirLesObjets(e: Etat, h: Heros, neufs: readonly ItemInstance[]): void {
+  const armes = neufs.filter(estUneArme);
+  const portes = [...(h.c.items ?? []), ...neufs.map((i) => (i.kind === 'armor' ? { ...i, equipped: false } : i))];
+  const munitions = [...new Set(armes.flatMap((i) => MUNITIONS[i.trappingId!] ?? []))].filter((m) => !portes.some((i) => i.trappingId === m));
+  h.c = { ...h.c, items: [...portes, ...(munitions.length ? doter(munitions, `munitions${e.graine++}`) : [])] };
   const { melee, tir } = sets(h);
   const garnis = new Set<string>();
-  const gestes = ids.flatMap((id, i) => {
-    const tenue = article(id).tenue;
+  const gestes = armes.flatMap((it) => {
+    const tenue = article(it.trappingId!).tenue;
     const lo = tenue === 'tir' ? tir : melee;
     if (!lo) return [];
     const slot = tenue === 'secondaire' || (tenue === 'tir' && (lo.main || garnis.has(lo.id))) ? 'secondaire' : 'main';
     garnis.add(lo.id);
-    return [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[i].uid] }];
+    return [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, it.uid] }];
   });
+  const armures = neufs.filter((i) => i.kind === 'armor').map((i) => ({ verbe: 'equiperLObjet', args: [i.uid] }));
+  if (gestes.length || armures.length) auNoyau(e, h, [...gestes, ...armures]);
+}
+
+const degatsDe = (i: ItemInstance): number => (i.damage as { flat?: number } | undefined)?.flat ?? 0;
+
+/** Le héros prend ses armes de mêlée : en main principale, l'arme que sa carrière nomme (`spec`) plutôt que son
+ *  double générique ; s'il manie deux armes (`manieDeuxArmes`), sa meilleure autre arme à une main en main secondaire,
+ *  à la place d'une arme moindre. */
+export function prendreSesArmes(e: Etat, h: Heros): void {
+  const lo = sets(h).melee;
+  if (!lo) return;
+  const items = h.c.items ?? [];
+  const tenue = objetDe(h, lo.main);
+  const nommee = tenue && !tenue.spec ? items.find((i) => i.trappingId === tenue.trappingId && i.spec && i.uid !== tenue.uid) : undefined;
+  const main = nommee?.uid ?? lo.main;
+  const gestes = nommee ? [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, 'main', nommee.uid] }] : [];
+  const secondaire = objetDe(h, lo.secondaire);
+  if (manieDeuxArmes(h) && !(secondaire?.trappingId && estUnBouclier(secondaire.trappingId))) {
+    const tenus = new Set((h.c.loadouts ?? []).flatMap((l) => (l.id === lo.id ? [main] : [l.main, l.secondaire])));
+    const meilleure = items.filter((i) => i.kind === 'melee' && (i.hands ?? 1) === 1 && !tenus.has(i.uid)).sort((a, b) => degatsDe(b) - degatsDe(a))[0];
+    if (meilleure && (!secondaire || secondaire.uid === main || degatsDe(meilleure) > degatsDe(secondaire))) gestes.push({ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, 'secondaire', meilleure.uid] });
+  }
   if (gestes.length) auNoyau(e, h, gestes);
 }
 
@@ -156,6 +188,8 @@ export function remettreLesObjets(e: Etat, h: Heros, ids: readonly string[]): vo
 export function acheterUneArmure(e: Etat, id: string, poids: PoidsDArmure): string | null {
   const h = heros(e, id);
   if (!armuresEnVente(e).some((a) => a.poids === poids)) return 'La forge ne la vend pas encore.';
+  const dr = h ? drPerdusSousLArmure(h.c, poids) : 0;
+  if (dr) return `${ARMURES_RAPIDES[poids].label} : −${dr} DR à ses Tests d’Incantation.`; // LDB 46 l.150-152
   const refus = payer(e, h, prixDArmure(poids));
   if (refus || !h) return refus;
   const neuve = armureRapide(poids, `forge${e.graine++}-armure`);

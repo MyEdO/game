@@ -15,6 +15,9 @@ import { forceDuPorteur } from '../../../src/engine/characteristics';
 import { reachRankOf, weaponFromItem } from '../../../src/engine/items';
 import { effectiveWeaponDamage } from '../../../src/engine/weaponDamage';
 import { ZONES_D_ARMURE } from '../../../src/engine/classementDeTrait';
+import { armourCastDRPenalty } from '../../../src/engine/magic';
+import { castingKindOf } from '../../../src/engine/combatFeatures/dispatch';
+import { effectiveTalents } from '../../../src/engine/talentsPossedes';
 import { findQualityById, findTrappingById, refLabel, testSkillLabel } from '../../../src/data';
 import type { Combatant, ItemInstance, HitLocation } from '../../../src/engine/types';
 
@@ -32,6 +35,14 @@ export const ARMURES_RAPIDES: Record<PoidsDArmure, { label: string; pa: number; 
 export function armureRapide(poids: PoidsDArmure, uid: string): ItemInstance {
   const a = ARMURES_RAPIDES[poids];
   return { uid, label: a.label, kind: 'armor', qualities: a.qualites.map((q) => ({ ...q })), pa: a.pa, locs: [...PARTOUT], enc: a.enc, equipped: false, subType: a.matiere } as ItemInstance;
+}
+
+/** Les DR qu'un lanceur de Magie des Arcanes perdrait à ses Tests d'Incantation s'il portait l'armure rapide `poids`
+ *  à la place de la sienne (`armourCastDRPenalty`), 0 pour qui n'en est pas un. LDB 46 l.150-152 */
+export function drPerdusSousLArmure(c: Combatant, poids: PoidsDArmure): number {
+  if (!effectiveTalents(c).some((t) => castingKindOf(t.talentId) === 'arcane')) return 0;
+  const portee = { ...armureRapide(poids, 'essai-armure'), equipped: true };
+  return armourCastDRPenalty({ ...c, items: [...(c.items ?? []).filter((i) => i.kind !== 'armor'), portee] });
 }
 
 /** Les objets du catalogue `ids`, nés sous le préfixe d'uid `prefixe` (unique par achat). */

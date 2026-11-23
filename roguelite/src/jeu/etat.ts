@@ -1,11 +1,11 @@
 /**
  * L'état d'une partie et sa création : la compagnie, les candidats, le hameau.
  */
-import { generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
+import { dotationDesNiveaux, generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
-import { ESPECES, IdBatiment, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, Role, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
+import { ESPECES, IdBatiment, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
 import { choisir, noter, profil, tirer } from './outils';
-import { remettreLesObjets } from './boutiques';
+import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
 
 /** `retrait` : jours restants à l'hospice, sur `retraitTotal` ; le héros ne part pas en expédition. */
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number; retraitTotal?: number }
@@ -38,39 +38,42 @@ export function nouvellePartie(graine: number): Etat {
     batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0, memorial: 0 },
     roster: [], candidats: [], cimetiere: [], expedition: null, bossVaincus: [], journal: [],
   };
-  for (const carriere of ['soldat', 'chasseur', 'nonne', 'sorcier']) e.roster.push(recrue(e, profil(carriere)!));
+  const college = choisir(tirer(e), PROFILS.filter((p) => p.role === 'lanceur' && p.relais === 0));
+  for (const p of [profil('soldat')!, profil('chasseur')!, profil('nonne')!, college]) e.roster.push(recrue(e, p));
   renouvelerLesCandidats(e);
   noter(e, 'Quatre aventuriers descendent de la diligence à Grisefosse. Le hameau est en ruines ; tout reste à bâtir.');
   return e;
 }
 
-/** Une recrue de la carrière `p` : une espèce que sa carrière admet (`tirerUneEspece`), créée par le moteur, portée par
- *  le noyau au niveau où la carrière s'engage (`porterAuNiveau`), puis dotée de ce que le roster lui remet en plus. */
+/** Une recrue de la carrière `p` : une espèce que sa carrière admet (`tirerUneEspece`), son dieu tiré parmi ceux du
+ *  profil, créée par le moteur, portée par le noyau au niveau où la carrière s'engage (`porterAuNiveau`), dotée de ce
+ *  que les niveaux atteints dotent (`dotationDesNiveaux`) et de ce que le roster lui remet en plus, ses armes en main. */
 export function recrue(e: Etat, p: Profil): Heros {
   const rng = tirer(e);
   const espece = tirerUneEspece(rng, p.id, Object.keys(ESPECES));
   const sexe = rng.int(0, 1) ? 'M' : 'F';
   const nom = generateName(ESPECES[espece].race, sexe, rng) ?? 'Sans-nom';
+  const identite = p.dieux ? { ...p.identite, talent: { ...p.identite.talent, spec: choisir(rng, p.dieux) } } : p.identite;
   const graine = e.graine++;
-  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, nom, p.identite), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
+  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, nom, identite), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
+  tenirLesObjets(e, h, dotationDesNiveaux(h.c, p.niveau, e.graine++));
   if (p.dotation) remettreLesObjets(e, h, p.dotation);
+  prendreSesArmes(e, h);
   const morr = e.batiments.memorial;
   if (morr) h.c.xp = (h.c.xp ?? 0) + Math.min(morr * 100, e.cimetiere.length * 10 * morr);
   return h;
 }
 
-/** Les candidats du relais : chacun d'un rôle absent du tirage quand un tel rôle existe, puis d'une carrière de ce
- *  rôle, chacune des carrières ouvertes par le palier du relais à chance égale. */
+/** Les candidats du relais : chacun tiré à chance égale parmi les carrières ouvertes par le palier du relais dont le
+ *  rôle manque encore au tirage, et parmi toutes les carrières ouvertes quand chaque rôle y est déjà. */
 export function renouvelerLesCandidats(e: Etat): void {
   const ouvertes = PROFILS.filter((p) => p.relais <= e.batiments.relais);
-  const roles = [...new Set(ouvertes.map((p) => p.role))];
   const rng = tirer(e);
-  let restants: Role[] = [];
+  const tires: Profil[] = [];
   e.candidats = Array.from({ length: 2 + e.batiments.relais }, () => {
-    if (!restants.length) restants = [...roles];
-    const role = choisir(rng, restants);
-    restants = restants.filter((r) => r !== role);
-    const p = choisir(rng, ouvertes.filter((x) => x.role === role));
+    const neuves = ouvertes.filter((x) => !tires.some((t) => t.role === x.role));
+    const p = choisir(rng, neuves.length ? neuves : ouvertes);
+    tires.push(p);
     return { ...recrue(e, p), prix: PRIX_DE_RECRUE[p.relais] + SUPPLEMENT_PAR_NIVEAU * (p.niveau - 1) };
   });
 }

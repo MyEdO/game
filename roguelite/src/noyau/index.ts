@@ -3,7 +3,7 @@
  * build compile à part (`dist/noyau.js`). Chaque domaine vit dans son module ; aucun autre module de l'hôte n'importe
  * un module de ce dossier directement.
  */
-export type { Combatant, CharKey } from '../../../src/engine/types';
+export type { Combatant, CharKey, ItemInstance } from '../../../src/engine/types';
 export type { RNG } from '../../../src/engine/dice';
 export { makeRNG } from '../../../src/engine/dice';
 export { generateName } from '../../../src/engine/names';

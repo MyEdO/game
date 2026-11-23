@@ -8,7 +8,7 @@ const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecr
 const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
 const GRAINE_REUSSIE = 7;
 const GRAINE_RATEE = 1;
-const GRAINE_DE_PARTIE_REUSSIE = 2;
+const GRAINE_DE_PARTIE_REUSSIE = 5;
 const GRAINE_DE_PARTIE_RATEE = 1;
 
 /** Les Blessures que la branche d'échec de la table retire, lues sur la table. */

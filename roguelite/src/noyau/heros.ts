@@ -21,14 +21,17 @@ export function nouvelleRecrue(graine: number, carriere: string, espece: string,
 }
 
 /** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et
- *  Carrières aléatoires porte la carrière, ou porte celle de sa variante quand la carrière admet leur race, au poids
- *  de leur rangée au Tableau des Races aléatoires. LDB 05 l.214-299 ; AA 02 l.109-128 ; LDB 04 l.93-101 */
+ *  Carrières aléatoires porte la carrière, ou porte celle de sa variante quand la carrière admet leur race, ou, pour
+ *  une carrière qu'aucun tableau ne porte, dont la carrière admet la race, au poids de leur rangée au Tableau des
+ *  Races aléatoires. LDB 05 l.214-299 ; AA 02 l.109-128 ; LDB 04 l.93-101 */
 export function tirerUneEspece(rng: RNG, carriere: string, especes: readonly string[]): string {
   const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.entries.some((r) => r.id === carriere));
+  const tabulee = carrieresAleatoires.some((d) => d.entries.some((r) => r.id === carriere));
   const races = findCareerById(carriere)?.races;
   const permise = (id: string) => {
     const sp = findSpeciesById(id);
     if (!sp) return false;
+    if (!tabulee) return races?.includes(sp.refChar) ?? false;
     const colonne = colonneDeCarrieres(sp.refCareer).entries;
     return colonne.some((r) => r.id === carriere) || (!!variante && variante.kind === 'variante' && colonne.some((r) => r.id === variante.carriere) && (races?.includes(sp.refChar) ?? true));
   };

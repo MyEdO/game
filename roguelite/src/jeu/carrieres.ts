@@ -6,6 +6,7 @@ import { talentDeCombat, progression, type Progression } from '../noyau';
 import { voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
 import { auNoyau, heros } from './outils';
+import { prendreSesArmes } from './boutiques';
 
 /** Le plus haut niveau de carrière que la salle d'armes ouvre (0 : fermée). */
 export const niveauMaximal = (e: Etat): number => (e.batiments.salle ? e.batiments.salle + 1 : 0);
@@ -18,7 +19,7 @@ const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieu
  *  agissent dans un combat automatique (`talentDeCombat`). */
 export function offresDeCarriere(h: Heros): Progression & { talentAcquis: boolean } {
   const p = progression(h.c);
-  const voie = voieDe(h.carriere);
+  const voie = voieDe(h.carriere, h.c);
   const talents = p.talents.flatMap((t) => {
     if (voie && t.ref.id === voie.talent) return t.ref.spec && t.ref.spec !== voie.spec ? [] : [{ ...t, ref: { id: voie.talent, spec: voie.spec }, label: voie.nom, aSpecifier: false }];
     return t.aSpecifier || !talentDeCombat(t.ref.id) || TALENTS_HORS_DU_COMBAT.has(t.ref.id) ? [] : [t];
@@ -51,7 +52,9 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
   }
   const xp = h.c.xp ?? 0;
   const args = a.genre === 'carac' || a.genre === 'sort' ? [h.c.id, a.id] : [h.c.id, a.ref];
-  return messageDuNoyau(auNoyau(e, h, [{ verbe, args }]), () => (h.c.xp ?? 0) < xp);
+  const refus = messageDuNoyau(auNoyau(e, h, [{ verbe, args }]), () => (h.c.xp ?? 0) < xp);
+  if (!refus && a.genre === 'talent') prendreSesArmes(e, h);
+  return refus;
 }
 
 /** `null` si le geste a pris (`pris`), sinon la ligne du noyau qui dit pourquoi. */
