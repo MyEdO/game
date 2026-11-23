@@ -18,10 +18,12 @@ import { join } from 'node:path'
 
 const loin = (m, n) => Math.abs(m - n) > 1
 const autres = (u, v) => u.length !== v.length || u.some((m, k) => loin(m, v[k]))
+/** deux ensembles de valeurs arrondies (`x`, `ecarts`) diffèrent quand une valeur de l'un n'a dans l'autre aucune voisine à 1 près */
+const ecartes = (u, v) => u.some((m) => v.every((n) => loin(m, n))) || v.some((n) => u.every((m) => loin(m, n)))
 /** Ce qui diffère de deux relevés du même contenu : `x`, `y`, `l`, `h` d'un rect ; `depart`, `x`, `ecarts`, `n` d'une liste,
  * dont les écarts ne se comparent qu'entre deux listes qui en ont (une seule entrée n'a pas d'écart). */
 const differe = (u, v) => (u.liste
-  ? ['depart', 'x', 'ecarts', 'n'].filter((k) => (k !== 'ecarts' || (u.liste.n > 1 && v.liste.n > 1)) && autres([u.liste[k]].flat(), [v.liste[k]].flat()))
+  ? ['depart', 'x', 'ecarts', 'n'].filter((k) => (k !== 'ecarts' || (u.liste.n > 1 && v.liste.n > 1)) && (k === 'x' || k === 'ecarts' ? ecartes : autres)([u.liste[k]].flat(), [v.liste[k]].flat()))
   : ['x', 'y', 'l', 'h'].filter((_, k) => loin(u.rect[k], v.rect[k])))
 /** La classe de l'écart entre deux relevés du même contenu : `A`, `B`, `C`, ou null s'ils sont les mêmes. */
 export const classe = (u, v) => {
