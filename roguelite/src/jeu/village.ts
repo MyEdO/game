@@ -6,7 +6,7 @@ import { prixDuSejourALAuberge, type QualiteDeRepos } from '../noyau';
 import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_REPOS, nomDeCarriere, phraseDuPalier } from './valeurs';
 import { Etat, Heros, renouvelerLesCandidats } from './etat';
 import { blesse } from './soins';
-import { sejourDit } from './expedition';
+import { engagementSansSolde, sejourDit } from './expedition';
 import { heros, noter } from './outils';
 
 /** Les bâtiments qui servent dès le premier jour ; les autres sont en ruine tant qu'on ne les a pas relevés. */
@@ -29,7 +29,7 @@ export function ameliorer(e: Etat, id: IdBatiment): string | null {
 export function recruter(e: Etat, i: number): string | null {
   const cand = e.candidats[i];
   if (!cand) return 'Candidat parti.';
-  const gratuit = e.roster.length === 0 && e.or < cand.prix;
+  const gratuit = engagementSansSolde(e);
   if (!gratuit && e.or < cand.prix) return `Il faut ${cand.prix} CO.`;
   if (!gratuit) e.or -= cand.prix;
   const { prix: _prix, ...h } = cand;

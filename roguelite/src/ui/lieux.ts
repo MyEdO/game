@@ -76,7 +76,7 @@ function but(e: J.Etat): string {
 
 /** L'action du coin : partir, ou, quand personne n'est en état de partir, attendre une semaine. */
 const actionDuHameau = (e: J.Etat) => `<div class="action-de-coin" ${place(CADRES['action-de-coin'])}>${J.compagnieEpuisee(e)
-  ? plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true, titre: 'Personne n’est en état de partir : la compagnie panse ses plaies.' })
+  ? plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true, titre: 'Personne n’est en état de partir : seuls ceux logés à l’auberge ou à l’hospice se reposent.' })
   : plaque('Partir', 'data-a="ouvrir-depart"', { icone: 'route', armee: true, taille: 'appel' })}</div>`;
 
 /** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins,

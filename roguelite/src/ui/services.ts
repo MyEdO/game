@@ -130,8 +130,8 @@ const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', no
  *  rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le Talent qui la définit, et le geste qui
  *  l'engage. */
 function pageDuRelais({ e, servi, congediement }: Lecture): Page {
+  const gratuit = J.engagementSansSolde(e);
   const candidats = e.candidats.map((c, i) => {
-    const gratuit = e.roster.length === 0 && e.or < c.prix;
     const role = J.roleDe(c.carriere);
     const r = role && J.ROLES[role];
     const propre = J.PROFILS.find((p) => p.id === c.carriere)?.identite.talent.id;

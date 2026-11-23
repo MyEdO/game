@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ameliorer, attendreUneSemaine, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
-  qualiteDeLaChambre, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
+  ameliorer, attendreUneSemaine, compagnieEpuisee, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
+  qualiteDeLaChambre, recruter, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
 import { prixDuSejourALAuberge, reposer } from '../noyau';
 
@@ -73,6 +73,20 @@ describe('la chambre de l’Auberge relais', () => {
     const { e, id } = avecUnBlesse(4);
     expect(partir(e, 'reikwald', [id])).toBeNull();
     expect(prendreUneChambre(e, id)).toMatch(/en expédition/);
+  });
+});
+
+describe('l’engagement sans solde au relais', () => {
+  it('la compagnie épuisée et sans le sou engage un voyageur gratis, et peut repartir', () => {
+    const e = nouvellePartie(3);
+    for (const h of e.roster) h.c.wounds.current = 0;
+    e.or = 0;
+    expect(compagnieEpuisee(e)).toBe(true);
+    const effectif = e.roster.length;
+    expect(recruter(e, 0)).toBeNull();
+    expect(e.roster).toHaveLength(effectif + 1);
+    expect(e.or).toBe(0);
+    expect(compagnieEpuisee(e)).toBe(false);
   });
 });
 
