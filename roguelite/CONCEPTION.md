@@ -103,6 +103,21 @@ panneau Partir ; le rôle de chaque héros en pictogramme (`ROLES`), son identit
 sur le héros qui peut acheter un avancement et sur le bâtiment qui peut s'agrandir ; la raison d'une carte fermée au
 survol ; le dernier fait du journal sous le cartouche du hameau.
 
+## Arbitrages de l'utilisateur
+
+- **2026-11-23, le noyau d'abord** : « On doit utiliser le noyau, je veux t'éviter le maximum de chose "interne", car
+  ça serait de la duplication. Au mieux tu mets ça dans les retours. Par contre tu peux tout à fait modifier
+  l'interface pour marcher "à la 5ème", et envoyer ce que veut le noyau pour que cela fonctionne. » — Une règle que le
+  noyau ne joue pas va dans `RETOURS.md`, pas dans l'hôte ; « à la 5e » est une présentation (achats par pas de +5
+  envoyés au noyau en Augmentations de +1).
+- **2026-11-23, les compétences et les événements** : « Pour les compétences, faudra lister ceux utiles. On parle "De
+  combat", mais on pourra sûrement ajouter des nouveaux événements et des actions. Déjà Guérison c'est une compétence
+  très utile, mais on peut aussi proposer des rencontres qui peuvent se résoudre en partie en social, des pièges qui
+  passent par les compétences adéquates, des trésors cachés. »
+- **2026-11-23, le roster** : « Si on veut intégrer le ratier, je te laisse adapter le roster en conséquence. Le but
+  est que chaque carrière a son identité propre, que ce soit sur ses compétences/talents, son rôle dans le groupe et
+  son arsenal. »
+
 ## Les phases
 
 1. **Refonte du code, sans changement visible.** Découper la façade du noyau (`combat.ts`), la boucle de jeu
