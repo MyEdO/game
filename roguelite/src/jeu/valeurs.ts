@@ -1,7 +1,7 @@
 /**
  * Les valeurs d'adaptation du roguelite : bâtiments et paliers, carrières du roster, destinations, prix, gains.
  */
-import { nomDeCarriereDuLivre, type Identite, type PoidsDArmure } from '../noyau';
+import { nomDeCarriereDuLivre, type Epreuve, type Identite, type PoidsDArmure } from '../noyau';
 
 import { profil } from './outils';
 
@@ -117,6 +117,26 @@ export const DESTINATIONS: readonly Destination[] = [
     meutes: [['cultiste', 'cultiste'], ['mutant', 'cultiste'], ['cultiste', 'cultiste', 'mutant']],
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
 ];
+
+/** Une salle jouée en épreuve par le noyau (`jouerLEpreuve`) : son titre, l'épreuve, et ce que le récit dit du piège
+ *  repéré ou déclenché. */
+export interface SalleDEpreuve { titre: string; epreuve: Epreuve; repere: string; declenche: string }
+/** Valeurs d'adaptation : la cache piégée de la salle `tresor`. */
+export const EPREUVES: { tresor: SalleDEpreuve } = {
+  tresor: {
+    titre: 'Une cache piégée',
+    epreuve: {
+      label: 'Fouiller la cache',
+      flux: {
+        kind: 'test', test: { skill: { id: 'perception' }, difficulty: 'difficile' },
+        reussite: { kind: 'sequence', etapes: [] },
+        echec: { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'wounds', amount: 4 }] } },
+      },
+    },
+    repere: 'Un fil tendu court sous les pierres : le piège est repéré et désarmé.',
+    declenche: 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche.',
+  },
+};
 
 /** PX gagnés par salle franchie, par type. */
 export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10 };

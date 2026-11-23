@@ -1,18 +1,16 @@
 /**
  * Couture de l'hôte avec le noyau pour un combat : une arène générée, le groupe et la rencontre, joués de bout en bout
- * en cadence automatique par la partie du noyau (`ouvrirLeLancement`, `src/hote/partie.ts`). L'hôte ne résout aucune
+ * en cadence automatique par la partie du noyau (`ouvrirEnAuto`, `./partie.ts`). L'hôte ne résout aucune
  * règle : il reprend les jetons programmés, joue la fenêtre qui tient la main (`fenetreDuJeu`), et relève à chaque pas
  * le plateau et le journal pour le rejeu.
  */
-import { ouvrirLeLancement } from '../../../src/hote/partie';
 import { arena, setEncounters } from '../../../src/scenes/test-scenarios/_shared';
 import { fenetreDuJeu } from '../../../src/noyau/combatAuto';
 import { EVT, type ChargeDAttaque } from '../../../src/noyau/bus';
 import { footprintN } from '../../../src/noyau/monde/footprint';
 import { findCreatureById } from '../../../src/data';
 import type { Combatant } from '../../../src/engine/types';
-import type { Intention } from '../../../src/noyau/partie';
-import { jouerLaFenetre } from './partie';
+import { jouerLaFenetre, ouvrirEnAuto } from './partie';
 import { nomDeSort } from './carriere';
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
@@ -73,8 +71,10 @@ function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] 
 export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
   const largeur = 14;
   const hauteur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
-  const { partie, jetons, lancement } = ouvrirLeLancement(
-    { graine, regles: {}, cadence: 'auto', desFixes: false },
+  let coups: Coup[] = [];
+  let etats: EtatGagne[] = [];
+  const { partie, recevoir, vider, envoyer } = ouvrirEnAuto(
+    graine,
     () => {
       const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: 2, y: Math.floor(hauteur / 2) } });
       scene.ambientLight = lumiere;
@@ -84,20 +84,14 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
       }]);
       return { party: groupe.map((h) => structuredClone(h)), scene, projet: null, combatDirect: 'rencontre' };
     },
-    () => {},
+    (r) => {
+      for (const e of r.evenements) {
+        if (e.type === 'etatGagne') etats.push({ porteur: e.porteur, etat: e.etat });
+        if (e.type !== 'emis' || e.evt !== EVT.ANIM_ATTACK) continue;
+        coups.push(coupDe(e.payload as ChargeDAttaque));
+      }
+    },
   );
-  const file: number[] = [];
-  let coups: Coup[] = [];
-  let etats: EtatGagne[] = [];
-  const recevoir = (r: Parameters<typeof jetons.programmes>[0]) => {
-    file.push(...jetons.programmes(r).map((p) => p.id));
-    for (const e of r.evenements) {
-      if (e.type === 'etatGagne') etats.push({ porteur: e.porteur, etat: e.etat });
-      if (e.type !== 'emis' || e.evt !== EVT.ANIM_ATTACK) continue;
-      coups.push(coupDe(e.payload as ChargeDAttaque));
-    }
-  };
-  recevoir(lancement);
 
   const pas: Pas[] = [];
   let vus = 0;
@@ -128,8 +122,8 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     for (let k = 0; k < 5 && partie.etat().battle; k++) {
       const ferme = fenetreDuJeu(partie.etat() as never)?.gestes.find((g) => g.verbe === 'fenetreFermer');
       if (!ferme) break;
-      recevoir(partie.envoyer({ type: 'fenetreFermer', args: [ferme.fenetre] } as unknown as Intention));
-      while (file.length) recevoir(jetons.reprendre(file.shift()!));
+      envoyer('fenetreFermer', [ferme.fenetre]);
+      vider();
     }
     const e = partie.etat();
     const heros = e.battle ? e.battle.combatants.filter((c) => c.kind === 'heros') : e.party;
@@ -140,10 +134,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
   let morts: string[] = [];
   let groupeFinal: Combatant[] = groupe.map((h) => structuredClone(h));
   for (let n = 0; n < PLAFOND_DE_PAS; n++) {
-    while (file.length) {
-      recevoir(jetons.reprendre(file.shift()!));
-      releve();
-    }
+    vider(releve);
     const s = partie.etat();
     const fin = s.battle?.over;
     if (fin === 'victoire' || fin === 'defaite') {

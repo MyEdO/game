@@ -1,9 +1,9 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { jouerLeCombat, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
+import { jouerLeCombat, jouerLEpreuve, libelleDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
 
-import { DESTINATIONS, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
+import { DESTINATIONS, EPREUVES, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 
@@ -92,9 +92,24 @@ export function avancer(e: Etat): RecitDeSalle {
     const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
     recit = { titre: 'Un abri pour la nuit', lignes: ['Le groupe établit un camp et monte la garde à tour de rôle.', ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] };
   } else if (salle.type === 'tresor') {
+    const cache = EPREUVES.tresor;
+    const testeurs = groupe.filter(valide);
+    const avant = new Map(testeurs.map((h) => [h.c.id, h.c.wounds.current]));
+    const r = jouerLEpreuve(testeurs.map((h) => h.c), cache.epreuve, e.graine++);
+    for (const apres of r.groupe) {
+      const h = groupe.find((g) => g.c.id === apres.id);
+      if (h) h.c = apres;
+    }
+    const testeur = groupe.find((h) => h.c.id === r.testeur)?.c.label ?? r.testeur;
+    const blesses = r.groupe.filter((c) => c.wounds.current < (avant.get(c.id) ?? c.wounds.current));
     const or = d.or + rng.int(0, d.or);
     x.or += or;
-    recit = { titre: 'Une cache oubliée', lignes: [`Sous des pierres descellées, une bourse : ${or} CO.`] };
+    recit = { titre: cache.titre, lignes: [
+      `${testeur} — Test de ${libelleDuTest(cache.epreuve.flux)} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`,
+      r.reussite ? cache.repere : cache.declenche,
+      ...blesses.map((c) => `${c.label} est touché·e : ${c.wounds.current}/${c.wounds.max} Blessures.`),
+      `La bourse cachée est prise : ${or} CO.`,
+    ] };
   } else {
     const combattants = groupe.filter(valide);
     const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
