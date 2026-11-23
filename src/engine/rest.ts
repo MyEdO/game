@@ -49,13 +49,16 @@ function soinEmpoisonne(c: Combatant): boolean {
   return hasCondition(c, 'empoisonne') && c.wounds.current === 0;
 }
 
+/** Le motif d'un repos qui ne rend aucune Blessure (`rest.refus.<motif>`). */
+export type MotifDeRefusDeRecuperation = 'instable' | 'empoisonne' | 'prive';
+
 /** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0
  *  Blessure (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. Verdict de `needsRecoveryRoll`,
- *  du soin d'`applyRecoveryDay` et de la modale de Repos. LDB 16 l.74, l.105 ; LDB 18 l.338 */
-export function refusDeRecuperation(c: Combatant): string | null {
-  if (unstable(c)) return t('rest.refus.instable');
-  if (soinEmpoisonne(c)) return t('rest.refus.empoisonne');
-  return isDeprived(c) ? t('rest.refus.prive') : null;
+ *  du soin d'`applyRecoveryDay` et des alertes du repos en vue. LDB 16 l.74, l.105 ; LDB 18 l.338 */
+export function refusDeRecuperation(c: Combatant): MotifDeRefusDeRecuperation | null {
+  if (unstable(c)) return 'instable';
+  if (soinEmpoisonne(c)) return 'empoisonne';
+  return isDeprived(c) ? 'prive' : null;
 }
 
 /**

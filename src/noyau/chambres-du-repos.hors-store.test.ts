@@ -30,7 +30,7 @@ const heros = (id: string): Combatant =>
 function nuitALAuberge(ids: string[], opts: { quality?: QualiteDeRepos; days?: number; morts?: string[] } = {}): void {
   const party = ids.map((id) => ({ ...heros(id), ...(opts.morts?.includes(id) ? { dead: true } : {}) }));
   banc.setState({ party, battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10) });
-  banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true }, quality: opts.quality, days: opts.days });
+  banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { auberge: true }, quality: opts.quality, days: opts.days });
   for (const id of Object.keys(banc.getState().pendingRest!.perHero)) banc.getState().fenetreChoisir('repos', 'pitance', 'rien', id);
 }
 const chambres = () => chambresDuRepos(banc.getState().pendingRest!, banc.getState().party);

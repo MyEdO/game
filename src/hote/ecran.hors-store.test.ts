@@ -27,6 +27,13 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { lancerLeScenario } from '../noyau/lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios/index';
+import { createHero } from '../engine/character';
+import { withBourseMoney } from '../engine/bourse';
+import { isRation } from '../engine/provisions';
+import { addCondition } from '../engine/conditions';
+import { itemFromTrappingById } from '../engine/items';
+import { resetRule, setRule } from '../engine/policy';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -392,5 +399,48 @@ describe('le récit du voyage à l’écran (`Projection.recit`, #4574)', () => 
       ['recit/jour/0', 'Jour 1 — 12 km en 6 h de route', [['Une ornière casse l’allure.', 'echec'], ['La route est calme.', 'neutre']]],
       ['recit/suite', 'Impossible de poursuivre : il faut faire face. Le voyage pourra reprendre ensuite depuis la carte.', 'neutre'],
     ]);
+  });
+});
+
+describe('la nuit à régler à l’écran (`Projection.repos`, #4574)', () => {
+  /** La nuit d'Anna au campement (sauf `places`), sous le temps `weather`, et ce que l'écran en dit : la tête de la
+   *  scène, le temps, la note, et les alertes de sa carte. */
+  const nuit = (o: { places?: Record<string, boolean>; weather?: string; tente?: boolean; days?: number; quality?: QualiteDeRepos; hemorragique?: boolean; rien?: boolean }) => {
+    const anna = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Anna', seed: 11 }), { gold: 0, silver: 2, brass: 0 }, idsDeTest);
+    anna.items = [...(anna.items ?? []).filter((i) => !isRation(i)), ...(o.tente ? [itemFromTrappingById('tente', idsDeTest)!] : [])];
+    if (o.hemorragique) addCondition(anna, 'hemorragique', 1);
+    if (o.tente) setRule('exposition-tente-annule', true);
+    try {
+      const banc = ouvrirLeBanc({ graine: 7, etat: { party: [anna], ...(o.weather ? { scene: { ...emptyScene('s', 4, 4), weather: o.weather } } : {}) } as Partial<Jeu> });
+      banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Le relais') }, places: o.places ?? { camp: true }, ...(o.days ? { days: o.days } : {}), ...(o.quality ? { quality: o.quality } : {}) });
+      if (o.rien) banc.actions.fenetreChoisir('repos', 'pitance', 'rien', anna.id);
+      const etat = banc.getState();
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const carte = zones['groupe.heros'].find((h) => h.id === `heros/${anna.id}`)!;
+      return {
+        corps: zones['fenetre.corps'].filter((e) => /^(scene\/moment|repos\/)/.test(e.id)).map((e) => [e.id, 'texte' in e ? e.texte : null, 'ton' in e ? e.ton : null]),
+        alertes: carte.elements.filter((e) => e.id.startsWith('alerte/')).map((e) => ('libelle' in e ? e.libelle : null)),
+      };
+    } finally {
+      resetRule('exposition-tente-annule');
+    }
+  };
+
+  it('la tempête au campement : le temps de chien en alerte, puis ce qui attend la dormeuse, dans l’ordre', () => {
+    expect(nuit({ weather: 'tempete', hemorragique: true, rien: true })).toEqual({
+      corps: [['scene/moment', 'Campement — Le relais', 'neutre'], ['repos/temps', 'Temps de chien', 'alerte']],
+      alertes: ['à stabiliser (pas de repos réparateur)', 'Ventre vide', 'Exposition ×4'],
+    });
+  });
+
+  it('la pluie sous la tente : le mauvais temps, et la tente qui abritera le camp', () => {
+    expect(nuit({ weather: 'pluie', tente: true })).toEqual({
+      corps: [['scene/moment', 'Campement — Le relais', 'neutre'], ['repos/temps', 'Mauvais temps — la tente abritera le camp', 'alerte']],
+      alertes: ['Ventre vide'],
+    });
+  });
+
+  it('trois nuits chez soi, de piètre qualité : la tête de la scène les dit', () => {
+    expect(nuit({ places: { maison: true }, days: 3, quality: 'pietre' })).toEqual({ corps: [['scene/moment', 'Nuit chez soi — Le relais · 3 nuits · piètre', 'neutre']], alertes: [] });
   });
 });

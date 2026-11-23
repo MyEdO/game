@@ -53,7 +53,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
     set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
-    get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    get().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
     get().fenetreValider('repos');
     expect(get().pendingRest, 'Dormir a été refusé').toBeNull();
     draineCascade(get, 30);

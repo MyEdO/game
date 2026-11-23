@@ -225,7 +225,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
-    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
     banc.getState().fenetreValider('repos');
     const wageLines = banc.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);

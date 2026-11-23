@@ -37,6 +37,7 @@ import {
   voyageEnVue,
   carteEnVue,
   recitEnVue,
+  reposEnVue,
   toDate,
   dayPhase,
   type CarteEnVue,
@@ -44,6 +45,7 @@ import {
   type ImperialDate,
   type VoyageEnVue,
   type RecitEnVue,
+  type ReposEnVue,
   type Combatant,
   type ConsequenceEnVue,
   type EtatDeLaBarre,
@@ -148,8 +150,8 @@ export interface EtapeProjetee {
 }
 
 /** La projection : ce que la vue montre, et rien de plus. Les listes `cibles`, `offres`, `voisins`, `gestes` et
- *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage`, `carte` et
- *  `recit` ne le sont pas, la donnée de la fenêtre, du groupe, de la carte ou du trajet les borne. */
+ *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage`, `carte`,
+ *  `recit` et `repos` ne le sont pas, la donnée de la fenêtre, du groupe, de la carte ou du trajet les borne. */
 export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
@@ -162,6 +164,8 @@ export interface Projection {
   carte: CarteEnVue | null;
   /** Le récit du trajet qui tient la main (`recitEnVue`), `null` sans lui. */
   recit: RecitEnVue | null;
+  /** La nuit à régler (`reposEnVue`), `null` hors du repos. */
+  repos: ReposEnVue | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
    *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
@@ -381,6 +385,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     voyage: voyageEnVue(etat),
     carte: carteEnVue(etat),
     recit: recitEnVue(etat),
+    repos: reposEnVue(etat),
     fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
     combat: b

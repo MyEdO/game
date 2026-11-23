@@ -38,7 +38,17 @@ import { jouerLEntretienDesRoundsEcoules, preparerLEntretienQuotidien } from './
 import { calculerLePasDExposition } from './expositionAMaladie';
 import { bandesDeContagion } from './contagion';
 import { arriverAuLieu } from './lieuFlow';
-import { caleSecheDuLieu, estBateauFluvial, lieuDuGroupe, placeById, type CaleSecheFluviale, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
+import {
+  caleSecheDuLieu,
+  estBateauFluvial,
+  lieuDuGroupe,
+  nomDuLieu,
+  placeById,
+  type CaleSecheFluviale,
+  type WorldMap,
+  type MapPlace,
+  type MapRoute,
+} from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { noteEvent, rangerLesEvenements } from './evenementDuJour';
@@ -1152,7 +1162,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   // du jour — leurs dés tombent donc avant tout autre dé de la journée, comme dans la boucle qu'elles
   // remplacent. Un péril qui interrompt TRONQUE la séquence (`stopSequence`) : les suivants ne tirent pas.
   const routeDuJour = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === get().travelPlan!.routeId);
-  const toLabel = libelleOuAbsence(get().worldMap ? placeById(get().worldMap!, get().travelPlan!.toPlaceId) : undefined, 'lieu', get().travelPlan!.toPlaceId);
+  const toLabel = nomDuLieu(get().worldMap, get().travelPlan!.toPlaceId);
   if (routeDuJour) steps.push(...buildAuthorPerilSteps(routeDuJour, toLabel, SEA_PERIL_INTERRUPT));
   // Événement de bord (l.89) : APRÈS les périls d'auteur — les dés d'auteur du jour tombent devant lui.
   pousseSi(steps, buildSeaBoardEventStep(get));
@@ -1324,8 +1334,7 @@ export function startFastVoyage(
   const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
-  const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
-  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
+  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: nomDuLieu(get().worldMap, toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -2009,7 +2018,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
  *  l.71), couchage unique et abrité — pas de tente sur l'eau. `travelDay` = le jour qu'elle clôt. */
 export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void {
   const vessel = garanti(get().vessel, get().travelPlan?.routeId, 'navire de campagne');
-  ouvrirLeRepos(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
+  ouvrirLeRepos(get, set, { places: { bord: true }, lieu: { nom: nomDuNavire(vessel) }, travelHalt: true, travelDay });
 }
 
 // ── Appliers des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
@@ -3041,7 +3050,7 @@ function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
   const enCours = commissions.filter((c) => c.placeId !== placeId);
   set({ vessel: { ...reste, escale: placeId, ...(recueillis.length ? { crew } : {}), ...(enCours.length ? { commissions: enCours } : {}) } });
   const n = recueillis.reduce((s, h) => s + h.count, 0);
-  const port = placeById(get().worldMap as WorldMap, placeId)?.label ?? placeId;
+  const port = nomDuLieu(get().worldMap, placeId);
   for (const c of livrees) mouvementDeLaBourseDuGroupe(get, set, c.brass);
   return [
     ...(n ? [t('eff.recueillisEngages', { n })] : []),

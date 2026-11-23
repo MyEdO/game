@@ -79,7 +79,7 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
     expect(get().pendingDeparture?.cause).toBe('budget');
     get().fenetreValider('depart'); // patron de la porte de départ : la nuit se passe SUR PLACE
     const nuit = get().pendingRest!;
-    expect(nuit.lieu).toBe(sceneLieu(get));
+    expect(nuit.lieu).toEqual(sceneLieu(get));
     expect(nuit.travelHalt).toBeFalsy();
     expect(get().scene?.id).toBe(sceneArrivee);
   });
