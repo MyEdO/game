@@ -70,10 +70,23 @@ export function acheterUneArme(e: Etat, id: string, armeId: string): string | nu
   const avant = h.c;
   h.c = { ...h.c, items: [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs] };
   const ligne = lo ? auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }]) : 'Ce héros n’a pas de panoplie.';
-  if ((h.c.loadouts ?? []).some((l) => l[slot] === neufs[0].uid)) return null;
+  if ((h.c.loadouts ?? []).some((l) => l[slot] === neufs[0].uid)) {
+    reprendreLaMainSecondaire(e, h, lo!.id, armeId);
+    return null;
+  }
   h.c = avant;
   e.or += prixDe(armeId);
   return ligne || 'Le forgeron ne peut pas lui mettre cette arme en main.';
+}
+
+/** Une arme à une main libère la main secondaire : la dague ou le bouclier resté au sac y revient. */
+function reprendreLaMainSecondaire(e: Etat, h: Heros, loadout: string, armeId: string): void {
+  if (MAIN_SECONDAIRE.has(armeId) || articleDuCatalogue(armeId).mains === 2) return;
+  const lo = (h.c.loadouts ?? []).find((l) => l.id === loadout);
+  if (!lo || lo.secondaire) return;
+  const tenus = new Set((h.c.loadouts ?? []).flatMap((l) => [l.main, l.secondaire]));
+  const libre = (h.c.items ?? []).find((i) => i.trappingId && MAIN_SECONDAIRE.has(i.trappingId) && !tenus.has(i.uid));
+  if (libre) auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, loadout, 'secondaire', libre.uid] }]);
 }
 
 /** Achète l'armure `poids` des règles rapides au héros et la lui fait porter ; ses anciennes pièces sont reprises. */

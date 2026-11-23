@@ -45,9 +45,10 @@ export function carton(o: Carton): string {
     + ici('texte', o.texte) + ici('gestes', `<div class="gestes">${o.gestes}</div>`), { ruban: o.ruban, classe: 'carton' });
 }
 
-/** Le socle : la compagnie en cartes ; `geste` dit ce qu'un clic fait, `choisi` l'état de chacune, `refus` pourquoi
- *  une carte est fermée à ce geste, `progresse` si le héros peut acheter un avancement. */
-export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean }
+/** Le socle : la compagnie en cartes, seul endroit où l'on choisit un héros ; `geste` dit ce qu'un clic fait,
+ *  `choisi` l'état de chacune, `refus` pourquoi une carte est fermée à ce geste, `progresse` si le héros peut acheter
+ *  un avancement ; `consigne` : l'écran attend qu'on y choisisse, et le dit sur le ruban du socle. */
+export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean; consigne?: string }
 
 /** `classe` : `lieu` est la scène même du hameau ou de
  *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
@@ -56,7 +57,7 @@ export function ecran(o: { nom: string; classe?: 'lieu'; cadres: string; socle: 
   const lieu = o.classe === 'lieu';
   return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}
-    ${cadreA(CADRES.socle, cartes ? `<div class="rang-heros${o.socle.heros.length > 4 ? ' serre' : ''}" style="--n:${Math.min(6, Math.max(4, o.socle.heros.length))}">${cartes}</div>` : `<p class="glose courante vide">${esc(o.vide ?? '')}</p>`, { fond: '', classe: 'socle-compagnie' })}
+    ${cadreA(CADRES.socle, cartes ? `<div class="rang-heros${o.socle.heros.length > 4 ? ' serre' : ''}" style="--n:${Math.min(6, Math.max(4, o.socle.heros.length))}">${cartes}</div>` : `<p class="glose courante vide">${esc(o.vide ?? '')}</p>`, { fond: '', classe: `socle-compagnie${o.socle.consigne ? ' a-choisir' : ''}`, ruban: o.socle.consigne ? esc(o.socle.consigne) : '' })}
     ${o.classe ? '' : `<button type="button" class="croix-ecran" ${place(CADRES.fermer)} data-a="fermer-panneau" aria-label="Fermer">×</button>`}
   </div></div>`;
 }

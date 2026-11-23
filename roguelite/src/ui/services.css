@@ -144,14 +144,5 @@
   .chronique { columns: 1; }
   .corps-service { container-type: normal; }
 }
-.emporte .laisser { display: flex; justify-content: flex-end; }
 .emporte.libre { display: grid; place-items: center; }
 .place-libre { font: 16px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--encre-2); opacity: .7; }
-.au-hameau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-right: auto; }
-.au-hameau .reste { display: flex; align-items: center; gap: 8px; }
-.au-hameau .heros-en-ligne { width: 150px; }
-.au-hameau .plaque { width: auto; flex: none; }
-.choix-du-heros { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 0 8px; }
-.choix-du-heros .vignette-heros { border: 0; padding: 0; background: none; cursor: pointer; border-radius: 3px; opacity: .7; }
-.choix-du-heros .vignette-heros:hover, .choix-du-heros .vignette-heros.choisi { opacity: 1; }
-.choix-du-heros .vignette-heros.choisi { box-shadow: 0 0 0 2px var(--laiton), 0 0 10px var(--halo-vif); }

@@ -48,3 +48,5 @@
   .place-carton[data-place="texte"] { overflow: visible; }
   .ecran-plein.lieu .scene-fixe:has(.carton) { max-height: 82dvh; }
 }
+.socle-compagnie.a-choisir { box-shadow: 0 0 0 2px var(--laiton), 0 0 22px var(--halo-vif); }
+.socle-compagnie.a-choisir > .ruban { font-size: 17px; }
