@@ -268,22 +268,23 @@ export function maneuverShip(get: Get, set: Set, shipId: string, turnSteps: numb
 export function creerActionsDeManoeuvre(get: Get, set: Set) {
   return {
     virerLeNavire: (shipId, turnSteps) => {
-      const { facing, battle, scene } = get();
+      const etat = get();
+      const { facing, battle, scene } = etat;
       if (seMontreParLeMonde(scene, shipId)) return;
-      const cur = facing[shipId];
+      const cur = capEnCombat(etat, shipId);
       if (!cur) return; // navire sans cap initial → rien à virer
       const next = rotateDir8(cur, turnSteps);
       set({ facing: { ...facing, [shipId]: next } });
-      // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
+      // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent son cap (`capEnCombat`).
       const ship = garanti(inBattleId(battle, shipId), shipId, 'navire viré');
       get().ecrireAuJournal(t('store.shipTack', { ship: nomDe(ship), dir: next }));
       bus.emit(EVT.SCENE_DIRTY);
     },
     avancerLeNavire: (shipId, cases) => {
       const etat = get();
-      const { facing, battle, scene } = etat;
+      const { battle, scene } = etat;
       if (estPoseParSesPonts(scene, shipId)) return 0;
-      const dir = facing[shipId];
+      const dir = capEnCombat(etat, shipId);
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
       if (porteParLaScene(hull)) {

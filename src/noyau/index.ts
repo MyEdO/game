@@ -317,7 +317,7 @@ export {
 } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurentEnVue, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
-export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
+export { cleDeLaVision, combattantEnVue, coquesEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
 export { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 export { meteoDuRegard, type MeteoDuRegard } from './monde/meteo';
