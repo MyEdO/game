@@ -57,6 +57,14 @@ export function herosEnLigne(h: J.Heros): string {
   return `<div class="heros-en-ligne${J.valide(h) ? '' : ' hors'}">${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max))}</span></div>`;
 }
 
+/** Ceux qui sont à l'hospice : chacun, ses jours restants et la jauge de son séjour ; un clic ouvre sa fiche. */
+export function hospice(e: J.Etat): string {
+  return e.roster.filter((h) => h.retrait).map((h) => {
+    const total = Math.max(h.retrait!, h.retraitTotal ?? h.retrait!);
+    return `<button type="button" class="sejour" data-a="heros" data-id="${h.c.id}">${portrait(busteDuHeros(h), 'heros', 'petit')}<span class="qui"><span class="nom-propre petit gothique">${esc(h.c.label)}</span><span class="vie"><span>Hospice</span><span class="chiffres">encore ${h.retrait} j</span></span>${jauge(1 - h.retrait! / total, { teinte: 'or' })}</span></button>`;
+  }).join('');
+}
+
 /** L'encombrement porté et sa jauge ; au-delà de la capacité, ses pénalités. LDB 61 l.35-40 */
 export function encombrementDe(c: Combatant) {
   const e = encombrement(c);

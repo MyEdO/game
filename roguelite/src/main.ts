@@ -21,7 +21,7 @@ let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; vignette: Vignette; surTitre: string; terrain: string };
 let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
-/** Le héros que servent la forge, la chapelle et la salle d'armes. */
+/** Le héros que servent la forge, l'hospice et la salle d'armes. */
 let client: string | null = null;
 /** L'emplacement ouvert à la forge. */
 let emplacement: Emplacement = 'main';

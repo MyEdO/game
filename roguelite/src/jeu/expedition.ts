@@ -11,6 +11,8 @@ export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.pa
 export const valide = (h: Heros): boolean => !horsDeCombat(h.c);
 /** En état de partir : valide, et pas à l'hospice. */
 export const disponible = (h: Heros): boolean => valide(h) && !h.retrait;
+/** La compagnie qu'on mène : tous, sauf ceux qui sont à l'hospice. */
+export const compagnie = (e: Etat): Heros[] => e.roster.filter((h) => !h.retrait);
 /** Pourquoi un héros ne peut pas partir, ou `null` s'il le peut. */
 export const refusDeDepart = (h: Heros): string | null => (h.retrait ? `À l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}.` : !valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
 
@@ -154,7 +156,7 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 }
 
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
- *  attend une semaine que les blessés se relèvent : jamais d'impasse, faute d'or pour la chapelle. */
+ *  attend une semaine que les blessés se relèvent : jamais d'impasse, faute d'or pour l'hospice. */
 export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
@@ -173,6 +175,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   for (const h of e.roster) {
     if (absents.has(h.c.id)) continue;
     if (h.retrait) h.retrait = Math.max(0, h.retrait - jours) || undefined;
+    if (!h.retrait) delete h.retraitTotal;
     h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
     reposer(h.c, e.graine++, jours);
   }

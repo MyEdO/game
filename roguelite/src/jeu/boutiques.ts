@@ -57,9 +57,15 @@ export function payer(e: Etat, h: Heros | undefined, prix: number): string | nul
 }
 
 /** Achète l'arme `armeId` au héros et la lui met en main ; l'objet qu'elle remplace est laissé au forgeron. */
+/** Le héros sait-il se battre à deux armes (Talent Maniement de deux armes) ? Sinon, la main secondaire ne tient qu'un
+ *  bouclier ou ce qu'il portait déjà. */
+export const manieDeuxArmes = (h: Heros): boolean => (h.c.talents ?? []).some((t) => t.talentId === 'maniement-de-deux-armes');
+const estUnBouclier = (armeId: string) => /^bouclier/.test(armeId);
+
 export function acheterUneArme(e: Etat, id: string, armeId: string): string | null {
   const h = heros(e, id);
   if (!armesEnVente(e).some((a) => a.id === armeId)) return 'La forge ne la vend pas encore.';
+  if (h && MAIN_SECONDAIRE.has(armeId) && !estUnBouclier(armeId) && !manieDeuxArmes(h)) return 'Une arme en main secondaire demande le Talent Maniement de deux armes.';
   const refus = payer(e, h, prixDe(armeId));
   if (refus || !h) return refus;
   const slot = MAIN_SECONDAIRE.has(armeId) ? 'secondaire' : 'main';

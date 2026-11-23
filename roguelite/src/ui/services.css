@@ -144,5 +144,11 @@
   .chronique { columns: 1; }
   .corps-service { container-type: normal; }
 }
-.emporte.libre { display: grid; place-items: center; }
+.emporte.libre { display: grid; place-content: center; justify-items: center; gap: 8px; }
+.portrait-vide { width: 74px; height: 92px; border-radius: 3px; border: 1.5px dashed var(--trait-encre); background: rgba(60,40,20,.06); }
 .place-libre { font: 16px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--encre-2); opacity: .7; }
+.rail-batiments { flex: none; display: flex; gap: 6px; padding: 8px 0 6px; border-bottom: 1px solid var(--filet-encre); }
+.rail-batiments .plaque { flex: 1 1 0; min-width: 0; }
+.rail-batiments .plaque span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tete-service .effet-actuel { margin: 0; font-size: 17px; line-height: 23px; color: var(--encre); }
+.enseigne-service[data-apercu] { cursor: help; }

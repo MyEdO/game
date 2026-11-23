@@ -1,5 +1,5 @@
 /**
- * La chapelle et l'hospice : soins, plaies pansées, opération, Larmes de Shallya.
+ * L'hospice de Shallya : soins, plaies pansées, opération, Larmes de Shallya.
  */
 import { plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles } from '../noyau';
 
@@ -10,7 +10,7 @@ import { heros, noter } from './outils';
 export const prixDuSoin = (e: Etat): number | null => [null, 15, 5, 0][e.batiments.temple] ?? null;
 export const prixDeSequelle = (e: Etat): number | null => [null, null, 40, 20][e.batiments.temple] ?? null;
 export const blesse = (h: Heros): boolean => h.c.wounds.current < h.c.wounds.max || h.c.conditions.length > 0;
-/** Le héros attend la chapelle : blessé, ou marqué d'une séquelle. */
+/** Le héros attend l'hospice : blessé, ou marqué d'une séquelle. */
 export const aSoigner = (h: Heros): boolean => blesse(h) || sequelles(h.c).length > 0;
 /** Les séquelles qu'une prière de Shallya peut guérir : celles qui ont une convalescence. */
 export const sequellesGuerissables = (h: Heros): number => sequelles(h.c).filter((s) => s.jours != null).length;
@@ -18,7 +18,7 @@ export const sequellesGuerissables = (h: Heros): number => sequelles(h.c).filter
 export function soignerAuTemple(e: Etat, id: string): string | null {
   const prix = prixDuSoin(e);
   const h = heros(e, id);
-  if (prix == null || !h) return 'La chapelle est fermée.';
+  if (prix == null || !h) return 'L’hospice est fermé.';
   if (e.or < prix) return `Il faut ${prix} CO.`;
   e.or -= prix;
   soigner(h.c, h.c.wounds.max);
@@ -44,7 +44,7 @@ export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): strin
   if (e.or < prix) return `Il faut ${prix} CO.`;
   e.or -= prix;
   const lignes = acte === 'panser' ? panserLesPlaies(h.c, GUERISON_DE_L_HOSPICE, e.graine++) : opererLesBlessures(h.c);
-  if (acte === 'operer') h.retrait = SEMAINE_DE_REPOS;
+  if (acte === 'operer') { h.retrait = SEMAINE_DE_REPOS; h.retraitTotal = SEMAINE_DE_REPOS; }
   noter(e, `${lignes.join(' ')}${acte === 'operer' ? ` ${h.c.label} reste une semaine à l’hospice.` : ''}`);
   return null;
 }

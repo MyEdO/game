@@ -89,7 +89,7 @@ function jardinDeMorr(n: number): string {
   return s;
 }
 
-/** La chapelle de Shallya : la nef, sa rosace et ses lancettes, le clocher au cœur doré. */
+/** L'hospice de Shallya : la nef, sa rosace et ses lancettes, le clocher au cœur doré. */
 function chapelle(n: number): string {
   if (n === 0) {
     return p('M352,586V470L372,452L384,474L402,440L416,466L436,448L462,476V586Z', MUR, C) + p('M318,586V452L326,436L336,450L346,428L356,452V586Z', OMBRE, C)
@@ -107,7 +107,7 @@ function chapelle(n: number): string {
   return s;
 }
 
-/** Le relais de diligence : le rez-de-chaussée de pierre, l'étage à colombages, le porche et l'enseigne. */
+/** L'auberge relais : le rez-de-chaussée de pierre, l'étage à colombages, le porche et l'enseigne. */
 function relais(n: number): string {
   let s = '';
   if (n >= 1) s += mur(470, 510, 62, 76, PIERRE) + pan(470, 532, 512, 478, 12, 7) + porte(500, 586, 34, 46, '#0c0910') + trait('M486,586v-26M514,586v-26M486,566h28', BOIS, 3) + (n >= 2 ? lanterne(500, 528) : '');

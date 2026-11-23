@@ -58,9 +58,10 @@ export function caracteristiques(h: J.Heros, o: Offres, progresse: boolean, tout
     const { abr, label } = libelleDeCarac(k);
     const cellule = `<span class="ab">${esc(abr)}</span><span class="v chiffres">${carac(h.c, k)}</span>`;
     if (!of) return `<div class="c" data-bulle="${esc(label)}">${cellule}</div>`;
-    const ou = `<span class="aug chiffres">+${of.augmentations}/${o.requis}</span>`;
-    if (!progresse) return `<div class="c carr" data-bulle="${esc(label)}">${cellule}${ou}</div>`;
-    return `<button type="button" class="c carr${of.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" data-bulle="${esc(xp < of.cout ? `${label} : il manque ${of.cout - xp} PX.` : label)}"${xp < of.cout ? ' disabled' : ''}>${cellule}${ou}<span class="etiquette compte ${xp >= of.cout ? 'or' : 'fer'}">+1 · ${of.cout} PX</span></button>`;
+    const ou = `<span class="crans" aria-label="${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis}">${Array.from({ length: o.requis }, (_, i) => `<i class="${i < of.augmentations ? 'plein' : ''}"></i>`).join('')}</span>`;
+    const augs = `${label} : ${of.augmentations} Augmentation${of.augmentations > 1 ? 's' : ''} sur ${o.requis} pour ce niveau`;
+    if (!progresse) return `<div class="c carr" data-bulle="${esc(augs)}">${cellule}${ou}</div>`;
+    return `<button type="button" class="c carr${of.augmentations >= o.requis ? ' faite' : ''}" data-a="carac" data-id="${h.c.id}" data-k="${k}" data-bulle="${esc(xp < of.cout ? `${augs} · il manque ${of.cout - xp} PX` : augs)}"${xp < of.cout ? ' disabled' : ''}>${cellule}${ou}<span class="etiquette compte ${xp >= of.cout ? 'or' : 'fer'}">+1 · ${of.cout} PX</span></button>`;
   }).join('');
 }
 

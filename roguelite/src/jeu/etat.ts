@@ -6,8 +6,8 @@ import { generateName, nouvelleRecrue, type Combatant } from '../noyau';
 import { ESPECES, IdBatiment, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, TypeDeSalle } from './valeurs';
 import { choisir, noter, profil, tirer } from './outils';
 
-/** `retrait` : jours restants à l'hospice ; le héros ne part pas en expédition. */
-export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number }
+/** `retrait` : jours restants à l'hospice, sur `retraitTotal` ; le héros ne part pas en expédition. */
+export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number; retraitTotal?: number }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean }

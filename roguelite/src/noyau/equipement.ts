@@ -7,6 +7,8 @@ import { maxEncumbrance, totalEncumbrance } from '../../../src/engine/items';
 import { makeRNG } from '../../../src/engine/dice';
 import { encumbrancePenalties } from '../../../src/engine/encumbrance';
 import { consommableDe } from '../../../src/engine/consumables';
+import { evalCondition, type Flow } from '../../../src/engine/flowCore';
+import { activityConditionCtx } from '../../../src/engine/activities';
 import { refusDeConsommer } from '../../../src/noyau/consumableFlow';
 import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../src/engine/combat';
 import { forceDuPorteur } from '../../../src/engine/characteristics';
@@ -81,7 +83,16 @@ export const protection = (c: Combatant): { zone: string; pa: number }[] => ZONE
 export function refusDUsage(c: Combatant, uid: string): string | null {
   const it = c.items?.find((i) => i.uid === uid);
   const flux = it && consommableDe(it, findTrappingById);
-  return !it || !flux ? 'Rien à utiliser.' : refusDeConsommer(c, it, flux);
+  return !it || !flux ? 'Rien à utiliser.' : refusDeConsommer(c, it, flux) ?? sansEffet(c, flux);
+}
+
+/** Un consommable que rien ne refuse mais qui ne ferait rien : sa condition (`si`) fausse pour ce héros, ou un soin
+ *  sur un héros indemne. */
+function sansEffet(c: Combatant, flux: Flow): string | null {
+  if (flux.kind === 'si' && !evalCondition(flux.condition, activityConditionCtx(c))) return 'Sans effet sur lui dans son état.';
+  const effet = flux.kind === 'si' ? flux.alors : flux;
+  const soinSeul = effet.kind === 'effet' && effet.effet.type === 'ops' && effet.effet.ops.every((o: { op: string }) => o.op === 'heal');
+  return soinSeul && c.wounds.current >= c.wounds.max ? 'Il n’est pas blessé.' : null;
 }
 
 /** Encombrement porté et capacité sans pénalité (BF + BE). LDB 61 */

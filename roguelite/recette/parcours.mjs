@@ -29,7 +29,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     const p = await (await b.newContext({ viewport: { width: l, height: h } })).newPage();
     p.on('pageerror', (e) => erreurs.push(e.message));
     await p.goto(`${BASE}/recette.html`); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForSelector('.enseigne');
-    if (l === 1280) constater((await p.textContent('.carte-partir')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
+    if (l === 1280) constater((await p.textContent('.recit-lieu .but')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
     await image(p, '1-lancement', l);
     await p.context().close();
   }
@@ -50,10 +50,10 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     if (l === 1280) constater(await p.isVisible('.apercu-du-jeu'), '2 : l’identité d’un héros au survol de sa carte');
     await image(p, '2-identite', l);
     await p.mouse.move(0, 0); await image(p, '6-retour-hameau', l);
+    if (l === 1280) constater(await p.isVisible('.cadre-hospice .sejour'), '8 : le hameau montre qui est à l’hospice et pour combien de jours');
     await clic(p, 'button[data-a="batiment"][data-id="temple"]'); await image(p, '6-chapelle', l);
     await clic(p, '[data-a="fermer-panneau"]'); await clic(p, 'button[data-a="batiment"][data-id="cartographe"]'); await clic(p, '[data-a="preparer"]');
-    await p.hover('.socle-compagnie .carte-heros >> nth=3'); await p.waitForTimeout(400);
-    if (l === 1280) constater(((await p.textContent('.apercu-du-jeu').catch(() => '')) ?? '').includes('hospice'), '8 : la raison d’une carte fermée au survol');
+    if (l === 1280) constater((await p.$$eval('.socle-compagnie .carte-heros', (c) => c.length)) === 3, '8 : le héros à l’hospice quitte le socle du départ');
     await image(p, '8-depart', l);
     await p.mouse.move(0, 0);
     // 3, 4 : partir, la route.

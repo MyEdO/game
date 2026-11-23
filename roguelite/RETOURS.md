@@ -111,6 +111,16 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   du noyau, inertes dans un hôte qui ne les joue pas. L'hôte l'a vendu longtemps comme un soin. Idée : un lecteur
   public des ops d'un consommable (par famille : soin, état, infection, aide médicale), pour qu'un hôte filtre ce
   qu'il propose.
+- **Piège — un consommable que rien ne refuse peut ne rien faire.** `refusDeConsommer` laisse passer une Potion de
+  guérison sur un héros indemne, et sur un héros à 0 Blessure alors que sa propre condition (`si` sur
+  `woundsCurrent >= 1`) la rend inerte : l'hôte vendait et laissait boire une potion sans effet. Contournement de
+  l'hôte : `sansEffet` (`roguelite/src/noyau/equipement.ts`) évalue la condition du flux (`evalCondition` sur
+  `activityConditionCtx`) et refuse un soin sur un héros indemne. Idée : que le verdict de consommation du noyau
+  évalue la condition du flux et dise « sans effet » quand l'effet ne changerait rien.
+- **Constat — le combat à deux armes passe par un Talent que l'hôte doit lire seul.** Une arme en main secondaire
+  ne sert en mêlée qu'avec Maniement de deux armes (`talents.json`, `combat.dualStrikeDefense`) ; rien dans la
+  surface ne dit à un hôte qu'une dague en main secondaire est inutile sans lui. L'hôte filtre la forge sur
+  `talentId === 'maniement-de-deux-armes'`. Idée : un lecteur public « ce que cette main peut faire » par héros.
 - **Trou — le repos du noyau ne récupère rien sur une arène.** `ouvrirLeRepos` sur une scène générée (`restPlaces`
   `maison`) fait passer la nuit (« Le groupe dort jusqu'à l'aube »), mais aucun Point de Blessure ne revient et aucune
   ligne ne dit pourquoi (pitance, privation ?). L'hôte joue donc le repos par les primitives du moteur, `restRecovery` et

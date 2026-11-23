@@ -13,16 +13,17 @@ type Rect = [number, number, number, number];
 export const CADRES = {
   cartouche: [24, 20, 372, 96], recit: [32, 136, 340, 112], 'colonne-gauche': [24, 136, 372, 304], note: [24, 456, 372, 100],
   page: [776, 20, 480, 480], 'colonne-droite': [896, 20, 360, 420], vignette: [896, 20, 360, 180], frise: [180, 508, 920, 44],
-  coins: [1198, 579, 52, 118], identite: [26, 20, 340, 536], bande: [384, 20, 800, 96],
+  coins: [1198, 579, 52, 118], 'action-de-coin': [1120, 603, 136, 89], identite: [26, 20, 340, 536], bande: [384, 20, 800, 96],
   socle: [160, 560, 960, 152], fermer: [1214, 18, 44, 44], carton: [160, 222, 960, 278],
   gauche: [384, 136, 470, 420], droite: [872, 136, 384, 420],
 } satisfies Record<string, Rect>;
 
 /** Les rectangles propres à l'hôte, faute de rôle dans les maquettes : un bâtiment s'ouvre sur toute la largeur
  *  au-dessus du socle, à la manière de Darkest Dungeon, sans rien cacher qu'on doive voir en même temps ; étiré
- *  (`data-etire`), il descend jusqu'au socle. */
+ *  (`data-etire`), il descend jusqu'au socle. Au hameau, la chronique et les réglages montent au coin haut-droit
+ *  (place du système des maquettes), le coin bas-droit étant à l'action de partir. */
 export const CADRES_DE_L_HOTE = {
-  batiment: [24, 20, 1232, 524],
+  batiment: [24, 20, 1232, 524], 'coins-du-hameau': [1150, 18, 108, 52],
 } satisfies Record<string, Rect>;
 /** Ce qu'un cadre étiré gagne au plus en largeur sur son rectangle. */
 const ETIREMENT_EN_LARGEUR = 240;

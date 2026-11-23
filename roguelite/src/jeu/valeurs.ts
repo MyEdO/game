@@ -10,12 +10,12 @@ export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe'
 export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: { cout: number; trophees: number; effet: string }[] }
 
 export const BATIMENTS: readonly Batiment[] = [
-  { id: 'relais', nom: 'Relais de diligence', role: 'Recrues et provisions', paliers: [
+  { id: 'relais', nom: 'Auberge relais', role: 'Recrues et provisions', paliers: [
     { cout: 0, trophees: 0, effet: '2 candidats ; potions de guérison' },
     { cout: 120, trophees: 0, effet: '3 candidats, carrières d’aventure ; potions de vitalité' },
     { cout: 300, trophees: 1, effet: '4 candidats, carrières d’élite' },
   ] },
-  { id: 'temple', nom: 'Chapelle de Shallya', role: 'Soins et hospice', paliers: [
+  { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins et chirurgie', paliers: [
     { cout: 0, trophees: 0, effet: 'Fermée : seuls les héros restés au hameau se reposent' },
     { cout: 80, trophees: 0, effet: 'Soins à 15 CO ; les sœurs pansent les plaies à l’hospice' },
     { cout: 220, trophees: 1, effet: 'Soins à 5 CO ; un chirurgien opère ; Larmes de Shallya' },

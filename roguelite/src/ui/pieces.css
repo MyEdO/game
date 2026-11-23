@@ -64,3 +64,8 @@ abbr[data-bulle] { text-decoration: underline dotted rgba(168,132,47,.7); text-u
 .etiquette.qualite.defaut { color: var(--sang); background: rgba(124,31,20,.08); border-color: rgba(124,31,20,.5); }
 .etiquette.qualite.neutre { border-color: var(--filet-encre); color: var(--encre-2); }
 .traits { display: flex; flex-wrap: wrap; gap: 4px; }
+.sejour { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 6px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left; color: inherit; }
+.sejour:hover { background: var(--voile); }
+.sejour .qui { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.sejour .nom-propre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sejours { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px 10px; }

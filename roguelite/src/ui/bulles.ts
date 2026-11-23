@@ -19,7 +19,7 @@ const PRESENTE = new RegExp(ABREVIATION.source, 'u');
 /** Pose sa bulle sur chaque abréviation du glossaire dans les textes de `racine`. */
 export function gloserDans(racine: ParentNode): void {
   const marcheur = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT, {
-    acceptNode: (n) => (n.parentElement?.closest('[data-bulle], svg, .bulle-du-jeu, .apercu-du-jeu') || !PRESENTE.test(n.nodeValue ?? '') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    acceptNode: (n) => (n.parentElement?.closest('button, [data-bulle], [data-apercu], svg, .bulle-du-jeu, .apercu-du-jeu') || !PRESENTE.test(n.nodeValue ?? '') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
   });
   const noeuds: Text[] = [];
   while (marcheur.nextNode()) noeuds.push(marcheur.currentNode as Text);

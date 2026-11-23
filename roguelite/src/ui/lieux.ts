@@ -12,8 +12,8 @@ import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
 import { medaillon, plaque, rondMuet } from '../kit';
 import type { Vignette } from '../vignettes';
-import { CADRES, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
-import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, place } from './pieces';
+import { CADRES, CADRES_DE_L_HOTE, carton, ecran, TAILLES, tailleChoisie, type Taille } from './ecran';
+import { cadreA, caseObjet, casesDuSac, esc, gabaritDe, glose, herosEnLigne, hospice, place } from './pieces';
 import { cartouche, PICTO_DU_BATIMENT, type PanneauDeService } from './services';
 
 /** Un tableau de la cour du `terrain` où se tiennent les figurines des `heros` ; mis à l'échelle par `ajusterLesTableaux`. */
@@ -68,32 +68,32 @@ function enseigne(e: J.Etat, b: J.Batiment) {
     ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}${b.id === 'temple' && !ruine && e.roster.some(J.aSoigner) ? '<i class="pastille-soins" data-bulle="Des blessés à soigner"></i>' : ''}</button>`;
 }
 
-/** Le panneau d'activité du hameau : les routes ouvertes et leur choix ; quand personne n'est en état de partir,
- *  l'attente d'une semaine à sa place. */
-function partir(e: J.Etat): string {
-  const ouvertes = J.destinationsOuvertes(e).length;
-  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-  if (J.compagnieEpuisee(e)) {
-    return `<div class="partir"><div><div class="nom-propre petit gothique">Personne n’est en état de partir</div><div class="sous-titre">la compagnie panse ses plaies</div></div>${plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true })}</div>`;
-  }
+/** Le but de la partie, sous le cartouche : l'Autel du Chaos et un losange par maître de route, plein une fois vaincu. */
+function but(e: J.Etat): string {
   const maitres = J.DESTINATIONS.map((d) => `<i class="${e.bossVaincus.includes(d.id) ? 'plein' : ''}" data-bulle="${esc(d.nom)}"></i>`).join('');
-  return `<div class="partir"><div><div class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${J.victoireFinale(e) ? 'les routes restent ouvertes' : `${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}`}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
+  return `<div class="but"><span class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</span><span class="niveaux" aria-label="${e.bossVaincus.length} sur ${J.DESTINATIONS.length} maîtres vaincus">${maitres}</span></div>`;
 }
+
+/** L'action du coin : partir, ou, quand personne n'est en état de partir, attendre une semaine. */
+const actionDuHameau = (e: J.Etat) => `<div class="action-de-coin" ${place(CADRES['action-de-coin'])}>${J.compagnieEpuisee(e)
+  ? plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true, titre: 'Personne n’est en état de partir : la compagnie panse ses plaies.' })
+  : plaque('Partir', 'data-a="ouvrir-depart"', { icone: 'route', armee: true, taille: 'appel' })}</div>`;
 
 /** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins,
  *  socle). Un bâtiment ouvert s'y pose en grand au-dessus du socle ; une fiche le couvre ; un carton n'y laisse que
  *  le cartouche et le socle. */
 export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeService | null, carte: string): string {
   const titre = cadreA(CADRES.cartouche, cartouche('ville', 'Grisefosse', `Hameau du Reikland · jour ${e.jour}`), { fond: '', classe: 'cartouche-lieu-fixe' });
-  const socleDuHameau = { heros: e.roster, geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
+  const socleDuHameau = { heros: J.compagnie(e), geste: 'heros', choisi: () => false, progresse: (h: J.Heros) => J.peutProgresser(e, h) };
   const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
-      <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
-      ${cadreA(CADRES.vignette, partir(e), { ruban: 'Partir', classe: 'carte-partir' })}
-      <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>`,
+      <div class="recit-lieu" ${place(CADRES.recit)}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p class="ombre">${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
+      ${e.roster.some((h) => h.retrait) ? cadreA(CADRES.note, `<div class="sejours">${hospice(e)}</div>`, { ruban: 'Hospice', classe: 'cadre-hospice' }) : ''}
+      <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
+      ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,
-    vide: 'La compagnie est vide. Engagez des voyageurs au relais de diligence : quand la bourse est vide, l’un d’eux sert sans solde.',
+    vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : quand la bourse est vide, l’un d’eux sert sans solde.',
   });
   return `<div class="ecran hameau">
     <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte || service ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
