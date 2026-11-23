@@ -1,7 +1,7 @@
 /**
  * Les Tests de Compétence hors combat d'un hôte (#4834) : le verbe `tenterLeTest` les lance, testeur choisi en toute
  * cadence (LDB 12 l.7, l.137) ; la branche d'un Test vise « le testeur », celui qui a jeté (`avecLeTesteur`) ; un
- * lancement dont la validation relève une erreur est refusé avant toute écriture (`exigerUnProjetJouable`).
+ * lancement d'une forme que la porte du projet refuse est refusé avant toute écriture (`exigerUnProjetJouable`).
  */
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type Cadence, type Partie, type ResultatDeLAppel } from './index';
@@ -141,7 +141,7 @@ describe('cible « testeur » : la conséquence frappe celui qui a jeté', () =>
   });
 });
 
-describe('porte du lancement : un projet que la validation dit fautif ne se lance pas', () => {
+describe('porte du lancement : un projet d’une forme que la porte du projet refuse ne se lance pas', () => {
   const blessure = { op: 'wounds', amount: 1 };
   const action = (flow: unknown) => ({ id: 'chute', label: 'Dalle suspecte', flow });
   const FAUTIVES = {
@@ -151,7 +151,7 @@ describe('porte du lancement : un projet que la validation dit fautif ne se lanc
     'sans-libelle': { id: 'chute', flow: EMPTY_FLOW },
   };
 
-  it.each(Object.entries(FAUTIVES))('%s : refusé à `lancer` en ProjetRefuse de cause « validation », avant toute écriture', (id, fautive) => {
+  it.each(Object.entries(FAUTIVES))('%s : refusé à `lancer` en ProjetRefuse de cause « schema », à son entité, avant toute écriture', (id, fautive) => {
     const scene = testScene();
     scene.entities = [...scene.entities, { id, kind: 'prop', decor: { id: 'autel' }, pos: { x: 8, y: 7 }, usable: { actions: [fautive] } } as never];
     const partie = creerPartie(etatInitialDuJeu(), { graine: 11, reglesMaison: {}, cadence: 'auto', desFixes: false, persisterLeHeros: () => {} });
@@ -159,8 +159,8 @@ describe('porte du lancement : un projet que la validation dit fautif ne se lanc
       expect(() => partie.lancer({ party: groupe(), scene, projet: null })).toThrow(ProjetRefuse);
       let refus: ProjetRefuse | undefined;
       try { partie.lancer({ party: groupe(), scene, projet: null }); } catch (e) { refus = e as ProjetRefuse; }
-      expect(refus?.cause).toBe('validation');
-      expect(refus?.fautes.map((f) => f.chemin)).toContainEqual([scene.id, id]);
+      expect(refus?.cause).toBe('schema');
+      expect(refus?.fautes.every((f) => f.lieu.some((l) => l.genre === 'element' && l.cle === id))).toBe(true);
       expect(partie.etat().party).toEqual([]);
     } finally {
       partie.fermer();

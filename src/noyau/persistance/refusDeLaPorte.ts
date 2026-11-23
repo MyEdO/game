@@ -1,5 +1,5 @@
 import { IMPORT_FORME_DEPOT } from './bibliotheque';
-import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus, type ProjetRefuse } from '../worldMap';
+import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../worldMap';
 import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
 import { t } from '../../i18n';
 
@@ -23,7 +23,7 @@ const PROJET_SANS_NOM = 'ce projet n’a pas de nom';
 /** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE, selon ce que le geste LIT : le rapport
  *  technique reste en détail. `IMPORT_FORME_DEPOT` ne vaut que pour un geste qui lit un FICHIER ;
  *  ailleurs, la cause se dit sous le terme de l'autre format (#2404). */
-type PhrasesDeCause = Readonly<Record<Exclude<CauseDeRefus, 'schema' | 'validation'>, string>>;
+type PhrasesDeCause = Readonly<Record<Exclude<CauseDeRefus, 'schema'>, string>>;
 const PROJET_EN_MEMOIRE: PhrasesDeCause = {
   'prose-non-materialisee': `${PROJET_AUTRE_FORMAT}.`,
   entree: 'Sa scène de départ n’existe pas dans le projet.',
@@ -66,7 +66,6 @@ export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): Re
   const { verbe, consequence, sansNom, autreFormat: terme, causes } = GESTES_DE_PORTE[geste];
   const phrase = (cause: string): string =>
     consequence === null ? `${verbe} : ${cause.charAt(0).toLocaleLowerCase('fr') + cause.slice(1)}` : `${verbe} : ${consequence}. ${cause}`;
-  if (erreur.cause === 'validation') return fauteNommee(verbe, consequence, erreur);
   if (erreur.cause !== 'schema') {
     return { message: phrase(causes[erreur.cause]), detail: erreur.message };
   }
@@ -74,15 +73,10 @@ export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): Re
   if (erreur.fautes.some((f) => f.chemin.length === 0)) return autreFormat;
   if (erreur.fautes.some(estSansNom)) return { message: `${verbe} : ${sansNom}.`, detail: erreur.message };
   if (consequence === null) return autreFormat;
-  return fauteNommee(verbe, consequence, erreur);
-}
-
-/** Le refus du geste `verbe` qui dit sa `consequence`, nomme la première faute de `erreur` et compte les suivantes. */
-function fauteNommee(verbe: string, consequence: string | null, erreur: ProjetRefuse): RefusRendu {
   const [premiere, ...autres] = erreur.fautes;
   const suite = autres.length > 0 ? ` ${t('projet.refus.autresFautes', { n: autres.length, s: autres.length > 1 ? 's' : '' })}` : '';
   // Une phrase reprend en MAJUSCULE après le point : `lieuDAuteur` rend un fragment (« Scènes … »),
   // il est donc INTRODUIT au lieu d'être recollé nu derrière la ponctuation.
-  const message = `${verbe} : ${consequence === null ? '' : `${consequence}. `}Faute : ${lieuDAuteur(premiere.lieu)} — ${premiere.message}${suite}`;
+  const message = `${verbe} : ${consequence}. Faute : ${lieuDAuteur(premiere.lieu)} — ${premiere.message}${suite}`;
   return autres.length > 0 ? { message, detail: erreur.message } : { message };
 }

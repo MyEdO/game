@@ -139,7 +139,7 @@ import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSc
 import { choixDuNoeud, elementDuNoeud, type ValeurDuChoix } from '../codex/editFields';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { qualiteDeReposSchema, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
-import { architectureSelectionForWarning, exigerUnProjetJouable, validateScene, type Warning } from '../validateScene';
+import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
 import { memoByDeps } from '../monde/sceneMemo';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
@@ -733,7 +733,6 @@ export function essaiDeLaScene(s: SessionDEdition) {
   const doc = documentEdite(s);
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
-    exigerUnProjetJouable(projet.scenes, projet.worldMap, projet.narratif);
     return (idNeuf) => lancementDuProjet(projet, groupeVitrine(idNeuf), idDeLaSceneEditee(s), null);
   });
 }
