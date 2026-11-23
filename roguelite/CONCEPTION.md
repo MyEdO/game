@@ -30,6 +30,10 @@ l'utilisateur ».
   2026-11-23) : un plantage ou une règle cassée en jeu se corrige aussitôt par un agent, sans attendre de feu vert.
 - **Fable coûte cher** (« mais arrete, Fable coute chere ! », 2026-11-23) : Fable ne reçoit que du dessin, sur un écran,
   avec un brief qui part de l'écran existant ; aucune correction, aucun retour en arrière ni plomberie ne lui va.
+- **Preuves d'un lot du roguelite** (« L'art de perdre un temps monstrueux sur des agents qui ont 5min de cache »,
+  2026-11-23) : vitest ciblé (`node scripts/lancer-local.mjs vitest --cwd roguelite -- vitest run <fichiers>`),
+  `node roguelite/construire.mjs`, `tsc -p roguelite` par `lancer-local`, et les recettes concernées. Jamais
+  `test:perimetre` ni `docs:check`, qui ne jouent aucun test du roguelite et attendent un verrou partagé.
 - **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
   as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
   du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par
