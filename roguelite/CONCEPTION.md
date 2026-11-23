@@ -37,7 +37,9 @@ l'utilisateur ».
 - **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
   as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
   du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par
-  Disponibilité ; pas d'armes d'ogre, de lances de cavalerie ni d'objets qu'aucun héros ne manie.
+  Disponibilité ; pas d'armes d'ogre, de lances de cavalerie ni d'objets qu'aucun héros ne manie. « On devrait filtrer
+  les options de la forge par rapport aux compétences du personnage » (2026-11-23) : pour le héros choisi, la forge ne
+  propose que les armes des Groupes que ses Compétences de Corps à corps et de Projectiles couvrent (lu sur le noyau).
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
 - **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
   (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.

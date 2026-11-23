@@ -18,7 +18,8 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 ## Ensuite, dans l'ordre
 
 1. Forge : revenir à une sélection d'armes choisie (par Groupe utile au roster, une à trois par Groupe), ouverte par
-   Disponibilité, au lieu des 92 armes du catalogue ; même tri pour les remèdes de l'Hospice. Puis brancher
+   Disponibilité, au lieu des 92 armes du catalogue, filtrée pour le héros choisi par les Groupes que couvrent ses
+   Compétences ; même tri pour les remèdes de l'Hospice. Puis brancher
    l'interface de la forge sur les panoplies et les potions ; commit commun forge + interface.
 2. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
    refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
