@@ -11,7 +11,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 | Forge par Disponibilité, potions à l'Hospice | `jeu/boutiques.ts`, `jeu/valeurs.ts` | fait, non commité : attend les panoplies et l'interface |
 | Panoplies d'armure (légère, moyenne, lourde : options, pas échelle) | `jeu/boutiques.ts` | codeur en cours |
 | Une salle à choix plante si le héros saigne | `noyau/epreuve.ts` | codeur en cours |
-| Fiche du héros et Salle d'armes : une seule mise en page de la progression, une seule marque des Augmentations | `ui/fiche.ts`, `ui/services.ts` | Fable en cours |
+| Fiche du héros et Salle d'armes : retour à la disposition d'avant (l'unification « catastrophe » est retirée) | `ui/fiche.ts`, `ui/services.ts` | Fable en cours ; l'unification attend la progression à la 5e (« Ca attendra le dev de la progression en V5 », 2026-11-23) |
 | Sceaux de Collège et de dieu, tenues des nouvelles carrières, actions de la cache lisibles | `ui/`, `figures.ts` | fait par Fable, non commité : attend l'interface de la forge |
 | Compagnon animal et montures dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon` | lot A (prédicat de monture unique) en cours ; lot B à rejuger (cavalier choisi hors combat) ; lot C (Blessures de la bête) |
 
@@ -20,7 +20,9 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 1. Forge : revenir à une sélection d'armes choisie (par Groupe utile au roster, une à trois par Groupe), ouverte par
    Disponibilité, au lieu des 92 armes du catalogue ; même tri pour les remèdes de l'Hospice. Puis brancher
    l'interface de la forge sur les panoplies et les potions ; commit commun forge + interface.
-2. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules.
+2. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
+   refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
+   Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche.
 3. Auberge relais : chambre de repos (repos du noyau) et renvoi contre une prime.
 4. Salles à choix, suite : le camp avec le soigneur (infirmerie du noyau), la rencontre sociale.
 5. Choisir hors combat qui monte sa monture (après le lot B de #4804) ; le roguelite le propose avant la rencontre.
