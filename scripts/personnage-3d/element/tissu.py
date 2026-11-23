@@ -21,6 +21,7 @@ from filets import filets_au_repos, unitaire  # noqa: F401
 from formes import (aretes_des_triangles, aux_noeuds, decalages, decalages_monde, noms_des_cles, poser_la_cle, rapports,
                     region_locale, retournees_par, transferer_les_cles)
 from maille import tirage
+from seuils import ETIREMENT_DES_CLES
 
 BORNES_DES_CLES = (0.4, 2.5)
 """Rapport de longueur d'arête sous une clé transférée (clé / repos) hors duquel `Base.transferer` lisse la clé : marge
@@ -831,8 +832,9 @@ def joindre(objets):
 
 
 def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sous=()):
-    """Chaque clé transférée dont une arête sort de `bornes`, seule ou sous l'une des clés `sous` de `piece` rapportée à
-    sa longueur sous la clé seule (l'évaluateur pose les formes de tête au repos, `gardes/etirement.ts`), est lissée
+    """Chaque clé transférée dont une arête sort de `bornes` seule, ou de `ETIREMENT_DES_CLES` sous l'une des clés `sous`
+    de `piece` rapportée à sa longueur sous la clé seule (l'évaluateur pose les formes de tête au repos,
+    `gardes/etirement.ts` ; `formes_hors_bornes` de `test_element.py`, #4394), est lissée
     (moyenne laplacienne des décalages sur le graphe de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux
     quand une passe ne réduit plus le défaut : un sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à
     des faces différentes suivent la moyenne de leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens
@@ -848,8 +850,8 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sou
     for a, b in aretes:
         voisins[a].append(b)
         voisins[b].append(a)
-    bas, haut = bornes
     dessus = [aux_noeuds(decalages(piece, nom), noeud) for nom in sous]
+    bas, haut = np.repeat(np.array([bornes] + [ETIREMENT_DES_CLES] * len(dessus)), len(aretes), axis=0).T
 
     def mesurer(champ):
         r = np.concatenate([rapports(xn, champ, aretes)] + [rapports(xn + champ, d, aretes) for d in dessus])
@@ -864,7 +866,7 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sou
             r, retournees, fautives = mesurer(champ)
             if not fautives.any():
                 break
-            ecart = int(retournees.sum()) + float(np.maximum(bas / r.min(), r.max() / haut))
+            ecart = int(retournees.sum()) + float(max((bas / r).max(), (r / haut).max()))
             if pire is not None and ecart > pire - 1e-3:
                 anneaux += 1
             pire = ecart
@@ -874,5 +876,6 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400, sou
             passe += 1
         reste = int(mesurer(champ)[2].sum())
         if reste:
-            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} ou retournée(s) après {passe} passes de lissage')
+            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} (sous {list(sous)} : {ETIREMENT_DES_CLES}) '
+                             f'ou retournée(s) après {passe} passes de lissage')
         poser_la_cle(piece, nom, champ[noeud])
