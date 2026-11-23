@@ -59,8 +59,8 @@ export function recrue(e: Etat, p: Profil): Heros {
   return h;
 }
 
-/** Les candidats du relais : chacun d'un rôle que le tirage n'a pas encore donné, tant qu'il en reste, puis d'une
- *  carrière de ce rôle, chacune des carrières ouvertes par le palier du relais à chance égale. */
+/** Les candidats du relais : chacun d'un rôle absent du tirage quand un tel rôle existe, puis d'une carrière de ce
+ *  rôle, chacune des carrières ouvertes par le palier du relais à chance égale. */
 export function renouvelerLesCandidats(e: Etat): void {
   const ouvertes = PROFILS.filter((p) => p.relais <= e.batiments.relais);
   const roles = [...new Set(ouvertes.map((p) => p.role))];
