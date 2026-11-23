@@ -290,6 +290,10 @@ export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .filter((x) => x.text.length > 0)
   .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: { text }, tone, icon }));
 
+/** Une application en conséquences : ses lignes DÉJÀ composées, une par entrée (`freeCons`), puis ses faits, sans
+ *  ligne de plus (#4574). */
+export const consequencesDe = (a: Applique): Consequence[] => [...freeCons(a.lignes), ...(a.faits.length ? [{ lignes: [], faits: a.faits }] : [])];
+
 /** Résout le côté d'un jet MONO (`actorId` ou `partyBest`, jamais `participants`) en acteur + éventuelle valeur
  *  DÉJÀ CALCULÉE (mandat coordinateur — le call-site ne calcule plus rien) :
  *   - `actorId` : l'acteur désigné, valeur = `testValue` (calculée par `effectiveTarget`, pas ici) ;

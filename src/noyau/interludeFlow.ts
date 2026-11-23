@@ -6,6 +6,7 @@
  */
 import type { Jeu } from './etat';
 import type { CloturesDuJet } from './rollFlowSpecs';
+import { constaterDans, faitDArgent, type Applique, type FaitDArgent } from '../engine/faits';
 import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, roll, rollDice } from '../engine/dice';
@@ -13,7 +14,7 @@ import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoun
 import { INTERLUDE_EVENTS, interludeEventDie, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
 import { drainPendingLog } from './combatEffects';
-import { freeCons } from './rollSeam';
+import { consequencesDe, freeCons } from './rollSeam';
 import { type RollLineParts } from './ligneDeJet';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
@@ -289,13 +290,25 @@ function lignesDesPertes(s: Jeu, d: ReturnType<typeof denouementDuTirage>): stri
   ];
 }
 
+/** Les faits d'argent des pertes du dénouement `d`, que leurs lignes disent en prose (`lignesDesPertes`) : lus par
+ *  l'annonce et par l'application. LDB 22 l.36 */
+function faitsDesPertes(s: Jeu, d: ReturnType<typeof denouementDuTirage>): FaitDArgent[] {
+  return d.pertes.flatMap(({ heroId, brass }) => {
+    const heros = s.party.find((h) => h.id === heroId);
+    return heros ? [faitDArgent(heros, -brass)] : [];
+  });
+}
+
 /** Le dénouement appliqué, puis les Activités ouvrent (`phase`, verdict `refusDuTirage`). Commun aux deux
  *  chemins (dernier maillon : après tous les dénouements par héros). */
-function finishInterludeDraw(get: Get, set: Set): string[] {
+function finishInterludeDraw(get: Get, set: Set): Applique {
   const itl = get().interlude;
-  if (!itl) return [];
+  const sortie: Applique = { lignes: [], faits: [] };
+  if (!itl) return sortie;
   const d = denouementDuTirage(get());
-  const lines = lignesDesPertes(get(), d);
+  const lines = sortie.lignes;
+  lines.push(...lignesDesPertes(get(), d));
+  for (const f of faitsDesPertes(get(), d)) constaterDans(sortie, f);
   for (const { heroId, brass } of d.pertes) debitBourse(get, set, heroId, fromBrass(brass));
   const perHero = { ...itl.perHero };
   for (const { heroId, effets } of d.perdues) {
@@ -309,7 +322,7 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
     }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
-  return lines;
+  return sortie;
 }
 
 // ── Activités (LDB 23) — flux de jet par modale (fabrique rollFlow) ────────────────────────────
@@ -1289,16 +1302,16 @@ export const TABLES = {
       return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
     },
     bourseDInterlude: (get, set) => {
-      const lines = finishInterludeDraw(get, set);
-      return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
+      const applique = finishInterludeDraw(get, set);
+      return { consequences: consequencesDe(applique.lignes.length ? applique : { ...applique, lignes: [msg('if.noPurseEvent')] }) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   annonces: {
     /** Ce que les bourses vont perdre, et la vérification de faillite que les placements vont passer. */
-    bourseDInterlude: (get) => {
-      const d = denouementDuTirage(get());
-      const lines = [...lignesDesPertes(get(), d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
-      return lines.length ? lines : [msg('if.noPurseEvent')];
+    bourseDInterlude: (s) => {
+      const d = denouementDuTirage(s);
+      const lignes = [...lignesDesPertes(s, d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
+      return { lignes: lignes.length ? lignes : [msg('if.noPurseEvent')], faits: faitsDesPertes(s, d) };
     },
   } satisfies PartDeTable<'annonces', readonly ['bourseDInterlude']>,
   tablesTirables: {

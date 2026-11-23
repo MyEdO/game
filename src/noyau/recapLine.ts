@@ -14,8 +14,10 @@ import type { FaitApplique } from '../engine/faits';
 export type RecapTone = 'reussite' | 'echec' | 'neutre';
 
 /** Le sens du fait pour sa cible : gain (Blessures et Avantage regagnés, État retiré, Corruption retirée ou
- *  écartée, argent reçu), perte, ou `null` pour un fait sans variation hors Corruption écartée. */
+ *  écartée, argent reçu), perte (dont la Localisation qu'une Blessure critique frappe), ou `null` pour un fait sans
+ *  variation hors Corruption écartée. */
 function sensPourLaCible(f: FaitApplique): 'gain' | 'perte' | null {
+  if (f.genre === 'localisation') return 'perte';
   if (f.genre === 'corruption' && 'contre' in f) return 'gain';
   if (f.valeur === 0) return null;
   const gain = f.genre === 'etat' || f.genre === 'corruption' ? f.valeur < 0 : f.valeur > 0;

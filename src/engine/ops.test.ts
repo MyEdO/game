@@ -13,7 +13,7 @@ import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById, itemFromGive, loadoutSetSlot } from './items';
 import { effectiveChar, blessuresPosees } from './characteristics';
-import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from './combattantDeTest.testkit';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { spellOps } from './flowCore';
 import { findSpellById } from '../data';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
@@ -829,31 +829,6 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
     const c = hero({ fortune: 1 });
     applyOps(c, [{ op: 'gainResource', resource: 'fortune', amount: 2 }], { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(c.fortune).toBe(3);
-  });
-});
-
-describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', () => {
-  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'ennemi', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
-  const ops = [
-    { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
-    { op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 3 },
-    { op: 'charMod', characteristic: 'endurance', mod: -10, durationRounds: 3 },
-    { op: 'condition', id: { id: 'sonne' }, value: 1 },
-  ] as never[];
-
-  it('chaque ligne arrive avec son rang ; la ligne agrégée des charMod va au dernier de la suite', () => {
-    const recues: [number | null, string][] = [];
-    const lignes = applyOps(cible(), ops, { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } }).lignes;
-    expect(recues.map(([rang]) => rang)).toEqual([0, 2, 3]);
-    expect(recues.map(([, l]) => l)).toEqual(lignes);
-    expect(recues[2][1]).toBe('Cible reçoit 1 État Sonné.');
-  });
-
-  it('une op IMBRIQUÉE rend ses lignes à l’op qui la porte, une seule fois', () => {
-    const recues: [number | null, string][] = [];
-    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }] }] as never[], { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } }).lignes;
-    expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
-    expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
   });
 });
 

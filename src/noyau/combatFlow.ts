@@ -256,7 +256,7 @@ import {
 } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
 import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
-import { nomDeSource } from '../engine/faits';
+import { lignesHorsDesFaits, nomDeSource, type Applique as LignesEtFaits, type FaitApplique, type FaitDEtat } from '../engine/faits';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -360,6 +360,8 @@ import {
   effectRef,
   COND,
   isActionLocked,
+  sansReactionAuxEtats,
+  faitsDesPoses,
 } from '../engine/conditions';
 import {
   armeDesTentacules,
@@ -401,8 +403,6 @@ import {
   type OptionsCritique,
   critiqueTriviale,
   critWoundLocation,
-  critImmediateSummary,
-  opRestitueeParLeBandeau,
   prendreAmputationsDifferees,
   critTableKeyFor,
   critTableRows,
@@ -672,6 +672,7 @@ import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings'
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import {
   freeCons,
+  consequencesDe,
   resultLines,
   rollStep,
   rollSansPilote,
@@ -1777,18 +1778,16 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
  * Déviation Critique (applier `mouvementDeFuite` ci-dessous) — le Mouvement se calcule donc toujours sur l'état
  * du fuyard APRÈS le coup (une Blessure critique à la jambe le ralentit).
  */
-export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: string, broken: number): void {
+export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: string, broken: number): FaitDEtat | null {
   const battle = get().battle;
   const scene = get().scene;
-  if (!battle || !scene) return;
+  if (!battle || !scene) return null;
   const mover = inBattleId(battle, moverId);
   const foe = inBattleId(battle, foeId);
-  if (!mover || !foe) return;
+  if (!mover || !foe) return null;
   const log = [...battle.log];
-  if (broken > 0) {
-    addCondition(mover, COND.brise, broken);
-    log.push(ev('peur', tr('cs.panic', { name: nomDe(mover), broken }), mover.id));
-  }
+  const brise = poserLeBrise(mover, broken);
+  if (broken > 0) log.push(ev('peur', tr('cs.panic', { name: nomDe(mover), broken }), mover.id));
   const foes = (mover.engagedWith ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
   for (const f of foes) disengageFrom(mover, f);
   // Fuite ! (LDB 10) : Mouvement +1 quand on fuit ; Course = 2× Mouvement (l.68).
@@ -1798,6 +1797,22 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
   set({ battle: { ...battle, action: null, reachable: reach, log } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
+  return brise;
+}
+
+/** Les États Brisés d'une Fuite ratée sur le fuyard (LDB 15 l.66), et leur fait. Partagé par `completeFlee` et la
+ *  prévision de son étape de reprise (`faitsPrevusDeLaFuite`), qui le joue sur une copie. */
+function poserLeBrise(fuyard: Combatant, broken: number): FaitDEtat | null {
+  if (broken <= 0) return null;
+  return faitsDesPoses(fuyard, [COND.brise], () => addCondition(fuyard, COND.brise, broken))[0] ?? null;
+}
+
+/** LA PRÉVISION de l'étape de reprise d'une Fuite (`mouvementDeFuite`, #4574) : le fait des États Brisés que
+ *  `completeFlee` posera, sur une copie du fuyard. */
+export function faitsPrevusDeLaFuite(s: Jeu, fuite: { moverId: string; broken: number }): FaitApplique[] {
+  const fuyard = inBattleId(s.battle, fuite.moverId);
+  const brise = fuyard && sansReactionAuxEtats(() => poserLeBrise(structuredClone(fuyard), fuite.broken));
+  return brise ? [brise] : [];
 }
 
 /** Lance l'action « Au Contact » d'un héros Engagé en mêlée (LDB 62 l.176, Option « Longueur d'arme »,
@@ -2219,6 +2234,102 @@ export function resolveCritSeverity(
  *  personne n'encaisse de Blessure critique (EDOC 07 l.334 ; #4202). */
 export type IssueDuCritique = 'letale' | 'subie' | 'reportee' | 'aucune';
 
+/** Les faits des Blessures critiques que la reprise d'une fenêtre de Déviation applique sous la révélation déjà montrée
+ *  (`suppressReveal`), recueillis le temps de cette reprise (`recueillirLaReprise`), PAR RANG du Critique dans le plan
+ *  du coup ; `rang` : celui que `appliquerLesCritiques` applique. `null` hors d'une reprise. */
+let faitsDeLaReprise: { rang: number; parRang: FaitApplique[][] } | null = null;
+
+/** Joue la reprise `reprise` d'une fenêtre de Déviation et rend les faits des Blessures critiques qu'elle applique, par
+ *  rang du Critique dans le plan : l'applier `deviation` pose ceux du rang k sur l'étape de la fenêtre k. Ré-entrante :
+ *  le collecteur d'une reprise englobante est rendu à la sortie. */
+function recueillirLaReprise(reprise: () => void): FaitApplique[][] {
+  const avant = faitsDeLaReprise;
+  const recueillis = { rang: 0, parRang: [] as FaitApplique[][] };
+  faitsDeLaReprise = recueillis;
+  try {
+    reprise();
+  } finally {
+    faitsDeLaReprise = avant;
+  }
+  return recueillis.parRang;
+}
+
+/** LES OPS d'une Blessure critique appliquées à `cible` : le SEUL `applyOps` de ses ops, partagé par l'application
+ *  (`applyCriticalToTarget`) et la prévision (`faitsSansDe`). `location` : main affectée par l'op `disarm` (#153) ;
+ *  `now` : horloge de jeu des effets d'horloge (#153). */
+function appliquerLesOpsDuCritique(
+  cible: Combatant, ops: GameOp[], contexte: Pick<OpsCtx, 'location' | 'now' | 'rng' | 'idNeuf'> & Partial<Pick<OpsCtx, 'onLacher'>>,
+): LignesEtFaits {
+  return applyOps(cible, ops, contexte);
+}
+
+/** Un dé que la prévision ne tire pas : l'op qui le demande arrête la prévision à son rang. */
+const DE_NON_TIRE = Symbol('dé non tiré');
+const SANS_DE: RNG = { int: () => { throw DE_NON_TIRE; } };
+
+/** Les faits que `ops` font à `cible` (mutée), sans dé ni réaction : jouées jusqu'au rang de la première op qui tire
+ *  un dé. `borne` : une op a demandé un dé, la copie n'est plus fidèle au-delà, la prévision s'arrête. */
+function faitsSansDe(cible: Combatant, ops: GameOp[], ctx: Pick<OpsCtx, 'location' | 'now'>): { faits: FaitApplique[]; borne: boolean } {
+  for (let n = ops.length; n >= 0; n--) {
+    const essai = structuredClone(cible);
+    try {
+      const { faits } = sansReactionAuxEtats(() => appliquerLesOpsDuCritique(essai, ops.slice(0, n), { ...ctx, idNeuf: () => 'prevision', rng: SANS_DE }));
+      Object.assign(cible, essai);
+      return { faits, borne: n < ops.length };
+    } catch (e) {
+      if (e !== DE_NON_TIRE) throw e;
+    }
+  }
+  return { faits: [], borne: ops.length > 0 };
+}
+
+/** LES BLESSURES DU COUP sur `cible`, avant ses Blessures critiques : LDB 13 l.161 ; puis la réouverture d'une plaie
+ *  critique (LDB 18 ; AA 07). Rend les pions d'Hémorragique de la rechute. Partagé par l'encaissement et la prévision
+ *  d'une fenêtre de Blessure critique (`faitsPrevusDuCritique`), qui le joue sur une copie. */
+function preEncaisser(cible: Combatant, lieu: HitLocation, blessures: number): number {
+  cible.wounds.current = Math.max(0, cible.wounds.current - blessures);
+  if (isInanimate(cible)) return 0;
+  const rechute = reinjuryBleed(cible, lieu);
+  if (rechute > 0) addCondition(cible, COND.hemorragique, rechute);
+  return rechute;
+}
+
+/** Le compte d'un coup suspendu après `n` Déviations, relu sur la cible intacte : arme, Projectile, ou coup du marin
+ *  (MDG 13 l.584). */
+function recompteurDuCoup(attaquant: Combatant, cible: Combatant, coup: CoupSuspendu): (n: number) => CompteDuCoup {
+  const touche = coup.mode === 'marin' ? coup.coupDuMarin : coup;
+  return touche.mode === 'melee'
+    ? (n) => compteDuCoup(touche.res, touche.weapon, attaquant, cible, n)
+    : (n) => compterLesCritiquesDuProjectile(touche.touche, attaquant, cible, n);
+}
+
+/**
+ * LA PRÉVISION d'une fenêtre de Blessure critique (#4574) : les faits que « Subir » appliquera à SA Blessure critique,
+ * calculés à la lecture sur une copie de la cible — les Blessures du coup (`preEncaisser`, compte après les Déviations
+ * tranchées), puis les Blessures critiques subies aux fenêtres d'avant, qui font évoluer la copie sans être publiées
+ * (leurs faits vont à leurs étapes), puis la sienne : sa Localisation, puis les faits de ses ops. Une Blessure létale
+ * (LDB 18 l.53) ou une op qui tire un dé (`faitsSansDe`) arrête la prévision : la copie n'est plus fidèle au-delà, et
+ * la fenêtre ne prévoit que sa Localisation, que le compte du coup fixe.
+ */
+export function faitsPrevusDuCritique(s: Jeu, dev: PendingDeviation): FaitApplique[] {
+  const porteur = porteurParId(s, dev.targetId);
+  if (!porteur) return [];
+  const cible = structuredClone(porteur);
+  let lieu = dev.mode === 'self' ? dev.location : undefined;
+  const avant = dev.mode === 'self' ? [] : dev.decides.flatMap((d) => (d.deviation === 'subir' && d.crit ? [d.crit] : []));
+  if (dev.mode !== 'self') {
+    const attaquant = porteurParId(s, dev.attackerId);
+    if (!attaquant) return [];
+    const { compte, lieu: duCoup } = recompteurDuCoup(attaquant, porteur, dev)(dev.decides.filter((d) => d.deviation === 'devier').length);
+    lieu = duCoup;
+    sansReactionAuxEtats(() => preEncaisser(cible, duCoup, compte.blessures));
+  }
+  const ctx = { location: lieu, now: s.gameTime };
+  const localisation: FaitApplique = { genre: 'localisation', cible: cible.id, camp: campOf(cible), valeur: lieu! };
+  for (const crit of avant) if (faitsSansDe(cible, crit.ops, ctx).borne) return [localisation];
+  return dev.crit.lethal ? [localisation] : [localisation, ...faitsSansDe(cible, dev.crit.ops, ctx).faits];
+}
+
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
  *  plancher 0) + États + compteur. RETOURNE son issue (`IssueDuCritique`). Pousse le journal dans `log`. */
 export function applyCriticalToTarget(
@@ -2294,25 +2405,28 @@ export function applyCriticalToTarget(
       details.push({ text: l });
     }
   }
+  const faits: FaitApplique[] = [{ genre: 'localisation', cible: target.id, camp: campOf(target), valeur: loc }];
   if (!crit.lethal) {
     // `now` : horloge de jeu — sans elle, un effet d'HORLOGE (durée en jours, #153) calculerait son
     // échéance depuis 0 → expirerait immédiatement au tick suivant (`purgeClockEffects` compare à `get().gameTime`
     // réel). `location` : main affectée par l'op `disarm` (#153, convention DROITIER `brasD`→main/`brasG`→off).
-    // Effet immédiat (PB ignorant BE+PA + États) — langue GameOp. Toute ligne va au journal ; la modale ne
-    // reprend pas celles d'une op que son bandeau restitue (`opRestitueeParLeBandeau`).
-    const surLigne = (rang: number | null, l: string): void => {
-      log.push(`  ↳ ${l}`);
-      if (rang != null && opRestitueeParLeBandeau(crit.ops[rang])) return;
+    // Effet immédiat (PB ignorant BE+PA + États) — langue GameOp. Toute ligne va au journal ; la modale porte les
+    // faits, et ne reprend que les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
+    const applique = appliquerLesOpsDuCritique(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, ...crochetDuSol(get, set) });
+    for (const l of applique.lignes) log.push(`  ↳ ${l}`);
+    for (const l of lignesHorsDesFaits(applique, (id) => nomDe(id === target.id ? target : garanti(porteurParId(get(), id), id, "cible d'un fait de Blessure critique")))) {
       revealLines.push(`  ↳ ${l}`);
       details.push({ text: l });
-    };
-    applyOps(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne, ...crochetDuSol(get, set) });
+    }
+    faits.push(...applique.faits);
     if (crit.desc) {
       log.push(`  ↳ ${crit.desc}`); // effet long terme journalisé, non simulé
       revealLines.push(`  ↳ ${crit.desc}`);
       details.push({ text: crit.desc });
     }
   }
+  // Sous la révélation déjà montrée (fenêtre de Déviation), les faits vont à l'étape que la reprise valide.
+  if (suppressReveal && faitsDeLaReprise) (faitsDeLaReprise.parRang[faitsDeLaReprise.rang] ??= []).push(...faits);
   // « Un jet = une modale » : modale de Coup Critique COMPLÈTE (qui inflige + arme + dé + localisation +
   // Blessures + États + effets expliqués), au niveau de la modale d'attaque. (Sautée si la modale de
   // déviation l'a déjà affichée — la déviation fusionne choix ET révélation sur une seule modale.)
@@ -2320,13 +2434,11 @@ export function applyCriticalToTarget(
   // §4bis) ; un critique purement ennemi↔ennemi reste au journal/bandeau (les lignes sont déjà dans `log`).
   const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros';
   if (!suppressReveal && heroConcerned) {
-    const sum = critImmediateSummary(crit.ops);
     pushReveal(set, {
       kind: 'critique', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines: revealLines, subjectId: target.id,
       ...(origine ? { origine } : {}),
       actorId: ctx?.attackerId, weapon: ctx?.weapon, details,
-      crit: { location: crit.location, woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
-    }, { table: severity?.table }); // la DÉCLARATION résolue voyage avec la révélation : dé + ligne atteinte sur la rangée
+    }, { table: severity?.table, faits }); // la DÉCLARATION résolue voyage avec la révélation : dé + ligne atteinte sur la rangée
   }
   // Le(s) Test(s) que la Blessure impose (LDB 18 : « Réussissez un Test de Résistance… » ; l.74 pour un
   // déclencheur de séquelle) passent par la PORTE canonique, APRÈS la révélation du Critique : le SOCLE
@@ -2503,7 +2615,8 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
 
 /** Construit la révélation d'affichage d'un Coup Critique PRÉ-TIRÉ, SANS muter la cible (pour la modale
  *  de déviation : on montre le Critique qui menace avant le choix Dévier/Subir). Détails de base (sans la
- *  consolidation des amputations multiples, calculée seulement à l'application). */
+ *  consolidation des amputations multiples, calculée seulement à l'application). Ses faits se prévoient à la
+ *  lecture (`faitsPrevusDuCritique`). */
 export function previewCritEntry(target: Combatant, crit: CriticalResolved, origine: OrigineCritique, ctx?: { attackerId?: string; weapon?: string }): RevealEntry {
   const lines = [crit.log];
   const details: { text: string; note?: string }[] = [];
@@ -2516,11 +2629,9 @@ export function previewCritEntry(target: Combatant, crit: CriticalResolved, orig
     lines.push(`  ↳ ${crit.desc}`);
     details.push({ text: crit.desc });
   }
-  const sum = critImmediateSummary(crit.ops);
   return {
     kind: 'critique', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines, subjectId: target.id,
     actorId: ctx?.attackerId, weapon: ctx?.weapon, details, origine,
-    crit: { location: crit.location, woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
   };
 }
 
@@ -2568,7 +2679,7 @@ function autoDeviate(
       kind: 'critique', title: tr('cf.titreDuCritiqueDevie'), dice: roll,
       lines: [tr('cf.revelationDuCritiqueDevie', { loc: locationLabel(location, target.bodyShape) }), tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) })],
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon,
-    });
+    }, { faits: [{ genre: 'localisation', cible: target.id, camp: campOf(target), valeur: location }] });
   return true;
 }
 
@@ -2719,7 +2830,7 @@ function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine
     const { get, set, auteur, cible, log } = a;
     if (!auteur || issue === 'letale' || issue === 'reportee') return;
     if (issue === 'subie') {
-      const fb = loseWounds(cible, talentCritExtraWounds(auteur));
+      const fb = loseWounds(cible, talentCritExtraWounds(auteur)).perdues;
       if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }));
     }
     const battle = get().battle;
@@ -2926,7 +3037,8 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
       : deflectCrit(target, lieu, log));
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
-      // (pose du dé, #942 L4) garde sa révélation.
+      // (pose du dé, #942 L4) garde sa révélation. Ses faits vont au rang `i` de la reprise (`recueillirLaReprise`).
+      if (faitsDeLaReprise) faitsDeLaReprise.rang = i;
       issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(issue, entree.origine);
       if (issue !== 'aucune') infligees++;
@@ -2959,12 +3071,8 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
   const { get, set, cible, log, avantLeCoup } = e;
   const { lieu, compte: { blessures } } = e.compte;
   const currentBefore = cible.wounds.current;
-  cible.wounds.current = Math.max(0, currentBefore - blessures);
-  if (!isInanimate(cible)) {
-    // Réouverture d’une plaie critique (LDB 18 / AA 07).
-    const reinj = reinjuryBleed(cible, lieu);
-    if (reinj > 0) { addCondition(cible, COND.hemorragique, reinj); log.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: reinj, loc: locationLabel(lieu, cible.bodyShape) })); }
-  }
+  const reinj = preEncaisser(cible, lieu, blessures);
+  if (reinj > 0) log.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: reinj, loc: locationLabel(lieu, cible.bodyShape) }));
   const applique = appliquerLesCritiques({
     get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, auteur: e.auteur, avantLeCoup, roll: e.roll,
     apres: apresLeCritiqueDe({ get, set, auteur: e.auteur, cible, lieu, log, arme: e.arme, woundsDealt: blessures }),
@@ -3024,13 +3132,13 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
   const attaquant = garanti(inBattleId(battle, coup.attackerId), coup.attackerId, "auteur du coup qui porte le Critique d'Équipage");
   const marin = garanti(inBattleId(battle, coup.marinId), coup.marinId, "marin d'un Critique d'Équipage (MDG 13 l.584)");
   const touche = coup.mode === 'melee'
-    ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label, recompter: (n: number): CompteDuCoup => compteDuCoup(coup.res, coup.weapon, attaquant, marin, n) }
-    : { hit: !!coup.touche.mres.hit, roll: coup.touche.mres.roll ?? 0, arme: undefined, libelle: coup.touche.spell.label, recompter: (n: number): CompteDuCoup => compterLesCritiquesDuProjectile(coup.touche, attaquant, marin, n) };
+    ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label }
+    : { hit: !!coup.touche.mres.hit, roll: coup.touche.mres.roll ?? 0, arme: undefined, libelle: coup.touche.spell.label };
   const lignes: string[] = [];
   if (!touche.hit) return lignes;
   const twice = critRollTwiceFor(attaquant);
   const planifie = planifierLesCritiques(get, set, {
-    attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice, recompter: touche.recompter,
+    attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice, recompter: recompteurDuCoup(attaquant, marin, coup),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null;
@@ -3178,7 +3286,7 @@ function appliquerLaTouche(
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
-    recompter: (n) => compteDuCoup(res, weapon, attacker, target, n),
+    recompter: recompteurDuCoup(attacker, target, suspendu),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(target, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
@@ -4999,7 +5107,7 @@ function resumeMeleeAfterSuspension(
  *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: PendingDeviation, deviate: boolean): void {
   if (dev.mode !== 'self') {
-    reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
+    reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir', etape: etapeId });
     return;
   }
   const avantLeCoup = reprendreLeCritiqueSuspendu(get, set, etapeId);
@@ -5295,26 +5403,39 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
  * modes (dé tiré inline : tous les jets de la cascade ; dé posé : le jet de CETTE étape).
  * LDB 51 ; #4096.
  */
-function sorceryCorruptionLines(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): string[] {
-  if (!ctx.sorceryCorruption || !recoitLaCorruption(caster)) return [];
-  const lines: string[] = [];
-  for (let i = 0; i < jets; i++) lines.push(...gainCorruption(get, set, caster, 1).lignes);
-  return lines;
+function sorceryCorruption(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): LignesEtFaits {
+  const sortie: LignesEtFaits = { lignes: [], faits: [] };
+  if (!ctx.sorceryCorruption || !recoitLaCorruption(caster)) return sortie;
+  for (let i = 0; i < jets; i++) {
+    const gain = gainCorruption(get, set, caster, 1);
+    sortie.lignes.push(...gain.lignes);
+    sortie.faits.push(...gain.faits);
+  }
+  return sortie;
 }
 
 /** DÉNOUEMENT de l'étape à table (applier `tableDIncantationImparfaite`) : expiation du Péché, ops
  *  immédiats, Corruption de Sorcellerie, étape de révélation, Test imbriqué. Le déclencheur
  *  `onMiscast` n'est PAS ici : il vaut par ÉVÉNEMENT d'Imparfaite, donc au site d'`applyMiscast`
  *  (`emitMiscastTriggered`) — une Multiplication d'infortune dénoue DEUX fois. */
-function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, m: MiscastResult): { lines: string[]; affichee: boolean } {
+function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, m: MiscastResult): { applique: LignesEtFaits; affichee: boolean } {
   const { severity } = ctx;
   const lines = [m.log];
+  const faits: FaitApplique[] = [];
+  // La révélation porte les faits, et seules les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
+  const revealLines = [m.log];
+  const absorber = (a: LignesEtFaits): void => {
+    lines.push(...a.lignes);
+    faits.push(...a.faits);
+    revealLines.push(...lignesHorsDesFaits(a, (id) => nomDe(id === caster.id ? caster : garanti(porteurParId(get(), id), id, "cible d'un fait d'Imparfaite")), m.label));
+  };
   // « Après le lancer et avoir appliqué le résultat, réduisez vos Points de Péché
   // de 1, jusqu'à un minimum de 0 » (LDB 40 l.46). Le total DÉCROÎT depuis sa valeur VIVANTE : un
   // Péché gagné pendant la fenêtre de pose serait effacé par une réécriture depuis un instantané.
   if (severity === 'colere' && (caster.sinPoints ?? 0) > 0) {
     caster.sinPoints = Math.max(0, (caster.sinPoints ?? 0) - 1);
     lines.push(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints }));
+    revealLines.push(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints }));
   }
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
@@ -5330,21 +5451,24 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     source: miscastRowSource(miscastTableId(severity), m.rowId),
     ...crochetsDeCorruption(get, set), ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   };
-  lines.push(...applyOps(caster, m.ops, opsCtx).lignes);
+  absorber(applyOps(caster, m.ops, opsCtx));
   // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
-    if (!cibles.length) lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
+    if (!cibles.length) {
+      lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
+      revealLines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
+    }
     for (const c of cibles) {
       const cibleCtx: OpsCtx = { ...opsCtx, caster };
-      lines.push(...applyOps(c, m.targetOps, cibleCtx).lignes);
+      absorber(applyOps(c, m.targetOps, cibleCtx));
     }
   }
   // Sorcellerie : 1 Point de Corruption PAR JET de table (LDB 49 l.5, verbatim en tête de
-  // `sorceryCorruptionLines`). Dé tiré inline → `m.tableRolls` compte TOUS les jets de la cascade
+  // `sorceryCorruption`). Dé tiré inline → `m.tableRolls` compte TOUS les jets de la cascade
   // (relance 96-00, deux lancers d'une Multiplication et leurs relances 91-00) ; dé posé → 1, les
   // jets des étapes de relance ayant déjà été comptés par l'applier. Même total dans les deux modes.
-  lines.push(...sorceryCorruptionLines(get, set, caster, ctx, m.tableRolls));
+  absorber(sorceryCorruption(get, set, caster, ctx, m.tableRolls));
   // « Un jet = une modale » : le héros voit la conséquence (Colère/Imparfaite) INLINE dans la séquence
   // partagée (étape d'affichage). `suppressReveal` est un paramètre d'appel qu'AUCUN appelant ne pose
   // aujourd'hui (Focalisation interrompue comprise) — cf. #942, ticket de suite.
@@ -5353,7 +5477,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     const colere = severity === 'colere';
     const title = colere ? 'Colère des dieux' : 'Incantation Imparfaite';
     // Charge riche `reveal` (table : dé + lignes) — comme le Critique ; le dé reste observable (Péché +10).
-    const reveal: RevealEntry = { kind: 'incantationImparfaite', title, dice: m.rolls[0], lines, subjectId: caster.id };
+    const reveal: RevealEntry = { kind: 'incantationImparfaite', title, dice: m.rolls[0], lines: revealLines, subjectId: caster.id };
     // FOLD : l'Imparfaite/Colère est une ÉTAPE de la cascade d'incantation ACTIVE (parité avec le
     // Critique d'attaque, appendu via pushReveal) — plus une cascade SÉPARÉE. L'append vise la
     // cascade `purpose:'combat'` en cours (jet d'incantation), ou démarre « Conséquences » si aucune
@@ -5364,6 +5488,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     pushCombatStep(set, (index) => revealToStep(reveal, index, {
       label: colere ? 'Colère des dieux' : 'Imparfaite',
       icon: colere ? 'magie/puissance' : 'feu/explosif',
+      faits,
     }));
   }
   // Test imbriqué de l'entrée (« Résistance ou Sonné ») — résolu CADENCE-AWARE par l'exécuteur de Flow
@@ -5373,9 +5498,9 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // silencieux héros »). `onFailHard` (Purifier la chair −4 DR → Inconscient) est honoré dans la branche
   // d'échec via la Condition Flow `slThreshold ≤ −4` (cf. `mkTest`).
   if (m.testFlow) runCombatFlow({ get, set, target: caster, caster, label: m.label, opsCtx }, m.testFlow);
-  // `affichee` : l'étape de révélation PORTE déjà ces lignes — l'appelant en cascade ne doit pas les
+  // `affichee` : l'étape de révélation PORTE déjà ces lignes et ces faits — l'appelant en cascade ne doit pas les
   // rendre une SECONDE fois en conséquence de son étape (mêmes lignes, deux rangées à l'écran).
-  return { lines, affichee };
+  return { applique: { lignes: lines, faits }, affichee };
 }
 
 /**
@@ -6652,16 +6777,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const suspendu: CoupSuspendu = { mode: 'projectile', touche };
   const planifie = planifierLesCritiques(get, set, {
     attacker: caster, target: cible, coup: suspendu, decides: ch.critiques ?? [], sousAttaque: false, twice,
-    recompter: (n) => compterLesCritiquesDuProjectile(touche, caster, cible, n),
+    recompter: recompteurDuCoup(caster, cible, suspendu),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(cible, lieu, n, { casse }), lieu),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
   const loc = compte.lieu;
-  cible.wounds.current = Math.max(0, currentBefore - compte.compte.blessures);
-  // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
-  const mReinj = reinjuryBleed(cible, loc);
-  if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
+  const mReinj = preEncaisser(cible, loc, compte.compte.blessures);
+  if (mReinj > 0) lignes.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: mReinj, loc: locationLabel(loc, cible.bodyShape) }));
   const { infligees } = appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, auteur: caster, avantLeCoup, roll: mres.roll ?? 0,
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
@@ -9552,7 +9675,8 @@ export const TABLES = {
      *  fois le Critique tranché (Dévier/Subir), la fuite se complète ICI — jamais avant (LDB 15 l.68). */
     mouvementDeFuite: (get, set, step) => {
       const f = step.fuite;
-      if (f) completeFlee(get, set, f.moverId, f.foeId, f.broken);
+      const brise = f && completeFlee(get, set, f.moverId, f.foeId, f.broken);
+      return brise ? { consequences: [{ lignes: [], faits: [brise] }] } : undefined;
     },
     /**
      * APPLIER de l'étape de SAUVEGARDE (#1508) : le dé est tombé (lancé ou POSÉ). La lecture est celle du
@@ -9651,11 +9775,20 @@ export const TABLES = {
       const dev = step.deviation;
       // Le pli n'a pas posé le Critique : sa cible est introuvable, la conséquence se DIT (patron `sauvegarde`).
       if (!dev) return step.critSeverity ? { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) } : undefined;
-      if (!step.options && dev.mode !== 'self') {
-        reprendreLeCoup(get, set, dev, { crit: dev.crit });
-        return;
-      }
-      resolveDeviation(get, set, step.id, dev, step.chosen === 'devier');
+      // Les faits de la Blessure critique de rang k vont à l'étape de la fenêtre k, que sa prévision annonçait
+      // (`faitsPrevusDuCritique`) : celle-ci, ou une fenêtre d'avant, validée sans rien appliquer.
+      const parRang = recueillirLaReprise(() => {
+        if (!step.options && dev.mode !== 'self') reprendreLeCoup(get, set, dev, { crit: dev.crit, etape: step.id });
+        else resolveDeviation(get, set, step.id, dev, step.chosen === 'devier');
+      });
+      const rang = dev.mode === 'self' ? 0 : dev.decides.length;
+      const faits = parRang[rang] ?? [];
+      const avant = dev.mode === 'self' ? [] : dev.decides.flatMap((d, k) => (d.etape && parRang[k]?.length ? [[d.etape, parRang[k]] as const] : []));
+      if (!faits.length && !avant.length) return undefined;
+      return {
+        ...(faits.length ? { consequences: [{ lignes: [], faits }] } : {}),
+        ...(avant.length ? { faitsDesEtapesValidees: Object.fromEntries(avant) } : {}),
+      };
     },
     /**
      * La LIGNE tirée (`result.id` via le dé posé, jamais un re-lookup local) résout le contrecoup. Une
@@ -9679,21 +9812,21 @@ export const TABLES = {
       if (m.reroll) {
         // Le JET de cette étape compte pour la Corruption de Sorcellerie même s'il ne fait que relancer
         // (LDB 49 l.5, verbatim au site de `finishMiscast`) : par JET, pas par Imparfaite résolue.
-        const lines = sorceryCorruptionLines(get, set, caster, ctx, m.tableRolls);
+        const corruption = sorceryCorruption(get, set, caster, ctx, m.tableRolls);
         // Les lancers d'une relance ne portent PAS le +10 de Péché (la Colère ne relance jamais).
         const relance = (over: Partial<PendingMiscastStep>, suffixe: string) =>
           tableStep(miscastTableSpec(caster, { ...ctx, ...over }, `${step.id}-${suffixe}`));
         // Un mint qui REFUSE n'insère rien (politique de la porte : DEV throw, PROD dégradé) — le canal
         // `insert` ne porte donc que les étapes réellement montées.
         const sortie = (insert: readonly (BuiltCascadeStep | undefined)[]) =>
-          ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(lines.length ? { consequences: freeCons(lines) } : {}) });
+          ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(corruption.lignes.length ? { consequences: consequencesDe(corruption) } : {}) });
         if (ctx.rerollHigh && rolled.die >= 91) return sortie([relance({}, 'relance')]);
         if (m.reroll === 'mineure-x2') return sortie([relance({ rerollHigh: true }, 'x2-0'), relance({ rerollHigh: true }, 'x2-1')]);
         return sortie([relance({ severity: 'majeure', rerollHigh: false }, 'majeure')]);
       }
       const fin = finishMiscast(get, set, caster, ctx, m);
       // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
-      return fin.affichee ? undefined : { consequences: freeCons(fin.lines) };
+      return fin.affichee ? undefined : { consequences: consequencesDe(fin.applique) };
     },
     /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Contraction RÉSOLU →
      *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
