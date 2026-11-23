@@ -170,7 +170,7 @@ function cartographe(n: number): string {
 
 /** Le péage : la rivière, le pont de pierre, la tour de garde et sa barrière ; puis la seconde tour. */
 function peage(n: number): string {
-  let s = p('M1430,592C1520,584 1660,586 1800,590V660H1430Z', '#232a4a');
+  let s = p('M1430,592C1520,584 1660,586 1800,590V720H1500C1470,690 1440,650 1430,592Z', '#232a4a');
   for (let k = 0; k < 10; k++) s += trait(`M${1450 + k * 34},${610 + (k % 3) * 11}h${18 + (k % 2) * 12}`, '#8a92d0', 1.5, 'opacity=".35"');
   s += p('M1486,604V566H1790V604H1740Q1722,572 1680,572Q1638,572 1620,604H1596Q1580,580 1552,580Q1524,580 1508,604Z', '#2a2236', C) + trait('M1486,566H1790', LUNE, 2.5, 'opacity=".7"') + moellons(1486, 566, 300, 20, 41);
   if (n === 0) {
