@@ -14,7 +14,7 @@ virole et une pointe en fer de lance à deux crochets recourbés. Échelle relev
 
 Écarts à l'illustration, tracés : le manche y est arqué, il est droit ici (un manche de bois tenu des deux mains sur un
 axe, `AXE_DANS_LA_PRISE`) ; le petit crâne y porte un anneau, omis ; le métal y est taché de sang et de rouille, la
-matière du catalogue le rend (aucune couleur cuite) ; la main y tient le manche à ~0,66 m sous le sommet du fer, les
+matière `fer-rouille` du catalogue le rend (aucune couleur cuite) ; la main y tient le manche à ~0,66 m sous le sommet du fer, les
 clips `Lourde_*` de la base le tiennent plus bas (`PRISE_DEPUIS_TALON`).
 
 Repère de la prise `main` de la base (comme `rigide--hallebarde`) : origine sur la paume, +Y le long du manche vers le
@@ -34,13 +34,13 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'metal': ('metal', 'acier-battu'),
+    'metal': ('metal', 'fer-rouille'),
     'bois': ('bois', 'bois-chene'),
     'cuir': ('cuir', 'cuir-tanne'),
     'os': ('corne', 'os'),
 }
-"""Illustration : fer, douille, bloc, virole et pointe d'un même métal battu, terni (`metal`, le bronze terni au preset
-`gladiateur`) ; manche de bois brun ; lanières de cuir sombre ; petit crâne d'os clair, sur `corne` comme le crâne du
+"""Illustration : fer, douille, bloc, virole et pointe d'un même métal terni, taché de sang et de rouille : le fer rouillé
+du catalogue (`metal`, le bronze terni au preset `gladiateur`) ; manche de bois brun ; lanières de cuir sombre ; petit crâne d'os clair, sur `corne` comme le crâne du
 collier (`rigide--collier_a_cranes`)."""
 
 BUDGET_TRIANGLES = 1200          # procédure du skill, section 7 : rigide tenu
@@ -127,11 +127,27 @@ seconde prise (de -0,40 à -0,30) : une lanière sous le poing fermé de la base
 `rayon` : celui des arêtes de la lanière, dont le milieu des pans (× cos 30°) reste au-dessus du bois ; `fond` : son
 arête noyée dans le manche."""
 
-BOUTS_LIBRES = {'chemins': [[(0.600, 0.016), (0.585, 0.045), (0.550, 0.060), (0.525, 0.085), (0.535, 0.105)],
-                            [(0.250, 0.016), (0.262, 0.050), (0.290, 0.075), (0.315, 0.105), (0.330, 0.120)]],
-                'rayon': 0.004, 'cotes': 4, 'pas': 2}
-"""Les deux bouts de lanière libres du contrat (y depuis la prise, r vers +Z), au haut des deux premiers groupes.
-Illustration : un bout qui retombe en S sous le fer, un autre qui s'envole du milieu du manche, chacun ~60 px (0,10 m),
-du côté du tranchant ; `pas` : points par tronçon de la ligne adoucie."""
+BOUTS_LIBRES = {
+    'bouts': [
+        {'groupe': 0, 'vrille': 20,
+         'chemin': [(1.10, 0.004, 0.034), (1.42, -0.010, 0.056), (1.48, -0.042, 0.068), (1.48, -0.078, 0.060),
+                    (1.48, -0.108, 0.058), (1.48, -0.128, 0.070), (1.48, -0.126, 0.086)]},
+        {'groupe': 1, 'vrille': -20,
+         'chemin': [(1.10, 0.011, 0.034), (1.42, 0.008, 0.060), (1.48, -0.012, 0.076), (1.48, -0.040, 0.080),
+                    (1.48, -0.065, 0.090), (1.48, -0.078, 0.104), (1.48, -0.072, 0.116)]},
+    ],
+    'epaisseur': 0.003, 'amorce': 0.55, 'pas': 2}
+"""Les deux bouts de lanière libres du contrat : la fin d'une lanière de la guipure qui s'est défaite, de la même
+section plate (`GUIPURES['largeur']`, `epaisseur` : HYPOTHÈSE, un cuir de 3 mm). Le bout part de l'extrémité haute de
+son `groupe` (rang dans `GUIPURES['groupes']`), prolonge la spire sur `amorce` radians, puis suit son `chemin` de
+points (angle autour du manche depuis la fin de la spire en radians, y depuis la fin de la spire, distance à l'axe du
+manche) ; `vrille` : degrés dont la lanière tourne sur elle-même de son départ à sa pointe ; `pas` : sections par
+tronçon de la ligne adoucie.
+Illustration : un bout qui retombe en S sous le fer, un autre au milieu du manche, finis en crosse ; ici 20 cm et
+18 cm. Écarts tracés : ils y sont des fils fins, ils ont ici la largeur de la lanière dont ils sortent ; ils y sont du
+côté du tranchant, ils sortent ici du côté du bloc à pointes (-Z), où la spire finit et où va sa tangente ; celui du
+milieu s'y envole vers le haut, il s'écarte et retombe vers le talon ici (ce qui pend pend). Les deux restent
+au-dessus de la prise (le plus bas descend à y = 0,15), dans la boîte de la hache, et du côté -X de l'axe du manche :
+le jeu range la hache à plat, son côté +X contre le dos, et l'appuie par ses sommets (`MontageDeComposition._ranger`)."""
 
 ANGLE_LISSE = 40                 # degrés : arêtes plus vives que cet angle gardées vives

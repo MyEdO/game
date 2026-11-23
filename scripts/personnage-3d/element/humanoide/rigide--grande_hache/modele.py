@@ -32,7 +32,8 @@ def croissant(m, D, centre_y):
 
 
 def adoucir(chemin, pas):
-    """La ligne brisée `chemin` [(y, r)] adoucie : `pas` points par tronçon d'une courbe de Catmull-Rom par ses points."""
+    """La ligne brisée `chemin` (points de même dimension) adoucie : `pas` points par tronçon d'une courbe de
+    Catmull-Rom par ses points."""
     p = np.array([chemin[0], *chemin, chemin[-1]], dtype=float)
     points = []
     for i in range(1, len(p) - 2):
@@ -43,12 +44,17 @@ def adoucir(chemin, pas):
     return [tuple(q) for q in points] + [tuple(p[-1])]
 
 
+def spires(G, bas, haut):
+    """Le nombre de segments de la lanière de `bas` à `haut`."""
+    return max(1, round((haut - bas - G['largeur']) / G['pas'] * G['segments_par_tour']))
+
+
 def guipure(m, G, bas, haut):
     """Une lanière en hélice autour du manche, de `bas` à `haut` : un prisme fermé de section triangulaire, sa face
     large dehors, son arête de fond noyée dans le bois."""
     cu, cw = AXE_DANS_LA_PRISE
     par_tour, demi = G['segments_par_tour'], G['largeur'] / 2
-    n = max(1, round((haut - bas - G['largeur']) / G['pas'] * par_tour))
+    n = spires(G, bas, haut)
     sommets = []
     for i in range(n + 1):
         t = 2 * math.pi * i / par_tour
@@ -58,6 +64,39 @@ def guipure(m, G, bas, haut):
                     (cu + G['fond'] * c, y, cw + G['fond'] * s)]
     faces = [[3 * i + k, 3 * i + (k + 1) % 3, 3 * (i + 1) + (k + 1) % 3, 3 * (i + 1) + k] for i in range(n) for k in range(3)]
     faces += [[0, 1, 2], [3 * n + 2, 3 * n + 1, 3 * n]]
+    m.ajouter(sommets, faces, 'cuir')
+
+
+def bout_libre(m, G, L, bout):
+    """La fin défaite de la lanière du groupe `bout['groupe']` : un prisme plat fermé, de la section de la lanière, qui
+    part de l'extrémité haute de la spire, sa face dehors sur celle de la spire, la prolonge sur `amorce`, puis suit
+    son chemin (angle depuis la fin de la spire, y, distance à l'axe) en tournant sur lui-même de `vrille`."""
+    cu, cw = AXE_DANS_LA_PRISE
+    bas, haut = G['groupes'][bout['groupe']]
+    demi, ep = G['largeur'] / 2, L['epaisseur'] / 2
+    n = spires(G, bas, haut)
+    fin = 2 * math.pi * n / G['segments_par_tour']
+    montee = (haut - bas - G['largeur']) / n * G['segments_par_tour'] / (2 * math.pi)
+    r0 = G['rayon'] - ep
+    chemin = [(0.0, 0.0, r0), (L['amorce'], montee * L['amorce'], r0), *bout['chemin']]
+    points = np.array([(cu + r * math.cos(fin + a), haut - demi + y, cw + r * math.sin(fin + a))
+                       for a, y, r in adoucir(chemin, L['pas'])])
+    pas = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    parts = np.concatenate([[0.0], np.cumsum(pas)]) / pas.sum()
+    sommets, large = [], np.array((0.0, 1.0, 0.0))
+    for i, p in enumerate(points):
+        d = points[min(i + 1, len(points) - 1)] - points[max(i - 1, 0)]
+        d /= np.linalg.norm(d)
+        if i:
+            large = large - d * large.dot(d)
+            large /= np.linalg.norm(large)
+        vrille = math.radians(bout['vrille']) * parts[i]
+        w = large * math.cos(vrille) + np.cross(d, large) * math.sin(vrille)
+        normale = np.cross(d, w)
+        sommets += [tuple(p + sw * demi * w + sn * ep * normale) for sw, sn in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    k = len(points) - 1
+    faces = [[4 * i + c, 4 * i + (c + 1) % 4, 4 * (i + 1) + (c + 1) % 4, 4 * (i + 1) + c] for i in range(k) for c in range(4)]
+    faces += [[0, 1, 2, 3], [4 * k + 3, 4 * k + 2, 4 * k + 1, 4 * k]]
     m.ajouter(sommets, faces, 'cuir')
 
 
@@ -81,9 +120,8 @@ def construire(D, materiaux):
          (cu, haut_douille - 0.002, cw), K['segments'], 'os')
     for bas, haut in D['GUIPURES']['groupes']:
         guipure(m, D['GUIPURES'], bas, haut)
-    L = D['BOUTS_LIBRES']
-    for chemin in L['chemins']:
-        tube(m, [(cu, y, cw + r) for y, r in adoucir(chemin, L['pas'])], L['rayon'], L['cotes'], 'cuir')
+    for bout in D['BOUTS_LIBRES']['bouts']:
+        bout_libre(m, D['GUIPURES'], D['BOUTS_LIBRES'], bout)
     v0, v1 = T['virole']
     tour(m, [(v0, 0.0), (v0, T['rayon'] * 0.85), (v0 + 0.006, T['rayon']), (v1 - 0.006, T['rayon']), (v1, T['rayon'] * 0.85),
              (v1, 0.0)], 'y', centre, M['segments'], 'metal')
