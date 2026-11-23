@@ -1,0 +1,22 @@
+// Types des poses des objets rangés et de la tenue d'un preset : mêmes signatures que posesDesRanges.mjs.
+
+export function manifesteVoisin(glb: string): string | undefined;
+
+export function silhouettesSousLePreset(preset: string, silhouettes?: Record<string, number>): Promise<Record<string, number>>;
+
+export function lireLocales(paires?: readonly string[]): Record<string, string>;
+
+export function tenueDesGlb(demande: { manifeste: string; preset: string; locales?: Record<string, string> }): Promise<string[]>;
+
+type Instant = { gabarit?: unknown; morphes: Record<string, number>; clip: string; t: number };
+type Pose = number[] | null;
+
+export function posesDesRanges(demande: { base: string; manifeste: string; elements: readonly string[]; preset: string; instants: readonly Instant[] }): Promise<{
+  elements: ({ ligne: string; meshes: Record<string, Pose[]>; offrants: number[]; os: string } | null)[];
+  sans: string[];
+}>;
+
+export function posesALInstant(demande: {
+  base: string; manifeste: string; elements: readonly string[]; preset: string;
+  facteurs?: Record<string, number>; silhouettes?: Record<string, number>; clip?: string; t?: number;
+}): Promise<{ elements: ({ ligne: string; meshes: Record<string, Pose> } | null)[]; sans: string[]; silhouettes: Record<string, number> }>;

@@ -4,7 +4,7 @@
 //   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
 //     [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]
-//     [--preset <id>]
+//     [--preset <id> | --tenue <id> [--local <id>=<glb>]...]
 // Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
 // dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
 // la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
@@ -27,6 +27,10 @@
 // porté ; un élément que le preset porte plusieurs fois se donne autant de fois, chaque `<glb>` montant à son tour la
 // ligne suivante du preset. Sous `--preset`, chaque passe pose aussi les formes de la tête que le jeu pose au preset, une
 // forme que `--silhouettes` nomme gardant le poids qu'il lui donne (`silhouettesSousLePreset`).
+// `--tenue <id>` vaut `--preset <id>` et met en tête des `<glb>` la tenue que le jeu monte pour ce preset, dans l'ordre de
+// ses lignes (`tenueDesGlb`, `posesDesRanges.mjs`, #4338), au dossier du manifeste de base ; chaque `--local <id>=<glb>`
+// y remplace l'élément publié `<id>` par ce GLB local, à côté de son manifeste, ou s'ajoute après la tenue si le preset ne
+// le monte pas.
 import { spawn } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
@@ -35,7 +39,7 @@ import { parseArgs } from 'node:util'
 import { coeurs, memoireDisponibleMo } from '../../../scripts/test/partition.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
-import { manifesteVoisin, posesDesRanges, silhouettesSousLePreset } from './posesDesRanges.mjs'
+import { lireLocales, manifesteVoisin, posesDesRanges, silhouettesSousLePreset, tenueDesGlb } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
 /** Ce qu'une passe de `--porte` tient hors de son tas, en Mo : ses tableaux de sommets et l'éditeur Godot de ses poses
@@ -88,6 +92,8 @@ try {
       plafonds: { type: 'string' },
       temoin: { type: 'string' },
       preset: { type: 'string' },
+      tenue: { type: 'string' },
+      local: { type: 'string', multiple: true },
     },
   })
   values = argumentsLus.values
@@ -104,7 +110,11 @@ try {
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
   if (values.temoin !== undefined && values['etats-gabarit']) throw new Error('--temoin : --etats-gabarit incompatible')
   temoin = values.temoin === undefined || values.porte ? undefined : lireTemoin(values.temoin)
-  if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error('--preset : --base et --manifeste requis')
+  if (values.tenue !== undefined && values.preset !== undefined) throw new Error('--tenue : implique --preset, à ne pas donner')
+  if (values.local !== undefined && values.tenue === undefined) throw new Error('--local : --tenue requis')
+  values.preset ??= values.tenue
+  if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error(`${values.tenue === undefined ? '--preset' : '--tenue'} : --base et --manifeste requis`)
+  if (values.tenue !== undefined) positionals = [...await tenueDesGlb({ manifeste: values.manifeste, preset: values.tenue, locales: lireLocales(values.local) }), ...positionals]
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
@@ -112,7 +122,7 @@ try {
 const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
 if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
   if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
-  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte] [--preset <id>]')
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte] [--preset <id> | --tenue <id> [--local <id>=<glb>]...]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
