@@ -1315,7 +1315,7 @@ export function loadoutSetActive(c: Combatant, id: string): void {
 
 /** Assigne (ou retire si `uid` null) une arme à un slot. Une arme à 2 mains en `main` vide le slot `secondaire` ;
  *  une même arme ne peut occuper les DEUX mains (l'assigner à une main la retire de l'autre). L'objet mis
- *  en main sort de son contenant (`inside`), comme à l'équipement (`partyFlow.applyToggleEquip`) : un objet
+ *  en main sort de son contenant (`inside`), comme à l'équipement (`partyFlow.applyEquip`) : un objet
  *  rangé n'est pas en main (`recomputeLoadout`, `slotDead`). */
 export function loadoutSetSlot(c: Combatant, id: string, slot: Main, uid: string | null): void {
   const lo = c.loadouts?.find((l) => l.id === id);

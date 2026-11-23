@@ -33,7 +33,7 @@ import { partyAssisted, peutTenter } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
-import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
+import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
 import { diseaseDefs, contractionDue, applyDiseaseGangrene } from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
@@ -479,7 +479,8 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     for (const h of campers) expireOnRespite(h, get().gameTime + Number(rule('exposition-dissipation-heures')) * 60); // dissipation maison
   }
 
-  // Récupération + cauchemars : un jet = une étape ; sans jet (PB plein/affamé/instable) → eager.
+  // Récupération + cauchemars : un jet = une étape ; sans jet (PB plein/affamé/instable) → eager, et la nuit dit
+  // pourquoi un dormeur ne récupère pas (`constatSansRecuperation`).
   for (const h of party) {
     if (h.dead) continue;
     if (needsRecoveryRoll(h)) {
@@ -491,9 +492,11 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       pousseSi(steps, st);
     } else {
       const before = h.wounds.current;
+      const sans = constatSansRecuperation(h);
       const { wokeUp } = applyRecoveryDay(h, null);
       if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before }));
       if (wokeUp) log.push(t('heal.awake', { name: nomDe(h) }));
+      if (sans) log.push(t(sans.cle, { ...sans.params, name: nomDe(h) }));
     }
     if (h.nightmares) {
       const st = monoStep({ id: `nm-${h.id}`, kind: 'cauchemar', actor: h, label: t('step.cauchemars'), icon: 'creature/hurlement',

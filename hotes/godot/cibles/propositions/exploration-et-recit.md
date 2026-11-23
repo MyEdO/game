@@ -111,8 +111,8 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   les Blessures » (Guérison), « Arrêter l'Hémorragie » fermée (elle ne saigne pas), plaque « Soigner » ; au bandeau,
   la patiente et le héros qui possède Guérison ; « Explorer » ramène.
 - Verbes : `ouvrirLeMedecin(patientId?)`, `fenetreChoisir('infirmerie','patient', id)`, `jetRegler('soins','mode')`,
-  `jetLancer('soins')` (`src/noyau/medicFlow.ts`).
-- RAW : LDB 09 l.260.
+  `jetRegler('soins','soigneur', id)` (#4833), `jetLancer('soins')` (`src/noyau/medicFlow.ts`).
+- RAW : LDB 09 l.260 ; LDB 12 (Soutien du soigneur choisi).
 - À valider : le soigneur choisi dans le bandeau du jet, pas sur la page ; la Chirurgie entre héros non dessinée.
 
 ## designation-d-un-heros (2026-11-17, #4411)

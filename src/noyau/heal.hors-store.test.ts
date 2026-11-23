@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -547,9 +548,9 @@ describe('Guérison — infirmerie (hors combat)', () => {
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    expect(banc.getState().pendingHeal).toBeNull(); // aucun acte ouvert : Aide Médicale requise d’abord
-    banc.getState().jetLancer('soins');
-    expect(banc.getState().medic!.surgery).toBeUndefined(); // ne s’arme pas
+    expect(banc.getState().medic, 'aucun acte ne s’offre : l’infirmerie ne s’ouvre pas').toBeNull();
+    const journal = banc.getState().journal;
+    expect(journal[journal.length - 1], 'le refus dit l’Aide Médicale requise').toBe(t('medic.aidRequired'));
   });
 
   it('acte ammo hors combat : proposé seulement si munition logée, retire au succès (LDB 62 l.250, #494)', () => {

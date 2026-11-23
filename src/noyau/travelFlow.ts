@@ -580,6 +580,7 @@ function runTravelDays(get: Get, set: Set): void {
     days: [], // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir
   } : null;
   let guard = 0;
+  let aPied = false;
   while (true) {
     guard += 1;
     if (guard > 400) break; // garde-fou (durée d'année) — un trajet ne dure jamais autant
@@ -589,6 +590,13 @@ function runTravelDays(get: Get, set: Set): void {
     const to = placeById(worldMap, plan.toPlaceId);
     if (!route || !to) { set({ travelPlan: null }); return; }
     const party = get().party;
+    if (plan.mode === 'monture' && !partyFullyMounted(party, get().possessions)) {
+      set({ travelPlan: { ...plan, mode: 'pied', allure: undefined } });
+      log(get, set, [t('tf.pasTousMontes')]);
+      aPied = true;
+      if (recap) recap.mode = 'pied';
+      continue;
+    }
 
     // Vitesse du jour (à pied, l'Encombrement/les États du moment comptent ; en selle, l'allure et les
     // Incidents de monte de la veille — recalculée chaque jour). Attelage Endommagé → cadence de base.
@@ -662,7 +670,8 @@ function runTravelDays(get: Get, set: Set): void {
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     const recapDay: TravelRecapDay = {
       kmFrom: plan.kmDone, kmTo: kmDone, hours: hoursToday,
-      lines: toRecapLines(forced?.lines ?? []), entries: [...(forced?.entries ?? [])],
+      lines: toRecapLines([...(aPied ? [t('tf.pasTousMontes')] : []), ...(forced?.lines ?? [])]),
+      entries: [...(forced?.entries ?? [])],
     };
     recap?.days.push(recapDay);
     if (forced) {
@@ -701,9 +710,7 @@ function runTravelDays(get: Get, set: Set): void {
     }
     log(get, set, dayLines);
 
-    // Journée EN SELLE (EDOC 07 l.142-146) : endurance de l'allure des bêtes, Incidents de monte
-    // (EDOC 07 l.148-174), chute du cavalier, bête perdue — puis dégradation à pied si le groupe
-    // n'est plus monté au complet (les cavaliers ne marchent pas : ni fatigue ni marche forcée).
+    // Journée EN SELLE : `resolveMountedTravelDay` (EDOC 07 l.142-174).
     // `prior.mount` = heures DÉJÀ chevauchées aujourd'hui : l'endurance se compte sur le jour, pas le trajet (#340).
     if (plan.mode === 'monture') resolveMountedTravelDay(get, set, hoursToday, plan.allure ?? 'pas', recapDay, prior.mount);
 
@@ -988,8 +995,7 @@ function markLandInterrupt(get: Get, set: Set, then: TravelThen, destLabel: stri
  * Applique la journée EN SELLE (EDOC 07 l.142-146) : le moteur PUR `resolveMountedDay` rend la fatigue
  * des bêtes et les Incidents de monte ; ici on APPLIQUE — chute du cavalier (Dégâts de Chute, brique
  * `applyFall`, ouverte à la porte par `ouvrirChute`), état persistant sur la Possession (`mountInjury`, SOCLE POSSESSIONS #617/#618), bête
- * morte/condamnée marquée `destroyed` — et on dégrade la route à pied si le groupe n'est plus monté au
- * complet.
+ * morte/condamnée marquée `destroyed`. La route se dégrade à pied en tête de la journée suivante (`runTravelDays`).
  */
 function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure: Allure, day: TravelRecapDay, priorHours = 0): void {
   const outcomes = resolveMountedDay(partyMounts(get().party, get().possessions), hoursToday, allure, battleRng(), priorHours);
@@ -1036,12 +1042,6 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
   log(get, set, lines);
   day.lines.push(...toRecapLines(lines));
   for (const c of chutes) ouvrirChute(set, c.hero, c.metres);
-  if (!partyFullyMounted(get().party, get().possessions)) {
-    set({ travelPlan: { ...get().travelPlan!, mode: 'pied', allure: undefined } });
-    const l: string = t('tf.pasTousMontes');
-    log(get, set, [l]);
-    day.lines.push({ text: l });
-  }
 }
 
 /** Issue d'une journée d'attelage FORCÉ (collectée puis journalisée par l'appelant). */

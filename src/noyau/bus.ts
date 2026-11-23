@@ -4,6 +4,7 @@ import type { AttackResult } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Weapon } from '../engine/types';
+import type { ReferenceDeJet } from './jetsEnVue';
 
 type Handler<E extends NomDuBus> = (payload: ChargesDuBus[E]) => void;
 
@@ -49,9 +50,8 @@ export const EVT = {
   SFX: 'sfx',
   /** store → * : fin de combat — gong de victoire. */
   BATTLE_OVER: 'battle_over',
-  /** store → * : un Test s'est résolu (`jetValider('test')`) — SEAM
-   *  unique consommé par `devtools.ts` (`__wfrp.lastRoll()`, recette navigateur, #514), jamais lu par
-   *  du code de règles (observation pure, aucun état persisté). */
+  /** noyau → hôte : un Test de scène s'est résolu (`jetValider('test')`), sa Compétence ou sa Caractéristique en
+   *  `reference` (#4830). Observation pure, jamais lue par du code de règles. */
   TEST_RESOLVED: 'test_resolved',
   /** noyau → hôte : l'Effet `openCharacterCreator` demande la création d'un nouveau héros (sans charge),
    *  que l'hôte ouvre. */
@@ -81,8 +81,8 @@ export type ChargeDAttaque =
  *  sort. */
 export interface ChargeDeZone { de: string; centre: Case; tiles: Case[]; sort?: string; rendu?: string }
 
-/** La charge de `TEST_RESOLVED`. */
-export interface TestResolu { actorId: string; success: boolean; sl: number; roll: number | null; target: number }
+/** La charge de `TEST_RESOLVED` : `reference`, ce que le Test a testé, comme la ligne de jet le nomme (`ReferenceDeJet`). */
+export interface TestResolu { actorId: string; success: boolean; sl: number; roll: number | null; target: number; reference: ReferenceDeJet | null }
 
 /** La charge de chaque évènement du bus, `undefined` pour un évènement sans charge. */
 export interface ChargesDuBus {

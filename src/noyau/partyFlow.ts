@@ -132,20 +132,20 @@ function isCompleted(hero: Combatant): boolean {
   });
 }
 
-/** Bascule `equipped` sur les items d'un porteur (héros OU possession, #620) en place : retire d'abord
+/** Pose `equipped` à `porte` sur un item d'un porteur (héros OU possession, #620) en place : le porter retire d'abord
  *  les conflits de port (armure de même couche, autre cape — LDB 63, échange façon jeu vidéo, journalisé).
  *  `items` est muté EN PLACE (référence du porteur clone) — le retour n'est que le message. */
-function applyToggleEquip(items: ItemInstance[], uid: string, label: SansMarqueNonAffichable): string {
+function applyEquip(items: ItemInstance[], uid: string, porte: boolean, label: SansMarqueNonAffichable): string {
   let msg = '';
   const it = items.find((i) => i.uid === uid);
-  if (!it) return msg;
-  if (!it.equipped) {
+  if (!it || it.equipped === porte) return msg;
+  if (porte) {
     it.inside = undefined; // on ne porte pas un objet rangé dans un sac : il en sort d'abord
     const out = equipConflicts({ items }, it);
     for (const o of out) o.equipped = false;
     if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => o.label).join(' + '), item: it.label });
   }
-  it.equipped = !it.equipped;
+  it.equipped = porte;
   return msg;
 }
 
@@ -160,10 +160,11 @@ function herosPorteur(get: Get, set: Set, uid: string): string | undefined {
   return refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)) ? undefined : porteurDeLObjet(get(), uid);
 }
 
-/** Équipe/déséquipe un objet de son PORTEUR (héros de `party` OU possession de `possessions`, doctrine
- *  « porteur unique » #614/#620) — un héros recalcule aussi ses armes/armure actives (`recomputeLoadout`,
- *  réservé aux Combatant : une possession n'a pas de loadout d'arme). */
-export function equiperLObjet(get: Get, set: Set, uid: string): void {
+/** Équipe (`porte`) ou déséquipe un objet de son PORTEUR (héros de `party` OU possession de `possessions`, doctrine
+ *  « porteur unique » #614/#620) ; rejoué, il ne change rien — un héros recalcule aussi ses armes/armure actives
+ *  (`recomputeLoadout`, réservé aux Combatant : une possession n'a pas de loadout d'arme). Une arme se tient en main
+ *  par `garnirLaPanoplie`. */
+export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   const carrierId = porteurDuGroupe(get, set, uid);
   if (!carrierId) return;
@@ -175,7 +176,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
-        msg = applyToggleEquip(clone.items, uid, nomDe(clone));
+        msg = applyEquip(clone.items, uid, porte, nomDe(clone));
         recomputeLoadout(clone);
         return clone;
       });
@@ -184,7 +185,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
       possessions: s.possessions.map((p) => {
         if (p.uid !== carrierId) return p;
         const clone: Possession = structuredClone(p);
-        msg = applyToggleEquip(clone.items, uid, possessionLabel(clone));
+        msg = applyEquip(clone.items, uid, porte, possessionLabel(clone));
         return clone;
       }),
     };
@@ -962,7 +963,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     recruterLeHeros: (heros) => recruterLeHeros(get, set, heros),
     renvoyerLeHeros: (heroId) => renvoyerLeHeros(get, set, heroId),
     remplacerLeHeros: (heroId, heros) => remplacerLeHeros(get, set, heroId, heros),
-    equiperLObjet: (uid) => equiperLObjet(get, set, uid),
+    equiperLObjet: (uid, porte) => equiperLObjet(get, set, uid, porte),
     rangerLObjet: (uid, containerUid) => rangerLObjet(get, set, uid, containerUid),
     creerLaPanoplie: (heroId) => creerLaPanoplie(get, set, heroId),
     supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
