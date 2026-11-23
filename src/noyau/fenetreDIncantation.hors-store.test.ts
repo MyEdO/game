@@ -65,7 +65,7 @@ function horsCombat(spellId: string, de: number | null = 11): { banc: Banc; V: C
   L.spells = [spellId];
   banc.setState({ battle: null, party: [L, V] });
   // Une Prière se pose ouverte : le lanceur d'épreuve n'a pas de culte.
-  if (castInfoIsPrayer(findSpellById(spellId)!)) banc.setState({ pendingCast: { casterId: L.id, targetId: V.id, spellId, missile: false, focused: false, result: null } });
+  if (castInfoIsPrayer(findSpellById(spellId)!)) banc.setState({ pendingCast: { casterId: L.id, targetId: V.id, spellId, missile: false, result: null } });
   else banc.getState().incanterLeSort(L.id, spellId, V.id);
   expect(banc.getState().pendingCast, `chemin : ${spellId} s’ouvre`).toMatchObject({ casterId: L.id, spellId });
   if (de != null) {
@@ -223,7 +223,7 @@ describe('lanceur ennemi au siège MJ : il surincante et annule comme un héros,
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H, E } = enCombat(banc);
     banc.setState({ net: { ...banc.getState().net, gmSeat: 0 } });
-    const ouvrir = () => banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, focused: false, result: null } });
+    const ouvrir = () => banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, result: null } });
     ouvrir();
     expect(fenetreDIncantation(banc.getState())!.annulation).toBeNull();
     banc.getState().jetAnnuler('incantation');
@@ -242,7 +242,7 @@ describe('lanceur ennemi au siège MJ : il surincante et annule comme un héros,
       const banc = ouvrirLeBanc({ desFixes: true });
       const { H, E } = enCombat(banc);
       banc.setState({ net: { ...banc.getState().net, gmSeat: 0 } });
-      banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, focused: false, result: null } });
+      banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, result: null } });
       banc.getState().jetLancer('incantation');
       banc.getState().jetImposerLeResultat('incantation', 3);
       banc.setState({ net: { ...banc.getState().net, gmSeat } });
@@ -290,7 +290,7 @@ describe('le NI d’un Sort se lit à un seul site, `castingNumberOf` (B3)', () 
     banc.reprendreTout();
     const porteur = banc.getState().party.find((c) => c.id === L.id)!;
     const effet = (porteur.activeEffects ?? []).find((e) => e.spell?.spellId === FIXTURES.rituel.id);
-    expect(effet?.spell?.ni).toBe(castingNumberOf(FIXTURES.rituel, false, {}, [], porteur));
+    expect(effet?.spell?.ni).toBe(castingNumberOf(FIXTURES.rituel, {}, [], porteur));
   });
 });
 
@@ -300,7 +300,7 @@ describe('la valeur du Contre-sort se lit à un seul site, `counterspellValue` (
     const { H, E } = enCombat(banc);
     H.resilience = 1;
     banc.setState({
-      pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, focused: false,
+      pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false,
         result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'x', niRequired: 0 } },
       pendingCounterspell: { participants: [{ id: H.id, interactive: true, declared: 'solo', result: null }] },
     } as unknown as Partial<Jeu>);

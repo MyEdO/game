@@ -49,11 +49,12 @@ function setup(foes: number): Combatant {
 function castAndCount(spellId: string, sl: number, opts: { foes?: number; focused?: boolean } = {}): number {
   const spell = findSpellById(spellId)!;
   const caster = setup(opts.foes ?? 1);
-  const res = evaluateCasting(caster, spell, frozen(sl), opts.focused ?? true);
+  if (opts.focused ?? true) caster.focus = { spell: spell.id, dr: spell.cn ?? 0 };
+  const res = evaluateCasting(caster, spell, frozen(sl));
   if (!res.cast) return -1; // incantation non aboutie (DR < NI)
   banc.setState({
     pendingCast: {
-      casterId: 'necro', targetId: 'necro', spellId: spell.id, missile: false, focused: opts.focused ?? true,
+      casterId: 'necro', targetId: 'necro', spellId: spell.id, missile: false,
       result: res, zone: { center: null, radius: 2, r0m: 4 },
     } as never,
   });

@@ -234,10 +234,10 @@ describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainD
     expect(domainSeaIncantationDR(cieuxSpell, true, 'calme-plat')).toBe(-1);
     expect(domainSeaIncantationDR(cieuxSpell, true, 'legere-brise')).toBe(0); // vent neutre : silence RAW
     const w = caster('cieux');
-    const off = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', false, 0, {});
-    const storm = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', false, 0, { atSea: true, wind: 'violente-tempete' });
+    const off = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', 0, {});
+    const storm = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', 0, { atSea: true, wind: 'violente-tempete' });
     expect(storm.sl).toBe(off.sl + 1);
-    const calm = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', false, 0, { atSea: true, wind: 'calme-plat' });
+    const calm = resolveCasting(w, cieuxSpell, seq([21]), 'intermediaire', 0, { atSea: true, wind: 'calme-plat' });
     expect(calm.sl).toBe(off.sl - 1);
   });
 
@@ -245,9 +245,9 @@ describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainD
     expect(domainSeaWidensCritFumble(beteSpell, true)).toBe(true);
     const w = caster('bete');
     // 40 (succès, pas un double) : Critique seulement si widen (Bête + mer).
-    const off = resolveCasting(w, beteSpell, seq([40]), 'intermediaire', false, 0, {});
+    const off = resolveCasting(w, beteSpell, seq([40]), 'intermediaire', 0, {});
     expect(off.isCritical).toBe(false);
-    const sea = resolveCasting(w, beteSpell, seq([40]), 'intermediaire', false, 0, { atSea: true });
+    const sea = resolveCasting(w, beteSpell, seq([40]), 'intermediaire', 0, { atSea: true });
     expect(sea.isCritical).toBe(true);
   });
 });
@@ -308,10 +308,10 @@ describe('Rubrique de VENT du Domaine (VDM 04 l.48-56, folio 55) — windModifie
 
   it("CÂBLAGE — resolveCasting : le lanceur de Hysh perd 1 DR par rapport au MÊME jet d'un autre Domaine, et le récupère quand l'assistant chante", () => {
     const w = wizard('lumiere');
-    const temoin = resolveCasting(w, metalSpell, seq([21]), 'intermediaire', false, 0, {});
-    const hysh = resolveCasting(w, hyshSpell, seq([21]), 'intermediaire', false, 0, {});
+    const temoin = resolveCasting(w, metalSpell, seq([21]), 'intermediaire', 0, {});
+    const hysh = resolveCasting(w, hyshSpell, seq([21]), 'intermediaire', 0, {});
     expect(hysh.sl).toBe(temoin.sl - 1);
-    const assiste = resolveCasting(w, hyshSpell, seq([21]), 'intermediaire', false, 0, {}, { circumstances: ['assistance-chantee'] });
+    const assiste = resolveCasting(w, hyshSpell, seq([21]), 'intermediaire', 0, {}, { circumstances: ['assistance-chantee'] });
     expect(assiste.sl).toBe(temoin.sl);
   });
 
@@ -332,7 +332,7 @@ describe('Rubrique de VENT du Domaine (VDM 04 l.48-56, folio 55) — windModifie
     const temoin = castLandProbability(w, { ...metalSpell, cn: 2 });
     const hysh = castLandProbability(w, ni2);
     expect(hysh).toBeLessThan(temoin);
-    expect(castLandProbability(w, ni2, false, { circumstances: ['assistance-chantee'] })).toBe(temoin);
+    expect(castLandProbability(w, ni2, { circumstances: ['assistance-chantee'] })).toBe(temoin);
   });
 
   it("l'annulation est de la DONNÉE : la rubrique déclare la Compétence exigée et le Test de l'assistant", () => {

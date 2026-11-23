@@ -33,7 +33,7 @@ function confirmPrayerWithRoll(casterId: string, targetId: string, roll: number,
     log: ok ? 'Prière exaucée.' : 'Prière échouée.',
   };
   banc.setState({
-    pendingCast: { casterId, targetId, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
+    pendingCast: { casterId, targetId, spellId: 'benediction-de-guerison', missile: false, result },
   });
   banc.getState().jetValider('incantation');
 }
@@ -80,7 +80,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     banc.setState({ party });
     const result: CastResult = { cast: false, roll: 22, target: 20, sl: -1, isCritical: false, isFumble: true, log: 'Maladresse !' };
     banc.setState({
-      pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
+      pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, result },
     });
     banc.getState().jetValider('incantation');
     draineEtLit(banc.getState);

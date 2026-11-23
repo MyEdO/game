@@ -65,10 +65,10 @@ describe('NI — la nature Rituel mord sur les modificateurs de la donnée commi
 
   it('le grimoire quadruple le NI d’un Rituel là où il double celui d’un Sort', async () => {
     const { castingNumberOf } = await import('../engine/magic');
-    const { GRIMOIRE_NI_MODS } = await import('../noyau/combatFlow');
+    const { GRIMOIRE_NI_MODS } = await import('../engine/grimoire');
     const r = spells.find((s) => s.id === 'creer-une-pierre-de-pouvoir')!;
-    expect(castingNumberOf(r, false, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 4);
-    expect(castingNumberOf({ ...r, isRitual: false }, false, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 2);
+    expect(castingNumberOf(r, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 4);
+    expect(castingNumberOf({ ...r, isRitual: false }, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 2);
   });
 });
 
@@ -166,18 +166,18 @@ describe('PX d’apprentissage — le nombre imprimé gouverne le coût réel', 
     const malediction = rituel('art-de-la-malediction');
     for (const d of ['sorcellerie', 'demonologie', 'necromancie']) {
       expect(spellCost(sorcierDe(d), malediction), d).toBe(100);
-      expect(castingNumberOf(malediction, false, {}, [], sorcierDe(d)), d).toBe(25);
+      expect(castingNumberOf(malediction, {}, [], sorcierDe(d)), d).toBe(25);
     }
     const chaotique = sorcierDe('feu', [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }]);
     expect(spellCost(chaotique, malediction)).toBe(100);
-    expect(castingNumberOf(malediction, false, {}, [], chaotique)).toBe(25);
+    expect(castingNumberOf(malediction, {}, [], chaotique)).toBe(25);
     // Hors clause : la valeur pleine, et un lanceur non fourni laisse le NI imprimé intact.
     expect(spellCost(sorcierDe('vie'), malediction)).toBe(200);
-    expect(castingNumberOf(malediction, false, {}, [], sorcierDe('vie'))).toBe(50);
+    expect(castingNumberOf(malediction, {}, [], sorcierDe('vie'))).toBe(50);
     expect(castingNumberOf(malediction)).toBe(50);
     // Un Rituel sans parenthèse ne bouge pas, quel que soit le lanceur.
     const marais = rituel('materialiser-le-marais-vivant');
-    expect(castingNumberOf(marais, false, {}, [], sorcierDe('sorcellerie'))).toBe(marais.cn);
+    expect(castingNumberOf(marais, {}, [], sorcierDe('sorcellerie'))).toBe(marais.cn);
     expect(spellCost(sorcierDe('sorcellerie'), marais)).toBe(400);
   });
 });

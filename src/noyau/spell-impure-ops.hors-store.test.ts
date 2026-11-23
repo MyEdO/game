@@ -60,7 +60,7 @@ describe('résolution au lancement depuis le Flow', () => {
     banc.setState({ party: [w] as Combatant[] });
     const ours = findCreatureById('ours')!;
     expect(typeof ours.char.force).toBe('number');
-    applyCast(banc.getState, banc.setState, w, [w], findSpellById('forme-bestiale')!, ok(2), false, false);
+    applyCast(banc.getState, banc.setState, w, [w], findSpellById('forme-bestiale')!, ok(2), false);
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     // F/E/Ag/Dex atteignent la valeur de la créature (charMod différentiel auto-restitué à l'expiration).
     expect(effectiveChar(after, 'force')).toBe(ours.char.force);
@@ -74,7 +74,7 @@ describe('résolution au lancement depuis le Flow', () => {
     banc.setState({ party: [w, cible] as Combatant[] });
     const before = w.wounds.current;
     const res: CastResult & Partial<MissileResult> = { ...ok(2), hit: true, location: 'corps', damage: 6, woundsLost: 3, defenderDefeated: false };
-    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('vol-de-vie')!, res, true, false);
+    applyCast(banc.getState, banc.setState, w, [cible], findSpellById('vol-de-vie')!, res, true);
     // Vol de vie = 1/2 arrondi au supérieur → ceil(3/2) = 2 PB drainés.
     expect(banc.getState().party.find((h) => h.id === w.id)!.wounds.current).toBe(before + 2);
   });

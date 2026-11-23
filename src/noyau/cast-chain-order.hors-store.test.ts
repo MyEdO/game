@@ -48,7 +48,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   function frozenCast(H: Combatant, E: Combatant) {
     banc.setState({
       pendingCast: {
-        casterId: H.id, targetId: E.id, spellId: 'fauche-demon', missile: false, focused: false,
+        casterId: H.id, targetId: E.id, spellId: 'fauche-demon', missile: false,
         result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
       },
     });

@@ -177,7 +177,7 @@ describe('Résistance (Magie) — opposition à un Sort (« résister aux sorts 
     setBattle([a, foe]);
     banc.setState({
       pendingCast: {
-        casterId: foe.id, targetId: a.id, spellId: 'fauche-demon', missile: false, focused: false,
+        casterId: foe.id, targetId: a.id, spellId: 'fauche-demon', missile: false,
         result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
       } as never,
       pendingCastOpposition: { participants: [{ id: a.id, interactive: true, result: null }], test: { characteristic: 'force-mentale' }, menace: 'magie' } as never,

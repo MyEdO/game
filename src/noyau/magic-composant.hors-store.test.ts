@@ -80,7 +80,7 @@ describe('composant d’incantation au point d’incantation (LDB 46 l.111)', ()
     const hero = mage();
     hero.items = [...(hero.items ?? []), lie('armure-aethyrique')];
     banc.setState({ party: [hero] });
-    applyCast(banc.getState, banc.setState, hero, [hero], findSpellById('armure-aethyrique')!, reussite, false, false);
+    applyCast(banc.getState, banc.setState, hero, [hero], findSpellById('armure-aethyrique')!, reussite, false);
     expect(composants(hero)).toEqual([]);
   });
 
@@ -200,7 +200,7 @@ describe('lanceur ogre sans ingrédient (ADE II 02 l.726)', () => {
   }
   const perte = (c: Combatant, spellId: string): number => {
     const avant = c.wounds.current;
-    applyCast(banc.getState, banc.setState, c, [c], findSpellById(spellId)!, reussite, false, false);
+    applyCast(banc.getState, banc.setState, c, [c], findSpellById(spellId)!, reussite, false);
     return avant - c.wounds.current;
   };
 

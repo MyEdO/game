@@ -15,8 +15,8 @@
  *    Bénédictions par culte — table verbatim ci-dessous), aucun achat.
  *  - Magie du Chaos : chaque sort = reprise du Talent (100 PX + 1 Corruption).
  *
- * Objet grimoire (LDB 46 l.95-97, 47 l.19-21) : ÉLIGIBILITÉ seule (`canCastFromGrimoire`). Le NI de
- * lecture est calculé ailleurs — `effectiveSpellOf`/`GRIMOIRE_NI_MODS` (`src/noyau/combatFlow.ts`).
+ * Objet grimoire (LDB 46 l.95-97, 47 l.19-21) : ÉLIGIBILITÉ (`canCastFromGrimoire`) et NI de lecture
+ * (`GRIMOIRE_NI_MODS`).
  */
 import { Combatant } from './types';
 import { bonus, effectiveChar } from './characteristics';
@@ -26,6 +26,7 @@ import { effectiveTalents } from './talentEffects';
 import type { CastingKind } from './combatFeatures/types';
 import { effectiveEntry } from './variants';
 import { itemCapability } from './capabilities';
+import type { CastingNumberMod } from './castingNumber';
 
 export interface CasterTalent {
   kind: CastingKind;
@@ -214,3 +215,20 @@ export function canCastFromGrimoire(c: Combatant, spell: SpellData): boolean {
   if (spell.family !== 'arcane') return false; // un grimoire transcrit des Sorts d'Arcane (pas des Prières)
   return !!eligibleTalent(c, spell);
 }
+
+/** NI d'un Sort lu au grimoire (LDB 47 l.21, `VDM 12 l.646-647`) — modificateurs en donnée, passés
+ *  par la primitive UNIQUE `effectiveCastingNumber` comme tout autre porteur. */
+export const GRIMOIRE_NI_MODS: CastingNumberMod[] = [
+  {
+    multiply: 2,
+    scope: { kinds: ['sort'] },
+    source: { book: 'vents-de-la-magie', page: 164 },
+    desc: 'Lors du lancement de Sort son NI est doublé.',
+  },
+  {
+    multiply: 4,
+    scope: { kinds: ['rituel'] },
+    source: { book: 'vents-de-la-magie', page: 164 },
+    desc: "Dans le cas d'un Rituel, son NI est quadruplé.",
+  },
+];

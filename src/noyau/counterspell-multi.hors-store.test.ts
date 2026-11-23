@@ -62,7 +62,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     banc.setState({
       pendingCounterspell: null,
       pendingCast: {
-        casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true, focused: false,
+        casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true,
         result: { cast: true, roll: 30, target: 60, sl, isCritical: false, isFumble: false, log: 'Sort lancé' },
       },
     } as unknown as Partial<Jeu>);
