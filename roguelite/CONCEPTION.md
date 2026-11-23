@@ -150,6 +150,10 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   `docs/sorts-implementation.md`), et la carte du héros les affiche. « Les sorciers de Vents de magie seront plus
   adapté d'ailleurs que le sorcier générique » : le lanceur du roster est une carrière de Collège (VDM ch. 4 à 11 :
   pyromancien, hierophante, druide, chamane, alchimiste, spirite), tirée au recrutement.
+- **2026-11-23, l'Auberge relais et la progression** : « Oui je valide tes propositions ». — L'Auberge relais met un
+  héros au repos dans une chambre (repos d'auberge joué par le noyau, LDB 66) et permet de le renvoyer contre une
+  prime ; la progression « à la 5e » est une présentation : un achat de +5 envoyé au noyau en Augmentations de +1, au
+  prix du noyau, et seules les Compétences utiles au roguelite proposées ; la règle des cases de la 5e va à `RETOURS.md`.
 - **2026-11-23, l'équilibre du relais** : « Faut équilibré pour chaque rang d'auberge, histoire qu'on ne joue pas
   qu'avec 4 carrières 80% de la partie ». — Chaque palier du relais apporte un groupe complet (front, tireur, soin,
   lanceur ou éclaireur) ; la part de chaque carrière dans les recrues d'une partie se mesure (`equilibrage.ts`).
