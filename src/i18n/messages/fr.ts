@@ -2663,6 +2663,8 @@ export const fr = {
   'lm.horsDeLaHalle': 'Aucune halle ouverte.',
   'lm.pasDuVin': '{label} n’est ni du vin ni de l’eau-de-vie : sa qualité ne s’évalue pas.',
   'lm.vinEvalue': '{label} a déjà été évalué.',
+  'lm.evaluer': 'Évaluer {offre}',
+  'lm.rumeurCommerciale': 'Rumeur commerciale',
   'lm.rienAAcheter': 'Rien à acheter.',
   'lm.lotMinimal': 'Les marchands ne cèdent pas de lot de moins de {min} Points d\'Encombrement.',
   'lm.sansPorteur': 'Aucune bête de somme ni véhicule pour transporter une cargaison — procurez-vous un chariot ou une monture de bât.',

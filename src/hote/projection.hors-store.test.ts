@@ -14,6 +14,8 @@ import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { voyageEnVue } from '../noyau/voyageEnVue';
 import { recitEnVue } from '../noyau/recitEnVue';
 import { reposEnVue } from '../noyau/reposEnVue';
+import { conversationEnVue, ouvrirDialogue } from '../noyau/dialogue';
+import type { Dialogue } from '../noyau/monde/scene';
 import { fixtureText } from '../i18n/fixtureText';
 import { carteEnVue } from '../noyau/carteEnVue';
 import { dayPhase, toDate } from '../engine/clock';
@@ -165,6 +167,17 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.carte).toBeNull();
     expect(vue.recit, 'en route, aucun récit').toBeNull();
     expect(vue.repos, 'en route, aucune nuit à régler').toBeNull();
+    expect([vue.marchand, vue.marche, vue.conversation], 'en route, ni échoppe, ni marché, ni conversation').toEqual([null, null, null]);
+  });
+
+  it('la conversation en cours : la conversation du lecteur, en données, sans fenêtre qui tienne la main', () => {
+    const { banc } = surLaCarte(8 * 60);
+    const dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Bien le bonjour.', choices: [{ id: 'r1', label: 'Bonjour' }] }] } as Dialogue;
+    banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue) });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.fenetre).toBeNull();
+    expect(vue.conversation).toMatchObject({ orateur: null, replique: 'Bien le bonjour.', reponses: [{ id: 'r1', label: 'Bonjour' }] });
+    expect(vue.conversation).toEqual(conversationEnVue(banc.getState()));
   });
 
   it('la nuit à régler : le repos du lecteur, en données', () => {
