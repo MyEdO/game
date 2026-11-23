@@ -5,7 +5,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as attendre } from 'node:timers/promises'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { commandeDImport, construction, lancer, ordreDuLot, trianglesParEmpreinte } from './integrer.mjs'
 
 const BURE = 'humanoide/vetement--bure'
@@ -56,10 +57,10 @@ test('trianglesParEmpreinte lit les lignes GLB d’un élément sur base comme d
   assert.deepEqual([...trianglesParEmpreinte(journal)], [[a, 2311], [b, 14]])
 })
 
-/** Le processus `pid` est-il encore vivant, après au plus `delaiMs` d'attente de sa fin ? */
-async function vivant(pid, delaiMs) {
+/** Le processus `pid`, né au plus tard à `naissance`, est-il encore vivant après au plus `delaiMs` d'attente de sa fin ? */
+async function vivant(pid, naissance, delaiMs) {
   for (const fin = Date.now() + delaiMs; Date.now() < fin; await attendre(50)) {
-    if (!estPidVivant(pid)) return false
+    if (!estPidVivantDepuis(pid, naissance, IDENTITE_MESUREE)) return false
   }
   return true
 }
@@ -78,7 +79,7 @@ test('lancer arrête à sa borne la commande et le processus qu’elle lance, co
     ].join('\n'))
     await assert.rejects(lancer([parent], join(dossier, 'journal.log'), 'construire humanoide/rigide--essai', 1500),
       (e) => /^construire humanoide\/rigide--essai \(au-delà de 1500 ms\) ; journal /.test(e.message) && Array.isArray(e.diagnostic))
-    assert.equal(await vivant(Number(readFileSync(pid, 'utf8')), 5000), false, 'le processus lancé par la commande survit à la borne')
+    assert.equal(await vivant(Number(readFileSync(pid, 'utf8')), Date.now(), 5000), false, 'le processus lancé par la commande survit à la borne')
   } finally {
     rmSync(dossier, { recursive: true, force: true })
   }
