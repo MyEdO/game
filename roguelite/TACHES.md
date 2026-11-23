@@ -9,7 +9,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 | Tâche | Où | Reste |
 |---|---|---|
 | Cinq panoplies de 1 à 5 PA, prix, encombrement et pénalités (le cuir souple s'additionne depuis MyEdO/game#4824, fusionné) | `jeu/valeurs.ts`, `jeu/boutiques.ts` | codeur en cours |
-| Montures et compagnon dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lots A et B1 en file de fusion ; ensuite B2 (le compagnon en rencontre : le chien du Ratier membre du groupe), C (Blessures des bêtes gardées et soignées). La règle de monte « Dressé (Monture) exigé » (#4816) est tenue par un autre fil |
+| Montures et compagnon dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lots A et B1 en file de fusion ; ensuite B2 (le compagnon en rencontre : le chien du Ratier membre du groupe ; aucun allié ne monte une bête du groupe, arbitrage du 2026-11-23), C (Blessures des bêtes gardées et soignées). La règle de monte « Dressé (Monture) exigé » (#4816) est tenue par un autre fil |
 | Réserve de Focalisation VDM (MyEdO/game#865) | `.wt-865`, PR MyEdO/game#4838 | lot 1 jugé, en réalignement sur `main` (l'IA qui focalise de #4837) ; lot 2 : Interruption volontaire (VDM 02 l.139), évacuation sûre (l.141), Maladresse de Focalisation (l.149), cas du sort octroyé lu au grimoire |
 
 ## Ensuite, dans l'ordre
@@ -28,7 +28,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
    s'use. Le choix réel du soigneur attend le noyau (`RETOURS.md`, « aucun réglage du soigneur »).
 7. Provisions de route à l'Auberge relais : rations, torches, cordes, qui ouvrent ou facilitent des actions de salle.
 8. Placement du groupe, consigne par héros (doctrine de l'IA), cartes tactiques.
-9. Corruption et maladies, en rencontres à choix.
+9. Corruption et maladies, en rencontres à choix : cartographie du noyau en cours (ce qu'il joue déjà, ce qui manque).
 10. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 11. Équilibrage : les hardes, le Minotaure, et Guerrier du Chaos + Troll trop durs (0 sur 6 au balayage) ; les
     Collèges au niveau 1 n'ont que leurs sorts mineurs ; plus de morts depuis les potions à l'Hospice ; l'économie
@@ -42,6 +42,4 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 ## Attend l'utilisateur
 
-- Une créature invoquée alliée peut enfourcher en combat le cheval d'un héros descendu : l'arbitrage « une monture
-  peut avoir un cavalier ou non, choisi hors combat » protège-t-il aussi la monture contre tout cavalier non choisi ?
-  (commentaire sur MyEdO/game#4804).
+Rien.

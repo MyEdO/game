@@ -69,6 +69,8 @@ l'utilisateur ».
 - **Salles** : rien d'automatique ; le joueur choisit l'action et le héros qui la tente, qui en subit l'échec.
 - **Combat** : automatique et visible ; placement du groupe et consigne par héros (doctrine de l'IA du noyau) à venir.
 - **Montures** : porter un cavalier est un choix fait hors combat ; une bête sans cavalier combat en membre du groupe.
+  Aucun allié ne monte en combat une bête du groupe (« Si les alliés pouvait éviter de voler les montures du groupe
+  😁 », 2026-11-23 ; lot B2 de MyEdO/game#4804).
 - **Repos et renvoi** (« quand je disais qu'on dormait a l'auvberge, 'était en remplacement de ce qu'on avait jusque
   la. D'ailleurs pourquoi on gagne de 'l'argent a virer quelqu'un du groupe ? », 2026-11-23) : un héros ne récupère au
   hameau qu'en chambre à l'Auberge relais ou à l'Hospice, plus de repos gratuit ; renvoyer un héros ne rapporte rien.
