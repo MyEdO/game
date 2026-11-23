@@ -996,7 +996,7 @@ export const TABLES = {
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
       const source = { kind: 'maladie' as const, id: String(row.meta?.diseaseName ?? '') };
-      return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source })) };
+      return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source }).lignes) };
     }),
     'maladie-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };

@@ -101,7 +101,6 @@ import {
   type TrappingResolver,
 } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
-import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
@@ -130,12 +129,13 @@ import {
   ItemInstance,
   Weapon,
   locationLabel,
-  type ConditionEmit,
 } from './types';
+import { emettreDans, nomDeSource, type Applique, type FaitApplique } from './faits';
+import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, pluriel, deElide, type MsgKey } from '../i18n';
+import { t, deElide, type MsgKey } from '../i18n';
 import { applyActiveEffect } from './effetsActifs';
 import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
 import { nomDe } from './nom';
@@ -551,10 +551,6 @@ export interface OpsCtx {
   /** EXPOSITION corruptrice (op `corruptionExposure`) de `cible`, au niveau déjà atténué — fourni par
    *  `noyau/corruptionFlow.crochetsDeCorruption`. Sans hook (moteur pur/tests), l'op est journalisée inerte. */
   onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => string[];
-  /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
-   *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
-   *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
-  onCondition?: ConditionEmit;
   /** Libellé de la source (sort/table) — ActiveEffect.label + journal ; se LIT par `nomDeSource`. */
   label?: string;
   /** REJEU de fin de Round d'ops récurrentes portées par un effet actif : posé par `endOfRound`
@@ -662,7 +658,7 @@ export interface OpsCtx {
   nearestFoeDist?: number;
   /** Gain de Corruption de `cible` AVEC seuil → mutation (`noyau/corruptionFlow.crochetsDeCorruption`) ;
    *  sans hook, l'op `corruption` incrémente simplement le compteur. */
-  onCorruption?: (cible: Combatant, n: number, align?: ChaosAlign) => string[];
+  onCorruption?: (cible: Combatant, n: number, align?: ChaosAlign) => Applique;
   /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par le noyau (`noyau/combat/advantagePool.ts`
    *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
    *  `engine/advantage.gainAdvantage`. */
@@ -855,9 +851,9 @@ export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruptio
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
- *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), Critique de `noyau/combatFlow.ts`
- *  (`surLigne`, que les ops imbriquées d'`applyOps` ne reçoivent pas). */
-export const OPS_CTX_HORS_CANAL = ['onCondition', 'surLigne'] as const;
+ *  aucun contexte : Critique de `noyau/combatFlow.ts` (`surLigne`, que les ops imbriquées d'`applyOps`
+ *  ne reçoivent pas). */
+export const OPS_CTX_HORS_CANAL = ['surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
@@ -872,15 +868,6 @@ const _partitionTotale: _OpsCtxPartitionTotale = true;
 void _partitionTotale;
 
 /** La NATURE de ce que pose un lot d'ops, qui le nomme quand sa source n'a pas de libellé (#1906). */
-export type NatureDEffet = 'effet' | 'metamorphose' | 'mutation' | 'contrecoup' | 'lumiere' | 'sequelle';
-
-/** Le nom de la SOURCE d'un lot d'ops (`ActiveEffect.label`, journal) : son libellé, sinon la NATURE de
- *  l'effet posé — la taverne, le navire, les postes de voyage, l'entretien et les déclencheurs posent un
- *  `OpsCtx` sans libellé (#1906). Jamais « sort » pour une source qui n'en est pas un. */
-export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureDEffet = 'effet'): string {
-  return ctx?.label ?? t(`op.nature.${nature}`);
-}
-
 /** Ce que fait une pénalité d'incantation (`CastPenalty`), en clair : le libellé UNIQUE du journal et de
  *  sa pastille d'état. */
 export function effetDePenaliteDIncantation(cp: Pick<CastPenalty, 'skill' | 'mod' | 'blocked' | 'maxZeroDR'>): string {
@@ -1012,14 +999,29 @@ export function* tirerLaTable(o: OpTable, ctx: Pick<OpsCtx, 'sl' | 'overcastDura
 /**
  * Exécute une liste d'ops sur `target`. Les `charMod` consécutifs d'une même
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
- * historique de l'incantation). Renvoie les lignes de journal ; `ctx.surLigne` les reçoit avec leur rang.
+ * historique de l'incantation). Renvoie les lignes de journal et les faits appliqués qu'elles lisent (#4574) ;
+ * `ctx.surLigne` reçoit les lignes avec leur rang.
  */
-export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): string[] {
+export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): Applique {
   const ops = structuredClone(opsRecues); // #2097
   const source = structuredClone(ctx.source); // #2097
   const rng = ctx.rng;
   const ref = ctx.caster ?? target;
   const lines: string[] = [];
+  const sortie: Applique = { lignes: lines, faits: [] };
+  // LA seule émission d'un fait de la classe (#4574) : le fait et sa ligne, ensemble.
+  const emettre = (cible: Combatant, f: FaitApplique) => emettreDans(sortie, cible, f, ctx.label);
+  const sur = (cible: Combatant) => ({ cible: cible.id, camp: campOf(cible) });
+  // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
+  const absorber = (a: Applique) => { lines.push(...a.lignes); sortie.faits.push(...a.faits); };
+  // Soin par la SOURCE UNIQUE `applyHealWounds` : le fait dit les Blessures RÉELLEMENT regagnées (post-plafond).
+  const soigner = (qui: Combatant, n: number, vol?: true) => {
+    const avant = qui.wounds.current;
+    const suite = applyHealWounds(qui, n, { wake: false, log: () => [] });
+    const regagnees = qui.wounds.current - avant;
+    if (!vol || regagnees > 0) emettre(qui, { genre: 'blessures', ...sur(qui), valeur: regagnees, ...(vol ? { vol } : {}) });
+    lines.push(...suite);
+  };
   const debuts: number[] = [];
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
   // en fin d'op, QUE ceux posés par CE sort source (robuste au dédoublonnage en place de `applyActiveEffect`).
@@ -1079,7 +1081,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.weaponHit && ctx.weapon) {
           const n = woundsFromHit(ctx.weapon, target, ctx.location ?? 'corps', raw, o.extraAP ?? 0, o.min ?? 1, ctx.caster?.size);
           ctx.woundsDealt = loseWounds(target, n); // PB réellement perdus (drain/Vol de vie suivant)
-          if (ctx.woundsDealt > 0) lines.push(t('op.blessures', { name: nomDe(target), n: ctx.woundsDealt, mitig: '' })); // LDB 16 l.105
+          if (ctx.woundsDealt > 0) emettre(target, { genre: 'blessures', ...sur(target), valeur: -ctx.woundsDealt }); // LDB 16 l.105
           break;
         }
         // Défaut : ignore BE+PA. `ignoreTB:false` → déduit le Bonus d'Endurance ; `ignoreAP:false` → déduit les PA.
@@ -1096,8 +1098,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // `ctx.woundsDealt` = PB RÉELLEMENT perdus (clampé par loseWounds) → un drain/Vol de vie qui SUIT
         // (`lifeSteal`) soigne « le même nombre » que la victime a effectivement perdu (Absorption EDO 11 l.222).
         ctx.woundsDealt = loseWounds(target, n); // perte centralisée (−Avantage + À Terre à 0)
-        const mitig = o.ignoreTB === false || o.ignoreAP === false ? ` (${o.ignoreAP === false ? t('op.frag.paTouches') : t('op.frag.paIgnores')}, ${o.ignoreTB === false ? t('op.frag.beDeduit') : t('op.frag.beIgnore')})` : t('op.frag.sansAttenuation');
-        if (ctx.woundsDealt > 0) lines.push(t('op.blessures', { name: nomDe(target), n: ctx.woundsDealt, mitig })); // LDB 16 l.105
+        const mitigation = o.ignoreTB === false || o.ignoreAP === false
+          ? { pa: o.ignoreAP === false ? 'touches' as const : 'ignores' as const, be: o.ignoreTB === false ? 'deduit' as const : 'ignore' as const }
+          : 'sans' as const;
+        if (ctx.woundsDealt > 0) emettre(target, { genre: 'blessures', ...sur(target), valeur: -ctx.woundsDealt, mitigation }); // LDB 16 l.105
         break;
       }
       case 'heal': {
@@ -1105,17 +1109,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // SOURCE UNIQUE `applyHealWounds` (`healing.ts`) : plafonné par munition Empaleuse logée (LDB
         // 62 l.250) comme le reste ; ni verrou « soin de rencontre » (Guérison seulement) ni réveil
         // ici — sort/potion inconscient géré par `receiveMedicalAid`/`releaseConditionLocks` ci-dessous.
-        lines.push(...applyHealWounds(target, n, { wake: false, log: (healed) => [t('op.soin', { name: nomDe(target), n: healed })] }));
+        soigner(target, n);
         lines.push(...receiveMedicalAid(target)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
-        lines.push(...releaseConditionLocks(target, ctx.sourceSpellId != null ? 'magic' : 'medicalAid')); // verrous d'État (LDB 18) : soin d'un sort = magie (⊇ Aide Médicale) ; potion/objet = Aide Médicale
+        absorber(releaseConditionLocks(target, ctx.sourceSpellId != null ? 'magic' : 'medicalAid')); // verrous d'État (LDB 18) : soin d'un sort = magie (⊇ Aide Médicale) ; potion/objet = Aide Médicale
         break;
       }
       case 'healCaster': {
         const who = ctx.caster ?? target;
         const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
-        lines.push(...applyHealWounds(who, n, { wake: false, log: (healed) => [t('op.soin', { name: nomDe(who), n: healed })] }));
+        soigner(who, n);
         lines.push(...receiveMedicalAid(who)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
-        lines.push(...releaseConditionLocks(who, 'magic')); // healCaster = soin d'un sort → magie (lève aussi les verrous Aide Médicale, LDB 18)
+        absorber(releaseConditionLocks(who, 'magic')); // healCaster = soin d'un sort → magie (lève aussi les verrous Aide Médicale, LDB 18)
         break;
       }
       case 'gainAdvantage': {
@@ -1124,13 +1128,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (ctx.onGainAdvantage) ctx.onGainAdvantage(target, n);
         else gainAvantage(target, n);
         const gagne = (target.advantage ?? 0) - avant;
-        if (gagne > 0) lines.push(t('op.gainDAvantage', { name: nomDe(target), n: gagne, s: pluriel(gagne) }));
+        if (gagne > 0) emettre(target, { genre: 'avantage', ...sur(target), valeur: gagne, total: target.advantage ?? 0 });
         break;
       }
       case 'topUpAdvantage': {
         // Porte l'Avantage à AU MOINS `amount` (jamais réduit) — Redoutable complète jusqu'à l'Indice.
         const want = typeof o.amount === 'string' ? 0 : Math.max(0, formuleDuCtx(o.amount, ref, ctx));
-        if ((target.advantage ?? 0) < want) { target.advantage = want; lines.push(t('op.avantageComplete', { name: nomDe(target), n: want })); }
+        const avant = target.advantage ?? 0;
+        if (avant < want) {
+          target.advantage = want;
+          emettre(target, { genre: 'avantage', ...sur(target), valeur: want - avant, total: want, complete: true });
+        }
         // Clause AA Redoutable (MDG 16 l.13) : l'op S'EXÉCUTE ⇒ le garde-fou de la donnée (empetre/
         // inconscient/surpris, dans le nœud `if` englobant) est déjà franchi — l'Indice PLEIN part EN
         // PLUS pour la réserve adverse, indépendamment de si `target.advantage` avait déjà atteint `want`.
@@ -1189,31 +1197,27 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(o.difficulte ? { difficulte: o.difficulte } : {}) }], ctx, duree);
           // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op se gate sur l'État qu'elle pose — le porteur ne
           // subit pas un État de plus par Round, il le REGAGNE s'il s'en débarrasse. Journal dédié.
-          lines.push(estCausePersistante(o) && rounds != null
-            ? t('op.etatParRoundSauf', { name: nomDe(target), cond: conditionLabel(id), src: nomDeSource(ctx), n: rounds })
-            : t('op.etatParRound', { name: nomDe(target), v, cond: conditionLabel(id), src: nomDeSource(ctx) }));
+          // L'annonce ne pose aucun État : son fait vaut 0, chaque pose de fin de Round dira le sien.
+          emettre(target, { genre: 'etat', ...sur(target), id, valeur: 0, duree: { parRound: v, ...(rounds != null ? { rounds } : {}) },
+            ...(estCausePersistante(o) ? { sauf: true } : {}) });
         } else if (clockMin != null) {
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
           addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          lines.push(t('op.etatTemporaire', { name: nomDe(target), v, cond: conditionLabel(id), roundsTxt: min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min }) }));
+          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { minutes: min } });
         } else if (rounds != null) {
           addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          lines.push(t('op.etatTemporaire', { name: nomDe(target), v, cond: conditionLabel(id), roundsTxt: t('op.frag.plafondDeRounds', { n: rounds, s: rounds > 1 ? 's' : '' }) }));
+          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { rounds } });
         } else {
           addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
-          lines.push(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label
-            ? t('op.etatRegagne', { name: nomDe(target), v, cond: conditionLabel(id), src: ctx.label })
-            : t('op.etat', { name: nomDe(target), v, cond: conditionLabel(id) })); // libellé (« Exténué »), cohérent avec removeCond
+          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v,
+            ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
         }
-        // Les QUATRE branches ci-dessus poussent EXACTEMENT une ligne nommant `o.id` : la notification
-        // se pose ici, une fois, appariée à elle (une 5ᵉ branche future est couverte par construction).
-        ctx.onCondition?.({ stateId: id, change: 'gain', targetId: target.id });
-        if (avantageAvant > 0 && !target.advantage) lines.push(t('op.avantageDepense', { name: nomDe(target) })); // LDB 16 l.7
+        if (avantageAvant > 0 && !target.advantage) emettre(target, { genre: 'avantage', ...sur(target), valeur: -avantageAvant, total: 0 }); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
         // (`ctx.caster`) et la cible — UNE seule fois (les ré-applications perRound ne portent pas le flag).
         if (o.grapple && ctx.caster && ctx.caster.id !== target.id) setGrapple(ctx.caster, target);
@@ -1228,8 +1232,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const avant = target.conditions.find((x) => x.id === id)?.value ?? 0;
         removeCondition(target, id, v);
         const retires = avant - (target.conditions.find((x) => x.id === id)?.value ?? 0);
-        lines.push(t('op.etatRetire', { name: nomDe(target), what: o.all ? t('op.etatsTous') : t('op.etatsCertains', { n: retires }), cond: conditionLabel(id) }));
-        ctx.onCondition?.({ stateId: id, change: 'loss', targetId: target.id });
+        emettre(target, { genre: 'etat', ...sur(target), id, valeur: -retires, ...(o.all ? { tous: true } : {}) });
         break;
       }
       case 'endPsych': {
@@ -1291,7 +1294,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // L'`ActiveEffect` porteur de CETTE instance tombe avec elle, et l'emporte (`removeActiveEffects`) :
         // son échéance retirerait sinon une instance accordée depuis.
         const porteur = (target.activeEffects ?? [])[dernierIndex(target.activeEffects ?? [], (e) => !!e.grantedPsychTrait && memeTraitPsy(removed)(e.grantedPsychTrait))];
-        if (porteur) removeActiveEffects(target, (e) => e === porteur, ctx.onCondition, lines);
+        if (porteur) removeActiveEffects(target, (e) => e === porteur, sortie);
         else target.psychTraits = target.psychTraits!.filter((_, i) => i !== rang);
         lines.push(t('op.traitPsychologiqueRetire', { name: nomDe(target), psych: psychologyLabel(removed.type) }));
         break;
@@ -1340,13 +1343,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // décrément direct, jamais sous 0.
           const before = target.corruption ?? 0;
           target.corruption = Math.max(0, before + amount);
-          lines.push(t('op.corruptionRetiree', { name: nomDe(target), delta: target.corruption - before, total: target.corruption }));
+          emettre(target, { genre: 'corruption', ...sur(target), valeur: target.corruption - before, total: target.corruption });
         } else if (ctx.onCorruption) {
-          lines.push(...ctx.onCorruption(target, amount, o.align));
+          absorber(ctx.onCorruption(target, amount, o.align));
         } else if (recoitLaCorruption(target)) {
           // Sans contexte store (moteur pur, tests unitaires) : simple incrément — align ignoré.
           target.corruption = (target.corruption ?? 0) + amount;
-          lines.push(t('op.corruptionAjoutee', { name: nomDe(target), amount, s: amount > 1 ? 's' : '', total: target.corruption }));
+          emettre(target, { genre: 'corruption', ...sur(target), valeur: amount, total: target.corruption });
         }
         break;
       }
@@ -1476,7 +1479,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           if (i >= 0) permanents.splice(i, 1);
           return i >= 0;
         });
-        removeActiveEffects(target, (e) => porteurs.includes(e), ctx.onCondition, lines);
+        removeActiveEffects(target, (e) => porteurs.includes(e), sortie);
         for (const g of permanents) removeGrantedTrait(target, g);
         lines.push(t('op.traitRetire', { name: nomDe(target), trait: traitLisible(accordes[0]) }));
         break;
@@ -1545,7 +1548,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'aideMedicale': {
-        lines.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid')); // LDB 18 l.308-311
+        lines.push(...receiveMedicalAid(target));
+        absorber(releaseConditionLocks(target, 'medicalAid')); // LDB 18 l.308-311
         break;
       }
       case 'exposeDisease': {
@@ -1804,7 +1808,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // l'échelon `otherwise` ; symptôme ABSENT → rien (l'échelon suivant ne s'ouvre pas).
         const r = aggravateDiseaseSymptom(target, o.disease.id, o.symptom.id, o.severity);
         lines.push(...r.log);
-        if (r.etat === 'deja' && o.otherwise?.length) lines.push(...applyOps(target, o.otherwise, imbrique()));
+        if (r.etat === 'deja' && o.otherwise?.length) absorber(applyOps(target, o.otherwise, imbrique()));
         break;
       }
       case 'attenuateSymptom': {
@@ -1813,7 +1817,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // → rien (symétrique exact d'`aggravateSymptom`).
         const r = attenuateDiseaseSymptom(target, o.disease.id, o.symptom.id, durationFromCtx(ctx), nomDeSource(ctx));
         lines.push(...r.log);
-        if (r.etat === 'deja' && o.otherwise?.length) lines.push(...applyOps(target, o.otherwise, imbrique()));
+        if (r.etat === 'deja' && o.otherwise?.length) absorber(applyOps(target, o.otherwise, imbrique()));
         break;
       }
       case 'grantSymptom': {
@@ -1871,12 +1875,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const apres = setBourseBrass(target, avant + n, ctx.idNeuf); // plancher 0 : on ne doit jamais d'argent
         const delta = apres - avant;
         if (delta === 0) break;
-        lines.push(t('op.argent', {
-          name: nomDe(target),
-          sens: delta > 0 ? t('op.argent.gagne') : t('op.argent.perd'),
-          montant: formatMoney(fromBrass(Math.abs(delta))),
-          src: nomDeSource(ctx),
-        }));
+        emettre(target, { genre: 'argent', ...sur(target), valeur: delta });
         break;
       }
       case 'perRound': {
@@ -1886,12 +1885,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'rollThreshold': {
         const rolled = roll(1, o.sides, rng);
         for (const th of o.thresholds) {
-          if (rolled >= th.atLeast) lines.push(...applyOps(target, th.ops, imbrique({ rolled })));
+          if (rolled >= th.atLeast) absorber(applyOps(target, th.ops, imbrique({ rolled })));
         }
         break;
       }
       case 'rollTable': {
-        for (const r of tirerLaTable(o, ctx, rng)) lines.push(...applyOps(target, r.ops, imbrique({ rolled: r.rolled })));
+        for (const r of tirerLaTable(o, ctx, rng)) absorber(applyOps(target, r.ops, imbrique({ rolled: r.rolled })));
         break;
       }
       case 'rollMutation': {
@@ -2098,7 +2097,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'polymorph':
         // Métamorphose : développée en charMod différentiel + grantTrait (auto-restitués) — pure. + id de
         // la forme le temps de l'effet (morphRef, `liveMorphRef`), restitué à l'expiration.
-        lines.push(...applyOps(target, polymorphOps(target, o.creature.id), imbrique()));
+        absorber(applyOps(target, polymorphOps(target, o.creature.id), imbrique()));
         applyActiveEffect(target, { label: nomDeSource(ctx, 'metamorphose'), morphRef: o.creature.id, bonus: 0, duration: durationFromCtx(ctx) });
         break;
       case 'transform': {
@@ -2106,15 +2105,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // PERMANENTE (forme durable ≠ buff de sort : on efface toute durée héritée du ctx). L'apparence
         // (morphRef) porte le MÊME tag pour être retirée avec le reste par `endTransform`.
         const inner: OpsCtx = imbrique({ label: o.tag, effectId: o.tag, defaultDurationRounds: undefined, defaultUntilTime: undefined });
-        lines.push(...applyOps(target, o.ops, inner));
+        absorber(applyOps(target, o.ops, inner));
         if (o.creature) applyActiveEffect(target, { label: o.tag, effectId: o.tag, morphRef: o.creature.id, bonus: 0, duration: { scale: 'permanent' } });
         lines.push(t('op.metamorphose', { name: nomDe(target), tag: o.tag }));
         break;
       }
       case 'endTransform': {
-        const portes: string[] = [];
-        if (!removeActiveEffects(target, (e) => e.effectId === o.tag, ctx.onCondition, portes).length) break; // pas dans cette forme → no-op
-        lines.push(t('op.finDeMetamorphose', { name: nomDe(target), tag: o.tag }), ...portes);
+        const portes: Applique = { lignes: [], faits: [] };
+        if (!removeActiveEffects(target, (e) => e.effectId === o.tag, portes).length) break; // pas dans cette forme → no-op
+        lines.push(t('op.finDeMetamorphose', { name: nomDe(target), tag: o.tag }));
+        absorber(portes);
         break;
       }
       case 'lifeSteal': {
@@ -2123,11 +2123,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const healed = (o.round ?? 'floor') === 'ceil'
           ? Math.ceil((dealt * o.num) / o.den)
           : Math.floor((dealt * o.num) / o.den);
-        if (healed > 0) {
-          // SOURCE UNIQUE `applyHealWounds` — même plafond de munition logée (LDB 62 l.250) que le
-          // reste ; le message ne sort que si le drain rend RÉELLEMENT des PB (post-plafond).
-          lines.push(...applyHealWounds(who, healed, { wake: false, log: (h) => (h > 0 ? [t('op.volDeVie', { name: nomDe(who), n: h })] : []) }));
-        }
+        // SOURCE UNIQUE `applyHealWounds` — même plafond de munition logée (LDB 62 l.250) que le reste ;
+        // le fait ne sort que si le drain rend RÉELLEMENT des PB (post-plafond).
+        if (healed > 0) soigner(who, healed, true);
         break;
       }
       case 'skillMod': {
@@ -2290,7 +2288,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const who = ctx.caster ?? target;
         const avant = who.advantage ?? 0;
         who.advantage = avantageApresPerte(avant, o.amount);
-        if (o.amount == null && avant > 0) lines.push(t('op.avantageDepense', { name: nomDe(who) }));
+        if (o.amount == null && avant > 0) emettre(who, { genre: 'avantage', ...sur(who), valeur: -avant, total: who.advantage });
         break;
       }
       case 'ignoreAnimosity': {
@@ -2312,7 +2310,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // est un `GameOp[]`, comme `tantQuIvre` — exécutés ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
         // ActiveEffect posés, retirés en bloc par `soberUpDissipate`).
         const sousIvresse = [...(drunkOps ?? []), ...(o.tantQuIvre ?? [])];
-        if (sousIvresse.length) lines.push(...applyOps(target, sousIvresse, imbrique({ effectId: EFFET_D_IVRESSE })));
+        if (sousIvresse.length) absorber(applyOps(target, sousIvresse, imbrique({ effectId: EFFET_D_IVRESSE })));
         break;
       }
       case 'narrative':
@@ -2337,12 +2335,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
   // Toute op qui bouge un fait SOURCE d'État dérivé passe par ici (`aggravateSymptom`/`attenuateSymptom`/
   // `grantSymptom`/`contractDisease`/`suppressSymptom`…) : la réconciliation clôt l'application, une fois,
   // au lieu d'être recopiée sur chaque case. IDEMPOTENTE — les descentes imbriquées n'écrivent rien de plus.
-  lines.push(...syncDerivedConditions(target, ctx.onCondition));
+  absorber(syncDerivedConditions(target));
   target.wounds = blessuresReconciliees(target);
   const surLigne = ctx.surLigne;
   if (surLigne) {
     debuts.forEach((d, rang) => { for (const l of lines.slice(d, debuts[rang + 1] ?? finDesOps)) surLigne(rang, l); });
     for (const l of lines.slice(finDesOps)) surLigne(null, l);
   }
-  return lines;
+  return sortie;
 }

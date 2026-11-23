@@ -31,7 +31,7 @@ const SOURCE_AU_TOTAL: GameOp[] = [
 ];
 
 /** Pose `ops` pour un Round, sous le libellé `label`. */
-const poser = (c: Combatant, ops: GameOp[], label: string) => applyOps(c, ops, { idNeuf: idsDeTest, rng: desDuTest, label, defaultDurationRounds: 1 });
+const poser = (c: Combatant, ops: GameOp[], label: string) => applyOps(c, ops, { idNeuf: idsDeTest, rng: desDuTest, label, defaultDurationRounds: 1 }).lignes;
 
 /** Frontière de Round : les durées tombent (`endOfRound`, retrait par `removeActiveEffects`). */
 const finDeRound = (c: Combatant) => endOfRound(c, desDuTest, idsDeTest);

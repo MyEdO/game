@@ -32,18 +32,11 @@
 .trois{display:grid;grid-template-columns:repeat(3,1fr);column-gap:12px}
 .pan .rub+.lignes,.pan .rub+.deux,.pan .rub+.trois{margin-top:3px}
 .pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
-.ligne{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:2px solid transparent;border-bottom:1px solid var(--filet-encre);font-family:"Fell",serif;font-size:15px;color:var(--encre);white-space:nowrap;min-width:0}
-.ligne>.n{flex:1;min-width:0;overflow:hidden}
-.ligne>.n small{font-size:13px;color:var(--encre-2)}
-.ligne.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
-.ligne.refusee{color:rgba(42,29,18,.42)}
-.ligne.refusee .etiquette{opacity:.45}
-.ligne .bulle-refus{left:auto;right:6px;top:calc(100% + 11px);bottom:auto;transform:none}
-.ligne .bulle-refus::before{left:auto;right:24px;top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
-.ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:var(--rouille)}
-.ligne>.losange{margin:0 4px}
+.ligne-de-liste .bulle-refus{left:auto;right:6px;top:calc(100% + 11px);bottom:auto;transform:none}
+.ligne-de-liste .bulle-refus::before{left:auto;right:24px;top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
+.ligne-de-liste .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:var(--rouille)}
 /* la Caractéristique d'une ligne : une colonne de 32 */
-:is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
+:is(.ligne-de-liste,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
 .val{flex:none;font-family:"Chiffres";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
 .comptes{display:flex;align-items:center;gap:9px;margin-top:9px}
 .trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
@@ -56,8 +49,8 @@
 /* l'Augmentation de race, rappelée sur la page de la carrière : hors des dix clous (LDB 05 l.535) */
 .race.sans{visibility:hidden}
 .race>.etiquette{width:32px;justify-content:center}
-.ligne>.pas{flex:none}
-.ligne .moins-plus{flex:none}
+.ligne-de-liste>.pas{flex:none}
+.ligne-de-liste .moins-plus{flex:none}
 
 /* le détail du milieu */
 .page-c{display:flex;flex-direction:column;align-items:center;height:100%}
@@ -75,9 +68,6 @@
 .faits.trois{grid-template-columns:repeat(3,auto);justify-content:space-between}
 .faits.quatre{grid-template-columns:repeat(4,auto);justify-content:space-between}
 .faits.pied{margin-top:auto}
-.fait{min-width:0}
-.fait .rub{display:block}
-.fait b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--encre)}
 .attributs{display:flex;gap:5px;margin-top:2px}
 .pills{display:flex;flex-wrap:wrap;gap:5px}
 .pills>.etiquette{position:relative}
@@ -99,7 +89,6 @@
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
 .tirage-c>.l{flex:1}
 .tirage-c .plaque{flex:none;width:250px}
-.ligne.repartie{height:30px}
 .profil-c{align-self:stretch;flex:none;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.25)}
 .profil-c>.fond{display:grid;grid-template-columns:repeat(6,1fr)}
 .profil-c .c{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 0}
@@ -119,16 +108,13 @@
 
 /* ───────── création : le signe astral ───────── */
 .signe .tirage{margin-bottom:-2px}
-.signe .tirage .ligne{height:30px}
 .signe .tirage .etiquette{margin-left:auto}
 .signe .filet{margin:6px 26px}
-.signes .ligne{height:22px;font-size:14px}
 .variante{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 8px;margin-top:6px}
 .variante .pills{grid-column:1 / -1;gap:4px}
 .signe .page-c>.vignette{margin-top:2px}
 
 /* ───────── création : les Compétences ───────── */
-.competencesDeRace .ligne{height:28px}
 .rangee{align-self:stretch;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .competence{position:relative;min-height:74px;padding:6px 8px 7px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px var(--brou)}
 .competence .disque{position:absolute;right:6px;top:6px}
@@ -136,17 +122,13 @@
 .competence .calc{font-size:11px;color:var(--encre-2)}
 .competence.vide{border:1.5px dashed var(--trait-encre);background:none;box-shadow:none;display:grid;place-items:center}
 .competence.vide span{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille)}
-.ligne.carriere{height:36px;gap:7px;font-size:14px;padding:0 6px}
 .test{align-self:stretch;display:flex;align-items:center;gap:12px;margin-top:2px}
 .test b{font-family:"Fell";font-weight:400;font-size:15px;color:var(--encre)}
 
 /* ───────── création : les Talents ───────── */
-.talents .ligne .raison{margin-left:auto}
+.talents .ligne-de-liste .raison{margin-left:auto}
 .tire{display:flex;align-items:center;gap:10px;height:38px}
-.tire>.ligne{flex:1}
-.tire .n{display:flex;flex-direction:column;justify-content:center;line-height:16px}
-.tire .n>span{overflow:hidden}
-.tire .n .raison{font-size:10px}
+.tire>.ligne-de-liste{flex:1}
 .tire .plaque{flex:none}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
@@ -176,7 +158,7 @@
 .plaques .plaque{flex:1}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
 .physique .mesure{display:flex;align-items:center;gap:11px}
-.physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.physique .mesure>.libelle-valeur{flex:1;min-width:0}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -189,8 +171,7 @@
 .ident .tete>.q{flex:1;min-width:0}
 .ident .l{font-family:"Fell SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
 .ident .tete .faits{margin-top:10px}
-.ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
-.ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.ident .libelle-valeur.mesure{margin-top:14px}
 .ident [data-place="identite/reserves"]{display:flex;flex-direction:column}
 .ident [data-place="identite/reserves"]>.reserves{flex:1;align-content:start}
 .ident .reserve .rub{white-space:normal}
@@ -199,8 +180,6 @@
 .motivation{margin-top:2px;font-family:"Fell";font-style:italic;font-size:16px;line-height:21px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ident .faits.trois{margin-bottom:8px}
 .presentation .competences{align-self:stretch;row-gap:0;column-gap:12px}
-.presentation .competences .ligne{height:24px;padding:0 2px;font-size:13.5px}
-.presentation .competences .ligne small{font-size:12px}
 .presentation .page-c>.rub{margin:8px 0 3px}
 .ident .en-reserve{justify-content:space-between}
 .presentation .filet{margin:6px 26px}
@@ -209,9 +188,7 @@
 .bourse-px .px>div{height:100%;border-radius:24px;display:grid;place-items:center;padding:0 14px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen) 55%,var(--laiton));box-shadow:inset 0 0 0 1px var(--laiton-ombre),inset 0 1px 0 var(--reflet-vif);font-family:"Chiffres";font-size:22px;font-weight:600;color:var(--encre)}
 .bourse-px b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;line-height:20px;letter-spacing:1.1px;color:var(--sepia);white-space:nowrap}
 .exigences{margin-top:3px}
-.exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
-.exige>span:not(.cpt){flex:1;min-width:0}
-.exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
+.ligne-de-liste>.cpt{flex:none;font-size:12.5px;white-space:nowrap}
 .ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
@@ -237,13 +214,12 @@
 #heros-neuf>.fond{display:flex;gap:12px}
 #heros-neuf .niche{width:104px}
 .acquis{flex:1;min-width:0;display:flex;flex-direction:column}
-.acquis>.nom-propre{white-space:nowrap;overflow:hidden;margin-bottom:4px}
-.acquis .a{margin-bottom:7px;min-width:0}
-.acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
+.acquis>.nom-propre{flex:none;white-space:nowrap;overflow:hidden;margin-bottom:4px}
+.acquis>.libelle-valeur{margin-bottom:4px}
+/* un libellé d'acquis passe à la ligne au séparateur, sa marque de PX avec lui */
+.acquis .libelle-valeur>.rub{white-space:normal}
 /* le compte des PX déborde la ligne de sa rubrique, sans la grandir */
-.acquis .a i>.etiquette{margin:-3px 0}
-.acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
-.acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
+.acquis .rub>.etiquette{margin:-3px 0 -3px 6px}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .acquis .gestes .plaque{flex:none}
 .acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
@@ -265,40 +241,27 @@
 .set .oter{position:absolute;right:-8px;top:-9px}
 .set .oter .bulle-refus{left:auto;right:-50px;bottom:calc(100% + 5px);transform:none}
 .set .oter .bulle-refus::before{left:auto;right:55px}
-.inventaire{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:16px;margin-top:8px}
+.inventaire{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;column-gap:16px;margin-top:8px}
 .inventaire .liste>.rub{margin-top:6px}
 .inventaire .liste>.rub:first-child{margin-top:0}
-.inventaire .ligne{height:26px;font-size:14px;padding:0 6px}
-.inventaire .ligne svg{flex:none}
-.ouvert{display:flex;flex-direction:column;gap:5px;padding:9px 12px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px var(--brou);min-width:0}
-.ouvert .ligne{height:26px;font-size:14px;padding:0 5px;gap:6px}
+.ouvert{display:flex;flex-direction:column;gap:4px;padding:9px 12px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px var(--brou);min-width:0}
 .ouvert .deux{column-gap:8px}
-.ouvert .achat{height:auto;min-height:34px;gap:8px;padding:1px 2px}
-.ouvert .achat .n{font-size:13.5px;line-height:15px;white-space:normal}
-.ouvert .achat .plaque{flex:none;width:76px}
+.ouvert .ligne-de-liste>.plaque{flex:none;width:76px}
 .ouvert .nature{font-style:italic;margin:0}
-.consequence{color:var(--sang)}
 .gestes-o{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gestes-o .plaque.large,.gestes-o .plaque:is(:first-child,.large+*):is(:last-child,:has(+.large)){grid-column:1 / -1}
 .gestes-o .bulle-refus{left:auto;right:0;transform:none}
 .gestes-o .bulle-refus::before{left:auto;right:60px}
 .cout{margin-left:auto;font-family:"Chiffres";font-size:11.5px;font-weight:600;color:var(--encre-2)}
-.ligne.choisie .cout{color:var(--encre)}
+.ligne-de-liste.choisie .cout{color:var(--encre)}
 
 /* ───────── progression : la dépense d'expérience ───────── */
 .colonnes{display:flex;gap:36px;padding-right:24px}
-.achat{position:relative;display:flex;align-items:center;gap:8px;height:34px;padding:0 2px;border-bottom:1px solid var(--filet-encre);min-width:0}
-.achat>.n{flex:1;min-width:0;overflow:hidden;font-family:"Fell";font-size:14.5px;color:var(--encre);white-space:nowrap}
-.achat>.n small{font-size:12.5px;color:var(--encre-2)}
-.achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
-.achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
-.achat .plaque{flex:none;width:64px}
-.achat .val span{font-weight:400}
-.achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
-.achat .avertissement{margin-left:auto}
-.achat.hors{border-bottom:0;color:var(--encre-2)}
-.achat.hors>.n{color:var(--encre-2)}
-.achat svg{flex:none}
+.ligne-de-liste>.aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
+.ligne-de-liste>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
+:is(#competences,#talents) .ligne-de-liste>.plaque{flex:none;width:64px}
+.ligne-de-liste>.val span{font-weight:400}
+.ligne-de-liste>.avertissement{margin-left:auto}
 #competences>.fond{display:flex;flex-direction:column}
 #competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
@@ -309,9 +272,8 @@
 .talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
 .talent .plaque{flex:none;width:94px}
 .talent.clos .nom-propre{color:rgba(42,29,18,.6)}
-.achat.sort{height:31px;gap:10px;padding:0 4px}
-.achat.sort .cout{margin-left:0;width:38px}
-.achat.sort .plaque.composant{width:146px}
+#talents .ligne-de-liste>.cout{margin-left:0;width:38px}
+#talents .ligne-de-liste>.plaque.composant{flex:none;width:146px}
 #talents .rub{margin-top:8px;white-space:normal}
 #talents .rub:first-child{margin-top:0}
 .pied-de-bourse{margin-top:8px;padding:0 4px;color:var(--encre)}
@@ -335,7 +297,6 @@
 .ouvre .rub{padding-top:3px}
 .page-c>.glose{margin:6px 0 0;align-self:stretch;text-align:center}
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
-#autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
 #autre .plaques{height:28px;margin:0 0 8px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}

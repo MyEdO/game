@@ -69,6 +69,6 @@ describe('grantPsychTrait.durationHours : le Trait vit sous un effet d’horloge
 
   it('une op `envers` non résolue lève : la personne se désigne avant applyOps', () => {
     const c = combattantDeTest();
-    expect(() => applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, envers: 'personneChoisie' }], { idNeuf: idsDeTest, rng: desDuTest })).toThrow();
+    expect(() => applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, envers: 'personneChoisie' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toThrow();
   });
 });

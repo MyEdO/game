@@ -638,12 +638,8 @@ export interface EtatDeJeu {
   /** File de LIGNES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
    *  `onGainCondition` ennemi/auto, déclenché AVANT le `set` final qui remplace `battle.log`) y pousse
    *  ses lignes ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
-   *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed).
-   *
-   *  `stateId` = État nommé par la ligne, posé par les producteurs AU FUR ET À MESURE de leur
-   *  branchement au canal `OpsCtx.onCondition` (V8d-B, #1330). AUCUN ne le pose encore : son absence
-   *  ne dit RIEN de la ligne aujourd'hui — surtout pas qu'elle ne parle d'aucun État. */
-  pendingLogQueue: { line: string; cid?: string; stateId?: string }[];
+   *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed). */
+  pendingLogQueue: { line: string; cid?: string }[];
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `avancerLeTemps`. */
   scheduledEffects: ScheduledEffect[];

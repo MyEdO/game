@@ -84,7 +84,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idsDeTest, rng: makeRNG(1) })).toThrow();
+    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toThrow();
   });
   it('une chute se dérive de ses `participants` ; une chute à tombant unique lève (#700)', () => {
     const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choix', result: null };

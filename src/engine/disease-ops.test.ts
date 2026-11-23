@@ -52,7 +52,7 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
     const c = dummy({ diseases: [sick('infection-mineure', 5)] });
     applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
-    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idsDeTest, rng: desDuTest }); // 2e tentative : sans objet
+    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idsDeTest, rng: desDuTest }).lignes; // 2e tentative : sans objet
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
     expect(log, 'une op sans objet ne produit rien').toEqual([]);
   });
@@ -107,7 +107,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
   it('cureCriticalWound sur une amputation seule : sans objet (sa raison le dit), l’op ne produit rien', () => {
     const c = dummy({ traumas: [{ uid: 't2', label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
     expect(opSansObjet(c, { op: 'cureCriticalWound' })).toMatch(/amputations sont hors d'atteinte/);
-    const log = applyOps(c, [{ op: 'cureCriticalWound' }], { idNeuf: idsDeTest, rng: desDuTest });
+    const log = applyOps(c, [{ op: 'cureCriticalWound' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
     expect(log).toEqual([]);
     expect(c.traumas).toHaveLength(1);
   });

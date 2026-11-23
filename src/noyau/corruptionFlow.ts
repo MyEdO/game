@@ -50,6 +50,8 @@ import type { PendingCascade, PendingCorruption, PendingMutationStep } from './p
 import { rule } from '../engine/policy';
 import { testValue } from '../engine/skills';
 import { ligneDExposition, type OpsCtx } from '../engine/ops';
+import { emettreDans, type Applique } from '../engine/faits';
+import { campOf } from '../engine/relations';
 import { nomDe } from '../engine/nom';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { pushReveal } from './combatEffects';
@@ -132,29 +134,31 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
 function denouementDExposition(get: Get, set: Set, hero: Combatant, level: ExposureLevel, success: boolean, sl: number, align?: ChaosAlign): string[] {
   const gain = corruptionGain(level, success, sl);
   if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: nomDe(hero) })]))];
-  return gainCorruption(get, set, hero, gain, align);
+  return gainCorruption(get, set, hero, gain, align).lignes;
 }
 
 /**
  * Ajoute `n` Points de Corruption à `hero`, applique seuil → mutation → limites.
  * Mute le héros EN PLACE (l'appelant pousse le patch de re-rendu) et renvoie les
- * lignes de journal. La révélation (dés du Test/de la table) est poussée en étape d'AFFICHAGE de
+ * lignes de journal et le fait de Corruption. La révélation (dés du Test/de la table) est poussée en étape d'AFFICHAGE de
  * la séquence en cours (`pushReveal` — jet SUBI, montré puis acquitté).
  */
-export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): string[] {
-  if (!recoitLaCorruption(hero)) return [];
+export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): Applique {
+  const sortie: Applique = { lignes: [], faits: [] };
+  if (!recoitLaCorruption(hero)) return sortie;
   const rng = battleRng();
-  const lines: string[] = [];
+  const lines = sortie.lignes;
   // Protection de Phâ (LDB 48 l.393) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
   if (n > 0 && hero.pos && (get().battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, hero.pos!))) {
-    return [t('cor.phaWard', { name: nomDe(hero) })];
+    emettreDans(sortie, hero, { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: 0, contre: 'protection' });
+    return sortie;
   }
   hero.corruption = (hero.corruption ?? 0) + n;
-  lines.push(t('cor.gain', { name: nomDe(hero), n, s: n > 1 ? 's' : '', total: hero.corruption }));
+  emettreDans(sortie, hero, { genre: 'corruption', cible: hero.id, camp: campOf(hero), valeur: n, total: hero.corruption });
 
   // Seuil « Corrompu » (LDB 19 l.70) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), le Test de la fiche
   // `corrompu` ; succès = contenu « pour cette fois », échec = mutation.
-  if (!corruptionThresholdExceeded(hero)) return lines;
+  if (!corruptionThresholdExceeded(hero)) return sortie;
   const test = testDeRegle('corrompu', 'contenir');
   // « Un jet = une modale » : dès qu'un siège humain TIENT le porteur (`tenuParUnHumain`, #1426 — la
   // SURFACE, pas l'affordance locale : le héros d'un AUTRE siège tient sa propre fenêtre), le Test du
@@ -167,7 +171,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
     // à la Mutation » du talent Résistance (Menace), LDB 10 l.1016-1020.
     const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', test, align, menace: 'mutation' };
     poseCorruptionPending(get, set, seuil);
-    return lines;
+    return sortie;
   }
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
@@ -175,10 +179,10 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   const tst = rollSansPilote(get, hero, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
-    return lines;
+    return sortie;
   }
   lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align));
-  return lines;
+  return sortie;
 }
 
 // ---------------------------------------------------------------------------

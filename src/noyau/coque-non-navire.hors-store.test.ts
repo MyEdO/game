@@ -6,9 +6,16 @@ import type { Combatant } from '../engine/types';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { applyCriticalToTarget, runEnemyAI } from './combatFlow';
-import { emptyScene } from './monde/scene';
-import { t } from '../i18n';
+import { emptyScene, isWalkable, type Scene } from './monde/scene';
+import { createHero } from '../engine/character';
 import { nomDe } from '../engine/nom';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { footprintTiles } from './monde/footprint';
+import { occupied } from './monde/combatGeometry';
+import { tileKey } from './monde/path';
+import { placeCombatant } from './monde/spawn';
+import { translaterFormation } from './monde/shipPostes';
+import { t } from '../i18n';
 
 /** Une coque qui n'est PAS un navire (`profilNavalDe` : pas de facette `ship`) — EDOC 07 l.334, MDG 13 l.656. */
 const diligence = (id = 'dil', pos = { x: 7, y: 5 }): Combatant => spawnEnemy({ vehicule: 'diligence' }, id, pos);
@@ -59,5 +66,41 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     banc.setState({ battle: { ...banc.getState().battle!, turn: 1 } });
     expect(() => runEnemyAI(banc.getState, banc.setState, 'dil')).not.toThrow();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'dil')!.pos).toEqual({ x: 10, y: 5 });
+  });
+});
+
+describe('coque routière au combat : la scène porte son corps, qui ne bouge pas (#4471)', () => {
+  const ANCRE = { x: 6, y: 6 };
+  /** Une cour où la diligence est membre de la rencontre, le combat lancé par le jeu. */
+  const auCombat = () => {
+    banc = ouvrirLeBanc();
+    banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
+    const cour: Scene = emptyScene('cour', 14, 14);
+    cour.entities = [{ id: 'depart', kind: 'heroStart', pos: { x: 1, y: 1 } }, { id: 'dil', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { ...ANCRE } }];
+    cour.encounters = [{ id: 'enc', members: [{ entityId: 'dil' }] }];
+    banc.getState().lancerLaScene(cour);
+    banc.getState().lancerLeCombat('enc', undefined, { noSurprise: true });
+    const s = banc.getState();
+    return { dil: s.battle!.combatants.find((c) => c.id === 'dil')!, heros: s.battle!.combatants.find((c) => c.kind === 'heros')! };
+  };
+  const cases = footprintTiles(ANCRE, 2);
+
+  it('une avance refusée et nommée : la diligence reste en place, ses cases tenues par la scène seule', () => {
+    const { dil, heros } = auCombat();
+    banc.setState({ facing: { ...banc.getState().facing, dil: 'E' } });
+    expect(banc.getState().avancerLeNavire('dil', 3)).toBe(0);
+    const s = banc.getState();
+    expect(dil.pos).toMatchObject(ANCRE);
+    expect(s.refus?.texte).toBe(t('cs.refusCorpsImmobile', { name: nomDe(dil) }));
+    const occ = occupied(s.battle!, heros);
+    expect(cases.map((c) => [isWalkable(s.scene!, c.x, c.y, 0), occ.has(tileKey(c.x, c.y, 0))])).toEqual(Array(4).fill([false, false]));
+  });
+
+  it('une poussée (`translaterFormation`) et une pose (`placeCombatant`, Effet `to`) refusées', () => {
+    const { dil } = auCombat();
+    const { battle, scene } = banc.getState();
+    expect(translaterFormation(battle!.combatants, scene, dil, [], { x: 1, y: 0 })).toBeNull();
+    expect(placeCombatant(dil, scene, { x: 9, y: 9 })).toBe(false);
+    expect(dil.pos).toMatchObject(ANCRE);
   });
 });

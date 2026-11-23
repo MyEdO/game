@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { statblockToCombatant, creatureToCombatant, entitySize } from './spawn';
+import { statblockToCombatant, creatureToCombatant } from './spawn';
+import { entitySize } from './footprint';
 import { findCreatureById } from '../../data';
 import { sizeFromTraits } from '../../engine/size';
 

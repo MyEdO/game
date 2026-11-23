@@ -50,7 +50,8 @@
         "B": 50
       },
       "bodyShape": "vehicule",
-      "propulsion": "terrestre"
+      "propulsion": "terrestre",
+      "footprint": 2
     }
   },
   {
@@ -184,6 +185,7 @@
       },
       "bodyShape": "vehicule",
       "propulsion": "fluvial",
+      "footprint": 2,
       "locationTable": "navire-fluvial",
       "criticalTable": "river-criticals"
     },
@@ -194,7 +196,6 @@
       "fluvialLengthM": 15,
       "fluvialMovement": 8,
       "fluvialEnc": 100,
-      "footprint": 2,
       "capacity": 300,
       "sail": {
         "m": 3,
@@ -265,6 +266,7 @@
       },
       "bodyShape": "vehicule",
       "propulsion": "fluvial",
+      "footprint": 1,
       "locationTable": "navire-fluvial",
       "criticalTable": "river-criticals"
     },
@@ -275,7 +277,6 @@
       "fluvialLengthM": 5,
       "fluvialMovement": 4,
       "fluvialEnc": 25,
-      "footprint": 1,
       "capacity": 60,
       "oars": {
         "m": 3,
@@ -325,7 +326,8 @@
         "B": 10
       },
       "bodyShape": "vehicule",
-      "propulsion": "terrestre"
+      "propulsion": "terrestre",
+      "footprint": 2
     }
   },
   {
@@ -390,7 +392,8 @@
         "B": 35
       },
       "bodyShape": "vehicule",
-      "propulsion": "terrestre"
+      "propulsion": "terrestre",
+      "footprint": 2
     }
   },
   {
@@ -419,7 +422,8 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "terrestre"
+      "propulsion": "terrestre",
+      "footprint": 2
     }
   },
   {
@@ -448,7 +452,8 @@
         "B": 95
       },
       "bodyShape": "vehicule",
-      "propulsion": "terrestre"
+      "propulsion": "terrestre",
+      "footprint": 2
     }
   },
   {
@@ -476,13 +481,13 @@
         "B": 10
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 1
     },
     "ship": {
       "crew": 1,
       "manoeuvre": 0,
       "lengthM": 3,
-      "footprint": 1,
       "capacity": 10,
       "oars": {
         "m": 3,
@@ -521,7 +526,8 @@
         "B": 20
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 2
     },
     "ship": {
       "crew": 3,
@@ -530,7 +536,6 @@
       "fluvialLengthM": 10,
       "fluvialMovement": 6,
       "fluvialEnc": 35,
-      "footprint": 2,
       "capacity": 120,
       "sail": {
         "m": 3,
@@ -574,7 +579,8 @@
         "B": 90
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 3
     },
     "ship": {
       "crew": 4,
@@ -583,7 +589,6 @@
       "fluvialLengthM": 25,
       "fluvialMovement": 6,
       "fluvialEnc": 180,
-      "footprint": 3,
       "capacity": 500,
       "sail": {
         "m": 3,
@@ -627,7 +632,8 @@
         "B": 120
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 3
     },
     "ship": {
       "crew": 15,
@@ -636,7 +642,6 @@
       "fluvialLengthM": 20,
       "fluvialMovement": 9,
       "fluvialEnc": 420,
-      "footprint": 3,
       "capacity": 80,
       "sail": {
         "m": 4,
@@ -684,13 +689,13 @@
         "B": 30
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 2
     },
     "ship": {
       "crew": 4,
       "manoeuvre": -1,
       "lengthM": 15,
-      "footprint": 2,
       "capacity": 150,
       "sail": {
         "m": 4,
@@ -730,13 +735,13 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 3
     },
     "ship": {
       "crew": 32,
       "manoeuvre": 0,
       "lengthM": 25,
-      "footprint": 3,
       "capacity": 100,
       "sail": {
         "m": 4,
@@ -772,13 +777,13 @@
         "B": 50
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 3
     },
     "ship": {
       "crew": 15,
       "manoeuvre": -1,
       "lengthM": 25,
-      "footprint": 3,
       "capacity": 300,
       "sail": {
         "m": 5,
@@ -817,13 +822,13 @@
         "B": 90
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 20,
       "manoeuvre": 0,
       "lengthM": 35,
-      "footprint": 4,
       "capacity": 600,
       "sail": {
         "m": 5,
@@ -883,13 +888,13 @@
         "B": 100
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 35,
       "manoeuvre": 0,
       "lengthM": 35,
-      "footprint": 4,
       "capacity": 150,
       "sail": {
         "m": 6,
@@ -935,13 +940,13 @@
         "B": 180
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 50,
       "manoeuvre": 0,
       "lengthM": 55,
-      "footprint": 4,
       "capacity": 500,
       "sail": {
         "m": 7,
@@ -987,13 +992,13 @@
         "B": 275
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 90,
       "manoeuvre": 0,
       "lengthM": 60,
-      "footprint": 4,
       "capacity": 1400,
       "sail": {
         "m": 8,
@@ -1032,13 +1037,13 @@
         "B": 220
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 90,
       "manoeuvre": 0,
       "lengthM": 60,
-      "footprint": 4,
       "capacity": 600,
       "sail": {
         "m": 8,
@@ -1077,13 +1082,13 @@
         "B": 100
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 20,
       "manoeuvre": 0,
       "lengthM": 40,
-      "footprint": 4,
       "capacity": 650,
       "sail": {
         "m": 7,
@@ -1119,13 +1124,13 @@
         "B": 80
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 35,
       "manoeuvre": 0,
       "lengthM": 40,
-      "footprint": 4,
       "capacity": 400,
       "sail": {
         "m": 7,
@@ -1165,13 +1170,13 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 3
     },
     "ship": {
       "crew": 15,
       "manoeuvre": 0,
       "lengthM": 25,
-      "footprint": 3,
       "capacity": 300,
       "sail": {
         "m": 5,
@@ -1203,13 +1208,13 @@
         "B": 400
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime"
+      "propulsion": "maritime",
+      "footprint": 4
     },
     "ship": {
       "crew": 220,
       "manoeuvre": 0,
       "lengthM": 130,
-      "footprint": 4,
       "capacity": 4000,
       "sail": {
         "m": 9,

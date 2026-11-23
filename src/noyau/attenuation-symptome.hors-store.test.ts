@@ -80,7 +80,7 @@ describe('l’atténuation dure une JOURNÉE, puis l’échelon revient (LDB 20 
 
   it('une 2ᵉ dose REMPLACE la première — jamais deux échelons empilés (l.159 ne cadre qu’UNE dose)', () => {
     const h = fievreux();
-    const dose = () => applyOps(h, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY, label: 'Mélange alchimique' });
+    const dose = () => applyOps(h, [{ op: 'attenuateSymptom', disease: { id: 'pneumonie' }, symptom: { id: 'fievre' } }], { idNeuf: idsDeTest, rng: seq([]), defaultUntilTime: MINUTES_PER_DAY, label: 'Mélange alchimique' }).lignes;
     dose();
     dose();
     expect(attenuationEchelons(h, 'pneumonie', 'fievre'), 'deux doses ont empilé deux échelons').toBe(1);
