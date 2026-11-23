@@ -76,7 +76,7 @@ import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
 import { refDeRegle } from '../engine/reglesChiffrees';
-import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
 const mjAuSiege1 = (net: NetState): NetState => poserLeSiegeMJ({ ...net, seatNames: { ...net.seatNames, 1: 'MJ' } }, 1);
@@ -5053,6 +5053,8 @@ describe('l’événement de bord tombe le jour où son compteur arrive à zéro
 
   it.each(Array.from({ length: 10 }, (_, k) => k + 1))('traversée commandée, compteur posé à %i au départ : l’événement tombe ce jour-là, aucun avant', (compteur) => {
     set({ gameTime: 160 * 1440 + 8 * 60, lastUpkeepDay: 160 } as never); // été : le froid ne coupe pas la traversée avant N = 10
+    // Le groupe tient dix jours sans vivres : LDB 18 l.15, l.342.
+    set({ party: get().party.map((h) => blessuresSurLeProfil({ ...h, wounds: blessuresDeBase(40) })) });
     appareiller(1, compteur, 'commande');
     traverser(compteur);
     expect(joursDEvenement()).toEqual([compteur]);
