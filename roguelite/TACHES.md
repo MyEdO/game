@@ -8,19 +8,13 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Forge par Disponibilité, potions à l'Hospice | `jeu/boutiques.ts`, `jeu/valeurs.ts` | fait, non commité : attend les panoplies et l'interface |
-| Panoplies d'armure (légère, moyenne, lourde : options, pas échelle) | `jeu/boutiques.ts` | codeur en cours |
-| Une salle à choix plante si le héros saigne | `noyau/epreuve.ts` | codeur en cours |
-| Fiche du héros et Salle d'armes : retour à la disposition d'avant (l'unification « catastrophe » est retirée) | `ui/fiche.ts`, `ui/services.ts` | Fable en cours ; l'unification attend la progression à la 5e (« Ca attendra le dev de la progression en V5 », 2026-11-23) |
-| Sceaux de Collège et de dieu, tenues des nouvelles carrières, actions de la cache lisibles | `ui/`, `figures.ts` | fait par Fable, non commité : attend l'interface de la forge |
-| Compagnon animal et montures dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon` | lot A (prédicat de monture unique) en cours ; lot B à rejuger (cavalier choisi hors combat) ; lot C (Blessures de la bête) |
+| Compagnon animal et montures dans le noyau (MyEdO/game#4804) | `.wt-4804-compagnon`, PR MyEdO/game#4817 | lot A commité (PR brouillon) ; lot B en 2e ronde de juge ; lot C (Blessures de la bête) |
+| Catalogue, sorts choisis par voie, emplacements « au choix » désignés | `jeu/valeurs.ts`, `noyau/carriere.ts` | codeur en cours |
 
 ## Ensuite, dans l'ordre
 
-1. Forge : revenir à une sélection d'armes choisie (par Groupe utile au roster, une à trois par Groupe), ouverte par
-   Disponibilité, au lieu des 92 armes du catalogue, filtrée pour le héros choisi par les Groupes que couvrent ses
-   Compétences ; même tri pour les remèdes de l'Hospice. Puis brancher
-   l'interface de la forge sur les panoplies et les potions ; commit commun forge + interface.
+1. Débords connus : la Salle d'armes d'un Collège de niveau 2 (20 sorts) jusqu'au tri des sorts ; la forge et
+   l'Hospice à la taille d'interface « grande ».
 2. Catalogue : rassembler dans `valeurs.ts` tout ce que le jeu offre, sous des tables nommées, et produire
    `roguelite/CATALOGUE.md` par `roguelite/catalogue.ts` (carrières, voies et sorts, Compétences utiles, Talents,
    armes par Groupe, panoplies, remèdes, destinations et adversaires).
