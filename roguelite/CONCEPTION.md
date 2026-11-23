@@ -128,6 +128,8 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   gere le gameplay, mais il doit etre jouable et ne pas explosé des qu'on le touche ». — Le chien du Ratier est le
   Chien du Livre de base avec ses options du livre (LDB 78 l.38) : Taille (Moyenne), Dressé (Guerre), Armure 1 ; le
   `chien-de-ratier` (Très petite, Terreur 2 face à un humain) est écarté. Sa survie se mesure en rencontres simulées.
+  En combat : « Sinon le chien du ratier est membre du groupe, il agit comme tel, sans rien de maison, je pense que
+  l'IA fonctionne comme ca de toute maniere » (MyEdO/game#4804).
 - **2026-11-23, les identités du front** : « Le tueur je le voyais a la double hache et/ou a la grande hache. Le soldat
   je le vois plus comme un tank et le maitre de l'épée un combat spécialisé dans le combat a l'arme a 2 main. Mais
   surement qu'il fait doublon avec le tueur et le soldat » ; « Il faut un tank au début, le soldat même rang 1 sait se
