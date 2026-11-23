@@ -3548,25 +3548,14 @@
      "id": "p35",
      "kind": "prop",
      "pos": {
-      "x": 4,
-      "y": 28
-     },
-     "decor": {
-      "id": "feu-camp"
-     },
-     "label": "Le foyer"
-    },
-    {
-     "id": "forge-foyer-du-bourg",
-     "kind": "prop",
-     "pos": {
       "x": 3,
       "y": 31
      },
-     "facing": "E",
      "decor": {
       "id": "foyer-de-forge"
-     }
+     },
+     "label": "Le foyer",
+     "facing": "E"
     },
     {
      "id": "p36",

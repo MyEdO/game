@@ -191,7 +191,8 @@ export interface MorceauDuMonde extends GeometrieDuMonde {
  * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
  * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`decorDuTerrain`,
  * les arbres du bois), les entités `prop` de la scène et les ornements de son bâti (`ornementsDuBati`,
- * `src/noyau/monde/volume/ornements.ts` : décors de façade et d'identité de bâtiment) hors de ceux
+ * `src/noyau/monde/volume/ornements.ts` : décors de façade, souches des foyers à conduit et décors d'identité de
+ * bâtiment) hors de ceux
  * qu'une nappe porte (`PoseDeDecor.nappe`, dans leur nappe), à la couleur de leur matériau de décor
  * (matière `prop--<id>`).
  * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·

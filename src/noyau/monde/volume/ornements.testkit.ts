@@ -20,8 +20,8 @@ const MURS_DE_LA_RUE: WallSeg[] = [2, 3, 4, 5].map((x) => ({ x, y: 5, side: 'N',
 export const FEATURES: FacadeFeature[] = [
   { id: 'enseigne', kind: 'sign', edge: { x: 3, y: 5, side: 'N' }, offset: 0.5 },
 ];
-/** L'épi du pignon ouest de la chapelle, au bout de l'arête qui touche le faîte (y = 2,5). */
-export const EPI: FacadeFeature = { id: 'epi', kind: 'faitage', edge: { x: 1, y: 2, side: 'E' }, offset: 1 };
+/** L'épi du pignon ouest de la chapelle, sur une arête de ce pignon qui ne touche pas le faîte (y = 2,5). */
+export const EPI: FacadeFeature = { id: 'epi', kind: 'faitage', edge: { x: 1, y: 2, side: 'E' } };
 /** La cheminée de la chapelle, adossée au mur nord de sa case, sous la couverture. */
 export const FOYER_DE_LA_CHAPELLE: SceneEntity = {
   id: 'foyer-de-la-chapelle', kind: 'prop', pos: { x: 4, y: 2 }, facing: 'S', decor: { id: 'cheminee-interieure' },

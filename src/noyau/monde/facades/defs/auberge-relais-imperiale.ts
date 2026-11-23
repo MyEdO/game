@@ -10,6 +10,5 @@ export const facade: FacadeAppearanceDef = {
   },
   features: {
     sign: { prop: 'enseigne', liftM: 2.2 },
-    faitage: { prop: 'epi-de-faite', base: 'toit', liftM: 0 },
   },
 };

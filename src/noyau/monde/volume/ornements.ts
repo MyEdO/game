@@ -17,7 +17,7 @@ import { WALL_H_M } from '../iso';
 import { DIR8_DELTA, rotateDir8, type Dir4, type Dir8 } from '../../../geometry/dir8';
 import { decorEnVolume } from './propVolumes';
 import { propFootTiles } from '../footprint';
-import { fieldHeightAt, formeDeLaNappe, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './toits';
+import { fieldHeightAt, formeDeLaNappe, nappeKey, resolveNappes, sommetDuPignon, WALL_NB, type RoofField, type RoofShapeSpec } from './toits';
 
 type Point = { x: number; y: number };
 
@@ -169,7 +169,8 @@ function buildingDoor(scene: SceneDesToits, f: RectDeCases, z: number): { frontC
 /** Les ornements de façade de `scene` : chaque feature d'une section dont la vignette nomme un décor
  *  (`facadeFeatureViz`), une fois, sur une arête de sa section que porte un mur (`scene.walls`). Ancrée le long de
  *  l'arête à son `offset`, tournée vers le dehors (`outwardSide`), posée sur le sol de sa case ou sur la couverture
- *  à l'aplomb de son ancre (`FacadeFeatureViz.base`), sans décalage quand aucune nappe ne la couvre ;
+ *  à l'aplomb de son ancre (`FacadeFeatureViz.base`), sans décalage quand aucune nappe ne la couvre ; un ornement de
+ *  faîte s'ancre au sommet du pignon que borde son arête (`sommetDuPignon`), et sans pignon ne se pose pas ;
  *  `feature.appearance` prime sur `viz.prop`. */
 function ornementsDeFacade(scene: SceneDesToits, nappes: ReturnType<typeof resolveNappes>): OrnementDuBati[] {
   const physicalEdges = new Set((scene.walls ?? []).map((wall) => edgeKey(wall)));
@@ -185,15 +186,19 @@ function ornementsDeFacade(scene: SceneDesToits, nappes: ReturnType<typeof resol
         if (emis.has(id) || !sectionEdges.has(edgeId) || !physicalEdges.has(edgeId)) continue;
         const viz = facadeFeatureViz(section.appearance, feature.kind);
         if (!viz) continue;
+        const sommet = viz.base === 'faite' ? sommetDuPignon(scene, edge) : null;
+        if (viz.base === 'faite' && !sommet) continue;
         emis.add(id);
         const offset = feature.offset ?? DEFAUTS_D_OUVERTURE.offset;
         const [a, b] = wallEnds(edge);
-        const ancre = { x: a.x + (b.x - a.x) * offset, y: a.y + (b.y - a.y) * offset };
+        const ancre = sommet ? { x: sommet.x, y: sommet.y } : { x: a.x + (b.x - a.x) * offset, y: a.y + (b.y - a.y) * offset };
         const [nx, ny] = WALL_NB[edge.side];
         const cotes = [{ x: edge.x, y: edge.y }, { x: edge.x + nx, y: edge.y + ny }] as const;
         const sortant = outwardSide(scene, edge);
         const solM = heightAt(scene, edge.x, edge.y, edge.z);
-        const couverture = viz.base === 'toit' ? hauteurDeCouverture(nappes, cotes, ancre) : null;
+        const couverture = sommet
+          ? { hauteurM: sommet.hM, nappe: sommet.nappe }
+          : viz.base === 'toit' ? hauteurDeCouverture(nappes, cotes, ancre) : null;
         const sureleveM = viz.base === 'toit' && couverture == null
           ? 0
           : (couverture != null ? couverture.hauteurM - solM : 0) + (viz.liftM ?? 0);

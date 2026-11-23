@@ -10,9 +10,10 @@ import { describe, expect, it } from 'vitest';
 import { heightAt, wallEnds, type FacadeFeature, type Scene } from '../scene';
 import { posesDesDecors, toitsDuMonde, toitsLeves, toutesLesNappes, volumeDuMonde, type PoseDeDecor } from './volume';
 import { fieldHeightAt, formeDeLaNappe, gableEnds, resolveNappes } from './toits';
-import { facadeFeatureViz } from '../facades';
+import { FACADE_APPEARANCE_IDS, facadeFeatureViz } from '../facades';
 import { buildingFeatures } from '../buildings';
 import { WALL_H_M } from '../iso';
+import { scenePlanDefects } from '../../planDefects';
 import { capDuFaite, SOUCHE } from './ornements';
 import { edgeKey } from '../facades';
 import {
@@ -56,20 +57,51 @@ describe('les ornements de façade', () => {
     expect(pose.piedM).toBeCloseTo(heightAt(scene, enseigne.edge.x, enseigne.edge.y, 0) + (viz.liftM ?? 0), 9);
     expect(pose.nappe).toBeUndefined();
   });
+});
 
-  it('l’ornement de faîte se pose au sommet du pignon que son arête borde, sur sa nappe', () => {
-    const viz = facadeFeatureViz(FACADE, EPI.kind)!;
-    expect(viz.base).toBe('toit');
-    const pose = poseDe(scene, `architecture/chapelle:pignon-ouest:${EPI.id}`);
-    const { cells, field } = resolveNappes(scene).get(NAPPE_DE_LA_CHAPELLE)!;
-    const pignon = gableEnds(cells, formeDeLaNappe(field), undefined, field)
-      .find((g) => g.edges.some((e) => edgeKey(e) === edgeKey(EPI.edge)))!;
-    const sommet = pignon.poly.reduce((haut, p) => (p.h > haut.h ? p : haut));
-    expect(pose.prop).toBe(viz.prop);
-    expect(pose.ancre).toEqual({ x: sommet.x, y: sommet.y });
-    expect(pose.nappe).toBe(NAPPE_DE_LA_CHAPELLE);
-    expect(pose.piedM).toBeCloseTo(sommet.h + (viz.liftM ?? 0), 9);
-  });
+describe('les ornements de faîte', () => {
+  /** La rue du test, la façade `section` (0 : la rue, 1 : le pignon ouest) à l'apparence `apparence`, portant le
+   *  seul faîte `faite`. */
+  const avecLeFaite = (apparence: string, section: 0 | 1, faite: FacadeFeature): Scene => {
+    const s = laRue();
+    const [rue, pignon] = s.architecture![0].facades;
+    pignon.features = [];
+    const porteuse = section === 0 ? rue : pignon;
+    porteuse.appearance = apparence;
+    porteuse.features = [...(section === 0 ? FEATURES : []), faite];
+    return s;
+  };
+  const cleDuFaite = (section: 0 | 1, faite: FacadeFeature) =>
+    `architecture/chapelle:${section === 0 ? 'rue' : 'pignon-ouest'}:${faite.id}`;
+  const { cells, field } = resolveNappes(laRue()).get(NAPPE_DE_LA_CHAPELLE)!;
+  const sommet = gableEnds(cells, formeDeLaNappe(field), undefined, field)
+    .find((g) => g.edges.some((e) => edgeKey(e) === edgeKey(EPI.edge)))!
+    .poly.reduce((haut, p) => (p.h > haut.h ? p : haut));
+
+  for (const apparence of FACADE_APPEARANCE_IDS)
+    for (const offset of [undefined, 0, 1]) {
+      it(`sur une façade ${apparence}, l’épi coiffe le sommet du pignon que borde son arête, offset ${offset ?? 'absent'} ignoré`, () => {
+        const faite: FacadeFeature = { ...EPI, ...(offset === undefined ? {} : { offset }) };
+        const scene = avecLeFaite(apparence, 1, faite);
+        const viz = facadeFeatureViz(apparence, faite.kind)!;
+        const pose = poseDe(scene, cleDuFaite(1, faite));
+        expect(pose.prop).toBe(viz.prop);
+        expect(pose.ancre).toEqual({ x: sommet.x, y: sommet.y });
+        expect(pose.nappe).toBe(NAPPE_DE_LA_CHAPELLE);
+        expect(pose.piedM).toBeCloseTo(sommet.h + (viz.liftM ?? 0), 9);
+        expect(scenePlanDefects(scene).filter((d) => d.family === 'faitage-hors-pignon')).toEqual([]);
+      });
+
+      it(`sur une façade ${apparence}, un épi sur un gouttereau, offset ${offset ?? 'absent'}, ne se pose pas et lève un défaut de plan`, () => {
+        const faite: FacadeFeature = {
+          id: 'epi-du-gouttereau', kind: 'faitage', edge: { x: 4, y: 5, side: 'N' }, ...(offset === undefined ? {} : { offset }),
+        };
+        const scene = avecLeFaite(apparence, 0, faite);
+        expect(posesDesDecors(scene).map((p) => p.cle)).not.toContain(cleDuFaite(0, faite));
+        expect(scenePlanDefects(scene).filter((d) => d.family === 'faitage-hors-pignon').map((d) => d.at))
+          .toEqual([{ kind: 'edge', x: 4, y: 5, side: 'N', z: 0 }]);
+      });
+    }
 });
 
 describe('les souches des foyers', () => {
