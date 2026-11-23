@@ -168,7 +168,7 @@ describe('conversationEnVue — la conversation en données (#4574)', () => {
   const avec = (entities: object[]) => etat(dlg, { scene: { entities } as never, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'gustav', session: 1 } });
 
   it('l’orateur par son id et son nom ; chaque réponse porte son Test en ids, son coût en Money, sans annonce composée', () => {
-    expect(conversationEnVue(avec([{ id: 'gustav', kind: 'personnage', label: 'Gustav', pos: { x: 0, y: 0 } }]))).toEqual({
+    expect(conversationEnVue(avec([{ id: 'gustav', kind: 'personnage', creature: { id: 'humain' }, label: 'Gustav', pos: { x: 0, y: 0 } }]))).toEqual({
       orateur: { id: 'gustav', nom: 'Gustav' },
       replique: '…',
       reponses: [
