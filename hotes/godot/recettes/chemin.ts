@@ -2,18 +2,23 @@
  * LE CHEMIN FIGÉ DU GROUPE (#3822) : ce que la recette native du chemin (`projet/recettes/chemin-du-groupe.gd`) lit, figé
  * par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. L'atelier figé sur chaque modèle du
  * dossier, sa partie rendue au noyau (`figerUnePartie`), puis, sur son pont, « La porte close » jouée comme Godot la
- * joue : chaque fenêtre de l'entrée par son geste en focus, la porte ouverte par son bouton, seul geste d'exploration, le manifeste du monde de la scène
+ * joue : chaque fenêtre de l'entrée par son geste en focus, la porte ouverte par son bouton, seul geste de porte, le manifeste du monde de la scène
  * (`monde`), la géométrie de toutes ses clés (`morceaux`, source `partie`), la suite d'avant le clic (`avant`), puis
  * celle du clic de `CASE_DU_REDUIT`, au-delà de la porte et hors de l'axe du groupe (`apres`).
  */
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
-import type { Bouton } from '../../../src/hote/elements';
+import type { Appel, Bouton } from '../../../src/hote/elements';
+import { VERBES } from '../../../src/hote/verbes.generated';
 import type { MondeDuPont, Suite } from '../pont/pont';
 import { figerUnePartie, type Listage } from './atelier';
 import { toutesLesCles } from './ecran';
 
 /** La case du réduit que le groupe gagne : son chemin passe la porte, puis tourne. */
 export const CASE_DU_REDUIT = { x: 4, y: 0 };
+
+/** `a` désigne une porte : son verbe prend un id de porte. */
+const designeUnePorte = (a: Appel): boolean =>
+  (VERBES[a.type] ?? []).some((p) => p.forme.genre === 'chaine' && p.forme.designe?.cle === 'IdDePorte');
 
 /** Le chemin figé sur les modèles de `listage`. */
 export function figerLeChemin(listage: Listage) {
@@ -28,7 +33,7 @@ export function figerLeChemin(listage: Listage) {
       if (pas > 10) throw new Error(`fenêtres sans fin : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
       s = jouer('jouer', s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
     }
-    const [porte, ...autres] = s.vue.zones['exploration.gestes'].filter((g) => 'suite' in g.jeu && g.jeu.suite.some((j) => j.type === 'actionnerLaPorte'));
+    const [porte, ...autres] = s.vue.zones['exploration.gestes'].filter((g) => 'suite' in g.jeu && g.jeu.suite.some(designeUnePorte));
     if (!porte || autres.length) throw new Error(`la porte fermée, seul geste de porte attendu : ${JSON.stringify(s.vue.zones['exploration.gestes'])}`);
     const avant = jouer('jouer', porte.jeu);
     const monde = appel('monde') as unknown as MondeDuPont;
