@@ -26,6 +26,10 @@ qui contredit une ligne ci-dessous est un défaut, pas une option. Le détail et
 l'utilisateur ».
 
 - **Le noyau d'abord** : toute règle se joue par le noyau ; ce qu'il ne joue pas va à `RETOURS.md`, jamais dans l'hôte.
+- **Le jeu choisit ce qu'il propose** (« c'est toi qui décide ce que le jeu propose, tu n'as pas a TOUT proposer, tu
+  as le controle », 2026-11-23) : chaque boutique, chaque liste offre une sélection courte et voulue, tirée des données
+  du noyau, jamais tout le catalogue. La forge vend une sélection d'armes par Groupe utile au roster, ouverte par
+  Disponibilité ; pas d'armes d'ogre, de lances de cavalerie ni d'objets qu'aucun héros ne manie.
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
 - **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
   (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.

@@ -17,7 +17,9 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 ## Ensuite, dans l'ordre
 
-1. Brancher l'interface de la forge sur les panoplies et les potions à l'Hospice ; commit commun forge + interface.
+1. Forge : revenir à une sélection d'armes choisie (par Groupe utile au roster, une à trois par Groupe), ouverte par
+   Disponibilité, au lieu des 92 armes du catalogue ; même tri pour les remèdes de l'Hospice. Puis brancher
+   l'interface de la forge sur les panoplies et les potions ; commit commun forge + interface.
 2. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules.
 3. Auberge relais : chambre de repos (repos du noyau) et renvoi contre une prime.
 4. Salles à choix, suite : le camp avec le soigneur (infirmerie du noyau), la rencontre sociale.
