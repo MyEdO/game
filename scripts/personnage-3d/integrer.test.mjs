@@ -1,7 +1,11 @@
-// L'intégration d'un lot d'éléments 3D (#4338) : ordre, commandes et triangles, sur fixtures nommées.
+// L'intégration d'un lot d'éléments 3D (#4338) : ordre, commandes et triangles, sur fixtures nommées ; arrêt à la borne.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { commandeDImport, construction, ordreDuLot, trianglesParEmpreinte } from './integrer.mjs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { setTimeout as attendre } from 'node:timers/promises'
+import { commandeDImport, construction, lancer, ordreDuLot, trianglesParEmpreinte } from './integrer.mjs'
 
 const BURE = 'humanoide/vetement--bure'
 const CORDELIERE = 'humanoide/accessoire--cordeliere'
@@ -49,4 +53,32 @@ test('trianglesParEmpreinte lit les lignes GLB d’un élément sur base comme d
   const [a, b] = ['a'.repeat(64), 'b'.repeat(64)]
   const journal = `INFO export\nGLB humanoide--vetement--bure 81234 ${a} TRIANGLES 2311\nGLB caraque 912 ${b} TRIANGLES 14 -> vehicule--caraque\n  NOEUD coque (0, 0, 0) 12 []\n`
   assert.deepEqual([...trianglesParEmpreinte(journal)], [[a, 2311], [b, 14]])
+})
+
+/** Le processus `pid` est-il encore vivant, après au plus `delaiMs` d'attente de sa fin ? */
+async function vivant(pid, delaiMs) {
+  for (const fin = Date.now() + delaiMs; Date.now() < fin; await attendre(50)) {
+    try { process.kill(pid, 0) } catch { return false }
+  }
+  return true
+}
+
+test('lancer arrête à sa borne la commande et le processus qu’elle lance, comme Blender sous environnement.mjs', { timeout: 30_000 }, async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'integrer-borne-'))
+  try {
+    const pid = join(dossier, 'blender.pid')
+    const parent = join(dossier, 'environnement.mjs')
+    writeFileSync(parent, [
+      "import { spawn } from 'node:child_process'",
+      "import { writeFileSync } from 'node:fs'",
+      "const blender = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })",
+      `writeFileSync(${JSON.stringify(pid)}, String(blender.pid))`,
+      'setInterval(() => {}, 1000)',
+    ].join('\n'))
+    await assert.rejects(lancer([parent], join(dossier, 'journal.log'), 'construire humanoide/rigide--essai', 1500),
+      (e) => /^construire humanoide\/rigide--essai \(au-delà de 1500 ms\) ; journal /.test(e.message) && Array.isArray(e.diagnostic))
+    assert.equal(await vivant(Number(readFileSync(pid, 'utf8')), 5000), false, 'le processus lancé par la commande survit à la borne')
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
 })
