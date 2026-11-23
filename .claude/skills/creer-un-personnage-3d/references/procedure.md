@@ -591,7 +591,8 @@ Les triangles de chaque mesh s'impriment en tête de chaque rapport ; ceux de ch
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
-la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
+la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui, et n'est couvert
+que ce dont le dehors traverse la couverture : la paume nue au bord d'un bandage ne l'est pas.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
 sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
 barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
