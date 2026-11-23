@@ -3,12 +3,13 @@
  */
 import { dotationDesNiveaux, generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
-import { ESPECES, IdBatiment, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
+import { ESPECES, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
 import { choisir, noter, profil, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
 
-/** `retrait` : jours restants à l'hospice, sur `retraitTotal` ; le héros ne part pas en expédition. */
-export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; retrait?: number; retraitTotal?: number }
+/** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
+export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
+export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 /** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`) et attend le choix de son action. */

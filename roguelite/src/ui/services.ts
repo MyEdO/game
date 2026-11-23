@@ -3,7 +3,7 @@
  * Dungeon. En tête, sur une ligne, le bâtiment (son palier, ce qu'il deviendra, le geste qui le bâtit) et la bourse ;
  * puis sa page, qui remplit le cadre de grandes cartes (une recrue, un soin, une arme, une route) dont chacune porte
  * son geste, prix compris (`achat`) ; la croix rend le village. Le socle dit ce qu'un clic fait : servir ce héros
- * (forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
+ * (relais, forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
 import { encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
@@ -11,19 +11,19 @@ import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { bourseDePX, caracteristiques, competences, niveauSuivant, sortsAApprendre, talentsDuNiveau } from './fiche';
 import {
-  achat, apercuDe, hospice as sejours, apercuDeProvision, cadreA, carriereDe, casesDuSac, encombrementDe, esc, etats, etiquettesDeQualites, etiquettesDeSequelles, glose, herosEnTete,
+  achat, apercuDe, sejours, apercuDeProvision, cadreA, carriereDe, casesDuSac, encombrementDe, esc, etats, etiquettesDeQualites, etiquettesDeSequelles, glose, herosEnTete,
   iconeDArme, iconeDeProvision, portraitDeHeros, voieLisible,
 } from './pieces';
 
 /** L'emplacement que la forge garnit : une main, l'arme à distance, ou l'armure. */
 export type Emplacement = J.Tenue | 'armure';
-/** Ce que les services lisent de l'interface : l'état, le héros servi, l'emplacement ouvert à la forge, et au départ
- *  la route et ceux qu'on emmène. */
-export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string> }
+/** Ce que les services lisent de l'interface : l'état, le héros servi, l'emplacement ouvert à la forge, au départ
+ *  la route et ceux qu'on emmène, et le héros dont le renvoi attend confirmation. */
+export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string>; congediement: string | null }
 export type Service = J.IdBatiment | 'depart' | 'chronique';
 
 export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces', memorial: 'croix' };
-const SERVENT_UN_HEROS: ReadonlySet<Service> = new Set(['forge', 'temple', 'salle']);
+const SERVENT_UN_HEROS: ReadonlySet<Service> = new Set(['relais', 'forge', 'temple', 'salle']);
 const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="palier ${n + 1} sur ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i <= n ? 'plein' : ''}"></i>`).join('')}</span>`;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 /** Le maître d'une route et sa suite, chaque créature dite une fois avec son nombre. */
@@ -103,12 +103,34 @@ const placard = (icone: string, titre: string, sous = '') => `<div class="placar
 
 /** Une page de service : son corps, qui remplit le cadre, et son pied (l'action principale). `classe` : sa disposition. */
 interface Page { classe: string; corps: string; pied?: string }
-/** Ce qu'une page lit : l'état, le héros servi, l'emplacement ouvert à la forge, et au départ ceux qu'on emmène. */
-interface Lecture { e: J.Etat; servi: J.Heros | undefined; emplacement: Emplacement; choix: ReadonlySet<string> }
+/** Ce qu'une page lit : l'état, le héros servi, l'emplacement ouvert à la forge, au départ ceux qu'on emmène, et le
+ *  héros dont le renvoi attend confirmation. */
+interface Lecture { e: J.Etat; servi: J.Heros | undefined; emplacement: Emplacement; choix: ReadonlySet<string>; congediement: string | null }
 
-/** Le relais : chaque voyageur en carte — son rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le
- *  Talent qui la définit, et le geste qui l'engage. */
-function pageDuRelais({ e }: Lecture): Page {
+/** La chambre du relais pour le héros servi : une semaine au lit, au prix et à la qualité du palier, et pourquoi elle
+ *  est refusée ; puis son renvoi contre sa prime, confirmé avant d'agir. LDB 66 */
+function servicesDuRelais(e: J.Etat, h: J.Heros, congediement: string | null): string {
+  const id = `data-id="${h.c.id}"`;
+  const refus = J.refusDeChambre(e, h);
+  const qualite = J.qualiteDeLaChambre(e);
+  const chambre = `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette('lit', !!refus)}<div class="nom-propre moyen gothique">Chambre ${esc(NOM_DE_QUALITE[qualite])}</div>
+    <p class="effet">${esc(h.c.label)} ne part pas une semaine et se repose au lit, jour après jour : Blessures et fatigue. L’hospice, lui, soigne d’un coup, panse et opère.</p><span class="sous-titre">une semaine à l’auberge</span>
+    ${achat({ verbe: 'Louer', prix: J.prixDeLaChambre(e), avoir: e.or, attrs: `data-a="chambre" ${id}`, refus })}</article>`;
+  const refusDeRenvoi = J.refusDeRenvoi(e, h);
+  const prime = J.primeDeDepart(h);
+  const geste = congediement === h.c.id
+    ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" ${id}`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
+    : plaque(`Renvoyer · +${prime} CO`, `data-a="congedier" ${id}`, { armee: !refusDeRenvoi, fermee: !!refusDeRenvoi, titre: esc(refusDeRenvoi ?? '') });
+  const renvoi = `<article class="carte-service soin${refusDeRenvoi ? ' clos' : ''}">${vignette('pieces', !!refusDeRenvoi)}<div class="nom-propre moyen gothique">Renvoyer</div>
+    <p class="effet">${esc(h.c.label)} quitte la compagnie ; sa prime de départ rapporte ${prime} CO, une part de ses ${h.c.xp ?? 0} PX.</p><span class="sous-titre">sans retour</span>${geste}</article>`;
+  return `${chambre}${renvoi}`;
+}
+const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', normale: 'normale', grande: 'de grande qualité' };
+
+/** Le relais : la chambre et le renvoi du héros servi (`servicesDuRelais`) ; puis chaque voyageur en carte — son
+ *  rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le Talent qui la définit, et le geste qui
+ *  l'engage. */
+function pageDuRelais({ e, servi, congediement }: Lecture): Page {
   const candidats = e.candidats.map((c, i) => {
     const gratuit = e.roster.length === 0 && e.or < c.prix;
     const role = J.roleDe(c.carriere);
@@ -123,7 +145,7 @@ function pageDuRelais({ e }: Lecture): Page {
       <div class="traits">${voie ? `<span class="etiquette rectangle qualite voie"${apercuDe(voie.apercu)}>${voie.signe}${esc(voie.nom)}</span>` : ''}${talent ? `<span class="etiquette rectangle qualite"${apercuDe({ nom: talent.label, nature: 'Talent', texte: texteDuTalent(talent.id) })}>${esc(talent.label)}</span>` : ''}<span class="etiquette rectangle qualite neutre">${c.c.wounds.max} Blessures</span></div>
       ${achat({ verbe: 'Engager', prix: gratuit ? 0 : c.prix, offert: 'sans solde', avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
   }).join('');
-  return { classe: 'rangee', corps: candidats || placard('chope', 'Personne au relais', 'D’autres voyageurs arriveront avec la prochaine diligence.') };
+  return { classe: 'rangee', corps: `${servi ? servicesDuRelais(e, servi, congediement) : ''}${candidats || placard('chope', 'Personne au relais', 'D’autres voyageurs arriveront avec la prochaine diligence.')}` };
 }
 
 type Tendance = 'hausse' | 'baisse' | 'egal';
@@ -208,7 +230,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
 function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   if (!h) return { classe: 'rangee', corps: placard('soin', 'Personne à soigner') };
   const ruine = J.enRuine(e.batiments, 'temple') ? 'L’hospice est en ruine.' : null;
-  const hospice = h.retrait ? `À l’hospice encore ${pluriel(h.retrait, 'jour')}.` : null;
+  const hospice = J.sejourDit(h);
   const actes = J.actesPossibles(h);
   const soin = (o: { icone: string; nom: string; effet: string; duree: string; verbe: string; prix: number | null; attrs: string; refus: string | null }) => {
     const refus = ruine ?? (o.prix == null ? 'L’hospice agrandi l’offrira.' : hospice ?? o.refus);
@@ -220,7 +242,7 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const remedes = vente.length ? `<article class="carte-service remedes"><div class="nom-propre moyen gothique">Potions et remèdes</div><div class="provisions">${vente.map((a) => `<div class="provision"${apercuDe(apercuDeProvision(a.id))}>${picto(iconeDeProvision(a.id), 20, 1.6)}<span class="n">${esc(a.label)}</span>${achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="provision" ${id} data-k="${a.id}"`, taille: 'petite', refus: hospice })}</div>`).join('')}</div></article>` : '';
   return {
     classe: 'chapelle',
-    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.retrait) ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e)}</div>` : ''}</div>
+    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
       <div class="etal ample" style="--colonnes:4">
       ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures` : 'en pleine santé', verbe: 'Soigner', prix: J.prixDuSoin(e), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
       ${soin({ icone: 'lit', nom: 'Panser', effet: 'Les sœurs pansent les plaies : une déchirure mineure guérit plus vite, une fracture est réduite.', duree: 'dans la journée', verbe: 'Panser', prix: J.prixDeLHospice(e, 'panser'), attrs: `data-a="hospice" ${id} data-k="panser"`, refus: actes.includes('panser') ? null : 'Aucune plaie que les sœurs puissent panser.' })}
@@ -312,11 +334,11 @@ export function panneauDeService(ctx: Contexte, service: Service): PanneauDeServ
   const b = J.BATIMENTS.find((x) => x.id === service);
   const destination = service === 'depart' ? J.DESTINATIONS.find((x) => x.id === ctx.dest) : undefined;
   const pourQui = SERVENT_UN_HEROS.has(service) ? servi : undefined;
-  const page = PAGES[service]({ e, servi, emplacement: ctx.emplacement, choix: ctx.choix });
+  const page = PAGES[service]({ e, servi, emplacement: ctx.emplacement, choix: ctx.choix, congediement: ctx.congediement });
   const progresse = (h: J.Heros) => J.peutProgresser(e, h);
   const socle: Socle = service === 'depart'
     ? { heros: e.roster, geste: 'choisir', choisi: (h) => ctx.choix.has(h.c.id), refus: J.refusDeDepart, consigne: `Choisir le groupe · ${ctx.choix.size} / ${J.TAILLE_DU_GROUPE}` }
-    : pourQui ? { heros: e.roster, refus: (h) => (h.retrait && service !== 'temple' ? `À l’hospice encore ${pluriel(h.retrait, 'jour')}.` : null), geste: 'client', choisi: (h) => h.c.id === pourQui.c.id, progresse, consigne: 'Choisir le héros à servir' } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
+    : pourQui ? { heros: e.roster, refus: (h) => (h.sejour && h.sejour.ou !== service ? J.sejourDit(h) : null), geste: 'client', choisi: (h) => h.c.id === pourQui.c.id, progresse, consigne: 'Choisir le héros à servir' } : { heros: e.roster, geste: 'heros', choisi: () => false, progresse };
   const tete = b ? teteDuBatiment(e, b)
     : destination ? `<div class="enseigne-service">${medaillon('route', 'moyen')}<div><div class="nom-propre petit gothique">${destination.salles} salles</div><div class="sous-titre">maître : ${esc(maitres(destination))}</div></div></div>
       <div class="paliers"><p class="effet">${esc(destination.recit)}</p></div>${plaque('Autre route', 'data-a="batiment" data-id="cartographe"', { icone: 'carte' })}`

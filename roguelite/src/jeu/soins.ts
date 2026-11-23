@@ -6,6 +6,7 @@ import { plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDes
 import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, SEMAINE_DE_REPOS } from './valeurs';
 import { Etat, Heros } from './etat';
 import { heros, noter } from './outils';
+import { sejourDit } from './expedition';
 
 export const prixDuSoin = (e: Etat): number | null => [null, 15, 5, 0][e.batiments.temple] ?? null;
 export const prixDeSequelle = (e: Etat): number | null => [null, null, 40, 20][e.batiments.temple] ?? null;
@@ -39,12 +40,13 @@ export function confierALHospice(e: Etat, id: string, acte: ActeDHospice): strin
   const h = heros(e, id);
   const prix = prixDeLHospice(e, acte);
   if (!h || prix == null) return 'L’hospice ne pratique pas encore cet acte.';
-  if (h.retrait) return `${h.c.label} est déjà à l’hospice.`;
+  const ailleurs = sejourDit(h);
+  if (ailleurs) return ailleurs;
   if (!actesPossibles(h).includes(acte)) return acte === 'panser' ? 'Aucune plaie que les sœurs puissent panser.' : 'Rien à opérer.';
   if (e.or < prix) return `Il faut ${prix} CO.`;
   e.or -= prix;
   const lignes = acte === 'panser' ? panserLesPlaies(h.c, GUERISON_DE_L_HOSPICE, e.graine++) : opererLesBlessures(h.c);
-  if (acte === 'operer') { h.retrait = SEMAINE_DE_REPOS; h.retraitTotal = SEMAINE_DE_REPOS; }
+  if (acte === 'operer') h.sejour = { ou: 'temple', reste: SEMAINE_DE_REPOS, total: SEMAINE_DE_REPOS };
   noter(e, `${lignes.join(' ')}${acte === 'operer' ? ` ${h.c.label} reste une semaine à l’hospice.` : ''}`);
   return null;
 }

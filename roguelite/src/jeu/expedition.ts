@@ -3,16 +3,19 @@
  */
 import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, type IssueDuCombat } from '../noyau';
 
-import { DESTINATIONS, EPREUVES, type IdActionAJet, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
+import { DESTINATIONS, EPREUVES, type IdActionAJet, LIEUX_DE_SEJOUR, MUNITIONS, PRIERE_DE_SOIN, PX_PAR_SALLE, SEMAINE_DE_REPOS, TAILLE_DU_GROUPE, TypeDeSalle } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 export const valide = (h: Heros): boolean => !horsDeCombat(h.c);
-/** En état de partir : valide, et pas à l'hospice. */
-export const disponible = (h: Heros): boolean => valide(h) && !h.retrait;
+/** En état de partir : valide, et sans séjour en cours. */
+export const disponible = (h: Heros): boolean => valide(h) && !h.sejour;
+/** Le séjour en cours du héros, dit : le bâtiment et les jours qui restent ; `null` sans séjour. */
+export const sejourDit = (h: Heros): string | null =>
+  (h.sejour ? `${LIEUX_DE_SEJOUR[h.sejour.ou].nom} encore ${h.sejour.reste} jour${h.sejour.reste > 1 ? 's' : ''}.` : null);
 /** Pourquoi un héros ne peut pas partir, ou `null` s'il le peut. */
-export const refusDeDepart = (h: Heros): string | null => (h.retrait ? `À l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}.` : !valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
+export const refusDeDepart = (h: Heros): string | null => sejourDit(h) ?? (!valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
 
 export function partir(e: Etat, destinationId: string, groupe: string[]): string | null {
   const d = DESTINATIONS.find((x) => x.id === destinationId);
@@ -257,8 +260,8 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of e.roster) {
     if (absents.has(h.c.id)) continue;
-    if (h.retrait) h.retrait = Math.max(0, h.retrait - jours) || undefined;
-    if (!h.retrait) delete h.retraitTotal;
+    if (h.sejour) h.sejour.reste -= jours;
+    if (h.sejour && h.sejour.reste <= 0) delete h.sejour;
     h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
     reposer(h.c, e.graine++, jours);
   }

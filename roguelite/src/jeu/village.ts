@@ -1,10 +1,13 @@
 /**
- * Le hameau : bâtir, engager, renvoyer.
+ * Le hameau : bâtir, engager, loger, renvoyer.
  */
+import { prixDuSejourALAuberge, type QualiteDeRepos } from '../noyau';
 
-import { BATIMENTS, IdBatiment, nomDeCarriere, phraseDuPalier } from './valeurs';
-import { Etat, renouvelerLesCandidats } from './etat';
-import { noter } from './outils';
+import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, PRIME_PAR_PX, SEMAINE_DE_REPOS, nomDeCarriere, phraseDuPalier } from './valeurs';
+import { Etat, Heros, renouvelerLesCandidats } from './etat';
+import { blesse } from './soins';
+import { sejourDit } from './expedition';
+import { heros, noter } from './outils';
 
 /** Les bâtiments qui servent dès le premier jour ; les autres sont en ruine tant qu'on ne les a pas relevés. */
 const SERVENT_DES_LE_DEBUT: ReadonlySet<IdBatiment> = new Set(['relais', 'forge', 'cartographe']);
@@ -36,6 +39,53 @@ export function recruter(e: Etat, i: number): string | null {
   return null;
 }
 
-export function congedier(e: Etat, id: string): void {
-  e.roster = e.roster.filter((h) => h.c.id !== id);
+/** La qualité de la chambre que le relais loue à son palier. */
+export const qualiteDeLaChambre = (e: Etat) => CHAMBRE_DU_RELAIS[e.batiments.relais];
+/** Le prix d'une semaine en chambre de qualité `qualite` : le séjour d'auberge du noyau, à l'échelle des prix du hameau. */
+export const prixDUneChambre = (qualite: QualiteDeRepos): number => Math.max(1, Math.round(prixDuSejourALAuberge(qualite, SEMAINE_DE_REPOS) * ECHELLE_DES_PRIX));
+export const prixDeLaChambre = (e: Etat): number => prixDUneChambre(qualiteDeLaChambre(e));
+const enExpedition = (e: Etat, h: Heros): boolean => !!e.expedition?.groupe.includes(h.c.id);
+
+/** Pourquoi le héros ne peut pas prendre de chambre (en expédition, déjà en séjour, rien à reposer), `null` s'il le
+ *  peut ; l'or se lit à part. */
+export function refusDeChambre(e: Etat, h: Heros): string | null {
+  if (enExpedition(e, h)) return `${h.c.label} est en expédition.`;
+  return sejourDit(h) ?? (blesse(h) ? null : 'Ni blessé ni fatigué : rien à reposer.');
+}
+
+/** Loue au héros une chambre du relais pour une semaine : il ne part pas en expédition, et se repose au fil des jours
+ *  (`reposer`, le jour de récupération de la nuit d'auberge du noyau). */
+export function prendreUneChambre(e: Etat, id: string): string | null {
+  const h = heros(e, id);
+  if (!h) return 'Héros introuvable.';
+  const refus = refusDeChambre(e, h);
+  if (refus) return refus;
+  const prix = prixDeLaChambre(e);
+  if (e.or < prix) return `Il faut ${prix} CO.`;
+  e.or -= prix;
+  h.sejour = { ou: 'relais', reste: SEMAINE_DE_REPOS, total: SEMAINE_DE_REPOS };
+  noter(e, `${h.c.label} prend une chambre à l’auberge pour une semaine.`);
+  return null;
+}
+
+/** La prime de départ du héros renvoyé : une part de ses PX en or. */
+export const primeDeDepart = (h: Heros): number => Math.floor((h.c.xp ?? 0) * PRIME_PAR_PX);
+
+/** Pourquoi le héros ne peut pas être renvoyé (dernier de la compagnie, en expédition), `null` s'il le peut. */
+export function refusDeRenvoi(e: Etat, h: Heros): string | null {
+  if (e.roster.length <= 1) return 'Le dernier héros de la compagnie ne se renvoie pas.';
+  return enExpedition(e, h) ? `${h.c.label} est en expédition.` : null;
+}
+
+/** Renvoie le héros de la compagnie contre sa prime de départ (`primeDeDepart`), créditée à la bourse. */
+export function congedier(e: Etat, id: string): string | null {
+  const h = heros(e, id);
+  if (!h) return 'Héros introuvable.';
+  const refus = refusDeRenvoi(e, h);
+  if (refus) return refus;
+  const prime = primeDeDepart(h);
+  e.or += prime;
+  e.roster = e.roster.filter((x) => x !== h);
+  noter(e, `${h.c.label} quitte la compagnie${prime ? ` ; sa prime de départ rapporte ${prime} CO` : ''}.`);
+  return null;
 }

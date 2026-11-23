@@ -3,7 +3,7 @@
  * celles du noyau (`../noyau`) ; la boucle ne tient que le jeu et ses valeurs d'adaptation. Tout l'aléa passe par le
  * RNG à graine du moteur, jamais par `Math.random`. Seule entrée de la boucle pour l'interface.
  */
-export type { CharKey, PoidsDArmure } from '../noyau';
+export type { CharKey, PoidsDArmure, QualiteDeRepos } from '../noyau';
 export * from './valeurs';
 export * from './etat';
 export * from './village';

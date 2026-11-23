@@ -6,8 +6,13 @@ import { testValue } from '../../../src/engine/skills';
 import { makeRNG } from '../../../src/engine/dice';
 import { restRecovery } from '../../../src/engine/rest';
 import { applyHealWounds } from '../../../src/engine/healing';
+import { PA_PER_CO, toBrass } from '../../../src/engine/money';
+import { prixDeLOffre } from '../../../src/noyau/restFlow';
+import type { QualiteDeRepos } from '../../../src/data/schemas/grammaire/valeurs';
 import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableTrauma, treatTrauma, surgeryTraumas, removeSurgicalTrauma } from '../../../src/engine/trauma';
 import type { Combatant } from '../../../src/engine/types';
+
+export type { QualiteDeRepos };
 
 /** `jours` journées de repos (LDB 18 l.296) et de convalescence des Blessures critiques (LDB 18 l.202-222), par les
  *  primitives du moteur ; le Test de fin d'une fracture est lancé sur place. Mute `c`, rend le journal. */
@@ -67,3 +72,8 @@ export function opererLesBlessures(c: Combatant): string[] {
 
 /** Guérit `n` Blessures critiques de convalescence, jamais une amputation (`cureCriticalWounds`). LDB 42 */
 export const guerirDesSequelles = (c: Combatant, n: number): string[] => cureCriticalWounds(c, n);
+
+/** Le prix en CO de `nuits` nuits d'auberge en chambre privée, repas compris, de qualité `qualite` (`prixDeLOffre`).
+ *  LDB 66 l.5, l.12-16, l.28 */
+export const prixDuSejourALAuberge = (qualite: QualiteDeRepos, nuits: number): number =>
+  (nuits * (toBrass(prixDeLOffre({ id: 'chambre' }, qualite)) + toBrass(prixDeLOffre({ id: 'repas' }, qualite)))) / PA_PER_CO;

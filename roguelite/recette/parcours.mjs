@@ -39,7 +39,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
       e.roster[0].c.xp = 0;
       e.roster[1].c.wounds.current = 3;
       e.roster[2].c.traumas = [{ id: 'fracture-mineure-bras', label: 'Fracture mineure (bras)', recoveryDays: 20 }];
-      e.roster[3].retrait = 3;
+      e.roster[3].sejour = { ou: 'temple', reste: 3, total: 7 };
       return e;
     });
     if (l === 1280) {

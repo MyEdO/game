@@ -60,7 +60,7 @@ function raconterLAction(r: J.RecitDeSalle | string) {
 const ficheOuverte = (): string => (panneau?.type === 'heros' ? ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet) : '');
 function serviceOuvert() {
   if (!panneau || panneau.type === 'heros') return null;
-  const ctx = { e: etat, client, emplacement, dest: panneau.type === 'depart' ? panneau.dest : null, choix: panneau.type === 'depart' ? panneau.choix : new Set<string>() };
+  const ctx = { e: etat, client, emplacement, dest: panneau.type === 'depart' ? panneau.dest : null, choix: panneau.type === 'depart' ? panneau.choix : new Set<string>(), congediement };
   return panneauDeService(ctx, panneau.type === 'batiment' ? panneau.id : panneau.type);
 }
 
@@ -108,6 +108,7 @@ document.addEventListener('click', (ev) => {
     case 'soigner': client = id; return agir(() => J.soignerAuTemple(etat, id));
     case 'sequelle': client = id; return agir(() => J.guerirUneSequelle(etat, id));
     case 'hospice': client = id; return agir(() => J.confierALHospice(etat, id, k as J.ActeDHospice));
+    case 'chambre': client = id; return agir(() => J.prendreUneChambre(etat, id));
     case 'client': client = id; return rendre();
     case 'emplacement': emplacement = k as Emplacement; return rendre();
     case 'arme': return agir(() => J.acheterUneArme(etat, id, k!));
@@ -126,7 +127,7 @@ document.addEventListener('click', (ev) => {
     case 'prier': { const ligne = J.prier(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
     case 'congedier': congediement = id; return rendre();
     case 'congedier-non': congediement = null; return rendre();
-    case 'congedier-ok': congediement = null; panneau = null; return agir(() => J.congedier(etat, id));
+    case 'congedier-ok': congediement = null; if (panneau?.type === 'heros') panneau = null; if (client === id) client = null; return agir(() => J.congedier(etat, id));
     case 'preparer': {
       // Le groupe proposé : les quatre héros disponibles les moins blessés.
       const etat_ = (h: J.Heros) => h.c.wounds.current / Math.max(1, h.c.wounds.max);

@@ -15,6 +15,7 @@ import {
   type PoidsDArmure,
   type FluxDEpreuve,
   type Designation,
+  type QualiteDeRepos,
 } from '../noyau';
 
 import { profil } from './outils';
@@ -30,9 +31,9 @@ const apport = (picto: string, texte: string, chiffre?: string): Apport => (chif
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2')] },
-    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3')] },
-    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4')] },
+    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'chambre piètre')] },
+    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('lit', 'chambre normale')] },
+    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4'), apport('lit', 'chambre de grande qualité')] },
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
     { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : seuls les héros restés au hameau se reposent')] },
@@ -236,6 +237,13 @@ export const SEMAINE_DE_REPOS = 7;
 export const GUERISON_DE_L_HOSPICE = 45;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
+/** La qualité de la chambre de l'Auberge relais à chaque palier, que le séjour d'une semaine paie au prix du noyau. */
+export const CHAMBRE_DU_RELAIS: readonly QualiteDeRepos[] = ['pietre', 'normale', 'grande'];
+/** Les bâtiments où un héros séjourne sans partir en expédition : le nom de son séjour, la marque de sa carte. */
+export const LIEUX_DE_SEJOUR = { temple: { nom: 'Hospice', picto: 'soin' }, relais: { nom: 'Auberge', picto: 'chope' } } as const;
+export type LieuDeSejour = keyof typeof LIEUX_DE_SEJOUR;
+/** La prime de départ d'un héros renvoyé : CO par PX qu'il n'a pas dépensés. */
+export const PRIME_PAR_PX = 0.1;
 
 /** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
 export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);

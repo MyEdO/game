@@ -1,5 +1,5 @@
-// Une partie de bout en bout : bâtir, équiper, progresser, approvisionner, partir, franchir les salles en utilisant
-// les sacs, rentrer. Chaque geste doit être visible, cliquable, et son effet constaté.
+// Une partie de bout en bout : bâtir, équiper, progresser, approvisionner, loger et renvoyer au relais, partir,
+// franchir les salles en utilisant les sacs, rentrer. Chaque geste doit être visible, cliquable, et son effet constaté.
 import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
 
 (async () => {
@@ -11,6 +11,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
     e.or = 900; e.trophees = 4;
     for (const h of e.roster) h.c.xp = 600;
+    e.roster[3].c.wounds.current = 2;
     localStorage.setItem('grisefosse-v1', JSON.stringify(e));
   }, erreurs);
   const or = async () => Number((await p.textContent('.ressources .etiquette')).replace(/\D/g, ''));
@@ -37,7 +38,17 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   await p.click('.competences [data-a="competence"]');
   constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
 
-  await p.click('.croix-ecran'); await geste(p, 'batiment', 'temple'); await p.click('.tete-service [data-a="ameliorer"]');
+  await p.click('.croix-ecran');
+  const blesse = await p.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).roster[3].c.id);
+  await geste(p, 'batiment', 'relais'); await geste(p, 'client', blesse);
+  const orAvantChambre = await or();
+  await p.click('[data-a="chambre"]');
+  const carteAuRelais = `.socle-compagnie .carte-heros.retrait[data-id="${blesse}"]`;
+  constater((await or()) < orAvantChambre && (await p.textContent(`${carteAuRelais} .sejour-hospice`)).includes('Auberge'), 'le relais loue une chambre au blessé : sa carte porte l’auberge et ses jours restants');
+  const orAvantRenvoi = await or();
+  await p.click(`[data-a="congedier"][data-id="${blesse}"]`); await p.click(`[data-a="congedier-ok"][data-id="${blesse}"]`);
+  constater((await or()) > orAvantRenvoi && !(await p.$(`.socle-compagnie [data-id="${blesse}"]`)), 'le relais renvoie le héros, confirmé, contre sa prime');
+  await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'temple'); await p.click('.tete-service [data-a="ameliorer"]');
   const orAvantRemede = await or();
   await p.click('.remedes [data-a="provision"]');
   constater((await or()) < orAvantRemede, 'l’hospice vend une potion au héros servi');

@@ -75,6 +75,16 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 | Armure de mailles (moyenne) | Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles) |
 | Harnois de plates (lourde) | Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume (heaume), Brassards (brassards), Plastron (plastron), Jambières d'acier (jambieres-d-acier) |
 
+## Auberge relais
+
+| Palier | Chambre | Prix de la semaine |
+|---|---|---|
+| 0 | pietre | 19 CO |
+| 1 | normale | 39 CO |
+| 2 | grande | 77 CO |
+
+Prime de départ d’un héros renvoyé : 0.1 CO par PX non dépensé.
+
 ## Hospice
 
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)
