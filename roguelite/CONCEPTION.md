@@ -41,7 +41,9 @@ l'utilisateur ».
   les options de la forge par rapport aux compétences du personnage » (2026-11-23) : pour le héros choisi, la forge ne
   propose que les armes des Groupes que ses Compétences de Corps à corps et de Projectiles couvrent (lu sur le noyau).
   « L'arbalete ca reste la seule arme a distance que les gens peuvent prendre a distance sans compétence, et pour le
-  reste on filtre » : l'arbalète est proposée à tous.
+  reste on filtre » : l'arbalète est proposée à tous. Sorts : « Il ne faut proposer que des sorts qui fonctionnent et
+  sont utiles. On s'autorise a en ouvrir plus plus tard avec l'évolution du jeu » (2026-11-23) : chaque voie (Collège,
+  dieu) offre une courte liste choisie de sorts que le noyau applique et qui servent en combat ou en salle.
 - **Gérer vite** : après une expédition, faire progresser et équiper un héros tient en quelques clics.
 - **Équipement** : quatre emplacements, arme, main secondaire, distance, armure. L'armure est une panoplie parmi trois
   (légère, moyenne, lourde) : des options qui s'arbitrent (protection contre encombrement et malus), pas une échelle.

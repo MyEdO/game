@@ -21,7 +21,10 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
    Disponibilité, au lieu des 92 armes du catalogue, filtrée pour le héros choisi par les Groupes que couvrent ses
    Compétences ; même tri pour les remèdes de l'Hospice. Puis brancher
    l'interface de la forge sur les panoplies et les potions ; commit commun forge + interface.
-2. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
+2. Sorts : une liste courte et choisie par voie (Collège, dieu), seulement des sorts que le noyau applique et qui
+   servent en combat ou en salle, mesurés en combat simulé (l'IA les lance-t-elle, ont-ils un effet) ; au lieu des
+   15 à 20 sorts de domaine.
+3. Progression rapide « à la 5e » : plan conseillé en un clic, pas de +5, Compétences utiles seules ; c'est elle qui
    refait l'écran de progression, unique pour la fiche et la Salle d'armes, avec une seule marque des Augmentations.
    Le brief part de l'écran de la Salle d'armes que l'utilisateur connaît, et ne laisse pas carte blanche.
 3. Auberge relais : chambre de repos (repos du noyau) et renvoi contre une prime.
