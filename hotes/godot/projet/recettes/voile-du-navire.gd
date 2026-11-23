@@ -86,7 +86,6 @@ var _sortie := ""
 
 ## Le pont espion sur la partie du scénario `scenario` : il garde chaque morceau reçu.
 class PontDuNavire extends PontEspion:
-	var scenario := ""
 	var morceaux: Array = []
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
@@ -94,9 +93,6 @@ class PontDuNavire extends PontEspion:
 		if methode == "morceaux":
 			morceaux.append_array(reponse.get("volume", []))
 		return reponse
-
-	func parametre(cle: String) -> String:
-		return scenario if cle == "scenario" else super(cle)
 
 
 ## Le scénario de la recette, que chaque recette d'un navire donne.

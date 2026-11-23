@@ -25,7 +25,7 @@ describe('une coque terrestre se montre par le monde (#4471)', () => {
     while (suite.vue.projection.fenetre) suite = jouer((enFocus(suite.vue) as Bouton).jeu);
     const { corps, projection } = vueDe(partie.appel('vue'));
     expect(corps.coques.diligence).toEqual({ centre: { x: 6.5, y: 3.5 }, corps: expect.objectContaining({ element: 'vehicule--diligence', empreinte: 2, taille: 'reelle', cap: 'E' }) });
-    expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('diligence');
+    expect(projection.exploration!.entites.liste.map((e) => e.id)).toEqual(['heroStart-0']);
   });
 
   it('au combat, elle reste servie par le monde, hors des véhicules des combattants', () => {

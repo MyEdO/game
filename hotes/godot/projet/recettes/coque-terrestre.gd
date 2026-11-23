@@ -28,21 +28,13 @@ var _fautes: Array[String] = []
 var _signales: Array[String] = []
 
 
-## Le pont espion sur la partie du scénario `scenario`.
-class PontDuScenario extends PontEspion:
-	var scenario := ""
-
-	func parametre(cle: String) -> String:
-		return scenario if cle == "scenario" else super(cle)
-
-
 func _initialize() -> void:
 	_recetter.call_deferred()
 
 
 func _recetter() -> void:
 	print("[coque-terrestre] version=", Engine.get_version_info().string)
-	var pont := PontDuScenario.new()
+	var pont := PontEspion.new()
 	pont.scenario = SCENARIO
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))

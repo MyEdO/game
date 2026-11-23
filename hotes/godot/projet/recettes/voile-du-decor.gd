@@ -50,16 +50,12 @@ var _sortie := ""
 
 ## Le pont espion sur la partie de `SCENARIO`.
 class PontDuDecor extends PontEspion:
-	var scenario := ""
 	var entree_des_modeles := {}
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
 		if methode == "modeles":
 			entree_des_modeles = entree
 		return super(methode, entree)
-
-	func parametre(cle: String) -> String:
-		return scenario if cle == "scenario" else super(cle)
 
 
 func _initialize() -> void:
