@@ -4,7 +4,8 @@
 import { createHero } from '../../../src/engine/character';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../src/engine/characteristics';
-import { findCareerById, characteristics, conditionLabel, skills } from '../../../src/data';
+import { findCareerById, findSpeciesById, characteristics, conditionLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
+import type { RNG } from '../../../src/engine/dice';
 import type { Combatant, CharKey } from '../../../src/engine/types';
 
 /** Ce qui fait l'identité d'une recrue à sa création : le Talent de carrière choisi (et sa spécialisation : le dieu
@@ -17,6 +18,23 @@ export function nouvelleRecrue(graine: number, carriere: string, espece: string,
     idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine,
     careerTalent: identite.talent, ...(identite.sortsMineurs ? { pettySpells: [...identite.sortsMineurs] } : {}),
   });
+}
+
+/** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et
+ *  Carrières aléatoires porte la carrière, ou porte celle de sa variante quand la carrière admet leur race, au poids
+ *  de leur rangée au Tableau des Races aléatoires. LDB 05 l.214-299 ; AA 02 l.109-128 ; LDB 04 l.93-101 */
+export function tirerUneEspece(rng: RNG, carriere: string, especes: readonly string[]): string {
+  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.entries.some((r) => r.id === carriere));
+  const races = findCareerById(carriere)?.races;
+  const permise = (id: string) => {
+    const sp = findSpeciesById(id);
+    if (!sp) return false;
+    const colonne = colonneDeCarrieres(sp.refCareer).entries;
+    return colonne.some((r) => r.id === carriere) || (!!variante && variante.kind === 'variante' && colonne.some((r) => r.id === variante.carriere) && (races?.includes(sp.refChar) ?? true));
+  };
+  const rangees = especesAleatoires.find((t) => t.id === 'races-ldb')!.entries.filter((r) => especes.includes(r.id) && permise(r.id));
+  let jet = rng.int(1, rangees.reduce((n, r) => n + r.max - r.min + 1, 0));
+  return rangees.find((r) => (jet -= r.max - r.min + 1) <= 0)!.id;
 }
 
 /** Valeur courante d'une Caractéristique, Augmentations et effets compris. */

@@ -55,30 +55,32 @@ export const BATIMENTS: readonly Batiment[] = [
  *  s'achète ensuite. */
 export interface Voie { talent: 'magie-des-arcanes' | 'invocation'; spec: string; nom: string; sorts: readonly string[] }
 /** Le rôle d'une carrière dans la compagnie, que le joueur lit d'un pictogramme : il choisit un groupe par rôles. */
-export type Role = 'front' | 'tireur' | 'soigneur' | 'lanceur';
+export type Role = 'front' | 'tireur' | 'eclaireur' | 'soigneur' | 'lanceur';
 export const ROLES: Record<Role, { nom: string; picto: string }> = {
-  front: { nom: 'Ligne de front', picto: 'bouclier' }, tireur: { nom: 'Tireur', picto: 'arc' },
+  front: { nom: 'Ligne de front', picto: 'bouclier' }, tireur: { nom: 'Tireur', picto: 'arc' }, eclaireur: { nom: 'Éclaireur', picto: 'oeil' },
   soigneur: { nom: 'Soigneur', picto: 'soin' }, lanceur: { nom: 'Lanceur de sorts', picto: 'etoile' },
 };
-/** Une carrière du roster : son palier de relais, son rôle, ce qui la caractérise à la création, et sa voie de lanceur. */
-export interface Profil { id: string; nom: string; relais: number; role: Role; identite: Identite; devise: string; espece?: string; voie?: Voie }
+/** Une carrière du roster : son palier de relais, le niveau de carrière où elle s'engage, son rôle, ce qui la
+ *  caractérise à la création, les objets du catalogue qu'elle reçoit en plus de sa dotation, et sa voie de lanceur. */
+export interface Profil { id: string; nom: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie }
 
 export const PROFILS: readonly Profil[] = [
-  { id: 'soldat', nom: 'Soldat', relais: 0, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Tient la ligne. Guerrier né.' },
-  { id: 'chasseur', nom: 'Chasseur', relais: 0, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
-  { id: 'hors-la-loi', nom: 'Hors-la-loi', relais: 0, role: 'front', identite: { talent: { id: 'vigilance' } }, devise: 'Jamais surpris. Vigilance.' },
-  { id: 'pretre', nom: 'Prêtre de Shallya', relais: 0, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Béni de Shallya.',
+  { id: 'soldat', nom: 'Soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
+  { id: 'chasseur', nom: 'Chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
+  { id: 'ratier', nom: 'Ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' } }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
+  { id: 'nonne', nom: 'Nonne de Shallya', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Bénie de Shallya.',
     voie: { talent: 'invocation', spec: 'shallya', nom: 'Invocation (Shallya)', sorts: [] } },
-  { id: 'sorcier', nom: 'Sorcier', relais: 0, role: 'lanceur', identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
+  { id: 'sorcier', nom: 'Sorcier', relais: 0, niveau: 1, role: 'lanceur', identite: { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] }, devise: 'Le feu de l’Aethyr. Magie mineure.',
     voie: { talent: 'magie-des-arcanes', spec: 'feu', nom: 'Magie des Arcanes (Feu)', sorts: ['carreau', 'explosion', 'arme-aethyrique', 'armure-aethyrique', 'effrayant', 'sang-corrosif'] } },
-  { id: 'tueur', nom: 'Tueur', relais: 1, role: 'front', espece: 'nains', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
-  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, role: 'front', identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
-  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 1, role: 'front', identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
+  { id: 'tueur', nom: 'Tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
+  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' } }, dotation: ['pistolet', 'pistolet'], devise: 'Traque l’hérétique. Déterminé.' },
+  { id: 'medecin', nom: 'Médecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
+  { id: 'voleur', nom: 'Voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
+  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
+  { id: 'duelliste', nom: 'Duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
+  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
+  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier de Sigmar', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni', spec: 'sigmar' } }, devise: 'Le marteau et la foi. Béni de Sigmar.',
     voie: { talent: 'invocation', spec: 'sigmar', nom: 'Invocation (Sigmar)', sorts: ['marteau-ardent-de-sigmar', 'n-ecoutez-point-la-sorciere'] } },
-  { id: 'duelliste', nom: 'Duelliste', relais: 1, role: 'front', identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
-  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
-  { id: 'flagellant', nom: 'Flagellant', relais: 2, role: 'front', identite: { talent: { id: 'frenesie' } }, devise: 'La douleur est une prière. Frénésie.' },
-  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, role: 'front', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
 ];
 export const nomDeCarriere = (id: string): string => profil(id)?.nom ?? nomDeCarriereDuLivre(id);
 export const voieDe = (carriere: string): Voie | undefined => profil(carriere)?.voie;
@@ -142,6 +144,8 @@ export const EPREUVES: { tresor: SalleDEpreuve } = {
 export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10 };
 export const OR_INITIAL = 100;
 export const PRIX_DE_RECRUE = [15, 30, 50];
+/** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */
+export const SUPPLEMENT_PAR_NIVEAU = 20;
 export const TAILLE_DU_GROUPE = 4;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 export const ECHELLE_DES_PRIX = 10;
@@ -162,6 +166,6 @@ export const ARMURES_DE_FORGE: readonly PoidsDArmure[] = ['legere', 'moyenne', '
 /** Les objets tenus dans la main secondaire ; les autres armes vont dans la main principale, ou au set de tir. */
 export const MAIN_SECONDAIRE = new Set(['dague', 'bouclier', 'bouclier-grand']);
 /** Les munitions qu'une arme à projectiles réclame. */
-export const MUNITIONS: Record<string, string> = { fronde: 'projectile-de-pierre', 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau' };
+export const MUNITIONS: Record<string, string> = { fronde: 'projectile-de-pierre', 'arc-court': 'fleche', arc: 'fleche', 'arc-long': 'fleche', arbalete: 'carreau', pistolet: 'balle-et-poudre' };
 /** Les provisions du relais, par palier. */
 export const PROVISIONS: readonly string[][] = [['potion-de-guerison'], ['potion-de-vitalite']];

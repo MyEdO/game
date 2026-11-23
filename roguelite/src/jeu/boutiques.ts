@@ -133,6 +133,25 @@ function reprendreLaMainSecondaire(e: Etat, h: Heros, loadout: string, armeId: s
   if (libre) auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, loadout, 'secondaire', libre.uid] }]);
 }
 
+/** Remet au héros les objets `ids` du catalogue, et leurs munitions, et les lui fait tenir : une arme à distance au
+ *  set de tir, à sa première main libre ; un objet de main secondaire au set de mêlée ; une autre arme en main
+ *  principale. Ce qu'ils remplacent reste à son sac. */
+export function remettreLesObjets(e: Etat, h: Heros, ids: readonly string[]): void {
+  const neufs = doter([...ids, ...new Set(ids.flatMap((id) => (MUNITIONS[id] ? [MUNITIONS[id]] : [])))], `dotation${e.graine++}`);
+  h.c = { ...h.c, items: [...(h.c.items ?? []), ...neufs] };
+  const { melee, tir } = sets(h);
+  const garnis = new Set<string>();
+  const gestes = ids.flatMap((id, i) => {
+    const tenue = article(id).tenue;
+    const lo = tenue === 'tir' ? tir : melee;
+    if (!lo) return [];
+    const slot = tenue === 'secondaire' || (tenue === 'tir' && (lo.main || garnis.has(lo.id))) ? 'secondaire' : 'main';
+    garnis.add(lo.id);
+    return [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[i].uid] }];
+  });
+  if (gestes.length) auNoyau(e, h, gestes);
+}
+
 /** Achète l'armure `poids` des règles rapides au héros et la lui fait porter ; ses anciennes pièces sont reprises. */
 export function acheterUneArmure(e: Etat, id: string, poids: PoidsDArmure): string | null {
   const h = heros(e, id);

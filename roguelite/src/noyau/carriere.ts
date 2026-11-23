@@ -10,6 +10,7 @@ import { testValue } from '../../../src/engine/skills';
 import { byId, findSpellById, findTalentById, levelsForCareer, refLabel } from '../../../src/data';
 import type { Combatant, CharKey } from '../../../src/engine/types';
 import { libelleDeCarac } from './heros';
+import { auHameau, type Geste } from './hameau';
 
 
 export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
@@ -86,3 +87,29 @@ export const prixDuSort = (c: Combatant, id: string): number | null => { const s
 
 /** Libellé d'un sort ou d'un miracle (`spells.json`). */
 export const nomDeSort = (id: string): string => findSpellById(id)?.label ?? id;
+
+/** La recrue `c` portée au niveau `niveau` de sa carrière par les achats du noyau (`auHameau`) : à chaque niveau, ce
+ *  qu'il exige pour être complété, puis le niveau suivant, payés des seuls PX que ces achats coûtent. LDB 07 l.118-131 */
+export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Combatant {
+  let porte = c;
+  while ((porte.careerLevel ?? 1) < niveau) {
+    const p = progression(porte);
+    const gestes: Geste[] = [];
+    let cout = 0;
+    for (const k of p.caracs) for (let a = k.augmentations; a < p.requis; a++) { gestes.push({ verbe: 'acheterLaCaracteristique', args: [porte.id, k.id] }); cout += advanceCost(a, 'caracteristique', true); }
+    const tenues = p.competences.filter((k) => k.augmentations >= p.requis).length;
+    for (const k of p.competences.filter((x) => x.augmentations < p.requis).sort((x, y) => y.augmentations - x.augmentations).slice(0, Math.max(0, 8 - tenues))) {
+      for (let a = k.augmentations; a < p.requis; a++) { gestes.push({ verbe: 'acheterLaCompetence', args: [porte.id, k.ref] }); cout += advanceCost(a, 'competence', true); }
+    }
+    const talent = p.talents.some((t) => t.possede > 0) ? undefined : p.talents.find((t) => !t.aSpecifier && !t.auMaxi);
+    if (talent) { gestes.push({ verbe: 'acheterLeTalent', args: [porte.id, talent.ref] }); cout += talent.cout; }
+    const cible = p.niveau + 1;
+    gestes.push({ verbe: 'changerDeCarriere', args: [porte.id, porte.career, cible] });
+    cout += careerChangeCost(true);
+    const xp = porte.xp ?? 0;
+    const [rendu] = auHameau([{ ...porte, xp: xp + cout }], gestes, graine++).groupe;
+    if ((rendu.careerLevel ?? 1) !== cible || (rendu.xp ?? 0) !== xp) throw new Error(`porterAuNiveau : ${porte.career} ${cible} rendu au niveau ${rendu.careerLevel}, ${(rendu.xp ?? 0) - xp} PX d'écart`);
+    porte = rendu;
+  }
+  return porte;
+}
