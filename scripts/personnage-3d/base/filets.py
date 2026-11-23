@@ -52,7 +52,8 @@ DRESSE = 0.5
 """Poids du dessous de la manche au repos devant le côté le plus bas de l'avant-bras, quand il se dresse
 (`Manche.tour`)."""
 LISSAGE = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
-"""Poids des images voisines, de trois avant à trois après, dans l'angle du tour d'une manche et la direction de ses os."""
+"""Poids des images voisines, de trois avant à trois après, dans l'aplomb d'un filet, l'angle du tour d'une manche et
+la direction de ses os."""
 JEU_RACINE_M = 0.02
 """Écart, en mètres, entre la peau au repos et le polygone des racines."""
 CHEVILLE_M = 0.1
@@ -69,12 +70,9 @@ BALAYAGE = 3
 que la main balaie depuis l'image d'avant et jusqu'à celle d'après, et le tissu d'entre deux images, fondu des deux,
 reste sous elle."""
 APLOMB = (0.2, 0.7)
-"""Hauteurs de l'axe vertical du porteur (son +Z au repos, 1 : debout) entre lesquelles un porteur à terre passe de
-couché à debout : les plans des brins, de ceux du porteur à l'aplomb, et le sol, de `COUCHE_SOUS_LE_SOL_M` à
-`tente.SOL_M`."""
-A_TERRE_M = (0.4, 0.65)
-"""Hauteurs du porteur au-dessus du sol, en mètres, entre lesquelles il passe d'à terre à dressé : dressé, ses brins
-restent d'aplomb quelle que soit son inclinaison."""
+"""Hauteurs de l'axe vertical du porteur (son +Z au repos, 1 : debout) entre lesquelles il passe de couché à debout :
+les plans des brins, de ceux du porteur à l'aplomb, et le sol, de `COUCHE_SOUS_LE_SOL_M` à `tente.SOL_M`. Le passage
+se lisse d'une image à ses voisines (`Monte.aplombs`)."""
 COUCHE_SOUS_LE_SOL_M = 2.0
 """Profondeur, en mètres, du sol d'un filet dont le porteur est couché : le corps repose sur son tissu."""
 
@@ -379,6 +377,16 @@ def plan(squelette, filet, P, dominants):
                       for k in range(K + 1)] for s in range(len(d))]), centre[:2]
 
 
+def lisser(valeurs, boucle):
+    """Les `valeurs` d'un clip, une par image sur leur premier axe, chacune fondue à ses voisines aux poids de `LISSAGE` :
+    celles de l'autre bout d'un clip en `boucle`, dont la dernière image est la première."""
+    n = len(valeurs)
+    demi = len(LISSAGE) // 2
+    rangs = np.arange(n)[:, None] + np.arange(-demi, demi + 1)[None]
+    rangs = rangs % (n - 1) if boucle and n > 1 else np.clip(rangs, 0, n - 1)
+    return np.tensordot(LISSAGE, np.asarray(valeurs)[rangs], axes=(0, 1))
+
+
 class Monte:
     """Un filet monté sur la base : sa tente, ses os posés au repos, ses racines et son axe dans le repère de son
     porteur, la peau qui lui vient du dehors, et ses mailles subdivisées pour le filet qui le recouvre."""
@@ -402,7 +410,7 @@ class Monte:
         inverse = np.linalg.inv(porteur)
         self.locales = np.vstack([dessin[:, 0], self.tente.axe]) @ inverse[:3, :3].T + inverse[:3, 3]
         self.porteur_au_repos = orthonormer(porteur[:3, :3])
-        self.repos, _ = self.tente.poser(*self.etat(mondes, sommets, [(m, m.repos) for m in dessous], [])[0], None, 0.0)
+        self.repos, _ = self.tente.poser(*self.etat(mondes, sommets, [(m, m.repos) for m in dessous], [], 1.0)[0], None, 0.0)
         bouts = np.vstack([self.repos.reshape(-1, 3), np.tile(self.tente.axe, (len(dessin), 1))])
         de, vers, part, self.aretes = [], [], [], []
         for i, j in np.vstack([mailles, np.column_stack([brins[:, 0], brins.size + np.arange(len(dessin))])]):
@@ -428,17 +436,23 @@ class Monte:
         de, vers, part = self.subdivision
         return np.vstack([bouts, bouts[de] + part * (bouts[vers] - bouts[de])]), self.aretes
 
-    def etat(self, mondes, sommets, dessous, balayage):
+    def aplombs(self, porteurs, boucle):
+        """Par image d'un clip, la part d'aplomb du filet (`APLOMB`) sous les matrices monde `porteurs` de son porteur,
+        lissée sur ses images voisines (`LISSAGE`), celles de l'autre bout d'un clip en `boucle`."""
+        debout = [(orthonormer(porteur[:3, :3]) @ self.porteur_au_repos.T @ tente.HAUT)[2] for porteur in porteurs]
+        return lisser([fondu((z - APLOMB[0]) / (APLOMB[1] - APLOMB[0])) for z in debout], boucle)
+
+    def etat(self, mondes, sommets, dessous, balayage, aplomb):
         """L'image du filet sous les matrices monde `mondes` et la peau posée `sommets` : ce qu'attend `Tente.poser`
         (racines, point de l'axe, repère d'aplomb, obstacles, sol), et la rotation de son porteur. `dessous` : par filet
         recouvert, son montage et ses articulations posées. `balayage` : les matrices monde et la peau du dehors
-        d'instants voisins (`BALAYAGE`), ramenées au porteur de l'image là où elle a bougé de plus de `tente.JEU_M`."""
+        d'instants voisins (`BALAYAGE`), ramenées au porteur de l'image là où elle a bougé de plus de `tente.JEU_M` ;
+        `aplomb` : la part d'aplomb de l'image (`aplombs`)."""
         porteur = mondes[self.filet['porteur']]
         points = self.locales @ porteur[:3, :3].T + porteur[:3, 3]
         rotation = orthonormer(porteur[:3, :3])
         D = rotation @ self.porteur_au_repos.T
         debout = unitaire(D @ tente.HAUT)
-        aplomb = max(fondu((debout[2] - APLOMB[0]) / (APLOMB[1] - APLOMB[0])), fondu((porteur[2, 3] - A_TERRE_M[0]) / (A_TERRE_M[1] - A_TERRE_M[0])))
         Q = tour(debout, tente.HAUT, aplomb) @ D
         surfaces = [(cote, 0.0, sommets[g], self.peau.aretes[g]) for cote, cle in ((tente.DEDANS, 'dedans'), (tente.CEDE, 'cede')) for g in self.filet[cle]]
         for g, (garde, aretes) in self.dehors.items():
@@ -525,15 +539,8 @@ class Manche:
         rotations_des_porteurs = [orthonormer(porteur[:3, :3]) for porteur in porteurs]
         angles = np.unwrap([self.bas(rotation) for rotation in rotations_des_porteurs])
         n = len(angles)
-        demi = len(LISSAGE) // 2
-        rangs = np.arange(n)[:, None] + np.arange(-demi, demi + 1)[None]
         rampe = 2 * np.pi * np.round((angles[-1] - angles[0]) / (2 * np.pi)) * np.arange(n) / max(n - 1, 1) if boucle else 0.0
-        rangs = rangs % (n - 1) if boucle and n > 1 else np.clip(rangs, 0, n - 1)
-
-        def lisser(valeurs):
-            return np.tensordot(LISSAGE, valeurs[rangs], axes=(0, 1))
-
-        angles = lisser(angles - rampe) + rampe
+        angles = lisser(angles - rampe, boucle) + rampe
         tournees, racines, directions = [], [], []
         for porteur, rotation, angle, (_, obstacles) in zip(porteurs, rotations_des_porteurs, angles, images):
             tournee = rotation @ autour(self.axe, angle)
@@ -541,7 +548,7 @@ class Manche:
             tournees.append(tournee)
             racines.append(x[:, 0])
             directions.append((x[:, 1:] - x[:, :-1]) / self.longueurs[:, :, None])
-        directions = lisser(np.array(directions))
+        directions = lisser(np.array(directions), boucle)
         directions /= np.linalg.norm(directions, axis=3, keepdims=True)
         poses, rotations = [], []
         for tournee, angle, racine, d in zip(tournees, angles, racines, directions):
@@ -597,7 +604,8 @@ def draper(chemin, corps, prise, hampes):
         cles = {}
         poses = {}
         for nom, monte in montes.items():
-            etats = [monte.etat(mondes, sommets, [(montes[n], poses[n][i]) for n in monte.filet['sur']], voisines(i)) for i, (mondes, sommets) in enumerate(corps_poses)]
+            aplombs = monte.aplombs([mondes[monte.filet['porteur']] for mondes, _ in corps_poses], boucle)
+            etats = [monte.etat(mondes, sommets, [(montes[n], poses[n][i]) for n in monte.filet['sur']], voisines(i), aplombs[i]) for i, (mondes, sommets) in enumerate(corps_poses)]
             poses[nom], rotations = monte.cuire(etats, temps, boucle)
             cles.update({os_: [image[os_] for image in rotations] for os_ in rotations[0]})
         images = []

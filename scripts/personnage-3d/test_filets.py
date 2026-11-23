@@ -2,10 +2,10 @@
 un clip qui lève la cuisse gauche. Les os des filets et des manches joints à la peau, leurs pistes LINEAR image par
 image, les racines autour du corps, la cape par-dessus la jupe, le brin de devant levé par la cuisse et celui de
 derrière au repos, le même GLB quand on le drape deux fois, ce qu'une nappe lit du filet au repos (`tissu.Filet`), et
-l'image d'un filet monté (`Monte.etat`) : dressé, incliné ou couché à terre, et sous ce que le bras balaie d'un instant
-voisin. Les manches : leurs brins d'aplomb sous l'avant-bras tendu, enfants de leur tour ; sous un avant-bras qui roule,
+l'image d'un filet monté (`Monte.etat`) : debout ou couché, de l'un à l'autre sur ses images voisines, et sous ce que
+le bras balaie d'un instant voisin. Les manches : leurs brins d'aplomb sous l'avant-bras tendu, enfants de leur tour ; sous un avant-bras qui roule,
 le tour qui ramène la manche à son côté bas et les brins qui restent d'aplomb ; le tour lissé d'un demi-tour ; le fût
-d'une hampe qui écarte un brin ; ce qu'une poche lit de la manche au repos (`tissu.Manche`)."""
+d'une hampe qui écarte un brin ; le brin qu'un obstacle lâche, rendu à l'aplomb sur ses images voisines ; ce qu'une poche lit de la manche au repos (`tissu.Manche`)."""
 import math
 import sys
 import tempfile
@@ -21,7 +21,7 @@ sys.path[:0] = [str(Path(__file__).resolve().parent / dossier) for dossier in ('
 from animation import assign_action, clear_animation  # noqa: E402
 import tente  # noqa: E402
 import pendant  # noqa: E402
-from filets import (A_TERRE_M, COUCHE_SOUS_LE_SOL_M, FILETS, FUT_DE_HAMPE, MANCHES, Manche, Monte, Peau, Squelette, autour, draper,  # noqa: E402
+from filets import (COUCHE_SOUS_LE_SOL_M, FILETS, FUT_DE_HAMPE, MANCHES, Manche, Monte, Peau, Squelette, autour, draper,  # noqa: E402
                     filets_au_repos, manches_au_repos, os_du_tour, repere_de_prise)
 from pistes import sacs  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
@@ -220,29 +220,38 @@ class Filets(unittest.TestCase):
         peau = Peau(squelette, 'Corps')
         return Monte(squelette, FILETS[0], peau, []), peau.poser(squelette, {}, 0.0, ['pelvis'])
 
-    def test_dresse_le_filet_pend_d_aplomb_au_dessus_du_sol_et_couche_a_terre_il_suit_son_porteur_sans_sol(self):
+    def test_debout_le_filet_pend_d_aplomb_au_dessus_du_sol_et_couche_il_suit_son_porteur_sans_sol(self):
         jupe, (mondes, sommets) = self.jupe_montee()
-        (_, _, Q, _, sol), _ = jupe.etat(mondes, sommets, [], [])
-        np.testing.assert_allclose(Q, np.eye(3), atol=1e-6)
-        self.assertAlmostEqual(sol, tente.SOL_M)
         sur_le_dos = np.eye(4)
         sur_le_dos[:3, :3] = [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
-        incline = sur_le_dos @ mondes['pelvis']
-        incline[2, 3] = A_TERRE_M[1]
-        (_, _, Q, _, sol), _ = jupe.etat({**mondes, 'pelvis': incline}, sommets, [], [])
+        couche = sur_le_dos @ mondes['pelvis']
+        np.testing.assert_allclose(jupe.aplombs([mondes['pelvis'], couche], False), [1 - 22 / 64, 22 / 64], atol=1e-9)
+        (_, _, Q, _, sol), _ = jupe.etat(mondes, sommets, [], [], 1.0)
         np.testing.assert_allclose(Q, np.eye(3), atol=1e-6)
         self.assertAlmostEqual(sol, tente.SOL_M)
-        a_terre = incline.copy()
-        a_terre[2, 3] = A_TERRE_M[0]
-        (_, _, Q, _, sol), _ = jupe.etat({**mondes, 'pelvis': a_terre}, sommets, [], [])
+        (_, _, Q, _, sol), _ = jupe.etat({**mondes, 'pelvis': couche}, sommets, [], [], 0.0)
         np.testing.assert_allclose(Q, sur_le_dos[:3, :3], atol=1e-6)
         self.assertAlmostEqual(sol, tente.SOL_M - COUCHE_SOUS_LE_SOL_M)
 
+    def test_un_filet_passe_de_debout_a_couche_sur_ses_images_voisines_et_referme_un_clip_qui_boucle(self):
+        jupe, (mondes, _) = self.jupe_montee()
+        sur_le_dos = np.eye(4)
+        sur_le_dos[:3, :3] = [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
+        debout, couche = mondes['pelvis'], sur_le_dos @ mondes['pelvis']
+        np.testing.assert_array_equal(jupe.aplombs([debout] * 5, False), np.ones(5))
+        chute = jupe.aplombs([debout] * 6 + [couche] * 6, False)
+        np.testing.assert_allclose(chute[[0, 1, 2, -3, -2, -1]], [1, 1, 1, 0, 0, 0], atol=1e-9)
+        self.assertAlmostEqual(float(-np.diff(chute).max()), 0.0)
+        self.assertAlmostEqual(float(-np.diff(chute).min()), 20 / 64)
+        boucle = jupe.aplombs([debout] * 4 + [couche] * 4 + [debout], True)
+        self.assertEqual(boucle[0], boucle[-1])
+        self.assertLess(boucle[0], 1.0)
+
     def test_le_filet_voit_au_dehors_ce_que_le_bras_balaie_d_un_instant_voisin(self):
         jupe, (mondes, sommets) = self.jupe_montee()
-        (_, _, _, immobile, _), _ = jupe.etat(mondes, sommets, [], [(mondes, sommets)])
+        (_, _, _, immobile, _), _ = jupe.etat(mondes, sommets, [], [(mondes, sommets)], 1.0)
         voisine = {**sommets, 'bras': sommets['bras'] - [0, 0, 0.3]}
-        (_, _, _, balaye, _), _ = jupe.etat(mondes, sommets, [], [(mondes, voisine)])
+        (_, _, _, balaye, _), _ = jupe.etat(mondes, sommets, [], [(mondes, voisine)], 1.0)
         du_dehors = lambda obstacles: obstacles[0][obstacles[2] == tente.DEHORS]
         np.testing.assert_allclose(du_dehors(immobile), sommets['bras'], atol=1e-9)
         np.testing.assert_allclose(du_dehors(balaye), np.concatenate([sommets['bras'], voisine['bras']]), atol=1e-9)
