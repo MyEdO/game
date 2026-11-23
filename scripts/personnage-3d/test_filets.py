@@ -313,6 +313,22 @@ class Filets(unittest.TestCase):
         self.assertTrue((np.diff(angles) >= -1e-9).all())
         self.assertLess(np.diff(angles).max(), 120 * 20 / 64 + 1e-4)
 
+
+    def test_un_brin_qu_un_obstacle_lache_revient_a_l_aplomb_sur_ses_images_voisines(self):
+        manche, peau, (mondes, sommets) = self.manche_montee()
+        bout = manche.repos[-1, -1]
+        fut = pendant.Fut(bout + [0.0, -0.5, 0.05], bout + [0.0, 0.5, 0.05], 0.05)
+        sol = pendant.Sol(tente.SOL_M)
+        pris, libre = ({'lowerarm_l': mondes['lowerarm_l']}, [fut, sol]), ({'lowerarm_l': mondes['lowerarm_l']}, [sol])
+        poses, _ = manche.cuire([pris] * 6 + [libre] * 6, False)
+        bouts = np.array([x[-1, -1] for x in poses])
+        ecart = np.linalg.norm(bouts[0] - bouts[-1])
+        self.assertGreater(ecart, 0.05)
+        np.testing.assert_allclose(bouts[-1], bout, atol=1e-6)
+        self.assertLess(np.linalg.norm(np.diff(bouts, axis=0), axis=1).max(), 0.4 * ecart)
+        longueurs = np.linalg.norm(np.diff(np.array(poses), axis=2), axis=3)
+        np.testing.assert_allclose(longueurs, np.broadcast_to(manche.longueurs, longueurs.shape), atol=1e-9)
+
     def test_le_fut_d_une_hampe_ecarte_le_brin_qu_il_croise(self):
         manche, peau, (mondes, sommets) = self.manche_montee()
         racine = manche.repos[4, 0]

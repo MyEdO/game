@@ -376,7 +376,13 @@ s'allonge. Une pièce lit le filet au repos par `Base.filet(nom)` (`tissu.Filet`
 rayon du filet (`Filet.point`) et la pondère aux os de ses deux brins voisins (`Filet.poids`), fondue du corps au filet
 sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet ouvert, au-delà duquel rien ne la
 porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
-mouvement viennent du filet. Une doublure reprend les colonnes et les poids de la nappe
+mouvement viennent du filet. Une manche ample ne se pondère pas d'un bloc à l'avant-bras : sa poche se pose sur la
+chaîne `manche` de la base (`MANCHES` de `base/filets.py`, drapé `base/pendant.py`), par avant-bras un os de tour qui
+garde le dessous du bras vers le bas et six brins de trois os (coude, milieu, poignet ; avant, arrière) qui pendent
+d'aplomb et s'écartent du corps, de la tête et du bâton tenu à deux mains. Une pièce la lit par `Base.manche(c)`
+(`tissu.Manche`) : l'anneau du tube suit l'os de tour (`Manche.tour`), la poche pend d'aplomb sous lui
+(`Manche.pendre`), pondérée aux brins voisins de sa station et de sa face (`Manche.poids`), et la pièce déclare
+`manche` dans `chaines`. Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 

@@ -1,5 +1,5 @@
 """Le drapé pendant d'une manche (#4697) : chaque brin pend d'aplomb sous sa racine, que porte l'avant-bras, et s'écarte
-de ce qu'il rencontre. Fonction de la seule image, continue en la pose : aucun état d'une image à l'autre, un clip qui
+de ce qu'il rencontre. Fonction de la seule image : aucun état d'une image à l'autre, un clip qui
 boucle rend un drapé qui boucle.
 
 Un brin est fait de `K` os rigides. Chaque os part d'aplomb, puis tourne autour de son départ tant qu'un de ses points

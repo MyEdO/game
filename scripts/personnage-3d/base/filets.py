@@ -51,8 +51,8 @@ plus forte, celle de la grande hache."""
 DRESSE = 0.5
 """Poids du dessous de la manche au repos devant le côté le plus bas de l'avant-bras, quand il se dresse
 (`Manche.tour`)."""
-LISSAGE_DU_TOUR = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
-"""Poids des images voisines, de trois avant à trois après, dans l'angle du tour d'une manche."""
+LISSAGE = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
+"""Poids des images voisines, de trois avant à trois après, dans l'angle du tour d'une manche et la direction de ses os."""
 JEU_RACINE_M = 0.02
 """Écart, en mètres, entre la peau au repos et le polygone des racines."""
 CHEVILLE_M = 0.1
@@ -519,25 +519,35 @@ class Manche:
     def cuire(self, images, boucle):
         """Les articulations de la manche à chaque image d'un clip et, par os, ses quaternions locaux. `images` : par
         image, les matrices monde et les obstacles (`pendant`). Le tour de la manche suit son côté bas, déroulé d'une
-        image à la suivante puis lissé sur ses voisines (`LISSAGE_DU_TOUR`), celles de l'autre bout d'un clip en `boucle`."""
+        image à la suivante ; lui et la direction de chaque os pendu se lissent sur leurs voisines (`LISSAGE`), celles de
+        l'autre bout d'un clip en `boucle`."""
         porteurs = [mondes[self.filet['porteur']] for mondes, _ in images]
         rotations_des_porteurs = [orthonormer(porteur[:3, :3]) for porteur in porteurs]
         angles = np.unwrap([self.bas(rotation) for rotation in rotations_des_porteurs])
         n = len(angles)
-        demi = len(LISSAGE_DU_TOUR) // 2
+        demi = len(LISSAGE) // 2
         rangs = np.arange(n)[:, None] + np.arange(-demi, demi + 1)[None]
-        if boucle and n > 1:
-            rampe = 2 * np.pi * np.round((angles[-1] - angles[0]) / (2 * np.pi)) * np.arange(n) / (n - 1)
-            angles = (LISSAGE_DU_TOUR * (angles - rampe)[rangs % (n - 1)]).sum(axis=1) + rampe
-        else:
-            angles = (LISSAGE_DU_TOUR * angles[np.clip(rangs, 0, n - 1)]).sum(axis=1)
-        poses, rotations = [], []
+        rampe = 2 * np.pi * np.round((angles[-1] - angles[0]) / (2 * np.pi)) * np.arange(n) / max(n - 1, 1) if boucle else 0.0
+        rangs = rangs % (n - 1) if boucle and n > 1 else np.clip(rangs, 0, n - 1)
+
+        def lisser(valeurs):
+            return np.tensordot(LISSAGE, valeurs[rangs], axes=(0, 1))
+
+        angles = lisser(angles - rampe) + rampe
+        tournees, racines, directions = [], [], []
         for porteur, rotation, angle, (_, obstacles) in zip(porteurs, rotations_des_porteurs, angles, images):
-            tour = autour(self.axe, angle)
-            tournee = rotation @ tour
+            tournee = rotation @ autour(self.axe, angle)
             x = pendant.pendre(self.locales @ tournee.T + porteur[:3, 3], self.longueurs, self.degagements @ tournee.T, obstacles)
+            tournees.append(tournee)
+            racines.append(x[:, 0])
+            directions.append((x[:, 1:] - x[:, :-1]) / self.longueurs[:, :, None])
+        directions = lisser(np.array(directions))
+        directions /= np.linalg.norm(directions, axis=3, keepdims=True)
+        poses, rotations = [], []
+        for tournee, angle, racine, d in zip(tournees, angles, racines, directions):
+            x = np.concatenate([racine[:, None], racine[:, None] + np.cumsum(self.longueurs[:, :, None] * d, axis=1)], axis=1)
             poses.append(x)
-            rotations.append({os_du_tour(self.filet): quaternion(tour),
+            rotations.append({os_du_tour(self.filet): quaternion(autour(self.axe, angle)),
                               **rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, tournee @ self.porteur_au_repos.T, tournee)})
         return poses, rotations
 
