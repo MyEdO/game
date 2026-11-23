@@ -73,6 +73,9 @@ l'utilisateur ».
 - **Montures** : porter un cavalier est un choix fait hors combat ; une bête sans cavalier combat en membre du groupe.
   Aucun allié ne monte en combat une bête du groupe (« Si les alliés pouvait éviter de voler les montures du groupe
   😁 », 2026-11-23 ; lot B2 de MyEdO/game#4804).
+- **Corruption** : au seuil, le Test du noyau tranche ; s'il échoue, la mutation vient, sans « Je te renie ! » tant
+  que le roguelite ne gère pas la Résilience (« Vue qu on est en automatique et qu on ne gère pas les poings de
+  résilience … », 2026-11-23).
 - **Repos et renvoi** (« quand je disais qu'on dormait a l'auvberge, 'était en remplacement de ce qu'on avait jusque
   la. D'ailleurs pourquoi on gagne de 'l'argent a virer quelqu'un du groupe ? », 2026-11-23) : un héros ne récupère au
   hameau qu'en chambre à l'Auberge relais ou à l'Hospice, plus de repos gratuit ; renvoyer un héros ne rapporte rien.
