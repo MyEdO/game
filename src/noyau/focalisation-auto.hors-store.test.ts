@@ -11,12 +11,11 @@ import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-/** Joue chaque fenêtre qui tient la main (son drive, à défaut sa validation) jusqu'à l'issue du combat. */
+/** Joue le drive de chaque fenêtre qui tient la main jusqu'à l'issue du combat. */
 function jouerJusquALIssue(banc: Banc, plafond: number): void {
   for (let n = 0; n < plafond && !banc.getState().battle?.over; n++) {
     banc.reprendreTout();
-    const f = fenetreDuJeu(banc.getState());
-    const suite = f ? (f.drive?.length ? f.drive : f.gestes.filter((g) => g.verbe === 'fenetreValider')) : [];
+    const suite = fenetreDuJeu(banc.getState())?.drive ?? [];
     if (!suite.length) return;
     const actions = banc.getState() as unknown as Record<string, (...args: unknown[]) => void>;
     for (const g of suite) actions[g.verbe](...(g.flux ? [g.flux] : g.fenetre ? [g.fenetre] : []));
