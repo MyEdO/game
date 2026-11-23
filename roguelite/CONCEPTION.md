@@ -122,7 +122,9 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   besoin de les racheter. » — Valeur d'adaptation du roguelite (`ramasserLesMunitions`, `jeu/expedition.ts`).
 - **2026-11-23, le noyau** : « Je t'autorise à modifier le noyau mais en passant par le système normal attendu par le
   projet avec un ticket et les skills qui gèrent le traitement des tickets » ; « Pour le ratier, donne le chien du
-  ratier. »
+  ratier. » ; « Non non c'est bien une adaptation du roguelite. » — Le noyau reste « LDB-pur » (arbitrage du
+  2026-07-21, MyEdO/game#651 : la dotation du Chasseur de Rat garde le Chien, LDB p. 315) ; le roguelite donne au
+  Ratier le `chien-de-ratier` du bestiaire, valeur d'adaptation.
 
 ## Les phases
 
