@@ -65,15 +65,18 @@ def forme(chemin):
 
 def ecarts(a, b):
     """Les écarts entre deux formes (`forme`) au-delà des tolérances : la structure à l'identique, positions et rotations à
-    `ECART_DE_POSITION_MAX` et `ECART_DE_ROTATION_MAX` près, comptes à `ECART_DE_COMPTE_MAX` près."""
+    `ECART_DE_POSITION_MAX` et `ECART_DE_ROTATION_MAX` près, comptes à `ECART_DE_COMPTE_MAX` près. Un quaternion et son
+    opposé posent la même rotation : un demi-tour (`w` nul) sort de l'export avec un signe que la machine décide."""
     proche = lambda u, v, e: len(u) == len(v) and all(abs(x - y) <= e for x, y in zip(u, v))
+    meme_rotation = lambda q, r: proche(q, r, ECART_DE_ROTATION_MAX) or proche(q, [-x for x in r], ECART_DE_ROTATION_MAX)
     compte = lambda u, v: abs(u - v) <= max(1, ECART_DE_COMPTE_MAX * max(u, v))
     structure = lambda f: ([{k: n[k] for k in ('nom', 'parent', 'mesh', 'peau')} for n in f['noeuds']], f['peaux'],
                            {m: [p['materiau'] for p in ps] for m, ps in f['meshes'].items()})
     if structure(a) != structure(b):
         return [('structure', structure(a), structure(b))]
-    fautes = [(n['nom'], 'transformation') for n, o in zip(a['noeuds'], b['noeuds'])
-              if not (proche(n['translation'], o['translation'], ECART_DE_POSITION_MAX) and proche(n['rotation'], o['rotation'], ECART_DE_ROTATION_MAX))]
+    fautes = [(n['nom'], 'transformation', (n['translation'], n['rotation']), (o['translation'], o['rotation']))
+              for n, o in zip(a['noeuds'], b['noeuds'])
+              if not (proche(n['translation'], o['translation'], ECART_DE_POSITION_MAX) and meme_rotation(n['rotation'], o['rotation']))]
     for m, ps in a['meshes'].items():
         for k, (p, q) in enumerate(zip(ps, b['meshes'][m])):
             if not (compte(p['sommets'], q['sommets']) and compte(p['indices'], q['indices']) and proche(p['bornes'], q['bornes'], ECART_DE_POSITION_MAX)):
