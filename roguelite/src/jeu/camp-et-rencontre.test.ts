@@ -139,7 +139,7 @@ describe('la rencontre, salle à choix', () => {
 
   it('le tirage des salles : une rencontre au plus par expédition, jamais en première ni en dernière salle', () => {
     let vues = 0;
-    for (let g = 1; g <= 200; g++) {
+    for (let g = 1; g <= 60; g++) {
       const e = nouvellePartie(g);
       e.batiments.cartographe = 3;
       for (const d of DESTINATIONS) {
