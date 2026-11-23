@@ -210,8 +210,8 @@ function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle 
  *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; sinon le panneau `service` ouvert (la
  *  chronique) s'y pose sur la salle, le socle restant au groupe. Tant qu'aucune action n'est prise, le socle
  *  ouvre les fiches ; puis il demande qui tente l'action `choix` (`socleDuChoix`), chaque carte fermée disant
- *  pourquoi elle l'est. */
-export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeService | null, recit: string, choix: ChoixDeSalle | null): string {
+ *  pourquoi elle l'est. `relire` : le récit de la dernière salle se rouvre, son combat compris. */
+export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeService | null, recit: string, choix: ChoixDeSalle | null, relire = false): string {
   const x = e.expedition!;
   const d = J.destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -232,7 +232,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
         ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
-        <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>`, { classe: 'carte-salle' })}
+        <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}${relire ? plaque('Relire la dernière salle', 'data-a="relire"', { icone: 'livre' }) : ''}</div>`, { classe: 'carte-salle' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
     socle,

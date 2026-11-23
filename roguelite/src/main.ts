@@ -21,6 +21,8 @@ let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; vignette: Vignette; surTitre: string; terrain: string };
 let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
+/** Le récit de la dernière salle de l'expédition en cours, qu'on rouvre pour relire ses lignes et revoir son combat. */
+let derniereSalle: Recit | null = null;
 /** Le héros que servent la forge, l'hospice et la salle d'armes. */
 let client: string | null = null;
 /** L'emplacement ouvert à la forge. */
@@ -57,7 +59,8 @@ function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: 
   if (typeof r === 'string') return toast(r);
   choixDAction = null;
   J.sauver(etat);
-  const montrer = () => { ouvert = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain }; rendre(); };
+  derniereSalle = { type: 'recit', recit: r, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre: J.salleAChoisir(etat) ? route : `${route} franchie`, terrain };
+  const montrer = () => { ouvert = derniereSalle; rendre(); };
   if (!r.combat) return montrer();
   rendre();
   ouvrirLeRejeu(r.combat, '', montrer, terrain, etat.roster);
@@ -77,7 +80,7 @@ const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? reco
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
-  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), serviceOuvert(), vueDuCarton(), choixDAction) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
+  $('#jeu').innerHTML = etat.expedition ? ecranDeLExpedition(etat, ficheOuverte(), serviceOuvert(), vueDuCarton(), choixDAction, !!derniereSalle) : ecranDuHameau(etat, ficheOuverte(), serviceOuvert(), vueDuCarton());
   const pano = document.querySelector<HTMLElement>('.panorama');
   if (pano) {
     if (avant != null && panoramaCentre) pano.scrollLeft = avant;
@@ -153,6 +156,7 @@ document.addEventListener('click', (ev) => {
       if (panneau?.type !== 'depart') return;
       const p = panneau;
       panneau = null;
+      derniereSalle = null;
       return agir(() => J.partir(etat, p.dest, [...p.choix]));
     }
     case 'avancer': {
@@ -165,7 +169,8 @@ document.addEventListener('click', (ev) => {
       const recit = J.avancer(etat);
       J.sauver(etat);
       if (!recit) { choixDAction = null; return rendre(); }
-      const montrer = () => { ouvert = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain }; rendre(); };
+      derniereSalle = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain };
+      const montrer = () => { ouvert = derniereSalle; rendre(); };
       if (!recit.combat) return montrer();
       rendre();
       // Une victoire se clôt à son issue, qui dit le butin ; une mort, une déroute, une retraite ou le maître vaincu se
@@ -204,6 +209,7 @@ document.addEventListener('click', (ev) => {
     }
     case 'attendre': return agir(() => J.attendreUneSemaine(etat));
     case 'fermer': ouvert = null; return rendre();
+    case 'relire': if (derniereSalle) ouvert = derniereSalle; return rendre();
     case 'reset': ouvert = { type: 'reset' }; return rendre();
     case 'reglages': ouvert = { type: 'reglages' }; return rendre();
     case 'taille': choisirLaTaille(k as Taille); mettreALEchelle(); return rendre();

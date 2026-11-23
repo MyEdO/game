@@ -6,7 +6,19 @@
  * (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
  */
 import * as J from '../jeu';
-import { articleDuCatalogue, encombrement, libelleDEtat, maladies, nomDeSort, sequelles, souillure, type Combatant, type Qualite, type Visee } from '../noyau';
+import {
+  articleDuCatalogue,
+  encombrement,
+  libelleDEtat,
+  maladies,
+  nomDeSort,
+  sequelles,
+  souillure,
+  type Combatant,
+  type Qualite,
+  type Visee,
+  causesDEtat,
+} from '../noyau';
 import { armeDuLibelle, buste, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, PICTOS, plaque, portrait } from '../kit';
 
@@ -66,13 +78,15 @@ export function portraitDeHeros(h: Porteur, taille: 'petit' | 'moyen' | 'grand' 
   return portrait(busteDuHeros(h), 'heros', taille, etat).replace(/<\/div>$/, `${v?.signe ? `<span class="voie-au-portrait">${v.signe}${nomme ? `<b>${esc(v.nom)}</b>` : ''}</span>` : ''}</div>`);
 }
 export const ligneDeVie = (c: Combatant) => `<span class="vie"><span>Blessures</span><span class="chiffres">${Math.max(0, c.wounds.current)} / ${c.wounds.max}</span></span>${jauge(Math.max(0, c.wounds.current) / Math.max(1, c.wounds.max), { taille: 'forte' })}`;
-export const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire">${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
+/** Ce qui fait porter un État au héros, tel que le noyau le dit (`causesDEtat`) ; son silence est dit. */
+export const causeDEtat = (c: Combatant, e: Combatant['conditions'][number]): string => causesDEtat(c, e).join(' ') || 'Cause non précisée.';
+export const etats = (c: Combatant) => (c.conditions.length ? `<div class="etats">${c.conditions.map((e) => `<span class="etiquette rectangle cire"${apercuDe({ nom: libelleDEtat(e.id, e.value), nature: 'État', texte: causeDEtat(c, e) })}>${esc(libelleDEtat(e.id, e.value))}</span>`).join('')}</div>` : '');
 
 /** Le séjour d'un héros, à la place de sa vie : son bâtiment, les jours qui restent, et la jauge du séjour écoulé. */
 export const sejourDe = ({ ou, reste, total }: J.Sejour) =>
   `<span class="vie sejour-hospice"><span>${J.LIEUX_DE_SEJOUR[ou].nom}</span><span class="chiffres">${reste} j</span></span>${jauge(1 - reste / Math.max(reste, total), { teinte: 'or', taille: 'forte' })}`;
 
-/** La carte d'un héros : portrait, nom, rôle, carrière et voie, vie, état ; son identité au survol. `geste` : ce qu'un
+/** La carte d'un héros : portrait, nom, rôle, carrière et voie, vie, état ; son identité et la cause de ses États au survol. `geste` : ce qu'un
  *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste, dit
  *  sur la carte à la place de son état ; `visee` : sa Compétence, la cible de son Test et ses chances, dites à la
  *  place de son état ; `meilleur` : ses chances sont les meilleures du socle ;
@@ -86,7 +100,7 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
   const lePortrait = portraitDeHeros(h, 'grand', choisi ? 'choisi' : '', true);
   const identite: Apercu = {
     nom: c.label, nature: [carriereDe(h), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '),
-    texte: [J.deviseDe(h.carriere), voie && [`**${voie.apercu.nom}**`, voie.apercu.texte].filter(Boolean).join(' : ')].filter(Boolean).join('\n\n'), ...(o.refus ? { pied: o.refus } : {}),
+    texte: [J.deviseDe(h.carriere), voie && [`**${voie.apercu.nom}**`, voie.apercu.texte].filter(Boolean).join(' : '), ...c.conditions.map((e) => `**${libelleDEtat(e.id, e.value)}** : ${causeDEtat(c, e)}`)].filter(Boolean).join('\n\n'), ...(o.refus ? { pied: o.refus } : {}),
   };
   const s = h.sejour;
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${s ? ' retrait' : ''}${choisi ? ' choisi' : ''}${o.meilleur ? ' meilleur' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>

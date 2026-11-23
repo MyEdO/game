@@ -332,3 +332,35 @@ sur une arène générée.
   mais le héros rendu au groupe n'a aucune mutation : `resolveRenounce` (`src/noyau/corruptionFlow.ts:341`) mute le
   combattant du champ d'`actorIn`, alors que le groupe a déjà été rendu à la victoire. Hors combat (épreuve), la
   mutation porte.
+
+## États et leur cause
+
+- **Trou — un effet à durée en Rounds survit à la rencontre et ne s'épuise jamais hors combat.** Sonde (2026-11-23,
+  `nouvellePartie(7)`, Reikwald, première salle) : Marietta Herz, Bénie, rate sa Bénédiction de Convalescence ; la
+  Colère des Dieux pose l'effet « Purifier la chair » (`source: colereDesDieux/colere-purifier-la-chair`, 8 Rounds,
+  `opsPerRound` : 1 Inconscient « regagné à chaque fin de Round »). Elle revient de la rencontre à 1/13 Blessures,
+  Inconsciente, l'effet encore porté (`duration: { scale: 'rounds', left: 1 }`), et le garde deux salles plus tard
+  (une journée par salle) : seule la fin de Round (`src/engine/conditions.ts:884-893`) épuise un effet en Rounds,
+  la purge d'horloge ne prend que l'échelle `clock` (`purgeClockEffects`, `src/noyau/upkeep.ts:72`). Hors de combat,
+  le héros Inconscient ne combat plus, donc aucun Round ne l'épuise ; seul un repos le réveille, et l'effet le
+  rendormirait au premier Round. C'est la forme du rapport (Nonne de Shallya à 3/12, Inconsciente, aucun critique).
+  L'hôte montre l'effet au survol de l'État (`causesDEtat`, `roguelite/src/noyau/heros.ts`), sans l'épuiser lui-même.
+  Idée : que la clôture de rencontre, ou l'avance d'horloge, épuise les effets en Rounds.
+- **Trou — l'Inconscient d'une Blessure critique ne dit pas sa cause, et survit à la rencontre.** LDB 18 l.53 : « Si
+  votre Personnage subit l'État *Inconscient*, vous restez inconscient jusqu'à la fin de la rencontre, ou jusqu'à
+  recevoir une Aide médicale ». Sonde (`nouvellePartie(6)`, première salle) : Veronica Poster rate son Test de
+  Résistance d'Amputation (DR −7), « reçoit 1 État Inconscient », et revient de la rencontre à 4/14 Blessures avec
+  `{ id: 'inconscient', value: 1 }`, sans `derivedFrom`, `lockedUntil`, `unlockBy`, durée ni effet qui le repose.
+  L'écran dit « Le noyau ne dit pas d'où vient cet État. » Idée : que l'instance d'État porte sa source (Critique,
+  sort, 0 Blessure) comme `derivedFrom` le fait pour un passif, et que la clôture de rencontre lève ce que LDB 18
+  l.53 borne à la rencontre.
+- **Trou — le soin d'un sort ne réveille pas un Inconscient à 0 Blessure, ni n'arrête l'Hémorragie.** L'op `heal`
+  soigne par `applyHealWounds(…, { wake: false })` (`src/engine/ops.ts:1025`) et ne lève que les verrous d'acte
+  (`releaseConditionLocks`, `src/engine/ops.ts:1115`). Sonde (`auHameau`, `incanterLeSort` Bénédiction de Guérison
+  sur un héros à 0 Blessure) : KO simple → 1 Blessure, `[inconscient]` ; perte de sang → 1 Blessure,
+  `[hemorragique, inconscient]`. LDB 18 l.15 : « vous ne reviendrez pas à vous avant de guérir d'au moins 1 Point de
+  Blessure » ; LDB 16 l.107 : un État Hémorragique se retire « avec n'importe quel Sort ou n'importe quelle Prière qui
+  guérit les Points de Blessure, avec un État de retiré par Point de Blessure guéri ». Les autres soins hors combat
+  réveillent : repos au camp (`restRecovery`, 0 → 4/8, « reprend connaissance »), soin d'un compagnon (infirmerie,
+  0 → 5/8, « reprend connaissance ») ; la Potion de guérison est refusée à l'Inconscient (« n'aurait aucun effet »).
+  Idée : que l'op `heal` réveille comme `applyHealWounds` par défaut, et retire l'Hémorragie au PB guéri.

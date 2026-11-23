@@ -6,9 +6,10 @@ import { adresseDeCreation, type AdresseDeCreation } from '../../../src/engine/a
 import { designateSlot, skillSlots, slotCovers } from '../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../src/engine/characteristics';
-import { findCareerById, findSpeciesById, levelsForCareer, characteristics, conditionLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
+import { raisonVerrouEtat } from '../../../src/engine/conditions';
+import { findCareerById, findSpeciesById, levelsForCareer, characteristics, conditionLabel, refLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
 import type { RNG } from '../../../src/engine/dice';
-import type { Combatant, CharKey } from '../../../src/engine/types';
+import type { Combatant, CharKey, ConditionInstance } from '../../../src/engine/types';
 
 /** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
 export interface Designation { niveau: number; id: string; spec: string }
@@ -83,6 +84,23 @@ export const texteDeCarac = (k: CharKey): string => characteristics.find((x) => 
 export function ficheDeCompetence(id: string): { texte: string; carac?: CharKey } {
   const d = skills.find((x) => x.id === id);
   return { texte: d?.desc ?? '', ...(d?.characteristic ? { carac: d.characteristic as CharKey } : {}) };
+}
+
+/** D'où vient l'État porté `e`, tel que le noyau le dit sur le héros : le fait qui le porte (`derivedFrom`, symptôme,
+ *  mutation, trait…), le verrou qui le retient (`raisonVerrouEtat`), sa durée en Rounds, l'effet actif qui le repose
+ *  à chaque Round (`opsPerRound`), et pour l'Inconscient les 0 Blessure (LDB 18 l.15). Vide quand le noyau ne dit rien
+ *  de sa cause. */
+export function causesDEtat(c: Combatant, e: ConditionInstance): string[] {
+  const src = e.derivedFrom?.src;
+  const verrou = raisonVerrouEtat(e, c);
+  return [
+    ...(src ? [`Porté par : ${refLabel(src.category, { id: src.id })}.`] : []),
+    ...(verrou ? [verrou] : []),
+    ...(e.roundsLeft != null ? [`Encore ${e.roundsLeft} Round${e.roundsLeft > 1 ? 's' : ''}.`] : []),
+    ...(c.activeEffects ?? []).filter((x) => x.opsPerRound?.some((o) => o.op === 'condition' && o.id.id === e.id))
+      .map((x) => `Reposé à chaque fin de Round par ${x.label}${x.duration.scale === 'rounds' ? `, encore ${x.duration.left} Round${x.duration.left > 1 ? 's' : ''}` : ''}.`),
+    ...(e.id === 'inconscient' && c.wounds.current <= 0 ? ['À 0 Blessure.'] : []),
+  ];
 }
 
 /** Libellé d'un État porté (`etats.json`), sa valeur comprise. */
