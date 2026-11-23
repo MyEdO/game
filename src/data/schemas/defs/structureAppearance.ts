@@ -33,7 +33,7 @@ const reliefParPartie = nommerChamps(z.strictObject(
  *  boîte. */
 export const kitSchema = enumNomme({
   colombage: 'Pan de bois', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
-  porterie: 'Porterie', cloture: 'Clôture', herse: 'Herse', terrassement: 'Terrassement',
+  porterie: 'Porterie', cloture: 'Clôture', herse: 'Herse', terrassement: 'Terrassement', enduit: 'Mur enduit',
 });
 
 /** La famille du kit 3D d'escalier d'un terrain bâti : le modèle `escalier--<famille>` dont l'hôte habille les côtés de
