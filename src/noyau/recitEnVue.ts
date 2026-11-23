@@ -5,12 +5,11 @@
  * projection des hôtes (`hote/projection.ts`).
  */
 import type { Jeu } from './etat';
-import { libelleOuAbsence } from '../data';
 import { distanceDeRoute, type Distance } from '../engine/travel';
 import { fenetreDuJeu } from './combatAuto';
 import { modeEnVue, type ModeEnVue } from './carteEnVue';
 import { journeeEnVue, type JourneeEnVue } from './voyageEnVue';
-import { placeById } from './worldMap';
+import { nomDuLieu } from './worldMap';
 
 /** Le récit en vue : son issue ; `depart`, `arrivee` et `route` par leur id, `de` et `vers` les noms des deux lieux ;
  *  `distance` du trajet et `reste`, la distance exacte qui reste (`null` à l'arrivée), en km (`runTravelDays`) ;
@@ -28,7 +27,7 @@ export interface RecitEnVue {
 export function recitEnVue(s: Jeu): RecitEnVue | null {
   const r = s.travelRecap;
   if (!r || fenetreDuJeu(s)?.cle !== 'recitDeVoyage') return null;
-  const nom = (id: string) => libelleOuAbsence(s.worldMap ? placeById(s.worldMap, id) : undefined, 'lieu', id);
+  const nom = (id: string) => nomDuLieu(s.worldMap, id);
   const arrive = r.status === 'arrived';
   return {
     issue: r.then ? 'embuscade' : arrive ? 'arrivee' : r.status === 'interrupted' ? 'interruption' : 'arret',

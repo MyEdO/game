@@ -306,7 +306,7 @@ function attendreLAube(get: Get, set: Set): void {
  *  jour qu'elle clôt. */
 function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[], travelDay?: TravelRecapDay): void {
   ouvrirLeRepos(get, set, {
-    places: placesOfKind(route.inns ? 'auberge' : 'camp'), lieu: routeLieu(get().worldMap!, get().travelPlan!),
+    places: placesOfKind(route.inns ? 'auberge' : 'camp'), lieu: routeLieu(get().travelPlan!),
     travelHalt: true, travelMarch, travelDay,
   });
 }

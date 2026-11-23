@@ -66,7 +66,7 @@ describe('un club fermé tant que le groupe n’en est pas membre', () => {
       ['forge', [['ouvrirLaBoutique', null]]],
     ]);
     g().ouvrirLeRepos('club');
-    expect(g().pendingRest?.lieu).toBe('Le Club des Gentilshommes');
+    expect(g().pendingRest?.lieu).toEqual({ nom: 'Le Club des Gentilshommes' });
     g().ouvrirLaBoutique('forge');
     expect(g().merchant?.entityId).toBe('lieu:bourg:forge');
   });

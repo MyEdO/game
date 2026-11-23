@@ -344,7 +344,8 @@ export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voy
 export { recitEnVue, type RecitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
-export { reposEnVue } from './reposEnVue';
+export { reposEnVue, type ReposEnVue } from './reposEnVue';
+export { TITRE_DE_LA_NUIT } from './restFlow';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
 export {

@@ -1,7 +1,7 @@
 /**
  * LE REPOS PAR LE PONT (#3328, #3534) : la halte de nuit du « Voyage & temps long » jouée comme Godot la joue. La nuit
  * et son lieu, la note ; sur la carte de chaque dormeur (`groupe.heros`), son couchage et sa pitance en listes
- * (`reposEnVue`) ; le dormeur règle sa nuit d'un geste, sans formulaire, et « Dormir » ouvre la nuit.
+ * (`Projection.repos`) ; le dormeur règle sa nuit d'un geste, sans formulaire, et « Dormir » ouvre la nuit.
  */
 import { describe, it, expect } from 'vitest';
 import { departDeLaCarte, drainer, table, enFocus } from './pont.testkit';
@@ -33,6 +33,7 @@ describe('le repos par le pont', () => {
     let c = corps(suite);
     expect((c['voyage/cadence'] as Choix).valeurs.map((b) => [b.id, b.presse]), 'à la halte, la cadence du trajet, celle qu’il joue pressée : les ordres par défaut du départ').toEqual([['jourParJour', true], ['commande', false]]);
     expect(c['scene/moment'], 'la nuit et son lieu, en tête de la scène').toMatchObject({ texte: 'Nuit à l’auberge — Weiler → Steinbruck' });
+    expect(suite.vue.projection.repos, 'la projection porte la nuit en données : le toit, la route par ses deux extrémités').toMatchObject({ toit: 'auberge', lieu: { route: { deNom: 'Weiler', versNom: 'Steinbruck' } } });
     expect(c['scene/ciel'], 'l’objet du temps de la halte : le ciel de nuit dans son arche, sans météo ni jour de route').toMatchObject({ paysage: ['arche-nuit'] });
     expect(c['scene/meteo'], 'aucun pictogramme de météo à la halte').toBeUndefined();
     expect(c['scene/date'], 'la date seule').toMatchObject({ texte: expect.stringMatching(/ CI$/) });
