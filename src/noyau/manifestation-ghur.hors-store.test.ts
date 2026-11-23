@@ -68,7 +68,7 @@ describe('Manifestation de Ghur — immunité aux Sorts du Domaine de la Bête (
     const immune = mob('ghur', { traits: [{ id: 'manifestation-de-ghur' }] });
     const caster = mob('mage', { kind: 'heros' });
     banc.setState({ party: [immune] as Combatant[] });
-    applyCast(banc.getState, banc.setState, caster, [immune], spell('bete'), ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [immune], spell('bete'), ok, false);
     expect(hasCondition(immune, 'aveugle')).toBe(false);
     expect(effectiveChar(immune, 'capacite-de-combat')).toBe(40); // charMod -10 NON appliqué
     expect(immune.activeEffects ?? []).toHaveLength(0);
@@ -78,7 +78,7 @@ describe('Manifestation de Ghur — immunité aux Sorts du Domaine de la Bête (
     const normal = mob('orc');
     const caster = mob('mage', { kind: 'heros' });
     banc.setState({ party: [normal] as Combatant[] });
-    applyCast(banc.getState, banc.setState, caster, [normal], spell('bete'), ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [normal], spell('bete'), ok, false);
     expect(hasCondition(normal, 'aveugle')).toBe(true);
     expect(effectiveChar(normal, 'capacite-de-combat')).toBe(30); // 40 - 10
   });
@@ -87,7 +87,7 @@ describe('Manifestation de Ghur — immunité aux Sorts du Domaine de la Bête (
     const immune = mob('ghur', { traits: [{ id: 'manifestation-de-ghur' }] });
     const caster = mob('mage', { kind: 'heros' });
     banc.setState({ party: [immune] as Combatant[] });
-    applyCast(banc.getState, banc.setState, caster, [immune], spell('feu'), ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [immune], spell('feu'), ok, false);
     expect(hasCondition(immune, 'aveugle')).toBe(true);
     expect(effectiveChar(immune, 'capacite-de-combat')).toBe(30);
   });

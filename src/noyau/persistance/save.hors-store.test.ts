@@ -110,8 +110,18 @@ describe('lireSave — format courant', () => {
     onTestFinished(() => migrerLesCouleurs.mockRestore());
 
     const lue = lireSave(ancienne);
-    if (courante.version !== 'e5850d7c5e152ce4') return void expect(lue).toBe('autreFormat');
+    if (courante.version !== '1ae1c3b7257edcff') return void expect(lue).toBe('autreFormat');
     expect(typeof lue === 'string' ? lue : chargerLaSave(lue).etat.meneurChoisi).toBeNull();
+    expect(migrerLesCouleurs).not.toHaveBeenCalled();
+  });
+
+  it('lit une save d’avant la réserve de Focalisation, sans la migration des couleurs (#865)', () => {
+    const courante = snapshotSave(etatInitialDuJeu(), '2026-11-23T06:30:00.000Z');
+    const ancienne = { ...courante, version: 'e5850d7c5e152ce4' };
+    const migrerLesCouleurs = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesDeuxCouleurs');
+    onTestFinished(() => migrerLesCouleurs.mockRestore());
+
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toEqual(courante.version === '1ae1c3b7257edcff' ? courante : 'autreFormat');
     expect(migrerLesCouleurs).not.toHaveBeenCalled();
   });
 

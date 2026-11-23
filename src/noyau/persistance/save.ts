@@ -138,8 +138,15 @@ const TRANSITION_DU_MENEUR_CHOISI = {
   avant: '71dc897adac81733',
   apres: 'e5850d7c5e152ce4',
 };
-const FORMAT_AVANT_LE_MENEUR_CHOISI = FORMAT_SAVE === TRANSITION_DU_MENEUR_CHOISI.apres
-  ? TRANSITION_DU_MENEUR_CHOISI.avant : FORMAT_SAVE;
+/** #865 : `pendingCast` perd `focused`, que la réserve de Focalisation du lanceur (`focus`) porte déjà. */
+const TRANSITION_DE_LA_RESERVE_DE_FOCALISATION = {
+  avant: TRANSITION_DU_MENEUR_CHOISI.apres,
+  apres: '1ae1c3b7257edcff',
+};
+const FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION = FORMAT_SAVE === TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.apres
+  ? TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LE_MENEUR_CHOISI = FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION === TRANSITION_DU_MENEUR_CHOISI.apres
+  ? TRANSITION_DU_MENEUR_CHOISI.avant : FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION;
 const FORMAT_AVANT_L_AMARRAGE = FORMAT_AVANT_LE_MENEUR_CHOISI === TRANSITION_DE_L_AMARRAGE.apres
   ? TRANSITION_DE_L_AMARRAGE.avant : FORMAT_AVANT_LE_MENEUR_CHOISI;
 const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_L_AMARRAGE);
@@ -155,7 +162,7 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LE_MENEUR_CHOISI || version === FORMAT_AVANT_L_AMARRAGE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION || version === FORMAT_AVANT_LE_MENEUR_CHOISI || version === FORMAT_AVANT_L_AMARRAGE
       || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
       || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
       || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
@@ -188,7 +195,7 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (parsed.version !== FORMAT_AVANT_LE_MENEUR_CHOISI && parsed.version !== FORMAT_AVANT_L_AMARRAGE
+    } else if (parsed.version !== FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION && parsed.version !== FORMAT_AVANT_LE_MENEUR_CHOISI && parsed.version !== FORMAT_AVANT_L_AMARRAGE
         && parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
         && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
       migrerLaSaveAvantLesDeuxCouleurs(parsed.data);

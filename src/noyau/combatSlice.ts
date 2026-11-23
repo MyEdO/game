@@ -180,7 +180,7 @@ import {
   focusCriticalDR,
   consumeMalepierre,
   malepierreItemOf,
-  castingNumberOf,
+  niSansFocalisation,
 } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
@@ -1928,7 +1928,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const refus = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
-      castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
+      castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false)
     },
 
     /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise (potion, drogue, bandage), Action gratuite
@@ -3331,7 +3331,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         ? cascBefore.cursor : -1;
       set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'incantation')
       const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-      applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.focused, pc.critChoice, {
+      applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.critChoice, {
         durationMult: ocDur.mult,
         durationBonusRounds: ocDur.bonusRounds,
         overcastDurationSteps: pc.overcast?.duration ?? 0,
@@ -3395,7 +3395,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingFocus: null });
       if (!caster || !spell) return;
       const res = garanti(pf.result, pf.casterId, 'jet de Focalisation');
-      const ni = castingNumberOf(spell, false, {}, [], caster);
+      const ni = niSansFocalisation(spell, caster);
       caster.focus = { spell: pf.spellId, dr: garanti(progresDeFocalisation(pf, caster, ni).step, pf.spellId, 'jet de Focalisation').total };
       // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur
       // `res.malepierreConsumed`, `engine/magic.ts`) décrémente ICI la réserve — seul point

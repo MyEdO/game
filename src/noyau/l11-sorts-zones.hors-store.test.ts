@@ -41,7 +41,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   it('Mur de feu : mur perpendiculaire centré sur la cible, durée (BFM) Rounds, onCross armé', () => {
     const { caster, T } = setup();
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('mur-de-feu')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('mur-de-feu')!, ok, false);
     const wall = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Mur de feu')!;
     expect(wall).toBeTruthy();
     expect(wall.rounds).toBe(4); // (BFM 4) Rounds
@@ -69,8 +69,8 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   it('Bouclier anti-flèches / Dôme : auras posées par le cast ; géométrie intérieur/extérieur', () => {
     const { caster, T } = setup();
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('bouclier-anti-fleches')!, ok, false, false);
-    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('dome')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('bouclier-anti-fleches')!, ok, false);
+    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('dome')!, ok, false);
     const effects = caster.activeEffects ?? [];
     // Les DEUX auras déclarent leur zone par la ligne « Cible » de leur sort (`LDB 47 l.356` pour le
     // Bouclier anti-flèches, `l.408` pour le Dôme). Une ZdE est un DIAMÈTRE (`LDB 47 l.28`) : à BFM 4,
@@ -120,7 +120,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
       cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok',
       hit: true, woundsLost: 0, defenderDefeated: false, location: 'corps',
     };
-    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('grands-feux-d-u-zhul')!, ok, true, false);
+    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('grands-feux-d-u-zhul')!, ok, true);
     const fire = (banc.getState().battle!.zones ?? []).find((z) => z.label === "Grands feux d'U'Zhul")!;
     expect(fire).toBeTruthy();
     expect(fire.rounds).toBe(4); // (BFM) Rounds

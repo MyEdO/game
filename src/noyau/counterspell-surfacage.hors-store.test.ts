@@ -53,7 +53,7 @@ function freezeHeroCast(H: Combatant, E: Combatant) {
   banc.setState({
     pendingCounterspell: null,
     pendingCast: {
-      casterId: H.id, targetId: E.id, spellId: 'flechette', missile: true, focused: false,
+      casterId: H.id, targetId: E.id, spellId: 'flechette', missile: true,
       result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' },
     },
   } as unknown as Partial<Jeu>);

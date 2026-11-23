@@ -165,7 +165,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     // Ordre des sites de DÉCLARATION d'incantation (`castSpell`, et le chemin de pose de zone) : le
     // `pendingCast` — la donnée que la fenêtre rend — est posé, PUIS la cascade `jet:'incantation'` l'hôte.
     // `applyCast`, lui, n'ouvre rien : il joue les effets DANS cette cascade déjà ouverte.
-    banc.setState({ pendingCast: { casterId: H.id, targetId: H.id, spellId: 'chute', missile: false, focused: false, result: null } });
+    banc.setState({ pendingCast: { casterId: H.id, targetId: H.id, spellId: 'chute', missile: false, result: null } });
     openCastCascade(banc.getState, banc.setState, H);
     const castCasc = banc.getState().pendingCascade!;
     expect(castCasc.purpose).toBe('combat');

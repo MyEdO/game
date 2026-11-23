@@ -1510,7 +1510,7 @@ export interface Combatant {
    *  plafonné à 0 une semaine »… `roundsLeft` décrémenté en fin de Round (combat + entretien hors
    *  combat) ; `untilTime` purgé par l'horloge (avancerLeTemps). Persisté. */
   castPenalties?: CastPenalty[];
-  /** Accumulateur de Focalisation : DR cumulé pour un sort d'Arcane/Domaine. */
+  /** Réserve de Focalisation : Sort focalisé et DR cumulé, lus par `reserveDeFocalisation`. LDB 46 l.130 ; VDM 02 l.131 */
   focus?: { spell: string; dr: number };
   /** Accumulateur de DISSIPATION permanente (LDB 46 l.158-162) : Test étendu de Langue (Magick) en cours,
    *  DR cumulé vers la NI d'UN sort durable (identifié par sort + lanceur). Persiste entre Rounds de combat
