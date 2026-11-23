@@ -117,15 +117,24 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
 });
 
 describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311)', () => {
-  it('soin de Blessures réussi : aucune Infection (`woundDressed`) seulement sous Bandages', () => {
+  it('soin de Blessures réussi : la Blessure Critique de la rencontre est pansée (`woundDressed`) seulement sous Bandages', () => {
     for (const avec of [true, false]) {
-      combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
+      combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), tookCriticalThisFight: true, pos: { x: 2, y: 1 } })]);
       banc.getState().ouvrirLaGuerison('al');
       if (avec) banc.getState().jetRegler('soins', 'bandages', 'doc');
       jete(10, true, 1);
       banc.getState().jetValider('soins');
       expect(!!enCombat('al').woundDressed).toBe(avec);
     }
+  });
+
+  it('soin de Blessures réussi sous Bandages sans Blessure Critique : rien à panser, aucun Critique à venir n’est couvert', () => {
+    combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
+    banc.getState().ouvrirLaGuerison('al');
+    banc.getState().jetRegler('soins', 'bandages', 'doc');
+    jete(10, true, 1);
+    banc.getState().jetValider('soins');
+    expect(!!enCombat('al').woundDressed).toBe(false);
   });
 
   it('soin raté sous Bandages : l’unité s’use et l’Aide Médicale est reçue ; raté sans Bandages, rien', () => {

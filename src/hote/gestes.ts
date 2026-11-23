@@ -65,8 +65,8 @@ export interface ArgumentDuGeste {
  *  son rendu : `bouton` (aucun argument à dire),
  *  `choix` (un seul argument à dire, un choix, nommé par `aChoisir` : chaque valeur se joue d'un clic), `liste` (le même
  *  choix, en liste), `formulaire` (les arguments saisis, puis le bouton). Un argument est à dire quand il est requis,
- *  ou optionnel avec des valeurs nommées : aucune valeur que le noyau nomme ne reste sans saisie. `attendu` : le geste que la politique de la fenêtre
- *  joue maintenant (`drive`, le jet puis sa clôture). `ouvert` : faux pour un geste qu'une fenêtre lue règle
+ *  ou optionnel avec des valeurs nommées : aucune valeur que le noyau nomme ne reste sans saisie. `attendu` : le geste que le drive de la fenêtre
+ *  joue maintenant (`drive`, le jet puis sa clôture, ou son issue). `ouvert` : faux pour un geste qu'une fenêtre lue règle
  *  (`LECTEURS`) et qu'elle ne nomme pas maintenant, ou que le flux de jet qui le joue ferme maintenant
  *  (`fermeturesDeLaFenetre`) sans attendre de décision (`FERMETURES_DITES`), ou dont un argument requis se choisit parmi
  *  aucune valeur qu'aucun refus ne ferme ; un hôte ne le dessine pas. `raison` : ce
@@ -199,8 +199,8 @@ export function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre
   return { rendu: 'formulaire', aChoisir: null };
 }
 
-/** Le geste que la politique de la fenêtre joue maintenant, par son identité : le premier de son drive que son jet n'a
- *  pas fermé (`fermeturesDeLaFenetre`) — le jet tant qu'il reste à tomber, la clôture ensuite. */
+/** Le geste que le drive de la fenêtre joue maintenant (`FenetreDuJeu.drive`), par son identité : le premier que son jet
+ *  n'a pas fermé (`fermeturesDeLaFenetre`) — le jet tant qu'il reste à tomber, la clôture ensuite. */
 function gesteAttendu(drive: readonly GesteDuJeu[] | undefined, fermetures: ReadonlyMap<string, unknown>): string | null {
   const g = drive?.find((d) => !fermetures.get(cleDuGeste(d)));
   return g ? cleDuGeste(g) : null;

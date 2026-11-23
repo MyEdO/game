@@ -3,22 +3,27 @@
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
- * authorée, un objet posé au sol à ramasser), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
+ * authorée, un objet posé au sol à ramasser), refusées avec leur raison, la désignation d'un autre héros debout comme meneur
+ * hors dialogue (`designerLeMeneur`), la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
  * (`ouvrirLeLieu`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
- * le clic de sa case (`cliquerLaCase`), comme un saut.
+ * le clic de sa case (`cliquerLaCase`), comme un saut. La marche et la désignation du meneur sont refusées hors du siège du
+ * monde (`DECISIONS_DE_GROUPE`, `refusDeDecisionDeGroupe`).
  */
 import { aretesUtilisables, casesADenivele } from './aretes';
 import { aretesOffertes, GESTES_DEPLACANTS, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
 import { cheminMarchable, marcheOuverte } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { offresDExploration } from './interactionsDExploration';
+import { estDebout, meneurDuMonde } from './monde/combatants';
+import { refusDeDecisionDeGroupe } from './netOwnership';
 import { cheminsDuGroupe, exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
 import { atterrissagesDeSaut, type CheminsDepuis, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
@@ -40,10 +45,18 @@ function marcheVers(s: Jeu, chemins: CheminsDepuis, vers: Pt): { gestes: GesteDu
 
 const estTransition = (e: Effect): e is Extract<Effect, { type: 'transition' }> => e.type === 'transition';
 
+/** Les verbes d'une décision de groupe hors combat, au siège du monde (`ownsGroupDecision`, #4530) : la marche du groupe
+ *  et la désignation du meneur. */
+const DECISIONS_DE_GROUPE: ReadonlySet<GesteDuNoyau['verbe']> = new Set(['cliquerLaCase', 'designerLeMeneur']);
+
 /** Les gestes d'exploration du groupe ; aucun hors exploration. */
 export function gestesDExploration(s: Jeu): GesteDExploration[] {
   const { scene, partyPos } = s;
   if (!scene || s.mode !== 'exploration') return [];
+  const refusDuGroupe = refusDeDecisionDeGroupe(s);
+  /** Le geste, refusé par `refusDuGroupe` s'il joue une décision de groupe que ce siège ne tient pas. */
+  const deGroupe = (g: GesteDExploration): GesteDExploration =>
+    refusDuGroupe && g.gestes.some((x) => DECISIONS_DE_GROUPE.has(x.verbe)) ? { ...g, refus: refusDuGroupe } : g;
   const visible = computeStateVisible(s);
   const chemins = cheminsDuGroupe(scene, partyPos, s.party);
   const out: GesteDExploration[] = [];
@@ -76,7 +89,12 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   }
   if (s.worldMap && (s.lieu || s.travelPlan)) out.push({ libelle: t('exploration.carte'), gestes: [{ verbe: 'ouvrirLaCarte', args: [] }] });
   if (s.lieu && !s.travelPlan) out.push({ libelle: t('exploration.lieu'), gestes: [{ verbe: 'ouvrirLeLieu', args: [] }] });
-  if (!gestesDeplacantsOuverts(s)) return out;
+  const meneur = meneurDuMonde(s);
+  for (const h of marcheOuverte(s) ? s.party : []) {
+    if (h === meneur || !estDebout(h)) continue;
+    out.push({ libelle: t('exploration.meneur', { heros: nomDe(h) }), gestes: [{ verbe: 'designerLeMeneur', args: [h.id] }] });
+  }
+  if (!gestesDeplacantsOuverts(s)) return out.map(deGroupe);
   const bordees = new Set(duGroupe.map((a) => a.cle));
   const ailleurs: (GesteDExploration & { pas: number; arete: string })[] = [];
   for (const { x, y } of casesADenivele(scene, z)) {
@@ -91,5 +109,5 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   }
   const plusProches = new Map<string, GesteDExploration>();
   for (const { libelle, gestes, arete } of ailleurs.sort((a, b) => a.pas - b.pas)) if (!plusProches.has(arete)) plusProches.set(arete, { libelle, gestes });
-  return [...out, ...plusProches.values()];
+  return [...out, ...plusProches.values()].map(deGroupe);
 }

@@ -100,7 +100,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   actionId)` ou `ramasserLObjet(entityId, key, heroId?)` selon ce qu'elle porte. `ui_cancel` libère la souris pour le
   chrome, un clic la reprend. Regard : comme `exploration-dessus`.
 - Décision : « Pourquoi faut réinventer le mode libre ? Pour moi les cases n ont de sens qu en combat mais c est
-  tout » (utilisateur, 2026-11-17). `pivoterLeGroupe` et `avancerDUnPas` (`src/noyau/actionsDuNoyau.ts:254`, `:258`)
+  tout » (utilisateur, 2026-11-17). `pivoterLeGroupe` et `avancerDUnPas` (`src/noyau/actionsDuNoyau.ts:254`, `:261`)
   sont donc à retirer du noyau : aucune vue ne les joue.
 - À valider : l'infobulle sur ce que vise le point de mire et les pastilles des choses à portée, que l'immersion
   n'affiche pas aujourd'hui ; les PNJ visibles dans cette vue.

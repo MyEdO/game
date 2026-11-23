@@ -10,15 +10,15 @@ import type { EtatDeJeu } from './etat';
 import { brouillonTenu } from './acteDeSoin';
 
 /**
- * Rend l'écriture que la transition de `prev` à `s` appelle, ou `null`. Elle compose quatre
+ * Rend l'écriture que la transition de `prev` à `s` appelle, ou `null`. Elle compose cinq
  * observations de la même écriture : les Blessures des combattants touchés (`blessuresSuivies`),
- * l'occupation des sièges (`chaisesLevees`), puis la mémoire de la vue (`memoireDeLaVue`), lue sur l'état que les deux
- * premières rendent : la vision qu'elles changent est celle que le propriétaire va poser ; enfin le
- * brouillon du soin de l'infirmerie (`brouillonTenu`), sur les Blessures réconciliées.
+ * l'occupation des sièges (`chaisesLevees`), le meneur désigné qui a quitté le groupe (`meneurParti`), puis la mémoire de
+ * la vue (`memoireDeLaVue`), lue sur l'état que les trois premières rendent : la vision qu'elles changent est celle que le
+ * propriétaire va poser ; enfin le brouillon du soin de l'infirmerie (`brouillonTenu`), sur les Blessures réconciliées.
  */
 export function transitionDuJeu(prev: EtatDeJeu, s: EtatDeJeu): Partial<EtatDeJeu> | null {
   const scene = chaisesLevees(prev, s);
-  const ecriture = { ...blessuresSuivies(prev, s), ...(scene ? { scene } : {}) };
+  const ecriture = { ...blessuresSuivies(prev, s), ...(scene ? { scene } : {}), ...meneurParti(prev, s) };
   Object.assign(ecriture, memoireDeLaVue(prev, { ...s, ...ecriture }));
   Object.assign(ecriture, brouillonTenu({ ...s, ...ecriture }));
   return Object.keys(ecriture).length ? ecriture : null;
@@ -87,8 +87,17 @@ function chaisesLevees(prev: EtatDeJeu, s: EtatDeJeu): EtatDeJeu['scene'] {
   return debout === scene ? null : debout;
 }
 
+/**
+ * LE MENEUR DÉSIGNÉ QUI QUITTE LE GROUPE N'EN EST PLUS LE MENEUR (#4530), par la même observation de transition que
+ * `chaisesLevees` : tout écrivain de `party` y passe. Un héros à terre reste du groupe et garde sa désignation.
+ */
+function meneurParti(prev: EtatDeJeu, s: EtatDeJeu): Pick<EtatDeJeu, 'meneurChoisi'> | null {
+  const { meneurChoisi } = s;
+  return s.party === prev.party || meneurChoisi === null || s.party.some((h) => h.id === meneurChoisi) ? null : { meneurChoisi: null };
+}
+
 /** Les entrées de la vision du groupe (`VisionInput`, `visionState.ts`). */
-const ENTREES_DE_LA_VISION = ['scene', 'battle', 'party', 'partyPos', 'gameTime', 'lightLevel'] as const satisfies readonly (keyof EtatDeJeu)[];
+const ENTREES_DE_LA_VISION = ['scene', 'battle', 'party', 'meneurChoisi', 'partyPos', 'gameTime', 'lightLevel'] as const satisfies readonly (keyof EtatDeJeu)[];
 
 /**
  * @contrat Méthodes

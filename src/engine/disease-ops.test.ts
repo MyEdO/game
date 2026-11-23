@@ -83,8 +83,8 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
 });
 
 describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larmes de Shallya (LDB 42)', () => {
-  it('preventInfection pose woundDressed (pas d’Infection post-critique, LDB 18 l.298)', () => {
-    const c = dummy({});
+  it('preventInfection panse la Blessure Critique de la rencontre : woundDressed (pas d’Infection post-critique, LDB 18 l.298, LDB 72 l.20)', () => {
+    const c = dummy({ tookCriticalThisFight: true });
     applyOps(c, [{ op: 'preventInfection' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Cautériser' });
     expect(c.woundDressed).toBe(true);
   });

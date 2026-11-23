@@ -18,6 +18,7 @@ import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif'
 import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
+import { refusDeDecisionDeGroupe } from './netOwnership';
 import { porteurDExploration } from './gesteDArete';
 import { marcherLeChemin } from './marcheDuGroupe';
 import { roomFocusAt } from './monde/rooms';
@@ -225,6 +226,8 @@ export function creerActionsDInteraction(get: Get, set: Set) {
   return {
     cliquerLaCase: (pt, entite, opts) => {
       if (get().battle) return void (entite ? get().cliquerLeCombattant(entite, opts) : get().cliquerLaCaseDuCombat(pt, opts));
+      const refus = refusDeDecisionDeGroupe(get());
+      if (refus) return void refuserGeste(get, set, refus);
       const intention = intentionDuClicDExploration(get(), pt, entite ?? null);
       if (!intention) return;
       switch (intention.kind) {

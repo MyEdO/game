@@ -1328,3 +1328,38 @@ describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
     expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
   });
 });
+
+describe('#4804 — la route passe à pied en tête de la journée où un héros n’est plus en selle', () => {
+  /** Trajet de `km` en selle (63 km le premier jour) ; le héros descend à la halte du premier soir, puis dort. */
+  function descendreALaHalte(km: number): void {
+    setRule('voyage-allures', true);
+    seedBattleRng(1);
+    setup(map({ km, perilDie: 0 }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
+    banc.setState({ possessions: [{ uid: 'm1', ownerId: 'h', nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession] });
+    get().partirEnVoyage('r1', 'monture', { cadence: 'commande' });
+    expect(get().pendingRest, 'prémisse : la halte du premier soir').toBeTruthy();
+    expect(get().travelPlan?.mode).toBe('monture');
+    get().quitterLaSelle('m1');
+    get().fenetreValider('repos');
+  }
+
+  it('descendre à la halte du soir : le lendemain part à pied, sans calage', () => {
+    descendreALaHalte(200);
+    for (let i = 0; i < 40 && get().pendingCascade; i++) avanceEtapeCascade(get);
+    expect(get().travelPlan?.mode).toBe('pied');
+    expect(get().travelPlan?.interrupted ?? false).toBe(false);
+    expect(get().journal).toContain(t('tf.pasTousMontes'));
+    expect(get().journal).not.toContain(t('tf.surcharge'));
+    const log = get().travelPlan?.log ?? [];
+    const jourDuLendemain = log[log.length - 1];
+    expect(jourDuLendemain?.lines.map((l) => l.text)).toContain(t('tf.pasTousMontes'));
+  });
+
+  it('arrivée le jour du passage à pied : le récit de voyage dit « à pied »', () => {
+    descendreALaHalte(80);
+    runToEnd();
+    expect(get().travelPlan, 'arrivé').toBeNull();
+    expect(get().travelRecap?.status).toBe('arrived');
+    expect(get().travelRecap?.mode).toBe('pied');
+  });
+});

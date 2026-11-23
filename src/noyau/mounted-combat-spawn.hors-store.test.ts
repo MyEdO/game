@@ -18,8 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * #621 — la monture de COMBAT du héros (`heroCombatMount`) accepte un cavalier si elle n'est PAS
- * Belliqueuse OU a Dressé (Monture) (LDB 339 l.… ; `possessionCombatRideable`) — INDÉPENDANT du profil
+ * #621 — la monture de COMBAT du héros (`heroCombatMount`, `accepteUnCavalier`, LDB 85 l.112) est INDÉPENDANTE du profil
  * EDOC de voyage (`heroMount`/`partyMounts`, qui exige `montures.json` : le `cheval` LDB n'en a pas).
  * Spawnée en ALLIÉ `id = possession.uid`, appairée (`mountUp`).
  */
@@ -52,6 +51,19 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     expect(mount!.mountable).toBe(true);
     const heroCombatant = battle.combatants.find((c) => c.id === hero.id)!;
     expect(heroCombatant.mountId).toBe('pos-cheval-1');
+  });
+
+  it('un cheval dont le héros est descendu hors combat n’est pas monté en rencontre (#4804)', () => {
+    const hero = makeHero();
+    banc.setState({ party: [hero], battle: null });
+    banc.getState().lancerLaScene(testScene());
+    banc.setState({ possessions: [{ uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] }] });
+    banc.getState().quitterLaSelle('pos-cheval-1');
+    banc.getState().lancerLeCombat('enc-mutants');
+
+    const battle = banc.getState().battle!;
+    expect(inBattleId(battle, hero.id)?.mountId).toBeUndefined();
+    expect(inBattleId(battle, 'pos-cheval-1')).toBeUndefined();
   });
 
   it('une MULE (Belliqueuse absente de ses traits, Dressé (Monture) inné) est spawnée en allié', () => {
@@ -209,6 +221,27 @@ describe('Combat monté AUTHORÉ — `mount` / `ridesEntityId` au spawn (LDB 14 
     expect(monture.riderId).toBeUndefined();
     expect(cavalier.mountId).toBeUndefined();
     expect(monture.mountable).toBe(true); // `mount: true` du membre tient : seul l'appairage manque
+  });
+
+  it('`ridesEntityId` vers une monture qui refuse le cavalier (`accepteUnCavalier`, LDB 85 l.112) : pas d’appairage', () => {
+    const enc = buildEncounter({
+      id: ENC_CAVALERIE,
+      enemies: [
+        { creature: { id: 'chien' }, pos: { x: 16, y: 11 }, mount: true },
+        { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, rides: 0 },
+      ],
+    });
+    const scene: Scene = {
+      ...testScene(),
+      id: 'test-cavalerie',
+      entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
+      encounters: [enc.encounter],
+    };
+    const battle = startCavalerie(scene);
+    const chien = battle.combatants.find((c) => c.id === enc.entities[0].id)!;
+    const mutant = battle.combatants.find((c) => c.id === enc.entities[1].id)!;
+    expect(chien.riderId).toBeUndefined();
+    expect(mutant.mountId).toBeUndefined();
   });
 });
 

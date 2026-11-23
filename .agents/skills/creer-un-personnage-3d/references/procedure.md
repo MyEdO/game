@@ -847,7 +847,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
+GLB vont à la Release `modeles-3d-<c>` du premier caractère de leur empreinte (#4823) par une branche `transfert/<nom>` partie de la branche de travail, qui porte les
 provenances neuves qui les épinglent, fabriquée par `npm run godot:transfert -- <nom> <fichier>...`, que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
 
@@ -1239,7 +1239,7 @@ Tous les refus précèdent publication et écriture ; la CLI sort en 1 (usage in
 Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les licences et, au
 schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
-`modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
+`modeles-3d-<c>` de leur premier caractère avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
 Une base est publiable : la clé `hors_release` dans son `manifest.json` est refusée
 `[base-hors-release]`, avec ou sans `--sans-publier`. Seul un élément d'essai dont le propre
 `manifest.json` porte `hors_release` (une raison non vide) est hors Release : il est refusé

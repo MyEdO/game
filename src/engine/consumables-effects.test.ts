@@ -222,8 +222,9 @@ describe('belladone (LDB 72 l.18)', () => {
 });
 
 describe('cataplasme-de-guerison (LDB 72 l.20) — prévention infection', () => {
-  it("pose woundDressed : « Vous ne subissez aucune Infection mineure issue d'une Blessure Critique »", () => {
+  it("panse la Blessure Critique de la rencontre, woundDressed : « Vous ne subissez aucune Infection mineure issue d'une Blessure Critique »", () => {
     const c = makeTarget();
+    c.tookCriticalThisFight = true;
     drinkPure(c, 'cataplasme-de-guerison');
     expect(c.woundDressed).toBe(true);
   });

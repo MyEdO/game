@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
@@ -28,7 +28,7 @@ import {
 } from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  MARQUEUR_DES_VERIFIES, suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
+  MARQUEUR_DES_VERIFIES, suivisHorsRelease, releaseDe, urlDAsset, DEPOT, urlApiDeLaRelease, type AssetAPublier, type Gh,
   empreinteDesSources, verdictsDuDossier,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
@@ -875,7 +875,7 @@ describe('recupererModeles', () => {
     const telecharger = async (url: string, init?: { readonly headers: Readonly<Record<string, string>> }) => {
       demandes.push(`${url} ${init?.headers.accept ?? '-'}`);
       const api = `https://api.github.com/repos/${DEPOT}/releases/assets/`;
-      const octets = url === URL_API_DE_LA_RELEASE
+      const octets = url === urlApiDeLaRelease(releaseDe(nomDAsset(EMPREINTE, 'glb')))
         ? new TextEncoder().encode(JSON.stringify({ assets: Object.keys(listes).map((name, i) => ({ name, url: `${api}${i}` })) }))
         : url.startsWith(api) ? Object.values(listes)[Number(url.slice(api.length))] : undefined;
       return { ok: !!octets, status: octets ? 200 : statut, arrayBuffer: async () => (octets ?? new Uint8Array()).slice().buffer };
@@ -887,7 +887,7 @@ describe('recupererModeles', () => {
     const { demandes, telecharger } = releaseEnPanne(504, { [nomDAsset(EMPREINTE, 'glb')]: GLB_DE_BASE });
     await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
     expect(readFileSync(join(dossier, 'Essai.glb'))).toEqual(Buffer.from(GLB_DE_BASE));
-    expect(demandes).toEqual([`${urlDAsset(nomDAsset(EMPREINTE, 'glb'))} -`, `${URL_API_DE_LA_RELEASE} application/vnd.github+json`,
+    expect(demandes).toEqual([`${urlDAsset(nomDAsset(EMPREINTE, 'glb'))} -`, `${urlApiDeLaRelease(releaseDe(nomDAsset(EMPREINTE, 'glb')))} application/vnd.github+json`,
       `https://api.github.com/repos/${DEPOT}/releases/assets/0 application/octet-stream`]);
   });
   it('lève AssetIntrouvable quand le repli ne trouve pas le fichier dans la liste de la Release', async () => {
@@ -1000,6 +1000,14 @@ describe('les verdicts gardés (`verdictsDuDossier`)', () => {
   });
 });
 
+describe('releaseDe', () => {
+  it('range un fichier dans la Release du premier caractère hexadécimal de son nom, une par caractère', () => {
+    const hexa = [...'0123456789abcdef'];
+    expect(hexa.map((c) => releaseDe(nomDAsset(c.repeat(64), 'glb')))).toEqual(hexa.map((c) => `modeles-3d-${c}`));
+    expect(urlDAsset(nomDAsset('a'.repeat(64), 'ogg'))).toBe(`https://github.com/${DEPOT}/releases/download/modeles-3d-a/${'a'.repeat(64)}.ogg`);
+  });
+});
+
 describe('publierAssets', () => {
   /** Un `gh` simulé : la vue de la Release rend les noms `vue`, ou l'échec `vue` ; `create` et `upload` rendent
    *  `reponses` (succès par défaut) ; toute autre commande lève. Il consigne ses appels. */
@@ -1016,16 +1024,42 @@ describe('publierAssets', () => {
     return { appels, gh };
   };
   const absente = { status: 1, stderr: 'release not found' };
-  const asset = () => {
+  /** Le fichier d'octets `octets` déposé sous un dossier temporaire, nommé par son empreinte. */
+  const assetDe = (octets: Uint8Array): AssetAPublier => {
     const d = temporaire();
-    writeFileSync(join(d, 'animated.glb'), GLB_DE_BASE);
-    return { chemin: join(d, 'animated.glb'), nom: `${EMPREINTE}.glb` };
+    writeFileSync(join(d, 'animated.glb'), octets);
+    return { chemin: join(d, 'animated.glb'), nom: nomDAsset(sha256(octets), 'glb') };
   };
-  it('crée la Release absente, puis y verse le fichier sous son nom d’asset', () => {
+  const asset = () => assetDe(GLB_DE_BASE);
+  const RELEASE = releaseDe(`${EMPREINTE}.glb`);
+  /** Des octets dont l'empreinte ne commence pas par le caractère de celle de `GLB_DE_BASE`. */
+  const AUTRE = (() => {
+    for (let i = 0; ; i++) {
+      const octets = new Uint8Array(Buffer.from(`autre fichier ${i}`));
+      if (sha256(octets)[0] !== EMPREINTE[0]) return octets;
+    }
+  })();
+  it('crée la Release absente du préfixe du nom, titrée de ce préfixe, puis y verse le fichier sous son nom d’asset', () => {
     const { appels, gh } = ghSimule(absente);
     expect(publierAssets([asset()], gh)).toEqual([`${EMPREINTE}.glb`]);
-    expect(appels.map((a) => a.slice(0, 3))).toEqual([['release', 'view', TAG], ['release', 'create', TAG], ['release', 'upload', TAG]]);
+    expect(appels.map((a) => a.slice(0, 3))).toEqual([['release', 'view', RELEASE], ['release', 'create', RELEASE], ['release', 'upload', RELEASE]]);
+    expect(appels[1]?.[appels[1].indexOf('--title') + 1]).toBe(`Modèles 3D ${EMPREINTE[0]}`);
     expect(appels[2]?.[appels[2].length - 1]?.endsWith(`${EMPREINTE}.glb`)).toBe(true);
+  });
+  it('verse deux fichiers de préfixes différents dans deux Releases distinctes, un view et un upload chacune', () => {
+    const { appels, gh } = ghSimule([]);
+    const autre = assetDe(AUTRE);
+    expect(publierAssets([asset(), autre], gh)).toEqual([`${EMPREINTE}.glb`, autre.nom]);
+    const autreRelease = releaseDe(autre.nom);
+    expect(autreRelease).not.toBe(RELEASE);
+    expect(appels.map((a) => a.slice(1, 3))).toEqual([['view', RELEASE], ['view', autreRelease], ['upload', RELEASE], ['upload', autreRelease]]);
+    expect(appels.filter((a) => a[1] === 'upload').map((a) => a.filter((x) => x.endsWith('.glb')).map((x) => basename(x)))).toEqual([[`${EMPREINTE}.glb`], [autre.nom]]);
+  });
+  it('ne vérifie et ne verse que ce que chaque Release ne porte pas', () => {
+    const autre = assetDe(AUTRE);
+    const { appels, gh } = ghSimule([`${EMPREINTE}.glb`]);
+    expect(publierAssets([asset(), autre], gh)).toEqual([autre.nom]);
+    expect(appels.filter((a) => a[1] === 'upload').map((a) => a[2])).toEqual([releaseDe(autre.nom)]);
   });
   it('verse une fois un fichier que plusieurs modèles partagent', () => {
     const { appels, gh } = ghSimule([]);
@@ -1039,7 +1073,7 @@ describe('publierAssets', () => {
   });
   it('lève, avec la sortie de gh, quand la vue échoue autrement que par une Release absente', () => {
     const { appels, gh } = ghSimule({ status: 4, stderr: 'HTTP 401: Bad credentials' });
-    expect(() => publierAssets([asset()], gh)).toThrow(`gh release view ${TAG} : code 4\nHTTP 401: Bad credentials`);
+    expect(() => publierAssets([asset()], gh)).toThrow(`gh release view ${RELEASE} : code 4\nHTTP 401: Bad credentials`);
     expect(appels).toHaveLength(1);
   });
   it('lève sans rien verser sur un fichier dont l’empreinte n’est pas celle de son nom', () => {
@@ -1050,7 +1084,7 @@ describe('publierAssets', () => {
   });
   it('lève, avec la sortie de gh, quand le versement échoue', () => {
     const { gh } = ghSimule([], { upload: { status: 1, stdout: '', stderr: 'HTTP 422: asset exists' } });
-    expect(() => publierAssets([asset()], gh)).toThrow(/^gh release upload modeles-3d .* : code 1\nHTTP 422: asset exists$/s);
+    expect(() => publierAssets([asset()], gh)).toThrow(new RegExp(`^gh release upload ${RELEASE} .* : code 1\nHTTP 422: asset exists$`, 's'));
   });
 });
 

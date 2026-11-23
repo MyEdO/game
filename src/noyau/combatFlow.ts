@@ -219,7 +219,7 @@ import {
   composantLie,
   prendUnComposant,
   castInfoIsPrayer,
-  focusSkillFor,
+  focusDRExpectation,
   castLandProbability,
   malevolentInfluenceSeverity,
   malepierreItemOf,
@@ -324,7 +324,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
@@ -6391,7 +6391,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   const flyM = flyMeters(enemy.traits); // Vol (Indice) (LDB 85 l.433) : remplace la Marche s'il porte plus loin
   if (flyM != null) movement = Math.max(movement, Math.floor(flyM / 2));
   const perceived = perceivedTiles(
-    { scene, battle, party: get().party, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
+    { scene, battle, party: get().party, meneurChoisi: get().meneurChoisi, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
     enemy,
   );
   // Sorts connus, résolus + enrichis (portée en cases, forme, fiabilité d'incantation, Focalisation, Unicité).
@@ -6410,8 +6410,9 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     // et pose `spell.id` sur le lien → Unicité (plus de re-invocation en boucle). La `target.kind='area'` d'un
     // tel sort (Réanimation) est COSMÉTIQUE — `applySummon` place les invoqués près du lanceur.
     const hasAllySummon = spellOps(data.effects, 'caster').some((o) => o.op === 'summon' && o.allyOfCaster !== false);
+    const drParRound = !ready && !hasAllySummon && isArcaneSpell(data) ? focusDRExpectation(enemy, data) : null;
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
-      : (!hasAllySummon && landProb < 0.5 && isArcaneSpell(data) && !!focusSkillFor(enemy, data)) ? 'focusable'
+      : drParRound ? { rounds: Math.ceil(Math.max(0, cn - (enemy.focus?.spell === data.id ? enemy.focus.dr : 0)) / drParRound), landProbNI0: castLandProbability(enemy, data, true) }
         : 'none';
     const radius = hasAllySummon || ancreDeLaZdE(data) === 'target' ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'
@@ -9483,8 +9484,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   }
   // Combat monté (LDB 14) : un PNJ à pied, non Engagé, adjacent à une monture LIBRE de son camp décide
   // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
+  // Le groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
-  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy)) {
+  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(battle, scene, enemy);
     if (freeMount) {
       mountUp(enemy, freeMount);

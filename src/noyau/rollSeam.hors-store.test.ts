@@ -255,8 +255,8 @@ describe('resultLine — dénouement sans roll/target/sl/won (#295 Lot 0, Décis
   });
 
   it('une conséquence sans variation est neutre, une Corruption écartée reste un gain (#4574)', () => {
-    const hilda = () => combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10) });
-    const soinNul = applyOps(hilda(), [{ op: 'heal', amount: 4 }], { idNeuf: idsDeTest, rng: desDuTest });
+    const hilda = () => combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10, 6) });
+    const soinNul = applyOps(hilda(), [{ op: 'heal', amount: 0 }], { idNeuf: idsDeTest, rng: desDuTest });
     const ecartee: Consequence = { lignes: ['Hilda : protection.'], faits: [{ genre: 'corruption', cible: 'h', camp: 'groupe', valeur: 0, contre: 'protection' }] };
     expect(resultLines([soinNul, ecartee]).map((l) => l.tone)).toEqual(['neutre', 'reussite']);
   });

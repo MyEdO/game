@@ -195,13 +195,13 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   it('sort FOCALISABLE (peu fiable d’un jet) et rien de faisable → focus', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'heros', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', landProb: 0.1, focusState: { rounds: 2, landProbNI0: 0.9 } })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
   });
 
-  it('focalisable MAIS adversaire au contact + arme de mêlée → se replie en mêlée (pas focus)', () => {
+  it('focalisable MAIS adversaire au contact + arme de mêlée → ne focalise pas (risque d’interruption, LDB 46 l.144)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [MELEE] });
     const adj = mk('adj', 'heros', { x: 5, y: 6 });
-    expect(chooseEnemyAction(input(e, [adj], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'melee', targetId: 'adj' });
+    expect(chooseEnemyAction(input(e, [adj], { spells: [castable({ id: 'vortex-d-ames', landProb: 0.1, focusState: { rounds: 2, landProbNI0: 0.9 } })] })).kind).not.toBe('focalisation');
   });
 
   it('ZdE : ≥2 héros groupés → castArea couvrant le paquet', () => {

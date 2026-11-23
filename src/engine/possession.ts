@@ -17,6 +17,7 @@ import type { LotDeVivres } from './provisions';
 import type { ManannMood, MeteoImposeeDuNavire, ModificateurDuNavire } from './seaVoyage';
 import { findVehicleById, findCreatureById, findSiegeEngineById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
+import type { TraitsDesignes } from './statEntry';
 
 export type PossessionLocation =
   | { kind: 'avec-le-groupe' }
@@ -68,6 +69,7 @@ export type Possession = PossessionCommon &
         appearanceSeed?: string;
         wounds?: { current: number; max: number }; // max re-dérivé à chaque projection (clamp)
         mountInjury?: MountInjury; // EDOC 07 Incidents de Monte
+        sansCavalier?: true; // LDB 85 l.112, #4804
         learnedTraits?: string[]; // dresse-* appris (LDB 23 → LDB 85)
       }
     | {
@@ -144,18 +146,11 @@ export function possessionRideable(p: Possession): boolean {
   return !mountIncidentEffects(p.mountInjury)?.preventsMount;
 }
 
-/** Traits (innés + appris) d'une bête-possession. */
-function beteTraitIds(p: Possession & { nature: 'bete' }): string[] {
+/** Profil d'une bête-possession tel que le spawn le projette (`creatureToCombatant`, `statblockToCombatant`) : traits
+ *  innés et appris, Taille du profil (`livingSize`, `tailleDuProfil`). PUR. */
+export function profilDeLaBete(p: Possession & { nature: 'bete' }): { traits: TraitsDesignes; size: SizeCategory } {
   const innate = 'id' in p.ref ? (findCreatureById(p.ref.id)?.traits ?? []) : (p.ref.custom.traits ?? []);
-  return [...innate.map((t) => t.id), ...(p.learnedTraits ?? [])];
-}
-
-/** Cette bête accepte-t-elle un cavalier EN COMBAT ? (LDB 339 : ¬Belliqueux OU Dressé Monture),
- *  et encore montable (`possessionRideable`, Incidents de monte EDOC 07). PUR. */
-export function possessionCombatRideable(p: Possession): boolean {
-  if (!possessionRideable(p) || p.nature !== 'bete') return false;
-  const t = beteTraitIds(p);
-  return !t.includes('belliqueux') || t.includes('dresse-monture');
+  return { traits: [...innate, ...(p.learnedTraits ?? []).map((id) => ({ id }))], size: livingSize(p.ref) };
 }
 
 /** Libellé affiché : `label` d'instance (« Marguerite ») sinon le libellé du catalogue de sa nature

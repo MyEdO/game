@@ -10,11 +10,13 @@ import type { Possession } from './possession';
 import { MOUNT_INCIDENTS } from './travelTables';
 import {
   ALLURE_KMH_PER_M, MOUNT_PROFILES, mountProfileById, mountProfileForCreature, mountBE,
-  heroMount, partyMounts, partyFullyMounted, availableAllures, mountedSpeedKmh,
+  heroMount, heroCombatMount, partyMounts, partyFullyMounted, availableAllures, mountedSpeedKmh,
   allureEnduranceHours, lameLedCapKmh, resolveMountIncident, resolveMountedDay,
   type PartyMount, type MountInjury,
 } from './mountTravel';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { createHero } from './character';
+import { idsDeTest } from './idsDeTest.testkit';
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -222,5 +224,38 @@ describe('resolveMountedDay — sur-endurance (EDOC 07 l.146)', () => {
       }
     }
     expect(collapsedSeen).toBe(true);
+  });
+});
+
+describe('la monture porte son cavalier — `accepteUnCavalier` (LDB 85 l.112 ; arbitrage du 2026-11-23, #4804)', () => {
+  const heros = (speciesId: string) => createHero({ idNeuf: idsDeTest, speciesId, careerId: 'ratier', label: speciesId, seed: 1 });
+
+  it('voyage : un héros ogre avec un poney n’a pas de monture, un humain en a une', () => {
+    const ogre = heros('ogres');
+    const humain = heros('humains-reiklander');
+    expect(heroMount(ogre, [beast(ogre.id, 'poney')])).toBeUndefined();
+    expect(heroMount(humain, [beast(humain.id, 'poney')])?.possession.uid).toBe(`pos-${humain.id}-poney`);
+  });
+
+  it('combat : un humain ne monte pas son chien (Taille Petite)', () => {
+    const humain = heros('humains-reiklander');
+    expect(heroCombatMount(humain, [beast(humain.id, 'chien')])).toBeUndefined();
+  });
+});
+
+describe('sans choix, la monture reste la première bête qui porte le héros (#4804)', () => {
+  const h = hero();
+  const b = (uid: string, extra: Partial<Possession> = {}): Possession =>
+    ({ uid, ownerId: h.id, nature: 'bete', ref: { id: 'cheval-de-trait' }, location: { kind: 'avec-le-groupe' }, items: [], ...extra } as Possession);
+  it.each<[string, Possession[], string]>([
+    ['deux chevaux, A intact', [b('A'), b('B')], 'A'],
+    ['A détruit', [b('A', { destroyed: true }), b('B')], 'B'],
+    ['A laissé au lieu', [b('A', { location: { kind: 'au-lieu', placeId: 'x' } }), b('B')], 'B'],
+    ['A Boiteux', [b('A', { mountInjury: 'boiteux' } as Partial<Possession>), b('B')], 'B'],
+    ['A embarqué', [b('A', { location: { kind: 'embarquee', hostUid: 'N' } }), b('B')], 'B'],
+  ])('%s', (_cas, possessions, monture) => {
+    expect(heroMount(h, possessions)?.possession.uid).toBe(monture);
+    expect(heroCombatMount(h, possessions)?.uid).toBe(monture);
+    expect(partyFullyMounted([h], possessions)).toBe(true);
   });
 });

@@ -1,11 +1,12 @@
 /**
- * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
+ * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie et les événements de ses appels, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
  * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
-export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
+export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
+export type { ChargeDAttaque, TestResolu } from './bus';
 export type { LancementDeScenario } from './lancementDeScenario';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';
@@ -18,7 +19,8 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney, fromBrass, libelleDuStatut } from '../engine/money';
 export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
-export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
+export { libelleDeDistance } from '../engine/travel';
 export { currentSeason } from '../engine/travelStages';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
@@ -122,7 +124,7 @@ export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY 
 export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { Combatant } from '../engine/types';
+export type { Combatant, ItemInstance } from '../engine/types';
 export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
@@ -130,10 +132,10 @@ export { quiTientLaMain, withActingSeat } from './netOwnership';
 export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { GUEST_INTENTS } from './intentionsDeSiege';
-export { DESIGNATIONS, type Designation } from './designations';
+export { DESIGNATIONS, type Designation, type IdDEntiteDeScene, type IdDeHeros } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
-export { capDuGroupe, casesDuGroupe, porteurParId, PARTY_MAX } from './monde/combatants';
+export { capDuGroupe, casesDuGroupe, meneurDuMonde, porteurParId, PARTY_MAX } from './monde/combatants';
 export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seating';
 export { assoirALaPlace, ECRITURES_DES_PORTEURS, retraitOffert, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
@@ -332,11 +334,11 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
-export { carteEnVue, trajetsDepuis, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
+export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
-export { voyageEnVue } from './voyageEnVue';
+export { voyageEnVue, type VoyageEnVue } from './voyageEnVue';
 export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
