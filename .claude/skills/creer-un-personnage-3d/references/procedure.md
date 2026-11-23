@@ -261,6 +261,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
   à défaut de matière au catalogue (peau), un gris de construction `(couleur, métal, rugosité)`.
+  Une matière à `opacity` (entre 0 et 1, absente : opaque) laisse voir ce qui est derrière elle, d'autant par face
+  traversée (une vitre en volume clos en montre deux) : le GLB la porte en
+  alpha de sa couleur (`alphaMode` `BLEND`), que la palette du montage garde (`MontageDeComposition.peindre`), et elle
+  se dessine avant le voile de son mesh (`MontageDeComposition.scene_lue`, recette `recettes/vitre-transparente.gd`) ;
+  son ombre reste entière. Une vitre prend `verre` ; une glace, qui réfléchit sans laisser voir, `miroir`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
   provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
   compare aux sommes épinglées ; une texture sans image source (un bruit, un grain) a pour `source`
