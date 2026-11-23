@@ -1,24 +1,146 @@
-/* Les services (`services.ts`) : un panneau sur le village, le bâtiment en tête, la page, son pied ; le cartouche des
-   lieux. */
-.tete-service { flex: none; display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--filet-encre); }
-.tete-service .tete-hote { display: flex; align-items: center; gap: 10px; }
-.tete-service .effet { margin: 0; font-size: 14px; line-height: 19px; color: var(--encre-2); font-style: italic; }
-.tete-service .effet.suivant { font-style: normal; color: var(--encre); }
-.tete-service .ligne-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.pour-qui { flex: none; display: grid; grid-template-columns: auto 180px 1fr; align-items: center; gap: 10px; }
-.croix-panneau { position: absolute; right: 10px; top: 8px; width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; color: var(--encre); background: rgba(60,40,20,.12); }
-.croix-panneau:hover { background: rgba(60,40,20,.25); }
+/* Les services (`services.ts`) : un panneau sur le village, le bâtiment en tête sur une ligne, sa page en grandes
+   cartes qui remplissent le cadre, son pied ; le cartouche des lieux. */
 .cartouche-lieu-fixe > .fond { display: flex; align-items: center; padding: 10px 16px; }
-.page-service > .fond { padding-top: 30px; overflow-y: auto; scrollbar-width: thin; gap: 8px; }
-.place-cadre > .page-service > .fond { overflow: hidden; }
-.corps-service { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px 28px; align-content: start; }
-.corps-service > :is(.rub, .glose, .chronique, .emporte, p) { grid-column: 1 / -1; }
-.page-service .talent { margin-top: 0; }
-.page-service .talent .plaque { width: auto; min-width: 94px; }
 .cartouche-lieu-fixe .titre, .cartouche-lieu-fixe .sous-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cartouche-lieu-fixe .cartouche > div { min-width: 0; }
-.pied-service { flex: none; display: grid; gap: 6px; justify-items: start; padding-top: 10px; border-top: 1px solid var(--filet-encre); }
-.chronique { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14.5px; line-height: 1.45; }
-.chronique li { padding-left: 12px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
+.place-cadre > .page-service > .fond { padding: 26px 18px 12px; gap: 10px; overflow: hidden; }
+
+.tete-service { flex: none; display: flex; align-items: center; gap: 18px; min-height: 46px; padding-bottom: 10px; border-bottom: 1px solid var(--filet-encre); }
+.enseigne-service { flex: none; display: flex; align-items: center; gap: 10px; }
+.tete-service .paliers { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.tete-service .effet { margin: 0; font-size: 14.5px; line-height: 19px; color: var(--encre-2); font-style: italic; }
+.tete-service .effet.suivant { font-style: normal; color: var(--encre); }
+.tete-service .effet .rub { margin-right: 8px; }
+.tete-service > .plaque { min-width: 190px; }
+.bourse-service { flex: none; display: flex; gap: 6px; }
+.bourse-service .etiquette.compte { height: 26px; padding: 0 12px; border-radius: 13px; font-size: 14px; }
+.croix-panneau { flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; cursor: pointer; font-size: 21px; line-height: 1; color: var(--encre); background: rgba(60,40,20,.12); }
+.croix-panneau:hover { background: rgba(60,40,20,.25); }
+
+.corps-service { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; container-type: size; }
+.pied-service { flex: none; display: flex; justify-content: center; padding-top: 10px; border-top: 1px solid var(--filet-encre); }
+.pied-service .plaque { min-width: 340px; }
+
+/* une carte : un choix, son geste au pied */
+.carte-service { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 14px; border-radius: 3px; text-align: center; background: rgba(255,246,218,.34); box-shadow: inset 0 0 0 1px var(--filet-encre), 0 2px 5px rgba(70,40,10,.18); }
+.carte-service > .plaque { align-self: stretch; margin-top: auto; }
+.carte-service .effet { margin: 0; font-size: 16.5px; line-height: 23px; color: var(--encre); }
+.carte-service > .nom-propre { font-size: 26px; line-height: 30px; }
+.vignette-carte { flex: none; display: grid; place-items: center; width: 116px; height: 116px; margin-bottom: 4px; border-radius: 3px; background: radial-gradient(90% 90% at 50% 40%, #3b2718, #120b07); box-shadow: 0 0 0 1px var(--trait-encre), 0 4px 10px var(--ombre); }
+.vignette-carte > .medaillon { transform: scale(1.7); }
+.carte-service.clos { background: rgba(60,40,20,.07); box-shadow: inset 0 0 0 1px rgba(60,40,20,.25); }
+.carte-service.clos :is(.nom-propre, .effet, .sous-titre) { opacity: .6; }
+.corps-service.rangee { display: flex; justify-content: center; gap: 14px; }
+.corps-service.rangee > .carte-service { flex: 0 1 300px; }
+.placard { flex: 1; grid-column: 1 / -1; align-self: center; display: grid; justify-items: center; gap: 8px; text-align: center; }
+.placard .glose { font-size: 15px; line-height: 20px; }
+
+/* le relais */
+.recrue .portrait { flex: 0 1 168px; width: auto; height: auto; min-height: 96px; aspect-ratio: 136 / 168; }
+.recrue .nom-propre { margin-top: 4px; }
+.recrue .role { display: flex; align-items: center; gap: 6px; font: 16px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--sepia); }
+.recrue .traits { justify-content: center; }
+.recrue .effet { font-style: italic; color: var(--encre-2); }
+
+/* un héros servi à gauche, son étal à droite */
+.corps-service:is(.forge, .chapelle, .salle) { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; overflow: hidden; }
+.corps-service.salle { grid-template-columns: 300px minmax(0, 1fr) minmax(0, 2fr); }
+.porteur { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding-right: 16px; border-right: 1px solid var(--filet-encre); overflow-y: auto; scrollbar-width: thin; }
+.etal { display: grid; grid-template-columns: repeat(var(--colonnes, 4), minmax(0, 1fr)); gap: 10px; align-content: start; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.etal.ample { grid-auto-rows: minmax(0, 1fr); align-content: stretch; }
+
+/* la forge */
+.emplacement { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--encre); background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); }
+.emplacement:hover { box-shadow: inset 0 0 0 1px var(--rouille); }
+.emplacement.choisi { background: rgba(201,161,74,.26); box-shadow: inset 0 0 0 2px var(--laiton), 0 0 10px var(--halo); }
+.emplacement .boite-objet { width: 52px; height: 52px; }
+.emplacement .boite-objet.sans-objet { border: 1.5px dashed var(--trait-encre); background: rgba(60,40,20,.06); box-shadow: none; }
+.emplacement .t { display: grid; gap: 3px; min-width: 0; }
+.emplacement .nom-objet { max-width: none; overflow: visible; font: 18px/23px "Grenze Gotisch", serif; letter-spacing: .3px; color: var(--sepia); text-align: left; white-space: normal; }
+.mesures { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+.mesure { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline; column-gap: 5px; }
+.mesure .sous-titre { grid-column: 1 / -1; font-size: 11px; line-height: 13px; }
+.mesure b { font-size: 19px; line-height: 23px; color: var(--encre); white-space: nowrap; }
+.mesure.mot b { font-size: 14.5px; }
+.mesure i { font-style: normal; font-size: 12px; white-space: nowrap; color: var(--encre-2); }
+.mesure.hausse :is(b, i) { color: var(--vert); }
+.mesure.baisse :is(b, i) { color: var(--sang); }
+.mesure[data-bulle] { cursor: help; }
+.emplacement .mesure b { font-size: 15px; line-height: 18px; }
+.article { align-items: stretch; gap: 5px; padding: 7px 9px; text-align: left; }
+.article .mesures { gap: 2px 10px; }
+.article > .plaque { height: 26px; min-height: 26px; }
+.article .etiquette.qualite { height: 19px; padding: 0 6px; font-size: 11.5px; letter-spacing: .3px; }
+.article .suite { display: none; }
+.etal.ample span.suite { display: inline; }
+.etal.ample .etiquette.suite { display: inline-flex; }
+.etal.ample .article > .plaque { height: 40px; min-height: 40px; }
+.article .mesure b { font-size: 18px; line-height: 21px; }
+.article .mesure.mot b { font-size: 13.5px; }
+.article .mesure .sous-titre { font-size: 10.5px; line-height: 12px; }
+.article header { display: flex; align-items: center; gap: 8px; color: var(--sepia); }
+.article header .boite-objet { flex: none; width: 30px; height: 30px; }
+.article header .boite-objet svg { width: 22px; height: 22px; }
+.article header .nom-propre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etal.ample .article { align-items: center; gap: clamp(9px, calc(6cqh - 15px), 16px); padding: clamp(12px, calc(7cqh - 16px), 20px) 18px clamp(12px, calc(5cqh - 8px), 18px); text-align: center; }
+.etal.ample .article header { flex-direction: column; gap: clamp(6px, calc(5cqh - 14px), 12px); }
+.etal.ample .article header .boite-objet { width: clamp(56px, calc(31.5cqh - 66px), 96px); height: clamp(56px, calc(31.5cqh - 66px), 96px); }
+.etal.ample .article header svg { width: 60%; height: 60%; }
+.etal.ample .article header .nom-propre { font-size: 26px; line-height: 30px; white-space: normal; }
+.etal.ample :is(.mesures, .traits) { justify-content: center; }
+.etal.ample .mesures { gap: 10px 18px; }
+.etal.ample .mesure b { font-size: 30px; line-height: 34px; }
+.etal.ample .mesure.mot b { font-size: 19px; }
+.etal.ample .mesure i { font-size: 15px; }
+.etal.ample .mesure .sous-titre { font-size: 12.5px; line-height: 15px; }
+.etal.ample .etiquette.qualite { height: 25px; padding: 0 10px; font-size: 14px; letter-spacing: 1px; }
+
+/* la chapelle */
+.soin .sous-titre { font-size: 13.5px; line-height: 17px; }
+.chapelle .porteur .heros-en-tete { flex-direction: column; align-items: stretch; }
+
+/* la salle d'armes */
+.salle .colonne { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.salle .colonne .rub { margin-top: 4px; white-space: normal; }
+.salle .colonne .rub:first-child { margin-top: 0; }
+.salle .talent { margin-top: 0; padding: 0 8px; gap: 8px; }
+.salle .talent .medaillon { width: 26px; height: 26px; }
+.salle .talent .medaillon svg { width: 14px; height: 14px; }
+.salle .talent .t i { display: none; }
+.salle .talent .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.salle .colonne { gap: 3px; }
+.salle .deux-colonnes { columns: 2; column-gap: 18px; }
+.salle .achat { break-inside: avoid; }
+.salle .achat :is(.fait, .val) { display: none; }
+.salle .bourse-px { margin-top: 4px; }
+
+/* le départ */
+.emporte { align-items: stretch; text-align: left; gap: 10px; }
+.emporte .cases-sac { min-height: 62px; }
+.emporte .provisions { display: grid; gap: 8px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--filet-encre); }
+.provision { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; color: var(--sepia); }
+.provision .n { font: 16px/18px "Grenze Gotisch", serif; }
+.emporte.libre { align-items: center; justify-content: center; background: none; box-shadow: none; border: 1.5px dashed var(--trait-encre); }
+.emporte.libre .glose { font-size: 15px; }
+
+/* les paliers, les tombes, la chronique */
+.palier .niveaux { margin-top: 6px; }
+.palier.courant { background: rgba(201,161,74,.26); box-shadow: inset 0 0 0 2px var(--laiton); }
+.palier > .sous-titre { margin-top: auto; }
+.corps-service.tombes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-content: start; }
+.tombe { gap: 4px; }
+.tombe .effet { font-size: 14px; line-height: 18px; color: var(--encre-2); }
+.chronique { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 44px; font-size: 15.5px; line-height: 1.45; }
+.chronique li { break-inside: avoid; margin-bottom: 10px; padding-left: 12px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
 .chronique li:first-child { color: var(--encre); }
-.bourse-service { position: absolute; right: 56px; top: 14px; display: flex; gap: 6px; }
+
+@media (max-width: 899px) {
+  .tete-service { flex-wrap: wrap; }
+  .tete-service .paliers { flex-basis: 100%; order: 2; }
+  .corps-service.rangee { flex-wrap: wrap; }
+  .corps-service:is(.forge, .chapelle, .salle) { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .porteur { padding-right: 0; border-right: 0; }
+  .etal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chronique { columns: 1; }
+  .corps-service { container-type: normal; }
+}

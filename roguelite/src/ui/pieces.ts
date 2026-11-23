@@ -1,11 +1,12 @@
 /**
  * Les pièces communes de l'interface, montées sur le kit (`../kit`) : le texte échappé, la note, la vie, les États,
- * les séquelles, le portrait d'un héros, sa carte, et les trois façons de montrer une chose qu'on possède ou qu'on
- * achète — l'entrée (Talent, sort, provision), la case d'objet (arme, armure, provision), l'offre de boutique. Chacune
- * porte son aperçu au survol (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
+ * les séquelles, le portrait d'un héros, sa carte, les deux façons de montrer une chose qu'on possède — l'entrée
+ * (Talent, sort, provision), la case d'objet (arme, armure, provision) — et le geste d'achat, seule forme d'un prix :
+ * une plaque « verbe · prix », fermée avec sa raison au survol. Chaque chose porte son aperçu au survol
+ * (`data-apercu`, posé par `./bulles`) : son nom, sa nature, le texte du livre.
  */
 import * as J from '../jeu';
-import { articleDuCatalogue, encombrement, libelleDEtat, sequelles, type Combatant } from '../noyau';
+import { articleDuCatalogue, encombrement, libelleDEtat, sequelles, type Combatant, type Qualite } from '../noyau';
 import { armeDuLibelle, buste, gabaritDuHeros } from '../figures';
 import { cadre, jauge, medaillon, picto, plaque, portrait } from '../kit';
 
@@ -40,7 +41,16 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
   </button>`;
 }
 
-/** La carte d'un héros en ligne, là où il est déjà choisi (ses sacs, le départ) : la même grammaire que la carte,
+/** Le héros qu'un bâtiment sert, en tête de sa page : portrait, nom, rôle et carrière, et sa `mesure` (sa vie, à
+ *  défaut d'une autre). */
+export function herosEnTete(h: J.Heros, taille: 'grand' | 'affiche' = 'grand', mesure = ligneDeVie(h.c)): string {
+  const role = J.roleDe(h.carriere);
+  const r = role && J.ROLES[role];
+  return `<div class="heros-en-tete${J.valide(h) ? '' : ' hors'}">${portrait(busteDuHeros(h), 'heros', taille)}<div class="qui"><span class="nom-propre moyen gothique">${esc(h.c.label)}</span>
+    <span class="sous-titre">${r ? `${picto(r.picto, 13, 1.8)}${esc(r.nom)} · ` : ''}${esc(J.nomDeCarriere(h.carriere))}</span>${mesure}</div></div>`;
+}
+
+/** La carte d'un héros en ligne, là où il est déjà choisi (ses sacs) : la même grammaire que la carte,
  *  portrait, nom, vie et état hors de combat, sans geste. */
 export function herosEnLigne(h: J.Heros): string {
   const c = h.c;
@@ -92,9 +102,11 @@ export function caseObjet(o: { icone?: string; nom: string; apercu: Apercu; comp
 }
 
 /** L'essentiel d'une pièce portée, en une ligne de chiffres. */
-export const essentielDe = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`, x.pa != null && `${x.pa} PA à chaque emplacement`].filter(Boolean).join(' · ');
+export const essentielDe = (x: J.PieceDecrite) => [x.degats && `Dégâts ${x.degats}`, x.mains === 2 && 'deux mains', x.allonge && `allonge ${x.allonge.toLowerCase()}`, x.portee && `portée ${x.portee} m`].filter(Boolean).join(' · ');
 /** L'aperçu d'une pièce portée : son nom, ce qu'elle est, ses chiffres et ses qualités. */
-export const apercuDePiece = (titre: string, x: J.PieceDecrite): Apercu => ({ nom: x.label, nature: titre, texte: [essentielDe(x), x.qualites.join(' · ')].filter(Boolean).join('\n') });
+export const apercuDePiece = (titre: string, x: J.PieceDecrite): Apercu => ({ nom: x.label, nature: titre, texte: [essentielDe(x), x.qualites.map((q) => q.nom).join(' · ')].filter(Boolean).join('\n') });
+/** Les qualités d'un objet en étiquettes, à leur nom du livre ; son texte au survol. */
+export const etiquettesDeQualites = (qs: readonly Qualite[]) => qs.map((q) => `<span class="etiquette rectangle qualite${q.defaut ? ' defaut' : ''}"${apercuDe({ nom: q.nom, nature: q.defaut ? 'Défaut' : 'Atout', texte: q.texte })}>${esc(q.nom)}</span>`).join('');
 /** L'aperçu d'une provision : son nom et le texte du catalogue. */
 export const apercuDeProvision = (id: string): Apercu => { const a = articleDuCatalogue(id); return { nom: a.label, nature: 'Provision', texte: a.desc }; };
 
@@ -104,34 +116,21 @@ export const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPorte
   ...(utilisable ? { attrs: `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, refus: q.refus } : {}),
 })).join('');
 
-/** Une offre de boutique en pastille : le nom, l'essentiel, le prix ; l'aperçu au survol. Fermée faute d'or, ou si
- *  c'est ce que le héros porte déjà. */
-export const offre = (o: { nom: string; essentiel: string; prix: number; apercu: Apercu; attrs: string; or: number; portee?: boolean }) =>
-  `<button type="button" class="offre${o.portee ? ' actuelle' : ''}" ${o.attrs}${apercuDe(o.apercu)}${o.portee || o.or < o.prix ? ' disabled' : ''}><b>${esc(o.nom)}</b><span>${esc(o.essentiel)}</span><span class="prix chiffres">${o.portee ? 'porté' : `${o.prix} CO`}</span></button>`;
-
-/** Ce que la chapelle offre au héros : soins complets, plaies pansées, opération, Larmes de Shallya. */
-export function soinsDuHeros(e: J.Etat, h: J.Heros) {
-  if (h.retrait) return glose(`à l’hospice encore ${h.retrait} jour${h.retrait > 1 ? 's' : ''}`);
-  const soin = J.prixDuSoin(e);
-  const larmes = J.prixDeSequelle(e);
-  const acte = (nom: string, essentiel: string, prix: number, texte: string, attrs: string) => offre({ nom, essentiel, prix, apercu: { nom, nature: `Chapelle de Shallya · ${essentiel}`, texte }, attrs, or: e.or });
-  const tout = [
-    J.blesse(h) && soin != null ? acte('Soigner', 'PB et États', soin, 'Tous les Points de Blessure, et les États de la rencontre.', `data-a="soigner" data-id="${h.c.id}"`) : '',
-    ...J.actesPossibles(h).map((a) => {
-      const prix = J.prixDeLHospice(e, a);
-      return prix == null ? '' : a === 'panser'
-        ? acte('Panser', 'dans la journée', prix, 'Les sœurs pansent les plaies : une déchirure mineure guérit plus vite, une fracture est réduite. LDB 18 l.204, l.222', `data-a="hospice" data-id="${h.c.id}" data-k="panser"`)
-        : acte('Opérer', 'une semaine à l’hospice', prix, 'Le chirurgien opère les blessures qui l’exigent : plaie d’amputation, fracture majeure, artère. LDB 18 l.208, l.239', `data-a="hospice" data-id="${h.c.id}" data-k="operer"`);
-    }),
-    larmes != null && J.sequellesGuerissables(h) ? acte('Larmes de Shallya', 'une séquelle', larmes, 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation. LDB 42', `data-a="sequelle" data-id="${h.c.id}"`) : '',
-  ].join('');
-  return tout || glose('rien à soigner');
+/** Le geste d'achat, seule forme d'un prix : une plaque « verbe · prix ». Faute de quoi payer, ou sur un `refus`,
+ *  elle est fermée et dit pourquoi au survol. `offert` : ce qu'elle dit d'un prix nul ; `suite` : ce qui s'ajoute au
+ *  prix (des trophées). */
+export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; offert?: string; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
+  const monnaie = o.monnaie ?? 'CO';
+  const refus = o.refus ?? (o.avoir < o.prix ? `Il manque ${o.prix - o.avoir} ${monnaie}.` : null);
+  const prix = [o.prix ? `${o.prix} ${monnaie}` : o.offert ?? 'gratuit', o.suite].filter(Boolean).join(' · ');
+  return plaque(`${esc(o.verbe)} · ${esc(prix)}`, o.attrs, { armee: !refus, fermee: !!refus, taille: o.taille ?? 'moyenne', icone: o.icone ?? '', titre: refus ? esc(refus) : '' });
 }
 
 /** Ce qui se pose à un rectangle de la scène fixe : `data-rect`, que `ajusterLaScene` ancre au bord le plus proche. */
 export const place = (rect: readonly number[]) => `data-rect="${rect.join(' ')}" style="left:${rect[0]}px;top:${rect[1]}px${rect[2] ? `;width:${rect[2]}px;height:${rect[3]}px` : ''}"`;
-/** Un cadre du kit posé à son rectangle d'une scène fixe (`CADRES` des maquettes). */
-export const cadreA = (rect: [number, number, number, number], contenu: string, o: { ruban?: string; fond?: string; classe?: string; tete?: string } = {}) =>
-  `<div class="place-cadre" ${place(rect)}>${cadre(contenu, { fond: o.fond ?? 'parchemin', ruban: o.ruban ?? '', classe: `pan ${o.classe ?? ''}`, balise: 'div', tete: o.tete ?? '' })}</div>`;
+/** Un cadre du kit posé à son rectangle d'une scène fixe (`CADRES` des maquettes) ; `etire` : il prend la place que
+ *  l'écran laisse au-delà de la vue de référence (`ajusterLaScene`). */
+export const cadreA = (rect: [number, number, number, number], contenu: string, o: { ruban?: string; fond?: string; classe?: string; tete?: string; etire?: boolean } = {}) =>
+  `<div class="place-cadre" ${place(rect)}${o.etire ? ' data-etire' : ''}>${cadre(contenu, { fond: o.fond ?? 'parchemin', ruban: o.ruban ?? '', classe: `pan ${o.classe ?? ''}`, balise: 'div', tete: o.tete ?? '' })}</div>`;
 /** Les onglets du kit sur le bord haut d'un cadre : l'actif est le ruban, les autres des plaques. */
 export const onglets = (noms: [string, string][], actif: string) => `<div class="onglets">${noms.map(([id, nomme]) => (id === actif ? `<div class="ruban gothique">${nomme}</div>` : plaque(nomme, `data-a="onglet" data-k="${id}"`, { taille: 'petite' }))).join('')}</div>`;

@@ -9,7 +9,7 @@ import type { Vignette } from './vignettes';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
 import { ajusterLaScene, choisirLaTaille, type Taille } from './ui/ecran';
-import { panneauDeService } from './ui/services';
+import { panneauDeService, type Emplacement } from './ui/services';
 import { ajusterLesTableaux, ecranDeLExpedition, ecranDuHameau, NOM_DE_SALLE, recitEnCarton, recommencerEnCarton, reglagesEnCarton } from './ui/lieux';
 import { ecranDuHeros, type Onglet } from './ui/fiche';
 import { gloserDans, installerLesSurvols } from './ui/bulles';
@@ -21,8 +21,10 @@ let etat: J.Etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
 let panneau: Panneau | null = null;
 type Recit = { type: 'recit'; recit: J.RecitDeSalle; ruban: string; vignette: Vignette; surTitre: string; terrain: string };
 let ouvert: Recit | { type: 'reset' } | { type: 'reglages' } | null = null;
-/** Le héros que servent la forge et le relais. */
+/** Le héros que servent la forge, la chapelle et la salle d'armes. */
 let client: string | null = null;
+/** L'emplacement ouvert à la forge. */
+let emplacement: Emplacement = 'main';
 let congediement: string | null = null;
 let panoramaCentre = false;
 
@@ -46,7 +48,7 @@ function agir(f: () => string | null | void) {
 const ficheOuverte = (): string => (panneau?.type === 'heros' ? ecranDuHeros({ e: etat, congediement }, panneau.id, panneau.onglet) : '');
 function serviceOuvert() {
   if (!panneau || panneau.type === 'heros') return null;
-  const ctx = { e: etat, client, dest: panneau.type === 'depart' ? panneau.dest : null, choix: panneau.type === 'depart' ? panneau.choix : new Set<string>() };
+  const ctx = { e: etat, client, emplacement, dest: panneau.type === 'depart' ? panneau.dest : null, choix: panneau.type === 'depart' ? panneau.choix : new Set<string>() };
   return panneauDeService(ctx, panneau.type === 'batiment' ? panneau.id : panneau.type);
 }
 
@@ -91,10 +93,11 @@ document.addEventListener('click', (ev) => {
     case 'fermer-panneau': panneau = null; congediement = null; return rendre();
     case 'ameliorer': return agir(() => J.ameliorer(etat, id as J.IdBatiment));
     case 'recruter': return agir(() => J.recruter(etat, Number(i)));
-    case 'soigner': return agir(() => J.soignerAuTemple(etat, id));
-    case 'sequelle': return agir(() => J.guerirUneSequelle(etat, id));
-    case 'hospice': return agir(() => J.confierALHospice(etat, id, k as J.ActeDHospice));
+    case 'soigner': client = id; return agir(() => J.soignerAuTemple(etat, id));
+    case 'sequelle': client = id; return agir(() => J.guerirUneSequelle(etat, id));
+    case 'hospice': client = id; return agir(() => J.confierALHospice(etat, id, k as J.ActeDHospice));
     case 'client': client = id; return rendre();
+    case 'emplacement': emplacement = k as Emplacement; return rendre();
     case 'arme': return agir(() => J.acheterUneArme(etat, id, k!));
     case 'armure': return agir(() => J.acheterUneArmure(etat, id, k as J.PoidsDArmure));
     case 'provision': return agir(() => J.acheterUneProvision(etat, id, k!));

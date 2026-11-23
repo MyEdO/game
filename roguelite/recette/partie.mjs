@@ -19,14 +19,21 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   const avant = await or();
   await p.click('.tete-service [data-a="ameliorer"]');
   constater((await or()) < avant, 'la forge s’agrandit et coûte de l’or');
-  await p.click('.offre[data-k="moyenne"]'); await p.click('.offre[data-k="epee-batarde"]');
+  constater((await p.textContent('.article [data-a="arme"]')).includes('CO'), 'chaque offre de la forge porte son prix dans son geste');
+  await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="moyenne"]');
+  await p.click('.emplacement[data-k="main"]'); await p.click('[data-a="arme"][data-k="epee-batarde"]');
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
   constater(porte.includes('Épée bâtarde') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
 
-  await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]'); await p.click('.page-service [data-a="heros"]');
-  const px = Number(await p.textContent('.bourse-px .chiffres'));
-  await p.click('button.c.carr');
-  constater(Number(await p.textContent('.bourse-px .chiffres')) < px, 'la fiche augmente une Caractéristique contre des PX');
+  await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]');
+  const pxDe = async () => Number(await p.textContent('.bourse-px .chiffres'));
+  const px = await pxDe();
+  await p.click('.page-service button.c.carr');
+  constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique contre des PX');
+  await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
+  const pxDeLaFiche = await pxDe();
+  await p.click('.competences [data-a="competence"]');
+  constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
 
   await p.click('.croix-ecran'); await geste(p, 'batiment', 'temple'); await p.click('.tete-service [data-a="ameliorer"]'); await geste(p, 'fermer-panneau');
   await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]');

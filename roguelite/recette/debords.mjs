@@ -1,12 +1,13 @@
-// Chaque écran, à trois tailles : aucun cadre qui doit tenir (cartouche, socle, note, frise, colonne des services,
-// pied d'une page, bande des Caractéristiques) ne rogne son contenu, et aucun
-// bouton ni son libellé ne sort de l'écran. Les cadres de liste défilent, c'est voulu.
+// Chaque écran, à trois tailles : aucun cadre qui doit tenir (cartouche, socle, note, frise, tête, corps et pied
+// d'un service, bande des Caractéristiques) ne rogne son contenu, et aucun
+// bouton ni son libellé ne sort de l'écran. Les cadres de liste de la fiche défilent, c'est voulu.
 import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
 
 /** La taille de l'interface éprouvée (`petite`, `moyenne`, `grande`), quatrième argument ; `moyenne` par défaut. */
 const TAILLE = process.argv[4] ?? 'moyenne';
 
-const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .pied-service, .bande > .fond, .carte-partir > .fond';
+// À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie défile : ses offres ne tiennent pas toutes.
+const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '' : '.etal, '}.corps-service .colonne, .pied-service, .bande > .fond, .carte-partir > .fond`;
 
 (async () => {
   const b = await chromium.launch();
@@ -19,6 +20,7 @@ const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       e.or = 900; e.trophees = 5;
       for (const k of Object.keys(e.batiments)) e.batiments[k] = 1;
       for (const h of e.roster) { h.c.xp = 400; h.c.wounds.current = 1; }
+      e.roster[3].c.xp = 3000;
       localStorage.setItem('grisefosse-v1', JSON.stringify(e));
     }, erreurs, TAILLE);
     const relever = async (ecran) => {
@@ -32,7 +34,21 @@ const DOIVENT_TENIR = '.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       if (dehors.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : hors de l'écran → ${dehors.join(', ')}`); }
     };
     await relever('hameau');
-    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) { await geste(p, 'batiment', id); await relever(id); await geste(p, 'fermer-panneau'); }
+    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) {
+      await geste(p, 'batiment', id); await relever(id);
+      if (id === 'forge') for (const k of ['secondaire', 'armure']) { await p.click(`.emplacement[data-k="${k}"]`); await relever(`forge ${k}`); }
+      await geste(p, 'fermer-panneau');
+    }
+    // Le lanceur passé au niveau 2 : ses Compétences et les sorts de sa voie tiennent à la salle d'armes.
+    await geste(p, 'batiment', 'salle'); await p.click('.socle-compagnie .carte-heros >> nth=3');
+    for (let n = 0; n < 80 && await p.$('.salle [data-a="niveau"]:disabled'); n++) {
+      const augmentation = await p.$('.salle button.c.carr:not(.faite):not(:disabled), .salle .achat:not(.faite) [data-a="competence"]:not(:disabled)');
+      if (!augmentation) break;
+      await augmentation.click();
+    }
+    await p.click('.salle [data-a="niveau"]'); await p.click('.salle [data-a="talent"]');
+    if (!(await p.$('.salle [data-a="sort"]'))) { defauts++; console.log(`${taille.join('x')} : le lanceur n'a pas atteint sa voie`); }
+    await relever('salle, lanceur de niveau 2'); await geste(p, 'fermer-panneau');
     await geste(p, 'chronique'); await relever('chronique'); await geste(p, 'fermer-panneau');
     await geste(p, 'batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await relever('départ');
     await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');

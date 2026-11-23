@@ -1,7 +1,7 @@
 /**
  * La forge et le relais : équipement et provisions.
  */
-import { refusDUsage, libellesDeQualites, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, type ArticleDuCatalogue, type PoidsDArmure } from '../noyau';
+import { refusDUsage, qualitesDites, doter, armureRapide, articleDuCatalogue, ARMURES_RAPIDES, type ArticleDuCatalogue, type PoidsDArmure, type Qualite } from '../noyau';
 
 import { ARMES_DE_FORGE, ARMURES_DE_FORGE, ECHELLE_DES_PRIX, MAIN_SECONDAIRE, MUNITIONS, PROVISIONS } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -14,11 +14,11 @@ export const prixDArmure = (p: PoidsDArmure): number => Math.round({ legere: 2, 
 export interface Article extends ArticleDuCatalogue { id: string; prix: number; tenue: 'main' | 'secondaire' }
 export const article = (id: string): Article => ({ ...articleDuCatalogue(id), id, prix: prixDe(id), tenue: MAIN_SECONDAIRE.has(id) ? 'secondaire' : 'main' });
 export const armesEnVente = (e: Etat): Article[] => ARMES_DE_FORGE.slice(0, e.batiments.forge + 1).flat().map(article);
-export interface ArmureEnVente { poids: PoidsDArmure; label: string; prix: number; enc: number; pa: number; qualites: string[] }
+export interface ArmureEnVente { poids: PoidsDArmure; label: string; prix: number; enc: number; pa: number; qualites: Qualite[] }
 export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
   ARMURES_DE_FORGE.slice(0, e.batiments.forge + 1).map((poids) => {
     const a = ARMURES_RAPIDES[poids];
-    return { poids, label: a.label, prix: prixDArmure(poids), enc: a.enc, pa: a.pa, qualites: libellesDeQualites(a.qualites) };
+    return { poids, label: a.label, prix: prixDArmure(poids), enc: a.enc, pa: a.pa, qualites: qualitesDites(a.qualites) };
   });
 export const provisionsEnVente = (e: Etat): Article[] => PROVISIONS.slice(0, e.batiments.relais + 1).flat().map(article);
 
@@ -29,9 +29,9 @@ export function equipement(h: Heros): { main?: string; secondaire?: string; armu
   return { main: nom(lo?.main), secondaire: nom(lo?.secondaire), armure: h.c.items?.filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.label).join(', ') || undefined, pa: h.c.armour.corps };
 }
 
-/** Une pièce portée, décrite : son nom, et ce que le catalogue ou la pièce en disent (Dégâts, mains, allonge,
- *  portée, PA, qualités). */
-export interface PieceDecrite { label: string; degats?: string; mains?: number; allonge?: string; portee?: number; pa?: number; qualites: string[] }
+/** Une pièce portée, décrite : son nom, son article au catalogue (`id`), son Encombrement, et ce que le catalogue ou
+ *  la pièce en disent (Dégâts, mains, allonge, portée, qualités). Les PA d'une armure se lisent par zone au héros. */
+export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[] }
 /** La panoplie du héros : ses deux mains (set actif) et son armure portée, décrites. */
 export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; armure?: PieceDecrite } {
   const lo = (h.c.loadouts ?? []).find((l) => l.id === h.c.activeLoadoutId) ?? h.c.loadouts?.[0];
@@ -39,12 +39,12 @@ export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDec
     const it = uid ? h.c.items?.find((i) => i.uid === uid) : undefined;
     if (!it) return undefined;
     const a = it.trappingId ? articleDuCatalogue(it.trappingId) : undefined;
-    return { label: it.label, qualites: a?.qualites ?? [], ...(a?.degats ? { degats: a.degats } : {}), ...(a?.mains ? { mains: a.mains } : {}), ...(a?.allonge ? { allonge: a.allonge } : {}), ...(a?.portee ? { portee: a.portee } : {}) };
+    return { label: it.label, enc: Number(it.enc ?? 0), qualites: a?.qualites ?? [], ...(it.trappingId ? { id: it.trappingId } : {}), ...(a?.degats ? { degats: a.degats } : {}), ...(a?.mains ? { mains: a.mains } : {}), ...(a?.allonge ? { allonge: a.allonge } : {}), ...(a?.portee ? { portee: a.portee } : {}) };
   };
-  const portee = h.c.items?.find((i) => i.kind === 'armor' && i.equipped);
+  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
   return {
     main: arme(lo?.main), secondaire: arme(lo?.secondaire),
-    ...(portee ? { armure: { label: portee.label, pa: h.c.armour.corps, qualites: libellesDeQualites(portee.qualities ?? []) } } : {}),
+    ...(portees.length ? { armure: { label: portees.map((i) => i.label).join(', '), enc: portees.reduce((n, i) => n + Number(i.enc ?? 0), 0), qualites: qualitesDites(portees.flatMap((i) => i.qualities ?? [])) } } : {}),
   };
 }
 

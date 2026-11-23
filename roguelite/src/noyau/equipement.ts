@@ -8,7 +8,12 @@ import { makeRNG } from '../../../src/engine/dice';
 import { encumbrancePenalties } from '../../../src/engine/encumbrance';
 import { consommableDe } from '../../../src/engine/consumables';
 import { refusDeConsommer } from '../../../src/noyau/consumableFlow';
-import { findTrappingById, refLabel } from '../../../src/data';
+import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../src/engine/combat';
+import { forceDuPorteur } from '../../../src/engine/characteristics';
+import { reachRankOf, weaponFromItem } from '../../../src/engine/items';
+import { effectiveWeaponDamage } from '../../../src/engine/weaponDamage';
+import { ZONES_D_ARMURE } from '../../../src/engine/classementDeTrait';
+import { findQualityById, findTrappingById, refLabel, testSkillLabel } from '../../../src/data';
 import type { Combatant, ItemInstance, HitLocation } from '../../../src/engine/types';
 
 
@@ -34,7 +39,7 @@ export function doter(ids: readonly string[], prefixe: string): ItemInstance[] {
 
 /** Ce que le catalogue dit d'un objet : libellé, Encombrement, prix en couronnes d'or (CO), et pour une arme ses
  *  Dégâts, ses mains, son allonge ou sa portée et ses qualités. */
-export interface ArticleDuCatalogue { label: string; enc: number; prixCO: number; desc?: string; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: string[] }
+export interface ArticleDuCatalogue { label: string; enc: number; prixCO: number; desc?: string; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[] }
 export function articleDuCatalogue(id: string): ArticleDuCatalogue {
   const t = findTrappingById(id);
   const p = t?.price && t.price !== 'ND' ? t.price : { gold: 0, silver: 0, brass: 0 };
@@ -43,17 +48,34 @@ export function articleDuCatalogue(id: string): ArticleDuCatalogue {
     label: t?.label ?? id, enc: Number(t?.enc ?? 0), prixCO: (p.gold ?? 0) + (p.silver ?? 0) / 20 + (p.brass ?? 0) / 240, desc: t?.desc,
     ...(d ? { degats: d.plusBF ? `BF+${d.flat ?? 0}` : String(d.flat ?? 0) } : {}),
     ...(t?.hands ? { mains: Number(t.hands) } : {}), ...(t?.reach ? { allonge: String(t.reach) } : {}), ...(t?.range ? { portee: Number(t.range) } : {}),
-    qualites: libellesDeQualites((t?.qualities ?? []) as { id: string; value?: number }[]),
+    qualites: qualitesDites((t?.qualities ?? []) as { id: string; value?: number }[]),
   };
 }
 
-/** Les libellés des qualités d'un objet (`qualities.json`), leur valeur comprise. */
-export const libellesDeQualites = (qs: readonly { id: string; value?: number }[]): string[] =>
+/** Une qualité d'objet telle que le livre la dit (`qualities.json`) : son nom, Indice compris, son texte verbatim,
+ *  et si c'est un Défaut. */
+export interface Qualite { nom: string; texte: string; defaut: boolean }
+export const qualitesDites = (qs: readonly { id: string; value?: number }[]): Qualite[] =>
   qs.map((q) => {
+    const d = findQualityById(q.id);
     const nom = refLabel('qualities', { id: q.id });
-    if (q.value == null) return nom;
-    return nom.startsWith('%') ? `${q.value} ${nom}` : `${nom} (${q.value})`;
+    return { nom: q.value == null ? nom : nom.startsWith('%') ? `${q.value} ${nom}` : `${nom} (${q.value})`, texte: d?.desc ?? '', defaut: d?.polarite === 'defaut' };
   });
+
+/** L'arme `id` du catalogue entre les mains de `c` : la valeur et le nom de son Test d'attaque, si sa Compétence
+ *  couvre le Groupe de l'arme, ses Dégâts au Bonus de Force du porteur, le rang de son allonge. LDB 09 l.44 */
+export interface Maniement { attaque: number; test: string; entraine: boolean; degats: number; rangDAllonge: number | null }
+export function maniement(c: Combatant, id: string): Maniement {
+  const arme = weaponFromItem(doter([id], 'essai')[0]);
+  const genre = arme.type === 'distance' ? 'distance' : 'melee';
+  return {
+    attaque: combatBaseValue(c, genre, arme), test: testSkillLabel(attackTestOf(c, arme, genre)), entraine: weaponGroupSkillMode(c, arme, genre) === 'complet',
+    degats: effectiveWeaponDamage(arme, forceDuPorteur(c)), rangDAllonge: reachRankOf(arme.reach),
+  };
+}
+
+/** Les Points d'Armure que porte `c`, par zone d'armure. */
+export const protection = (c: Combatant): { zone: string; pa: number }[] => ZONES_D_ARMURE.map((z) => ({ zone: z.label, pa: Math.max(...z.locs.map((l) => c.armour[l])) }));
 
 /** Pourquoi le héros ne peut pas utiliser maintenant l'objet `uid` (`refusDeConsommer`), ou `null`. */
 export function refusDUsage(c: Combatant, uid: string): string | null {

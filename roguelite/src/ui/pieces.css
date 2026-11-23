@@ -1,5 +1,5 @@
 /* Les pièces partagées par les écrans (`pieces.ts`) : cartes de héros, entrées (talents, sorts), cases d'objets,
-   offres, emplacements, séquelles, et la bulle et l'aperçu du survol (`bulles.ts`). */
+   qualités, séquelles, héros en tête, et la bulle et l'aperçu du survol (`bulles.ts`). */
 .rang-heros { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: thin; }
 .carte-heros { flex: 1 0 236px; max-width: 290px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 3px; cursor: pointer; text-align: left;
   background: linear-gradient(180deg, rgba(59,39,24,.5), rgba(27,16,10,.7)); box-shadow: inset 0 0 0 1px var(--filet-or); }
@@ -16,7 +16,7 @@
 .talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
 .talent .t{flex:1;min-width:0}
 .talent .t i{display:block;font-family:"IM Fell English SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
-.talent .plaque{flex:none;width:94px}
+.talent .plaque{flex:none}
 .talent.clos .nom-propre{color:rgba(42,29,18,.6)}
 .case-objet { display: grid; justify-items: center; gap: 3px; min-width: 0; }
 .boite-objet { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--laiton); border-radius: 4px; color: var(--sepia); font: inherit; background: radial-gradient(90% 80% at 50% 35%, rgba(255,246,208,.95), rgba(228,203,134,.85)); box-shadow: 0 0 0 1px var(--contour), 0 2px 5px var(--brou); }
@@ -46,25 +46,6 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .apercu-du-jeu .corps-apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 14; overflow: hidden; margin-top: 4px; }
 .apercu-du-jeu .corps-apercu p { margin: 0 0 4px; font-style: normal; font-size: 13.5px; line-height: 18px; color: var(--encre); }
 .apercu-du-jeu .corps-apercu ul { margin: 0 0 4px; padding-left: 16px; font-size: 13.5px; line-height: 18px; }
-.emplacement { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--filet-encre); }
-.emplacement > .case-objet { width: 72px; }
-.emplacement .nom-objet { white-space: normal; line-height: 12px; }
-.emporte { display: grid; grid-template-columns: 140px 1fr auto; gap: 10px; align-items: center; height: 60px; border-bottom: 1px solid var(--filet-encre); }
-.emporte .cases-sac { flex-wrap: nowrap; overflow: hidden; }
-.emporte .cases-sac .case-objet { width: auto; }
-.emporte .nom-objet { display: none; }
-.emporte .ajouts { display: flex; gap: 6px; }
-.offres { display: flex; flex-wrap: wrap; gap: 5px; }
-.offre { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; text-align: left; padding: 4px 8px; border: 0; border-radius: 3px; background: var(--voile); box-shadow: inset 0 0 0 1px var(--filet-encre); cursor: pointer; font: inherit; color: var(--encre); min-width: 104px; }
-.offre b { font-size: 13.5px; color: var(--sepia); }
-.offre span { grid-column: 1; font-size: 12px; color: var(--encre-2); }
-.offre .prix { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 12.5px; color: var(--rouille); }
-.offre:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--rouille); background: var(--voile-fort); }
-.offre:disabled { opacity: .5; cursor: default; }
-.offre.actuelle { opacity: 1; background: rgba(201,161,74,.18); box-shadow: inset 0 0 0 1px rgba(201,161,74,.7); }
-.emplacement { margin: 8px 0; }
-.emplacement header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-.emplacement header b { font-size: 14px; color: var(--sepia); }
 .etiquettes-sequelles { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
 .etiquette.sequelle { cursor: help; padding: 2px 8px; border-radius: 10px; font-size: 12.5px; background: rgba(124,31,20,.1); color: #7c1f14; box-shadow: inset 0 0 0 1px rgba(124,31,20,.35); }
 .etiquette.sequelle.permanente { background: #5a1a10; color: #f4e6cf; }
@@ -73,3 +54,13 @@ button.boite-objet:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--contour), 
 .pastille-progres { position: absolute; left: 50px; top: 4px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c8, var(--or-eclat) 45%, var(--or-moyen)); box-shadow: 0 0 0 1px var(--contour), 0 0 10px var(--halo-vif); animation: pouls 1.6s ease-in-out infinite; pointer-events: none; }
 .carte-heros .ligne-etat .marque { color: #f0a48e; font-style: normal; }
 abbr[data-bulle] { text-decoration: underline dotted rgba(168,132,47,.7); text-underline-offset: 2px; cursor: help; }
+.heros-en-tete { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.heros-en-tete .qui { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.heros-en-tete .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heros-en-tete .sous-titre svg { vertical-align: -2px; margin-right: 4px; }
+.heros-en-tete.hors .portrait { filter: grayscale(1); opacity: .6; }
+.etiquette.qualite { height: 21px; padding: 0 8px; font-size: 12.5px; color: var(--sepia); background: rgba(255,246,218,.6); border-color: rgba(168,132,47,.9); }
+.etiquette.qualite[data-apercu], .etiquette.qualite[data-bulle] { cursor: help; }
+.etiquette.qualite.defaut { color: var(--sang); background: rgba(124,31,20,.08); border-color: rgba(124,31,20,.5); }
+.etiquette.qualite.neutre { border-color: var(--filet-encre); color: var(--encre-2); }
+.traits { display: flex; flex-wrap: wrap; gap: 4px; }

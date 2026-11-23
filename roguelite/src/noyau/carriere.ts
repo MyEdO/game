@@ -2,6 +2,8 @@
  * La carrière : ce que le niveau offre, les Talents qui agissent en combat, les sorts et miracles.
  */
 import { advanceCost, isCareerLevelComplete, careerChangeCost, talentCost } from '../../../src/engine/advancement';
+import { talentMaxReached } from '../../../src/engine/acquisitionTalents';
+import { spellCost } from '../../../src/engine/grimoire';
 import { availableChars, skillSlots, talentSlots, designationsFor, parseRefKey } from '../../../src/engine/careerSlots';
 import { effectiveChar } from '../../../src/engine/characteristics';
 import { testValue } from '../../../src/engine/skills';
@@ -13,8 +15,9 @@ import { libelleDeCarac } from './heros';
 export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
 /** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`). */
 export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number; carac: string; valeur: number }
-/** `aSpecifier` : le Talent attend une spécialisation que la carrière laisse au choix (un domaine, un dieu). */
-export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; aSpecifier?: boolean }
+/** `aSpecifier` : le Talent attend une spécialisation que la carrière laisse au choix (un domaine, un dieu) ;
+ *  `auMaxi` : il ne se prend plus. LDB 10 */
+export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; auMaxi: boolean; aSpecifier?: boolean }
 export interface Progression {
   niveau: number; titre: string; requis: number; complet: boolean; suivant: { niveau: number; titre: string; cout: number } | null;
   caracs: OffreDeCarac[]; competences: OffreDeCompetence[]; talents: OffreDeTalent[];
@@ -39,7 +42,7 @@ export function progression(c: Combatant): Progression {
   const prochain = niveaux.find((l) => l.level === niveau + 1);
   return {
     niveau, titre: niveaux.find((l) => l.level === niveau)?.label ?? carriere, requis: 5 * niveau, complet,
-    suivant: prochain ? { niveau: prochain.level, titre: prochain.label, cout: careerChangeCost(complet) } : null,
+    suivant: prochain ? { niveau: prochain.level, titre: prochain.label, cout: careerChangeCost(true) } : null,
     caracs: [...new Set(chars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), augmentations: c.charAdvances?.[k] ?? 0, cout: advanceCost(c.charAdvances?.[k] ?? 0, 'caracteristique', true) })),
     competences: refs(sSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const adv = c.skills.find((x) => x.id === ref.id && (x.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
@@ -48,7 +51,7 @@ export function progression(c: Combatant): Progression {
     }),
     talents: refs(tSlots).map(({ aSpecifier, ...ref }) => {
       const fois = c.talents.filter((t) => t.talentId === ref.id && (aSpecifier || (t.spec ?? '') === (ref.spec ?? ''))).reduce((n, t) => n + t.times, 0);
-      return { ref, label: refLabel('talents', ref), possede: fois, cout: talentCost(fois), ...(aSpecifier ? { aSpecifier } : {}) };
+      return { ref, label: refLabel('talents', ref), possede: fois, cout: talentCost(fois), auMaxi: talentMaxReached(c, ref.id, ref.spec), ...(aSpecifier ? { aSpecifier } : {}) };
     }),
   };
 }
@@ -77,6 +80,9 @@ export function ficheDuSort(id: string): { label: string; nature: string; texte:
   const nature = s ? [`${s.ecole}${s.subType ? ` (${s.subType})` : ''}`, s.cn != null ? `NI ${s.cn}` : ''].filter(Boolean).join(' · ') : '';
   return { label: s?.label ?? id, nature, texte: s?.desc ?? '' };
 }
+
+/** Ce que le sort `id` coûte à `c` en PX, `null` s'il ne peut pas l'apprendre. */
+export const prixDuSort = (c: Combatant, id: string): number | null => { const s = findSpellById(id); return s ? spellCost(c, s) : null; };
 
 /** Libellé d'un sort ou d'un miracle (`spells.json`). */
 export const nomDeSort = (id: string): string => findSpellById(id)?.label ?? id;

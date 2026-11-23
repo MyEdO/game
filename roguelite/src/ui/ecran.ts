@@ -19,10 +19,13 @@ export const CADRES = {
 } satisfies Record<string, Rect>;
 
 /** Les rectangles propres à l'hôte, faute de rôle dans les maquettes : un bâtiment s'ouvre sur toute la largeur
- *  au-dessus du socle, à la manière de Darkest Dungeon, sans rien cacher qu'on doive voir en même temps. */
+ *  au-dessus du socle, à la manière de Darkest Dungeon, sans rien cacher qu'on doive voir en même temps ; étiré
+ *  (`data-etire`), il descend jusqu'au socle. */
 export const CADRES_DE_L_HOTE = {
   batiment: [24, 20, 1232, 524],
 } satisfies Record<string, Rect>;
+/** Ce qu'un cadre étiré gagne au plus en largeur sur son rectangle. */
+const ETIREMENT_EN_LARGEUR = 240;
 
 
 /** Les places du carton, relatives à son fond (`carton/*` de `rendu.js`). Sans sceau à droite, le texte prend la
@@ -79,7 +82,8 @@ export function choisirLaTaille(t: Taille): void {
  *  1280 × 720). La scène prend toute la vue ; chaque pièce à `data-rect` s'ancre en hauteur au bord le plus proche de
  *  son centre (le socle en bas partout). En largeur, un lieu ancre chaque pièce au bord le plus proche,
  *  ou la centre si elle l'est, et le décor prend la place gagnée (`dispositions.md`, « Vue de référence et ancrages » ;
- *  `placeDe` de `rendu.js`) ; la fiche garde ses cadres groupés au centre. Sous 900 px de large, les cadres s'empilent. */
+ *  `placeDe` de `rendu.js`) ; la fiche garde ses cadres groupés au centre. Une pièce à `data-etire` prend en plus la
+ *  hauteur et la largeur que la vue gagne sur 1280 × 720. Sous 900 px de large, les cadres s'empilent. */
 export function ajusterLaScene(): void {
   document.querySelectorAll<HTMLElement>('.scene-fixe').forEach(ajuster);
   // Le décor des lieux s'arrête au haut du socle (`--bas`, en pixels de l'écran).
@@ -99,7 +103,9 @@ function ajuster(s: HTMLElement): void {
   s.querySelectorAll<HTMLElement>('[data-rect]').forEach((el) => {
     const [x, y, l = 0, h = 0] = (el.dataset.rect ?? '').split(' ').map(Number);
     const cx = x + l / 2;
-    el.style.left = `${!ancreLaLargeur || cx === 640 ? x + (largeur - 1280) / 2 : cx > 640 ? x + largeur - 1280 : x}px`;
+    const gain = el.dataset.etire == null ? 0 : Math.min(largeur - 1280, ETIREMENT_EN_LARGEUR);
+    if (el.dataset.etire != null) Object.assign(el.style, { width: `${l + gain}px`, height: `${h + hauteur - 720}px` });
+    el.style.left = `${!ancreLaLargeur || cx === 640 ? x + (largeur - 1280 - gain) / 2 : cx > 640 ? x + largeur - 1280 : x}px`;
     el.style.top = `${y + h / 2 > 360 ? y + hauteur - 720 : y}px`;
   });
 }

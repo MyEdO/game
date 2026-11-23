@@ -47,15 +47,23 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 1. **Une scène fixe pour tous les écrans** (vue de référence 1280 × 720), échelle jamais au-dessus de 1 ; lieux et
    services ancrés aux bords (`placeDe` des maquettes), écrans de gestion en bloc centré.
 2. **Un rôle, un rectangle**, ceux de la table `CADRES` des maquettes (`rendu.js`), recopiés tels quels dans
-   `CADRES` d'`ecran.ts`.
+   `CADRES` d'`ecran.ts`. Un bâtiment ouvert prend celui de l'hôte (`CADRES_DE_L_HOTE.batiment`), étiré jusqu'au
+   socle sur un écran plus grand que la vue de référence.
 3. **Le socle de la compagnie au même endroit sur tous les écrans**, défilant au-delà de quatre héros ; un clic y fait
    une seule chose par écran.
-4. **Le contenu s'adapte au cadre** : ce qui ne tient pas défile, l'action principale est au pied fixe du cadre.
-5. **Une forme par concept** : la vie en jauge ; une chose possédée en entrée ou en case ; une offre de boutique ; un
-   prix d'une seule forme ; le héros en carte.
-6. **Le détail au survol, jamais en ligne** : bulle pour un mot, aperçu pour une chose (texte du livre rendu).
-7. **Sortir** : la croix du panneau d'un service, la croix d'un écran de gestion.
-8. **Une partie se joue avant d'être dite finie** : à la taille d'écran du joueur, à la souris, en regardant chaque
+4. **Le contenu s'adapte au cadre** : ce qui ne tient pas défile, l'action principale est au pied fixe du cadre. La
+   page d'un bâtiment remplit son cadre de grandes cartes et tient sans défiler pour une compagnie de quatre héros,
+   à la taille d'interface par défaut.
+5. **Une forme par concept** : la vie en jauge ; une chose possédée en entrée ou en case ; un choix d'un bâtiment en
+   carte (une recrue, un soin, une arme, une route) ; le héros en carte. **Un prix ne se lit que dans le geste qui le
+   paie** : une plaque « verbe · prix » (« Acheter · 8 CO », « Engager · 15 CO », « +1 · 10 PX » ; `achat` de
+   `pieces.ts`), dorée quand on peut payer, fermée avec sa raison au survol sinon ; la bourse est en tête du bâtiment.
+6. **Une offre se compare à ce que le héros porte** : à la forge, chaque arme dit la valeur de son Test d'attaque et
+   ses Dégâts entre les mains du héros servi, son allonge ou sa portée, avec le sens de l'écart (▲ ▼ =) face à
+   l'arme tenue ; « Deux mains » et les qualités sont des étiquettes à leur nom du livre, leur texte au survol.
+7. **Le détail au survol, jamais en ligne** : bulle pour un mot, aperçu pour une chose (texte du livre rendu).
+8. **Sortir** : la croix du panneau d'un service, la croix d'un écran de gestion.
+9. **Une partie se joue avant d'être dite finie** : à la taille d'écran du joueur, à la souris, en regardant chaque
    écran ; une recette verte ne prouve pas qu'un écran sert.
 
 ## Les écrans et leur but
@@ -63,9 +71,9 @@ du jeu : une étape où il ne sait pas quoi faire, ou pourquoi, est un défaut.
 | Écran | But | Étapes du parcours |
 |---|---|---|
 | Hameau | Voir le village, ouvrir un bâtiment, voir la compagnie, partir | 1, 6, 7, 9 |
-| Services (relais, chapelle, salle d'armes, forge, cartographe, péage, jardin, chronique) | Bâtir, servir un héros, engager, préparer une route | 2, 6, 7, 8, 9 |
-| Départ | Choisir le groupe, l'approvisionner, partir | 3, 8 |
-| Fiche du héros | Lire le héros, dépenser ses PX, utiliser ses provisions en route | 2, 7, 8 |
+| Services (relais, chapelle, salle d'armes, forge, cartographe, péage, jardin, chronique) | Bâtir, servir un héros (l'équiper, le soigner, dépenser ses PX), engager, préparer une route | 2, 6, 7, 8, 9 |
+| Départ | Choisir le groupe, l'approvisionner héros par héros, partir | 3, 8 |
+| Fiche du héros | Lire le héros, dépenser ses PX (les mêmes blocs qu'à la salle d'armes), utiliser ses provisions en route | 2, 7, 8 |
 | Expédition | Avancer, utiliser les sacs, rentrer | 4 |
 | Récit d'une salle | Lire ce que la salle laisse, revoir le combat quand il s'y raconte, continuer | 5, 6 |
 | Rejeu du combat | Voir le combat joué : qui agit, dans quel ordre, ce que chaque coup fait ; son issue | 5 |
@@ -126,7 +134,8 @@ statique sur `roguelite/dist`) :
 
 - `partie.mjs` : une partie de bout en bout (bâtir, équiper, progresser, partir, quatre salles, rentrer) ;
 - `debords.mjs` : chaque écran, à trois tailles d'écran et pour une taille d'interface donnée (`petite`, `moyenne`,
-  `grande`), sans cadre qui rogne ce qui doit tenir ni bouton hors de l'écran ;
+  `grande`), sans cadre qui rogne ce qui doit tenir (la tête, le corps et le pied d'un bâtiment compris) ni bouton
+  hors de l'écran ; à la taille `grande`, seul l'étal d'une forge agrandie défile ;
 - `rejeu.mjs` : une mêlée nombreuse (Animosité, chamane) jouée en entier, les héros à terre gardés dans l'ordre du
   tour, « Échap » qui mène à l'issue avant de fermer ;
 - `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables ;

@@ -2,22 +2,17 @@
 .place-cadre > .cadre.bande > .fond { display: grid; overflow: visible; flex-direction: row; }
 .place-cadre > .cadre.droite > .fond { padding-top: 34px; }
 .droite .rub, .competences .rub { white-space: normal; }
-.droite .talent .plaque { width: 84px; }
 .competences > .fond > .defile, .droite > .fond { overflow-y: auto; scrollbar-width: thin; }
 .competences > .fond > .defile { flex: 1; min-height: 0; }
 .ident > .fond { overflow-y: auto; scrollbar-width: thin; gap: 6px; }
-.ident .pied { height: auto; margin-top: 8px; }
 .trou { display: inline-grid; place-items: center; }
 .trou.plein { border-color: var(--laiton); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen)); color: var(--encre); }
-.bande .c { border: 0; background: none; font: inherit; color: inherit; padding-bottom: 0; }
+:is(.bande, .caracs) .c { border: 0; background: none; font: inherit; color: inherit; padding-bottom: 0; }
 button.c.carr { cursor: pointer; }
 button.c.carr:hover:not(:disabled)::before { background: rgba(255,246,208,.85); }
 button.c:disabled { cursor: default; opacity: .7; }
-.bande .c.faite .aug { color: #4f6b2e; font-weight: 600; }
-.rub.colonnes { display: flex; gap: 46px; margin-right: 38px; }
+:is(.bande, .caracs) .c.faite .aug { color: var(--vert); font-weight: 600; }
 .gestes-ident { margin-top: auto; padding-top: 8px; }
-.tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
-.tete-l>.plaque{flex:none}
 :is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
 .val{flex:none;font-family:"Open Sans";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
 .trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
@@ -32,31 +27,31 @@ button.c:disabled { cursor: default; opacity: .7; }
 .exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"IM Fell English";font-size:14px;line-height:17px;color:var(--encre)}
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
-.ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
 .bande>.fond{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));padding:0 6px}
-.bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
-.bande .c+.c{border-left:1px solid var(--filet-encre)}
-.bande .c .ab{font-family:"IM Fell English SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
-.bande .c .v{font-family:"Open Sans";font-size:23px;line-height:27px;color:var(--encre)}
-.bande .c .aug{font-family:"Open Sans";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
-.bande .c>.etiquette{margin-top:1px}
-.bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
-.bande .c>*{position:relative}
-.bande .c .v{margin-right:16px}
-.bande .c .aug{position:absolute;top:32px;left:calc(50% + 9px);height:auto}
+:is(.bande,.caracs) .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
+:is(.bande,.caracs) .c+.c{border-left:1px solid var(--filet-encre)}
+:is(.bande,.caracs) .c .ab{font-family:"IM Fell English SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
+:is(.bande,.caracs) .c .v{font-family:"Open Sans";font-size:23px;line-height:27px;color:var(--encre)}
+:is(.bande,.caracs) .c .aug{font-family:"Open Sans";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
+:is(.bande,.caracs) .c>.etiquette{margin-top:1px;height:19px;padding:0 6px;font-size:10.5px}
+:is(.bande,.caracs) .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
+:is(.bande,.caracs) .c>*{position:relative}
+:is(.bande,.caracs) .c.carr .v{margin-right:26px}
+:is(.bande,.caracs) .c .aug{position:absolute;top:34px;left:calc(50% + 3px);height:auto;white-space:nowrap}
 .achat{position:relative;display:flex;align-items:center;gap:8px;height:34px;padding:0 2px;border-bottom:1px solid var(--filet-encre);min-width:0}
-.achat>.n{flex:1;min-width:0;overflow:hidden;font-family:"IM Fell English";font-size:14.5px;color:var(--encre);white-space:nowrap}
-.achat>.n small{font-size:12.5px;color:var(--encre-2)}
-.achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
+.achat>.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-family:"IM Fell English";font-size:14.5px;color:var(--encre);white-space:nowrap}
 .achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
-.achat .plaque{flex:none;width:64px}
-.achat .val span{font-weight:400}
-.achat .avertissement{margin-left:auto}
-.achat.hors{border-bottom:0;color:var(--encre-2)}
-.achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
 .droite .jauge { margin: 4px 0 2px; }
 .droite .rub { margin-top: 9px; }
 .droite .rub:first-child { margin-top: 0; }
 .pied-equipement { margin-top: auto; padding-top: 10px; }
 .cases-equipement { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.achat .plaque{flex:none}
+.achat .aug{flex:none;width:44px;text-align:right;font-size:12px;color:var(--encre-2)}
+.achat.faite .aug{color:var(--vert);font-weight:600}
+.competences .achat{height:28px}
+.competences .achat .plaque{height:24px;min-height:24px}
+.caracs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:78px}
+.caracs .c+.c{border-left:0}
+.exigences+.plaque{margin-top:8px;align-self:stretch}
