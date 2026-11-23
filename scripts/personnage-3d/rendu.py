@@ -22,7 +22,8 @@ clip posé : l'éditeur Godot épinglé le pose et rend sa transformation (`pres
 chaque `--element` montant à son tour la ligne suivante du preset. Sous `--preset`, les formes de la tête que le jeu pose
 au preset se posent aussi, sur tout mesh qui les porte, une forme que `--silhouettes` nomme gardant le poids qu'il lui
 donne (`silhouettesSousLePreset`, `posesDesRanges.mjs`). `--preset` colore chaque surface à l'emplacement de palette que
-lui donne son manifeste, de la couleur que le jeu y pose pour ce preset (`paletteDesCouleurs`, `posesDesRanges.mjs`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
+lui donne son manifeste, de la couleur que le jeu y pose pour ce preset (`paletteDesCouleurs`, `posesDesRanges.mjs`), complétée pour un élément de
+celle de la teinte de sa ligne (`Monte.palette`, `montageDesElements`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
 couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
@@ -273,15 +274,19 @@ def preset_du_jeu(base, manifeste, elements, preset, silhouettes, clip=None, t=0
     preset si `tenue` (`tenueDesGlb`, ses pièces `locales` de `--local` substituées) puis `elements` ; `poses`, par GLB de
     `glbs`, `None` ou `{ligne, meshes}` : par nom de nœud, la transformation glTF (16 nombres, colonne par colonne) où le
     jeu range ce mesh, `None` s'il ne le montre pas rangé, au repos ou à l'instant `t` du `clip` ; `poids`, les poids des
-    `silhouettes` que cet instant pose ; `palette`, `{emplacement: couleur linéaire (r, g, b)}`. Une ligne du preset sans
-    GLB donné se dit sur la sortie d'erreur."""
+    `silhouettes` que cet instant pose ; `palette`, `{emplacement: couleur linéaire (r, g, b)}` ; `palettes`, par GLB de
+    `glbs`, cette palette complétée de celle de la teinte de sa ligne (`montageDesElements`), comme le jeu la complète
+    (`montage_de_composition.gd`, `palette.merge`). Une ligne du preset sans GLB donné se dit sur la sortie d'erreur."""
     demande = {'base': str(base), 'manifeste': str(manifeste), 'elements': [str(e) for e in elements], 'preset': preset,
                'silhouettes': silhouettes, 'tenue': tenue, 'locales': list(locales), **({'clip': clip, 't': t} if clip else {})}
     reponse = json.loads(lancer(DEPOT / 'hotes' / 'godot' / 'asset' / 'posesDesRanges.mjs', [], json.dumps(demande)))
     if reponse['sans']:
         print(f"--preset {preset} : ligne(s) montée(s) par le jeu sans --element répété : {', '.join(reponse['sans'])}", file=sys.stderr)
+    palette = {slot: couleur_lineaire(couleur) for slot, couleur in reponse['palette'].items()}
     return {'glbs': [Path(g) for g in reponse['glbs']], 'poses': reponse['elements'], 'poids': reponse['silhouettes'],
-            'palette': {slot: couleur_lineaire(couleur) for slot, couleur in reponse['palette'].items()}}
+            'palette': palette,
+            'palettes': [{**palette, **{slot: couleur_lineaire(couleur) for slot, couleur in teinte.items()}}
+                         for teinte in reponse['palettes']]}
 
 
 def est_un_rigide_sur_base(manifeste):
@@ -727,16 +732,17 @@ def main():
         instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
         glbs = [Path(glb).resolve(strict=True) for glb in args.element]
         jeu = preset_du_jeu(source, chemin, glbs, preset, args.silhouettes, **instant, tenue=bool(args.tenue),
-                            locales=args.local) if preset else {'glbs': glbs, 'poses': [], 'poids': poids, 'palette': {}}
+                            locales=args.local) if preset else {'glbs': glbs, 'poses': [], 'poids': poids, 'palette': {},
+                                                                 'palettes': [{} for _ in glbs]}
         elements = [(importer(bpy, glb), manifeste_voisin(glb)) for glb in jeu['glbs']]
         monter(bpy, rig, elements)
         if elements:
             masquer_les_zones_couvertes([(base, manifeste_de_base)] + elements, couches_du_jeu())
         poids, palette = jeu['poids'], jeu['palette']
-        for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
-            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
-        for objets, manifeste in elements:
-            habiller_le_modele(bpy, objets, manifeste, None, True, palette)
+        colorer(base, {s['nom']: s['palette'] for s in manifeste_de_base.get('surfaces', [])}, palette)
+        for (objets, manifeste), couleurs in zip(elements, jeu['palettes'], strict=True):
+            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, couleurs)
+            habiller_le_modele(bpy, objets, manifeste, None, True, couleurs)
         if args.clip:
             action = bpy.data.actions.get(args.clip)
             if action is None:

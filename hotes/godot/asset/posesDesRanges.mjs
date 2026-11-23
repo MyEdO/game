@@ -10,9 +10,10 @@
 // `{ base, manifeste, elements?, preset, tenue?, locales?, facteurs?, silhouettes?, clip?, t? }` (`tenue` : la tenue du
 // preset avant les `elements`, `locales` les paires de `--local` ; `facteurs` : ceux du gabarit, les autres aux
 // `FACTEURS_NEUTRES` ; `silhouettes` : celles de `--silhouettes`) et la sortie standard
-// `{ elements, sans, silhouettes, palette, glbs }` pour ce seul instant (`posesALInstant`), le repos sans `clip`,
+// `{ elements, palettes, sans, silhouettes, palette, glbs }` pour ce seul instant (`posesALInstant`), le repos sans `clip`,
 // `silhouettes` étant celles que l'instant pose (`silhouettesSousLePreset`), `palette` la couleur `#rrggbb` de chaque
-// emplacement que le preset colore (`paletteDesCouleurs` de sa portée) et `glbs` les GLB posés, dans l'ordre
+// emplacement que le preset colore (`paletteDesCouleurs` de sa portée), `palettes` celle de la teinte de chaque GLB posé
+// (`montageDesElements`), qui la complète pour lui comme dans le jeu, et `glbs` les GLB posés, dans l'ordre
 // d'`elements` ; sans élément, aucun mesh rangé ne se pose :
 //   node hotes/godot/asset/posesDesRanges.mjs < demande.json
 import { existsSync, readFileSync } from 'node:fs'
@@ -79,67 +80,87 @@ export async function tenueDesGlb({ manifeste, portee, locales = {} }) {
 export const silhouettesSousLePreset = async (preset, silhouettes = {}) => ({ ...(await porteeDuPreset(preset)).formesDeTete, ...silhouettes })
 
 /**
- * Les poses des objets que le preset de personnage `preset` range, sur la base `base` (son GLB) de manifeste
- * `manifeste`, parmi les `elements` (leurs GLB, chacun à côté de son manifeste), à chacun des `instants`
- * (`{ gabarit?, morphes, clip, t }` : `gabarit` et `morphes` de `composer`, `clip` vide au repos).
- * La tenue montée est celle du preset réduite aux éléments donnés. Un élément répété monte, à son k-ième GLB, la k-ième
- * ligne du preset qui le monte.
- * @returns `elements`, par GLB de `elements`, `null` s'il n'a aucun mesh rangé, sinon `{ ligne, meshes, offrants, os }` : sa
- *   ligne de montage ; par nom de nœud, la transformation du mesh dans le repère de la base à chaque instant, en 16
- *   nombres colonne par colonne, `null` quand le jeu ne le montre pas rangé ; les rangs dans `elements` de l'élément
- *   qui offre son emplacement, aucun si la base l'offre, et l'os de cet emplacement ; `sans`, les lignes que le jeu monte d'un élément
- *   donné moins de fois que le preset ne le porte.
+ * Le montage, par le jeu, de la portée `portee` (`porteeDuPreset`) sur la base `base` (son GLB) de manifeste `manifeste`,
+ * réduite aux `elements` (leurs GLB, chacun à côté de son manifeste, hors dépôt compris), composé comme le pont le compose
+ * (`modelesDeLAtelier`, `composerSurLaBase`). Un élément répété monte, à son k-ième GLB, la k-ième ligne qui le monte.
+ * @returns `modeles`, `montes` et `fichiers` (le GLB de chaque fichier de `modeles.fichiers`) ; par GLB d'`elements`, sa
+ *   ligne de montage (`lignes`, `undefined` sans ligne) et la palette `#rrggbb` de la teinte de cette ligne (`palettes`,
+ *   `Monte.palette`, vide sans teinte) ; `sans`, les lignes que le jeu monte d'un élément donné moins de fois que la
+ *   portée ne le porte.
  */
-export async function posesDesRanges({ base, manifeste, elements, preset, instants }) {
+export async function montageDesElements({ base, manifeste, elements, portee }) {
   const a = await assets()
-  const portee = await porteeDuPreset(preset)
   const brut = JSON.parse(readFileSync(manifeste, 'utf8'))
   const ids = elements.map((glb) => basename(glb, '.glb'))
   const chemins = new Map([[brut.base, base]])
   const manifestes = { [brut.base]: brut }
   for (const [k, glb] of elements.entries()) {
-    if (chemins.has(ids[k]) && chemins.get(ids[k]) !== glb) throw new Error(`poses des objets rangés : ${ids[k]} donné par deux GLB, ${chemins.get(ids[k])} et ${glb}`)
+    if (chemins.has(ids[k]) && chemins.get(ids[k]) !== glb) throw new Error(`montage : ${ids[k]} donné par deux GLB, ${chemins.get(ids[k])} et ${glb}`)
     chemins.set(ids[k], glb)
     manifestes[ids[k]] = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
   }
   const modeles = a.modelesDeLAtelier(manifestes, Object.fromEntries([...chemins].map(([id, glb]) => [id, a.osDesRigides(readFileSync(glb))])))
-  if (modeles.refus.length) throw new Error(`poses des objets rangés : ${modeles.refus.join(' ; ')}`)
+  if (modeles.refus.length) throw new Error(`montage : ${modeles.refus.join(' ; ')}`)
   const { montes } = a.composerSurLaBase(modeles.bases.find((b) => b.id === brut.base), manifestes, portee)
-  const { poserLesRanges } = await import('../construire.mjs')
-  const { pieces, poses } = await poserLesRanges({
-    modeles, base: brut.base, montes, instants,
-    fichiers: Object.fromEntries([...chemins].map(([id, glb]) => [modeles.fichiers[id].glb, resolve(glb)])),
-  })
-  const lignes = new Map()
-  for (const { ligne, element } of montes) if (element !== null) lignes.set(element, [...(lignes.get(element) ?? []), ligne])
+  const parElement = new Map()
+  for (const monte of montes) if (monte.element !== null) parElement.set(monte.element, [...(parElement.get(monte.element) ?? []), monte])
   const donnes = new Map()
+  const lus = ids.map((id) => {
+    const rang = donnes.get(id) ?? 0
+    donnes.set(id, rang + 1)
+    return parElement.get(id)?.[rang]
+  })
   return {
-    elements: ids.map((id) => {
-      const rang = donnes.get(id) ?? 0
-      donnes.set(id, rang + 1)
-      const ligne = lignes.get(id)?.[rang]
+    modeles, montes,
+    fichiers: Object.fromEntries([...chemins].map(([id, glb]) => [modeles.fichiers[id].glb, resolve(glb)])),
+    lignes: lus.map((m) => m?.ligne),
+    palettes: lus.map((m) => m?.palette ?? {}),
+    sans: [...parElement].flatMap(([id, lignes]) => lignes.slice(donnes.get(id) ?? 0).map((m) => m.ligne)),
+  }
+}
+
+/**
+ * Les poses des objets que le preset de personnage `preset` range, sur la base `base` (son GLB) de manifeste
+ * `manifeste`, parmi les `elements` (leurs GLB, chacun à côté de son manifeste), à chacun des `instants`
+ * (`{ gabarit?, morphes, clip, t }` : `gabarit` et `morphes` de `composer`, `clip` vide au repos), sur leur montage
+ * (`montageDesElements`).
+ * @returns `elements`, par GLB de `elements`, `null` s'il n'a aucun mesh rangé, sinon `{ ligne, meshes, offrants, os }` : sa
+ *   ligne de montage ; par nom de nœud, la transformation du mesh dans le repère de la base à chaque instant, en 16
+ *   nombres colonne par colonne, `null` quand le jeu ne le montre pas rangé ; les rangs dans `elements` de l'élément
+ *   qui offre son emplacement, aucun si la base l'offre, et l'os de cet emplacement ; `palettes` et `sans` du montage.
+ */
+export async function posesDesRanges({ base, manifeste, elements, preset, instants }) {
+  const { modeles, montes, fichiers, lignes, palettes, sans } = await montageDesElements({ base, manifeste, elements, portee: await porteeDuPreset(preset) })
+  const { poserLesRanges } = await import('../construire.mjs')
+  const { pieces, poses } = await poserLesRanges({ modeles, base: JSON.parse(readFileSync(manifeste, 'utf8')).base, montes, instants, fichiers })
+  const ids = elements.map((glb) => basename(glb, '.glb'))
+  return {
+    elements: lignes.map((ligne) => {
       const meshes = Object.fromEntries(pieces.flatMap((p, k) => (p.ligne === ligne ? [[p.mesh, poses.map((instant) => instant[k])]] : [])))
       const { offrant, os } = pieces.find((p) => p.ligne === ligne) ?? {}
       return Object.keys(meshes).length ? { ligne, meshes, offrants: ids.flatMap((autre, k) => (autre === offrant ? [k] : [])), os } : null
     }),
-    sans: [...lignes].flatMap(([id, montees]) => montees.slice(donnes.get(id) ?? 0)),
+    palettes,
+    sans,
   }
 }
 
 /** Les poses des objets que le preset `preset` range parmi les `elements` (`posesDesRanges`) à un seul instant : au repos
  *  sans `clip`, sinon à l'instant `t` de ce clip, sous les `facteurs` du gabarit (les autres aux `FACTEURS_NEUTRES`) et
  *  les poids `silhouettes` sous le preset (`silhouettesSousLePreset`) ; `elements` porte, par GLB, `null` ou
- *  `{ ligne, meshes }`, chaque mesh à sa seule transformation ; `silhouettes`, les poids que l'instant pose. */
+ *  `{ ligne, meshes }`, chaque mesh à sa seule transformation ; `palettes` et `sans` du montage (`montageDesElements`) ;
+ *  `silhouettes`, les poids que l'instant pose. */
 export async function posesALInstant({ base, manifeste, elements, preset, facteurs = {}, silhouettes: explicites, clip = '', t = 0 }) {
   const a = await assets()
   const silhouettes = await silhouettesSousLePreset(preset, explicites)
-  if (!elements.length) return { elements: [], sans: [], silhouettes }
+  if (!elements.length) return { elements: [], palettes: [], sans: [], silhouettes }
   const brut = JSON.parse(readFileSync(manifeste, 'utf8'))
   const morphes = { ...tableTotale(brut.silhouettes ?? [], () => 0), ...silhouettes }
   const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, { ...a.FACTEURS_NEUTRES, ...facteurs }, morphes) } : {}
   const poses = await posesDesRanges({ base, manifeste, elements, preset, instants: [{ ...gabarit, morphes, clip, t }] })
   return {
     elements: poses.elements.map((e) => e && { ligne: e.ligne, meshes: Object.fromEntries(Object.entries(e.meshes).map(([nom, [pose]]) => [nom, pose])) }),
+    palettes: poses.palettes,
     sans: poses.sans,
     silhouettes,
   }

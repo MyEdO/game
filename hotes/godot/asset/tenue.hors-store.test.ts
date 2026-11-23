@@ -4,10 +4,10 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { lireComposition, porteeDeComposition } from '../../../src/noyau/index';
+import { findTeinteById, lireComposition, porteeDeComposition } from '../../../src/noyau/index';
 import { modelesCommites } from '../pont/pont.testkit';
 import { avecModelesCommites } from './modelesCommites.testkit.ts';
-import { lireLocales, tenueDesGlb } from './posesDesRanges.mjs';
+import { lireLocales, montageDesElements, tenueDesGlb } from './posesDesRanges.mjs';
 import { porteeDuPreset, tenueDeLaPortee } from './tenue';
 
 /** Une tête, une coiffure, une pièce sous sa variante, un objet tenu et un objet rangé, lue au schéma (`lireComposition`). */
@@ -65,6 +65,18 @@ describe('la tenue d’une portée (#4338)', () => {
       expect(await tenueDesGlb({ manifeste: join(dossier, 'humanoide.manifeste.json'), portee: porteeDeComposition(COMPOSITION), locales })).toEqual([...attendus, baton]);
       expect(() => lireLocales([`humanoide--rigide--baton=${baton}`, `humanoide--rigide--baton=${baton}`])).toThrow(/une fois par id/);
       expect(() => lireLocales([`humanoide--rigide--epee=${baton}`])).toThrow(/attendu humanoide--rigide--epee\.glb à côté/);
+    });
+  }, 180_000);
+
+  it('donne à chaque GLB monté la palette de la teinte de sa ligne, vide sans teinte', async () => {
+    await avecModelesCommites(async (dossier) => {
+      const portee = porteeDeComposition(COMPOSITION);
+      const teinte = 'ardente-de-rhuin';
+      const teintee = { ...portee, portees: portee.portees.map((p) => (p.cle.id === 'grande_hache' ? { ...p, teinte } : p)) };
+      const manifeste = join(dossier, 'humanoide.manifeste.json');
+      const elements = await tenueDesGlb({ manifeste, portee });
+      const { palettes } = await montageDesElements({ base: join(dossier, 'humanoide.glb'), manifeste, elements, portee: teintee });
+      expect(palettes).toEqual(TENUE.map((id) => (id === 'humanoide--rigide--grande_hache' ? findTeinteById(teinte)?.palette : {})));
     });
   }, 180_000);
 

@@ -15,12 +15,18 @@ export function tenueDesGlb(demande: { manifeste: string; portee: PorteeDeCompos
 type Instant = { gabarit?: unknown; morphes: Record<string, number>; clip: string; t: number };
 type Pose = number[] | null;
 
+export function montageDesElements(demande: { base: string; manifeste: string; elements: readonly string[]; portee: PorteeDeComposition }): Promise<{
+  modeles: unknown; montes: unknown[]; fichiers: Record<string, string>;
+  lignes: (string | undefined)[]; palettes: Record<string, string>[]; sans: string[];
+}>;
+
 export function posesDesRanges(demande: { base: string; manifeste: string; elements: readonly string[]; preset: string; instants: readonly Instant[] }): Promise<{
   elements: ({ ligne: string; meshes: Record<string, Pose[]>; offrants: number[]; os: string } | null)[];
+  palettes: Record<string, string>[];
   sans: string[];
 }>;
 
 export function posesALInstant(demande: {
   base: string; manifeste: string; elements: readonly string[]; preset: string;
   facteurs?: Record<string, number>; silhouettes?: Record<string, number>; clip?: string; t?: number;
-}): Promise<{ elements: ({ ligne: string; meshes: Record<string, Pose> } | null)[]; sans: string[]; silhouettes: Record<string, number> }>;
+}): Promise<{ elements: ({ ligne: string; meshes: Record<string, Pose> } | null)[]; palettes: Record<string, string>[]; sans: string[]; silhouettes: Record<string, number> }>;

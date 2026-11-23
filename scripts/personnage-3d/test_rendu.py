@@ -5,14 +5,18 @@ repos de son parent, invisibles au repos et centre de rotation de l'os sous une 
 rigides, les zones couvertes se masquent sur la base comme sur les éléments, un rigide seul se dresse (#4338)."""
 import argparse
 import tempfile
+import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy
 
 from glb import ecrire_glb, lire_glb
+from habillage import couleur_lineaire
 from rendu import (HAUTEUR_DE_VUE, LARGEUR_DE_VUE, accuser_le_relief, cadrage, deplacements_des_os, deplacer_les_os, dresser,
-                   facteur_de_relief, habiller_le_modele, importer, lire_cadre, masquer_les_zones_couvertes, matrice_du_noeud, ranger)
+                   facteur_de_relief, habiller_le_modele, importer, lire_cadre, masquer_les_zones_couvertes, matrice_du_noeud, preset_du_jeu,
+                   ranger)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -131,6 +135,17 @@ class MasquerLesZonesCouvertes(unittest.TestCase):
                    for zone, mesh in meshes.items() if mesh.hide_render}
         self.assertEqual(masques, {('base', 'torse'), ('base', 'cou'), ('chemise', 'torse')})
         self.assertFalse(sans_zone.hide_render)
+
+
+class PresetDuJeu(unittest.TestCase):
+    def test_chaque_glb_prend_la_palette_du_preset_completee_de_celle_de_sa_teinte(self):
+        reponse = {'sans': [], 'glbs': ['/a.glb', '/b.glb'], 'elements': [None, None], 'silhouettes': {},
+                   'palette': {'metal': '#808080', 'tissu': '#202020'}, 'palettes': [{}, {'metal': '#ff8a3a', 'cuir': '#5a2410'}]}
+        with mock.patch('rendu.lancer', return_value=json.dumps(reponse)):
+            jeu = preset_du_jeu('base.glb', 'base.manifeste.json', [], 'p', {})
+        preset = {'metal': couleur_lineaire('#808080'), 'tissu': couleur_lineaire('#202020')}
+        self.assertEqual(jeu['palette'], preset)
+        self.assertEqual(jeu['palettes'], [preset, {**preset, 'metal': couleur_lineaire('#ff8a3a'), 'cuir': couleur_lineaire('#5a2410')}])
 
 
 class Rangement(unittest.TestCase):
