@@ -5,7 +5,7 @@
  * borne), la barre de l'actif au socle, le journal sur le champ, « Passer » à la place de la fin du tour, et l'issue.
  * Le combat est déjà joué : ce module ne fait que le montrer.
  */
-import type * as J from '../jeu';
+import * as J from '../jeu';
 import { libelleDEtat, type Coup, type IssueDuCombat, type Pas, type PionDuPlateau } from '../noyau';
 import { dessinerLaCour, type Cour } from '../cour';
 import { buste, figurine, gabaritDeCreature, gabaritDuHeros } from '../figures';
@@ -230,10 +230,17 @@ function rangDe(q: PionDuPlateau, classe: string): string {
     <div class="qui"><div class="nom ${classe === 'actif' ? 'gothique' : 'rubrique'} ombre">${esc(q.label)}</div>${fantome ? '' : `<div class="ligne">${jauge(q.pv / Math.max(1, q.max))}<span class="pv ombre">${q.pv} / ${q.max}</span></div>`}</div></div>`;
 }
 
+/** Le rôle d'un héros sous son nom, comme sur sa carte. */
+function roleDuPion(q: PionDuPlateau): string {
+  const h = q.camp === 'heros' ? roster.find((x) => x.c.id === q.id) : undefined;
+  const role = h && J.roleDe(h.carriere);
+  return role ? `<div class="sous-titre">${esc(J.ROLES[role].nom)}</div>` : '';
+}
+
 /** La barre de l'actif : ses Blessures à gauche, son portrait au centre, ce qu'il fait à droite. */
 function barreDe(q: PionDuPlateau, p: Pas): string {
   return `<div class="mesure-actif"><div class="tete rubrique"><span>Blessures</span><b>${q.pv} / ${q.max}</b></div>${jauge(q.pv / Math.max(1, q.max), { taille: 'forte' })}</div>
-    <div class="portrait-actif">${portrait(bustePion(q), q.camp, 'grand', 'choisi')}<div class="nom-propre gothique">${esc(q.label)}</div>${q.arme ? `<div class="sous-titre">${esc(q.arme)}</div>` : ''}</div>
+    <div class="portrait-actif">${portrait(bustePion(q), q.camp, 'grand', 'choisi')}<div class="nom-propre gothique">${esc(q.label)}</div>${roleDuPion(q)}</div>
     <div class="action-actif"><div class="rubrique">${q.camp === 'heros' ? 'Au tour du héros' : 'Tour adverse'}</div>${p.lignes.slice(0, 2).map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
 }
 

@@ -36,7 +36,7 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
   return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${choisi ? ' choisi' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
     ${portrait(busteDuHeros(h), 'heros', 'grand', choisi ? 'choisi' : '')}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(J.nomDeCarriere(h.carriere))}</span>
-    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `à l’hospice · ${h.retrait} j` : J.valide(h) ? `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}` : 'hors de combat'}</span></span>
+    ${ligneDeVie(c)}<span class="ligne-etat">${c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : h.retrait ? `à l’hospice · ${h.retrait} j` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
   </button>`;
 }
 

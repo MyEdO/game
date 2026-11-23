@@ -144,7 +144,7 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   e.or += x.or + peage; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   const jours = x.index;
-  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée(s)` : ''}${peage ? `, +${peage} CO du péage` : ''}.`];
+  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
   for (const h of herosDuGroupe(e)) h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));

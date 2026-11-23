@@ -155,7 +155,7 @@ const PAGES: Record<Service, (l: Lecture) => Page> = {
 
 export function ecranDeService(ctx: Contexte, service: Service): string {
   const { e } = ctx;
-  const servi = e.roster.find((h) => h.c.id === ctx.client) ?? e.roster[0];
+  const servi = e.roster.find((h) => h.c.id === ctx.client) ?? (service === 'temple' ? e.roster.find(J.aSoigner) : undefined) ?? e.roster[0];
   const b = J.BATIMENTS.find((x) => x.id === service);
   const destination = service === 'depart' ? J.DESTINATIONS.find((x) => x.id === ctx.dest) : undefined;
   const titre = b ? b.nom : destination ? destination.nom : 'Chronique';

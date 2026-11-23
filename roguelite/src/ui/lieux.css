@@ -15,6 +15,7 @@
 .enseigne .sous { display: block; font: 11.5px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--creme-2); }
 .enseigne.ruine { background: radial-gradient(130% 140% at 50% 0%, var(--fer-mat), var(--fer-sombre) 80%); }
 .enseigne.ruine .nom { color: var(--creme-2); }
+.pastille-soins { position: absolute; top: -5px; left: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f08a6c, #9b2a18); box-shadow: 0 0 10px rgba(224,85,58,.7), 0 0 0 1px var(--contour); animation: pouls 1.6s ease-in-out infinite; }
 .pastille-batir { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--or-eclat), var(--laiton)); box-shadow: 0 0 10px var(--halo-vif), 0 0 0 1px var(--laiton-ombre); animation: pouls 1.6s ease-in-out infinite; }
 @keyframes pouls { 50% { transform: scale(1.25); } }
 .recit-lieu { font-style: italic; font-size: 15.5px; line-height: 1.45; color: var(--creme); }

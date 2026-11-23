@@ -75,6 +75,19 @@ lieu n'y garde que son cartouche et le socle, qui reste ; seuls les gestes du ca
 son **issue** (bannière, ce qu'elle laisse, un geste ; tâche du rejeu) : une victoire rend la main à l'expédition sans
 carton ; une déroute ou une retraite passe de l'issue au carton qui raconte le retour.
 
+| Étape | Repère | Capture (`parcours.mjs`) | Verdict |
+|---|---|---|---|
+| 1 | Le but et ses maîtres en losanges au panneau Partir ; « Choisir une route » en or ; pastilles des bâtiments | `1-lancement` | tient |
+| 2 | Rôle en pictogramme sur la carte ; identité (carrière, rôle, espèce, devise) au survol | `2-identite` | tient |
+| 3 | Destinations : salles et maître ; départ : sacs et provisions par héros | `8-depart` | tient |
+| 4 | Frise de la route sur le champ ; panneau de la salle, action au pied ; sacs | `4-expedition` | tient |
+| 5 | Rejeu au gabarit Combat (ordre, barre de l'actif, journal, issue) | `rejeu.mjs` | tient |
+| 6 | Récit du retour (or, trophées, PX) ; pastille rouge de la Chapelle ; la Chapelle sert d'abord le blessé ; séquelle sur la carte | `6-retour-hameau`, `6-chapelle` | tient |
+| 7 | Pastille sur le héros qui peut progresser ; prochaine étape de chaque axe à son écran | `2-identite` | tient |
+| 8 | Raison d'une carte fermée au survol ; hospice et séquelles sur la carte | `8-depart` | tient |
+| 9 | La mort au carton ; Jardin de Morr ; le socle vide renvoie au relais | `9-carton`, `9-jardin`, `9-relais` | tient |
+| 10 | Bannière de victoire ; le panneau Partir dit que les routes restent ouvertes | `10-victoire` | tient |
+
 Repères du parcours, à la manière de Darkest Dungeon (aucun texte d'aide) : le but et ses maîtres en losanges au
 panneau Partir ; le rôle de chaque héros en pictogramme (`ROLES`), son identité au survol de sa carte ; une pastille
 sur le héros qui peut acheter un avancement et sur le bâtiment qui peut s'agrandir ; la raison d'une carte fermée au
@@ -115,10 +128,10 @@ statique sur `roguelite/dist`) :
 - `rejeu.mjs` : une mêlée nombreuse (Animosité, chamane) jouée en entier, les héros à terre gardés dans l'ordre du
   tour, « Échap » qui mène à l'issue avant de fermer ;
 - `socle.mjs` : le socle au même rectangle partout, et sept héros atteignables ;
-- `instantanes.mjs` (avec `partie-fixe.ts`) : le HTML de chaque écran sur une partie fixe, à comparer avant et après
-  une refonte qui ne doit rien changer ;
-- `images.mjs` (même partie fixe, à une taille donnée) et `comparer.py` : l'image de chaque écran, comparée au pixel
-  près avant et après une refonte du style.
+- `images.mjs` (sur la partie fixe de `partie-fixe.ts`, à une taille donnée) et `comparer.py` : l'image de chaque
+  écran, comparée au pixel près avant et après une refonte qui ne doit rien changer ;
+- `parcours.mjs` : le parcours du néophyte sur des états forcés (blessé, séquelle, hospice, mort, victoire finale),
+  une capture par étape à 1280 × 720 et 1920 × 1080, et ses repères vérifiés au DOM.
 
 Un écran n'est fini que si ses critères passent à 1280 × 720 et 1920 × 1080, avec une capture regardée ; le
 téléphone est un test de fumée.

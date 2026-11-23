@@ -44,7 +44,7 @@ function enseigne(e: J.Etat, b: J.Batiment) {
   const peutBatir = !!suivant && e.or >= suivant.cout && e.trophees >= suivant.trophees;
   const ruine = J.enRuine(e.batiments, b.id);
   return `<button type="button" class="enseigne${ruine ? ' ruine' : ''}" style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
-    ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}</button>`;
+    ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}${b.id === 'temple' && !ruine && e.roster.some(J.aSoigner) ? '<i class="pastille-soins" data-bulle="Des blessés à soigner"></i>' : ''}</button>`;
 }
 
 /** Le panneau d'activité du hameau : les routes ouvertes et leur choix ; quand personne n'est en état de partir,
@@ -56,7 +56,7 @@ function partir(e: J.Etat): string {
     return `<div class="partir"><div><div class="nom-propre petit gothique">Personne n’est en état de partir</div><div class="sous-titre">la compagnie panse ses plaies</div></div>${plaque('Attendre une semaine', 'data-a="attendre"', { icone: 'lune', armee: true })}</div>`;
   }
   const maitres = J.DESTINATIONS.map((d) => `<i class="${e.bossVaincus.includes(d.id) ? 'plein' : ''}" data-bulle="${esc(d.nom)}"></i>`).join('');
-  return `<div class="partir"><div><div class="nom-propre petit gothique">Abattre l’Autel du Chaos</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
+  return `<div class="partir"><div><div class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</div><div class="but"><span class="niveaux" aria-label="${pluriel(e.bossVaincus.length, 'maître')} vaincu${e.bossVaincus.length > 1 ? 's' : ''} sur ${J.DESTINATIONS.length}">${maitres}</span><span class="sous-titre">${J.victoireFinale(e) ? 'les routes restent ouvertes' : `${pluriel(ouvertes, 'route')} ouverte${ouvertes > 1 ? 's' : ''}`}</span></div></div>${plaque('Choisir une route', 'data-a="ouvrir-depart"', { icone: 'route', armee: true })}</div>`;
 }
 
 /** Le hameau : son panorama et ses enseignes, et par-dessus sa scène (cartouche, dernier récit, départ, coins, socle). */
@@ -115,6 +115,7 @@ export function ecranDeLExpedition(e: J.Etat, ouvert: string, carte: string): st
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
         ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
         <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}</div>`, { classe: 'carte-salle' })}
+      <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
     socle: { heros: groupe, geste: 'heros', choisi: () => false },
     vide: 'Personne.',

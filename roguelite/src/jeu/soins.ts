@@ -10,6 +10,8 @@ import { heros, noter } from './outils';
 export const prixDuSoin = (e: Etat): number | null => [null, 15, 5, 0][e.batiments.temple] ?? null;
 export const prixDeSequelle = (e: Etat): number | null => [null, null, 40, 20][e.batiments.temple] ?? null;
 export const blesse = (h: Heros): boolean => h.c.wounds.current < h.c.wounds.max || h.c.conditions.length > 0;
+/** Le héros attend la chapelle : blessé, ou marqué d'une séquelle. */
+export const aSoigner = (h: Heros): boolean => blesse(h) || sequelles(h.c).length > 0;
 /** Les séquelles qu'une prière de Shallya peut guérir : celles qui ont une convalescence. */
 export const sequellesGuerissables = (h: Heros): number => sequelles(h.c).filter((s) => s.jours != null).length;
 
