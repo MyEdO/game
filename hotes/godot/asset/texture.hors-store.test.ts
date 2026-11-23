@@ -1,13 +1,14 @@
 /**
  * LE REJEU DES TEXTURES ÉPINGLÉES (#4527, `texture.ts`) : l'origine que nomme une source, les arguments que consigne un
  * traitement, l'ordre du rejeu, et la provenance commitée, que le rejeu lit tout entière ; chaque matière de décor du
- * monde y a sa triade (#4809).
+ * monde opaque y a sa triade, une translucide aucune (#4809, #4471).
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { matieresDeDecor } from '../../../src/noyau/index.ts';
+import { matieresDe } from '../../../src/data/index.ts';
+import { matieresDeDecor, nomDeMatiere } from '../../../src/noyau/index.ts';
 import { DOSSIER_DES_TEXTURES, type ProvenanceFabriquee } from './epingles';
 import {
   argumentsDeTraitement,
@@ -45,10 +46,11 @@ describe('rejouer une texture épinglée', () => {
     }
   });
 
-  it('chaque matière de décor du monde (`prop--<id>`, `materials.json`) a sa triade épinglée : teinte, neutre et relief', () => {
+  it('chaque matière opaque de décor du monde (`prop--<id>`, `materials.json`) a sa triade épinglée : teinte, neutre et relief ; une matière à `opacity` n’en porte aucune', () => {
     const epinglees = Object.keys(JSON.parse(readFileSync(join(DOSSIER_DES_TEXTURES, 'provenance.json'), 'utf8')) as Record<string, ProvenanceFabriquee>);
-    const sansTriade = matieresDeDecor().filter((matiere) => ['', '.neutre', '.normale'].some((suffixe) => !epinglees.includes(`${matiere}${suffixe}.jpg`)));
-    expect(sansTriade).toEqual([]);
+    const translucides = new Set(matieresDe('prop').filter((m) => m.opacity !== undefined).map(({ id }) => nomDeMatiere({ domain: 'prop', id })));
+    const triade = (matiere: string) => ['', '.neutre', '.normale'].map((suffixe) => epinglees.includes(`${matiere}${suffixe}.jpg`));
+    expect(matieresDeDecor().filter((matiere) => triade(matiere).some((epinglee) => epinglee === translucides.has(matiere)))).toEqual([]);
   });
 
   it('refuse un nom que la provenance n’épingle pas, avant toute écriture', async () => {
