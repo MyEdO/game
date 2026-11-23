@@ -68,8 +68,12 @@ RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées in
 # (`tissu.Manche`) ---
 COUPE_MIN = 0.06                   # #3743 : fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
 RAYON_DE_COUPE_MAX = 0.12          # #3743 : rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
-MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.022, 0.0), (0.55, 0.026, 0.0), (0.95, 0.050, 0.01), (1.15, 0.080, 0.14),
-          (1.40, 0.100, 0.42)]
+MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.022, 0.0), (0.45, 0.026, 0.0), (0.72, 0.034, 0.0), (1.15, 0.080, 0.14),
+          (1.55, 0.100, 0.42)]
+# De 0,72 à 1,15, la bande qui passe le coude fait 12 cm : la cloche suit l'avant-bras à 12 cm de son axe, et une bande
+# de 5 cm (0,95 à 1,15) s'y étirait de 5 fois coude plié (`arete-etiree`, Roll, #4697). De 1,15 à 1,55, le pan se creuse
+# sur 10 cm : le dessus y suit le tube de la manche, le pan ses brins, et sur 6 cm (1,15 à 1,40) l'arête qui les joint
+# s'étirait de 3,95 bras tombant (Hampe_Mort, `carrure_plus`, #4697).
 # illustration : manche ajustée jusqu'au coude, puis cloche très évasée (bras gauche levé : l'ouverture fait ~0,25 m de
 # large) dont le pan pend jusqu'à l'aisselle, ~0,45 m sous le coude ; aisances de la cloche : HYPOTHÈSE, plus larges que
 # les 50 et 72 mm qui gardaient l'avant-bras bandé derrière la manche du premier Sorcier (mesurés, #3743).
@@ -77,4 +81,4 @@ RACCORD_EPAULE = 0.5               # #3743 : au-delà, la manche suit `upperarm`
 COUPE_DES_POIDS = 0.7              # #3743 : 0,95 `upperarm`, 0,05 `lowerarm`, lus sur l'export
 LAMBEAUX_MANCHE = {'profondeur': 0.05, 'creux': 0.15, 'graine': 'humanoide--vetement--bure--manche-'}
 """Illustration : le bord des cloches s'effiloche en lambeaux d'environ 25 px (6 cm) ; 5 cm, sous la longueur du dernier
-intervalle de la manche (~6,5 cm du côté sans pan), que le recul d'un creux ne retourne pas (HYPOTHÈSE)."""
+intervalle de la manche (~10 cm du côté sans pan), que le recul d'un creux ne retourne pas (HYPOTHÈSE)."""

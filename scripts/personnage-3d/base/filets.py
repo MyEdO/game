@@ -36,21 +36,24 @@ FILETS = (
 racines ; `dedans`, `cede`, `dehors` : les groupes de peau de chaque côté (`tente.py`) ; `sur` : les filets qu'il
 recouvre."""
 MANCHES = tuple(
-    {'nom': f'manche_{c}', 'porteur': f'lowerarm_{cote}', 'main': f'hand_{cote}', 'os': 3,
+    {'nom': f'manche_{c}', 'porteur': f'lowerarm_{cote}', 'main': f'hand_{cote}', 'os': 3, 'tube': (0.1, 0.5),
      'brins': tuple((f'{station}_{face}', part, azimut, longueur)
                     for station, part, longueur in (('coude', 0.1, 0.15), ('milieu', 0.4, 0.30), ('poignet', 0.7, 0.45))
                     for face, azimut in (('avant', 45.0), ('arriere', -45.0)))}
     for c, cote in (('g', 'l'), ('d', 'r')))
 """Les manches, une par avant-bras. `porteur` : l'os qui porte les racines ; `main` : l'os du poignet ; `os` : os par
-brin ; `brins` : `(nom, part de l'avant-bras du coude au poignet, azimut en degrés autour de l'avant-bras, du dessous
-du bras tendu vers l'avant, longueur en mètres)`."""
+brin ; `tube` : `(part de l'avant-bras où le tube d'une manche a quitté l'avant-bras pour son os, portion du tour de
+la manche dont tourne cet os)` ; `brins` : `(nom, part de l'avant-bras du coude au poignet, azimut en degrés autour de
+l'avant-bras, du dessous du bras tendu vers l'avant, longueur en mètres)`. Le tube ne prend qu'une portion du tour,
+que ses arêtes passent au coude sans s'étirer au-delà de la porte (#4697 : au tour entier, `arete-etiree` de la robe
+sous `carrure_plus` en 38 clips) ; les brins de la poche, qui pendent, le prennent en entier."""
 FUT_DE_HAMPE = (-0.6, 1.2, 0.02)
 """Le fût d'une arme d'hampe dans le repère de la prise `main` : ses deux bouts sur le +Y, en mètres, et son rayon. Les
 bouts du bâton, l'arme d'hampe la plus courte (`element/humanoide/rigide--baton/donnees.py`) ; le rayon de la hampe la
 plus forte, celle de la grande hache."""
 DRESSE = 0.5
 """Poids du dessous de la manche au repos devant le côté le plus bas de l'avant-bras, quand il se dresse
-(`Manche.tour`)."""
+(`Manche.bas`)."""
 LISSAGE = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0]) / 64.0
 """Poids des images voisines, de trois avant à trois après, dans l'aplomb d'un filet, l'angle du tour d'une manche et
 la direction de ses os."""
@@ -475,8 +478,13 @@ class Monte:
 
 
 def os_du_tour(manche):
-    """Le nom de l'os qui tourne la manche `manche` autour de son avant-bras."""
+    """Le nom de l'os qui tourne les brins de la manche `manche` autour de son avant-bras."""
     return f"{manche['nom']}_tour"
+
+
+def os_du_tube(manche):
+    """Le nom de l'os qui tourne le tube de la manche `manche` autour de son avant-bras, d'une portion de son tour."""
+    return f"{manche['nom']}_tube"
 
 
 def autour(axe, angle):
@@ -486,9 +494,11 @@ def autour(axe, angle):
 
 
 class Manche:
-    """Une manche montée sur la base : l'os de son tour, posé sur son porteur, qui la tourne autour de l'avant-bras ; ses
-    brins, posés au repos d'aplomb sous l'avant-bras tendu, enfants du tour ; ses racines, leurs dégagements, l'axe de
-    l'avant-bras et son dessous dans le repère de son porteur."""
+    """Une manche montée sur la base : l'os de son tour et celui de son tube, posés sur son porteur, qui la tournent
+    autour de l'avant-bras ; ses brins, posés au repos d'aplomb sous l'avant-bras tendu, enfants du tour ; ses racines,
+    l'axe de l'avant-bras, son dessous et le dégagement de ses brins, vers le poignet et le dessous, dans le repère de
+    son porteur ; les liens de ses brins voisins (`pendant.pendre`) : les deux faces d'une station, les stations
+    voisines d'une face, à `tente.ETIREMENT_MAX` fois leur écart au repos."""
 
     def __init__(self, squelette, manche, peau):
         self.filet = manche
@@ -513,11 +523,17 @@ class Manche:
         self.repos = racines[:, None, :] + np.concatenate([np.zeros((len(racines), 1)), np.cumsum(self.longueurs, axis=1)], axis=1)[:, :, None] * pendant.BAS
         inverse = np.linalg.inv(mondes[porteur])
         self.locales = racines @ inverse[:3, :3].T + inverse[:3, 3]
-        self.degagements = np.array([unitaire(h + axe) for h in dehors]) @ inverse[:3, :3].T
         self.axe, self.dessous = inverse[:3, :3] @ axe, inverse[:3, :3] @ dessous
+        self.degagements = np.tile(unitaire(self.axe + self.dessous), (len(racines), 1))
+        parts = sorted({part for _, part, _, _ in manche['brins']})
+        cotes = [(parts.index(part), azimut) for _, part, azimut, _ in manche['brins']]
+        paires = np.array([(a, b) for a in range(len(racines)) for b in range(a + 1, len(racines))
+                           if (abs(cotes[a][0] - cotes[b][0]), cotes[a][1] == cotes[b][1]) in ((0, False), (1, True))])
+        self.liens = paires, tente.ETIREMENT_MAX * np.linalg.norm(self.repos[paires[:, 0], 1:] - self.repos[paires[:, 1], 1:], axis=2)
         self.porteur_au_repos = orthonormer(mondes[porteur][:3, :3])
         self.directions = np.tile(pendant.BAS, (len(racines), K, 1))
-        squelette.poser_un_os(os_du_tour(manche), porteur, mondes[porteur])
+        for os_ in (os_du_tube(manche), os_du_tour(manche)):
+            squelette.poser_un_os(os_, porteur, mondes[porteur])
         self.repos_des_os = poser_les_brins(squelette, manche, os_du_tour(manche), self.repos, dehors - (dehors @ pendant.BAS)[:, None] * pendant.BAS)
 
     def bas(self, porteur):
@@ -534,7 +550,7 @@ class Manche:
         """Les articulations de la manche à chaque image d'un clip et, par os, ses quaternions locaux. `images` : par
         image, les matrices monde et les obstacles (`pendant`). Le tour de la manche suit son côté bas, déroulé d'une
         image à la suivante ; lui et la direction de chaque os pendu se lissent sur leurs voisines (`LISSAGE`), celles de
-        l'autre bout d'un clip en `boucle`."""
+        l'autre bout d'un clip en `boucle`. Le tube tourne de sa portion du tour."""
         porteurs = [mondes[self.filet['porteur']] for mondes, _ in images]
         rotations_des_porteurs = [orthonormer(porteur[:3, :3]) for porteur in porteurs]
         angles = np.unwrap([self.bas(rotation) for rotation in rotations_des_porteurs])
@@ -544,7 +560,7 @@ class Manche:
         tournees, racines, directions = [], [], []
         for porteur, rotation, angle, (_, obstacles) in zip(porteurs, rotations_des_porteurs, angles, images):
             tournee = rotation @ autour(self.axe, angle)
-            x = pendant.pendre(self.locales @ tournee.T + porteur[:3, 3], self.longueurs, self.degagements @ tournee.T, obstacles)
+            x = pendant.pendre(self.locales @ tournee.T + porteur[:3, 3], self.longueurs, self.degagements @ tournee.T, obstacles, self.liens)
             tournees.append(tournee)
             racines.append(x[:, 0])
             directions.append((x[:, 1:] - x[:, :-1]) / self.longueurs[:, :, None])
@@ -554,7 +570,8 @@ class Manche:
         for tournee, angle, racine, d in zip(tournees, angles, racines, directions):
             x = np.concatenate([racine[:, None], racine[:, None] + np.cumsum(self.longueurs[:, :, None] * d, axis=1)], axis=1)
             poses.append(x)
-            rotations.append({os_du_tour(self.filet): quaternion(autour(self.axe, angle)),
+            rotations.append({os_du_tube(self.filet): quaternion(autour(self.axe, self.filet['tube'][1] * angle)),
+                              os_du_tour(self.filet): quaternion(autour(self.axe, angle)),
                               **rotations_des_brins(self.filet, self.directions, self.repos_des_os, x, tournee @ self.porteur_au_repos.T, tournee)})
         return poses, rotations
 
@@ -626,7 +643,7 @@ def draper(chemin, corps, prise, hampes):
         print('FILETS', clip, len(temps), 'image(s)', flush=True)
     squelette.ecrire(chemin)
     return {**{filet['nom']: [os_ for brin in os_des_brins(filet) for os_ in brin] for filet in FILETS},
-            'manche': [os_ for manche in MANCHES for os_ in [os_du_tour(manche)] + [os_ for brin in os_des_brins(manche) for os_ in brin]]}
+            'manche': [os_ for manche in MANCHES for os_ in [os_du_tube(manche), os_du_tour(manche)] + [os_ for brin in os_des_brins(manche) for os_ in brin]]}
 
 
 def articulations(squelette, noms):
@@ -655,16 +672,18 @@ def filets_au_repos(chemin):
 
 
 def manches_au_repos(chemin):
-    """Par manche du GLB drapé `chemin` (`manche_g`, `manche_d`) : `tour`, l'os qui la tourne autour de l'avant-bras ;
-    `os`, par brin, ses os ; `brins` (S, K+1, 3), ses
-    articulations au repos dans le repère de l'armature ; `coude` et `poignet`, les bouts de son avant-bras ; `parts`
-    (S,), la part de l'avant-bras où pend chaque brin ; `avant` (S,), s'il pend à l'avant du bras tendu."""
+    """Par manche du GLB drapé `chemin` (`manche_g`, `manche_d`) : `porteur`, l'os de son avant-bras ; `tube`, l'os qui
+    tourne son tube autour de l'avant-bras, et `part_du_tube`, la part de l'avant-bras où le tube l'a pris ; `os`, par
+    brin, ses os ; `brins` (S, K+1, 3), ses articulations au repos dans le repère de l'armature ; `coude` et `poignet`,
+    les bouts de son avant-bras ; `parts` (S,), la part de l'avant-bras où pend chaque brin ; `avant` (S,), s'il pend à
+    l'avant du bras tendu."""
     squelette = Squelette(chemin)
     manches = {}
     for manche in MANCHES:
         noms = os_des_brins(manche)
         mondes = squelette.monde({}, 0.0, [manche['porteur'], manche['main']])
-        manches[manche['nom']] = {'tour': os_du_tour(manche), 'os': noms, 'brins': articulations(squelette, noms),
+        manches[manche['nom']] = {'porteur': manche['porteur'], 'tube': os_du_tube(manche), 'part_du_tube': manche['tube'][0],
+                                  'os': noms, 'brins': articulations(squelette, noms),
                                   'coude': mondes[manche['porteur']][:3, 3], 'poignet': mondes[manche['main']][:3, 3],
                                   'parts': np.array([part for _, part, _, _ in manche['brins']]),
                                   'avant': np.array([azimut > 0 for _, _, azimut, _ in manche['brins']])}

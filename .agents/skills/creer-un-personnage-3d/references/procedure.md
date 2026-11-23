@@ -379,11 +379,15 @@ sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet
 porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
 mouvement viennent du filet. Une manche ample ne se pondère pas d'un bloc à l'avant-bras : sa poche se pose sur la
 chaîne `manche` de la base (`MANCHES` de `base/filets.py`, drapé `base/pendant.py`), par avant-bras un os de tour qui
-garde le dessous du bras vers le bas et six brins de trois os (coude, milieu, poignet ; avant, arrière) qui pendent
-d'aplomb et s'écartent du corps, de la tête et du bâton tenu à deux mains. Une pièce la lit par `Base.manche(c)`
-(`tissu.Manche`) : l'anneau du tube suit l'os de tour (`Manche.tour`), la poche pend d'aplomb sous lui
-(`Manche.pendre`), pondérée aux brins voisins de sa station et de sa face (`Manche.poids`), et la pièce déclare
-`manche` dans `chaines`. Une doublure reprend les colonnes et les poids de la nappe
+garde le dessous du bras vers le bas, un os de tube qui n'en prend qu'une portion, et six brins de trois os (coude,
+milieu, poignet ; avant, arrière), enfants du tour, qui pendent d'aplomb et s'écartent du corps, de la tête et du bâton
+tenu à deux mains ; deux brins voisins ne s'écartent pas de plus de `tente.ETIREMENT_MAX` fois leur écart au repos.
+Une pièce la lit par `Base.manche(c)` (`tissu.Manche`) : l'anneau du tube suit l'os de tube (`Manche.tour`), la poche
+pend d'aplomb sous lui (`Manche.pendre`), pondérée aux brins voisins de sa station et de sa face (`Manche.poids`), et
+la pièce déclare `manche` dans `chaines`. Le dernier anneau lié au bras se tient à 10 cm au moins du premier anneau de
+l'avant-bras, et l'anneau où le pan passe aux brins à 8 cm au moins de l'anneau qui suit encore le tube (12 cm pour un
+pan de 40 cm) : plus près, les arêtes qui les joignent s'étirent au-delà de la porte, coude plié ou bras tombant.
+Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 

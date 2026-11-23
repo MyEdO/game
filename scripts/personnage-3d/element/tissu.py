@@ -113,13 +113,13 @@ class Filet:
 
 
 class Manche:
-    """Une manche de la base au repos (`manches_au_repos`, `base/filets.py`) sous la poche qui la suit : `tour`, l'os qui
-    tourne la manche autour de l'avant-bras, que suit son dessus ; ses poids, par os de la base, en un point de la
-    poche."""
+    """Une manche de la base au repos (`manches_au_repos`, `base/filets.py`) sous la poche qui la suit : l'os qui
+    tourne son tube autour de l'avant-bras d'une portion du tour de la manche, que suit son dessus (`tour`) ; ses
+    poids, par os de la base, en un point de la poche (`poids`)."""
 
     def __init__(self, repos, indice_os):
         self.brins, self.os, self.indice_os = repos['brins'], repos['os'], indice_os
-        self.tour = indice_os[repos['tour']]
+        self.porteur, self.tube, self.part_du_tube = indice_os[repos['porteur']], indice_os[repos['tube']], repos['part_du_tube']
         self.coude, avant_bras = repos['coude'], repos['poignet'] - repos['coude']
         self.axe = avant_bras / (avant_bras @ avant_bras)
         self.stations = sorted(set(repos['parts'].tolist()))
@@ -135,10 +135,17 @@ class Manche:
     def pendre(self, tube, pans):
         """La poche qui pend sous l'anneau `tube` de la manche, bras tendu : chaque point descend d'aplomb de son pan de
         `pans`, ses poids passent du tour de la manche à ses brins. Rend les points et leurs poids."""
-        tour = np.zeros(len(self.indice_os))
-        tour[self.tour] = 1.0
         points = [np.asarray(p) + pan * np.array([0.0, 0.0, -1.0]) for p, pan in zip(tube, pans)]
-        return points, [(1 - self.part(pan)) * tour + self.part(pan) * self.poids(q) for q, pan in zip(points, pans)]
+        return points, [(1 - self.part(pan)) * self.tour(p) + self.part(pan) * self.poids(q)
+                        for p, q, pan in zip(tube, points, pans)]
+
+    def tour(self, p):
+        """Les poids du point `p` du dessus de la manche : de l'avant-bras, au coude, à l'os du tube, le long de
+        l'avant-bras."""
+        vers = min(1.0, max(0.0, float((np.asarray(p) - self.coude) @ self.axe) / self.part_du_tube))
+        w = np.zeros(len(self.indice_os))
+        w[self.porteur], w[self.tube] = 1 - vers, vers
+        return w
 
     def part(self, profondeur):
         """Part de la manche dans un point qui pend de `profondeur` sous le dessus de la manche : nulle à son départ,
@@ -156,7 +163,7 @@ class Manche:
         for station, reste_de_station in ((j, 1 - vers), (j + 1, vers)):
             arriere, avant = (self.brins[s, 0] for s in self.faces[station])
             travers = avant - arriere
-            en_avant = fondu(float((np.asarray(p) - arriere) @ travers / (travers @ travers)))
+            en_avant = min(1.0, max(0.0, float((np.asarray(p) - arriere) @ travers / (travers @ travers))))
             for s, reste in zip(self.faces[station], (reste_de_station * (1 - en_avant), reste_de_station * en_avant)):
                 for k, os_ in enumerate(self.os[s]):
                     sous = 0.0
