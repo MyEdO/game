@@ -112,6 +112,9 @@ export function talentDeCombat(id: string): boolean {
 export const talentsAcquis = (c: Combatant): { id: string; label: string; fois: number; combat: boolean }[] =>
   c.talents.map((t) => ({ id: t.talentId, label: refLabel('talents', { id: t.talentId, ...(t.spec ? { spec: t.spec } : {}) }), fois: t.times, combat: talentDeCombat(t.talentId) }));
 
+/** Libellé d'une Compétence, sa spécialisation comprise (`skills.json`). */
+export const nomDeCompetence = (ref: { id: string; spec?: string }): string => refLabel('skills', ref);
+
 /** Libellé d'un Talent, sa spécialisation comprise (`talents.json`). */
 export const nomDeTalent = (ref: { id: string; spec?: string }): string => refLabel('talents', ref);
 

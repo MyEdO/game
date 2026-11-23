@@ -1,9 +1,9 @@
 /**
  * Les carrières : avancements et voies des lanceurs, joués par le noyau.
  */
-import { COMPETENCES_DU_COMBAT, coutDesAugmentations, planDuNiveau, talentDeCombat, progression, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
+import { coutDesAugmentations, planDuNiveau, talentDeCombat, progression, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
 
-import { voieDe } from './valeurs';
+import { COMPETENCES_UTILES, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
 import { auNoyau, heros } from './outils';
 import { prendreSesArmes } from './boutiques';
@@ -11,16 +11,6 @@ import { prendreSesArmes } from './boutiques';
 /** Le plus haut niveau de carrière que la salle d'armes ouvre (0 : fermée). */
 export const niveauMaximal = (e: Etat): number => (e.batiments.salle ? e.batiments.salle + 1 : 0);
 
-
-/** Les Talents qui agissent par la donnée mais hors d'un combat automatique : vie sociale, voyage, fuite, soins. */
-const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieux', 'voyageur-aguerri', 'fuite', 'sprinter', 'pansement-de-fortune']);
-
-/** Les Compétences que le roguelite fait jouer, en combat et dans les salles : un id (`skills.json`), ou `id:spec`
- *  pour la seule spécialisation qui joue. */
-const COMPETENCES_UTILES: ReadonlySet<string> = new Set([
-  ...COMPETENCES_DU_COMBAT, 'langue:magick',
-  'perception', 'piegeage', 'crochetage', 'guerison', 'charme', 'escalade', 'discretion', 'pistage', 'survie-en-exterieur',
-]);
 
 const estUtile = (ref: { id: string; spec?: string }): boolean => COMPETENCES_UTILES.has(ref.id) || COMPETENCES_UTILES.has(`${ref.id}:${ref.spec}`);
 

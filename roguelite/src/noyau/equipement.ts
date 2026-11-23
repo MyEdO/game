@@ -18,7 +18,7 @@ import { ZONES_D_ARMURE } from '../../../src/engine/classementDeTrait';
 import { armourCastDRPenalty } from '../../../src/engine/magic';
 import { castingKindOf } from '../../../src/engine/combatFeatures/dispatch';
 import { effectiveTalents } from '../../../src/engine/talentsPossedes';
-import { findQualityById, findTrappingById, refLabel, testSkillLabel, trappingsInstanciables } from '../../../src/data';
+import { findQualityById, findTrappingById, refLabel, testSkillLabel, trappingsInstanciables, weaponGroups } from '../../../src/data';
 import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../src/engine/types';
 export { AVAILABILITIES as DISPONIBILITES, type Availability as Disponibilite } from '../../../src/engine/types';
 
@@ -66,6 +66,9 @@ export const tenableEnMainSecondaire = (it: ItemInstance): boolean => isOffHandE
 export function doter(ids: readonly string[], prefixe: string): ItemInstance[] {
   return doterLePorteur(ids.map((id) => ({ id })) as never, makeRNG(ids.length), fabriqueLocale(prefixe)).items;
 }
+
+/** Libellé d'un Groupe d'armes (`weaponGroups.json`). */
+export const nomDeGroupe = (id: string): string => weaponGroups.find((g) => g.id === id)?.label ?? id;
 
 /** Ce que le catalogue dit d'un objet : libellé, catégorie, Groupe, Encombrement, prix en couronnes d'or (CO), et pour une arme
  *  ses Dégâts, ses mains, son allonge ou sa portée et si c'est un Bouclier (LDB 62 l.33-35), pour une armure ses PA et

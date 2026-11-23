@@ -1,10 +1,11 @@
 /**
- * Les valeurs d'adaptation du roguelite : bâtiments et paliers, carrières du roster, destinations, prix, gains.
+ * Le catalogue du roguelite (vue lisible : `CATALOGUE.md`, `catalogue.ts`) : bâtiments et paliers, carrières du roster et
+ * leurs désignations, voies et sorts, Compétences utiles, forge, hospice, destinations et adversaires, prix, gains.
  */
 import {
   nomDeCarriereDuLivre,
   nomDeTalent,
-  sortsDeLaVoie,
+  COMPETENCES_DU_COMBAT,
   type Combatant,
   type Epreuve,
   type Identite,
@@ -13,6 +14,7 @@ import {
   type Disponibilite,
   type PoidsDArmure,
   type FluxDEpreuve,
+  type Designation,
 } from '../noyau';
 
 import { profil } from './outils';
@@ -69,6 +71,33 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
 ];
 
+/** Les Sorts mineurs qu'un lanceur de Collège connaît à la recrue. */
+export const SORTS_MINEURS: readonly string[] = ['flechette', 'choc', 'eblouissant'];
+/** Les sorts et miracles que chaque voie offre, par domaine ou par dieu : ceux que le noyau applique et que l'IA d'un
+ *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+export const SORTS_DES_VOIES: Readonly<Record<string, readonly string[]>> = {
+  feu: ['cauteriser', 'embrasement', 'flamme-fascinante', 'sang-bouillant'],
+  lumiere: ['filet-d-amyntok', 'collet-d-abulla', 'clarte-d-esprit'],
+  vie: ['ecorce', 'chair-de-pierre', 'graisse-de-la-terre'],
+  bete: ['ver-fretillant', 'la-lance-d-ambre'],
+  metal: ['creuset-de-chamon', 'arme-enchantee'],
+  mort: ['caresse-de-laniph', 'liberation-de-la-mort', 'vol-de-vie', 'contraindre-les-esprits'],
+  shallya: ['larmes-de-shallya', 'amere-catharsis', 'baume-pour-un-esprit-blesse', 'endurance-de-l-anachorete', 'martyr'],
+  sigmar: ['comete-a-deux-queues', 'vaincre-les-impies', 'marteau-ardent-de-sigmar', 'flambeau-de-vertu', 'n-ecoutez-point-la-sorciere'],
+  ulric: ['jugement-du-roi-de-la-neige', 'hurlement-du-loup', 'fureur-d-ulric', 'frisson-du-givre', 'peau-de-loup-d-hiver'],
+  myrmidia: ['devotion-de-la-vierge-guerriere', 'appel-a-la-fureur', 'inspirant', 'terrifier-l-ennemi', 'bouclier-de-myrmidia', 'soleil-flamboyant'],
+};
+
+/** Les Compétences que le roguelite fait jouer, en combat et dans les salles : un id (`skills.json`), ou `id:spec`
+ *  pour la seule spécialisation qui joue. */
+export const COMPETENCES_UTILES: ReadonlySet<string> = new Set([
+  ...COMPETENCES_DU_COMBAT, 'langue:magick',
+  'perception', 'piegeage', 'crochetage', 'guerison', 'charme', 'escalade', 'discretion', 'pistage', 'survie-en-exterieur',
+]);
+/** Les Talents de carrière qui agissent par la donnée mais hors d'un combat automatique, que la salle d'armes ne met
+ *  pas en avant : vie sociale, voyage, fuite, soins. */
+export const TALENTS_HORS_DU_COMBAT: ReadonlySet<string> = new Set(['affable', 'studieux', 'voyageur-aguerri', 'fuite', 'sprinter', 'pansement-de-fortune']);
+
 /** La voie d'un lanceur : le Talent de niveau 2 qui ouvre les sorts ou les miracles, sa spécialisation, et ce qui
  *  s'achète ensuite. */
 export interface Voie { talent: 'magie-des-arcanes' | 'invocation'; spec: string; nom: string; sorts: readonly string[] }
@@ -83,33 +112,37 @@ export const ROLES: Record<Role, { nom: string; picto: string }> = {
  *  les dieux parmi lesquels se tire la spécialisation de son Talent d'identité (`beni`), qui fixe sa voie. */
 export interface Profil { id: string; nom: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
 
-/** La voie du Talent `talent` spécialisé en `spec` : son libellé et les sorts que le noyau en joue (`sortsDeLaVoie`). */
-const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }), sorts: sortsDeLaVoie(talent, spec) });
+/** La voie du Talent `talent` spécialisé en `spec` : son libellé et ses sorts choisis (`SORTS_DES_VOIES`). */
+const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }), sorts: SORTS_DES_VOIES[spec] ?? [] });
+/** Les emplacements « (Au choix) » de Corps à corps et de Projectiles désignés à la recrue, valeur d'adaptation par
+ *  profil : la spécialisation qui sert son identité. */
+const cac = (niveau: number, spec: string): Designation => ({ niveau, id: 'corps-a-corps', spec });
+const tir = (niveau: number, spec: string): Designation => ({ niveau, id: 'projectiles', spec });
 /** Une carrière de Collège (VDM ch. 4 à 11) : lanceur, recrutée au niveau 1, sa voie la Magie des Arcanes de son domaine. */
 const college = (id: string, nom: string, relais: number, domaine: string, devise: string): Profil =>
   ({ id, nom, relais, niveau: 1, role: 'lanceur', identite: MAGIE_MINEURE, devise, voie: voie('magie-des-arcanes', domaine) });
-const MAGIE_MINEURE: Identite = { talent: { id: 'magie-mineure' }, sortsMineurs: ['flechette', 'choc', 'eblouissant'] };
+const MAGIE_MINEURE: Identite = { talent: { id: 'magie-mineure' }, sortsMineurs: SORTS_MINEURS };
 
 export const PROFILS: readonly Profil[] = [
-  { id: 'soldat', nom: 'Soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
+  { id: 'soldat', nom: 'Soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'armes-d-hast'), tir(2, 'arc')] }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
   { id: 'chasseur', nom: 'Chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
-  { id: 'ratier', nom: 'Ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' } }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
-  { id: 'nonne', nom: 'Nonne de Shallya', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' } }, devise: 'Soigne et protège. Bénie de Shallya.',
-    voie: { talent: 'invocation', spec: 'shallya', nom: 'Invocation (Shallya)', sorts: [] } },
+  { id: 'ratier', nom: 'Ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' }, designations: [{ niveau: 1, id: 'discretion', spec: 'souterrains' }] }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
+  { id: 'nonne', nom: 'Nonne de Shallya', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' }, designations: [cac(2, 'base')] }, devise: 'Soigne et protège. Bénie de Shallya.',
+    voie: voie('invocation', 'shallya') },
   college('pyromancien', 'Pyromancien', 0, 'feu', 'Le Collège Flamboyant. Magie mineure.'),
   college('hierophante', 'Hiérophante', 0, 'lumiere', 'Le Collège Lumineux. Magie mineure.'),
   { id: 'tueur', nom: 'Tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
-  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' } }, devise: 'Traque l’hérétique. Déterminé.' },
+  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' }, designations: [tir(2, 'poudre-noire')] }, devise: 'Traque l’hérétique. Déterminé.' },
   { id: 'medecin', nom: 'Médecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
   { id: 'voleur', nom: 'Voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
   college('druide', 'Druide', 1, 'vie', 'Le Collège de Jade. Magie mineure.'),
   college('chamane', 'Chamane', 1, 'bete', 'Le Collège d’Ambre. Magie mineure.'),
-  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' } }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
-  { id: 'duelliste', nom: 'Duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' } }, devise: 'Bat le fer adverse. Battement.' },
+  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'parade')] }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
+  { id: 'duelliste', nom: 'Duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' }, designations: [cac(1, 'escrime'), cac(4, 'deux-mains')] }, devise: 'Bat le fer adverse. Battement.' },
   { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
   // careerLevels.json l.11637
   { id: 'ingenieur', nom: 'Ingénieur', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'artilleur' } }, dotation: ['pistolet'], devise: 'La poudre et la mécanique. Artilleur.' },
-  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' } }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
+  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' }, designations: [cac(1, 'base'), cac(2, 'deux-mains'), tir(2, 'arbalete')] }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
   college('alchimiste', 'Alchimiste', 2, 'metal', 'Le Collège Doré. Magie mineure.'),
   college('spirite', 'Spirite', 2, 'mort', 'Le Collège d’Améthyste. Magie mineure.'),
 ];

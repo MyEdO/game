@@ -73,8 +73,9 @@ describe('progression : plan conseillé', () => {
     const offertes = offresDeCarriere(h).competences;
     expect(offertes.find((k) => k.ref.id === 'musicien')?.utile).toBe(false);
     expect(offertes.find((k) => k.ref.id === 'survie-en-exterieur')?.utile).toBe(true);
-    const competences = planVersLeNiveau(h).etapes.flatMap((x) => (x.genre === 'competence' ? [x.ref.id] : []));
-    expect(competences).toContain('survie-en-exterieur');
+    const etapes = planVersLeNiveau(h).etapes.flatMap((x) => (x.genre === 'competence' ? [x.ref] : []));
+    const competences = etapes.map((r) => r.id);
+    expect(etapes.filter((r) => !offertes.find((k) => k.ref.id === r.id && k.ref.spec === r.spec)?.utile)).toEqual([]);
     expect(competences).not.toContain('musicien');
     expect(competences).not.toContain('pari');
   });

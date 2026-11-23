@@ -1,0 +1,54 @@
+// Le catalogue du roguelite : la vue lisible de ce que le jeu offre (`src/jeu/valeurs.ts`), écrite dans `CATALOGUE.md`.
+// Usage : npx tsx roguelite/catalogue.ts
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import {
+  ARMES_DE_LA_FORGE, COMPETENCES_UTILES, DESTINATIONS, GROUPES_SANS_COMPETENCE, PANOPLIES, PROFILS, REMEDES_DE_L_HOSPICE, ROLES,
+  SORTS_DES_VOIES, SORTS_MINEURS, TALENTS_HORS_DU_COMBAT, PRIERE_DE_SOIN,
+} from './src/jeu';
+import { articleDuCatalogue, nomDeCarriereDuLivre, nomDeCompetence, nomDeCreature, nomDeGroupe, nomDeSort, nomDeTalent } from './src/noyau';
+
+export const CHEMIN_DU_CATALOGUE = fileURLToPath(new URL('./CATALOGUE.md', import.meta.url));
+
+const nomme = (nom: string, id: string): string => `${nom} (${id})`;
+const objet = (id: string): string => nomme(articleDuCatalogue(id).label, id);
+const sort = (id: string): string => nomme(nomDeSort(id), id);
+const competence = (cle: string): string => { const [id, spec] = cle.split(':'); return nomme(nomDeCompetence(spec ? { id, spec } : { id }), cle); };
+const talent = (ref: { id: string; spec?: string }): string => nomme(nomDeTalent(ref), ref.spec ? `${ref.id}:${ref.spec}` : ref.id);
+const creatures = (ids: readonly string[]): string => ids.map((id) => nomme(nomDeCreature(id), id)).join(' + ');
+const arcane = (spec: string): boolean => PROFILS.some((p) => p.voie?.talent === 'magie-des-arcanes' && p.voie.spec === spec);
+const tableau = (entete: readonly string[], lignes: readonly (readonly string[])[]): string =>
+  [`| ${entete.join(' | ')} |`, `|${entete.map(() => '---').join('|')}|`, ...lignes.map((l) => `| ${l.join(' | ')} |`)].join('\n');
+
+/** Le contenu de `CATALOGUE.md`, produit des tables de `valeurs.ts`. */
+export function catalogue(): string {
+  const carrieres = tableau(['Carrière', 'Relais', 'Niveau', 'Rôle', 'Identité', 'Dotation d’adaptation', 'Désignations', 'Voie'], PROFILS.map((p) => [
+    nomme(nomDeCarriereDuLivre(p.id), p.id), String(p.relais), String(p.niveau), ROLES[p.role].nom, talent(p.identite.talent),
+    (p.dotation ?? []).map(objet).join(', '),
+    (p.identite.designations ?? []).map((d) => `niv. ${d.niveau} : ${competence(`${d.id}:${d.spec}`)}`).join(', '),
+    p.voie ? p.voie.nom : p.dieux ? `Invocation, dieu tiré : ${p.dieux.join(', ')}` : '',
+  ]));
+  const voies = tableau(['Voie', 'Sorts'], Object.entries(SORTS_DES_VOIES).map(([spec, ids]) => [talent({ id: arcane(spec) ? 'magie-des-arcanes' : 'invocation', spec }), ids.map(sort).join(', ')]));
+  const forge = tableau(['Groupe', 'Armes'], Object.entries(ARMES_DE_LA_FORGE).map(([g, ids]) =>
+    [`${nomme(nomDeGroupe(g), g)}${GROUPES_SANS_COMPETENCE.has(g as keyof typeof ARMES_DE_LA_FORGE) ? ', sans Compétence' : ''}`, ids.map(objet).join(', ')]));
+  const panoplies = tableau(['Panoplie', 'Pièces'], PANOPLIES.map((p) => [nomme(p.label, p.id), p.pieces.map(objet).join(', ')]));
+  const destinations = tableau(['Destination', 'Palier', 'Salles', 'Meutes', 'Élites', 'Maître'], DESTINATIONS.map((d) => [
+    nomme(d.nom, d.id), String(d.palier), String(d.salles), d.meutes.map(creatures).join(' ; '), d.elites.map(creatures).join(' ; '), creatures(d.boss),
+  ]));
+  return [
+    '# Catalogue du roguelite',
+    '',
+    '> GÉNÉRÉ par `npx tsx roguelite/catalogue.ts` depuis `roguelite/src/jeu/valeurs.ts` : ne pas éditer à la main.',
+    '',
+    '## Carrières', '', carrieres, '',
+    '## Voies et sorts', '', voies, '',
+    `Sorts mineurs d’un lanceur de Collège : ${SORTS_MINEURS.map(sort).join(', ')}. Prière entre deux salles : ${sort(PRIERE_DE_SOIN)}.`, '',
+    '## Compétences utiles', '', [...COMPETENCES_UTILES].map(competence).join(', '), '',
+    '## Talents de carrière écartés de la salle d’armes', '', [...TALENTS_HORS_DU_COMBAT].map((id) => talent({ id })).join(', '), '',
+    '## Forge', '', forge, '', panoplies, '',
+    '## Hospice', '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
+    '## Destinations et adversaires', '', destinations, '',
+  ].join('\n');
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) writeFileSync(CHEMIN_DU_CATALOGUE, catalogue());

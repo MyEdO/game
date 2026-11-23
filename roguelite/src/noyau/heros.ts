@@ -2,22 +2,43 @@
  * Les héros hors d'une partie : la recrue que le moteur crée, ses Caractéristiques, ses libellés.
  */
 import { createHero } from '../../../src/engine/character';
+import { adresseDeCreation, type AdresseDeCreation } from '../../../src/engine/adresseDeCreation';
+import { designateSlot, skillSlots, slotCovers } from '../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../src/engine/characteristics';
-import { findCareerById, findSpeciesById, characteristics, conditionLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
+import { findCareerById, findSpeciesById, levelsForCareer, characteristics, conditionLabel, skills, carrieresAleatoires, colonneDeCarrieres, especesAleatoires } from '../../../src/data';
 import type { RNG } from '../../../src/engine/dice';
 import type { Combatant, CharKey } from '../../../src/engine/types';
 
+/** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
+export interface Designation { niveau: number; id: string; spec: string }
 /** Ce qui fait l'identité d'une recrue à sa création : le Talent de carrière choisi (et sa spécialisation : le dieu
- *  d'un Béni), les Sorts mineurs d'un lanceur. */
-export interface Identite { talent: { id: string; spec?: string }; sortsMineurs?: readonly string[] }
+ *  d'un Béni), les Sorts mineurs d'un lanceur, et les emplacements « (Au choix) » de Compétence désignés. */
+export interface Identite { talent: { id: string; spec?: string }; sortsMineurs?: readonly string[]; designations?: readonly Designation[] }
 
-/** Un héros neuf de la carrière `carriere`, tiré par la création du moteur (`createHero`) à la graine `graine`. */
+/** Un héros neuf de la carrière `carriere`, tiré par la création du moteur (`createHero`) à la graine `graine` : une
+ *  désignation du niveau 1 passe par la création (`specChoices`), une autre se pose par `designateSlot`. LDB 05 l.535 */
 export function nouvelleRecrue(graine: number, carriere: string, espece: string, nom: string, identite: Identite): Combatant {
-  return createHero({
-    idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine,
+  const niveaux = levelsForCareer(carriere);
+  const premier = niveaux.find((l) => l.level === 1)?.skills ?? [];
+  const designations = identite.designations ?? [];
+  const specChoices: Record<AdresseDeCreation, string> = {};
+  for (const d of designations.filter((x) => x.niveau === 1)) {
+    const i = premier.findIndex((r) => 'id' in r && r.id === d.id && r.choix != null);
+    if (i < 0) throw new Error(`Désignation ${d.id} (${d.spec}) : aucun emplacement « (Au choix) » au niveau 1 de ${carriere}.`);
+    specChoices[adresseDeCreation.carriereCompetence(i)] = d.spec;
+  }
+  const c = createHero({
+    idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine, specChoices,
     careerTalent: identite.talent, ...(identite.sortsMineurs ? { pettySpells: [...identite.sortsMineurs] } : {}),
   });
+  const emplacements = skillSlots(niveaux, Math.max(...niveaux.map((l) => l.level)));
+  for (const d of designations.filter((x) => x.niveau > 1)) {
+    const slot = emplacements.find((s) => s.needsChoice && s.level === d.niveau && slotCovers(s, d.id, d.spec));
+    const r = slot ? designateSlot(c, carriere, slot, d.id, d.spec, emplacements) : { ok: false, reason: 'aucun emplacement' };
+    if (!r.ok) throw new Error(`Désignation ${d.id} (${d.spec}) au niveau ${d.niveau} de ${carriere} : ${r.reason}.`);
+  }
+  return c;
 }
 
 /** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et

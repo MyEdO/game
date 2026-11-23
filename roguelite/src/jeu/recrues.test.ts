@@ -82,7 +82,6 @@ describe('recrues du relais', () => {
     const feu = voieDe('pyromancien', { talents: [] })!;
     expect(feu).toMatchObject({ talent: 'magie-des-arcanes', spec: 'feu' });
     expect(feu.sorts).toContain('cauteriser');
-    expect(feu.sorts).not.toContain('carreau');
     const tires = new Set(Array.from({ length: 12 }, (_, g) => nouvellePartie(g).roster[3].carriere));
     expect([...tires].sort()).toEqual(colleges.filter((p) => p.relais === 0).map((p) => p.id).sort());
   });
