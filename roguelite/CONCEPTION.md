@@ -160,6 +160,12 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   l'ia non ? D'ailleurs si tu veux rendre les choses tactiques, faudrait des maps qui le soient un peu plus ». —
   Détail et état dans `PISTES.md` ; la consigne d'un héros passe par la doctrine de l'IA du noyau
   (`Combatant.aiDoctrine`, `DOCTRINES` de `src/noyau/monde/ai.ts`).
+- **2026-11-23, gérer vite ses héros** : « Les personnages sont fait pour évoluer, que ce soit via l'xp et
+  l'équipement, mais il ne faut pas qu'on passer 5min apres chaque expédition a gérer détail par détail notre
+  personnage. Pour ca que je voulais passer la progression en V5, pour que les augment soit plus simple par exemple ».
+  — Après une expédition, faire progresser un héros tient en quelques clics : achats par pas de +5, un plan conseillé
+  vers le niveau suivant acheté en un clic (verbes du noyau), seules les Compétences utiles proposées ; l'équipement
+  s'achète par panoplie et par arme conseillée.
 - **2026-11-23, la forge** : « Les palliers de la forge doivent plutot se baser sur la rareté ». — Chaque palier de la
   forge ouvre une Disponibilité du livre (champ `availability` des objets du noyau : commune, limitée, rare,
   exotique) au lieu d'une liste choisie à la main. Sur l'armure : « on affichait 4 slots (arme, 2nd main, distance et
