@@ -33,7 +33,7 @@ const marqueDesAugmentations = (augmentations: number, requis: number) =>
     return part >= 1 ? '<i class="plein"></i>' : part > 0 ? `<i style="--part:${part * 100}%"></i>` : '<i></i>';
   }).join('')}</span>`;
 
-/** Le geste d'un pas (« +5 · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat, lu par le
+/** Le geste d'un pas (« +gain · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat, lu par le
  *  noyau (`J.effetDuPas`). */
 function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
   const pas = J.pasDe(h, cible);
@@ -48,8 +48,8 @@ function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
       ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
     ];
   const cibleAttrs = cible.genre === 'carac' ? `data-g="carac" data-k="${cible.id}"` : `data-g="competence" data-k="${cible.ref.id}"${cible.ref.spec ? ` data-s="${esc(cible.ref.spec)}"` : ''}`;
-  const apercu = apercuDe({ nom: `${nom} +${PAS}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
-  return achat({ verbe: `+${PAS}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
+  const apercu = apercuDe({ nom: `${nom} +${pas.fois}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
+  return achat({ verbe: `+${pas.fois}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
 }
 
 // ─── Ce qui s'achète en PX ──────────────────────────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ function planConseille(h: J.Heros): string {
   const { etapes, total } = J.planVersLeNiveau(h);
   if (!etapes.length) return '';
   const xp = h.c.xp ?? 0;
-  const ligne = (x: EtapeDuPlan) => `${x.genre === 'carac' ? libelleDeCarac(x.id).abr : x.label}${x.genre === 'carac' || x.genre === 'competence' ? ` +${PAS}` : ''} · ${x.cout} PX`;
+  const ligne = (x: EtapeDuPlan) => `${x.genre === 'carac' ? libelleDeCarac(x.id).abr : x.label}${x.genre === 'carac' || x.genre === 'competence' ? ` +${x.fois}` : ''} · ${x.cout} PX`;
   const refus = xp < etapes[0].cout ? `Il faut ${etapes[0].cout} PX pour sa première étape.` : '';
   return `<div class="plan"${apercuDe({ nom: 'Le plan conseillé', nature: `${etapes.length} étape${etapes.length > 1 ? 's' : ''} · ${total} PX`, texte: etapes.map(ligne).join('\n') })}>${achat({ verbe: 'Suivre le plan', prix: total, monnaie: 'PX', avoir: xp, attrs: `data-a="plan" data-id="${h.c.id}"`, refus })}</div>`;
 }

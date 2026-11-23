@@ -13,12 +13,16 @@ function salle() {
   return { e, h };
 }
 
-/** L'aperçu (`data-apercu`) du bouton de pas de la Caractéristique `k`. */
-function apercuDuPas(html: string, k: string): { texte: string } {
-  const bouton = html.match(new RegExp(`<button[^>]*data-a="pas"[^>]*data-k="${k}"[^>]*>`))![0];
-  const brut = bouton.match(/data-apercu="([^"]*)"/)![1];
-  return JSON.parse(brut.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+/** L'aperçu (`data-apercu`) d'une balise ouvrante. */
+const apercuDe = (balise: string): { texte: string } =>
+  JSON.parse(balise.match(/data-apercu="([^"]*)"/)![1].replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+
+/** Le bouton de pas de la Caractéristique `k` : sa balise ouvrante et son libellé. */
+function boutonDuPas(html: string, k: string): { balise: string; libelle: string } {
+  const [tout, balise] = html.match(new RegExp(`(<button[^>]*data-a="pas"[^>]*data-k="${k}"[^>]*>)[\\s\\S]*?</button>`))!;
+  return { balise, libelle: tout.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() };
 }
+const apercuDuPas = (html: string, k: string) => apercuDe(boutonDuPas(html, k).balise);
 
 describe('un seul écran de progression', () => {
   it('la salle d’armes et l’onglet Progression de la fiche posent le même bloc', () => {
@@ -39,5 +43,21 @@ describe('un seul écran de progression', () => {
     const apres = testValue(h.c, { skill: ref });
     expect(apres).toBeGreaterThan(avant);
     expect(texte.split('\n')).toContain(`Corps à corps (Base) ${avant} → ${apres}`);
+  });
+
+  it('le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {
+    const { e, h } = salle();
+    const CC = { genre: 'carac', id: 'capacite-de-combat' } as const;
+    const augs = () => h.c.charAdvances?.['capacite-de-combat'] ?? 0;
+    while (augs() % 5 !== 2) expect(J.acheter(e, h.c.id, CC)).toBeNull();
+    const entame = J.pasDe(h, CC)!;
+    expect(entame.fois).toBe(3);
+    const html = progressionDuHeros(e, h);
+    expect(boutonDuPas(html, 'capacite-de-combat').libelle).toBe(`+3 · ${entame.prix} PX`);
+    expect(apercuDe(html.match(/<div class="plan"[^>]*>/)![0]).texte.split('\n')).toContain(`CC +3 · ${entame.prix} PX`);
+    expect(J.acheterUnPas(e, h.c.id, CC).refus).toBeNull();
+    const plein = J.pasDe(h, CC)!;
+    expect(plein.fois).toBe(5);
+    expect(boutonDuPas(progressionDuHeros(e, h), 'capacite-de-combat').libelle).toBe(`+5 · ${plein.prix} PX`);
   });
 });
