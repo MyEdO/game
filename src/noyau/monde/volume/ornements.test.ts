@@ -1,6 +1,7 @@
 /**
  * LES ORNEMENTS DU BÂTI POSÉS PAR LE VOLUME (#4471) : les décors de façade (`FacadeSection.features`, vignette
- * `facadeFeatureViz`) et d'identité de bâtiment (`buildingFeatures`) sortent du volume du monde (`posesDesDecors`)
+ * `facadeFeatureViz`), les souches des foyers à conduit (`PropData.conduit`) et les décors d'identité de bâtiment
+ * (`buildingFeatures`) sortent du volume du monde (`posesDesDecors`)
  * avec leur décor, leur ancre, leur cap, leur pied et la nappe de toit qui les porte (`ornementsDuBati`) ; un décor
  * porté par une nappe a ses faces dans cette nappe (`toitsDuMonde`), qui se lève avec lui (`toitsLeves`,
  * `toutesLesNappes`). Fixture : la rue du test (`laRue`).
@@ -8,12 +9,15 @@
 import { describe, expect, it } from 'vitest';
 import { heightAt, wallEnds, type FacadeFeature, type Scene } from '../scene';
 import { posesDesDecors, toitsDuMonde, toitsLeves, toutesLesNappes, volumeDuMonde, type PoseDeDecor } from './volume';
-import { fieldHeightAt, resolveNappes } from './toits';
+import { fieldHeightAt, formeDeLaNappe, gableEnds, resolveNappes } from './toits';
 import { facadeFeatureViz } from '../facades';
 import { buildingFeatures } from '../buildings';
 import { WALL_H_M } from '../iso';
-import { capDuFaite } from './ornements';
-import { FACADE, FEATURES, laRue, NAPPE_DE_LA_CHAPELLE } from './ornements.testkit';
+import { capDuFaite, SOUCHE } from './ornements';
+import { edgeKey } from '../facades';
+import {
+  EPI, FACADE, FEATURES, FOYER_DE_LA_CHAPELLE, FOYER_DEHORS, laRue, NAPPE_DE_LA_CHAPELLE,
+} from './ornements.testkit';
 
 const poseDe = (scene: Scene, cle: string): PoseDeDecor => {
   const pose = posesDesDecors(scene).find((p) => p.cle === cle);
@@ -33,7 +37,7 @@ const decorsDe = (g: { surfaces: readonly { decor?: string }[] }): string[] =>
 
 describe('les ornements de façade', () => {
   const scene = laRue();
-  const [cheminee, enseigne] = FEATURES;
+  const [enseigne] = FEATURES;
 
   it('chacun sort du volume au décor de sa vignette, ancré à l’offset de son arête, tourné vers la rue', () => {
     for (const f of FEATURES) {
@@ -53,14 +57,39 @@ describe('les ornements de façade', () => {
     expect(pose.nappe).toBeUndefined();
   });
 
-  it('posé sur la couverture, il s’assied sur le toit à l’aplomb de son ancre et déclare sa nappe', () => {
-    const viz = facadeFeatureViz(FACADE, cheminee.kind)!;
+  it('l’ornement de faîte se pose au sommet du pignon que son arête borde, sur sa nappe', () => {
+    const viz = facadeFeatureViz(FACADE, EPI.kind)!;
     expect(viz.base).toBe('toit');
-    const pose = poseDe(scene, `architecture/chapelle:rue:${cheminee.id}`);
-    const { field } = resolveNappes(scene).get(NAPPE_DE_LA_CHAPELLE)!;
-    const toitM = fieldHeightAt(field, { x: pose.ancre.x + 0.5, y: pose.ancre.y + 0.5 });
+    const pose = poseDe(scene, `architecture/chapelle:pignon-ouest:${EPI.id}`);
+    const { cells, field } = resolveNappes(scene).get(NAPPE_DE_LA_CHAPELLE)!;
+    const pignon = gableEnds(cells, formeDeLaNappe(field), undefined, field)
+      .find((g) => g.edges.some((e) => edgeKey(e) === edgeKey(EPI.edge)))!;
+    const sommet = pignon.poly.reduce((haut, p) => (p.h > haut.h ? p : haut));
+    expect(pose.prop).toBe(viz.prop);
+    expect(pose.ancre).toEqual({ x: sommet.x, y: sommet.y });
     expect(pose.nappe).toBe(NAPPE_DE_LA_CHAPELLE);
-    expect(pose.piedM).toBeCloseTo(toitM + (viz.liftM ?? 0), 9);
+    expect(pose.piedM).toBeCloseTo(sommet.h + (viz.liftM ?? 0), 9);
+  });
+});
+
+describe('les souches des foyers', () => {
+  const scene = laRue();
+
+  it('un foyer sous une nappe monte sa souche à l’aplomb du mur auquel il s’adosse, assise sur la couverture', () => {
+    const { field } = resolveNappes(scene).get(NAPPE_DE_LA_CHAPELLE)!;
+    const pose = poseDe(scene, `souche/${FOYER_DE_LA_CHAPELLE.id}`);
+    const { x, y } = FOYER_DE_LA_CHAPELLE.pos;
+    expect(pose.prop).toBe(SOUCHE.prop);
+    expect(pose.ancre, 'au milieu de l’arête nord de sa case, dos au cap S').toEqual({ x, y: y - 0.5 });
+    expect(pose.cap).toBe('N');
+    expect(pose.nappe).toBe(NAPPE_DE_LA_CHAPELLE);
+    expect(pose.piedM).toBeCloseTo(fieldHeightAt(field, { x: x + 0.5, y }) + SOUCHE.liftM, 9);
+  });
+
+  it('un foyer qu’aucune nappe ne couvre ne pose pas de souche', () => {
+    const cles = posesDesDecors(scene).map((p) => p.cle);
+    expect(cles, 'le foyer lui-même est posé').toContain(`entite/${FOYER_DEHORS.id}`);
+    expect(cles).not.toContain(`souche/${FOYER_DEHORS.id}`);
   });
 });
 
@@ -92,9 +121,10 @@ describe('un décor porté par un toit part avec sa nappe', () => {
   const scene = laRue();
   const portes = posesDesDecors(scene).filter((p) => p.nappe);
 
-  it('la cheminée et le clocheton de la chapelle sont portés par sa nappe', () => {
-    expect(portes.map((p) => p.cle).sort())
-      .toEqual(['architecture/chapelle:rue:cheminee', 'ornement/chapelle:corps:0']);
+  it('l’épi, le clocheton et la souche de la chapelle sont portés par sa nappe', () => {
+    expect(portes.map((p) => p.cle).sort()).toEqual([
+      `architecture/chapelle:pignon-ouest:${EPI.id}`, 'ornement/chapelle:corps:0', `souche/${FOYER_DE_LA_CHAPELLE.id}`,
+    ]);
   });
 
   it('les faces d’un décor porté sont dans sa nappe, aucune dans un morceau ; les autres, au volume', () => {

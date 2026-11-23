@@ -3557,6 +3557,18 @@
      "label": "Le foyer"
     },
     {
+     "id": "forge-foyer-du-bourg",
+     "kind": "prop",
+     "pos": {
+      "x": 3,
+      "y": 31
+     },
+     "facing": "E",
+     "decor": {
+      "id": "foyer-de-forge"
+     }
+    },
+    {
      "id": "p36",
      "kind": "prop",
      "pos": {
@@ -6534,18 +6546,6 @@
        "appearance": "forge",
        "roomZoneIds": [
         "piece-forge"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge-du-bourg",
-         "kind": "chimney",
-         "edge": {
-          "x": 2,
-          "y": 31,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       }
      ],

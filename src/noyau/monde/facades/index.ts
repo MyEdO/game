@@ -45,7 +45,7 @@ export const FACADE_APPEARANCE_IDS: readonly string[] = DEFINITIONS.map((definit
  * par CONSTRUCTION : sans lui, une apparence posée par l'auteur ferait sortir la même feature
  * DEUX fois — sa géométrie de décor et un panneau plaqué sur la façade (#1624).
  */
-export const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['chimney', 'sign', 'belfry']);
+export const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['sign', 'belfry', 'faitage']);
 
 /** Les apparences que l'`appearance` d'une ouverture de sorte `kind` nomme, chacune son id et son libellé : un décor
  *  du catalogue (`props`) pour un kind rendu en décor (`KINDS_DE_DECOR`), une apparence de structure

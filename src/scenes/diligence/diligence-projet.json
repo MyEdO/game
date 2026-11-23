@@ -20789,6 +20789,17 @@
           "y": 6,
           "side": "N"
          }
+        },
+        {
+         "id": "girouette-portier",
+         "kind": "faitage",
+         "edge": {
+          "x": 14,
+          "y": 6,
+          "side": "N"
+         },
+         "offset": 0.5,
+         "appearance": "girouette"
         }
        ]
       },
@@ -21216,18 +21227,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 11,
-          "y": 35,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -21367,16 +21366,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 12,
-          "y": 14,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",
@@ -22322,6 +22311,16 @@
           "y": 12,
           "side": "N"
          }
+        },
+        {
+         "id": "epi-de-faite-nord",
+         "kind": "faitage",
+         "edge": {
+          "x": 24,
+          "y": 12,
+          "side": "N"
+         },
+         "offset": 1
         }
        ]
       },
@@ -22698,6 +22697,16 @@
           "y": 27,
           "side": "N"
          }
+        },
+        {
+         "id": "epi-de-faite-sud",
+         "kind": "faitage",
+         "edge": {
+          "x": 24,
+          "y": 27,
+          "side": "N"
+         },
+         "offset": 1
         }
        ]
       },
@@ -36522,6 +36531,30 @@
      "facing": "E"
     },
     {
+     "id": "sept-rayons-cuisine-cheminee",
+     "kind": "prop",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
+     "pos": {
+      "x": 5,
+      "y": 10
+     },
+     "facing": "E"
+    },
+    {
+     "id": "sept-rayons-forge-foyer",
+     "kind": "prop",
+     "decor": {
+      "id": "foyer-de-forge"
+     },
+     "pos": {
+      "x": 4,
+      "y": 29
+     },
+     "facing": "E"
+    },
+    {
      "id": "sept-rayons-salle-table-murale-1",
      "kind": "prop",
      "decor": {
@@ -41936,18 +41969,6 @@
        "appearance": "auberge-relais-imperiale",
        "roomZoneIds": [
         "zone-F-z0"
-       ],
-       "features": [
-        {
-         "id": "cheminee-forge",
-         "kind": "chimney",
-         "edge": {
-          "x": 3,
-          "y": 29,
-          "side": "E"
-         },
-         "offset": 0.5
-        }
        ]
       },
       {
@@ -42087,16 +42108,6 @@
         "zone-P-z0"
        ],
        "features": [
-        {
-         "id": "cheminee-cuisine",
-         "kind": "chimney",
-         "edge": {
-          "x": 4,
-          "y": 10,
-          "side": "E"
-         },
-         "offset": 0.55
-        },
         {
          "id": "fenetre-4-9-e",
          "kind": "window-band",

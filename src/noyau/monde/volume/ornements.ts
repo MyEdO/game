@@ -1,19 +1,22 @@
 /**
  * LES ORNEMENTS DU BÂTI d'une scène (#4471) : où se posent les décors que porte son architecture, ceux de ses
- * façades (`FacadeSection.features` d'une sorte de `KINDS_DE_DECOR`, vignette `facadeFeatureViz`) et ceux de
- * l'identité de ses bâtiments (`buildingFeatures`, un jeu par masse de `effectiveArchitecture`), et le dehors du
+ * façades (`FacadeSection.features` d'une sorte de `KINDS_DE_DECOR`, vignette `facadeFeatureViz`), les souches des
+ * foyers à conduit (`PropData.conduit`) et ceux de l'identité de ses bâtiments (`buildingFeatures`, un jeu par masse
+ * de `effectiveArchitecture`), et le dehors du
  * bâti d'où une arête tire son côté sortant (`dehorsDeScene`, `outwardSide`). Le volume du monde les pose
  * (`posesDuVolume`, `./volume.ts`). PUR.
  */
 import type { RectDeCases } from '../../../data/schemas/grammaire/valeurs';
-import { heightAt, porteNonSecrete, wallEnds, type SceneDesToits, type WallSeg } from '../scene';
+import { heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type SceneDesToits, type SceneDuBati, type WallSeg } from '../scene';
 import { buildingFeatures, massFootBBox, massFootprintCells } from '../buildings';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../sceneEdit';
 import { interiorCells } from '../../planDefects';
 import { memoByRef } from '../sceneMemo';
 import { edgeKey, facadeFeatureViz } from '../facades';
 import { WALL_H_M } from '../iso';
-import { DIR8_DELTA, type Dir4, type Dir8 } from '../../../geometry/dir8';
+import { DIR8_DELTA, rotateDir8, type Dir4, type Dir8 } from '../../../geometry/dir8';
+import { decorEnVolume } from './propVolumes';
+import { propFootTiles } from '../footprint';
 import { fieldHeightAt, formeDeLaNappe, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './toits';
 
 type Point = { x: number; y: number };
@@ -75,7 +78,10 @@ export function capDuFaite(shape: RoofShapeSpec): Dir8 {
 
 /** Ce que tout ornement du bâti déclare de sa pose. */
 interface PoseDOrnement {
-  /** `<corps>:<section>:<ornement>` d'un ornement de façade, `<corps>:<masse>:<rang>` d'un ornement d'identité. */
+  /**
+   * `<corps>:<section>:<ornement>` d'un ornement de façade, `<entité>` de la souche d'un foyer, `<corps>:<masse>:<rang>`
+   * d'un ornement d'identité.
+   */
   id: string;
   /** l'id de son type de décor (`props.json`). */
   prop: string;
@@ -97,7 +103,7 @@ interface PoseDOrnement {
 }
 
 /** Un ornement du bâti (`ornementsDuBati`) : sa pose et ce que sa source porte. */
-type OrnementDuBati = PoseDOrnement & (
+export type OrnementDuBati = PoseDOrnement & (
   | {
     /** ornement d'une section de façade (`FacadeSection.features`). */
     source: 'architecture';
@@ -105,6 +111,10 @@ type OrnementDuBati = PoseDOrnement & (
     echelle: number;
     /** les deux cases que son arête sépare. */
     cotes: readonly [Point, Point];
+  }
+  | {
+    /** souche d'un foyer à conduit (`PropData.conduit`). */
+    source: 'souche';
   }
   | {
     /** ornement d'identité du type de son bâtiment (`buildingFeatures`). */
@@ -260,9 +270,49 @@ function ornementsDIdentite(scene: SceneDesToits, nappes: ReturnType<typeof reso
   return out;
 }
 
-/** Les ornements du bâti de `scene` : ceux de ses façades (`ornementsDeFacade`), puis ceux de l'identité de ses
- *  bâtiments (`ornementsDIdentite`), sur les nappes résolues (`resolveNappes`). PUR. */
-export function ornementsDuBati(scene: SceneDesToits): OrnementDuBati[] {
+/** La souche d'un foyer : son décor, et sa surélévation (m) au-dessus de la couverture qu'elle perce, qui l'y encastre. */
+export const SOUCHE = { prop: 'cheminee', liftM: -0.3 } as const;
+
+/** Les souches de `scene` : une par entité `prop` dont le décor a un conduit (`PropData.conduit`), à l'aplomb du mur
+ *  auquel il s'adosse, l'arête au dos de son empreinte (`propFootTiles`) selon son cap (`decorEnVolume`), en son milieu.
+ *  Elle s'assied sur la plus haute nappe qui couvre une case de l'empreinte, à l'aplomb de son ancre
+ *  (`hauteurDeCouverture`), tournée vers le dos du foyer ; un foyer qu'aucune nappe ne couvre n'en pose pas. */
+function souchesDesFoyers(scene: SceneDuBati, nappes: ReturnType<typeof resolveNappes>): OrnementDuBati[] {
+  const mpt = sceneMetresPerTile(scene);
+  return scene.entities.flatMap((ent): OrnementDuBati[] => {
+    const resolu = ent.kind === 'prop' ? decorEnVolume(ent.decor?.id, ent.facing) : null;
+    if (!resolu?.prop.conduit) return [];
+    const empreinte = propFootTiles(resolu.prop.id, ent.pos, resolu.cap, mpt);
+    const xs = empreinte.map((c) => c.x), ys = empreinte.map((c) => c.y);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const dos = rotateDir8(resolu.cap, 4) as Dir4;
+    const { gx, gy } = DIR8_DELTA[dos];
+    const ancre = {
+      x: gx === 0 ? (x0 + x1) / 2 : gx > 0 ? x1 + 0.5 : x0 - 0.5,
+      y: gy === 0 ? (y0 + y1) / 2 : gy > 0 ? y1 + 0.5 : y0 - 0.5,
+    };
+    const couverture = hauteurDeCouverture(nappes, empreinte, ancre);
+    if (!couverture) return [];
+    const z = ent.z ?? 0;
+    const solM = heightAt(scene, ent.pos.x, ent.pos.y, z);
+    return [{
+      id: ent.id,
+      source: 'souche',
+      prop: SOUCHE.prop,
+      case: { x: ent.pos.x, y: ent.pos.y, z },
+      ancre,
+      solM,
+      sureleveM: couverture.hauteurM - solM + SOUCHE.liftM,
+      cap: dos,
+      nappe: couverture.nappe,
+    }];
+  });
+}
+
+/** Les ornements du bâti de `scene` : ceux de ses façades (`ornementsDeFacade`), les souches de ses foyers
+ *  (`souchesDesFoyers`), puis ceux de l'identité de ses bâtiments (`ornementsDIdentite`), sur les nappes résolues
+ *  (`resolveNappes`). PUR. */
+export function ornementsDuBati(scene: SceneDuBati): OrnementDuBati[] {
   const nappes = resolveNappes(scene);
-  return [...ornementsDeFacade(scene, nappes), ...ornementsDIdentite(scene, nappes)];
+  return [...ornementsDeFacade(scene, nappes), ...souchesDesFoyers(scene, nappes), ...ornementsDIdentite(scene, nappes)];
 }

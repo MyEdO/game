@@ -408,10 +408,14 @@ export const CHAMPS_DU_PLAN = [
  *  (`SceneDuVolume`), sa projection et les dépendances de son mémo en sont tirés. */
 export const CHAMPS_DU_VOLUME = [...CHAMPS_DU_PLAN, 'architecture', 'roofDefaults'] as const;
 
-/** Les champs de la scène que lisent ses nappes de toit (`toitsDuMonde`) et ses couronnes (`couronnesDuMonde`,
- *  `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`, `SceneDesCouronnes`) et les dépendances
- *  de leurs mémos en sont tirés. */
+/** Les champs de la scène que lisent ses nappes de toit (`resolveNappes`, `buildRoofs`) et ses couronnes
+ *  (`couronnesDuMonde`, `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`,
+ *  `SceneDesCouronnes`) et les dépendances de leurs mémos en sont tirés. */
 export const CHAMPS_DES_TOITS = ['architecture', 'dimensions', 'effectZones', 'layers', 'metresPerTile', 'roofDefaults', 'walls'] as const satisfies readonly (keyof Scene)[];
+/** Les champs de la scène que lisent les ornements de son bâti (`ornementsDuBati`) : ceux de ses toits, et ses entités,
+ *  dont les foyers montent leur souche. Le type de leur vue (`SceneDuBati`) et les dépendances du mémo des nappes du
+ *  monde qui les portent (`toitsDuMonde`) en sont tirés. */
+export const CHAMPS_DU_BATI = [...CHAMPS_DES_TOITS, 'entities'] as const satisfies readonly (keyof Scene)[];
 export const CHAMPS_DES_COURONNES = ['architecture', 'dimensions', 'entities', 'layers', 'metresPerTile', 'walls'] as const satisfies readonly (keyof Scene)[];
 
 /** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
@@ -419,6 +423,9 @@ export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
 
 /** La scène vue par ses nappes de toit (`CHAMPS_DES_TOITS`). */
 export type SceneDesToits = Pick<Scene, (typeof CHAMPS_DES_TOITS)[number]>;
+
+/** La scène vue par les ornements de son bâti (`CHAMPS_DU_BATI`). */
+export type SceneDuBati = Pick<Scene, (typeof CHAMPS_DU_BATI)[number]>;
 
 /** La scène vue par ses couronnes (`CHAMPS_DES_COURONNES`). */
 export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number]>;

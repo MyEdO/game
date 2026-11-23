@@ -446,7 +446,7 @@ const HUB_ARCHITECTURE = [
     facades: [
       { id: 'taverne-facade-sud', z: 0, edges: [{ x: 10, y: 13, side: 'N' }], appearance: 'auberge-relais-imperiale', roomZoneIds: ['piece-taverne'], features: [{ id: 'enseigne-taverne', kind: 'sign', edge: { x: 10, y: 13, side: 'N' }, offset: 0.5, width: 1.2 }] },
       { id: 'chapelle-facade-sud', z: 0, edges: [{ x: 40, y: 14, side: 'N' }], appearance: 'chapelle', roomZoneIds: ['piece-chapelle'], features: [{ id: 'clocheton-chapelle', kind: 'belfry', edge: { x: 40, y: 14, side: 'N' }, offset: 0.5 }] },
-      { id: 'forge-facade-ouest', z: 0, edges: [{ x: 2, y: 31, side: 'E' }], appearance: 'forge', roomZoneIds: ['piece-forge'], features: [{ id: 'cheminee-forge-du-bourg', kind: 'chimney', edge: { x: 2, y: 31, side: 'E' }, offset: 0.5 }] },
+      { id: 'forge-facade-ouest', z: 0, edges: [{ x: 2, y: 31, side: 'E' }], appearance: 'forge', roomZoneIds: ['piece-forge'] },
     ],
     masses: [
       { id: 'taverne', z: 0, footprint: [{ x: 3, y: 3, w: 15, h: 10 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: 'tuile' } },
@@ -585,6 +585,7 @@ export function makeHub() {
       }),
       NPC('apprenti', 11, 31, 'Apprenti', { anim: 'debout', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
       P(4, 28, 'feu-camp', { label: 'Le foyer' }),
+      { id: 'forge-foyer-du-bourg', kind: 'prop', pos: { x: 3, y: 31 }, facing: 'E', decor: { id: 'foyer-de-forge' } },
       P(6, 30, 'etabli', { label: 'Établi & enclume' }),
       P(4, 32, 'tonneau', { label: 'Cuve à trempe' }),
       P(12, 28, 'rack-armes'),
