@@ -4,7 +4,9 @@
  */
 import { arena } from '../../../src/scenes/test-scenarios/_shared';
 import { EVT, type TestResolu } from '../../../src/noyau/bus';
-import { DIFFICULTY_LABELS, type Combatant } from '../../../src/engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Combatant } from '../../../src/engine/types';
+import { evaluateTest } from '../../../src/engine/tests';
+import { rollLine } from '../../../src/noyau/ligneDeJet';
 import { skills } from '../../../src/data';
 import { peutTenter } from '../../../src/engine/skills';
 import type { FlowDeScene } from '../../../src/data/schemas/defs-scenes/effets';
@@ -14,11 +16,11 @@ import { lignesDuJournal, ouvrirEnAuto } from './partie';
 export type FluxDEpreuve = Extract<FlowDeScene, { kind: 'test' }>;
 /** `label` : le nom de l'action jouée, que le journal du noyau affiche. */
 export interface Epreuve { label: string; flux: FluxDEpreuve }
-/** Le Test résolu : `testeur`, l'id du héros qui a jeté ; `dr`, ses Degrés de Réussite. Sinon `refus` : le refus du
- *  noyau, ou le groupe hors d'action avant le jet (`partyWiped`, `src/noyau/partyWipe.ts`). `groupe` : tel que le
- *  noyau le laisse, dans les deux cas. */
+/** Le Test résolu : `testeur`, l'id du héros qui a jeté ; `dr`, ses Degrés de Réussite ; `cible`, la cible du jet.
+ *  Sinon `refus` : le refus du noyau, ou le groupe hors d'action avant le jet (`partyWiped`,
+ *  `src/noyau/partyWipe.ts`). `groupe` : tel que le noyau le laisse, dans les deux cas. */
 export type IssueDEpreuve = { groupe: Combatant[]; journal: string[] }
-  & ({ reussite: boolean; testeur: string; dr: number } | { refus: string });
+  & ({ reussite: boolean; testeur: string; dr: number; cible: number } | { refus: string });
 
 const ENTITE = 'epreuve';
 
@@ -48,7 +50,7 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
   const rendu = party.map((c) => structuredClone(c));
   partie.fermer();
   const issue = resolu as TestResolu | null;
-  if (issue) return { groupe: rendu, reussite: issue.success, testeur: issue.actorId, dr: issue.sl, journal };
+  if (issue) return { groupe: rendu, reussite: issue.success, testeur: issue.actorId, dr: issue.sl, cible: issue.target, journal };
   if (partyWiped) refus = `${rendu.map((c) => c.label).join(', ')} : hors d'action, le Test n'est pas joué.`;
   if (refus) return { groupe: rendu, refus, journal };
   throw new Error(`Épreuve « ${epreuve.label} » sans Test résolu ni refus : ${journal.join(' ')}`);
@@ -63,3 +65,22 @@ export function partiesDuTest(flux: FluxDEpreuve): { competence: string; difficu
 /** La première des `epreuves` que `heros` peut tenter, ou `undefined`. LDB 09 l.30 */
 export const epreuveTentable = (heros: Combatant, epreuves: readonly Epreuve[]): Epreuve | undefined =>
   epreuves.find((ep) => peutTenter(heros, ep.flux.test.skill ? { skill: ep.flux.test.skill } : {}));
+
+/** Ce qu'un héros vise à un Test : la Compétence testée, la cible du jet, ses chances en pour cent. */
+export interface Visee { competence: string; cible: number; chances: number }
+
+/** Les chances, en pour cent, qu'un d100 réussisse un Test de cible `cible`, bandes automatiques comprises
+ *  (`evaluateTest`). LDB 12 l.7-13, l.28 */
+export const chancesDeReussite = (cible: number): number =>
+  Array.from({ length: 100 }, (_, i) => evaluateTest(i + 1, cible).success).filter(Boolean).length;
+
+/** Ce que `heros` viserait aux `epreuves` : la première qu'il peut tenter (`epreuveTentable`), sa Compétence, la cible
+ *  de son Test telle que le noyau la monte (`rollLine` : Compétence ou Caractéristique, Difficulté, modificateurs du
+ *  héros) et ses chances (`chancesDeReussite`) ; `undefined` s'il n'en peut tenter aucune. */
+export function viseeDeLEpreuve(heros: Combatant, epreuves: readonly Epreuve[]): Visee | undefined {
+  const ep = epreuveTentable(heros, epreuves);
+  if (!ep) return undefined;
+  const { skill, difficulty } = ep.flux.test;
+  const { target } = rollLine({ actor: heros, test: skill ? { skill } : {}, difficulty: difficulty ?? DIFFICULTE_PAR_DEFAUT });
+  return { competence: partiesDuTest(ep.flux).competence, cible: target, chances: chancesDeReussite(target) };
+}

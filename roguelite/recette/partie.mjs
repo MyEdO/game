@@ -29,6 +29,12 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     localStorage.setItem('grisefosse-v1', JSON.stringify(e));
   }, erreurs);
   const or = async () => Number((await p.textContent('.ressources .etiquette')).replace(/\D/g, ''));
+  // Au socle qui demande qui tente : chaque carte ouverte dit sa Compétence, sa cible et ses chances, une seule marque au moins les meilleures.
+  const chancesAuSocle = async () => ({
+    ouvertes: await p.$$eval('.socle-compagnie .carte-heros:not([disabled])', (e) => e.map((x) => x.querySelector('.ligne-etat.visee')?.textContent ?? '')),
+    meilleures: await p.$$eval('.socle-compagnie .carte-heros.meilleur:not([disabled])', (e) => e.length),
+  });
+  const lesChancesSeDisent = (s) => s.ouvertes.length > 0 && s.ouvertes.every((t) => /\d+ · \d+\s%$/.test(t)) && s.meilleures > 0;
 
   await geste(p, 'batiment', 'forge');
   const avant = await or();
@@ -106,6 +112,8 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
         await p.click('.carton [data-a="action"][data-k="soigner"]');
         const consigne = () => p.textContent('.socle-compagnie').catch(() => '');
         constater((await consigne()).includes('Qui soigne'), 'le camp demande qui soigne');
+        const soigneurs = await chancesAuSocle();
+        constater(lesChancesSeDisent(soigneurs) && soigneurs.ouvertes.every((t) => t.startsWith('Guérison')), `chaque soigneur dit sa Guérison et ses chances (${soigneurs.ouvertes.join(' ; ')})`);
         await p.click('.socle-compagnie .carte-heros:not([disabled])');
         constater((await consigne()).includes('Qui est soigné'), 'puis qui est soigné');
         await p.click('.socle-compagnie .carte-heros:not([disabled])');
@@ -117,6 +125,8 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
       await p.click(`.carton [data-a="action"][data-k="${k}"]`);
       if (k !== 'reposer') {
         constater(await p.isVisible('.socle-compagnie.a-choisir'), `${salle} : le socle demande qui tente l’action`);
+        const tentent = await chancesAuSocle();
+        constater(lesChancesSeDisent(tentent), `${salle} : chaque héros qui peut tenter dit sa cible et ses chances (${tentent.ouvertes.join(' ; ')})`);
         await p.click('.socle-compagnie .carte-heros:not([disabled])');
       }
       if (await p.isVisible('#combat')) { await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin'); }

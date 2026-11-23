@@ -10,7 +10,7 @@ import { applyOps, type GameOp } from '../../../src/engine/ops';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
 import { MINUTES_PER_DAY } from '../../../src/engine/clock';
 import { corruptionThreshold } from '../../../src/engine/corruption';
-import { diseaseLabel, symptomLabel } from '../../../src/data';
+import { diseaseLabel, skills, symptomLabel } from '../../../src/data';
 import type { UpkeepDeferTest } from '../../../src/engine/types';
 import { applyHealWounds } from '../../../src/engine/healing';
 import { PA_PER_CO, toBrass } from '../../../src/engine/money';
@@ -21,6 +21,7 @@ import type { Combatant } from '../../../src/engine/types';
 import { peutTenter } from '../../../src/engine/skills';
 import { HEAL_SKILL, type HealMode } from '../../../src/engine/healing';
 import { estOperation } from '../../../src/noyau/acteDeSoin';
+import { chancesDeReussite, type Visee } from './epreuve';
 import { arena } from '../../../src/scenes/test-scenarios/_shared';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
@@ -129,9 +130,10 @@ export const prixDuSejourALAuberge = (qualite: QualiteDeRepos, nuits: number): n
 /** Le héros peut-il tenter la Guérison ? LDB 09 l.30 */
 export const saitSoigner = (c: Combatant): boolean => peutTenter(c, { skill: { id: HEAL_SKILL } });
 
-/** L'acte que l'infirmerie du noyau jouerait : le soigneur et le patient qu'elle retient, l'acte du brouillon. Sinon
+/** L'acte que l'infirmerie du noyau jouerait : le soigneur et le patient qu'elle retient, l'acte du brouillon et la cible
+ *  de son Test de Guérison (`target`, Soutien et Difficulté de l'acte compris). Sinon
  *  `refus` : l'infirmerie refusée, le soin confié par le noyau à un autre que le soigneur choisi, ou une opération. */
-export type VerdictDuSoin = { soigneur: string; patient: string; acte: HealMode } | { refus: string };
+export type VerdictDuSoin = { soigneur: string; patient: string; acte: HealMode; cible: number } | { refus: string };
 
 /** Un soin joué : le groupe tel que le noyau le laisse, son journal, et son verdict (`VerdictDuSoin`), aucun jet tiré
  *  sur un refus. */
@@ -161,7 +163,7 @@ function ouvrirLeSoin(soigneur: Combatant, patient: Combatant, graine: number) {
       ? { refus: `${groupe.find((c) => c.id === brouillon.healerId)?.label ?? brouillon.healerName} est meilleur·e en Guérison : à lui ou à elle de soigner.` }
       : estOperation(brouillon.mode)
         ? { refus: `Il ne reste à ${patient.label} qu’une opération, que le camp ne permet pas.` }
-        : { soigneur: brouillon.healerId, patient: brouillon.targetId, acte: brouillon.mode };
+        : { soigneur: brouillon.healerId, patient: brouillon.targetId, acte: brouillon.mode, cible: brouillon.target };
   return { verdict, journal, envoyer, pomper, rendre };
 }
 
@@ -181,4 +183,11 @@ export function soignerUnCompagnon(soigneur: Combatant, patient: Combatant, grai
   envoyer('jetValider', ['soins']);
   pomper();
   return { groupe: rendre(), journal, ...verdict };
+}
+
+/** Ce que le `soigneur` vise au soin du `patient` : la Guérison, la cible du Test que l'infirmerie du noyau retient
+ *  (`verdictDuSoin`) et ses chances ; sinon le refus du noyau. */
+export function viseeDuSoin(soigneur: Combatant, patient: Combatant): Visee | { refus: string } {
+  const v = verdictDuSoin(soigneur, patient);
+  return 'refus' in v ? v : { competence: skills.find((s) => s.id === HEAL_SKILL)?.label ?? HEAL_SKILL, cible: v.cible, chances: chancesDeReussite(v.cible) };
 }

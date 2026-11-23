@@ -142,6 +142,15 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   (`UpkeepDeferTest`) ; hors de la cascade de nuit, l'hôte lance lui-même le jet (`testValue`, `rollTest`) et applique
   `applyFractureEnd`. Un résolveur « immédiat » public éviterait cette recopie.
 
+- **Trou — aucune couture ne dit la cible d'un Test de scène avant de le jouer.** Pour montrer à chaque héros ses
+  chances avant qu'on choisisse qui tente (« Qui intimide ? »), l'hôte veut la cible que le jet affrontera : seul
+  `EVT.TEST_RESOLVED` la porte (`TestResolu.target`, `src/noyau/bus.ts`), après le dé. Contournement de l'hôte :
+  `viseeDeLEpreuve` (`roguelite/src/noyau/epreuve.ts`) monte la ligne par `rollLine` (`src/noyau/ligneDeJet.ts`, hors
+  de `src/noyau/index.ts`) sur `epreuveTentable`, et compte les chances par `evaluateTest` sur les cent faces ; un test
+  la confronte à la cible du Test que le noyau joue. Ce que la scène réelle ajouterait (Soutien, précipitations,
+  `surLaCible` d'un nœud) n'y est pas. Pour le soin, la cible vient du brouillon de l'infirmerie (`pendingHeal.target`),
+  donc d'un soin ouvert puis refermé par paire soigneur-patient. Idée : un `previsualiserLeTest(acteur, noeud)` public
+  qui rend la ligne de jet (cible, composantes) et les chances, que l'hôte Godot montrerait de même.
 - **Friction — l'infirmerie du noyau suppose un joueur et un soigneur en scène.** `ouvrirLeMedecin(patientId)` ouvre une
   fenêtre à choix (acte, soigneur, passes d'un Test étendu) sans drive automatique, et le soigneur PNJ (`MedicNpc`) n'est
   pas un argument du verbe public. Un hôte qui tient un hospice (« le chirurgien opère, le héros reste une semaine »)

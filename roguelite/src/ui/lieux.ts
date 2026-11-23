@@ -191,17 +191,19 @@ function salleAChoixEnCarton(e: J.Etat, choix: ChoixDeSalle | null): string {
   });
 }
 
-/** Ce que le socle demande pour le `choix` en attente : qui tente l'action, qui soigne, puis qui est soigné. */
+/** Ce que le socle demande pour le `choix` en attente : qui tente l'action, qui soigne, puis qui est soigné ; chaque
+ *  carte du testeur dit ce que son héros y viserait (`viseeDAction`, `viseeDuSoigneur`) ; celle d'un patient, ses
+ *  Blessures. */
 function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle {
   const base = { heros: groupe, geste: 'tenter', choisi: (h: J.Heros) => h.c.id === choix.soigneur };
   if (choix.action !== 'soigner') {
     const id = choix.action as J.IdActionAJet;
-    return { ...base, refus: (h) => J.refusDAction(h, id), consigne: J.ACTIONS_A_JET[id].question };
+    return { ...base, refus: (h) => J.refusDAction(h, id), visee: (h) => J.viseeDAction(h, id), consigne: J.ACTIONS_A_JET[id].question };
   }
   const soigneur = groupe.find((h) => h.c.id === choix.soigneur);
   return soigneur
     ? { ...base, refus: (h) => J.refusDuPatient(e, soigneur, h), consigne: J.CAMP.soigner.patient }
-    : { ...base, refus: (h) => J.refusDuSoigneur(e, h), consigne: J.CAMP.soigner.soigneur };
+    : { ...base, refus: (h) => J.refusDuSoigneur(e, h), visee: (h) => J.viseeDuSoigneur(e, h), consigne: J.CAMP.soigner.soigneur };
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une

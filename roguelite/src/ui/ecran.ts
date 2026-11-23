@@ -4,6 +4,7 @@
  * 900 px de large, ses cadres s'empilent et défilent.
  */
 import * as J from '../jeu';
+import type { Visee } from '../noyau';
 import { vignetteDeSalle, type Vignette } from '../vignettes';
 import { cadreA, carteDeHeros, esc, place } from './pieces';
 
@@ -49,15 +50,20 @@ export function carton(o: Carton): string {
 
 /** Le socle : la compagnie en cartes, seul endroit où l'on choisit un héros ; `geste` dit ce qu'un clic fait,
  *  `choisi` l'état de chacune, `refus` pourquoi une carte est fermée à ce geste, `progresse` si le héros peut acheter
- *  un avancement ; `consigne` : l'écran attend qu'on y choisisse, et le dit sur le ruban du socle. */
-export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean; consigne?: string }
+ *  un avancement ; `consigne` : l'écran attend qu'on y choisisse, et le dit sur le ruban du socle ; `visee` : ce que le
+ *  héros viserait au Test du geste, dont les meilleures chances se marquent. */
+export interface Socle { heros: J.Heros[]; geste: string; choisi: (h: J.Heros) => boolean; refus?: (h: J.Heros) => string | null; progresse?: (h: J.Heros) => boolean; consigne?: string; visee?: (h: J.Heros) => Visee | undefined }
 
 /** `classe` : `lieu` est la scène même du hameau ou de
  *  l'expédition, posée sur leur décor, sans croix. `vide` : ce que dit le socle sans personne. */
 export function ecran(o: { nom: string; classe?: 'lieu'; cadres: string; socle: Socle; vide?: string }): string {
   // Les héros disponibles d'abord ; puis les hors de combat ; puis ceux qui séjournent à un bâtiment.
   const rang = (h: J.Heros) => (h.sejour ? 2 : J.valide(h) ? 0 : 1);
-  const cartes = [...o.socle.heros].sort((a, b) => rang(a) - rang(b)).map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, { refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h) })).join('');
+  const visees = new Map(o.socle.heros.map((h) => [h, o.socle.visee?.(h)]));
+  const meilleures = Math.max(0, ...[...visees.values()].map((v) => v?.chances ?? 0));
+  const cartes = [...o.socle.heros].sort((a, b) => rang(a) - rang(b)).map((h) => carteDeHeros(h, o.socle.choisi(h), o.socle.geste, {
+    refus: o.socle.refus?.(h), progresse: o.socle.progresse?.(h), visee: visees.get(h), meilleur: !!meilleures && visees.get(h)?.chances === meilleures,
+  })).join('');
   const lieu = o.classe === 'lieu';
   return `<div class="ecran-plein ${o.classe ?? ''}"${lieu ? '' : ` role="dialog" aria-label="${esc(o.nom)}"`}><div class="scene-fixe">
     ${o.cadres}

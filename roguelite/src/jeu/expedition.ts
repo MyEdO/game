@@ -1,7 +1,7 @@
 /**
  * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
  */
-import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, saitSoigner, entretenirLesMaladies, soignerUnCompagnon, verdictDuSoin, type IssueDuCombat } from '../noyau';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, partiesDuTest, reposer, horsDeCombat, auHameau, doter, saitSoigner, entretenirLesMaladies, soignerUnCompagnon, verdictDuSoin, viseeDeLEpreuve, viseeDuSoin, type IssueDuCombat, type Visee } from '../noyau';
 
 import {
   DESTINATIONS,
@@ -116,6 +116,23 @@ export function refusDAction(h: Heros, action: IdActionAJet): string | null {
   const { epreuves } = ACTIONS_A_JET[action];
   return epreuveTentable(h.c, epreuves) ? null : `Ne sait tenter ni ${epreuves.map((ep) => partiesDuTest(ep.flux).competence).join(' ni ')}.`;
 }
+
+/** Ce que le héros `h` viserait à l'`action` (`viseeDeLEpreuve`), ou `undefined` s'il ne peut pas la tenter. */
+export const viseeDAction = (h: Heros, action: IdActionAJet): Visee | undefined =>
+  (refusDAction(h, action) ? undefined : viseeDeLEpreuve(h.c, ACTIONS_A_JET[action].epreuves));
+
+/** Ce que le `soigneur` viserait au soin du héros `h` au camp courant (`viseeDuSoin`), ou `undefined` sur un refus
+ *  (`refusDuPatient`). */
+const viseeDuSoinAuCamp = (e: Etat, soigneur: Heros, h: Heros): Visee | undefined => {
+  if (refusDuPatient(e, soigneur, h)) return undefined;
+  const v = viseeDuSoin(soigneur.c, h.c);
+  return 'refus' in v ? undefined : v;
+};
+
+/** Ce que le héros `h` viserait au mieux en soignant au camp courant : sa meilleure visée parmi les blessés qu'il peut
+ *  soigner (`viseeDuSoinAuCamp`), ou `undefined`. */
+export const viseeDuSoigneur = (e: Etat, h: Heros): Visee | undefined =>
+  herosDuGroupe(e).map((p) => viseeDuSoinAuCamp(e, h, p)).reduce<Visee | undefined>((m, v) => (v && (!m || v.chances > m.chances) ? v : m), undefined);
 
 /** Pourquoi le héros `h` ne sait pas soigner, ou `null` s'il le sait. LDB 09 l.30 */
 const refusDeLaGuerison = (h: Heros): string | null =>
