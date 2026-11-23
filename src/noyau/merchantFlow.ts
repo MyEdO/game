@@ -11,7 +11,9 @@ import {
   recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
 } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
-import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
+import {
+  bargainBuyFactor, bargainSellFactor, bargainPct, FACTEUR_DE_VENTE_SANS_MARCHANDAGE, issueDuMarchandage, type BargainOutcome,
+} from '../engine/bargain';
 import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
@@ -260,7 +262,7 @@ export function prixDeLigne(m: MerchantState, id: string, ent: SceneEntity | und
   const entry = catalogEntryOf(id);
   if (!entry?.price) return null;
   if (comptesFree(ent, party, listedBrassOf(entry))) return fromBrass(0);
-  const haggle = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
+  const haggle = m.bargainBuy ? bargainBuyFactor(m.bargainBuy) : 1;
   const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities ?? [] }) * (m.buyMarkup ?? 1) * haggle;
   return Number.isFinite(brass) ? fromBrass(Math.round(brass)) : null;
 }
@@ -717,16 +719,16 @@ function repartirLesAchats(get: Get, set: Set): void {
 
 /** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage). SOURCE UNIQUE
  *  du prix de vente — partagée par `vendreLeLot` ET l'aperçu UI (pas de formule dupliquée).
- *  Facteur : `bargainSellFactor` (LDB 59 l.54) ; sans Marchandage de vente, 0,5. */
+ *  Facteur : `bargainSellFactor` (LDB 59 l.54) ; sans Marchandage de vente, `FACTEUR_DE_VENTE_SANS_MARCHANDAGE`. */
 export function sellGain(item: ItemInstance, m: MerchantState, resolveTrapping: TrappingResolver): ReturnType<typeof fromBrass> {
-  const sellFactor = m.bargainSell ? bargainSellFactor(m.bargainSell.won, m.bargainSell.drNet, m.bargainSell.negotiator) : 0.5;
+  const sellFactor = m.bargainSell ? bargainSellFactor(m.bargainSell) : FACTEUR_DE_VENTE_SANS_MARCHANDAGE;
   // « Baisse des prix » (LDB 59 l.60) : chaque division du prix par deux monte la Disponibilité d'un
   // acheteur d'un cran — appliquée au gain FINAL (le vendeur accepte moins pour écouler un objet rare).
   const halve = (b: number) => priceAfterHalvings(b, m.sellHalvings?.[item.uid] ?? 0);
   // Objet PRÉ-VALUÉ (pièces de monstre récoltées, ZI Précieuses Entrailles) : sa valeur de marché est
   // déjà nette (rareté × dangerosité × Taille × Conservation) → revendu en DIRECT, sans le taux de revente
-  // catalogue. Le Marchandage de vente joue quand même (sellFactor/0.5 : ×1 par défaut, ×plus si gagné).
-  if (item.price) return fromBrass(halve(Math.round(toBrass(item.price) * (sellFactor / 0.5))));
+  // catalogue. Le Marchandage de vente joue quand même (×1 sans Marchandage, ×plus si gagné).
+  if (item.price) return fromBrass(halve(Math.round(toBrass(item.price) * (sellFactor / FACTEUR_DE_VENTE_SANS_MARCHANDAGE))));
   const t = ficheDObjetPorte(item, resolveTrapping);
   const base = t ? toBrass(priceToMoney(t.price)) * craftPriceFactor(item) : 0;
   return fromBrass(halve(Math.round(base * m.resaleRate * sellFactor)));
@@ -1011,10 +1013,8 @@ function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
 function acquitterLeMarchandage(get: Get, set: Set): void {
   const pb = get().pendingBargain;
   if (!pb) return;
-  const res = garanti(pb.result, pb.playerId, 'jet du Marchandage');
-  const won = res.attackerWins; // le joueur est l'attaquant
-  const drNet = res.netSL;
-  const outcome = { won, drNet, negotiator: pb.negotiator };
+  const outcome = issueDuMarchandage(garanti(pb.result, pb.playerId, 'jet du Marchandage'), pb.negotiator);
+  const { won, drNet } = outcome;
   // ACQUITTEMENT par le goulot (`FLOWS.marchandage.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.marchandage.apply(get);
