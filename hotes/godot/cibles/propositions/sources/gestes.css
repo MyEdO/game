@@ -125,6 +125,26 @@ html,body{margin:0;background:var(--noir)}
 .bois .rub{color:var(--creme-2);text-shadow:none}
 .parchemin .rub{color:var(--rouille);text-shadow:none}
 .rub .glose{display:inline}
+/* la ligne libellé-valeur : le libellé en rubrique, la valeur sur la ligne du libellé, en Fell 15 ou en chiffres 14 ;
+   empilée, la valeur dessous ; la jauge d'une mesure sous les deux ; tabulaire, une entrée en Spectral 13,5 et sa
+   valeur à droite, sur 24 */
+div.libelle-valeur{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:10px}
+div.libelle-valeur>.valeur{font-family:"Fell",serif;font-size:15px;line-height:20px;color:var(--ivoire);text-align:right}
+.parchemin div.libelle-valeur>.valeur{color:var(--encre)}
+div.libelle-valeur>.valeur.nombre{font-family:"Chiffres",sans-serif;font-weight:600;font-size:14px;letter-spacing:.2px}
+div.libelle-valeur.empilee{grid-template-columns:minmax(0,1fr)}
+div.libelle-valeur.mesure{row-gap:6px}
+div.libelle-valeur.empilee>.valeur{text-align:left}
+div.libelle-valeur>:nth-child(n+3){grid-column:1/-1}
+table:has(tr.libelle-valeur){border-collapse:collapse;width:100%}
+tr.libelle-valeur>td{padding:0;vertical-align:baseline;font-family:"Spectral",serif;font-size:13.5px;line-height:24px;color:var(--encre)}
+tr.libelle-valeur>td:first-child{padding-right:10px;white-space:nowrap}
+tr.libelle-valeur>td.valeur{text-align:right;white-space:nowrap}
+:where(.bois) tr.libelle-valeur>td{color:var(--ivoire)}
+:where(.bois .parchemin) tr.libelle-valeur>td{color:var(--encre)}
+tr.libelle-valeur.somme>td{border-top:1px solid var(--filet-encre);font-weight:600}
+tr.libelle-valeur.tombee>td{color:var(--sang);font-weight:600}
+tr.libelle-valeur>td.valeur.nombre{font-family:"Chiffres",sans-serif;font-weight:600;letter-spacing:.2px;line-height:20px}
 /* la note : Spectral italique 12,5 / 16 ; sur parchemin, à l'encre brune ; la consigne 17 / 23 à l'encre, son filet à gauche ; l'avertissement au sang */
 .glose{display:block;font-family:"Spectral",serif;font-style:italic;font-weight:400;font-size:12.5px;line-height:16px;letter-spacing:0;color:var(--creme-2)}
 .parchemin .glose{color:var(--encre-2)}
@@ -177,12 +197,7 @@ html,body{margin:0;background:var(--noir)}
 .apercu .defile.table{height:125px}
 .apercu .tete .nom-propre{white-space:nowrap}
 .apercu .tete .sous-titre{white-space:nowrap}
-/* le corps de l'aperçu : la table et sa valeur à droite, la somme, le paragraphe, le pied */
-.apercu table{border-collapse:collapse;width:100%}
-.apercu td{padding:1px 0;vertical-align:baseline}
-.apercu td:first-child{white-space:nowrap;padding-right:10px}
-.apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
-.apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
+/* le corps de l'aperçu : le paragraphe, le pied */
 .apercu p{margin:4px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
 .apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45)}
 /* la bannière d'issue d'un combat : centrée, haut à 190, sa plaque d'appel 28 dessous */
@@ -320,6 +335,32 @@ html,body{margin:0;background:var(--noir)}
 /* la puce : le losange plein de 7, la coche ; de la teinte du texte */
 .losange{flex:none;width:7px;height:7px;transform:rotate(45deg);background:currentColor}
 .coche{flex:none;display:flex}
+/* la ligne de liste : 28 de haut, 34 avec une plaque, 44 avec sa précision dessous ou son nom sur deux lignes (`plier`) ; Fell 15, marge 0 8, filet dessous ; choisie, bordure de
+   laiton sur un fond clair ; refusée, pâlie */
+.ligne-de-liste{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:2px solid transparent;border-bottom:1px solid var(--filet-encre);font-family:"Fell",serif;font-size:15px;color:var(--encre);white-space:nowrap;min-width:0}
+:where(.bois) .ligne-de-liste{border-bottom-color:var(--filet-creme);color:var(--ivoire)}
+:where(.bois .parchemin) .ligne-de-liste{border-bottom-color:var(--filet-encre);color:var(--encre)}
+.ligne-de-liste:is(.a-precision,.a-deux-lignes){height:44px}
+/* une ligne qui porte une plaque : la plaque à 3 du filet, deux plaques voisines à 6 */
+.ligne-de-liste:has(>.plaque):not(.a-precision,.a-deux-lignes){height:34px}
+.ligne-de-liste.a-deux-lignes>.n{white-space:normal;line-height:19px}
+.ligne-de-liste>.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ligne-de-liste.a-precision>.n{display:flex;flex-direction:column;line-height:19px}
+.ligne-de-liste>.n small{font-size:13px;color:var(--encre-2)}
+:where(.bois) .ligne-de-liste>.n small{color:var(--creme-2)}
+:where(.bois .parchemin) .ligne-de-liste>.n small{color:var(--encre-2)}
+.ligne-de-liste>.n>.precision{font-family:"Spectral",serif;font-style:italic;font-size:12.5px;line-height:16px;overflow:hidden;text-overflow:ellipsis}
+.ligne-de-liste>.losange{margin:0 4px}
+.ligne-de-liste>svg{flex:none}
+.ligne-de-liste>em.chiffres{flex:none;font-style:normal;font-size:11.5px;color:var(--encre-2)}
+:where(.bois) .ligne-de-liste>em.chiffres{color:var(--creme-2)}
+:where(.bois .parchemin) .ligne-de-liste>em.chiffres{color:var(--encre-2)}
+.ligne-de-liste.choisie>em.chiffres{color:var(--encre-2)}
+.ligne-de-liste.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou);color:var(--encre)}
+.ligne-de-liste.choisie>.n small{color:var(--encre-2)}
+.ligne-de-liste.refusee{color:rgba(42,29,18,.42)}
+:where(.bois) .ligne-de-liste.refusee{color:rgba(243,230,198,.42)}
+.ligne-de-liste.refusee :is(.etiquette,svg){opacity:.45}
 /* le séparateur ne fait pas de boîte : son texte se lit avec celui qu'il sépare, dans une rangée flexible comme ailleurs */
 .separateur{display:contents}
 /* un choix parmi quelques valeurs : sur parchemin ou sur bois */

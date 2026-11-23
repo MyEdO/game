@@ -2,7 +2,11 @@
 manifestes publiés sous `hotes/godot/projet/modeles/`, et chaque véhicule et chaque Amélioration publiés y ont leur modèle
 (`reconstruction.py`). La caraque suit ses ponts (`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une
 caraque allongée dans la source aussi. Sur chaque navire, toute case des ponts s'atteint et tient un occupant debout
-(#3790), et sa coque est close : ni trou dans un plancher, ni rayon qui sorte du navire depuis une case (#3815)."""
+(#3790), et sa coque est close : ni trou dans un plancher, ni rayon qui sorte du navire depuis une case (#3815). Chaque
+véhicule sans ponts, engin de siège ou coque terrestre (#4471), bâti deux fois (`banc_des_kits.BatisDeuxFois`), rend les
+mêmes octets, des coques closes aux faces vers le dehors, et tient dans le budget de triangles de ses données. Le clip
+de roulage (`clips.rouler`) dure le chemin d'une boucle à `clips.VITESSE` et tourne chaque roue de ce chemin sur son
+rayon, sur les trains de chaque modèle à roues (`roulant.roulement`)."""
 import copy
 import importlib
 import json
@@ -16,10 +20,16 @@ ICI = Path(__file__).resolve().parent
 sys.path[:0] = [str(ICI / 'vehicule'), str(ICI)]
 
 import bpy  # noqa: E402
+import clips  # noqa: E402
+import construire  # noqa: E402
 import navire  # noqa: E402
 import plan_de_jeu  # noqa: E402
 import reconstruction  # noqa: E402
+import roulant  # noqa: E402
+from banc_des_kits import BatisDeuxFois  # noqa: E402
 from caraque import modele  # noqa: E402
+from entrees import modeles  # noqa: E402
+from glb import lire_glb  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 MODELES = ICI.parents[1] / 'hotes' / 'godot' / 'projet' / 'modeles'
@@ -314,13 +324,18 @@ def atteintes(P, depart):
     return vues
 
 
+def navires_a_ponts():
+    """Les fiches des navires à ponts de `src/data/vehicles.json`."""
+    return [f for f in json.loads(plan_de_jeu.VEHICULES.read_text(encoding='utf-8')) if 'ponts' in f]
+
+
 class Navires(unittest.TestCase):
     """Chaque navire à ponts (`ponts` de sa fiche) : toute case de ses ponts s'atteint, l'emprise libre que son modèle
     publié laisse à chaque case (`cases` de son manifeste) tient un occupant debout, et sa coque bâtie est close
     (`closes`)."""
 
     def navires(self):
-        sortie = [f for f in json.loads(plan_de_jeu.VEHICULES.read_text(encoding='utf-8')) if 'ponts' in f]
+        sortie = navires_a_ponts()
         self.assertTrue(sortie, 'aucun navire à ponts')
         return sortie
 
@@ -343,6 +358,73 @@ class Navires(unittest.TestCase):
                 with self.subTest(navire=fiche['id'], famille=famille):
                     self.assertTrue(mesures, f'{famille} : rien de mesuré')
                     self.assertEqual([ou for e, ou in mesures if e > TOLERANCE], [], f'{famille} : ouvert')
+
+
+def sans_ponts():
+    """Les modèles de `vehicule/` qui ne bâtissent pas un navire à ponts : les engins de siège et les coques terrestres."""
+    navires = {f['id'] for f in navires_a_ponts()}
+    return [m for m in modeles('vehicule') if m not in navires]
+
+
+def donnees(modele_):
+    return runpy.run_path(str(ICI / 'vehicule' / modele_ / 'donnees.py'))
+
+
+class SansPonts(BatisDeuxFois, unittest.TestCase):
+    """Les gardes de sortie de chaque véhicule sans ponts."""
+
+    FAMILLE = 'vehicule'
+
+    @classmethod
+    def modeles(cls):
+        return sans_ponts()
+
+    def test_chaque_glb_tient_dans_le_budget_de_triangles_de_ses_donnees(self):
+        for modele_, id_, D, glb in self.chaque_glb():
+            elements = importlib.import_module(f'{modele_}.modele').elements(D)
+            nom = next(e['glb'] for e in elements if id_ in [construire.identifiant(c, cle) for c, cle in e['cles']])
+            document, _ = lire_glb(glb)
+            triangles = sum(document['accessors'][p['indices']]['count'] for m in document['meshes'] for p in m['primitives']) // 3
+            self.assertLessEqual(triangles, D['BUDGET_TRIANGLES'][nom])
+
+
+class Clips(unittest.TestCase):
+    """Le roulage sans glissement (`clips.rouler`) et le recul des roues (`clips.tirer`)."""
+
+    def tables(self):
+        """Les tables de roulement : deux trains de rayons inégaux, puis celle de chaque modèle à roues."""
+        reelles = {m: roulant.roulement(D['TRAINS']) for m, D in ((m, donnees(m)) for m in sans_ponts()) if 'TRAINS' in D}
+        self.assertTrue(reelles, 'aucun modèle à roues')
+        return {'deux rayons': {'grande': (0.6, 2), 'petite': (0.4, 3)}, **reelles}
+
+    def test_rouler_dure_le_chemin_a_la_vitesse_et_tourne_chaque_roue_de_ce_chemin_sur_son_rayon(self):
+        for nom, roues in self.tables().items():
+            with self.subTest(table=nom):
+                chemins = [2 * math.pi * tours * rayon for rayon, tours in roues.values()]
+                for chemin in chemins:
+                    self.assertAlmostEqual(chemin, chemins[0], msg='chemins par boucle inégaux entre les trains')
+                role, _, duree, pistes = clips.rouler(roues)
+                self.assertEqual((role, sorted(pistes)), ('marche', sorted(roues)))
+                self.assertAlmostEqual(duree, chemins[0] / clips.VITESSE)
+                for noeud, (rayon, tours) in roues.items():
+                    for part in (0.25, 1.0):
+                        deplacement, (rx, ry, rz) = pistes[noeud](part * duree)
+                        self.assertEqual((tuple(deplacement), ry, rz), ((0, 0, 0), 0, 0))
+                        self.assertAlmostEqual(rx, part * chemins[0] / rayon)
+                    self.assertAlmostEqual(pistes[noeud](duree)[1][0], 2 * math.pi * tours)
+
+    def test_rouler_refuse_des_roues_aux_chemins_inegaux(self):
+        with self.assertRaises(ValueError):
+            clips.rouler({'grande': (0.6, 1), 'petite': (0.4, 1)})
+
+    def test_tirer_tourne_chaque_roue_a_rebours_du_recul_sur_son_rayon(self):
+        temps, recul = (0.1, 0.2, 0.3), 0.3
+        _, _, duree, pistes = clips.tirer({'recul': recul, 'ressaut': 0}, temps, ['affut'], [], {'grande': (0.6, 2), 'petite': (0.4, 3)})
+        self.assertAlmostEqual(duree, sum(temps))
+        for noeud, rayon in (('grande', 0.6), ('petite', 0.4)):
+            (_, dy, _), (rx, _, _) = pistes[noeud](temps[0] + temps[1] / 2)
+            self.assertAlmostEqual(dy, recul)
+            self.assertAlmostEqual(rx, -recul / rayon)
 
 
 if __name__ == '__main__':

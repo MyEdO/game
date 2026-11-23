@@ -21,7 +21,7 @@ export function rectangleDesPonts(scene: SupportDesPonts, entite: AncreDesPonts)
   const dimensions = dimensionsDesPonts(fiche.ponts[0]);
   const horizontal = cap === 'E' || cap === 'O';
   const [w, h] = horizontal ? [dimensions.w, dimensions.h] : [dimensions.h, dimensions.w];
-  const cote = fiche.ship?.footprint ?? 1;
+  const cote = fiche.hull?.footprint ?? 1;
   const coin = (ancre: number, longueur: number) => Math.floor(ancre + (cote - longueur) / 2 + 0.5);
   return { x: coin(entite.pos.x, w), y: coin(entite.pos.y, h), w, h, cap };
 }
@@ -37,3 +37,9 @@ export function refusDePoseDesPonts(scene: GrilleDesPonts, entite: AncreDesPonts
 /** Les bornes hautes sont exclusives : le rectangle peut toucher les quatre bords. */
 export const rectangleDansLaGrille = (grille: GrilleDesPonts['dimensions'], r: NonNullable<ReturnType<typeof rectangleDesPonts>>): boolean =>
   r.x >= 0 && r.y >= 0 && r.x + r.w <= grille.w && r.y + r.h <= grille.h;
+
+/** Le rectangle des ponts que la scène pose pour `entite` : ses ponts à l'échelle, contenus dans la carte, sinon `null`. */
+export function rectangleDesPontsPoses(scene: GrilleDesPonts, entite: AncreDesPonts) {
+  const r = rectangleDesPonts(scene, entite);
+  return r && rectangleDansLaGrille(scene.dimensions, r) ? r : null;
+}

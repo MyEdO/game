@@ -1,17 +1,19 @@
-"""La diligence (#4471) : les nœuds `voiture` (châssis, caisse, toit, siège, plateau, timon), `roue_avg`, `roue_avd`,
-`roue_arg` et `roue_ard` (chacune à son essieu ; meshes sans skin ni armature), l'emprise recentrée, et ses clips
-(`clips.py`) : repos, roulage ; un GLB pour les clés de `DEFINITIONS`."""
-import math
+"""La diligence (#4471) : les nœuds `voiture` (châssis, caisse, toit et ses bagages, siège, lanternes, plateau, timon),
+`roue_avg`, `roue_avd`, `roue_arg` et `roue_ard` (chacune à son essieu, `roulant.py` ; meshes sans skin ni armature),
+l'emprise recentrée, et ses clips (`clips.py`) : repos, roulage ; un GLB pour les clés des `definitions` de la
+caisse."""
+from mathutils import Vector
 
 import habillage
-from clips import REPOS, VITESSE, animer
-from maille import Maille, boite, cylindre, objet, poutre, recentrer, roue, tube
+from clips import REPOS, animer, rouler
+from maille import Maille, boite, cylindre, monter, poutre, tube
+from roulant import geometrie, roulement, trains
 
 COTES = (1, -1)
 
 
-def train(D, m):
-    """Le châssis : longerons, traverses, et par train son corps d'essieu, sa fusée de fer et ses cales."""
+def chassis(D, m):
+    """Le châssis : deux longerons et leurs traverses, sur les cales des trains."""
     C = D["CHASSIS"]
     lx, ll, y0, y1, z0, z1 = C["longerons"]
     for s in COTES:
@@ -19,15 +21,6 @@ def train(D, m):
     ys, tp, tz0, tz1 = C["traverses"]
     for y in ys:
         boite(m, (-lx, y - tp, tz0), (lx, y + tp, tz1), "bois")
-    es, el = C["essieu"]
-    rf, lf = C["fusee"]
-    cp, cl = C["cale"]
-    for T in D["TRAINS"].values():
-        y, z = T["y"], T["roue"]["bandage"][1]
-        boite(m, (-el, y - es, z - es), (el, y + es, z + es), "bois")
-        cylindre(m, -lf, lf, rf, "x", (0, y, z), 8, "fer")
-        for s in COTES:
-            boite(m, (s * lx - cl, y - cp, z), (s * lx + cl, y + cp, z0 + (z1 - z0) / 2), "bois")
 
 
 def caisse(D, m):
@@ -112,11 +105,37 @@ def plateau(D, m):
         boite(m, (x - dl, y0, z0), (x + dl, y1 + saillie, z1 + saillie), "fer")
 
 
+def bagages(D, m):
+    """Les malles sanglées de fer sur le toit, dans la galerie."""
+    B = D["BAGAGES"]
+    toit_ = D["TOIT"]["boite"][4]
+    places, bande, saillie = B["sangles"]
+    for mat, (x, y), (dx, dy), haut in B["malles"]:
+        centre = Vector((x, y, toit_ + haut / 2))
+        geometrie.planche(m, centre - geometrie.Y * dy, centre + geometrie.Y * dy, geometrie.X, geometrie.HAUT, dx,
+                          haut / 2, B["arete"], mat)
+        for part in places:
+            c = centre + geometrie.Y * (dy * part)
+            geometrie.planche(m, c - geometrie.X * (dx + saillie), c + geometrie.X * (dx + saillie), geometrie.Y,
+                              geometrie.HAUT, bande, haut / 2 + saillie, saillie, "fer")
+
+
+def lanternes(D, m):
+    """Les deux lanternes de laiton tournées, aux coins de la caisse, devant le cocher."""
+    L = D["LANTERNES"]
+    x, y, z = L["pied"]
+    rayon, haut, cotes = L["corps"]
+    for s in COTES:
+        pied = Vector((s * x, y, z))
+        geometrie.tournee(m, pied, pied + geometrie.HAUT * haut, geometrie.X, geometrie.Y, rayon, L["profil"], cotes,
+                          "laiton")
+
+
 def timon(D, m):
     """Le timon, du dessus de l'essieu avant à sa pointe, et son palonnier posé sur lui."""
-    Ti, avant = D["TIMON"], D["TRAINS"]["avant"]
+    Ti, avant = D["TIMON"], D["TRAINS"]["av"]
     largeur, epaisseur = Ti["section"]
-    depart = (0, avant["y"], avant["roue"]["bandage"][1] + D["CHASSIS"]["essieu"][0] + epaisseur / 2)
+    depart = (0, avant["y"], avant["rayon"] + avant["essieu"][0] + epaisseur / 2)
     py, pz = Ti["pointe"]
     poutre(m, depart, (0, py, pz), largeur, epaisseur, (0, 0, 1), "bois")
     lx, y, dp, dh = Ti["palonnier"]
@@ -124,36 +143,21 @@ def timon(D, m):
     boite(m, (-lx, y - dp, z - dh), (lx, y + dp, z + dh), "bois")
 
 
-def rouler(roues):
-    """Le clip de déplacement : chaque roue de `roues` {nœud: (rayon, tours par boucle)} roule sans glisser à
-    `clips.VITESSE`, la boucle durant le chemin commun à tous les trains, tours × circonférence."""
-    rayon, tours = next(iter(roues.values()))
-    duree = tours * 2 * math.pi * rayon / VITESSE
-    return ("marche", "marche", duree,
-            {n: (lambda t, k=k: ((0, 0, 0), (2 * math.pi * k * t / duree, 0, 0))) for n, (_, k) in roues.items()})
-
-
-def construire(D):
-    mats = habillage.materiaux(D["MATERIAUX"])
-    voiture = Maille([mats[nom] for nom in D["MATERIAUX"]])
-    for batir in (train, caisse, toit, cocher, plateau, timon):
+def construire(D, materiaux, piece):
+    """La caisse `piece(D, maille)` sur le châssis et ses deux trains (`roulant.trains`), avec ce qu'elle porte,
+    l'emprise recentrée en x et y (le sol reste z = 0)."""
+    mats = habillage.materiaux(materiaux)
+    voiture = Maille([mats[nom] for nom in materiaux])
+    chassis(D, voiture)
+    roues = trains(D["TRAINS"], voiture, mats["bois"], mats["fer"])
+    for batir in (piece, toit, bagages, cocher, lanternes, plateau, timon):
         batir(D, voiture)
-    roues = {}
-    for nom_train, suffixe in (("avant", "av"), ("arriere", "ar")):
-        T = D["TRAINS"][nom_train]
-        R = T["roue"]
-        z = R["bandage"][1]
-        for cote, s in (("g", 1), ("d", -1)):
-            r = roue(R, s * R["voie"], z, s, mats["bois"], mats["fer"])
-            r.v = [(px, py + T["y"], pz) for px, py, pz in r.v]
-            roues[f"roue_{suffixe}{cote}"] = (r, (s * R["voie"], T["y"], z), (z, T["tours"]))
-    dx, dy = recentrer([voiture] + [r for r, _, _ in roues.values()])
-    objet("voiture", voiture, (0.0, 0.0, 0.0), 35)
-    for nom, (r, c, _) in roues.items():
-        objet(nom, r, (c[0] + dx, c[1] + dy, c[2]), 35)
-    return animer([REPOS, rouler({nom: tour_ for nom, (_, _, tour_) in roues.items()})])
+    monter({"voiture": (voiture, None), **roues}, D["ANGLE_LISSE"])
+    return animer([REPOS, rouler(roulement(D["TRAINS"]))])
+
+
+PIECES = (("diligence", "CAISSE", caisse),)
 
 
 def elements(D):
-    yield {"glb": "diligence", "cles": [("vehicule", {"definition": d}) for d in D["DEFINITIONS"]],
-           "materiaux": D["MATERIAUX"], "blasons": (), "construire": lambda: construire(D)}
+    return habillage.pieces(D, PIECES, construire)

@@ -5,31 +5,23 @@ des roues. Certains ont un bout métallique pointu ») : une charpente à deux p
 deux chaînes, sa tête de fer pointue. Repère de `maille.py` : la tête vers l'avant ; l'emprise est recentrée en x et y,
 z = 0 reste le sol."""
 
-DEFINITIONS = ("belier-ade2",)
-
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci")}
 
-ESSIEU_Z = 0.45                 # hauteur des essieux : rayon de roue
-ESSIEUX_Y = (-1.25, 1.25)
+ANGLE_LISSE = 35                # degrés sous lesquels deux faces voisines se lissent (`maille.objet`)
 
-ROUE = {
-    "voie": 0.92,
-    "segments": 18,
-    "bandage": (0.42, 0.45, 0.10),      # rayon intérieur, extérieur, largeur (fer)
-    "jante": (0.33, 0.42, 0.09),        # rayon intérieur, extérieur, largeur (bois)
-    "moyeu": (0.10, -0.16, 0.10),       # rayon, x intérieur et extérieur relatifs au plan (vers l'extérieur positif)
-    "chapeau": (0.07, 0.10, 0.14),      # frette de fer au bout du moyeu : rayon, x de début et de fin
-    "frette": (0.11, -0.14, -0.11),     # frette de fer côté intérieur du moyeu
-    "rayons": 10,
-    "rayon_section": (0.05, 0.04),      # largeur tangentielle, épaisseur en x
-    "segments_moyeu": 8,
+# Triangles de chaque GLB, au plus (`test_vehicule.py`).
+BUDGET_TRIANGLES = {"belier": 7400}
+
+# Les deux trains de la charpente (`roulant.py`), les mêmes : nœuds `roue_avg`, `roue_avd`, `roue_arg`, `roue_ard`.
+TRAIN = {
+    "voie": 0.92, "rayon": 0.45, "largeur": 0.10, "pans": 18, "bandage": 0.03, "moyeu": (0.10, 0.13),
+    "essieu": (0.06, 0.005), "fusee": (0.05, 0.15, 8), "tours": 1,
 }
+TRAINS = {"av": {**TRAIN, "y": -1.25}, "ar": {**TRAIN, "y": 1.25}}
 
 CHARPENTE = {
     "longerons": (0.62, 0.09, -1.65, 1.65, 0.48, 0.68),    # x du milieu, demi-largeur, y avant, y arrière, z bas, z haut
-    "corps_essieu": (0.74, 0.08, 0.38, 0.50),               # demi-largeur, demi-profondeur, z bas, z haut
-    "fusee": (0.05, 1.04),                                  # essieu de fer : rayon, demi-longueur
     "traverses": ([-1.55, -0.85, 0.0, 0.85, 1.55], 0.07, 0.50, 0.66),   # y, demi-profondeur, z bas, z haut
     "portiques": [-0.85, 0.85],                             # y des portiques
     "poteau": (0.08, 2.30),                                 # demi-section, z du sommet
@@ -40,6 +32,7 @@ CHARPENTE = {
 }
 
 TRONC = {
+    "definitions": ("belier-ade2",),
     "axe_z": 1.15,
     "segments": 14,
     # profil (y, rayon) de la tête à la queue ; rayon 0 ferme l'axe. Tête de fer pointue emmanchée sur le tronc.

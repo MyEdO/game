@@ -15,8 +15,6 @@
 .rangee .seuil{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#2a1d12}
 /* le dossier jouable d'une possession : nom en saisie, cale, lieu et gestes */
 .ident .nom-propre .champ{margin:-2px 0 6px}
-#f-sections .mesure .tete{color:#4a3420}
-#f-sections .mesure .tete b{font-family:"Chiffres";font-size:13.5px;letter-spacing:0;color:#2a1d12}
 #f-sections .defile>.filet{margin:18px 0 12px}
 #f-sections .defile>.rub{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 #f-sections .cartes{display:flex;gap:10px;align-items:center}

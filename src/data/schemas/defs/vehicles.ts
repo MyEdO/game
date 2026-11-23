@@ -53,6 +53,8 @@ const doc = document(
       char: nommerChamps(z.strictObject({ endurance: z.number(), B: z.number() }), { endurance: { label: "Endurance" }, B: { label: "Blessures" } }),
       bodyShape: z.literal('vehicule'),
       propulsion: z.enum(['terrestre', 'fluvial', 'maritime']),
+      /** Côté N de l'empreinte de grille N×N (`footprintN`, `src/noyau/monde/footprint.ts`) ; absent = 1. */
+      footprint: z.number().int().positive().optional(),
       /** Table de Localisation des coups (`shipHitLocation`, `src/engine/combat.ts`) — vocabulaire
        *  FERMÉ : une coquille d'authoring résoudrait sinon la coque fluviale sur la table maritime.
        *  Absent/`null` = `navire` (MDG 13) ; `navire-fluvial` = MSRC 7. */
@@ -61,7 +63,7 @@ const doc = document(
        *  FERMÉ que `locationTable`, et pour la même raison : les deux jeux chargés sont
        *  `ship-criticals` (MDG 13) et `river-criticals` (MSRC 5). Absent/`null` = `ship-criticals`. */
       criticalTable: z.enum(['ship-criticals', 'river-criticals']).nullable().optional(),
-    }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
+    }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, footprint: { label: "emprise" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
     /** Facette NAVIRE (profil naval MDG 12). */
     ship: nommerChamps(z.strictObject({
       crew: z.number(),
@@ -76,12 +78,11 @@ const doc = document(
       fluvialLengthM: z.number().int().positive().optional(),
       fluvialMovement: z.number().positive().optional(),
       fluvialEnc: z.number().positive().optional(),
-      footprint: z.number().optional(),
       capacity: z.number(),
       sail: profilDeVoileSchema.optional(),
       oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
-    }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur maritime en mètres" }, fluvialLengthM: { label: "Longueur fluviale en mètres" }, fluvialMovement: { label: "Mouvement fluvial" }, fluvialEnc: { label: "Encombrement fluvial de la coque" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
+    }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur maritime en mètres" }, fluvialLengthM: { label: "Longueur fluviale en mètres" }, fluvialMovement: { label: "Mouvement fluvial" }, fluvialEnc: { label: "Encombrement fluvial de la coque" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
     /** PONTS d'un navire qu'on visite (#3686), une paire : une carte box-drawing par pont, du plus bas au plus haut, en cases du
      *  plan des scènes (`sceneMetresPerTile`), la proue à gauche, tribord en haut (`MOTS_DES_PONTS`,
      *  `grammaire/carte-ascii.ts`). La seule source de la forme des ponts : le plan de jeu

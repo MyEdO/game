@@ -670,29 +670,48 @@ se livre comme tel avec ses contrôles NON VÉRIFIÉS. Ne pas annoncer la porte 
 procédure seule : elle demande, depuis une illustration neuve, une instance neuve produisant tête,
 vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le scénario L4.
 
-## 9. Véhicule : navire ou engin de siège
+## 9. Véhicule : navire, engin de siège ou coque terrestre
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
 depuis le dépôt, sans base, par le constructeur commun des éléments sans base, `scripts/personnage-3d/construire.py`
 (export et manifestes, d'un véhicule comme d'un décor), et `scripts/personnage-3d/vehicule/` : sa partie commune
 (`plan_de_jeu.py` : les ponts d'un navire, lus dans la source unique `ponts` de sa fiche ; `navire.py` : les pièces communes des navires bâtis sur leurs ponts, coque, espars, cloisons, portes, échelles, pièces creusées et emprise
-libre des cases ; `revue.py` : configurations rendues dans le studio de `rendu.py` ; `cote_a_cote.py` : l'illustration
-au-dessus du rendu orthographique, à la même échelle, de profil et pont par pont), celle qu'il partage avec les éléments
-sur base (section 3) dans `scripts/personnage-3d/` (`production.py` : dossiers de production ; `maille.py` : maille,
-solides (révolution, cylindre, boîte, plaque, poutre, tube, tore, roue, treuil), bascule autour d'un axe, recentrage de
-l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et éléments d'un modèle à plusieurs pièces), et un dossier
-par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
+libre des cases ; `revue.py` : configurations d'un navire rendues dans le studio de `rendu.py` ; `cote_a_cote.py` :
+l'illustration au-dessus du rendu orthographique, à la même échelle, de profil et pont par pont ; `planche.py` : la
+planche de revue d'un véhicule sans ponts ; `clips.py` : les clips d'un engin ; `roulant.py` : les trains d'un véhicule
+à roues), celle qu'il partage avec les éléments sur base (section 3) dans `scripts/personnage-3d/` (`production.py` :
+dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube, tore,
+treuil), bascule autour d'un axe, objet, et `monter`, qui recentre l'emprise des nœuds d'un engin et pose chacun à son
+pivot ; `habillage.py` : matériaux, `surfaces` et éléments d'un modèle à plusieurs pièces), celle qu'il partage avec
+les décors dans `decor/geometrie.py` (pièce équarrie aux arêtes abattues, planche, pièce profilée ou tournée, fil, et
+la roue à rais et le train de `roulant.py` ; un modèle de véhicule l'atteint par `from roulant import geometrie`), et
+un dossier par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
 `caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
 aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`), `barge-fluviale` (le Bérébéli, bâti de même sur
 les ponts de sa fiche, ses postes d'armes lourdes sur ses plates-formes de proue et de poupe et, aux deux bords, sur
-le toit de son rouf), `diligence` (coque terrestre sans ponts, train à deux essieux, sans poste) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+le toit de son rouf), `diligence` (coque terrestre sans ponts, deux trains aux roues inégales, sans poste, ses malles et ses lanternes dans
+son GLB) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
 engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
 batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
 (catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
 figurine) se range hors dépôt avec sa source (`vehicules-3d/references-armes-de-siege/SOURCES.md` du dossier du
 projet) et se cite dans la docstring des données ; sans référence, la docstring dit les proportions d'adaptation.
 
-**Décomposer l'illustration** avant de construire : un véhicule s'assemble de parties comme un personnage d'un corps, d'une tête, de tenues et d'équipements (fiche `user-doctrine-vehicule-assemblage-de-parties`). La docstring de `donnees.py` range chaque chose dessinée dans sa partie : le bateau, modelé par `modele.py` (coque, ponts, superstructures, mâts et gréement, barre, garde-corps, ouvertures) ; les Améliorations, pièces à part sur ses `ancrages` ; l'armement, pièces de siège à ses `postes` ; le décor (lanternes, tonneaux, cargaison, mobilier), décors du catalogue `src/data/props.json` que pose le plan du navire au noyau (`src/noyau/planDe*.ts`), jamais modelés dans son GLB ; le pavillon, surface `blason`. Une fenêtre ou un hublot dessinés sont une ouverture creusée dans le mur, jamais un cadre plaqué sur un mur plein.
+**Véhicule à roues.** Une seule roue et un seul train servent les véhicules et les décors (`geometrie.roue`,
+`geometrie.train` : la charrette, l'épave de carrosse, l'affût, le bélier, la diligence) : roue à rais tournés d'après
+`geometrie.ROUE`, moyeu tourné, bandage cerclé, rais manquants possibles ; essieu équarri d'une roue à l'autre, cales,
+fusée de fer. Les données d'un véhicule portent `TRAINS`, `{nom: train}` en mètres (les champs d'un train : docstring de
+`roulant.py`), et son modèle appelle `roulant.trains`, qui bâtit l'essieu dans le châssis et rend chaque roue à son
+nœud `roue_<nom>g` ou `roue_<nom>d`, puis `maille.monter` et `clips.rouler(roulant.roulement(TRAINS))`. Un véhicule
+aux trains de rayons inégaux donne à chacun ses `tours` par boucle, le chemin d'une boucle (tours × circonférence)
+restant le même à tous : `rouler` refuse des chemins inégaux.
+
+**Coque terrestre.** Une coque sans ponts (`diligence`) n'a ni cases ni plan qui pose des décors : ses accessoires
+fixes (malles arrimées, lanternes) se modèlent dans son GLB, la docstring de ses données les rangeant avec la voiture ;
+son attelage et son cocher restent hors du GLB (créatures, personnage). Elle se bâtit, se garde et se regarde comme un
+engin : `TRAINS`, `BUDGET_TRIANGLES`, `planche.py`.
+
+**Décomposer l'illustration** avant de construire : un véhicule s'assemble de parties comme un personnage d'un corps, d'une tête, de tenues et d'équipements (fiche `user-doctrine-vehicule-assemblage-de-parties`). La docstring de `donnees.py` range chaque chose dessinée dans sa partie : le bateau, modelé par `modele.py` (coque, ponts, superstructures, mâts et gréement, barre, garde-corps, ouvertures) ; les Améliorations, pièces à part sur ses `ancrages` ; l'armement, pièces de siège à ses `postes` ; le décor (lanternes, tonneaux, cargaison, mobilier), décors du catalogue `src/data/props.json` que pose le plan du navire au noyau (`src/noyau/planDe*.ts`), jamais modelés dans le GLB d'un navire à ponts ; le pavillon, surface `blason`. Une fenêtre ou un hublot dessinés sont une ouverture creusée dans le mur, jamais un cadre plaqué sur un mur plein.
 
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
 
@@ -700,7 +719,7 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
   `src/data/trappings.json`, ajoutée d'abord si elle manque) ; `MATERIAUX`, `{nom: (emplacement, matière)}`, l'emplacement
   pris aux `SLOTS` de `src/lib/palette.ts`, la matière un id du domaine `prop` de `src/data/materials.json` (sa texture
   vient du catalogue `hotes/godot/projet/textures/`), à défaut `(couleur linéaire, métal, rugosité)` ; `BLASONS`, les
-  matériaux qui reçoivent l'emblème ; pour un navire, `ILLUSTRATION`, le calage de son illustration directrice ; chaque dimension en mètres, nommée, lue sur une illustration ou une donnée du jeu
+  matériaux qui reçoivent l'emblème ; `ANGLE_LISSE`, l'angle sous lequel deux faces voisines se lissent ; pour un navire, `ILLUSTRATION`, le calage de son illustration directrice ; pour un véhicule sans ponts, `BUDGET_TRIANGLES`, `{nom du GLB: triangles au plus}`, et, s'il roule, `TRAINS` ; chaque dimension en mètres, nommée, lue sur une illustration ou une donnée du jeu
   (section 1), jamais enfouie dans `modele.py` ;
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
@@ -710,8 +729,8 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
 
 Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
 pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
-`repos`, `marche` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
-`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `tir` (`tirer` : recul,
+`repos`, `marche` (déplacement en boucle : `rouler` roule sans glisser les roues de `{nœud: (rayon, tours par boucle)}`
+à la vitesse d'une case par pas du plateau, `cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `tir` (`tirer` : recul,
 ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
 sont des données nommées de `donnees.py`.
 
@@ -733,7 +752,10 @@ et les nœuds de chaque GLB ; deux constructions donnent les mêmes octets.
 **Valider.** `npm run godot:valider -- /atelier/<type>/<id>/<id>.element.json /atelier/<type>/<id>/<id>.glb` pour chaque
 id ; `npm run personnage-3d:tests`, dont `test_vehicule.py` reconstruit chaque modèle et compare chaque manifeste, son
 empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` (`reconstruction.py`, commun aux décors) ; un véhicule ou une Amélioration publiés sans
-modèle y échouent ; sur chaque navire, toute case des ponts s'atteint, l'emprise libre de chacune tient un occupant
+modèle y échouent ; chaque véhicule sans ponts y est bâti deux fois (`banc_des_kits.BatisDeuxFois`) : mêmes octets,
+chaque nœud une réunion de coques closes aux faces vers le dehors, triangles de chaque GLB dans son `BUDGET_TRIANGLES`,
+et le clip de roulage de ses `TRAINS` dure le chemin d'une boucle à `clips.VITESSE`, chaque roue tournée de ce chemin
+sur son rayon ; sur chaque navire, toute case des ponts s'atteint, l'emprise libre de chacune tient un occupant
 debout, et la coque est close (`closes` : aucun rayon ne sort du navire depuis une case, sabords bouchés, et aucune fosse
 sans plancher sous une case). Au noyau, le test du plan du navire (`src/noyau/planDe*.test.ts`) garde ses postes : la
 pièce montée et son servant ne recouvrent ni meuble, ni fût de mât, ni trappe, ni échelle, ni la pièce d'un autre poste,
@@ -749,7 +771,14 @@ rejoue au clic dans l'export Web, au regard `plateau` :
 ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts
 node hotes/godot/construire.mjs --export --sortie /atelier/web
 node hotes/godot/recette.mjs --web /atelier/web --captures /atelier/bord --parcours bord --scenario a-bord-de-la-caraque --route /atelier/routes/a-bord-de-la-caraque.json
-``` Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
+``` Rendre un GLB seul par `rendu.py --input` ; un véhicule sans ponts par `planche.py`, de profil, de trois-quarts et
+de dessus dans une `planche.png`, AVANT au-dessus d'APRÈS quand `--avant` nomme le dossier du GLB d'avant la retouche :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/planche.py <definition> --modeles /atelier/<type> --sortie /atelier/planche [--avant <dossier>]
+```
+
+Les configurations d'un navire par `revue.py`, d'après la `REVUE` des
 données (le véhicule, la pièce des postes, les configurations et les vues de l'intérieur), avec les textures que
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
@@ -939,7 +968,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour ; les gardes
-communes aux kits d'escalier vivent dans `banc_des_kits.py`),
+communes aux kits d'escalier et de toit vivent dans `banc_des_kits.py`, la double construction et les coques closes aussi aux véhicules sans ponts),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
 `arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PIECES_D_ARETE`, lues
 du noyau par `arete/pieces.mjs`.

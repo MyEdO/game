@@ -18,6 +18,6 @@ const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 /* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme')}</div>`;
-const mesure = (nom, valeur, teinte = 'cire') => { const [a, b] = valeur.split(' / '); return `<div class="mesure"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div>${jauge(a / b, { teinte, taille: 'forte' })}</div>`; };
+const mesure = (nom, valeur, teinte = 'cire') => { const [a, b] = valeur.split(' / '); return ligne({ libelle: nom, valeur, variante: 'mesure', format: 'nombre', dessous: jauge(a / b, { teinte, taille: 'forte' }) }); };
 // Partagé avec les scripts de page chargés après celui-ci.
 Object.assign(globalThis, { P, losange, combattant, borne, vieux, neuf, borneJ, SYSTEME, mesure });

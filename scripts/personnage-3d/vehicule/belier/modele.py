@@ -1,24 +1,20 @@
 """Le bélier (#2987) : les nœuds `charpente`, `tronc`, `chaine_av` et `chaine_ar` (pivot à leur attache au chapeau),
-`roue_avg`, `roue_avd`, `roue_arg`, `roue_ard` (meshes sans skin ni armature), l'emprise recentrée, et ses clips
-(`clips.py`) : repos, roulage, coup ; un GLB pour les clés de `DEFINITIONS`."""
+`roue_avg`, `roue_avd`, `roue_arg`, `roue_ard` (`roulant.py` ; meshes sans skin ni armature), l'emprise recentrée, et
+ses clips (`clips.py`) : repos, roulage, coup ; un GLB pour les clés des `definitions` du tronc."""
 import math
 
 import habillage
 from clips import REPOS, animer, lisse, montee, rouler
-from maille import Maille, boite, cylindre, objet, poutre, recentrer, roue, tore, tour
+from maille import Maille, boite, monter, poutre, tore, tour
+from roulant import roulement, trains
 
 
 def charpente(D, bois, fer):
-    C, zE = D["CHARPENTE"], D["ESSIEU_Z"]
+    C = D["CHARPENTE"]
     m = Maille([bois, fer])
     lx, ll, ly0, ly1, lz0, lz1 = C["longerons"]
     for signe in (1, -1):
         boite(m, (signe * lx - ll, ly0, lz0), (signe * lx + ll, ly1, lz1), "bois")
-    cx, cp, cz0, cz1 = C["corps_essieu"]
-    rf, lf = C["fusee"]
-    for y in D["ESSIEUX_Y"]:
-        boite(m, (-cx, y - cp, cz0), (cx, y + cp, cz1), "bois")
-        cylindre(m, -lf, lf, rf, "x", (0, y, zE), 8, "fer")
     ys, tp, tz0, tz1 = C["traverses"]
     for y in ys:
         boite(m, (-lx, y - tp, tz0), (lx, y + tp, tz1), "bois")
@@ -82,32 +78,25 @@ def balance(T, longueur):
     return ("melee", "coup", a + b + c, {"tronc": tronc_, "chaine_av": chaine, "chaine_ar": chaine})
 
 
-def construire(D):
-    mats = habillage.materiaux(D["MATERIAUX"])
+def construire(D, materiaux, piece):
+    """La pièce `piece(D, bois, fer)` → (maille, [chaîne]) pendue aux portiques de la charpente sur ses deux trains
+    (`roulant.trains`), l'emprise recentrée en x et y (le sol reste z = 0)."""
+    mats = habillage.materiaux(materiaux)
     bois, fer = mats["bois"], mats["fer"]
-    R, zE = D["ROUE"], D["ESSIEU_Z"]
     bati = charpente(D, bois, fer)
-    belier, chaines = tronc(D, bois, fer)
-    y_av, y_ar = D["ESSIEUX_Y"]
-    roues = {nom: (roue(R, signe * R["voie"], zE, signe, bois, fer), (signe * R["voie"], y, zE))
-             for nom, signe, y in (("roue_avg", 1, y_av), ("roue_avd", -1, y_av), ("roue_arg", 1, y_ar), ("roue_ard", -1, y_ar))}
-    for r, (_, y, _) in roues.values():
-        r.v = [(px, py + y, pz) for px, py, pz in r.v]
-
-    # emprise recentrée en x et y ; le sol reste z = 0
-    dx, dy = recentrer([bati, belier, *chaines] + [r for r, _ in roues.values()])
+    roues = trains(D["TRAINS"], bati, bois, fer)
+    belier, chaines = piece(D, bois, fer)
     haut = D["CHARPENTE"]["poteau"][1]
-    objet("charpente", bati, (0.0, 0.0, 0.0), 35)
-    objet("tronc", belier, (dx, dy, haut), 35)
-    for nom, chaine, y in zip(("chaine_av", "chaine_ar"), chaines, D["CHARPENTE"]["portiques"]):
-        objet(nom, chaine, (dx, y + dy, haut), 35)
-    for nom, (r, c) in roues.items():
-        objet(nom, r, (c[0] + dx, c[1] + dy, c[2]), 35)
+    attaches = zip(("chaine_av", "chaine_ar"), chaines, D["CHARPENTE"]["portiques"])
+    monter({"charpente": (bati, None), "tronc": (belier, (0.0, 0.0, haut)),
+            **{nom: (chaine, (0.0, y, haut)) for nom, chaine, y in attaches}, **roues}, D["ANGLE_LISSE"])
     T = D["TRONC"]
     longueur = haut - T["axe_z"] - T["fut"][1][1]
-    return animer([REPOS, rouler(R["bandage"][1], roues), balance(T, longueur)])
+    return animer([REPOS, rouler(roulement(D["TRAINS"])), balance(T, longueur)])
+
+
+PIECES = (("belier", "TRONC", tronc),)
 
 
 def elements(D):
-    yield {"glb": "belier", "cles": [("vehicule", {"definition": d}) for d in D["DEFINITIONS"]],
-           "materiaux": D["MATERIAUX"], "blasons": (), "construire": lambda: construire(D)}
+    return habillage.pieces(D, PIECES, construire)

@@ -46,10 +46,9 @@ import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
-import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
+import { type Scene, heightAt, tileAt } from './scene';
+import { porteParLaScene } from './footprint';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
-import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
-import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -100,10 +99,11 @@ export function positionPosee(scene: Scene | null | undefined, p: { x: number; y
 /**
  * Pose la position d'un combattant (`positionPosee`) et re-dérive ses drapeaux positionnels — SOURCE UNIQUE de la
  * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
- * chute, avance navale).
+ * chute, avance navale). Un corps que la scène porte (`porteParLaScene`) ne quitte pas sa case : `false`, rien ne bouge.
  */
-export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean; bodyShape?: Combatant['bodyShape']; creatureId?: string }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): boolean {
   const z = p.z ?? 0;
+  if (c.pos && porteParLaScene(c) && (c.pos.x !== p.x || c.pos.y !== p.y || (c.pos.z ?? 0) !== z)) return false;
   c.pos = positionPosee(scene, p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
@@ -114,6 +114,7 @@ export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?:
   // Drapeau POSITIONNEL « navire sur ses ponts » (#3686) : re-dérivé au même chokepoint.
   if (scene && estPoseParSesPonts(scene, c.id)) c.surSesPonts = true;
   else if (c.surSesPonts) delete c.surSesPonts;
+  return true;
 }
 
 /** Terrain de la case, tolérant une scène absente : PAS de scène = pas de tuile, donc le terrain que le
@@ -141,24 +142,6 @@ function charsFrom(src: Partial<Record<string, number | null>>, fallback = 30): 
   return chars;
 }
 
-
-/** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
- *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire). */
-export function entitySize(ent: { creature?: { id: string }; statblock?: CustomStatblock }): SizeCategory {
-  const creature = ent.creature && findCreatureById(ent.creature.id);
-  return tailleDuProfil({
-    size: ent.statblock?.size,
-    traits: ent.statblock?.traits ?? creature?.traits,
-    talents: ent.statblock?.talents ?? creature?.talents,
-  });
-}
-
-/** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
- *  couture unique de la marchabilité et de la ligne de vue), le carré de sa Taille pour une créature. */
-export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
-  if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
-  return footprintTiles(ent.pos, sizeFootprint(entitySize(ent)));
-}
 
 /** Nuée non imprimée au profil : LDB 85 l.253 ; ZI 02 l.138-140 (Nuée imprimée). Ses Blessures : `effectiveMaxWounds`. */
 function applySwarmBuild(chars: Characteristics): Characteristics {
@@ -471,8 +454,9 @@ export class RefIrresoluble extends Error {
  *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
 function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos?: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   if (porteur.vehicule !== undefined) {
-    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'ennemi' pour être
-    // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
+    // MDG 13 : la coque (`vehicleCombatant`, facette `hull`), à PV, sans arme ni Mouvement, immune à la Psychologie,
+    // sans `inert` : elle garde son tour et compte à la fin du combat (`checkBattleOver`). `kind: 'ennemi'`, que
+    // `side: 'allie'` du membre change en `'heros'` (`combatSlice`).
     const coque = findVehicleById(porteur.vehicule);
     const c = coque && vehicleCombatant(coque, id);
     if (!c) throw new RefIrresoluble(porteur.vehicule, id);

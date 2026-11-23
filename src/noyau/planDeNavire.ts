@@ -14,7 +14,7 @@
  */
 import type { NavalTraitRef } from '../engine/types';
 import { findNavalTrait } from '../data';
-import { aLEchelleDesPonts, rectangleDansLaGrille, rectangleDesPonts } from '../data/poseDesPonts';
+import { aLEchelleDesPonts, rectangleDesPonts, rectangleDesPontsPoses } from '../data/poseDesPonts';
 import { nextEntityId } from '../lib/entityId';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';
@@ -110,10 +110,8 @@ interface PoseDeNavire extends NonNullable<ReturnType<typeof rectangleDesPonts>>
 function poseDe(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, ent: SceneEntity): PoseDeNavire | null {
   const ref = ent.kind === 'personnage' ? ent.vehicule?.id : undefined;
   if (ref === undefined) return null;
-  const rectangle = rectangleDesPonts(scene, ent);
-  return rectangle && rectangleDansLaGrille(scene.dimensions, rectangle)
-    ? { ...rectangle, id: ent.id, ref, upgrades: ent.upgrades ?? [], z: ent.z ?? 0 }
-    : null;
+  const rectangle = rectangleDesPontsPoses(scene, ent);
+  return rectangle && { ...rectangle, id: ent.id, ref, upgrades: ent.upgrades ?? [], z: ent.z ?? 0 };
 }
 
 type SceneDesNavires = Pick<Scene, 'entities' | 'metresPerTile' | 'dimensions'>;

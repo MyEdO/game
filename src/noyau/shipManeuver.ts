@@ -42,7 +42,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { CrewRoleRoll } from './pendings';
 import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
-import { footprintTiles, footprintN } from './monde/footprint';
+import { footprintTiles, footprintN, porteParLaScene } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
 import { capEnCombat, estPoseParSesPonts } from './planDeNavire';
 import { nomDe } from '../engine/nom';
@@ -286,6 +286,10 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       const dir = facing[shipId];
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
+      if (porteParLaScene(hull)) {
+        refuserGeste(get, set, t('cs.refusCorpsImmobile', { name: nomDe(hull) }));
+        return 0;
+      }
       const d = DIR8_DELTA[dir];
       // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
       // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).

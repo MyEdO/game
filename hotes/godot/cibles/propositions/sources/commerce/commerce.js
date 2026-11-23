@@ -1,8 +1,7 @@
-/* Commerce, images d'intention (#3935, #4411). Ajouts au socle de « lieux et nuit » (../lieux-et-nuit/commun.js) : les
-   mesures d'une offre, la page de droite, la quantité, les deux décors (la halle, le quai) et la carte du port. Posés
+/* Commerce, images d'intention (#3935, #4411). Ajouts au socle de « lieux et nuit » (../lieux-et-nuit/commun.js) : la
+   page de droite, la quantité, les deux décors (la halle, le quai) et la carte du port. Posés
    par `../rendu.js` (écrans `halle`, `marchandage`, `port`). Maquette hors du jeu. */
 /* ───────── les pièces ───────── */
-const mesures = (lignes) => `<table>${lignes.map(([k, v, c]) => `<tr><td>${k}</td><td class="${c ?? ''}">${v}</td></tr>`).join('')}</table>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
 const page = (piece, intitule, corps) => `<div id="page" class="page cadre bois" data-piece="${piece}"><div class="fond parchemin">${corps}</div>${ruban(intitule)}${ferrures}</div>`;
 const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 'petit')}<div style="flex:1">${reglette((v - min) / (max - min), null)}<div class="bornes chiffres"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 'petit')}<span class="val">${v} ${unite}</span></div>`;
@@ -205,4 +204,4 @@ function sceneDuQuai() {
 }
 const nuagesDuSoir = (S) => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { mesures, page, quantite, CARTE_DU_PORT, sceneDeLaHalle, sceneDuQuai });
+Object.assign(globalThis, { page, quantite, CARTE_DU_PORT, sceneDeLaHalle, sceneDuQuai });
