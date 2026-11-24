@@ -23,7 +23,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 9. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 10. Équilibrage : les hardes, le Minotaure, Guerrier du Chaos + Troll (0 sur 6 au balayage) ; l'économie sur une campagne entière (piste 7) ; le soin de l'hospice gratuit au palier 3.
 11. Genre des noms tirés.
-12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v33 publiée le 2026-11-24 : combats par `jouerLaRencontre`, épreuves sur `TEST_JETE`). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un autre compte publie un artefact neuf : seul son auteur met à jour celui-ci.
+12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v33 publiée le 2026-11-24 : combats par `jouerLaRencontre`, épreuves sur `TEST_JETE`). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un compte sans droit d'écriture sur l'artefact publie un artefact neuf au lieu de le remplacer.
 
 ## Reprendre ce chantier depuis un autre compte
 
