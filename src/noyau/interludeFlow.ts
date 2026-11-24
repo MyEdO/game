@@ -54,7 +54,7 @@ import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
-import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
+import { applyTalentAcquisition, maximaDesReserves, reporterLaHausseDesMaxima } from '../engine/talentEffects';
 import {
   findQualityById,
   findTrappingById,
@@ -932,13 +932,11 @@ function apprendreLeTalent(get: Get, set: Set, h: Combatant, talentId: string, t
   let r: ReturnType<typeof engineBuyTalent> = { ok: false, cost: 0 };
   depenserPx(get, set, h.id, (lu) => {
     const appris = structuredClone(lu);
-    const fortuneBefore = fortuneMax(appris);
-    const resolveBefore = resolveMax(appris);
+    const maximaAvant = maximaDesReserves(appris);
     r = engineBuyTalent(appris, talentId); // débite les PX + acquiert le Talent
     if (!r.ok) return lu;
     applyTalentAcquisition(appris, talentId);
-    appris.fortune = (appris.fortune ?? 0) + (fortuneMax(appris) - fortuneBefore); // Chanceux
-    appris.resolve = (appris.resolve ?? 0) + (resolveMax(appris) - resolveBefore); // Obstiné
+    reporterLaHausseDesMaxima(appris, maximaAvant);
     return appris;
   });
   if (!r.ok) return null;
@@ -978,8 +976,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
   let r: ReturnType<typeof engineBuyCharAdvance> = { ok: false, cost: 0 };
   const accepte = depenserPx(get, set, heroId, (lu) => {
     const entraine = structuredClone(lu);
-    const fortuneBefore = fortuneMax(entraine);
-    const resolveBefore = resolveMax(entraine);
+    const maximaAvant = maximaDesReserves(entraine);
     if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id, false);
     else {
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
@@ -988,8 +985,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
       r = engineBuySkillAdvance(entraine, { id, spec }, false);
     }
     if (!r.ok) return lu;
-    entraine.fortune = (entraine.fortune ?? 0) + (fortuneMax(entraine) - fortuneBefore); // Sociabilité (Chance/Fortune)
-    entraine.resolve = (entraine.resolve ?? 0) + (resolveMax(entraine) - resolveBefore); // Volonté (Résilience/Détermination)
+    reporterLaHausseDesMaxima(entraine, maximaAvant);
     return entraine;
   });
   if (!accepte) return;

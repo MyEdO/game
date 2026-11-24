@@ -25,7 +25,7 @@ import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
 import { isPrayerFamily } from '../engine/combatFeatures/types';
 import { effectiveSkillCharKey, testValue } from '../engine/skills';
-import { effectiveTalents } from '../engine/talentEffects';
+import { effectiveTalents, reservesPropres } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
 import { isWearable, itemLabel } from '../engine/items';
 import { isHeld, isWeaponActive } from '../engine/weaponLoad';
@@ -108,7 +108,7 @@ export interface FicheDuPorteur {
   carriere: Renvoyable | null;
   blessures: [courant: number, max: number];
   /** Ses Points de Destin, de Chance, de Résilience et de Détermination, `null` pour un porteur qui n'en a pas (une
-   *  créature). */
+   *  créature ; la Résilience et la Détermination d'un héros 5e, `reservesPropres`). */
   destin: number | null;
   chance: number | null;
   resilience: number | null;
@@ -223,8 +223,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     espece: espece ? renvoyable('races', espece.id, espece.label) : null,
     destin: c.fate ?? null,
     chance: c.fortune ?? null,
-    resilience: c.resilience ?? null,
-    determination: c.resolve ?? null,
+    ...reservesPropres(c),
     bourse: bourseOf(c),
     mouvement: effectiveMovement(c),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),

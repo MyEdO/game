@@ -64,6 +64,7 @@ import { VERBES_DE_JET, type RollVerb } from './flowVerbs';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { nomDe } from '../engine/nom';
+import { perdreUnPointDeResilience, resilienceDe } from '../engine/talentEffects';
 
 /**
  * FENÊTRES D'INFLUENCE — prédicats PURS, écrits UNE fois, à côté des ops qui les exécutent
@@ -134,7 +135,7 @@ export function actorInfluenceView(
   return {
     peutPactiser: !!actor && estHerosJouable(actor) && recoitLaCorruption(actor),
     fortune: over?.fortune ?? actor?.fortune ?? 0,
-    resilience: over?.resilience ?? actor?.resilience ?? 0,
+    resilience: over?.resilience ?? (actor ? resilienceDe(actor) : 0),
     freeReroll: freeRerollAvailable(actor),
   };
 }
@@ -583,7 +584,7 @@ function opForceSuccess<P extends PendingBase>(
 ): boolean {
   const patch = resolveForced();
   if (!patch) return false; // `null` = rien à forcer sur ce dé → pas de dépense
-  return commit(patch, { forced: true, touch: true, depense: () => { actor.resilience = (actor.resilience ?? 0) - 1; } });
+  return commit(patch, { forced: true, touch: true, depense: () => perdreUnPointDeResilience(actor) });
 }
 
 /** Résistance (Menace), LDB 10 l.1020 : auto-succès du premier Test qui résiste à la menace du
