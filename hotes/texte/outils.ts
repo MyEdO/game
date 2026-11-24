@@ -6,7 +6,7 @@
  * de schéma parlent français (`src/lib/zodEnFrancais.ts`).
  */
 import { z } from 'zod';
-import '../lib/zodEnFrancais.ts';
+import '../../src/lib/zodEnFrancais.ts';
 
 /** Ce que `lire` sait rendre, une lecture par valeur de `quoi`. */
 export const LECTURES = ['vue', 'choix', 'offres', 'carte', 'cases', 'fiche', 'journal', 'verbes'] as const;

@@ -2,8 +2,8 @@
  * Génère docs/hote-texte.md — l'hôte texte du noyau (#2898) : une partie jouée par un serveur MCP, sans navigateur.
  * La part FACTUELLE est DÉRIVÉE du code, fail-fast si une constante disparaît :
  *  - les instructions du serveur, la description et le schéma de chaque outil (`INSTRUCTIONS`, `outils`,
- *    src/hoteTexte/outils.ts, importés : la même source que le serveur) ;
- *  - les bornes de sortie (`BORNES`, src/hoteTexte/vue.ts), par l'AST TypeScript ;
+ *    hotes/texte/outils.ts, importés : la même source que le serveur) ;
+ *  - les bornes de sortie (`BORNES`, hotes/texte/vue.ts), par l'AST TypeScript ;
  *  - les catégories d'erreur (`CategorieDErreur`), src/hote/partie.ts, et le plafond de reprises de l'horloge
  *    virtuelle (`PLAFOND_DE_REPRISES`), src/noyau/horlogeVirtuelle.ts ; les cadences (`CADENCE_MODES`, src/engine/cadence.ts) ;
  *  - les verbes de la partie et la forme de leurs arguments, lus du type du noyau par le vérificateur
@@ -23,14 +23,14 @@ import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { verbesDeLaPartie } from './lib/verbesDeLaPartie.mjs'
 import { parametresEcrits } from '../../src/hote/formes.ts'
-import { DOSSIER_DES_PARTIES, GESTES_PAR_APPEL, INSTRUCTIONS, outils } from '../../src/hoteTexte/outils.ts'
+import { DOSSIER_DES_PARTIES, GESTES_PAR_APPEL, INSTRUCTIONS, outils } from '../../hotes/texte/outils.ts'
 import { z } from 'zod'
 
 const OUTIL = 'build-hote-texte'
 const OUT = 'docs/hote-texte.md'
-const OUTILS = 'src/hoteTexte/outils.ts'
+const OUTILS = 'hotes/texte/outils.ts'
 const CADENCE = 'src/engine/cadence.ts'
-const VUE = 'src/hoteTexte/vue.ts'
+const VUE = 'hotes/texte/vue.ts'
 const PROJECTION = 'src/hote/projection.ts'
 const COMMUN = 'src/hote/partie.ts'
 const HORLOGE = 'src/noyau/horlogeVirtuelle.ts'
@@ -162,8 +162,8 @@ function rendu() {
   let out = `# Hôte texte : le noyau joué par MCP, sans navigateur\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-hote-texte.mjs\` (\`npm run docs:hote-texte\`) — NE PAS ÉDITER À LA MAIN.\n`
   out += `> Sources : \`INSTRUCTIONS\` et \`outils\` (\`${OUTILS}\`), \`BORNES\` (\`${VUE}\`), \`CategorieDErreur\` (\`${COMMUN}\`) et \`PLAFOND_DE_REPRISES\` (\`${HORLOGE}\`).\n\n`
-  out += `L'hôte texte (#2898, « Hôte texte du noyau : une partie pilotable sans interface graphique, pour la recette par agent ») joue une partie du noyau sans store, sans écran et sans navigateur, servie par un serveur MCP sur stdio : un agent y déroule un scénario de test, et la même partie se rejoue sous CI. Il n'importe que la surface du noyau (\`src/noyau/index.ts\`), les scénarios de test (\`src/scenes/\`), le module commun des hôtes (\`src/hote/\` : contrôle des arguments, scénario par id, jetons, projection) et les feuilles : la ligne \`hoteTexte\` de la table \`COUCHES\` (\`scripts/guards/lib/couches.mjs\`) le tient, sa porte vers le noyau comprise : une zone qui survit à la bascule (\`survit\`), qui n'ouvre que des zones qui survivent et ne charge aucun paquet de l'hôte web. Il dérive du noyau tout ce qu'il nomme : les verbes et leurs arguments (\`ActionsDuNoyau\`), les fenêtres et leurs verbes (\`fenetreDuJeu\`) ; un verbe neuf du noyau se joue sans toucher à l'hôte, et la garde \`src/hote/derive-du-noyau.hors-store.test.ts\` refuse un verbe ou une fenêtre nommé en dur dans le code des hôtes.\n\n`
-  out += `**Périmètre mesuré / angles morts** — ce doc lit les outils (importés de \`${OUTILS}\`) et, par l'AST TypeScript, les constantes de l'hôte (bornes, catégories d'erreur, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`src/hoteTexte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite dans ce générateur), NI les budgets de temps, qui sont des mesures datées.\n\n`
+  out += `L'hôte texte (#2898, « Hôte texte du noyau : une partie pilotable sans interface graphique, pour la recette par agent ») joue une partie du noyau sans store, sans écran et sans navigateur, servie par un serveur MCP sur stdio : un agent y déroule un scénario de test, et la même partie se rejoue sous CI. Il n'importe que la surface du noyau (\`src/noyau/index.ts\`), les scénarios de test (\`src/scenes/\`), le module commun des hôtes (\`src/hote/\` : contrôle des arguments, scénario par id, jetons, projection) et les feuilles : la ligne \`texte\` de la table \`COUCHES\` (\`scripts/guards/lib/couches.mjs\`) le tient, sa porte vers le noyau comprise : une zone qui survit à la bascule (\`survit\`), qui n'ouvre que des zones qui survivent et ne charge aucun paquet de l'hôte web. Il dérive du noyau tout ce qu'il nomme : les verbes et leurs arguments (\`ActionsDuNoyau\`), les fenêtres et leurs verbes (\`fenetreDuJeu\`) ; un verbe neuf du noyau se joue sans toucher à l'hôte, et la garde \`src/hote/derive-du-noyau.hors-store.test.ts\` refuse un verbe ou une fenêtre nommé en dur dans le code des hôtes.\n\n`
+  out += `**Périmètre mesuré / angles morts** — ce doc lit les outils (importés de \`${OUTILS}\`) et, par l'AST TypeScript, les constantes de l'hôte (bornes, catégories d'erreur, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`hotes/texte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite dans ce générateur), NI les budgets de temps, qui sont des mesures datées.\n\n`
 
   out += `## Brancher le serveur\n\n\`.mcp.json\` déclare le serveur \`hote-texte\` (\`node scripts/hote-texte.mjs\`) aux sessions ouvertes dans le dépôt ; ses outils s'y appellent \`mcp__hote-texte__nouvelle\`, \`mcp__hote-texte__lire\` et \`mcp__hote-texte__jouer\`. Hors d'une session du dépôt : \`claude -p --mcp-config .mcp.json\`. Le serveur se charge une fois par session ; chaque appel joue ensuite sur la partie en mémoire.\n\n`
   out += `Les instructions que le serveur donne à l'ouverture :\n\n${INSTRUCTIONS.split('\n').map((l) => `> ${l}`).join('\n>\n')}\n\n`
@@ -182,7 +182,7 @@ function rendu() {
   out += '```json\n'
   out += `{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}\n`
   out += '```\n\n'
-  out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué, un verbe \`{"type":"<verbe>","args":[…],"siege":0}\`. Un geste refusé ne s'écrit pas. Le rejeu contrôle chaque ligne comme \`jouer\` (\`gesteDuVerbe\`) : une écriture du noyau (\`MachinerieDuNoyau\`, \`lancerLaScene\` par exemple) n'est pas un verbe, et la ligne qui la nomme ne se rejoue plus. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue, et le serveur rejoue un fichier changé hors de lui. Un serveur tient la partie qu'il a ouverte (\`<nom>.verrou\`, son pid et sa naissance) : un second serveur se la voit refuser tant que le premier vit. Exemple committé, rejoué sous CI : \`src/hoteTexte/combat-dome.jsonl\`. Les ids du monde viennent d'un compteur porté par l'état de la partie (\`forgerUnId\`, \`src/noyau/idsDuMonde.ts\`) : deux rejeux d'un fichier fabriquent les mêmes ids.\n\n`
+  out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué, un verbe \`{"type":"<verbe>","args":[…],"siege":0}\`. Un geste refusé ne s'écrit pas. Le rejeu contrôle chaque ligne comme \`jouer\` (\`gesteDuVerbe\`) : une écriture du noyau (\`MachinerieDuNoyau\`, \`lancerLaScene\` par exemple) n'est pas un verbe, et la ligne qui la nomme ne se rejoue plus. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue, et le serveur rejoue un fichier changé hors de lui. Un serveur tient la partie qu'il a ouverte (\`<nom>.verrou\`, son pid et sa naissance) : un second serveur se la voit refuser tant que le premier vit. Exemple committé, rejoué sous CI : \`hotes/texte/combat-dome.jsonl\`. Les ids du monde viennent d'un compteur porté par l'état de la partie (\`forgerUnId\`, \`src/noyau/idsDuMonde.ts\`) : deux rejeux d'un fichier fabriquent les mêmes ids.\n\n`
 
   out += `## Les jetons\n\nLe noyau programme ses beats différés (tours de l'IA, tick de la cadence auto) par la plateforme de la partie. Après chaque geste, l'hôte reprend tous les jetons programmés, par échéance puis par ordre d'arrivée, sur l'horloge virtuelle du noyau (\`horlogeVirtuelle\`, \`${HORLOGE}\`), numérotés dans l'ordre d'arrivée par \`tenueDesJetons\` (\`${COMMUN}\`), jusqu'à ce qu'il n'en reste aucun ; ceux du lancement sont repris avant la première ligne. Une réponse dit combien de jetons ont été repris. Au-delà de ${milliers(plafond)} reprises après un même geste, l'hôte lève : la partie boucle.\n\n`
 
@@ -214,7 +214,7 @@ function rendu() {
   for (const [mesure, budget] of BUDGETS_DE_TEMPS) out += `| ${mesure} | ${budget} |\n`
   out += `\nLa recette et la CI jouent un scénario bref.\n\n`
 
-  out += `## Le chargement\n\n\`scripts/hote-texte.mjs\` charge, dans un seul graphe de modules, le gel du catalogue (\`src/data/overrides.ts\`) puis l'hôte (\`src/hoteTexte/serveur.ts\`), par \`runnerImport\` de Vite avec le greffon \`proseSource()\` : la même porte que la suite Vitest (\`vitest.config.ts\`), où \`import.meta.env.DEV\` est vrai. Il inscrit les outils de \`${OUTILS}\` auprès du serveur MCP du SDK (\`@modelcontextprotocol/sdk\`), qui valide leurs entrées, et garde stdout au protocole : toute écriture de console part sur stderr. Une partie ouverte à la fois par serveur : les singletons de module du noyau (branchement, intention locale, règles) n'admettent pas deux parties dans un même contexte JS ; la partie précédente se ferme avant la suivante.\n`
+  out += `## Le chargement\n\n\`scripts/hote-texte.mjs\` charge, dans un seul graphe de modules, le gel du catalogue (\`src/data/overrides.ts\`) puis l'hôte (\`hotes/texte/serveur.ts\`), par \`runnerImport\` de Vite avec le greffon \`proseSource()\` : la même porte que la suite Vitest (\`vitest.config.ts\`), où \`import.meta.env.DEV\` est vrai. Il inscrit les outils de \`${OUTILS}\` auprès du serveur MCP du SDK (\`@modelcontextprotocol/sdk\`), qui valide leurs entrées, et garde stdout au protocole : toute écriture de console part sur stderr. Une partie ouverte à la fois par serveur : les singletons de module du noyau (branchement, intention locale, règles) n'admettent pas deux parties dans un même contexte JS ; la partie précédente se ferme avant la suivante.\n`
 
   return {
     out,

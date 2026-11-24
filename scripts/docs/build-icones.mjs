@@ -19,7 +19,7 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
 import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
-import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
+import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
 import { REGISTRIES } from './lib/cibles-registres.mjs'
 
 const OUTIL = 'build-icones'
@@ -183,11 +183,11 @@ function rendu(entree) {
     }
   }
 
-  const RACINE_SCAN = RACINES_DES_ZONES.join('/`, `')
+  const RACINE_SCAN = RACINES_PRESENTES.join('/`, `')
   /** Les extensions de données déclarées dans le corpus de scripts, pour le motif affiché au § 7. */
   const extensionsDonnees = capture(
     NO_EMOJI,
-    /readCorpus\(RACINES_DES_ZONES,\s*\{\s*exts:\s*\[\s*\.\.\.EXTENSIONS_DE_SCRIPT,\s*((?:'\.[a-z]+',?\s*)+)\]/,
+    /readCorpus\(RACINES_PRESENTES,\s*\{\s*exts:\s*\[\s*\.\.\.EXTENSIONS_DE_SCRIPT,\s*((?:'\.[a-z]+',?\s*)+)\]/,
     'la composition des extensions de `readCorpus`',
     'src/no-emoji-affordance.test.ts',
   ).match(/\.[a-z]+/g)

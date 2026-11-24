@@ -7,7 +7,7 @@
  * Trois formes, toutes de la grammaire :
  *  - `refOuSpec(type, undefined, 'specOuChoixFacultatifs')` — `{ id }` (aucune spécialisation visée), `{ id, spec }` (spécialisation
  *    précisée), `{ id, choix: true }` (choix libre dans le pool), `{ id, choix: [ids] }` (choix
- *    borné) ;
+ *    borné), `{ id, choix: 'toutes' }` (chaque spécialisation du pool, CRB 018 l.107) ;
  *  - `pick(type, [tirage])` — « n parmi » (`{ pick, of: [...] }`), dont une branche peut être un
  *    tirage ;
  *  - `tirageSurTable(ref(…))` — `{ pick, table }`, pour les Talents d'espèce.

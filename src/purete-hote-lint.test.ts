@@ -75,7 +75,7 @@ describe('mur sans hôte — le moteur et le noyau tournent sans hôte (#2817)',
     }
   }
 
-  for (const fichier of ['src/hote/__sonde-purete.ts', 'src/hoteTexte/__sonde-purete.ts']) {
+  for (const fichier of ['src/hote/__sonde-purete.ts', 'hotes/texte/__sonde-purete.ts']) {
     for (const [nom, code] of TIRAGES) {
       it(`${fichier} : \`${nom}\` est refusé hors du site d’entropie`, async () => {
         expect(await pris(code, fichier)).toBeGreaterThan(0);

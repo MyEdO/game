@@ -1,5 +1,6 @@
 // MURS DE COUCHE (#2882, #1709 ; AGENTS.md règle 3), jugés sur la table `COUCHES` (`couches.mjs`).
-//  - `murs/zone` : un fichier de `src/` vit dans une zone de la table ; créer `src/foo/` demande sa ligne.
+//  - `murs/zone` : un fichier des racines des zones (`RACINES_DES_ZONES`) vit dans une zone de la table ; créer
+//    `src/foo/`, `hotes/foo/` ou `projets/foo/` demande sa ligne.
 //  - `murs/purete-imports` : un arc d'import (`arcsDImport.mjs`, toutes ses formes, motifs
 //    d'`import.meta.glob` compris) d'une zone vers une autre n'existe que si la table l'ouvre ; un arc
 //    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte

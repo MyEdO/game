@@ -1880,6 +1880,16 @@
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "conseiller"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -1918,6 +1928,14 @@
     "class": {
       "id": "citadins"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "agitateur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -1954,6 +1972,15 @@
     "label": "Apothicaire (5e)",
     "class": {
       "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "apothicaire"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -1993,6 +2020,16 @@
     "class": {
       "id": "citadins"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "artisan"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2029,6 +2066,16 @@
     "label": "Artiste (5e)",
     "class": {
       "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "artiste"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2071,6 +2118,14 @@
       "bailli",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "bailli"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2108,6 +2163,14 @@
     "labelF": "Mendiante (5e)",
     "class": {
       "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mendiant"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2155,6 +2218,15 @@
     "class": {
       "id": "riverains"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "batelier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2192,6 +2264,16 @@
     "labelF": "Chasseuse de primes (5e)",
     "class": {
       "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chasseur-de-primes"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2234,6 +2316,14 @@
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "cavalier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2271,6 +2361,14 @@
     "labelF": "Charlatane (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "charlatan"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2310,6 +2408,14 @@
     "class": {
       "id": "itinerants"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "cocher"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2346,6 +2452,14 @@
     "label": "Duelliste (5e)",
     "class": {
       "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "duelliste"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2384,6 +2498,14 @@
     "labelF": "Ingénieure (5e)",
     "class": {
       "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ingenieur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2429,6 +2551,16 @@
     "label": "Saltimbanque (5e)",
     "class": {
       "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "saltimbanque"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2478,6 +2610,16 @@
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "emissaire"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2515,6 +2657,15 @@
     "labelF": "Receleuse (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "receleur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2561,6 +2712,9 @@
     "races": [
       "humain"
     ],
+    "aLaPlaceDe": {
+      "id": "flagellant"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2598,6 +2752,13 @@
     "labelF": "Pilleuse de tombes (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pilleur-de-tombes"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2640,6 +2801,16 @@
       "garde",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "garde"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2681,6 +2852,12 @@
     "grantGroups": [
       "sorcieres"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier-de-village"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2717,6 +2894,16 @@
     "label": "Herboriste (5e)",
     "class": {
       "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "herboriste"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2756,6 +2943,16 @@
     "class": {
       "id": "ruraux"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chasseur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2794,6 +2991,15 @@
     "class": {
       "id": "citadins"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "enqueteur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2831,6 +3037,14 @@
     "labelF": "Entremetteuse (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "entremetteur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2874,6 +3088,14 @@
       "chevalier",
       "figures-symboles-de-guerre"
     ],
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chevalier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2915,6 +3137,15 @@
       "juriste",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "juriste"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -2952,6 +3183,15 @@
     "labelF": "Marchande (5e)",
     "class": {
       "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "marchand"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -2991,6 +3231,16 @@
     "class": {
       "id": "itinerants"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "messager"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3029,6 +3279,14 @@
     "class": {
       "id": "ruraux"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mineur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3065,6 +3323,14 @@
     "label": "Mystique (5e)",
     "class": {
       "id": "ruraux"
+    },
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mystique"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3107,6 +3373,16 @@
       "noble",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "noble"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3151,6 +3427,9 @@
     "races": [
       "humain"
     ],
+    "aLaPlaceDe": {
+      "id": "nonne"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3191,6 +3470,16 @@
     "grantGroups": [
       "hors-la-loi"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "hors-la-loi"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3229,6 +3518,14 @@
     "class": {
       "id": "itinerants"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "colporteur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3265,6 +3562,15 @@
     "label": "Médecin (5e)",
     "class": {
       "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "medecin"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3304,6 +3610,15 @@
     "class": {
       "id": "riverains"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "nautonier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3341,6 +3656,16 @@
     "labelF": "Gladiatrice (5e)",
     "class": {
       "id": "guerriers"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "gladiateur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3387,6 +3712,9 @@
     "races": [
       "humain"
     ],
+    "aLaPlaceDe": {
+      "id": "pretre"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3425,6 +3753,15 @@
     "class": {
       "id": "guerriers"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "spadassin"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3462,6 +3799,14 @@
     "labelF": "Rançonneuse (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ranconneur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3502,6 +3847,14 @@
     "labelF": "Ratière (5e)",
     "class": {
       "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ratier"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3545,6 +3898,14 @@
       "patrouilleurs-fluviaux",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "patrouilleur-fluvial"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3581,6 +3942,14 @@
     "label": "Femme du fleuve (5e)",
     "class": {
       "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "femme-du-fleuve"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3624,6 +3993,13 @@
       "patrouilleurs-routiers",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "patrouilleur-routier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3660,6 +4036,15 @@
     "label": "Marin (5e)",
     "class": {
       "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "marin"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3699,6 +4084,16 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "erudit"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3736,6 +4131,16 @@
     "labelF": "Éclaireuse (5e)",
     "class": {
       "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "eclaireur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3775,6 +4180,14 @@
     "class": {
       "id": "courtisans"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "serviteur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3813,6 +4226,12 @@
     "class": {
       "id": "guerriers"
     },
+    "races": [
+      "nain"
+    ],
+    "aLaPlaceDe": {
+      "id": "tueur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3850,6 +4269,15 @@
     "labelF": "Contrebandière (5e)",
     "class": {
       "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "contrebandier"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3893,6 +4321,16 @@
       "soldat",
       "figures-symboles-de-guerre"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "soldat"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -3930,6 +4368,16 @@
     "labelF": "Espionne (5e)",
     "class": {
       "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "espion"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -3969,6 +4417,14 @@
     "class": {
       "id": "riverains"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "debardeur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4006,6 +4462,15 @@
     "labelF": "Voleuse (5e)",
     "class": {
       "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "voleur"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -4045,6 +4510,15 @@
     "class": {
       "id": "citadins"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "bourgeois"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4082,6 +4556,14 @@
     "labelF": "Villageoise (5e)",
     "class": {
       "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "villageois"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -4124,6 +4606,16 @@
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "intendant"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4166,6 +4658,12 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pretre-guerrier"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4208,6 +4706,15 @@
       "miliciens",
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "milicien"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4250,6 +4757,12 @@
       "sorcieres",
       "sorciers-dissidents"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier-dissident"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4291,6 +4804,12 @@
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "repurgateur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },
@@ -4328,6 +4847,14 @@
     "labelF": "Sorcière (5e)",
     "class": {
       "id": "lettres"
+    },
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
     },
     "gatedByRule": {
       "id": "carrieres-crb"
@@ -4370,6 +4897,15 @@
     "grantGroups": [
       "naufrageurs"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "naufrageur"
+    },
     "gatedByRule": {
       "id": "carrieres-crb"
     },

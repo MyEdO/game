@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { signature } from '../hote/formes';
-import { VERBES } from '../hote/verbes.generated';
-import { DEFAULT_VOYAGE_ORDERS } from '../noyau/index';
+import { signature } from '../../src/hote/formes';
+import { VERBES } from '../../src/hote/verbes.generated';
+import { DEFAULT_VOYAGE_ORDERS } from '../../src/noyau/index';
 import { fermerLaTable, table } from './hote.testkit';
 import { lireLeFichier, rejouer } from './partieTexte';
 import type { EntreesDeJouer } from './serveur';

@@ -60,6 +60,8 @@ export interface SlotOption {
   wildcard: boolean;
   /** Joker RESTREINT : specs autorisées (« Fléau ou À deux mains »). */
   specOptions?: string[];
+  /** Joker qui couvre CHAQUE spécialisation de son pool sans désignation (`choix: 'toutes'`). CRB 018 l.107 */
+  toutes?: true;
 }
 
 export interface CareerSlot {
@@ -71,7 +73,7 @@ export interface CareerSlot {
   /** Libellé brut de l'entrée de carrière. */
   entry: string;
   options: SlotOption[];
-  /** Le slot exige une désignation (joker, joker restreint, ou « A ou B »). */
+  /** Le slot exige une désignation (joker, joker restreint, ou « A ou B ») ; un joker « (Toutes) » n'en exige pas. */
   needsChoice: boolean;
 }
 
@@ -113,7 +115,7 @@ export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOpt
   if ('id' in a) {
     const label = refLabel(category, { id: a.id });
     if (a.choix == null) return [{ label, optionId: a.id, ...(a.spec ? { spec: a.spec } : {}), wildcard: false }];
-    return [{ label, optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }];
+    return [{ label, optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}), ...(a.choix === 'toutes' ? { toutes: true as const } : {}) }];
   }
   if ('of' in a) return a.of.flatMap((x) => slotOptionsFromRef(category, x));
   return [{ label: advancementLabel(category, a), wildcard: false }]; // tirage aléatoire (« N Talent aléatoire »)
@@ -128,7 +130,7 @@ function slotsOfLevel(level: EmplacementsDuNiveau, kind: 'skill' | 'talent'): Ca
   return refs.map((ref, i) => {
     const options = slotOptionsFromRef(cat, ref); // DIRECT depuis la structure (zéro re-parse)
     const entry = advancementLabel(cat, ref); // libellé d'AFFICHAGE seulement (formateur)
-    const needsChoice = options.length > 1 || options.some((o) => o.wildcard);
+    const needsChoice = options.length > 1 || options.some((o) => o.wildcard && !o.toutes);
     return { key: `${positionDeSlot(level.level, kind, i)}:${resumeDesOptions(options)}`, level: level.level, kind, entry, options, needsChoice };
   });
 }

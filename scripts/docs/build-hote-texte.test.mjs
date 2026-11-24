@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { rendre } from './build-hote-texte.mjs'
 import { verbesDeLaPartie } from './lib/verbesDeLaPartie.mjs'
-import { INSTRUCTIONS, outils } from '../../src/hoteTexte/outils.ts'
+import { INSTRUCTIONS, outils } from '../../hotes/texte/outils.ts'
 
 const texte = rendre().get('docs/hote-texte.md')
 const source = (rel) => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8')
@@ -19,7 +19,7 @@ test('#2898 le doc de l’hôte texte vient du code : chaque outil y a sa sectio
 })
 
 test('#2898 les bornes du doc sont celles de `BORNES`, et chaque catégorie d’erreur y a son cas', () => {
-  const lignes = /lignes: \{ ([^}]+) \}/.exec(source('src/hoteTexte/vue.ts'))[1]
+  const lignes = /lignes: \{ ([^}]+) \}/.exec(source('hotes/texte/vue.ts'))[1]
   for (const [, commande, n] of lignes.matchAll(/(\w+): (\d+)/g)) assert.match(texte, new RegExp(`\\| \`${commande}\` \\| ${n} \\|`), `borne absente : ${commande}`)
   for (const categorie of ['validation', 'permission', 'regle']) assert.match(texte, new RegExp(`\\| \`${categorie}\` \\| `), `catégorie absente : ${categorie}`)
 })

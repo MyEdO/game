@@ -29,7 +29,7 @@ const appeler = async (client: Client, name: string, args: Record<string, unknow
 
 beforeAll(() => {
   dossier = mkdtempSync(join(tmpdir(), 'hote-texte-'));
-  copyFileSync(join(RACINE, 'src/hoteTexte/combat-dome.jsonl'), join(dossier, 'combat.jsonl'));
+  copyFileSync(join(RACINE, 'hotes/texte/combat-dome.jsonl'), join(dossier, 'combat.jsonl'));
 });
 afterAll(() => rmSync(dossier, { recursive: true, force: true }));
 

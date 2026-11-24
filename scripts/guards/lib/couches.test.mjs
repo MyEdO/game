@@ -44,12 +44,12 @@ test('ORACLE : `couvre` lit une clé finie par `/` comme un dossier, sinon comme
 
 test('ORACLE : `paquetFerme` ouvre `three` sous le dossier de l’évaluateur seul', () => {
   const cas = [
-    ['hotes', 'three', `${EVALUATEUR}chargement.ts`, false],
-    ['hotes', 'react', `${EVALUATEUR}chargement.ts`, true],
-    ['hotes', 'three', 'hotes/godot/asset/glb.ts', true],
-    ['hotes', 'three', 'hotes/godot/asset/evaluateur.ts', true],
-    ['hotes', 'three', 'hotes/godot/construire.mjs', true],
-    ['hotes', 'three', undefined, true],
+    ['godot', 'three', `${EVALUATEUR}chargement.ts`, false],
+    ['godot', 'react', `${EVALUATEUR}chargement.ts`, true],
+    ['godot', 'three', 'hotes/godot/asset/glb.ts', true],
+    ['godot', 'three', 'hotes/godot/asset/evaluateur.ts', true],
+    ['godot', 'three', 'hotes/godot/construire.mjs', true],
+    ['godot', 'three', undefined, true],
     ['noyau', 'three', `${EVALUATEUR}chargement.ts`, true],
   ]
   assert.deepEqual(cas.map(([de, p, imp]) => paquetFerme(de, p, imp)), cas.map(([, , , v]) => v))
@@ -57,12 +57,12 @@ test('ORACLE : `paquetFerme` ouvre `three` sous le dossier de l’évaluateur se
 
 test('ORACLE : `outillageAtteint` nomme l’outillage qu’un module de la zone hors de lui importe, `null` sinon', () => {
   const cas = [
-    ['hotes', 'hotes/godot/asset/importer.ts', `${EVALUATEUR}evaluer`, EVALUATEUR],
-    ['hotes', 'hotes/godot/asset/evaluateur.ts', `${EVALUATEUR}gardes/poids.ts`, EVALUATEUR],
-    ['hotes', `${EVALUATEUR}evaluer.ts`, `${EVALUATEUR}gardes/poids`, null],
-    ['hotes', `${EVALUATEUR}gardes/poids.ts`, `${EVALUATEUR}ecart`, null],
-    ['hotes', `${EVALUATEUR}evaluer.ts`, 'hotes/godot/asset/glb', null],
-    ['hotes', 'hotes/godot/asset/importer.ts', 'hotes/godot/asset/glb', null],
+    ['godot', 'hotes/godot/asset/importer.ts', `${EVALUATEUR}evaluer`, EVALUATEUR],
+    ['godot', 'hotes/godot/asset/evaluateur.ts', `${EVALUATEUR}gardes/poids.ts`, EVALUATEUR],
+    ['godot', `${EVALUATEUR}evaluer.ts`, `${EVALUATEUR}gardes/poids`, null],
+    ['godot', `${EVALUATEUR}gardes/poids.ts`, `${EVALUATEUR}ecart`, null],
+    ['godot', `${EVALUATEUR}evaluer.ts`, 'hotes/godot/asset/glb', null],
+    ['godot', 'hotes/godot/asset/importer.ts', 'hotes/godot/asset/glb', null],
     ['noyau', 'hotes/godot/asset/importer.ts', `${EVALUATEUR}evaluer`, null],
   ]
   assert.deepEqual(cas.map(([de, imp, cible]) => outillageAtteint(de, imp, cible)), cas.map(([, , , v]) => v))
