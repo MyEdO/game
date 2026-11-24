@@ -13,7 +13,8 @@
 //    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
 //    `horsZoneOuvert`). Elle juge tout fichier d'une zone qui n'est ni suite ni banc (`estFichierVitest`).
 //  - `murs/tests-survivants` (#3058) : une suite ou un banc (`estFichierVitest`) d'une zone qui survit n'a aucun arc,
-//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeParLaSurvie`), ne charge aucun
+//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeParLaSurvie`) ni vers le projet
+//    d'une autre zone (`fermeParLeProjet`, #4903 H3), ne charge aucun
 //    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`), et ne
 //    charge rien que la lecture des arcs ne suive (`surCalcule` de `visiteurDArcs`) : spécificateur ou motif calculé,
 //    chargeur renommé, lié comme valeur ou lu par un accès calculé. Une cible hors des zones s'ouvre : sa clôture est
@@ -43,6 +44,7 @@ import {
   dossierDe,
   estZone,
   fermeParLaSurvie,
+  fermeParLeProjet,
   fermeture,
   horsZoneOuvert,
   outillageAtteint,
@@ -188,6 +190,10 @@ const testsSurvivants = {
       surPaquet: (node, paquet) => { if (paquetFerme(de, paquet, importeurRel)) rapporter(node, msgPaquet(de, paquet)); },
       surCible: (node, cibleRel) => {
         const vers = zoneDe(cibleRel);
+        if (fermeParLeProjet(de, vers)) {
+          rapporter(node, `Projet fermé (#2882, #4903 H3) : une suite ou un banc de ${nommer(de)} n’importe rien de ${nommer(vers)}, projet que ${TABLE} ferme à toute autre zone (\`fermeParLeProjet\`), ni à l’EXÉCUTION ni pour un TYPE : jouer la forme commune hors du projet, ou poser la suite dans le projet.`);
+          return;
+        }
         if (!fermeParLaSurvie(de, vers)) return;
         rapporter(node, `Zone fermée (#2882) : une suite ou un banc de ${nommer(de)}, qui survit à la bascule, n’importe rien de ${nommer(vers)}, qui n’y survit pas, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} (\`survit\`, \`fermeParLaSurvie\`) : jouer la règle par une zone qui survit, ou poser le test de l’hôte web dans sa zone.`);
       },

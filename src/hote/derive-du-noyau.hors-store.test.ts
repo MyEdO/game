@@ -1,8 +1,8 @@
 /**
  * LES HÔTES DÉRIVENT DU NOYAU (#2898 lot D, #2928). laurent, 2026-10-21 13:06Z : « Ce qui est vital pour moi c est que si
  * je modifie le moteur, je n ai pas à toucher ni au mcp, ni à l hôte, sauf si je dois inventer des nouveaux tools ». Garde
- * de classe : aucun id d'une chaîne (`idsDe`, `nommes` : un verbe à toute place, une fenêtre après le `@` d'un id de geste) du code d'un hôte du noyau (le dossier de chaque zone de `HOTES_DU_NOYAU`,
- * `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
+ * de classe : aucun id d'une chaîne (`idsDe`, `nommes` : un verbe à toute place, une fenêtre après le `@` d'un id de geste) du code d'un hôte du noyau (le dossier de chaque zone de `HOTES_DU_NOYAU`, bâtie sur les droits d'un hôte ou d'un
+ * projet, `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
  * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau, le verbe d'une
  * offre compris (`OffreEnVue.geste`). Et aucun script GDScript ne calcule une règle
  * (`calculsDeRegle`, #2928) : il lit la vue ; l'arithmétique de la mise

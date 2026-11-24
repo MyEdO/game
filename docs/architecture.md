@@ -117,7 +117,14 @@ déclare les seules zones du dépôt.
 | `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles |
 | `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles |
 | `texte` (`hotes/texte/`), `godot` (`hotes/godot/`) | affichages : hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` |
-| racine de `src/` | tests transverses et leur préparation | toutes les zones |
+| `roguelite` (`projets/roguelite/`) | projet : le roguelite | les droits d'un projet (`DROITS_D_UN_PROJET` : ceux des affichages, sans `scenes`), plus ses ouvertures : `engine` (#4932), `data` et `scenes` (#4933), le `noyau` hors de sa porte (#4931) |
+| racine de `src/` | tests transverses et leur préparation | toutes les zones, hors des projets |
+
+- **Un projet est fermé** (#4903 H3) : aucune autre zone ne l'importe, ni en exécution ni en type, ni par
+  `importe: '*'`, ni en production (`fermeture`, `ouvertes`) ni dans une suite (`murs/tests-survivants`), par la
+  nature de la zone (`fermeParLeProjet` : son dossier est sous `projets/`). Sa ligne se construit
+  (`ligneDeProjet`) : les droits d'un projet, plus ses `ouvertures`, chacune nommée par son ticket ; ouvrir une
+  zone l'importe et retire sa porte. Le banc refuse une ligne qui nomme un autre projet et une ouverture morte.
 
 - **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
   bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), le héros
@@ -183,8 +190,8 @@ du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc
 les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre
 porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour témoin `src/racines-des-zones-json-guard.test.ts`.
 
-Hôtes du noyau (#2898, #2928) : une zone qui ne lit le noyau que par sa porte `src/noyau/index.ts`
-(`HOTES_DU_NOYAU`). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
+Hôtes du noyau (#2898, #2928, #4903 H3) : une zone bâtie sur les droits d'un hôte ou d'un projet, dont la ligne
+importe chaque zone des droits d'un projet (`HOTES_DU_NOYAU`) ; un hôte lit le noyau par sa porte `src/noyau/index.ts`. Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
 feuilles ; un affichage (`texte`, `godot`) a ces mêmes droits plus `hote`, lus d'une seule constante de
 `COUCHES` (`DROITS_DES_HOTES`). Les affichages vivent sous `hotes/` (#4903), un dossier et une zone chacun :
 leur règle est leur ligne de la table, rien d'autre, et aucun n'importe un autre affichage. Un projet (un jeu ou un
