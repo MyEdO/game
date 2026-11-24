@@ -99,7 +99,7 @@ import type { RecapTone } from './recapLine';
 import type { VainqueurDeTaverne } from '../engine/tavernGame';
 import type { SellRelation } from '../engine/seaVoyage';
 import type { VoyageCadence } from './voyageCadence';
-import type { CharMode } from './creation/brouillon';
+import type { CharMode } from './creation/procedure';
 import type { HealMode } from '../engine/healing';
 import type { bankWithdrawOutcome, EntrainementOption, GenreDeDepot, statusIncome } from '../engine/activities';
 import type { CargoRaidOutcome } from '../engine/cargo';
@@ -136,7 +136,7 @@ import type { phaseDeChute } from './fallMove';
 import type { Tool } from './sceneEditLecture';
 import type { ActionDArchitecture, OutilDeLEditeur } from './edition/session';
 import type { ContexteDuPointeur } from './edition/pointeur';
-import type { advanceCost } from '../engine/advancement';
+import type { CibleDAugmentation } from '../engine/advancement';
 import type { SequenceAbandon, SequenceBoard, SequenceCloseCtx, SequenceDef, SequenceRoundActors, SequenceState, SequenceVerdict } from './sequenceContract';
 import type { sequenceCumulsDeLaManche } from './sequenceCore';
 
@@ -188,7 +188,7 @@ export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}
  *  `partieLue`, scripts/docs/lib/verbesDeLaPartie.mjs) : les actions du lexique, et les mots que ses domaines nomment
  *  (#3614), et ceux des littéraux du noyau, du moteur, des ids de raccourci et des clés `codex.op.*` (#3924, #3928, #3938). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | ActionDeJet
-  | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
+  | '4e' | '5e' | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
   | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
@@ -351,7 +351,7 @@ const verrousDuLexique: [
   Verrou<Mots<NonNullable<SkillData['combatSubstitute']>['role'] | NonNullable<SkillData['combatSubstitute']>['gate']>, MotDuLexique>, // #3977
   Verrou<Mots<PendingDisengage['phase'] | PendingAuContact['phase'] | PendingGrapple['phase'] | ReturnType<typeof phaseDeChute>>, MotDuLexique>, // #3977
   Verrou<Mots<Tool['mode'] | OutilDeLEditeur['mode'] | ActionDArchitecture | NonNullable<ContexteDuPointeur['architecture']>['action']>, MotDuLexique>, // #3977
-  Verrou<Mots<EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
+  Verrou<Mots<EntrainementOption['kind'] | CibleDAugmentation['kind']>, MotDuLexique>, // #3977
   Verrou<Mots<keyof SequenceState | Exclude<ClesDeLUnion<SequenceVerdict<unknown>>, 'log'> | SequenceVerdict<unknown>['suite'] | keyof SequenceRoundActors
     | Exclude<keyof SequenceCloseCtx<unknown>, 'get' | 'seq' | 'rng'> | keyof SequenceDef | Exclude<keyof SequenceBoard, 'title' | 'unit'> | Exclude<keyof SequenceAbandon, 'label' | 'title'>
     | keyof ReturnType<typeof sequenceCumulsDeLaManche>>, MotDuLexique>, // #3977

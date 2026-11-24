@@ -38,28 +38,39 @@ import {
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
-import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from './depenseDePx';
+import {
+  mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDeCompetenceHorsCarriere,
+} from './depenseDePx';
 import {
   buyCharAdvance as engineBuyCharAdvance,
   buySkillAdvance as engineBuySkillAdvance,
   buyTalent as engineBuyTalent,
   changeCareer as engineChangeCareer,
-  isCareerLevelComplete,
+  niveauValide,
   inCareerChar,
-  advanceCost,
-  talentCost,
+  coutDeLAugmentation,
+  coutDuTalent,
+  talentSlotsAchetables,
+  type Chiffrage,
 } from '../engine/advancement';
+import { cocherUnAchat } from '../engine/casesDeCarriere';
 import {
   skillSlots,
-  talentSlots,
   availableChars,
   designationsFor,
   freeSlotFor,
   designateSlot,
-  talentAcquisitions,
   acquerirTalent,
 } from '../engine/careerSlots';
-import { applyTalentAcquisition, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
+import {
+  applyTalentAcquisition,
+  competenceEnCarriere,
+  talentEnCarriere,
+  determinationDe,
+  maximaDesReserves,
+  poserLaDetermination,
+  reporterLaHausseDesMaxima,
+} from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
 import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
@@ -101,7 +112,7 @@ import { garanti } from '../lib/garanti';
 import { nomDe } from '../engine/nom';
 import type { SansMarqueNonAffichable } from '../i18n/playerText';
 
-/** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
+/** Contexte carrière d'un héros : niveaux, emplacements achetables, désignations. LDB 07 ; CRB 045 l.58 */
 function careerCtx(hero: Combatant) {
   const career = hero.career ?? '';
   const level = hero.careerLevel ?? 1;
@@ -111,7 +122,7 @@ function careerCtx(hero: Combatant) {
     level,
     levels,
     sSlots: skillSlots(levels, level), // Compétences : cumul niveaux ≤ courant (l.76)
-    tSlots: talentSlots(levels, level), // Talents : niveau courant seul (l.103)
+    tSlots: talentSlotsAchetables(hero, levels, level),
     careerChars: availableChars(levels, level), // Caractéristiques : cumul (l.43)
     designations: designationsFor(hero, career),
   };
@@ -127,7 +138,7 @@ export function creneauxDuHeros(hero: Combatant): string[] {
 function isCompleted(hero: Combatant): boolean {
   const ctx = careerCtx(hero);
   if (!ctx.levels.some((l) => l.level === ctx.level)) return false;
-  return isCareerLevelComplete(hero, ctx.level, {
+  return niveauValide(hero, ctx.level, {
     skillSlots: ctx.sSlots,
     talentSlots: ctx.tSlots,
     careerChars: ctx.careerChars,
@@ -396,17 +407,22 @@ export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Comb
   return true;
 }
 
+/** Refus d'une Augmentation que son chiffrage ferme ou dont `hero` n'a pas les PX, ou `null`. */
+function refusDuChiffrage(hero: Combatant, what: string, c: Chiffrage): string | null {
+  return c.ok ? refusDePx(hero, c.cout) : t('pf.refused', { name: nomDe(hero), what, reason: c.raison });
+}
+
 export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, char: CharKey): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const inC = inCareerChar(careerCtx(clone).careerChars, char);
-    if (mentorRequis(get(), inC)) {
+    if (mentorRequis(get(), clone, inC)) {
       // LDB 07 l.89
       msg = t('pf.charNeedsMentor', { name: nomDe(clone), what: CHAR_LABELS[char] });
       return h;
     }
-    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'caracteristique', inC));
+    const manque = refusDuChiffrage(clone, CHAR_LABELS[char], coutDeLAugmentation(clone, { kind: 'caracteristique', char }, inC));
     if (manque) {
       msg = manque;
       return h;
@@ -436,9 +452,14 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
     const known = clone.skills.some((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec));
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
-    if (known && mentorRequis(get(), inC)) {
+    if (known && mentorRequis(get(), clone, inC)) {
       // LDB 07 l.89
       msg = t('pf.charNeedsMentor', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec) });
+      return h;
+    }
+    const fermee = refusDeCompetenceHorsCarriere(clone, skillId, libelleAvecSpec(skillLabel, spec), inC);
+    if (known && fermee) {
+      msg = fermee;
       return h;
     }
     if (!known) {
@@ -450,8 +471,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
       clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
     }
-    const avant = clone.skills.find((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec))?.advances ?? 0;
-    const manque = refusDePx(clone, advanceCost(avant, 'competence', inC, discount));
+    const manque = refusDuChiffrage(clone, libelleAvecSpec(skillLabel, spec), coutDeLAugmentation(clone, { kind: 'competence', competence: skill }, inC, discount));
     if (manque) {
       msg = manque;
       return h;
@@ -499,10 +519,10 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
   if (msg) get().ecrireAuJournal(msg);
 }
 
-/** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = `talentEnCarriere` : un
- *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
- *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
- *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
+/** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = `talentEnCarriere` sur les
+ *  emplacements achetables (`talentSlotsAchetables` ; explicite, désigné, ou libre → désignation automatique), ou un
+ *  ajout de carrière ; hors carrière interdit ; Maxi respecté ; case de carrière cochée. Applique les effets
+ *  d'acquisition et recale Blessures/Chance/Détermination. LDB 07 l.93, l.103 ; LDB 10 ; CRB 045 l.58-62 */
 export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefDesignee): void {
   const { id: talentId, spec } = talent;
   let msg = '';
@@ -520,13 +540,12 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
       msg = refusPropre;
       return h;
     }
-    const manque = refusDePx(clone, talentCost(talentAcquisitions(clone, talentId, spec)));
+    const manque = refusDePx(clone, coutDuTalent(clone, talentId, spec));
     if (manque) {
       msg = manque;
       return h;
     }
-    const fortuneBefore = fortuneMax(clone);
-    const resolveBefore = resolveMax(clone);
+    const maximaAvant = maximaDesReserves(clone);
     const r = engineBuyTalent(clone, talentId, spec); // spec = identité PERSISTÉE (id si migré), jamais re-dérivée du libellé
     if (!r.ok) {
       msg = t('pf.refused', { name: nomDe(clone), what: talentLabel, reason: r.reason ?? '' });
@@ -536,10 +555,10 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
       const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (slot) designateSlot(clone, ctx.career, slot, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     }
+    cocherUnAchat(clone); // CRB 045 l.62
     // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + Chance et Détermination.
     applyTalentAcquisition(clone, talentId, spec);
-    clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
-    clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
+    reporterLaHausseDesMaxima(clone, maximaAvant);
     msg = t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost });
     // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
     if (castingKindOf(talentId) === 'mineure') {
@@ -725,9 +744,9 @@ export function terminerLaSeance(get: Get, set: Set): void {
     const siennes: string[] = [];
     if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: nomDe(clone), xp })); }
     if (f.motivation) {
-      const before = clone.resolve ?? 0;
-      clone.resolve = regainDetermination(clone, 1);
-      if (clone.resolve > before) siennes.push(t('pf.motivationResolve', { name: nomDe(clone) }));
+      const before = determinationDe(clone);
+      poserLaDetermination(clone, regainDetermination(clone, 1));
+      if (determinationDe(clone) > before) siennes.push(t('pf.motivationResolve', { name: nomDe(clone) }));
     }
     lines.set(h.id, siennes);
     return clone;

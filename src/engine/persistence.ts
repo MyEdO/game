@@ -71,7 +71,7 @@ export const REPORT_DE_COMBATTANT = {
   focus: rencontre('Focalisation en cours d’une incantation de la rencontre'),
   dispel: rencontre('cumul du Test étendu de Dissipation mené pendant la rencontre'), // LDB 46 l.158-162
   craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
-  fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, resistanceUsed: PERSISTE,
+  fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, fortuneDeBase: PERSISTE, resistanceUsed: PERSISTE,
   motivation: PERSISTE, mentions: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
   tookCriticalThisFight: rencontre(REGLE, false), // LDB 20 l.90
   critEntriesSuffered: PERSISTE,
@@ -98,6 +98,7 @@ export const REPORT_DE_COMBATTANT = {
   pushbackMode: rencontre(REGLE), // LDB 62 l.272-274
   auraMods: rencontre(REGLE), // LDB 85 l.262
   xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,
+  progression: PERSISTE, casesDeCarriere: PERSISTE,
   pos: rencontre(POSITION), initiative: rencontre('Initiative de la rencontre'),
   gainedAdvThisRound: rencontre(TOUR), usedShieldReactionRound: rencontre(TOUR), ripostesThisRound: rencontre(TOUR), distractedRounds: rencontre(TOUR),
   defensiveStance: rencontre(TOUR), dualStrikeDefensePenalty: rencontre(TOUR), aiming: rencontre(TOUR),

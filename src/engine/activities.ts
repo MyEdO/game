@@ -35,7 +35,8 @@ import {
 } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
-import { talentCost, advanceCost, inCareerChar } from './advancement';
+import { coutDuTalent, coutDeLAugmentation, inCareerChar, type CibleDAugmentation } from './advancement';
+import { modeleDe } from './modeleDeProgression';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, estCharKey } from './types';
 import { isTradable } from './disponibilite';
@@ -631,21 +632,26 @@ export function craftTarget(tier: StatusTier, avail: Availability, atouts: numbe
   return { dr: Math.max(1, dr), difficulty: CRAFT_DIFFICULTY[avail] };
 }
 
-/** Coût du tuteur d'Apprentissage particulier : 2d10 pa PAR tranche de 100 PX (LDB 23 l.72). */
-export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG): Money {
-  const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
+/** Tranches du tuteur d'Apprentissage de `hero` pour un Talent à `talentXpCost` PX. LDB 23 l.72 ; CRB 048 l.226 */
+function tranchesDuTuteur(hero: Combatant, talentXpCost: number): number {
+  const { parTranche } = modeleDe(hero).apprentissage.tuteur;
+  return parTranche === null ? 1 : Math.max(1, Math.ceil(talentXpCost / parTranche));
+}
+
+/** Prix tiré du tuteur d'Apprentissage de `hero`, en pistoles d'argent par tranche. LDB 23 l.72 ; CRB 048 l.226 */
+export function apprenticeshipTutorCost(hero: Combatant, talentXpCost: number, rng: RNG): Money {
+  const { des, faces } = modeleDe(hero).apprentissage.tuteur;
   let pa = 0;
-  for (let i = 0; i < tranches; i++) pa += roll(2, 10, rng);
+  for (let i = 0; i < tranchesDuTuteur(hero, talentXpCost); i++) pa += roll(des, faces, rng);
   return fromBrass(pa * PA_PER_SC);
 }
 
-/** Coût du tuteur d'Entraînement (LDB 23 l.136) : « PX + 1D10 sous de cuivre, où PX est le coût
- *  d'achat en PX de l'Augmentation. Le tutorat pour les Compétences Avancées coûte le double de ce
- *  montant. » Le double porte sur la part MONÉTAIRE (« ce montant » = le paiement du tuteur — le
- *  coût en PX, lui, est le coût normal de l'Augmentation, déjà doublé hors carrière par `advanceCost`). */
-export function entrainementTutorCost(advanced: boolean, rng: RNG): Money {
-  const sc = roll(1, 10, rng) * (advanced ? 2 : 1);
-  return fromBrass(sc);
+/** Prix du tuteur d'Entraînement de `hero` pour l'option `opt` : celui du modèle (`TuteurDEntrainement`), multiplié pour
+ *  une Compétence avancée ; `rng` ne sert qu'à un tuteur tiré. LDB 23 l.136 ; CRB 048 l.216 */
+export function entrainementTutorCost(hero: Combatant, opt: Pick<EntrainementOption, 'advanced' | 'xpCost'>, rng: RNG): Money {
+  const { tuteur, avancee } = modeleDe(hero).entrainement;
+  const sc = tuteur.type === 'tirage' ? roll(tuteur.des, tuteur.faces, rng) : opt.xpCost;
+  return fromBrass(sc * (opt.advanced ? avancee : 1));
 }
 
 /** Atouts et Défauts qu'un ouvrage d'Artisanat peut viser : les qualités d'Objet de la donnée (`qualities.json`), par
@@ -655,10 +661,14 @@ export const qualitesDArtisanat = memoParVersion('qualities', () => ({
   defauts: qualities.filter((q) => q.polarite === 'defaut' && q.subType === 'objet').map((q) => q.id),
 }));
 
-/** Fourchette du prix du tuteur d'Entraînement (1d10 sc, doublé pour les Compétences Avancées) —
- *  pour afficher le risque AVANT de s'engager (le tirage réel reste `entrainementTutorCost`). */
-export function entrainementTutorRange(advanced: boolean): { minBrass: number; maxBrass: number } {
-  return advanced ? { minBrass: 2, maxBrass: 20 } : { minBrass: 1, maxBrass: 10 };
+/** Fourchette du prix du tuteur d'Entraînement (`entrainementTutorCost`), pour afficher le risque AVANT de s'engager.
+ *  LDB 23 l.136 ; CRB 048 l.216 */
+export function entrainementTutorRange(hero: Combatant, opt: Pick<EntrainementOption, 'advanced' | 'xpCost'>): { minBrass: number; maxBrass: number } {
+  const { tuteur, avancee } = modeleDe(hero).entrainement;
+  const k = opt.advanced ? avancee : 1;
+  return tuteur.type === 'tirage'
+    ? { minBrass: tuteur.des * k, maxBrass: tuteur.des * tuteur.faces * k }
+    : { minBrass: opt.xpCost * k, maxBrass: opt.xpCost * k };
 }
 
 export type EntrainementOption = EntrainementCommun & (
@@ -667,11 +677,12 @@ export type EntrainementOption = EntrainementCommun & (
 );
 interface EntrainementCommun {
   label: string;
-  /** Compétence Avancée (LDB 23 l.136 : « le tutorat […] coûte le double ») — toujours false pour une Caractéristique. */
+  /** Compétence Avancée, que le tuteur fait payer davantage (`entrainementTutorCost`) — toujours false pour une
+   *  Caractéristique. LDB 23 l.136 ; CRB 048 l.216 */
   advanced: boolean;
   /** Augmentations déjà acquises (0 si la Compétence n'est pas encore connue). */
   advances: number;
-  /** Coût en PX de la PROCHAINE Augmentation, coût hors carrière (LDB 07 l.91, déjà doublé). */
+  /** Coût en PX de la PROCHAINE Augmentation, coût hors carrière (`coutDeLAugmentation`). */
   xpCost: number;
   tutorMinBrass: number;
   tutorMaxBrass: number;
@@ -685,10 +696,10 @@ export const cleDEntrainement = (o: Pick<EntrainementOption, 'id' | 'spec'>): st
 export const libelleDEntrainement = ({ id, spec }: Pick<EntrainementOption, 'id' | 'spec'>): string =>
   estCharKey(id) ? CHAR_LABELS[id] : refLabel('skills', { id, spec });
 
-/** Options d'Entraînement (LDB 23 l.132-136) : Compétences et Caractéristiques HORS carrière
- *  seulement — celles DE carrière s'achètent par l'Avancement normal (`buySkillAdvance`/
- *  `buyCharAdvance`), sans tuteur à payer. Une Compétence à Spécialisations liste UNE option par
- *  spec (LDB 09 l.42 : chaque Spécialisation est une Compétence distincte). */
+/** Options d'Entraînement : Compétences et Caractéristiques HORS carrière seulement — celles DE carrière s'achètent
+ *  par l'Avancement normal (`buySkillAdvance`/`buyCharAdvance`), sans tuteur à payer ; une Compétence à
+ *  Spécialisations liste UNE option par spec ; une Augmentation au-delà de la table du modèle n'est pas offerte.
+ *  LDB 09 l.42 ; LDB 23 l.132-136 ; CRB 048 l.216 */
 export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   const career = hero.career ?? '';
   const levels = levelsForCareer(career);
@@ -696,18 +707,20 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   const sSlots = skillSlots(levels, level);
   const careerChars = availableChars(levels, level);
   const designations = designationsFor(hero, career);
+  /** Le chiffrage et le tuteur de l'option hors carrière `cible` déjà acquise `advances` points, ou rien au-delà de la
+   *  table. */
+  const chiffree = (cible: CibleDAugmentation, advanced: boolean, advances: number) => {
+    const c = coutDeLAugmentation(hero, cible, false);
+    if (!c.ok) return [];
+    const range = entrainementTutorRange(hero, { advanced, xpCost: c.cout });
+    return [{ advanced, advances, xpCost: c.cout, tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass }];
+  };
 
   const chars: EntrainementOption[] = CHAR_KEYS
     .filter((k) => !inCareerChar(careerChars, k))
-    .map((k) => {
-      const advances = hero.charAdvances?.[k] ?? 0;
-      const range = entrainementTutorRange(false);
-      return {
-        kind: 'caracteristique' as const, id: k, label: libelleDEntrainement({ id: k }), advanced: false, advances,
-        xpCost: advanceCost(advances, 'caracteristique', false),
-        tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
-      };
-    });
+    .flatMap((k) => chiffree({ kind: 'caracteristique', char: k }, false, hero.charAdvances?.[k] ?? 0).map((c) => ({
+      kind: 'caracteristique' as const, id: k, label: libelleDEntrainement({ id: k }), ...c,
+    })));
 
   const skillOptions: EntrainementOption[] = [];
   for (const s of skills) {
@@ -715,14 +728,9 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
     for (const spec of specs.length ? specs : [undefined]) {
       if (competenceEnCarriere(hero, sSlots, designations, s.id, spec).statut != null) continue; // de carrière → Avancement normal
       const known = hero.skills.find((k) => k.id === s.id && memeSpecialisation(k.spec, spec));
-      const advances = known?.advances ?? 0;
-      const advanced = s.acces === 'avancee';
-      const range = entrainementTutorRange(advanced);
-      skillOptions.push({
-        kind: 'competence' as const, id: s.id, spec, label: libelleDEntrainement({ id: s.id, spec }), advanced, advances,
-        xpCost: advanceCost(advances, 'competence', false),
-        tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
-      });
+      for (const c of chiffree({ kind: 'competence', competence: { id: s.id, spec } }, s.acces === 'avancee', known?.advances ?? 0)) {
+        skillOptions.push({ kind: 'competence' as const, id: s.id, spec, label: libelleDEntrainement({ id: s.id, spec }), ...c });
+      }
     }
   }
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
@@ -816,28 +824,28 @@ export function craftCatalog(): CraftOption[] {
     .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : parLibelle(a.categorie, b.categorie)));
 }
 
-/** Fourchette du prix du tuteur (« 2D10 pistoles d'argent par 100PX », LDB 23 l.72) — pour
- *  afficher le risque AVANT de s'engager (le tirage réel reste 2d10/tranche). */
-export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBrass: number } {
-  const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
-  return { minBrass: tranches * 2 * PA_PER_SC, maxBrass: tranches * 20 * PA_PER_SC };
+/** Fourchette du prix du tuteur d'Apprentissage de `hero` (`apprenticeshipTutorCost`), pour afficher le risque AVANT de
+ *  s'engager. LDB 23 l.72 ; CRB 048 l.226 */
+export function tutorCostRange(hero: Combatant, talentXpCost: number): { minBrass: number; maxBrass: number } {
+  const { des, faces } = modeleDe(hero).apprentissage.tuteur;
+  const n = tranchesDuTuteur(hero, talentXpCost) * des * PA_PER_SC;
+  return { minBrass: n, maxBrass: n * faces };
 }
 
 export interface LearnOption {
   /** `id` STABLE du Talent — clé de `learnFails` et du choix `interlude.talent`. */
   id: string;
   label: string;
-  /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */
+  /** Coût PX de la PROCHAINE acquisition (`coutDuTalent`). */
   xpCost: number;
   tutorMinBrass: number;
   tutorMaxBrass: number;
 }
 
-/** Talents apprenables par Apprentissage particulier : « apprendre un Talent en dehors de
- *  votre Carrière » (LDB 23 l.68) → exclut les talents offerts par la Carrière courante
- *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (`talentMaxReached`), et
- *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
- *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
+/** Talents apprenables par Apprentissage hors carrière : ni offerts par la Carrière jusqu'au Niveau atteint (eux
+ *  s'achètent par l'Avancement), ni au Maxi (`talentMaxReached`), ni déjà pris quand le modèle n'enseigne que le premier
+ *  niveau, ni à spécialisation (`LearnOption` ne porte aucune spec, l'achat ne produirait pas l'identité
+ *  `(talentId, spec)` que lit `arcaneDomainGate`). LDB 23 l.68 ; CRB 048 l.224 */
 export function learnableTalents(hero: Combatant): LearnOption[] {
   const apprendre = learnOptionWith(hero);
   return talents.flatMap((t) => apprendre(t) ?? []).sort((a, b) => parLibelle(a.label, b.label));
@@ -856,8 +864,9 @@ function learnOptionWith(hero: Combatant): (t: TalentData) => LearnOption | unde
     if (specCatalogOf(t).length > 0) return undefined; // pas de sélecteur de spec dans ce catalogue
     if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return undefined; // de carrière → Avancement
     if (talentMaxReached(hero, t.id)) return undefined;
-    const xpCost = talentCost(talentAcquisitions(hero, t.id));
-    const { minBrass, maxBrass } = tutorCostRange(xpCost);
+    if (modeleDe(hero).apprentissage.premierNiveauSeul && talentAcquisitions(hero, t.id) > 0) return undefined;
+    const xpCost = coutDuTalent(hero, t.id);
+    const { minBrass, maxBrass } = tutorCostRange(hero, xpCost);
     return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
   };
 }

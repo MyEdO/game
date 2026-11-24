@@ -66,6 +66,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import type { CorpsDesReglages } from './reglagesDuJet';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { perdreUnPointDeResilience, resilienceDe } from '../engine/talentEffects';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29), à la Difficulté
  *  `difficulty` quand la source en imprime une (ZI 13 l.197). SEULE construction du Test, pour tout producteur
@@ -347,7 +348,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   if (!hero) { releaseCorruptionSlot(get, set); return; }
   const lines: string[] = [];
   if (renounce) {
-    hero.resilience = (hero.resilience ?? 0) - 1;
+    perdreUnPointDeResilience(hero);
     lines.push(t('cor.renounced', { name: nomDe(hero) }));
     pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
@@ -394,7 +395,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
       get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
-    } else if ((hero.resilience ?? 0) > 0) {
+    } else if (resilienceDe(hero) > 0) {
       get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: nomDe(hero) })])));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {

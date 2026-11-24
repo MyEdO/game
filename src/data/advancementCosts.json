@@ -208,5 +208,230 @@
       "page": 47,
       "note": "Tableau de Coût des Augmentations de Caractéristique et Compétence, LDB 07 l.45-73"
     }
+  },
+  {
+    "id": "adv5e-0",
+    "type": "advancementCosts",
+    "label": "0",
+    "progression": "5e",
+    "min": 0,
+    "max": 0,
+    "coutCarac": 125,
+    "coutCompetence": 50,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-1",
+    "type": "advancementCosts",
+    "label": "1",
+    "progression": "5e",
+    "min": 1,
+    "max": 1,
+    "coutCarac": 175,
+    "coutCompetence": 75,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-2",
+    "type": "advancementCosts",
+    "label": "2",
+    "progression": "5e",
+    "min": 2,
+    "max": 2,
+    "coutCarac": 250,
+    "coutCompetence": 100,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-3",
+    "type": "advancementCosts",
+    "label": "3",
+    "progression": "5e",
+    "min": 3,
+    "max": 3,
+    "coutCarac": 350,
+    "coutCompetence": 150,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-4",
+    "type": "advancementCosts",
+    "label": "4",
+    "progression": "5e",
+    "min": 4,
+    "max": 4,
+    "coutCarac": 500,
+    "coutCompetence": 250,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-5",
+    "type": "advancementCosts",
+    "label": "5",
+    "progression": "5e",
+    "min": 5,
+    "max": 5,
+    "coutCarac": 700,
+    "coutCompetence": 400,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-6",
+    "type": "advancementCosts",
+    "label": "6",
+    "progression": "5e",
+    "min": 6,
+    "max": 6,
+    "coutCarac": 950,
+    "coutCompetence": 600,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-7",
+    "type": "advancementCosts",
+    "label": "7",
+    "progression": "5e",
+    "min": 7,
+    "max": 7,
+    "coutCarac": 1300,
+    "coutCompetence": 850,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-8",
+    "type": "advancementCosts",
+    "label": "8",
+    "progression": "5e",
+    "min": 8,
+    "max": 8,
+    "coutCarac": 1800,
+    "coutCompetence": 850,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-9",
+    "type": "advancementCosts",
+    "label": "9",
+    "progression": "5e",
+    "min": 9,
+    "max": 9,
+    "coutCarac": 2550,
+    "coutCompetence": 1700,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-10",
+    "type": "advancementCosts",
+    "label": "10",
+    "progression": "5e",
+    "min": 10,
+    "max": 10,
+    "coutCarac": 3600,
+    "coutCompetence": 2500,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-11",
+    "type": "advancementCosts",
+    "label": "11",
+    "progression": "5e",
+    "min": 11,
+    "max": 11,
+    "coutCarac": 5025,
+    "coutCompetence": 3500,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-12",
+    "type": "advancementCosts",
+    "label": "12",
+    "progression": "5e",
+    "min": 12,
+    "max": 12,
+    "coutCarac": 6950,
+    "coutCompetence": 4750,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-13",
+    "type": "advancementCosts",
+    "label": "13",
+    "progression": "5e",
+    "min": 13,
+    "max": 13,
+    "coutCarac": 9000,
+    "coutCompetence": 6500,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
+  },
+  {
+    "id": "adv5e-14",
+    "type": "advancementCosts",
+    "label": "14",
+    "progression": "5e",
+    "min": 14,
+    "max": 14,
+    "coutCarac": 11250,
+    "coutCompetence": 8500,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 191,
+      "note": "Advancement XP Costs, CRB 045 l.33-52"
+    }
   }
 ]

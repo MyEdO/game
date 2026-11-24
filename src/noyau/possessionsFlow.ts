@@ -6,13 +6,14 @@
  */
 import type { Possession, PossessionLocation, PossessionInput } from '../engine/possession';
 import type { Combatant } from '../engine/types';
-import { refusDEmbarquer, possessionLabel, possessionRideable, profilDeLaBete, type RefusDEmbarquement } from '../engine/possession';
+import { idDuCatalogue, refusDEmbarquer, possessionLabel, possessionRideable, profilDeLaBete, type RefusDEmbarquement } from '../engine/possession';
 import { betesQuiPeuventLePorter, heroCombatMount } from '../engine/mountTravel';
 import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { possessionGrantsFromRefs } from '../engine/possessionGrants';
 import { dotationsDuHeros, resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
-import { rencontreEngagee } from './monde/combatants';
+import { actorIn, ecrireActeur, rencontreEngagee } from './monde/combatants';
+import { cocherLaDotation } from '../engine/casesDeCarriere';
 import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
@@ -41,11 +42,17 @@ export function seedStartingPossessions(get: Get, set: Set): void {
   }
 }
 
-/** Ajoute `p` au registre sous un `uid` neuf (`forgerUnId`, #2907) ; renvoie l'uid. */
+/** Ajoute `p` au registre sous un `uid` neuf (`forgerUnId`, #2907) et coche la dotation de carrière de son
+ *  propriétaire (`cocherLaDotation`) ; renvoie l'uid. CRB 018 l.25 */
 export function ajouterLaPossession(get: Get, set: Set, p: PossessionInput): string {
   const uid = get().forgerUnId('pos');
   const full = { ...p, uid } as Possession;
-  set((s) => ({ possessions: [...s.possessions, full] }));
+  set((s) => {
+    const proprietaire = actorIn(s, p.ownerId);
+    const coche = proprietaire && structuredClone(proprietaire);
+    const acteurs = coche && cocherLaDotation(coche, idDuCatalogue(p)) ? ecrireActeur(s, p.ownerId, () => coche) : {};
+    return { possessions: [...s.possessions, full], ...acteurs };
+  });
   return uid;
 }
 

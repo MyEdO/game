@@ -180,8 +180,8 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   it('le statut doublon d\'un tirage suit les Talents résolus avant lui (choix « A ou B »), à d100 inchangé', () => {
     const perspicace = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: perspicaceChoisi });
     const avecAffable = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: affable });
-    expect(perspicace[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: true } });
-    expect(avecAffable[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: false } });
+    expect(perspicace[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: true, utilisations: [] } });
+    expect(avecAffable[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: false, utilisations: [] } });
     expect(avecAffable.slice(2).map((t) => t.ref)).toEqual(perspicace.slice(2).map((t) => t.ref));
   });
 

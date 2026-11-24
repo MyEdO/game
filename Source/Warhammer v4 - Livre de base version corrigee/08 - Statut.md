@@ -557,7 +557,7 @@ Marchandage, Savoir (Loi) **Talents :** Désarmer, Flairer les ennuis, Sans peur
 **Possessions :** cheval de selle avec selle et harnais, chapeau de qualité, arme simple de qualité, symbole de grade de qualité
 
 
-*Vous empêchez que la civilisation soit envahie par la vermine à l'aide de vos fidèles compagnons canins.*
+<span id="page-61-0" data-folio="60"></span>*Vous empêchez que la civilisation soit envahie par la vermine à l'aide de vos fidèles compagnons canins.*
 
 Les Ratiers patrouillent dans toutes les villes et les cités, et ce, pour une bonne raison. Les rues de l'Empire débordent de déchets puants de nourritures diverses, le parfait terreau pour la prolifération de la vermine. Les Ratiers gagnent leur croûte en tuant ces rats, en nettoyant les caves de leurs nids et en plongeant au cœur des égouts de l'Empire, qui en sont littéralement infestés… à condition qu'ils soient assez courageux pour affronter les autres créatures qui y pullulent. Au début de leur formation, la plupart des Ratiers adoptent un chiot qu'ils entraînent à la chasse aux rats. Les Ratiers sont engagés par les villes et deviennent des Égoutiers qui partent à la chasse aux rats géants et autres nuisances souterraines. Il arrive quelquefois que des villes entières soient envahies par les rats, auquel cas elles font appel à des Exterminateurs.
 
@@ -579,7 +579,7 @@ Si vous voulez jouer un Personnage qui sait ce que sont ces « trop gros » ou �
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  | h  |   |   |   |    |     |     | h  |     |
 
-<span id="page-61-0" data-folio="60"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Chasseur de Rat – Bronze 3**
 
@@ -779,7 +779,7 @@ combat, Menaçant
 **Possessions :** 2 armes de qualité
 
 
-# **ÉMISSAIRE**
+<span id="page-65-0" data-folio="64"></span># **ÉMISSAIRE**
 
 Elfe sylvain, Halfling, Haut Elfe, Humain, Nain
 
@@ -805,7 +805,7 @@ Les Émissaires voyagent énormément, croisent le chemin de très nombreuses pe
 |----|----|---|---|---|----|-----|-----|----|-----|
 |    |    |   | h |   | h  |     |     |    | h   |
 
-<span id="page-65-0" data-folio="64"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Héraut – Argent 2**
 
@@ -838,7 +838,7 @@ Savoir (Politique), Subornation
 **Possessions :** assistant, vêtements élégants de qualité supérieure, suite de Diplomates, Héraut
 
 
-Elfe sylvain, Halfling, Haut elfe, Humain, Nain
+<span id="page-66-0" data-folio="65"></span>Elfe sylvain, Halfling, Haut elfe, Humain, Nain
 
 *Vous êtes les yeux et les oreilles d'un autre, révélant secrets et mensonges.*
 
@@ -850,7 +850,7 @@ Les Espions sont des personnes courageuses (ou imprudentes) qui, en secret, part
 
 On trouve, un peu partout dans le Vieux Monde, des Espions au service d'organisations connues. Au cours de leurs enquêtes, les Espions se retrouvent impliqués dans des intrigues qui peuvent être sans risques, ou beaucoup plus sinistres. Ils sont souvent contraints à la fuite lorsque leur identité, ou leurs allégeances sont mises au jour. Ces individus utilisent leurs talents de déguisement pour cacher leur vraie nature et éviter de se faire capturer. Plus d'un Espion s'est retrouvé à partir à l'aventure après avoir rejoint un groupe de héros qui l'auront pris dans leur groupe bien malgré eux lors d'une tentative d'évasion.
 
-<span id="page-66-0" data-folio="65"></span>#### **Schéma de Progression d'Espion**
+#### **Schéma de Progression d'Espion**
 
 | CC | CT | F | E | I | Ag | Dex | Int | FM | Soc |
 |----|----|---|---|---|----|-----|-----|----|-----|
@@ -936,7 +936,7 @@ Savoir-vivre (au choix)
 **Possessions :** assistant, résidence de Gouverneur, serviteur
 
 
-# **NOBLE** Elfe sylvain, Haut elfe, Humain, Nain
+<span id="page-68-0" data-folio="67"></span># **NOBLE** Elfe sylvain, Haut elfe, Humain, Nain
 
 *En tant que descendant d'un noble lignage, vous vous pavanez avec fierté au-dessus de la populace.*
 
@@ -956,7 +956,7 @@ Le MJ doit bien réfléchir avant de permettre à l'un de ses Joueurs de choisir
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  |    |   |   | h |    | h   |     |    |     |
 
-<span id="page-68-0" data-folio="67"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Héritier – Or 1**
 
@@ -1154,7 +1154,7 @@ Seigneur de guerre **Possessions :** caparaçon, petite unité de Chevaliers
 **Talents :** Désarmer, Exaltant, Frappe blessante, Volonté de fer **Possessions :** grand heaume à cimier, écuyer, importante unité de Chevaliers ou plusieurs petites unités de Chevaliers
 
 
-*Votre travail est simple : garder les indésirables dehors.*
+<span id="page-72-0" data-folio="71"></span>*Votre travail est simple : garder les indésirables dehors.*
 
 La meilleure façon de protéger quelque chose est d'y poster un garde. Monter la garde peut sembler assez facile, il suffit généralement de rester debout et ne pas faire grand-chose. Les gardes vivent et meurent, littéralement, en fonction de leur attitude au moment où ils sont obligés de passer à l'action. Les meilleurs peuvent exiger des salaires élevés et se voir confier la vie des personnalités les plus importantes de l'Empire et des objets les plus précieux. Cela comprend les Gardes de cimetière qui défendent les Jardins de Morr en pleine nuit, surveillant d'éventuels pilleurs de tombes, ainsi que les Gardes de temple, protecteurs des sites sacrés et des prêtres importants. Les marchands ont souvent besoin de Gardes locaux, pour les marchandises de valeur stockées dans les entrepôts ou en transit. Certains prétendent que les gardes du corps personnels ont les postes les plus intéressants, parce qu'ils doivent juste rester aux côtés de leurs prestigieux employeurs, et sont aux premières loges pour voir évoluer ces personnes si importantes, juste sous leurs yeux.
 
@@ -1174,7 +1174,7 @@ Les Gardes peuvent intégrer l'aventure lorsque leur fonction est compromise. To
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  |    |   | h |   | h  |     |     |    |     |
 
-<span id="page-72-0" data-folio="71"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Sentinelle – Argent 1**
 
@@ -1213,7 +1213,7 @@ Langue (Bataille), Savoir (Savoir-vivre)
 Volonté de fer **Possessions :** plastron
 
 
-# **GLADIATEUR**
+<span id="page-73-0" data-folio="72"></span># **GLADIATEUR**
 
 Elfe sylvain, Halfling, Haut Elfe, Humain, Nain
 
@@ -1235,7 +1235,7 @@ Beaucoup de Gladiateurs arrivent dans ce métier parce qu'ils ont du talent ou s
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  |    | h | h |   |    |     |     |    |     |
 
-<span id="page-73-0" data-folio="72"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Pugiliste – Bronze 4**
 
@@ -1270,7 +1270,7 @@ Résistance
 **Possessions :** heaume de qualité
 
 
-# **PRÊTRE GUERRIER** Humain
+<span id="page-74-0" data-folio="73"></span># **PRÊTRE GUERRIER** Humain
 
 *Vous invoquez le divin au cœur de la bataille, tuant les ennemis de l'Empire dans une fureur vertueuse.*
 
@@ -1288,7 +1288,7 @@ Bien que beaucoup de Prêtres Guerriers restent dans l'armée, certains servent 
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  |    |   | h |   |    |     |     | h  |     |
 
-<span id="page-74-0" data-folio="73"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Novice – Bronze 2**
 
@@ -1435,7 +1435,7 @@ Marchandage, Ragot, Résistance
 **Talents :** Ambidextre, Assaut féroce, Frappe blessante, Tir précis **Possessions :** arbalète avec dix carreaux, nécessaire de déguisement
 
 
-*Vous êtes la rage et le déshonneur incarnés, cherchant une mort digne pour recouvrer votre honneur perdu.*
+<span id="page-77-0" data-folio="76"></span>*Vous êtes la rage et le déshonneur incarnés, cherchant une mort digne pour recouvrer votre honneur perdu.*
 
 Quand les nains subissent une humiliation inacceptable et perdent leur honneur, ils prêtent le Serment du Tueur et suivent la voie de Grimnir, leur dieu ancestral des guerriers. Recouvrant leurs corps de tatouages, rasant les côtés de leur tête, teignant la chevelure restante d'un orange vif, et la coiffant en pointes avec de la graisse animale, ils s'élancent par le monde, hache à la main, à la recherche d'une mort glorieuse.
 
@@ -1463,7 +1463,7 @@ Jouer un Tueur est une expérience unique, car votre Personnage veut mourir. Acc
 |----|----|---|---|---|----|-----|-----|----|-----|
 | h  |    | h |   |   |    |     |     | h  |     |
 
-<span id="page-77-0" data-folio="76"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Tueur de Trolls – Bronze 2**
 
@@ -1502,7 +1502,7 @@ fort
 **Possessions :** tête de dragon
 
 
-# **CHASSEUR DE PRIMES**
+<span id="page-78-0" data-folio="77"></span># **CHASSEUR DE PRIMES**
 
 Elfe sylvain, Halfling, Haut Elfe, Humain, Nain
 
@@ -1516,7 +1516,7 @@ Les Chasseurs de primes poursuivent les fugitifs, ou les hors-laloi, pour de l'a
 
 Les Chasseurs de primes, en fonction du criminel qu'ils recherchent, doivent quelquefois emprunter les chemins de l'aventure. Comme ils sont parfaitement autonomes, il est facile pour eux, temporairement, de laisser leur objectif de côté et de prendre une autre mission si elle se présente. De plus, comme les compétences qu'ils maîtrisent sont très souvent recherchées, il arrive fréquemment que les Chasseurs de primes se tournent définitivement vers une vie d'aventurier, louant leurs talents contre paiement. La Carrière de Chasseur de primes est une excellente Carrière de départ, car elle mélange parfaitement Compétences sociales et combat, ce qui vous permet d'être utile quelles que soient les circonstances.
 
-<span id="page-78-0" data-folio="77"></span>#### **Schéma de Progression du Chasseur de primes**
+#### **Schéma de Progression du Chasseur de primes**
 
 | CC | CT | F | E | I | Ag | Dex | Int | FM | Soc |
 |----|----|---|---|---|----|-----|-----|----|-----|

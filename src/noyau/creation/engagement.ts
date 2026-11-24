@@ -31,7 +31,7 @@ export type HerosEngage =
   | { pretire: IdDePretire };
 
 /** La première étape invalide du brouillon `d` (`validateStep`) ; `null` s'il est complet. */
-const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
+const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds(d).map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
 
 /** Le verdict de `h` AVANT tout id forgé : l'id du héros qu'il bâtira quand il se connaît (pré-tiré, id de roster posé),
  *  absent pour un brouillon sans id ; sinon la raison qui le refuse (pré-tiré inconnu, étape invalide). */

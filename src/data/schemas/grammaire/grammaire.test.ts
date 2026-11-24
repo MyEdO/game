@@ -784,6 +784,8 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // (« Apparence et personnalité », « Historique »).
     'pregens.json · desc',
     'pregens.json · source',
+    // #4898 — `especesCrb` naît adopté : chacune des espèces adresse son folio du CRB.
+    'especesCrb.json · source',
     // #1657 — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
     // clause qui la nomme (MDG 13 l.714/730/751, MDG 12 l.303, MSRC 07 l.94), `desc` est donc exigible
     // dès la création. `source` ne l'est pas au def : c'est déjà l'enveloppe qui refuse une entrée sans

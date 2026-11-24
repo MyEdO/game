@@ -40,7 +40,7 @@ function refuseALaFrontiere(geste: GesteDeLAgent, message: RegExp): void {
 
 describe('un brouillon malformé se refuse à la frontière, au chemin de son champ', () => {
   it('brouillon vide : le champ requis qui manque', { timeout: 120_000 }, () => {
-    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: {} }), /recruterLeHeros : heros\.brouillon\.speciesId manque/);
+    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: {} }), /recruterLeHeros : heros\.brouillon\.procedure manque/);
   });
   it('le membre de l’union que la valeur vise rend son écart : `brouillon` qui n’est pas un objet', { timeout: 120_000 }, () => {
     refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: 3 }), /recruterLeHeros : heros\.brouillon : un objet JSON /);
@@ -115,9 +115,9 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     const brouillons: [string, CreatorDraft][] = [];
     for (let graine = 0; graine < 4; graine++) {
       brouillons.push([`neuf ${graine}`, newDraft(graine)]);
-      for (const etape of stepIds()) brouillons.push([`défauts ${graine}@${etape}`, fillDraftDefaults(newDraft(100 + graine), etape)]);
+      for (const etape of stepIds(newDraft(100 + graine))) brouillons.push([`défauts ${graine}@${etape}`, fillDraftDefaults(newDraft(100 + graine), etape)]);
       let d = brouillonDeLaPartie(77, graine);
-      for (const page of pagesDeCreation()) {
+      for (const page of pagesDeCreation(d)) {
         for (let k = 0; k < 3; k++) {
           const gestes = rubriquesDeLaPage(d, page).flatMap((r): GesteDuBrouillon[] => (r.genre === 'geste' ? (r.refus ? [] : [r.geste]) : r.genre === 'choix' ? r.options.flatMap((o) => (o.refus ? [] : [o.geste])) : []));
           if (!gestes.length) break;

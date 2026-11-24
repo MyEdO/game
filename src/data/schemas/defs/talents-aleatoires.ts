@@ -1,21 +1,14 @@
-import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
-/** LDB 05 l.514-531 */
+/** LDB 05 l.514-531 ; CRB 006 l.31-54 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couvertureDuDeParDocument, plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, rangeeDeTable } from '../grammaire/valeurs';
 import type { DiceSpec } from '../../../engine/dice';
-import { ref } from '../grammaire/ref';
 
 export const file = 'talents-aleatoires.json';
 export const famille = 'entite';
 
-const plage = metaDesChamps(plageSchema, { exigees: true });
-
-/** Une rangée du tableau : la référence du Talent qu'elle désigne, à sa fourchette. */
-export const rangee = ref('talent', {
-  min: nommerNoeud(z.number(), { nom: plage.min.label }),
-  max: nommerNoeud(z.number(), { nom: plage.max.label }),
-});
+/** Une rangée du tableau : la référence du Talent qu'elle désigne, sa spécialisation si la table la fixe, à sa fourchette. */
+export const rangee = rangeeDeTable('talent');
 
 const doc = document(
   'talents-aleatoires',

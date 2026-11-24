@@ -64,8 +64,7 @@ export interface RangeeDeRaces { min: number; max: number; ids: string[] }
 
 /** Le Tableau des Races aléatoires qui s'applique : la table dont les races égalent celles des espèces
  *  ouvertes (`tableDesRacesAleatoires`), et son dé. LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121 */
-export function randomSpeciesTable(): { die: DeDeTable; entries: RangeeDeRaces[] } {
-  const ouvertes = allSpecies.filter(speciesAllowed);
+export function randomSpeciesTable(ouvertes: readonly SpeciesData[] = allSpecies.filter(speciesAllowed)): { die: DeDeTable; entries: RangeeDeRaces[] } {
   const table = tableDesRacesAleatoires(new Set(ouvertes.map((s) => s.refChar)));
   return {
     die: deDeLaTableTiree(table),
@@ -76,8 +75,9 @@ export function randomSpeciesTable(): { die: DeDeTable; entries: RangeeDeRaces[]
   };
 }
 
-export function rollSpecies(rng: RNG): { roll: number; ids: string[] } {
-  const table = randomSpeciesTable();
+/** Le tirage d'espèce sur la table des espèces `ouvertes` (`randomSpeciesTable`). LDB 04 l.91 ; CRB 006 l.7-17 */
+export function rollSpecies(rng: RNG, ouvertes?: readonly SpeciesData[]): { roll: number; ids: string[] } {
+  const table = randomSpeciesTable(ouvertes);
   const r = rollDice(table.die, rng);
   return { roll: r, ids: findTableEntry(table.entries, r).ids };
 }
@@ -100,17 +100,19 @@ export function rollVariante(variante: NonNullable<ReturnType<typeof varianteDe>
   return { roll: r, id: findTableEntry(variante.entries, r).id };
 }
 
-/** Répartition manuelle (LDB 05 l.341) : 100 Points, min 4 / max 18 par Caractéristique. */
+/** Répartition manuelle : 100 Points. LDB 05 l.341 ; CRB 014 l.17 */
 export const POINT_BUY_TOTAL = 100;
-export const POINT_BUY_MIN = 4;
-export const POINT_BUY_MAX = 18;
+/** Bornes des Points d'une Caractéristique. */
+export interface BornesDesPoints { min: number; max: number }
+/** LDB 05 l.341 */
+export const BORNES_DES_POINTS_LDB: BornesDesPoints = { min: 4, max: 18 };
 
-export function validatePointBuy(alloc: Record<CharKey, number>): { ok: true } | { ok: false; reason: string } {
+export function validatePointBuy(alloc: Record<CharKey, number>, { min, max }: BornesDesPoints = BORNES_DES_POINTS_LDB): { ok: true } | { ok: false; reason: string } {
   for (const k of CHAR_KEYS) {
     const v = alloc[k];
     if (v == null || !Number.isInteger(v)) return { ok: false, reason: `${k} : valeur manquante` };
-    if (v < POINT_BUY_MIN) return { ok: false, reason: `${k} : minimum ${POINT_BUY_MIN} Points` };
-    if (v > POINT_BUY_MAX) return { ok: false, reason: `${k} : maximum ${POINT_BUY_MAX} Points` };
+    if (v < min) return { ok: false, reason: `${k} : minimum ${min} Points` };
+    if (v > max) return { ok: false, reason: `${k} : maximum ${max} Points` };
   }
   const total = CHAR_KEYS.reduce((a, k) => a + alloc[k], 0);
   if (total !== POINT_BUY_TOTAL) return { ok: false, reason: `total ${total}/${POINT_BUY_TOTAL} Points` };
@@ -120,11 +122,12 @@ export function validatePointBuy(alloc: Record<CharKey, number>): { ok: true } |
 /** Un tirage de richesse : la face de chaque dé, et le montant qu'elles font. */
 export interface TirageDeRichesse { faces: number[]; montant: Money }
 
-/** Richesse initiale : la grille de `gainDeStatut`, en pièces de son Échelon. LDB 05 l.576-578 */
-export function rollInitialWealth(status: Status, rng: RNG): TirageDeRichesse {
+/** Richesse initiale : la grille de `gainDeStatut`, plus `termeFixe` pièces, en pièces de son Échelon. LDB 05 l.576-578 ;
+ *  CRB 016 l.15-21 */
+export function rollInitialWealth(status: Status, rng: RNG, termeFixe = 0): TirageDeRichesse {
   const { de, unite } = gainDeStatut(status.tier, status.standing);
   const faces = Array.from({ length: de.n }, () => roll(1, de.sides, rng));
-  return { faces, montant: enPieces(unite, faces.reduce((a, f) => a + f, de.plus ?? 0)) };
+  return { faces, montant: enPieces(unite, faces.reduce((a, f) => a + f, (de.plus ?? 0) + termeFixe)) };
 }
 
 /** Âge, colonne de la race `race`. LDB 05 l.711 ; NADJ 15 l.80 ; ADE II 02 l.278 */

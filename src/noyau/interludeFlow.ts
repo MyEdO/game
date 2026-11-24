@@ -19,7 +19,7 @@ import { type RollLineParts } from './ligneDeJet';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
 import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
-import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recevoirLObjet } from '../engine/items';
 import type { IdDeDepot } from './designations';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
@@ -54,7 +54,7 @@ import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
-import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
+import { applyTalentAcquisition, maximaDesReserves, reporterLaHausseDesMaxima } from '../engine/talentEffects';
 import {
   findQualityById,
   findTrappingById,
@@ -74,6 +74,7 @@ import { findTableEntry } from '../engine/tables';
 import { type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
+import { modeleDe } from '../engine/modeleDeProgression';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
 
 import type { Get, Set } from './flowTypes';
@@ -218,9 +219,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
     const hero = party.find((h) => h.id === o.heroId);
     const it = hero ? itemFromTrappingById(o.trappingId, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero)) : null;
     if (hero && it) {
-      hero.items = [...(hero.items ?? []), it];
-      autoStowNewItem(hero, it); // #204 : rangement par défaut
-      recomputeLoadout(hero);
+      recevoirLObjet(hero, it);
       lines.push(msg('if.orderDelivered', { name: nomDe(hero), label: trappingLabelOf(o.trappingId) }));
     }
   }
@@ -546,9 +545,8 @@ function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDe
     const talent = findTalentById(opts.talentId ?? '');
     const xpCost = learnOptionOf(h, opts.talentId ?? '')?.xpCost;
     if (!talent || xpCost == null) return ouverteSansCible(def);
-    const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
-    const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
-    if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
+    const tutorBrass = tuteurDApprentissage(get, set, h, xpCost);
+    if (tutorBrass === null) return;
     extra.talent = talent.id;
     extra.xpCost = xpCost;
     extra.tutorBrass = tutorBrass;
@@ -647,9 +645,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (done) {
         const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].flatMap((id) => { const q = findQualityById(id); return q ? [{ id: q.id }] : []; }) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
-          h.items = [...(h.items ?? []), it];
-          autoStowNewItem(h, it); // #204 : rangement par défaut
-          recomputeLoadout(h);
+          recevoirLObjet(h, it);
         }
         const atL = h.craft.atouts.map(craftQualLabel), dfL = h.craft.defauts.map(craftQualLabel);
         const doneLabel = trappingLabelOf(h.craft.trappingId);
@@ -699,22 +695,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // sur l'acteur écrit (`actorIn`).
       const payTutor = () => payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.tutorBrass ?? 0)), recipient: h.id, purpose: 'tuteur' });
       if (pa.success) {
-        let r: ReturnType<typeof engineBuyTalent> = { ok: false, cost: 0 };
-        depenserPx(get, set, h.id, (lu) => {
-          const appris = structuredClone(lu);
-          const fortuneBefore = fortuneMax(appris);
-          const resolveBefore = resolveMax(appris);
-          r = engineBuyTalent(appris, talentId); // débite les PX + acquiert le Talent
-          if (!r.ok) return lu;
-          applyTalentAcquisition(appris, talentId);
-          appris.fortune = (appris.fortune ?? 0) + (fortuneMax(appris) - fortuneBefore); // Chanceux
-          appris.resolve = (appris.resolve ?? 0) + (resolveMax(appris) - resolveBefore); // Obstiné
-          return appris;
-        });
         // Achat jugé avant la confirmation (`refusDeConfirmerLActivite`) : sans Talent acquis, rien n'est débité.
-        if (!r.ok) return { lines: [] };
-        payTutor();
-        return { lines: [msg('if.learnTalentOk', { name: nomDe(h), label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
+        const ligne = apprendreLeTalent(get, set, h, talentId, pa.tutorBrass ?? 0);
+        return { lines: ligne ? [ligne] : [] };
       }
       depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) })); // PX perdus en vain (échec)
       const learnFails = { ...(st.learnFails ?? {}) };
@@ -932,27 +915,68 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
   set({ interlude: { ...itl } });
   get().ecrireAuJournal(msg('if.orderPlaced', { name: nomDe(h), label: t.label, cost: formatMoney(fromBrass(price)) }));
 }
-/** Entraînement (LDB 23 l.132-136) : « vous entraîner dans une Compétence ou une Caractéristique en
- *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
- *  NORMAL (hors carrière, déjà doublé par `advanceCost`/`acheterLaCaracteristique`/`acheterLaCompetence`, LDB 07 l.91)
- *  + tuteur 1D10 sc (doublé pour une Compétence Avancée, l.135). `opt` recalculée ICI depuis les
+/** Prix tiré du tuteur d'Apprentissage de `h` pour un Talent à `xpCost` PX (`apprenticeshipTutorCost`), en sous de
+ *  cuivre, ou `null` quand la bourse ne le couvre pas (refus dit). LDB 23 l.72 ; CRB 048 l.226 */
+function tuteurDApprentissage(get: Get, set: Set, h: Combatant, xpCost: number): number | null {
+  const tutor = toBrass(apprenticeshipTutorCost(h, xpCost, battleRng()));
+  const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutor), 'if.tuteurKo');
+  if (!tuteurHorsBourse) return tutor;
+  refuserGeste(get, set, tuteurHorsBourse);
+  return null;
+}
+
+/** Acquiert le Talent `talentId` hors carrière pour `h` (PX du Talent, effets d'acquisition), puis paie le tuteur
+ *  `tutorBrass` ; débité APRÈS l'écriture des PX (`depenserPx`) : la Bourse se lit sur l'acteur écrit. Rend la ligne de
+ *  journal, ou `null` sans Talent acquis (rien n'est débité). LDB 23 l.66-72 ; CRB 048 l.224-226 */
+function apprendreLeTalent(get: Get, set: Set, h: Combatant, talentId: string, tutorBrass: number): string | null {
+  let r: ReturnType<typeof engineBuyTalent> = { ok: false, cost: 0 };
+  depenserPx(get, set, h.id, (lu) => {
+    const appris = structuredClone(lu);
+    const maximaAvant = maximaDesReserves(appris);
+    r = engineBuyTalent(appris, talentId); // débite les PX + acquiert le Talent
+    if (!r.ok) return lu;
+    applyTalentAcquisition(appris, talentId);
+    reporterLaHausseDesMaxima(appris, maximaAvant);
+    return appris;
+  });
+  if (!r.ok) return null;
+  payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(tutorBrass)), recipient: h.id, purpose: 'tuteur' });
+  return msg('if.learnTalentOk', { name: nomDe(h), label: refLabel('talents', { id: talentId }), cost: r.cost, tutor: formatMoney(fromBrass(tutorBrass)) });
+}
+
+/** Apprentissage SANS Test d'un modèle qui n'en demande pas (`ModeleDeProgression.apprentissage`) : tuteur tiré, jugé
+ *  sur la bourse, puis Talent acquis ; l'Activité est consommée. Le choix `pratiquer` l'a jugé (`refusDApprentissage`).
+ *  CRB 048 l.224-226 */
+function apprentissageSansTest(get: Get, set: Set, heroId: string, talentId: string): void {
+  const h = get().party.find((x) => x.id === heroId);
+  const opt = h && learnOptionOf(h, talentId);
+  if (!h || !opt) return;
+  const tutor = tuteurDApprentissage(get, set, h, opt.xpCost);
+  if (tutor === null) return;
+  const ligne = apprendreLeTalent(get, set, h, talentId, tutor);
+  if (!ligne) return;
+  consumeActivity(get, set, heroId);
+  get().ecrireAuJournal(ligne);
+}
+
+/** Entraînement hors carrière, sans Test (achat direct comme Passer commande/Banque) : coût en PX hors carrière
+ *  (`coutDeLAugmentation`) et tuteur du modèle (`entrainementTutorCost`). `opt` recalculée ICI depuis les
  *  données du héros (`optionDEntrainement`), que le choix `pratiquer` a jugée (`refusDEntrainement`).
  *  Une Compétence de Base hors carrière encore inconnue est ACQUISE à 0 Augmentation puis augmentée
- *  (même geste qu'`acheterLaCompetence`, LDB 09 l.42). */
+ *  (même geste qu'`acheterLaCompetence`, LDB 09 l.42). LDB 23 l.132-136 ; CRB 048 l.216 */
 function entrainementStart(get: Get, set: Set, heroId: string, cle: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const opt = h && optionDEntrainement(h, cle);
   if (!st || !h || !opt) return;
   const { kind, id, spec } = opt;
-  const tutor = toBrass(entrainementTutorCost(opt.advanced, battleRng()));
+  const tutor = toBrass(entrainementTutorCost(h, opt, battleRng()));
   const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutor), 'if.tuteurKo');
   if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
   let r: ReturnType<typeof engineBuyCharAdvance> = { ok: false, cost: 0 };
   const accepte = depenserPx(get, set, heroId, (lu) => {
     const entraine = structuredClone(lu);
-    const fortuneBefore = fortuneMax(entraine);
-    const resolveBefore = resolveMax(entraine);
+    const maximaAvant = maximaDesReserves(entraine);
     if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id, false);
     else {
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
@@ -961,8 +985,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
       r = engineBuySkillAdvance(entraine, { id, spec }, false);
     }
     if (!r.ok) return lu;
-    entraine.fortune = (entraine.fortune ?? 0) + (fortuneMax(entraine) - fortuneBefore); // Sociabilité (Chance/Fortune)
-    entraine.resolve = (entraine.resolve ?? 0) + (resolveMax(entraine) - resolveBefore); // Volonté (Résilience/Détermination)
+    reporterLaHausseDesMaxima(entraine, maximaAvant);
     return entraine;
   });
   if (!accepte) return;
@@ -1246,6 +1269,8 @@ function pratiquer(get: Get, set: Set, heroId: string, c: CompositionDActivite):
     craftStart(get, set, heroId, garanti(c.ouvrage, heroId, 'ouvrage composé'), c.atouts, c.defauts);
   } else if (def.resolver === 'entrainement') {
     entrainementStart(get, set, heroId, garanti(c.entrainement, heroId, 'Entraînement composé'));
+  } else if (def.resolver === 'learnTalent' && !modeleDe(garanti(get().party.find((h) => h.id === heroId), heroId, 'héros de l’interlude')).apprentissage.test) {
+    apprentissageSansTest(get, set, heroId, garanti(c.cibles.talentId, heroId, 'Talent composé'));
   } else {
     openCatalogActivity(get, set, heroId, def, c.cibles);
   }

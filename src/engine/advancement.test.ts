@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Combatant, CharKey } from './types';
 import {
-  advanceCost,
-  talentCost,
+  coutDeLAugmentation,
+  coutDuTalent,
+  coutDuChangement,
   buyCharAdvance,
   buySkillAdvance,
   buyTalent,
   careerCompletionAdvances,
   isCareerLevelComplete,
-  careerChangeCost,
   changeCareer,
   validateCareerChange,
   inCareerChar,
@@ -39,7 +39,24 @@ const hero = (xp: number): Combatant =>
     charAdvances: {},
   })) as unknown as Combatant;
 
-describe('advanceCost — Tableau de Coût (LDB 07 l.51-70), verbatim', () => {
+/** Coût de la prochaine Augmentation (`coutDeLAugmentation`) d'un héros 4e ayant déjà `n` Augmentations de `kind`. */
+function advanceCost(n: number, kind: 'caracteristique' | 'competence', inCareer = true): number {
+  const h = hero(0);
+  h.charAdvances = { agilite: n };
+  h.skills[0].advances = n;
+  const c = coutDeLAugmentation(h, kind === 'caracteristique' ? { kind, char: 'agilite' } : { kind, competence: { id: 'discretion' } }, inCareer);
+  if (!c.ok) throw new Error(c.raison);
+  return c.cout;
+}
+
+/** Coût de la prochaine prise d'un Talent (`coutDuTalent`) par un héros 4e qui l'a déjà pris `n` fois. */
+function talentCost(n: number): number {
+  const h = hero(0);
+  if (n) h.talents = [{ talentId: 'sang-froid', times: n }];
+  return coutDuTalent(h, 'sang-froid');
+}
+
+describe('coutDeLAugmentation — Tableau de Coût (LDB 07 l.51-70), verbatim', () => {
   it('Caractéristique : coûts par bande (déjà-achetées → coût de la prochaine)', () => {
     expect(advanceCost(0, 'caracteristique')).toBe(25); // bande 0 à 5
     expect(advanceCost(5, 'caracteristique')).toBe(25);
@@ -76,7 +93,7 @@ describe('Détection in-carrière (LDB 07 l.91 : hors-carrière → coût ×2)',
   });
 });
 
-describe('talentCost — 100 + 100 × déjà achetées (l.102)', () => {
+describe('coutDuTalent — 100 + 100 × déjà achetées (l.102)', () => {
   it('1ʳᵉ = 100, 2ᵉ = 200, 3ᵉ = 300', () => {
     expect(talentCost(0)).toBe(100);
     expect(talentCost(1)).toBe(200);
@@ -223,9 +240,9 @@ describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', (
     h.talents = [{ talentId: 't3', times: 1 }];
     expect(isCareerLevelComplete(h, 2, completionOpts(2))).toBe(true);
   });
-  it('careerChangeCost : 100 si complété, 200 sinon (l.120)', () => {
-    expect(careerChangeCost(true)).toBe(100);
-    expect(careerChangeCost(false)).toBe(200);
+  it('coutDuChangement : 100 si complété, 200 sinon (l.120)', () => {
+    expect(coutDuChangement(hero(0), true)).toBe(100);
+    expect(coutDuChangement(hero(0), false)).toBe(200);
   });
   it('validateCareerChange : niveau suivant EXIGE la complétion (l.137) ; pas de saut', () => {
     const h = completedHero(500);

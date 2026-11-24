@@ -2,25 +2,38 @@
 
 Ticket: #4903
 
-Plan daté du 2026-11-24, mesuré à `3c2531336` (`main`) et, pour le roguelite, à `97e7ecc1` (tête de la PR #4767). Il
-se supprime quand l'épique #4903 est soldée.
+Plan daté du 2026-11-24, mesuré à `3c2531336` (`main`) ; pour le roguelite, à `97e7ecc1` (tête de la PR #4767) et, pour
+son combat, à `448271ba9` ; pour l'Atelier des PNJ, à `7ce0a72a6` (tête de la PR brouillon #3633). Il se supprime
+quand l'épique #4903 est soldée.
 
 ## 1. Qualification
 
 - **Demande** (laurent, 2026-11-24, verbatims à l'épique #4903) : mettre le noyau à l'épreuve par de nombreux
   mini-jeux et des outils (le créateur de PNJ) ; réorganiser le dépôt pour les outils propres à chaque projet, les
   parties communes, leurs workflows et leurs tests ; résorber la duplication des assets, sachant qu'un kit uniforme
-  existe sans être validé. Précisé le même jour : le jeu suivant serait « un jeu type total War/mount and blade ou
-  on dirige un groupe d homme voir une armée et des terres/vassaux. Le monde serait autonome sans nous et ça
-  reprendrais les règles du commerce/bataille navale, combat de masse et autres. Le tout en utilisant l affichage du
-  roguelite 2D avec les pions (à opposer à l hôte texte et Godot) » ; « Ça sera surement sur une map en tour par
-  tour comme total War/might and magic ».
+  existe sans être validé. Précisé le même jour : le jeu suivant serait « un jeu type total War/mount and blade ou on
+  dirige un groupe d homme voir une armée et des terres/vassaux. Le monde serait autonome sans nous et ça reprendrais
+  les règles du commerce/bataille navale, combat de masse et autres. Le tout en utilisant l affichage du roguelite 2D
+  avec les pions (à opposer à l hôte texte et Godot) » ; « Ça sera surement sur une map en tour par tour comme total
+  War/might and magic ». Puis : « Faut intégrer aussi l atelier des pnjs. Surtout que j aurai envie de pouvoir lancer
+  des rencontres et le système de combat de l hôte 2D est capable de le faire » ; « C est un énorme défaut du jeu de
+  ne pas accepter le bestiaire fan de fonctionner » ; « Pas grave pour le moment si les traits manquant ne font rien.
+  On peut faire ça plus tard » ; « Ce que je veux c est qu on puise lancer des combats depuis l atelier comme on le
+  fait depuis le rogueligt et comme pour tous autres jeux qui viendront » ; « Dans projet je ne vois pas le … projet
+  sur Godot » ; « Y a pas de jeu principal et secondaire, juste des jeux » ; « Je m ai déjà dit mais je le redis, le
+  noyau ne doit jamais dépendre du data driven et des données editables. Surtout que maintenant on sépare bien le jeu
+  de rôle du noyau. Qu il gère ses propres fichiers de campagne a lui pour ses fichiers et tests ».
 - **But réel** : qu'ajouter un projet coûte peu, ne crée pas de dette, et *éprouve* le noyau. Un projet qui
   contourne la porte du noyau ne l'éprouve pas : il en lit les internes, et le manque qu'il aurait dû révéler reste
   invisible.
 - **Ce que la précision change** : l'affichage et le jeu sont deux choses. Trois affichages existent ou vont
   exister (le texte, Godot, les pions en 2D du roguelite), et un même affichage sert plusieurs jeux : les pions
-  serviront le roguelite et le jeu de stratégie.
+  serviront le roguelite et le jeu de stratégie. Aucun jeu n'est principal : le jeu de rôle que dessine Godot est un
+  projet comme les autres (§ 12), et le commun ne porte le contenu d'aucun jeu.
+- **Ce que l'atelier change** : le créateur de PNJ de la demande existe déjà, c'est l'Atelier des PNJ (§ 2.3), hors
+  de `main`. L'utilisateur veut y lancer des combats « comme on le fait depuis le rogueligt et comme pour tous autres
+  jeux qui viendront » : lancer un combat devient une capacité commune à tous les projets (H7), dont le roguelite est
+  le premier cas et l'atelier le deuxième.
 - **Livrable** : ce plan et l'épique #4903, par PR. Aucune exécution ici : chaque lot naît en sous-issue à son tour.
 - **Fini** (pour l'épique) : tout fichier de code appartient à une zone de `COUCHES` ou à l'outillage déclaré ;
   chaque affichage et chaque projet a sa ligne, ses suites, sa construction, sa recette et ses gates ; un diff
@@ -28,15 +41,27 @@ se supprime quand l'épique #4903 est soldée.
 - **Déjà tranché** : le régime des couches de #2882 (table `COUCHES`, murs de lint, porte `src/noyau/index.ts`,
   droits d'hôte) ; la structure plutôt que la garde (fiche `user-doctrine-structure-avant-garde`) ; une refonte
   emmène ses outils (fiche `user-doctrine-refonte-emmene-ses-outils`) ; les maquettes font foi et restent autonomes
-  du jeu (fiche `user-doctrine-maquettes-font-foi-godot-s-adapte`) ; un seul catalogue de modèles, de textures et
+  des jeux (fiche `user-doctrine-maquettes-font-foi-godot-s-adapte`) ; un seul catalogue de modèles, de textures et
   un seul atelier Godot (fiche `user-doctrine-atelier-godot-unique-catalogue-de-textures-unique`) ; web d'abord,
   bureau en plus, par le même hôte (fiche `user-doctrine-web-d-abord-bureau-en-plus`) ; le roguelite range ses
   manques du noyau sous #4899 (`.claude/rules/roguelite.md`, PR #4900) ; le roguelite entre dans `main` après son
-  rangement (§ 12).
-- **Irréversible** : aucun. Tout passe par branche, PR et file de fusion.
+  rangement (§ 12) ; le guide fan entre dans la base commune comme bestiaire d'auteur cité par page (#3656, fiche
+  `user-arbitrage-bestiaire-frenchy`) ; le *Bestiaire non officiel* devient un livre de la base commune, ses traits
+  entrant d'abord sans mécanique (§ 12) ; aucun jeu n'est principal, le jeu de rôle est un projet (§ 12) ; un test se
+  joue sur des fixtures construites pour lui, jamais sur une donnée éditable ni sur une scène livrée (fiches
+  `user-arbitrage-tests-jamais-sur-donnee-data-driven` et
+  `user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees`), et le noyau ne dépend d'aucune donnée
+  éditable d'un jeu (redit le 2026-11-24, § 12).
+- **Irréversible** : aucun dans ce plan, qui passe par branche, PR et file de fusion. Deux gestes de L10 sortent du
+  projet : republier l'artefact de l'atelier, qui a des utilisateurs hors du dépôt, attend l'accord de
+  l'utilisateur ; le sort de leurs PNJ gardés au format v1 est tranché (§ 12).
 - **Lecture prise** : « kit uniforme pas encore validé » désigne le kit d'interface des maquettes
   (`hotes/godot/cibles/propositions/kit.md`, « Catalogue (étape 2, à valider) », #4411 puis #4585) ; l'autre lecture,
-  le kit de modélisation 3D (#2972, #4422), est couverte au § 8.4.
+  le kit de modélisation 3D (#2972, #4422), est couverte au § 8.4. « Intégrer l'atelier » se lit comme pour le
+  roguelite : le ranger en projet et le faire entrer dans `main` (§ 12), puis lui donner le lancement de ses
+  rencontres. « Lancer des rencontres » se lit comme le combat du roguelite : simulé par le noyau en cadence `auto`,
+  puis rejoué pas à pas, sans geste du MJ pendant le combat. Le jouer au tour par tour demanderait à `pions` les
+  gestes d'un combat, que le roguelite n'a pas : ce serait un lot de plus, sur demande.
 
 ## 2. Mesure
 
@@ -71,7 +96,7 @@ se supprime quand l'épique #4903 est soldée.
 - 106 imports, depuis 21 fichiers, vers 54 modules de `src/` : 37 de `engine`, 9 internes de `noyau`
   (`acteDeSoin`, `bus`, `combatAuto`, `consumableFlow`, `etat`, `ligneDeJet`, `monde/footprint`, `partie`,
   `restFlow`), 4 de `data`, 2 de `hote` (`partie`, `rencontre`), 1 de `scenes` (`test-scenarios/_shared`, le
-  contenu du menu « Scénarios de test » du jeu), 1 de `i18n`. **Aucun ne passe par la porte.** Sous les droits
+  contenu du menu « Scénarios de test » de Godot), 1 de `i18n`. **Aucun ne passe par la porte.** Sous les droits
   d'hôte, 50 des 54 modules seraient refusés.
 - Sa suite (105 tests, 16 fichiers) n'est jouée par aucune CI ; `RACINES_DE_LA_SUITE` et le `tsconfig.json` racine
   ne le couvrent pas (`.claude/rules/roguelite.md`).
@@ -80,10 +105,56 @@ se supprime quand l'épique #4903 est soldée.
   1.63.0 est une `devDependency` de la racine. Sa comparaison d'images (`recette/comparer.py`, PIL) tolère 24 niveaux
   par canal.
 
-### 2.3 L'outillage
+### 2.3 L'Atelier des PNJ (`outils/atelier-pnj/`, PR brouillon #3633)
+
+- Il vit sur la branche de la PR brouillon #3633, partie de `main` le 2026-11-07, hors de `main`, de la CI et des
+  murs. Il est publié en artefact claude.ai et employé hors du dépôt (retour d'un utilisateur relayé le 2026-11-13,
+  #4217). Son `LISEZMOI.md` en décrit la construction, la publication et le modèle de données.
+- Sa page (`template.html`, 1 298 lignes de HTML, CSS et JavaScript) reçoit à la construction (`build.mjs`, 68
+  lignes) 21 datasets de `src/data`, lus par fichier, réduits et injectés. C'est une lecture, pas un import : aucun
+  mur ne la voit (§ 2.1).
+- La page recode en JavaScript des règles dont le commun a sa version : le profil d'un PNJ de carrière et de ses
+  carrières suivantes (`src/engine/pnjDeCarriere.ts`), la bourse (`argentDuPnj`), le nom (`nomDEntite`), les
+  carrières ouvertes à l'espèce (`careersForSpecies`), les sorts d'un lanceur (`sortsDuPnj`), la création façon PJ
+  (`src/noyau/creation/`), la variation d'un profil (LDB p.314 dans l'atelier ; `randomChars`, LDB 77 l.108, et
+  `poserUneTroupe` au noyau), le statbloc (`ficheDuCombattant`, dont les sections suivent l'atelier depuis #3678).
+  Deux exemplaires d'une règle divergent sans que rien ne le signale.
+- Un PNJ gardé est l'état entier du formulaire : ses Caractéristiques calculées, ses mutations choisies, son origine
+  (création façon PJ), son modèle, son profil de héros ou son rôle de bête, ses notes, sa rencontre.
+- Ses données propres (`entrees/`, 441 Ko) : les 290 profils du *Guide fan v4.5* (`pnj-guide.json`, 307 Ko)
+  correspondent, par libellé et page, aux 288 profils `guide-frenchy` du bestiaire commun (#3656), sous d'autres
+  ids ; deux d'entre eux (`guide-128-artisan`, `guide-129-maistre-artisan`) réimpriment les pages 80 et 81. Les
+  3 traits qu'il ajoute manquent à la base commune : la migration de #3656 les a écartés (fiche
+  `user-arbitrage-bestiaire-frenchy`, « How to apply »), sans verbatim, alors que la décision du 2026-11-06 les
+  admettait dans l'atelier. De ses 62 sorts, 29 ont leur libellé au catalogue ; 32 des autres sont
+  listés à #3740, et « Secousse Tellurique » (p.254) n'est suivie nulle part. Le *Bestiaire non officiel* y apporte
+  107 créatures, 36 traits, 12 modèles de carrière, 3 profils de héros et 2 rôles de bête, absents de la base commune ; ce
+  livre n'est pas encore une source du dépôt (`AGENTS.md`, § Sources VF), et aucune extraction VF n'en est au dépôt ; sa VO
+  (*Unofficial Bestiary 2.0*) y est extraite, hors des sources du dépôt.
+  68 de ses créatures n'ont que des Traits du catalogue.
+- Une rencontre y est une étiquette (`renc`) qui range des PNJ gardés dans le `localStorage` ; rien ne la joue.
+- Sa feuille est propre (26 propriétés personnalisées, dont 21 couleurs) ; ses polices viennent de Google Fonts.
+- Le combat de l'affichage 2D (`roguelite/src/noyau/combat.ts`, 141 lignes) joue une rencontre par
+  `jouerLaRencontre` (`src/hote/rencontre.ts`, cadence `auto` : le noyau pilote chaque combattant), sur une arène de
+  `scenes/test-scenarios/_shared`, en relève les pas, et `src/ui/rejeu.ts` (270 lignes), `figures.ts` (492) et la
+  cour les rejouent. Ses ennemis ne sont que des ids de créature (`jouerLeCombat(groupe, ennemis: string[], …)`).
+  Le schéma du noyau porte davantage : une rencontre est une liste d'entités et la définition qui les référence
+  (`BuiltEncounter`, `src/noyau/monde/encounterAuthoring.ts`), et une entité y est un PNJ de carrière (un corps du
+  bestiaire et ses `carrieres`), un statbloc ou un preset, de l'un ou l'autre camp (`side`, `ai`).
+- Une rencontre entre deux camps de PNJ, sans héros, se joue déjà jusqu'à son issue (sonde à `aa123ee1f`, `ouvrirLeLancement` en cadence `auto` et `party: []` :
+  deux `homme-du-guet` alliés pilotés contre deux ennemis, issue `victoire`). Les alliés y sont de `kind` `heros`,
+  et le groupe que rend la rencontre est vide : l'état des survivants se lit dans la bataille.
+- La porte donne la fiche d'un PNJ posé (`ficheDEntite` ou `ficheEditee`, qui passent par `spawnEnemy` : parcours de
+  carrière et bourse compris, puis `ficheDuCombattant`) et le type de la scène (`Scene`, dont `Scene['entities']`).
+  Elle ne donne, des catalogues que les menus de l'atelier parcourent, que les carrières, leurs niveaux et les sorts
+  (`careers`, `findCareerById`, `levelsForCareer`, `findSpellById`) : ni le bestiaire, ni les talents, compétences,
+  traits, possessions, espèces, noms, mutations, dieux ou domaines, ni `careersForSpecies` (`src/data`) ou
+  `poserUneTroupe` (`src/noyau/sceneEdit.ts`). Ce sont les premiers manques que l'atelier révélera.
+
+### 2.4 L'outillage
 
 - 129 scripts npm à la racine, dont 21 `godot:*` : le préfixe de projet existe déjà pour Godot. Les gestes du
-  roguelite n'ont aucun script npm ; ils se lancent par chemin.
+  roguelite et de l'atelier n'ont aucun script npm ; ils se lancent par chemin.
 - L'outillage propre à Godot vit dans `hotes/godot/` (construire, recettes, étalons, import et validation
   d'assets) ; la chaîne 3D dans `scripts/personnage-3d/` (381 fichiers) ; la comparaison des maquettes dans
   `scripts/maquettes/`.
@@ -92,9 +163,10 @@ se supprime quand l'épique #4903 est soldée.
   `hotes/godot/planches.mjs`), `scripts/maquettes/page.mjs` et `roguelite/recette/commun.mjs`.
 - Deux comparateurs d'images : `ecart` (`hotes/godot/planches.mjs`, exact, réemployé par
   `scripts/maquettes/pixels.mjs`) et `roguelite/recette/comparer.py`.
-- Deux constructions web : `vite` (`hotes/godot/construire.mjs:61`) et `esbuild` (le roguelite).
+- Trois constructions web : `vite` (`hotes/godot/construire.mjs:61`), `esbuild` (le roguelite) et l'injection de
+  données dans une page de l'atelier (`build.mjs`, sans bundler).
 
-### 2.4 La CI
+### 2.5 La CI
 
 - Un workflow `ci.yml` (408 lignes) ; une course de branche (`typecheck`, `test:perimetre`) et une course de file
   qui joue toutes les gates. Sur la course de file 45344893428 : `godot-rendus` 21 min, `suite 2/3` 14 min,
@@ -107,18 +179,18 @@ se supprime quand l'épique #4903 est soldée.
   celle de `test` ne cite ni `package.json` ni le lockfile, et `toutes.mjs` nomme
   lui-même ses angles morts (lectures de `tsc`, d'`eslint`, de `git ls-files`).
 
-### 2.5 Les assets
+### 2.6 Les assets
 
 | Famille | Sources aujourd'hui | Mesure |
 |---|---|---|
-| Kit d'interface (palette, typographie, primitives) | `hotes/godot/cibles/propositions/sources/gestes.css` et `gestes.js` (maquettes) ; `roguelite/kit.css` ; `roguelite/src/kit.ts` | deux copies dans le roguelite : `kit.css` (37 841 octets, « repris tel quel de `main` au commit 162a308f3 ») et `kit.ts` (10 698 octets, primitives de `gestes.js` reprises à cfff50879, plus 39 pictogrammes nommés par des chaînes, dont des concepts que le catalogue d'icônes a déjà : `objet/armure`, `ressource/bourse`, `repos/lit`, `interface/oeil`, `interface/balance`, `navigation/des`) |
+| Kit d'interface (palette, typographie, primitives) | `hotes/godot/cibles/propositions/sources/gestes.css` et `gestes.js` (maquettes) ; `roguelite/kit.css` ; `roguelite/src/kit.ts` ; la feuille de l'atelier (`template.html`) | deux copies dans le roguelite : `kit.css` (37 841 octets, « repris tel quel de `main` au commit 162a308f3 ») et `kit.ts` (10 698 octets, primitives de `gestes.js` reprises à cfff50879, plus 39 pictogrammes nommés par des chaînes, dont des concepts que le catalogue d'icônes a déjà : `objet/armure`, `ressource/bourse`, `repos/lit`, `interface/oeil`, `interface/balance`, `navigation/des`) ; l'atelier a sa propre palette (16 propriétés CSS) |
 | Palette de Godot | 41 ressources `Theme` ; 475 `Color(...)` dans 40 `.tres` du projet | pas une copie du kit : 7 des 142 couleurs distinctes de `theme.tres` égalent un des 57 jetons de `gestes.css`. C'est l'écart que la migration visuelle (#3935, #4411) doit combler, pas une duplication |
-| Polices | `hotes/godot/projet/polices/` (8 `.ttf`, 1,6 Mo) ; `hotes/godot/cibles/propositions/sources/polices/` (7 `.ttf`) ; Google Fonts pour le roguelite | `GrenzeGotisch-wght.ttf` et deux licences identiques à l'octet dans les deux dossiers |
+| Polices | `hotes/godot/projet/polices/` (8 `.ttf`, 1,6 Mo) ; `hotes/godot/cibles/propositions/sources/polices/` (7 `.ttf`) ; Google Fonts pour le roguelite et pour l'atelier | `GrenzeGotisch-wght.ttf` et deux licences identiques à l'octet dans les deux dossiers |
 | Dessins vectoriels | catalogue des dessins (#3935) : `src/data/icons`, `fonds`, `paysages`, `cadres`, exportés par la porte (`ICON_DEFS`, `FONDS`, `CADRES`…), figés pour Godot par `hotes/godot/asset/dessins.ts` | les maquettes en recopient un tracé à la main (`gestes.js:228`), par autonomie voulue ; le roguelite dessine ses figures, lieux et vignettes à part (`figures.ts` 45 Ko, `cour.ts` 24 Ko, `hameau.ts` 21 Ko, `vignettes.ts` 8 Ko) avec son propre vocabulaire (`type Arme = 'epee' \| 'hache' \| …`, `coiffe?: 'casque' \| …`) |
 | Modèles 3D, textures, sons | catalogue unique du projet Godot : 261 modèles (`hotes/godot/projet/modeles/`, manifeste et provenance commités, GLB à la Release par empreinte : `hotes/godot/epingles.mjs`, `transfert.yml`), textures (`hotes/godot/projet/textures/provenance.json`) | duplication propre au kit de modélisation suivie par #4422 ; base commune à 54 % (#2972) |
-| Preuves | `public/qc/` (119 Mo, 531 PNG de soldes), `hotes/godot/cibles/` (55 Mo) | ce ne sont pas des assets de projet (§ 11) |
+| Preuves | `public/qc/` (119 Mo, 531 PNG de soldes), `hotes/godot/cibles/` (55 Mo) | ce ne sont pas des assets de projet (§ 13) |
 
-### 2.6 Ce que le noyau sait déjà du jeu de stratégie
+### 2.7 Ce que le noyau sait déjà du jeu de stratégie
 
 - Combat de masse : la Puissance de bataille d'ADE II 8 (`src/engine/massBattle.ts`, `src/noyau/massBattleFlow.ts`),
   règle facultative abstraite, centrée sur les Personnages : deux camps, un Attribut de Puissance, des Scènes
@@ -126,6 +198,38 @@ se supprime quand l'épique #4903 est soldée.
 - Combat naval et voyage en mer (`docs/raw/4e/combat-naval.md`, `src/noyau/seaVoyageFlow.ts`, épique #3002) ;
   économie et commerce (`docs/raw/4e/economie.md`, épique #3004) ; voyage (`src/engine/travel.ts`) ; couche monde
   avec carte et journal au jour le jour (#3534).
+
+### 2.8 Le jeu de rôle (`src/scenes/`, `hotes/godot/`)
+
+- Aucune zone ne le nomme : ses campagnes vivent dans le commun, `src/scenes/`, et ses écrans dans `hotes/godot/`. Le
+  registre `src/scenes/campaign.ts` porte quatre paquets : « L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf »
+  (`diligence-projet.json`, 721 Ko), « L’Arène » (440 Ko), « Le Loup et la Saumure » (69 Ko) et « La Barge du Sel »
+  (23 Ko).
+- Ce registre (183 lignes) importe 6 modules internes du noyau (`monde/scene`, `worldMap`, `lancementDeScenario`,
+  `partyFlow`, et les types `etat` et `flowTypes`), 8 de `data` (grammaire et validation des schémas, icônes) et un
+  type d'`engine` ; aucun ne passe par la porte. Ses lignes 37 à 152 sont une machinerie qui ne connaît aucun paquet
+  (`paquetDuJeu`, `campagneDuJeu`, `lancementDeLaCampagne`, `documentDuJeu`, `campagneDuPaquet`) ; seules ses
+  premières et dernières lignes nomment les quatre paquets.
+- Sur les 104 fichiers de `src/scenes/`, 20 sont au jeu de rôle : les 4 paquets, le registre et 15 suites qui les
+  lisent. Les 84 autres ne lisent directement aucune campagne : 74 scénarios de test et 10 fixtures et suites
+  (`test-fixture.ts`, `partage.testkit.ts`, `fixtures/`, `opera/`, `vitrine-batiments.ts`, `peur-deux-portes`,
+  `summon-flow`). Mais 6 scénarios de test (`arene`, `diligence`, `diligence-salle-pleine`, `documents-edo`,
+  `ecuries-clayonnage`, `96-presets-edo`) importent le registre : par `_registry.generated.ts`,
+  `src/hote/scenarios.ts`, `src/hote/partieDeTest.ts` et l'entrée de l'hôte texte (`scripts/hote-texte.mjs`)
+  atteignent les quatre paquets, et les recettes de Godot et deux suites de l'hôte texte les jouent.
+- L'affichage Godot importe ce registre : `hotes/godot/pont/pont.ts` (les campagnes, leur lancement, le paquet
+  servi), les recettes `decor.ts` et `editeur.ts`, et 4 suites du pont. Le commun le lit aussi : `src/hote/groupe.ts`
+  (la zone `groupe.campagnes`, que sert le pont), les racines de documents de `src/data/schemas` (`validate.ts`, et
+  un schéma par paquet sous `defs-scenes/`, à chemin relatif à `src/scenes`), et des suites qui prennent un paquet
+  pour fixture (fichiers qui nomment un paquet ou le registre : 33 sous `src/noyau`, 25 sous `src/data`, 2 sous
+  `src/hote`, 3 à la racine de `src/`).
+- L'outillage le lit par `PROJETS_LIVRES` (`scripts/guards/lib/projetsLivres.mjs`, dossier `src/scenes`),
+  `RACINES_PROSE` (`scripts/guards/lib/proseInline.mjs`) et `RACINES_PAR_DEFAUT` (`scripts/source/adresses.mjs`) ;
+  par eux, `hotes/godot/servir.mjs` (lecture et écriture de l'éditeur) et `hotes/godot/recette.mjs`. Ses générateurs
+  sont `scripts/arene/`, `scripts/barge-du-sel/`, `scripts/loup-et-saumure/` et `scripts/campagne/`, et ses dossiers
+  de chapitre `docs/dossiers/EDO/`, que lit `scripts/docs/build-dossiers-de-chapitre.mjs`.
+- La construction du pont nomme son entrée en dur (`hotes/godot/construire.mjs` : `import
+  '/hotes/godot/pont/entree.ts'`).
 
 ## 3. Hypothèses (tranchées par la mesure, révisables)
 
@@ -138,26 +242,44 @@ se supprime quand l'épique #4903 est soldée.
   `package.json` et une résolution `exports` par projet, qui doubleraient `COUCHES` sans fermer une classe de plus.
   Déclencheur de réévaluation : deux projets qui exigent deux versions incompatibles d'un même paquet.
 - **H3. Deux sortes de dossiers.** Un **affichage** (un hôte de présentation du noyau) vit sous `hotes/<affichage>/` :
-  `texte`, `godot`, `pions`. Un **projet** (un jeu ou un outil autre que le jeu principal) vit sous
-  `projets/<projet>/` : sa logique de jeu (couche scénario du credo), son contenu, sa page ou son entrée. Un projet
-  ouvre le ou les affichages qu'il déclare ; un affichage n'importe jamais un projet ; un projet n'importe jamais un
-  autre projet. « Projet » est le mot de la demande ; « hôte » reste le mot du code pour ce qui dessine.
-  **Droits d'un projet** : ceux d'un hôte (`DROITS_DES_HOTES` : la porte du noyau, `hote`, les feuilles), sans
-  `scenes`, plus les affichages qu'il déclare. Il lit le noyau par sa porte, compte donc parmi `HOTES_DU_NOYAU`, et
-  survit comme les autres hôtes. L1 en fait une constante de `COUCHES`, à côté de `DROITS_DES_HOTES`. Quand un
-  affichage doit jouer la logique d'un projet (le texte, Godot), c'est le projet qui la lui fournit, par une capacité
-  de cet affichage et jamais par un second serveur ou un second pont (fiche `user-doctrine-un-hote-jamais-duplique`) ;
-  la forme exacte se tranche au premier cas réel.
-- **H4. Le commun reste `src/`** : feuilles, `engine`, `data`, `noyau`, `hote`. `scenes` (campagne, scénarios de test,
-  arène) est le contenu du jeu principal, que dessinent les affichages `godot` et `texte` ; un projet ne l'ouvre pas.
-- **H5. Un projet affiché par Godot reste dans l'unique projet Godot** : sa scène d'entrée, son préréglage d'export,
-  son entrée au lot de recettes ; il partage sans machinerie le pont, le thème, les composants
-  (`hotes/godot/projet/composants/`, 100 scènes), l'atelier et les catalogues. Sa logique vit dans
-  `projets/<projet>/` ; la façon dont le pont l'embarque se tranche au premier cas réel.
+  `texte`, `godot`, `pions`. Un **projet** (un jeu ou un outil : le jeu de rôle, le roguelite, l'Atelier des PNJ,
+  le jeu de stratégie) vit sous `projets/<projet>/` : sa logique de jeu (couche scénario du credo), son contenu, sa
+  page ou son entrée. Un projet ouvre le ou les affichages qu'il déclare ; un affichage n'importe jamais un projet ;
+  un projet n'importe jamais un autre projet. « Projet » est le mot de la demande ; « hôte » reste le mot du code
+  pour ce qui dessine. **Droits d'un projet** : ceux d'un hôte (`DROITS_DES_HOTES` : la porte du noyau, `hote`, les
+  feuilles), sans `scenes`, plus les affichages qu'il déclare. Il lit le noyau par sa porte, compte donc parmi
+  `HOTES_DU_NOYAU`, et survit comme les autres hôtes. L1 en fait une constante de `COUCHES`, à côté de
+  `DROITS_DES_HOTES`. Quand un affichage doit jouer la logique d'un projet (le texte, Godot), c'est le projet qui la
+  lui fournit, par une capacité de cet affichage et jamais par un second serveur ou un second pont (fiche
+  `user-doctrine-un-hote-jamais-duplique`). Le premier cas est le jeu de rôle, que dessine Godot (L13). La machinerie
+  de son registre ne connaît aucun paquet : c'est une action de jeu, et elle passe au noyau, derrière sa porte (H7).
+  Le projet ne garde que la liste de ses paquets et de ses scénarios ; son point d'entrée importe l'affichage et la
+  lui remet à la création du pont, qui la passe à `src/hote/groupe.ts`. `construire.mjs` bâtit le bundle depuis
+  l'entrée que le projet déclare, sans la nommer, et l'éditeur sert le corpus de paquets que le projet déclare.
+- **H4. Le commun reste `src/`** : feuilles, `engine`, `data`, `noyau`, `hote`, et `scenes` réduit à ce qui ne lit le
+  contenu d'aucun jeu : les scénarios de test et leurs fixtures, que jouent les affichages `godot` et `texte`. Le
+  commun ne porte le contenu d'aucun jeu : les campagnes et leur registre passent au jeu de rôle (L13). Les 6
+  scénarios bâtis sur une campagne (§ 2.8) sont du jeu de rôle et le suivent ; il les remet à ses affichages, le
+  texte compris (H3). Le noyau ne dépend d'aucune donnée éditable d'un jeu : ses suites jouent leurs propres scènes,
+  scénarios et campagnes de test, et chaque jeu tient les siens (§ 12). Un projet n'ouvre pas `scenes`.
+- **H5. Godot est un affichage, à projet Godot unique** : il dessine le jeu de rôle et tout projet qui le déclare.
+  Les écrans d'un projet affiché par Godot restent dans l'unique projet Godot, avec sa scène d'entrée, son préréglage
+  d'export et son entrée au lot de recettes ; il partage sans machinerie le pont, le thème, les composants
+  (`hotes/godot/projet/composants/`, 100 scènes), l'atelier et les catalogues. Sa logique et son contenu vivent dans
+  `projets/<projet>/`, et il les remet au pont par son point d'entrée (H3).
 - **H6. Une déclaration par zone : sa ligne de `COUCHES`.** Les murs en dérivent ; les suites et le typecheck
   couvrent les racines `hotes/` et `projets/` en bloc (`RACINES_DE_LA_SUITE`, `tsconfig.json`), sans configuration
   par projet. Les fichiers JSON qui ne peuvent pas lire la table restent confrontés à elle par
   `src/racines-des-zones-json-guard.test.ts`.
+- **H7. Lancer un combat est une capacité commune.** Un projet décrit ses deux camps dans la forme du schéma
+  `BuiltEncounter` (`SceneEntity[]` et `EncounterDef` : créatures, PNJ de carrière, statblocs, camp et pilotage) et
+  son terrain ; `src/hote` pose l'arène par la couture du noyau que L5 tire de `scenes/test-scenarios/_shared`, joue
+  le combat jusqu'à son issue par `jouerLaRencontre` en cadence `auto`, et en rend l'issue et le relevé pas à pas ;
+  l'affichage `pions` le rejoue. Le roguelite, l'atelier, le jeu de stratégie et tout jeu à venir lancent leurs
+  combats par elle : aucun projet ne recode un combat ni ne pose son arène à part. Elle naît en L8 du combat du
+  roguelite (§ 2.3), dans son deuxième consommateur. C'est le premier cas d'une règle générale (H3, H4) : toute
+  action d'un jeu vit au noyau et tout affichage est commun, à la portée de tout projet ; seul ce qui ne sert qu'à un
+  projet reste dans son dossier, et passe au commun dès qu'un deuxième en a besoin.
 
 ## 4. Structure cible
 
@@ -166,16 +288,17 @@ src/                  LE COMMUN (inchangé de place)
   lib/ geometry/ i18n/  feuilles
   engine/ data/         règles et base app-owned, catalogue des dessins compris
   noyau/                orchestration ; porte unique src/noyau/index.ts
-  hote/                 module commun aux affichages : rencontre, partie, projection, sauvegardes…
-  scenes/               contenu du jeu principal : campagne, scénarios de test, arène
+  hote/                 module commun aux affichages : rencontre, combat commun (H7), partie, sauvegardes…
+  scenes/               scénarios de test et leurs fixtures, joués par tous les affichages
 hotes/                LES AFFICHAGES, une zone de COUCHES chacun
   texte/                l'hôte texte MCP (aujourd'hui src/hoteTexte/)
-  godot/                le jeu principal sous Godot, et les projets qu'il affiche (H5)
-  pions/                l'affichage 2D en pions, extrait du roguelite au premier lot du jeu de stratégie (L8)
+  godot/                l'affichage Godot, projet Godot unique : le jeu de rôle et tout projet qu'il dessine (H5)
+  pions/                l'affichage 2D en pions et le rejeu de ses combats, extrait du roguelite (L8)
 projets/              LES PROJETS, une zone de COUCHES chacun
+  jeu-de-role/          le jeu de rôle (§ 2.8) : ses campagnes et leur registre, ses outils, ses dossiers de chapitre
   roguelite/            aujourd'hui roguelite/, sur sa branche
-  <stratégie>/          le jeu de stratégie (§ 9)
-  createur-pnj/         à venir
+  atelier-pnj/          l'Atelier des PNJ (§ 9.2), aujourd'hui outils/atelier-pnj/, sur sa branche
+  <stratégie>/          le jeu de stratégie (§ 9.1)
 scripts/              outillage commun
 server/               relais coop : paquet à part, n'importe rien de src/
 Source/ docs/         livres ; références vivantes du commun
@@ -245,22 +368,24 @@ asset se nomme par l'id stable de ce qu'il représente (fiche `user-doctrine-ids
 ### 8.1 Kit d'interface web et polices (L7)
 
 La source est le kit des maquettes, qui font foi. Une fois son catalogue validé (#4585, tenu par un autre fil), ses
-jetons, ses primitives web et ses polices sont lus par les maquettes (le kit n'est pas le jeu : elles restent
-autonomes du jeu) et par les affichages web ; les copies `kit.css` et `kit.ts` du roguelite disparaissent, et ses
-pictogrammes passent au catalogue d'icônes, par id, là où le concept existe. Les polices tiennent dans un dossier,
+jetons, ses primitives web et ses polices sont lus par les maquettes (elles restent autonomes des
+jeux) et par les affichages et projets web ; les copies `kit.css` et `kit.ts` du roguelite
+disparaissent, ses pictogrammes passent au catalogue d'icônes, par id, là où le concept existe, et la palette
+propre de l'atelier cède aux jetons du kit. Les polices tiennent dans un dossier,
 avec leurs licences ; Godot les reçoit à la construction comme ses textures, et les affichages web servent les
 mêmes fichiers, sans Google Fonts. L'emplacement se tranche en L7, sur la forme validée.
 
-La palette de Godot n'est pas une copie du kit (§ 2.5) : la dériver du kit, c'est la migration visuelle de #3935 et
+La palette de Godot n'est pas une copie du kit (§ 2.6) : la dériver du kit, c'est la migration visuelle de #3935 et
 #4411, avec des étalons revalidés par l'utilisateur, hors de ce plan.
 
 ### 8.2 Les pions et leurs dessins (L8)
 
 Le catalogue des dessins reste la source des icônes, fonds, paysages et cadres, et un affichage web le lit par la
-porte, qui l'exporte déjà. Les figures, bustes, lieux et vignettes du roguelite deviennent l'affichage `pions` quand
-le jeu de stratégie, leur deuxième consommateur, commence ; leur API se type alors par les ids de la donnée (arme,
-coiffure, espèce) au lieu de chaînes littérales. Les maquettes gardent leurs tracés recopiés : leur autonomie est
-voulue.
+porte, qui l'exporte déjà. Les figures, bustes et vignettes du roguelite, la cour de ses combats et leur rejeu
+(`src/ui/rejeu.ts`) deviennent l'affichage `pions` en L8, avec la capacité commune de combat (H7), dont le jeu et
+le relevé (`roguelite/src/noyau/combat.ts`) passent à `src/hote`. Leur API se type alors par les ids de la donnée (arme, coiffure, espèce) au lieu de chaînes littérales ; ce qui ne sert
+qu'au roguelite (ses écrans, ses lieux) reste dans son dossier. Les maquettes gardent leurs tracés recopiés : leur
+autonomie est voulue.
 
 ### 8.3 Ce qui reste à Godot
 
@@ -274,21 +399,59 @@ affichage autre que Godot qui montre un de ces assets.
 Si « kit uniforme » désignait le kit de modélisation 3D, il relève de #2972 et #4422 (§ 8.3), qui en suivent la
 validation ; ce plan n'y ajoute rien.
 
-## 9. Le jeu de stratégie, situé
+## 9. Les projets suivants, situés
+
+### 9.1 Le jeu de stratégie
 
 - **Ce qu'il est** : une carte de campagne au tour par tour (Total War, Might and Magic), un groupe d'hommes puis une
   armée, des terres et des vassaux, un monde qui vit sans le joueur.
-- **Où il vit** : `projets/<stratégie>/`, affiché par `pions`, qu'il extrait du roguelite à son premier lot (L8).
+- **Où il vit** : `projets/<stratégie>/`, affiché par `pions` (L8).
   Sa logique, séparée de l'affichage, peut aussi se jouer par l'hôte texte, ce qui permet à un agent de la tester
   sans écran : le projet déclare l'affichage `texte` et lui fournit sa partie par une capacité de l'hôte texte
   (H3), au lieu d'un second serveur.
-- **Ce qu'il éprouve du noyau** : commerce et économie, combat naval, voyage, couche monde (§ 2.6), Puissance de
+- **Ce qu'il éprouve du noyau** : commerce et économie, combat naval, voyage, couche monde (§ 2.7), Puissance de
   bataille.
 - **Ce que le noyau n'a pas** : la bataille d'unités sur une carte, les fiefs et vassaux, les factions autonomes. À
   l'ouverture du jeu, chaque manque se range par le credo : ce que les livres décrivent (Atlas d'abord) est
   implémenté au noyau ; une mécanique de règle que les livres ne couvrent pas est une lacune du système (proposition
   déduite, puis cérémonie d'arbitrage) ; une valeur de jeu (prix, rythme, taille d'une carte) est une valeur
   d'adaptation tracée dans la conception du projet.
+
+### 9.2 L'Atelier des PNJ
+
+- **Ce qu'il est** : l'outil de préparation d'un MJ : fabriquer un PNJ (un profil du Bestiaire, des carrières, une
+  création façon PJ), le garder, l'imprimer, en faire une troupe, ranger ses PNJ en rencontres. Il a des
+  utilisateurs hors du dépôt.
+- **Où il vit** : `projets/atelier-pnj/`, sa page construite en un fichier et publiée en artefact. Ses écrans, son
+  impression et ses PNJ gardés y restent ; il n'a aucune donnée de règle propre ; il déclare l'affichage `pions`
+  pour jouer ses rencontres.
+- **Son PNJ est celui du noyau, dans une enveloppe** : le PNJ a la forme qu'une scène pose (une entité de type
+  personnage : un corps du bestiaire et ses `carrieres`, ou un `statblock` ; son inventaire, son nom), la rencontre
+  celle que rend `buildEncounter` (les entités et la définition qui les référence). La page ne garde aucune règle du
+  commun : elle montre la fiche que la porte rend (`ficheDEntite` ou `ficheEditee`, puis `ficheDuCombattant`),
+  celle que l'inspecteur de Godot montre déjà, et un PNJ de l'atelier se pose dans une scène d'un jeu sans
+  conversion. L'enveloppe ne porte que ce qui n'est qu'à l'atelier : les notes et la rencontre où il est rangé.
+- **Ce que le schéma ne porte pas encore** : les mutations choisies d'un PNJ (elles ne viennent qu'au hasard du
+  spawn) et la création façon PJ (des `carrieres` ne s'attachent qu'à un corps du bestiaire, et un statbloc perd le
+  parcours). Ce sont des manques du schéma, tickets de l'épique de l'atelier, à solder avant L10 : sinon l'atelier
+  garderait une seconde forme du PNJ.
+- **Le *Bestiaire non officiel*** devient un livre de la base commune (L12), au modèle du guide fan (#3656 : une migration datée
+  depuis les `entrees/` de l'atelier, chaque entrée citée par page) : ses 107 profils au bestiaire, ses 36 traits au
+  catalogue par leur texte, ses modèles de carrière, profils de héros et rôles de bête en règles du noyau. Ses 36
+  traits entrent sans mécanique : ils ne font rien en jeu jusqu'au ticket qui la leur donne (§ 12, § 13). La prose
+  entre verbatim depuis les `entrees/` de l'atelier, comme pour #3656 : le dépôt n'a du livre que la VO, hors des
+  sources. Les 3 traits propres du guide fan n'en sont pas : ses profils jouent déjà en combat, et ces traits vont à
+  un ticket par L10.
+- **Lancer une rencontre** : l'atelier compose les deux camps et lance par la capacité commune de combat (H7), comme
+  le roguelite et tout jeu à venir : le noyau la joue jusqu'à son issue, l'affichage `pions` la rejoue pas à pas.
+  Sans héros, l'issue se lit pour le camp allié, et l'état des survivants dans la bataille (§ 2.3).
+- **La frontière est le convertisseur des PNJ v1** (L10) : un sort hors catalogue (#3740) y est nommé et retiré du
+  PNJ converti, et tout PNJ de l'atelier se lance. Les 33 sorts du guide hors catalogue ne se choisissent dans
+  l'atelier qu'une fois entrés par #3740. Un trait sans mécanique ne bloque rien : il est au catalogue et ne fait
+  rien en jeu.
+- **Ce qu'il éprouve du noyau** : le PNJ de carrière, la création, la fiche, la troupe, le nom, la bourse, les sorts
+  d'un lanceur, puis le combat entier par ses rencontres. Les manques de la porte et du schéma mesurés aux § 2.3 et
+  ci-dessus sont les premiers tickets de son épique de retours.
 
 ## 10. Lots
 
@@ -297,16 +460,20 @@ validation ; ce plan n'y ajoute rien.
 | L1 | Zones par affichage et par projet, sur `main` : la zone `hotes` devient `godot` (chemin inchangé) ; `src/hoteTexte/` devient `hotes/texte/` ; la racine `projets/` est déclarée ; `zoneDe` nomme tout `hotes/<x>` et `projets/<x>` et `murs/zone` refuse celui qu'aucune ligne ne déclare | — | typecheck complet, lint, suite, `docs:check`, l'hôte texte démarre ; un banc de mur refuse un import de `godot` vers `texte`, d'un projet vers un autre, d'un affichage vers un projet |
 | L2 | Le roguelite rangé sous `projets/roguelite/`, sur sa branche, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, plus des ouvertures explicites, chacune nommée par son ticket sous #4899 (`engine`, `data`, le `noyau` sans sa porte, `scenes`) ; sa suite et son typecheck par les racines communes ; ses scripts `roguelite:*` et ses gates ; `.claude/rules/roguelite.md` réécrite (chemins, preuves). Ce lot de #4903 écrit hors de `roguelite/` : la règle « un lot du roguelite n'écrit que sous `roguelite/` » ne le vise pas | L1 | lint, typecheck, suite, construction et recette vertes en course de file ; le roguelite sur `main`, avec ses ouvertures déclarées |
 | L3 | Fermer le trou des murs à la racine : tout fichier de code du dépôt est dans une zone ou dans l'outillage déclaré (`scripts/`, `server/`, racines de mod, configurations de la racine) | L2 | un banc de `murs/zone` refuse un fichier de code dans un dossier racine non déclaré |
-| L4 | CI resserrée par projet (§ 6) : lectures mesurées des gates qui lisent `hotes/` et `projets/`, cas neuf du classement, job du roguelite, checks requis | L2 | `classerPush.test.mjs` couvre un diff de projet seul, d'affichage seul, du commun, mixte, `package-lock.json` seul, documentaire ; une course de file d'une PR limitée au roguelite mesurée contre les 14 à 21 min d'aujourd'hui |
-| L5 | La porte suffit aux projets : chaque ouverture du roguelite se résorbe par une couture de la porte ou de `src/hote`, ou par le déplacement de sa logique ; l'arène de `scenes/test-scenarios/_shared` devient une couture du noyau | L2 | la ligne du roguelite égale les droits d'un projet |
+| L4 | CI resserrée par projet (§ 6) : lectures mesurées des gates qui lisent `hotes/` et `projets/`, cas neuf du classement, jobs des projets, checks requis | L2 | `classerPush.test.mjs` couvre un diff de projet seul, d'affichage seul, du commun, mixte, `package-lock.json` seul, documentaire ; une course de file d'une PR limitée au roguelite mesurée contre les 14 à 21 min d'aujourd'hui |
+| L5 | La porte suffit aux projets : chaque ouverture du roguelite, de l'atelier et du jeu de rôle se résorbe par une couture de la porte ou de `src/hote`, ou par le déplacement de sa logique ; l'arène de `scenes/test-scenarios/_shared` devient une couture du noyau | L2 (roguelite), L10 (atelier), L13 (jeu de rôle) | la ligne de chaque projet égale les droits d'un projet |
 | L6 | Outils web communs : construction par `vite` (fin d'`esbuild` transitif) ; un harnais, Playwright au navigateur épinglé, que rejoignent la recette du roguelite et `scripts/maquettes/page.mjs`, `scripts/recette/lib.mjs` le rejoignant ou disant au lot pourquoi CDP reste ; une comparaison, `ecart` (fin de `comparer.py`) | L2 | deux passes de la recette d'images du roguelite à la même tête, sur le navigateur épinglé, mesurées par `ecart` : si l'écart n'est pas nul, la tolérance devient un paramètre d'`ecart` ; la référence d'images se pose ensuite sur ce navigateur |
 | L7 | Kit d'interface web et polices communs (§ 8.1) | #4585 validé, L6 | comparaison au pixel des maquettes à 0 ; images du roguelite identiques à sa référence du L6 ; plus aucune copie du kit hors de sa source |
-| L8 | L'affichage `pions`, extrait du roguelite (§ 8.2) | L5, premier lot du jeu de stratégie | le roguelite et le jeu de stratégie composent `hotes/pions/` ; aucun vocabulaire d'apparence en chaînes littérales dans son API |
+| L8 | Le combat commun et l'affichage `pions` (H7, § 8.2) : le combat du roguelite devient la capacité commune de `src/hote`, qui prend deux camps dans la forme `BuiltEncounter`, pose l'arène par la couture de L5, joue le combat jusqu'à son issue et en rend le relevé ; la porte expose le type de la rencontre, et un PNJ de carrière y entre comme entité posée, avec ses `carrieres` ; son rejeu, ses figures et sa cour deviennent `hotes/pions/` ; le roguelite lance ses combats par elle | L5 (roguelite), L6 ; il se fait dans son deuxième consommateur, le premier venu : L11 ou le premier lot du jeu de stratégie | un test lance un combat de deux camps (créature, PNJ de carrière, statbloc, sans héros) jusqu'à son issue ; le roguelite joue ses combats par la capacité commune, ses images de recette identiques à sa référence du L6 ; aucun vocabulaire d'apparence en chaînes littérales dans l'API de `pions` |
 | L9 | Créer un projet : le geste outillé (§ 7) | L2, L4, premier projet neuf | ce projet naît par lui |
+| L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; le convertisseur daté des PNJ v1 de ses utilisateurs, à part de l'atelier (§ 12) ; ses `entrees/` cèdent au commun : les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) au bestiaire commun, ce qui manque au catalogue à #3740 ou à un ticket (« Secousse Tellurique », les 3 traits propres du guide), le *Bestiaire non officiel* par L12 ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, L12, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
+| L11 | Lancer une rencontre de l'atelier par la capacité commune de combat (H7, § 9.2) : l'atelier compose ses deux camps et lance | L5, L10 ; L8 s'y fait s'il n'est pas fait | une rencontre de l'atelier (PNJ de carrière, statbloc, créature du *Bestiaire non officiel*, deux camps, sans héros) se joue jusqu'à son issue et se rejoue dans `pions`, en test du projet ; l'atelier n'a aucun code de combat |
+| L12 | Le *Bestiaire non officiel* livre de la base commune (§ 9.2, § 12), par `docs/ajouter-un-livre-source.md` et le skill `integrer-des-pnj` : le livre à `books.json`, sans `dir` ni `pdf`, au modèle de `guide-frenchy`, à `docs/sources-vf.md` et à `AGENTS.md` (§ Sources VF), `docs/ajouter-un-livre-source.md` gagnant le cas d'un livre sans extraction ; ses 107 profils au bestiaire par une migration datée depuis les `entrees/` de l'atelier ; ses 36 traits au catalogue par leur texte verbatim, sans mécanique ; le ticket de leur mécanique, hors de l'épique (§ 13), ouvert avec leur liste ; ses modèles de carrière, profils de héros et rôles de bête en règles du noyau ; la fiche `user-arbitrage-bestiaire-non-officiel`, qui porte les verbatims du § 12 | — | chaque profil passe `validateScene` posé en scène ; chaque trait est au catalogue, sa page citée ; pour chaque modèle, profil de héros et rôle de bête, la fiche d'un PNJ qui l'applique égale celle que la page v1 imprime ; une rencontre contre une créature du livre se joue jusqu'à son issue ; `docs:check`, typecheck complet, suite |
+| L13 | Le jeu de rôle rangé sous `projets/jeu-de-role/` (§ 2.8, § 12) : sa ligne de `COUCHES` aux droits d'un projet ; la machinerie du registre passée au noyau, derrière sa porte ; les ouvertures qui restent, mesurées au lot, déclarées et ticketées ; ses campagnes, leur registre et leurs suites quittent `src/scenes/`, qui ne garde que les scénarios de test et leurs fixtures ; les 6 scénarios bâtis sur une campagne, `src/hote/groupe.ts`, les racines et schémas de documents de `src/data/schemas`, `PROJETS_LIVRES`, `RACINES_PROSE`, `RACINES_PAR_DEFAUT`, `servir.mjs`, `recette.mjs`, les recettes et les suites du pont, et les suites du commun qui prennent un paquet pour fixture (§ 2.8) : chaque suite qui éprouve le contenu d'une campagne passe au projet, chaque suite du commun qui éprouve une mécanique sur un paquet se réécrit sur une scène ou une campagne de test construite pour elle sous `src/scenes/` (fiches `user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees` et `user-arbitrage-tests-jamais-sur-donnee-data-driven`), et les gardes génériques jouées sur les paquets livrés passent à la suite du projet ; la fiche `user-arbitrage-tests-jamais-sur-donnee-data-driven` porte le verbatim du 2026-11-24 ; ses générateurs (`scripts/arene/`, `scripts/barge-du-sel/`, `scripts/loup-et-saumure/`, `scripts/campagne/`) et ses dossiers de chapitre (`docs/dossiers/`) le rejoignent ; son point d'entrée remet au pont de Godot la liste de ses paquets et de ses scénarios, et `construire.mjs` bâtit le bundle depuis l'entrée que le projet déclare (H3, H5) ; ses scripts `jeu-de-role:*` et ses gates ; `.claude/rules/jeu-de-role.md` ; `AGENTS.md` (« Ce qu'est ce projet », § Architecture), `docs/architecture.md`, `.claude/rules/scenes-et-editeur.md` et les skills qui citent ces chemins décrivent un dépôt de jeux autour d'un noyau, sans jeu principal | L1 | lint, typecheck, suite et construction Godot vertes en course de file ; ni `src/` ni `hotes/` n'importent un fichier de `projets/`, et aucune de leurs suites ne lit un paquet du jeu de rôle ; chaque campagne se lance par le pont (`pont/campagne.hors-store.test.ts`), et les parcours `campagne` et `editeur` du lot de recettes Godot passent ; le texte joue les scénarios communs et ceux que le jeu de rôle lui remet |
 
-L2 se fait sur la branche du roguelite avec le fil qui tient #4767, par courrier ; L5, L6 et L8 suivent sur `main`.
-Les lots qui touchent `COUCHES`, les murs ou le classement de la CI (L1, L2, L3, L4) se font juger par une instance
-neuve : ils touchent un socle.
+L2 se fait sur la branche du roguelite avec le fil qui tient #4767, par courrier ; L10 part de la branche de #3633,
+avec le fil qui la tient, par courrier ; L5, L6, L8, L11, L12 et L13 suivent sur `main`, L12 dès maintenant. Les lots qui touchent `COUCHES`, les
+murs ou le classement de la CI (L1, L2, L3, L4, L8, L10, L13) se font juger par une instance neuve : ils touchent un socle.
 
 ## 11. Pistes évaluées et écartées
 
@@ -316,8 +483,11 @@ neuve : ils touchent un socle.
   des skills, sans fermer une classe de plus que `COUCHES`.
 - **Ranger les projets sous `hotes/`** : un projet n'est pas un affichage ; deux jeux partageront `pions`, et un
   affichage qui importerait un projet, ou un projet un autre, rouvrirait le couplage que H3 ferme.
-- **Déplacer `src/scenes/` dans le projet Godot** : deux affichages et les suites du noyau le lisent ; la ligne d'un
-  projet suffit à le lui fermer.
+- **Déplacer `src/scenes/` dans l'affichage Godot** : un affichage ne porte le contenu d'aucun jeu. Les campagnes
+  vont au jeu de rôle (L13) ; les scénarios de test qui ne lisent aucune campagne, que jouent Godot et le texte,
+  restent communs.
+- **Garder un jeu principal, son contenu dans le commun** : refusé par l'utilisateur (§ 12). Le commun porterait le
+  contenu d'un jeu, et ce jeu lirait les internes du noyau sans que rien ne le relève.
 - **Projets Vitest et `tsconfig.json` par projet** : aucun conflit de préparation mesuré ; le filtrage par chemin
   suffit, et un `tsconfig` de projet redéclarerait son dossier (H6).
 - **Une liste blanche de paquets par zone** : `deps:unused` relève déjà les paquets non déclarés.
@@ -325,6 +495,10 @@ neuve : ils touchent un socle.
   de la donnée.
 - **Les filtres `paths:` de GitHub Actions** : un workflow que le filtre ne déclenche pas laisse ses checks requis
   en attente et bloque la file ; ils doubleraient `ECRIT_LU`.
+- **Garder l'atelier hors de `main`, en page autonome** : il resterait un second exemplaire des règles des PNJ, que
+  rien n'oppose au noyau, et ses rencontres demanderaient un second combat.
+- **Garder le *Bestiaire non officiel* à l'atelier, en donnée propre et refusé au lancement** : ses créatures ne
+  fonctionneraient pas en jeu, ce que l'utilisateur a refusé (§ 12).
 
 ## 12. Décision de l'utilisateur
 
@@ -336,12 +510,67 @@ prévoyait la fusion. Deux précisions que la carte ne portait pas : le dossier 
 venu de la précision sur le jeu de stratégie), et le roguelite entre sur `main` avec ses ouvertures déclarées et
 ticketées, que L5 résorbe.
 
+Demande du même jour, en fil : « Faut intégrer aussi l atelier des pnjs. Surtout que j aurai envie de pouvoir lancer
+des rencontres et le système de combat de l hôte 2D est capable de le faire ». Elle se lit comme la décision sur le
+roguelite : l'atelier entre dans `main`, sous `projets/atelier-pnj/`, après son rangement (L10), puis lance ses
+rencontres par la capacité commune de combat (H7), rejouées par `pions` (L11). Elle lève le statut « hors du jeu » de la PR brouillon #3633 (solde de
+#3628, `.claude/soldes/3628.md`).
+Demande du même jour, en fil, en réponse au refus au lancement des créatures du *Bestiaire non officiel* : « C est
+un énorme défaut du jeu de ne pas accepter le bestiaire fan de fonctionner ». Lue ainsi : le *Bestiaire non
+officiel*, que la décision de Clément du 2026-11-06 (citée au `LISEZMOI.md` de l'atelier) admettait dans l'atelier,
+devient un livre de la base commune, au modèle du guide fan, traits et modèles compris (L12). Les 3 traits propres du
+guide fan n'entrent pas dans cette lecture : ses profils jouent déjà en combat, et ces traits, écartés par la
+migration de #3656 sans verbatim, vont à un ticket (L10).
+
+Précisé ensuite, en fil : « Pas grave pour le moment si les traits manquant ne font rien. On peut faire ça plus
+tard ». Les 36 traits du *Bestiaire non officiel* entrent donc sans mécanique (L12) et la reçoivent par un
+ticket hors de l'épique, que L12 ouvre et qui attend l'utilisateur (§ 13). C'est un écart daté à la règle 7
+d'`AGENTS.md` (« une règle présente dans la source est IMPLÉMENTÉE, jamais reportée »), limité à ces traits et
+tenu ouvert par ce ticket.
+
+Précisé ensuite, en fil : « Ce que je veux c est qu on puise lancer des combats depuis l atelier comme on le fait
+depuis le rogueligt et comme pour tous autres jeux qui viendront ». Lancer un combat est donc une capacité commune
+(H7), née en L8 du combat du roguelite, et non une fonction de l'atelier. Question suivante de l'utilisateur, à
+laquelle le plan répond oui (H7) : « De toute façon m hôte 2D comme le noyau et tout action doivent pouvoir être
+une capacité commune à tous les projets ? ».
+
+Demande du même jour, en fil, à la lecture du plan : « Dans projet je ne vois pas le … projet sur Godot ». Carte de
+décision du 2026-11-24, question « Ranger le jeu de rôle Godot en projet, comme les autres ? » ; laurent a choisi «
+Oui, en projet », dont la conséquence affichée était : « La campagne et ce qui ne sert qu'au jeu de rôle passent sous
+projets/jeu-de-role/ et lisent le noyau par sa porte ; les scénarios de test et l'arène restent communs. » L'option
+écartée était « Non, jeu principal à part ». Précisé aussitôt : « Y a pas de jeu principal et secondaire, juste des
+jeux ». Le jeu de rôle devient donc `projets/jeu-de-role/` (L13), et le plan ne connaît plus de jeu principal : Godot
+est un affichage, et le commun ne porte le contenu d'aucun jeu. « L'arène » de la carte est l'arène de combat de
+`scenes/test-scenarios/_shared`, la seule que lise un autre projet (le roguelite) ; elle devient une couture du noyau
+en L5. La campagne « L’Arène » est un paquet du registre ; le scénario de test qui la lance (`arene`), comme les cinq
+bâtis sur la Diligence, ne sert que le jeu de rôle et le suit, par la règle de la carte (« ce qui ne sert qu'au jeu
+de rôle »).
+
+Redit ensuite, en fil, après une question sur les campagnes qu'on modifie ou qu'on crée : « Je m ai déjà dit mais je
+le redis, le noyau ne doit jamais dépendre du data driven et des données editables. Surtout que maintenant on sépare
+bien le jeu de rôle du noyau. Qu il gère ses propres fichiers de campagne a lui pour ses fichiers et tests ». C'est
+la règle des fiches `user-arbitrage-tests-jamais-sur-donnee-data-driven` (2026-11-10) et
+`user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees` (2026-09-07), appliquée au noyau entier : il ne
+lit aucune donnée éditable d'un jeu, ses suites jouent leurs propres scènes, scénarios et campagnes de test, et le
+jeu de rôle tient ses campagnes et les suites qui les éprouvent (L13). Créer ou modifier une campagne ne touche donc
+jamais le noyau, et ne peut faire rougir aucune de ses suites.
+
+Carte de décision du 2026-11-24, question « Convertir les PNJ déjà gardés par les utilisateurs de l'atelier au
+nouveau format ? » ; laurent a choisi « Convertir une fois », dont la conséquence affichée était : « Un convertisseur
+daté, à part de l'atelier, passe un export v1 au nouveau format puis se retire ; l'atelier ne lit que le nouveau. »
+Les options écartées étaient « Repartir de zéro » et « Garder l'ancienne page en ligne ». L10 livre ce convertisseur
+et annonce sa date de retrait avec la republication de l'artefact.
+
 ## 13. Hors périmètre
 
 - `server/` (relais coop) : paquet à part, qui n'importe rien de `src/`.
 - Les preuves binaires commitées (`public/qc/`, `hotes/godot/cibles/`) : ce sont des pièces de solde et de
   maquette, pas des assets de projet.
 - La palette de Godot dérivée du kit : migration visuelle de #3935 et #4411.
-- La conception du créateur de PNJ et du jeu de stratégie, et l'affichage de chaque futur outil : tranchés à la
-  naissance du projet ; la structure accepte les trois affichages.
-- Le contenu des tickets du noyau relevés par le roguelite : #4899.
+- La conception du jeu de stratégie et l'affichage de chaque futur outil : tranchés à la naissance du projet ; la
+  structure accepte les trois affichages.
+- Le contenu des tickets du noyau relevés par le roguelite (#4899) et par l'atelier (son épique de retours, ouverte
+  en L10).
+- La mécanique des 36 traits du *Bestiaire non officiel* : un ticket hors de l'épique, que L12 ouvre, lié à #4903 et
+  marqué « attend l'utilisateur », qui porte leur liste et l'écart daté à la règle 7 (§ 12) ; il se fait par le skill
+  `ajouter-une-mecanique`, un sous-lot par famille de mécaniques.
