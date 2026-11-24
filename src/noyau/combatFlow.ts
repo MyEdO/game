@@ -119,6 +119,8 @@ import {
   toucheAvecPrise,
   toucheNonIgnoree,
   attackTestOf,
+  jetContreLaCible,
+  tueDOffice,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -178,6 +180,7 @@ import {
   hasInstinctiveDiction,
   hasCritRollTwiceTalent,
   fleeMovementBonus,
+  attackModesFor,
 } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
@@ -353,13 +356,15 @@ import {
   libelleMunitionRequise,
   damageArmour,
   deviatableArmourAt,
-  casserLaPieceBaclee, type TrappingResolver,
+  casserLaPieceBaclee,
+  type TrappingResolver,
   lacherLArme,
   laisserTomber,
   rederiverLArmeTenue,
   endommagerLArmeTenue,
   weaponIdentity,
   ganteletRetient,
+  isOffHandEligible,
 } from '../engine/items';
 import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
 import { itemCapability } from '../engine/capabilities';
@@ -828,8 +833,7 @@ export function tireSansEquipe(scene: Scene | null, attacker: Combatant, w: Weap
 }
 
 /** Contexte d'usage d'une arme (règles d'arme CONTEXTUELLES de Groupe, LDB 62) dérivé de l'attaquant.
- *  SOURCE UNIQUE de la dérivation : `firedWeapon` (attaque principale) ET `resolveDualSecond` (2ᵉ frappe du
- *  Maniement de deux armes) l'appellent — aucune duplication de l'inférence `charged`/`mounted`/`hasGroupSkill`.
+ *  SOURCE UNIQUE de la dérivation — aucune duplication de l'inférence `charged`/`mounted`/`hasGroupSkill`.
  *  `target` (optionnel — rétro-compat) sert le combat « au contact » (LDB 62 l.176) : une arme plus longue
  *  que Courte devient improvisée quand attaquant et cible sont entrés dans la longueur d'arme l'un de l'autre. */
 export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combatant, opts?: { harpoonRopeCut?: boolean; sansEquipe?: boolean }): WeaponContext {
@@ -874,6 +878,8 @@ function effectifDeLArmeSuffisant(active: Combatant, arme: Weapon, combatants: C
   return !poste || arme.uid !== poste.item.uid || pushCrewOk(poste, arme, combatants);
 }
 
+interface RefusDuTir { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'engaged'; detail: string; need?: string }
+
 /** Tir héros refusé — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
  *  bannies de la rencontre) ou RESSOURCE : arme à défaut Recharge non chargée (LDB 62 l.335) ou plus
  *  de munition compatible — `null` si le tir peut partir. Concern ORTHOGONAL à la géométrie (`attackPlan`),
@@ -881,7 +887,7 @@ function effectifDeLArmeSuffisant(active: Combatant, arme: Weapon, combatants: C
  *  l'affordance ne mente jamais : un réticule de tir sur une arbalète vide DOIT dire « recharger », pas
  *  proposer une attaque qui se solderait par un log silencieux. Mêlée / pas d'arme à distance → `null`
  *  (la Recharge ne concerne que l'arme effectivement tirée, `firedWeapon`). */
-export function firedAttackBlock(get: Get, active: Combatant, target: Combatant, weaponUid?: string): { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'engaged'; detail: string; need?: string } | null {
+export function firedAttackBlock(get: Get, active: Combatant, target: Combatant, weaponUid?: string): RefusDuTir | null {
   if (active.kind !== 'heros') return null;
   const b = get().battle;
   // Arme effectivement testée + distance PAR CETTE ARME (#BUG-A, poule-et-œuf) : choix EXPLICITE (poste
@@ -890,22 +896,9 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   const w = b
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
     : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
-  if (!effectifDeLArmeSuffisant(active, w, b?.combatants ?? []))
-    return { reason: 'sous-effectif', detail: tr('cf.refusSousEffectif', { name: nomDe(active), arme: w.label }) };
-  if (w.type !== 'distance') return null;
-  // Tir en étant *Engagé* : impossible sauf Atout d'arme Pistolet (`LDB 14 l.41`, `LDB 62 l.284-285`).
-  // Refus AVANT les gates de ressource : recharger ne débloquerait rien.
-  if (isEngaged(active) && !canFireWhileEngaged(w))
-    return { reason: 'engaged', detail: tr('cf.refusEngagePistolet', { name: nomDe(active), arme: w.label }) };
-  // Restriction d'armes à distance de la rencontre (#471, NADJ 06 l.181) — même refus AVANT tout autre
-  // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
-  if (banRangedActive(b)) return { reason: 'armeBannie', detail: `${w.label} : les armes à distance sont interdites (duel judiciaire).` };
-  if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: tr('cf.refusARecharger', { name: nomDe(active), arme: w.label }) };
+  const refus = refusDeLArmeSansCible(get, active, w);
+  if (refus || w.type !== 'distance') return refus;
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
-  const need = libelleMunitionRequise(resolveTrapping, w);
-  if (need !== undefined && !loadedAmmo(resolveTrapping, active, w)) {
-    return { reason: 'noammo', detail: `Pas de munitions (${need}) pour ${w.label}.`, need };
-  }
   // PORTÉE MINIMALE d'une machine de siège (ADE II 8 l.251/253) : REFUS (pas un malus) si la cible est
   // plus PROCHE que la bande minimale de l'arme — machines à distance : pas de Bout Portant (l.253) ;
   // trébuchet/mortier : rien sous la Portée Courte (l.251). DONNÉE générique `w.minRangeBand` (pas un flag par-machine).
@@ -926,6 +919,45 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
     const pos = ship?.pos ?? active.pos;
     if (!mountedWeaponBears(w, heading, pos, target.pos))
       return { reason: 'arc', detail: `${w.label} ne porte pas dans cet arc (${w.mountSide}).` };
+  }
+  return null;
+}
+
+/** La paire du Maniement de deux armes de `c` : arme de la main principale et arme de la main secondaire,
+ *  chacune éligible et prête (`refusDeLArmeSansCible`) ; `undefined` sans le Talent ou sans paire. LDB 10
+ *  l.767-773 ; LDB 14 l.138 */
+export function paireDesDeuxArmes(get: Get<Jeu>, c: Combatant): { principale: Weapon; secondaire: Weapon } | undefined {
+  if (!attackModesFor(c).includes('dual-wield')) return undefined;
+  const principale = c.weapons.find((w) => w.hand === 'main');
+  const secondaire = c.weapons.find((w) => w.hand === 'secondaire');
+  const deLaPaire = (w: Weapon): boolean => {
+    const objet = objetSourceDeLArme(c, w);
+    const eligible = objet ? isOffHandEligible(objet) : w.type === 'melee' ? (w.hands ?? 1) === 1 : canFireWhileEngaged(w);
+    return eligible && !refusDeLArmeSansCible(get, c, w);
+  };
+  return principale && secondaire && deLaPaire(principale) && deLaPaire(secondaire) ? { principale, secondaire } : undefined;
+}
+
+/** Refus d'une attaque de `active` à l'arme `w` qui ne dépendent pas de la cible : effectif de la pièce
+ *  servie, puis, pour un tir, légalité et ressource. LDB 14 l.41 ; LDB 62 l.335 ; NADJ 06 l.181 ; AA 10 l.148 */
+function refusDeLArmeSansCible(get: Get<Jeu>, active: Combatant, w: Weapon): RefusDuTir | null {
+  const b = get().battle;
+  if (!effectifDeLArmeSuffisant(active, w, b?.combatants ?? []))
+    return { reason: 'sous-effectif', detail: tr('cf.refusSousEffectif', { name: nomDe(active), arme: w.label }) };
+  if (w.type !== 'distance') return null;
+  // Tir en étant *Engagé* : impossible sauf Atout d'arme Pistolet (`LDB 14 l.41`, `LDB 62 l.284-285`).
+  // Refus AVANT les gates de ressource : recharger ne débloquerait rien.
+  if (isEngaged(active) && !canFireWhileEngaged(w))
+    return { reason: 'engaged', detail: tr('cf.refusEngagePistolet', { name: nomDe(active), arme: w.label }) };
+  // Restriction d'armes à distance de la rencontre (#471, NADJ 06 l.181) — même refus AVANT tout autre
+  // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
+  if (banRangedActive(b)) return { reason: 'armeBannie', detail: `${w.label} : les armes à distance sont interdites (duel judiciaire).` };
+  if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: tr('cf.refusARecharger', { name: nomDe(active), arme: w.label }) };
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
+  const need = libelleMunitionRequise(resolveTrapping, w);
+  // Munitions suivies pour les héros seuls (#126).
+  if (active.kind === 'heros' && need !== undefined && !loadedAmmo(resolveTrapping, active, w)) {
+    return { reason: 'noammo', detail: `Pas de munitions (${need}) pour ${w.label}.`, need };
   }
   return null;
 }
@@ -1324,31 +1356,8 @@ export function resolveAttack(
       }
       return { res, weapon };
     }
-    // Défense RAW contre le tir (Protectrice 2+ / Bout Portant / tireur Engagé) : un défenseur dont la
-    // défense n'est PAS surfacée oppose AUTOMATIQUEMENT sa meilleure défense (la Ligne de Vue est acquise —
-    // `blocked` a déjà rendu null). Un défenseur SURFACÉ (`defenseSurfaced` : héros manuel, ennemi conduit
-    // par le siège MJ) la joue dans SA fenêtre réactive → pas d'auto-défense ici. Le `kind` ne décide de
-    // rien : un héros `aiControlled` n'est pas surfacé et garde donc son repli.
-    // La pénalité d'ESQUIVE du contexte (neige épaisse `LDB 14 l.82`, défenseur monté `l.184`) pèse
-    // aussi sur la défense CONTRE UN TIR : même source unique que le pré-jet de la rangée adverse.
-    const rd = defenseSurfaced(get(), target)
-      ? undefined
-      : (() => {
-        const best = bestRangedDefense(resolveTrapping, attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
-        return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
-      })();
-    const res = resolveRanged(resolveTrapping, attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold, modsDR);
-    // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
-    // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
-    if (inMelee && !res.hit) {
-      const ally = strayShotVictim(res, attacker, target, grille, battleRng());
-      if (ally) {
-        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
-        stray.ajouts = [tr('cf.touchePerdueEnMelee', { name: nomDe(ally) })];
-        return { res: stray, weapon, victim: ally };
-      }
-    }
-    return { res, weapon };
+    const res = resolveRanged(resolveTrapping, attacker, target, weapon, battleRng(), dist, location, env, defenseAutoDuTir(get, attacker, target, weapon, dist), mpt, withhold, modsDR);
+    return { ...tirDevieDansLaMelee(grille, attacker, target, weapon, res, inMelee, withhold), weapon };
   }
   // Charge montée (LDB 14 l.183) : pour les DÉGÂTS, on substitue la Force (Bonus) et la Taille de la monture.
   // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMods.
@@ -1360,12 +1369,31 @@ export function resolveAttack(
   return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear, bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) }), weapon };
 }
 
-/** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
- *  l'ouverture de la Seconde main (`PendingDualStrike.jet`, LDB 10 l.773). Le `target` (valeur à
- *  toucher) inclut déjà la pénalité de main secondaire (l'arme `secondaire` porte `hand:'secondaire'`, cf. plan #1). Le
- *  défenseur fait un NOUVEAU jet de défense (LDB 10 l.773) : un défenseur SURFACÉ le joue dans SA fenêtre
- *  (#998) — on ne résout alors que le jet d'ATTAQUANT, et `jetValider('attaque')` interpose la fenêtre
- *  (`openSurfacedDefense`), comme pour la 1ʳᵉ frappe (`resolveAttack`). */
+/** Le tir manqué par la seule pénalité du tir dans la mêlée dévie et frappe un allié intercalé, touche acquise
+ *  et dégâts recalculés sur lui. LDB 14 l.116 */
+function tirDevieDansLaMelee(grille: BattleState, attacker: Combatant, target: Combatant, weapon: Weapon, res: AttackResult, inMelee: boolean, withhold?: boolean): { res: AttackResult; victim?: Combatant } {
+  const ally = inMelee ? strayShotVictim(res, attacker, target, grille, battleRng()) : null;
+  if (!ally) return { res };
+  const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
+  stray.ajouts = [tr('cf.touchePerdueEnMelee', { name: nomDe(ally) })];
+  return { res: stray, victim: ally };
+}
+
+/** Défense RAW contre le tir (Protectrice 2+ / Bout Portant / tireur Engagé) : un défenseur dont la
+ *  défense n'est PAS surfacée oppose AUTOMATIQUEMENT sa meilleure défense (la Ligne de Vue est acquise).
+ *  Un défenseur SURFACÉ (`defenseSurfaced` : héros manuel, ennemi conduit par le siège MJ) la joue dans SA
+ *  fenêtre réactive → `undefined`. Le `kind` ne décide de rien : un héros `aiControlled` n'est pas surfacé.
+ *  La pénalité d'ESQUIVE du contexte pèse aussi sur la défense contre un tir. LDB 14 l.40-44 ; LDB 14 l.82,
+ *  l.184 */
+function defenseAutoDuTir(get: Get, attacker: Combatant, target: Combatant, weapon: Weapon, dist: number): Parameters<typeof resolveRanged>[8] {
+  if (defenseSurfaced(get(), target)) return undefined;
+  const best = bestRangedDefense(objetDuNarratif(get().campaignNarratif), attacker, target, weapon, dist, true, sceneMetresPerTile(get().scene), bouclierDuBinomeEnJeu(get(), target));
+  return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
+}
+
+/** 2ᵉ attaque du Maniement de deux armes, au jet d'attaquant IMPOSÉ `jet` (`PendingDualStrike.jet`) ; un
+ *  défenseur SURFACÉ (#998) oppose sa défense dans SA fenêtre (`openSurfacedDefense`) ; `victim` : l'allié
+ *  touché par un tir dévié (`tirDevieDansLaMelee`). LDB 10 l.767-773 ; LDB 14 l.78 ; LDB 14 l.116 ; LDB 16 l.113 */
 export function resolveDualSecond(
   get: Get,
   attacker: Combatant,
@@ -1373,38 +1401,49 @@ export function resolveDualSecond(
   offWeapon: Weapon,
   jet: number,
   opts?: { location?: HitLocation },
-): AttackResult {
-  // Règles d'arme contextuelles de Groupe (LDB 62) AUSSI pour la 2ᵉ frappe : Fléau sans Spé → Dangereuse +
-  // aucun Atout, Lance hors Charge → improvisée. Replié AVANT touche/Dégâts (même `weaponContextOf` que
-  // `firedWeapon` — source unique du ctx) car `applyAttackResult` fait confiance au `res` pré-calculé.
-  offWeapon = effectiveWeapon(offWeapon, weaponContextOf(attacker, offWeapon, target));
-  const { env } = attackEnv(get, attacker, target, offWeapon, {});
-  const mods = attackModifiers(attacker, target, offWeapon, { kind: 'melee', location: opts?.location, env });
-  const valeur = combatValue(attacker, 'melee', offWeapon); // `TestResult.base` : départage du Test opposé (LDB 12 l.160), même grandeur que `rollMeleeAttacker`
+): { res: AttackResult; victim?: Combatant } {
+  const s = get();
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+  // L'arme que lira l'application (`attackWeaponOf`) : munition et règles contextuelles de Groupe (LDB 62) comprises.
+  const arme = firedWeapon(resolveTrapping, s.scene, attacker, target, offWeapon.uid, s.battle?.combatants);
+  const { env, inMelee } = attackEnv(get, attacker, target, arme, {});
+  if (arme.type === 'distance') {
+    const mpt = sceneMetresPerTile(s.scene);
+    const dist = distanceDeLAttaque(s, attacker, target, arme);
+    const res = resolveRanged(resolveTrapping, attacker, target, arme, battleRng(), dist, opts?.location, env, defenseAutoDuTir(get, attacker, target, arme, dist), mpt, false, visibiliteDeLAttaque(get, arme, dist * mpt), jet);
+    return tirDevieDansLaMelee(garanti(s.battle, attacker.id, 'combat du tir'), attacker, target, arme, res, inMelee);
+  }
+  const mods = attackModifiers(attacker, target, arme, { kind: 'melee', location: opts?.location, env });
+  const valeur = combatValue(attacker, 'melee', arme); // `TestResult.base` : départage du Test opposé (LDB 12 l.160), même grandeur que `rollMeleeAttacker`
   // Cible par le MONTEUR CANONIQUE (#1153) : plafond des Difficultés (LDB 14 l.91-96) puis MÊME
   // écrêtage que `rollTest` — la 2ᵉ frappe vise la cible que le moteur jetterait pour la 1ʳᵉ.
   const toHit = rollLine({
-    actor: attacker, difficulty: 'intermediaire', combat: { kind: 'melee', weapon: offWeapon },
+    actor: attacker, difficulty: 'intermediaire', combat: { kind: 'melee', weapon: arme },
     surLaCible: mods, plafond: 'difficultes',
   }).target;
-  const atk = evaluateTest(jet, toHit, valeur);
+  const atk = jetContreLaCible(evaluateTest(jet, toHit, valeur), target, 'melee');
   // MÊME composition que la cible montée ci-dessus (`mods`, plafond compris) : les deux branches la
   // reçoivent FIGÉE — la 2ᵉ frappe annonce la Difficulté qui a fait sa cible.
   const compo = composeAttack(mods);
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'aucune' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
-  if (mode === 'aucune') return resolveMeleePassive(attacker, target, offWeapon, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo);
-  const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo, bouclierDuBinomeEnJeu(get(), target));
+  const res = mode === 'aucune'
+    ? resolveMeleePassive(attacker, target, arme, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo)
+    : finishMelee(attacker, target, arme, atk, rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), arme), mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo, bouclierDuBinomeEnJeu(get(), target));
+  if (res.hit && tueDOffice(target)) res.autoKill = true;
+  return { res };
 }
 
-/** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
- *  votre choix ») : adversaires encore actifs, à portée de l'arme secondaire (Allonge). Sans position connue
- *  (tests purs) → non filtré sur la distance. */
-export function dualStrikeTargets(scene: Scene | null, battle: BattleState, attacker: Combatant, offWeapon: Weapon): Combatant[] {
-  return battle.combatants.filter((c) => {
+/** Cibles de la 2ᵉ frappe du Maniement de deux armes : aucune si l'arme secondaire ne peut plus frapper
+ *  (`refusDeLArmeSansCible`, munition dépensée par la 1ʳᵉ frappe), sinon les adversaires actifs qu'elle atteint
+ *  (`previewAttack` : Allonge, ou portée et Ligne de Vue du tir). Sans position connue → non filtré sur la
+ *  distance. LDB 10 l.773 ; LDB 13 l.114 */
+function dualStrikeTargets(get: Get<Jeu>, attacker: Combatant, offWeapon: Weapon): Combatant[] {
+  if (refusDeLArmeSansCible(get, attacker, offWeapon)) return [];
+  return (get().battle?.combatants ?? []).filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c)) return false;
     if (!attacker.pos || !c.pos) return true;
-    return distanceDeContact(scene, attacker, c) <= reachTiles(offWeapon, sceneMetresPerTile(scene));
+    const p = previewAttack(get, attacker, c, undefined, { weaponUid: offWeapon.uid });
+    return p.inRange && !p.blocked;
   });
 }
 
@@ -1414,7 +1453,7 @@ export function ciblesDeLaDoubleFrappe(s: Jeu): Combatant[] {
   const ds = s.pendingDualStrike;
   const attaquant = ds && s.battle ? inBattleId(s.battle, ds.attackerId) : undefined;
   const secondaire = attaquant?.weapons.find((w) => w.uid === ds?.offWeaponUid);
-  return s.battle && attaquant && secondaire ? dualStrikeTargets(s.scene, s.battle, attaquant, secondaire) : [];
+  return attaquant && secondaire ? dualStrikeTargets(() => s, attaquant, secondaire) : [];
 }
 
 /** Aperçu d'attaque (R4) : la valeur de toucher (cible du d100) et sa décomposition de modificateurs, SANS
@@ -4783,12 +4822,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   const touche = res.sauvegarde?.sauve ? toucheSauvee(res) : res;
   if (suite?.manoeuvre) applyFreeAttackEffects(get, attacker, target, suite.manoeuvre.kind, touche);
   const enAction = !isOutOfAction(attacker);
-  // Maniement de deux armes (LDB 10 l.767-773) : la main directrice a touché → sélection de la 2ᵉ cible.
-  // Sans « adversaire disponible » (LDB 10 l.773), l'interlude ne s'ouvre pas — patron de la chaîne de
-  // balayage sans cible restante (`maybeHeroCleave`).
+  // LDB 10 l.767-773 ; patron de la chaîne de balayage sans cible restante (`maybeHeroCleave`).
   const offDual = suite?.dualMain ? attacker.weapons.find((w) => w.uid === suite.dualMain!.offWeaponUid) : undefined;
-  const battleDual = get().battle;
-  if (enAction && suite?.dualMain && touche.hit && offDual && battleDual && dualStrikeTargets(get().scene, battleDual, attacker, offDual).length) {
+  if (enAction && suite?.dualMain && touche.hit && offDual && dualStrikeTargets(get, attacker, offDual).length) {
     // LDB 10 l.773 ; LDB 18 l.53 ; #1595 c.6229354257, c.6229550544.
     const jet = lancerDeLaSecondeMain(touche, suite.dualMain.mainRoll, battleRng(), critRollTwiceFor(attacker));
     set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, jet } });

@@ -18,6 +18,8 @@ import { conversationEnVue, ouvrirDialogue } from '../noyau/dialogue';
 import type { Dialogue } from '../noyau/monde/scene';
 import { fixtureText } from '../i18n/fixtureText';
 import { carteEnVue } from '../noyau/carteEnVue';
+import { interludeEnVue } from '../noyau/interludeEnVue';
+import { bancDeLInterlude } from '../noyau/interlude.testkit';
 import { dayPhase, toDate } from '../engine/clock';
 import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
 
@@ -167,7 +169,7 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.carte).toBeNull();
     expect(vue.recit, 'en route, aucun récit').toBeNull();
     expect(vue.repos, 'en route, aucune nuit à régler').toBeNull();
-    expect([vue.marchand, vue.marche, vue.conversation], 'en route, ni échoppe, ni marché, ni conversation').toEqual([null, null, null]);
+    expect([vue.marchand, vue.marche, vue.conversation, vue.interlude], 'en route, ni échoppe, ni marché, ni conversation, ni interlude').toEqual([null, null, null, null]);
   });
 
   it('la conversation en cours : la conversation du lecteur, en données, sans fenêtre qui tienne la main', () => {
@@ -203,5 +205,14 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.carte).not.toBeNull();
     expect(vue.carte).toEqual(carteEnVue(banc.getState()));
     expect(vue.voyage).toBeNull();
+  });
+});
+
+describe('projection de l’interlude', () => {
+  it('l’interlude ouvert : l’interlude du lecteur, en données', () => {
+    const { banc, id } = bancDeLInterlude();
+    const vue = projeter(banc.getState(), 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
+    expect(vue.interlude).toMatchObject({ semaines: 1, heros: [{ id }] });
+    expect(vue.interlude).toEqual(interludeEnVue(banc.getState()));
   });
 });

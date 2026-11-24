@@ -525,10 +525,9 @@ export interface PendingCleave {
    *  l.33) : versée dans la suite de chaque maillon, jouée à la fermeture de la chaîne. */
   restitution?: SuiteDeCoup['restitution'];
 }
-/** Sélection de la 2ᵉ cible du Maniement de deux armes (LDB 10 l.767-773), après une 1ʳᵉ frappe RÉUSSIE.
- *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `fenetreFermer('secondeFrappe')`). `jet` = le jet
- *  d'attaquant de la 2ᵉ frappe, tranché à l'ouverture (LDB 10 l.773).
- *  Avantage : +1 UNIQUE accordé si les DEUX frappes touchent (l.638) — son existence prouve que la 1ʳᵉ a touché. */
+/** Sélection de la 2ᵉ cible du Maniement de deux armes, calquée sur PendingCleave (renoncer :
+ *  `fenetreFermer('secondeFrappe')`) ; `jet` = le jet d'attaquant de la 2ᵉ frappe, tranché à l'ouverture.
+ *  LDB 10 l.767-773 */
 export interface PendingDualStrike {
   attackerId: string;
   offWeaponUid: string;
@@ -1685,6 +1684,8 @@ export type Cloture =
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
   | { verbe: 'reprendreEntretienDesRounds'; reprise: import('./outOfCombatUpkeep').RepriseEntretienDesRounds }
   | { verbe: 'reprendreEntretienDeLHorloge'; minutes: number; apresLesRounds?: true }
+  /** Suite d'une nuit de repos dont les Rounds sont joués (`openRestNight`). */
+  | { verbe: 'reprendreLaNuit'; p: import('./restFlow').PendingRest; nightsLeft: number; extraContagion: import('./contagion').ContagionSpec[] }
   /** Suite du pas maritime déjà écoulé. */
   | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et

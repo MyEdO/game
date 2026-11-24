@@ -29,8 +29,7 @@ import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { reposDeScene } from './monde/scene';
-import { partyAssisted, peutTenter } from '../engine/skills';
-import { HEAL_SKILL } from '../engine/healing';
+import { partyAssisted } from '../engine/skills';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
@@ -69,6 +68,9 @@ import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbs
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
+import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
+import { confierLaSuite, OPS_DIFFEREES } from './combatEffects';
+import { checkPartyWiped } from './partyWipe';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
@@ -190,9 +192,6 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * NB : on n'avance PAS l'horloge minute par minute (avancerLeTemps rejouerait l'entretien de Round —
- * hémorragie/poison/feu tueraient le dormeur ; LDB 16 l.105 : le repos suppose des États stabilisés,
- * restRecovery refuse d'ailleurs un héros Hémorragique/En flammes/Empoisonné).
  */
 export function sleepParty(
   get: Get,
@@ -206,8 +205,6 @@ export function sleepParty(
   const entries: NightEntry[] = [];
   const journal: string[] = [];
 
-  // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -224,7 +221,7 @@ export function sleepParty(
     // par la porte, comme dans la nuit interactive : ce chemin les résout d'office (`runCascadeImmediate`
     // — branche I du seam), il ne les roule pas lui-même et ne saute aucune fenêtre qui existerait.
     const deferred: DeferredUpkeepTest[] = [];
-    const entretien = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
+    const entretien = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
     const idsDuGroupe = new Set(get().party.map((h) => h.id));
     for (const { actorId, text } of entretien) {
       entries.push({
@@ -409,7 +406,6 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
  * avant et après le repos.
  */
 export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; log: string[]; slept: { from: number; to: number } } {
-  let party = get().party;
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
@@ -422,19 +418,18 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
   // plus bas — `upkeepCount` marque la frontière entre ce qui est déjà écrit et le reste de cette fonction.
-  const upkeep = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
+  const upkeep = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
   log.push(...upkeep.map(({ text }) => text));
   const upkeepCount = upkeep.length;
-  // `party` RAFRAÎCHI : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
+  // `party` lu APRÈS l'entretien : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
   // `withBourseMoney` du/des héros ponctionnés) — toute la suite (mutations eager de récupération/
   // cauchemars, `expireOnRespite`) doit opérer sur ces réfs à jour, pas sur celles PÉRIMÉES
   // d'avant l'entretien (sinon perdues au `set({party:[...get().party]})` de clôture, l.551).
-  party = get().party;
+  const party = get().party;
 
   const steps: BuiltCascadeStep[] = [];
   // MARCHE FORCÉE de la journée de voyage (LDB 51 l.195) : un jet par héros — la chaîne ouvre la cascade.
@@ -857,7 +852,15 @@ export const TITRE_DE_LA_NUIT = { auberge: 'rf.nightInn', maison: 'rf.nightHome'
  *  la nuit suivante. `extraContagion` (repas de la qualité à risque) ne s'applique qu'à la nuit d'ARRIVÉE (repas
  *  du soir posé une fois en amont par `dormir`).
  */
-export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {
+export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = [], apresLesRounds?: true): void {
+  // Les Rounds de la nuit, joués avant elle : LDB 16 l.105.
+  if (!apresLesRounds) {
+    const minutes = aubeApresNuits(get().gameTime, 1) - get().gameTime;
+    if (jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+      confierLaSuite(set, [{ verbe: 'reprendreLaNuit', p, nightsLeft, extraContagion }]);
+      return;
+    }
+  }
   const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
   const remaining = nightsLeft - 1;
   // La halte de voyage (travelHalt) reprend la route à la clôture — SEULEMENT sur la DERNIÈRE nuit du
@@ -869,6 +872,8 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
       title: t(TITRE_DE_LA_NUIT[toitDeLaNuit(p, get().party)]), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
       travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
     });
+  } else if (checkPartyWiped(get, set)) {
+    return;
   } else if (remaining > 0) {
     // `buildNightCascade` a DÉJÀ journalisé le titre + tout ce qui suit l'entretien (#216) — rien à
     // influencer cette nuit-ci (PB pleins, pas de campement) → enchaîne directement la suivante.
@@ -918,6 +923,9 @@ export const GENRES_D_ETAPE = [
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
+  clotures: {
+    reprendreLaNuit: (get, set, { p, nightsLeft, extraContagion }) => openRestNight(get, set, p, nightsLeft, extraContagion, true),
+  },
   appliers: {
     ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
     recuperation: bandeDeNuit((_get, _set, _band, row, hero) => {

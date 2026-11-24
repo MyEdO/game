@@ -44,7 +44,7 @@ import { seaActivitiesCatalog } from './seaActivities';
 import { catalogEntryOf, libelleDeLaRepartition, lignesDAchat } from './merchantFlow';
 import { bulkCarriers } from './carriers';
 import { offresDeCargaison } from './cargaison';
-import { libelleDuDepot } from './interludeEnVue';
+import { depotEnVue, libelleDuDepot } from './interludeEnVue';
 import { findCargoById } from '../engine/cargo';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { battleSceneById, postesDeBataille } from './massBattleFlow';
@@ -341,7 +341,7 @@ export const DESIGNATIONS = {
     mot: 'id de dépôt',
     lire: (s) => s.bank.map((d) => d.uid),
     nom: (s) => {
-      return indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot(s, d));
+      return indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot(depotEnVue(s, d)));
     },
   },
   IdDeSort: { mot: 'id de sort', lire: () => ids(spells), nom: (_s) => parLabel(spells) },

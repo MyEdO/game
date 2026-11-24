@@ -881,13 +881,19 @@ export function effectTargets(get: Get, target: 'groupe' | 'heros', heroId?: str
  * pas. SOURCE UNIQUE de la LEVÉE du handler `ops`, de sa VALIDATION (`refs`, lue par `validateScene`)
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
  */
-export const CIBLES_D_EFFET_DE_SCENE = [
+const CIBLES_DU_MARCHEUR_DE_SCENE = [
   { on: 'groupe', label: libelleDeValeur(cibleDeFeuilleSchema, 'groupe') },
   { on: 'heros', label: libelleDeValeur(cibleDeFeuilleSchema, 'heros') },
   { on: 'navire', label: libelleDeValeur(cibleDeFeuilleSchema, 'navire') },
   { on: 'role', label: 'Un rôle d’équipage' },
   { on: 'membreAuHasard', label: libelleDeValeur(cibleDeFeuilleSchema, 'membreAuHasard') },
   { on: 'volontaires', label: 'Les héros volontaires' },
+] as const;
+/** Le testeur se résout par cuisson (`avecLeTesteur`) dans la branche d'un Test de scène, à son placement prouvé
+ *  par `sceneFlowSchema` (#4834). */
+export const CIBLES_D_EFFET_DE_SCENE = [
+  ...CIBLES_DU_MARCHEUR_DE_SCENE,
+  { on: 'testeur', label: libelleDeValeur(cibleDeFeuilleSchema, 'testeur') },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
 
@@ -909,7 +915,8 @@ export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof 
  *  - `consommable` : `bakeConsumableFlow` réécrit toute feuille sur le buveur (`engine/consumables.ts`) ;
  *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`) ;
  *  - `evenementDeMer` : `runFlow` sur la `consequence` d'une rangée de `sea-events.json` (`resolveBoardEvent`,
- *    `resolvePortArrival`, `finalizeFastVoyage`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table.
+ *    `resolvePortArrival`, `finalizeFastVoyage`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table, sans le
+ *    testeur : `flowSchema` n'en prouve pas le placement.
  */
 export const CIBLES_PAR_RACINE = {
   scene: CIBLES_D_EFFET_DE_SCENE,
@@ -919,7 +926,7 @@ export const CIBLES_PAR_RACINE = {
   maladie: [{ on: 'target', label: 'Le malade' }],
   consommable: [{ on: 'target', label: 'Le buveur' }],
   critiqueDeCoque: [{ on: 'target', label: 'Le marin touché' }],
-  evenementDeMer: CIBLES_D_EFFET_DE_SCENE,
+  evenementDeMer: CIBLES_DU_MARCHEUR_DE_SCENE,
 } as const;
 export type RacineDEffet = keyof typeof CIBLES_PAR_RACINE;
 export type RacineDeCatalogue = Exclude<RacineDEffet, 'scene'>;
@@ -1038,7 +1045,7 @@ const MALADIE_DE_L_EQUIPAGE = 'maladieDeLEquipage';
 export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }, on: string): string {
   return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
-    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire`, `membreAuHasard`, un rôle d’équipage (`{ role }`) ou des volontaires (`{ volontaires }`).';
+    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire`, `membreAuHasard`, le `testeur` (branche d’un Test), un rôle d’équipage (`{ role }`) ou des volontaires (`{ volontaires }`).';
 }
 
 /** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
@@ -1848,6 +1855,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
+      if (on === 'testeur') throw new Error(t('eff.testeurHorsDuTest'));
       let targets: Combatant[];
       if (on === 'membreAuHasard') {
         const tire = membreDuBordAuHasard(env.get, env.set, base.rng);

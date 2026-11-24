@@ -23,7 +23,7 @@ import { bornerLesRegistresDuBord } from '../shipCrew';
 import { opsDeRetourDEquipage } from '../navireOps';
 import { pruneSeatAssignments } from '../monde/seating';
 import { rencontreEngagee } from '../monde/combatants';
-import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
+import { narratifDuPaquet } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
@@ -54,7 +54,7 @@ export interface SaveGame extends SaveMeta {
 const HORS_SAVE = {
   cadenceHote: 'cadence de table reçue dans la session coop',
   // #767 · #766
-  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, registreDesScenes.ts)',
+  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`narratifDuPaquet`, registreDesScenes.ts)',
 } as const satisfies Partial<Record<keyof EtatDeJeu, string>>;
 
 /** Le `data` d'une save : `EtatDeJeu` moins `HORS_SAVE`. */
@@ -183,8 +183,8 @@ export interface SaveChargee {
  * Charge `lue` (au `FORMAT_SAVE`, `lireSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
  * campagne. La session réseau est celle de l'hôte qui charge, jamais celle figée dans la save : `initialNet()`.
  * L'assise de la scène est élaguée de ce que CE groupe ne porte plus (`pruneSeatAssignments`) ; une scène sans assise
- * n'en gagne pas le champ. Le paquet de campagne ré-enregistre ses scènes et re-dérive `HORS_SAVE`
- * (`reposerPaquetDeCampagne`).
+ * n'en gagne pas le champ. Le paquet de campagne re-dérive `HORS_SAVE` (`narratifDuPaquet`) ; ses scènes s'enregistrent
+ * à l'ouverture de la partie sur l'état chargé (`ouvrirLeProprietaire`).
  */
 export function chargerLaSave(lue: SaveGame): SaveChargee {
   const { save, retraits } = elaguerSave(lue);
@@ -206,7 +206,7 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
     pendingCouncil: conseil,
     screen: 'campaign',
     net: initialNet(),
-    ...reposerPaquetDeCampagne(data.campaignDoc),
+    ...narratifDuPaquet(data.campaignDoc),
   };
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }

@@ -17,6 +17,7 @@ import type { CampaignDoc, CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { creditBourse } from './bourseFlow';
 import { dayIndex, semainesCompletes } from '../engine/clock';
+import { exigerUnProjetJouable } from './validateScene';
 
 /** Ce qu'un scénario CONSTRUIT, à chaque appel de sa fabrique, sur les datasets VIVANTS (#1692). */
 export interface ContenuDeScenario {
@@ -62,8 +63,10 @@ export function lancementDuProjet(projet: { scenes: Scene[]; worldMap?: WorldMap
   };
 }
 
-/** POSE du lancement : règles, groupe, projet ou scène. */
+/** POSE du lancement : la porte du projet joué (`exigerUnProjetJouable`), avant toute écriture, puis règles, groupe,
+ *  projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
+  exigerUnProjetJouable([l.scene, ...(l.extraScenes ?? [])], l.worldMap, l.narratif);
   if (l.regles) poserLesRegles(l.regles);
   get().fixerLeGroupe(l.party);
   if (l.projet || l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: l.projet });

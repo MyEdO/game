@@ -76,7 +76,7 @@ import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
 import { refDeRegle } from '../engine/reglesChiffrees';
-import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
 const mjAuSiege1 = (net: NetState): NetState => poserLeSiegeMJ({ ...net, seatNames: { ...net.seatNames, 1: 'MJ' } }, 1);
@@ -2226,6 +2226,8 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     const equipage = { label: t('crew.lEquipage'), diseases: [verole] };
     avancerLesMaladies(equipage, MINUTES_PER_DAY - (heuresAvantSymptomes * 60 || 121), rng);
     set({
+      // Personne ne soigne à bord : LDB 09 l.265.
+      party: get().party.map((h) => ({ ...h, skills: (h.skills ?? []).filter((s) => s.id !== 'guerison') })),
       vessel: { ...get().vessel!, manann: { score: 1000, applied: [] }, porteurDeLEquipage: { diseases: equipage.diseases } },
     });
     const avant = get().gameTime;
@@ -2736,14 +2738,16 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursDeSoupe, 'le mois de soupe repart à zéro après le Test').toBe(0);
   });
 
-  it('Scorbut d’un Personnage : sa Durée ne décompte qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
-    const [aLAuberge, enMer] = get().party;
+  it('Scorbut d’un Personnage : sa Durée ne décompte, soins compris, qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
+    const [aLAuberge, enMer, soignant] = get().party;
     for (const h of [aLAuberge, enMer]) h.diseases = [contractDisease('scorbut', makeRNG(2))!];
+    soignant.skills = [...(soignant.skills ?? []).filter((s) => s.id !== 'guerison'), { id: 'guerison', advances: 10, characteristic: 'intelligence' }];
     const avant = aLAuberge.diseases![0].minutesLeft;
     feedFromMeal(aLAuberge);
     enMer.items = [...(enMer.items ?? []), itemFromTrappingById(BISCUITS, idsDeTest)!];
     get().avancerLeTemps(MINUTES_PER_DAY);
-    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
+    // LDB 09 l.265 ; MDG 14 l.232
+    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - 2 * MINUTES_PER_DAY);
     expect(enMer.diseases![0].minutesLeft).toBe(avant);
   });
 
@@ -5053,6 +5057,8 @@ describe('l’événement de bord tombe le jour où son compteur arrive à zéro
 
   it.each(Array.from({ length: 10 }, (_, k) => k + 1))('traversée commandée, compteur posé à %i au départ : l’événement tombe ce jour-là, aucun avant', (compteur) => {
     set({ gameTime: 160 * 1440 + 8 * 60, lastUpkeepDay: 160 } as never); // été : le froid ne coupe pas la traversée avant N = 10
+    // Le groupe tient dix jours sans vivres : LDB 18 l.15, l.342.
+    set({ party: get().party.map((h) => blessuresSurLeProfil({ ...h, wounds: blessuresDeBase(40) })) });
     appareiller(1, compteur, 'commande');
     traverser(compteur);
     expect(joursDEvenement()).toEqual([compteur]);

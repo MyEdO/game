@@ -503,12 +503,15 @@ export function tickCombatAuto(get: Get, set: Set): void {
   }
 }
 
+/** Le jeton du tick d'auto-cadence planifié, par état (`Get`) : celui d'une partie suspendue vit sur sa plateforme (#4862). */
+const tickPlanifie = new WeakMap<Get, Jeton>();
+
 /**
  * Planifie un tick d'auto-cadence après une écriture de l'autorité en Rapide ou Auto. Le jeton
  * coalesce les réveils hors du cycle de `set` tant que la plateforme le garde en attente.
  */
-let tickPlanifie: Jeton | null = null;
 export function planifierLeTickAuto(get: Get, set: Set): void {
-  if (!detientLAutoriteDuJeu(get()) || !cadenceAuto() || (tickPlanifie !== null && enAttente(tickPlanifie))) return;
-  tickPlanifie = programmer(() => tickCombatAuto(get, set), 0);
+  const planifie = tickPlanifie.get(get);
+  if (!detientLAutoriteDuJeu(get()) || !cadenceAuto() || (planifie !== undefined && enAttente(planifie))) return;
+  tickPlanifie.set(get, programmer(() => tickCombatAuto(get, set), 0));
 }

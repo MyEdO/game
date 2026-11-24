@@ -123,6 +123,7 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
  *  échoue la garde : la défense d'un défenseur SURFACÉ doit passer par une FENÊTRE. */
 const DEFENDER_ROLL_SITES = new Set([
   'resolveAttack',        // repli non surfacé seulement (`defenseSurfaced` → undefined / defense:'none')
+  'defenseAutoDuTir',     // repli non surfacé du tir, partagé par `resolveAttack` et `resolveDualSecond` (`defenseSurfaced` → undefined)
   'maybeOpenDefense',     // OUVRE la fenêtre (chemin instantané : IA, gratuites, balayage)
   'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : jetValider('attaque'))
   'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `jetValider('attaque')` interpose, #998)

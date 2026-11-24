@@ -404,7 +404,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
     const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never });
     const off = a.weapons[1];
     seedBattleRng(7);
-    const res = resolveDualSecond(mkGet([a, b]), a, b, off, 30);
+    const res = resolveDualSecond(mkGet([a, b]), a, b, off, 30).res;
     const avant = cibleNonEcretee(a, 'melee', off, attackModifiers(a, b, off, { kind: 'melee' }));
     expect(avant, 'la fixture franchit la borne').toBe(110);
     expect(res.attackerDetail!.target, 'la 2ᵉ frappe est bornée comme les autres jets').toBe(99);
@@ -426,7 +426,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
     expect(combineMods(mods), 'aucun plafond ne mord sur des mods au jet').toBe(-40);
 
     seedBattleRng(7);
-    const res = resolveDualSecond(mkGet([a, b]), a, b, off, 30);
+    const res = resolveDualSecond(mkGet([a, b]), a, b, off, 30).res;
     expect(res.attackerDetail!.target).toBe(combatValue(a, 'melee', off) - 40);
   });
 });

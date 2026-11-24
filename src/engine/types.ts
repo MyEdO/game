@@ -1631,6 +1631,12 @@ export interface Combatant {
    *  `aspergerDEau`) sur une cible adjacente, immunise le Round courant, puis consommé par
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
+  /** Objets (id de catalogue) à Dose de période `rencontre` déjà pris (`prendreLaDose`), vidé à l'entrée en combat
+   *  comme `soinRencontreUtilise`. LDB 72 l.24, l.30 */
+  dosesDeRencontre?: string[];
+  /** Par objet (id de catalogue) à Dose datée, la marque de la période où sa dernière dose fut prise : jour de jeu,
+   *  ou compte des Blessures Critiques subies (`prendreLaDose`). LDB 72 l.22, l.28 */
+  marquesDeDose?: Record<string, number>;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
    *  Réinitialisé au début de chaque combat (lancerLeCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;

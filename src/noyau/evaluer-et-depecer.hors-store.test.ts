@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resetRule } from '../engine/policy';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
@@ -14,7 +14,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 import { createHero } from '../engine/character';
 import { emptyScene } from './monde/scene';
 import { initialNet, type BattleState } from './etat';
-import { appraiseRefus, gameDay } from './merchantFlow';
+import { appraiseRefus } from './merchantFlow';
 import { reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { fenetreDuButin } from './fenetreDuButin';
 import { gestesDeLObjet } from './gestesDeLObjet';
@@ -80,7 +80,7 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
   });
 
   it('l’Évaluation d’une ligne manquée ce jour, tant que court le délai maison (`marche-evaluation-delai-jours`)', () => {
-    banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { appraiseTriedDay: gameDay(g()) })] } } as never);
+    banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { appraiseTriedDay: dayIndex(g().gameTime) })] } } as never);
     g().evaluerLObjet('L0');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.evaluationARetenter', { label: 'Épée', jours: 1 }), null]);
   });

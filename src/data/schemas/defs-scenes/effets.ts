@@ -51,7 +51,7 @@ import {
   wallSideSchema,
 } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { EffectOp, Flow as CoreFlow } from '../../../engine/flowCore';
+import { testeursHorsDeLeurTest, type EffectOp, type Flow as CoreFlow } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -731,10 +731,21 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   ]),
 );
 
+const TESTEUR_HORS_DU_TEST = 'cible « testeur » hors de la branche d’un Test : elle vise le héros qui a jeté le Test dont elle est la réussite ou l’échec (pas un Test d’équipage).';
+
 /** L'arbre `arbreDeFlow` (`grammaire/mecanique.ts`) de feuille l'union `Effect`, de Test `testDeSceneSchema`
  *  et de coût de `choix` littéral (le template `$indice` n'a pas de porteur en scène) : sa sortie est
  *  `FlowDeScene`. */
-export const sceneFlowSchema = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
+export const sceneFlowSchema = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema).superRefine((flow, ctx) => {
+  for (const chemin of testeursHorsDeLeurTest(flow)) ctx.addIssue({ code: 'custom', path: [...chemin, 'effet', 'on'], message: TESTEUR_HORS_DU_TEST });
+});
+
+/** Refuse, au champ `champ`, toute feuille d'une liste d'effets jouée hors de tout Test qui vise le testeur. */
+export function refuserLeTesteurHorsDuTest(effets: readonly Effect[], ctx: z.RefinementCtx, champ: string): void {
+  effets.forEach((e, i) => {
+    if (e.type === 'ops' && e.on === 'testeur') ctx.addIssue({ code: 'custom', path: [champ, i, 'on'], message: TESTEUR_HORS_DU_TEST });
+  });
+}
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });
