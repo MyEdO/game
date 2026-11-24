@@ -1,6 +1,6 @@
 /**
  * Point de validation partagé (#176) : `validateDataset`/`schemaForFile`/`validateDocument` — la SOURCE
- * UNIQUE utilisée par la sauvegarde Codex (`CodexEdit.save`), le chargement DEV (`src/dev-validate.ts`) et
+ * UNIQUE utilisée par la sauvegarde du Compendium (`validerMutation`, `src/data/atelierDuCodex.ts`) et
  * le contrat CI (`schema-contract.test.ts`). Le contrat CI couvre déjà « chaque JSON réel parse » ; ici
  * on verrouille le CONTRAT de la fonction : valide → null, invalide → message champ-par-champ, fichier
  * non registré → erreur NOMMANT le fichier et le registre à peupler (la porte est STRICTE : un document
@@ -13,6 +13,7 @@ import { listeCle } from './grammaire/collection-cle';
 import { nommerChamps } from './grammaire/meta';
 import { schema as characteristicsSchema } from './defs/characteristics';
 import { projetSchema } from './defs-scenes/projet';
+import paquetDeTest from '../../scenes/fixtures/paquet-de-test.json';
 import areneProjet from '../../scenes/arene/arene-projet.json';
 
 const VALID_CHAR = [
@@ -55,13 +56,15 @@ describe('validateDataset — point de validation partagé (#176)', () => {
   });
 
   it('un document de la racine src/scenes est registré par son CHEMIN relatif', () => {
+    expect(schemaForFile('fixtures/paquet-de-test.json')).toBe(projetSchema);
+    expect(validateDataset('fixtures/paquet-de-test.json', paquetDeTest)).toBeNull();
     expect(schemaForFile('arene/arene-projet.json')).toBe(projetSchema);
     expect(validateDataset('arene/arene-projet.json', areneProjet)).toBeNull();
   });
 
   it('validateDocument — porte par SCHÉMA (le seam n\'a pas de nom de fichier) : rend les FAUTES', () => {
-    expect(validateDocument(projetSchema, areneProjet)).toBeNull();
-    const fautes = validateDocument(projetSchema, { ...areneProjet, type: 'scene' });
+    expect(validateDocument(projetSchema, paquetDeTest)).toBeNull();
+    const fautes = validateDocument(projetSchema, { ...paquetDeTest, type: 'scene' });
     expect(fautes?.map((f) => f.chemin)).toContainEqual(['type']);
     expect(rapportDeFautes('Projet', fautes!)).toContain('Projet — JSON invalide');
   });
@@ -121,7 +124,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
   });
 
   it('le rapport de la porte du projet nomme la scène et l’entité par leur clé, plus par leur rang', () => {
-    const brut = structuredClone(areneProjet) as { scenes: { id: string; entities: unknown[] }[] };
+    const brut = structuredClone(paquetDeTest) as { scenes: { id: string; entities: unknown[] }[] };
     const rang = brut.scenes[0].entities.length;
     brut.scenes[0].entities.push({ id: 'p-1', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Tonneau' });
     const rapport = rapportDeFautes('Projet', validateDocument(projetSchema, brut)!);

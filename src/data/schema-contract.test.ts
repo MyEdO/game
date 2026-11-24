@@ -4,7 +4,7 @@
  * INCRÉMENT (comme les registres `gen-registry.mjs`). Trois volets, patron `comment-poison-guard.test.ts` :
  *  (a) chaque document REGISTRÉ des DEUX racines (`DEFS_DE_DOCUMENT` = `src/data` + `src/scenes`)
  *      parse et valide son JSON réel — message actionnable ;
- *  (b) EXHAUSTIVITÉ : tout `src/data/*.json` est soit registré, soit dans `PENDING` (gelé à l'état
+ *  (b) EXHAUSTIVITÉ : tout `.json` des DEUX racines est soit registré, soit dans `PENDING` (gelé à l'état
  *      initial de la migration — characteristics.json en est sorti, l'EXEMPLAIRE de la convention) ;
  *  (c) CLIQUET : une entrée `PENDING` qui a désormais un schéma doit en SORTIR (sinon la liste ne
  *      fond jamais, cf. le même resserrage sur `no-emoji-affordance.test.ts`) ;
@@ -12,8 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { schema as characteristicsSchema } from './schemas/defs/characteristics';
@@ -25,8 +24,8 @@ const SCENES_DIR = fileURLToPath(new URL('../scenes/', import.meta.url));
 /** Dossier de chaque racine de documents — `SchemaDef.file` est relatif a SA racine. */
 const DIR_DE_RACINE: Record<RacineDocument, string> = { 'src/data': DATA_DIR, 'src/scenes': SCENES_DIR };
 
-/** Les projets livrés (`projetsLivres.mjs`), chemins relatifs a la racine `src/scenes`. */
-const projetsDeScene = (): string[] => listerProjetsLivres();
+/** Les documents JSON de la racine `src/scenes`, à toute profondeur, chemins relatifs à elle. */
+const documentsDeScene = (): string[] => listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('.json') });
 
 /**
  * Documents sans schéma, DÉSIGNÉS PAR LEUR CHEMIN COMPLET (`src/data/x.json`, `src/scenes/y/z.json`)
@@ -48,7 +47,7 @@ describe('contrat de donnée — les documents des deux racines valident leur sc
     const registres = new Set(DEFS_DE_DOCUMENT.map((d) => `${d.root}/${d.file}`));
     const documents = [
       ...listerDossier(DATA_DIR).filter((f) => f.endsWith('.json')).map((f) => `src/data/${f}`),
-      ...projetsDeScene().map((f) => `src/scenes/${f}`),
+      ...documentsDeScene().map((f) => `src/scenes/${f}`),
     ];
     const orphans = documents.filter((f) => !registres.has(f) && !PENDING.has(f));
     expect(orphans, 'Document(s) ni schématisé(s) ni dans PENDING — ajouter un def (defs/ ou defs-scenes/) ou l\'entrée PENDING').toEqual([]);

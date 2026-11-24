@@ -12,7 +12,6 @@
  * Un document mono-table nomme sa racine par le canal, et les champs de ses rangées par le nœud de sa
  * rangée.
  */
-import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -24,6 +23,7 @@ import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudDeLEntree, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { enumNomme } from '../../data/schemas/grammaire/valeurs';
 import { refOuSpec } from '../../data/schemas/grammaire/ref';
+import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
 import { lireExports } from '../../../scripts/gen-registry.mjs';
@@ -168,16 +168,12 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
     expect(sansMeta, `document(s) registré(s) sans méta — le canal atelier y retombe sur la clé technique :\n${sansMeta.join('\n')}`).toEqual([]);
   });
 
-  it('chaque projet livré tient sa méta du HANDLE partagé (`defs-scenes/projet.ts`)', () => {
+  it('chaque projet registré tient sa méta du HANDLE partagé (`defs-scenes/projet.ts`)', () => {
     // Un projet est UN document déclaré une seule fois : chaque def de `defs-scenes/` nomme son
-    // fichier et ré-exporte la méta du même handle. Le canal rend donc la MÊME table pour tous.
+    // fichier et ré-exporte la méta du même handle. Le canal rend donc LA table du handle pour tous.
     const projets = DEFS_DE_DOCUMENT.filter((d) => d.root === 'src/scenes');
-    expect(projets.map((d) => d.file).sort()).toEqual(listerProjetsLivres());
-    for (const d of projets) {
-      expect(metaPourFichier(d.file)?.versionContenu?.label, `${d.file} : méta du handle absente`).toBe('Version de contenu');
-    }
-    const tables = new Set(projets.map((d) => metaPourFichier(d.file)));
-    expect(tables.size, 'les defs de campagne doivent partager la MÊME table de méta (un seul handle)').toBe(1);
+    expect(projets.length).toBeGreaterThan(0);
+    for (const d of projets) expect(metaPourFichier(d.file), `${d.file} : méta du handle absente`).toBe(projetDoc.meta);
   });
 
   it('`oups.json`, document mono-table : le canal nomme sa racine, le nœud de sa rangée en nomme les champs', () => {
@@ -393,13 +389,14 @@ describe('convention d’export lue par le générateur de registre', () => {
     expect(NOMME_UN_FICHIER.test(stripComments(forme)), 'projet.ts ne nomme AUCUN fichier de données').toBe(false);
     expect(defsSansExportsPlats([{ file: 'projet.ts', src: forme }])).toEqual([]);
 
-    // Les defs de campagne (un par projet livré, nommé par son dossier), eux, NOMMENT leur fichier et n'appellent pas la fabrique : ils
+    // Les defs de projet (un par document registré de `src/scenes`), eux, NOMMENT leur fichier et n'appellent pas la fabrique : ils
     // ré-exportent le handle du module de forme. C'est EUX que le générateur collecte — leurs quatre
     // exports sont vérifiés par la COMPILATION du registre généré, qui les importe par leur nom.
-    for (const nom of listerProjetsLivres().map((rel) => rel.split('/')[0])) {
-      const src = parFichier.get(`src/data/schemas/defs-scenes/${nom}.ts`)!;
-      expect(NOMME_UN_FICHIER.test(stripComments(src)), `${nom}.ts nomme son fichier de campagne`).toBe(true);
-      expect(luParLeGen(src, 'file'), `${nom}.ts : \`file\` à la forme que le gen collecte`).toBe(true);
+    const defsDeProjet = [...parFichier].filter(([f]) => f.startsWith('src/data/schemas/defs-scenes/'));
+    for (const { file } of DEFS_DE_DOCUMENT.filter((d) => d.root === 'src/scenes')) {
+      const nommants = defsDeProjet.filter(([, src]) => luParLeGen(src, 'file') && lireExports(src, ['file'], 'fixture').file === file);
+      expect(nommants.length, `${file} : un seul def de \`defs-scenes/\` le nomme`).toBe(1);
+      expect(NOMME_UN_FICHIER.test(stripComments(nommants[0][1])), `${nommants[0][0]} nomme son fichier`).toBe(true);
     }
   });
 });

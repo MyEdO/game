@@ -3,14 +3,13 @@ import { clearedSpace, isSheltered, massCovers, shelterField } from './toits';
 import { massFootprintCells } from '../buildings';
 import { effectiveArchitecture } from '../../sceneEdit';
 import { emptyScene, type BuildingMass, type Scene } from '../scene';
-import { diligenceCampaign } from '../../../scenes/campaign';
-import { paquetDuJeu } from '../../campagneLivree';
+import { relaisCouvert } from '../../../scenes/fixtures/volumes.testkit';
 
 /**
  * SOUS COUVERT (#1176 P2-6) — « cette case est-elle sous un toit ? » n'a qu'UNE réponse dans le
  * dépôt. Le DÉGAGEMENT d'architecture (`clearedSpace`, qui décide ce qui s'efface au-dessus du
  * groupe) et la MÉTÉO volumique (`shelterField`, qui décide où la pluie tombe) lisent le MÊME
- * prédicat `massCovers`. Ce fichier mesure leur ACCORD sur une scène réelle : deux vérités, ce serait
+ * prédicat `massCovers`. Ce fichier mesure leur ACCORD sur des scènes construites : deux vérités, ce serait
  * une pluie qui tombe dans la taverne pendant que le stage en lève le toit.
  */
 
@@ -43,7 +42,7 @@ describe('Couvert bâti — UNE vérité pour le dégagement et pour la météo 
   it.each([
     ['scène-témoin (toit simple)', sceneAvec([masse()])],
     ['deux masses à étages différents', sceneAvec([masse(), masse({ id: 'tour', z: 1, levels: 2, footprint: [{ x: 8, y: 8, w: 2, h: 2 }] })])],
-    ['La Diligence (2 niveaux)', paquetDuJeu(diligenceCampaign).scenes[0]],
+    ['relais à étage (masses dérivées aux deux niveaux)', relaisCouvert()],
   ])('%s : `shelterField` couvre EXACTEMENT les colonnes que `massCovers` couvre', (_cas, scene) => {
     const balaye = couvertBalaye(scene);
     const champ = shelterField(scene);

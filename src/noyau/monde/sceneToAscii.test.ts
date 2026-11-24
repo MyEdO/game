@@ -5,13 +5,9 @@ import { sceneZoneTiles } from './zones';
 import { planDeLaCouche, sceneToAscii } from './sceneToAscii';
 import { glypheDe, tousLesTerrains } from './terrain';
 import { setDataset } from '../../data/overrides';
-import { diligenceCampaign } from '../../scenes/campaign';
-import { paquetDuJeu } from '../campagneLivree';
+import { relaisAEtage, VOLEES_DU_RELAIS } from '../../scenes/fixtures/plans.testkit';
 import { buildOperaFloorplan } from '../../scenes/opera/floorplan';
 import { GLYPHES_RESERVES } from '../../data/schemas/grammaire/carte-ascii';
-
-/** Scène réelle la plus riche du dépôt (paquet éditeur : 32×38, 2 niveaux). */
-const diligenceScene = () => paquetDuJeu(diligenceCampaign).scenes[0];
 
 /** Reconstruit un `MapSpec` MINIMAL depuis un export (walled/legend/terrain/wallLegend/zoneMap/
  *  zoneLegend/relief SEULEMENT) — exactement ce que l'énoncé demande de « coller » dans un fichier source : aucune
@@ -73,34 +69,21 @@ function expectGeometryEqual(original: Scene, rebuilt: Scene) {
 }
 
 describe('sceneToAscii — round-trip doré (buildScene → export → réimport → buildScene)', () => {
-  /** La Diligence est EN AUTHORING : le doré ne PEUT PAS y épingler un compte authoré (nombre
-   *  d'ouvertures à matériau distinct, nombre d'avertissements d'export) — il rougirait à chaque coup
-   *  de pinceau d'une session d'authoring et bloquerait le tronc. Arbitrage 2026-08-21 (#1447),
-   *  verbatim de l'utilisateur : « C'est absurde d'avoir un guard qui bloque totalement la diligence
-   *  alors qu'elle n'est même pas finalisé ».
-   *  RÉ-ENTRÉE : ré-étalonner à la FINALISATION de la carte — recopier les comptes REÇUS (portes et
-   *  fenêtres divergentes, avertissements) et dire dans le commit ce qui les a déplacés. Ce qui NE
-   *  dépend d'aucun compte authoré — identité des surfaces, identité des murs modulo le matériau
-   *  d'ouverture que l'export déclare perdu — reste verrouillé ci-dessous. */
-  it('La Diligence (EN AUTHORING) : tout revient à l’identique SAUF ce que l’export déclare perdu', () => {
-    const original = diligenceScene();
-    expect(original.walls?.length ?? 0).toBeGreaterThan(0);
+  it('le relais à étage : tout revient à l’identique SAUF le matériau de porte que l’export déclare perdu', () => {
+    const original = relaisAEtage();
     const exp = sceneToAscii(original);
-    const rebuilt = buildScene(reimport('la-diligence-rt', [original.dimensions.w, original.dimensions.h], exp));
+    const rebuilt = buildScene(reimport('relais-rt', [original.dimensions.w, original.dimensions.h], exp));
     expectSurfacesEqual(original, rebuilt);
 
-    // Le grillage `walled` n'a qu'UN glyphe par ouverture : l'export déclare les overlays de porte
-    // et de fenêtre qu'il ne peut pas représenter.
+    // Le grillage `walled` n'a qu'UN glyphe par ouverture : la porte de la remise, d'un matériau distinct
+    // des autres portes, perd le sien, et l'export le déclare.
     const before = normWalls(original);
     const after = normWalls(rebuilt);
     const sansOverlayPerdu = (w: ReturnType<typeof normWalls>[number]) => (w.door || w.window ? { ...w, structure: null, appearance: null } : w);
     expect(after.map(sansOverlayPerdu)).toEqual(before.map(sansOverlayPerdu));
     const divergents = before.filter((w, i) => w.structure !== after[i].structure || w.appearance !== after[i].appearance);
-    expect(divergents.every((w) => w.door || w.window)).toBe(true);
-    for (const w of divergents)
-      expect(exp.warnings.join(' | ')).toMatch(
-        w.door ? /porte\(s\) avec un matériau\/une apparence distincts de « structure=solide-porte-en-bois »/ : /fenêtre\(s\) avec un matériau\/une apparence distincts de « structure=mur-a-ossature-en-bois »/,
-      );
+    expect(divergents.map((w) => [w.x, w.y, w.side, w.z, w.door, w.structure])).toEqual([[21, 4, 'N', 0, true, 'porte']]);
+    expect(exp.warnings.join(' | ')).toMatch(/1 porte\(s\) avec un matériau\/une apparence distincts de « structure=solide-porte-en-bois »/);
   });
 
   it('un plan simple (1 étage, portes/fenêtres/matériau/diagonale/rampe/zones) : géométrie identique', () => {
@@ -276,23 +259,22 @@ describe('sceneToAscii — les trois légendes sont disjointes (#1789)', () => {
 
 describe('sceneToAscii — honnêteté de la portée (#énoncé)', () => {
   it('liste `cells.stair` en tête de `notRestored` (une recette de volée ne se ré-authore pas depuis l’ASCII)', () => {
-    const exp = sceneToAscii(diligenceScene());
+    const exp = sceneToAscii(relaisAEtage());
     expect(exp.notRestored[0]).toMatch(/cells\.stair/);
     expect(exp.notRestored[0]).toMatch(/relief/);
   });
 
   it('le texte exporté PORTE explicitement la liste de ce qui n’est pas restitué', () => {
-    const exp = sceneToAscii(diligenceScene());
+    const exp = sceneToAscii(relaisAEtage());
     for (const n of exp.notRestored) expect(exp.text).toContain(n);
   });
 
   it('les hauteurs d’une RAMPE peinte survivent via `relief`', () => {
-    const original = diligenceScene();
+    const original = relaisAEtage();
     const exp = sceneToAscii(original);
-    // La carte étant EN AUTHORING (#1447), la sonde se DÉRIVE de l'export au lieu d'épingler la case
-    // d'une marche : toute case de relief réémise porte la hauteur de la scène d'origine.
     const cellules = exp.relief.filter((r) => r.cell);
-    expect(cellules.length).toBeGreaterThan(0);
+    const marches = VOLEES_DU_RELAIS.flatMap(({ bas, haut }) => Array.from({ length: bas.y - haut.y + 1 }, (_, i) => `${bas.x},${haut.y + i},0`));
+    expect(cellules.map((r) => `${r.cell![0]},${r.cell![1]},${r.z ?? 0}`)).toEqual(expect.arrayContaining(marches));
     for (const r of cellules)
       expect(r.height, `relief cell ${r.cell![0]},${r.cell![1]} z${r.z ?? 0}`).toBe(
         heightAt(original, r.cell![0], r.cell![1], r.z ?? 0),

@@ -5,8 +5,9 @@ import { pathTo, walkNeighbors, tileKey, type Pt } from './path';
 import { effectiveArchitecture } from '../sceneEdit';
 import { massFootprintCells } from './buildings';
 import { isRoomZone, occupiedRoomIds, roomsByTile } from './rooms';
-import { areneCampaign, diligenceCampaign } from '../../scenes/campaign';
-import { paquetDuJeu } from '../campagneLivree';
+import { PIECES_DU_RELAIS, relaisAEtage } from '../../scenes/fixtures/plans.testkit';
+import { scenario as fenetreEcuries } from '../../scenes/test-scenarios/23-fenetre-ecuries';
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 
 function sceneWithRooms(
   walls: WallSeg[] = [],
@@ -156,8 +157,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
    * `scene.ts`) traite les deux modes d'ouverture comme INDÉPENDANTS — porte ouverte OU structure
    * abattue — et le BFS de déplacement (`path.ts`) en dépend déjà : une porte bâtie en bois reste
    * franchissable quand on l'ouvre. Le graphe d'accès doit dire la même chose que le déplacement,
-   * sinon un seuil qu'on peut emprunter n'est signalé nulle part. C'est ce qui a effacé les accès de
-   * La Diligence : 60 de ses 61 portes portent une `structure`.
+   * sinon un seuil qu'on peut emprunter n'est signalé nulle part.
    */
   it.each([
     [false, 'door-open'],
@@ -257,12 +257,12 @@ describe('roomPortals — graphe dérivé des pièces', () => {
 });
 
 /**
- * ÉQUIVALENCE des sorties accessibles, sur la carte RÉELLE (La Diligence, 32×38, 3 couches, 596
- * murs) — le contrat qui autorise à ne plus chercher un chemin PAR porte.
+ * ÉQUIVALENCE des sorties accessibles, sur le relais à étage (`relaisAEtage`) — le contrat qui autorise à ne
+ * plus chercher un chemin PAR porte.
  *
  * ORACLE = la formulation par chemin : « il existe un chemin du groupe jusqu'à la case de la porte »
  * (`pathTo`). Le rendu doit être le MÊME que celui de `portalsForParty`, case de groupe par case de
- * groupe, sur un échantillon qui couvre les quatre situations que la carte présente : DEDANS (zone
+ * groupe, sur un échantillon qui couvre les quatre situations que le plan présente : DEDANS (zone
  * intérieure), DEHORS, à l'ÉTAGE, et sous un bâti NON ZONÉ — ce dernier est le cas piège, car il
  * emprunte la branche « hors pièce » comme l'extérieur alors que le groupe est sous un toit.
  *
@@ -271,8 +271,8 @@ describe('roomPortals — graphe dérivé des pièces', () => {
  * changer — c'est ce qui rend les deux formulations interchangeables. Si cette précondition tombe un
  * jour, ce test tombe avec elle.
  */
-describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La Diligence', () => {
-  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
+describe('portalsForParty — mêmes sorties que la recherche de chemin, sur le relais à étage', () => {
+  const scene = relaisAEtage();
 
   /** Signature COMPLÈTE d'un accès, hors `id` — lequel est dérivé de champs tous présents ici
    *  (arête, étage, zone de rattachement) : deux accès de même signature portent le même `id`. */
@@ -315,9 +315,7 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
   const zonee = (x: number, y: number, z: number) => roomsByTile(scene).has(tileKey(x, y, z));
   const couverte = (x: number, y: number, z: number) => couvertes.has(`${x},${y},${z}`);
 
-  // Les quatre situations MESURÉES sur cette carte (mesure : 1216 cases marchables au rez, 422 à
-  // l'étage ; 885 cases zonées ; le bâti couvert NON zoné est à l'ÉTAGE — 119 cases — et il n'en
-  // existe AUCUNE au rez, d'où le z de chaque ligne).
+  // Les quatre situations du plan : le bâti couvert NON zoné est la galerie de l'ÉTAGE, d'où le z de chaque ligne.
   const echantillon: [string, Pt[]][] = [
     ['dedans, au rez (zone intérieure)', casesOu((x, y, z) => zonee(x, y, z), 0, 3)],
     ['dehors (ni zone ni toit)', casesOu((x, y, z) => !zonee(x, y, z) && !couverte(x, y, z), 0, 3)],
@@ -325,18 +323,16 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
     ['à l’étage, sous un bâti NON ZONÉ', casesOu((x, y, z) => couverte(x, y, z) && !zonee(x, y, z), 1, 3)],
   ];
 
-  /** AUCUNE pièce muette sur la carte réelle : une zone intérieure que l'auteur a percée de portes doit
-   *  porter au moins un accès. C'est la mesure qui distingue « l'auteur n'a pas percé » d'« on ne sait
-   *  plus lire ses portes » — le second cas avait laissé 31 des 33 pièces de La Diligence sans le
-   *  moindre indicateur. */
-  it('aucune pièce de La Diligence n’est privée d’accès', () => {
+  /** AUCUNE pièce muette : une zone intérieure que l'auteur a percée de portes doit porter au moins un accès.
+   *  C'est la mesure qui distingue « l'auteur n'a pas percé » d'« on ne sait plus lire ses portes ». */
+  it('aucune pièce du relais n’est privée d’accès', () => {
     const desservies = new Set(roomPortals(scene)
       .map((portal) => portal.fromZoneId)
       .filter((id): id is string => id !== null));
     const pieces = (scene.effectZones ?? [])
       .filter(isRoomZone);
 
-    expect(pieces.length, 'la carte doit porter ses pièces intérieures').toBeGreaterThan(20);
+    expect(pieces.map((zone) => zone.id), 'la carte doit porter ses pièces intérieures').toEqual(PIECES_DU_RELAIS.map((zone) => zone.id));
     expect(pieces.filter((zone) => !desservies.has(zone.id)).map((zone) => zone.id)).toEqual([]);
   });
 
@@ -394,7 +390,7 @@ describe('roomPortals — mémoïsé par scène, et rafraîchi dès qu’elle ch
  * largeur plein-carte. Deux contrats verrouillent l'échange : le résultat est le MÊME (équivalence
  * avec l'exploration, gardée ici comme ORACLE), et son coût ne vit plus dans le pas.
  */
-const sceneDe = (id: string): Scene => paquetDuJeu(areneCampaign).scenes.find((s) => s.id === id)!;
+const relais = relaisAEtage();
 
 /** L'ANCIENNE formulation, gardée comme oracle : une exploration en largeur par appel. */
 function parExplorationEnLargeur(scene: Scene, from: Pt, occupiedZoneIds: ReadonlySet<string>): RoomPortal[] {
@@ -427,12 +423,10 @@ function parExplorationEnLargeur(scene: Scene, from: Pt, occupiedZoneIds: Readon
  *  présents ici (arête, étage, zone de rattachement) : deux accès de même signature portent le même `id`. */
 const signature = ({ id: _id, ...reste }: RoomPortal) => JSON.stringify(reste);
 
-describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur les cartes réelles', () => {
+describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur des plans bâtis', () => {
   const cartes: [string, Scene][] = [
-    ['arene-hub', sceneDe('arene-hub')],
-    ['arene-exp-village', sceneDe('arene-exp-village')],
-    ['arene-zone13', sceneDe('arene-zone13')],
-    ['diligence', paquetDuJeu(diligenceCampaign).scenes[0]],
+    ['relais à étage', relais],
+    ['fenêtre sur les écuries', fenetreEcuries.construire(idsDeTest).scene],
   ];
 
   /** Échantillon de positions : cases MARCHABLES réparties sur toute la carte (toutes couches) ET
@@ -472,7 +466,7 @@ describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur
   }, 120000);
 
   it('des sorties sont bien RETENUES et d’autres ÉCARTÉES (sinon l’équivalence serait vide)', () => {
-    const scene = sceneDe('arene-exp-village');
+    const scene = relais;
     const rendus = new Set<number>();
     for (const pos of positions(scene, 24)) {
       const occupees = occupiedRoomIds(scene, [pos]);
@@ -494,7 +488,7 @@ describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur
  */
 describe('portalsForParty — le coût vit dans la scène, plus dans le pas (#1416)', () => {
   it('après le premier calcul, 40 pas ne relisent presque plus la carte', () => {
-    const brute = sceneDe('arene-hub');
+    const brute = relais;
     let lectures = 0;
     const scene = new Proxy(brute, {
       get(cible, prop, recepteur) { lectures++; return Reflect.get(cible, prop, recepteur); },
@@ -512,7 +506,7 @@ describe('portalsForParty — le coût vit dans la scène, plus dans le pas (#14
     for (let i = 0; i < 40; i++) portalsForParty(scene, cases[(i * 17) % cases.length]);
     const quaranteS = lectures;
 
-    expect(premier, 'le premier calcul fouille bien la carte').toBeGreaterThan(10000);
+    expect(premier, 'le premier calcul fouille bien la carte : au moins une lecture par case de chaque couche').toBeGreaterThan(w * h * brute.layers.length);
     expect(quaranteS / 40, 'un pas doit coûter O(portes), pas O(carte)').toBeLessThan(premier / 100);
   });
 });

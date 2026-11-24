@@ -477,9 +477,9 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
       expect([...parDocument.values()].filter((b) => b.appliques).length, 'trop peu de documents mutés : la sonde ne prouverait rien.').toBeGreaterThan(100);
       const projet = 'aaa-sonde-2995/aaa-sonde-2995-projet.json';
       mkdirSync(join(dossier, 'src/scenes/aaa-sonde-2995'), { recursive: true });
-      const arene = JSON.parse(readFileSync(join(ROOT, 'src/scenes/arene/arene-projet.json'), 'utf8')) as Record<string, unknown>;
-      writeFileSync(join(dossier, 'src/scenes', projet), JSON.stringify({ ...arene, id: 'aaa-sonde-2995' }, null, 2));
-      const module = readFileSync(join(ROOT, 'src/data/schemas/defs-scenes/arene.ts'), 'utf8').replace("'arene/arene-projet.json'", `'${projet}'`);
+      const paquet = JSON.parse(readFileSync(join(ROOT, 'src/scenes/fixtures/paquet-de-test.json'), 'utf8')) as Record<string, unknown>;
+      writeFileSync(join(dossier, 'src/scenes', projet), JSON.stringify({ ...paquet, id: 'aaa-sonde-2995' }, null, 2));
+      const module = readFileSync(join(ROOT, 'src/data/schemas/defs-scenes/paquet-de-test.ts'), 'utf8').replace("'fixtures/paquet-de-test.json'", `'${projet}'`);
       writeFileSync(join(dossier, 'src/data/schemas/defs-scenes/aaa-sonde-2995.ts'), module);
       execFileSync(process.execPath, ['--input-type=module', '-e', `const { preparerExport } = await import(${JSON.stringify(pathToFileURL(join(ROOT, 'scripts/migrations/replay-head.mjs')).href)}); preparerExport(process.argv[1]);`, dossier], { cwd: dossier, env, stdio: 'pipe' });
       expect(readFileSync(join(dossier, 'src/data/schemas/_registry-scenes.generated.ts'), 'utf8'), 'le projet neuf n’est pas au registre régénéré : la sonde ne prouverait rien.').toContain('aaa-sonde-2995');

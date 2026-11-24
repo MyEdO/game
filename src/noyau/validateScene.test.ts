@@ -11,8 +11,9 @@ import { scenePlanDefects } from './planDefects';
 import { unreachableDescriptiveZones } from './mapQC';
 import { addEntity, deleteSel, paintTiles, setSceneFlags, setSceneLabel, setSceneScalaires, toggleEdgeWall } from './sceneEdit';
 import { resetData, setDataset } from '../data/overrides';
-import { diligenceCampaign } from '../scenes/campaign';
-import { paquetDuJeu } from './campagneLivree';
+import { relaisAEtage } from '../scenes/fixtures/plans.testkit';
+import { scenario as fenetreEcuries } from '../scenes/test-scenarios/23-fenetre-ecuries';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { METRES_PER_LEVEL } from './monde/relief';
 import type { WorldMap, MapPlace, PlacePoi } from './worldMap';
 import type { SeatAssignments } from './monde/seating';
@@ -784,7 +785,18 @@ describe('architectureSelectionForWarning', () => {
 describe('validateScene — une écriture rend les avertissements d’une validation entière (#4043)', () => {
   afterEach(() => { resetData(); vi.restoreAllMocks(); });
 
-  /** Les retouches de l'éditeur sur la première scène de La Diligence, par ses écrivains réels, et une écriture au
+  /** Un projet de deux scènes bâties (relais à étage, fenêtre sur les écuries), reliées par sa carte du monde, et
+   *  un narratif qui porte un objet de campagne. */
+  const projetDeTest = () => {
+    const scenes = [relaisAEtage(), fenetreEcuries.construire(idsDeTest).scene];
+    const worldMap: WorldMap = {
+      id: 'carte-de-test', label: 'Carte de test', routes: [],
+      places: scenes.map((scene, i) => ({ id: `lieu-${i}`, label: scene.label, pos: { x: i, y: 0 }, scene: { id: scene.id } })),
+    };
+    return { scenes, worldMap, narratif: { ...emptyNarratif(), objets: [objetDeCampagne()] } };
+  };
+
+  /** Les retouches de l'éditeur sur la première scène du projet, par ses écrivains réels, et une écriture au
    *  catalogue des terrains par le seam (`setDataset`). */
   const RETOUCHES: readonly [string, (s: Scene) => Scene][] = [
     ['peindre une case', (s) => paintTiles(s, { x: 1, y: 1 }, 'dalle', 1)],
@@ -803,7 +815,7 @@ describe('validateScene — une écriture rend les avertissements d’une valida
   ];
 
   it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', { timeout: 60_000 }, () => {
-    const projet = paquetDuJeu(diligenceCampaign);
+    const projet = projetDeTest();
     let scenes = projet.scenes;
     for (const [nom, retouche] of RETOUCHES) {
       scenes = [retouche(scenes[0]), ...scenes.slice(1)];
@@ -826,7 +838,7 @@ describe('validateScene — une écriture rend les avertissements d’une valida
   const audits = (s: Scene) => { scenePlanDefects(s); const depart = startOf(s); if (depart) unreachableDescriptiveZones(s, depart); };
 
   it('un libellé ne refait ni les défauts de plan ni la connexité ; une case peinte ne refait que ceux de SA scène', () => {
-    const { scenes } = paquetDuJeu(diligenceCampaign);
+    const { scenes } = projetDeTest();
     scenes.forEach(audits);
     expect(auditsRefaits(() => audits(setSceneLabel(scenes[0], 'Renommée'))), 'nommer').toBe(0);
     const peinte = paintTiles(scenes[0], { x: 1, y: 1 }, 'dalle', 1);
