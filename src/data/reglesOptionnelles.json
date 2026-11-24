@@ -741,6 +741,20 @@
     "hint": "Ouvre la Carrière Chevaucheur de blaireau (Archives de l’Empire I) au halfling : il la prend à la place de Soldat tiré au Tableau des Carrières aléatoires. Désactivé par défaut."
   },
   {
+    "id": "carrieres-crb",
+    "type": "reglesOptionnelles",
+    "label": "Carrières du livre de base 5e",
+    "ref": "CRB 018 l.17",
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 43
+    },
+    "group": "Création",
+    "kind": "flag",
+    "default": false,
+    "hint": "Ajoute les 64 Carrières du livre de base 5e aux Carrières du Livre de base et des suppléments, ouvertes à tout héros ; leurs Compétences, Talents et Possessions se jouent par leurs équivalents 4e. Désactivé par défaut."
+  },
+  {
     "id": "creation-signes-astraux",
     "type": "reglesOptionnelles",
     "label": "Signes astraux à la création",

@@ -812,5 +812,14 @@
       "book": "guide-frenchy",
       "page": 92
     }
+  },
+  {
+    "id": "marchands",
+    "type": "groups",
+    "label": "Marchands",
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 98
+    }
   }
 ]

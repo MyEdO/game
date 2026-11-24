@@ -9,6 +9,7 @@ import { findCareerById, findSpeciesById, offreDuJet, substitutionsDe, varianteD
 import { resetRule, setRule } from '../engine/policy';
 import { schema } from './schemas/defs/careers';
 import careersJson from './careers.json';
+import { versDisque } from './schemas/grammaire/prose';
 
 const CHEVAUCHEUR = 'creation-chevaucheur-de-blaireau';
 const espece = (id: string) => findSpeciesById(id)!;
@@ -58,12 +59,14 @@ describe('substitutions du tirage de carrière, par espèce', () => {
 });
 
 describe('schéma de `aLaPlaceDe` et `especesALaPlaceDe`', () => {
-  const RANG = careersJson.findIndex((c) => c.id === 'piquier');
-  const avec = (champs: Record<string, unknown>) => careersJson.map((c, i) => (i === RANG ? { ...c, ...champs } : c));
-  const sans = (cle: string) => careersJson.map((c, i) => (i === RANG ? Object.fromEntries(Object.entries(c).filter(([k]) => k !== cle)) : c));
+  // La forme DISQUE : la lecture servie matérialise la prose adressée (`descRef`) en `desc`.
+  const disque = versDisque(careersJson);
+  const RANG = disque.findIndex((c) => c.id === 'piquier');
+  const avec = (champs: Record<string, unknown>) => disque.map((c, i) => (i === RANG ? { ...c, ...champs } : c));
+  const sans = (cle: string) => disque.map((c, i) => (i === RANG ? Object.fromEntries(Object.entries(c).filter(([k]) => k !== cle)) : c));
 
   it('le document réel parse', () => {
-    expect(schema.safeParse(careersJson).success).toBe(true);
+    expect(schema.safeParse(disque).success).toBe(true);
   });
 
   it('refuse une carrière écrite en id nu, et une espèce inconnue', () => {
@@ -75,7 +78,7 @@ describe('schéma de `aLaPlaceDe` et `especesALaPlaceDe`', () => {
     const r = schema.safeParse(sans('aLaPlaceDe'));
     expect(r.success).toBe(false);
     expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringContaining('« piquier » porte `especesALaPlaceDe` sans `aLaPlaceDe`'));
-    const sansSubstitution = careersJson.map((c) => (c.id === 'soldat' ? { ...c, talentALaPlaceDe: BENI_TILEEN } : c));
+    const sansSubstitution = disque.map((c) => (c.id === 'soldat' ? { ...c, talentALaPlaceDe: BENI_TILEEN } : c));
     const t = schema.safeParse(sansSubstitution);
     expect(t.success).toBe(false);
     expect(t.error?.issues.map((i) => i.message)).toContainEqual(expect.stringContaining('« soldat » porte `talentALaPlaceDe` sans `aLaPlaceDe`'));

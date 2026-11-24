@@ -36,18 +36,19 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
     expect(audit.ambigus).toEqual([]);
   });
 
-  it('les 108 Carrières de la donnée sont couvertes — tout angle mort est NOMMÉ', () => {
+  it('toutes les Carrières de la donnée sont couvertes — tout angle mort est NOMMÉ', () => {
     // Le jour où un livre à Carrières entre sans extraction lisible, ce test le nomme au lieu de le taire.
     expect(audit.nonCouvertes).toEqual({});
     expect(audit.couvertes).toBe(audit.totalCarrieres);
   });
 
-  it('les 3 bandes du PDF que la donnée ne réclame pas sont NOMMÉES, pas tues', () => {
-    // Une Carrière imprimée mais jamais curée doit se voir : ces 3 bandes sont attendues, et une 4e
+  it('les 4 bandes du PDF que la donnée ne réclame pas sont NOMMÉES, pas tues', () => {
+    // Une Carrière imprimée mais jamais curée doit se voir : ces 4 bandes sont attendues, et une 5e
     // qui apparaîtrait (nouvelle Carrière d'un livre, ou titre qui cesse d'être rapproché) échoue ici.
     expect(
       audit.bandesHorsDonnee.map((b) => `${b.book} folio ${b.page} y=${b.y} ${b.titres[0]}`),
     ).toEqual([
+      'core-rulebook-5e folio 43 y=212 advanCing ThroUgh YoUr Career', // exemple pédagogique du chapitre « Class and Careers »
       'livre-de-base folio 46 y=389.5 CARRIÈRES', // exemple pédagogique du chapitre « Classes et Carrières »
       'vents-de-la-magie folio 188 y=753.1 FAMILIER DE COMBAT', // bande de tête, colonne de droite : aucun titre ne la coiffe
       'vents-de-la-magie folio 188 y=373.8 FAMILIER DE SORTS',
@@ -121,25 +122,27 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
   it('chaque niveau déclare le folio de la Carrière qu’il prolonge (careers.json ⇄ careerLevels.json)', () => {
     // Un niveau porte SON `source.{book,page}` : rien ne l'arrime à celui de sa Carrière tant qu'une
     // garde ne le tient — un folio corrigé d'un côté seul se rétablit en silence. Jointure par id :
-    // `careerLevels[].career` -> `careers[].id`.
+    // `careerLevels[].career` -> `careers[].id`, à l'emplacement de la Carrière dans le livre du niveau
+    // (son ancre `source`, ou un `alsoIn` : une Carrière CRB ancre sa prose dans le livre de sa jumelle).
     const parId = new Map(careers.map((c) => [c.id, c]));
     const desaccords = careerLevels.flatMap((l) => {
       const c = parId.get(l.career.id);
       if (!c) return [`${l.id} : aucune Carrière « ${l.career.id} » dans careers.json`];
-      if (l.source.book === c.source.book && l.source.page === c.source.page) return [];
+      const emplacements = [c.source, ...('alsoIn' in c ? (c.alsoIn ?? []) : [])];
+      if (emplacements.some((e) => e.book === l.source.book && e.page === l.source.page)) return [];
       return [
-        `${l.id} : niveau ${l.source.book} p.${l.source.page} vs Carrière ${c.source.book} p.${c.source.page}`,
+        `${l.id} : niveau ${l.source.book} p.${l.source.page} vs Carrière ${emplacements.map((e) => `${e.book} p.${e.page}`).join(', ')}`,
       ];
     });
     expect(desaccords).toEqual([]);
   });
 
-  it("l'artefact couvre EXACTEMENT les livres qui portent des Carrières, et porte son ENVELOPPE de document", () => {
-    // Vérité INDÉPENDANTE de l'artefact : les livres qui portent une Carrière dans la DONNÉE.
+  it("l'artefact couvre EXACTEMENT les livres qui portent des niveaux de Carrière, et porte son ENVELOPPE de document", () => {
+    // Vérité INDÉPENDANTE de l'artefact : les livres qui portent un niveau de Carrière dans la DONNÉE.
     // L'artefact, lui, tient sa liste du lecteur de PDF (`gen-progression-schemas.py`, champ
     // `livres`) — les deux se rejoignent ou l'extraction a sauté un livre. Aucune liste n'est
     // écrite ici : un livre à Carrières de plus se MESURE au lieu de se recopier (#1825).
-    const porteursDeCarriere = [...new Set(careers.map((c) => c.source.book))].sort();
+    const porteursDeCarriere = [...new Set(careerLevels.map((l) => l.source.book))].sort();
     expect(porteursDeCarriere.length).toBeGreaterThan(0);
     expect([...audit.livresArtefact].sort()).toEqual(porteursDeCarriere);
     // L'ORDRE de `livres` est celui du parcours d'extraction : l'artefact ne le promet pas, et le

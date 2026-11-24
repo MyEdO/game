@@ -1,5 +1,6 @@
 # Générateur de `src/data/progression-schemas.derived.json` — le SCHÉMA DE PROGRESSION
-# (affectation marque -> Caractéristique, par niveau de Carrière) LU DANS LE PDF FR.
+# (affectation marque -> Caractéristique, par niveau de Carrière) LU DANS LE PDF de chaque livre qui imprime
+# des niveaux de Carrière (FR, et le CRB VO autorisé).
 #
 # Pourquoi ce générateur : la garde `src/data/refs-migrated.test.ts` ne contrôlait que la CARDINALITÉ
 # (3/1/1/1) et la disjonction des `characteristics` d'un niveau — une PERMUTATION entre deux niveaux
@@ -8,14 +9,16 @@
 # la garde `scripts/guards/lib/progressionSchemas.mjs` le joint à `careerLevels.json`.
 #
 # Technique de lecture (mesurée, pas devinée), par le lecteur géométrique `scripts/raw/lib/pdf_geometrie.py` :
-#   - le folio IMPRIMÉ se lit SUR la page (chiffres en police `DwarvenAxeBB`, pied de page) : jamais
-#     un offset folio<->page PDF, qui n'est pas constant (piège vécu : « folio 116 » -> Villageois) ;
+#   - le folio IMPRIMÉ se lit SUR la page (chiffres en police `DwarvenAxeBB`, pied de page ; `CaslonAntique`
+#     aux pages de Carrières du CRB, `POLICE_FOLIO_DU_LIVRE`) : jamais un offset folio<->page PDF, qui n'est
+#     pas constant (piège vécu : « folio 116 » -> Villageois) ;
 #   - le titre de Carrière est la ligne en `CaslonAntique-Bold` >= 17 pt (les intertitres sont en
 #     `CaslonAntique-Bold-SC700`, taille 12,6/18 : exclus par le nom de police) ;
 #   - niveau 1 = glyphes de la police `crossbatstfb` ; niveaux 2/3/4 = `LTRect` PLEINS distingués par
-#     `non_stroking_color` : cuivre ~0.357 -> 2, argent ~0.815 -> 3, or ~0.000 -> 4 ;
-#   - les 10 colonnes sont AUTO-CALIBRÉES sur la ligne d'en-tête « CC CT F E I Ag Dex Int FM Soc »
-#     trouvée au-dessus de chaque bande — jamais une grille en dur (LDB 22,8 pt / VDM 21,1 pt).
+#     `non_stroking_color` (`SWATCHES`) : cuivre ~0.357 -> 2, argent ~0.815 -> 3, or ~0.000 -> 4 ;
+#   - les 10 colonnes sont AUTO-CALIBRÉES sur la ligne d'en-tête « CC CT F E I Ag Dex Int FM Soc » (CRB :
+#     « WS BS S T I Ag Dex Int WP Fel », même ordre) trouvée au-dessus de chaque bande — jamais une grille
+#     en dur (LDB 22,8 pt / VDM 21,1 pt).
 #
 # Toute anomalie (bande sans en-tête calibrable, page sans folio lisible, bande sans titre au-dessus,
 # marque hors colonne) est un ÉCHEC EXPLICITE avec page/y/candidats — jamais un saut silencieux.
@@ -38,7 +41,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "raw", "lib"))
-from pdf_geometrie import lire_pages, pdfs_de, police_de, printed_folio  # noqa: E402
+from pdf_geometrie import POLICE_FOLIO, lire_pages, pdfs_de, police_de, printed_folio  # noqa: E402
 
 OUT = os.path.join(ROOT, "src", "data", "progression-schemas.derived.json")
 
@@ -57,13 +60,20 @@ CHAR_KEY = {
     "Soc": "sociabilite",
 }
 
-CAREERS = os.path.join(ROOT, "src", "data", "careers.json")
+# En-têtes imprimés de la ligne des 10 colonnes, en CAPITALES et sans blanc, dans l'ordre de `COLS`.
+EN_TETES = ("CCCTFEIAGDEXINTFMSOC", "WSBSSTIAGDEXINTWPFEL")
+
+# Police du folio imprimé, par livre, quand ce n'est pas celle de `printed_folio` (mesurée par `--probe`).
+POLICE_FOLIO_DU_LIVRE = {"core-rulebook-5e": "caslonantique"}
+
+CAREER_LEVELS = os.path.join(ROOT, "src", "data", "careerLevels.json")
 
 
 def livres_porteurs():
-    """Ids STABLES des livres qui portent une Carrière (`source.book` de `src/data/careers.json`), triés."""
-    with open(CAREERS, encoding="utf-8") as f:
-        return sorted({c["source"]["book"] for c in json.load(f) if (c.get("source") or {}).get("book")})
+    """Ids STABLES des livres qui impriment un niveau de Carrière (`source.book` de `src/data/careerLevels.json`),
+    triés : le Schéma de progression s'imprime avec les niveaux."""
+    with open(CAREER_LEVELS, encoding="utf-8") as f:
+        return sorted({n["source"]["book"] for n in json.load(f) if (n.get("source") or {}).get("book")})
 
 
 # Nuanciers MESURÉS des marques de niveau, par livre — un `LTRect` est une marque s'il tombe à moins
@@ -77,9 +87,11 @@ SWATCHES = [
     (2, (0.765, 0.515, 0.346), "cuivre couleur (Aux Armes folio 10)"),
     (3, (0.815, 0.815, 0.815), "argent gris (LDB folio 76)"),
     (3, (0.793, 0.793, 0.793), "argent gris (ADE I folio 88)"),
-    (3, (0.779, 0.785, 0.793), "argent couleur (Aux Armes folio 10)"),
+    (2, (0.452, 0.59, 0.283), "vert (CRB folio 45)"),
+    (3, (0.779, 0.785, 0.793), "argent couleur (Aux Armes folio 10, CRB folio 45)"),
     (4, (0.0, 0.0, 0.0), "or noir (LDB folio 76)"),
     (4, (1.0, 0.889, 0.0), "or couleur (Aux Armes folio 10)"),
+    (4, (0.964, 0.84, 0.216), "or (CRB folio 45)"),
 ]
 SWATCH_MAX = 0.06
 
@@ -130,12 +142,16 @@ def column_centers(chars, ymax):
             continue
         lines.setdefault(round(c.y0, 0), []).append(c)
     for y in sorted(lines):
-        cs = sorted(lines[y], key=lambda c: c.x0)
-        s = "".join(c.get_text() for c in cs).replace(" ", "")
+        cs = [c for c in sorted(lines[y], key=lambda c: c.x0) if c.get_text().strip()]
+        s = "".join(c.get_text() for c in cs).upper()
         # Comparaison en CAPITALES : Aux Armes compose l'en-tête en petites capitales, dont la couche
         # texte rend « ccctFeiagDexintFMSoc » (mesuré folio 78) — la casse n'y est pas une information.
-        if not s.upper().startswith("CCCTFEIAGDEXINTFMSOC"):
+        # L'en-tête se CHERCHE dans la ligne : une colonne de texte voisine peut la partager (CRB folios
+        # 46 et 94, le texte de la colonne de gauche à 14 pt de « WS »).
+        debut = min((i for i in (s.find(e) for e in EN_TETES) if i >= 0), default=-1)
+        if debut < 0:
             continue
+        cs = cs[debut:]
         groups, cur = [], [cs[0]]
         for a, b in zip(cs, cs[1:]):
             if b.x0 - a.x1 > 2.0:
@@ -230,13 +246,13 @@ def read_book(book_id, pdf_path, pages, errors):
         if not bands:
             continue
         glyphs = [o for o in chars if "crossbat" in (o.fontname or "").lower() and o.get_text().strip()]
-        folio = printed_folio(chars)
+        folio = printed_folio(chars, POLICE_FOLIO_DU_LIVRE.get(book_id, POLICE_FOLIO))
         titles = page_titles(chars)
         for y, rs in bands:
             top = y + max(r.height for r in rs) - 2
             centers = column_centers(chars, top)
             if centers is None:
-                errors.append(f"{book_id} page PDF {pdfpage} y={y:.1f} : bande sans en-tête « CC CT F E I Ag Dex Int FM Soc » calibrable")
+                errors.append(f"{book_id} page PDF {pdfpage} y={y:.1f} : bande sans en-tête {' / '.join(EN_TETES)} calibrable")
                 continue
             if folio is None:
                 errors.append(f"{book_id} page PDF {pdfpage} y={y:.1f} : folio imprimé illisible (pied de page)")

@@ -18595,5 +18595,114 @@
       "page": 148,
       "note": "EDO 11 l.247-263"
     }
+  },
+  {
+    "id": "poison-a-rats",
+    "type": "trappings",
+    "label": "Poison à rats",
+    "categorie": "trapping",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
+    "enc": 0,
+    "availability": "commune",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 0,
+      "silver": 0,
+      "brass": 4
+    },
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 313
+    }
+  },
+  {
+    "id": "remede",
+    "type": "trappings",
+    "label": "Remède",
+    "categorie": "trapping",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
+    "enc": 0,
+    "availability": "commune",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 314
+    }
+  },
+  {
+    "id": "panier",
+    "type": "trappings",
+    "label": "Panier",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 79
+    }
+  },
+  {
+    "id": "hache-runique",
+    "type": "trappings",
+    "label": "Hache runique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 94
+    }
+  },
+  {
+    "id": "carte-de-visite",
+    "type": "trappings",
+    "label": "Carte de visite",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 99
+    }
   }
 ]

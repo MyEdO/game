@@ -6,6 +6,7 @@
     "archives-de-l-empire-1",
     "archives-de-l-empire-2",
     "aux-armes",
+    "core-rulebook-5e",
     "livre-de-base",
     "mer-des-griffes",
     "middenheim",
@@ -1459,6 +1460,4235 @@
               0,
               0,
               0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 43,
+      "career": "advanCing ThroUgh YoUr Career",
+      "titresPage": [
+        "CLASS AND CAREERS",
+        "anaTomY of a Career",
+        "CLASSES",
+        "CAREERS",
+        "advanCing ThroUgh YoUr Career"
+      ],
+      "pdfpage": 43,
+      "y": 212,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.6
+          },
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 345.9
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 367
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 493.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 388.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 409.3,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 45,
+      "career": "ADVISER",
+      "titresPage": [
+        "ADVISER"
+      ],
+      "pdfpage": 45,
+      "y": 393.9,
+      "lv": {
+        "1": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 217.9
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 240.6
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 286.1
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 172.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 263.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 195.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 46,
+      "career": "AGITATOR",
+      "titresPage": [
+        "AGITATOR"
+      ],
+      "pdfpage": 46,
+      "y": 393,
+      "lv": {
+        "1": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.4
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 529.9
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 325.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 47,
+      "career": "APOTHECARY",
+      "titresPage": [
+        "APOTHECARY"
+      ],
+      "pdfpage": 47,
+      "y": 403.1,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.7
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.9,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.3,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 48,
+      "career": "ARTISAN",
+      "titresPage": [
+        "ARTISAN"
+      ],
+      "pdfpage": 48,
+      "y": 383,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.8
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.5
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.5
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 529.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 506.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 49,
+      "career": "ARTIST",
+      "titresPage": [
+        "ARTIST"
+      ],
+      "pdfpage": 49,
+      "y": 411,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125.1
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.4
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 215.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 283.8,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.4,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 50,
+      "career": "BAILIFF",
+      "titresPage": [
+        "BAILIFF"
+      ],
+      "pdfpage": 50,
+      "y": 405.5,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.9
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.6
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.7,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 51,
+      "career": "BEGGAR",
+      "titresPage": [
+        "BEGGAR"
+      ],
+      "pdfpage": 51,
+      "y": 395.6,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.7
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.3
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.7
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 52,
+      "career": "BOATMAN",
+      "titresPage": [
+        "BOATMAN"
+      ],
+      "pdfpage": 52,
+      "y": 409.7,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 392.8
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.5
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 415.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 53,
+      "career": "BOUNTY HUNTER",
+      "titresPage": [
+        "BOUNTY HUNTER"
+      ],
+      "pdfpage": 53,
+      "y": 385,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 80
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125.8
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 194.2
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 103,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262.7,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 54,
+      "career": "CAVALRYMAN",
+      "titresPage": [
+        "CAVALRYMAN"
+      ],
+      "pdfpage": 54,
+      "y": 402.6,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.9
+          },
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.8
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.1
+          }
+        ],
+        "2": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 55,
+      "career": "CHARLATAN",
+      "titresPage": [
+        "CHARLATAN"
+      ],
+      "pdfpage": 55,
+      "y": 385.5,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.2
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 215.8
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.4
+          }
+        ],
+        "2": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 56,
+      "career": "COACHMAN",
+      "titresPage": [
+        "COACHMAN"
+      ],
+      "pdfpage": 56,
+      "y": 405.5,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 394.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.8
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 508.3
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 348.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 417,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 531.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 57,
+      "career": "DUELLIST",
+      "titresPage": [
+        "DUELLIST"
+      ],
+      "pdfpage": 57,
+      "y": 426.9,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.4
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.3
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 102,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 124.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.7,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 58,
+      "career": "ENGINEER",
+      "titresPage": [
+        "ENGINEER"
+      ],
+      "pdfpage": 58,
+      "y": 456.6,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.3
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.6
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.4
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 59,
+      "career": "ENTERTAINER",
+      "titresPage": [
+        "ENTERTAINER"
+      ],
+      "pdfpage": 59,
+      "y": 414.7,
+      "lv": {
+        "1": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.6
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.4
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285
+          }
+        ],
+        "2": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 102.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 60,
+      "career": "ENVOY",
+      "titresPage": [
+        "ENVOY"
+      ],
+      "pdfpage": 60,
+      "y": 404.6,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.2
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.4
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.2
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 61,
+      "career": "FENCE",
+      "titresPage": [
+        "FENCE"
+      ],
+      "pdfpage": 61,
+      "y": 407.4,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.8
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.2
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285
+          }
+        ],
+        "2": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 62,
+      "career": "FLAGELLANT",
+      "titresPage": [
+        "FLAGELLANT"
+      ],
+      "pdfpage": 62,
+      "y": 423.3,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 323.9
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 392.4
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 506.5
+          }
+        ],
+        "2": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 369.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 529.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 63,
+      "career": "GRAVE ROBBER",
+      "titresPage": [
+        "GRAVE ROBBER"
+      ],
+      "pdfpage": 63,
+      "y": 423.2,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125.2
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.9
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.7
+          }
+        ],
+        "2": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 64,
+      "career": "GUARD",
+      "titresPage": [
+        "GUARD"
+      ],
+      "pdfpage": 64,
+      "y": 407.3,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.6
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.3
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416
+          }
+        ],
+        "2": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.8,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 65,
+      "career": "HEDGE WITCH",
+      "titresPage": [
+        "HEDGE WITCH"
+      ],
+      "pdfpage": 65,
+      "y": 398.8,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.7
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.3
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.1
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 66,
+      "career": "HERBALIST",
+      "titresPage": [
+        "HERBALIST"
+      ],
+      "pdfpage": 66,
+      "y": 422.2,
+      "lv": {
+        "1": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.1
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.9
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.7
+          }
+        ],
+        "2": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 67,
+      "career": "HUNTER",
+      "titresPage": [
+        "HUNTER"
+      ],
+      "pdfpage": 67,
+      "y": 418.3,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.4
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.2
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.8
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 101.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 68,
+      "career": "INVESTIGATOR",
+      "titresPage": [
+        "INVESTIGATOR"
+      ],
+      "pdfpage": 68,
+      "y": 387,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 415.9
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.7
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.1
+          }
+        ],
+        "2": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.3,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 69,
+      "career": "KNAVE",
+      "titresPage": [
+        "KNAVE"
+      ],
+      "pdfpage": 69,
+      "y": 394.2,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.8
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.2
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285
+          }
+        ],
+        "2": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 70,
+      "career": "KNIGHT",
+      "titresPage": [
+        "KNIGHT"
+      ],
+      "pdfpage": 70,
+      "y": 433.8,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 327.1
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 372.9
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 441.4
+          }
+        ],
+        "2": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 395.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 509.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 532.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 71,
+      "career": "LAWYER",
+      "titresPage": [
+        "LAWYER"
+      ],
+      "pdfpage": 71,
+      "y": 400.7,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.8
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.2
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.4,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 72,
+      "career": "MERCHANT",
+      "titresPage": [
+        "MERCHANT"
+      ],
+      "pdfpage": 72,
+      "y": 404.8,
+      "lv": {
+        "1": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.9
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.5
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.3
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.8,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 73,
+      "career": "MESSENGER",
+      "titresPage": [
+        "MESSENGER"
+      ],
+      "pdfpage": 73,
+      "y": 381.7,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.1
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 169.9
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 192.7
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.2,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 124.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 78.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 74,
+      "career": "MINER",
+      "titresPage": [
+        "MINER"
+      ],
+      "pdfpage": 74,
+      "y": 411.1,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.8
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.6
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.4
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 462.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 75,
+      "career": "MYSTIC",
+      "titresPage": [
+        "MYSTIC"
+      ],
+      "pdfpage": 75,
+      "y": 393.6,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.4
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.6
+          }
+        ],
+        "2": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.8,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 101.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 76,
+      "career": "NOBLE",
+      "titresPage": [
+        "NOBLE"
+      ],
+      "pdfpage": 76,
+      "y": 430,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 325.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.4
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 485,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 77,
+      "career": "NUN",
+      "titresPage": [
+        "NUN"
+      ],
+      "pdfpage": 77,
+      "y": 384.7,
+      "lv": {
+        "1": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 215.8
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.6
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.4
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.4,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 78,
+      "career": "OUTLAW",
+      "titresPage": [
+        "OUTLAW"
+      ],
+      "pdfpage": 78,
+      "y": 394.1,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.7
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.5
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 79,
+      "career": "PEDLAR",
+      "titresPage": [
+        "PEDLAR"
+      ],
+      "pdfpage": 79,
+      "y": 413.8,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 192.9
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.3
+          }
+        ],
+        "2": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 215.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 80,
+      "career": "PHYSICIAN",
+      "titresPage": [
+        "PHYSICIAN"
+      ],
+      "pdfpage": 80,
+      "y": 421.8,
+      "lv": {
+        "1": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.9
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.7
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.4
+          }
+        ],
+        "2": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.4,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 81,
+      "career": "PILOT",
+      "titresPage": [
+        "PILOT"
+      ],
+      "pdfpage": 81,
+      "y": 387.3,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 124.7
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.4
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.2,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 82,
+      "career": "PIT FIGHTER",
+      "titresPage": [
+        "PIT FIGHTER"
+      ],
+      "pdfpage": 82,
+      "y": 382.8,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.7
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.5
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.3
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 83,
+      "career": "PRIEST",
+      "titresPage": [
+        "PRIEST"
+      ],
+      "pdfpage": 83,
+      "y": 402.1,
+      "lv": {
+        "1": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.3
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262.2
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285.1
+          }
+        ],
+        "2": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 84,
+      "career": "PROTAGONIST",
+      "titresPage": [
+        "PROTAGONIST"
+      ],
+      "pdfpage": 84,
+      "y": 408.5,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.6
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.3
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.2
+          }
+        ],
+        "2": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.8,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 85,
+      "career": "RACKETEER",
+      "titresPage": [
+        "RACKETEER"
+      ],
+      "pdfpage": 85,
+      "y": 422.5,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.2
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.8
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.9,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 86,
+      "career": "RAT CATCHER",
+      "titresPage": [
+        "RAT CATCHER"
+      ],
+      "pdfpage": 86,
+      "y": 403.4,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.5
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.5
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 415.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 87,
+      "career": "RIVERWARDEN",
+      "titresPage": [
+        "RIVERWARDEN"
+      ],
+      "pdfpage": 87,
+      "y": 382.5,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.2
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.8
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 102.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 88,
+      "career": "RIVERWOMAN",
+      "titresPage": [
+        "RIVERWOMAN"
+      ],
+      "pdfpage": 88,
+      "y": 396.4,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.8
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.6
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 89,
+      "career": "ROADWARDEN",
+      "titresPage": [
+        "ROADWARDEN"
+      ],
+      "pdfpage": 89,
+      "y": 406.7,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.2
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.8
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 102.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.7,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 90,
+      "career": "SAILOR",
+      "titresPage": [
+        "SAILOR"
+      ],
+      "pdfpage": 90,
+      "y": 397.9,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.5
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 461.8
+          }
+        ],
+        "2": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.6,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 91,
+      "career": "SCHOLAR",
+      "titresPage": [
+        "SCHOLAR"
+      ],
+      "pdfpage": 91,
+      "y": 458.6,
+      "lv": {
+        "1": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.1
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.5,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 147.7,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 92,
+      "career": "SCOUT",
+      "titresPage": [
+        "SCOUT"
+      ],
+      "pdfpage": 92,
+      "y": 412.6,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 398.4
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 421.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 444
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 352.7,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 489.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 466.8,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 93,
+      "career": "SERVANT",
+      "titresPage": [
+        "SERVANT"
+      ],
+      "pdfpage": 93,
+      "y": 398.4,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125.1
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.6
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 94,
+      "career": "SLAYER",
+      "titresPage": [
+        "SLAYER"
+      ],
+      "pdfpage": 94,
+      "y": 406,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.5
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.2
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.1
+          }
+        ],
+        "2": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.7,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 415.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 95,
+      "career": "SMUGGLER",
+      "titresPage": [
+        "SMUGGLER"
+      ],
+      "pdfpage": 95,
+      "y": 397.4,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.4
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.7,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 96,
+      "career": "SOLDIER",
+      "titresPage": [
+        "SOLDIER"
+      ],
+      "pdfpage": 96,
+      "y": 415.4,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.5
+          },
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.4
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.2
+          }
+        ],
+        "2": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 415.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 97,
+      "career": "SPY",
+      "titresPage": [
+        "SPY"
+      ],
+      "pdfpage": 97,
+      "y": 390.6,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.4
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.2,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.9,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 98,
+      "career": "STEVEDORE",
+      "titresPage": [
+        "STEVEDORE"
+      ],
+      "pdfpage": 98,
+      "y": 371,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 369.6
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 392.4
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 438.1
+          }
+        ],
+        "2": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 529.4,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 506.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 99,
+      "career": "THIEF",
+      "titresPage": [
+        "THIEF"
+      ],
+      "pdfpage": 99,
+      "y": 417.6,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 124.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 192.7
+          },
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 215.5
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 169.9,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 238.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 284,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 100,
+      "career": "TOWNSMAN",
+      "titresPage": [
+        "TOWNSMAN"
+      ],
+      "pdfpage": 100,
+      "y": 393.6,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.9
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 485
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.8
+          }
+        ],
+        "2": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 462.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 101,
+      "career": "VILLAGER",
+      "titresPage": [
+        "VILLAGER"
+      ],
+      "pdfpage": 101,
+      "y": 401.8,
+      "lv": {
+        "1": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 126.4
+          },
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 149.2
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 194.8
+          }
+        ],
+        "2": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 217.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 286.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 240.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 102,
+      "career": "WARDEN",
+      "titresPage": [
+        "WARDEN"
+      ],
+      "pdfpage": 102,
+      "y": 384.9,
+      "lv": {
+        "1": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.9
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.8
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 485.2
+          }
+        ],
+        "2": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 325.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.9,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 508,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 103,
+      "career": "WARRIOR PRIEST",
+      "titresPage": [
+        "WARRIOR PRIEST"
+      ],
+      "pdfpage": 103,
+      "y": 385.6,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.5
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262.2
+          },
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285.1
+          }
+        ],
+        "2": [
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 125.2,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148.1,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.9,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 104,
+      "career": "WATCHMAN",
+      "titresPage": [
+        "WATCHMAN"
+      ],
+      "pdfpage": 104,
+      "y": 380.7,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 325
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 370.7
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.3
+          }
+        ],
+        "2": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.1,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.6,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 530.4,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 105,
+      "career": "WITCH",
+      "titresPage": [
+        "WITCH"
+      ],
+      "pdfpage": 105,
+      "y": 393.6,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 171.1
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239.5
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 262.4
+          }
+        ],
+        "2": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 285.2,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.8,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 148.3,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 106,
+      "career": "WITCH HUNTER",
+      "titresPage": [
+        "WITCH HUNTER"
+      ],
+      "pdfpage": 106,
+      "y": 410.6,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 324.7
+          },
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 416.1
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 507.3
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 347.6,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "E",
+            "characteristic": "endurance",
+            "x": 393.2,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 484.5,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 107,
+      "career": "WIZARD",
+      "titresPage": [
+        "WIZARD"
+      ],
+      "pdfpage": 107,
+      "y": 412.6,
+      "lv": {
+        "1": [
+          {
+            "col": "I",
+            "characteristic": "initiative",
+            "x": 170.6
+          },
+          {
+            "col": "Int",
+            "characteristic": "intelligence",
+            "x": 239
+          },
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 261.8
+          }
+        ],
+        "2": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 79.3,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 193.4,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Dex",
+            "characteristic": "dexterite",
+            "x": 216.2,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "book": "core-rulebook-5e",
+      "page": 108,
+      "career": "WRECKER",
+      "titresPage": [
+        "WRECKER"
+      ],
+      "pdfpage": 108,
+      "y": 380.7,
+      "lv": {
+        "1": [
+          {
+            "col": "CC",
+            "characteristic": "capacite-de-combat",
+            "x": 325.6
+          },
+          {
+            "col": "F",
+            "characteristic": "force",
+            "x": 371.3
+          },
+          {
+            "col": "Ag",
+            "characteristic": "agilite",
+            "x": 439.8
+          }
+        ],
+        "2": [
+          {
+            "col": "CT",
+            "characteristic": "capacite-de-tir",
+            "x": 348.5,
+            "teinte": [
+              0.452,
+              0.59,
+              0.283
+            ]
+          }
+        ],
+        "3": [
+          {
+            "col": "FM",
+            "characteristic": "force-mentale",
+            "x": 508.3,
+            "teinte": [
+              0.779,
+              0.785,
+              0.793
+            ]
+          }
+        ],
+        "4": [
+          {
+            "col": "Soc",
+            "characteristic": "sociabilite",
+            "x": 531.1,
+            "teinte": [
+              0.964,
+              0.84,
+              0.216
             ]
           }
         ]

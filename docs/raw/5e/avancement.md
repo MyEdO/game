@@ -111,6 +111,8 @@ Avec l'accord de la GM, changer pour une carrière **de la même Classe** coûte
 
 > « Assuming your GM agrees, you may pay 100 XP to change to a Career within your current Class, or 200 XP to change to a Career in another Class. » — `CRB 048 l.72`
 
+La carrière de cet exemple, *Soldier*, imprime son *Advance Scheme* (`CRB 018 l.3201-3205`) puis ses quatre niveaux, de *Recruit* à *Officer*, chacun avec son statut, ses Compétences, ses Talents et ses dotations (`CRB 018 l.3209-3239`).
+
 ## Training et Unusual Learning — l'hors-carrière payé à un tuteur
 
 *Training* entraîne une Compétence ou une Caractéristique hors carrière : en plus du coût en PX, le tuteur coûte autant de **pennies** que le coût en PX de l'Augmentation, le **double** pour une Compétence avancée (`CRB 048 l.214-216`).

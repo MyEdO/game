@@ -469,6 +469,15 @@
           "page": 398
         },
         "pool": false
+      },
+      {
+        "id": "faucon",
+        "label": "Faucon",
+        "source": {
+          "book": "core-rulebook-5e",
+          "page": 67
+        },
+        "pool": false
       }
     ],
     "desc": "Dressage représente votre compréhension d'un type particulier d'animal, et votre capacité à l'entraîner. Une utilisation réussie de cette Compétence vous permet d'identifier les capacités Dressé possédées par un animal appartenant à votre Spécialisation (voir page 118). La Compétence Dressage permet aussi d'entreprendre l'Activité Dressage entre deux aventures (voir page 197).\n\nEn combat, un Test opposé de Dressage/Force Mentale réussi vous permet d'intimider un seul animal appartenant à votre Spécialisation ; vous instillez la peur chez l'animal ciblé jusqu'à la fin de votre prochain tour (voir page 190). Quand vous insufflez de la peur de cette façon, vous pouvez par la suite utiliser votre Compétence Dressage au lieu de Corps à corps quand vous vous défendez contre votre cible ; avec l'accord du MJ, vous pouvez aussi utiliser Dressage pour attaquer votre cible, en donnant des instructions spécifiques.",
@@ -1797,6 +1806,15 @@
           "book": "mer-des-griffes",
           "page": 127,
           "note": "MDG 14 l.321"
+        },
+        "pool": false
+      },
+      {
+        "id": "rats",
+        "label": "Rats",
+        "source": {
+          "book": "core-rulebook-5e",
+          "page": 86
         },
         "pool": false
       }
