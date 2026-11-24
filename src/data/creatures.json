@@ -76470,14 +76470,16 @@
     ],
     "optionals": [
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "au choix"
       },
       {
         "id": "effraye",
         "arg": "sorcieres"
       },
       {
-        "id": "animosite"
+        "id": "animosite",
+        "arg": "au choix"
       },
       {
         "id": "immunite"
@@ -78624,7 +78626,8 @@
         "id": "elite"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "au choix"
       },
       {
         "id": "lanceur-de-sorts",
@@ -80068,7 +80071,8 @@
         "arg": "fievre-du-rongeur"
       },
       {
-        "id": "haine"
+        "id": "haine",
+        "arg": "au choix"
       },
       {
         "id": "cornes",
@@ -82861,7 +82865,8 @@
         "id": "frenesie"
       },
       {
-        "id": "haine"
+        "id": "haine",
+        "arg": "au choix"
       },
       {
         "id": "haine",
