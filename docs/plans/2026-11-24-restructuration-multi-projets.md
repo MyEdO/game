@@ -41,8 +41,8 @@ quand l'épique #4903 est soldée.
   décision de Clément du 2026-11-06 (citée au `LISEZMOI.md` de l'atelier) l'a admis pour l'atelier, alors hors de
   `main`, tagué « (maison) ».
 - **Irréversible** : aucun dans ce plan, qui passe par branche, PR et file de fusion. Deux gestes de L10 sortent du
-  projet et attendent l'accord de l'utilisateur : republier l'artefact de l'atelier, qui a des utilisateurs hors du
-  dépôt, et le sort de leurs PNJ gardés au format v1 (§ 12).
+  projet : republier l'artefact de l'atelier, qui a des utilisateurs hors du dépôt, attend l'accord de
+  l'utilisateur ; le sort de leurs PNJ gardés au format v1 est tranché (§ 12).
 - **Lecture prise** : « kit uniforme pas encore validé » désigne le kit d'interface des maquettes
   (`hotes/godot/cibles/propositions/kit.md`, « Catalogue (étape 2, à valider) », #4411 puis #4585) ; l'autre lecture,
   le kit de modélisation 3D (#2972, #4422), est couverte au § 8.4. « Intégrer l'atelier » se lit comme pour le
@@ -399,7 +399,7 @@ validation ; ce plan n'y ajoute rien.
 | L7 | Kit d'interface web et polices communs (§ 8.1) | #4585 validé, L6 | comparaison au pixel des maquettes à 0 ; images du roguelite identiques à sa référence du L6 ; plus aucune copie du kit hors de sa source |
 | L8 | L'affichage `pions`, extrait du roguelite (§ 8.2) | L5 ; il se fait dans son deuxième consommateur, le premier venu : L11 ou le premier lot du jeu de stratégie | le roguelite et ce consommateur composent `hotes/pions/` ; aucun vocabulaire d'apparence en chaînes littérales dans son API |
 | L9 | Créer un projet : le geste outillé (§ 7) | L2, L4, premier projet neuf | ce projet naît par lui |
-| L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; les PNJ v1 de ses utilisateurs selon la décision du § 12 ; les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) cèdent au bestiaire du jeu, ce qui manque au catalogue va à #3740 ou à un ticket (« Secousse Tellurique ») ; l'exception du *Bestiaire non officiel* inscrite à `AGENTS.md` (§ 9.2) ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
+| L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; le convertisseur daté des PNJ v1 de ses utilisateurs, à part de l'atelier (§ 12) ; les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) cèdent au bestiaire du jeu, ce qui manque au catalogue va à #3740 ou à un ticket (« Secousse Tellurique ») ; l'exception du *Bestiaire non officiel* inscrite à `AGENTS.md` (§ 9.2) ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
 | L11 | Lancer une rencontre de l'atelier (§ 9.2) : le combat de `pions` prend la rencontre dans la forme du schéma, en deux camps ; l'atelier compose et lance ; une rencontre qui contient du *Bestiaire non officiel* est refusée par sa provenance ; L8 s'y fait s'il n'est pas fait | L5, L10 | une rencontre de l'atelier (PNJ de carrière, statbloc, deux camps, sans héros) se joue jusqu'à son issue et se rejoue, en test du projet ; le roguelite joue un ennemi de carrière par la même couture ; une rencontre qui contient un PNJ du *Bestiaire non officiel* est refusée, sa provenance nommée |
 
 L2 se fait sur la branche du roguelite avec le fil qui tient #4767, par courrier ; L10 part de la branche de #3633,
@@ -447,10 +447,11 @@ rencontres par l'affichage `pions` (L11). Elle lève le statut « hors du jeu »
 Elle emporte le contenu de l'atelier tel que la décision de Clément du 2026-11-06 l'a admis : le *Bestiaire non
 officiel* y reste, sous l'exception que L10 inscrit à `AGENTS.md`.
 
-En attente de l'utilisateur, avant L10 : carte du 2026-11-24, « Convertir les PNJ déjà gardés par les utilisateurs
-de l'atelier au nouveau format ? ». Options : « Convertir une fois » (un convertisseur daté, à part de l'atelier,
-passe un export v1 au nouveau format puis se retire ; recommandée), « Repartir de zéro », « Garder l'ancienne page
-en ligne ». Le choix s'inscrit ici, avec sa date.
+Carte de décision du 2026-11-24, question « Convertir les PNJ déjà gardés par les utilisateurs de l'atelier au
+nouveau format ? » ; laurent a choisi « Convertir une fois », dont la conséquence affichée était : « Un convertisseur
+daté, à part de l'atelier, passe un export v1 au nouveau format puis se retire ; l'atelier ne lit que le nouveau. »
+Les options écartées étaient « Repartir de zéro » et « Garder l'ancienne page en ligne ». L10 livre ce convertisseur
+et annonce sa date de retrait avec la republication de l'artefact.
 
 ## 13. Hors périmètre
 
